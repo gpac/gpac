@@ -1190,8 +1190,16 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 GF_EXPORT
 GF_Err gf_filter_pid_set_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
 {
+	GF_Err e;
 	if (!prop_4cc) return GF_BAD_PARAM;
-	return gf_filter_pid_set_property_full(pid, prop_4cc, NULL, NULL, value, GF_FALSE);
+	e = gf_filter_pid_set_property_full(pid, prop_4cc, NULL, NULL, value, GF_FALSE);
+
+	if (value && (prop_4cc == GF_PROP_PID_ID)) {
+		char szName[100];
+		sprintf(szName, "PID%d", value->value.uint);
+		gf_filter_pid_set_name(pid, szName);
+	}
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -1342,6 +1350,8 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for source pid in filter %s, ignoring merge\n", src_pid->filter->name));
 		return GF_OK;
 	}
+	if (src_pid->name) gf_filter_pid_set_name(dst_pid, src_pid->name);
+	
 	gf_props_reset(dst_props);
 	return gf_props_merge_property(dst_props, src_props, NULL, NULL);
 }

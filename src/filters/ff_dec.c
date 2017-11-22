@@ -500,7 +500,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 				diff /= ffdec->sample_rate;
 			}
 		}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] out PTS "LLU"\n", pts));
+//	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] out PTS "LLU"\n", pts));
 		gf_filter_pck_set_cts(dst_pck, pts);
 	}
 
@@ -625,7 +625,13 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 	case GPAC_OTI_VIDEO_MPEG4_PART2: return CODEC_ID_MPEG4;
 	case GPAC_OTI_VIDEO_AVC: return CODEC_ID_H264;
 	case GPAC_OTI_VIDEO_MPEG1: return CODEC_ID_MPEG1VIDEO;
-	case GPAC_OTI_VIDEO_MPEG2_MAIN: return CODEC_ID_MPEG2VIDEO;
+	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+	case GPAC_OTI_VIDEO_MPEG2_MAIN:
+	case GPAC_OTI_VIDEO_MPEG2_HIGH:
+	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+	case GPAC_OTI_VIDEO_MPEG2_SNR:
+	case GPAC_OTI_VIDEO_MPEG2_422:
+			return CODEC_ID_MPEG2VIDEO;
 	case GPAC_OTI_VIDEO_H263: return CODEC_ID_H263;
 	case GPAC_OTI_IMAGE_JPEG: return CODEC_ID_MJPEG;
 	case GPAC_OTI_IMAGE_PNG: return CODEC_ID_PNG;
@@ -774,8 +780,6 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ffdec->out_pid) {
 		gf_filter_pid_copy_properties(ffdec->out_pid, ffdec->in_pid);
 		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
-
-		gf_filter_pid_set_name(ffdec->out_pid, gf_filter_pid_get_name(ffdec->in_pid) );
 	}
 
 	if (type==GF_STREAM_VISUAL) {

@@ -47,7 +47,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	GF_BitStream *bs;
-	u64 cts, dts;
+	u64 cts, dts, prev_dts;
 	u32 width, height;
 	GF_Fraction duration;
 	Double start_range;
@@ -73,6 +73,8 @@ typedef struct
 	Bool is_file, file_loaded;
 	Bool initial_play_done;
 
+	Bool input_is_au_start;
+
 	MPGVidIdx *indexes;
 	u32 index_alloc_size, index_size;
 } GF_MPGVidDmxCtx;
@@ -86,7 +88,7 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -94,7 +96,10 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	if (p) ctx->timescale = p->value.uint;
+	if (p) {
+		ctx->timescale = ctx->fps.num = p->value.uint;
+		ctx->fps.den = 0;
+	}
 
 	was_mpeg12 = ctx->is_mpg12;
 
@@ -206,9 +211,6 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 
 static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket *pck, Bool flush_ref)
 {
-	if (ctx->timescale) {
-		gf_filter_pck_send(pck);
-	}
 	//TODO: we are dispacthing frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
 	if (flush_ref && ctx->pck_queue) {
@@ -216,21 +218,27 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 		u32 i, count = gf_list_count(ctx->pck_queue);
 		for (i=0; i<count; i++) {
 			u64 cts;
-			GF_FilterPacket *pck = gf_list_get(ctx->pck_queue, i);
-			cts = gf_filter_pck_get_cts(pck);
+			GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
+			u8 carousel = gf_filter_pck_get_carousel_version(q_pck);
+			if (!carousel) {
+				gf_filter_pck_send(q_pck);
+				continue;
+			}
+			gf_filter_pck_set_carousel_version(q_pck, 0);
+			cts = gf_filter_pck_get_cts(q_pck);
 			if (cts != GF_FILTER_NO_TS) {
 				//offset the cts of the ref frame to the number of B frames inbetween
 				if (ctx->last_ref_cts == cts) {
 					cts += ctx->b_frames * ctx->fps.den;
-					gf_filter_pck_set_cts(pck, cts);
+					gf_filter_pck_set_cts(q_pck, cts);
 				} else {
 					//shift all other frames (i.e. pending Bs) by 1 frame in the past since we move the ref frame after them
 					assert(cts >= ctx->fps.den);
 					cts -= ctx->fps.den;
-					gf_filter_pck_set_cts(pck, cts);
+					gf_filter_pck_set_cts(q_pck, cts);
 				}
 			}
-			gf_filter_pck_send(pck);
+			gf_filter_pck_send(q_pck);
 		}
 		gf_list_reset(ctx->pck_queue);
 	}
@@ -248,6 +256,7 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 
 		mpgviddmx_check_dur(filter, ctx);
 	}
@@ -361,15 +370,13 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 static GFINLINE void mpgviddmx_update_time(GF_MPGVidDmxCtx *ctx)
 {
 	assert(ctx->fps.num);
-	assert(ctx->fps.den);
 
 	if (ctx->timescale) {
-		u64 inc = ctx->fps.den;
-		inc *= ctx->timescale;
-		inc /= ctx->fps.num;
+		u64 inc = ctx->fps.den ? ctx->fps.den : 3000;
 		ctx->cts += inc;
 		ctx->dts += inc;
 	} else {
+		assert(ctx->fps.den);
 		ctx->cts += ctx->fps.den;
 		ctx->dts += ctx->fps.den;
 	}
@@ -444,8 +451,18 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ts != GF_FILTER_NO_TS)
 			ctx->cts = ts;
 		ts = gf_filter_pck_get_dts(pck);
-		if (ts != GF_FILTER_NO_TS)
+		if (ts != GF_FILTER_NO_TS) {
 			ctx->dts = ts;
+			if (!ctx->prev_dts) ctx->prev_dts = ts;
+			else if (ctx->prev_dts != ts) {
+				u64 diff = ts;
+				diff -= ctx->prev_dts;
+				if (!ctx->fps.den) ctx->fps.den = diff;
+				else if (ctx->fps.den > diff)
+					ctx->fps.den = diff;
+			}
+		}
+		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, NULL);
 	}
 
 	//we stored some data to find the complete vosh, aggregate this packet with current one
@@ -838,6 +855,12 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, full_frame);
 		gf_filter_pck_set_cts(dst_pck, ctx->cts);
 		gf_filter_pck_set_dts(dst_pck, ctx->dts);
+		if (ctx->input_is_au_start) {
+			ctx->input_is_au_start = GF_FALSE;
+		} else {
+			//we use the carrousel flag temporarly to indicate the cts must be recomputed
+			gf_filter_pck_set_carousel_version(dst_pck, 1);
+		}
 		gf_filter_pck_set_sap(dst_pck, ftype ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
 		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);

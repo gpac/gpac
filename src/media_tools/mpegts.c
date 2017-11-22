@@ -474,101 +474,7 @@ static u32 gf_m2ts_reframe_hevc(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same
 	return gf_m2ts_reframe_nalu_video(ts, pes, same_pts, data, data_len, pes_hdr, 1);
 }
 
-static u32 gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
-{
-	u32 sc_pos = 0;
-	u32 to_send = data_len;
-	GF_M2TS_PES_PCK pck;
 
-	/*dispatch frame*/
-	pck.stream = pes;
-	pck.DTS = pes->DTS;
-	pck.PTS = pes->PTS;
-	pck.flags = 0;
-
-	while (sc_pos+4<data_len) {
-		unsigned char *start = (unsigned char*)memchr(data+sc_pos, 0, data_len-sc_pos);
-		if (!start) break;
-		sc_pos = (u32) (start - (unsigned char*)data);
-
-		/*found picture or sequence start_code*/
-		if (!start[1] && (start[2]==0x01)) {
-			if (!start[3] || (start[3]==0xb3) || (start[3]==0xb8)) {
-				Bool new_au;
-				if (sc_pos) {
-					pck.data = (char *)data;
-					pck.data_len = sc_pos;
-					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-					pck.flags = 0;
-					data += sc_pos;
-					data_len -= sc_pos;
-					to_send -= sc_pos;
-					sc_pos = 0;
-				}
-				new_au = 1;
-				/*if prev was GOP/SEQ start, this is not a new AU*/
-				if (pes->frame_state)
-					new_au = 0;
-				pes->frame_state = data[3];
-				if (new_au) {
-					pck.flags = GF_M2TS_PES_PCK_AU_START;
-					if (pes->rap)
-						pck.flags |= GF_M2TS_PES_PCK_RAP;
-				}
-
-				if (!pes->vid_h && (pes->frame_state==0xb3)) {
-					u32 den, num;
-					unsigned char *p = data+4;
-					pes->vid_w = (p[0] << 4) | ((p[1] >> 4) & 0xf);
-					pes->vid_h = ((p[1] & 0xf) << 8) | p[2];
-					pes->vid_par = (p[3] >> 4) & 0xf;
-
-					switch (pes->vid_par) {
-					case 2:
-						num = 4;
-						den = 3;
-						break;
-					case 3:
-						num = 16;
-						den = 9;
-						break;
-					case 4:
-						num = 221;
-						den = 100;
-						break;
-					default:
-						pes->vid_par = 0;
-						den = num = 0;
-						break;
-					}
-					if (den)
-						pes->vid_par = ((pes->vid_h/den)<<16) | (pes->vid_w/num);
-					break;
-				}
-				if (pes->frame_state==0x00) {
-					switch ((data[5] >> 3) & 0x7) {
-					case 1:
-						pck.flags |= GF_M2TS_PES_PCK_I_FRAME;
-						break;
-					case 2:
-						pck.flags |= GF_M2TS_PES_PCK_P_FRAME;
-						break;
-					case 3:
-						pck.flags |= GF_M2TS_PES_PCK_B_FRAME;
-						break;
-					}
-				}
-			}
-			sc_pos+=3;
-		}
-		sc_pos++;
-	}
-	pck.data = (char *)data;
-	pck.data_len = data_len;
-	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-	/*we consumed all data*/
-	return 0;
-}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
@@ -763,103 +669,6 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	return 0;
 }
 #endif
-
-
-#ifndef GPAC_DISABLE_AV_PARSERS
-static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
-{
-	GF_M2TS_PES_PCK pck;
-	u32 pos, frame_size, remain;
-	u64 PTS;
-	u32 next_hdr = 0;
-
-	pck.flags = GF_M2TS_PES_PCK_RAP;
-	pck.stream = pes;
-	remain = pes->frame_state;
-	PTS = pes->PTS;
-
-	/*check we don't find a sync point within what we should flush - this happens with looping TS streams and other nasty scenarii*/
-	next_hdr = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
-	if (next_hdr && remain && (pos<remain) ) {
-		//only resync if the frame header matches our current config, otherwise this is likely an emulated header
-		if ((pes->aud_sr == gf_mp3_sampling_rate(pes->frame_state) )
-		        && (pes->aud_nb_ch == gf_mp3_num_channels(pes->frame_state))
-		   ) {
-			remain = pos;
-		}
-	}
-
-	if (remain) {
-		/*dispatch end of prev frame*/
-		pck.DTS = pck.PTS = PTS;
-		pck.data = (char *)data;
-		pck.data_len = (remain>data_len) ? data_len : remain;
-		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		if (remain>data_len) {
-			pes->frame_state = remain - data_len;
-			/*we consumed all data*/
-			return 0;
-		}
-		data += remain;
-		data_len -= remain;
-	}
-
-	pes->frame_state = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
-	if (!pes->frame_state) {
-		/*we did not consumed all data*/
-		return data_len;
-	}
-	assert((pes->frame_state & 0xffe00000) == 0xffe00000);
-
-	if (!pes->aud_sr || !pes->aud_nb_ch) {
-		pes->aud_sr = gf_mp3_sampling_rate(pes->frame_state);
-		pes->aud_nb_ch = gf_mp3_num_channels(pes->frame_state);
-	}
-	pck.flags = GF_M2TS_PES_PCK_RAP | GF_M2TS_PES_PCK_AU_START;
-
-	frame_size = gf_mp3_frame_size(pes->frame_state);
-	while (frame_size <= data_len) {
-		/*dispatch frame*/
-		pck.DTS = pck.PTS = PTS;
-		pck.data = (char *)data;
-		pck.data_len = frame_size;
-		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-
-		PTS += gf_mp3_window_size(pes->frame_state)*90000/gf_mp3_sampling_rate(pes->frame_state);
-		/*move frame*/
-		data += frame_size;
-		data_len -= frame_size;
-		if (!data_len) break;
-		pes->frame_state = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
-		/*resync (ID3 or error)*/
-		if (!pes->frame_state) {
-			/*we did not consumed all data*/
-			return data_len;
-		}
-		/*resync (ID3 or error)*/
-		if (pos) {
-			data_len -= pos;
-			data += pos;
-		}
-		frame_size = gf_mp3_frame_size(pes->frame_state);
-	}
-	if (data_len) {
-		pck.DTS = pck.PTS = PTS;
-		pck.data = (char *)data;
-		pck.data_len = data_len;
-		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		/*update PTS in case we don't get any update*/
-		pes->PTS += gf_mp3_window_size(pes->frame_state)*90000/gf_mp3_sampling_rate(pes->frame_state);
-		pes->frame_state = frame_size - data_len;
-	} else  {
-		pes->frame_state = 0;
-	}
-	/*we consumed all data*/
-	return 0;
-}
-
-#endif /*GPAC_DISABLE_AV_PARSERS*/
-
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 static u32 gf_m2ts_reframe_ac3(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
@@ -3440,7 +3249,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		switch (pes->stream_type) {
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
-			pes->reframe = gf_m2ts_reframe_mpeg_video;
+//			pes->reframe = gf_m2ts_reframe_mpeg_video;
+			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_VIDEO_H264:
 		case GF_M2TS_VIDEO_SVC:
@@ -3459,7 +3269,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
-			pes->reframe = gf_m2ts_reframe_mpeg_audio;
+//			pes->reframe = gf_m2ts_reframe_mpeg_audio;
+			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_AUDIO_AAC:
 			pes->reframe = gf_m2ts_reframe_default;

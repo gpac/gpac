@@ -288,6 +288,12 @@ struct __gf_media_session
 	GF_FilterSessionCaps caps;
 };
 
+typedef enum
+{
+	GF_FILTER_ARG_LOCAL = 0,
+	GF_FILTER_ARG_GLOBAL,
+	GF_FILTER_ARG_GLOBAL_SOURCE,
+} GF_FilterArgType;
 
 struct __gf_filter
 {
@@ -310,6 +316,8 @@ struct __gf_filter
 
 	//const pointer to the argument string
 	const char *orig_args;
+	//remember how the args were set, either by explicit loading of filters or during filter chain
+	GF_FilterArgType arg_type;
 	//allocated pointer to the argument string for source filters
 	char *src_args;
 
@@ -406,13 +414,6 @@ struct __gf_filter
 	u32 next_clock_dispatch_timescale;
 	GF_FilterClockType next_clock_dispatch_type;
 };
-
-typedef enum
-{
-	GF_FILTER_ARG_LOCAL = 0,
-	GF_FILTER_ARG_GLOBAL,
-	GF_FILTER_ARG_GLOBAL_SOURCE,
-} GF_FilterArgType;
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_FilterArgType arg_type, GF_Err *err);
 GF_Filter *gf_filter_clone(GF_Filter *filter);
