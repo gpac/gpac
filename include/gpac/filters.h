@@ -488,6 +488,7 @@ GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF
 //one packet to another
 typedef Bool (*gf_filter_prop_filter)(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop);
 
+//merge properties of SRC into dst, does NOT reset dst properties
 GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst);
 GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst, gf_filter_prop_filter filter_prop, void *cbk);
 const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc);
@@ -632,6 +633,10 @@ enum
 	GF_PROP_PID_SAR = GF_4CC('P','S','A','R'),
 	//(fraction) picture aspect ratio
 	GF_PROP_PID_PAR = GF_4CC('V','P','A','R'),
+	//(uint) max frame width of all enhancement layers
+	GF_PROP_PID_WIDTH_MAX = GF_4CC('M', 'W','I','D'),
+	//(uint) max frame height of all enhancement layers
+	GF_PROP_PID_HEIGHT_MAX = GF_4CC('M', 'H','E','I'),
 	//(uint) average bitrate
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 	//(bool) data ref is possible

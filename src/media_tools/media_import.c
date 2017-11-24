@@ -113,16 +113,9 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	u32 i, count, timescale, db_size;
 	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
 	Double br;
-	GF_ESD *esd;
 	GF_ISOSample sample;
 	db_size = 0;
 
-	esd = gf_isom_get_esd(file, track, 1);
-	if (esd) {
-		db_size = esd->decoderConfig->bufferSizeDB;
-		esd->decoderConfig->avgBitrate = 0;
-		esd->decoderConfig->maxBitrate = 0;
-	}
 	rate = max_rate = avg_rate = time_wnd = 0;
 
 	memset(&sample, 0, sizeof(GF_ISOSample));
@@ -151,15 +144,7 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	max_rate *= 8;
 
 	/*move to bps*/
-	if (esd) {
-		esd->decoderConfig->avgBitrate = (u32) bitrate;
-		esd->decoderConfig->maxBitrate = (u32) max_rate;
-		esd->decoderConfig->bufferSizeDB = db_size;
-		gf_isom_change_mpeg4_description(file, track, 1, esd);
-		gf_odf_desc_del((GF_Descriptor *)esd);
-	} else {
-		gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
-	}
+	gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
 
 #endif
 }
@@ -4845,6 +4830,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_USE_DATAREF) strcat(szArgs, ":dref");
 		if (importer->flags & GF_IMPORT_NO_EDIT_LIST) strcat(szArgs, ":noedit");
 		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":pack_nal");
+		if (importer->flags & GF_IMPORT_FORCE_XPS_INBAND) strcat(szArgs, ":xps_inband=1");
 
 		if (importer->duration) {
 			sprintf(szSubArg, ":dur=%d/1000", importer->duration);
@@ -4868,7 +4854,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_PS_IMPLICIT) strcat(szArgs, ":ps=imp");
 		else if (importer->flags & GF_IMPORT_PS_EXPLICIT) strcat(szArgs, ":ps=exp");
 		if (importer->flags & GF_IMPORT_OVSBR) strcat(szArgs, ":ovsbr");
+		//avoids message at end of import
 		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":nal_length=0");
+		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) strcat(szArgs, ":subsamples");
+
 
 		gf_fs_load_source(fsess, importer->in_name, szArgs, NULL, &e);
 		if (e) {

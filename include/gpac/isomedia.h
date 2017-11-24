@@ -1388,6 +1388,9 @@ GF_Err gf_isom_add_track_to_root_od(GF_ISOFile *the_file, u32 trackNumber);
 /*remove a track to the root OD*/
 GF_Err gf_isom_remove_track_from_root_od(GF_ISOFile *the_file, u32 trackNumber);
 
+/*removes the stream descritpion with the given index - this does not remove any added samples for that stream description !!*/
+GF_Err gf_isom_remove_stream_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex);
+
 /*Create a new StreamDescription (GF_ESD) in the file. The URL and URN are used to
 describe external media, this will creat a data reference for the media*/
 GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *the_file, u32 trackNumber, GF_ESD *esd, char *URLname, char *URNname, u32 *outDescriptionIndex);
