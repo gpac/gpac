@@ -53,6 +53,8 @@ typedef struct
 	u64 ts_shift;
 
 	Bool is_3gpp;
+	Bool has_open_gop;
+	Bool has_gdr;
 
 	Bool next_is_first_sample;
 
@@ -867,6 +869,21 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		tkw->nb_samples++;
 		tkw->samples_in_stsd++;
 
+		if (sap_type==3) {
+			e = gf_isom_set_sample_rap_group(ctx->mov, tkw->track_num, tkw->nb_samples, 0);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+			}
+			tkw->has_open_gop = GF_TRUE;
+		} else if (sap_type==4) {
+			s16 roll = gf_filter_pck_get_roll_info(pck);
+			e = gf_isom_set_sample_roll_group(ctx->mov, tkw->track_num, tkw->nb_samples, roll);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 4 roll %s in roll group: %s\n", tkw->sample.DTS, roll, gf_error_to_string(e) ));
+			}
+			tkw->has_gdr = GF_TRUE;
+		}
+
 		if (subs) {
 			if (!ctx->bs_r) ctx->bs_r = gf_bs_new(subs->value.data.ptr, subs->value.data.size, GF_BITSTREAM_READ);
 			else gf_bs_reassign_buffer(ctx->bs_r, subs->value.data.ptr, subs->value.data.size);
@@ -1041,6 +1058,10 @@ static void mp4_mux_finalize(GF_Filter *filter)
 		if (!tkw->is_3gpp)
 			gf_media_update_bitrate(ctx->mov, tkw->track_num);
 
+		if (tkw->has_open_gop) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand" ));
+			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_ISO6, 1);
+		}
 
 		if (is_nalu && ctx->pack_nal && (gf_isom_get_mode(ctx->mov)!=GF_ISOM_OPEN_WRITE)) {
 

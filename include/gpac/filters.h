@@ -540,9 +540,11 @@ Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek);
 Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck);
 
-
 GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset);
 u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck);
+
+GF_Err gf_filter_pck_set_roll_info(GF_FilterPacket *pck, s16 roll_count);
+s16 gf_filter_pck_get_roll_info(GF_FilterPacket *pck);
 
 typedef enum
 {

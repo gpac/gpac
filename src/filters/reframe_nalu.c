@@ -801,6 +801,21 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISOBMFF conformant\n", ctx->log_name));
 		}
 	}
+	/*set roll info sampleGroups info*/
+	else if (!ctx->au_is_rap && ( (ctx->sei_recovery_frame_count >= 0) || ctx->has_islice) ) {
+		/*generic GDR*/
+		if (ctx->sei_recovery_frame_count > 0) {
+			if (!ctx->use_opengop_gdr) ctx->use_opengop_gdr = 1;
+			gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_4);
+			gf_filter_pck_set_roll_info(ctx->first_pck_in_au, ctx->sei_recovery_frame_count);
+		}
+		/*open-GOP*/
+		else if ((ctx->sei_recovery_frame_count == 0) && ctx->has_islice) {
+			if (!ctx->use_opengop_gdr) ctx->use_opengop_gdr = 2;
+			gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_3);
+		}
+	}
+
 	//if TS is set, the packet was the first in AU in the input timed packet (eg PES), we reuse the input timing
 	ts = gf_filter_pck_get_cts(ctx->first_pck_in_au);
 	if (ts == GF_FILTER_NO_TS) {
@@ -817,6 +832,7 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		gf_filter_pck_set_property(ctx->first_pck_in_au, GF_PROP_PCK_SUBS, &PROP_DATA(ctx->subsamp_buffer, ctx->subsamp_buffer_size) );
 		ctx->subsamp_buffer_size = 0;
 	}
+
 	//if we reuse input packets timing, we can dispatch asap.
 	//otherwise if poc probe is done (we now the min_poc_diff between images) and we are not in struct mode, dispatch asap
 	//otherwise we will need to wait for the next ref frame to make sure we know all pocs ...

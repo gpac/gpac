@@ -854,6 +854,7 @@ u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck)
 	//get true packet pointer
 	return pck->pck->pid_props->timescale ? pck->pck->pid_props->timescale : 1000;
 }
+
 GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, GF_FilterSAPType sap_type)
 {
 	PCK_SETTER_CHECK("SAP")
@@ -866,6 +867,21 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 	//get true packet pointer
 	return (GF_FilterSAPType) pck->pck->info.sap_type;
 }
+
+GF_Err gf_filter_pck_set_roll_info(GF_FilterPacket *pck, s16 roll_count)
+{
+	PCK_SETTER_CHECK("ROLL")
+	pck->info.roll = roll_count;
+	return GF_OK;
+}
+s16 gf_filter_pck_get_roll_info(GF_FilterPacket *pck)
+{
+	assert(pck);
+	//get true packet pointer
+	return pck->pck->info.roll;
+}
+
+
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced)
 {
 	PCK_SETTER_CHECK("interlaced")
