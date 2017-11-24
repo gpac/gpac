@@ -3135,6 +3135,7 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 	if ((hdr & 0x1F) != GF_AVC_NALU_SEI) return 0;
 
 	/*PPS still contains emulation bytes*/
+
 	sei_without_emulation_bytes = gf_malloc(nal_size + 1/*for SEI null string termination*/);
 	sei_without_emulation_bytes_size = avc_remove_emulation_bytes(buffer, sei_without_emulation_bytes, nal_size);
 

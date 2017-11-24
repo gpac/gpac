@@ -1141,7 +1141,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		fputs("SequenceParameterSet", dump);
 		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 0, NULL);
 		assert (idx >= 0);
-		fprintf(dump, "\" sps_id=\"%d", idx);
+		if (idx<0) fprintf(dump, "\" sps_id=\"PARSING FAILURE");
+		else fprintf(dump, "\" sps_id=\"%d", idx);
 		fprintf(dump, "\" frame_mbs_only_flag=\"%d", avc->sps->frame_mbs_only_flag);
 		fprintf(dump, "\" mb_adaptive_frame_field_flag=\"%d", avc->sps->mb_adaptive_frame_field_flag);
 		fprintf(dump, "\" vui_parameters_present_flag=\"%d", avc->sps->vui_parameters_present_flag);
@@ -1173,8 +1174,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	case GF_AVC_NALU_PIC_PARAM:
 		fputs("PictureParameterSet", dump);
 		idx = gf_media_avc_read_pps(ptr, ptr_size, avc);
-		assert (idx >= 0);
-		fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
+		if (idx<0) fprintf(dump, "\" pps_id=\"PARSING FAILURE\" ");
+		else fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
 		fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
 
 		break;

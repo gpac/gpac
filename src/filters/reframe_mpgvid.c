@@ -754,6 +754,13 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			continue;
 		}
 
+		if (!ctx->opid) {
+			assert(remain>=4);
+			start += 4;
+			remain -= 4;
+			continue;
+		}
+
 		if (!ctx->is_playing) {
 			ctx->resume_from = (char *)start -  (char *)data;
 			return GF_OK;

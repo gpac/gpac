@@ -865,9 +865,11 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 
 static void merge_avc_config(GF_AVCConfig *dst_cfg, GF_AVCConfig *src_cfg)
 {
-	GF_AVCConfig *cfg = AVC_DuplicateConfig(src_cfg);
-	if (!cfg || !dst_cfg) return;
-
+	GF_AVCConfig *cfg;
+	if (!src_cfg || !dst_cfg) return;
+	cfg = AVC_DuplicateConfig(src_cfg);
+	if (!cfg) return;
+	
 	while (gf_list_count(cfg->sequenceParameterSets)) {
 		GF_AVCConfigSlot *p = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
@@ -1208,6 +1210,7 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 {
 	GF_TrackBox *trak;
 	GF_Err e;
+	u32 i;
 	GF_MPEGVisualSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
@@ -1262,27 +1265,33 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 		if (!entry->avc_config || !entry->avc_config->config)
 			return GF_BAD_PARAM;
 
-		if (entry->svc_config) {
-			gf_isom_box_del((GF_Box*)entry->svc_config);
-			entry->svc_config = NULL;
-		}
-		if (entry->mvc_config) {
-			gf_isom_box_del((GF_Box*)entry->mvc_config);
-			entry->mvc_config = NULL;
-		}
+		for (i=0; i<3; i++) {
+			GF_AVCConfigurationBox *cfg = entry->avc_config;
+			if (i==1) cfg = entry->svc_config;
+			else if (i==2) cfg = entry->mvc_config;
+			if (!cfg) continue;
 
-		while (gf_list_count(entry->avc_config->config->sequenceParameterSets)) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(entry->avc_config->config->sequenceParameterSets, 0);
-			gf_list_rem(entry->avc_config->config->sequenceParameterSets, 0);
-			if (sl->data) gf_free(sl->data);
-			gf_free(sl);
-		}
 
-		while (gf_list_count(entry->avc_config->config->pictureParameterSets)) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(entry->avc_config->config->pictureParameterSets, 0);
-			gf_list_rem(entry->avc_config->config->pictureParameterSets, 0);
-			if (sl->data) gf_free(sl->data);
-			gf_free(sl);
+			while (gf_list_count(cfg->config->sequenceParameterSets)) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSets, 0);
+				gf_list_rem(cfg->config->sequenceParameterSets, 0);
+				if (sl->data) gf_free(sl->data);
+				gf_free(sl);
+			}
+
+			while (gf_list_count(cfg->config->pictureParameterSets)) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->pictureParameterSets, 0);
+				gf_list_rem(cfg->config->pictureParameterSets, 0);
+				if (sl->data) gf_free(sl->data);
+				gf_free(sl);
+			}
+
+			while (gf_list_count(cfg->config->sequenceParameterSetExtensions)) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSetExtensions, 0);
+				gf_list_rem(cfg->config->sequenceParameterSetExtensions, 0);
+				if (sl->data) gf_free(sl->data);
+				gf_free(sl);
+			}
 		}
 
 		if (entry->type == GF_ISOM_BOX_TYPE_AVC1)

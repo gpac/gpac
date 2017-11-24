@@ -39,7 +39,7 @@ typedef struct
 	u32 timescale;
 	u32 stream_type;
 	u32 oti;
-	u32 cfg_crc;
+	u32 cfg_crc, enh_cfg_crc;
 	u32 dep_id;
 	u32 stsd_idx;
 
@@ -48,7 +48,7 @@ typedef struct
 	Bool has_append;
 	Bool has_ctts;
 	s64 min_neg_ctts;
-	u32 nb_samples;
+	u32 nb_samples, samples_in_stsd;
 	u32 nb_frames_per_sample;
 	u64 ts_shift;
 
@@ -58,6 +58,12 @@ typedef struct
 
 	u32 media_profile_level;
 
+	Bool import_msg_header_done;
+
+	GF_AVCConfig *avcc, *svcc;
+
+	char *inband_hdr;
+	u32 inband_hdr_size;
 } TrackWriter;
 
 typedef struct
@@ -71,6 +77,7 @@ typedef struct
 	Bool importer;
 	Bool noedit;
 	Bool pack_nal;
+	u32 xps_inband;
 
 
 	//internal
@@ -111,6 +118,45 @@ static u32 gf_isom_stream_type_to_media_type(u32 stream_type, u32 oti)
 	return 0;
 }
 
+static void mp4_mux_write_ps_list(GF_BitStream *bs, GF_List *list, u32 nalu_size_length)
+{
+	u32 i, count = gf_list_count(list);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *sl = gf_list_get(list, i);
+		gf_bs_write_int(bs, sl->size, 8*nalu_size_length);
+		gf_bs_write_data(bs, sl->data, sl->size);
+	}
+}
+
+static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+{
+	GF_BitStream *bs;
+	if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	if (tkw->avcc)
+		mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSets, tkw->avcc->nal_unit_size);
+
+	if (tkw->svcc)
+		mp4_mux_write_ps_list(bs, tkw->svcc->sequenceParameterSets, tkw->svcc->nal_unit_size);
+
+	if (tkw->avcc && tkw->avcc->sequenceParameterSetExtensions)
+		mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSetExtensions, tkw->avcc->nal_unit_size);
+
+	if (tkw->svcc && tkw->svcc->sequenceParameterSetExtensions)
+		mp4_mux_write_ps_list(bs, tkw->svcc->sequenceParameterSetExtensions, tkw->svcc->nal_unit_size);
+
+	if (tkw->avcc)
+		mp4_mux_write_ps_list(bs, tkw->avcc->pictureParameterSets, tkw->avcc->nal_unit_size);
+
+	if (tkw->svcc)
+		mp4_mux_write_ps_list(bs, tkw->svcc->pictureParameterSets, tkw->svcc->nal_unit_size);
+
+	tkw->inband_hdr=NULL;
+	gf_bs_get_content(bs, &tkw->inband_hdr, &tkw->inband_hdr_size);
+	gf_bs_del(bs);
+}
 
 GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -120,7 +166,9 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	Bool use_gen_sample_entry = GF_FALSE;
 	Bool use_3gpp_config = GF_FALSE;
 	Bool use_ac3_entry = GF_FALSE;
+	Bool use_avc = GF_FALSE;
 	Bool use_dref = GF_FALSE;
+	Bool skip_dsi = GF_FALSE;
 	u32 m_subtype=0;
 	u32 amr_mode_set = 0;
 	u32 width, height, sr, nb_chan, nb_bps;
@@ -138,6 +186,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	u32 i, count, reuse_stsd = 0;
 	GF_Err e;
 	const GF_PropertyValue *dsi=NULL;
+	const GF_PropertyValue *enh_dsi=NULL;
 	const GF_PropertyValue *p;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	TrackWriter *tkw;
@@ -190,6 +239,16 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		u32 cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 		if (cfg_crc!=tkw->cfg_crc) needs_sample_entry = GF_TRUE;
 		tkw->cfg_crc = cfg_crc;
+	} else if (tkw->cfg_crc) {
+		tkw->cfg_crc = 0;
+		needs_sample_entry = GF_TRUE;
+	}
+
+	enh_dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	if (enh_dsi) {
+		u32 cfg_crc = gf_crc_32(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
+		if (cfg_crc!=tkw->enh_cfg_crc) needs_sample_entry = GF_TRUE;
+		tkw->enh_cfg_crc = cfg_crc;
 	} else if (tkw->cfg_crc) {
 		tkw->cfg_crc = 0;
 		needs_sample_entry = GF_TRUE;
@@ -353,10 +412,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		use_gen_sample_entry = GF_FALSE;
 		break;
 	case GPAC_OTI_VIDEO_AVC:
-		m_subtype = GF_ISOM_SUBTYPE_AVC_H264;
-		use_m4sys = GF_TRUE;
-		comp_name = "MPEG-4 AVC";
+	case GPAC_OTI_VIDEO_SVC:
+		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_AVC3_H264 : GF_ISOM_SUBTYPE_AVC_H264;
+		use_avc = GF_TRUE;
+		comp_name = (tkw->oti == GPAC_OTI_VIDEO_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
 		use_gen_sample_entry = GF_FALSE;
+		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
 		break;
 	case GPAC_OTI_VIDEO_MPEG1:
 	case GPAC_OTI_VIDEO_MPEG2_422:
@@ -417,43 +478,10 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_chan = p->value.uint;
 
-	reuse_stsd = 0;
-	count = gf_isom_get_sample_description_count(ctx->mov, tkw->track_num);
-	for (i=0; i<count; i++) {
-		u32 existing_subtype = gf_isom_get_media_subtype(ctx->mov, tkw->track_num, i+1);
-		if (existing_subtype != m_subtype) continue;
-		if (use_m4sys) {
-			Bool same_entry = GF_TRUE;
-			GF_ESD *esd = gf_isom_get_esd(ctx->mov, tkw->track_num, i+1);
-			if (!esd) continue;
-			if (esd->decoderConfig->streamType!=tkw->stream_type) same_entry = GF_FALSE;
-			else if (esd->decoderConfig->objectTypeIndication != tkw->oti) same_entry = GF_FALSE;
-			else if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-				u32 crc1 = gf_crc_32(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-				if (crc1 != tkw->cfg_crc) same_entry = GF_FALSE;
-			}
 
-			gf_odf_desc_del((GF_Descriptor *)esd);
-			if (!same_entry) continue;
-		}
-		//same type, need to check for other info ?
-		//for now we allow creating a single track with different configs (sample rates, etc ...), might need to change that
-		reuse_stsd = 1;
-		break;
-	}
-
-	if (reuse_stsd) {
-		tkw->stsd_idx = reuse_stsd;
-
-		if (use_3gpp_config && amr_mode_set) {
-			GF_3GPConfig *gpp_cfg = gf_isom_3gp_config_get(ctx->mov, tkw->track_num, tkw->stsd_idx);
-			if (gpp_cfg->AMR_mode_set != amr_mode_set) {
-				gpp_cfg->AMR_mode_set = amr_mode_set;
-				gf_isom_3gp_config_update(ctx->mov, tkw->track_num, gpp_cfg, tkw->stsd_idx);
-			}
-			gf_free(gpp_cfg);
-		}
-		return GF_OK;
+	//little optim here: if no samples were added on the stream descritpion remove it
+	if (!tkw->samples_in_stsd && tkw->stsd_idx) {
+		gf_isom_remove_stream_description(ctx->mov, tkw->track_num, tkw->stsd_idx);
 	}
 
 	if (!use_dref) src_url = NULL;
@@ -464,13 +492,13 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		esd->decoderConfig->streamType = tkw->stream_type;
 		esd->decoderConfig->objectTypeIndication = tkw->oti;
 		esd->slConfig->timestampResolution = tkw->timescale;
-		if (dsi) {
+		if (dsi && !skip_dsi) {
 			esd->decoderConfig->decoderSpecificInfo->data = dsi->value.data.ptr;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dsi->value.data.size;
 		}
 
 		e = gf_isom_new_mpeg4_description(ctx->mov, tkw->track_num, esd, (char *)src_url, NULL, &tkw->stsd_idx);
-		if (dsi) {
+		if (dsi && !skip_dsi) {
 			esd->decoderConfig->decoderSpecificInfo->data = NULL;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
 		}
@@ -480,7 +508,45 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-4 Systems sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
 			return e;
 		}
+
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+	} else if (use_avc) {
+		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
+		tkw->avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+
+		if (tkw->oti == GPAC_OTI_VIDEO_SVC) {
+			gf_isom_svc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
+		} else {
+			gf_isom_avc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
+		}
+
+		if (enh_dsi) {
+			if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
+			tkw->svcc = gf_odf_avc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
+			if (tkw->svcc) {
+				e = gf_isom_svc_config_update(ctx->mov, tkw->track_num, tkw->stsd_idx, tkw->svcc, GF_TRUE);
+				if (e) {
+					gf_odf_avc_cfg_del(tkw->svcc);
+					tkw->svcc = NULL;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-4 Systems sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
+					return e;
+				}
+
+				if (!dsi && ctx->xps_inband) {
+					gf_isom_avc_set_inband_config(ctx->mov, tkw->track_num, tkw->stsd_idx);
+				}
+			}
+		}
+
+		if (dsi && ctx->xps_inband) {
+			//this will cleanup all PS in avcC / svcC
+			gf_isom_avc_set_inband_config(ctx->mov, tkw->track_num, tkw->stsd_idx);
+		} else {
+			gf_odf_avc_cfg_del(tkw->avcc);
+			tkw->avcc = NULL;
+		}
+
+		tkw->use_dref = GF_FALSE;
 	} else if (use_3gpp_config) {
 		GF_3GPConfig gpp_cfg;
 		memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
@@ -594,6 +660,30 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 	}
 
+	//final opt: we couldn't detect before if the same stsd was possible, now that we have create a new one, check again
+	reuse_stsd = 0;
+	count = gf_isom_get_sample_description_count(ctx->mov, tkw->track_num);
+	for (i=0; i<count; i++) {
+		if (i+1 == tkw->stsd_idx) continue;
+
+		if (gf_isom_is_same_sample_description(ctx->mov, tkw->track_num, tkw->stsd_idx, ctx->mov, tkw->track_num, i+1) ) {
+			gf_isom_remove_stream_description(ctx->mov, tkw->track_num, tkw->stsd_idx);
+			tkw->stsd_idx = i+1;
+			reuse_stsd = 1;
+			break;
+		}
+	}
+	if (!reuse_stsd) {
+		tkw->samples_in_stsd = 0;
+	} else if (use_3gpp_config && amr_mode_set) {
+		GF_3GPConfig *gpp_cfg = gf_isom_3gp_config_get(ctx->mov, tkw->track_num, tkw->stsd_idx);
+		if (gpp_cfg->AMR_mode_set != amr_mode_set) {
+			gpp_cfg->AMR_mode_set = amr_mode_set;
+			gf_isom_3gp_config_update(ctx->mov, tkw->track_num, gpp_cfg, tkw->stsd_idx);
+		}
+		gf_free(gpp_cfg);
+	}
+
 	if (sr) gf_isom_set_audio_info(ctx->mov, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps);
 	else if (width) {
 		gf_isom_set_visual_info(ctx->mov, tkw->track_num, tkw->stsd_idx, width, height);
@@ -602,7 +692,8 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 
-	if (ctx->importer) {
+	if (ctx->importer && !tkw->import_msg_header_done) {
+		tkw->import_msg_header_done = GF_TRUE;
 		if (!imp_name) imp_name = comp_name;
 		if (sr) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - SampleRate %d Num Channels %d\n", imp_name, sr, nb_chan));
@@ -611,8 +702,30 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s\n", imp_name));
 		}
-	}
+		if (tkw->svcc) {
+			AVCState avc;
+			memset(&avc, 0, sizeof(AVCState));
+			count = gf_list_count(tkw->svcc->sequenceParameterSets);
+			for (i=0; i<count; i++) {
+				GF_AVCConfigSlot *sl = gf_list_get(tkw->svcc->sequenceParameterSets, i);
+				u8 nal_type = sl->data[0] & 0x1F;
+				Bool is_subseq = (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM) ? GF_TRUE : GF_FALSE;
+				s32 ps_idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, is_subseq, NULL);
+				if (ps_idx>=0) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("SVC Detected - SSPS ID %d - frame size %d x %d\n", ps_idx-GF_SVC_SSPS_ID_SHIFT, avc.sps[ps_idx].width, avc.sps[ps_idx].height ));
 
+				}
+			}
+		}
+	}
+	if (!ctx->xps_inband) {
+		if (tkw->svcc) {
+			gf_odf_avc_cfg_del(tkw->svcc);
+			tkw->svcc = NULL;
+		}
+	} else {
+		mp4_mux_make_inband_header(ctx, tkw);
+	}
 	return GF_OK;
 }
 
@@ -641,7 +754,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		u32 prev_size=0;
 		u32 duration = 0;
 		u32 timescale = 0;
-		const GF_PropertyValue *p;
+		const GF_PropertyValue *subs = NULL;
 		GF_FilterSAPType sap_type;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
@@ -658,6 +771,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		}
 
 		timescale = gf_filter_pck_get_timescale(pck);
+
+		subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 
 		prev_dts = tkw->sample.DTS;
 		prev_size = tkw->sample.dataLength;
@@ -727,7 +842,21 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to append sample DTS "LLU" data: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
 			}
 		} else {
-			e = gf_isom_add_sample(ctx->mov, tkw->track_num, tkw->stsd_idx, &tkw->sample);
+			if (tkw->sample.IsRAP && ctx->xps_inband) {
+				char *pck_data = tkw->sample.data;
+				u32 pck_data_len = tkw->sample.dataLength;
+				tkw->sample.data = tkw->inband_hdr;
+				tkw->sample.dataLength = tkw->inband_hdr_size;
+				e = gf_isom_add_sample(ctx->mov, tkw->track_num, tkw->stsd_idx, &tkw->sample);
+				if (!e) e = gf_isom_append_sample_data(ctx->mov, tkw->track_num, pck_data, pck_data_len);
+
+				if (subs)
+					gf_isom_add_subsample(ctx->mov, tkw->track_num, tkw->nb_samples+1, 0, tkw->inband_hdr_size, 0, 0, 0);
+
+			} else {
+				e = gf_isom_add_sample(ctx->mov, tkw->track_num, tkw->stsd_idx, &tkw->sample);
+			}
+
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" - prev DTS "LLU": %s\n", tkw->sample.DTS, prev_dts, gf_error_to_string(e) ));
 			} else {
@@ -736,11 +865,11 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		}
 
 		tkw->nb_samples++;
+		tkw->samples_in_stsd++;
 
-		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
-		if (p) {
-			if (!ctx->bs_r) ctx->bs_r = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
-			else gf_bs_reassign_buffer(ctx->bs_r, p->value.data.ptr, p->value.data.size);
+		if (subs) {
+			if (!ctx->bs_r) ctx->bs_r = gf_bs_new(subs->value.data.ptr, subs->value.data.size, GF_BITSTREAM_READ);
+			else gf_bs_reassign_buffer(ctx->bs_r, subs->value.data.ptr, subs->value.data.size);
 
 			while (gf_bs_available(ctx->bs_r)) {
 				u32 flags = gf_bs_read_u32(ctx->bs_r);
@@ -944,6 +1073,10 @@ static void mp4_mux_finalize(GF_Filter *filter)
 			}
 		}
 
+		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
+		if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
+		if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
+
 		gf_free(tkw);
 	}
 	gf_list_del(ctx->tracks);
@@ -980,6 +1113,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noedit), "disable edit lists on video tracks", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(pack_nal), "repacks NALU size length to minimum possible size for AVC/HEVC/...", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(xps_inband), "Use inband param set for AVC/HEVC/.... If 2, creates non-compatible files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "0", "0|1|2", GF_FALSE},
+
 	{}
 };
 

@@ -49,10 +49,6 @@ GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_Filter
 	pck_dst->info = pck_src->info;
 
 	if (!pck_src->props) {
-		if (pck_dst->props) {
-			gf_props_del(pck_dst->props);
-			pck_dst->props=NULL;
-		}
 		return GF_OK;
 	}
 	if (!pck_dst->props) {

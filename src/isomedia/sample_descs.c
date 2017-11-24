@@ -1096,15 +1096,40 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	GF_Err e;
 	GF_SampleEntryBox *ent;
 	GF_TrackBox *trak;
-
+	GF_ESD *esd;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return GF_BAD_PARAM;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !sampleDescriptionIndex || !trak->Media) return GF_BAD_PARAM;
 
+	esd = NULL;
 	ent = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex - 1);
 	if (!ent) return GF_BAD_PARAM;
+
+	switch (ent->type) {
+	case GF_ISOM_BOX_TYPE_MP4V:
+	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
+		esd = ((GF_MPEGVisualSampleEntryBox *) ent)->esd ? ((GF_MPEGVisualSampleEntryBox *) ent)->esd->desc : NULL;
+		break;
+	case GF_ISOM_BOX_TYPE_MP4A:
+	case GF_ISOM_BOX_TYPE_ENCA:
+		esd = ((GF_MPEGAudioSampleEntryBox *) ent)->esd ? ((GF_MPEGAudioSampleEntryBox *) ent)->esd->desc : NULL;
+		break;
+	case GF_ISOM_BOX_TYPE_MP4S:
+	case GF_ISOM_BOX_TYPE_ENCS:
+		esd = ((GF_MPEGSampleEntryBox *) ent)->esd ? ((GF_MPEGSampleEntryBox *) ent)->esd->desc : NULL;
+		break;
+	}
+
+	if (esd) {
+		esd->decoderConfig->avgBitrate = average_bitrate;
+		esd->decoderConfig->maxBitrate = max_bitrate;
+		esd->decoderConfig->bufferSizeDB = decode_buffer_size;
+		return GF_OK;
+	}
+
 
 	a = gf_isom_sample_entry_get_bitrate(ent, max_bitrate ? GF_TRUE : GF_FALSE);
 	if (!max_bitrate) {
