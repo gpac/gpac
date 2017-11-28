@@ -2186,7 +2186,7 @@ restart_import:
 			}
 			break;
 		case -1:
-			gf_import_message(import, GF_OK, "Waring: Error parsing NAL unit");
+			gf_import_message(import, GF_OK, "Warning: Error parsing NAL unit");
 			skip_nal = GF_TRUE;
 			break;
 		case -2:
@@ -3872,6 +3872,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		//avoids message at end of import
 		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":nal_length=0");
 		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) strcat(szArgs, ":subsamples");
+		if (importer->flags & GF_IMPORT_NO_SEI) strcat(szArgs, ":nosei");
 
 
 		gf_fs_load_source(fsess, importer->in_name, szArgs, NULL, &e);
