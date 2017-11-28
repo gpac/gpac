@@ -624,6 +624,7 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 	case GPAC_OTI_THEORA: return CODEC_ID_THEORA;
 	case GPAC_OTI_VIDEO_MPEG4_PART2: return CODEC_ID_MPEG4;
 	case GPAC_OTI_VIDEO_AVC: return CODEC_ID_H264;
+	case GPAC_OTI_VIDEO_HEVC: return AV_CODEC_ID_HEVC;
 	case GPAC_OTI_VIDEO_MPEG1: return CODEC_ID_MPEG1VIDEO;
 	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
 	case GPAC_OTI_VIDEO_MPEG2_MAIN:
@@ -638,6 +639,7 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 	case GPAC_OTI_IMAGE_JPEG_2000: return CODEC_ID_JPEG2000;
 
 	default:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDecode] GPAC OTI %d not mapped to FFMPEG codec types, patch welcome\n", oti ));
 		return 0;
 	}
 }

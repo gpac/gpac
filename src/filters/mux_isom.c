@@ -63,6 +63,7 @@ typedef struct
 	Bool import_msg_header_done;
 
 	GF_AVCConfig *avcc, *svcc;
+	GF_HEVCConfig *hvcc, *lvcc;
 
 	char *inband_hdr;
 	u32 inband_hdr_size;
@@ -169,6 +170,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	Bool use_3gpp_config = GF_FALSE;
 	Bool use_ac3_entry = GF_FALSE;
 	Bool use_avc = GF_FALSE;
+	Bool use_hevc = GF_FALSE;
 	Bool use_dref = GF_FALSE;
 	Bool skip_dsi = GF_FALSE;
 	u32 m_subtype=0;
@@ -421,6 +423,14 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		use_gen_sample_entry = GF_FALSE;
 		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
 		break;
+	case GPAC_OTI_VIDEO_HEVC:
+	case GPAC_OTI_VIDEO_LHVC:
+		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_HEV1  : GF_ISOM_SUBTYPE_HVC1;
+		use_hevc = GF_TRUE;
+		comp_name = (tkw->oti == GPAC_OTI_VIDEO_LHVC) ? "L-HEVC" : "HEVC";
+		use_gen_sample_entry = GF_FALSE;
+		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+		break;
 	case GPAC_OTI_VIDEO_MPEG1:
 	case GPAC_OTI_VIDEO_MPEG2_422:
 	case GPAC_OTI_VIDEO_MPEG2_SNR:
@@ -517,12 +527,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		tkw->avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
 		if (tkw->oti == GPAC_OTI_VIDEO_SVC) {
-			gf_isom_svc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
+			e = gf_isom_svc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
 		} else {
-			gf_isom_avc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
+			e = gf_isom_avc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
 		}
 
-		if (enh_dsi) {
+		if (!e && enh_dsi) {
 			if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
 			tkw->svcc = gf_odf_avc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
 			if (tkw->svcc) {
@@ -530,14 +540,16 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 				if (e) {
 					gf_odf_avc_cfg_del(tkw->svcc);
 					tkw->svcc = NULL;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-4 Systems sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
-					return e;
 				}
 
 				if (!dsi && ctx->xps_inband) {
 					gf_isom_avc_set_inband_config(ctx->mov, tkw->track_num, tkw->stsd_idx);
 				}
 			}
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AVC sample description: %s\n", gf_error_to_string(e) ));
+			return e;
 		}
 
 		if (dsi && ctx->xps_inband) {
@@ -546,6 +558,41 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		} else {
 			gf_odf_avc_cfg_del(tkw->avcc);
 			tkw->avcc = NULL;
+		}
+
+		tkw->use_dref = GF_FALSE;
+	} else if (use_hevc) {
+		if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
+		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
+
+		e = gf_isom_hevc_config_new(ctx->mov, tkw->track_num, tkw->hvcc, NULL, NULL, &tkw->stsd_idx);
+
+		if (!e && enh_dsi) {
+			if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
+			tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
+			if (tkw->lvcc) {
+				e = gf_isom_lhvc_config_update(ctx->mov, tkw->track_num, tkw->stsd_idx, tkw->lvcc, GF_TRUE);
+				if (e) {
+					gf_odf_hevc_cfg_del(tkw->lvcc);
+					tkw->lvcc = NULL;
+				}
+
+				if (!dsi && ctx->xps_inband) {
+					gf_isom_avc_set_inband_config(ctx->mov, tkw->track_num, tkw->stsd_idx);
+				}
+			}
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new HEVC sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+
+		if (dsi && ctx->xps_inband) {
+			//this will cleanup all PS in avcC / svcC
+			gf_isom_avc_set_inband_config(ctx->mov, tkw->track_num, tkw->stsd_idx);
+		} else {
+			gf_odf_hevc_cfg_del(tkw->hvcc);
+			tkw->hvcc = NULL;
 		}
 
 		tkw->use_dref = GF_FALSE;
@@ -724,6 +771,10 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (tkw->svcc) {
 			gf_odf_avc_cfg_del(tkw->svcc);
 			tkw->svcc = NULL;
+		}
+		if (tkw->lvcc) {
+			gf_odf_hevc_cfg_del(tkw->lvcc);
+			tkw->lvcc = NULL;
 		}
 	} else {
 		mp4_mux_make_inband_header(ctx, tkw);
@@ -1045,7 +1096,14 @@ static void mp4_mux_finalize(GF_Filter *filter)
 			gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_VISUAL, 0x7F);
 			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_AVC1, 1);
 			is_nalu = GF_TRUE;
+		} else if (tkw->oti == GPAC_OTI_VIDEO_HEVC) {
+			gf_isom_set_brand_info(ctx->mov, GF_ISOM_BRAND_ISO4, 1);
+			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_ISOM, 0);
+//			if (has_hevc)
+				gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_HVC1, 1);
 		}
+
+
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->mov, tkw->track_num);
 
@@ -1096,6 +1154,8 @@ static void mp4_mux_finalize(GF_Filter *filter)
 
 		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
 		if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
+		if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
+		if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
 		if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
 
 		gf_free(tkw);
