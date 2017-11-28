@@ -393,6 +393,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	GF_Err e;
 	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
 	char IV[GF_AES_128_KEYSIZE + 1];
+
 	bin128 KID;
 	char *buffer;
 	u32 max_size, i, subsample_count;
