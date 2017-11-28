@@ -4447,12 +4447,13 @@ static s32 gf_media_hevc_read_vps_bs(GF_BitStream *bs, HEVCState *hevc, Bool sto
 	for (i = 1; i < vps->num_layer_sets; i++) {
 		u32 n, m;
 		n = 0;
-		for (m = 0; m <= vps->max_layer_id; m++)
+		for (m = 0; m <= vps->max_layer_id; m++) {
 			if (layer_id_included_flag[i][m]) {
 				vps->LayerSetLayerIdList[i][n++] = m;
 				if (vps->LayerSetLayerIdListMax[i] < m)
 					vps->LayerSetLayerIdListMax[i] = m;
 			}
+		}
 		vps->num_layers_in_id_list[i] = n;
 	}
 	if (/*vps_timing_info_present_flag*/gf_bs_read_int(bs, 1)) {
@@ -5007,40 +5008,14 @@ exit:
 }
 
 GF_EXPORT
-s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
+s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
-	GF_BitStream *bs=NULL;
-	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0;
 	Bool is_slice = GF_FALSE;
 	s32 ret = -1;
 	HEVCSliceInfo n_state;
 
-	if (!hevc) {
-		if (nal_unit_type) (*nal_unit_type) = (data[0] & 0x7E) >> 1;
-		if (layer_id) {
-			u8 id = data[0] & 1;
-			id <<= 5;
-			id |= (data[1]>>3) & 0x1F;
-			(*layer_id) = id;
-		}
-		if (temporal_id) (*temporal_id) = (data[1] & 0x7);
-		return -1;
-	}
 	memcpy(&n_state, &hevc->s_info, sizeof(HEVCSliceInfo));
-
-	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, size);
-	if (!data_without_emulation_bytes_size) {
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	} else {
-		/*still contains emulation bytes*/
-		data_without_emulation_bytes = gf_malloc(size*sizeof(char));
-		data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, size);
-		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	}
-	if (!bs) goto exit;
-
-	if (! hevc_parse_nal_header(bs, nal_unit_type, temporal_id, layer_id)) goto exit;
+	if (! hevc_parse_nal_header(bs, nal_unit_type, temporal_id, layer_id)) return -1;
 	n_state.nal_unit_type = *nal_unit_type;
 
 	switch (n_state.nal_unit_type) {
@@ -5070,7 +5045,7 @@ s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit
 		is_slice = GF_TRUE;
 		/* slice - read the info and compare.*/
 		ret = hevc_parse_slice_segment(bs, hevc, &n_state);
-		if (ret<0) goto exit;
+		if (ret<0) return ret;
 
 		hevc_compute_poc(&n_state);
 
@@ -5116,7 +5091,42 @@ s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit
 	if (is_slice) hevc_compute_poc(&n_state);
 	memcpy(&hevc->s_info, &n_state, sizeof(HEVCSliceInfo));
 
-exit:
+	return ret;
+}
+
+GF_EXPORT
+s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
+{
+	GF_BitStream *bs=NULL;
+	char *data_without_emulation_bytes = NULL;
+	u32 data_without_emulation_bytes_size = 0;
+	s32 ret = -1;
+
+	if (!hevc) {
+		if (nal_unit_type) (*nal_unit_type) = (data[0] & 0x7E) >> 1;
+		if (layer_id) {
+			u8 id = data[0] & 1;
+			id <<= 5;
+			id |= (data[1]>>3) & 0x1F;
+			(*layer_id) = id;
+		}
+		if (temporal_id) (*temporal_id) = (data[1] & 0x7);
+		return -1;
+	}
+
+	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, size);
+	if (!data_without_emulation_bytes_size) {
+		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	} else {
+		/*still contains emulation bytes*/
+		data_without_emulation_bytes = gf_malloc(size*sizeof(char));
+		data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, size);
+		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	}
+	if (!bs) return -1;
+
+	ret = gf_media_hevc_parse_nalu_bs(bs, hevc, nal_unit_type, temporal_id, layer_id);
+
 	if (bs) gf_bs_del(bs);
 	if (data_without_emulation_bytes) gf_free(data_without_emulation_bytes);
 	return ret;

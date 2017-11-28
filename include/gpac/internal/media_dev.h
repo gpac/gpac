@@ -483,6 +483,7 @@ Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
 //parses VPS and rewrites data buffer after removing VPS extension
 s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remove_extensions);
 
+s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 

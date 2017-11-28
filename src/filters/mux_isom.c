@@ -67,6 +67,7 @@ typedef struct
 
 	char *inband_hdr;
 	u32 inband_hdr_size;
+	Bool is_nalu;
 } TrackWriter;
 
 typedef struct
@@ -560,12 +561,21 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			tkw->avcc = NULL;
 		}
 
+		gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_VISUAL, 0x7F);
+		gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_AVC1, 1);
+		tkw->is_nalu = GF_TRUE;
+
 		tkw->use_dref = GF_FALSE;
 	} else if (use_hevc) {
 		if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
-		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
+		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (tkw->oti == GPAC_OTI_VIDEO_LHVC) ? GF_TRUE : GF_FALSE);
 
 		e = gf_isom_hevc_config_new(ctx->mov, tkw->track_num, tkw->hvcc, NULL, NULL, &tkw->stsd_idx);
+
+		gf_isom_set_brand_info(ctx->mov, GF_ISOM_BRAND_ISO4, 1);
+		gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_ISOM, 0);
+		gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_HVC1, 1);
+		tkw->is_nalu = GF_TRUE;
 
 		if (!e && enh_dsi) {
 			if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
@@ -581,6 +591,8 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 					gf_isom_avc_set_inband_config(ctx->mov, tkw->track_num, tkw->stsd_idx);
 				}
 			}
+		} else if (tkw->oti == GPAC_OTI_VIDEO_LHVC) {
+			gf_isom_lhvc_config_update(ctx->mov, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_LEHVC_ONLY);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new HEVC sample description: %s\n", gf_error_to_string(e) ));
@@ -1039,13 +1051,55 @@ static void mp4_mux_update_edit_list_for_bframes(GF_ISOFile *file, u32 track)
 	}
 }
 
-//todo: move this func from media_import.c to here once done
+//todo: move from media_import.c to here once done
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
+
+
+static void mp4_mux_set_lhvc_base_layer(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+{
+	u32 avc_base_track, hevc_base_track, ref_track_id;
+	avc_base_track = hevc_base_track = 0;
+	u32 i;
+	for (i=0; i < gf_isom_get_track_count(ctx->mov); i++) {
+		u32 subtype = gf_isom_get_media_subtype(ctx->mov, i+1, 1);
+		switch (subtype) {
+		case GF_ISOM_SUBTYPE_AVC_H264:
+		case GF_ISOM_SUBTYPE_AVC2_H264:
+		case GF_ISOM_SUBTYPE_AVC3_H264:
+		case GF_ISOM_SUBTYPE_AVC4_H264:
+			if (!avc_base_track) {
+				avc_base_track = i+1;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Warning: More than one AVC bitstream found, use track %d as base layer", avc_base_track));
+			}
+			break;
+		case GF_ISOM_SUBTYPE_HVC1:
+		case GF_ISOM_SUBTYPE_HEV1:
+		case GF_ISOM_SUBTYPE_HVC2:
+		case GF_ISOM_SUBTYPE_HEV2:
+			if (!hevc_base_track) {
+				hevc_base_track = i+1;
+				if (avc_base_track) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Warning: Found both AVC and HEVC tracks, using HEVC track %d as base layer\n", hevc_base_track));
+				}
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Warning: More than one HEVC bitstream found, use track %d as base layer\n", avc_base_track));
+			}
+			break;
+		}
+	}
+	if (!hevc_base_track && !avc_base_track) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Using LHVC external base layer, but no base layer not found - NOT SETTING SBAS TRACK REFERENCE!\n"));
+	} else {
+		ref_track_id = gf_isom_get_track_id(ctx->mov, hevc_base_track ? hevc_base_track : avc_base_track);
+		gf_isom_set_track_reference(ctx->mov, tkw->track_num, GF_ISOM_REF_BASE, ref_track_id);
+	}
+}
 
 static void mp4_mux_finalize(GF_Filter *filter)
 {
-	Bool is_nalu = GF_FALSE;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
+	const GF_PropertyValue *p;
 
 	while (gf_list_count(ctx->tracks)) {
 		Bool has_bframes = GF_FALSE;
@@ -1092,15 +1146,6 @@ static void mp4_mux_finalize(GF_Filter *filter)
 				}
 				gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_VISUAL, PL);
 			}
-		} else if (tkw->oti == GPAC_OTI_VIDEO_AVC) {
-			gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_VISUAL, 0x7F);
-			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_AVC1, 1);
-			is_nalu = GF_TRUE;
-		} else if (tkw->oti == GPAC_OTI_VIDEO_HEVC) {
-			gf_isom_set_brand_info(ctx->mov, GF_ISOM_BRAND_ISO4, 1);
-			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_ISOM, 0);
-//			if (has_hevc)
-				gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_HVC1, 1);
 		}
 
 
@@ -1117,14 +1162,30 @@ static void mp4_mux_finalize(GF_Filter *filter)
 			gf_media_update_bitrate(ctx->mov, tkw->track_num);
 
 		if (tkw->has_open_gop) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand" ));
-			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_ISO6, 1);
+//			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand\n"));
+//			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_ISO6, 1);
 		}
 
-		if (is_nalu && ctx->pack_nal && (gf_isom_get_mode(ctx->mov)!=GF_ISOM_OPEN_WRITE)) {
+		p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:oinf");
+		if (p) {
+			u32 gi=0;
+			gf_isom_add_sample_group_info(ctx->mov, tkw->track_num, GF_ISOM_SAMPLE_GROUP_OINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
 
-			GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size);
+			p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:linf");
+			if (p) {
+				gf_isom_add_sample_group_info(ctx->mov, tkw->track_num, GF_ISOM_SAMPLE_GROUP_LINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
+			}
+			
+			//sets track in group of type group_type and id track_group_id. If do_add is GF_FALSE, track is removed from that group
+			gf_isom_set_track_group(ctx->mov, tkw->track_num, 1000+gf_isom_get_track_id(ctx->mov, tkw->track_num), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
+		}
 
+		p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
+		if (p && p->value.uint) {
+			mp4_mux_set_lhvc_base_layer(ctx, tkw);
+		}
+
+		if (tkw->is_nalu && ctx->pack_nal && (gf_isom_get_mode(ctx->mov)!=GF_ISOM_OPEN_WRITE)) {
 			u32 msize = 0;
 			Bool do_rewrite = GF_FALSE;
 			u32 i, count = gf_isom_get_sample_description_count(ctx->mov, tkw->track_num);
