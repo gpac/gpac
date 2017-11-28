@@ -61,6 +61,9 @@ struct __tag_bitstream
 
 	char *buffer_io;
 	u32 buffer_io_size, buffer_written;
+
+	Bool remove_emul_prevention_byte;
+	u32 nb_zeros;
 };
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 BufferSize)
@@ -226,6 +229,11 @@ void gf_bs_del(GF_BitStream *bs)
 	gf_free(bs);
 }
 
+GF_EXPORT
+void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove)
+{
+	if (bs) bs->remove_emul_prevention_byte = do_remove;
+}
 
 /*returns 1 if aligned wrt current mode, 0 otherwise*/
 static Bool BS_IsAlign(GF_BitStream *bs)
@@ -244,20 +252,48 @@ static Bool BS_IsAlign(GF_BitStream *bs)
 static u8 BS_ReadByte(GF_BitStream *bs)
 {
 	if (bs->bsmode == GF_BITSTREAM_READ) {
+		u8 res;
 		if (bs->position >= bs->size) {
 			if (bs->EndOfStream) bs->EndOfStream(bs->par);
 			return 0;
 		}
-		return (u32) bs->original[bs->position++];
+		res = bs->original[bs->position++];
+
+		if (bs->remove_emul_prevention_byte) {
+			if ((bs->nb_zeros==2) && (res==0x03) && (bs->position<bs->size) && (bs->original[bs->position]<0x04)) {
+				bs->nb_zeros = 0;
+				res = bs->original[bs->position++];
+			}
+			if (!res) bs->nb_zeros++;
+			else bs->nb_zeros = 0;
+		}
+		return res;
 	}
 	if (bs->buffer_io)
 		bs_flush_cache(bs);
 
 	/*we are in FILE mode, test for end of file*/
 	if (!feof(bs->stream)) {
+		u8 res;
 		assert(bs->position<=bs->size);
 		bs->position++;
-		return (u32) fgetc(bs->stream);
+		res = fgetc(bs->stream);
+
+		if (bs->remove_emul_prevention_byte) {
+			if ((bs->nb_zeros==2) && (res==0x03) && (bs->position<bs->size)) {
+				u8 next = fgetc(bs->stream);
+				if (next < 0x04) {
+					bs->nb_zeros = 0;
+					res = next;
+					bs->position++;
+				} else {
+					gf_bs_seek(bs, bs->position);
+				}
+			}
+			if (!res) bs->nb_zeros++;
+			else bs->nb_zeros = 0;
+		}
+		return res;
 	}
 	if (bs->EndOfStream) bs->EndOfStream(bs->par);
 	else {

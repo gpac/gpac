@@ -555,6 +555,16 @@ void gf_bs_flush(GF_BitStream *bs);
  */
 void gf_bs_reassign(GF_BitStream *bs, FILE *stream);
 
+
+/*!
+ *\brief AVC&HEVC Annex B mode, only used for read mode
+ *
+ *Enables or disable emulation byte prevention for AVC and HEVC annex B formats
+ *\param bs the target bitstream
+ *\param do_remove if true, emulation prevention bytes will be removed
+ */
+void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove);
+
 /*! @} */
 
 #ifdef __cplusplus
