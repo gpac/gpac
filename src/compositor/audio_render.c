@@ -244,8 +244,8 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceLayout");
 	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceLayout", "0");
 	else {
-		if (strstr(opt, "0x")) sscanf(opt, "0x%x", &ch_cfg);
-		else sscanf(opt, "0x%x", &ch_cfg);
+		if (!strnicmp(opt, "0x", 2)) sscanf(opt+2, "%x", &ch_cfg);
+		else sscanf(opt, "%x", &ch_cfg);
     }
 	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceBPS");
 	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceBPS", "0");
