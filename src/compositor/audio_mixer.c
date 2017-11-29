@@ -309,11 +309,25 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 			if ((count==1) && (max_channels!=in->src->chan)) {
 				cfg_changed = 1;
 				max_channels = in->src->chan;
-				if (in->src->chan>2) ch_cfg |= in->src->ch_cfg;
-			} else if (max_channels < in->src->chan) {
-				cfg_changed = 1;
-				max_channels = in->src->chan;
-				if (in->src->chan>2) ch_cfg |= in->src->ch_cfg;
+				if (in->src->forced_layout)
+					ch_cfg |= in->src->ch_cfg;
+			}
+			else {
+				u32 nb_ch = in->src->chan;
+				if (in->src->forced_layout) {
+					u32 cfg = in->src->ch_cfg;
+					nb_ch = 0;
+					while (cfg) {
+						nb_ch++;
+						cfg >>= 1;
+					}
+					ch_cfg |= in->src->ch_cfg;
+				}
+				if (max_channels < nb_ch) {
+					cfg_changed = 1;
+					max_channels = nb_ch;
+					if (nb_ch > 2) ch_cfg |= in->src->ch_cfg;
+				}
 			}
 		}
 
@@ -534,6 +548,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 
 	/*while space to fill and input data, convert*/
 	use_prev = in->has_prev;
+	memset(inChan, 0, sizeof(s32)*GF_SR_MAX_CHANNELS);
 	memset(inChanNext, 0, sizeof(s32)*GF_SR_MAX_CHANNELS);
 	i = 0;
 	next = prev = 0;
