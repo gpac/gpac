@@ -75,6 +75,7 @@ const GF_FilterRegister *nhntdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *nhmldmx_register(GF_FilterSession *session);
 const GF_FilterRegister *naludmx_register(GF_FilterSession *session);
 const GF_FilterRegister *m2psdmx_register(GF_FilterSession *session);
+const GF_FilterRegister *avidmx_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -107,7 +108,7 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, udpin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, dvblin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, osvcdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
+//	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, lsrdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, safdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ohevcdec_register(a_sess) );
@@ -121,6 +122,7 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, nhmldmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, naludmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, m2psdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, avidmx_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );

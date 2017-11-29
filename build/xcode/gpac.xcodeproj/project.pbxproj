@@ -201,6 +201,7 @@
 		920101D118D5ACA7003D1ACA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101D018D5ACA7003D1ACA /* libz.dylib */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */; };
+		922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1261FCF169900F2F6A4 /* dmx_avi.c */; };
 		9235E04E1CFECD300051D8A1 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2C41A163711002D73E1 /* CoreMedia.framework */; };
 		9235E0501CFECD370051D8A1 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E04F1CFECD370051D8A1 /* CoreVideo.framework */; };
 		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
@@ -1061,6 +1062,7 @@
 		9225732418D7267900D6FD98 /* gm_ogg_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ogg_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_mpegps.c; path = filters/dmx_mpegps.c; sourceTree = "<group>"; };
+		922CF1261FCF169900F2F6A4 /* dmx_avi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_avi.c; path = filters/dmx_avi.c; sourceTree = "<group>"; };
 		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
@@ -1702,12 +1704,12 @@
 		9201FE7E18D5A444003D1ACA /* libgpac */ = {
 			isa = PBXGroup;
 			children = (
-				92F8D47E1F71643600616F7C /* filters */,
-				92F8D46F1F71641E00616F7C /* filter_core */,
 				92BBFC471A71228A006A7735 /* include */,
 				9201FE8018D5A444003D1ACA /* .deps */,
 				9201FF8918D5A444003D1ACA /* bifs */,
 				9201FF9A18D5A444003D1ACA /* compositor */,
+				92F8D46F1F71641E00616F7C /* filter_core */,
+				92F8D47E1F71643600616F7C /* filters */,
 				9201FFE318D5A444003D1ACA /* ietf */,
 				9201FFF118D5A444003D1ACA /* isomedia */,
 				9201000E18D5A444003D1ACA /* laser */,
@@ -2520,6 +2522,7 @@
 				92B9A5081F840A6700A24FE4 /* dec_vtb.c */,
 				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
 				925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */,
+				922CF1261FCF169900F2F6A4 /* dmx_avi.c */,
 				92BB9A661F9C827600524E5B /* dmx_dash.c */,
 				926656C51F7D45F700299CC6 /* dmx_ogg.c */,
 				926656C71F7E92C200299CC6 /* dmx_m2ts.c */,
@@ -3392,6 +3395,7 @@
 				92BB856C1F7BFB63009BC9C8 /* reframe_adts.c in Sources */,
 				92F8D4791F71642E00616F7C /* filter_props.c in Sources */,
 				92B9A5961F8660D700A24FE4 /* font_engine.c in Sources */,
+				922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */,
 				9201018E18D5A445003D1ACA /* webvtt_smjs.c in Sources */,
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,
 				92B9A5681F8660D700A24FE4 /* mpeg4_layer_3d.c in Sources */,

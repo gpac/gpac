@@ -1339,7 +1339,7 @@ static const GF_FilterCapability NHMLDmxInputs[] =
 {
 	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-nhml|application/dims"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "nhml|dims"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
 };
 
 
