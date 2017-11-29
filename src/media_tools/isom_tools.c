@@ -1314,9 +1314,10 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
 			max_size = size;
 		}
-		nal_hdr = gf_bs_read_u8(bs);
-		nal_type = nal_hdr & 0x1F;
-		gf_media_avc_parse_nalu(bs, nal_hdr, &avc);
+
+		gf_media_avc_parse_nalu(bs, &avc);
+		nal_type = avc.last_nal_type_parsed;
+
 		e = gf_bs_seek(bs, offset+nalu_size_length/8);
 		if (e)
 			goto exit;
@@ -1537,9 +1538,9 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
 				max_size = size;
 			}
-			nal_hdr = gf_bs_read_u8(bs);
-			nal_type = nal_hdr & 0x1F;
-			gf_media_avc_parse_nalu(bs, nal_hdr, &avc);
+
+			gf_media_avc_parse_nalu(bs, &avc);
+			nal_type = avc.last_nal_type_parsed;
 			e = gf_bs_seek(bs, offset+nalu_size_length/8);
 			if (e)
 				goto exit;
@@ -1548,7 +1549,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 
 			switch (nal_type) {
 			case GF_AVC_NALU_PIC_PARAM:
-				pps_id = gf_media_avc_read_pps(buffer, size, &avc);;
+				pps_id = avc.last_ps_idx;
 				j = 0;
 				dst_track = 0;
 				while (j < num_pps)
@@ -1576,7 +1577,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				dst_bs = sample_bs[dst_track];
 				break;
 			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-				sps_id = gf_media_avc_read_sps(buffer, size, &avc, 0, NULL);
+				sps_id = avc.last_ps_idx;
 				dst_track = 0;
 				if (splitAll)
 				{

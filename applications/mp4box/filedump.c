@@ -1107,13 +1107,13 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		return;
 	}
 
-	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-	type = gf_bs_read_u8(bs) & 0x1F;
+	type = ptr[0] & 0x1F;
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	res = 0;
+	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 	switch (type) {
 	case GF_AVC_NALU_NON_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
+		res = gf_media_avc_parse_nalu(bs, avc);
 		fputs("Non IDR slice", dump);
 
 		if (res>=0)
@@ -1129,7 +1129,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		fputs("DP Type C slice", dump);
 		break;
 	case GF_AVC_NALU_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
+		res = gf_media_avc_parse_nalu(bs, avc);
 		fputs("IDR slice", dump);
 		if (res>=0)
 			fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
@@ -1209,7 +1209,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 
 	case GF_AVC_NALU_SVC_SLICE:
-		gf_media_avc_parse_nalu(bs, ptr[0], avc);
+		gf_media_avc_parse_nalu(bs, avc);
 		fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);

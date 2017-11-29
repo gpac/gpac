@@ -264,7 +264,6 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	char buffer[1024];
 	u64 duration, cur_dur, nal_start, start_code_pos;
 	AVCState *avc_state = NULL;
 	HEVCState *hevc_state = NULL;
@@ -341,22 +340,21 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 				break;
 			}
 		} else {
-			u32 nal_hdr, nal_type;
-			nal_hdr = gf_bs_read_u8(bs);
-			nal_type = nal_hdr & 0x1F;
-
-			res = gf_media_avc_parse_nalu(bs, nal_hdr, avc_state);
+			u32 nal_type;
+			u64 pos = gf_bs_get_position(bs);
+			res = gf_media_avc_parse_nalu(bs, avc_state);
 			if (res>0) first_slice_in_pic = GF_TRUE;
+
+			nal_type = avc_state->last_nal_type_parsed;
+
 			switch (nal_type) {
 			case GF_AVC_NALU_SEQ_PARAM:
-				buffer[0] = nal_hdr;
-				gf_bs_read_data(bs, buffer+1, nal_size-1);
-				gf_media_avc_read_sps(buffer, nal_size, avc_state, GF_FALSE, NULL);
+				gf_bs_seek(bs, pos);
+				gf_media_avc_read_sps_bs(bs, avc_state, GF_FALSE, NULL);
 				break;
 			case GF_AVC_NALU_PIC_PARAM:
-				buffer[0] = nal_hdr;
-				gf_bs_read_data(bs, buffer+1, nal_size-1);
-				gf_media_avc_read_pps(buffer, nal_size, avc_state);
+				gf_bs_seek(bs, pos);
+				gf_media_avc_read_pps_bs(bs, avc_state);
 				break;
 			case GF_AVC_NALU_IDR_SLICE:
 				is_rap = GF_TRUE;
@@ -722,6 +720,40 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 	hvcc->nal_unit_size = ctx->nal_length;
 	lvcc->nal_unit_size = ctx->nal_length;
 	lvcc->is_lhvc = GF_TRUE;
+	//check we have one pps or sps in base layer
+	count = gf_list_count(ctx->sps);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *sl = gf_list_get(ctx->sps, i);
+		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+		if (!layer_id) {
+			*has_hevc_base = GF_TRUE;
+			break;
+		}
+	}
+	count = gf_list_count(ctx->pps);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *sl = gf_list_get(ctx->pps, i);
+		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+		if (!layer_id) {
+			*has_hevc_base = GF_TRUE;
+			break;
+		}
+	}
+	//assign vps first so that they are serialized first
+	count = gf_list_count(ctx->vps);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *sl = gf_list_get(ctx->vps, i);
+		HEVC_VPS *vps = &ctx->hevc_state->vps[sl->id];
+
+		if (!i) {
+			hvcc->avgFrameRate = lvcc->avgFrameRate = vps->rates[0].avg_pic_rate;
+			hvcc->constantFrameRate = lvcc->constantFrameRate = vps->rates[0].constand_pic_rate_idc;
+			hvcc->numTemporalLayers = lvcc->numTemporalLayers = vps->max_sub_layers;
+			hvcc->temporalIdNested = lvcc->temporalIdNested = vps->temporal_id_nesting;
+		}
+		//TODO set scalability mask
+		naludmx_hevc_add_param((ctx->explicit || ! (*has_hevc_base) ) ? lvcc : hvcc, sl, GF_HEVC_NALU_VID_PARAM);
+	}
 
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
@@ -788,21 +820,6 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 		if (!layer_id) *has_hevc_base = GF_TRUE;
 		naludmx_hevc_add_param(layer_id ? lvcc : cfg, sl, GF_HEVC_NALU_PIC_PARAM);
-	}
-
-	count = gf_list_count(ctx->vps);
-	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = gf_list_get(ctx->vps, i);
-		HEVC_VPS *vps = &ctx->hevc_state->vps[sl->id];
-
-		if (!i) {
-			hvcc->avgFrameRate = lvcc->avgFrameRate = vps->rates[0].avg_pic_rate;
-			hvcc->constantFrameRate = lvcc->constantFrameRate = vps->rates[0].constand_pic_rate_idc;
-			hvcc->numTemporalLayers = lvcc->numTemporalLayers = vps->max_sub_layers;
-			hvcc->temporalIdNested = lvcc->temporalIdNested = vps->temporal_id_nesting;
-		}
-		//TODO set scalability mask
-		naludmx_hevc_add_param((ctx->explicit || ! (*has_hevc_base) ) ? lvcc : hvcc, sl, GF_HEVC_NALU_VID_PARAM);
 	}
 
 	*dsi = *dsi_enh = NULL;
@@ -1397,7 +1414,8 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	u8 nal_unit_type, temporal_id, layer_id;
 	*skip_nal = GF_FALSE;
 
-	res = gf_media_hevc_parse_nalu(data, size, ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
+	gf_bs_reassign_buffer(ctx->bs_r, data, size);
+	res = gf_media_hevc_parse_nalu_bs(ctx->bs_r, ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 	ctx->nb_nalus++;
 
 	if (res < 0) {
@@ -1407,23 +1425,10 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		*skip_nal = GF_TRUE;
 	}
 
-#ifdef FILTER_FIXME
-	if (max_temporal_id[layer_id] < temporal_id)
-		max_temporal_id[layer_id] = temporal_id;
-#endif
-
 	if (layer_id && ctx->nosvc) {
 		*skip_nal = GF_TRUE;
 		return 0;
 	}
-
-
-#ifdef FILTER_FIXME
-	if ( (layer_id == min_layer_id) && flush_next_sample && (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)) {
-		flush_next_sample = GF_FALSE;
-		flush_sample = GF_TRUE;
-	}
-#endif
 
 	switch (nal_unit_type) {
 	case GF_HEVC_NALU_VID_PARAM:
@@ -1470,12 +1475,6 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		} else {
 			ctx->nb_nalus--;
 		}
-		if (size) {
-#ifdef GF_FILTER_FIXME
-			//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
-			if (!layer_id || !layer_ids[layer_id - 1]) flush_sample = GF_TRUE;
-#endif
-		}
 		*skip_nal = GF_TRUE;
 		break;
 	case GF_HEVC_NALU_SEI_SUFFIX:
@@ -1506,18 +1505,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
 		if (! ctx->is_playing) return 0;
-
 		*is_slice = GF_TRUE;
-#ifdef FILTER_FIXME
-		if (min_layer_id > layer_id)
-			min_layer_id = layer_id;
-		/*			if ((hevc.s_info.slice_segment_address<=100) || (hevc.s_info.slice_segment_address>=200))
-						skip_nal = 1;
-					if (!hevc.s_info.slice_segment_address)
-						skip_nal = 0;
-		*/
-#endif
-
 		if (! *skip_nal) {
 			switch (ctx->hevc_state->s_info.slice_type) {
 			case GF_HEVC_SLICE_TYPE_P:
@@ -1565,20 +1553,27 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	return res;
 }
 
-static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 nal_hdr, u32 nal_type, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
+static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 nal_type, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
 {
-	Bool is_subseq = GF_FALSE;
 	s32 ps_idx = 0;
 	s32 res = 0;
 
+	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	*skip_nal = GF_FALSE;
-	ctx->nb_nalus++;
 
+	res = gf_media_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
+	if (res < 0) {
+		if (res == -1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
+		}
+		*skip_nal = GF_TRUE;
+	}
+	ctx->nb_nalus++;
+	
 	switch (nal_type) {
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-		is_subseq = GF_TRUE;
 	case GF_AVC_NALU_SEQ_PARAM:
-		ps_idx = gf_media_avc_read_sps(data, size, ctx->avc_state, is_subseq, NULL);
+		ps_idx = ctx->avc_state->last_ps_idx;
 		if (ps_idx<0) {
 			if (ctx->avc_state->sps[0].profile_idc) {
 				GF_LOG(ctx->avc_state->sps[0].profile_idc ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Sequence Param Set\n", ctx->log_name));
@@ -1586,11 +1581,11 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_AVC_NALU_SEQ_PARAM, ps_idx);
 		}
-		skip_nal = GF_TRUE;
+		*skip_nal = GF_TRUE;
 		return 0;
 
 	case GF_AVC_NALU_PIC_PARAM:
-		ps_idx = gf_media_avc_read_pps(data, size, ctx->avc_state);
+		ps_idx = ctx->avc_state->last_ps_idx;
 		if (ps_idx<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
 		} else {
@@ -1600,7 +1595,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		return 0;
 
 	case GF_AVC_NALU_SEQ_PARAM_EXT:
-		ps_idx = gf_media_avc_read_sps_ext(data, size);
+		ps_idx = ctx->avc_state->last_ps_idx;
 		if (ps_idx<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Sequence Param Set Extension\n", ctx->log_name));
 		} else {
@@ -1635,14 +1630,8 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	case GF_AVC_NALU_END_OF_STREAM:
 		*skip_nal = GF_TRUE;
 		return 0;
-	default:
-		break;
-	}
-
-	res = gf_media_avc_parse_nalu(ctx->bs_r, nal_hdr, ctx->avc_state);
 
 	//update stats
-	switch (nal_type) {
 	case GF_AVC_NALU_NON_IDR_SLICE:
 	case GF_AVC_NALU_DP_A_SLICE:
 	case GF_AVC_NALU_DP_B_SLICE:
@@ -1733,7 +1722,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 				naludmx_finalize_au_flags(ctx);
 			}
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
-			if (ctx->opid && ctx->is_hevc) {
+			if (!ctx->opid) return GF_EOS;
+
+			if (ctx->is_hevc) {
 				naludmx_set_hevc_oinf(ctx, ctx->max_temporal_id);
 				naludmx_set_hevc_linf(ctx);
 				gf_filter_pid_set_info_str(ctx->opid, "hevc:min_lid", &PROP_UINT(ctx->min_layer_id) );
@@ -1826,7 +1817,6 @@ GF_Err naludmx_process(GF_Filter *filter)
 		u32 bytes_from_store = 0;
 		u32 hdr_offset = 0;
 		Bool full_nal_required = GF_FALSE;
-		u32 nal_hdr = 0;
 		u32 nal_type = 0;
 		s32 next=0;
 		u32 next_sc_size=0;
@@ -2010,12 +2000,10 @@ GF_Err naludmx_process(GF_Filter *filter)
 			pck_start = hdr_start;
 			pck_avail = hdr_avail;
 		}
-		gf_bs_reassign_buffer(ctx->bs_r, hdr_start, hdr_avail);
 
 		//figure out which nal we need to completely load
 		if (ctx->is_hevc) {
-			nal_type = gf_bs_read_u8(ctx->bs_r);
-			gf_bs_seek(ctx->bs_r, 0);
+			nal_type = hdr_start[0];
 			nal_type = (nal_type & 0x7E) >> 1;
 			switch (nal_type) {
 			case GF_HEVC_NALU_VID_PARAM:
@@ -2027,8 +2015,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 				break;
 			}
 		} else {
-			nal_hdr = gf_bs_read_u8(ctx->bs_r);
-			nal_type = nal_hdr & 0x1F;
+			nal_type = hdr_start[0] & 0x1F;
 			switch (nal_type) {
 			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 			case GF_AVC_NALU_SEQ_PARAM:
@@ -2071,7 +2058,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			full_nal = GF_TRUE;
 			size = next;
 		}
-		if (size<6) {
+		if (!full_nal && (size<6)) {
 			assert(!nal_sc_in_store);
 			assert(!nal_hdr_in_store);
 			assert(remain < SAFETY_NAL_STORE);
@@ -2086,7 +2073,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		if (ctx->is_hevc) {
 			nal_parse_result = naludmx_parse_nal_hevc(ctx, hdr_start, hdr_avail, &skip_nal, &is_slice, &is_islice);
 		} else {
-			nal_parse_result = naludmx_parse_nal_avc(ctx, hdr_start, hdr_avail, nal_hdr, nal_type, &skip_nal, &is_slice, &is_islice);
+			nal_parse_result = naludmx_parse_nal_avc(ctx, hdr_start, hdr_avail, nal_type, &skip_nal, &is_slice, &is_islice);
 		}
 
 		if (skip_nal) {
@@ -2104,13 +2091,6 @@ GF_Err naludmx_process(GF_Filter *filter)
 				ctx->next_nal_end_skip = GF_TRUE;
 				break;
 			}
-/*			start += sc_size+next;
-			remain -= sc_size+next;
-			if (hdr_offset) {
-				start += hdr_offset - sc_size;
-				remain -= hdr_offset - sc_size;
-			}
-*/
 			assert(remain >= next);
 			start = pck_start + next;
 			remain = pck_size - (start - (u8*)data);

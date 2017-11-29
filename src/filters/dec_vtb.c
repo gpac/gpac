@@ -95,6 +95,7 @@ typedef struct
 
 	//NAL-based specific
 	GF_BitStream *nal_bs;
+	GF_BitStream *ps_bs;
 
 	GF_BitStream *nalu_rewrite_bs;
 	char *nalu_buffer;
@@ -573,12 +574,15 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 	u32 i, count;
 	s32 ps_id;
 	GF_List *dest = is_sps ? ctx->SPSs : ctx->PPSs;
-	
+
+	if (!ctx->ps_bs) ctx->ps_bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	else gf_bs_reassign_buffer(ctx->ps_bs, data, size);
+
 	if (is_sps) {
-		ps_id = gf_media_avc_read_sps(data, size, &ctx->avc, 0, NULL);
+		ps_id = gf_media_avc_read_sps_bs(ctx->ps_bs, &ctx->avc, 0, NULL);
 		if (ps_id<0) return;
 	} else {
-		ps_id = gf_media_avc_read_pps(data, size, &ctx->avc);
+		ps_id = gf_media_avc_read_pps_bs(ctx->ps_bs, &ctx->avc);
 		if (ps_id<0) return;
 	}
 	
@@ -684,8 +688,10 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//check AVC config
 	if (oti==GPAC_OTI_VIDEO_AVC) {
-		ctx->SPSs = gf_list_new();
-		ctx->PPSs = gf_list_new();
+		if (!ctx->SPSs)
+			ctx->SPSs = gf_list_new();
+		if (!ctx->PPSs)
+			ctx->PPSs = gf_list_new();
 		ctx->is_avc = GF_TRUE;
 		ctx->check_h264_isma = GF_TRUE;
 
@@ -823,7 +829,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		if (!ctx->nal_bs) ctx->nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
 		else gf_bs_reassign_buffer(ctx->nal_bs, ptr, nal_size);
 
-		nal_hdr = gf_bs_read_u8(ctx->nal_bs);
+		nal_hdr = ptr[0];
 		nal_type = nal_hdr & 0x1F;
 		switch (nal_type) {
 		case GF_AVC_NALU_SEQ_PARAM:
@@ -846,7 +852,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			break;
 		}
 		
-		gf_media_avc_parse_nalu(ctx->nal_bs, nal_hdr, &ctx->avc);
+		gf_media_avc_parse_nalu(ctx->nal_bs, &ctx->avc);
 
 		//if sps and pps are ready, init decoder
 		if (!ctx->vtb_session && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
@@ -1366,6 +1372,7 @@ static void vtbdec_finalize(GF_Filter *filter)
 		gf_list_del(ctx->frames_res);
 	}
 	if (ctx->nal_bs) gf_bs_del(ctx->nal_bs);
+	if (ctx->ps_bs) gf_bs_del(ctx->ps_bs);
 	if (ctx->nalu_rewrite_bs) gf_bs_del(ctx->nalu_rewrite_bs);
 	if (ctx->nalu_buffer) gf_free(ctx->nalu_buffer);
 }
