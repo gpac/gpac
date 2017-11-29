@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2005-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / NHNT demuxer filter
+ *  This file is part of GPAC / MPEG Program Stream demuxer filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -31,12 +31,7 @@
 
 #ifndef GPAC_DISABLE_MPEG2PS
 #include "../media_tools/mpeg2_ps.h"
-
-typedef struct
-{
-	u64 pos;
-	Double duration;
-} NHNTIdx;
+#include <gpac/media_tools.h>
 
 typedef struct
 {
@@ -44,18 +39,12 @@ typedef struct
 	u32 stream_type;
 	u32 stream_num;
 	Bool in_use;
-	u32 dts_inc, frames;
 } M2PSStream;
 
 
 typedef struct
 {
-	//opts
-	Bool reframe;
-	Double index_dur;
-
 	GF_FilterPid *ipid;
-
 
 	const char *src_url;
 	mpeg2ps_t *ps;
@@ -65,40 +54,11 @@ typedef struct
 
 	Bool is_playing;
 	GF_Fraction duration;
-	Bool need_reassign, in_seek;
-
-	Bool initial_play_done;
-	Bool header_parsed;
-	u32 sig;
-	u32 timescale;
+	Bool in_seek;
 
 	GF_List *streams;
 
-	NHNTIdx *indexes;
-	u32 index_alloc_size, index_size;
 } GF_M2PSDmxCtx;
-
-static void get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
-{
-	u32 fps_1000 = (u32) (fps*1000 + 0.5);
-	/*handle all drop-frame formats*/
-	if (fps_1000==29970) {
-		*timescale = 30000;
-		*dts_inc = 1001;
-	}
-	else if (fps_1000==23976) {
-		*timescale = 24000;
-		*dts_inc = 1001;
-	}
-	else if (fps_1000==59940) {
-		*timescale = 60000;
-		*dts_inc = 1001;
-	} else {
-		*timescale = fps_1000;
-		*dts_inc = 1000;
-	}
-}
-
 
 static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 {
@@ -150,11 +110,11 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 
 		fps = mpeg2ps_get_video_stream_framerate(ctx->ps, i);
 		if (fps) {
-			get_video_timing(fps, &frac.num, &frac.den);
+			gf_media_get_video_timing(fps, &frac.num, &frac.den);
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_FPS, &PROP_FRAC( frac ) );
 		}
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_WIDTH, &PROP_UINT( mpeg2ps_get_video_stream_width(ctx->ps, i) ) );
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_WIDTH, &PROP_UINT( mpeg2ps_get_video_stream_height(ctx->ps, i) ) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_HEIGHT, &PROP_UINT( mpeg2ps_get_video_stream_height(ctx->ps, i) ) );
 		par = mpeg2ps_get_video_stream_aspect_ratio(ctx->ps, i);
 		if (par) {
 			frac.num = par>>16;
@@ -415,18 +375,7 @@ void m2psdmx_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->streams);
 	if (ctx->ps) mpeg2ps_close(ctx->ps);
-	if (ctx->indexes) gf_free(ctx->indexes);
 }
-
-
-#define OFFS(_n)	#_n, offsetof(GF_M2PSDmxCtx, _n)
-static const GF_FilterArgs GF_M2PSDmxArgs[] =
-{
-	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
-};
-
 
 static const GF_FilterCapability M2PSDmxInputs[] =
 {
@@ -440,7 +389,6 @@ static const GF_FilterCapability M2PSDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 };
 
 
@@ -448,7 +396,6 @@ GF_FilterRegister M2PSDmxRegister = {
 	.name = "m2psdmx",
 	.description = "MPEG Program Stream Demux",
 	.private_size = sizeof(GF_M2PSDmxCtx),
-	.args = GF_M2PSDmxArgs,
 	.initialize = m2psdmx_initialize,
 	.finalize = m2psdmx_finalize,
 	INCAPS(M2PSDmxInputs),

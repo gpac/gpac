@@ -1219,6 +1219,14 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
  */
 GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size);
 
+/*!
+  Gets timescale and TS increment from double FPS value.
+ \param fps the target fps
+ \param timescale output timescale value
+ \param ts_inc output timestamp increment value
+*/
+void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *ts_inc);
+
 
 #ifdef __cplusplus
 }

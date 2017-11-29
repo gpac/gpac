@@ -748,8 +748,11 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (sr) gf_isom_set_audio_info(ctx->mov, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps);
 	else if (width) {
 		gf_isom_set_visual_info(ctx->mov, tkw->track_num, tkw->stsd_idx, width, height);
-		if (sar.num != sar.den)
+		if (sar.den && (sar.num != sar.den)) {
 			gf_isom_set_pixel_aspect_ratio(ctx->mov, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
+			width = width * sar.num / sar.den;
+		}
+		gf_isom_set_track_layout_info(ctx->mov, tkw->track_num, width<<16, height<<16, 0, 0, 0);
 	}
 
 
@@ -1130,6 +1133,10 @@ static void mp4_mux_finalize(GF_Filter *filter)
 			Bool force_rewrite = GF_FALSE;
 			u32 PL = tkw->media_profile_level;
 			if (!PL) PL = 0x01;
+
+			if (ctx->importer) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Indicated Profile: %s\n", gf_m4v_get_profile_name((u8) PL) ));
+			}
 
 			if (has_bframes && (tkw->media_profile_level <= 3)) {
 				PL = 0xF5;

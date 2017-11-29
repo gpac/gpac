@@ -113,6 +113,10 @@ GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char 
 			mime_type = "image/svg+xml";
 		} else if (strstr(probe_data, "<widget")  ) {
 			mime_type = "application/widget";
+		} else if (strstr(probe_data, "<NHNTStream")) {
+			mime_type = "application/x-nhml";
+		} else if (strstr(probe_data, "DIMSStream") ) {
+			mime_type = "application/dims";
 		}
 	}
 	if (mime_type)

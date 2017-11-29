@@ -39,7 +39,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index_dur;
-	Bool vfr;
+	Bool vfr, importer;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -65,6 +65,8 @@ typedef struct
 	u64 last_ref_cts;
 	Bool frame_started;
 
+	u32 nb_i, nb_p, nb_b, nb_frames, max_b;
+
 	u32 bytes_in_header;
 	char *hdr_store;
 	u32 hdr_store_size, hdr_store_alloc;
@@ -73,7 +75,8 @@ typedef struct
 	Bool is_file, file_loaded;
 	Bool initial_play_done;
 
-	Bool input_is_au_start;
+	Bool input_is_au_start, input_is_au_end;
+	Bool recompute_cts;
 
 	MPGVidIdx *indexes;
 	u32 index_alloc_size, index_size;
@@ -99,6 +102,12 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	if (p) {
 		ctx->timescale = ctx->fps.num = p->value.uint;
 		ctx->fps.den = 0;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (p) {
+			ctx->fps = p->value.frac;
+		}
+		p = gf_filter_pid_get_property_str(pid, "nocts");
+		if (p && p->value.boolean) ctx->recompute_cts = GF_TRUE;
 	}
 
 	was_mpeg12 = ctx->is_mpg12;
@@ -216,6 +225,7 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 	if (flush_ref && ctx->pck_queue) {
 		//send all reference packet queued
 		u32 i, count = gf_list_count(ctx->pck_queue);
+
 		for (i=0; i<count; i++) {
 			u64 cts;
 			GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
@@ -283,29 +293,28 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 
 	if (vosh_size) {
 		u32 i;
-		char * dcd = gf_malloc(sizeof(char)*vosh_size);
-		memcpy(dcd, data, sizeof(char)*vosh_size);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dcd, vosh_size));
+		char * dcfg = gf_malloc(sizeof(char)*vosh_size);
+		memcpy(dcfg, data, sizeof(char)*vosh_size);
 
 		/*remove packed flag if any (VOSH user data)*/
 		ctx->is_packed = ctx->is_vfr = ctx->forced_packed = GF_FALSE;
 		i=0;
 		while (1) {
-			char *frame = data;
+			char *frame = dcfg;
 			while ((i+3<vosh_size)  && ((frame[i]!=0) || (frame[i+1]!=0) || (frame[i+2]!=1))) i++;
 			if (i+4>=vosh_size) break;
 			if (strncmp(frame+i+4, "DivX", 4)) {
 				i += 4;
 				continue;
 			}
-			frame = data + i + 4;
-			frame = strchr(frame, 'p');
+			frame = strchr(dcfg + i + 4, 'p');
 			if (frame) {
 				ctx->forced_packed = GF_TRUE;
 				frame[0] = 'n';
 			}
 			break;
 		}
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dcfg, vosh_size));
 	}
 }
 
@@ -324,6 +333,10 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 			ctx->bytes_in_header = 0;
 		}
 		if (! ctx->is_file) {
+			if (!ctx->initial_play_done) {
+				ctx->initial_play_done = GF_TRUE;
+				if (evt->play.start_range>0.1) ctx->resume_from = 0;
+ 			}
 			return GF_FALSE;
 		}
 		ctx->start_range = evt->play.start_range;
@@ -446,7 +459,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	remain = pck_size;
 
 	//input pid sets some timescale - we flushed pending data , update cts
-	if (ctx->timescale) {
+	if (!ctx->resume_from && ctx->timescale) {
 		u64 ts = gf_filter_pck_get_cts(pck);
 		if (ts != GF_FILTER_NO_TS)
 			ctx->cts = ts;
@@ -462,7 +475,9 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					ctx->fps.den = diff;
 			}
 		}
-		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, NULL);
+		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, &ctx->input_is_au_end);
+		//this will force CTS recomput of each frame
+		if (ctx->recompute_cts) ctx->input_is_au_start = GF_FALSE;
 	}
 
 	//we stored some data to find the complete vosh, aggregate this packet with current one
@@ -493,6 +508,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			start = data = ctx->hdr_store + ctx->resume_from;
 			remain = pck_size = ctx->hdr_store_size - ctx->resume_from;
 		} else {
+			assert(remain >= ctx->resume_from);
 			start += ctx->resume_from;
 			remain -= ctx->resume_from;
 		}
@@ -791,7 +807,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			size += bytes_from_store + hdr_offset;
 		}
 
-		if (e == GF_EOS) {
+		if ((e == GF_EOS) && !ctx->input_is_au_end) {
 			u8 b3 = start[remain-3];
 			u8 b2 = start[remain-2];
 			u8 b1 = start[remain-1];
@@ -812,6 +828,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			/*if prev is B and we're parsing a packed bitstream discard n-vop*/
 			if (ctx->forced_packed && ctx->b_frames) {
 				ctx->is_packed = GF_TRUE;
+				assert(remain>=size);
 				start += size;
 				remain -= size;
 				continue;
@@ -820,6 +837,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			if (ctx->vfr) {
 				ctx->is_vfr = GF_TRUE;
 				mpgviddmx_update_time(ctx);
+				assert(remain>=size);
 				start += size;
 				remain -= size;
 				continue;
@@ -830,13 +848,21 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ftype==2) {
 			//count number of B-frames since last ref
 			ctx->b_frames++;
+			ctx->nb_b++;
 		} else {
 			//flush all pending packets
 			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 			//remeber the CTS of the last ref
 			ctx->last_ref_cts = ctx->cts;
+			if (ctx->max_b < ctx->b_frames) ctx->max_b = ctx->b_frames;
+			
 			ctx->b_frames = 0;
+			if (ftype)
+				ctx->nb_p++;
+			else
+				ctx->nb_i++;
 		}
+		ctx->nb_frames++;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
 		//bytes come from both our store and the data packet
@@ -859,7 +885,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		assert(pck_data[1] == 0);
 		assert(pck_data[2] == 0x01);
 
-		gf_filter_pck_set_framing(dst_pck, GF_TRUE, full_frame);
+		gf_filter_pck_set_framing(dst_pck, GF_TRUE, (full_frame || ctx->input_is_au_end) ? GF_TRUE : GF_FALSE);
 		gf_filter_pck_set_cts(dst_pck, ctx->cts);
 		gf_filter_pck_set_dts(dst_pck, ctx->dts);
 		if (ctx->input_is_au_start) {
@@ -890,7 +916,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 
 		//don't demux too much of input, abort when we would block. This avoid dispatching
 		//a huge number of frames in a single call
-		if (gf_filter_pid_would_block(ctx->opid)) {
+		if (!ctx->timescale && gf_filter_pid_would_block(ctx->opid)) {
 			ctx->resume_from = (char *)start -  (char *)data;
 			return GF_OK;
 		}
@@ -922,6 +948,15 @@ static void mpgviddmx_finalize(GF_Filter *filter)
 			gf_filter_pck_discard(pck);
 		}
 		gf_list_del(ctx->pck_queue);
+	}
+	if (ctx->importer) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Import results: %d VOPs (%d Is - %d Ps - %d Bs)\n", ctx->is_mpg12 ? "MPEG-1/2" : "MPEG-4 (Part 2)", ctx->nb_frames, ctx->nb_i, ctx->nb_p, ctx->nb_b));
+		if (ctx->nb_b) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("\t%d max consecutive B-frames%s\n", ctx->max_b, ctx->is_packed ? " - packed bitstream" : "" ));
+		}
+		if (ctx->is_vfr && ctx->nb_b && ctx->is_packed) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Warning: Mix of non-coded frames: packed bitstream and encoder skiped - unpredictable timing\n"));
+		}
 	}
 }
 
@@ -964,6 +999,7 @@ static const GF_FilterArgs MPGVidDmxArgs[] =
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, GF_FALSE},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(vfr), "set variable frame rate import", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{}
 };
 
