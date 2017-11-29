@@ -91,9 +91,11 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	assert(pkt.stream_index<ffd->ctx->nb_streams);
 
 	if (pkt.pts == AV_NOPTS_VALUE) {
-		pkt.pts = pkt.dts;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDemux] No PTS for packet on stream %d\n", pkt.stream_index ));
-
+		if (pkt.dts == AV_NOPTS_VALUE) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDemux] No PTS for packet on stream %d\n", pkt.stream_index ));
+		} else {
+			pkt.pts = pkt.dts;
+		}
 	}
 
 	if (! ffd->pids[pkt.stream_index] ) {

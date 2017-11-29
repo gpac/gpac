@@ -132,7 +132,7 @@ Bool mpeg2ps_get_video_frame(mpeg2ps_t *ps,
                              u32 *buflen,
                              u8 *frame_type,
                              mpeg2ps_ts_type_t ts_type,
-                             u64 *timestamp);
+                             u64 *decode_timestamp, u64 *compose_timestamp);
 Bool mpeg2ps_seek_video_frame(mpeg2ps_t *ps, u32 streamno,
                               u64 msec_timestamp);
 
@@ -181,6 +181,7 @@ Bool mpeg2ps_seek_audio_frame(mpeg2ps_t *ps, u32 streamno,
                               u64 msec_timestamp);
 
 
+
 /*
  * returns file size
  */
@@ -201,6 +202,7 @@ typedef void (*error_msg_func_t)(int loglevel,
 void mpeg2ps_set_loglevel(int loglevel);
 void mpeg2ps_set_error_func(error_msg_func_t func);
 
+u64 mpeg2ps_get_first_cts(mpeg2ps_t *ps);
 
 #endif /*GPAC_DISABLE_MPEG2PS*/
 

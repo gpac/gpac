@@ -200,6 +200,7 @@
 		920101CF18D5AC67003D1ACA /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101CE18D5AC67003D1ACA /* OpenGL.framework */; };
 		920101D118D5ACA7003D1ACA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101D018D5ACA7003D1ACA /* libz.dylib */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */; };
 		9235E04E1CFECD300051D8A1 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2C41A163711002D73E1 /* CoreMedia.framework */; };
 		9235E0501CFECD370051D8A1 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E04F1CFECD370051D8A1 /* CoreVideo.framework */; };
 		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
@@ -1059,6 +1060,7 @@
 		9201FFFF18D5A444003D1ACA /* hinting.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hinting.c; sourceTree = "<group>"; };
 		9225732418D7267900D6FD98 /* gm_ogg_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ogg_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
+		922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_mpegps.c; path = filters/dmx_mpegps.c; sourceTree = "<group>"; };
 		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
@@ -2521,6 +2523,7 @@
 				92BB9A661F9C827600524E5B /* dmx_dash.c */,
 				926656C51F7D45F700299CC6 /* dmx_ogg.c */,
 				926656C71F7E92C200299CC6 /* dmx_m2ts.c */,
+				922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */,
 				928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */,
 				928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */,
 				92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */,
@@ -3131,6 +3134,7 @@
 				92B9A5AC1F8660D700A24FE4 /* svg_media.c in Sources */,
 				920101B718D5A445003D1ACA /* os_module.c in Sources */,
 				92B9A5A41F8660D700A24FE4 /* scene.c in Sources */,
+				922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */,
 				920100B018D5A444003D1ACA /* arith_decoder.c in Sources */,
 				92B9A5A11F8660D700A24FE4 /* mpeg4_textures.c in Sources */,
 				92B9A58B1F8660D700A24FE4 /* mpeg4_path_layout.c in Sources */,
