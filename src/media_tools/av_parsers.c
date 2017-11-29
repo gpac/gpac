@@ -3249,11 +3249,11 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 		break;
 
 		case 6: /*recovery point*/
-		{
-			GF_BitStream *rp_bs = gf_bs_new(sei_without_emulation_bytes + start, psize, GF_BITSTREAM_READ);
-			avc_parse_recovery_point_sei(rp_bs, avc);
-			gf_bs_del(rp_bs);
-		}
+			if (psize) {
+				GF_BitStream *rp_bs = gf_bs_new(sei_without_emulation_bytes + start, psize, GF_BITSTREAM_READ);
+				avc_parse_recovery_point_sei(rp_bs, avc);
+				gf_bs_del(rp_bs);
+			}
 		break;
 
 		case 1: /*pic_timing*/

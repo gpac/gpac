@@ -1181,7 +1181,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	GF_ISOSample *samp, *dst_samp;
 	GF_BitStream *bs, *dst_bs;
 	GF_BitStream ** sample_bs;
-	u8 nal_type, nal_hdr, track_ref_index;
+	u8 nal_type, track_ref_index;
 	char *buffer;
 	s32 *sps_track, *sps, *pps;
 	u64 offset;
