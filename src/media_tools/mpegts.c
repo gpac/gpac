@@ -150,332 +150,6 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 }
 
 
-static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr, Bool is_hevc)
-{
-	Bool au_start_in_pes=0;
-	Bool prev_is_au_delim=0;
-	Bool force_new_au=0;
-	u32 start_code_found = 0;
-	Bool short_start_code = 0;
-	Bool esc_code_found = 0;
-	u32 nal_type, sc_pos = 0;
-	u32 first_nal_offset_in_pck = 0;
-	Bool full_au_pes_mode = 0;
-	u8 *au_start = NULL;
-	GF_M2TS_PES_PCK pck;
-
-	if (!same_pts)
-		force_new_au = 1;
-
-	/*dispatch frame*/
-	pck.stream = pes;
-	pck.DTS = pes->DTS;
-	pck.PTS = pes->PTS;
-	pck.flags = 0;
-
-	while (sc_pos<data_len) {
-		/* u32 sctype=0;*/
-		unsigned char *start = (unsigned char *)memchr(data+sc_pos, 0, data_len-sc_pos);
-		if (!start) break;
-		sc_pos = (u32) (start - data);
-		/*not enough space to test for start code, don't check it*/
-		if (data_len - sc_pos < 5)
-			break;
-
-		/*0x00000001 start code*/
-		if (!start[1] && !start[2] && (start[3]==1)) {
-			short_start_code = 0;
-		}
-		/*0xXX000001 start code*/
-		else if (!start[1] && (start[2]==1) && sc_pos && (data[sc_pos-1]!=0) ) {
-			short_start_code = 1;
-		}
-		/*0x000000 escape code*/
-		else if (!start[1] && !start[2]) {
-			esc_code_found=1;
-			if (!start_code_found) {
-				sc_pos ++;
-				continue;
-			}
-		} else {
-			esc_code_found=0;
-			sc_pos ++;
-			continue;
-		}
-
-		if (!start_code_found) {
-			if (sc_pos) {
-				if (!esc_code_found) {
-					pck.data = (char *)data;
-					pck.data_len = sc_pos;
-					pck.flags = 0;
-					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-				}
-
-				data += sc_pos;
-				first_nal_offset_in_pck += sc_pos;
-				data_len -= sc_pos;
-			}
-			start_code_found = short_start_code ? 2 : 1;
-			sc_pos=1;
-		} else {
-			Bool is_short_start_code = (start_code_found==2) ? GF_TRUE : GF_FALSE;
-
-			if (!full_au_pes_mode && (start_code_found==2)) {
-				pck.data = (char *)data-1;
-				pck.data[0]=0;
-				pck.data_len = sc_pos+1;
-			} else {
-				pck.data = (char *)data;
-				pck.data_len = sc_pos;
-			}
-			//copy start code type for next nal
-			start_code_found = short_start_code ? 2 : 1;
-
-			if (is_hevc) {
-#ifndef GPAC_DISABLE_HEVC
-				nal_type = (pck.data[ is_short_start_code ? 3 : 4 ] & 0x7E) >> 1;
-
-				/*check for SPS and update stream info*/
-#ifndef GPAC_DISABLE_AV_PARSERS
-				if (!pes->vid_w && (nal_type==GF_HEVC_NALU_SEQ_PARAM)) {
-					HEVCState hevc;
-					s32 idx;
-					memset(&hevc, 0, sizeof(HEVCState));
-					hevc.sps_active_idx = -1;
-					idx = gf_media_hevc_read_sps((char *)data+4, sc_pos-4, &hevc);
-
-					if (idx>=0) {
-						pes->vid_w = hevc.sps[idx].width;
-						pes->vid_h = hevc.sps[idx].height;
-					}
-				}
-#endif
-				/*check AU start type - if this is an LHVC PID and the first nal is the first byte of the PES payload, consider this is an AU start*/
-				if ((nal_type==GF_HEVC_NALU_ACCESS_UNIT) || (pes->depends_on_pid && !first_nal_offset_in_pck)) {
-					if (!prev_is_au_delim) {
-						//this was not a one AU per PES config, dispatch
-						if (au_start) {
-							pck.data = (char *)au_start;
-							pck.data_len = (u32) (data - au_start);
-							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-							au_start = NULL;
-							full_au_pes_mode = 0;
-							if (is_short_start_code) {
-								pck.data = (char *)data-1;
-								pck.data[0]=0;
-								pck.data_len = sc_pos+1;
-							} else {
-								pck.data = (char *)data;
-								pck.data_len = sc_pos;
-							}
-						}
-
-						if (au_start_in_pes) {
-							/*FIXME - we should check the AVC framerate to update the timing ...*/
-							pck.DTS += 3000;
-							pck.PTS += 3000;
-							//						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
-						}
-
-						pck.flags = GF_M2TS_PES_PCK_AU_START;
-						force_new_au = 0;
-						au_start_in_pes = 1;
-						if (pes_hdr->data_alignment && !first_nal_offset_in_pck && !pes->single_nal_mode) {
-							full_au_pes_mode = GF_TRUE;
-							au_start = (u8 *) pck.data;
-						} else {
-							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-						}
-						prev_is_au_delim=1;
-					}
-				} else if ((nal_type>=GF_HEVC_NALU_SLICE_BLA_W_LP) && (nal_type<=GF_HEVC_NALU_SLICE_CRA)) {
-					if (!full_au_pes_mode) {
-						pck.flags = GF_M2TS_PES_PCK_RAP;
-						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-					} else {
-						pck.flags |= GF_M2TS_PES_PCK_RAP;
-					}
-					prev_is_au_delim=0;
-				}
-				else
-#endif //GPAC_DISABLE_HEVC
-				{
-					if (!full_au_pes_mode) {
-						pck.flags = 0;
-						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-					}
-					prev_is_au_delim=0;
-				}
-			} else {
-				nal_type = pck.data[is_short_start_code ? 3 : 4] & 0x1F;
-
-				/*check for SPS and update stream info*/
-#ifndef GPAC_DISABLE_AV_PARSERS
-				if ((nal_type==GF_AVC_NALU_SEQ_PARAM) || (nal_type==GF_AVC_NALU_SVC_SUBSEQ_PARAM)) {
-					AVCState avc;
-					s32 idx;
-					memset(&avc, 0, sizeof(AVCState));
-					avc.sps_active_idx = -1;
-					idx = gf_media_avc_read_sps((char *)data+4, sc_pos-4, &avc, 0, NULL);
-
-					if ((idx>=0) && (pes->vid_w < avc.sps[idx].width) && (pes->vid_h < avc.sps[idx].height)) {
-						pes->vid_w = avc.sps[idx].width;
-						pes->vid_h = avc.sps[idx].height;
-					}
-				}
-#endif
-				/*check AU start type*/
-				if ((nal_type==GF_AVC_NALU_ACCESS_UNIT) || (nal_type==GF_AVC_NALU_VDRD) ) {
-					if (!prev_is_au_delim) {
-
-						//this was not a one AU per PES config, dispatch
-						if (au_start) {
-							pck.data = (char *)au_start;
-							pck.data_len = (u32) (data - au_start);
-							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-							au_start = NULL;
-							full_au_pes_mode = 0;
-							if (is_short_start_code) {
-								pck.data = (char *)data-1;
-								pck.data[0]=0;
-								pck.data_len = sc_pos+1;
-							} else {
-								pck.data = (char *)data;
-								pck.data_len = sc_pos;
-							}
-						}
-
-						if (au_start_in_pes) {
-							/*FIXME - we should check the AVC framerate to update the timing ...*/
-							pck.DTS += 3000;
-							pck.PTS += 3000;
-							//						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID%d: Two AVC AUs start in this PES packet - cannot recompute non-first AU timing\n", pes->pid));
-						}
-						pck.flags = GF_M2TS_PES_PCK_AU_START;
-						force_new_au = 0;
-						au_start_in_pes = 1;
-						if (pes_hdr->data_alignment && !first_nal_offset_in_pck && !pes->single_nal_mode) {
-							full_au_pes_mode = GF_TRUE;
-							au_start = (u8 *) pck.data;
-						} else {
-							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-						}
-						prev_is_au_delim=1;
-					}
-				} else {
-					if (!full_au_pes_mode) {
-						pck.flags = (nal_type==GF_AVC_NALU_IDR_SLICE) ? GF_M2TS_PES_PCK_RAP : 0;
-						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-					} else {
-						if (nal_type==GF_AVC_NALU_IDR_SLICE) pck.flags |= GF_M2TS_PES_PCK_RAP;
-					}
-					prev_is_au_delim=0;
-				}
-			}
-
-			data += sc_pos;
-			data_len -= sc_pos;
-			first_nal_offset_in_pck += sc_pos;
-			sc_pos = 0;
-
-			if (esc_code_found) {
-				esc_code_found=0;
-				start_code_found=0;
-			} else {
-				sc_pos = 1;
-			}
-		}
-	}
-	/*we did not consume all data*/
-	if (!start_code_found) {
-		u32 min_size = is_hevc ? 6 : 5;
-
-		if (au_start) {
-			pck.data = (char *)au_start;
-			pck.data_len = (u32) (data - au_start);
-			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-			au_start = NULL;
-		}
-
-		/*if not enough data to locate start code, store it*/
-		if (data_len < min_size )
-			return data_len;
-		/*otherwise this is the middle of a frame, let's dispatch it*/
-	}
-
-	if (au_start) {
-		u8 sc_end = ((data[0]==0) && (data[1]==0) && (data[2]==1)) ? 3 : 4;
-		if (is_hevc) {
-#ifndef GPAC_DISABLE_HEVC
-			nal_type = (data[sc_end] & 0x7E) >> 1;
-			if ((nal_type>=GF_HEVC_NALU_SLICE_BLA_W_LP) && (nal_type<=GF_HEVC_NALU_SLICE_CRA)) {
-				pck.flags |= GF_M2TS_PES_PCK_RAP;
-			}
-#endif
-		} else {
-			nal_type = data[sc_end] & 0x1F;
-			if (nal_type==GF_AVC_NALU_IDR_SLICE) pck.flags |= GF_M2TS_PES_PCK_RAP;
-		}
-
-		pck.data = (char *)au_start;
-		pck.data_len = (u32) (data - au_start) + data_len;
-		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		return 0;
-	}
-
-	if (data_len) {
-		pck.flags = 0;
-		pck.data = (char *)data;
-		pck.data_len = data_len;
-		if (start_code_found) {
-			if (start_code_found==2) {
-				pck.data = (char *)data-1;
-				pck.data[0]=0;
-				pck.data_len = data_len+1;
-			}
-			if (is_hevc) {
-#ifndef GPAC_DISABLE_HEVC
-				nal_type = (pck.data[4] & 0x7E) >> 1;
-				if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
-					pck.flags = GF_M2TS_PES_PCK_AU_START;
-				} else if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
-					pck.flags = GF_M2TS_PES_PCK_RAP;
-				} else if (nal_type==GF_HEVC_NALU_FILLER_DATA) {
-					return 0;
-				}
-#endif
-			} else {
-				nal_type = pck.data[4] & 0x1F;
-				if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
-					pck.flags = GF_M2TS_PES_PCK_AU_START;
-				} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
-					pck.flags = GF_M2TS_PES_PCK_RAP;
-				}
-			}
-		}
-		if (force_new_au) {
-			pck.flags |= GF_M2TS_PES_PCK_AU_START;
-			//force_new_au = 0;
-		}
-		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-	}
-	/*we consumed all data*/
-	return 0;
-}
-
-static u32 gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
-{
-	return gf_m2ts_reframe_nalu_video(ts, pes, same_pts, data, data_len, pes_hdr, 0);
-}
-
-static u32 gf_m2ts_reframe_hevc(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
-{
-	return gf_m2ts_reframe_nalu_video(ts, pes, same_pts, data, data_len, pes_hdr, 1);
-}
-
-
-
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
@@ -3199,7 +2873,6 @@ u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes)
 	if (!pes->reframe ) return GF_M2TS_PES_FRAMING_SKIP_NO_RESET;
 	if (pes->reframe == gf_m2ts_reframe_default) return GF_M2TS_PES_FRAMING_RAW;
 	if (pes->reframe == gf_m2ts_reframe_reset) return GF_M2TS_PES_FRAMING_SKIP;
-	if (pes->single_nal_mode) return GF_M2TS_PES_FRAMING_DEFAULT_NAL;
 	return GF_M2TS_PES_FRAMING_DEFAULT;
 }
 
@@ -3243,19 +2916,15 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 	case GF_M2TS_PES_FRAMING_SKIP_NO_RESET:
 		pes->reframe = NULL;
 		break;
-	case GF_M2TS_PES_FRAMING_DEFAULT_NAL:
 	case GF_M2TS_PES_FRAMING_DEFAULT:
 	default:
 		switch (pes->stream_type) {
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
-//			pes->reframe = gf_m2ts_reframe_mpeg_video;
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_VIDEO_H264:
 		case GF_M2TS_VIDEO_SVC:
-//			pes->reframe = gf_m2ts_reframe_avc_h264;
-//			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_VIDEO_HEVC:
@@ -3263,25 +2932,26 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
 		case GF_M2TS_VIDEO_MHVC:
 		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
-			pes->reframe = gf_m2ts_reframe_hevc;
-			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
+			pes->reframe = gf_m2ts_reframe_default;
 			break;
 #ifndef GPAC_DISABLE_AV_PARSERS
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
-//			pes->reframe = gf_m2ts_reframe_mpeg_audio;
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_AUDIO_AAC:
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_AUDIO_LATM_AAC:
+			//TODO
 			pes->reframe = gf_m2ts_reframe_aac_latm;
 			break;
 		case GF_M2TS_AUDIO_AC3:
+			//TODO
 			pes->reframe = gf_m2ts_reframe_ac3;
 			break;
 		case GF_M2TS_AUDIO_EC3:
+			//TODO
 			pes->reframe = gf_m2ts_reframe_ec3;
 			break;
 #endif
@@ -3290,6 +2960,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			/* TODO: handle DVB subtitle streams */
 			break;
 		case GF_M2TS_METADATA_ID3_HLS:
+			//TODO
 			pes->reframe = gf_m2ts_reframe_id3_pes;
 			break;
 		default:
