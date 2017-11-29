@@ -74,6 +74,7 @@ const GF_FilterRegister *mpgviddmx_register(GF_FilterSession *session);
 const GF_FilterRegister *nhntdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *nhmldmx_register(GF_FilterSession *session);
 const GF_FilterRegister *naludmx_register(GF_FilterSession *session);
+const GF_FilterRegister *m2psdmx_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -119,6 +120,7 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, nhntdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, nhmldmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, naludmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, m2psdmx_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
@@ -1104,6 +1106,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	const GF_FilterArgs *src_arg=NULL;
 	u32 i, count, user_args_len;
 	GF_Err e;
+	const char *force_freg = NULL;
 	char *sURL, *mime_type, *args, *sep;
 	char szExt[50];
 	memset(szExt, 0, sizeof(szExt));
@@ -1138,7 +1141,12 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 		sep = strchr(sURL, ':');
 		if (sep && !strnicmp(sep, ":\\", 2)) sep = strchr(sep+2, ':');
 	}
-	if (sep) sep[0] = 0;
+	if (sep) {
+		sep[0] = 0;
+		force_freg = strstr(sep+1, "filter=");
+		if (force_freg)
+			force_freg += 7;
+	}
 
 	//check all our registered filters
 	count = gf_list_count(fsess->registry);
@@ -1147,6 +1155,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 		GF_FilterProbeScore s;
 		GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 		if (! freg->probe_url) continue;
+		if (force_freg && strncmp(force_freg, freg->name, strlen(freg->name))) continue;
 		if (! freg->args) continue;
 		if (filter && (gf_list_find(filter->blacklisted, freg) >=0)) continue;
 
