@@ -736,7 +736,7 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 	//check all output caps of src filter
 	i=0;
 	for (i=0; i<src->nb_output_caps; i++) {
-		u32 j;
+		u32 j, k;
 		Bool matched=GF_FALSE;
 		const GF_FilterCapability *out_cap = &src->output_caps[i];
 
@@ -750,31 +750,43 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 		//no match possible for this cap, wait until next cap start
 		if (!all_caps_matched) continue;
 
-		//check all input caps of dst filter, count ones that are matched
-		for (j=0; j<dst->nb_input_caps; j++) {
-			Bool prop_equal;
-			const GF_FilterCapability *in_cap = &dst->input_caps[j];
-
-			if (out_cap->code && (out_cap->code!=in_cap->code) )
-				continue;
-			if (out_cap->name && (!in_cap->name || strcmp(out_cap->name, in_cap->name)))
-				continue;
-
-			//we found a property of that type and it is equal
-			prop_equal = gf_props_equal(&in_cap->val, &out_cap->val);
-			if (in_cap->exclude && !out_cap->exclude) {
-				//prop type matched and prop is excluded, for no match
-				if (prop_equal) matched = GF_FALSE;
-				prop_equal = !prop_equal;
+		//check all output caps in this bundle with the same code/name, consider OK if one is matched
+		for (k=i; k<src->nb_output_caps; k++) {
+			const GF_FilterCapability *an_out_cap = &src->output_caps[k];
+			if (!out_cap->in_bundle) {
+				break;
 			}
-			else if (!in_cap->exclude && out_cap->exclude) {
-				//prop type matched and prop is excluded, for no match
-				if (prop_equal) matched = GF_FALSE;
-				prop_equal = !prop_equal;
-			}
+			if (out_cap->code && (out_cap->code!=an_out_cap->code) )
+				continue;
+			if (out_cap->name && (!an_out_cap->name || strcmp(out_cap->name, an_out_cap->name)))
+				continue;
 
-			if (prop_equal) {
-				matched = GF_TRUE;
+			//check all input caps of dst filter, count ones that are matched
+			for (j=0; j<dst->nb_input_caps; j++) {
+				Bool prop_equal;
+				const GF_FilterCapability *in_cap = &dst->input_caps[j];
+
+				if (out_cap->code && (out_cap->code!=in_cap->code) )
+					continue;
+				if (out_cap->name && (!in_cap->name || strcmp(out_cap->name, in_cap->name)))
+					continue;
+
+				//we found a property of that type and it is equal
+				prop_equal = gf_props_equal(&in_cap->val, &an_out_cap->val);
+				if (in_cap->exclude && !an_out_cap->exclude) {
+					//prop type matched and prop is excluded, for no match
+					if (prop_equal) matched = GF_FALSE;
+					prop_equal = !prop_equal;
+				}
+				else if (!in_cap->exclude && an_out_cap->exclude) {
+					//prop type matched and prop is excluded, for no match
+					if (prop_equal) matched = GF_FALSE;
+					prop_equal = !prop_equal;
+				}
+
+				if (prop_equal) {
+					matched = GF_TRUE;
+				}
 			}
 		}
 		if (!matched) {
