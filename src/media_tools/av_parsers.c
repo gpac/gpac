@@ -2141,7 +2141,7 @@ static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 }
 
 /*returns the nal_size without emulation prevention bytes*/
-static u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
+static u32 avc_hevc_emulation_bytes_add_count(char *buffer, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -2171,7 +2171,7 @@ static u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
 	return emulation_bytes_count;
 }
 
-static u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
+static u32 avc_hevc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -2204,7 +2204,7 @@ static u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32
 }
 
 /*returns the nal_size without emulation prevention bytes*/
-static u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
+static u32 avc_hevc_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -2241,7 +2241,7 @@ static u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
 }
 
 /*nal_size is updated to allow better error detection*/
-static u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
+static u32 avc_hevc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -2279,36 +2279,31 @@ static u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, 
 	return nal_size-emulation_bytes_count;
 }
 
-GF_EXPORT
-s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
+static s32 gf_media_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos, u32 nal_hdr)
 {
 	AVC_SPS *sps;
 	u32 ChromaArrayType = 0;
 	s32 mb_width, mb_height, sps_id = -1;
 	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl=0, cr=0, ct=0, cb=0, luma_bd, chroma_bd;
 	u8 separate_colour_plane_flag = 0;
-	GF_BitStream *bs;
-	char *sps_data_without_emulation_bytes = NULL;
-	u32 sps_data_without_emulation_bytes_size = 0;
 
-	/*SPS still contains emulation bytes*/
-	sps_data_without_emulation_bytes = gf_malloc(sps_size*sizeof(char));
-	sps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
-	bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	if (!bs) {
-		sps_id = -1;
-		goto exit;
+
+	if (! vui_flag_pos) {
+		gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 	}
-	if (vui_flag_pos) *vui_flag_pos = 0;
 
-	/*nal hdr*/ gf_bs_read_int(bs, 8);
+	if (!bs) {
+		return -1;
+	}
+
+	if (!nal_hdr) nal_hdr = gf_bs_read_int(bs, 8);
 
 	profile_idc = gf_bs_read_int(bs, 8);
 
 	pcomp = gf_bs_read_int(bs, 8);
 	/*sanity checks*/
 	if (pcomp & 0x3)
-		goto exit;
+		return -1;
 
 	level_idc = gf_bs_read_int(bs, 8);
 
@@ -2317,12 +2312,10 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	than its base layer, but it does not refer to the same SPS. */
 	sps_id = bs_get_ue(bs) + GF_SVC_SSPS_ID_SHIFT * subseq_sps;
 	if (sps_id >=32) {
-		sps_id = -1;
-		goto exit;
+		return -1;
 	}
 	if (sps_id < 0) {
-		sps_id = -1;
-		goto exit;
+		return -1;
 	}
 
 	luma_bd = chroma_bd = 0;
@@ -2339,7 +2332,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	case 44:
 		/*sanity checks: note1 from 7.4.2.1.1 of iso/iec 14496-10-N11084*/
 		if (pcomp & 0xE0)
-			goto exit;
+			return -1;
 	case 83:
 	case 86:
 	case 118:
@@ -2397,8 +2390,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		for(i=0; i<sps->poc_cycle_length; i++) sps->offset_for_ref_frame[i] = bs_get_se(bs);
 	}
 	if (sps->poc_type > 2) {
-		sps_id = -1;
-		goto exit;
+		return -1;
 	}
 	sps->max_num_ref_frames = bs_get_ue(bs); 
 	sps->gaps_in_frame_num_value_allowed_flag = gf_bs_read_int(bs, 1); 
@@ -2577,45 +2569,67 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		}
 		else if ((profile_idc==118) || (profile_idc==128)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] MVC not supported - skipping parsing end of Subset SPS\n"));
-			goto exit;
+			return sps_id;
 		}
 
 		if (gf_bs_read_int(bs, 1)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] skipping parsing end of Subset SPS (additional_extension2)\n"));
-			goto exit;
+			return sps_id;
 		}
 	}
-
-exit:
-	gf_bs_del(bs);
-	gf_free(sps_data_without_emulation_bytes);
 	return sps_id;
 }
 
 GF_EXPORT
-s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
+s32 gf_media_avc_read_sps_bs(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
+	return gf_media_avc_read_sps_bs_internal(bs, avc, subseq_sps, vui_flag_pos, 0);
+}
+
+GF_EXPORT
+s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
+{
+	s32 sps_id = -1;
 	GF_BitStream *bs;
-	char *pps_data_without_emulation_bytes = NULL;
-	u32 pps_data_without_emulation_bytes_size = 0;
+	char *sps_data_without_emulation_bytes = NULL;
+	u32 sps_data_without_emulation_bytes_size = 0;
+
+	if (vui_flag_pos) {
+		/*SPS still contains emulation bytes*/
+		sps_data_without_emulation_bytes = gf_malloc(sps_size*sizeof(char));
+		sps_data_without_emulation_bytes_size = avc_hevc_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
+		bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+
+		*vui_flag_pos = 0;
+	} else {
+		bs = gf_bs_new(sps_data, sps_size, GF_BITSTREAM_READ);
+	}
+
+	if (!bs) {
+		sps_id = -1;
+		goto exit;
+	}
+
+	sps_id = gf_media_avc_read_sps_bs(bs, avc, subseq_sps, vui_flag_pos);
+
+exit:
+	gf_bs_del(bs);
+	if (sps_data_without_emulation_bytes) gf_free(sps_data_without_emulation_bytes);
+	return sps_id;
+}
+
+static s32 gf_media_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_hdr)
+{
 	s32 pps_id;
 	AVC_PPS *pps;
 
-	/*PPS still contains emulation bytes*/
-	pps_data_without_emulation_bytes = gf_malloc(pps_size*sizeof(char));
-	pps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(pps_data, pps_data_without_emulation_bytes, pps_size);
-	bs = gf_bs_new(pps_data_without_emulation_bytes, pps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	if (!bs) {
-		pps_id = -1;
-		goto exit;
-	}
-	/*nal hdr*/gf_bs_read_u8(bs);
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
+	if (!nal_hdr) nal_hdr = gf_bs_read_u8(bs);
 
 	pps_id = bs_get_ue(bs);
 	if (pps_id>=255) {
-		pps_id = -1;
-		goto exit;
+		return -1;
 	}
 	pps = &avc->pps[pps_id];
 	pps->id = pps_id;
@@ -2624,13 +2638,11 @@ s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 	pps->sps_id = bs_get_ue(bs);
 	if (pps->sps_id >= 32) {
 		pps->sps_id = 0;
-		pps_id = -1;
-		goto exit;
+		return -1;
 	}
 	/*sps_id may be refer to regular SPS or subseq sps, depending on the coded slice refering to the pps*/
 	if (!avc->sps[pps->sps_id].state && !avc->sps[pps->sps_id + GF_SVC_SSPS_ID_SHIFT].state) {
-		pps_id = -1;
-		goto exit;
+		return -1;
 	}
 	avc->pps_active_idx = pps->id; /*set active sps*/
 	avc->sps_active_idx = pps->sps_id; /*set active sps*/
@@ -2653,30 +2665,56 @@ s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 	/*pps->constrained_intra_pred = */gf_bs_read_int(bs, 1);
 	pps->redundant_pic_cnt_present = gf_bs_read_int(bs, 1);
 
-exit:
-	gf_bs_del(bs);
-	gf_free(pps_data_without_emulation_bytes);
 	return pps_id;
+}
+
+GF_EXPORT
+s32 gf_media_avc_read_pps_bs(GF_BitStream *bs, AVCState *avc)
+{
+	return gf_media_avc_read_pps_bs_internal(bs, avc, 0);
+}
+
+GF_EXPORT
+s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
+{
+	GF_BitStream *bs;
+	s32 pps_id;
+
+	/*PPS still contains emulation bytes*/
+	bs = gf_bs_new(pps_data, pps_size, GF_BITSTREAM_READ);
+	if (!bs) {
+		return -1;
+	}
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+	pps_id = gf_media_avc_read_pps_bs(bs, avc);
+	gf_bs_del(bs);
+	return pps_id;
+}
+
+static s32 gf_media_avc_read_sps_ext_bs_internal(GF_BitStream *bs, u32 nal_hdr)
+{
+	s32 sps_id;
+
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+	if (!nal_hdr) nal_hdr = gf_bs_read_u8(bs);
+	sps_id = bs_get_ue(bs);
+	return sps_id;
+}
+
+s32 gf_media_avc_read_sps_ext_bs(GF_BitStream *bs)
+{
+	return gf_media_avc_read_sps_ext_bs_internal(bs, 0);
 }
 
 s32 gf_media_avc_read_sps_ext(const char *spse_data, u32 spse_size)
 {
 	GF_BitStream *bs;
-	char *spse_data_without_emulation_bytes = NULL;
-	u32 spse_data_without_emulation_bytes_size = 0;
 	s32 sps_id;
 
-	/*PPS still contains emulation bytes*/
-	spse_data_without_emulation_bytes = gf_malloc(spse_size*sizeof(char));
-	spse_data_without_emulation_bytes_size = avc_remove_emulation_bytes(spse_data, spse_data_without_emulation_bytes, spse_size);
-	bs = gf_bs_new(spse_data_without_emulation_bytes, spse_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-
-	/*nal header*/gf_bs_read_u8(bs);
-
-	sps_id = bs_get_ue(bs);
+	bs = gf_bs_new(spse_data, spse_size, GF_BITSTREAM_READ);
+	sps_id = gf_media_avc_read_sps_ext_bs(bs);
 
 	gf_bs_del(bs);
-	gf_free(spse_data_without_emulation_bytes);
 	return sps_id;
 }
 
@@ -2982,15 +3020,20 @@ static void avc_compute_poc(AVCSliceInfo *si)
 }
 
 GF_EXPORT
-s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
+s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 {
 	u8 idr_flag;
 	s32 slice, ret;
+	u32 nal_hdr;
 	AVCSliceInfo n_state;
+
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+
+	nal_hdr = gf_bs_read_u8(bs);
 
 	slice = 0;
 	memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo));
-	n_state.nal_unit_type = nal_hdr & 0x1F;
+	avc->last_nal_type_parsed = n_state.nal_unit_type = nal_hdr & 0x1F;
 	n_state.nal_ref_idc = (nal_hdr>>5) & 0x3;
 
 	idr_flag = 0;
@@ -3091,10 +3134,27 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		}
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
+		avc->last_ps_idx = gf_media_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);
+		if (avc->last_ps_idx<0) return -1;
+		return 0;
+
 	case GF_AVC_NALU_PIC_PARAM:
+		avc->last_ps_idx = gf_media_avc_read_pps_bs_internal(bs, avc, nal_hdr);
+		if (avc->last_ps_idx<0) return -1;
+		return 0;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
+		avc->last_ps_idx = gf_media_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);
+		if (avc->last_ps_idx<0) return -1;
+		return 0;
+	case GF_AVC_NALU_SEQ_PARAM_EXT:
+		avc->last_ps_idx = gf_media_avc_read_sps_ext_bs_internal(bs, nal_hdr);
+		if (avc->last_ps_idx<0) return -1;
+		return 0;
+
+	case GF_AVC_NALU_SEI:
 	case GF_AVC_NALU_FILLER_DATA:
 		return 0;
+		
 	default:
 		if (avc->s_info.nal_unit_type <= GF_AVC_NALU_IDR_SLICE) ret = 1;
 		//To detect change of AU when multiple sps and pps in stream
@@ -3137,7 +3197,7 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 	/*PPS still contains emulation bytes*/
 
 	sei_without_emulation_bytes = gf_malloc(nal_size + 1/*for SEI null string termination*/);
-	sei_without_emulation_bytes_size = avc_remove_emulation_bytes(buffer, sei_without_emulation_bytes, nal_size);
+	sei_without_emulation_bytes_size = avc_hevc_remove_emulation_bytes(buffer, sei_without_emulation_bytes, nal_size);
 
 	bs = gf_bs_new(sei_without_emulation_bytes, sei_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	gf_bs_read_int(bs, 8);
@@ -3257,10 +3317,10 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 	gf_free(sei_without_emulation_bytes);
 
 	if (written) {
-		var = avc_emulation_bytes_add_count(new_buffer, written);
+		var = avc_hevc_emulation_bytes_add_count(new_buffer, written);
 		if (var) {
 			if (written+var<=nal_size) {
-				written = avc_add_emulation_bytes(new_buffer, buffer, written);
+				written = avc_hevc_add_emulation_bytes(new_buffer, buffer, written);
 			} else {
 				written = 0;
 			}
@@ -3314,7 +3374,7 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 
 		/*SPS still contains emulation bytes*/
 		no_emulation_buf = gf_malloc((slc->size-1)*sizeof(char));
-		no_emulation_buf_size = avc_remove_emulation_bytes(slc->data+1, no_emulation_buf, slc->size-1);
+		no_emulation_buf_size = avc_hevc_remove_emulation_bytes(slc->data+1, no_emulation_buf, slc->size-1);
 
 		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
 		gf_bs_read_data(orig, no_emulation_buf, no_emulation_buf_size);
@@ -3377,10 +3437,10 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 
 		/*set anti-emulation*/
 		gf_bs_get_content(mod, (char **) &no_emulation_buf, &flag);
-		emulation_bytes = avc_emulation_bytes_add_count(no_emulation_buf, flag);
+		emulation_bytes = avc_hevc_emulation_bytes_add_count(no_emulation_buf, flag);
 		if (flag+emulation_bytes+1>slc->size)
 			slc->data = (char*)gf_realloc(slc->data, flag+emulation_bytes+1);
-		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data+1, flag)+1;
+		slc->size = avc_hevc_add_emulation_bytes(no_emulation_buf, slc->data+1, flag)+1;
 
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
@@ -3415,18 +3475,14 @@ GF_EXPORT
 GF_Err gf_avc_get_pps_info(char *pps_data, u32 pps_size, u32 *pps_id, u32 *sps_id)
 {
 	GF_BitStream *bs;
-	char *pps_data_without_emulation_bytes = NULL;
-	u32 pps_data_without_emulation_bytes_size = 0;
 	GF_Err e = GF_OK;
 
-	/*PPS still contains emulation bytes*/
-	pps_data_without_emulation_bytes = gf_malloc(pps_size*sizeof(char));
-	pps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(pps_data, pps_data_without_emulation_bytes, pps_size);
-	bs = gf_bs_new(pps_data_without_emulation_bytes, pps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	bs = gf_bs_new(pps_data, pps_size, GF_BITSTREAM_READ);
 	if (!bs) {
 		e = GF_NON_COMPLIANT_BITSTREAM;
 		goto exit;
 	}
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 	/*nal hdr*/ gf_bs_read_int(bs, 8);
 
 	*pps_id = bs_get_ue(bs);
@@ -3434,7 +3490,6 @@ GF_Err gf_avc_get_pps_info(char *pps_data, u32 pps_size, u32 *pps_id, u32 *sps_i
 
 exit:
 	gf_bs_del(bs);
-	gf_free(pps_data_without_emulation_bytes);
 	return e;
 }
 
@@ -4503,12 +4558,15 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 	s32 vps_id = -1;
 
 	/*still contains emulation bytes*/
-	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, (*size));
+	data_without_emulation_bytes_size = remove_extensions ? avc_hevc_emulation_bytes_remove_count(data, (*size)) : 0;
 	if (!data_without_emulation_bytes_size) {
 		bs = gf_bs_new(data, (*size), GF_BITSTREAM_READ);
-	} else {
+		gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+	}
+	//when removing VPS ext, we have to get the full buffer without emulation prevention bytes becuase we do a bit-by-bit copy of the vps
+	else {
 		data_without_emulation_bytes = gf_malloc((*size) * sizeof(char));
-		data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, (*size) );
+		data_without_emulation_bytes_size = avc_hevc_remove_emulation_bytes(data, data_without_emulation_bytes, (*size) );
 		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	}
 	if (!bs) goto exit;
@@ -4542,11 +4600,11 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 		gf_bs_get_content(w_bs, &new_vps, &new_vps_size);
 		gf_bs_del(w_bs);
 		
-		emulation_bytes = avc_emulation_bytes_add_count(new_vps, new_vps_size);
+		emulation_bytes = avc_hevc_emulation_bytes_add_count(new_vps, new_vps_size);
 		if (emulation_bytes+new_vps_size > *size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Buffer too small to rewrite VPS - skipping rewrite\n"));
 		} else {
-			*size = avc_add_emulation_bytes(new_vps, data, new_vps_size);
+			*size = avc_hevc_add_emulation_bytes(new_vps, data, new_vps_size);
 		}
 	}
 
@@ -4861,29 +4919,20 @@ GF_EXPORT
 s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 *vui_flag_pos)
 {
 	GF_BitStream *bs;
-	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0;
 	s32 sps_id= -1;
 	u8 layer_id;
 
 	if (vui_flag_pos) *vui_flag_pos = 0;
 
-	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, size);
-	if (!data_without_emulation_bytes_size) {
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	} else {
-		/*still contains emulation bytes*/
-		data_without_emulation_bytes = gf_malloc(size*sizeof(char));
-		data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, size);
-		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	}
+	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	if (!bs) goto exit;
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+
 	if (! hevc_parse_nal_header(bs, NULL, NULL, &layer_id)) goto exit;
 	sps_id = gf_media_hevc_read_sps_bs(bs, hevc, layer_id, vui_flag_pos);
 
 exit:
 	if (bs) gf_bs_del(bs);
-	if (data_without_emulation_bytes) gf_free(data_without_emulation_bytes);
 	return sps_id;
 }
 
@@ -4982,20 +5031,11 @@ GF_EXPORT
 s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 {
 	GF_BitStream *bs;
-	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0;
 	s32 pps_id = -1;
 
-	/*still contains emulation bytes*/
-	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, size);
-	if (!data_without_emulation_bytes_size) {
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	} else {
-		data_without_emulation_bytes = gf_malloc(size*sizeof(char));
-		data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, size);
-		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	}
+	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	if (!bs) goto exit;
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	if (! hevc_parse_nal_header(bs, NULL, NULL, NULL)) goto exit;
 
@@ -5003,7 +5043,6 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 
 exit:
 	if (bs) gf_bs_del(bs);
-	if (data_without_emulation_bytes) gf_free(data_without_emulation_bytes);
 	return pps_id;
 }
 
@@ -5013,6 +5052,8 @@ s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_
 	Bool is_slice = GF_FALSE;
 	s32 ret = -1;
 	HEVCSliceInfo n_state;
+
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	memcpy(&n_state, &hevc->s_info, sizeof(HEVCSliceInfo));
 	if (! hevc_parse_nal_header(bs, nal_unit_type, temporal_id, layer_id)) return -1;
@@ -5098,8 +5139,6 @@ GF_EXPORT
 s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
 	GF_BitStream *bs=NULL;
-	char *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0;
 	s32 ret = -1;
 
 	if (!hevc) {
@@ -5114,21 +5153,13 @@ s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit
 		return -1;
 	}
 
-	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, size);
-	if (!data_without_emulation_bytes_size) {
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	} else {
-		/*still contains emulation bytes*/
-		data_without_emulation_bytes = gf_malloc(size*sizeof(char));
-		data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, size);
-		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	}
+	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	if (!bs) return -1;
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	ret = gf_media_hevc_parse_nalu_bs(bs, hevc, nal_unit_type, temporal_id, layer_id);
 
 	if (bs) gf_bs_del(bs);
-	if (data_without_emulation_bytes) gf_free(data_without_emulation_bytes);
 	return ret;
 }
 
@@ -5170,7 +5201,7 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 
 		/*SPS may still contains emulation bytes*/
 		no_emulation_buf = gf_malloc((slc->size)*sizeof(char));
-		no_emulation_buf_size = avc_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
+		no_emulation_buf_size = avc_hevc_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
 
 		idx = gf_media_hevc_read_sps_ex(no_emulation_buf, no_emulation_buf_size, &hevc, &bit_offset);
 		if (idx<0) {
@@ -5243,11 +5274,11 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 
 		/*set anti-emulation*/
 		gf_bs_get_content(mod, (char **) &no_emulation_buf, &no_emulation_buf_size);
-		emulation_bytes = avc_emulation_bytes_add_count(no_emulation_buf, no_emulation_buf_size);
+		emulation_bytes = avc_hevc_emulation_bytes_add_count(no_emulation_buf, no_emulation_buf_size);
 		if (no_emulation_buf_size + emulation_bytes > slc->size)
 			slc->data = (char*)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
 
-		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
+		slc->size = avc_hevc_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
 
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
