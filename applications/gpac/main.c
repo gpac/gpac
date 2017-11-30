@@ -71,6 +71,7 @@ void gpac_usage()
 			"\t-info           : print info on each FILTER_ARGS.\n"
 			"\t-stats          : print stats after execution.\n"
 	        "\t-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
+			"\t-no-block       : disables blocking mode of filters\n"
 	        "\t-sched=MODE     : sets SCHEDULER MODE. POSSIBLE MODES ARE::\n"
 	        "\t             free: uses lock-free queues (default)\n"
 	        "\t             lock: uses mutexes for queues when several threads\n"
@@ -138,6 +139,7 @@ int gpac_main(int argc, char **argv)
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
+	Bool disable_blocking = GF_FALSE;
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -196,7 +198,10 @@ int gpac_main(int argc, char **argv)
 			dump_stats = GF_TRUE;
 		} else if (!strcmp(arg, "-info")) {
 			print_filter_info = GF_TRUE;
+		} else if (!strcmp(arg, "-no-block")) {
+			disable_blocking = GF_TRUE;
 		}
+
 
 		if (arg_val) {
 			arg_val--;
@@ -217,7 +222,7 @@ int gpac_main(int argc, char **argv)
 		}
 	}
 
-	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters==2) || print_filter_info) ? GF_TRUE : GF_FALSE);
+	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters==2) || print_filter_info) ? GF_TRUE : GF_FALSE, disable_blocking);
 	if (!session) {
 		return 1;
 	}

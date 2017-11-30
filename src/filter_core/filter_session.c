@@ -174,7 +174,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 }
 
 GF_EXPORT
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, Bool load_meta_filters)
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, Bool load_meta_filters, Bool disable_blocking)
 {
 	u32 i;
 	GF_FilterSession *fsess, *a_sess;
@@ -294,7 +294,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
 
-	fsess->disable_blocking = GF_FALSE;
+	fsess->disable_blocking = disable_blocking;
 	fsess->run_status = GF_EOS;
 	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;

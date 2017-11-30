@@ -1526,7 +1526,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 #endif
 
 	e = GF_OK;
-	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE);
+	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_TRUE);
 	importer->last_error = GF_OK;
 
 	if (importer->flags & GF_IMPORT_PROBE_ONLY) {

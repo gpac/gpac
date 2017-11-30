@@ -354,7 +354,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	if (user->init_flags & GF_TERM_NO_DECODER_THREAD)
 		force_single_thread = GF_TRUE;
 
-	tmp->fsess = gf_fs_new(force_single_thread ? 0 : 3, GF_FS_SCHEDULER_LOCK_FREE, user, GF_FALSE);
+	tmp->fsess = gf_fs_new(force_single_thread ? 0 : 3, GF_FS_SCHEDULER_LOCK_FREE, user, GF_FALSE, GF_FALSE);
 	if (!tmp->fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to create filter session.\n"));
 		gf_free(tmp);
