@@ -1084,25 +1084,25 @@ fi
 
 if test "$darwin" = "yes" ; then
   ohevc_cflags="-I/usr/include -I/usr/local/include"
-  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread "
+  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lopenhevc -lm -lpthread "
 elif test "$cross_prefix" = "" ; then
   ohevc_cflags="-I/usr/include -I/usr/local/include"
-  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lopenhevc -lm -lpthread"
 else
   ohevc_cflags="-I${prefix}include"
-  ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_ldflags="-lopenhevc -lm -lpthread"
 fi
 
 cat > $TMPC << EOF
 #include <stdio.h>
-#include <openHevcWrapper.h>
-int main( void ) { libOpenHevcInit(1, 1); return 0; }
+#include <libopenhevc/openhevc.h>
+int main( void ) { oh_init(1, 1); return 0; }
 EOF
 if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS ; then
   has_openhevc="yes"
 else
   ohevc_cflags="-I$local_inc"
-  ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_ldflags="-lopenhevc -lm -lpthread"
   if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$local_lib ; then
     has_openhevc="yes"
     ohevc_ldflags="-L$local_lib $ohevc_ldflags"
