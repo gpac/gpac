@@ -264,6 +264,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 			//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
 			ctx->pck_out = GF_TRUE;
 			gf_filter_pck_send(pck);
+
+			gf_filter_pid_set_eos(ctx->pid);
 			return GF_EOS;
 		}
 		nb_read = fread(ctx->block, 1, to_read, ctx->cached);

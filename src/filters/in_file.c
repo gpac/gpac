@@ -298,9 +298,9 @@ static GF_Err filein_process(GF_Filter *filter)
 		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, filein_pck_destructor);
 		gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-
 		ctx->pck_out = GF_TRUE;
 		gf_filter_pck_send(pck);
+		gf_filter_pid_set_eos(ctx->pid);
 		return GF_OK;
 	}
 
