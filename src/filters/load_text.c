@@ -25,6 +25,7 @@
 
 
 
+#include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/utf.h>
 #include <gpac/xml.h>
@@ -33,7 +34,12 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+typedef struct
+{
+	GF_FilterPid *ipid;
+	const char *file_name;
+} GF_TXTIn;
+
 
 enum
 {
@@ -2627,5 +2633,130 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
+static GF_Err txtin_process(GF_Filter *filter)
+{
+	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	GF_FilterPacket *pck;
+	u32 i, count, nb_done;
+	Bool start, end;
+	pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (!pck) {
+		return GF_OK;
+	}
+	gf_filter_pck_get_framing(pck, &start, &end);
+	if (!end) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
+	//file is loaded
 
+
+	return GF_OK;
+}
+
+static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	const GF_PropertyValue *prop;
+
+	if (is_remove) {
+		ctx->ipid = NULL;
+		return GF_OK;
+	}
+
+	if (! gf_filter_pid_check_caps(pid))
+		return GF_NOT_SUPPORTED;
+
+	//we must have a file path
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+	if (prop && prop->value.string) ctx->file_name = prop->value.string;
+	if (!ctx->file_name)
+		return GF_NOT_SUPPORTED;
+
+	//guess type
+
+	if (!ctx->ipid) {
+		GF_FilterEvent fevt;
+		ctx->ipid = pid;
+
+		//we work with full file only, send a play event on source to indicate that
+		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		fevt.play.start_range = 0;
+		fevt.base.on_pid = ctx->ipid;
+		fevt.play.full_file_only = GF_TRUE;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+
+	} else {
+		if (pid != ctx->ipid) {
+			return GF_REQUIRES_NEW_INSTANCE;
+		}
+		//TODO check for filename change
+		return GF_OK;
+	}
+
+
+	return GF_OK;
+}
+
+static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
+{
+	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	switch (com->base.type) {
+	case GF_FEVT_PLAY:
+		//cancel play event, we work with full file
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
+	return GF_FALSE;
+}
+
+void txtin_finalize(GF_Filter *filter)
+{
+	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+}
+
+static const GF_FilterCapability TXTInInputs[] =
+{
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/svg+xml"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "svg|svgz|svg.gz"),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_SVG),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_SVG_GZ),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_DIMS),
+};
+
+static const GF_FilterCapability TXTInOutputs[] =
+{
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+};
+
+
+#define OFFS(_n)	#_n, offsetof(SVGIn, _n)
+
+static const GF_FilterArgs TXTInArgs[] =
+{
+	{}
+};
+GF_FilterRegister TXTInRegister = {
+	.name = "svg_in",
+	.description = "SVG playback",
+	.private_size = sizeof(GF_TXTIn),
+	.requires_main_thread = GF_TRUE,
+	.args = TXTInArgs,
+	INCAPS(TXTInInputs),
+	OUTCAPS(TXTInOutputs),
+	.process = txtin_process,
+	.configure_pid = txtin_configure_pid,
+	.process_event = txtin_process_event,
+	.finalize = txtin_finalize
+};
+
+
+const GF_FilterRegister *txtin_register(GF_FilterSession *session)
+{
+	return &TXTInRegister;
+}
