@@ -115,7 +115,6 @@
 		9201015818D5A445003D1ACA /* mpegts.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003A18D5A444003D1ACA /* mpegts.c */; };
 		9201015918D5A445003D1ACA /* reedsolomon.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003B18D5A444003D1ACA /* reedsolomon.c */; };
 		9201015A18D5A445003D1ACA /* saf.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003C18D5A444003D1ACA /* saf.c */; };
-		9201015B18D5A445003D1ACA /* text_import.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003D18D5A444003D1ACA /* text_import.c */; };
 		9201015C18D5A445003D1ACA /* vobsub.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003E18D5A444003D1ACA /* vobsub.c */; };
 		9201015D18D5A445003D1ACA /* webvtt.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003F18D5A444003D1ACA /* webvtt.c */; };
 		9201015E18D5A445003D1ACA /* desc_private.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201004118D5A444003D1ACA /* desc_private.c */; };
@@ -472,6 +471,7 @@
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
 		92EC32CB1FAC5ACB003FB9C3 /* reframe_qcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */; };
 		92EC32CD1FAC81D6003FB9C3 /* reframe_h263.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */; };
+		92EE76411FD0315D008926F5 /* load_text.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EE76401FD0315D008926F5 /* load_text.c */; };
 		92F4CE121E9E7737006A9845 /* extract.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F4CE101E9E7708006A9845 /* extract.c */; };
 		92F8D4771F71642E00616F7C /* filter_pck.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4701F71642E00616F7C /* filter_pck.c */; };
 		92F8D4781F71642E00616F7C /* filter_pid.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4711F71642E00616F7C /* filter_pid.c */; };
@@ -680,7 +680,6 @@
 		9201003A18D5A444003D1ACA /* mpegts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpegts.c; sourceTree = "<group>"; };
 		9201003B18D5A444003D1ACA /* reedsolomon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = reedsolomon.c; sourceTree = "<group>"; };
 		9201003C18D5A444003D1ACA /* saf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = saf.c; sourceTree = "<group>"; };
-		9201003D18D5A444003D1ACA /* text_import.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = text_import.c; sourceTree = "<group>"; };
 		9201003E18D5A444003D1ACA /* vobsub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vobsub.c; sourceTree = "<group>"; };
 		9201003F18D5A444003D1ACA /* webvtt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = webvtt.c; sourceTree = "<group>"; };
 		9201004118D5A444003D1ACA /* desc_private.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = desc_private.c; sourceTree = "<group>"; };
@@ -1332,6 +1331,7 @@
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
 		92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_qcp.c; path = filters/reframe_qcp.c; sourceTree = "<group>"; };
 		92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_h263.c; path = filters/reframe_h263.c; sourceTree = "<group>"; };
+		92EE76401FD0315D008926F5 /* load_text.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = load_text.c; path = filters/load_text.c; sourceTree = "<group>"; };
 		92F4CE101E9E7708006A9845 /* extract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = extract.c; path = ../../applications/mp4client/extract.c; sourceTree = "<group>"; };
 		92F8D4701F71642E00616F7C /* filter_pck.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_pck.c; path = filter_core/filter_pck.c; sourceTree = "<group>"; };
 		92F8D4711F71642E00616F7C /* filter_pid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_pid.c; path = filter_core/filter_pid.c; sourceTree = "<group>"; };
@@ -1541,7 +1541,6 @@
 				9201003A18D5A444003D1ACA /* mpegts.c */,
 				9201003B18D5A444003D1ACA /* reedsolomon.c */,
 				9201003C18D5A444003D1ACA /* saf.c */,
-				9201003D18D5A444003D1ACA /* text_import.c */,
 				9201003E18D5A444003D1ACA /* vobsub.c */,
 				9201003F18D5A444003D1ACA /* webvtt.c */,
 			);
@@ -2506,6 +2505,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92EE76401FD0315D008926F5 /* load_text.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -3210,6 +3210,7 @@
 				9201011718D5A444003D1ACA /* box_code_apple.c in Sources */,
 				9201011818D5A444003D1ACA /* box_code_base.c in Sources */,
 				92B9A58A1F8660D700A24FE4 /* visual_manager_3d_gl.c in Sources */,
+				92EE76411FD0315D008926F5 /* load_text.c in Sources */,
 				9201011918D5A444003D1ACA /* box_code_drm.c in Sources */,
 				9201011A18D5A444003D1ACA /* box_code_meta.c in Sources */,
 				9201011B18D5A444003D1ACA /* box_dump.c in Sources */,
@@ -3301,7 +3302,6 @@
 				9201015918D5A445003D1ACA /* reedsolomon.c in Sources */,
 				9201015A18D5A445003D1ACA /* saf.c in Sources */,
 				92B9A5B71F866D6500A24FE4 /* scene_node_init.c in Sources */,
-				9201015B18D5A445003D1ACA /* text_import.c in Sources */,
 				9201015C18D5A445003D1ACA /* vobsub.c in Sources */,
 				9201015D18D5A445003D1ACA /* webvtt.c in Sources */,
 				92B9A5801F8660D700A24FE4 /* x3d_geometry.c in Sources */,
