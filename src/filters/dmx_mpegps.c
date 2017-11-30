@@ -174,11 +174,6 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 	}
 }
 
-static void m2psdmx_check_dur(GF_M2PSDmxCtx *ctx)
-{
-
-}
-
 
 GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -198,8 +193,17 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	ctx->ipid = pid;
-	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+	if (!ctx->ipid) {
+		GF_FilterEvent fevt;
+		ctx->ipid = pid;
+
+		//we work with full file only, send a play event on source to indicate that
+		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		fevt.play.start_range = 0;
+		fevt.base.on_pid = ctx->ipid;
+		fevt.play.full_file_only = GF_TRUE;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p) return GF_NOT_SUPPORTED;
@@ -229,11 +233,10 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->is_playing && (ctx->start_range ==  evt->play.start_range)) {
 			return GF_TRUE;
 		}
-		m2psdmx_check_dur(ctx);
 		ctx->start_range = evt->play.start_range;
 		ctx->is_playing = GF_TRUE;
 		ctx->in_seek = GF_TRUE;
-		//cancel event
+		//cancel play event, we work with full file
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
@@ -259,12 +262,13 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 	u32 i, count, nb_done;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
-//		if (gf_filter_pid_is_eos(ctx->ipid)) gf_filter_pid_set_eos(ctx->opid);
 		return GF_OK;
 	}
 	gf_filter_pck_get_framing(pck, &start, &end);
-	//for now we only work with complete files
-	assert(end);
+	if (!end) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
 
 	if (!ctx->ps) {
 		ctx->ps = mpeg2ps_init(ctx->src_url);

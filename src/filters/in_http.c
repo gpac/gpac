@@ -63,6 +63,7 @@ typedef struct
 	FILE *cached;
 
 	Bool do_reconfigure;
+	Bool full_file_only;
 	GF_Err last_state;
 } GF_HTTPInCtx;
 
@@ -139,6 +140,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		ctx->is_end = GF_FALSE;
+		ctx->full_file_only = evt->play.full_file_only;
 		return GF_TRUE;
 	case GF_FEVT_STOP:
 		if (!ctx->is_end) {
@@ -232,7 +234,6 @@ static GF_Err httpin_process(GF_Filter *filter)
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	//until packet is released we return EOS (no processing), and ask for processing again upon release
-	assert(!ctx->pck_out);
 	if (ctx->pck_out)
 		return GF_EOS;
 
@@ -255,6 +256,16 @@ static GF_Err httpin_process(GF_Filter *filter)
 		u32 to_read = ctx->file_size - ctx->nb_read;
 		if (to_read>ctx->block_size) to_read = ctx->block_size;
 
+		if (ctx->full_file_only) {
+			ctx->is_end = GF_TRUE;
+			pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
+			gf_filter_pck_set_framing(pck, is_start, ctx->is_end);
+
+			//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
+			ctx->pck_out = GF_TRUE;
+			gf_filter_pck_send(pck);
+			return GF_EOS;
+		}
 		nb_read = fread(ctx->block, 1, to_read, ctx->cached);
 
 	}
