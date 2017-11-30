@@ -776,6 +776,8 @@ typedef struct
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
 	*/
 	u8 timestamp_based;
+	//indicates the consumer only cares for the full file, not packets
+	u8 full_file_only;
 
 	u8 forced_dash_segment_switch;
 } GF_FEVT_Play;

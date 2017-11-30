@@ -300,7 +300,16 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	if (!svgin->in_pid) {
+		GF_FilterEvent fevt;
 		svgin->in_pid = pid;
+
+		//we work with full file only, send a play event on source to indicate that
+		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		fevt.play.start_range = 0;
+		fevt.base.on_pid = svgin->in_pid;
+		fevt.play.full_file_only = GF_TRUE;
+		gf_filter_pid_send_event(svgin->in_pid, &fevt);
+
 	} else {
 		if (pid != svgin->in_pid) {
 			return GF_REQUIRES_NEW_INSTANCE;
@@ -339,6 +348,9 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	GF_FilterPid *ipid;
 	//check for scene attach
 	switch (com->base.type) {
+	case GF_FEVT_PLAY:
+		//cancel play event, we work with full file
+		return GF_TRUE;
 	case GF_FEVT_ATTACH_SCENE:
 		break;
 	case GF_FEVT_RESET_SCENE:

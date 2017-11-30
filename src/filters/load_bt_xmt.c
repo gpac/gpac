@@ -171,7 +171,16 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	if (!priv->in_pid) {
+		GF_FilterEvent fevt;
 		priv->in_pid = pid;
+
+		//we work with full file only, send a play event on source to indicate that
+		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		fevt.play.start_range = 0;
+		fevt.base.on_pid = priv->in_pid;
+		fevt.play.full_file_only = GF_TRUE;
+		gf_filter_pid_send_event(priv->in_pid, &fevt);
+
 	} else {
 		if (pid != priv->in_pid) {
 			return GF_REQUIRES_NEW_INSTANCE;
@@ -258,6 +267,10 @@ static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	GF_FilterPid *ipid;
 	//check for scene attach
 	switch (com->base.type) {
+	case GF_FEVT_PLAY:
+		//cancel play event, we work with full file
+		//TODO: animation stream in BT
+		return GF_TRUE;
 	case GF_FEVT_ATTACH_SCENE:
 		break;
 	case GF_FEVT_RESET_SCENE:

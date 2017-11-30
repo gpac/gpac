@@ -279,8 +279,17 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	ctx->ipid = pid;
-	gf_filter_pid_set_framing_mode(pid, GF_FALSE);
+	if (!ctx->ipid) {
+		GF_FilterEvent fevt;
+		ctx->ipid = pid;
+
+		//we work with full file only, send a play event on source to indicate that
+		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		fevt.play.start_range = 0;
+		fevt.base.on_pid = ctx->ipid;
+		fevt.play.full_file_only = GF_TRUE;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p) return GF_NOT_SUPPORTED;
@@ -317,7 +326,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (evt->play.start_range>0.5) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AVIDmx] Seeking is not supported, ignoring\n"));
 		}
-		//cancel event
+		//cancel play event, we work with full file
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
@@ -343,7 +352,6 @@ GF_Err avidmx_process(GF_Filter *filter)
 	Bool start, end;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
-//		if (gf_filter_pid_is_eos(ctx->ipid)) gf_filter_pid_set_eos(ctx->opid);
 		return GF_OK;
 	}
 	gf_filter_pck_get_framing(pck, &start, &end);
