@@ -34,7 +34,9 @@
 #include <openHevcWrapper.h>
 
 
-#define OPEN_SHVC
+#ifdef OPENHEVC_HAS_AVC_BASE
+#undef  OPENHEVC_HAS_AVC_BASE
+#endif
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
 #  pragma comment(lib, "libLibOpenHevcWrapper")
