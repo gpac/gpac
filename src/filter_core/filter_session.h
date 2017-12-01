@@ -136,6 +136,7 @@ typedef struct __gf_filter_pck_info
 	u8 eos;
 	u8 clock_type;
 	u8 seek_flag;
+	u8 duration_set;
 	u8 carousel_version_number;
 	s16 roll;
 	u64 byte_offset;
