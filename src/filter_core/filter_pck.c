@@ -330,6 +330,8 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 				info.sap_type = pcki->pck->info.sap_type;
 			if (pcki->pck->info.seek_flag > info.seek_flag)
 				info.seek_flag = pcki->pck->info.seek_flag;
+			if (pcki->pck->info.duration_set > info.duration_set)
+				info.duration_set = pcki->pck->info.duration_set;
 		}
 		memcpy(data+pos, pcki->pck->data, pcki->pck->data_length);
 		pos += pcki->pck->data_length;
@@ -479,7 +481,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				pid->last_pck_dts = pck->info.dts;
 				pid->last_pck_cts = pck->info.cts;
 				pid->duration_init = GF_TRUE;
-			} else if (!pck->info.duration) {
+			} else if (!pck->info.duration && !pck->info.duration_set) {
 				if (pck->info.dts!=GF_FILTER_NO_TS) {
 					duration = pck->info.dts - pid->last_pck_dts;
 				} else if (pck->info.cts!=GF_FILTER_NO_TS) {
@@ -911,6 +913,7 @@ GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration)
 {
 	PCK_SETTER_CHECK("dur")
 	pck->info.duration = duration;
+	pck->info.duration_set = 1;
 	return GF_OK;
 }
 u32 gf_filter_pck_get_duration(GF_FilterPacket *pck)
