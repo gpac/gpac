@@ -1027,6 +1027,7 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 		if (!movie->keep_utc)
 			trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
+		if (wvtt->config) gf_isom_box_del((GF_Box *)wvtt->config);
 		wvtt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTC_CONFIG, config);
 	} else {
 		e = GF_BAD_PARAM;
@@ -1034,7 +1035,7 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 	return e;
 }
 
-GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, const char *config)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1070,6 +1071,10 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_Tex
 	wvtt->dataReferenceIndex = dataRefIndex;
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, wvtt);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+
+	if (config) {
+		wvtt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTC_CONFIG, config);
+	}
 	return e;
 }
 
