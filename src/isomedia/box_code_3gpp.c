@@ -242,7 +242,7 @@ void tx3g_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-static u32 gpp_read_rgba(GF_BitStream *bs)
+u32 gpp_read_rgba(GF_BitStream *bs)
 {
 	u8 r, g, b, a;
 	u32 col;
@@ -261,7 +261,7 @@ static u32 gpp_read_rgba(GF_BitStream *bs)
 }
 
 #define GPP_BOX_SIZE	8
-static void gpp_read_box(GF_BitStream *bs, GF_BoxRecord *rec)
+void gpp_read_box(GF_BitStream *bs, GF_BoxRecord *rec)
 {
 	rec->top = gf_bs_read_u16(bs);
 	rec->left = gf_bs_read_u16(bs);
@@ -270,7 +270,7 @@ static void gpp_read_box(GF_BitStream *bs, GF_BoxRecord *rec)
 }
 
 #define GPP_STYLE_SIZE	12
-static void gpp_read_style(GF_BitStream *bs, GF_StyleRecord *rec)
+void gpp_read_style(GF_BitStream *bs, GF_StyleRecord *rec)
 {
 	rec->startCharOffset = gf_bs_read_u16(bs);
 	rec->endCharOffset = gf_bs_read_u16(bs);

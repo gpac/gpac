@@ -1250,9 +1250,22 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize);
  \param bs bitstream in WRITE mode
  \return error if any
  */
-GF_EXPORT
 GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs);
 
+/*! writes GF_TextSampleDescriptor
+ \param cfg the text config to encode
+ \param outData adress of output buffer (internal alloc, user to free it)
+ \param outSize size of the allocated output
+ \return error if any
+ */
+GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *cfg, char **outData, u32 *outSize);
+
+/*! gets GF_TextSampleDescriptor from buffer
+ \param dsi encoded text sample description
+ \param dsi_size size of encoded description
+ \return the decoded GF_TextSampleDescriptor config
+ */
+GF_TextSampleDescriptor *gf_odf_tx3g_read(char *dsi, u32 dsi_size);
 
 /*! HEVC config constructor
 \return the created HEVC config*/
