@@ -708,6 +708,66 @@ GF_Err gf_odf_del_tx3g(GF_TextSampleDescriptor *sd)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_TextSampleDescriptor *gf_odf_tx3g_read(char *dsi, u32 dsi_size)
+{
+	u32 i;
+	u32 gpp_read_rgba(GF_BitStream *bs);
+	void gpp_read_style(GF_BitStream *bs, GF_StyleRecord *rec);
+	void gpp_read_box(GF_BitStream *bs, GF_BoxRecord *rec);
+
+	GF_TextSampleDescriptor *txtc = (GF_TextSampleDescriptor *) gf_odf_new_tx3g();
+	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+
+	txtc->horiz_justif = gf_bs_read_int(bs, 8);
+	txtc->vert_justif  = gf_bs_read_int(bs, 8);
+	txtc->back_color = gpp_read_rgba(bs);
+	gpp_read_box(bs, &txtc->default_pos);
+	gpp_read_style(bs, &txtc->default_style);
+	txtc->font_count = gf_bs_read_u16(bs);
+	txtc->fonts = gf_malloc(sizeof(GF_FontRecord)*txtc->font_count);
+	for (i=0; i<txtc->font_count; i++) {
+		u8 len;
+		txtc->fonts[i].fontID = gf_bs_read_u16(bs);
+		len = gf_bs_read_u8(bs);
+		txtc->fonts[i].fontName = gf_malloc(sizeof(char)*(len+1));
+		gf_bs_read_data(bs, txtc->fonts[i].fontName, len);
+		txtc->fonts[i].fontName[len] = 0;
+	}
+	gf_bs_del(bs);
+	return txtc;
+}
+
+GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *a, char **outData, u32 *outSize)
+{
+	u32 j;
+	void gpp_write_rgba(GF_BitStream *bs, u32 col);
+	void gpp_write_box(GF_BitStream *bs, GF_BoxRecord *rec);
+	void gpp_write_style(GF_BitStream *bs, GF_StyleRecord *rec);
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	gf_bs_write_u8(bs, a->horiz_justif);
+	gf_bs_write_u8(bs, a->vert_justif);
+	gpp_write_rgba(bs, a->back_color);
+	gpp_write_box(bs, &a->default_pos);
+	gpp_write_style(bs, &a->default_style);
+
+	gf_bs_write_u16(bs, a->font_count);
+	for (j=0; j<a->font_count; j++) {
+		gf_bs_write_u16(bs, a->fonts[j].fontID);
+		if (a->fonts[j].fontName) {
+			u32 len = (u32) strlen(a->fonts[j].fontName);
+			gf_bs_write_u8(bs, len);
+			gf_bs_write_data(bs, a->fonts[j].fontName, len);
+		} else {
+			gf_bs_write_u8(bs, 0);
+		}
+	}
+	gf_bs_get_content(bs, outData, outSize);
+	gf_bs_del(bs);
+	return GF_OK;
+}
+
 /*TextConfig*/
 GF_Descriptor *gf_odf_new_text_cfg()
 {

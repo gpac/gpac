@@ -639,6 +639,9 @@ enum
 	GF_PROP_PID_WIDTH_MAX = GF_4CC('M', 'W','I','D'),
 	//(uint) max frame height of all enhancement layers
 	GF_PROP_PID_HEIGHT_MAX = GF_4CC('M', 'H','E','I'),
+	//(uint) Z-index of video pid
+	GF_PROP_PID_ZORDER = GF_4CC('V', 'Z','I','X'),
+
 	//(uint) average bitrate
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 	//(bool) data ref is possible

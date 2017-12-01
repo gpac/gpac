@@ -528,6 +528,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION},
 	{ GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Max Visual Width (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT_MAX, "MaxHeight", "Max Visual Height (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
+	{ GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_UINT},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "PID bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_CAN_DATAREF, "DataRef", "Inidcates this PID can use data ref", GF_PROP_BOOL},
 	{ GF_PROP_PID_URL, "URL", "URL of source", GF_PROP_STRING},
