@@ -2120,7 +2120,7 @@ GF_GenericSubtitleSample *gf_isom_new_generic_subtitle_sample();
 void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_subtitle_samp);
 
 #ifndef GPAC_DISABLE_VTT
-GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, const char *config);
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
 #endif
 
@@ -2212,7 +2212,9 @@ GF_Err gf_isom_text_set_wrap(GF_TextSample * samp, u8 wrap_flags);
 /*formats sample as a regular GF_ISOSample. The resulting sample will always be marked as random access
 text sample content is kept untouched*/
 GF_ISOSample *gf_isom_text_to_sample(GF_TextSample * tx_samp);
+GF_Err gf_isom_text_sample_write_bs(GF_TextSample *tx_samp, GF_BitStream *bs);
 
+u32 gf_isom_text_sample_size(GF_TextSample *samp);
 
 
 GF_GenericSubtitleSample *gf_isom_new_xml_subtitle_sample();

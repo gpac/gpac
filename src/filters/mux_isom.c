@@ -29,6 +29,10 @@
 #include <gpac/internal/media_dev.h>
 
 
+#define TEXT_DEFAULT_WIDTH	400
+#define TEXT_DEFAULT_HEIGHT	60
+#define TEXT_DEFAULT_FONT_SIZE	18
+
 
 typedef struct
 {
@@ -52,7 +56,7 @@ typedef struct
 	u32 nb_frames_per_sample;
 	u64 ts_shift;
 
-	Bool skip_bitrate_update, set_last_dur_to_zero;
+	Bool skip_bitrate_update;
 	Bool has_open_gop;
 	Bool has_gdr;
 
@@ -187,10 +191,33 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	gf_bs_del(bs);
 }
 
-GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+void mp4_mux_get_video_size(GF_MP4MuxCtx *ctx, u32 *width, u32 *height)
+{
+	u32 w, h, f_w, f_h, i;
+
+	f_w = f_h = 0;
+	for (i=0; i<gf_isom_get_track_count(ctx->mov); i++) {
+		switch (gf_isom_get_media_type(ctx->mov, i+1)) {
+		case GF_ISOM_MEDIA_SCENE:
+		case GF_ISOM_MEDIA_VISUAL:
+			gf_isom_get_visual_info(ctx->mov, i+1, 1, &w, &h);
+			if (w > f_w) f_w = w;
+			if (h > f_h) f_h = h;
+			gf_isom_get_track_layout_info(ctx->mov, i+1, &w, &h, NULL, NULL, NULL);
+			if (w > f_w) f_w = w;
+			if (h > f_h) f_h = h;
+			break;
+		}
+	}
+	(*width) = f_w ? f_w : TEXT_DEFAULT_WIDTH;
+	(*height) = f_h ? f_h : TEXT_DEFAULT_HEIGHT;
+}
+
+static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool use_m4sys = GF_FALSE;
 	Bool use_tx3g = GF_FALSE;
+	Bool use_webvtt = GF_FALSE;
 	Bool needs_track = GF_FALSE;
 	Bool needs_sample_entry = GF_FALSE;
 	Bool use_gen_sample_entry = GF_FALSE;
@@ -203,7 +230,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	Bool is_text_subs = GF_FALSE;
 	u32 m_subtype=0;
 	u32 amr_mode_set = 0;
-	u32 width, height, sr, nb_chan, nb_bps, txt_z, txt_fsize;
+	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
 	GF_Fraction fps, sar;
 	const char *comp_name = NULL;
 	const char *imp_name = NULL;
@@ -482,6 +509,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		comp_name = "Timed Text";
 		is_text_subs = GF_TRUE;
 		break;
+	case GF_ISOM_SUBTYPE_WVTT:
+		m_subtype = GF_ISOM_SUBTYPE_WVTT;
+		use_webvtt = GF_TRUE;
+		comp_name = "WebVTT";
+		is_text_subs = GF_TRUE;
+		break;
 
 	default:
 		m_subtype = tkw->oti;
@@ -506,7 +539,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (!needs_sample_entry) return GF_OK;
 
-	width = height = sr = nb_chan = txt_z = txt_fsize = 0;
+	width = height = sr = nb_chan = z_order = txt_fsize = 0;
 	nb_bps = 16;
 	fps.num = 25;
 	sar.num = 1;
@@ -520,12 +553,17 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (p) fps = p->value.frac;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 	if (p) sar = p->value.frac;
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ZORDER);
+	if (p) z_order = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p) sr = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_chan = p->value.uint;
 
+	if (is_text_subs && !width && !height) {
+		mp4_mux_get_video_size(ctx, &width, &height);
+	}
 
 	//little optim here: if no samples were added on the stream descritpion remove it
 	if (!tkw->samples_in_stsd && tkw->stsd_idx) {
@@ -748,6 +786,10 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		}
 		txtc = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
 
+		if (!txtc->default_pos.right) txtc->default_pos.right = width + txtc->default_pos.left;
+		if (!txtc->default_pos.bottom) txtc->default_pos.bottom = height + txtc->default_pos.top;
+
+
 		e = gf_isom_new_text_description(ctx->mov, tkw->track_num, txtc, NULL, NULL, &tkw->stsd_idx);
 		if (e) {
 			gf_odf_desc_del((GF_Descriptor *)txtc);
@@ -760,13 +802,14 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		}
 		gf_odf_desc_del((GF_Descriptor *)txtc);
 
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ZORDER);
-		if (p) txt_z = p->value.uint;
-
-		gf_isom_set_track_layout_info(ctx->mov, tkw->track_num, width<<16, height<<16, 0, 0, txt_z);
 		tkw->skip_bitrate_update = GF_TRUE;
-		tkw->set_last_dur_to_zero = GF_TRUE;
-
+	} else if (use_webvtt) {
+		e = gf_isom_new_webvtt_description(ctx->mov, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi ? dsi->value.data.ptr : NULL);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(m_subtype), gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->skip_bitrate_update = GF_TRUE;
 	} else if (use_gen_sample_entry) {
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;
@@ -793,6 +836,8 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+	} else {
+		assert(0);
 	}
 
 	//final opt: we couldn't detect before if the same stsd was possible, now that we have create a new one, check again
@@ -826,7 +871,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			gf_isom_set_pixel_aspect_ratio(ctx->mov, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
 			width = width * sar.num / sar.den;
 		}
-		gf_isom_set_track_layout_info(ctx->mov, tkw->track_num, width<<16, height<<16, 0, 0, 0);
+		gf_isom_set_track_layout_info(ctx->mov, tkw->track_num, width<<16, height<<16, 0, 0, z_order);
 	}
 
 
@@ -836,7 +881,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (sr) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - SampleRate %d Num Channels %d\n", imp_name, sr, nb_chan));
 		} else if (is_text_subs) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - text track %d x %d, font %s (size %d), layer %d\n", imp_name, width, height, txt_font ? txt_font : "none", txt_fsize, txt_z));
+			if (txt_fsize || txt_font) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - Text track %d x %d font %s (size %d) layer %d\n", imp_name, width, height, txt_font ? txt_font : "unspecified", txt_fsize, z_order));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - Text track %d x %d layer %d\n", imp_name, width, height, z_order));
+
+			}
 		} else if (width) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - Width %d Height %d FPS %d/%d SAR %d/%u\n", imp_name, width, height, fps.num, fps.den, sar.num, sar.den));
 		} else {
@@ -1044,7 +1094,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 		tkw->next_is_first_sample = GF_FALSE;
 
-		if (duration) gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, duration);
+		gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, duration);
 
 		if (ctx->dur.num) {
 			u32 mdur = gf_isom_get_media_duration(ctx->mov, tkw->track_num);
@@ -1244,9 +1294,6 @@ static void mp4_mux_finalize(GF_Filter *filter)
 
 		if (!tkw->skip_bitrate_update)
 			gf_media_update_bitrate(ctx->mov, tkw->track_num);
-
-		if (tkw->set_last_dur_to_zero)
-			gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, 0);
 
 		if (tkw->has_open_gop) {
 //			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand\n"));

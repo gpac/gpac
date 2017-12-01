@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
- *  This file is part of GPAC / Media Tools sub-project
+ *  This file is part of GPAC / text import filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -41,7 +41,8 @@ struct __txtin_ctx
 	//opts
 	u32 width, height, x, y, zorder, fontsize;
 	const char *fontname, *lang;
-	Bool nodefbox, noflush;
+	Bool nodefbox, noflush, webvtt;
+	u32 timescale;
 
 
 	GF_FilterPid *ipid, *opid;
@@ -53,16 +54,20 @@ struct __txtin_ctx
 	GF_Err (*text_process)(GF_Filter *filter, GF_TXTIn *ctx);
 
 	s32 unicode_type;
-	u32 timescale;
 
 	FILE *src;
+
+	GF_BitStream *bs_w;
 
 	//state vars for srt
 	u32 state, default_color;
 	GF_TextSample *samp;
 	u64 start, end, prev_end;
 	Bool first_samp;
+	u32 curLine;
 
+	//WebVTT state
+	GF_WebVTTParser *vttparser;
 };
 
 
@@ -304,12 +309,10 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 
 static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	GF_TextConfig*cfg;
 	GF_StyleRecord rec;
 	u32 ID, OCR_ES_ID, dsi_len, file_size;
 	char *dsi;
 	GF_TextSampleDescriptor *sd;
-	u32 w, h;
 
 	ctx->src = gf_fopen(ctx->file_name, "rt");
 	if (!ctx->src) return GF_URL_ERROR;
@@ -326,12 +329,8 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 		return GF_NOT_SUPPORTED;
 	}
 
-	cfg = NULL;
-
-	ctx->timescale = 1000;
+	if (!ctx->timescale) ctx->timescale = 1000;
 	OCR_ES_ID = ID = 0;
-
-	if (cfg && cfg->timescale) ctx->timescale = cfg->timescale;
 
 	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
@@ -339,13 +338,13 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
 
-	w = ctx->width ? ctx->width : TTXT_DEFAULT_WIDTH;
-	h = ctx->height ? ctx->height : TTXT_DEFAULT_HEIGHT;
 	if (!ID) ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
+	if (OCR_ES_ID) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(OCR_ES_ID) );
+	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+	if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 	if (ctx->zorder) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_UINT(ctx->zorder) );
+	if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING((char *) ctx->lang) );
 
 #ifdef FILTER_FIXME
 	/*setup track*/
@@ -395,8 +394,8 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	} else if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
 		sd->default_pos.left = ctx->x;
 		sd->default_pos.top = ctx->y;
-		sd->default_pos.right = w + sd->default_pos.left;
-		sd->default_pos.bottom = h + sd->default_pos.top;
+		sd->default_pos.right = ctx->width + sd->default_pos.left;
+		sd->default_pos.bottom = ctx->height + sd->default_pos.top;
 	}
 
 	/*store attribs*/
@@ -406,14 +405,30 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 
 	gf_odf_desc_del((GF_Descriptor *)sd);
 
-	if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING((char *) ctx->lang) );
-
 	ctx->default_color = rec.text_color;
 	ctx->samp = gf_isom_new_text_sample();
 	ctx->state = 0;
 	ctx->end = ctx->prev_end = ctx->start = 0;
 	ctx->first_samp = GF_TRUE;
+	ctx->curLine = 0;
 	return GF_OK;
+}
+
+static void txtin_process_srt_send(GF_TXTIn *ctx, GF_TextSample *txt_samp, u64 ts, u32 duration)
+{
+	GF_FilterPacket *dst_pck;
+	char *pck_data;
+	u32 size = gf_isom_text_sample_size(txt_samp);
+
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+	gf_bs_reassign_buffer(ctx->bs_w, pck_data, size);
+	gf_isom_text_sample_write_bs(txt_samp, ctx->bs_w);
+
+	gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+	gf_filter_pck_set_cts(dst_pck, ts);
+	gf_filter_pck_set_duration(dst_pck, duration);
+
+	gf_filter_pck_send(dst_pck);
 }
 
 static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
@@ -421,22 +436,19 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	u32 i;
 	GF_Err e;
 	GF_StyleRecord rec;
-	GF_ISOSample *s;
 	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, j, rem_styles;
 	Bool set_start_char, set_end_char, rem_color;
-	u32 curLine, line, len;
+	u32 line, len;
 	char szLine[2048], szText[2048], *ptr;
 	unsigned short uniLine[5000], uniText[5000], *sptr;
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
-		e = txtin_setup_srt(filter, ctx);
-		if (e) return e;
+		return txtin_setup_srt(filter, ctx);
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
 
 	e = GF_OK;
-	curLine = 0;
 	txt_line = 0;
 	set_start_char = set_end_char = GF_FALSE;
 	char_len = 0;
@@ -449,40 +461,14 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 				rec.style_flags = 0;
 				rec.startCharOffset = rec.endCharOffset = 0;
 				if (txt_line) {
-					if (ctx->prev_end && (ctx->start != ctx->prev_end)) {
+					if (ctx->prev_end && (ctx->start != ctx->prev_end) && (ctx->state<=2)) {
 						GF_TextSample * empty_samp = gf_isom_new_text_sample();
-						s = gf_isom_text_to_sample(empty_samp);
+						txtin_process_srt_send(ctx, empty_samp, (u64) ((ctx->timescale * ctx->prev_end)/1000), (u64) (ctx->timescale * (ctx->start - ctx->prev_end) / 1000) );
 						gf_isom_delete_text_sample(empty_samp);
-						if (ctx->state<=2) {
-							GF_FilterPacket *dst_pck;
-							char *pck_data;
-							s->DTS = (u64) ((ctx->timescale * ctx->prev_end)/1000);
-							s->IsRAP = RAP;
-							dst_pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
-							memcpy(pck_data, s->data, s->dataLength);
-							gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-							gf_filter_pck_set_dts(dst_pck, s->DTS);
-
-							gf_filter_pck_send(dst_pck);
-						}
-						gf_isom_sample_del(&s);
 					}
 
-					s = gf_isom_text_to_sample(ctx->samp);
 					if (ctx->state<=2) {
-						GF_FilterPacket *dst_pck;
-						char *pck_data;
-						s->DTS = (u64) ((ctx->timescale * ctx->start)/1000);
-						s->IsRAP = RAP;
-
-						dst_pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
-						memcpy(pck_data, s->data, s->dataLength);
-						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-						gf_filter_pck_set_dts(dst_pck, s->DTS);
-
-						gf_filter_pck_send(dst_pck);
-
-						gf_isom_sample_del(&s);
+						txtin_process_srt_send(ctx, ctx->samp,  (u64) ((ctx->timescale * ctx->start)/1000), (u64) (ctx->timescale * (ctx->end -  ctx->start) / 1000));
 						ctx->prev_end = ctx->end;
 					}
 					txt_line = 0;
@@ -491,7 +477,6 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 					rec.startCharOffset = rec.endCharOffset = 0;
 					gf_isom_text_reset(ctx->samp);
 
-					//gf_import_progress(import, nb_samp, nb_samp+1);
 					gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT( gf_ftell(ctx->src )) );
 				}
 				ctx->state = 0;
@@ -505,47 +490,36 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Bad SRT formatting - expecting number got \"%s\"", szLine));
 				break;
 			}
-			if (line != curLine + 1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Corrupted SRT frame %d after frame %d", line, curLine));
+			if (line != ctx->curLine + 1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Corrupted SRT frame %d after frame %d", line, ctx->curLine));
 			}
-			curLine = line;
+			ctx->curLine = line;
 			ctx->state = 1;
 			break;
 		case 1:
 			if (sscanf(szLine, "%u:%u:%u,%u --> %u:%u:%u,%u", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
 				sh = eh = 0;
 				if (sscanf(szLine, "%u:%u,%u --> %u:%u,%u", &sm, &ss, &sms, &em, &es, &ems) != 6) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Error scanning SRT frame %d timing", curLine));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Error scanning SRT frame %d timing", ctx->curLine));
 				    ctx->state = 0;
 					break;
 				}
 			}
 			ctx->start = (3600*sh + 60*sm + ss)*1000 + sms;
 			if (ctx->start < ctx->end) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d - starts "LLD" ms is before end of previous one "LLD" ms - adjusting time stamps", curLine, ctx->start, ctx->end));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d - starts "LLD" ms is before end of previous one "LLD" ms - adjusting time stamps", ctx->curLine, ctx->start, ctx->end));
 				ctx->start = ctx->end;
 			}
 
 			ctx->end = (3600*eh + 60*em + es)*1000 + ems;
 			/*make stream start at 0 by inserting a fake AU*/
 			if (ctx->first_samp && (ctx->start > 0)) {
-				GF_FilterPacket *dst_pck;
-				char *pck_data;
-				s = gf_isom_text_to_sample(ctx->samp);
-				s->DTS = 0;
-				dst_pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
-				memcpy(pck_data, s->data, s->dataLength);
-				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-				gf_filter_pck_set_dts(dst_pck, s->DTS);
-
-				gf_filter_pck_send(dst_pck);
-
-				gf_isom_sample_del(&s);
+				txtin_process_srt_send(ctx, ctx->samp, 0, (u64) (ctx->timescale * ctx->start / 1000));
 			}
 			rec.style_flags = 0;
 			ctx->state = 2;
 			if (ctx->end <= ctx->prev_end) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d end "LLD" is at or before previous end "LLD" - removing", curLine, ctx->end, ctx->prev_end));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d end "LLD" is at or before previous end "LLD" - removing", ctx->curLine, ctx->end, ctx->prev_end));
 				ctx->start = ctx->end;
 				ctx->state = 3;
 			}
@@ -565,7 +539,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			{
 				size_t _len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
 				if (_len == (size_t) -1) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)", curLine));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)", ctx->curLine));
 					ctx->state = 0;
 				}
 				len = (u32) _len;
@@ -751,22 +725,11 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 
 	/*final flush*/	
 	if (ctx->end && ! ctx->noflush) {
-		GF_FilterPacket *dst_pck;
-		char *pck_data;
 		gf_isom_text_reset(ctx->samp);
-		s = gf_isom_text_to_sample(ctx->samp);
-		s->DTS = (u64) ((ctx->timescale * ctx->end)/1000);
-		s->IsRAP = RAP;
-		dst_pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
-		memcpy(pck_data, s->data, s->dataLength);
-		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-		gf_filter_pck_set_dts(dst_pck, s->DTS);
-
-		gf_filter_pck_send(dst_pck);
-
-		gf_isom_sample_del(&s);
+		txtin_process_srt_send(ctx, ctx->samp, (u64) ((ctx->timescale * ctx->end)/1000), 0);
 		ctx->end = 0;
 	}
+	gf_isom_text_reset(ctx->samp);
 
 	return GF_EOS;
 }
@@ -784,126 +747,124 @@ typedef struct {
 
 static GF_Err gf_webvtt_import_report(void *user, GF_Err e, char *message, const char *line)
 {
-	GF_ISOFlusher     *flusher = (GF_ISOFlusher *)user;
-	return gf_import_message(flusher->import, e, message, line);
+	GF_LOG(e ? GF_LOG_WARNING : GF_LOG_INFO, GF_LOG_AUTHOR, ("[TXTIn] WebVTT line %s: %s\n", line, message) );
+	return e;
 }
 
 static void gf_webvtt_import_header(void *user, const char *config)
 {
-	GF_ISOFlusher     *flusher = (GF_ISOFlusher *)user;
-	gf_isom_update_webvtt_description(flusher->import->dest, flusher->track, flusher->descriptionIndex, config);
+	GF_TXTIn *ctx = (GF_TXTIn *)user;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (1+strlen(config)) ) );
 }
 
-static void gf_webvtt_flush_sample_to_iso(void *user, GF_WebVTTSample *samp)
+static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 {
-	GF_ISOSample            *s;
-	GF_ISOFlusher     *flusher = (GF_ISOFlusher *)user;
-	//gf_webvtt_dump_sample(stdout, samp);
-	s = gf_isom_webvtt_to_sample(samp);
+	u64 start, end;
+	GF_TXTIn *ctx = (GF_TXTIn *)user;
+	GF_ISOSample *s = gf_isom_webvtt_to_sample(samp);
 	if (s) {
-		s->DTS = (u64) (flusher->timescale*gf_webvtt_sample_get_start(samp)/1000);
-		s->IsRAP = RAP;
-		gf_isom_add_sample(flusher->import->dest, flusher->track, flusher->descriptionIndex, s);
+		GF_FilterPacket *pck;
+		char *pck_data;
+		start = gf_webvtt_sample_get_start(samp);
+		end = gf_webvtt_sample_get_end(samp);
+
+		pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
+		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale * start / 1000) );
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+
+
+		if (end && (end>=start) ) {
+			gf_filter_pck_set_duration(pck, (u64) (ctx->timescale * (end-start) / 1000) );
+		}
+		gf_filter_pck_send(pck);
+
 		gf_isom_sample_del(&s);
 	}
 	gf_webvtt_sample_del(samp);
+
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT( gf_ftell(ctx->src )) );
+
+	if (gf_filter_pid_would_block(ctx->opid))
+		gf_webvtt_parser_suspend(ctx->vttparser);
+
 }
 
-static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
+static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	GF_Err						e;
-	u32							track;
-	u32							timescale;
-	u32							duration;
-	u32							descIndex=1;
-	u32							ID;
-	u32							OCR_ES_ID;
-	GF_GenericSubtitleConfig	*cfg;
-	GF_WebVTTParser				*vttparser;
-	GF_ISOFlusher				flusher;
+	GF_Err e;
+	u32 ID, OCR_ES_ID, file_size, w, h;
+	Bool is_srt;
+	char *ext;
 
-	cfg	= NULL;
-	if (import->esd) {
-		if (!import->esd->slConfig)	{
-			import->esd->slConfig =	(GF_SLConfig *)	gf_odf_desc_new(GF_ODF_SLC_TAG);
-			import->esd->slConfig->predefined =	2;
-			import->esd->slConfig->timestampResolution = 1000;
-		}
-		timescale =	import->esd->slConfig->timestampResolution;
-		if (!timescale)	timescale =	1000;
+	ctx->src = gf_fopen(ctx->file_name, "rt");
+	if (!ctx->src) return GF_URL_ERROR;
 
-		/*explicit text	config*/
-		if (import->esd->decoderConfig && import->esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_GEN_SUB_CFG_TAG) {
-			cfg	= (GF_GenericSubtitleConfig	*) import->esd->decoderConfig->decoderSpecificInfo;
-			import->esd->decoderConfig->decoderSpecificInfo	= NULL;
-		}
-		ID = import->esd->ESID;
-		OCR_ES_ID =	import->esd->OCRESID;
-	} else {
-		timescale =	1000;
-		OCR_ES_ID =	ID = 0;
+	gf_fseek(ctx->src, 0, SEEK_END);
+	file_size = gf_ftell(ctx->src);
+	gf_fseek(ctx->src, 0, SEEK_SET);
+
+	ctx->unicode_type = gf_text_get_utf_type(ctx->src);
+	if (ctx->unicode_type<0) {
+		gf_fclose(ctx->src);
+		ctx->src = NULL;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Unsupported SRT UTF encoding\n"));
+		return GF_NOT_SUPPORTED;
 	}
+	ext = strrchr(ctx->file_name, '.');
+	is_srt = (ext && !strnicmp(ext, ".srt", 4)) ? GF_TRUE : GF_FALSE;
 
-	if (cfg	&& cfg->timescale) timescale = cfg->timescale;
-	track =	gf_isom_new_track(import->dest,	ID,	GF_ISOM_MEDIA_TEXT,	timescale);
-	if (!track)	{
-		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating WebVTT track");
-	}
-	gf_isom_set_track_enabled(import->dest, track, 1);
-	import->final_trackID = gf_isom_get_track_id(import->dest, track);
-	if (import->esd && !import->esd->ESID) import->esd->ESID = import->final_trackID;
 
-	if (OCR_ES_ID) gf_isom_set_track_reference(import->dest, track,	GF_ISOM_REF_OCR, OCR_ES_ID);
+	if (!ctx->timescale) ctx->timescale = 1000;
+	OCR_ES_ID = ID = 0;
 
-	/*setup	track*/
-	if (cfg) {
-		u32	i;
-		u32	count;
-		/*set track	info*/
-		gf_isom_set_track_layout_info(import->dest,	track, cfg->text_width<<16,	cfg->text_height<<16, 0, 0,	cfg->layer);
+	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GF_ISOM_SUBTYPE_WVTT) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
 
-		/*and set sample descriptions*/
-		count =	gf_list_count(cfg->sample_descriptions);
-		for	(i=0; i<count; i++)	{
-			gf_isom_new_webvtt_description(import->dest, track, NULL, NULL, NULL, &descIndex);
-		}
-		gf_import_message(import, GF_OK, "WebVTT import	- text track %d	x %d", cfg->text_width,	cfg->text_height);
-		gf_odf_desc_del((GF_Descriptor *)cfg);
-	} else {
-		u32	w;
-		u32	h;
+	w = ctx->width ? ctx->width : TTXT_DEFAULT_WIDTH;
+	h = ctx->height ? ctx->height : TTXT_DEFAULT_HEIGHT;
+	if (!ID) ID = 1;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
+	if (OCR_ES_ID) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(OCR_ES_ID) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
+	if (ctx->zorder) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_UINT(ctx->zorder) );
+	if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING((char *) ctx->lang) );
 
-		gf_text_get_video_size(import, &w, &h);
-		gf_isom_set_track_layout_info(import->dest,	track, w<<16, h<<16, 0,	0, 0);
+	ctx->vttparser = gf_webvtt_parser_new();
 
-		gf_isom_new_webvtt_description(import->dest, track,	NULL, NULL,	NULL, &descIndex);
-
-		gf_import_message(import, GF_OK, "WebVTT import");
-	}
-	gf_text_import_set_language(import, track);
-	duration = (u32) (((Double) import->duration)*timescale/1000.0);
-
-	vttparser = gf_webvtt_parser_new();
-	flusher.import = import;
-	flusher.timescale = timescale;
-	flusher.track = track;
-	flusher.descriptionIndex = descIndex;
-	e = gf_webvtt_parser_init(vttparser, import->in_name, &flusher, gf_webvtt_import_report, gf_webvtt_flush_sample_to_iso, gf_webvtt_import_header);
+	e = gf_webvtt_parser_init(ctx->vttparser, ctx->src, ctx->unicode_type, is_srt, ctx, gf_webvtt_import_report, gf_webvtt_flush_sample, gf_webvtt_import_header);
 	if (e != GF_OK) {
-		gf_webvtt_parser_del(vttparser);
-		return gf_import_message(import, GF_NOT_SUPPORTED, "Unsupported WebVTT UTF encoding");
+		gf_webvtt_parser_del(ctx->vttparser);
+		ctx->vttparser = NULL;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT parser init error %s\n", gf_error_to_string(e) ));
 	}
-	e = gf_webvtt_parser_parse(vttparser, duration);
-	if (e != GF_OK) {
-		gf_isom_remove_track(import->dest, track);
+	return e;
+}
+
+static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx)
+{
+	GF_Err e;
+
+	if (!ctx->is_setup) {
+		ctx->is_setup = GF_TRUE;
+		return txtin_webvtt_setup(filter, ctx);
+	}
+	if (!ctx->vttparser) return GF_NOT_SUPPORTED;
+
+	e = gf_webvtt_parser_parse(ctx->vttparser);
+
+	if (e < GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT process error %s\n", gf_error_to_string(e) ));
 	}
 
 	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
 	to figure out when to stop displaying the last text sample
 	However update the last sample duration*/
-	gf_isom_set_last_sample_duration(import->dest, track, (u32) gf_webvtt_parser_last_duration(vttparser));
+//	gf_isom_set_last_sample_duration(import->dest, track, (u32) gf_webvtt_parser_last_duration(ctx->vttparser));
 	
-	gf_webvtt_parser_del(vttparser);
 	return e;
 }
 
@@ -2712,20 +2673,24 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_NOT_SUPPORTED;
 	}
 
+	if (ctx->webvtt && (ctx->fmt == GF_TEXT_IMPORT_SRT))
+		ctx->fmt = GF_TEXT_IMPORT_WEBVTT;
+
 	switch (ctx->fmt) {
 	case GF_TEXT_IMPORT_SRT:
 		ctx->text_process = txtin_process_srt;
 		break;
+#ifndef GPAC_DISABLE_VTT
+	case GF_TEXT_IMPORT_WEBVTT:
+		ctx->text_process = txtin_process_webvtt;
+		break;
+#endif
 /*	case GF_TEXT_IMPORT_SUB:
 		return gf_text_import_sub(import);
 	case GF_TEXT_IMPORT_TTXT:
 		return gf_text_import_ttxt(import);
 	case GF_TEXT_IMPORT_TEXML:
 		return gf_text_import_texml(import);
-#ifndef GPAC_DISABLE_VTT
-	case GF_TEXT_IMPORT_WEBVTT:
-		return gf_text_import_webvtt(import);
-#endif
 	case GF_TEXT_IMPORT_SWF_SVG:
 		return gf_text_import_swf(import);
 	case GF_TEXT_IMPORT_TTML:
@@ -2751,12 +2716,21 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	return GF_FALSE;
 }
 
+GF_Err txtin_initialize(GF_Filter *filter)
+{
+	char data[1];
+	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
+	return GF_OK;
+}
 void txtin_finalize(GF_Filter *filter)
 {
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 
 	if (ctx->samp) gf_isom_delete_text_sample(ctx->samp);
 	if (ctx->src) gf_fclose(ctx->src);
+	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
+	if (ctx->vttparser) gf_webvtt_parser_del(ctx->vttparser);
 
 }
 
@@ -2778,12 +2752,14 @@ static const GF_FilterCapability TXTInOutputs[] =
 };
 
 
-#define OFFS(_n)	#_n, offsetof(SVGIn, _n)
+#define OFFS(_n)	#_n, offsetof(GF_TXTIn, _n)
 
 static const GF_FilterArgs TXTInArgs[] =
 {
+	{ OFFS(webvtt), "force WebVTT import of SRT files", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{}
 };
+
 GF_FilterRegister TXTInRegister = {
 	.name = "ttxtload",
 	.description = "Timed text loader (SRT/TTXT/WebVTT)",
@@ -2795,6 +2771,7 @@ GF_FilterRegister TXTInRegister = {
 	.process = txtin_process,
 	.configure_pid = txtin_configure_pid,
 	.process_event = txtin_process_event,
+	.initialize = txtin_initialize,
 	.finalize = txtin_finalize
 };
 

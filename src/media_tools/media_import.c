@@ -1642,6 +1642,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_NO_SEI) strcat(szArgs, ":nosei");
 		if (importer->flags & GF_IMPORT_SVC_NONE) strcat(szArgs, ":nosvc");
 
+		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) strcat(szArgs, ":webvtt");
+
 		gf_fs_load_source(fsess, importer->in_name, szArgs, NULL, &e);
 		if (e) {
 			gf_fs_del(fsess);

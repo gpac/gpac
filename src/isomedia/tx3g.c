@@ -310,15 +310,12 @@ static GFINLINE GF_Err gpp_write_modifier(GF_BitStream *bs, GF_Box *a)
 	return e;
 }
 
-GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
+GF_Err gf_isom_text_sample_write_bs(GF_TextSample *samp, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_ISOSample *res;
-	GF_BitStream *bs;
 	u32 i;
-	if (!samp) return NULL;
+	if (!samp) return GF_BAD_PARAM;
 
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u16(bs, samp->len);
 	if (samp->len) gf_bs_write_data(bs, samp->text, samp->len);
 
@@ -336,6 +333,20 @@ GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
 			if (e) break;
 		}
 	}
+	return e;
+}
+
+GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
+{
+	GF_Err e;
+	GF_ISOSample *res;
+	GF_BitStream *bs;
+	if (!samp) return NULL;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	e = gf_isom_text_sample_write_bs(samp, bs);
+
 	if (e) {
 		gf_bs_del(bs);
 		return NULL;
@@ -349,6 +360,41 @@ GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
 	gf_bs_del(bs);
 	res->IsRAP = RAP;
 	return res;
+}
+
+u32 gf_isom_text_sample_size(GF_TextSample *samp)
+{
+	GF_Box *a;
+	u32 i, size;
+	if (!samp) return NULL;
+
+	size = 2 + samp->len;
+	if (samp->styles) {
+		gf_isom_box_size((GF_Box *)samp->styles);
+		size += samp->styles->size;
+	}
+	if (samp->highlight_color) {
+		gf_isom_box_size((GF_Box *)samp->highlight_color);
+		size += samp->highlight_color->size;
+	}
+	if (samp->scroll_delay) {
+		gf_isom_box_size((GF_Box *)samp->scroll_delay);
+		size += samp->scroll_delay->size;
+	}
+	if (samp->box) {
+		gf_isom_box_size((GF_Box *)samp->box);
+		size += samp->box->size;
+	}
+	if (samp->wrap) {
+		gf_isom_box_size((GF_Box *)samp->wrap);
+		size += samp->wrap->size;
+	}
+	i=0;
+	while ((a = (GF_Box*)gf_list_enum(samp->others, &i))) {
+		gf_isom_box_size((GF_Box *)a);
+		size += a->size;
+	}
+	return size;
 }
 
 GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, u32 *outDescIdx, Bool *same_box, Bool *same_styles)

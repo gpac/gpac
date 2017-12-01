@@ -542,16 +542,18 @@ typedef struct _webvtt_parser GF_WebVTTParser;
 typedef struct _webvtt_sample GF_WebVTTSample;
 
 GF_WebVTTParser *gf_webvtt_parser_new();
-GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, const char *input_file,
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicode_type, Bool is_srt,
                              void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *));
-GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration);
+GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser);
 u64 gf_webvtt_parser_last_duration(GF_WebVTTParser *parser);
 void gf_webvtt_parser_del(GF_WebVTTParser *parser);
+void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser);
 
 void gf_webvtt_sample_del(GF_WebVTTSample * samp);
 u64 gf_webvtt_sample_get_start(GF_WebVTTSample * samp);
+u64 gf_webvtt_sample_get_end(GF_WebVTTSample * samp);
 
 #ifndef GPAC_DISABLE_ISOM
 GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_mode, u32 index);
