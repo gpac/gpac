@@ -1381,10 +1381,19 @@ static const GF_FilterCapability MP4MuxInputs[] =
 {
 	//for now don't accep files as input, although we could store them as items
 	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	//we want framed media only
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//and any OTI
 	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_FORBIDDEN),
+	{},
+	//for scene and OD, we don't want raw OTI (filters modifying a scene graph we don't expose)
+	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 	{}
 };
 

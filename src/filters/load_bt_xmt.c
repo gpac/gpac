@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / GPAC Scene Context loader filter
+ *  This file is part of GPAC / Scene Context loader filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -781,25 +781,9 @@ static void ctxload_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability CTXLoadInputs[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-bt"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-bt|application/x-xmt|model/vrml|x-model/x-vrml|model/x3d+vrml|model/x3d+xml|"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-xmt"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "xmt|xmt.gz|xmtz"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "model/vrml|x-model/x-vrml"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "wrl|wrl.gz"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "model/x3d+vrml"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "x3dv|x3dv.gz|x3dvz"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "model/x3d+xml"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "x3d|x3d.gz|x3dz"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz|xmt|xmt.gz|xmtz|wrl|wrl.gz|x3dv|x3dv.gz|x3dvz|x3d|x3d.gz|x3dz"),
 	{},
 	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-shockwave-flash"),
 	{},

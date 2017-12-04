@@ -1473,9 +1473,6 @@ void on_import_setup_failure(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
 GF_EXPORT
 GF_Err gf_media_import(GF_MediaImporter *importer)
 {
-#ifndef GPAC_DISABLE_TTXT
-	GF_Err gf_import_timed_text(GF_MediaImporter *import);
-#endif
 	GF_Err e;
 	u32 i, count;
 	GF_FilterSession *fsess;
@@ -1662,47 +1659,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	}
 	gf_fs_del(fsess);
 	return GF_OK;
-
-#if FILTER_FIXME
-
-	/*text subtitles*/
-	if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5) || !strnicmp(ext, ".vtt", 4) || !strnicmp(ext, ".ttml", 5)
-	        || !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") || !stricmp(fmt, "VTT") || !stricmp(fmt, "TTML")) {
-#ifndef GPAC_DISABLE_TTXT
-		return gf_import_timed_text(importer);
-#else
-		return GF_NOT_SUPPORTED;
-#endif
-	}
-
-	if (!strnicmp(ext, ".swf", 4) || !strnicmp(ext, ".SWF", 4)) {
-#ifndef GPAC_DISABLE_TTXT
-		return gf_import_timed_text(importer);
-#else
-		return GF_NOT_SUPPORTED;
-#endif
-	}
-
-	/*try XML things*/
-	ext = gf_xml_get_root_type(importer->in_name, &e);
-	if (ext) {
-		if (!stricmp(ext, "TextStream") || !stricmp(ext, "text3GTrack") ) {
-			gf_free(ext);
-#ifndef GPAC_DISABLE_TTXT
-			return gf_import_timed_text(importer);
-#else
-			return GF_NOT_SUPPORTED;
-#endif
-		}
-		gf_free(ext);
-	}
-
-	return gf_import_message(importer, e, "[Importer] Unknown input file type for \"%s\"", importer->in_name);
-
-
-#endif
-
-
 }
 
 
