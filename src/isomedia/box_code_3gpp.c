@@ -671,7 +671,7 @@ GF_Err krok_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err krok_Size(GF_Box *s)
 {
 	GF_TextKaraokeBox*ptr = (GF_TextKaraokeBox*)s;
-	s->size += 6 * 8*ptr->nb_entries;
+	s->size += 6 + 8*ptr->nb_entries;
 	return GF_OK;
 }
 
