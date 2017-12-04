@@ -330,7 +330,10 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 			if (p && p->value.frac.den) tkw->timescale = p->value.frac.den;
 		}
-
+		if (!tkw->timescale) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] No timescale specified, defaulting to 1000\n" ));
+			tkw->timescale = 1000;
+		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 		if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
@@ -781,7 +784,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	} else if (use_tx3g) {
 		GF_TextSampleDescriptor *txtc;
 		if (!dsi) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for AVC\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for TX3G\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		txtc = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
@@ -1318,6 +1321,15 @@ static void mp4_mux_finalize(GF_Filter *filter)
 		if (p && p->value.uint) {
 			mp4_mux_set_lhvc_base_layer(ctx, tkw);
 		}
+
+		p = gf_filter_pid_get_property_str(tkw->ipid, "ttxt:rem_last");
+		if (p && p->value.boolean)
+				gf_isom_remove_sample(ctx->mov, tkw->track_num, tkw->nb_samples);
+
+		p = gf_filter_pid_get_property_str(tkw->ipid, "ttxt:last_dur");
+		if (p)
+			gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, p->value.uint);
+
 
 		if (tkw->is_nalu && ctx->pack_nal && (gf_isom_get_mode(ctx->mov)!=GF_ISOM_OPEN_WRITE)) {
 			u32 msize = 0;
