@@ -772,7 +772,8 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			return e;
 		}
 	} else if (m_subtype == GF_ISOM_SUBTYPE_STPP) {
-		comp_name = "XML Subtitle";
+		if (meta_xmlns && !strcmp(meta_xmlns, "http://www.w3.org/ns/ttml")) comp_name = "TTML";
+		else comp_name = "XML Subtitle";
 		e = gf_isom_new_xml_subtitle_description(ctx->mov, tkw->track_num, meta_xmlns, meta_schemaloc, meta_auxmimes, &tkw->stsd_idx);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new XML subtitle sample description: %s\n", gf_error_to_string(e) ));

@@ -79,11 +79,10 @@ struct __txtin_ctx
 	u64 last_sample_duration;
 
 	//TTML state
-	GF_XMLNode *root_working_copy;
+	GF_XMLNode *root_working_copy, *div_node, *sample_list_node;
 	GF_DOMParser *parser_working_copy;
 	Bool non_compliant_ttml;
-	Bool has_body;
-
+	u32 nb_p_found;
 };
 
 
@@ -967,261 +966,320 @@ static void gf_text_import_ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode *
 }
 
 #define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
-static GF_Err gf_text_import_ebu_ttd(GF_Filter *filter, GF_TXTIn *ctx)
+
+static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	GF_Err e, e_opt;
-	u32 i, ID, nb_children;
+	GF_Err e;
+	u32 i, nb_children, ID;
 	u64 file_size;
 	GF_XMLAttribute *att;
-	GF_XMLNode *root, *node, *sample_list_node;
-	char *samp_text;
+	GF_XMLNode *root, *node, *body_node;
 	const char *lang = ctx->lang;
 
-	root = gf_xml_dom_get_root(ctx->parser);
-	samp_text = NULL;
 
-	if (ctx->non_compliant_ttml) return GF_EOS;
-
-	if (!ctx->is_setup) {
+	ctx->is_setup = GF_TRUE;
+	ctx->parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(ctx->parser, ctx->file_name, ttxt_dom_progress, ctx);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TTML file: Line %d - %s. Abort.\n", gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
 		ctx->is_setup = GF_TRUE;
-
-		/*** root (including language) ***/
-		i=0;
-		while ( (att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Found root attribute name %s, value %s\n", att->name, att->value));
-
-			if (!strcmp(att->name, "xmlns")) {
-				if (strcmp(att->value, TTML_NAMESPACE)) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] Found invalid EBU-TTD root attribute name %s, value %s (shall be \"%s\")\n", att->name, att->value, TTML_NAMESPACE));
-					return GF_NON_COMPLIANT_BITSTREAM;
-				}
-			} else if (!strcmp(att->name, "xml:lang")) {
-				lang = att->value;
-			}
-		}
-		ID = 0;
-		file_size = ctx->end;
-		if (!ctx->timescale) ctx->timescale = 1000;
-
-		if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GF_ISOM_SUBTYPE_STPP) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
-
-		if (!ID) ID = 1;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
-		if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
-		if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
-		if (ctx->zorder) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_SINT(ctx->zorder) );
-		if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING((char *) ctx->lang) );
-		gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(TTML_NAMESPACE) );
-
-		/*** body ***/
-		ctx->parser_working_copy = gf_xml_dom_new();
-		e = gf_xml_dom_parse(ctx->parser_working_copy, ctx->file_name, NULL, NULL);
-		assert (e == GF_OK);
-		ctx->root_working_copy = gf_xml_dom_get_root(ctx->parser_working_copy);
-		assert(ctx->root_working_copy);
-		ctx->last_sample_duration = 0;
-		ctx->end = 0;
-		ctx->first_samp = GF_TRUE;
+		ctx->non_compliant_ttml = GF_TRUE;
+		return e;
+	}
+	root = gf_xml_dom_get_root(ctx->parser);
+	if (!root) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TTML file: no root XML element found. Abort.\n"));
+		ctx->non_compliant_ttml = GF_TRUE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	//TODO rework this to avoid dispatching the complete file at once ...
+	/*look for TTML*/
+	if (gf_xml_get_element_check_namespace(root, "tt", NULL) != GF_OK) {
+		if (root->ns) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML file not recognized: root element is \"%s:%s\" (check your namespaces)\n", root->ns, root->name));
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML file not recognized: root element is \"%s\"\n", root->name));
+		}
+		ctx->non_compliant_ttml = GF_TRUE;
+		return GF_NOT_SUPPORTED;
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TXTIn] TTML EBU-TTD detected\n"));
+
+	root = gf_xml_dom_get_root(ctx->parser);
+
+
+	/*** root (including language) ***/
+	i=0;
+	while ( (att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML] Found root attribute name %s, value %s\n", att->name, att->value));
+
+		if (!strcmp(att->name, "xmlns")) {
+			if (strcmp(att->value, TTML_NAMESPACE)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML] XML Namespace %s not recognized, expecting %s\n", att->name, att->value, TTML_NAMESPACE));
+				ctx->non_compliant_ttml = GF_TRUE;
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		} else if (!strcmp(att->name, "xml:lang")) {
+			lang = att->value;
+		}
+	}
+
+	//locate body
 	nb_children = gf_list_count(root->content);
-	ctx->has_body = GF_FALSE;
+	body_node = NULL;
+
 	i=0;
 	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &i))) {
 		if (node->type) {
 			nb_children--;
 			continue;
 		}
-
-		e_opt = gf_xml_get_element_check_namespace(node, "body", root->ns);
-		if (e_opt == GF_BAD_PARAM) {
+		e = gf_xml_get_element_check_namespace(node, "body", root->ns);
+		if (e == GF_BAD_PARAM) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
-		} else if (e_opt == GF_OK) {
-			GF_XMLNode *body_node;
-			u32 body_idx = 0;
-
-			if (ctx->has_body) {
+		} else if (e == GF_OK) {
+			if (body_node) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"body\" element. Abort.\n"));
-				goto exit;
+				ctx->non_compliant_ttml = GF_TRUE;
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			ctx->has_body = GF_TRUE;
+			body_node = node;
+		}
+	}
+	if (!body_node) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] \"body\" element not found. Abort.\n"));
+		ctx->non_compliant_ttml = GF_TRUE;
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
-			/*remove all the entries from the working copy, we'll add samples one to one to create full XML samples*/
-			gf_text_import_ebu_ttd_remove_samples(ctx->root_working_copy, &sample_list_node);
+	i=0;
+	while ( (node = (GF_XMLNode*)gf_list_enum(body_node->content, &i))) {
+		if (node->type) {
+			nb_children--;
+			continue;
+		}
+		e = gf_xml_get_element_check_namespace(node, "div", root->ns);
+		if (e == GF_BAD_PARAM) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
+		} else if (e == GF_OK) {
+			if (ctx->div_node) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] several \"div\" found in document, only the first one will be imported - not supported but patch is welcome\n"));
+			}
+			ctx->div_node = node;
+		}
+	}
+	ID = 0;
+	file_size = ctx->end;
+	if (!ctx->timescale) ctx->timescale = 1000;
 
-			while ( (body_node = (GF_XMLNode*)gf_list_enum(node->content, &body_idx))) {
-				e_opt = gf_xml_get_element_check_namespace(body_node, "div", root->ns);
-				if (e_opt == GF_BAD_PARAM) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
-				} else if (e_opt == GF_OK) {
-					GF_XMLNode *div_node;
-					u32 div_idx = 0, nb_p_found = 0;
-					while ( (div_node = (GF_XMLNode*)gf_list_enum(body_node->content, &div_idx))) {
-						e_opt = gf_xml_get_element_check_namespace(div_node, "p", root->ns);
-						if (e_opt != GF_OK) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
-						} else if (e_opt == GF_OK) {
-							GF_XMLNode *p_node;
-							GF_XMLAttribute *p_att;
-							u32 p_idx = 0, h, m, s, ms;
-							s64 ts_begin = -1, ts_end = -1;
+	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GF_ISOM_SUBTYPE_STPP) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
 
-							//sample is either in the <p> ...
-							while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_node->attributes, &p_idx))) {
-								if (!p_att) continue;
-								
-								if (!strcmp(p_att->name, "begin")) {
-									if (ts_begin != -1) {
-										GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute. Abort.\n"));
-										e = GF_NON_COMPLIANT_BITSTREAM;
-										goto exit;
-									}
-									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
-										ts_begin = (h*3600 + m*60+s)*1000+ms;
-									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
-										ts_begin = (h*3600 + m*60+s)*1000;
-									}
-								} else if (!strcmp(p_att->name, "end")) {
-									if (ts_end != -1) {
-										GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute. Abort.\n"));
-										e = GF_NON_COMPLIANT_BITSTREAM;
-										goto exit;
-									}
-									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
-										ts_end = (h*3600 + m*60+s)*1000+ms;
-									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
-										ts_end = (h*3600 + m*60+s)*1000;
-									}
-								}
-								if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
-									e = gf_xml_dom_append_child(sample_list_node, div_node);
-									assert(e == GF_OK);
-									assert(!samp_text);
-									samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
-									e = gf_xml_dom_rem_child(sample_list_node, div_node);
-									assert(e == GF_OK);
-								}
-							}
+	if (!ID) ID = 1;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
+	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+	if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+	if (ctx->zorder) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_SINT(ctx->zorder) );
+	if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING((char *) ctx->lang) );
+	gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(TTML_NAMESPACE) );
 
-							//or under a <span>
-							p_idx = 0;
-							while ( (p_node = (GF_XMLNode*)gf_list_enum(div_node->content, &p_idx))) {
-								e_opt = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
-								if (e_opt == GF_BAD_PARAM) {
-									GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
-								} else if (e_opt == GF_OK) {
-									u32 span_idx = 0;
-									GF_XMLAttribute *span_att;
-									while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
-										if (!span_att) continue;
-									
-										if (!strcmp(span_att->name, "begin")) {
-											if (ts_begin != -1) {
-												GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute under <span>. Abort.\n"));
-												e = GF_NON_COMPLIANT_BITSTREAM;
-												goto exit;
-											}
-											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
-												ts_begin = (h*3600 + m*60+s)*1000+ms;
-											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
-												ts_begin = (h*3600 + m*60+s)*1000;
-											}
-										} else if (!strcmp(span_att->name, "end")) {
-											if (ts_end != -1) {
-												GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute under <span>. Abort.\n"));
-												e = GF_NON_COMPLIANT_BITSTREAM;
-												goto exit;
-											}
-											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
-												ts_end = (h*3600 + m*60+s)*1000+ms;
-											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
-												ts_end = (h*3600 + m*60+s)*1000;
-											}
-										}
-										if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
-											if (samp_text) {
-												GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated sample text under <span>. Abort.\n"));
-												e = GF_NON_COMPLIANT_BITSTREAM;
-												goto exit;
-											}
+	/*** body ***/
+	ctx->parser_working_copy = gf_xml_dom_new();
+	e = gf_xml_dom_parse(ctx->parser_working_copy, ctx->file_name, NULL, NULL);
+	assert (e == GF_OK);
+	ctx->root_working_copy = gf_xml_dom_get_root(ctx->parser_working_copy);
+	assert(ctx->root_working_copy);
 
-											/*append the sample*/
-											e = gf_xml_dom_append_child(sample_list_node, div_node);
-											assert(e == GF_OK);
-											assert(!samp_text);
-											samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
-											e = gf_xml_dom_rem_child(sample_list_node, div_node);
-											assert(e == GF_OK);
-										}
-									}
-								}
-							}
+	/*remove all the sample entries (instances in body) entries from the working copy, we will add each sample in this clone DOM  to create full XML of each sample*/
+	gf_text_import_ebu_ttd_remove_samples(ctx->root_working_copy, &ctx->sample_list_node);
 
-							if ((ts_begin != -1) && (ts_end != -1) && samp_text) {
-								GF_FilterPacket *pck;
-								char *pck_data;
-								u32 txt_len;
-								char *txt_str;
+	ctx->nb_children = gf_list_count(ctx->div_node->content);
+	ctx->cur_child_idx = 0;
 
-								if (ts_end < ts_begin) {
-									GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] invalid timings: \"begin\"="LLD" , \"end\"="LLD". Abort.\n", ts_begin, ts_end));
-									e = GF_NON_COMPLIANT_BITSTREAM;
-									goto exit;
-								}
+	ctx->last_sample_duration = 0;
+	ctx->end = 0;
+	ctx->first_samp = GF_TRUE;
+	return GF_OK;
+}
 
-								if (ts_begin < (s64) ctx->end) {
-									GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] timing overlapping not supported: \"begin\" is "LLD" , last \"end\" was "LLD". Abort.\n", ts_begin, ctx->end));
-									e = GF_NOT_SUPPORTED;
-									goto exit;
-								}
+static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
+{
+	GF_Err e;
+	GF_XMLNode *root;
+	char *samp_text=NULL;
 
-								txt_str = ttxt_parse_string(samp_text, GF_TRUE);
-								if (!txt_str) txt_str = "";
-								txt_len = (u32) strlen(txt_str);
+	if (!ctx->is_setup) return gf_text_ttml_setup(filter, ctx);
+	if (ctx->non_compliant_ttml || !ctx->opid) return GF_NOT_SUPPORTED;
 
-								if (ctx->first_samp) {
-									ts_begin = 0; /*in MP4 we must start at T=0*/
-									ctx->last_sample_duration = ts_end;
-									ctx->first_samp = GF_FALSE;
-								} else {
-									ctx->last_sample_duration = ts_end - ts_begin;
-								}
+	root = gf_xml_dom_get_root(ctx->parser);
 
-								ctx->end = ts_end;
-								GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - ctx->end, ctx->last_sample_duration, ctx->end));
+	for (; ctx->cur_child_idx < ctx->nb_children; ctx->cur_child_idx++) {
+		GF_XMLNode *p_node;
+		GF_XMLAttribute *p_att;
+		u32 p_idx = 0, h, m, s, ms;
+		s64 ts_begin = -1, ts_end = -1;
 
-								pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
-								memcpy(pck_data, txt_str, txt_len);
-								gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-								gf_filter_pck_set_cts(pck, ts_begin);
-								gf_filter_pck_send(pck);
+		GF_XMLNode *div_child = (GF_XMLNode*)gf_list_get(ctx->div_node->content, ctx->cur_child_idx);
+		if (div_child->type) {
+			continue;
+		}
+		e = gf_xml_get_element_check_namespace(div_child, "p", root->ns);
+		if (e != GF_OK) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", div_child->name));
+			continue;
+		}
 
-								gf_free(samp_text);
-								samp_text = NULL;
-								nb_p_found++;
-							} else {
-								GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] incomplete sample (begin="LLD", end="LLD", text=\"%s\"). Skip.\n", ts_begin, ts_end, samp_text ? samp_text : "NULL"));
-							}
+		//sample is either in the <p> ...
+		while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_child->attributes, &p_idx))) {
+			if (!p_att) continue;
+
+			if (!strcmp(p_att->name, "begin")) {
+				if (ts_begin != -1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute. Abort.\n"));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
+				if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					ts_begin = (h*3600 + m*60+s)*1000+ms;
+				} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+					ts_begin = (h*3600 + m*60+s)*1000;
+				}
+			} else if (!strcmp(p_att->name, "end")) {
+				if (ts_end != -1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute. Abort.\n"));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
+				if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+					ts_end = (h*3600 + m*60+s)*1000+ms;
+				} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+					ts_end = (h*3600 + m*60+s)*1000;
+				}
+			}
+			if ((ts_begin != -1) && (ts_end != -1) && !samp_text && ctx->sample_list_node) {
+				e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
+				assert(e == GF_OK);
+				assert(!samp_text);
+				samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
+				e = gf_xml_dom_rem_child(ctx->sample_list_node, div_child);
+				assert(e == GF_OK);
+			}
+		}
+
+		//or under a <span>
+		p_idx = 0;
+		while ( (p_node = (GF_XMLNode*)gf_list_enum(div_child->content, &p_idx))) {
+			e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
+			if (e == GF_BAD_PARAM) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", div_child->name));
+			} else if (e == GF_OK) {
+				u32 span_idx = 0;
+				GF_XMLAttribute *span_att;
+				while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
+					if (!span_att) continue;
+
+					if (!strcmp(span_att->name, "begin")) {
+						if (ts_begin != -1) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute under <span>. Abort.\n"));
+							e = GF_NON_COMPLIANT_BITSTREAM;
+							goto exit;
+						}
+						if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+							ts_begin = (h*3600 + m*60+s)*1000+ms;
+						} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+							ts_begin = (h*3600 + m*60+s)*1000;
+						}
+					} else if (!strcmp(span_att->name, "end")) {
+						if (ts_end != -1) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute under <span>. Abort.\n"));
+							e = GF_NON_COMPLIANT_BITSTREAM;
+							goto exit;
+						}
+						if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+							ts_end = (h*3600 + m*60+s)*1000+ms;
+						} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+							ts_end = (h*3600 + m*60+s)*1000;
 						}
 					}
+					if ((ts_begin != -1) && (ts_end != -1) && !samp_text && ctx->sample_list_node) {
+						if (samp_text) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated sample text under <span>. Abort.\n"));
+							e = GF_NON_COMPLIANT_BITSTREAM;
+							goto exit;
+						}
 
-					if (!nb_p_found) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] \"%s\" div node has no <p> elements. Aborting.\n", node->name));
-						e = GF_NON_COMPLIANT_BITSTREAM;
-						goto exit;
+						/*append the sample*/
+						e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
+						assert(e == GF_OK);
+						assert(!samp_text);
+						samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
+						e = gf_xml_dom_rem_child(ctx->sample_list_node, div_child);
+						assert(e == GF_OK);
 					}
 				}
 			}
 		}
+
+		if ((ts_begin != -1) && (ts_end != -1) && samp_text) {
+			GF_FilterPacket *pck;
+			char *pck_data;
+			u32 txt_len;
+			char *txt_str;
+
+			if (ts_end < ts_begin) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] invalid timings: \"begin\"="LLD" , \"end\"="LLD". Abort.\n", ts_begin, ts_end));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
+
+			if (ts_begin < (s64) ctx->end) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] timing overlapping not supported: \"begin\" is "LLD" , last \"end\" was "LLD". Abort.\n", ts_begin, ctx->end));
+				e = GF_NOT_SUPPORTED;
+				goto exit;
+			}
+
+			txt_str = ttxt_parse_string(samp_text, GF_TRUE);
+			if (!txt_str) txt_str = "";
+			txt_len = (u32) strlen(txt_str);
+
+			if (ctx->first_samp) {
+				ts_begin = 0; /*in MP4 we must start at T=0*/
+				ctx->last_sample_duration = ts_end;
+				ctx->first_samp = GF_FALSE;
+			} else {
+				ctx->last_sample_duration = ts_end - ts_begin;
+			}
+
+			ctx->end = ts_end;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - ctx->end, ctx->last_sample_duration, ctx->end));
+
+			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
+			memcpy(pck_data, txt_str, txt_len);
+			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+			gf_filter_pck_set_cts(pck, ts_begin);
+			gf_filter_pck_send(pck);
+
+			gf_free(samp_text);
+			samp_text = NULL;
+			ctx->nb_p_found++;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] incomplete sample (begin="LLD", end="LLD", text=\"%s\"). Skip.\n", ts_begin, ts_end, samp_text ? samp_text : "NULL"));
+		}
+
+		if (gf_filter_pid_would_block(ctx->opid)) {
+			ctx->cur_child_idx++;
+			return GF_OK;
+		}
 	}
-	if (!ctx->has_body) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] missing \"body\" element. Abort.\n"));
+
+	if (!ctx->nb_p_found) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] \"%s\" div node has no <p> elements.\n", ctx->div_node->name));
 	}
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] last_sample_duration="LLU", last_sample_end="LLU"\n", ctx->last_sample_duration, ctx->end));
 
 	gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT(ctx->last_sample_duration) );
@@ -1232,49 +1290,6 @@ static GF_Err gf_text_import_ebu_ttd(GF_Filter *filter, GF_TXTIn *ctx)
 exit:
 	ctx->non_compliant_ttml = GF_TRUE;
 	return GF_NON_COMPLIANT_BITSTREAM;
-}
-
-static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
-{
-	GF_Err e;
-	GF_XMLNode *root;
-
-	if (ctx->is_setup) return gf_text_import_ebu_ttd(filter, ctx);
-
-	ctx->parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse(ctx->parser, ctx->file_name, ttxt_dom_progress, ctx);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TTML file: Line %d - %s. Abort.\n", gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
-		ctx->is_setup = GF_TRUE;
-		return e;
-	}
-	root = gf_xml_dom_get_root(ctx->parser);
-	if (!root) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TTML file: no root XML element found. Abort.\n"));
-		ctx->is_setup = GF_TRUE;
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
-
-	/*look for TTML*/
-	if (gf_xml_get_element_check_namespace(root, "tt", NULL) == GF_OK) {
-		e = gf_text_import_ebu_ttd(filter, ctx);
-		if (e >= GF_OK) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Note: TTML import - EBU-TTD detected\n"));
-		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Unsupported TTML file - only EBU-TTD is supported (root shall be \"tt\", got \"%s\")\n", root->name));
-			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Importing as generic TTML\n"));
-			e = GF_OK;
-		}
-	} else {
-		if (root->ns) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML file not recognized: root element is \"%s:%s\" (check your namespaces)\n", root->ns, root->name));
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML file not recognized: root element is \"%s\"\n", root->name));
-		}
-		ctx->is_setup = GF_TRUE;
-		e = GF_BAD_PARAM;
-	}
-	return e;
 }
 
 /* SimpleText Text tracks -related functions */
@@ -1837,9 +1852,6 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		u32 ts, descIndex;
 		Bool has_text = GF_FALSE;
 
-		if (gf_filter_pid_would_block(ctx->opid))
-			return GF_OK;
-
 		node = (GF_XMLNode*) gf_list_get(root->content, ctx->cur_child_idx);
 
 		if (node->type) {
@@ -1988,6 +2000,11 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 			ctx->last_sample_duration = ts - ctx->last_sample_duration;
 		} else {
 			ctx->last_sample_duration = ts;
+		}
+
+		if (gf_filter_pid_would_block(ctx->opid)) {
+			ctx->cur_child_idx++;
+			return GF_OK;
 		}
 	}
 
@@ -2148,10 +2165,6 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (probe_first_desc_only && ctx->text_descs && gf_list_count(ctx->text_descs))
 			return GF_OK;
-
-		if (gf_filter_pid_would_block(ctx->opid))
-			return GF_OK;
-
 
 		node = (GF_XMLNode*)gf_list_get(root->content, ctx->cur_child_idx);
 		if (node->type) continue;
@@ -2449,6 +2462,10 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 			ctx->start += duration;
 			gf_isom_delete_text_sample(samp);
 
+		}
+		if (gf_filter_pid_would_block(ctx->opid)) {
+			ctx->cur_child_idx++;
+			return GF_OK;
 		}
 	}
 
