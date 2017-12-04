@@ -34,6 +34,12 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_SWF_IMPORT
+/* SWF Importer */
+#include <gpac/internal/swf_dev.h>
+#endif
+
+
 typedef struct __txtin_ctx GF_TXTIn;
 
 struct __txtin_ctx
@@ -42,7 +48,7 @@ struct __txtin_ctx
 	u32 width, height, x, y, fontsize;
 	s32 zorder;
 	const char *fontname, *lang;
-	Bool nodefbox, noflush, webvtt;
+	Bool nodefbox, noflush, webvtt, swfsvg;
 	u32 timescale;
 	GF_Fraction fps;
 
@@ -83,6 +89,14 @@ struct __txtin_ctx
 	GF_DOMParser *parser_working_copy;
 	Bool non_compliant_ttml;
 	u32 nb_p_found;
+
+#ifndef GPAC_DISABLE_SWF_IMPORT
+	//SWF text
+	SWFReader *swf_parse;
+	Bool do_suspend;
+#endif
+
+
 };
 
 
@@ -95,7 +109,7 @@ enum
 	GF_TEXT_IMPORT_TEXML,
 	GF_TEXT_IMPORT_WEBVTT,
 	GF_TEXT_IMPORT_TTML,
-	GF_TEXT_IMPORT_SWF_SVG,
+	GF_TEXT_IMPORT_SWF_SVG_BIFS,
 };
 
 #define REM_TRAIL_MARKS(__str, __sep) while (1) {	\
@@ -192,56 +206,14 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 	else if (strstr(szLine, " --> ") )
 		*fmt = GF_TEXT_IMPORT_SRT; /* might want to change the default to WebVTT */
 
+	else if (!strncmp(szLine, "FWS", 3) || !strncmp(szLine, "CWS", 3))
+		*fmt = GF_TEXT_IMPORT_SWF_SVG_BIFS;
+
 	gf_fclose(test);
 	return GF_OK;
 }
 
 
-#define TTXT_DEFAULT_WIDTH	400
-#define TTXT_DEFAULT_HEIGHT	60
-#define TTXT_DEFAULT_FONT_SIZE	18
-
-void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *height)
-{
-	u32 w, h, f_w, f_h, i;
-	GF_ISOFile *dest = import->dest;
-
-	if (import->text_track_width && import->text_track_height) {
-		(*width) = import->text_track_width;
-		(*height) = import->text_track_height;
-		return;
-	}
-
-	f_w = f_h = 0;
-	for (i=0; i<gf_isom_get_track_count(dest); i++) {
-		switch (gf_isom_get_media_type(dest, i+1)) {
-		case GF_ISOM_MEDIA_SCENE:
-		case GF_ISOM_MEDIA_VISUAL:
-			gf_isom_get_visual_info(dest, i+1, 1, &w, &h);
-			if (w > f_w) f_w = w;
-			if (h > f_h) f_h = h;
-			gf_isom_get_track_layout_info(dest, i+1, &w, &h, NULL, NULL, NULL);
-			if (w > f_w) f_w = w;
-			if (h > f_h) f_h = h;
-			break;
-		}
-	}
-	(*width) = f_w ? f_w : TTXT_DEFAULT_WIDTH;
-	(*height) = f_h ? f_h : TTXT_DEFAULT_HEIGHT;
-}
-
-
-void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
-{
-	if (import->esd && import->esd->langDesc) {
-		char lang[4];
-		lang[0] = (import->esd->langDesc->langCode>>16) & 0xFF;
-		lang[1] = (import->esd->langDesc->langCode>>8) & 0xFF;
-		lang[2] = (import->esd->langDesc->langCode) & 0xFF;
-		lang[3] = 0;
-		gf_isom_set_media_language(import->dest, track, lang);
-	}
-}
 
 char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type)
 {
@@ -404,7 +376,7 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	sd->fonts[0].fontName = gf_strdup(ctx->fontname ? ctx->fontname : "Serif");
 	sd->back_color = 0x00000000;	/*transparent*/
 	sd->default_style.fontID = 1;
-	sd->default_style.font_size = ctx->fontsize ? ctx->fontsize : TTXT_DEFAULT_FONT_SIZE;
+	sd->default_style.font_size = ctx->fontsize;
 	sd->default_style.text_color = 0xFFFFFFFF;	/*white*/
 	sd->default_style.style_flags = 0;
 	sd->horiz_justif = 1; /*center of scene*/
@@ -758,7 +730,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 /* Structure used to pass importer and track data to the parsers without exposing the GF_MediaImporter structure
    used by WebVTT and Flash->SVG */
 typedef struct {
-	GF_MediaImporter *import;
+	GF_TXTIn *ctx;
 	u32 timescale;
 	u32 track;
 	u32 descriptionIndex;
@@ -844,8 +816,8 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
 
-	w = ctx->width ? ctx->width : TTXT_DEFAULT_WIDTH;
-	h = ctx->height ? ctx->height : TTXT_DEFAULT_HEIGHT;
+	w = ctx->width;
+	h = ctx->height;
 	if (!ID) ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
 	if (OCR_ES_ID) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(OCR_ES_ID) );
@@ -1297,164 +1269,116 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string);
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 
-/* SWF Importer */
-#include <gpac/internal/swf_dev.h>
 
 static GF_Err swf_svg_add_iso_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap)
 {
-	GF_Err				e = GF_OK;
-	GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
-	GF_ISOSample		*s;
-	GF_BitStream		*bs;
+	GF_FilterPacket *pck;
+	char *pck_data;
+	GF_TXTIn *ctx = (GF_TXTIn *)user;
 
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (!bs) return GF_BAD_PARAM;
-	gf_bs_write_data(bs, data, length);
-	s = gf_isom_sample_new();
-	if (s) {
-		gf_bs_get_content(bs, &s->data, &s->dataLength);
-		s->DTS = (u64) (flusher->timescale*timestamp/1000);
-		s->IsRAP = isRap ? RAP : RAP_NO;
-		gf_isom_add_sample(flusher->import->dest, flusher->track, flusher->descriptionIndex, s);
-		gf_isom_sample_del(&s);
-	} else {
-		e = GF_BAD_PARAM;
-	}
-	gf_bs_del(bs);
-	return e;
+	pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
+	memcpy(pck_data, data, length);
+	gf_filter_pck_set_cts(pck, (u64) (ctx->timescale*timestamp/1000) );
+	gf_filter_pck_set_sap(pck, isRap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+	gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
+
+	gf_filter_pck_send(pck);
+
+	if (gf_filter_pid_would_block(ctx->opid))
+		ctx->do_suspend = GF_TRUE;
+	return GF_OK;
 }
 
 static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, Bool isHeader)
 {
-	GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
-	if (!flusher) return GF_BAD_PARAM;
+	GF_TXTIn *ctx = (GF_TXTIn *)user;
+
 	if (isHeader) {
-		return gf_isom_update_stxt_description(flusher->import->dest, flusher->track, NULL, data, flusher->descriptionIndex);
+		gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_DATA((char *)data, ( strlen(data)+1 ) )  );
 	} else {
-		return gf_isom_append_sample_data(flusher->import->dest, flusher->track, (char *)data, length);
+		GF_FilterPacket *pck;
+		char *pck_data;
+		pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
+		memcpy(pck_data, data, length);
+		gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
+
+		gf_filter_pck_send(pck);
 	}
+	return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_text_import_swf(GF_MediaImporter *import)
+static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	GF_Err						e = GF_OK;
-	u32							track;
-	u32							timescale;
-	//u32							duration;
-	u32							descIndex;
-	u32							ID;
-	u32							OCR_ES_ID;
-	GF_GenericSubtitleConfig	*cfg;
-	SWFReader					*read;
-	GF_ISOFlusher				flusher;
-	char						*mime;
+	GF_Err e = GF_OK;
+	u32 ID;
+	char *mime;
 
-	if (import->flags & GF_IMPORT_PROBE_ONLY) {
-		import->nb_tracks = 1;
-		return GF_OK;
-	}
+	ctx->swf_parse = gf_swf_reader_new(NULL, ctx->file_name);
+	e = gf_swf_read_header(ctx->swf_parse);
+	if (e) return e;
 
-	cfg	= NULL;
-	if (import->esd) {
-		if (!import->esd->slConfig)	{
-			import->esd->slConfig =	(GF_SLConfig *)	gf_odf_desc_new(GF_ODF_SLC_TAG);
-			import->esd->slConfig->predefined =	2;
-			import->esd->slConfig->timestampResolution = 1000;
-		}
-		timescale =	import->esd->slConfig->timestampResolution;
-		if (!timescale)	timescale =	1000;
+	gf_swf_reader_set_user_mode(ctx->swf_parse, ctx, swf_svg_add_iso_sample, swf_svg_add_iso_header);
 
-		/*explicit text	config*/
-		if (import->esd->decoderConfig && import->esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_GEN_SUB_CFG_TAG) {
-			cfg	= (GF_GenericSubtitleConfig	*) import->esd->decoderConfig->decoderSpecificInfo;
-			import->esd->decoderConfig->decoderSpecificInfo	= NULL;
-		}
-		ID = import->esd->ESID;
-		OCR_ES_ID =	import->esd->OCRESID;
-	} else {
-		timescale =	1000;
-		OCR_ES_ID =	ID = 0;
-	}
+	if (!ctx->timescale) ctx->timescale = 1000;
+	ID = 0;
 
-	if (cfg	&& cfg->timescale) timescale = cfg->timescale;
-	track =	gf_isom_new_track(import->dest,	ID,	GF_ISOM_MEDIA_TEXT,	timescale);
-	if (!track)	{
-		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating text track");
-	}
-	gf_isom_set_track_enabled(import->dest,	track, 1);
-	if (import->esd	&& !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GF_ISOM_SUBTYPE_STXT) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+//	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
 
-	if (OCR_ES_ID) gf_isom_set_track_reference(import->dest, track,	GF_ISOM_REF_OCR, OCR_ES_ID);
+	if (!ID) ID = 1;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
+	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+	if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+	if (ctx->zorder) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_SINT(ctx->zorder) );
+	if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING((char *) ctx->lang) );
 
-	if (!stricmp(import->streamFormat, "SVG")) {
+	if (ctx->swfsvg) {
 		mime = "image/svg+xml";
 	} else {
 		mime = "application/octet-stream";
 	}
-	/*setup	track*/
-	if (cfg) {
-		u32	i;
-		u32	count;
-		/*set track	info*/
-		gf_isom_set_track_layout_info(import->dest,	track, cfg->text_width<<16,	cfg->text_height<<16, 0, 0,	cfg->layer);
+	gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime) );
 
-		/*and set sample descriptions*/
-		count =	gf_list_count(cfg->sample_descriptions);
-		for	(i=0; i<count; i++)	{
-			gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT, mime, NULL, NULL, &descIndex);
-		}
-		gf_import_message(import, GF_OK, "SWF import - text track %d	x %d", cfg->text_width,	cfg->text_height);
-		gf_odf_desc_del((GF_Descriptor *)cfg);
-	} else {
-		u32	w;
-		u32	h;
-
-		gf_text_get_video_size(import, &w, &h);
-		gf_isom_set_track_layout_info(import->dest,	track, w<<16, h<<16, 0,	0, 0);
-
-		gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT, mime, NULL,	NULL, &descIndex);
-
-		gf_import_message(import, GF_OK, "SWF import (as text - type: %s)", import->streamFormat);
-	}
-	gf_text_import_set_language(import, track);
-	//duration = (u32) (((Double) import->duration)*timescale/1000.0);
-
-	read = gf_swf_reader_new(NULL, import->in_name);
-	gf_swf_read_header(read);
-	flusher.import = import;
-	flusher.track = track;
-	flusher.timescale = timescale;
-	flusher.descriptionIndex = descIndex;
-	gf_swf_reader_set_user_mode(read, &flusher, swf_svg_add_iso_sample, swf_svg_add_iso_header);
-
-	if (!import->streamFormat || (import->streamFormat && !stricmp(import->streamFormat, "SVG"))) {
+	e = GF_NOT_SUPPORTED;
+	if (ctx->swfsvg) {
 #ifndef GPAC_DISABLE_SVG
-		e = swf_to_svg_init(read, import->swf_flags, import->swf_flatten_angle);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] swf -> svg not fully migrated, using SWF flags 0 and no flatten angle. Patch welcome\n"));
+		e = swf_to_svg_init(ctx->swf_parse, 0, 0);
 #endif
 	} else { /*if (import->streamFormat && !strcmp(import->streamFormat, "BIFS"))*/
 #ifndef GPAC_DISABLE_VRML
-		e = swf_to_bifs_init(read);
+		e = swf_to_bifs_init(ctx->swf_parse);
 #endif
 	}
-	if (e) {
-		goto exit;
+	return e;
+}
+
+static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
+{
+	GF_Err e=GF_OK;
+
+	if (!ctx->is_setup) {
+		ctx->is_setup = GF_TRUE;
+		return gf_text_swf_setup(filter, ctx);
 	}
+	if (!ctx->opid) return GF_NOT_SUPPORTED;
+
+	ctx->do_suspend = GF_FALSE;
 	/*parse all tags*/
 	while (e == GF_OK) {
-		e = swf_parse_tag(read);
+		e = swf_parse_tag(ctx->swf_parse);
+		if (ctx->do_suspend) return GF_OK;
 	}
-	if (e==GF_EOS) e = GF_OK;
-exit:
-	gf_swf_reader_del(read);
 	return e;
 }
 /* end of SWF Importer */
 
 #else
 
-GF_EXPORT
-GF_Err gf_text_import_swf(GF_MediaImporter *import)
+static GF_Err gf_text_import_swf(GF_MediaImporter *import)
 {
 	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Warning: GPAC was compiled without SWF import support, can't import track.\n"));
 	return GF_NOT_SUPPORTED;
@@ -1585,7 +1509,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 	}	\
  
 
-u32 ttxt_get_color(char *val)
+static u32 ttxt_get_color(char *val)
 {
 	u32 r, g, b, a, res;
 	r = g = b = a = 0;
@@ -1602,7 +1526,7 @@ u32 ttxt_get_color(char *val)
 	return res;
 }
 
-void ttxt_parse_text_box(GF_XMLNode *n, GF_BoxRecord *box)
+static void ttxt_parse_text_box(GF_XMLNode *n, GF_BoxRecord *box)
 {
 	u32 i=0;
 	GF_XMLAttribute *att;
@@ -1615,13 +1539,13 @@ void ttxt_parse_text_box(GF_XMLNode *n, GF_BoxRecord *box)
 	}
 }
 
-void ttxt_parse_text_style(GF_XMLNode *n, GF_StyleRecord *style)
+static void ttxt_parse_text_style(GF_TXTIn *ctx, GF_XMLNode *n, GF_StyleRecord *style)
 {
 	u32 i=0;
 	GF_XMLAttribute *att;
 	memset(style, 0, sizeof(GF_StyleRecord));
 	style->fontID = 1;
-	style->font_size = TTXT_DEFAULT_FONT_SIZE;
+	style->font_size = ctx->fontsize ;
 	style->text_color = 0xFFFFFFFF;
 
 	while ( (att=(GF_XMLAttribute *)gf_list_enum(n->attributes, &i))) {
@@ -1727,7 +1651,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 					td.tag = GF_ODF_TEXT_CFG_TAG;
 					td.vert_justif = (s8) -1;
 					td.default_style.fontID = 1;
-					td.default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
+					td.default_style.font_size = ctx->fontsize;
 
 					k=0;
 					while ( (att=(GF_XMLAttribute *)gf_list_enum(sdesc->attributes, &k))) {
@@ -1764,7 +1688,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 					while ( (ext=(GF_XMLNode*)gf_list_enum(sdesc->content, &k))) {
 						if (ext->type) continue;
 						if (!strcmp(ext->name, "TextBox")) ttxt_parse_text_box(ext, &td.default_pos);
-						else if (!strcmp(ext->name, "Style")) ttxt_parse_text_style(ext, &td.default_style);
+						else if (!strcmp(ext->name, "Style")) ttxt_parse_text_style(ctx, ext, &td.default_style);
 						else if (!strcmp(ext->name, "FontTable")) {
 							GF_XMLNode *ftable;
 							u32 z=0;
@@ -1904,7 +1828,7 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 
 			if (!stricmp(ext->name, "Style")) {
 				GF_StyleRecord r;
-				ttxt_parse_text_style(ext, &r);
+				ttxt_parse_text_style(ctx, ext, &r);
 				gf_isom_text_add_style(samp, &r);
 			}
 			else if (!stricmp(ext->name, "TextBox")) {
@@ -2021,7 +1945,7 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 }
 
 
-u32 tx3g_get_color(char *value)
+static u32 tx3g_get_color(char *value)
 {
 	u32 r, g, b, a;
 	u32 res, v;
@@ -2043,7 +1967,7 @@ u32 tx3g_get_color(char *value)
 	return res;
 }
 
-void tx3g_parse_text_box(GF_XMLNode *n, GF_BoxRecord *box)
+static void tx3g_parse_text_box(GF_XMLNode *n, GF_BoxRecord *box)
 {
 	u32 i=0;
 	GF_XMLAttribute *att;
@@ -2473,11 +2397,6 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 }
 
 
-GF_Err gf_import_timed_text(GF_MediaImporter *import)
-{
-	return GF_NOT_SUPPORTED;
-}
-
 static GF_Err txtin_process(GF_Filter *filter)
 {
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
@@ -2578,9 +2497,11 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	case GF_TEXT_IMPORT_TTML:
 		ctx->text_process = gf_text_process_ttml;
 		break;
-/*	case GF_TEXT_IMPORT_SWF_SVG:
-		return gf_text_import_swf(import);
-*/
+#ifndef GPAC_DISABLE_SWF_IMPORT
+	case GF_TEXT_IMPORT_SWF_SVG_BIFS:
+		ctx->text_process = gf_text_process_swf;
+		break;
+#endif
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -2627,7 +2548,9 @@ void txtin_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->text_descs);
 	}
-
+#ifndef GPAC_DISABLE_SWF_IMPORT
+	gf_swf_reader_del(ctx->swf_parse);
+#endif
 }
 
 static const GF_FilterCapability TXTInInputs[] =
@@ -2636,10 +2559,11 @@ static const GF_FilterCapability TXTInInputs[] =
 	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/sub|subtitle/sub|text/sub"),
 	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/ttxt|subtitle/ttxt|text/ttxt"),
 	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/vtt|subtitle/vtt|text/vtt"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "x-quicktime/text"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "x-quicktime/text|quicktime/text"),
 	CAP_INC_STRING(GF_PROP_PID_MIME, "subtitle/ttml|text/ttml|application/xml+ttml"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-shockwave-flash"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml|swf"),
 	{},
 };
 
@@ -2658,7 +2582,7 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(nodefbox), "skip default text box", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noflush), "skip final sample flush for srt", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(fontname), "default font to use", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(fontsize), "default font size", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(fontsize), "default font size", GF_PROP_UINT, "18", NULL, GF_FALSE},
 	{ OFFS(lang), "default language to use", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(width), "default width of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(height), "default height of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, GF_FALSE},
@@ -2666,6 +2590,9 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(y), "default vertical offset of text area", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FALSE},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FALSE},
+#ifndef GPAC_DISABLE_SWF_IMPORT
+	{ OFFS(swfsvg), "uses SWF->SVG instead of SWF->BIFS for SWF  subtitles", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+#endif
 	{}
 };
 

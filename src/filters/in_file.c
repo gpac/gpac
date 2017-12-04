@@ -117,6 +117,10 @@ GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char 
 			mime_type = "application/x-nhml";
 		} else if (strstr(probe_data, "DIMSStream") ) {
 			mime_type = "application/dims";
+		} else if (strstr(probe_data, "TextStream") ) {
+			mime_type = "text/ttxt";
+		} else if (strstr(probe_data, "text3GTrack") ) {
+			mime_type = "quicktime/text";
 		}
 	}
 	if (mime_type)
