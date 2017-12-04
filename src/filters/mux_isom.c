@@ -107,7 +107,10 @@ static u32 gf_isom_stream_type_to_media_type(u32 stream_type, u32 oti)
 	case GF_STREAM_METADATA: return GF_ISOM_MEDIA_META;
 	case GF_STREAM_VISUAL: return GF_ISOM_MEDIA_VISUAL;
 	case GF_STREAM_AUDIO: return GF_ISOM_MEDIA_AUDIO;
-	case GF_STREAM_TEXT: return GF_ISOM_MEDIA_TEXT;
+	case GF_STREAM_TEXT:
+		if (oti==GF_ISOM_SUBTYPE_STPP)
+			return GF_ISOM_MEDIA_MPEG_SUBT;
+		return GF_ISOM_MEDIA_TEXT;
 	case GF_STREAM_INTERACT: return GF_ISOM_MEDIA_SCENE;
 	case GF_STREAM_IPMP: return GF_ISOM_MEDIA_IPMP;
 	case GF_STREAM_MPEGJ: return GF_ISOM_MEDIA_MPEGJ;
@@ -524,6 +527,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
 		comp_name = gf_4cc_to_str(m_subtype);
+		tkw->skip_bitrate_update = GF_TRUE;
 
 		p = gf_filter_pid_get_property_str(pid, "meta:mime");
 		if (p) meta_mime = p->value.string;
@@ -771,7 +775,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		comp_name = "XML Subtitle";
 		e = gf_isom_new_xml_subtitle_description(ctx->mov, tkw->track_num, meta_xmlns, meta_schemaloc, meta_auxmimes, &tkw->stsd_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new METT sample description: %s\n", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new XML subtitle sample description: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
 	} else if ((m_subtype == GF_ISOM_SUBTYPE_SBTT) || (m_subtype == GF_ISOM_SUBTYPE_STXT) ) {
