@@ -44,6 +44,7 @@ struct __txtin_ctx
 	const char *fontname, *lang;
 	Bool nodefbox, noflush, webvtt;
 	u32 timescale;
+	GF_Fraction fps;
 
 
 	GF_FilterPid *ipid, *opid;
@@ -1531,140 +1532,33 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 
-static GF_Err gf_text_import_sub(GF_MediaImporter *import)
+static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	FILE *sub_in;
-	u32 track, ID, timescale, i, j, desc_idx, start, end, prev_end, nb_samp, duration, len, line;
-	u64 file_size;
-	GF_TextConfig*cfg;
+	u32 i, j, len, line;
 	GF_Err e;
-	Double FPS;
-	GF_TextSample * samp;
-	Bool first_samp;
-	s32 unicode_type;
+	GF_TextSample *samp;
+	Double ts_scale;
 	char szLine[2048], szTime[20], szText[2048];
-	GF_ISOSample *s;
 
-	sub_in = gf_fopen(import->in_name, "rt");
-	unicode_type = gf_text_get_utf_type(sub_in);
-	if (unicode_type<0) {
-		gf_fclose(sub_in);
-		return gf_import_message(import, GF_NOT_SUPPORTED, "Unsupported SUB UTF encoding");
+	//same setup as for srt
+	if (!ctx->is_setup) {
+		ctx->is_setup = GF_TRUE;
+		return txtin_setup_srt(filter, ctx);
 	}
+	if (!ctx->opid) return GF_NOT_SUPPORTED;
 
-	FPS = GF_IMPORT_DEFAULT_FPS;
-	if (import->video_fps) FPS = import->video_fps;
-
-	cfg = NULL;
-	if (import->esd) {
-		if (!import->esd->slConfig) {
-			import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
-			import->esd->slConfig->predefined = 2;
-			import->esd->slConfig->timestampResolution = 1000;
-		}
-		timescale = import->esd->slConfig->timestampResolution;
-		if (!timescale) timescale = 1000;
-
-		/*explicit text config*/
-		if (import->esd->decoderConfig && import->esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_TEXT_CFG_TAG) {
-			cfg = (GF_TextConfig *) import->esd->decoderConfig->decoderSpecificInfo;
-			import->esd->decoderConfig->decoderSpecificInfo = NULL;
-		}
-		ID = import->esd->ESID;
-	} else {
-		timescale = 1000;
-		ID = 0;
-	}
-
-	if (cfg && cfg->timescale) timescale = cfg->timescale;
-	track = gf_isom_new_track(import->dest, ID, GF_ISOM_MEDIA_TEXT, timescale);
-	if (!track) {
-		gf_fclose(sub_in);
-		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating text track");
-	}
-	gf_isom_set_track_enabled(import->dest, track, 1);
-	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
-
-	gf_text_import_set_language(import, track);
-
-	file_size = 0;
-	/*setup track*/
-	if (cfg) {
-		u32 count;
-		char *firstFont = NULL;
-		/*set track info*/
-		gf_isom_set_track_layout_info(import->dest, track, cfg->text_width<<16, cfg->text_height<<16, 0, 0, cfg->layer);
-
-		/*and set sample descriptions*/
-		count = gf_list_count(cfg->sample_descriptions);
-		for (i=0; i<count; i++) {
-			GF_TextSampleDescriptor *sd= (GF_TextSampleDescriptor *)gf_list_get(cfg->sample_descriptions, i);
-			if (!sd->font_count) {
-				sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
-				sd->font_count = 1;
-				sd->fonts[0].fontID = 1;
-				sd->fonts[0].fontName = gf_strdup("Serif");
-			}
-			if (!sd->default_style.fontID) sd->default_style.fontID = sd->fonts[0].fontID;
-			if (!sd->default_style.font_size) sd->default_style.font_size = 16;
-			if (!sd->default_style.text_color) sd->default_style.text_color = 0xFF000000;
-			file_size = sd->default_style.font_size;
-			gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
-			if (!firstFont) firstFont = sd->fonts[0].fontName;
-		}
-		gf_import_message(import, GF_OK, "Timed Text (SUB @ %02.2f) import - text track %d x %d, font %s (size %d)", FPS, cfg->text_width, cfg->text_height, firstFont, file_size);
-
-		gf_odf_desc_del((GF_Descriptor *)cfg);
-	} else {
-		u32 w, h;
-		GF_TextSampleDescriptor *sd;
-		gf_text_get_video_size(import, &w, &h);
-
-		/*have to work with default - use max size (if only one video, this means the text region is the
-		entire display, and with bottom alignment things should be fine...*/
-		gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, 0, 0, 0);
-		sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
-		sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
-		sd->font_count = 1;
-		sd->fonts[0].fontID = 1;
-		sd->fonts[0].fontName = gf_strdup("Serif");
-		sd->back_color = 0x00000000;	/*transparent*/
-		sd->default_style.fontID = 1;
-		sd->default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
-		sd->default_style.text_color = 0xFFFFFFFF;	/*white*/
-		sd->default_style.style_flags = 0;
-		sd->horiz_justif = 1; /*center of scene*/
-		sd->vert_justif = (s8) -1;	/*bottom of scene*/
-
-		if (import->flags & GF_IMPORT_SKIP_TXT_BOX) {
-			sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
-		} else {
-			if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
-				sd->default_pos.left = import->text_x;
-				sd->default_pos.top = import->text_y;
-				sd->default_pos.right = (import->text_width ? import->text_width : w) + sd->default_pos.left;
-				sd->default_pos.bottom = (import->text_height ? import->text_height : h) + sd->default_pos.top;
-			}
-		}
-
-		gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
-		gf_import_message(import, GF_OK, "Timed Text (SUB @ %02.2f) import - text track %d x %d, font %s (size %d)", FPS, w, h, sd->fonts[0].fontName, TTXT_DEFAULT_FONT_SIZE);
-		gf_odf_desc_del((GF_Descriptor *)sd);
-	}
-
-	duration = (u32) (((Double) import->duration)*timescale/1000.0);
 
 	e = GF_OK;
-	nb_samp = 0;
-	samp = gf_isom_new_text_sample();
-
-	FPS = ((Double) timescale ) / FPS;
-	end = prev_end = 0;
+	if (ctx->fps.den && ctx->fps.num) {
+		ts_scale = ((Double) ctx->timescale * ctx->fps.den) / ctx->fps.num;
+	} else {
+		ts_scale = ((Double) ctx->timescale ) / 25;
+	}
 
 	line = 0;
-	first_samp = GF_TRUE;
+
 	while (1) {
-		char *sOK = gf_text_get_utf8_line(szLine, 2048, sub_in, unicode_type);
+		char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
 		if (!sOK) break;
 
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
@@ -1675,48 +1569,43 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 
 		i=0;
 		if (szLine[i] != '{') {
-			e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Bad SUB file (line %d): expecting \"{\" got \"%c\"", line, szLine[i]);
-			goto exit;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Bad SUB file (line %d): expecting \"{\" got \"%c\"\n", line, szLine[i]));
+			continue;
 		}
 		while (szLine[i+1] && szLine[i+1]!='}') {
 			szTime[i] = szLine[i+1];
 			i++;
 		}
 		szTime[i] = 0;
-		start = atoi(szTime);
-		if (start<end) {
-			gf_import_message(import, GF_OK, "WARNING: corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps", line, start, end);
-			start = end;
+		ctx->start = atoi(szTime);
+		if (ctx->start < ctx->end) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps\n", line, ctx->start, ctx->end));
+			ctx->start = ctx->end;
 		}
 		j=i+2;
 		i=0;
 		if (szLine[i+j] != '{') {
-			e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Bad SUB file - expecting \"{\" got \"%c\"", szLine[i]);
-			goto exit;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Bad SUB file - expecting \"{\" got \"%c\"\n", szLine[i]));
+			continue;
 		}
 		while (szLine[i+1+j] && szLine[i+1+j]!='}') {
 			szTime[i] = szLine[i+1+j];
 			i++;
 		}
 		szTime[i] = 0;
-		end = atoi(szTime);
+		ctx->end = atoi(szTime);
 		j+=i+2;
 
-		if (start>end) {
-			gf_import_message(import, GF_OK, "WARNING: corrupted SUB frame (line %d) - ends (at %d ms) before start of current frame (%d ms) - skipping", line, end, start);
+		if (ctx->start > ctx->end) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SUB frame (line %d) - ends (at %d ms) before start of current frame (%d ms) - skipping\n", line, ctx->end, ctx->start));
 			continue;
 		}
 
-		gf_isom_text_reset(samp);
-
-		if (start && first_samp) {
-			s = gf_isom_text_to_sample(samp);
-			s->DTS = 0;
-			s->IsRAP = RAP;
-			gf_isom_add_sample(import->dest, track, 1, s);
-			gf_isom_sample_del(&s);
-			first_samp = GF_FALSE;
-			nb_samp++;
+		if (ctx->start && ctx->first_samp) {
+			samp = gf_isom_new_text_sample();
+			txtin_process_send_text_sample(ctx, samp, 0, (u64) (ts_scale*ctx->start), GF_TRUE);
+			ctx->first_samp = GF_FALSE;
+			gf_isom_delete_text_sample(samp);
 		}
 
 		for (i=j; i<len; i++) {
@@ -1727,46 +1616,35 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 			}
 		}
 		szText[i-j] = 0;
-		gf_isom_text_add_text(samp, szText, (u32) strlen(szText) );
 
-		if (prev_end) {
-			GF_TextSample * empty_samp = gf_isom_new_text_sample();
-			s = gf_isom_text_to_sample(empty_samp);
-			s->DTS = (u64) (FPS*(s64)prev_end);
-			gf_isom_add_sample(import->dest, track, 1, s);
-			gf_isom_sample_del(&s);
-			nb_samp++;
-			gf_isom_delete_text_sample(empty_samp);
+		if (ctx->prev_end) {
+			samp = gf_isom_new_text_sample();
+			txtin_process_send_text_sample(ctx, samp, (ts_scale*(s64)ctx->prev_end), ts_scale*(ctx->prev_end - ctx->start), GF_TRUE);
+			gf_isom_delete_text_sample(samp);
 		}
 
-		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u64) (FPS*(s64)start);
-		gf_isom_add_sample(import->dest, track, 1, s);
-		gf_isom_sample_del(&s);
-		nb_samp++;
-		gf_isom_text_reset(samp);
-		prev_end = end;
-		gf_set_progress("Importing SUB", gf_ftell(sub_in), file_size);
-		if (duration && (end >= duration)) break;
+		samp = gf_isom_new_text_sample();
+		gf_isom_text_add_text(samp, szText, (u32) strlen(szText) );
+		txtin_process_send_text_sample(ctx, samp, (ts_scale*(s64)ctx->start), ts_scale*(ctx->end - ctx->start), GF_TRUE);
+		gf_isom_delete_text_sample(samp);
+
+		ctx->prev_end = ctx->end;
+
+		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT( gf_ftell(ctx->src )) );
+
+		if (gf_filter_pid_would_block(ctx->opid))
+			return GF_OK;
 	}
 	/*final flush*/
-	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
-		gf_isom_text_reset(samp);
-		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u64)(FPS*(s64)end);
-		gf_isom_add_sample(import->dest, track, 1, s);
-		gf_isom_sample_del(&s);
-		nb_samp++;
+	if (ctx->end && !ctx->noflush) {
+		samp = gf_isom_new_text_sample();
+		txtin_process_send_text_sample(ctx, samp, (ts_scale*(s64)ctx->end), 0, GF_TRUE);
+		gf_isom_delete_text_sample(samp);
 	}
-	gf_isom_delete_text_sample(samp);
-	
-	gf_isom_set_last_sample_duration(import->dest, track, 0);
-	gf_set_progress("Importing SUB", nb_samp, nb_samp);
 
-exit:
-	if (e) gf_isom_remove_track(import->dest, track);
-	gf_fclose(sub_in);
-	return e;
+	gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT(0) );
+
+	return GF_EOS;
 }
 
 
@@ -2768,9 +2646,11 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	case GF_TEXT_IMPORT_TEXML:
 		ctx->text_process = txtin_process_texml;
 		break;
-/*	case GF_TEXT_IMPORT_SUB:
-		return gf_text_import_sub(import);
-	case GF_TEXT_IMPORT_SWF_SVG:
+	case GF_TEXT_IMPORT_SUB:
+		ctx->text_process = gf_text_process_sub;
+		break;
+
+/*	case GF_TEXT_IMPORT_SWF_SVG:
 		return gf_text_import_swf(import);
 	case GF_TEXT_IMPORT_TTML:
 		return gf_text_import_ttml(import);
@@ -2829,8 +2709,9 @@ static const GF_FilterCapability TXTInInputs[] =
 	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/ttxt|subtitle/ttxt|text/ttxt"),
 	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/vtt|subtitle/vtt|text/vtt"),
 	CAP_INC_STRING(GF_PROP_PID_MIME, "x-quicktime/text"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "subtitle/ttml|text/ttml|application/xml+ttml"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|tml"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml"),
 	{},
 };
 
@@ -2862,7 +2743,7 @@ static const GF_FilterArgs TXTInArgs[] =
 
 GF_FilterRegister TXTInRegister = {
 	.name = "ttxtload",
-	.description = "Timed text loader (SRT/TTXT/WebVTT)",
+	.description = "Timed text loader (SRT/SUB/TTXT/WebVTT/TTML)",
 	.private_size = sizeof(GF_TXTIn),
 	.requires_main_thread = GF_TRUE,
 	.args = TXTInArgs,
