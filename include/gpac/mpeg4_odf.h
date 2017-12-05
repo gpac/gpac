@@ -1206,12 +1206,13 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti);
  */
 GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
 /*! sepcial function for authoring - convert DSI to TextConfig
- \param dsi TEXT decoder specific info
+ \param data TEXT decoder config block
+ \param data_len TEXT decoder config block size
  \param oti TEXT object type indication
  \param cfg the text config object to be filled
  \return error if any
  */
-GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *cfg);
+GF_Err gf_odf_get_text_config(char *data, u32 data_len, u8 oti, GF_TextConfig *cfg);
 /*! special function for authoring - convert DSI to UIConfig
  \param dsi text decoder specific info
  \param cfg the text config object to be filled

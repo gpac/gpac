@@ -692,7 +692,7 @@ GF_EXPORT
 void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 {
 	/*get absolute clock (without drift) for audio*/
-	if (mo->odm->ck) {
+	if (mo && mo->odm && mo->odm->ck) {
 		if (mo->odm->type==GF_STREAM_AUDIO)
 			*obj_time = gf_clock_real_time(mo->odm->ck);
 		else
