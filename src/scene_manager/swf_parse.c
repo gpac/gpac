@@ -2601,6 +2601,7 @@ GF_Err gf_swf_get_duration(SWFReader *read, u32 *frame_rate, u32 *frame_count)
 {
 	*frame_rate = read->frame_rate;
 	*frame_count = read->frame_count;
+	return GF_OK;
 }
 
 GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)

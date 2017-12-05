@@ -550,6 +550,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser);
 u64 gf_webvtt_parser_last_duration(GF_WebVTTParser *parser);
 void gf_webvtt_parser_del(GF_WebVTTParser *parser);
 void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser);
+void gf_webvtt_parser_restart(GF_WebVTTParser *parser);
 
 void gf_webvtt_sample_del(GF_WebVTTSample * samp);
 u64 gf_webvtt_sample_get_start(GF_WebVTTSample * samp);

@@ -629,6 +629,17 @@ void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser)
 	vttparser->suspend = GF_TRUE;
 }
 
+void gf_webvtt_parser_restart(GF_WebVTTParser *parser)
+{
+	gf_fseek(parser->vtt_in, 0, SEEK_SET);
+	parser->last_duration = 0;
+	while (gf_list_count(parser->samples)) {
+		gf_webvtt_sample_del((GF_WebVTTSample *)gf_list_get(parser->samples, 0));
+		gf_list_rem(parser->samples, 0);
+	}
+	parser->state = WEBVTT_PARSER_STATE_WAITING_SIGNATURE;
+}
+
 void gf_webvtt_parser_reset(GF_WebVTTParser *parser)
 {
 	if (!parser) return;
