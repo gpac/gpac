@@ -57,6 +57,7 @@ struct __txtin_ctx
 	const char *file_name;
 	u32 fmt;
 	Bool is_playing;
+	//0: not seeking, 1: seek request pending, 2: seek configured, discarding packets up until start_range
 	u32 seek_state;
 	Double start_range;
 
@@ -70,6 +71,7 @@ struct __txtin_ctx
 
 	GF_BitStream *bs_w;
 	Bool first_samp;
+	Bool hdr_parsed;
 
 	//state vars for srt
 	u32 state, default_color;
@@ -321,8 +323,9 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		return;
 	}
 	if ((ctx->fmt == GF_TXTIN_MODE_SRT) || (ctx->fmt == GF_TXTIN_MODE_WEBVTT)  || (ctx->fmt == GF_TXTIN_MODE_SUB)) {
-		FILE *in = gf_fopen(ctx->file_name, "rb");
-		while (!feof(in)) {
+		u64 pos = gf_ftell(ctx->src);
+		gf_fseek(ctx->src, 0, SEEK_SET);
+		while (!feof(ctx->src)) {
 			u64 end;
 			char szLine[2048], szText[2048];
 			char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
@@ -354,7 +357,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 				if (end>dur.num) dur.num = end;
 			}
 		}
-		gf_fclose(in);
+		gf_fseek(ctx->src, pos, SEEK_SET);
 		if (dur.num) {
 			dur.den = 1000;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
@@ -528,15 +531,16 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 {
 	GF_FilterPacket *dst_pck;
 	char *pck_data;
+	u32 size;
 
 	if (ctx->seek_state==2) {
 		Double end = ts+duration;
 		end /= ctx->timescale;
 		if (end < ctx->start_range) return;
-		ctx->seek_state = 3;
+		ctx->seek_state = 0;
 	}
 
-	u32 size = gf_isom_text_sample_size(txt_samp);
+	size = gf_isom_text_sample_size(txt_samp);
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
 	gf_bs_reassign_buffer(ctx->bs_w, pck_data, size);
@@ -878,19 +882,32 @@ static GF_Err gf_webvtt_import_report(void *user, GF_Err e, char *message, const
 static void gf_webvtt_import_header(void *user, const char *config)
 {
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (1+strlen(config)) ) );
+	if (!ctx->hdr_parsed) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (1+strlen(config)) ) );
+		ctx->hdr_parsed = GF_TRUE;
+	}
 }
 
 static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 {
 	u64 start, end;
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
-	GF_ISOSample *s = gf_isom_webvtt_to_sample(samp);
+	GF_ISOSample *s;
+
+	start = gf_webvtt_sample_get_start(samp);
+	end = gf_webvtt_sample_get_end(samp);
+
+	if (ctx->seek_state==2) {
+		Double tsend = end;
+		tsend /= 1000;
+		if (tsend<ctx->start_range) return;
+		ctx->seek_state = 0;
+	}
+
+	s = gf_isom_webvtt_to_sample(samp);
 	if (s) {
 		GF_FilterPacket *pck;
 		char *pck_data;
-		start = gf_webvtt_sample_get_start(samp);
-		end = gf_webvtt_sample_get_end(samp);
 
 		pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
 		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale * start / 1000) );
@@ -979,9 +996,12 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx)
 		return txtin_webvtt_setup(filter, ctx);
 	}
 	if (!ctx->vttparser) return GF_NOT_SUPPORTED;
+	if (ctx->seek_state==1) {
+		ctx->seek_state = 2;
+		gf_webvtt_parser_restart(ctx->vttparser);
+	}
 
 	e = gf_webvtt_parser_parse(ctx->vttparser);
-
 	if (e < GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT process error %s\n", gf_error_to_string(e) ));
 	}
@@ -1222,6 +1242,12 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 
 	if (!ctx->is_setup) return gf_text_ttml_setup(filter, ctx);
 	if (ctx->non_compliant_ttml || !ctx->opid) return GF_NOT_SUPPORTED;
+	if (!ctx->is_playing) return GF_OK;
+
+	if (ctx->seek_state==1) {
+		ctx->seek_state = 2;
+		ctx->cur_child_idx = 0;
+	}
 
 	root = gf_xml_dom_get_root(ctx->parser);
 
@@ -1335,6 +1361,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		if ((ts_begin != -1) && (ts_end != -1) && samp_text) {
 			GF_FilterPacket *pck;
 			char *pck_data;
+			Bool skip_pck = GF_FALSE;
 			u32 txt_len;
 			char *txt_str;
 
@@ -1365,11 +1392,20 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			ctx->end = ts_end;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - ctx->end, ctx->last_sample_duration, ctx->end));
 
-			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
-			memcpy(pck_data, txt_str, txt_len);
-			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-			gf_filter_pck_set_cts(pck, ts_begin);
-			gf_filter_pck_send(pck);
+			if (ctx->seek_state==2) {
+				Double end = ts_end;
+				end /= ctx->timescale;
+				if (end<ctx->start_range) skip_pck = GF_TRUE;
+				else ctx->seek_state = 0;
+			}
+
+			if (!skip_pck) {
+				pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
+				memcpy(pck_data, txt_str, txt_len);
+				gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+				gf_filter_pck_set_cts(pck, ts_begin);
+				gf_filter_pck_send(pck);
+			}
 
 			gf_free(samp_text);
 			samp_text = NULL;
@@ -1400,17 +1436,20 @@ exit:
 	return GF_NON_COMPLIANT_BITSTREAM;
 }
 
-/* SimpleText Text tracks -related functions */
-GF_Box *boxstring_new_with_data(u32 type, const char *string);
-
 #ifndef GPAC_DISABLE_SWF_IMPORT
-
 
 static GF_Err swf_svg_add_iso_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap)
 {
 	GF_FilterPacket *pck;
 	char *pck_data;
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
+
+	if (ctx->seek_state==2) {
+		Double ts = timestamp;
+		ts/=1000;
+		if (ts<ctx->start_range) return GF_OK;
+		ctx->seek_state = 0;
+	}
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
 	memcpy(pck_data, data, length);
@@ -1430,8 +1469,11 @@ static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, B
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
 
 	if (isHeader) {
-		gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_DATA((char *)data, ( strlen(data)+1 ) )  );
-	} else {
+		if (!ctx->hdr_parsed) {
+			gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_DATA((char *)data, ( strlen(data)+1 ) )  );
+			ctx->hdr_parsed = GF_TRUE;
+		}
+	} else if (!ctx->seek_state) {
 		GF_FilterPacket *pck;
 		char *pck_data;
 		pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
@@ -1451,7 +1493,6 @@ static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	ctx->swf_parse = gf_swf_reader_new(NULL, ctx->file_name);
 	e = gf_swf_read_header(ctx->swf_parse);
 	if (e) return e;
-
 	gf_swf_reader_set_user_mode(ctx->swf_parse, ctx, swf_svg_add_iso_sample, swf_svg_add_iso_header);
 
 	if (!ctx->timescale) ctx->timescale = 1000;
@@ -1493,6 +1534,14 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
 
+	if (ctx->seek_state==1) {
+		ctx->seek_state = 2;
+		gf_swf_reader_del(ctx->swf_parse);
+		ctx->swf_parse = gf_swf_reader_new(NULL, ctx->file_name);
+		gf_swf_read_header(ctx->swf_parse);
+		gf_swf_reader_set_user_mode(ctx->swf_parse, ctx, swf_svg_add_iso_sample, swf_svg_add_iso_header);
+	}
+
 	ctx->do_suspend = GF_FALSE;
 	/*parse all tags*/
 	while (e == GF_OK) {
@@ -1505,9 +1554,9 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 
 #else
 
-static GF_Err GF_TXTIN_MODE_swf(GF_MediaImporter *import)
+static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Warning: GPAC was compiled without SWF import support, can't import track.\n"));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Warning: GPAC was compiled without SWF import support, can't import file.\n"));
 	return GF_NOT_SUPPORTED;
 }
 
@@ -1527,7 +1576,12 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 		return txtin_setup_srt(filter, ctx);
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
+	if (!ctx->is_playing) return GF_OK;
 
+	if (ctx->seek_state==1) {
+		ctx->seek_state = 2;
+		gf_fseek(ctx->src, 0, SEEK_SET);
+	}
 
 	e = GF_OK;
 	if (ctx->fps.den && ctx->fps.num) {
@@ -1892,7 +1946,12 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		return txtin_setup_ttxt(filter, ctx);
 	}
 	if (!ctx->opid) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!ctx->is_playing) return GF_OK;
 
+	if (ctx->seek_state==1) {
+		ctx->seek_state = 2;
+		ctx->cur_child_idx = 0;
+	}
 	root = gf_xml_dom_get_root(ctx->parser);
 
 	for (; ctx->cur_child_idx < ctx->nb_children; ctx->cur_child_idx++) {
@@ -2202,6 +2261,12 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 		probe_first_desc_only = GF_TRUE;
 	}
 	if (!ctx->opid) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!ctx->is_playing && !probe_first_desc_only) return GF_OK;
+
+	if (ctx->seek_state==1) {
+		ctx->seek_state = 2;
+		ctx->cur_child_idx = 0;
+	}
 
 	root = gf_xml_dom_get_root(ctx->parser);
 
@@ -2385,6 +2450,9 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 
 				for (k=0; k<td.font_count; k++) gf_free(td.fonts[k].fontName);
 				gf_free(td.fonts);
+
+				if (probe_first_desc_only)
+					return GF_OK;
 			}
 			else if (!strcmp(desc->name, "sampleData")) {
 				GF_XMLNode *sub;
@@ -2641,6 +2709,7 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_PLAY:
 		if (ctx->is_playing) return GF_TRUE;
 		ctx->is_playing = GF_TRUE;
+		if ((ctx->start_range < 0.1) && (evt->play.start_range<0.1)) return GF_TRUE;
 		ctx->start_range = evt->play.start_range;
 		ctx->seek_state = 1;
 		//cancel play event, we work with full file
