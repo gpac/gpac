@@ -212,6 +212,7 @@ GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool 
 SWFReader *gf_swf_reader_new(const char *path, const char *filename);
 GF_Err gf_swf_read_header(SWFReader *read);
 void gf_swf_reader_del(SWFReader *read);
+GF_Err gf_swf_get_duration(SWFReader *read, u32 *frame_rate, u32 *frame_count);
 
 GF_Err gf_swf_reader_set_user_mode(SWFReader *read, void *user,
                                    GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap),
