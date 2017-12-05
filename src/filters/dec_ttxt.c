@@ -590,6 +590,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 		if (tc->hlink->URL_hint) anc->description.buffer = gf_strdup(tc->hlink->URL_hint);
 		gf_node_list_add_child(& anc->children, txt_model);
 		gf_node_register(txt_model, (GF_Node *)anc);
+		gf_node_unregister(txt_model, NULL);
 		txt_model = (GF_Node *)anc;
 		gf_node_register((GF_Node *)anc, NULL);
 	}
