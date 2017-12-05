@@ -228,6 +228,15 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		location_entry = NULL;
 	}
 
+	switch (item_type) {
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_JPEG:
+		break;
+	default:
+		GF_LOG(GF_LOG_INFO, GF_LOG_WARNING, ("[IsoMedia] Extracting item type %s not supported\n", gf_4cc_to_str(item_type) ));
+		return GF_NOT_SUPPORTED;
+	}
 
 	if (!location_entry) return GF_BAD_PARAM;
 
@@ -310,7 +319,8 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 			c2 = gf_list_count(e->property_index);
 			for (j=0; j<c2; j++) {
 				u32 *idx = gf_list_get(e->property_index, j);
-				hvcc = gf_list_get(meta->item_props->property_container->other_boxes, *idx);
+				if (! (*idx) ) continue;
+				hvcc = gf_list_get(meta->item_props->property_container->other_boxes, (*idx) - 1);
 				if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
 				if (hvcc->type == GF_ISOM_BOX_TYPE_HVCC) break;
 				if (hvcc->type == GF_ISOM_BOX_TYPE_AVCC) {
@@ -322,20 +332,27 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 			if (avcc || hvcc) break;
 		}
 		if (hvcc) {
-			if (use_annex_b) {
-				hvcc->config->write_annex_b = GF_TRUE;
-				gf_odf_hevc_cfg_write_bs(hvcc->config, item_bs);
-				hvcc->config->write_annex_b = GF_FALSE;
+			if (! hvcc->config) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Missing HEVC config in hvcC\n"));
+			} else {
+				if (use_annex_b) {
+					hvcc->config->write_annex_b = GF_TRUE;
+					gf_odf_hevc_cfg_write_bs(hvcc->config, item_bs);
+					hvcc->config->write_annex_b = GF_FALSE;
+				}
+				nalu_size_length = hvcc->config->nal_unit_size;
 			}
-			nalu_size_length = hvcc->config->nal_unit_size;
-		}
-		else if (avcc) {
-			if (use_annex_b) {
-				avcc->config->write_annex_b = GF_TRUE;
-				gf_odf_avc_cfg_write_bs(avcc->config, item_bs);
-				avcc->config->write_annex_b = GF_FALSE;
+		} else if (avcc) {
+			if (! avcc->config) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Missing AVC config in avcC\n"));
+			} else {
+				if (use_annex_b) {
+					avcc->config->write_annex_b = GF_TRUE;
+					gf_odf_avc_cfg_write_bs(avcc->config, item_bs);
+					avcc->config->write_annex_b = GF_FALSE;
+				}
+				nalu_size_length = avcc->config->nal_unit_size;
 			}
-			nalu_size_length = avcc->config->nal_unit_size;
 		}
 	}
 
