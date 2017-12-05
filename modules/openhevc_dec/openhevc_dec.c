@@ -35,7 +35,7 @@
 #define OPEN_SHVC
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
-#  pragma comment(lib, "libLibOpenHevcWrapper")
+#  pragma comment(lib, "openhevc")
 
 #if !defined _WIN64
 void oh_select_view_layer(OpenHevc_Handle codec, int val)
@@ -891,7 +891,7 @@ static const char *HEVC_GetCodecName(GF_BaseDecoder *dec)
 	if (ctx->cur_layer==1) return "OpenHEVC v"NV_VERSION;
 	else return "OpenHEVC v"NV_VERSION" - LHVC";
 #else
-	return libOpenHevcVersion(ctx->codec);
+	return openhevc_ident();
 #endif
 }
 
