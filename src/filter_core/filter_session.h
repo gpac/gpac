@@ -405,6 +405,8 @@ struct __gf_filter
 	Bool setup_notified;
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
+	//sticky filters won't unload if all inputs are deconnected. Usefull for sink filters
+	Bool sticky;
 
 	volatile u32 process_task_queued;
 

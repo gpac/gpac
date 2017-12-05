@@ -416,7 +416,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 
 		//disconnected the last input, flag as removed
-		if (!filter->num_input_pids) filter->removed = GF_TRUE;
+		if (!filter->num_input_pids && !filter->sticky)
+			filter->removed = GF_TRUE;
 		//post a pid_delete task to also trigger removal of the filter if needed
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, pid->filter, pid, "pid_inst_delete", pidinst);
 
@@ -2092,6 +2093,7 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	assert (pid->pid->filter->freg->requires_main_thread);
 
 	if (pid->pid->filter->freg->process_event) {
+		if (evt->base.on_pid) evt->base.on_pid = evt->base.on_pid->pid;
 		FSESS_CHECK_THREAD(pid->pid->filter)
 		pid->pid->filter->freg->process_event(pid->pid->filter, evt);
 	}
