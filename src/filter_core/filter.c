@@ -646,6 +646,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
 	if (!filter->would_block && !filter->input_pids && (e!=GF_EOS)) {
+		if (filter->schedule_next_time)
+			task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
 	}
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
@@ -996,10 +998,10 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Swaping source filter for URL %s\n", src_url));
 
+	filter->finalized = GF_FALSE;
 	gf_fs_load_source_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->dst_filter);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
-		filter->finalized = GF_FALSE;
 		return GF_TRUE;
 	}
 	//nope ...

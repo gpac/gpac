@@ -358,6 +358,8 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT( codec->bit_rate ) );
 	}
 
+	if (!nb_t && !nb_a && !nb_v)
+		return GF_NOT_SUPPORTED;
 
 	return GF_OK;
 }
