@@ -1077,3 +1077,8 @@ void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_
 	return;
 }
 
+void gf_filter_make_sticky(GF_Filter *filter)
+{
+	if (filter) filter->sticky = GF_TRUE;
+}
+

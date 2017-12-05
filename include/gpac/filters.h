@@ -339,6 +339,8 @@ void *gf_filter_get_udta(GF_Filter *filter);
 void gf_filter_set_name(GF_Filter *filter, const char *name);
 const char *gf_filter_get_name(GF_Filter *filter);
 
+void gf_filter_make_sticky(GF_Filter *filter);
+
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter);
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next);
