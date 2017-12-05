@@ -89,12 +89,16 @@ struct __txtin_ctx
 	GF_List *text_descs;
 	Bool last_sample_empty;
 	u64 last_sample_duration;
+	//TTML state is the same as ttxt plus the timescale and start (webvtt) for cts compute
+	u32 txml_timescale;
 
 	//TTML state
 	GF_XMLNode *root_working_copy, *div_node, *sample_list_node;
 	GF_DOMParser *parser_working_copy;
 	Bool non_compliant_ttml;
 	u32 nb_p_found;
+
+
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	//SWF text
@@ -368,7 +372,8 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		u32 i=0;
 		GF_XMLNode *node, *root = gf_xml_dom_get_root(ctx->parser);
 		while ((node = gf_list_enum(root->content, &i))) {
-			u32 j, duration;
+			u32 j;
+			u64 duration;
 			GF_XMLAttribute *att;
 			if (node->type) {
 				continue;
@@ -394,12 +399,12 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 				} else {
 					if (strcmp(att->name, "duration")) continue;
 					duration = atoi(att->value);
-					dur.num += duration;
+					dur.num += (1000 * duration) / ctx->txml_timescale;
 				}
 			}
 		}
 		if (dur.num) {
-			dur.den = (ctx->fmt == GF_TXTIN_MODE_TTXT) ? 1000 : ctx->timescale;
+			dur.den = 1000;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
 		}
 		return;
@@ -535,7 +540,7 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 
 	if (ctx->seek_state==2) {
 		Double end = ts+duration;
-		end /= ctx->timescale;
+		end /= 1000;
 		if (end < ctx->start_range) return;
 		ctx->seek_state = 0;
 	}
@@ -545,6 +550,11 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
 	gf_bs_reassign_buffer(ctx->bs_w, pck_data, size);
 	gf_isom_text_sample_write_bs(txt_samp, ctx->bs_w);
+
+	ts *= ctx->timescale;
+	ts /= 1000;
+	duration *= ctx->timescale;
+	duration /= 1000;
 
 	gf_filter_pck_set_sap(dst_pck, is_rap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	gf_filter_pck_set_cts(dst_pck, ts);
@@ -591,12 +601,12 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			if (txt_line) {
 				if (ctx->prev_end && (ctx->start != ctx->prev_end) && (ctx->state<=2)) {
 					GF_TextSample * empty_samp = gf_isom_new_text_sample();
-					txtin_process_send_text_sample(ctx, empty_samp, (u64) ((ctx->timescale * ctx->prev_end)/1000), (u64) (ctx->timescale * (ctx->start - ctx->prev_end) / 1000), GF_TRUE );
+					txtin_process_send_text_sample(ctx, empty_samp, ctx->prev_end, (ctx->start - ctx->prev_end), GF_TRUE );
 					gf_isom_delete_text_sample(empty_samp);
 				}
 
 				if (ctx->state<=2) {
-					txtin_process_send_text_sample(ctx, ctx->samp,  (u64) ((ctx->timescale * ctx->start)/1000), (u64) (ctx->timescale * (ctx->end -  ctx->start) / 1000), GF_TRUE);
+					txtin_process_send_text_sample(ctx, ctx->samp,  ctx->start, (ctx->end -  ctx->start), GF_TRUE);
 					ctx->prev_end = ctx->end;
 				}
 				txt_line = 0;
@@ -642,7 +652,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			ctx->end = (3600*eh + 60*em + es)*1000 + ems;
 			/*make stream start at 0 by inserting a fake AU*/
 			if (ctx->first_samp && (ctx->start > 0)) {
-				txtin_process_send_text_sample(ctx, ctx->samp, 0, (u64) (ctx->timescale * ctx->start / 1000), GF_TRUE);
+				txtin_process_send_text_sample(ctx, ctx->samp, 0, ctx->start, GF_TRUE);
 			}
 			ctx->style.style_flags = 0;
 			ctx->state = 2;
@@ -854,7 +864,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	/*final flush*/	
 	if (ctx->end && ! ctx->noflush) {
 		gf_isom_text_reset(ctx->samp);
-		txtin_process_send_text_sample(ctx, ctx->samp, (u64) ((ctx->timescale * ctx->end)/1000), 0, GF_TRUE);
+		txtin_process_send_text_sample(ctx, ctx->samp, ctx->end, 0, GF_TRUE);
 		ctx->end = 0;
 	}
 	gf_isom_text_reset(ctx->samp);
@@ -1403,7 +1413,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 				pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
 				memcpy(pck_data, txt_str, txt_len);
 				gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-				gf_filter_pck_set_cts(pck, ts_begin);
+				gf_filter_pck_set_cts(pck, (ctx->timescale*ts_begin)/1000);
 				gf_filter_pck_send(pck);
 			}
 
@@ -1585,9 +1595,9 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 
 	e = GF_OK;
 	if (ctx->fps.den && ctx->fps.num) {
-		ts_scale = ((Double) ctx->timescale * ctx->fps.den) / ctx->fps.num;
+		ts_scale = ((Double) ctx->fps.num) / ctx->fps.den;
 	} else {
-		ts_scale = ((Double) ctx->timescale ) / 25;
+		ts_scale = 25;
 	}
 
 	line = 0;
@@ -2201,13 +2211,14 @@ static GF_Err txtin_texml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	file_size = ctx->end;
+	ctx->txml_timescale = 600;
 
 	i=0;
 	while ( (att=(GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
 		if (!strcmp(att->name, "trackWidth")) ctx->width = atoi(att->value);
 		else if (!strcmp(att->name, "trackHeight")) ctx->height = atoi(att->value);
 		else if (!strcmp(att->name, "layer")) ctx->zorder = atoi(att->value);
-		else if (!strcmp(att->name, "timeScale")) ctx->timescale = atoi(att->value);
+		else if (!strcmp(att->name, "timeScale")) ctx->txml_timescale = atoi(att->value);
 		else if (!strcmp(att->name, "transform")) {
 			Float fx, fy;
 			sscanf(att->value, "translate(%f,%f)", &fx, &fy);
@@ -2266,6 +2277,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
 		ctx->cur_child_idx = 0;
+		ctx->start = 0;
 	}
 
 	root = gf_xml_dom_get_root(ctx->parser);
@@ -2274,7 +2286,8 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 		GF_XMLNode *node, *desc;
 		GF_TextSampleDescriptor td;
 		GF_TextSample * samp = NULL;
-		u32 duration, descIndex, nb_styles, nb_marks;
+		u64 duration;
+		u32 descIndex, nb_styles, nb_marks;
 		Bool isRAP, same_style, same_box;
 
 		if (probe_first_desc_only && ctx->text_descs && gf_list_count(ctx->text_descs))
@@ -2575,7 +2588,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 			if (!same_box) gf_isom_text_set_box(samp, td.default_pos.top, td.default_pos.left, td.default_pos.bottom, td.default_pos.right);
 //			if (!same_style) gf_isom_text_add_style(samp, &td.default_style);
 
-			txtin_process_send_text_sample(ctx, samp, ctx->start, duration, isRAP);
+			txtin_process_send_text_sample(ctx, samp, (ctx->start*ctx->timescale)/ctx->txml_timescale, (duration*ctx->timescale)/ctx->txml_timescale, isRAP);
 			ctx->start += duration;
 			gf_isom_delete_text_sample(samp);
 
@@ -2789,16 +2802,16 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(lang), "default language to use", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(width), "default width of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(height), "default height of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(x), "default horizontal offset of text area", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(y), "default vertical offset of text area", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(x), "default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(y), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FALSE},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FALSE},
 	{}
 };
 
 GF_FilterRegister TXTInRegister = {
-	.name = "ttxtload",
-	.description = "Timed text loader (SRT/SUB/TTXT/WebVTT/TTML)",
+	.name = "txtload",
+	.description = "Timed text loader for SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG",
 	.private_size = sizeof(GF_TXTIn),
 	.requires_main_thread = GF_TRUE,
 	.args = TXTInArgs,
