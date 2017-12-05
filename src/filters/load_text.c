@@ -39,6 +39,8 @@
 #include <gpac/internal/swf_dev.h>
 #endif
 
+/*TODO: this is only the import code from old arch, we need to add duration probing and seeking to finish the filter*/
+
 
 typedef struct __txtin_ctx GF_TXTIn;
 

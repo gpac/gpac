@@ -749,6 +749,8 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 		nb_subcaps++;
 		//no match possible for this cap, wait until next cap start
 		if (!all_caps_matched) continue;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Checking output cap %s of filter %s in filter %s inputs\n", out_cap->code ? gf_props_4cc_get_name(out_cap->code) : out_cap->name, src->name, dst->name));
+
 
 		//check all output caps in this bundle with the same code/name, consider OK if one is matched
 		for (k=i; k<src->nb_output_caps; k++) {
@@ -774,13 +776,21 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 				//we found a property of that type and it is equal
 				prop_equal = gf_props_equal(&in_cap->val, &an_out_cap->val);
 				if (in_cap->exclude && !an_out_cap->exclude) {
-					//prop type matched and prop is excluded, for no match
-					if (prop_equal) matched = GF_FALSE;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("input cap is excluded, prop equal %d\n", prop_equal));
+					//prop type matched and prop is excluded: no match, don't look any further
+					if (prop_equal) {
+						matched = GF_FALSE;
+						break;
+					}
 					prop_equal = !prop_equal;
 				}
 				else if (!in_cap->exclude && an_out_cap->exclude) {
-					//prop type matched and prop is excluded, for no match
-					if (prop_equal) matched = GF_FALSE;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap is excluded, prop equal %d\n", prop_equal));
+					//prop type matched and prop is excluded: no match, don't look any further
+					if (prop_equal) {
+						matched = GF_FALSE;
+						break;
+					}
 					prop_equal = !prop_equal;
 				}
 
@@ -790,7 +800,10 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 			}
 		}
 		if (!matched) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap not matched\n"));
 			all_caps_matched = GF_FALSE;
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap matched\n"));
 		}
 	}
 	if (nb_subcaps && all_caps_matched) nb_matched++;
@@ -828,6 +841,8 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 
 		path_weight = filter_caps_to_caps_match(filter_reg, freg);
 		if (!path_weight) continue;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs matches filter %s input caps, checking filter chain\n", filter_reg->name, freg->name));
+		
 		path_weight *= (255-freg->priority);
 
 		//we found our target filter
@@ -837,7 +852,10 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 		//check this filter
 		else {
 			u32 sub_weight = gf_filter_check_dst_caps(fsess, freg, black_list, filter_chain, dst_filter);
-			if (!sub_weight) continue;
+			if (!sub_weight) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs does not match filter %s input caps, skiping filter\n", freg->name, dst_filter->name));
+				continue;
+			}
 			path_weight += sub_weight;
 		}
 		if (path_weight>nb_matched) {
@@ -891,6 +909,9 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		//no match of pid caps for this filter
 		freg_weight = filter_pid_caps_match(pid, freg, &priority, pid->filter->dst_filter) ? 1 : 0;
 		if (!freg_weight) continue;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s matches PID %s caps, checking filter chain\n", freg->name, pid->name));
+
+
 		freg_weight = (255 - priority);
 		//TODO: handle user-defined priorities
 
@@ -905,6 +926,7 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 			while (gf_list_count(filter_chain) > path_len) {
 				gf_list_rem_last(filter_chain);
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Cannot find a valid filter chain from filter %s to filter %s, ignoring filter\n", freg->name, dst_filter->name));
 			continue;
 		}
 

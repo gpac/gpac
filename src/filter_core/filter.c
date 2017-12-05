@@ -994,6 +994,8 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Swaping source filter for URL %s\n", src_url));
+
 	gf_fs_load_source_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->dst_filter);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {

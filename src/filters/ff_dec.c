@@ -26,10 +26,9 @@
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/opt.h>
-#include <libavutil/dict.h>
-#include <libavutil/pixdesc.h>
+#include <gpac/isomedia.h>
+#include "ff_common.h"
+
 #include <libswscale/swscale.h>
 
 #define FF_CHECK_PROP(_name, _ffname, _type)	if (ffdec->_name != ffdec->codec_ctx->_ffname) { \
@@ -531,8 +530,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	return ffdec_process_audio(filter, ffdec);
 }
 
-//#defined FFDEC_SUB_SUPPORT
-#ifdef FFDEC_SUB_SUPPORT
+#ifdef FF_SUB_SUPPORT
 static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec)
 {
 	AVPacket pkt;
@@ -593,8 +591,11 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ff
 		}
 		return GF_OK;
 	}
+	//TODO - do we want to remap to TX3G/other and handle the rendering some place else, or do we do the rendering here ?
+
 
 	avsubtitle_free(&subs);
+	if (pck) gf_filter_pid_drop_packet(ffdec->in_pid);
 	return GF_OK;
 }
 #endif
@@ -644,10 +645,6 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 	}
 }
 
-enum {
-	GF_FFMPEG_DECODER_CONFIG = GF_4CC('f','f','D','C'),
-};
-
 static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
@@ -670,7 +667,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	switch (type) {
 	case GF_STREAM_AUDIO:
 	case GF_STREAM_VISUAL:
-#ifdef FFDEC_SUB_SUPPORT
+#ifdef FF_SUB_SUPPORT
 	case GF_STREAM_TEXT:
 #endif
 		break;
@@ -828,7 +825,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (!ffdec->frame)
 			ffdec->frame = av_frame_alloc();
 	} else {
-#ifdef FFDEC_SUB_SUPPORT
+#ifdef FF_SUB_SUPPORT
 		ffdec->process = ffdec_process_subtitle;
 #endif
 	}
@@ -868,20 +865,26 @@ static const GF_FilterCapability FFDecodeInputs[] =
 	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_SVC),
 	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_LHVC),
-
-#ifdef FFDEC_SUB_SUPPORT
+#ifdef FF_SUB_SUPPORT
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_TEXT_MPEG4),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_TX3G),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_WVTT),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_STPP),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_STXT),
 #endif
+
 };
 
 static const GF_FilterCapability FFDecodeOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
-#ifdef FFDEC_SUB_SUPPORT
+#ifdef FF_SUB_SUPPORT
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 #endif
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	{}
 };
 
 GF_FilterRegister FFDecodeRegister = {
@@ -907,11 +910,6 @@ static const GF_FilterArgs FFDecodeArgs[] =
 	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
 	{}
 };
-
-void ffmpeg_initialize();
-GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
-void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type);
-void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin);
 
 void ffdec_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {

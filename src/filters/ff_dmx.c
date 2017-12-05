@@ -26,11 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
-#include <libavformat/avformat.h>
-#include <libavutil/opt.h>
-#include <libavutil/pixdesc.h>
-#include <libavutil/dict.h>
-
+#include "ff_common.h"
 
 typedef struct
 {
@@ -164,13 +160,6 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
-enum {
-	GF_FFMPEG_DECODER_CONFIG = GF_4CC('f','f','D','C'),
-};
-
-
-//#defined FFDMX_SUB_SUPPORT
-
 static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ffd = gf_filter_get_udta(filter);
@@ -251,7 +240,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			sprintf(szName, "video%d", nb_v);
 			gf_filter_pid_set_name(pid, szName);
 			break;
-#ifdef FFDMX_SUB_SUPPORT
+#ifdef FF_SUB_SUPPORT
 		case AVMEDIA_TYPE_SUBTITLE:
 			pid = gf_filter_pid_new(filter);
 			if (!pid) return GF_OUT_OF_MEM;
@@ -424,12 +413,6 @@ GF_FilterRegister FFDemuxRegister = {
 	.probe_url = ffdmx_probe_url,
 	.process_event = ffdmx_process_event
 };
-
-
-void ffmpeg_initialize();
-void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type);
-void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin);
-GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
 
 
 void ffdmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
