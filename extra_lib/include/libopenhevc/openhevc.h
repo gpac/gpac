@@ -30,7 +30,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdarg.h>
-#include "config.h"
+#include "ohconfig.h"
 
 #if OHCONFIG_AVCBASE
     #define OPENHEVC_HAS_AVC_BASE
@@ -372,12 +372,22 @@ void oh_set_crypto_mode(OHHandle oh_hdl, int val);
 void oh_set_crypto_key(OHHandle oh_hdl, uint8_t *val);
 #endif
 /**
+ * Enable Green filters
+ *
+ * @param oh_hdl The codec context list of current decoders
+ * @param green_param The desired green parameters
+ * @param green_verbose The desired green verbose level
+ */
+void oh_enable_green(OHHandle oh_hdl, const char *green_param, int green_verbose);
+
+/**
  * @return val    The current OpenHEVC version
  */
 const unsigned oh_version(OHHandle oh_hdl);
 
 unsigned openhevc_version(void);
 
+const char *openhevc_ident(void);
 const char *openhevc_configuration(void);
 
 #ifdef __cplusplus
