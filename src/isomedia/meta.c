@@ -234,7 +234,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 	case GF_ISOM_SUBTYPE_JPEG:
 		break;
 	default:
-		GF_LOG(GF_LOG_INFO, GF_LOG_WARNING, ("[IsoMedia] Extracting item type %s not supported\n", gf_4cc_to_str(item_type) ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Extracting item type %s not supported\n", gf_4cc_to_str(item_type) ));
 		return GF_NOT_SUPPORTED;
 	}
 
