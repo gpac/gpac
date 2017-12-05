@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -75,6 +75,7 @@ struct __txtin_ctx
 	GF_TextSample *samp;
 	u64 start, end, prev_end;
 	u32 curLine;
+	GF_StyleRecord style;
 
 	//WebVTT state
 	GF_WebVTTParser *vttparser;
@@ -304,7 +305,6 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 
 static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	GF_StyleRecord rec;
 	u32 ID, OCR_ES_ID, dsi_len, file_size;
 	char *dsi;
 	GF_TextSampleDescriptor *sd;
@@ -394,13 +394,13 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 
 	/*store attribs*/
-	rec = sd->default_style;
+	ctx->style = sd->default_style;
 	gf_odf_tx3g_write(sd, &dsi, &dsi_len);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_len) );
 
 	gf_odf_desc_del((GF_Descriptor *)sd);
 
-	ctx->default_color = rec.text_color;
+	ctx->default_color = ctx->style.text_color;
 	ctx->samp = gf_isom_new_text_sample();
 	ctx->state = 0;
 	ctx->end = ctx->prev_end = ctx->start = 0;
@@ -430,7 +430,6 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	u32 i;
 	GF_Err e;
-	GF_StyleRecord rec;
 	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, j, rem_styles;
 	Bool set_start_char, set_end_char, rem_color;
 	u32 line, len;
@@ -453,8 +452,8 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 			if (!sOK || !strlen(szLine)) {
-				rec.style_flags = 0;
-				rec.startCharOffset = rec.endCharOffset = 0;
+				ctx->style.style_flags = 0;
+				ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
 				if (txt_line) {
 					if (ctx->prev_end && (ctx->start != ctx->prev_end) && (ctx->state<=2)) {
 						GF_TextSample * empty_samp = gf_isom_new_text_sample();
@@ -469,7 +468,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 					txt_line = 0;
 					char_len = 0;
 					set_start_char = set_end_char = GF_FALSE;
-					rec.startCharOffset = rec.endCharOffset = 0;
+					ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
 					gf_isom_text_reset(ctx->samp);
 
 					gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT( gf_ftell(ctx->src )) );
@@ -511,7 +510,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			if (ctx->first_samp && (ctx->start > 0)) {
 				txtin_process_send_text_sample(ctx, ctx->samp, 0, (u64) (ctx->timescale * ctx->start / 1000), GF_TRUE);
 			}
-			rec.style_flags = 0;
+			ctx->style.style_flags = 0;
 			ctx->state = 2;
 			if (ctx->end <= ctx->prev_end) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d end "LLD" is at or before previous end "LLD" - removing", ctx->curLine, ctx->end, ctx->prev_end));
@@ -600,44 +599,44 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 					/*store prev style*/
 					if (set_end_char) {
 						assert(set_start_char);
-						gf_isom_text_add_style(ctx->samp, &rec);
+						gf_isom_text_add_style(ctx->samp, &ctx->style);
 						set_end_char = set_start_char = GF_FALSE;
-						rec.style_flags &= ~rem_styles;
+						ctx->style.style_flags &= ~rem_styles;
 						rem_styles = 0;
 						if (rem_color) {
-							rec.text_color = ctx->default_color;
+							ctx->style.text_color = ctx->default_color;
 							rem_color = 0;
 						}
 					}
-					if (set_start_char && (rec.startCharOffset != j)) {
-						rec.endCharOffset = char_len + j;
-						if (rec.style_flags) gf_isom_text_add_style(ctx->samp, &rec);
+					if (set_start_char && (ctx->style.startCharOffset != j)) {
+						ctx->style.endCharOffset = char_len + j;
+						if (ctx->style.style_flags) gf_isom_text_add_style(ctx->samp, &ctx->style);
 					}
 					switch (uniLine[i+1]) {
 					case 'b':
 					case 'B':
-						rec.style_flags |= GF_TXT_STYLE_BOLD;
+						ctx->style.style_flags |= GF_TXT_STYLE_BOLD;
 						set_start_char = GF_TRUE;
-						rec.startCharOffset = char_len + j;
+						ctx->style.startCharOffset = char_len + j;
 						break;
 					case 'i':
 					case 'I':
-						rec.style_flags |= GF_TXT_STYLE_ITALIC;
+						ctx->style.style_flags |= GF_TXT_STYLE_ITALIC;
 						set_start_char = GF_TRUE;
-						rec.startCharOffset = char_len + j;
+						ctx->style.startCharOffset = char_len + j;
 						break;
 					case 'u':
 					case 'U':
-						rec.style_flags |= GF_TXT_STYLE_UNDERLINED;
+						ctx->style.style_flags |= GF_TXT_STYLE_UNDERLINED;
 						set_start_char = GF_TRUE;
-						rec.startCharOffset = char_len + j;
+						ctx->style.startCharOffset = char_len + j;
 						break;
 					case 'f':
 					case 'F':
 						if (font_style) {
-							rec.text_color = font_style;
+							ctx->style.text_color = font_style;
 							set_start_char = GF_TRUE;
-							rec.startCharOffset = char_len + j;
+							ctx->style.startCharOffset = char_len + j;
 						}
 						break;
 					}
@@ -652,26 +651,26 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 					case 'B':
 						rem_styles |= GF_TXT_STYLE_BOLD;
 						set_end_char = GF_TRUE;
-						rec.endCharOffset = char_len + j;
+						ctx->style.endCharOffset = char_len + j;
 						break;
 					case 'i':
 					case 'I':
 						rem_styles |= GF_TXT_STYLE_ITALIC;
 						set_end_char = GF_TRUE;
-						rec.endCharOffset = char_len + j;
+						ctx->style.endCharOffset = char_len + j;
 						break;
 					case 'u':
 					case 'U':
 						rem_styles |= GF_TXT_STYLE_UNDERLINED;
 						set_end_char = GF_TRUE;
-						rec.endCharOffset = char_len + j;
+						ctx->style.endCharOffset = char_len + j;
 						break;
 					case 'f':
 					case 'F':
 						if (font_style) {
 							rem_color = 1;
 							set_end_char = GF_TRUE;
-							rec.endCharOffset = char_len + j;
+							ctx->style.endCharOffset = char_len + j;
 						}
 					}
 					i+=style_nb_chars;
@@ -679,13 +678,13 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 				}
 				/*store style*/
 				if (set_end_char) {
-					gf_isom_text_add_style(ctx->samp, &rec);
+					gf_isom_text_add_style(ctx->samp, &ctx->style);
 					set_end_char = GF_FALSE;
 					set_start_char = GF_TRUE;
-					rec.startCharOffset = char_len + j;
-					rec.style_flags &= ~rem_styles;
+					ctx->style.startCharOffset = char_len + j;
+					ctx->style.style_flags &= ~rem_styles;
 					rem_styles = 0;
-					rec.text_color = ctx->default_color;
+					ctx->style.text_color = ctx->default_color;
 					rem_color = 0;
 				}
 
@@ -695,11 +694,11 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			}
 			/*store last style*/
 			if (set_end_char) {
-				gf_isom_text_add_style(ctx->samp, &rec);
+				gf_isom_text_add_style(ctx->samp, &ctx->style);
 				set_end_char = GF_FALSE;
 				set_start_char = GF_TRUE;
-				rec.startCharOffset = char_len + j;
-				rec.style_flags &= ~rem_styles;
+				ctx->style.startCharOffset = char_len + j;
+				ctx->style.style_flags &= ~rem_styles;
 			}
 
 			char_line = j;

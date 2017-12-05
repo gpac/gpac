@@ -817,7 +817,7 @@ GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMT
 GF_Err DumpRawTextConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDump, u32 oti)
 {
 	GF_TextConfig *cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
-	GF_Err e = gf_odf_get_text_config(dsi, (u8) oti, cfg);
+	GF_Err e = gf_odf_get_text_config(dsi->data, dsi->dataLength, (u8) oti, cfg);
 	if (!e) gf_odf_dump_desc((GF_Descriptor*)cfg, trace, indent, XMTDump);
 	gf_odf_desc_del((GF_Descriptor *) cfg);
 	return e;

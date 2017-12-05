@@ -220,12 +220,14 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//setup object (clock) and playback requests
 	gf_scene_insert_pid(scene, scene->root_od->scene_ns, pid, in_iod);
 
-	//attach scene to input filters
+	//attach scene to input filters - may be true for dynamic scene (text rendering) and regular scenes
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) ) {
 		GF_FEVT_INIT(evt, GF_FEVT_ATTACH_SCENE, pid);
 		evt.attach_scene.object_manager = gf_filter_pid_get_udta(pid);
 		gf_filter_pid_send_event(pid, &evt);
-	} else if (scene->is_dynamic_scene) {
+	}
+	//scene is dynamic
+	if (scene->is_dynamic_scene) {
 		gf_scene_regenerate(scene);
 	}
 
@@ -305,8 +307,8 @@ static const GF_FilterCapability CompositorFilterInputs[] =
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	//we don't accept text streams for now, we only use scene streams for text
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE)
 };
 

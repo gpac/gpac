@@ -808,7 +808,7 @@ GF_Err gf_odf_del_text_cfg(GF_TextConfig *desc)
 /*we need box parsing*/
 #include <gpac/internal/isomedia_dev.h>
 GF_EXPORT
-GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *cfg)
+GF_Err gf_odf_get_text_config(char *data, u32 data_len, u8 oti, GF_TextConfig *cfg)
 {
 	u32 i;
 	Bool has_alt_format;
@@ -818,12 +818,12 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 #endif
 	GF_Err e;
 	GF_BitStream *bs;
-	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
+	if (data || data_len || !cfg) return GF_BAD_PARAM;
 	if (oti != 0x08) return GF_NOT_SUPPORTED;
 
 	/*reset*/
 	ResetTextConfig(cfg);
-	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
+	bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
 
 	e = GF_OK;
 	cfg->Base3GPPFormat = gf_bs_read_int(bs, 8);
