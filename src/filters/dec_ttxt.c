@@ -1154,6 +1154,8 @@ static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		break;
 	case GF_FEVT_RESET_SCENE:
 		if (ctx->opid != com->attach_scene.on_pid) return GF_TRUE;
+		ctx->is_playing = GF_FALSE;
+		ttd_toggle_display(ctx);
 		ttd_reset_scene(ctx);
 		ctx->scene = NULL;
 		return GF_TRUE;

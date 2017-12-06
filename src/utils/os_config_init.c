@@ -771,4 +771,10 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 	return cfg;
 }
 
+GF_EXPORT
+Bool gf_get_default_shared_directory(char *path_buffer)
+{
+	return get_default_install_path(path_buffer, GF_PATH_GUI);
+}
+
 #endif

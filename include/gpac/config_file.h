@@ -224,6 +224,13 @@ GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
  */
 GF_Err gf_cfg_discard_changes(GF_Config *iniFile);
 
+/*!
+ * Gets GPAC shared directory (gui, shaders, etc ..)
+ * \param path_buffer GF_MAX_PATH buffer to store output
+ * \return GF_TRUE if success, GF_FALSE otherwise
+ */
+Bool gf_get_default_shared_directory(char *path_buffer);
+
 /*! @} */
 
 #ifdef __cplusplus

@@ -268,12 +268,23 @@ extern char **environ;
 GF_EXPORT
 Bool gf_file_exists(const char *fileName)
 {
+#if defined(WIN32)
+ 	return (_access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+#elif defined(GPAC_CONFIG_LINUX)
+ 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+#elif defined(__DARWIN__) || defined(__APPLE__)
+ 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+#elif defined(GPAC_IPHONE) || defined( )
+ 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+#else
 	FILE *f = gf_fopen(fileName, "r");
 	if (f) {
 		gf_fclose(f);
 		return GF_TRUE;
 	}
 	return GF_FALSE;
+#endif
+
 }
 
 GF_EXPORT
