@@ -5653,6 +5653,8 @@ static u32 gf_dash_get_dependency_bandwidth(GF_DashSegInput *inputs, u32 nb_dash
 	return 0; //we should never be here !!!!
 }
 
+
+#if 0
 static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 {
 	FILE *period_mpd;
@@ -5686,6 +5688,7 @@ static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 	//we cannot delet the file because we don't know if we will be called again with a new period, in which case we need to reinsert this XML ...
 	return GF_OK;
 }
+#endif
 
 static void purge_dash_context(GF_Config *dash_ctx)
 {
