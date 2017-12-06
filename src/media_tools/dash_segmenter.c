@@ -2098,7 +2098,7 @@ restart_fragmentation_pass:
                    GF_MPD_SegmentURL *seg_url;
                    const char *name = gf_dasher_strip_output_dir(dasher->mpd_name, SegmentName);
                    seg_url = gf_mpd_segmenturl_new(name, 0, 0, NULL, 0, 0);
-                   seg_url->duration=SegmentDuration;
+                   seg_url->duration=(u64)SegmentDuration;
                    if (dasher->dash_ctx) {
                        char szKey[100], szVal[4046];
                        sprintf(szKey, "UrlInfo%d", cur_seg );
@@ -2248,7 +2248,7 @@ restart_fragmentation_pass:
 					if (dasher->single_file_mode!=1) {
 						GF_MPD_SegmentURL *seg_url;
 						seg_url = gf_mpd_segmenturl_new(NULL, start_range, end_range, NULL, idx_start_range, idx_end_range);
-                                               seg_url->duration=SegmentDuration;
+                                               seg_url->duration=(u64)SegmentDuration;
 						gf_list_add(segment_urls, seg_url);
 						if (dasher->dash_ctx) {
 							char szKey[100], szVal[4046];
