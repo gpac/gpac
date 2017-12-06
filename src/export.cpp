@@ -1014,6 +1014,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_set_inband_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_lhvc_force_inband_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_lhvc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_update) )

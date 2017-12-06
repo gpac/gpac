@@ -520,6 +520,7 @@ void PrintImportUsage()
 	        " \"                       merge : all layers are merged in a single track\n"
 	        " \"                       splitbase : all layers are merged in a track, and the AVC base in another\n"
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
+	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
@@ -3085,6 +3086,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 				if (!strcmp(szTk, argv[i + 1])) i++;
 				else trackID = 0;
 			}
+			else if ((i + 1<(u32)argc) && !strcmp(argv[i + 1], "*")) {
+				trackID = (u32)-1;
+				i++;
+			}
 			else {
 				trackID = 0;
 			}
@@ -4390,9 +4395,23 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
-	if ((dump_ttxt || dump_srt) && trackID)
-		dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
-							  GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+	if ((dump_ttxt || dump_srt) && trackID) {
+
+		if (trackID == (u32)-1) {
+
+			u32 j;
+			for (j=0; j<gf_isom_get_track_count(file); j++) {
+				trackID = gf_isom_get_track_id(file, j+1);
+				dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+									GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+			}
+
+		}
+		else {
+			dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+								GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+		}
+	}
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (dump_rtp) dump_isom_rtp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
