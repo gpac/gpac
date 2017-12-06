@@ -4197,6 +4197,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/*compute name for indexed segments*/
 	const char *basename = gf_dasher_strip_output_dir(dasher->mpd_name, szOutName);
 	GF_MPD_Representation *representation_obj = NULL;
+	GF_MPD_SegmentList *seg_list = NULL;
 
 	if (dash_input->media_duration) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] media duration cannot be forced with MPEG2-TS segmenter. Ignoring.\n"));
@@ -4523,7 +4524,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] PTSOffset "LLD" - startNumber %d - time %g\n", presentationTimeOffset - 1, segment_index, (Double) (s64) (ts_seg.sidx->earliest_presentation_time + pcr_shift) / 90000.0));
 			}
 		} else {
-			GF_MPD_SegmentList *seg_list;
+
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, NULL, gf_dasher_strip_output_dir(dasher->mpd_name, dasher->seg_rad_name ? dasher->seg_rad_name : szOutName), "ts", 0, bandwidth, segment_index, dasher->use_segment_timeline);
 			if (dasher->single_file_mode){
 				GF_MPD_BaseURL *baseurl;
@@ -4570,10 +4571,14 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			/*rewrite previous URLs*/
 			const char *opt;
 			u32 count, i;
+			GF_MPD_SegmentURL *seg_url;
 			count = gf_cfg_get_key_count(dasher->dash_ctx, szRepURLsSecName);
 			for (i=0; i<count; i++) {
 				const char *key_name = gf_cfg_get_key_name(dasher->dash_ctx, szRepURLsSecName, i);
 				opt = gf_cfg_get_key(dasher->dash_ctx, szRepURLsSecName, key_name);
+				GF_SAFEALLOC(seg_url,GF_MPD_SegmentURL);
+				seg_url->media=gf_strdup(opt);
+				gf_list_add(seg_list->segment_URLs,seg_url);
 				//fprintf(dasher->mpd_file, "     %s\n", opt);
 			}
 		}
@@ -4653,7 +4658,6 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 				if (!dasher->use_url_template) {
 					GF_MPD_SegmentURL *seg_url;
-					GF_MPD_SegmentList *seg_list;
 					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, NULL, dasher->seg_rad_name, "ts", 0, bandwidth, segment_index, dasher->use_segment_timeline);					
 					seg_list=representation_obj->segment_list;
 					seg_url = gf_mpd_segmenturl_new(SegName, 0, 0, NULL, 0, 0);
@@ -5368,12 +5372,12 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 		}
 
 		if (bitstream_switching_mode && !use_url_template && (single_file_mode!=1) && strlen(szInitSegment) ) {
-			GF_MPD_SegmentList *seg;
-			GF_SAFEALLOC(seg, GF_MPD_SegmentList);
-			seg->start_number=(u32)-1;
-			GF_SAFEALLOC(seg->initialization_segment, GF_MPD_URL);
-			seg->initialization_segment->sourceURL = gf_strdup(gf_dasher_strip_output_dir(mpd_name, szInitSegment));
-			adaptation_set_obj->segment_list = seg;
+			GF_MPD_SegmentList *seg_list;
+			GF_SAFEALLOC(seg_list, GF_MPD_SegmentList);
+			seg_list->start_number=(u32)-1;
+			GF_SAFEALLOC(seg_list->initialization_segment, GF_MPD_URL);
+			seg_list->initialization_segment->sourceURL = gf_strdup(gf_dasher_strip_output_dir(mpd_name, szInitSegment));
+			adaptation_set_obj->segment_list = seg_list;
 		}
 	}
 	return GF_OK;
