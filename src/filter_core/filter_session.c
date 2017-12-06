@@ -26,112 +26,6 @@
 #include "filter_session.h"
 #include <gpac/network.h>
 
-
-const GF_FilterRegister *ut_filter_register(GF_FilterSession *session);
-const GF_FilterRegister *ut_source_register(GF_FilterSession *session);
-const GF_FilterRegister *ut_sink_register(GF_FilterSession *session);
-const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session);
-const GF_FilterRegister *ffdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *ffdec_register(GF_FilterSession *session);
-const GF_FilterRegister *inspect_register(GF_FilterSession *session);
-const GF_FilterRegister *probe_register(GF_FilterSession *session);
-const GF_FilterRegister *compose_filter_register(GF_FilterSession *session);
-const GF_FilterRegister *isoffin_register(GF_FilterSession *session);
-const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session);
-const GF_FilterRegister *odf_dec_register(GF_FilterSession *session);
-const GF_FilterRegister *filein_register(GF_FilterSession *session);
-const GF_FilterRegister *ctxload_register(GF_FilterSession *session);
-const GF_FilterRegister *httpin_register(GF_FilterSession *session);
-const GF_FilterRegister *svgin_register(GF_FilterSession *session);
-const GF_FilterRegister *img_reframe_register(GF_FilterSession *session);
-const GF_FilterRegister *imgdec_register(GF_FilterSession *session);
-const GF_FilterRegister *adts_dmx_register(GF_FilterSession *session);
-const GF_FilterRegister *mp3_dmx_register(GF_FilterSession *session);
-const GF_FilterRegister *faad_register(GF_FilterSession *session);
-const GF_FilterRegister *maddec_register(GF_FilterSession *session);
-const GF_FilterRegister *xviddec_register(GF_FilterSession *session);
-const GF_FilterRegister *j2kdec_register(GF_FilterSession *session);
-const GF_FilterRegister *ac3dmx_register(GF_FilterSession *session);
-const GF_FilterRegister *a52dec_register(GF_FilterSession *session);
-const GF_FilterRegister *amrdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *oggdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *vorbisdec_register(GF_FilterSession *session);
-const GF_FilterRegister *theoradec_register(GF_FilterSession *session);
-const GF_FilterRegister *m2tsdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *udpin_register(GF_FilterSession *session);
-const GF_FilterRegister *dvblin_register(GF_FilterSession *session);
-const GF_FilterRegister *vtbdec_register(GF_FilterSession *session);
-const GF_FilterRegister *lsrdec_register(GF_FilterSession *session);
-const GF_FilterRegister *safdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *osvcdec_register(GF_FilterSession *session);
-const GF_FilterRegister *ohevcdec_register(GF_FilterSession *session);
-const GF_FilterRegister *dashdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *decenc_register(GF_FilterSession *session);
-const GF_FilterRegister *mp4_mux_register(GF_FilterSession *session);
-const GF_FilterRegister *qcpdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *h263dmx_register(GF_FilterSession *session);
-const GF_FilterRegister *mpgviddmx_register(GF_FilterSession *session);
-const GF_FilterRegister *nhntdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *nhmldmx_register(GF_FilterSession *session);
-const GF_FilterRegister *naludmx_register(GF_FilterSession *session);
-const GF_FilterRegister *m2psdmx_register(GF_FilterSession *session);
-const GF_FilterRegister *avidmx_register(GF_FilterSession *session);
-const GF_FilterRegister *txtin_register(GF_FilterSession *session);
-const GF_FilterRegister *ttxtdec_register(GF_FilterSession *session);
-
-
-static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
-{
-	gf_fs_add_filter_registry(fsess, inspect_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, probe_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, compose_filter_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, isoffin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, bifs_dec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, odf_dec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, filein_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ctxload_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, httpin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, svgin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, img_reframe_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, imgdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, adts_dmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, mp3_dmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, faad_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, maddec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, xviddec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, j2kdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ac3dmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, a52dec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, amrdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, oggdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, vorbisdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, theoradec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, m2tsdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, udpin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, dvblin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, osvcdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, lsrdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, safdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ohevcdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, dashdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, decenc_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, mp4_mux_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, qcpdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, h263dmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, mpgviddmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, nhntdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, nhmldmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, naludmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, m2psdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, avidmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, txtin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ttxtdec_register(a_sess) );
-
-	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
-}
-
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
 	GF_Semaphore *sem = main ? fsess->semaphore_main : fsess->semaphore_other;
@@ -304,15 +198,6 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->default_pid_buffer_max_us = 1000;
 	fsess->decoder_pid_buffer_max_us = 1000000;
 	return fsess;
-}
-
-GF_EXPORT
-void gf_fs_register_test_filters(GF_FilterSession *fsess)
-{
-	gf_fs_add_filter_registry(fsess, ut_source_register(NULL) );
-	gf_fs_add_filter_registry(fsess, ut_filter_register(NULL) );
-	gf_fs_add_filter_registry(fsess, ut_sink_register(NULL) );
-	gf_fs_add_filter_registry(fsess, ut_sink2_register(NULL) );
 }
 
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)

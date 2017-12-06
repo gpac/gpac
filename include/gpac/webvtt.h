@@ -81,16 +81,6 @@ void gf_webvtt_cue_del(GF_WebVTTCue * cue);
 GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *printLength);
 #endif
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-#include <gpac/internal/scenegraph_dev.h>
-
-GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id,
-                           const char *start, const char *end,
-                           const char *settings,
-                           const char *payload);
-GF_Err gf_webvtt_js_removeCues(GF_Node *node);
-#endif
-
 /*! @} */
 
 #ifdef __cplusplus

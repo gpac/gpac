@@ -290,6 +290,8 @@ struct __gf_media_session
 	GF_FilterSessionCaps caps;
 };
 
+void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
+
 typedef enum
 {
 	GF_FILTER_ARG_LOCAL = 0,
@@ -423,7 +425,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
 
-void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv);
 Bool gf_filter_swap_source_registry(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);

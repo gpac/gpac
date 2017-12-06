@@ -956,12 +956,13 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 	Bool had_marks = GF_FALSE;
 
 	if (!parser) return GF_BAD_PARAM;
+	parser->suspend = GF_FALSE;
+
 	if (parser->is_srt) {
 		parser->on_header_parsed(parser->user, "WEBVTT\n");
 	}
-	parser->suspend = GF_FALSE;
-	
-	while (do_parse) {
+
+	while (do_parse && !parser->suspend) {
 		sOK = gf_text_get_utf8_line(szLine, 2048, parser->vtt_in, parser->unicode_type);
 		REM_TRAIL_MARKS(szLine, "\r\n")
 		len = (u32) strlen(szLine);
@@ -1015,6 +1016,8 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 					parser->state = WEBVTT_PARSER_STATE_WAITING_CUE;
 					/* no break, continue to the next state*/
 				}
+				if (header) gf_free(header);
+				header = NULL;
 			}
 		case WEBVTT_PARSER_STATE_WAITING_CUE:
 			if (sOK && len) {

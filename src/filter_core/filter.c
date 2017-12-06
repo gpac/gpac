@@ -303,6 +303,23 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 	}
 }
 
+static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u32 type, const char *name, const char *value, const char *enum_values)
+{
+	char szPath[GF_MAX_PATH];
+	GF_PropertyValue argv;
+
+	if (!strnicmp(value, "$GPAC_SHARED", 12)) {
+		if (gf_get_default_shared_directory(szPath)) {
+			strcat(szPath, value+12);
+			value = szPath;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
+		}
+	}
+	argv = gf_props_parse_value(type, name, value, enum_values);
+	return argv;
+}
+
 void gf_filter_update_arg_task(GF_FSTask *task)
 {
 	u32 i=0;
@@ -323,7 +340,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 			break;
 		}
 
-		argv = gf_props_parse_value(a->arg_type, a->arg_name, arg->val, a->min_max_enum);
+		argv = gf_filter_parse_prop_solve_env_var(task->filter, a->arg_type, a->arg_name, arg->val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			GF_Err e;
@@ -343,7 +360,6 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg->val);
 	gf_free(arg);
 }
-
 
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
 {
@@ -379,7 +395,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			has_meta_args = GF_TRUE;
 			continue;
 		}
-		argv = gf_props_parse_value(a->arg_type, a->arg_name, a->arg_default_val, a->min_max_enum);
+		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, a->arg_default_val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			if (a->offset_in_private>=0) {
@@ -449,7 +465,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				GF_PropertyValue argv;
 				found=GF_TRUE;
 
-				argv = gf_props_parse_value(a->meta_arg ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
+				argv = gf_filter_parse_prop_solve_env_var(filter, a->meta_arg ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
 
 				if (argv.type != GF_PROP_FORBIDEN) {
 					if (a->offset_in_private>=0) {

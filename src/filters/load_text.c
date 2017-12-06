@@ -895,6 +895,7 @@ static void gf_webvtt_import_header(void *user, const char *config)
 	if (!ctx->hdr_parsed) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (1+strlen(config)) ) );
 		ctx->hdr_parsed = GF_TRUE;
+		gf_webvtt_parser_suspend(ctx->vttparser);
 	}
 }
 
@@ -920,6 +921,7 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 		char *pck_data;
 
 		pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
+		memcpy(pck_data, s->data, s->dataLength);
 		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale * start / 1000) );
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
@@ -992,6 +994,8 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		ctx->vttparser = NULL;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT parser init error %s\n", gf_error_to_string(e) ));
 	}
+	//get the header
+	e = gf_webvtt_parser_parse(ctx->vttparser);
 
 	txtin_probe_duration(ctx);
 	return e;
