@@ -2906,16 +2906,30 @@ u32 gf_isom_get_highest_track_in_scalable_segment(GF_ISOFile *movie, u32 for_bas
 	track_id = 0;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		s32 ref;
+		u32 ref_type = GF_ISOM_REF_SCAL;
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
 		if (! trak->present_in_scalable_segment) continue;
 
-		ref = gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_SCAL);
-		if (ref<=0) continue;
+		ref = gf_isom_get_reference_count(movie, i+1, ref_type);
+		if (ref<=0) {
+			//handle implicit reconstruction for LHE1/LHV1, check sbas track ref
+			u32 subtype = gf_isom_get_media_subtype(movie, i+1, 1);
+			switch (subtype) {
+			case GF_ISOM_SUBTYPE_LHE1:
+			case GF_ISOM_SUBTYPE_LHV1:
+				ref = gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_BASE);
+				if (ref<=0) continue;
+				ref_type = GF_ISOM_REF_BASE;
+				break;
+			default:
+				continue;
+			}
+		}
 		if (ref<=max_ref) continue;
 
 		for (j=0; j< (u32) ref; j++) {
 			u32 on_track=0;
-			gf_isom_get_reference(movie, i+1, GF_ISOM_REF_SCAL, j+1, &on_track);
+			gf_isom_get_reference(movie, i+1, GF_ISOM_REF_BASE, j+1, &on_track);
 			if (on_track==for_base_track) {
 				max_ref = ref;
 				track_id = trak->Header->trackID;
@@ -3573,7 +3587,7 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	*rvc_predefined = entry->rvcc->predefined_rvc_config;
 	if (entry->rvcc->rvc_meta_idx) {
 		if (!data || !size) return GF_OK;
-		return gf_isom_extract_meta_item_mem(movie, GF_FALSE, track, entry->rvcc->rvc_meta_idx, data, size, mime);
+		return gf_isom_extract_meta_item_mem(movie, GF_FALSE, track, entry->rvcc->rvc_meta_idx, data, size, mime, GF_FALSE);
 	}
 	return GF_OK;
 }

@@ -197,6 +197,13 @@ GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * htt
  * Cache Management functions
  */
 
+ /*!
+ * Computes the size of the cache elements in directory
+ * \param directory containing cache files
+ * \return size in bytes
+ */
+u64 gf_cache_get_size(const char * directory);
+
 /*!
  * Delete all cached files in given directory starting with startpattern
  * \param directory to clean up

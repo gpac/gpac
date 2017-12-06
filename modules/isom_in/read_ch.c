@@ -476,7 +476,7 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 	ch->current_slh.compositionTimeStampFlag = 1;
 	ch->current_slh.decodingTimeStampFlag = 1;
-	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, NULL);
+	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, NULL, GF_FALSE);
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 }
 

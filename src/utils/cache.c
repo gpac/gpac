@@ -183,6 +183,21 @@ Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnu
 
 static const char * cache_file_prefix = "gpac_cache_";
 
+Bool gather_cache_size(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	u64 *out_size = (u64 *)cbck;
+	if (!strncmp(cache_file_prefix, item_name, strlen(cache_file_prefix))) {
+		*out_size += file_info->size;
+	}
+	return 0;
+}
+
+u64 gf_cache_get_size(const char * directory) {
+	u64 size = 0;
+	gf_enum_directory(directory, GF_FALSE, gather_cache_size, (void*)&size, NULL);
+	return size;
+}
+
 GF_Err gf_cache_delete_all_cached_files(const char * directory) {
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("Deleting cached files in %s...\n", directory));
 	return gf_enum_directory( directory, GF_FALSE, delete_cache_files, (void*)cache_file_prefix, NULL);

@@ -73,7 +73,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
 		if (!ai->stream_finished) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] No data in audio object\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUDIO, ("[Audio Input] No data in audio object\n"));
 		}
 		gf_mo_adjust_clock(ai->stream, 0);
 		*size = 0;
@@ -170,7 +170,7 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	/*watchout for object reuse*/
 	if (aifc->samplerate && (gf_mo_get_flags(ai->stream) & GF_MO_IS_INIT)) return GF_TRUE;
 
-	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->bps , &aifc->chan, &aifc->ch_cfg);
+	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->bps , &aifc->chan, &aifc->ch_cfg, &aifc->forced_layout);
 
 	if (!for_recf)
 		return aifc->samplerate ? GF_TRUE : GF_FALSE;

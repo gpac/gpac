@@ -2021,7 +2021,7 @@ static u32 get_codec_confidence(GF_Codec *codec, GF_BaseDecoder *ifce, GF_ESD *e
 		GF_ESD *an_esd = gf_list_get(codec->odm->OD->ESDescriptors, i_es);
 		u32 c;
 		if (an_esd->decoderConfig->streamType != esd->decoderConfig->streamType) continue;
-		if (an_esd->dependsOnESID && (an_esd->decoderConfig->objectTypeIndication != esd->decoderConfig->objectTypeIndication)) {
+		if (an_esd->dependsOnESID && (an_esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_LHVC) && (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC)) {
 			codec->hybrid_layered_coded = 1;
 		}
 		c = ifce->CanHandleStream(ifce, an_esd->decoderConfig->streamType, i_es ? an_esd : esd, PL);

@@ -954,6 +954,20 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			gf_term_send_event(odm->term,&evt);
 			return;
 		}
+	} else if (odm->codec) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_INFO;
+		com.info.on_channel = gf_list_get(odm->channels, 0);
+		gf_term_service_command(odm->net_service, &com);
+
+		if (com.info.role) {
+			if (!strncmp(com.info.role, "ambi", 4)) {
+				odm->ambi_ch_id = atoi(com.info.role + 4);
+				if (odm->ambi_ch_id > odm->parentscene->ambisonic_type)
+					odm->parentscene->ambisonic_type = odm->ambi_ch_id;
+			}
+		}
 	}
 
 	/*if object codec is prefered one, auto select*/
