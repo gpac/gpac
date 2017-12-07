@@ -87,7 +87,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 	com->method = gf_strdup(GF_RTSP_SETUP);
 
 	//setup ports if unicast non interleaved or multicast
-	if (gf_rtp_is_unicast(stream->rtp_ch) && (stream->rtpin->transport_mode != 1) && !gf_rtp_is_interleaved(stream->rtp_ch) ) {
+	if (gf_rtp_is_unicast(stream->rtp_ch) && (stream->rtpin->interleave != 1) && !gf_rtp_is_interleaved(stream->rtp_ch) ) {
 		gf_rtp_set_ports(stream->rtp_ch, stream->rtpin->firstport);
 	} else if (stream->rtpin->force_mcast) {
 		gf_rtp_set_ports(stream->rtp_ch, stream->rtpin->firstport);
@@ -122,7 +122,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP_TCP);
 		//some servers expect the interleaved to be set during the setup request
 		trans->IsInterleaved = GF_TRUE;
-		trans->rtpID = gf_list_find(stream->rtpin->streams, stream);
+		trans->rtpID = 2*gf_list_find(stream->rtpin->streams, stream);
 		trans->rtcpID = trans->rtpID+1;
 		gf_rtp_setup_transport(stream->rtp_ch, trans, NULL);
 	}
@@ -660,8 +660,9 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 		break;
 	case GF_FEVT_PAUSE:
 	case GF_FEVT_STOP:
-	case GF_FEVT_SET_SPEED:
 		break;
+	//TODO
+	case GF_FEVT_SET_SPEED:
 	default:
 		return;
 	}

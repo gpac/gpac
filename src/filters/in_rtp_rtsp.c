@@ -83,7 +83,7 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 			sess->flags &= ~RTSP_WAIT_REPLY;
 			sess->command_time = 0;
 		} else {
-			u32 time_out = sess->rtpin->rtsp_time_out;
+			u32 time_out = sess->rtpin->rtsp_timeout;
 			/*evaluate timeout*/
 			time = gf_sys_clock() - sess->command_time;
 
@@ -240,7 +240,7 @@ GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
 	tmp->rtpin = rtp;
 	tmp->session = rtsp;
 
-	if (rtp->transport_mode) {
+	if (rtp->interleave) {
 		gf_rtsp_set_buffer_size(rtsp, rtp->block_size);
 	} else {
 		gf_rtsp_set_buffer_size(rtsp, RTSP_BUFFER_SIZE);

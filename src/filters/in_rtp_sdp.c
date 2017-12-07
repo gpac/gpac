@@ -88,13 +88,13 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 			switch (stream->depacketizer->sl_map.StreamType) {
 			case GF_STREAM_VISUAL:
 			case GF_STREAM_AUDIO:
-				if ((rtp->transport_mode==1) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
+				if ((rtp->interleave==1) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
 					gf_rtsp_set_buffer_size(stream->rtsp->session, stream->rtpin->block_size);
 					stream->rtsp->flags |= RTSP_FORCE_INTER;
 				}
 				break;
 			default:
-				if (rtp->transport_mode && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
+				if (rtp->interleave && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
 					gf_rtsp_set_buffer_size(stream->rtsp->session, stream->rtpin->block_size);
 					stream->rtsp->flags |= RTSP_FORCE_INTER;
 				}
@@ -243,8 +243,8 @@ static void rtpin_declare_media(GF_RTPIn *rtp, Bool force_iod)
 		if (rtp->stream_type && (rtp->stream_type!=stream->depacketizer->sl_map.StreamType)) continue;
 
 		rtpin_declare_pid(stream, force_iod, i, &ocr_es_id);
-		rtp->stream_type = 0;
 	}
+	rtp->stream_type = 0;
 }
 
 void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *stream)
