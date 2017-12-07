@@ -1027,10 +1027,10 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	sep = strstr(sURL, "://");
 	if (sep) {
 		sep = strchr(sep+3, '/');
-		if (sep) sep = strchr(sep+1, ':');
+		if (sep) sep = strstr(sep+1, ":gpac:");
 	} else {
 		sep = strchr(sURL, ':');
-		if (sep && !strnicmp(sep, ":\\", 2)) sep = strchr(sep+2, ':');
+		if (sep && !strnicmp(sep, ":\\", 2)) sep = strstr(sep+2, ":gpac:");
 	}
 	if (sep) {
 		sep[0] = 0;

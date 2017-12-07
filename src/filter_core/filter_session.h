@@ -362,6 +362,7 @@ struct __gf_filter
 	volatile u32 pending_packets;
 
 	volatile u32 stream_reset_pending;
+	volatile u32 num_events_queued;
 
 	GF_List *postponed_packets;
 

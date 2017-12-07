@@ -1304,25 +1304,34 @@ const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const 
 	return gf_props_get_property(map, 0, prop_name);
 }
 
-const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
+static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name)
 {
 	u32 i, count;
 	const GF_PropertyValue * prop;
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
 	assert(map);
-	prop = gf_props_get_property(map, prop_4cc, NULL);
+	prop = gf_props_get_property(map, prop_4cc, prop_name);
 	if (prop) return prop;
 
 	count = gf_list_count(pid->filter->input_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
-		prop = gf_filter_pid_get_info(pidinst->pid, prop_4cc);
+		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name);
 		if (prop) return prop;
 	}
 	return NULL;
 }
 
-const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc)
+const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
+{
+	return gf_filter_pid_get_info_internal(pid, prop_4cc, NULL);
+}
+const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name)
+{
+	return gf_filter_pid_get_info_internal(pid, 0, prop_name);
+}
+
+static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u32 prop_4cc, const char *prop_name)
 {
 	u32 i, count;
 	const GF_PropertyValue * prop;
@@ -1331,18 +1340,27 @@ const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc)
 	count = gf_list_count(filter->output_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		prop = gf_filter_pid_get_info(pid, prop_4cc);
+		prop = gf_filter_pid_get_info_internal(pid, prop_4cc, prop_name);
 		if (prop) return prop;
 	}
 	count = gf_list_count(filter->input_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, i);
-		prop = gf_filter_pid_get_info(pidinst->pid, prop_4cc);
+		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name);
 		if (prop) return prop;
 	}
 	return NULL;
 }
 
+const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc)
+{
+	return gf_filter_get_info_internal(filter, prop_4cc, NULL);
+}
+
+const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name)
+{
+	return gf_filter_get_info_internal(filter, 0, prop_name);
+}
 
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 {
@@ -1849,7 +1867,7 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 	return GF_FALSE;
 }
 
-static const char *get_fevt_name(u32 type)
+const char *gf_filter_event_name(u32 type)
 {
 	switch (type) {
 	case GF_FEVT_PLAY: return "PLAY";
@@ -1912,6 +1930,12 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		return;
 	}
+
+	if (evt->base.on_pid) {
+		assert(evt->base.on_pid->filter->num_events_queued);
+		safe_int_dec(&evt->base.on_pid->filter->num_events_queued);
+	}
+
 	if (evt->base.type == GF_FEVT_BUFFER_REQ) {
 		if (!evt->base.on_pid) {
 			gf_free(evt);
@@ -1932,7 +1956,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		FSESS_CHECK_THREAD(f)
 		canceled = f->freg->process_event(f, evt);
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", get_fevt_name(evt->base.type), canceled ? "yes" : "no" ));
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type), canceled ? "yes" : "no" ));
 
 	if (evt->base.on_pid && ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK) || (evt->base.type==GF_FEVT_PLAY)) ) {
 		u32 i;
@@ -2023,6 +2048,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			an_evt = evt;
 		}
 		an_evt->base.on_pid = task->pid ? pid : NULL;
+		if (pid) {
+			safe_int_inc(&pid->filter->num_events_queued);
+		}
+
 		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? pid : NULL, "downstream_event", an_evt);
 	}
 	if (dispatched_filters) gf_list_del(dispatched_filters);
@@ -2045,7 +2074,7 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 		return;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s queuing event %s\n", pid->pid->filter->name, pid->pid->name, get_fevt_name(evt->base.type) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s queuing event %s\n", pid->pid->filter->name, pid->pid->name, gf_filter_event_name(evt->base.type) ));
 
 	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 		u32 i, count = pid->pid->num_destinations;
@@ -2062,6 +2091,7 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	if (evt->base.on_pid) {
 		target_pid = evt->base.on_pid->pid;
 		dup_evt->base.on_pid = target_pid;
+		safe_int_inc(&target_pid->filter->num_events_queued);
 	}
 
 	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, target_pid, "downstream_event", dup_evt);
@@ -2081,6 +2111,10 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 
 	dup_evt = gf_malloc(sizeof(GF_FilterEvent));
 	memcpy(dup_evt, evt, sizeof(GF_FilterEvent));
+
+	if (evt->base.on_pid) {
+		safe_int_inc(&evt->base.on_pid->filter->num_events_queued);
+	}
 
 	gf_fs_post_task(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", dup_evt);
 }
@@ -2170,6 +2204,12 @@ GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_ti
 	return res;
 }
 
+u32 gf_filter_pid_get_timescale(GF_FilterPid *pid)
+{
+	GF_PropertyMap *map = pid ? gf_list_get(pid->pid->properties, 0) : 0;
+	return map ? map->timescale : 0;
+}
+
 void gf_filter_pid_clear_eos(GF_FilterPid *pid)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
@@ -2199,5 +2239,6 @@ const char *gf_filter_pid_get_args(GF_FilterPid *pid)
 	if (pid->pid->filter->src_args) return pid->pid->filter->src_args;
 	return pid->pid->filter->orig_args;
 }
+
 
 

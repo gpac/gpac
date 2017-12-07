@@ -104,17 +104,10 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 		gf_filter_pid_drop_packet(in_pid);
 
 		if (!group->pto_setup) {
-#ifdef FILTER_FIXME
-			GF_NetworkCommand com;
-			memset(&com, 0, sizeof(com));
-			com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
-			com.map_time.media_time = ctx->media_start_range;
-			com.map_time.timestamp = hdr->compositionTimeStamp;
-			com.base.on_channel =  ns;
-			gf_service_command(service, &com, GF_OK);
+			cts = gf_filter_pck_get_cts(in_pck);
+			gf_filter_pid_set_info_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
+			gf_filter_pid_set_info_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
 			group->pto_setup = GF_TRUE;
-#endif
-
 		}
 		return;
 	}
@@ -192,15 +185,8 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 	gf_filter_pid_drop_packet(in_pid);
 
 	if (do_map_time) {
-#ifdef FILTER_FIXME
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(com));
-		com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
-		com.map_time.media_time = ctx->media_start_range;
-		com.map_time.timestamp = hdr->compositionTimeStamp;
-		com.base.on_channel =  ns;
-		gf_service_command(service, &com, GF_OK);
-#endif
+		gf_filter_pid_set_info_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
+		gf_filter_pid_set_info_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
 	}
 }
 

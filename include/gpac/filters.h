@@ -341,6 +341,8 @@ const char *gf_filter_get_name(GF_Filter *filter);
 
 void gf_filter_make_sticky(GF_Filter *filter);
 
+u32 gf_filter_get_num_events_queued(GF_Filter *filter);
+
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter);
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next);
@@ -444,7 +446,9 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid);
 
 
 const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name);
 const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name);
 
 
 //signals EOS on a PID. Each filter needs to call this when EOS is reached on a given stream
@@ -471,6 +475,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char 
 GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
 void gf_filter_pck_unref(GF_FilterPacket *pck);
 
+//packet allocators. the packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) nd all other flags set to 0 (including SAP type)
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data);
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct);
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 data_size, GF_FilterPacket *reference);
@@ -502,6 +507,7 @@ const GF_PropertyValue *gf_filter_pck_enum_properties(GF_FilterPacket *pck, u32 
 GF_Err gf_filter_pck_set_framing(GF_FilterPacket *pck, Bool is_start, Bool is_end);
 GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_end);
 
+//sets DTS of the packet. Do not set if unknown - automatic packet duration is based on DTS diff if DTS is present, otherwise in CTS diff
 GF_Err gf_filter_pck_set_dts(GF_FilterPacket *pck, u64 dts);
 u64 gf_filter_pck_get_dts(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_cts(GF_FilterPacket *pck, u64 cts);
@@ -558,6 +564,8 @@ typedef enum
 GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType ctype);
 GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_val, u32 *timescale);
 
+u32 gf_filter_pid_get_timescale(GF_FilterPid *pid);
+
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number);
 u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck);
 
@@ -577,6 +585,7 @@ enum
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),
 	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
+	GF_PROP_PID_NO_TIME_CTRL = GF_4CC('!','T','C','T'),
 	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers
 	GF_PROP_PID_SCALABLE = GF_4CC('S','C','A','L'),
 	GF_PROP_PID_LANGUAGE = GF_4CC('P','L','A','N'),
@@ -604,7 +613,6 @@ enum
 	GF_PROP_PID_DECODER_CONFIG = GF_4CC('D','C','F','G'),
 	//(data) decoder config for enhancement
 	GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT = GF_4CC('E','C','F','G'),
-
 	//(uint) sample rate
 	GF_PROP_PID_SAMPLE_RATE = GF_4CC('A','U','S','R'),
 	//(uint) nb samples per audio frame
@@ -878,6 +886,7 @@ union __gf_filter_event
 };
 
 
+const char *gf_filter_event_name(u32 type);
 
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 

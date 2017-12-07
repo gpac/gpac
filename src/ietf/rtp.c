@@ -135,7 +135,7 @@ GF_EXPORT
 GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssrc)
 {
 	if (!ch) return GF_BAD_PARAM;
-	ch->rtp_time = rtp_time;
+	ch->CurrentTime = ch->rtp_time = seq_num ? (1 + rtp_time) : 0;
 	ch->last_pck_sn = 0;
 	ch->rtp_first_SN = seq_num;
 	ch->num_sn_loops = 0;
@@ -431,7 +431,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 
 	/*update RTP time if we didn't get the info*/
 	if (!ch->rtp_time) {
-		ch->rtp_time = rtp_hdr->TimeStamp;
+		ch->rtp_time = 1 + rtp_hdr->TimeStamp;
 		ch->rtp_first_SN = rtp_hdr->SequenceNumber;
 		ch->num_sn_loops = 0;
 	}
@@ -554,9 +554,9 @@ GF_EXPORT
 Double gf_rtp_get_current_time(GF_RTPChannel *ch)
 {
 	Double ret;
-	if (!ch) return 0.0;
+	if (!ch || !ch->rtp_time) return 0.0;
 	ret = (Double) ch->CurrentTime;
-	ret -= (Double) ch->rtp_time;
+	ret -= (Double) (ch->rtp_time-1);
 	ret /= ch->TimeScale;
 	return ret;
 }
