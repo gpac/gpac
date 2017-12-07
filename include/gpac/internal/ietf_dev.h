@@ -30,8 +30,6 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 
-#include <gpac/thread.h>
-
 /*
 			RTP intern
 */
@@ -220,10 +218,6 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	sprintf(temp, "%.4f", d);		\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, temp);
 
-/*default packet size, but resize on the fly if needed*/
-#define RTSP_PCK_SIZE			6000
-#define RTSP_TCP_BUF_SIZE		0x10000ul
-
 
 typedef struct
 {
@@ -273,7 +267,7 @@ struct _tag_rtsp_session
 	char RTSPLastRequest[40];
 
 	/*current buffer from TCP if any*/
-	char TCPBuffer[RTSP_TCP_BUF_SIZE];
+	char *tcp_buffer;
 	u32 CurrentSize, CurrentPos;
 
 	/*RTSP interleaving*/
@@ -286,10 +280,6 @@ struct _tag_rtsp_session
 
 	/*all RTP channels in an interleaved RTP on RTSP session*/
 	GF_List *TCPChannels;
-	/*thread-safe, full duplex library for PLAY and RECORD*/
-	GF_Mutex *mx;
-
-	char *MobileIP;
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);

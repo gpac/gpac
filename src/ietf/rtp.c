@@ -114,11 +114,14 @@ void gf_rtp_reset_buffers(GF_RTPChannel *ch)
 	if (ch->rtp) gf_sk_reset(ch->rtp);
 	if (ch->rtcp) gf_sk_reset(ch->rtcp);
 	if (ch->po) gf_rtp_reorderer_reset(ch->po);
-	/*also reset ssrc*/
-	//ch->SenderSSRC = 0;
 	ch->first_SR = 1;
 }
 
+GF_EXPORT
+void gf_rtp_reset_ssrc(GF_RTPChannel *ch)
+{
+	ch->SenderSSRC = 0;
+}
 
 GF_EXPORT
 void gf_rtp_enable_nat_keepalive(GF_RTPChannel *ch, u32 nat_timeout)

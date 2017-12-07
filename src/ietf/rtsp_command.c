@@ -451,7 +451,7 @@ GF_Err RTSP_ParseCommandHeader(GF_RTSPSession *sess, GF_RTSPCommand *com, u32 Bo
 	u32 Size;
 
 	Size = sess->CurrentSize - sess->CurrentPos;
-	buffer = sess->TCPBuffer + sess->CurrentPos;
+	buffer = sess->tcp_buffer + sess->CurrentPos;
 
 	//by default the command is wrong ;)
 	com->StatusCode = NC_RTSP_Bad_Request;
@@ -497,13 +497,11 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	if (!sess->connection) return GF_IP_CONNECTION_CLOSED;
 
 	//lock
-	gf_mx_p(sess->mx);
-
 	//fill TCP buffer
 	e = gf_rtsp_fill_buffer(sess);
 	if (e) goto exit;
 	//this is upcoming, interleaved data
-	if (strncmp(sess->TCPBuffer+sess->CurrentPos, "RTSP", 4)) {
+	if (strncmp(sess->tcp_buffer+sess->CurrentPos, "RTSP", 4)) {
 		e = GF_IP_NETWORK_EMPTY;
 		goto exit;
 	}
@@ -517,7 +515,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	//copy the body if any
 	if (!e && com->Content_Length) {
 		com->body = (char *) gf_malloc(sizeof(char) * (com->Content_Length));
-		memcpy(com->body, sess->TCPBuffer+sess->CurrentPos + BodyStart, com->Content_Length);
+		memcpy(com->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, com->Content_Length);
 	}
 	//reset TCP buffer
 	sess->CurrentPos += BodyStart + com->Content_Length;
@@ -565,7 +563,6 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	}
 
 exit:
-	gf_mx_v(sess->mx);
 	return e;
 }
 

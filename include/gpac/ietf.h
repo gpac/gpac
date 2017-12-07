@@ -400,9 +400,6 @@ void gf_rtsp_session_del(GF_RTSPSession *sess);
 
 GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize);
 
-/*force the IP address the client is using*/
-void gf_rtsp_set_mobile_ip(GF_RTSPSession *sess, char *MobileIP);
-
 
 /*Reset state machine, invalidate SessionID
 NOTE: RFC2326 requires that the session is reseted when all RTP streams
@@ -612,8 +609,11 @@ Otherwise this is the time in ms elapsed since the last PLAY range start value
 Not supported yet if played without RTSP (aka RTCP time not supported)*/
 Double gf_rtp_get_current_time(GF_RTPChannel *ch);
 
-
+//reset both sockets and packet reorderer
 void gf_rtp_reset_buffers(GF_RTPChannel *ch);
+
+//reset sender SSRC
+void gf_rtp_reset_ssrc(GF_RTPChannel *ch);
 
 /*read any data on UDP only (not valid for TCP). Performs re-ordering if configured for it
 returns amount of data read (raw UDP packet size)*/

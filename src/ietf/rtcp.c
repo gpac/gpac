@@ -94,7 +94,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			        || rtcp_hdr.Padding
 			   ) {
 				gf_bs_del(bs);
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTCP] Corrupted RTCP packet: payload type %d (200 or 201 expected) - Padding %d (0 expected)\n", rtcp_hdr.PayloadType, rtcp_hdr.Padding));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTCP] Corrupted RTCP packet: payload type %d (200 or 201 expected) - Padding %d (0 expected)\n", rtcp_hdr.PayloadType, rtcp_hdr.Padding));
 				return GF_CORRUPTED_DATA;
 			}
 			first = 0;
