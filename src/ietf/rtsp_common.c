@@ -65,7 +65,7 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 
 	*body_start = *body_size = 0;
 
-	buffer = sess->TCPBuffer + sess->CurrentPos;
+	buffer = sess->tcp_buffer + sess->CurrentPos;
 	start = gf_token_find(buffer, 0, sess->CurrentSize - sess->CurrentPos, "\r\n\r\n");
 	if (start<=0) {
 		return;
@@ -106,16 +106,16 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	if (!res) return gf_rtsp_fill_buffer(sess);
 
 	ptr = (char *)gf_malloc(sizeof(char) * res);
-	memcpy(ptr, sess->TCPBuffer+sess->CurrentPos, res);
-	memcpy(sess->TCPBuffer, ptr, res);
+	memcpy(ptr, sess->tcp_buffer + sess->CurrentPos, res);
+	memcpy(sess->tcp_buffer, ptr, res);
 	gf_free(ptr);
 
 	sess->CurrentPos = 0;
 	sess->CurrentSize = res;
 
 	//now read from current pos
-	e = gf_sk_receive(sess->connection, sess->TCPBuffer + sess->CurrentSize,
-	                  RTSP_TCP_BUF_SIZE - sess->CurrentSize,
+	e = gf_sk_receive(sess->connection, sess->tcp_buffer + sess->CurrentSize,
+	                  sess->SockBufferSize - sess->CurrentSize,
 	                  0, &res);
 
 	if (!e) {
@@ -132,9 +132,9 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 	if (!sess->connection) return GF_IP_NETWORK_EMPTY;
 
 	if (sess->CurrentSize == sess->CurrentPos) {
-		e = gf_sk_receive(sess->connection, sess->TCPBuffer, RTSP_TCP_BUF_SIZE, 0, &sess->CurrentSize);
+		e = gf_sk_receive(sess->connection, sess->tcp_buffer, sess->SockBufferSize, 0, &sess->CurrentSize);
 		sess->CurrentPos = 0;
-		sess->TCPBuffer[sess->CurrentSize] = 0;
+		sess->tcp_buffer[sess->CurrentSize] = 0;
 		if (e) sess->CurrentSize = 0;
 	} else if (!sess->CurrentSize) e = GF_IP_NETWORK_EMPTY;
 	return e;

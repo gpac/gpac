@@ -325,7 +325,7 @@ GF_Err RTSP_ParseResponseHeader(GF_RTSPSession *sess, GF_RTSPResponse *rsp, u32 
 	u32 Size;
 
 	Size = sess->CurrentSize - sess->CurrentPos;
-	buffer = sess->TCPBuffer + sess->CurrentPos;
+	buffer = sess->tcp_buffer + sess->CurrentPos;
 
 	//parse first line
 	ret = gf_token_get_line(buffer, 0, Size, LineBuffer, 1024);
@@ -376,11 +376,6 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (!sess || !rsp) return GF_BAD_PARAM;
 	gf_rtsp_response_reset(rsp);
 
-
-	//LOCK
-	gf_mx_p(sess->mx);
-
-
 	e = gf_rtsp_check_connection(sess);
 	if (e)
 		goto exit;
@@ -391,7 +386,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		goto exit;
 
 	//this is interleaved data
-	if (!IsRTSPMessage(sess->TCPBuffer+sess->CurrentPos) ) {
+	if (!IsRTSPMessage(sess->tcp_buffer+sess->CurrentPos) ) {
 		gf_rtsp_session_read(sess);
 		e = GF_IP_NETWORK_EMPTY;
 		goto exit;
@@ -407,10 +402,10 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//copy the body if any
 	if (!e && rsp->Content_Length) {
 		rsp->body = (char *)gf_malloc(sizeof(char) * (rsp->Content_Length));
-		memcpy(rsp->body, sess->TCPBuffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
+		memcpy(rsp->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Response:\n%s\n", sess->TCPBuffer+sess->CurrentPos));
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Response:\n%s\n", sess->tcp_buffer+sess->CurrentPos));
 
 	//reset TCP buffer
 	sess->CurrentPos += BodyStart + rsp->Content_Length;
@@ -438,7 +433,6 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//to an aggreagated sequence of requests
 	//if we have reseted the connection (due to an APP error) return empty
 	if (rsp->CSeq && sess->CSeq > rsp->CSeq + sess->NbPending) {
-		gf_mx_v(sess->mx);
 		return gf_rtsp_get_response(sess, rsp);
 	}
 
@@ -478,8 +472,6 @@ exit:
 			sess->http = NULL;
 		}
 	}
-
-	gf_mx_v(sess->mx);
 	return e;
 }
 
