@@ -40,6 +40,7 @@
 #define RTSP_BUFFER_SIZE		5000
 
 typedef struct _rtsp_session GF_RTPInRTSP;
+typedef struct __rtpin_stream GF_RTPInStream;
 
 /*the rtsp/rtp client*/
 typedef struct
@@ -52,7 +53,9 @@ typedef struct
 	u32 bandwidth, reorder_len, reorder_delay, nat_keepalive, block_size;
 	Bool disable_rtcp;
 	u32 default_port;
-	u32 rtsp_time_out, udp_time_out, rtcp_time_out, stats;
+	u32 rtsp_timeout, udp_timeout, rtcp_timeout, stats;
+	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
+	u32 interleave;
 
 	//internal
 
@@ -70,8 +73,6 @@ typedef struct
 	GF_List *streams;
 
 	/*RTSP config*/
-	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
-	u32 transport_mode;
 
 	/*packet drop emulation*/
 	u32 first_packet_drop;
@@ -82,13 +83,16 @@ typedef struct
 
 	GF_Descriptor *iod_desc;
 
+	GF_RTPInStream *postponed_play_stream;
+	GF_FEVT_Play postponed_play;
+
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 
 	Double last_ntp;
 
-	Bool is_scalable;
-
+	Bool is_scalable, done, retry_tcp;
+	
 	u32 cur_mid;
 } GF_RTPIn;
 
@@ -157,6 +161,8 @@ enum
 	RTP_Disconnected,
 	/*service/channel is not (no longer) available/found and should be removed*/
 	RTP_Unavailable,
+	/*service/channel is not (no longer) available/found and should be removed*/
+	RTP_WaitForTCPRetry,
 };
 
 
@@ -193,7 +199,7 @@ enum
 };
 
 /*rtp channel*/
-typedef struct
+struct __rtpin_stream
 {
 	/*module*/
 	GF_RTPIn *rtpin;
@@ -253,7 +259,7 @@ typedef struct
 
 	u32 rtcp_check_start;
 	u64 ts_offset;
-} GF_RTPInStream;
+};
 
 /*creates new RTP stream from SDP info*/
 GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, GF_RTPInStream *input_stream);

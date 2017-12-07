@@ -44,7 +44,7 @@ GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly)
 
 	if (!ResetOnly) {
 		const char *ip_ifce = NULL;
-		if (!stream->rtpin->transport_mode) {
+		if (!stream->rtpin->interleave) {
 			ip_ifce = stream->rtpin->mcast_ifce;
 		}
 		return gf_rtp_initialize(stream->rtp_ch, stream->rtpin->block_size, GF_FALSE, 0, stream->rtpin->reorder_len, stream->rtpin->reorder_delay, (char *)ip_ifce);
@@ -106,10 +106,10 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 			stream->rtcp_check_start = gf_sys_clock();
 			return;
 		}
-		else if (gf_sys_clock() - stream->rtcp_check_start <= stream->rtpin->rtcp_time_out) {
+		else if (gf_sys_clock() - stream->rtcp_check_start <= stream->rtpin->rtcp_timeout) {
 			return;
 		}
-		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Timeout for RTCP: no SR recevied after %d ms - forcing playback, sync may be broken\n", stream->rtpin->rtcp_time_out));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Timeout for RTCP: no SR recevied after %d ms - forcing playback, sync may be broken\n", stream->rtpin->rtcp_timeout));
 		stream->rtcp_init = GF_TRUE;
 	}
 
@@ -586,7 +586,7 @@ static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size
 GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbk, char *buffer, u32 bufferSize, Bool IsRTCP)
 {
 	GF_RTPInStream *stream = (GF_RTPInStream *) cbk;
-	if (!stream) return GF_OK;
+	if (!stream || stream->rtpin->done) return GF_OK;
 	if (IsRTCP) {
 		rtpin_stream_on_rtcp_pck(stream, buffer, bufferSize);
 	} else {
@@ -632,20 +632,20 @@ void rtpin_stream_read(GF_RTPInStream *stream)
 	/*and send the report*/
 	if (stream->flags & RTP_ENABLE_RTCP) gf_rtp_send_rtcp_report(stream->rtp_ch, rtpin_rtsp_tcp_send_report, stream);
 
-	if (tot_size) stream->rtpin->udp_time_out = 0;
+	if (tot_size) stream->rtpin->udp_timeout = 0;
 
 	/*detect timeout*/
-	if (stream->rtpin->udp_time_out) {
+	if (stream->rtpin->udp_timeout) {
 		if (!stream->last_udp_time) {
 			stream->last_udp_time = gf_sys_clock();
 		} else if (stream->rtp_ch->net_info.IsUnicast) {
 			u32 diff = gf_sys_clock() - stream->last_udp_time;
-			if (diff >= stream->rtpin->udp_time_out) {
+			if (diff >= stream->rtpin->udp_timeout) {
 				char szMessage[1024];
 				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms\n", diff));
-				sprintf(szMessage, "No data received in %d ms", diff);
+				sprintf(szMessage, "No data received in %d ms, retrying using TCP", diff);
 				rtpin_send_message(stream->rtpin, GF_IP_UDP_TIMEOUT, szMessage);
-				stream->status = RTP_Unavailable;
+				stream->rtpin->retry_tcp = GF_TRUE;
 			}
 		}
 	}

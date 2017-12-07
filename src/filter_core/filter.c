@@ -1102,7 +1102,23 @@ void gf_filter_make_sticky(GF_Filter *filter)
 	if (filter) filter->sticky = GF_TRUE;
 }
 
+//recursievely go up the filter chain and count queued events
+//THIS FUNCTION IS NOT THREAD SAFE
 u32 gf_filter_get_num_events_queued(GF_Filter *filter)
 {
-	return filter ? filter->num_events_queued : 0;
+	u32 i;
+	u32 nb_events = 0;
+	if (!filter) return 0;
+	nb_events = filter->num_events_queued;
+
+	for (i=0; i<filter->num_output_pids; i++) {
+		u32 k;
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		for (k=0; k<pid->num_destinations; k++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
+			nb_events += gf_filter_get_num_events_queued(pidi->filter);
+		}
+	}
+	return nb_events;
 }
+

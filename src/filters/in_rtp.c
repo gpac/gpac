@@ -311,10 +311,17 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			rtpin_check_setup(stream);
 
 			//if not aggregated control or no more queued events send a play
-			if (! (stream->rtsp->flags & RTSP_AGG_CONTROL)
-				|| (gf_filter_get_num_events_queued(filter)==0)
-			) {
+			if (! (stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
 				rtpin_rtsp_usercom_send(stream->rtsp, stream, evt);
+			} else {
+			//tricky point here: the play events may get at different times depending on the length
+			//of each filter chain connected to our output pids.
+			//we store the event and wait for no more pending events
+				if (!ctx->postponed_play_stream) {
+					ctx->postponed_play = evt->play;
+					ctx->postponed_play_stream = stream;
+				}
+				return GF_TRUE;
 			}
 		} else {
 			stream->status = RTP_Running;
@@ -367,6 +374,15 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_TRUE;
 }
 
+static void rtpin_rtsp_flush(GF_RTPInRTSP *session)
+{
+	/*process teardown on all sessions*/
+	while (!session->connect_error) {
+		if (!gf_list_count(session->rtsp_commands))
+			break;
+		rtpin_rtsp_process_commands(session);
+	}
+}
 
 static GF_Err rtpin_process(GF_Filter *filter)
 {
@@ -394,6 +410,74 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		//we act as a source filter, request process task
 		gf_filter_post_process_task(filter);
 	}
+
+	if (ctx->postponed_play_stream) {
+		GF_FilterEvent evt;
+		if (gf_filter_get_num_events_queued(filter))
+			return GF_OK;
+		stream = ctx->postponed_play_stream;
+		ctx->postponed_play_stream = NULL;
+		evt.play = ctx->postponed_play;
+		rtpin_rtsp_usercom_send(stream->rtsp, stream, &evt);
+	}
+
+
+	if (ctx->retry_tcp) {
+		GF_FilterEvent evt;
+		Bool send_agg_play = GF_TRUE;
+		GF_List *streams = gf_list_new();
+		ctx->retry_tcp = GF_FALSE;
+		ctx->interleave = 1;
+		i=0;
+		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
+			if (stream->status >= RTP_Setup) {
+				gf_list_add(streams, stream);
+			}
+		}
+		rtpin_rtsp_flush(ctx->session);
+		/*send teardown*/
+		rtpin_rtsp_teardown(ctx->session, NULL);
+		rtpin_rtsp_flush(ctx->session);
+		//for safety reset the session, some servers don't handle teardown that well
+		gf_rtsp_session_reset(ctx->session->session, GF_TRUE);
+
+		ctx->session->flags |= RTSP_FORCE_INTER;
+		evt.play = ctx->postponed_play;
+		if (!evt.base.type) evt.base.type = GF_FEVT_PLAY;
+		gf_rtsp_set_buffer_size(ctx->session->session, ctx->block_size);
+
+		stream = NULL;
+		for (i=0; i<gf_list_count(streams); i++) {
+			stream = (GF_RTPInStream *)gf_list_get(streams, i);
+			//reset status
+			stream->status = RTP_Disconnected;
+			//reset all dynamic flags
+			stream->flags &= ~(RTP_EOS | RTP_SKIP_NEXT_COM | RTP_CONNECTED);
+			//mark as interleaved
+			stream->flags |= RTP_INTERLEAVED;
+			//reset SSRC since wome servers don't include it in interleave response
+			gf_rtp_reset_ssrc(stream->rtp_ch);
+
+			//send setup
+			rtpin_check_setup(stream);
+			rtpin_rtsp_flush(ctx->session);
+
+			//if not aggregated control or no more queued events send a play
+			if (! (stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
+				evt.base.on_pid = stream->opid;
+				rtpin_rtsp_usercom_send(stream->rtsp, stream, &evt);
+				send_agg_play = GF_FALSE;
+			}
+			rtpin_rtsp_flush(ctx->session);
+		}
+		if (stream && send_agg_play) {
+			evt.base.on_pid = stream->opid;
+			rtpin_rtsp_usercom_send(ctx->session, stream, &evt);
+		}
+
+		gf_list_del(streams);
+	}
+
 
 	/*fecth data on udp*/
 	i=0;
@@ -429,8 +513,9 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 
 	ctx->streams = gf_list_new();
 	ctx->filter = filter;
+	//turn on interleave on http port
 	if ((ctx->default_port == 80) || (ctx->default_port == 8080))
-		ctx->transport_mode = 1;
+		ctx->interleave = 1;
 
 	//sdp mode, we will have a configure_pid
 	if (!ctx->src) return GF_OK;
@@ -459,20 +544,11 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-static void rtpin_rtsp_flush(GF_RTPInRTSP *session)
-{
-	/*process teardown on all sessions*/
-	while (!session->connect_error) {
-		if (!gf_list_count(session->rtsp_commands))
-			break;
-		rtpin_rtsp_process_commands(session);
-	}
-}
 
 static void rtpin_finalize(GF_Filter *filter)
 {
 	GF_RTPIn *ctx = gf_filter_get_udta(filter);
-
+	ctx->done = GF_TRUE;
 	if (ctx->session) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Closing RTSP service\n"));
 		rtpin_rtsp_flush(ctx->session);
@@ -519,10 +595,10 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(default_port), "Sets default RTSP port", GF_PROP_UINT, "554", "0-65535", GF_FALSE},
 	{ OFFS(satip_port), "Sets default port for SATIP", GF_PROP_UINT, "1400", "0-65535", GF_FALSE},
 
-	{ OFFS(transport_mode), "Sets RTP over RTSP", GF_PROP_UINT, "no", "no|yes|critical", GF_FALSE},
-	{ OFFS(udp_time_out), "Default timeout before considering UDP is down", GF_PROP_UINT, "10000", NULL, GF_FALSE},
-	{ OFFS(rtsp_time_out), "Default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, GF_FALSE},
-	{ OFFS(rtcp_time_out), "Default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FALSE},
+	{ OFFS(interleave), "Sets RTP over RTSP; critcial uses interleave only for MPEG-4 systems streams", GF_PROP_BOOL, "no", "no|yes|critical", GF_FALSE},
+	{ OFFS(udp_timeout), "Default timeout before considering UDP is down", GF_PROP_UINT, "10000", NULL, GF_FALSE},
+	{ OFFS(rtsp_timeout), "Default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, GF_FALSE},
+	{ OFFS(rtcp_timeout), "Default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FALSE},
 
 	{ OFFS(first_packet_drop), "Sets number of first RTP packet to drop - 0 if no drop", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(frequency_drop), "Drop 1 out of N packet - 0 disable droping", GF_PROP_UINT, "0", NULL, GF_FALSE},
