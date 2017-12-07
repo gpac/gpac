@@ -690,7 +690,6 @@ void gf_odm_start(GF_ObjectManager *odm)
 		}
 	}
 	gf_odm_play(odm);
-
 }
 
 void gf_odm_play(GF_ObjectManager *odm)
@@ -1419,6 +1418,9 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			gf_clock_set_time(odm->ck, time);
 			if (odm->parentscene)
 				odm->parentscene->root_od->media_start_time = 0;
+
+			gf_odm_check_clock_mediatime(odm);
+
 		}
 		//TODO abort buffering when errors are found on the input chain !!
 		if (buffer_duration >= odm->buffer_playout_us) {
@@ -1786,4 +1788,32 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	return GF_OK;
 }
 
+//adjust media time info in case the timestamp found at init is not media time 0
+void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
+{
+	u64 timestamp;
+	u32 timescale;
+	Double media_time, shift;
+	const GF_PropertyValue *p;
+	if (!odm->owns_clock) return;
+
+	if (odm->ck->has_media_time_shift) return;
+
+	timescale = gf_filter_pid_get_timescale(odm->pid);
+	if (!timescale) return;
+
+	p = gf_filter_pid_get_info_str(odm->pid, "time:timestamp");
+	if (!p) return;
+	timestamp = p->value.longuint;
+	p = gf_filter_pid_get_info_str(odm->pid, "time:media");
+	if (!p) return;
+	media_time = p->value.number;
+
+	shift = timestamp;
+	shift /= timescale;
+	shift -= ((Double)odm->ck->init_timestamp)/1000;
+	media_time += shift;
+	odm->ck->media_time_at_init = (media_time * 1000);
+	odm->ck->has_media_time_shift = GF_TRUE;
+}
 

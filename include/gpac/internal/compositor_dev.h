@@ -1866,6 +1866,8 @@ struct _object_clock
 	Bool has_media_time_shift;
 
 	u32 ocr_discontinuity_time;
+	//we increment this one at each reset, and ask the filter chain to mark packets with this flag
+	u32 timeline_id;
 };
 
 /*destroys clock*/
@@ -2131,7 +2133,7 @@ void gf_odm_signal_eos_reached(GF_ObjectManager *odm);
 
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
 
-void gf_odm_setup_task(GF_ObjectManager *odm);
+void gf_odm_check_clock_mediatime(GF_ObjectManager *odm);
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
 MediaObject and an ObjectManager, we have to keep them separated in order to handle OD remove commands which destroy

@@ -33,6 +33,7 @@ GF_Clock *NewClock(GF_Compositor *compositor)
 	tmp->mx = gf_mx_new("Clock");
 	tmp->compositor = compositor;
 	tmp->speed = FIX_ONE;
+	tmp->timeline_id = 1;
 	tmp->data_timeout = compositor->net_data_timeout;
 	return tmp;
 }
@@ -145,6 +146,7 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->has_seen_eos = 0;
 	ck->media_time_at_init = 0;
 	ck->has_media_time_shift = 0;
+	ck->timeline_id++;
 }
 
 void gf_clock_set_time(GF_Clock *ck, u32 TS)
@@ -286,50 +288,3 @@ void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift)
 	if (ck) ck->drift = ms_drift;
 }
 
-
-/*handle clock discontinuity - for now we only reset timing of all received data and reinit the clock*/
-void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity)
-{
-#ifdef FILTER_FIXME
-	u32 i, j;
-	GF_Channel *ch;
-	GF_ObjectManager *odm;
-
-	/*check all channels and reset timing */
-	i=0;
-	while ((ch = (GF_Channel*)gf_list_enum(scene->root_od->channels, &i))) {
-		if (ch->clock == ck) {
-			gf_es_reset_timing(ch, is_pcr_discontinuity);
-		}
-	}
-	j=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &j))) {
-		if (odm->state==GF_ODM_STATE_STOP)
-			continue;
-
-		i=0;
-		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
-			if (ch->clock == ck) {
-				gf_es_reset_timing(ch, is_pcr_discontinuity);
-
-				ch->CTS = ch->DTS = 0;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
-			}
-		}
-	}
-
-	gf_scene_reset_addons(scene);
-
-	if (ck->has_media_time_shift) {
-		u32 new_media_time = ck->media_time_at_init + gf_clock_time(ck) - ck->init_timestamp;
-
-		gf_clock_reset(ck);
-
-		ck->has_media_time_shift = 1;
-		ck->media_time_at_init = new_media_time;
-	} else {
-		gf_clock_reset(ck);
-	}
-#endif
-
-}

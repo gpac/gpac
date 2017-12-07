@@ -316,6 +316,9 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
 		}
 	}
+	else if (!strnicmp(value, "$GPAC_LANGUAGES", 15)) {
+		value = "English";
+	}
 	argv = gf_props_parse_value(type, name, value, enum_values);
 	return argv;
 }
@@ -435,6 +438,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			escaped = strstr(sep, ":gpac:");
 			if (escaped) sep = escaped;
 		}
+		if (!strncmp(args, "src=", 4) && !escaped) sep = NULL;
 
 		if (sep) len = sep-args;
 		else len = strlen(args);
@@ -1098,3 +1102,7 @@ void gf_filter_make_sticky(GF_Filter *filter)
 	if (filter) filter->sticky = GF_TRUE;
 }
 
+u32 gf_filter_get_num_events_queued(GF_Filter *filter)
+{
+	return filter ? filter->num_events_queued : 0;
+}

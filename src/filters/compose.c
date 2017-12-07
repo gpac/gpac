@@ -242,6 +242,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_INFO_UPDATE:
 		odm = gf_filter_pid_get_udta(evt->base.on_pid);
 		gf_odm_update_duration(odm, evt->base.on_pid);
+		gf_odm_check_clock_mediatime(odm);
 		break;
 	//event(s) we trigger on ourselves to go up the filter chain
 	case GF_FEVT_CAPS_CHANGE:

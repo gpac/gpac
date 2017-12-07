@@ -68,6 +68,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				}
 				p.value.uint = val;
 			}
+		} else if (!strnicmp(value, "0x", 2)) {
+			if (sscanf(value, "0x%x", &p.value.uint)!=1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			}
 		} else if (sscanf(value, "%d", &p.value.uint)!=1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 		}
@@ -495,6 +499,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
+	{ GF_PROP_PID_NO_TIME_CTRL, "NoTimeControl", "Indicates time control is not possible on this pid", GF_PROP_BOOL},
 	{ GF_PROP_PID_SCALABLE, "Scalable", "Stream is a scalable stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_LANGUAGE, "Language", "Language name for this PID", GF_PROP_NAME},
 	{ GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service of this PID", GF_PROP_STRING},

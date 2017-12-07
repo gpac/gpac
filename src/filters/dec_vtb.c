@@ -1331,6 +1331,18 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 #endif
 
+static Bool vtbdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *) gf_filter_get_udta(filter);
+	if (evt->base.type==GF_FEVT_PLAY) {
+		while (gf_list_count(ctx->frames) ) {
+			GF_VTBHWFrame *f = gf_list_pop_back(ctx->frames);
+			gf_list_add(ctx->frames_res, f);
+		}
+	}
+	return GF_FALSE;
+}
+
 static GF_Err vtbdec_initialize(GF_Filter *filter)
 {
 	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *) gf_filter_get_udta(filter);
@@ -1423,6 +1435,7 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	.finalize = vtbdec_finalize,
 	.configure_pid = vtbdec_configure_pid,
 	.process = vtbdec_process,
+	.process_event = vtbdec_process_event,
 };
 
 #endif // !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )

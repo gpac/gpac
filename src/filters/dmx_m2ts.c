@@ -63,6 +63,9 @@ typedef struct
 	u64 first_pcr_found;
 	u16 pcr_pid;
 	u64 nb_pck_at_pcr;
+
+	u32 map_time_on_prog_id;
+	Double media_start_range;
 } GF_M2TSDmxCtx;
 
 
@@ -545,11 +548,16 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	{
 		u32 i, count;
 		u64 pcr;
+		Bool map_time = GF_FALSE;
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
 
 		assert(pck->stream);
 		m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
+
+		if (ctx->map_time_on_prog_id && (ctx->map_time_on_prog_id==pck->stream->program->number)) {
+			map_time = GF_TRUE;
+		}
 
 		//we forward the PCR on each pid
 		pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
@@ -564,6 +572,15 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			gf_filter_pck_set_cts(dst_pck, pcr);
 			gf_filter_pck_set_clock_type(dst_pck, discontinuity ? GF_FILTER_CLOCK_PCR_DISC : GF_FILTER_CLOCK_PCR);
 			gf_filter_pck_send(dst_pck);
+
+			if (map_time) {
+				gf_filter_pid_set_info_str(stream->user, "time:timestamp", &PROP_LONGUINT(pcr) );
+				gf_filter_pid_set_info_str(stream->user, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
+			}
+		}
+
+		if (map_time) {
+			ctx->map_time_on_prog_id = 0;
 		}
 	}
 		break;
@@ -785,6 +802,10 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			ctx->initial_play_done = GF_TRUE;
 			return GF_FALSE;
 		}
+
+		ctx->map_time_on_prog_id = pes->program->number;
+		ctx->media_start_range = com->play.start_range;
+
 
 		if (ctx->is_file && ctx->duration.num) {
 			file_pos = ctx->file_size * com->play.start_range;

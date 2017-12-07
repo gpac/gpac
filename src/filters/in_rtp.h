@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / RTP input module
+ *  This file is part of GPAC / RTP/RTSP input filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -23,81 +23,74 @@
  *
  */
 
-#ifndef RTP_IN_H
-#define RTP_IN_H
+#ifndef _IN_RTP_H_
+#define _IN_RTP_H_
 
 /*module interface*/
-#include <gpac/modules/service.h>
+#include <gpac/filters.h>
+#include <gpac/constants.h>
 #ifndef GPAC_DISABLE_STREAMING
 
-#include <gpac/thread.h>
-#include <gpac/constants.h>
 #include <gpac/base_coding.h>
+#include <gpac/mpeg4_odf.h>
 /*IETF lib*/
 #include <gpac/ietf.h>
 
 
-#define RTP_BUFFER_SIZE			0x100000ul
 #define RTSP_BUFFER_SIZE		5000
-#define RTSP_TCP_BUFFER_SIZE    0x100000ul
-#define RTSP_LANGUAGE		"English"
 
+typedef struct _rtsp_session GF_RTPInRTSP;
 
 /*the rtsp/rtp client*/
 typedef struct
 {
+	//opts
+	char *src;
+	u32 firstport, mcast_ttl, satip_port;
+	const char *mcast_ifce, *force_mcast, *user_agent, *languages;
+	Bool use_client_ports;
+	u32 bandwidth, reorder_len, reorder_delay, nat_keepalive, block_size;
+	Bool disable_rtcp;
+	u32 default_port;
+	u32 rtsp_time_out, udp_time_out, rtcp_time_out, stats;
+
+	//internal
+
+	GF_Filter *filter;
+	
 	/*the service we're responsible for*/
-	GF_ClientService *service;
+	GF_FilterPid *ipid;
+	u32 sdp_url_crc;
+	Bool sdp_loaded;
 
-	/*the one and only IOD*/
-	GF_Descriptor *session_desc;
+	/*one and only RTSP session*/
+	GF_RTPInRTSP *session;
 
-	/*RTSP sessions*/
-	GF_List *sessions;
-	/*RTP/RTCP media channels*/
-	GF_List *channels;
-
-	/*sdp downloader*/
-	GF_DownloadSession * dnload;
-	/*initial sdp download if any (temp storage)*/
-	struct _sdp_fetch *sdp_temp;
-
-	/*RTSP communication/deinterleaver thread*/
-	GF_Mutex *mx;
-	GF_Thread *th;
-	u32 th_state;
+	/*RTP/RTCP media streams*/
+	GF_List *streams;
 
 	/*RTSP config*/
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
 	u32 transport_mode;
-	/*default RTSP port*/
-	u16 default_port;
-	/*signaling timeout in msec*/
-	u32 time_out;
-	/*udp timeout in msec*/
-	u32 udp_time_out;
 
 	/*packet drop emulation*/
 	u32 first_packet_drop;
 	u32 frequency_drop;
 
 	/*for single-object control*/
-	u32 media_type;
+	u32 stream_type;
 
-	/*session state data, formatyed as "data:application/sdp;SDPDATA"*/
-	char *session_state_data;
+	GF_Descriptor *iod_desc;
 
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 
 	Double last_ntp;
 
-	Bool session_migration;
-
 	Bool is_scalable;
 
 	u32 cur_mid;
-} RTPClient;
+} GF_RTPIn;
 
 enum
 {
@@ -110,12 +103,12 @@ enum
 };
 
 /*rtsp session*/
-typedef struct _rtp_session
+struct _rtsp_session
 {
 	u32 flags;
 
 	/*owner*/
-	RTPClient *owner;
+	GF_RTPIn *rtpin;
 
 	/*RTSP session object*/
 	GF_RTSPSession *session;
@@ -136,20 +129,18 @@ typedef struct _rtp_session
 	/*SAT>IP uses a non-conformant version of RTSP*/
 	Bool satip;
 	char *satip_server;
-} RTSPSession;
+};
 
 /*creates new RTSP session handler*/
-RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control);
+GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control);
 /*disconnects and destroy RTSP session handler - if immediate_shutdown do not wait for response*/
-void RP_DelSession(RTSPSession *sess);
+void rtpin_rtsp_del(GF_RTPInRTSP *sess);
 /*check session by control string*/
-RTSPSession *RP_CheckSession(RTPClient *rtp, char *control);
+GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control);
 
-void RP_SetupObjects(RTPClient *rtp);
+void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess);
 
-void RP_ProcessCommands(RTSPSession *sess);
-
-void RP_SendMessage(GF_ClientService *service, GF_Err e, const char *message);
+void rtpin_send_message(GF_RTPIn *ctx, GF_Err e, const char *message);
 
 /*RTP channel state*/
 enum
@@ -166,9 +157,6 @@ enum
 	RTP_Disconnected,
 	/*service/channel is not (no longer) available/found and should be removed*/
 	RTP_Unavailable,
-
-	RTP_SessionResume
-
 };
 
 
@@ -195,10 +183,6 @@ enum
 	RTP_CONNECTED = (1<<5),
 	/*EOS signaled (RTCP or range-based)*/
 	RTP_EOS = (1<<6),
-
-	/*RTP stream is using mobileIP - this will disable RTP over RTSP*/
-	RTP_MOBILEIP = (1<<7),
-
 };
 
 enum
@@ -208,19 +192,17 @@ enum
 	RTP_SET_TIME_RTP_SEEK,
 };
 
-#define RTCP_DEFAULT_TIMEOUT_MS	5000
-
 /*rtp channel*/
 typedef struct
 {
 	/*module*/
-	RTPClient *owner;
+	GF_RTPIn *rtpin;
 
 	/*channel flags*/
 	u32 flags;
 
 	/*control session (may be null)*/
-	RTSPSession *rtsp;
+	GF_RTPInRTSP *rtsp;
 	/*session ID for independent stream control*/
 	char *session_id;
 
@@ -230,15 +212,17 @@ typedef struct
 	/*depacketizer*/
 	GF_RTPDepacketizer *depacketizer;
 
-	/*logical app channel*/
-	LPNETCHANNEL channel;
+	GF_FilterPid *opid;
+
 	u32 status;
 
+	u32 last_stats_time;
+	
 	u32 ES_ID, OD_ID;
 	char *control;
 
 	/*rtp receive buffer*/
-	char buffer[RTP_BUFFER_SIZE];
+	char *buffer;
 	/*set at play/seek stages to sync app NPT to RTP time (RTSP) or NTP to RTP (RTCP)
 	*/
 	u32 check_rtp_time;
@@ -256,6 +240,10 @@ typedef struct
 	u32 rtp_bytes, rtcp_bytes, stat_start_time, stat_stop_time;
 	u32 ts_res;
 
+	//MPEG-4 deinterleaver
+	Bool first_in_rtp_pck;
+	GF_List *pck_queue;
+
 	/*stream id*/
 	u32 mid;
 
@@ -264,67 +252,35 @@ typedef struct
 	u32 base_stream;
 
 	u32 rtcp_check_start;
-
 	u64 ts_offset;
-	
-	/*SAT>IP M2TS demux*/
-	GF_InputService *satip_m2ts_ifce;
-	Bool satip_m2ts_service_connected;
-} RTPStream;
-
-GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration);
-
+} GF_RTPInStream;
 
 /*creates new RTP stream from SDP info*/
-RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTPStream *input_stream);
+GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, GF_RTPInStream *input_stream);
 /*creates new SAT>IP stream*/
-RTPStream *RP_NewSatipStream(RTPClient *rtp, const char *server_ip);
+GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip);
 /*destroys RTP stream */
-void RP_DeleteStream(RTPStream *ch);
+void rtpin_stream_del(GF_RTPInStream *stream);
 /*resets stream state and inits RTP sockets if ResetOnly is false*/
-GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly);
+GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly);
 
 /*RTSP -> RTP de-interleaving callback*/
-GF_Err RP_DataOnTCP(GF_RTSPSession *sess, void *cbck, char *buffer, u32 bufferSize, Bool IsRTCP);
+GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbck, char *buffer, u32 bufferSize, Bool IsRTCP);
 /*send confirmation of connection - if no error, also setup SL based on payload*/
-void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e);
-
-/*fetch sdp file - stream is the RTP channel this sdp describes, or NULL if session sdp*/
-void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_url);
+void rtpin_stream_ack_connect(GF_RTPInStream *stream, GF_Err e);
 
 /*locate RTP stream by channel or ES_ID or control*/
-RTPStream *RP_FindChannel(RTPClient *rtp, LPNETCHANNEL ch, u32 ES_ID, char *es_control, Bool remove_stream);
+GF_RTPInStream *rtpin_find_stream(GF_RTPIn *rtp, GF_FilterPid *opid, u32 ES_ID, char *es_control, Bool remove_stream);
 /*adds channel to session identified by session_control. If no session exists, the session is created if needed*/
-GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control);
+GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_control);
 /*removes stream from session*/
-void RP_RemoveStream(RTPClient *rtp, RTPStream *ch);
+void rtpin_remove_stream(GF_RTPIn *rtp, GF_RTPInStream *stream);
 /*reads input socket and process*/
-void RP_ReadStream(RTPStream *ch);
-
-/*parse RTP payload for MPEG4*/
-void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
-/*parse RTP payload for MPEG12*/
-void RP_ParsePayloadMPEG12(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
-/*parse RTP payload for AMR*/
-void RP_ParsePayloadAMR(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
-/*parse RTP payload for H263+*/
-void RP_ParsePayloadH263(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
-/*parse RTP payload for 3GPP Text*/
-void RP_ParsePayloadText(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
-/*parse RTP payload for H264/AVC*/
-void RP_ParsePayloadH264(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
-/*parse RTP payload for LATM audio*/
-void RP_ParsePayloadLATM(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
+void rtpin_stream_read(GF_RTPInStream *stream);
 
 /*load SDP and setup described media in SDP. If stream is null this is the root
 SDP and IOD will be extracted, otherwise this a channel SDP*/
-void RP_LoadSDP(RTPClient *rtp, char *sdp, u32 sdp_len, RTPStream *stream);
-
-/*returns 1 if payload type is supported*/
-u32 payt_get_type(RTPClient *rtp, GF_RTPMap *map, GF_SDPMedia *media);
-/*setup payload type, returns 1 if success, 0 otherwise (in which case the stream will be deleted)*/
-Bool payt_setup(RTPStream *st, GF_RTPMap *map, GF_SDPMedia *media);
-
+void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp, u32 sdp_len, GF_RTPInStream *stream);
 
 /*RTSP signaling is handled by stacking commands and processing them
 in the main session thread. Each RTSP command has an associated private stack as follows*/
@@ -333,55 +289,37 @@ in the main session thread. Each RTSP command has an associated private stack as
 typedef struct
 {
 	u32 ES_ID;
-	LPNETCHANNEL channel;
+	GF_FilterPid *opid;
 	char *esd_url;
-} ChannelDescribe;
+} RTPIn_StreamDescribe;
 
 typedef struct
 {
-	RTPStream *ch;
-	GF_NetworkCommand com;
-} ChannelControl;
+	GF_RTPInStream *stream;
+	GF_FilterEvent evt;
+} RTPIn_StreamControl;
 
 /*RTSP signaling */
-Bool RP_PreprocessDescribe(RTSPSession *sess, GF_RTSPCommand *com);
-GF_Err RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
-void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
-void RP_ProcessTeardown(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
-Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com);
-void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
+Bool rtpin_rtsp_describe_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com);
+GF_Err rtpin_rtsp_describe_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e);
+void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e);
+void rtpin_rtsp_teardown_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e);
+Bool rtpin_rtsp_usercom_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com);
+void rtpin_rtsp_usercom_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e);
 
 /*send describe - if esd_url is given, this is a describe on es*/
-void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel);
+void rtpin_rtsp_describe_send(GF_RTPInRTSP *sess, char *esd_url, GF_FilterPid *opid);
 /*send setup for stream*/
-void RP_Setup(RTPStream *ch);
+void rtpin_rtsp_setup_send(GF_RTPInStream *stream);
 /*filter setup if no session (rtp only), otherwise setup channel - ch_desc may be NULL
 if channel association is already done*/
-GF_Err RP_SetupChannel(RTPStream *ch, ChannelDescribe *ch_desc);
+GF_Err rtpin_stream_setup(GF_RTPInStream *stream, RTPIn_StreamDescribe *ch_desc);
 /*send command for stream - handles aggregation*/
-void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command);
+void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const GF_FilterEvent *fevt);
 /*disconnect the session - if @ch, only the channel is teardown*/
-void RP_Teardown(RTSPSession *sess, RTPStream *ch);
-
-/*emulate IOD*/
-GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url);
-
-
-/*sdp file downloader*/
-typedef struct _sdp_fetch
-{
-	RTPClient *client;
-	/*when loading a channel from SDP*/
-	RTPStream *chan;
-
-	char *remote_url;
-	char *original_url;
-} SDPFetch;
-
-
-void RP_SaveSessionState(RTPClient *rtp);
+void rtpin_rtsp_teardown(GF_RTPInRTSP *sess, GF_RTPInStream *stream);
 
 
 #endif /*GPAC_DISABLE_STREAMING*/
 
-#endif
+#endif //_IN_RTP_H_
