@@ -177,7 +177,6 @@
 		920101AD18D5A445003D1ACA /* downloader.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009418D5A444003D1ACA /* downloader.c */; };
 		920101AE18D5A445003D1ACA /* error.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009518D5A444003D1ACA /* error.c */; };
 		920101B018D5A445003D1ACA /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009718D5A444003D1ACA /* list.c */; };
-		920101B118D5A445003D1ACA /* map.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009818D5A444003D1ACA /* map.c */; };
 		920101B218D5A445003D1ACA /* math.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009918D5A444003D1ACA /* math.c */; };
 		920101B318D5A445003D1ACA /* module.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009A18D5A444003D1ACA /* module.c */; };
 		920101B418D5A445003D1ACA /* module_wrap.h in Headers */ = {isa = PBXBuildFile; fileRef = 9201009B18D5A444003D1ACA /* module_wrap.h */; };
@@ -752,7 +751,6 @@
 		9201009418D5A444003D1ACA /* downloader.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader.c; sourceTree = "<group>"; };
 		9201009518D5A444003D1ACA /* error.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = error.c; sourceTree = "<group>"; };
 		9201009718D5A444003D1ACA /* list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = list.c; sourceTree = "<group>"; };
-		9201009818D5A444003D1ACA /* map.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = map.c; sourceTree = "<group>"; };
 		9201009918D5A444003D1ACA /* math.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = math.c; sourceTree = "<group>"; };
 		9201009A18D5A444003D1ACA /* module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = module.c; sourceTree = "<group>"; };
 		9201009B18D5A444003D1ACA /* module_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = module_wrap.h; sourceTree = "<group>"; };
@@ -1661,7 +1659,6 @@
 				9201009418D5A444003D1ACA /* downloader.c */,
 				9201009518D5A444003D1ACA /* error.c */,
 				9201009718D5A444003D1ACA /* list.c */,
-				9201009818D5A444003D1ACA /* map.c */,
 				9201009918D5A444003D1ACA /* math.c */,
 				9201009A18D5A444003D1ACA /* module.c */,
 				9201009B18D5A444003D1ACA /* module_wrap.h */,
@@ -3462,7 +3459,6 @@
 				920101AD18D5A445003D1ACA /* downloader.c in Sources */,
 				920101AE18D5A445003D1ACA /* error.c in Sources */,
 				920101B018D5A445003D1ACA /* list.c in Sources */,
-				920101B118D5A445003D1ACA /* map.c in Sources */,
 				92B9A5931F8660D700A24FE4 /* mpeg4_text.c in Sources */,
 				92B9A58C1F8660D700A24FE4 /* mpeg4_composite.c in Sources */,
 				9234CF3F1FD8311400CCDFA1 /* dec_webvtt.c in Sources */,
