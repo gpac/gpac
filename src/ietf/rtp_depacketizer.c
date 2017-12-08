@@ -34,7 +34,18 @@
 #include <gpac/mpeg4_odf.h>
 #include <gpac/avparse.h>
 
+static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+{
+	rtp->sl_hdr.accessUnitStartFlag = 1;
+	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)
+		rtp->sl_hdr.accessUnitStartFlag = 1;
 
+	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	rtp->sl_hdr.decodingTimeStamp = hdr->TimeStamp;
+	rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
+	rtp->sl_hdr.randomAccessPointFlag = 1;
+	rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
+}
 
 static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
@@ -1208,7 +1219,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	/*reset sl map*/
 	memset(&rtp->sl_map, 0, sizeof(GP_RTPSLMap));
 
-	if (!stricmp(map->payload_name, "enc-mpeg4-generic")) rtp->flags |= GF_RTP_HAS_ISMACRYP;
+	if (map && !stricmp(map->payload_name, "enc-mpeg4-generic")) rtp->flags |= GF_RTP_HAS_ISMACRYP;
 
 
 	/*then process all FMTPs*/
@@ -1216,7 +1227,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
 		GF_X_Attribute *att;
 		//we work with only one PayloadType for now
-		if (fmtp->PayloadType != map->PayloadType) continue;
+		if (map && (fmtp->PayloadType != map->PayloadType)) continue;
 		j=0;
 		while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
 			payt_set_param(rtp, att->Name, att->Value);
@@ -1671,10 +1682,54 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 	default:
-		return GF_NOT_SUPPORTED;
+		if (rtp->payt >= GF_RTP_PAYT_LAST_STATIC_DEFINED)
+			return GF_NOT_SUPPORTED;
+		rtp->depacketize = gf_rtp_parse_pass_through;
+		return GF_OK;
 	}
 	return GF_OK;
 }
+
+const GF_RTPStaticMap static_payloads [] =
+{
+	{ GF_RTP_PAYT_PCMU, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_GSM, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G723, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_8K, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_16K, 16000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_LPC, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_PCMA, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G722, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_L16_STEREO, 44100, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_L16_MONO, 44100, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_QCELP_BASIC, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_CN, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_MPEG12_AUDIO, 90000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G728, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_11K, 11025, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_22K, 22050, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G729, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_CelB, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_JPEG, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_nv, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_H261, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_MPEG12_VIDEO, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_MP2T, 90000, GF_STREAM_FILE, 0, "video/mp2t"},
+	{ GF_RTP_PAYT_H263, 90000, GF_STREAM_VISUAL}
+};
+
+static const GF_RTPStaticMap *gf_rtp_is_valid_static_payt(u32 payt)
+{
+	u32 i, count = sizeof(static_payloads) / sizeof(struct rtp_static_payt);
+	if (payt>= GF_RTP_PAYT_LAST_STATIC_DEFINED) return NULL;
+	for (i=0; i<count; i++) {
+		if (static_payloads[i].fmt == payt) {
+			return &static_payloads[i];
+		}
+	}
+	return NULL;
+}
+
 
 GF_EXPORT
 GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta)
@@ -1683,19 +1738,36 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet
 	GF_RTPMap *map;
 	u32 payt;
 	GF_RTPDepacketizer *tmp;
+	u32 clock_rate;
+	const GF_RTPStaticMap *static_map = NULL;
 
 	/*check RTP map. For now we only support 1 RTPMap*/
-	if (!sl_packet_cbk || !media || media->fmt_list || (gf_list_count(media->RTPMaps) > 1)) return NULL;
+	if (!sl_packet_cbk || !media || (gf_list_count(media->RTPMaps) > 1)) return NULL;
 
 	/*check payload type*/
 	map = (GF_RTPMap *)gf_list_get(media->RTPMaps, 0);
+	if (!map) {
 
-	payt = gf_rtp_get_payload_type(map, media);
-	if (!payt) return NULL;
+		//we deal with at most one format
+		if (!media->fmt_list || strchr(media->fmt_list, ' ')) return NULL;
+
+		payt = atoi(media->fmt_list);
+		static_map = gf_rtp_is_valid_static_payt(payt);
+		if (!static_map) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("RTP: Invalid static payload type %d\n", payt));
+			return NULL;
+		}
+		clock_rate = static_map->clock_rate;
+	} else {
+		payt = gf_rtp_get_payload_type(map, media);
+		if (!payt) return NULL;
+		clock_rate = map->ClockRate;
+	}
 
 	GF_SAFEALLOC(tmp, GF_RTPDepacketizer);
 	if (!tmp) return NULL;
 	tmp->payt = payt;
+	tmp->static_map = static_map;
 
 	e = gf_rtp_payt_setup(tmp, map, media);
 	if (e) {
@@ -1703,7 +1775,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet
 		return NULL;
 	}
 	assert(tmp->depacketize);
-	tmp->clock_rate = map->ClockRate;
+	tmp->clock_rate = clock_rate;
 	tmp->on_sl_packet = sl_packet_cbk;
 	tmp->udta = udta;
 	return tmp;
