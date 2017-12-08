@@ -163,7 +163,6 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 
 GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip)
 {
-	GF_RTPMap map;
 	GF_RTSPTransport trans;
 	GF_RTPInStream *tmp;
 	GF_SAFEALLOC(tmp, GF_RTPInStream);
@@ -189,11 +188,7 @@ GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip)
 		return NULL;
 	}
 
-	/*setup channel*/
-	memset(&map, 0, sizeof(GF_RTPMap));
-	map.PayloadType = 33;
-	map.ClockRate = 90000;
-	gf_rtp_setup_payload(tmp->rtp_ch, &map);
+	gf_rtp_setup_payload(tmp->rtp_ch, 33, 90000);
 
 	if (rtp->disable_rtcp) tmp->flags |= RTP_ENABLE_RTCP;
 
@@ -285,10 +280,14 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	   ) return NULL;
 
 	/*check RTP map. For now we only support 1 RTPMap*/
-	if (media->fmt_list || (gf_list_count(media->RTPMaps) > 1)) return NULL;
+	if (gf_list_count(media->RTPMaps) > 1) return NULL;
 
 	/*check payload type*/
 	map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
+	if (!map) {
+		if (!media->fmt_list) return NULL;
+		if (strchr(media->fmt_list, ' ')) return NULL;
+	}
 
 	/*this is an ESD-URL setup, we likely have namespace conflicts so overwrite given ES_ID
 	by the app one (client side), but keep control (server side) if provided*/
@@ -337,11 +336,12 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	/*setup depacketizer*/
 	tmp->depacketizer = gf_rtp_depacketizer_new(media, rtp_sl_packet_cbk, tmp);
 	if (!tmp->depacketizer) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to create RTP depacketizer for payload type %d/%s - ignoring stream)\n", map ? map->PayloadType : 0, media->fmt_list ? media->fmt_list : ""));
 		rtpin_stream_del(tmp);
 		return NULL;
 	}
 	/*setup channel*/
-	gf_rtp_setup_payload(tmp->rtp_ch, map);
+	gf_rtp_setup_payload(tmp->rtp_ch, tmp->depacketizer->payt, tmp->depacketizer->clock_rate);
 
 	if (tmp->depacketizer->sl_map.IndexDeltaLength) {
 		tmp->pck_queue = gf_list_new();

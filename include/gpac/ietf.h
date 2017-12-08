@@ -566,7 +566,7 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port);
 
 /*init of payload information. only ONE payload per sync source is supported in this
 version of the library (a sender cannot switch payload types on a single media)*/
-GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, GF_RTPMap *map);
+GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, u32 PayloadType, u32 ClockRate);
 
 /*enables sending of NAT keep-alive packets for NAT traversal
 	@nat_timeout: specifies the inactivity period in ms after which NAT keepalive packets are sent.
@@ -1062,16 +1062,63 @@ enum
 /*currently supported payload types*/
 enum
 {
-	/*not defined*/
-	GF_RTP_PAYT_UNKNOWN,
-	/*use generic MPEG-4 transport - RFC 3016 and RFC 3640*/
-	GF_RTP_PAYT_MPEG4,
-	/*use generic MPEG-1/2 video transport - RFC 2250*/
-	GF_RTP_PAYT_MPEG12_VIDEO,
+	/*assigned payload types*/
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_PCMU = 0,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_GSM,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G723,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_DVI4_8K,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_DVI4_16K,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_LPC,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_PCMA,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G722,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_L16_STEREO,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_L16_MONO,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_QCELP_BASIC,
+	/*cf RFC 3389*/
+	GF_RTP_PAYT_CN,
 	/*use generic MPEG-1/2 audio transport - RFC 2250*/
 	GF_RTP_PAYT_MPEG12_AUDIO,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G728,
+	GF_RTP_PAYT_DVI4_11K,
+	GF_RTP_PAYT_DVI4_22K,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G729,
+	/*cf RFC 2029*/
+	GF_RTP_PAYT_CelB = 25,
+	/*cf RFC 2435*/
+	GF_RTP_PAYT_JPEG = 26,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_nv = 28,
+	/*cf RFC 4587*/
+	GF_RTP_PAYT_H261 = 31,
+	/* generic MPEG-1/2 video transport - RFC 2250*/
+	GF_RTP_PAYT_MPEG12_VIDEO = 32,
+	/*MPEG-2 TS - RFC 2250*/
+	GF_RTP_PAYT_MP2T = 33,
 	/*use H263 transport - RFC 2429*/
-	GF_RTP_PAYT_H263,
+	GF_RTP_PAYT_H263 = 34,
+
+	GF_RTP_PAYT_LAST_STATIC_DEFINED = 35,
+
+	/*not defined*/
+	GF_RTP_PAYT_UNKNOWN = 128,
+
+	/*internal types for all dynamic payloads*/
+
+	/*use generic MPEG-4 transport - RFC 3016 and RFC 3640*/
+	GF_RTP_PAYT_MPEG4,
 	/*use AMR transport - RFC 3267*/
 	GF_RTP_PAYT_AMR,
 	/*use AMR-WB transport - RFC 3267*/
@@ -1307,6 +1354,14 @@ enum
 	GF_RTP_AVC_USE_ANNEX_B = (1<<8)
 };
 
+typedef struct rtp_static_payt {
+	u32 fmt;
+	u32 clock_rate;
+	u32 stream_type;
+	u32 codec_id;
+	const char *mime;
+} GF_RTPStaticMap;
+
 /*
 		SL -> RTP packetization tool
 
@@ -1323,6 +1378,9 @@ struct __tag_rtp_depacketizer
 	u32 payt;
 	/*depacketization flags*/
 	u32 flags;
+
+	//may be NULL
+	const GF_RTPStaticMap *static_map;
 
 	/*callback routine*/
 	void (*on_sl_packet)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e);

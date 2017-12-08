@@ -147,6 +147,9 @@ static GF_Err rtpin_sdp_load_iod(GF_RTPIn *rtp, char *iod_str)
 
 static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *ocr_es_id)
 {
+	GP_RTPSLMap *sl_map;
+	const GF_RTPStaticMap *static_map;
+
 	if (!stream->depacketizer) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("RTP Stream channel %u has no depacketizer - not supported\n", ch_idx));
 		return;
@@ -205,11 +208,32 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 
 	gf_filter_pid_set_property(stream->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( *ocr_es_id) );
 
-	gf_filter_pid_set_property(stream->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT( stream->depacketizer->sl_map.StreamType) );
-	gf_filter_pid_set_property(stream->opid, GF_PROP_PID_OTI, &PROP_UINT( stream->depacketizer->sl_map.ObjectTypeIndication) );
+	sl_map = &stream->depacketizer->sl_map;
+	static_map = stream->depacketizer->static_map;
 
-	if (stream->depacketizer->sl_map.config)
-		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->depacketizer->sl_map.config, stream->depacketizer->sl_map.configSize) );
+	if (sl_map->StreamType) {
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(sl_map->StreamType) );
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_OTI, &PROP_UINT(sl_map->ObjectTypeIndication) );
+
+		if (sl_map->config)
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(sl_map->config, sl_map->configSize) );
+
+		if (sl_map->rvc_predef) {
+			gf_filter_pid_set_property_str(stream->opid, "rvc:predef", &PROP_UINT( sl_map->rvc_predef) );
+		} else if (sl_map->rvc_config) {
+			gf_filter_pid_set_property_str(stream->opid, "rvc:config", &PROP_DATA_NO_COPY( sl_map->rvc_config, sl_map->rvc_config_size) );
+			sl_map->rvc_config = NULL;
+			sl_map->rvc_config_size = 0;
+		}
+	} else if (static_map) {
+		if (static_map->stream_type)
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(static_map->stream_type) );
+		if (static_map->codec_id)
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_OTI, &PROP_UINT(static_map->codec_id) );
+		if (static_map->mime)
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_MIME, &PROP_UINT(static_map->mime) );
+	}
+
 
 	/*ISMACryp config*/
 	if (stream->depacketizer->flags & GF_RTP_HAS_ISMACRYP) {
@@ -219,14 +243,6 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING(stream->depacketizer->key) );
 	}
 
-
-	if (stream->depacketizer->sl_map.rvc_predef) {
-		gf_filter_pid_set_property_str(stream->opid, "rvc:predef", &PROP_UINT( stream->depacketizer->sl_map.rvc_predef) );
-	} else if (stream->depacketizer->sl_map.rvc_config) {
-		gf_filter_pid_set_property_str(stream->opid, "rvc:config", &PROP_DATA_NO_COPY( stream->depacketizer->sl_map.rvc_config, stream->depacketizer->sl_map.rvc_config_size) );
-		stream->depacketizer->sl_map.rvc_config = NULL;
-		stream->depacketizer->sl_map.rvc_config_size = 0;
-	}
 }
 
 

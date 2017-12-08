@@ -724,11 +724,11 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port)
 
 
 GF_EXPORT
-GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, GF_RTPMap *map)
+GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, u32 PayloadType, u32 ClockRate)
 {
-	if (!ch || !map) return GF_BAD_PARAM;
-	ch->PayloadType = map->PayloadType;
-	ch->TimeScale = map->ClockRate;
+	if (!ch || !PayloadType || !ClockRate) return GF_BAD_PARAM;
+	ch->PayloadType = PayloadType;
+	ch->TimeScale = ClockRate;
 	return GF_OK;
 }
 
