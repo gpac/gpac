@@ -760,7 +760,8 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	if (!min_next_time_ms) min_next_time_ms = 1;
 	min_next_time_ms *= 1000;
 	if (min_next_time_ms>2000)
-		min_next_time_ms=min_next_time_ms;
+		min_next_time_ms = 2000;
+
 	gf_filter_ask_rt_reschedule(filter, min_next_time_ms);
 	return GF_OK;
 }

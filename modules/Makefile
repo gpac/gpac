@@ -1,53 +1,27 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=aac_in ac3_in amr_dec audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in ismacryp raw_out validator netctrl
+PLUGDIRS=soft_raster raw_out validator 
 
-ifeq ($(DISABLE_DASH_CLIENT), no)
-PLUGDIRS+=mpd_in
-ifeq ($(CONFIG_JS),no)
-else
-PLUGDIRS+=mse_in
-endif
-endif
-
-ifeq ($(DISABLE_MEDIA_IMPORT), no)
-PLUGDIRS+=mpegts_in 
-endif
-
-ifeq ($(DISABLE_SMGR), no)
-PLUGDIRS+=ctx_load svg_in
-endif
-
-ifeq ($(DISABLE_SVG), no)
-PLUGDIRS+=laser_dec svg_in 
-ifeq ($(DISABLE_TTXT), no)
-PLUGDIRS+=vtt_in
-endif
+#disabled for now
+#netctrl
 
 ifneq ($(CONFIG_ZLIB), no)
-PLUGDIRS+=widgetman
+#disabled for now
+#PLUGDIRS+=widgetman
 ifeq ($(DISABLE_VRML),no)
 ifeq ($(DISABLE_LOADER_BT),no)
-PLUGDIRS+=osd
+#disabled for now
+#PLUGDIRS+=osd
 endif
 endif
+
 endif
-endif
+
 
 ifeq ($(CONFIG_FT), no)
 else
 PLUGDIRS+=ft_font
-endif
-
-ifeq ($(CONFIG_XVID), no)
-else
-PLUGDIRS+=xvid_dec
-endif
-
-ifeq ($(CONFIG_OGG), no)
-else
-PLUGDIRS+=ogg
 endif
 
 ifeq ($(CONFIG_FREENECT), no)
@@ -88,10 +62,6 @@ else
 PLUGDIRS+=gpac_js
 endif
 
-ifeq ($(CONFIG_OPENSVC),yes)
-PLUGDIRS+=opensvc_dec
-endif
-
 ifeq ($(CONFIG_HID),yes)
 PLUGDIRS+=psvr
 endif
@@ -108,11 +78,6 @@ PLUGDIRS+=nvdec
 endif
 endif
 
-#OSX plugins
-ifeq ($(CONFIG_DARWIN),yes)
-PLUGDIRS+=vtb_decode
-endif
-
 #other linux
 ifeq ($(CONFIG_LINUX),yes)
 ifeq ($(HAS_OPENGL),yes)
@@ -120,54 +85,11 @@ PLUGDIRS+=nvdec
 endif
 endif
 
-ifneq ($(CONFIG_FFMPEG), no)
-ifeq ($(CONFIG_OPENHEVC),no)
-PLUGDIRS+=ffmpeg_in
-else
-ifneq ($(STATIC_MODULES), yes)
-PLUGDIRS+=ffmpeg_in
-endif
-endif
-endif
-
-#openHEVC is disabled in static build
-
-#if static modules are used, disable all previous modules (built-in in libgpac)
-ifeq ($(STATIC_MODULES), yes)
-PLUGDIRS=
-
-else 
-
-ifeq ($(CONFIG_OPENHEVC),yes)
-PLUGDIRS+=openhevc_dec
-endif
-
-endif
-
-
 #all modules below are not (yet) included in static build
-
-ifeq ($(CONFIG_AMR_NB_FT), yes)
-PLUGDIRS+=amr_float_dec
-else
-ifeq ($(CONFIG_AMR_WB_FT), yes)
-PLUGDIRS+=amr_float_dec
-endif
-endif
-
-ifeq ($(RENOIR_ENABLE),yes)
-PLUGDIRS+=viren_out
-endif
-
 
 ifeq ($(CONFIG_PLATINUM),yes)
 PLUGDIRS+=platinum
 endif
-
-ifeq ($(CONFIG_AVCAP),yes)
-PLUGDIRS+=avcap
-endif
-
 
 ifeq ($(DISABLE_PLAYER), yes)
 PLUGDIRS=

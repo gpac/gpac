@@ -274,7 +274,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	i=0;
 	while ((st = (GF_OGGStream*)gf_list_enum(ctx->streams, &i))) {
 		if (st->eos_detected) {
-			gf_filter_pid_set_eos(st->eos_detected);
+			gf_filter_pid_set_eos(st->opid);
 			//and reuse the pid connection
 			break;
 		}

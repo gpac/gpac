@@ -20,7 +20,7 @@ ifneq ($(CONFIG_WIN32), yes)
 ifneq ($(CONFIG_FFMPEG), no)
 ifneq ($(DISABLE_CORE_TOOLS), yes)
 ifneq ($(DISABLE_AV_PARSERS), yes)
-APPDIRS+=dashcast
+#APPDIRS+=dashcast
 endif
 endif
 endif

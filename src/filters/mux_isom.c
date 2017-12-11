@@ -674,7 +674,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
 			tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
 			if (tkw->lvcc) {
-				e = gf_isom_lhvc_config_update(ctx->mov, tkw->track_num, tkw->stsd_idx, tkw->lvcc, GF_TRUE);
+				e = gf_isom_lhvc_config_update(ctx->mov, tkw->track_num, tkw->stsd_idx, tkw->lvcc, GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
 				if (e) {
 					gf_odf_hevc_cfg_del(tkw->lvcc);
 					tkw->lvcc = NULL;
@@ -997,8 +997,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		}
 		tkw->sample.IsRAP = 0;
 		sap_type = gf_filter_pck_get_sap(pck);
-		if (sap_type!=GF_FILTER_SAP_REDUNDANT)
-			tkw->sample.IsRAP = gf_filter_pck_get_sap(pck);
+		if (sap_type==GF_FILTER_SAP_1)
+			tkw->sample.IsRAP = SAP_TYPE_1;
 
 		if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
 		if (tkw->next_is_first_sample && tkw->sample.DTS) {

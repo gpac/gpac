@@ -356,7 +356,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 		e = gf_odm_setup_pid(odm, for_pid);
 		if (e) {
-			GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("Service %s PID %s Setup Failure: %s", odm->scene_ns->url, gf_filter_pid_get_name(for_pid ? for_pid : odm->pid), gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Service %s PID %s Setup Failure: %s", odm->scene_ns->url, gf_filter_pid_get_name(for_pid ? for_pid : odm->pid), gf_error_to_string(e) ));
 		}
 	}
 

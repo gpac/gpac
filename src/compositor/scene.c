@@ -1868,6 +1868,7 @@ static void odm_activate(SFURL *url, GF_Node *n)
 	gf_node_changed(n, NULL);
 }
 
+GF_EXPORT
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 {
 	if (!scene->is_dynamic_scene) return;
@@ -3203,6 +3204,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 }
 
 
+GF_EXPORT
 void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 {
 	u32 i;

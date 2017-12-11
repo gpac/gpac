@@ -310,11 +310,13 @@ exit:
 	gf_sys_close();
 	if (e) return 1;
 
+#ifdef GPAC_MEMORY_TRACKING
 	if (gf_memory_size() || gf_file_handles_count() ) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}
+#endif
 	return 0;
 }
 

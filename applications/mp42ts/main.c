@@ -901,13 +901,13 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 		return;
 	}
 	/*setup channel*/
-	gf_rtp_setup_payload(rtp->rtp_ch, map);
+	gf_rtp_setup_payload(rtp->rtp_ch, map->PayloadType, map->ClockRate);
 	ifce->input_udta = rtp;
 	ifce->input_ctrl = rtp_input_ctrl;
 	rtp->ifce = ifce;
 	rtp->source = source;
 
-	ifce->object_type_indication = rtp->depacketizer->sl_map.ObjectTypeIndication;
+	ifce->object_type_indication = rtp->depacketizer->sl_map.CodecID;
 	ifce->stream_type = rtp->depacketizer->sl_map.StreamType;
 	ifce->timescale = gf_rtp_get_clockrate(rtp->rtp_ch);
 	if (rtp->depacketizer->sl_map.config) {

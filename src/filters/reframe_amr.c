@@ -377,7 +377,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 	if (ctx->timescale) {
 		u64 cts = gf_filter_pck_get_cts(pck);
 		if (cts != GF_FILTER_NO_TS)
-			ctx->cts = ctx;
+			ctx->cts = cts;
 	}
 	if (ctx->skip_magic) {
 		start += ctx->start_offset;

@@ -194,10 +194,10 @@ GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame 
 GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 {
 	GF_FilterPacket *pck;
-	if (!reference) return NULL;
+	if (!reference) return GF_OUT_OF_MEM;
 	reference=reference->pck;
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
-	if (!pck) return NULL;
+	if (!pck) return GF_OUT_OF_MEM;
 	pck->reference = reference;
 	assert(reference->reference_count);
 	safe_int_inc(&reference->reference_count);

@@ -21,7 +21,7 @@ LIBGPAC_UTILS+=utils/sha1.o utils/base_encoding.o utils/math.o utils/os_net.o ut
 endif
 
 ifeq ($(DISABLE_PLAYER), no)
-LIBGPAC_UTILS+=utils/os_module.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/ringbuffer.o utils/unicode.o utils/map.o 
+LIBGPAC_UTILS+=utils/os_module.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/ringbuffer.o utils/unicode.o
 endif
 
 ## libgpac objects gathering: src/ietf
@@ -72,7 +72,7 @@ LIBGPAC_ODF+=odf/odf_parse.o
 endif
 
 ## libgpac objects gathering: src/scenegraph
-LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o scenegraph/html5_media_smjs.o scenegraph/html5_mse_smjs.o scenegraph/webvtt_smjs.o
+LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o scenegraph/html5_media_smjs.o scenegraph/html5_mse_smjs.o
 
 ## libgpac objects gathering: src/mcrypt
 LIBGPAC_MCRYPT=
@@ -134,9 +134,6 @@ endif
 ifeq ($(DISABLE_VOBSUB), no)
 LIBGPAC_MEDIATOOLS+=media_tools/vobsub.o
 endif
-ifeq ($(DISABLE_TTXT), no)
-LIBGPAC_MEDIATOOLS+=media_tools/text_import.o
-endif
 
 ifeq ($(DISABLE_PLAYER), no)
 LIBGPAC_MEDIATOOLS+=media_tools/html5_media.o media_tools/html5_mse.o
@@ -144,7 +141,7 @@ endif
 
 LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
 
-LIBGPAC_FILTERS=filters/filter_pck.o filters/filter_pid.o filters/filter_props.o filters/filter_queue.o filters/filter_session.o filters/filter.o
+LIBGPAC_FILTERS=filter_core/filter_pck.o filter_core/filter_pid.o filter_core/filter_props.o filter_core/filter_queue.o filter_core/filter_session.o filter_core/filter_register.o filter_core/filter.o
 
 
 ## libgpac objects gathering: src/scene_manager
@@ -184,10 +181,11 @@ LIBGPAC_SCENEMANAGER+=scene_manager/encode_isom.o
 endif
 
 ## libgpac objects gathering: src/terminal
-LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal/term_node_init.o terminal/input_sensor.o terminal/media_control.o terminal/media_manager.o terminal/media_memory.o terminal/media_object.o terminal/media_sensor.o terminal/mpeg4_inline.o terminal/network_service.o terminal/object_browser.o terminal/object_manager.o terminal/scene.o terminal/terminal.o terminal/svg_external.o
+LIBGPAC_TERMINAL=terminal/terminal.o 
+
 
 ## libgpac objects gathering: src/compositor
-LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/audio_render.o compositor/bindable.o compositor/camera.o compositor/compositor.o compositor/compositor_2d.o compositor/compositor_3d.o compositor/compositor_node_init.o compositor/drawable.o compositor/events.o compositor/font_engine.o compositor/hc_flash_shape.o compositor/hardcoded_protos.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o compositor/mpeg4_animstream.o compositor/mpeg4_audio.o compositor/mpeg4_background.o compositor/mpeg4_background2d.o compositor/mpeg4_bitmap.o compositor/mpeg4_composite.o compositor/mpeg4_form.o compositor/mpeg4_geometry_2d.o compositor/mpeg4_geometry_3d.o compositor/mpeg4_geometry_ifs2d.o compositor/mpeg4_geometry_ils2d.o compositor/mpeg4_gradients.o compositor/mpeg4_grouping.o compositor/mpeg4_grouping_2d.o compositor/mpeg4_grouping_3d.o compositor/mpeg4_layer_2d.o compositor/mpeg4_layer_3d.o compositor/mpeg4_layout.o compositor/mpeg4_lighting.o compositor/mpeg4_path_layout.o compositor/mpeg4_sensors.o compositor/mpeg4_sound.o compositor/mpeg4_text.o compositor/mpeg4_textures.o compositor/mpeg4_timesensor.o compositor/mpeg4_viewport.o compositor/navigate.o compositor/offscreen_cache.o compositor/svg_base.o compositor/svg_filters.o compositor/svg_font.o compositor/svg_geometry.o compositor/svg_grouping.o compositor/svg_media.o compositor/svg_paint_servers.o compositor/svg_text.o compositor/texturing.o compositor/texturing_gl.o compositor/visual_manager.o compositor/visual_manager_2d.o compositor/visual_manager_2d_draw.o compositor/visual_manager_3d.o compositor/visual_manager_3d_gl.o compositor/x3d_geometry.o
+LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/audio_render.o compositor/bindable.o compositor/camera.o compositor/compositor.o compositor/compositor_2d.o compositor/compositor_3d.o compositor/compositor_node_init.o compositor/drawable.o compositor/events.o compositor/font_engine.o compositor/hc_flash_shape.o compositor/hardcoded_protos.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o compositor/mpeg4_animstream.o compositor/mpeg4_audio.o compositor/mpeg4_background.o compositor/mpeg4_background2d.o compositor/mpeg4_bitmap.o compositor/mpeg4_composite.o compositor/mpeg4_form.o compositor/mpeg4_geometry_2d.o compositor/mpeg4_geometry_3d.o compositor/mpeg4_geometry_ifs2d.o compositor/mpeg4_geometry_ils2d.o compositor/mpeg4_gradients.o compositor/mpeg4_grouping.o compositor/mpeg4_grouping_2d.o compositor/mpeg4_grouping_3d.o compositor/mpeg4_layer_2d.o compositor/mpeg4_layer_3d.o compositor/mpeg4_layout.o compositor/mpeg4_lighting.o compositor/mpeg4_path_layout.o compositor/mpeg4_sensors.o compositor/mpeg4_sound.o compositor/mpeg4_text.o compositor/mpeg4_textures.o compositor/mpeg4_timesensor.o compositor/mpeg4_viewport.o compositor/navigate.o compositor/offscreen_cache.o compositor/svg_base.o compositor/svg_filters.o compositor/svg_font.o compositor/svg_geometry.o compositor/svg_grouping.o compositor/svg_media.o compositor/svg_paint_servers.o compositor/svg_text.o compositor/texturing.o compositor/texturing_gl.o compositor/visual_manager.o compositor/visual_manager_2d.o compositor/visual_manager_2d_draw.o compositor/visual_manager_3d.o compositor/visual_manager_3d_gl.o compositor/x3d_geometry.o compositor/clock.o compositor/mpeg4_inputsensor.o compositor/mpeg4_mediacontrol.o compositor/media_object.o compositor/mpeg4_mediasensor.o compositor/mpeg4_inline.o compositor/scene_ns.o compositor/object_manager.o compositor/scene.o compositor/svg_external.o compositor/scene_node_init.o
 
 ifeq ($(DISABLE_PLAYER), yes)
 LIBGPAC_COMPOSITOR=
@@ -214,9 +212,19 @@ MEDIATOOLS_CFLAGS=$(JS_FLAGS)
 ##include static modules and other deps for libgpac
 include ../static.mak
 
-LIBGPAC_FILTERS+=filters_imp/ff_common.o filters_imp/ff_dmx.o filters_imp/ff_dec.o filters_imp/inspect.o filters_imp/unit_test_filter.o  
-FILTERS_CFLAGS=$(ffmpeg_cflags)
+LIBGPAC_FILTERS+=filters/compose.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_odf.o filters/dec_openhevc.o filters/dec_opensvc.o filters/dec_theora.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/ff_common.o filters/ff_dec.o filters/ff_dmx.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_udp.o filters/inspect.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_isom.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_amr.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_qcp.o filters/unit_test_filter.o
+
+FILTERS_CFLAGS=$(JS_FLAGS)
+
+ifneq ($(CONFIG_FFMPEG),no)
+FILTERS_CFLAGS+=$(ffmpeg_cflags)
 EXTRALIBS+=$(ffmpeg_lflags)
+endif
+
+ifeq ($(CONFIG_VTB),yes)
+EXTRALIBS+=$(vtb_ldflags)
+endif
+
 
 
 ##libgpac library output
@@ -265,13 +273,13 @@ compositor: $(LIBGPAC_COMPOSITOR)
 .deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
 .deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
 
-filters: CFLAGS+=$(COMPOSITOR_CFLAGS)
+filters: CFLAGS += $(FILTERS_CFLAGS)
 filters: $(LIBGPAC_FILTERS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 
 
-../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt $(OBJS)
+../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt  filters $(OBJS)
 	@echo "OBJS $(OBJS)"
 	@echo "LIBS $(EXTRALIBS)"
 
