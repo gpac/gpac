@@ -213,7 +213,7 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 
 	if (sl_map->StreamType) {
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(sl_map->StreamType) );
-		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_CODECID, &PROP_UINT(sl_map->ObjectTypeIndication) );
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_CODECID, &PROP_UINT(sl_map->CodecID) );
 
 		if (sl_map->config)
 			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(sl_map->config, sl_map->configSize) );

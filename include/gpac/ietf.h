@@ -974,8 +974,8 @@ typedef struct
 	/*duration of AUs if constant, in RTP timescale*/
 	u32 ConstantDuration;
 
-	/* Object Type Indication */
-	u8 ObjectTypeIndication;
+	/* CodecID */
+	u32 CodecID;
 	/*audio max displacement when interleaving (eg, de-interleaving window buffer max length) in RTP timescale*/
 	u32 maxDisplacement;
 	/*de-interleaveBufferSize if not recomputable from maxDisplacement*/
