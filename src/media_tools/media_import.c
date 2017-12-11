@@ -1267,7 +1267,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		if (is_chap_or_sub) {
 			import->nb_tracks = 1;
 			import->tk_info[0].stream_type = GF_STREAM_TEXT;
-			import->tk_info[0].codecid = GF_MEDIA_TYPE_CHAP;
+			import->tk_info[0].is_chapter = GF_TRUE;
 			return GF_OK;
 		}
 		return GF_NOT_SUPPORTED;

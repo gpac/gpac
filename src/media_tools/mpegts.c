@@ -1449,8 +1449,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				metadatapd_bs = gf_bs_new((char *)data+6, len, GF_BITSTREAM_READ);
 				metapd = gf_m2ts_read_metadata_pointer_descriptor(metadatapd_bs, len);
 				gf_bs_del(metadatapd_bs);
-				if (metapd->application_format_identifier == GF_MEDIA_TYPE_ID3 &&
-				        metapd->format_identifier == GF_MEDIA_TYPE_ID3 &&
+				if (metapd->application_format_identifier == GF_M2TS_META_ID3 &&
+				        metapd->format_identifier == GF_M2TS_META_ID3 &&
 				        metapd->carriage_flag == METADATA_CARRIAGE_SAME_TS) {
 					/*HLS ID3 Metadata */
 					pmt->program->metadata_pointer_descriptor = metapd;
@@ -1706,8 +1706,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					metadatad_bs = gf_bs_new((char *)data+2, len, GF_BITSTREAM_READ);
 					metad = gf_m2ts_read_metadata_descriptor(metadatad_bs, len);
 					gf_bs_del(metadatad_bs);
-					if (metad->application_format_identifier == GF_MEDIA_TYPE_ID3 &&
-					        metad->format_identifier == GF_MEDIA_TYPE_ID3) {
+					if (metad->application_format_identifier == GF_M2TS_META_ID3 &&
+					        metad->format_identifier == GF_M2TS_META_ID3) {
 						/*HLS ID3 Metadata */
 						if (pes) {
 							pes->metadata_descriptor = metad;
