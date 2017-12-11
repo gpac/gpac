@@ -57,9 +57,7 @@ const char *gf_odf_stream_type_name(u32 streamType)
 	case GF_STREAM_FONT:
 		return "Font";
 	case GF_STREAM_TEXT:
-		return "Text";
-	case GF_STREAM_ND_SUBPIC:
-		return "NeroDigital Subpicture";
+		return "Text/Subtitle";
 	default:
 		return "Unknown";
 	}
@@ -350,13 +348,13 @@ void gf_ipmpx_write_array(GF_BitStream *bs, char *data, u32 data_len)
 
 /*special authoring functions*/
 GF_EXPORT
-GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
+GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u32 oti)
 {
 	Bool hasSize, cmd_stream;
 	GF_BitStream *bs;
 	GF_BIFSConfig *cfg;
 
-	if (oti>=GPAC_OTI_SCENE_BIFS_EXTENDED) return NULL;
+	if (oti>=GF_CODECID_BIFS_EXTENDED) return NULL;
 
 	if (!dsi || !dsi->data || !dsi->dataLength ) {
 		/* Hack for T-DMB non compliant streams (OnTimeTek ?) */
@@ -808,7 +806,7 @@ GF_Err gf_odf_del_text_cfg(GF_TextConfig *desc)
 /*we need box parsing*/
 #include <gpac/internal/isomedia_dev.h>
 GF_EXPORT
-GF_Err gf_odf_get_text_config(char *data, u32 data_len, u8 oti, GF_TextConfig *cfg)
+GF_Err gf_odf_get_text_config(char *data, u32 data_len, u32 codecid, GF_TextConfig *cfg)
 {
 	u32 i;
 	Bool has_alt_format;
@@ -819,7 +817,7 @@ GF_Err gf_odf_get_text_config(char *data, u32 data_len, u8 oti, GF_TextConfig *c
 	GF_Err e;
 	GF_BitStream *bs;
 	if (data || data_len || !cfg) return GF_BAD_PARAM;
-	if (oti != 0x08) return GF_NOT_SUPPORTED;
+	if (codecid != GF_CODECID_TEXT_MPEG4) return GF_NOT_SUPPORTED;
 
 	/*reset*/
 	ResetTextConfig(cfg);
@@ -1184,68 +1182,64 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 		case 0x3:
 		case 0xFF:
 			return "MPEG-4 BIFS Scene Description";
-		case GPAC_OTI_SCENE_BIFS_EXTENDED:
+		case GF_CODECID_BIFS_EXTENDED:
 			return "MPEG-4 Extended BIFS Scene Description";
-		case GPAC_OTI_SCENE_AFX:
+		case GF_CODECID_AFX:
 			if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data)
 				return "AFX Unknown";
 			return gf_afx_get_type_description(esd->decoderConfig->decoderSpecificInfo->data[0]);
-		case GPAC_OTI_SCENE_LASER:
+		case GF_CODECID_LASER:
 		{
 			GF_LASERConfig l_cfg;
 			gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
 			if (! l_cfg.newSceneIndicator ) return "LASeR Scene Segment Description";
 		}
 		return "LASeR Scene Description";
-		case GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE:
+		case GF_CODECID_SYNTHESIZED_TEXTURE:
 			return "MPEG-4 Synthesized Texture";
-		case GPAC_OTI_SCENE_SAF:
+		case GF_CODECID_SAF:
 			return "MPEG-4 SAF";
-		case GPAC_OTI_3GPP2_CMF:
-			return "3GPP2 CMF";
 		default:
 			return "Unknown Scene Type";
 		}
 		break;
 	case GF_STREAM_VISUAL:
 		switch (esd->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+		case GF_CODECID_MPEG2_SIMPLE:
 			return "MPEG-2 Visual Simple Profile";
-		case GPAC_OTI_VIDEO_MPEG2_MAIN:
+		case GF_CODECID_MPEG2_MAIN:
 			return "MPEG-2 Visual Main Profile";
-		case GPAC_OTI_VIDEO_MPEG2_SNR:
+		case GF_CODECID_MPEG2_SNR:
 			return "MPEG-2 Visual SNR Profile";
-		case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+		case GF_CODECID_MPEG2_SPATIAL:
 			return "MPEG-2 Visual SNR Profile";
-		case GPAC_OTI_VIDEO_MPEG2_HIGH:
+		case GF_CODECID_MPEG2_HIGH:
 			return "MPEG-2 Visual SNR Profile";
-		case GPAC_OTI_VIDEO_MPEG2_422:
+		case GF_CODECID_MPEG2_422:
 			return "MPEG-2 Visual SNR Profile";
-		case GPAC_OTI_VIDEO_MPEG1:
+		case GF_CODECID_MPEG1:
 			return "MPEG-1 Video";
-		case GPAC_OTI_IMAGE_JPEG:
+		case GF_CODECID_JPEG:
 			return "JPEG Image";
-		case GPAC_OTI_IMAGE_PNG:
+		case GF_CODECID_PNG:
 			return "PNG Image";
-		case GPAC_OTI_IMAGE_JPEG_2000:
+		case GF_CODECID_J2K:
 			return "JPEG2000 Image";
-		case GPAC_OTI_VIDEO_MPEG4_PART2:
+		case GF_CODECID_MPEG4_PART2:
 			return "MPEG-4 Part 2 Video";
-		case GPAC_OTI_VIDEO_AVC:
+		case GF_CODECID_AVC:
 			return "MPEG-4 AVC|H264 Video";
-		case GPAC_OTI_VIDEO_SVC:
+		case GF_CODECID_SVC:
 			return "MPEG-4 SVC Video";
-		case GPAC_OTI_VIDEO_AVC_PS:
+		case GF_CODECID_AVC_PS:
 			return "MPEG-4 AVC|H264 Parameter Set";
-		case GPAC_OTI_VIDEO_HEVC:
+		case GF_CODECID_HEVC:
 			return "MPEG-H HEVC Video";
-		case GPAC_OTI_VIDEO_LHVC:
+		case GF_CODECID_LHVC:
 			return "MPEG-H L-HEVC Video";
-		case GPAC_OTI_MEDIA_FFMPEG:
-			return "GPAC FFMPEG Private Video";
-		case GPAC_OTI_VIDEO_SMPTE_VC1:
+		case GF_CODECID_SMPTE_VC1:
 			return "SMPTE VC-1 Video";
-		case GPAC_OTI_VIDEO_DIRAC:
+		case GF_CODECID_DIRAC:
 			return "Dirac Video";
 		default:
 			return "Unknown Video type";
@@ -1253,17 +1247,17 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 		break;
 	case GF_STREAM_AUDIO:
 		switch (esd->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_MP:
 			return "MPEG-2 AAC Main Profile";
-		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_LCP:
 			return "MPEG-2 AAC Low Complexity Profile";
-		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
 			return "MPEG-2 AAC Scaleable Sampling Rate Profile";
-		case GPAC_OTI_AUDIO_MPEG2_PART3:
+		case GF_CODECID_MPEG2_PART3:
 			return "MPEG-2 Audio Part 3";
-		case GPAC_OTI_AUDIO_MPEG1:
+		case GF_CODECID_MPEG_AUDIO:
 			return "MPEG-1 Audio";
-		case GPAC_OTI_AUDIO_AAC_MPEG4:
+		case GF_CODECID_AAC_MPEG4:
 		{
 #ifdef GPAC_DISABLE_AV_PARSERS
 			return "MPEG-4 AAC";
@@ -1275,25 +1269,23 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 #endif
 		}
 		break;
-		case GPAC_OTI_MEDIA_FFMPEG:
-			return "GPAC FFMPEG Private Audio";
-		case GPAC_OTI_AUDIO_EVRC:
+		case GF_CODECID_EVRC:
 			return "EVRC Voice";
-		case GPAC_OTI_AUDIO_SMV:
+		case GF_CODECID_SMV:
 			return "SMV Voice";
-		case GPAC_OTI_AUDIO_AC3:
+		case GF_CODECID_AC3:
 			return "AC-3 audio";
-		case GPAC_OTI_AUDIO_EAC3:
+		case GF_CODECID_EAC3:
 			return "Enhanced AC-3 Audio";
-		case GPAC_OTI_AUDIO_DRA:
+		case GF_CODECID_DRA:
 			return "DRA Audio";
-		case GPAC_OTI_AUDIO_ITU_G719:
+		case GF_CODECID_G719:
 			return "ITU G719 Audio";
-		case GPAC_OTI_AUDIO_DTS_CA:
+		case GF_CODECID_DTS_CA:
 			return "DTS Coherent Acoustics audio";
-		case GPAC_OTI_AUDIO_DTS_HD_HR:
+		case GF_CODECID_DTS_HD_HR:
 			return "DTS-HD High Resolution audio";
-		case GPAC_OTI_AUDIO_DTS_HD_MASTER:
+		case GF_CODECID_DTS_HD_MASTER:
 			return "DTS-HD Master audios";
 		default:
 			return "Unknown Audio Type";
@@ -1314,59 +1306,22 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 	case GF_STREAM_FONT:
 		return "MPEG-4 Font Data";
 	case GF_STREAM_TEXT:
-		return "MPEG-4 Streaming Text";
-	case GF_STREAM_ND_SUBPIC:
-		return "Nero Digital Subpicture";
+		return "Streaming Text / Subtitle";
 
 	case GF_STREAM_PRIVATE_SCENE:
 		switch (esd->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_PRIVATE_SCENE_GENERIC:
-		{
-			char *ext = strchr(esd->decoderConfig->decoderSpecificInfo->data + 4, '.');
-			if (!ext) return "GPAC Internal Scene Description";
-			ext += 1;
-			if (!strnicmp(ext, "bt", 2))
-				return "BT Scene Description";
-			if (!strnicmp(ext, "xmt", 2))
-				return "XMT Scene Description";
-			if (!strnicmp(ext, "wrl", 3))
-				return "VRML Scene Description";
-			if (!strnicmp(ext, "x3d", 3))
-				return "W3D Scene Description";
-			if (!strnicmp(ext, "x3dv", 4))
-				return "X3D Scene Description";
-			if (!strnicmp(ext, "swf", 3))
-				return "Flash (SWF) Scene Description";
-			if (!strnicmp(ext, "xsr", 3))
-				return "LASeR-ML Scene Description";
-			if (!strnicmp(ext, "wgt", 3))
-				return "W3C Widget Package";
-			if (!strnicmp(ext, "mgt", 3))
-				return "MPEG-U Widget Package";
-		}
-		return "GPAC Internal Scene Description";
-		case GPAC_OTI_PRIVATE_SCENE_SVG:
-			return "SVG";
-		case GPAC_OTI_PRIVATE_SCENE_LASER:
-			return "LASeR (XML)";
-		case GPAC_OTI_PRIVATE_SCENE_XBL:
-			return "XBL";
-		case GPAC_OTI_PRIVATE_SCENE_EPG:
+		case GF_CODECID_DVB_EIT:
 			return "DVB Event Information";
-		case GPAC_OTI_PRIVATE_SCENE_WGT:
-			return "W3C/MPEG-U Widget";
-		case GPAC_OTI_SCENE_SVG:
+		case GF_CODECID_SVG:
 			return "SVG over RTP";
-		case GPAC_OTI_SCENE_SVG_GZ:
+		case GF_CODECID_SVG_GZ:
 			return "SVG+gz over RTP";
-		case GPAC_OTI_SCENE_DIMS:
+		case GF_CODECID_DIMS:
 			return "3GPP DIMS";
 		default:
 			return "Unknown Scene Description";
 		}
 		break;
-	case GF_STREAM_PRIVATE_MEDIA:
-		return "Opaque Decoder";
 	default:
 		return gf_4cc_to_str(esd->decoderConfig->objectTypeIndication);
 	}

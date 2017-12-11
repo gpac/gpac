@@ -303,6 +303,8 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		if ((ctx->last_start_range >= 0) && (ctx->last_start_range==evt->play.start_range)) return GF_TRUE;
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Processing play on channel @%08x - %s\n", stream, stream->rtsp ? "RTSP control" : "No control (RTP)" ));
 		/*is this RTSP or direct RTP?*/
 		stream->flags &= ~RTP_EOS;
@@ -313,6 +315,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			//if not aggregated control or no more queued events send a play
 			if (! (stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
 				rtpin_rtsp_usercom_send(stream->rtsp, stream, evt);
+				ctx->last_start_range = evt->play.start_range;
 			} else {
 			//tricky point here: the play events may get at different times depending on the length
 			//of each filter chain connected to our output pids.
@@ -320,10 +323,12 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				if (!ctx->postponed_play_stream) {
 					ctx->postponed_play = evt->play;
 					ctx->postponed_play_stream = stream;
+					ctx->last_start_range = evt->play.start_range;
 				}
 				return GF_TRUE;
 			}
 		} else {
+			ctx->last_start_range = evt->play.start_range;
 			stream->status = RTP_Running;
 			if (!stream->next_stream)
 				ctx->cur_mid = stream->mid;
@@ -349,6 +354,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			stream->status = RTP_Connected;
 			stream->rtpin->last_ntp = 0;
 		}
+		ctx->last_start_range = -1.0;
 		stream->rtcp_init = GF_FALSE;
 		reset_stream = stream->pck_queue ? GF_TRUE : GF_FALSE;
 		break;
@@ -516,6 +522,8 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 	//turn on interleave on http port
 	if ((ctx->default_port == 80) || (ctx->default_port == 8080))
 		ctx->interleave = 1;
+
+	ctx->last_start_range = -1.0;
 
 	//sdp mode, we will have a configure_pid
 	if (!ctx->src) return GF_OK;

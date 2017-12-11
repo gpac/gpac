@@ -78,7 +78,7 @@ static GF_Err vorbisdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, pid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 	if (ctx->ipid) {
 		vorbis_block_clear(&ctx->vb);
@@ -259,14 +259,14 @@ static void vorbisdec_finalize(GF_Filter *filter)
 static const GF_FilterCapability VorbisDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VORBIS),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_VORBIS),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability VorbisDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister VorbisDecRegister = {

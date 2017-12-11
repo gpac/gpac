@@ -443,7 +443,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 {
 	GF_Err e;
 	Bool destroy_esd, inRootOD, is_dims;
-	u32 i, tkID, mtype, streamType, oti, specInfoSize, header_end, par_den, par_num;
+	u32 i, tkID, mtype, streamType, codecid, specInfoSize, header_end, par_den, par_num;
 	GF_XMLAttribute *att;
 	u32 width, height, codec_tag, sample_rate, nb_channels, version, revision, vendor_code, temporal_quality, spatial_quality, h_res, v_res, bit_depth, bits_per_sample;
 
@@ -516,7 +516,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	tkID = mtype = streamType = oti = par_den = par_num = 0;
+	tkID = mtype = streamType = codecid = par_den = par_num = 0;
 	ctx->timescale = 1000;
 	i=0;
 	strcpy(szXmlHeaderEnd, "");
@@ -538,7 +538,9 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (!stricmp(att->name, "mediaSubType") && (strlen(att->value)==4)) {
 			codec_tag = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		} else if (!stricmp(att->name, "objectTypeIndication")) {
-			NHML_SCAN_INT("%u", oti)
+			NHML_SCAN_INT("%u", codecid)
+		} else if (!stricmp(att->name, "codecID") && (strlen(att->value)==4)) {
+			codecid = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		} else if (!stricmp(att->name, "timeScale")) {
 			NHML_SCAN_INT("%u", ctx->timescale)
 		} else if (!stricmp(att->name, "width")) {
@@ -728,13 +730,13 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	ctx->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(streamType) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(oti) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	if (ctx->reframe)
 	   gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_UINT(GF_TRUE) );
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (!width && !height && specInfo && (oti==GPAC_OTI_VIDEO_MPEG4_PART2)) {
+	if (!width && !height && specInfo && (codecid==GF_CODECID_MPEG4_PART2)) {
 		GF_M4VDecSpecInfo dsi;
 		e = gf_m4v_get_config(specInfo, specInfoSize, &dsi);
 		if (!e) {
@@ -771,7 +773,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	} else if (mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT || mtype == GF_ISOM_MEDIA_TEXT) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(mtype) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(codec_tag) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_tag) );
 
 		if (codec_tag == GF_ISOM_SUBTYPE_STPP) {
 			if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(dims_mime_type) );
@@ -793,7 +795,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		}
 	} else if (mtype == GF_ISOM_MEDIA_META) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(mtype) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(codec_tag) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_tag) );
 
 		if (codec_tag == GF_ISOM_SUBTYPE_METX) {
 			if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(dims_mime_type) );
@@ -809,7 +811,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		}
 	} else if (!streamType) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(mtype) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(codec_tag) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_tag) );
 
 		if (version) gf_filter_pid_set_property_str(ctx->opid, "gene:version", &PROP_UINT(version) );
 		if (revision) gf_filter_pid_set_property_str(ctx->opid, "gene:revision", &PROP_UINT(revision) );

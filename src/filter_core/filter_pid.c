@@ -145,37 +145,37 @@ static void gf_filter_pid_inst_check_dependencies(GF_FilterPidInst *pidi)
 
 static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 {
-	u32 mtype=0, oti=0;
+	u32 mtype=0, codecid=0;
 	u32 i, count;
 	const GF_PropertyValue *p;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (p) oti = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (p) codecid = p->value.uint;
 
 	//by default all buffers are 1ms max
 	pid->max_buffer_time = pid->filter->session->default_pid_buffer_max_us;
 
-	if (oti!=GPAC_OTI_RAW_MEDIA_STREAM)
+	if (codecid!=GF_CODECID_RAW)
 		return;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) mtype = p->value.uint;
 
-	//output is a decoded stream: if some input has same type but different OTI this is a decoder
+	//output is a decoded raw stream: if some input has same type but different codecid this is a decoder
 	//set input buffer size
 	count=pid->filter->num_input_pids;
 	for (i=0; i<count; i++) {
-		u32 i_oti, i_type=0;
+		u32 i_codecid, i_type=0;
 		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
 
 		p = gf_filter_pid_get_property(pidi->pid, GF_PROP_PID_STREAM_TYPE);
 		if (p) i_type = p->value.uint;
 
-		p = gf_filter_pid_get_property(pidi->pid, GF_PROP_PID_OTI);
-		if (p) i_oti = p->value.uint;
+		p = gf_filter_pid_get_property(pidi->pid, GF_PROP_PID_CODECID);
+		if (p) i_codecid = p->value.uint;
 
 		//same stream type but changing format type: this is a decoder input pid, set buffer req
-		if ((mtype==i_type) && (oti != i_oti)) {
+		if ((mtype==i_type) && (codecid != i_codecid)) {
 			//default decoder buffer
 			if (pidi->pid->user_max_buffer_time)
 				pidi->pid->max_buffer_time = pidi->pid->user_max_buffer_time;

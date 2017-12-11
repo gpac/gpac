@@ -142,7 +142,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE));
 				}
 				oti = gf_bs_read_u8(bs);
-				gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT(oti));
+				gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(oti));
 				stype = gf_bs_read_u8(bs);
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(stype));
 				st->ts_res = gf_bs_read_u24(bs);

@@ -129,7 +129,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 //Compute the #params of the slMap
 GF_EXPORT
 void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU, u32 max_ptime,
-                         u32 StreamType, u32 OTI, u32 PL_ID,
+                         u32 StreamType, u32 codecid, u32 PL_ID,
                          u32 avgSize, u32 maxSize,
                          u32 avgTS, u32 maxDTS,
                          u32 IV_length, u32 KI_length,
@@ -141,7 +141,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 	builder->Path_MTU = PathMTU;
 	builder->PayloadType = PayloadType;
 	builder->slMap.StreamType = StreamType;
-	builder->slMap.ObjectTypeIndication = OTI;
+	builder->slMap.ObjectTypeIndication = codecid;
 	builder->slMap.PL_ID = PL_ID;
 	builder->max_ptime = max_ptime;
 	if (pref_mode) strcpy(builder->slMap.mode, pref_mode);
@@ -207,7 +207,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		builder->flags &= 0x07;
 		/*disable aggregation for visual streams, except for AVC where STAP/MTAP can be used*/
 		if (StreamType==GF_STREAM_VISUAL) {
-			if ((OTI != GPAC_OTI_VIDEO_AVC) && (OTI != GPAC_OTI_VIDEO_SVC) && (OTI != GPAC_OTI_VIDEO_MVC) && (OTI != GPAC_OTI_VIDEO_HEVC) && (OTI != GPAC_OTI_VIDEO_LHVC)) {
+			if ((codecid != GF_CODECID_AVC) && (codecid != GF_CODECID_SVC) && (codecid != GF_CODECID_MVC) && (codecid != GF_CODECID_HEVC) && (codecid != GF_CODECID_LHVC)) {
 				builder->flags &= ~GP_RTP_PCK_USE_MULTI;
 			}
 		}
@@ -328,7 +328,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		builder->flags &= ~GP_RTP_PCK_SIGNAL_AU_IDX;
 		builder->flags &= ~GP_RTP_PCK_USE_INTERLEAVING;
 		builder->flags &= ~GP_RTP_PCK_KEY_IDX_PER_AU;
-		gf_rtp_builder_init(builder, PayloadType, PathMTU, max_ptime, StreamType, OTI, PL_ID, avgSize, maxSize, avgTS, maxDTS, IV_length, KI_length, pref_mode);
+		gf_rtp_builder_init(builder, PayloadType, PathMTU, max_ptime, StreamType, codecid, PL_ID, avgSize, maxSize, avgTS, maxDTS, IV_length, KI_length, pref_mode);
 		return;
 	}
 
@@ -377,7 +377,7 @@ check_header:
 		builder->slMap.IV_delta_length = gf_get_bit_size(maxSize);
 	}
 	/*ISMACryp video mode*/
-	if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)
+	if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GF_CODECID_MPEG4_PART2)
 	        && (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length
 	        && !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
 	        /*shall have SignalTS*/
@@ -386,7 +386,7 @@ check_header:
 		strcpy(builder->slMap.mode, "mpeg4-video");
 	}
 	/*ISMACryp AVC video mode*/
-	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_AVC)
+	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GF_CODECID_AVC)
 	         && (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length
 	         && !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
 	         /*shall have SignalTS*/
@@ -447,7 +447,7 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 
 	switch (rtpb->rtp_payt) {
 	case GF_RTP_PAYT_MPEG4:
-		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
+		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.ObjectTypeIndication==GF_CODECID_MPEG4_PART2)) {
 			strcpy(szMediaName, "video");
 			/*ISMACryp video*/
 			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) && rtpb->slMap.IV_length

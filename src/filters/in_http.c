@@ -25,7 +25,6 @@
 
 
 #include <gpac/filters.h>
-/*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
 #include <gpac/download.h>
 

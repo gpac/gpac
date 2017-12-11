@@ -55,7 +55,7 @@ typedef struct __rtp_streamer GF_RTPStreamer;
  *
  *	Constructs a new RTP file streamer
  *\param streamType type of the stream (GF_STREAM_* as defined in <gpac/constants.h>)
- *\param oti MPEG-4 object type indication for the stream (GPAC_OTI_* as defined in <gpac/constants.h>)
+ *\param codecid codecid for the stream (GF_CODECID_* as defined in <gpac/constants.h>)
  *\param timeScale unit to express timestamps
  *\param ip_dest IP address of the destination
  *\param port port number of the destination
@@ -68,7 +68,7 @@ typedef struct __rtp_streamer GF_RTPStreamer;
  *\return new object
  */
 
-GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
+GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
                                     const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
                                     u32 flags, char *dsi, u32 dsi_len);
 
@@ -77,7 +77,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
  *
  *	Constructs a new RTP file streamer
  *\param streamType type of the stream (GF_STREAM_* as defined in <gpac/constants.h>)
- *\param oti MPEG-4 object type indication for the stream (GPAC_OTI_* as defined in <gpac/constants.h>)
+ *\param codecid codec ID for the stream (GF_CODEC_* as defined in <gpac/constants.h>)
  *\param timeScale unit to express timestamps
  *\param ip_dest IP address of the destination
  *\param port port number of the destination
@@ -103,7 +103,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
  *\param au_sn_len length of the MPEG-4 SL descriptor AU sequence number field
  *\return new object
  */
-GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeScale,
+GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 timeScale,
         const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
         u32 flags, char *dsi, u32 dsi_len,
         u32 PayloadType, u32 sample_rate, u32 nb_ch,

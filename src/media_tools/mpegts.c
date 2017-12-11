@@ -1633,10 +1633,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					reg_desc_format = GF_4CC(data[2], data[3], data[4], data[5]);
 					/*cf http://www.smpte-ra.org/mpegreg/mpegreg.html*/
 					switch (reg_desc_format) {
-					case GF_MEDIA_STREAM_AC3:
+					case GF_M2TS_RA_STREAM_AC3:
 						es->stream_type = GF_M2TS_AUDIO_AC3;
 						break;
-					case GF_MEDIA_STREAM_VC1:
+					case GF_M2TS_RA_STREAM_VC1:
 						es->stream_type = GF_M2TS_VIDEO_VC1;
 						break;
 					default:

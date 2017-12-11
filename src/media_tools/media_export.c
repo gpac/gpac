@@ -108,7 +108,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 			gf_fwrite(og.body, 1, og.body_len, out);
 			op.b_o_s = 0;
 
-			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_THEORA) {
+			if (esd->decoderConfig->objectTypeIndication==GF_CODECID_THEORA) {
 				u32 kff;
 				GF_BitStream *vbs = gf_bs_new((char*)op.packet, op.bytes, GF_BITSTREAM_READ);
 				gf_bs_skip_bytes(vbs, 40);
@@ -288,34 +288,34 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		switch (dcfg->streamType) {
 		case GF_STREAM_VISUAL:
 			switch (dcfg->objectTypeIndication) {
-			case GPAC_OTI_VIDEO_MPEG4_PART2:
+			case GF_CODECID_MPEG4_PART2:
 				strcpy(szEXT, ".cmp");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 Visual sample%s", szNum);
 				break;
-			case GPAC_OTI_VIDEO_AVC:
-			case GPAC_OTI_VIDEO_SVC:
-			case GPAC_OTI_VIDEO_MVC:
+			case GF_CODECID_AVC:
+			case GF_CODECID_SVC:
+			case GF_CODECID_MVC:
 				strcpy(szEXT, ".264");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
 				break;
-			case GPAC_OTI_VIDEO_HEVC:
-			case GPAC_OTI_VIDEO_LHVC:
+			case GF_CODECID_HEVC:
+			case GF_CODECID_LHVC:
 				strcpy(szEXT, ".hvc");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);
 				break;
-			case GPAC_OTI_IMAGE_JPEG:
+			case GF_CODECID_JPEG:
 				strcpy(szEXT, ".jpg");
 				gf_export_message(dumper, GF_OK, "Dumping JPEG image%s", szNum);
 				break;
-			case GPAC_OTI_IMAGE_PNG:
+			case GF_CODECID_PNG:
 				strcpy(szEXT, ".png");
 				gf_export_message(dumper, GF_OK, "Dumping PNG image%s", szNum);
 				break;
-			case GPAC_OTI_IMAGE_JPEG_2000:
+			case GF_CODECID_J2K:
 				strcpy(szEXT, ".jp2");
 				gf_export_message(dumper, GF_OK, "Dumping JPEG 2000 image%s", szNum);
 				break;
-			case GPAC_OTI_MEDIA_OGG:
+			case GF_CODECID_THEORA:
 				strcpy(szEXT, ".theo");
 				gf_export_message(dumper, GF_OK, "Dumping Theora video sample%s", szNum);
 				break;
@@ -327,21 +327,29 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 			break;
 		case GF_STREAM_AUDIO:
 			switch (dcfg->objectTypeIndication) {
-			case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
-			case GPAC_OTI_AUDIO_AAC_MPEG4:
+			case GF_CODECID_AAC_MPEG2_MP:
+			case GF_CODECID_AAC_MPEG2_LCP:
+			case GF_CODECID_AAC_MPEG2_SSRP:
+			case GF_CODECID_AAC_MPEG4:
 				strcpy(szEXT, ".aac");
-				gf_export_message(dumper, GF_OK, "Dumping MPEG-%d AAC sample%s", (dcfg->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4) ? 4 : 2, szNum);
+				gf_export_message(dumper, GF_OK, "Dumping MPEG-%d AAC sample%s", (dcfg->objectTypeIndication==GF_CODECID_AAC_MPEG4) ? 4 : 2, szNum);
 				break;
-			case GPAC_OTI_AUDIO_MPEG2_PART3:
-			case GPAC_OTI_AUDIO_MPEG1:
+			case GF_CODECID_MPEG2_PART3:
+			case GF_CODECID_MPEG_AUDIO:
 				strcpy(szEXT, ".mp3");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-1/2 Audio (MP3) sample%s", szNum);
 				break;
-			case GPAC_OTI_MEDIA_OGG:
+			case GF_CODECID_VORBIS:
 				strcpy(szEXT, ".vorb");
 				gf_export_message(dumper, GF_OK, "Dumping Vorbis audio sample%s", szNum);
+				break;
+			case GF_CODECID_SPEEX:
+				strcpy(szEXT, ".spx");
+				gf_export_message(dumper, GF_OK, "Dumping Speex audio sample%s", szNum);
+				break;
+			case GF_CODECID_FLAC:
+				strcpy(szEXT, ".flac");
+				gf_export_message(dumper, GF_OK, "Dumping Flac audio sample%s", szNum);
 				break;
 			default:
 				strcpy(szEXT, ".raw");
@@ -834,7 +842,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		switch (dcfg->streamType) {
 		case GF_STREAM_VISUAL:
 			switch (dcfg->objectTypeIndication) {
-			case GPAC_OTI_VIDEO_MPEG4_PART2:
+			case GF_CODECID_MPEG4_PART2:
 				if (dcfg->decoderSpecificInfo) {
 					dsi = dcfg->decoderSpecificInfo->data;
 					dcfg->decoderSpecificInfo->data = NULL;
@@ -844,9 +852,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					strcat(szName, ".cmp");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Visual stream to cmp");
 				break;
-			case GPAC_OTI_VIDEO_AVC:
-			case GPAC_OTI_VIDEO_SVC:
-			case GPAC_OTI_VIDEO_MVC:
+			case GF_CODECID_AVC:
+			case GF_CODECID_SVC:
+			case GF_CODECID_MVC:
 				avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
 				svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
 				mvccfg = gf_isom_mvc_config_get(dumper->file, track, 1);
@@ -854,40 +862,40 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					strcat(szName, ".h264");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
 				break;
-			case GPAC_OTI_VIDEO_HEVC:
-			case GPAC_OTI_VIDEO_LHVC:
+			case GF_CODECID_HEVC:
+			case GF_CODECID_LHVC:
 				hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
 				lhvccfg = gf_isom_lhvc_config_get(dumper->file, track, 1);
 				if (add_ext)
 					strcat(szName, ".hvc");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC stream to hevc");
 				break;
-			case GPAC_OTI_VIDEO_MPEG1:
+			case GF_CODECID_MPEG1:
 				if (add_ext)
 					strcat(szName, ".m1v");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Visual stream to m1v");
 				break;
-			case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-			case GPAC_OTI_VIDEO_MPEG2_MAIN:
-			case GPAC_OTI_VIDEO_MPEG2_SNR:
-			case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-			case GPAC_OTI_VIDEO_MPEG2_HIGH:
-			case GPAC_OTI_VIDEO_MPEG2_422:
+			case GF_CODECID_MPEG2_SIMPLE:
+			case GF_CODECID_MPEG2_MAIN:
+			case GF_CODECID_MPEG2_SNR:
+			case GF_CODECID_MPEG2_SPATIAL:
+			case GF_CODECID_MPEG2_HIGH:
+			case GF_CODECID_MPEG2_422:
 				if (add_ext)
 					strcat(szName, ".m2v");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Visual stream to m2v");
 				break;
-			case GPAC_OTI_IMAGE_JPEG:
+			case GF_CODECID_JPEG:
 				if (add_ext)
 					strcat(szName, ".jpg");
 				gf_export_message(dumper, GF_OK, "Extracting JPEG image");
 				break;
-			case GPAC_OTI_IMAGE_PNG:
+			case GF_CODECID_PNG:
 				if (add_ext)
 					strcat(szName, ".png");
 				gf_export_message(dumper, GF_OK, "Extracting PNG image");
 				break;
-			case GPAC_OTI_MEDIA_OGG:
+			case GF_CODECID_THEORA:
 				if (add_ext)
 					strcat(szName, ".ogg");
 				gf_export_message(dumper, GF_OK, "Extracting Ogg video");
@@ -900,19 +908,19 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			break;
 		case GF_STREAM_AUDIO:
 			switch (dcfg->objectTypeIndication) {
-			case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+			case GF_CODECID_AAC_MPEG2_MP:
+			case GF_CODECID_AAC_MPEG2_LCP:
+			case GF_CODECID_AAC_MPEG2_SSRP:
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
 				if (add_ext)
 					strcat(szName, ".aac");
 				aac_mode = 1;
-				aac_type = dcfg->objectTypeIndication - GPAC_OTI_AUDIO_AAC_MPEG2_MP;
+				aac_type = dcfg->objectTypeIndication - GF_CODECID_AAC_MPEG2_MP;
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-2 AAC");
 				break;
-			case GPAC_OTI_AUDIO_AAC_MPEG4:
+			case GF_CODECID_AAC_MPEG4:
 				if (!dcfg->decoderSpecificInfo) {
 					gf_export_message(dumper, GF_OK, "Could not extracting MPEG-4 AAC: descriptor not found");
 					gf_odf_desc_del((GF_Descriptor *) dcfg);
@@ -926,36 +934,37 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					strcat(szName, ".aac");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AAC");
 				break;
-			case GPAC_OTI_AUDIO_MPEG2_PART3:
-			case GPAC_OTI_AUDIO_MPEG1:
+			case GF_CODECID_MPEG2_PART3:
+			case GF_CODECID_MPEG_AUDIO:
 				if (add_ext)
 					strcat(szName, ".mp3");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-1/2 Audio (MP3)");
 				break;
-			case GPAC_OTI_MEDIA_OGG:
-				if (add_ext)
-					strcat(szName, ".ogg");
+			case GF_CODECID_VORBIS:
+			case GF_CODECID_SPEEX:
+			case GF_CODECID_FLAC:
+				if (add_ext) strcat(szName, ".ogg");
 				is_ogg = GF_TRUE;
 				gf_export_message(dumper, GF_OK, "Extracting Ogg audio");
 				break;
-			case GPAC_OTI_AUDIO_QCELP:
+			case GF_CODECID_QCELP:
 				if (add_ext)
 					strcat(szName, ".qcp");
 				qcp_type = 1;
 				memcpy(GUID, QCP_QCELP_GUID_1, sizeof(char)*16);
 				gf_export_message(dumper, GF_OK, "Extracting QCELP-13K (QCP file)");
 				break;
-			case GPAC_OTI_AUDIO_EVRC:
+			case GF_CODECID_EVRC:
 				memcpy(GUID, QCP_EVRC_GUID, sizeof(char)*16);
 				qcp_type = 3;
 				if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
 				break;
-			case GPAC_OTI_AUDIO_SMV:
+			case GF_CODECID_SMV:
 				qcp_type = 2;
 				memcpy(GUID, QCP_SMV_GUID, sizeof(char)*16);
 				if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
 				break;
-			case 0xD1: /* OTI in the user private range already assigned to GPAC's internal GPAC_OTI_SCENE_SVG_GZ */
+			case GF_CODECID_EVRC_PV:
 				if (dcfg->decoderSpecificInfo && (dcfg->decoderSpecificInfo->dataLength==8)
 				        && !strnicmp(dcfg->decoderSpecificInfo->data, "pvmm", 4)) {
 					qcp_type = 3;
@@ -969,10 +978,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				return gf_export_message(dumper, GF_NOT_SUPPORTED, "Unknown audio in track ID %d - use NHNT", dumper->trackID);
 			}
 			break;
-		case GF_STREAM_ND_SUBPIC:
+		case GF_STREAM_TEXT:
 			switch (dcfg->objectTypeIndication)
 			{
-			case GPAC_OTI_MEDIA_SUBPIC:
+			case GF_CODECID_SUBPIC:
 				is_vobsub = GF_TRUE;
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
@@ -1820,7 +1829,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 			gf_isom_get_visual_info(infile, inTrackNum, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 			/*this is because so many files have reserved values of 320x240 from v1 ... */
-			if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
+			if (esd->decoderConfig->objectTypeIndication == GF_CODECID_MPEG4_PART2) {
 				GF_M4VDecSpecInfo dsi;
 				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 				w = dsi.width;
@@ -1829,7 +1838,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 #endif
 			gf_isom_set_visual_info(outfile, newTk, 1, w, h);
 		}
-		else if ((esd->decoderConfig->streamType == GF_STREAM_ND_SUBPIC) && (esd->decoderConfig->objectTypeIndication == GPAC_OTI_MEDIA_SUBPIC)) {
+		else if ((esd->decoderConfig->streamType == GF_STREAM_TEXT) && (esd->decoderConfig->objectTypeIndication == GF_CODECID_SUBPIC)) {
 			u32 w, h;
 			s32 trans_x, trans_y;
 			s16 layer;
@@ -1889,7 +1898,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 		if (iod && (iod->tag==GF_ODF_IOD_TAG)) {
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_SCENE, iod->scene_profileAndLevel);
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_GRAPHICS, iod->graphics_profileAndLevel);
-		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
+		} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) {
 			gf_export_message(dumper, GF_OK, "Warning: Scene PLs not found in original MP4 - defaulting to No Profile Specified");
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_SCENE, 0xFE);
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_GRAPHICS, 0xFE);
@@ -1900,7 +1909,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, iod->visual_profileAndLevel);
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
-		else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
+		else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) {
 			GF_M4VDecSpecInfo dsi;
 			gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, dsi.VideoPL);
@@ -1916,7 +1925,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, iod->audio_profileAndLevel);
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
-		else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4) {
+		else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4) {
 			GF_M4ADecSpecInfo cfg;
 			gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &cfg);
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, cfg.audioPL);
@@ -2027,12 +2036,12 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	if (!esd) return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Invalid MPEG-4 stream in track ID %d", dumper->trackID);
 
 	if ((esd->decoderConfig->streamType!=GF_STREAM_VISUAL) ||
-	        ( (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MPEG4_PART2)
-	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_AVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_SVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_HEVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_LHVC)
+	        ( (esd->decoderConfig->objectTypeIndication!=GF_CODECID_MPEG4_PART2)
+	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_AVC)
+	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_SVC)
+	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_MVC)
+	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_HEVC)
+	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_LHVC)
 	        ) ) {
 		gf_odf_desc_del((GF_Descriptor*)esd);
 		return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Track ID %d is not MPEG-4 Visual - cannot extract to AVI", dumper->trackID);
@@ -2067,12 +2076,12 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 	frame_d = 0;
 	/*AVC - FIXME dump format is probably wrong...*/
-	if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MVC)) {
+	if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_MVC)) {
 		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 		v4CC = "h264";
 	}
 	/*HEVC - FIXME dump format is probably wrong...*/
-	else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC)) {
+	else if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_HEVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_LHVC)) {
 		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 		v4CC = "hevc";
 	}
@@ -2120,7 +2129,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 		if (!samp) break;
 
 		/*add DSI before each I-frame in MPEG-4 SP*/
-		if (samp->IsRAP && (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
+		if (samp->IsRAP && (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2)) {
 			char *data = (char*) gf_malloc(sizeof(char) * (samp->dataLength + esd->decoderConfig->decoderSpecificInfo->dataLength));
 			memcpy(data, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			memcpy(data + esd->decoderConfig->decoderSpecificInfo->dataLength, samp->data, samp->dataLength);

@@ -255,9 +255,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		case GF_STREAM_AUDIO:
 			if (mo->type != GF_MEDIA_OBJECT_AUDIO) continue;
 			break;
-		case GF_STREAM_PRIVATE_MEDIA:
-			if ((mo->type != GF_MEDIA_OBJECT_AUDIO) && (mo->type != GF_MEDIA_OBJECT_VIDEO)) continue;
-			break;
 		case GF_STREAM_SCENE:
 			if (mo->type != GF_MEDIA_OBJECT_UPDATES) continue;
 			break;

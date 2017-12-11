@@ -3399,7 +3399,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 
 			if (parser->bifs_es->ESID != parser->stream_id) {
 				GF_StreamContext *prev = parser->bifs_es;
-				parser->bifs_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
+				parser->bifs_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_SCENE, GF_CODECID_BIFS);
 				/*force new AU if stream changed*/
 				if (parser->bifs_es != prev) {
 					gf_bt_check_unresolved_nodes(parser);
@@ -3571,7 +3571,7 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 		}
 		/*need at least one scene stream*/
 		if (!parser->bifs_es) {
-			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
+			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GF_CODECID_BIFS);
 			parser->load->ctx->scene_width = 0;
 			parser->load->ctx->scene_height = 0;
 			parser->load->ctx->is_pixel_metrics = 1;
@@ -3592,7 +3592,7 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 
 		/*create at least one empty BIFS stream*/
 		if (!parser->is_wrl) {
-			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
+			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GF_CODECID_BIFS);
 			parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
 			parser->load->ctx->is_pixel_metrics = 1;
 		}

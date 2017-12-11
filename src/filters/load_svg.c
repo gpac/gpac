@@ -41,7 +41,7 @@ typedef struct
 	GF_FilterPid *in_pid, *out_pid;
 	GF_SceneLoader loader;
 	GF_Scene *scene;
-	u32 oti;
+	u32 codecid;
 	const char *file_name;
 	u32 file_size;
 	u16 base_es_id;
@@ -113,9 +113,9 @@ static GF_Err svgin_process(GF_Filter *filter)
 	}
 #endif
 
-	switch (svgin->oti) {
-	/*!OTI for streaming SVG - GPAC internal*/
-	case GPAC_OTI_SCENE_SVG:
+	switch (svgin->codecid) {
+	/*! streaming SVG*/
+	case GF_CODECID_SVG:
 		pck = gf_filter_pid_get_packet(svgin->in_pid);
 		if (!pck) return GF_OK;
 		data = gf_filter_pck_get_data(pck, &size);
@@ -123,8 +123,8 @@ static GF_Err svgin_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(svgin->in_pid);
 		break;
 
-	/*!OTI for streaming SVG + gz - GPAC internal*/
-	case GPAC_OTI_SCENE_SVG_GZ:
+	/*! streaming SVG + gz*/
+	case GF_CODECID_SVG_GZ:
 		pck = gf_filter_pid_get_packet(svgin->in_pid);
 		if (!pck) return GF_OK;
 		data = gf_filter_pck_get_data(pck, &size);
@@ -132,8 +132,8 @@ static GF_Err svgin_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(svgin->in_pid);
 		break;
 
-	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
-	case GPAC_OTI_SCENE_DIMS:
+	/*! DIMS (dsi = 3GPP DIMS configuration)*/
+	case GF_CODECID_DIMS:
 	{
 		u8 prev, dims_hdr;
 		u32 nb_bytes, size;
@@ -271,30 +271,29 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (prop && prop->value.uint) svgin->oti = prop->value.uint;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (prop && prop->value.uint) svgin->codecid = prop->value.uint;
 
-	//we must have a file path or OTI
+	//we must have a file path or codecid
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (prop && prop->value.string) svgin->file_name = prop->value.string;
-	if (!svgin->oti && !svgin->file_name)
+	if (!svgin->codecid && !svgin->file_name)
 		return GF_NOT_SUPPORTED;
 
 	svgin->loader.type = GF_SM_LOAD_SVG;
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
-	switch (svgin->oti) {
-	case GPAC_OTI_SCENE_SVG:
-	case GPAC_OTI_SCENE_SVG_GZ:
+	switch (svgin->codecid) {
+	case GF_CODECID_SVG:
+	case GF_CODECID_SVG_GZ:
 		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_STREAMING;
 		/*no decSpecInfo defined for streaming svg yet*/
 		break;
-	case GPAC_OTI_SCENE_DIMS:
+	case GF_CODECID_DIMS:
 		svgin->loader.type = GF_SM_LOAD_DIMS;
 		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_STREAMING;
 		/*decSpecInfo not yet supported for DIMS svg - we need properties at the scene level to store the
 		various indications*/
 		break;
-	case GPAC_OTI_PRIVATE_SCENE_SVG:
 	default:
 		break;
 	}
@@ -318,23 +317,23 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_OK;
 	}
 
-	//declare a new output PID of type STREAM, OTI RAW
+	//declare a new output PID of type scene, codecid RAW
 	svgin->out_pid = gf_filter_pid_new(filter);
 
 	gf_filter_pid_copy_properties(svgin->out_pid, pid);
 	gf_filter_pid_set_property(svgin->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE) );
-	gf_filter_pid_set_property(svgin->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+	gf_filter_pid_set_property(svgin->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(svgin->out_pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
 	gf_filter_pid_set_udta(pid, svgin->out_pid);
 
 
-	if (svgin->oti==GPAC_OTI_PRIVATE_SCENE_SVG) {
+	if (svgin->file_name) {
 		gf_filter_set_name(filter,  ((svgin->sax_dur==0) && svgin->file_size) ? "SVGLoad" : "SVGLoad:Progressive");
-	} else if (svgin->oti==GPAC_OTI_SCENE_SVG) {
+	} else if (svgin->codecid==GF_CODECID_SVG) {
 		gf_filter_set_name(filter,  "SVG:Streaming");
-	} else if (svgin->oti==GPAC_OTI_SCENE_SVG_GZ) {
+	} else if (svgin->codecid==GF_CODECID_SVG_GZ) {
 		gf_filter_set_name(filter,  "SVG:Streaming:GZ");
-	} else if (svgin->oti==GPAC_OTI_SCENE_DIMS) {
+	} else if (svgin->codecid==GF_CODECID_DIMS) {
 		gf_filter_set_name(filter,  "SVG:DIMS");
 	}
 
@@ -382,7 +381,7 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				svgin->loader.type = GF_SM_LOAD_SVG;
 				svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
 
-				if (svgin->oti!= GPAC_OTI_PRIVATE_SCENE_SVG)
+				if (! svgin->file_name)
 					gf_sm_load_init(&svgin->loader);
 
 //				gf_sg_set_node_callback(svgin->scene->graph, CTXLoad_NodeCallback);
@@ -410,15 +409,15 @@ static const GF_FilterCapability SVGInInputs[] =
 	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "svg|svgz|svg.gz"),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_SVG),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_SVG_GZ),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_DIMS),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVG),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVG_GZ),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_DIMS),
 };
 
 static const GF_FilterCapability SVGInOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 

@@ -46,8 +46,8 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (!prop || (prop->value.uint != GF_STREAM_OD)) {
 		return GF_NOT_SUPPORTED;
 	}
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (!prop || ( (prop->value.uint != GPAC_OTI_OD_V1) && (prop->value.uint != GPAC_OTI_OD_V2)) ) {
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!prop || ( (prop->value.uint != GF_CODECID_OD_V1) && (prop->value.uint != GF_CODECID_OD_V2)) ) {
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -73,11 +73,11 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		return GF_REQUIRES_NEW_INSTANCE;
 	}
 
-	//declare a new output PID of type STREAM, OTI RAW
+	//declare a new output PID of type scene, codecid RAW
 	out_pid = gf_filter_pid_new(filter);
 
 	gf_filter_pid_copy_properties(out_pid, pid);
-	gf_filter_pid_set_property(out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);
 	return GF_OK;
 }
@@ -413,14 +413,14 @@ static const GF_FilterCapability ODFDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V1),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V2),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V1),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V2),
 };
 
 static const GF_FilterCapability ODFDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister ODFDecRegister = {

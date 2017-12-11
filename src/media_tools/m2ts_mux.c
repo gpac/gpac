@@ -821,7 +821,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				}
 			}
 
-			if (es->ifce && es->ifce->lang && (es->ifce->lang  != GF_MEDIA_LANG_UND) ) {
+			if (es->ifce && es->ifce->lang && (es->ifce->lang != GF_LANG_UNKNOWN) ) {
 				es_info_length += 2 + 3;
 				has_lang = GF_TRUE;
 			}
@@ -2160,29 +2160,29 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		of each frame*/
 		stream->prevent_two_au_start_in_pes = GF_TRUE;
 		switch (ifce->object_type_indication) {
-		case GPAC_OTI_VIDEO_MPEG4_PART2:
+		case GF_CODECID_MPEG4_PART2:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG4;
 			break;
-		case GPAC_OTI_VIDEO_AVC:
+		case GF_CODECID_AVC:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_H264;
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (start code + 1 nal hdr + AU delim)
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 11;
 			break;
-		case GPAC_OTI_VIDEO_SVC:
+		case GF_CODECID_SVC:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_SVC;
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (start code + 1 nal hdr + AU delim)
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 11;
 			gf_m2ts_stream_add_hierarchy_descriptor(stream);
 			break;
-		case GPAC_OTI_VIDEO_HEVC:
+		case GF_CODECID_HEVC:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC;
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 12;
 			break;
-		case GPAC_OTI_VIDEO_LHVC:
+		case GF_CODECID_LHVC:
 			//FIXME - we need to check scalability type to see if we have MHVC, for now only use SHVC
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_SHVC;
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
@@ -2192,20 +2192,20 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			//force by default with SHVC since we don't have any delimiter / layer yet
 			stream->force_single_au = GF_TRUE;
 			break;
-		case GPAC_OTI_VIDEO_MPEG1:
+		case GF_CODECID_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG1;
 			break;
-		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-		case GPAC_OTI_VIDEO_MPEG2_MAIN:
-		case GPAC_OTI_VIDEO_MPEG2_SNR:
-		case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-		case GPAC_OTI_VIDEO_MPEG2_HIGH:
-		case GPAC_OTI_VIDEO_MPEG2_422:
+		case GF_CODECID_MPEG2_SIMPLE:
+		case GF_CODECID_MPEG2_MAIN:
+		case GF_CODECID_MPEG2_SNR:
+		case GF_CODECID_MPEG2_SPATIAL:
+		case GF_CODECID_MPEG2_HIGH:
+		case GF_CODECID_MPEG2_422:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2;
 			break;
 		/*JPEG/PNG carried in MPEG-4 PES*/
-		case GPAC_OTI_IMAGE_JPEG:
-		case GPAC_OTI_IMAGE_PNG:
+		case GF_CODECID_JPEG:
+		case GF_CODECID_PNG:
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
 			stream->force_single_au = GF_TRUE;
 			stream->mpeg2_stream_id = 0xFA;
@@ -2219,21 +2219,21 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		//override default packing for audio
 		stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_NONE) ? GF_TRUE : GF_FALSE;
 		switch (ifce->object_type_indication) {
-		case GPAC_OTI_AUDIO_MPEG1:
+		case GF_CODECID_MPEG_AUDIO:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG1;
 			break;
-		case GPAC_OTI_AUDIO_MPEG2_PART3:
+		case GF_CODECID_MPEG2_PART3:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG2;
 			break;
-		case GPAC_OTI_AUDIO_AAC_MPEG4:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+		case GF_CODECID_AAC_MPEG4:
+		case GF_CODECID_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
 			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
 			break;
-		case GPAC_OTI_AUDIO_AC3:
+		case GF_CODECID_AC3:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
 			break;
 		}

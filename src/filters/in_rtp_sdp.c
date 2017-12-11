@@ -213,7 +213,7 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 
 	if (sl_map->StreamType) {
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(sl_map->StreamType) );
-		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_OTI, &PROP_UINT(sl_map->ObjectTypeIndication) );
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_CODECID, &PROP_UINT(sl_map->ObjectTypeIndication) );
 
 		if (sl_map->config)
 			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(sl_map->config, sl_map->configSize) );
@@ -229,9 +229,9 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 		if (static_map->stream_type)
 			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(static_map->stream_type) );
 		if (static_map->codec_id)
-			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_OTI, &PROP_UINT(static_map->codec_id) );
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_CODECID, &PROP_UINT(static_map->codec_id) );
 		if (static_map->mime)
-			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_MIME, &PROP_UINT(static_map->mime) );
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_MIME, &PROP_STRING((char*)static_map->mime) );
 	}
 
 

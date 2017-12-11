@@ -43,7 +43,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	u32 start_offset;
-	u32 oti, sample_rate, block_size;
+	u32 codecid, sample_rate, block_size;
 
 
 	u64 file_pos, cts;
@@ -91,13 +91,13 @@ GF_Err amrdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	ctx->sample_rate = 8000;
 	ctx->block_size = 160;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) {
-		if (ctx->oti && (ctx->oti != p->value.uint)) {
+		if (ctx->codecid && (ctx->codecid != p->value.uint)) {
 			return GF_NOT_SUPPORTED;
 		}
-		ctx->oti = p->value.uint;
-		if (ctx->oti == GPAC_OTI_AUDIO_AMR_WB) {
+		ctx->codecid = p->value.uint;
+		if (ctx->codecid == GF_CODECID_AMR_WB) {
 			ctx->sample_rate = 16000;
 			ctx->block_size = 320;
 		}
@@ -124,7 +124,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 	stream = gf_fopen(p->value.string, "r");
 	if (!stream) return;
 
-	ctx->oti = 0;
+	ctx->codecid = 0;
 	ctx->start_offset = 6;
 	ctx->sample_rate = 8000;
 	ctx->block_size = 160;
@@ -133,19 +133,19 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 
 	if (!strnicmp(magic, "#!AMR\n", 6)) {
 		fseek(stream, 6, SEEK_SET);
-		ctx->oti = GPAC_OTI_AUDIO_AMR;
+		ctx->codecid = GF_CODECID_AMR;
 	}
 	else if (!strnicmp(magic, "#!EVRC\n", 7)) {
 		fseek(stream, 7, SEEK_SET);
 		ctx->start_offset = 7;
-		ctx->oti = GPAC_OTI_AUDIO_EVRC;
+		ctx->codecid = GF_CODECID_EVRC;
 	}
 	else if (!strnicmp(magic, "#!SMV\n", 6)) {
 		fseek(stream, 6, SEEK_SET);
-		ctx->oti = GPAC_OTI_AUDIO_SMV;
+		ctx->codecid = GF_CODECID_SMV;
 	}
 	else if (!strnicmp(magic, "#!AMR-WB\n", 9)) {
-		ctx->oti = GPAC_OTI_AUDIO_AMR_WB;
+		ctx->codecid = GF_CODECID_AMR_WB;
 		ctx->start_offset = 9;
 		ctx->sample_rate = 16000;
 		ctx->block_size = 320;
@@ -164,12 +164,12 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 		u8 toc, ft;
 		toc = fgetc(stream);
 
-		switch (ctx->oti) {
-		case GPAC_OTI_AUDIO_AMR:
+		switch (ctx->codecid) {
+		case GF_CODECID_AMR:
 			ft = (toc >> 3) & 0x0F;
 			size = (u32)GF_AMR_FRAME_SIZE[ft];
 			break;
-		case GPAC_OTI_AUDIO_AMR_WB:
+		case GF_CODECID_AMR_WB:
 			ft = (toc >> 3) & 0x0F;
 			size = (u32)GF_AMR_WB_FRAME_SIZE[ft];
 			break;
@@ -230,7 +230,7 @@ static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx, u16 amr_mode_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(1) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(ctx->oti ) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMR_MODE_SET, & PROP_UINT(ctx->amr_mode_set));
 
@@ -400,15 +400,15 @@ GF_Err amrdmx_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AMRDmx] Could not find TOC word in packet, droping\n"));
 			break;
 		}
-		switch (ctx->oti) {
-		case GPAC_OTI_AUDIO_AMR:
+		switch (ctx->codecid) {
+		case GF_CODECID_AMR:
 			ft = (toc >> 3) & 0x0F;
 
 			/*update mode set (same mechanism for both AMR and AMR-WB*/
 			amr_mode_set |= (1<<ft);
 			size = (u32)GF_AMR_FRAME_SIZE[ft];
 			break;
-		case GPAC_OTI_AUDIO_AMR_WB:
+		case GF_CODECID_AMR_WB:
 			ft = (toc >> 3) & 0x0F;
 			size = (u32)GF_AMR_WB_FRAME_SIZE[ft];
 
@@ -503,10 +503,10 @@ static const GF_FilterCapability AMRDmxInputs[] =
 static const GF_FilterCapability AMRDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AMR),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AMR_WB),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_SMV),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_EVRC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AMR),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AMR_WB),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SMV),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EVRC),
 	{}
 };
 

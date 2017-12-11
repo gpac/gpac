@@ -81,7 +81,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	/*official mapping to MPEG-4*/
 	switch (entry->type) {
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
-		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_EVRC;
+		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_EVRC;
 		return GF_OK;
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	{
@@ -89,7 +89,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 		GF_SttsEntry *ent;
 		/*only map CBR*/
 		sample_size = stbl->SampleSize->sampleSize;
-		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_QCELP;
+		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_QCELP;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_data(bs, "QLCMfmt ", 8);
 		gf_bs_write_u32_le(bs, 150);/*fmt chunk size*/
@@ -128,13 +128,13 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	}
 	return GF_OK;
 	case GF_ISOM_SUBTYPE_3GP_SMV:
-		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_SMV;
+		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_SMV;
 		return GF_OK;
 	default:
 		break;
 	}
-	/*this is a user-reserved used in gpac - we need a std OTI for AMR/AMRWB*/
-	(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+	/*this is a user-reserved used in gpac - we need a std codecid for AMR/AMRWB*/
+	(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, entry->type);
 	gf_bs_write_u16(bs, entry->samplerate_hi);
@@ -215,7 +215,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
                 aacinfo.base_sr = ase->samplerate_hi;
                 *out_esd = gf_odf_desc_esd_new(0);
                 (*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
-                (*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+                (*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_AAC_MPEG4;
                 gf_m4a_write_config(&aacinfo, &(*out_esd)->decoderConfig->decoderSpecificInfo->data, &(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
             }
         }
@@ -243,7 +243,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd =  gf_odf_desc_esd_new(2);
 		*out_esd = esd;
 		esd->decoderConfig->streamType = GF_STREAM_TEXT;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_VTT_MP4;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_VTT;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, entry->type);
 		gf_isom_box_write((GF_Box *)((GF_WebVTTSampleEntryBox*)entry)->config, bs);
@@ -267,7 +267,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd =  gf_odf_desc_esd_new(2);
 		*out_esd = esd;
 		esd->decoderConfig->streamType = GF_STREAM_TEXT;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_SIMPLE_TEXT_MP4;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_SIMPLE_TEXT;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, entry->type);
 		gf_isom_box_write((GF_Box *)((GF_MetaDataSampleEntryBox*)entry)->config, bs);
@@ -296,7 +296,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd =  gf_odf_desc_esd_new(2);
 			*out_esd = esd;
 			esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-			esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32(bs, entry->type);
 			gf_bs_write_u16(bs, ((GF_MPEGVisualSampleEntryBox*)entry)->Width);
@@ -313,7 +313,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd =  gf_odf_desc_esd_new(2);
 			*out_esd = esd;
 			esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_MPEG_AUDIO;
 			break;
 		}
 
@@ -325,7 +325,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd =  gf_odf_desc_esd_new(2);
 			*out_esd = esd;
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
-			esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_LASER;
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_LASER;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = ptr->lsr_config->hdr_size;
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*ptr->lsr_config->hdr_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, ptr->lsr_config->hdr, sizeof(char)*ptr->lsr_config->hdr_size);

@@ -42,7 +42,8 @@ typedef struct
 
 	u32 timescale;
 	u32 stream_type;
-	u32 oti;
+	u32 codecid;
+
 	u32 cfg_crc, enh_cfg_crc;
 	u32 dep_id;
 	u32 stsd_idx;
@@ -96,7 +97,7 @@ typedef struct
 	GF_BitStream *bs_r;
 } GF_MP4MuxCtx;
 
-static u32 gf_isom_stream_type_to_media_type(u32 stream_type, u32 oti)
+static u32 gf_isom_stream_type_to_media_type(u32 stream_type, u32 codecid)
 {
 	switch (stream_type) {
 	case GF_STREAM_SCENE: return GF_ISOM_MEDIA_SCENE;
@@ -108,18 +109,18 @@ static u32 gf_isom_stream_type_to_media_type(u32 stream_type, u32 oti)
 	case GF_STREAM_VISUAL: return GF_ISOM_MEDIA_VISUAL;
 	case GF_STREAM_AUDIO: return GF_ISOM_MEDIA_AUDIO;
 	case GF_STREAM_TEXT:
-		if (oti==GF_ISOM_SUBTYPE_STPP)
+		if (codecid==GF_ISOM_SUBTYPE_STPP)
 			return GF_ISOM_MEDIA_MPEG_SUBT;
+		if (codecid == GF_CODECID_SUBPIC)
+			return GF_ISOM_MEDIA_SUBPIC;
 		return GF_ISOM_MEDIA_TEXT;
 	case GF_STREAM_INTERACT: return GF_ISOM_MEDIA_SCENE;
 	case GF_STREAM_IPMP: return GF_ISOM_MEDIA_IPMP;
 	case GF_STREAM_MPEGJ: return GF_ISOM_MEDIA_MPEGJ;
 	case GF_STREAM_IPMP_TOOL: return GF_ISOM_MEDIA_IPMP;
 	case GF_STREAM_FONT: return GF_ISOM_MEDIA_MPEGJ;//TOCHECK !!
-	case GF_STREAM_ND_SUBPIC: return GF_ISOM_MEDIA_SUBPIC;
 
 	case GF_STREAM_PRIVATE_SCENE:
-	case GF_STREAM_PRIVATE_MEDIA:
 	case GF_STREAM_ENCRYPTED:
 	case GF_STREAM_FILE:
 		return 0;
@@ -291,10 +292,10 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 	//check change of pid config
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) {
 		if (p->value.uint!=tkw->stream_type) needs_sample_entry = GF_TRUE;
-		tkw->oti = p->value.uint;
+		tkw->codecid = p->value.uint;
 	}
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
@@ -341,7 +342,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 		if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (p) tkid = p->value.uint;
-		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->oti);
+		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->codecid);
 
 		tkw->track_num = gf_isom_new_track(ctx->mov, tkid, mtype, tkw->timescale);
 		if (!tkw->track_num) {
@@ -375,16 +376,16 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	use_dref = ctx->dref;
 
 	//get our subtype
-	switch (tkw->oti) {
-	case GPAC_OTI_AUDIO_MPEG1:
-	case GPAC_OTI_AUDIO_MPEG2_PART3:
+	switch (tkw->codecid) {
+	case GF_CODECID_MPEG_AUDIO:
+	case GF_CODECID_MPEG2_PART3:
 		m_subtype = GF_ISOM_SUBTYPE_MP3;
 		comp_name = "MP3";
 		break;
-	case GPAC_OTI_AUDIO_AAC_MPEG4:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
 		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
 		use_m4sys = GF_TRUE;
 		comp_name = "AAC";
@@ -414,99 +415,99 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 		}
 		break;
-	case GPAC_OTI_IMAGE_JPEG:
+	case GF_CODECID_JPEG:
 		m_subtype = GF_ISOM_BOX_TYPE_JPEG;
 		comp_name = "JPEG";
 		break;
-	case GPAC_OTI_IMAGE_PNG:
+	case GF_CODECID_PNG:
 		m_subtype = GF_ISOM_BOX_TYPE_PNG;
 		comp_name = "PNG";
 		break;
-	case GPAC_OTI_IMAGE_JPEG_2000:
+	case GF_CODECID_J2K:
 		m_subtype = GF_ISOM_BOX_TYPE_JP2K;
 		comp_name = "JP2K";
 		break;
 
-	case GPAC_OTI_AUDIO_AMR:
+	case GF_CODECID_AMR:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_AMR;
 		comp_name = "AMR";
 		use_3gpp_config = GF_TRUE;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMR_MODE_SET);
 		if (p) amr_mode_set = p->value.uint;
 		break;
-	case GPAC_OTI_AUDIO_AMR_WB:
+	case GF_CODECID_AMR_WB:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_AMR_WB;
 		comp_name = "AMR-WB";
 		use_3gpp_config = GF_TRUE;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMR_MODE_SET);
 		if (p) amr_mode_set = p->value.uint;
 		break;
-	case GPAC_OTI_AUDIO_EVRC:
+	case GF_CODECID_EVRC:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_EVRC;
 		comp_name = "EVRC";
 		use_3gpp_config = GF_TRUE;
 		break;
-	case GPAC_OTI_AUDIO_SMV:
+	case GF_CODECID_SMV:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_SMV;
 		comp_name = "SMV";
 		use_3gpp_config = GF_TRUE;
 		break;
-	case GPAC_OTI_AUDIO_QCELP:
+	case GF_CODECID_QCELP:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_QCELP;
 		comp_name = "QCELP";
 		use_3gpp_config = GF_TRUE;
 		break;
-	case GPAC_OTI_VIDEO_H263:
+	case GF_CODECID_H263:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_H263;
 		comp_name = "H263";
 		use_3gpp_config = GF_TRUE;
 		break;
-	case GPAC_OTI_AUDIO_AC3:
+	case GF_CODECID_AC3:
 		m_subtype = GF_ISOM_SUBTYPE_AC3;
 		comp_name = "AC-3";
 		use_ac3_entry = GF_TRUE;
 		break;
-	case GPAC_OTI_AUDIO_EAC3:
+	case GF_CODECID_EAC3:
 		m_subtype = GF_ISOM_SUBTYPE_AC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
 		break;
-	case GPAC_OTI_VIDEO_MPEG4_PART2:
+	case GF_CODECID_MPEG4_PART2:
 		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
 		use_m4sys = GF_TRUE;
 		comp_name = "MPEG-4 Visual Part 2";
 		use_gen_sample_entry = GF_FALSE;
 		break;
-	case GPAC_OTI_VIDEO_AVC:
-	case GPAC_OTI_VIDEO_SVC:
+	case GF_CODECID_AVC:
+	case GF_CODECID_SVC:
 		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_AVC3_H264 : GF_ISOM_SUBTYPE_AVC_H264;
 		use_avc = GF_TRUE;
-		comp_name = (tkw->oti == GPAC_OTI_VIDEO_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
+		comp_name = (tkw->codecid == GF_CODECID_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
 		use_gen_sample_entry = GF_FALSE;
 		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
 		break;
-	case GPAC_OTI_VIDEO_HEVC:
-	case GPAC_OTI_VIDEO_LHVC:
+	case GF_CODECID_HEVC:
+	case GF_CODECID_LHVC:
 		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_HEV1  : GF_ISOM_SUBTYPE_HVC1;
 		use_hevc = GF_TRUE;
-		comp_name = (tkw->oti == GPAC_OTI_VIDEO_LHVC) ? "L-HEVC" : "HEVC";
+		comp_name = (tkw->codecid == GF_CODECID_LHVC) ? "L-HEVC" : "HEVC";
 		use_gen_sample_entry = GF_FALSE;
 		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
 		break;
-	case GPAC_OTI_VIDEO_MPEG1:
-	case GPAC_OTI_VIDEO_MPEG2_422:
-	case GPAC_OTI_VIDEO_MPEG2_SNR:
-	case GPAC_OTI_VIDEO_MPEG2_HIGH:
-	case GPAC_OTI_VIDEO_MPEG2_MAIN:
-	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+	case GF_CODECID_MPEG1:
+	case GF_CODECID_MPEG2_422:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_SPATIAL:
 		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
 		use_m4sys = GF_TRUE;
 		comp_name = "MPEG-2 Video";
 		use_gen_sample_entry = GF_FALSE;
 		break;
 	case 0:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] muxing OTI %d not yet implemented - patch welcome\n", tkw->oti));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] muxing codecID %d not yet implemented - patch welcome\n", tkw->codecid));
 		return GF_NOT_SUPPORTED;
 
 	case GF_ISOM_SUBTYPE_TX3G:
@@ -523,7 +524,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		break;
 
 	default:
-		m_subtype = tkw->oti;
+		m_subtype = tkw->codecid;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
 		comp_name = gf_4cc_to_str(m_subtype);
@@ -583,7 +584,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (use_m4sys) {
 		GF_ESD *esd = gf_odf_desc_esd_new(2);
 		esd->decoderConfig->streamType = tkw->stream_type;
-		esd->decoderConfig->objectTypeIndication = tkw->oti;
+		esd->decoderConfig->objectTypeIndication = tkw->codecid;
 		esd->slConfig->timestampResolution = tkw->timescale;
 		if (dsi && !skip_dsi) {
 			esd->decoderConfig->decoderSpecificInfo->data = dsi->value.data.ptr;
@@ -598,7 +599,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_odf_desc_del((GF_Descriptor *) esd);
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-4 Systems sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-4 Systems sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
 			return e;
 		}
 
@@ -613,7 +614,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		tkw->avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
-		if (tkw->oti == GPAC_OTI_VIDEO_SVC) {
+		if (tkw->codecid == GF_CODECID_SVC) {
 			e = gf_isom_svc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
 		} else {
 			e = gf_isom_avc_config_new(ctx->mov, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
@@ -660,7 +661,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
-		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (tkw->oti == GPAC_OTI_VIDEO_LHVC) ? GF_TRUE : GF_FALSE);
+		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (tkw->codecid == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 
 		e = gf_isom_hevc_config_new(ctx->mov, tkw->track_num, tkw->hvcc, NULL, NULL, &tkw->stsd_idx);
 
@@ -683,7 +684,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					gf_isom_avc_set_inband_config(ctx->mov, tkw->track_num, tkw->stsd_idx);
 				}
 			}
-		} else if (tkw->oti == GPAC_OTI_VIDEO_LHVC) {
+		} else if (tkw->codecid == GF_CODECID_LHVC) {
 			gf_isom_lhvc_config_update(ctx->mov, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_LEHVC_ONLY);
 		}
 		if (e) {
@@ -723,7 +724,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		e = gf_isom_3gp_config_new(ctx->mov, tkw->track_num, &gpp_cfg, (char *) src_url, NULL, &tkw->stsd_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new 3GPP audio sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new 3GPP audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
@@ -753,7 +754,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		e = gf_isom_ac3_config_new(ctx->mov, tkw->track_num, &ac3cfg, (char *)src_url, NULL, &tkw->stsd_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
@@ -840,7 +841,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		e = gf_isom_new_generic_sample_description(ctx->mov, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new sample description for stream type %d codecid %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
@@ -1264,7 +1265,7 @@ static void mp4_mux_finalize(GF_Filter *filter)
 
 		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
 		 we force the system video_pl to ASP@L5 since we have I, P, B in base layer*/
-		if (tkw->oti == GPAC_OTI_VIDEO_MPEG4_PART2) {
+		if (tkw->codecid == GF_CODECID_MPEG4_PART2) {
 			Bool force_rewrite = GF_FALSE;
 			u32 PL = tkw->media_profile_level;
 			if (!PL) PL = 0x01;
@@ -1385,15 +1386,15 @@ static const GF_FilterCapability MP4MuxInputs[] =
 	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	//we want framed media only
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	//and any OTI
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_FORBIDDEN),
+	//and any codecid
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	{},
-	//for scene and OD, we don't want raw OTI (filters modifying a scene graph we don't expose)
+	//for scene and OD, we don't want raw codecid (filters modifying a scene graph we don't expose)
 	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{}
 };
 

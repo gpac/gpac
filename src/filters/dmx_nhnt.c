@@ -322,7 +322,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(val));
 
 			oti = gf_bs_read_u8(ctx->bs);
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(oti));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(oti));
 
 			gf_bs_read_u16(ctx->bs);
 			val = gf_bs_read_u24(ctx->bs); //bufferSizeDB
@@ -351,7 +351,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 				gf_fclose(info);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-				if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
+				if (oti==GF_CODECID_MPEG4_PART2) {
 					GF_M4VDecSpecInfo cfg;
 					GF_Err e = gf_m4v_get_config(dsi, dsi_size, &cfg);
 					if (e>=0) {

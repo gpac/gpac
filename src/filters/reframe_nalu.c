@@ -210,11 +210,11 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	was_hevc = ctx->is_hevc;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) {
 		switch (p->value.uint) {
-		case GPAC_OTI_VIDEO_HEVC:
-		case GPAC_OTI_VIDEO_LHVC:
+		case GF_CODECID_HEVC:
+		case GF_CODECID_LHVC:
 			ctx->is_hevc = GF_TRUE;
 			break;
 		}
@@ -1053,10 +1053,10 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->fps.num));
 
 	if (ctx->explicit || !has_hevc_base) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(ctx->is_hevc ? GPAC_OTI_VIDEO_LHVC : GPAC_OTI_VIDEO_SVC));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_hevc ? GF_CODECID_LHVC : GF_CODECID_SVC));
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 	} else {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(ctx->is_hevc ? GPAC_OTI_VIDEO_HEVC : GPAC_OTI_VIDEO_AVC));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_hevc ? GF_CODECID_HEVC : GF_CODECID_AVC));
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 		if (dsi_enh) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(dsi_enh, dsi_enh_size) );
 	}
@@ -2561,10 +2561,10 @@ static const GF_FilterCapability NALUDmxInputs[] =
 	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "264|h264|26L|h26L|h26l|avc|svc|mvc|hevc|hvc|265|h265|shvc|lvhc|mhvc"),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_AVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_SVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_HEVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_LHVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -2572,10 +2572,10 @@ static const GF_FilterCapability NALUDmxInputs[] =
 static const GF_FilterCapability NALUDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_AVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_SVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_HEVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_LHVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	{}
 };
 

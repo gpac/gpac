@@ -595,8 +595,8 @@ enum
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
 	//(uint) media stream type before encryption
 	GF_PROP_PID_ORIG_STREAM_TYPE = GF_4CC('P','O','S','T'),
-	//(uint) object type indication , matching gpac OTI types
-	GF_PROP_PID_OTI = GF_4CC('P','O','T','I'),
+	//(uint) object type indication , matching gpac codecid types
+	GF_PROP_PID_CODECID = GF_4CC('P','O','T','I'),
 	//(bool) indicates if PID is present in IOD
 	GF_PROP_PID_IN_IOD = GF_4CC('P','I','O','D'),
 	//(bool) indicates the PID is not framed (framed= one full packet <=> one compressed framed). Only used for compressed media, raw media shall only be framed

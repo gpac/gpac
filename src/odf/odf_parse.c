@@ -282,75 +282,75 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			/*XMT may use string*/
 			if (!ret) {
 				if (!stricmp(val, "MPEG4Systems1")) {
-					dcd->objectTypeIndication = GPAC_OTI_OD_V1;
+					dcd->objectTypeIndication = GF_CODECID_OD_V1;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG4Systems2")) {
-					dcd->objectTypeIndication = GPAC_OTI_SCENE_BIFS_V2;
+					dcd->objectTypeIndication = GF_CODECID_BIFS_V2;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG4Visual")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
+					dcd->objectTypeIndication = GF_CODECID_MPEG4_PART2;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG4Audio")) {
-					dcd->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+					dcd->objectTypeIndication = GF_CODECID_AAC_MPEG4;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2VisualSimple")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_SIMPLE;
+					dcd->objectTypeIndication = GF_CODECID_MPEG2_SIMPLE;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2VisualMain")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_MAIN;
+					dcd->objectTypeIndication = GF_CODECID_MPEG2_MAIN;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2VisualSNR")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_SNR;
+					dcd->objectTypeIndication = GF_CODECID_MPEG2_SNR;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2VisualSpatial")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_SPATIAL;
+					dcd->objectTypeIndication = GF_CODECID_MPEG2_SPATIAL;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2VisualHigh")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_HIGH;
+					dcd->objectTypeIndication = GF_CODECID_MPEG2_HIGH;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2Visual422")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_422;
+					dcd->objectTypeIndication = GF_CODECID_MPEG2_422;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2AudioMain")) {
-					dcd->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG2_MP;
+					dcd->objectTypeIndication = GF_CODECID_AAC_MPEG2_MP;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2AudioLowComplexity")) {
-					dcd->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG2_LCP;
+					dcd->objectTypeIndication = GF_CODECID_AAC_MPEG2_LCP;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2AudioScaleableSamplingRate")) {
-					dcd->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG2_SSRP;
+					dcd->objectTypeIndication = GF_CODECID_AAC_MPEG2_SSRP;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG2AudioPart3")) {
-					dcd->objectTypeIndication = GPAC_OTI_AUDIO_MPEG2_PART3;
+					dcd->objectTypeIndication = GF_CODECID_MPEG2_PART3;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG1Visual")) {
-					dcd->objectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
+					dcd->objectTypeIndication = GF_CODECID_MPEG1;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG1Audio")) {
-					dcd->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
+					dcd->objectTypeIndication = GF_CODECID_MPEG_AUDIO;
 					ret = 1;
 				}
 				else if (!stricmp(val, "JPEG")) {
-					dcd->objectTypeIndication = GPAC_OTI_IMAGE_JPEG;
+					dcd->objectTypeIndication = GF_CODECID_JPEG;
 					ret = 1;
 				}
 				else if (!stricmp(val, "PNG")) {
-					dcd->objectTypeIndication = GPAC_OTI_IMAGE_PNG;
+					dcd->objectTypeIndication = GF_CODECID_PNG;
 					ret = 1;
 				}
 			}

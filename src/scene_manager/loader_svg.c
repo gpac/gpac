@@ -1335,7 +1335,7 @@ static GF_ESD *lsr_parse_header(GF_SVG_Parser *parser, const char *name, const c
 		gf_odf_desc_del((GF_Descriptor *)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) lsrc;
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_LASER;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_LASER;
 		esd->slConfig->timestampResolution = lsrc->time_resolution ? lsrc->time_resolution : 1000;
 		return esd;
 	}
@@ -1370,7 +1370,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 		/*if not created, do it now*/
 		if (!gf_list_count(parser->load->ctx->streams)) {
-			parser->laser_es = gf_sm_stream_new(parser->load->ctx, 1, GF_STREAM_SCENE, GPAC_OTI_SCENE_DIMS);
+			parser->laser_es = gf_sm_stream_new(parser->load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_DIMS);
 			parser->laser_es->timeScale = 1000;
 			/* Create a default AU to behave as other streams (LASeR, BIFS)
 			   but it is left empty, there is no notion of REPLACE Scene or NEw Scene,
@@ -1427,7 +1427,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			char *url = NULL;
 			char *src = NULL;
 			const char *ID = NULL;
-			u32 time, OTI, ST, i, ts_res;
+			u32 time, codecid, ST, i, ts_res;
 			GF_ODUpdate *odU;
 			GF_ObjectDescriptor *od;
 			SVG_SAFExternalStream*st;
@@ -1437,21 +1437,24 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				esd->ESID = 0xFFFE;
 				esd->decoderConfig->streamType = GF_STREAM_OD;
 				esd->decoderConfig->objectTypeIndication = 1;
-				parser->saf_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, GF_STREAM_OD, GPAC_OTI_OD_V1);
+				parser->saf_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, GF_STREAM_OD, GF_CODECID_OD_V1);
 				if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
 				parser->saf_es->timeScale = 1000;
 				gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
 			}
 			time = 0;
 			ts_res = 1000;
-			OTI = ST = 0;
+			codecid = ST = 0;
 			for (i=0; i<nb_attributes; i++) {
 				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) ;//rap = !strcmp(att->value, "yes") ? 1 : 0;
 				else if (!strcmp(att->name, "url")) url = gf_strdup(att->value);
 				else if (!strcmp(att->name, "streamID")) ID = att->value;
-				else if (!strcmp(att->name, "objectTypeIndication")) OTI = atoi(att->value);
+				else if (!strcmp(att->name, "objectTypeIndication")) codecid = atoi(att->value);
+				else if (!strcmp(att->name, "codecID")) {
+					codecid = GF_4CC(att->value[0],att->value[1],att->value[2],att->value[3]);
+				}
 				else if (!strcmp(att->name, "streamType")) ST = atoi(att->value);
 				else if (!strcmp(att->name, "timeStampResolution")) ts_res = atoi(att->value);
 				else if (!strcmp(att->name, "source")) src = att->value;
@@ -1479,7 +1482,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				FILE *nhml;
 				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
 				gf_list_add(od->ESDescriptors, esd);
-				esd->decoderConfig->objectTypeIndication = OTI;
+				esd->decoderConfig->objectTypeIndication = codecid;
 				esd->decoderConfig->streamType = ST;
 				esd->ESID = st->id;
 
@@ -1504,7 +1507,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					nhml = gf_fopen(st->nhml_info, "wt");
 					if (nhml) {
 						fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
-						fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, OTI, st->id);
+						fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, codecid, st->id);
 						gf_fclose(nhml);
 					} else {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[LASeR Parser] Error opening nhml file %s while preparing import\n", st->nhml_info));

@@ -2276,7 +2276,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			GF_StreamContext *stream = gf_sm_stream_find(parser->load->ctx, (u16) stream_id);
 			if (!stream || (stream->streamType!=GF_STREAM_SCENE)) stream_id = parser->base_scene_id;
 
-			parser->scene_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
+			parser->scene_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_SCENE, GF_CODECID_BIFS);
 			parser->scene_au = gf_sm_stream_au_new(parser->scene_es, 0, au_time, au_is_rap);
 			gf_list_add(parser->scene_au->commands, parser->command);
 		}
@@ -3040,7 +3040,7 @@ static GF_Err xmt_restore_context(GF_SceneLoader *load)
 	/*scene creation - pick up a size*/
 	if (!parser->scene_es) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XMT: No BIFS Streams found in existing context - creating one\n"));
-		parser->scene_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
+		parser->scene_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GF_CODECID_BIFS);
 		parser->load->ctx->scene_width = 0;
 		parser->load->ctx->scene_height = 0;
 		parser->load->ctx->is_pixel_metrics = 1;

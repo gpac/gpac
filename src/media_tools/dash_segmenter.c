@@ -792,10 +792,10 @@ static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNu
 		return GF_OK;
 	}
 	switch (esd->decoderConfig->objectTypeIndication) {
-	case GPAC_OTI_AUDIO_AAC_MPEG4:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
 		break;
 	default:
 		gf_odf_desc_del((GF_Descriptor*)esd);
@@ -3471,11 +3471,7 @@ static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb
 				break;
 			}
 			/*make sure we use the same codec type*/
-			if (src_tk->media_oti != probe_tk->media_oti) {
-				valid_in_adaptation_set = GF_FALSE;
-				break;
-			}
-			if (src_tk->media_4cc != probe_tk->media_4cc) {
+			if (src_tk->codecid != probe_tk->codecid) {
 				valid_in_adaptation_set = GF_FALSE;
 				break;
 			}

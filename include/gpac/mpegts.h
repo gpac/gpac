@@ -255,6 +255,13 @@ enum
 };
 
 
+/*MPEG-2 TS Registration codes types*/
+enum
+{
+	GF_M2TS_RA_STREAM_AC3	= GF_4CC('A','C','-','3'),
+	GF_M2TS_RA_STREAM_VC1	= GF_4CC('V','C','-','1'),
+};
+
 
 /*MPEG-2 Descriptor tags*/
 enum

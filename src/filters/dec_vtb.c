@@ -63,7 +63,7 @@ typedef struct
 	u32 pix_fmt;
 	u32 out_size;
 	u32 cfg_crc;
-	u32 oti;
+	u32 codecid;
 	Bool is_hardware;
 
 	GF_Err last_error;
@@ -267,8 +267,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 
-	switch (ctx->oti) {
-    case GPAC_OTI_VIDEO_AVC :
+	switch (ctx->codecid) {
+    case GF_CODECID_AVC :
 		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
 			s32 idx;
 			u32 i;
@@ -371,12 +371,12 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			gf_free(dsi_data);
 		}
         break;
-	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-	case GPAC_OTI_VIDEO_MPEG2_MAIN:
-	case GPAC_OTI_VIDEO_MPEG2_SNR:
-	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-	case GPAC_OTI_VIDEO_MPEG2_HIGH:
-	case GPAC_OTI_VIDEO_MPEG2_422:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_SPATIAL:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_422:
         ctx->vtb_type = kCMVideoCodecType_MPEG2Video;
 		if (!ctx->width || !ctx->height) {
 			ctx->init_mpeg12 = GF_TRUE;
@@ -385,7 +385,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		ctx->init_mpeg12 = GF_FALSE;
         break;
 		
-	case GPAC_OTI_VIDEO_MPEG1:
+	case GF_CODECID_MPEG1:
 		ctx->vtb_type = kCMVideoCodecType_MPEG1Video;
 		if (!ctx->width || !ctx->height) {
 			ctx->init_mpeg12 = GF_TRUE;
@@ -393,7 +393,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		}
 		ctx->init_mpeg12 = GF_FALSE;
 		break;
-    case GPAC_OTI_VIDEO_MPEG4_PART2 :
+    case GF_CODECID_MPEG4_PART2 :
 	{
 		Bool reset_dsi = GF_FALSE;
 		char *vosh = NULL;
@@ -447,7 +447,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		}
         break;
     }
-	case GPAC_OTI_VIDEO_H263:
+	case GF_CODECID_H263:
 		ctx->reorder_probe = 0;
 		if (w && h) {
 			ctx->width = w;
@@ -456,7 +456,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			break;
 		}
 		//fallthrough
-	case GPAC_OTI_MEDIA_GENERIC:
+	case GF_CODECID_GPAC_GENERIC:
 		if (p && p->value.data.ptr && p->value.data.size) {
 			char *dsi = p->value.data.ptr;
 			if (p->value.data.size<8) return GF_NON_COMPLIANT_BITSTREAM;
@@ -646,7 +646,7 @@ static u32 vtbdec_purge_param_sets(GF_VTBDecCtx *ctx, Bool is_sps, s32 idx)
 static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p, *dsi;
-	u32 oti, dsi_crc;
+	u32 codecid, dsi_crc;
 	GF_Err e;
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 
@@ -659,16 +659,16 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTBDec] Missing OTI, cannot initialize\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTBDec] Missing codecid, cannot initialize\n"));
 		return GF_NOT_SUPPORTED;
 	}
-	oti = p->value.uint;
+	codecid = p->value.uint;
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
-	if ((oti==ctx->oti) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
+	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
 	//need a reset !
 	if (ctx->vtb_session) {
 		vtbdec_delete_decoder(ctx);
@@ -676,18 +676,18 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	ctx->ipid = pid;
 	ctx->cfg_crc = dsi_crc;
-	ctx->oti = oti;
+	ctx->codecid = codecid;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 
 	//check AVC config
-	if (oti==GPAC_OTI_VIDEO_AVC) {
+	if (codecid==GF_CODECID_AVC) {
 		if (!ctx->SPSs)
 			ctx->SPSs = gf_list_new();
 		if (!ctx->PPSs)
@@ -745,7 +745,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	//check VOSH config
-	if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
+	if (codecid==GF_CODECID_MPEG4_PART2) {
 		if (!dsi || !dsi->value.data.ptr) {
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
@@ -1394,24 +1394,24 @@ static const GF_FilterCapability VTBDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG4_PART2),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_AVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC),
 
 #ifndef GPAC_IPHONE
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_SIMPLE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_MAIN),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_SNR),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_SPATIAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_HIGH),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_422),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_H263),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SIMPLE),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_MAIN),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SNR),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SPATIAL),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_HIGH),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_422),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_H263),
 #endif
 };
 
 static const GF_FilterCapability VTBDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_VTBDecCtx, _n)

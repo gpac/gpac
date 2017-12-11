@@ -150,7 +150,7 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 		oggpack_adv( &opb, 32);	/*max rate*/
 		info->bitrate = oggpack_read(&opb, 32);
 		info->num_init_headers = 3;
-		info->type = GPAC_OTI_VORBIS;
+		info->type = GF_CODECID_VORBIS;
 	}
 	/*speex*/
 	else if ((oggpacket->bytes >= 7) && !strncmp((char *) &oggpacket->packet[0], "Speex", 5)) {
@@ -160,14 +160,14 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 		oggpack_adv(&opb, 32);
 		oggpack_adv( &opb, 32);
 		info->sample_rate = oggpack_read(&opb, 32);
-		info->type = GPAC_OTI_SPEEX;
+		info->type = GF_CODECID_SPEEX;
 		info->num_init_headers = 1;
 	}
 	/*flac*/
 	else if ((oggpacket->bytes >= 4) && !strncmp((char *) &oggpacket->packet[0], "fLaC", 4)) {
 		info->streamType = GF_STREAM_AUDIO;
-		info->type = 3;
-		info->num_init_headers = GPAC_OTI_FLAC;
+		info->type = GF_CODECID_FLAC;
+		info->num_init_headers = 3;
 	}
 	/*theora*/
 	else if ((oggpacket->bytes >= 7) && !strncmp((char *) &oggpacket->packet[1], "theora", 6)) {
@@ -175,7 +175,7 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 		u32 keyframe_freq_force;
 
 		info->streamType = GF_STREAM_VISUAL;
-		info->type = GPAC_OTI_THEORA;
+		info->type = GF_CODECID_THEORA;
 		bs = gf_bs_new((char *) oggpacket->packet, oggpacket->bytes, GF_BITSTREAM_READ);
 		gf_bs_read_int(bs, 56);
 		gf_bs_read_int(bs, 8); /* major version num */
@@ -221,7 +221,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 		st->opid = gf_filter_pid_new(filter);
 	}
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->info.streamType) );
-	gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT(st->info.type) );
+	gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(st->info.type) );
 	gf_filter_pid_set_info(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->info.bitrate) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->info.sample_rate ? st->info.sample_rate : st->info.frame_rate.den) );
 
@@ -327,7 +327,7 @@ void oggdmx_send_packet(GF_OGGDmxCtx *ctx, GF_OGGStream *st, ogg_packet *oggpack
 		return;
 	}
 
-	if (st->info.type==GPAC_OTI_THEORA) {
+	if (st->info.type==GF_CODECID_THEORA) {
 		oggpack_buffer opb;
 		oggpackB_readinit(&opb, oggpacket->packet, oggpacket->bytes);
 		/*not a new frame*/
@@ -344,7 +344,7 @@ void oggdmx_send_packet(GF_OGGDmxCtx *ctx, GF_OGGStream *st, ogg_packet *oggpack
 		gf_filter_pck_set_cts(pck, st->recomputed_ts);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
-		if (st->info.type==GPAC_OTI_VORBIS) {
+		if (st->info.type==GF_CODECID_VORBIS) {
 			st->recomputed_ts += gf_vorbis_check_frame(&st->vp, (char *) oggpacket->packet, oggpacket->bytes);
 		}
 	}
@@ -446,7 +446,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 		}
 		if (has_stream && (ogg_stream_pagein(&the_os, &oggpage) >= 0) ) {
 			while (ogg_stream_packetout(&the_os, &oggpacket ) > 0 ) {
-				if (the_info.type==GPAC_OTI_VORBIS) {
+				if (the_info.type==GF_CODECID_VORBIS) {
 					if (the_info.num_init_headers) {
 						the_info.num_init_headers--;
 						gf_vorbis_parse_header(&vp, oggpacket.packet, oggpacket.bytes);
@@ -621,7 +621,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				if ( (st->parse_headers + 1 == st->info.num_init_headers) && st->dsi_bs && (gf_bs_get_position(st->dsi_bs) == 2 + bytes) )
 					continue;
 
-				if (st->info.type==GPAC_OTI_VORBIS)
+				if (st->info.type==GF_CODECID_VORBIS)
 					gf_vorbis_parse_header(&st->vp, (char *) oggpacket.packet, oggpacket.bytes);
 
 
@@ -679,12 +679,12 @@ static const GF_FilterCapability OGGDmxInputs[] =
 static const GF_FilterCapability OGGDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VORBIS),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_FLAC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SPEEX),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_VORBIS),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_FLAC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SPEEX),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_THEORA),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_THEORA),
 };
 
 

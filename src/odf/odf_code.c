@@ -1173,6 +1173,11 @@ GF_Err gf_odf_size_dcd(GF_DecoderConfig *dcd, u32 *outSize)
 	u32 tmpSize;
 	if (! dcd) return GF_BAD_PARAM;
 
+	if (dcd->objectTypeIndication>0xFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Attempt to write an internal ESD with codec ID %s , not mappable to 8 bits MPEG-4 Systems OTI", gf_4cc_to_str(dcd->objectTypeIndication) ));
+		return GF_BAD_PARAM;
+	}
+
 	*outSize = 0;
 	*outSize += 13;
 	if (dcd->decoderSpecificInfo) {
@@ -1193,6 +1198,11 @@ GF_Err gf_odf_write_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd)
 	GF_Err e;
 	u32 size;
 	if (! dcd) return GF_BAD_PARAM;
+	
+	if (dcd->objectTypeIndication>0xFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Attempt to write an internal ESD with codec ID %s , not mappable to 8 bits MPEG-4 Systems OTI", gf_4cc_to_str(dcd->objectTypeIndication) ));
+		return GF_BAD_PARAM;
+	}
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)dcd, &size);
 	if (e) return e;

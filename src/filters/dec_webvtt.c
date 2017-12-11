@@ -149,7 +149,7 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 {
 	u32 entry_type;
 	GF_BitStream *bs;
-	u32 st, oti, dsi_crc;
+	u32 st, codecid, dsi_crc;
 	const GF_PropertyValue *p, *dsi;
 	GF_VTTDec *ctx = (GF_VTTDec *)gf_filter_get_udta(filter);
 
@@ -162,11 +162,11 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->ipid && !gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
 	assert(!ctx->ipid || (ctx->ipid == pid));
 
-	st = oti = 0;
+	st = codecid = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) st = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (p) oti = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (p) codecid = p->value.uint;
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!dsi) return GF_NOT_SUPPORTED;
@@ -199,7 +199,7 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 
 	return GF_OK;
 }
@@ -434,13 +434,13 @@ static const GF_FilterCapability VTTDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_WVTT),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_WVTT),
 };
 
 static const GF_FilterCapability VTTDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister VTTDecRegister = {

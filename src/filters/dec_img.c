@@ -29,7 +29,7 @@
 
 typedef struct
 {
-	u32 oti;
+	u32 codecid;
 	GF_FilterPid *ipid, *opid;
 	u32 width, height, pixel_format, BPP;
 } GF_IMGDecCtx;
@@ -49,19 +49,19 @@ static GF_Err imgdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!prop) return GF_NOT_SUPPORTED;
-	ctx->oti = prop->value.uint;
+	ctx->codecid = prop->value.uint;
 	ctx->ipid = pid;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_RAW ));
 	}
-	if (ctx->oti==GPAC_OTI_IMAGE_JPEG)
+	if (ctx->codecid==GF_CODECID_JPEG)
 		gf_filter_set_name(filter, "imgdec:libjpeg");
-	else if (ctx->oti==GPAC_OTI_IMAGE_PNG)
+	else if (ctx->codecid==GF_CODECID_PNG)
 		gf_filter_set_name(filter, "imgdec:libpng");
 	return GF_OK;
 }
@@ -79,13 +79,13 @@ static GF_Err imgdec_process(GF_Filter *filter)
 	if (!pck) return GF_EOS;
 	data = (char *) gf_filter_pck_get_data(pck, &size);
 
-	if ((ctx->oti == GPAC_OTI_IMAGE_JPEG) || (ctx->oti == GPAC_OTI_IMAGE_PNG)) {
+	if ((ctx->codecid == GF_CODECID_JPEG) || (ctx->codecid == GF_CODECID_PNG)) {
 		u32 out_size = 0;
 		u32 w = ctx->width;
 		u32 h = ctx->height;
 		u32 pf = ctx->pixel_format;
 
-		if (ctx->oti == GPAC_OTI_IMAGE_JPEG) {
+		if (ctx->codecid == GF_CODECID_JPEG) {
 			e = gf_img_jpeg_dec(data, size, &ctx->width, &ctx->height, &ctx->pixel_format, NULL, &out_size, ctx->BPP);
 		} else {
 			e = gf_img_png_dec(data, size, &ctx->width, &ctx->height, &ctx->pixel_format, NULL, &out_size);
@@ -111,7 +111,7 @@ static GF_Err imgdec_process(GF_Filter *filter)
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, out_size, &output);
 		if (!dst_pck) return GF_SERVICE_ERROR;
 
-		if (ctx->oti == GPAC_OTI_IMAGE_JPEG) {
+		if (ctx->codecid == GF_CODECID_JPEG) {
 			e = gf_img_jpeg_dec(data, size, &ctx->width, &ctx->height, &ctx->pixel_format, output, &out_size, ctx->BPP);
 		} else {
 			e = gf_img_png_dec(data, size, &ctx->width, &ctx->height, &ctx->pixel_format, output, &out_size);
@@ -136,14 +136,14 @@ static const GF_FilterCapability ImgDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_JPEG),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_PNG),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_JPEG),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_PNG),
 };
 
 static const GF_FilterCapability ImgDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister ImgDecRegister = {

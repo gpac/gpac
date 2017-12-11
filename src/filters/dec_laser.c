@@ -52,8 +52,8 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!prop || (prop->value.uint != GF_STREAM_SCENE)) {
 		return GF_NOT_SUPPORTED;
 	}
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (!prop || (prop->value.uint != GPAC_OTI_SCENE_LASER) ) {
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!prop || (prop->value.uint != GF_CODECID_LASER) ) {
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -90,12 +90,12 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_REQUIRES_NEW_INSTANCE;
 	}
 
-	//declare a new output PID of type STREAM, OTI RAW
+	//declare a new output PID of type scene, codecid RAW
 	out_pid = gf_filter_pid_new(filter);
 	ctx->nb_streams++;
 
 	gf_filter_pid_copy_properties(out_pid, pid);
-	gf_filter_pid_set_property(out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);
 	return GF_OK;
 }
@@ -220,14 +220,14 @@ static void lsrdec_finalize(GF_Filter *filter)
 static const GF_FilterCapability LSRDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_LASER),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LASER),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability LSRDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister LSRDecRegister = {

@@ -608,39 +608,39 @@ static GF_Err ffdec_process(GF_Filter *filter)
 	return ffdec->process(filter, ffdec);
 }
 
-static u32 ff_gpac_oti_to_codec_id(u32 oti)
+static u32 ff_codecid_gpac_to_ffmpeg(u32 codecid)
 {
-	switch (oti) {
-	case GPAC_OTI_AUDIO_MPEG1: return CODEC_ID_MP2;
-	case GPAC_OTI_AUDIO_MPEG2_PART3: return CODEC_ID_MP3;
-	case GPAC_OTI_AUDIO_AAC_MPEG4: return CODEC_ID_AAC;
-	case GPAC_OTI_AUDIO_AC3: return CODEC_ID_AC3;
-	case GPAC_OTI_AUDIO_EAC3: return CODEC_ID_EAC3;
-	case GPAC_OTI_AUDIO_AMR: return CODEC_ID_AMR_NB;
-	case GPAC_OTI_AUDIO_AMR_WB: return CODEC_ID_AMR_WB;
-	case GPAC_OTI_AUDIO_QCELP: return CODEC_ID_QCELP;
-	case GPAC_OTI_VORBIS: return CODEC_ID_VORBIS;
-	case GPAC_OTI_FLAC: return CODEC_ID_FLAC;
-	case GPAC_OTI_SPEEX: return CODEC_ID_SPEEX;
-	case GPAC_OTI_THEORA: return CODEC_ID_THEORA;
-	case GPAC_OTI_VIDEO_MPEG4_PART2: return CODEC_ID_MPEG4;
-	case GPAC_OTI_VIDEO_AVC: return CODEC_ID_H264;
-	case GPAC_OTI_VIDEO_HEVC: return AV_CODEC_ID_HEVC;
-	case GPAC_OTI_VIDEO_MPEG1: return CODEC_ID_MPEG1VIDEO;
-	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-	case GPAC_OTI_VIDEO_MPEG2_MAIN:
-	case GPAC_OTI_VIDEO_MPEG2_HIGH:
-	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-	case GPAC_OTI_VIDEO_MPEG2_SNR:
-	case GPAC_OTI_VIDEO_MPEG2_422:
+	switch (codecid) {
+	case GF_CODECID_MPEG_AUDIO: return CODEC_ID_MP2;
+	case GF_CODECID_MPEG2_PART3: return CODEC_ID_MP3;
+	case GF_CODECID_AAC_MPEG4: return CODEC_ID_AAC;
+	case GF_CODECID_AC3: return CODEC_ID_AC3;
+	case GF_CODECID_EAC3: return CODEC_ID_EAC3;
+	case GF_CODECID_AMR: return CODEC_ID_AMR_NB;
+	case GF_CODECID_AMR_WB: return CODEC_ID_AMR_WB;
+	case GF_CODECID_QCELP: return CODEC_ID_QCELP;
+	case GF_CODECID_VORBIS: return CODEC_ID_VORBIS;
+	case GF_CODECID_FLAC: return CODEC_ID_FLAC;
+	case GF_CODECID_SPEEX: return CODEC_ID_SPEEX;
+	case GF_CODECID_THEORA: return CODEC_ID_THEORA;
+	case GF_CODECID_MPEG4_PART2: return CODEC_ID_MPEG4;
+	case GF_CODECID_AVC: return CODEC_ID_H264;
+	case GF_CODECID_HEVC: return AV_CODEC_ID_HEVC;
+	case GF_CODECID_MPEG1: return CODEC_ID_MPEG1VIDEO;
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_SPATIAL:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_422:
 			return CODEC_ID_MPEG2VIDEO;
-	case GPAC_OTI_VIDEO_H263: return CODEC_ID_H263;
-	case GPAC_OTI_IMAGE_JPEG: return CODEC_ID_MJPEG;
-	case GPAC_OTI_IMAGE_PNG: return CODEC_ID_PNG;
-	case GPAC_OTI_IMAGE_JPEG_2000: return CODEC_ID_JPEG2000;
+	case GF_CODECID_H263: return CODEC_ID_H263;
+	case GF_CODECID_JPEG: return CODEC_ID_MJPEG;
+	case GF_CODECID_PNG: return CODEC_ID_PNG;
+	case GF_CODECID_J2K: return CODEC_ID_JPEG2000;
 
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDecode] GPAC OTI %d not mapped to FFMPEG codec types, patch welcome\n", oti ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDecode] GPAC CODECID %d not mapped to FFMPEG codec types, patch welcome\n", codecid ));
 		return 0;
 	}
 }
@@ -648,7 +648,7 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
-	u32 type=0, oti=0;
+	u32 type=0, gpac_codecid=0;
 	const GF_PropertyValue *prop;
 	GF_FFDecodeCtx  *ffdec = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
@@ -659,7 +659,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 
-	//check our PID: streamtype and OTI
+	//check our PID: streamtype and codecid
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!prop) return GF_NOT_SUPPORTED;
 
@@ -674,9 +674,9 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!prop) return GF_NOT_SUPPORTED;
-	oti = prop->value.uint;
+	gpac_codecid = prop->value.uint;
 
 
 	//initial config or update
@@ -693,7 +693,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 
 
-	if (oti == GPAC_OTI_MEDIA_FFMPEG) {
+	if (gpac_codecid == GF_CODECID_FFMPEG) {
 		AVCodec *codec=NULL;
 		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
 		if (!prop || !prop->value.ptr) {
@@ -716,7 +716,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		u32 codec_id;
 		if (ffdec->codec_ctx) {
 			u32 cfg_crc=0;
-			u32 codec_id = ff_gpac_oti_to_codec_id(oti);
+			u32 codec_id = ff_codecid_gpac_to_ffmpeg(gpac_codecid);
 
 			//TODO: flush decoder to dispatch internally pending frames and create a new decoder
 			if (ffdec->codec_ctx->codec->id != codec_id) {
@@ -737,7 +737,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			}
 		}
 
-		codec_id = ff_gpac_oti_to_codec_id(oti);
+		codec_id = ff_codecid_gpac_to_ffmpeg(gpac_codecid);
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) return GF_NOT_SUPPORTED;
 
@@ -778,7 +778,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//copy props it at init config or at reconfig
 	if (ffdec->out_pid) {
 		gf_filter_pid_copy_properties(ffdec->out_pid, ffdec->in_pid);
-		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 
 	if (type==GF_STREAM_VISUAL) {
@@ -862,16 +862,16 @@ static const GF_FilterCapability FFDecodeInputs[] =
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_SVC),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_LHVC),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 #ifdef FF_SUB_SUPPORT
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_TEXT_MPEG4),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_TX3G),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_WVTT),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_STPP),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_STXT),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_TX3G),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_WVTT),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_STPP),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_STXT),
 #endif
 
 };
@@ -883,7 +883,7 @@ static const GF_FilterCapability FFDecodeOutputs[] =
 #ifdef FF_SUB_SUPPORT
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 #endif
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{}
 };
 

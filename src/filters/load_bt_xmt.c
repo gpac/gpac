@@ -209,12 +209,12 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	priv->file_name = prop->value.string;
 	priv->nb_streams = 1;
 
-	//declare a new output PID of type STREAM, OTI RAW
+	//declare a new output PID of type scene, codecid RAW
 	priv->out_pid = gf_filter_pid_new(filter);
 
 	gf_filter_pid_copy_properties(priv->out_pid, pid);
 	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE) );
-	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
 
 	gf_filter_pid_set_udta(pid, priv->out_pid);
@@ -797,7 +797,7 @@ static const GF_FilterCapability CTXLoadInputs[] =
 static const GF_FilterCapability CTXLoadOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 

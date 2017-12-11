@@ -254,7 +254,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->opid = gf_filter_pid_new(filter);
 
 		gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 	if (ctx->width) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
@@ -547,14 +547,14 @@ static const GF_FilterCapability OSVCDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_AVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_SVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVC),
 };
 
 static const GF_FilterCapability OSVCDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister OSVCDecRegister = {

@@ -532,29 +532,29 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 		ifce->object_type_indication = esd->decoderConfig->objectTypeIndication;
 		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->dataLength) {
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case GPAC_OTI_AUDIO_AAC_MPEG4:
-			case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
-			case GPAC_OTI_VIDEO_MPEG4_PART2:
+			case GF_CODECID_AAC_MPEG4:
+			case GF_CODECID_AAC_MPEG2_MP:
+			case GF_CODECID_AAC_MPEG2_LCP:
+			case GF_CODECID_AAC_MPEG2_SSRP:
+			case GF_CODECID_MPEG4_PART2:
 				ifce->decoder_config = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-				if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
+				if (esd->decoderConfig->objectTypeIndication == GF_CODECID_MPEG4_PART2) {
 					priv->dsi = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 					priv->dsi_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 					memcpy(priv->dsi, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				}
 				break;
-			case GPAC_OTI_VIDEO_HEVC:
-			case GPAC_OTI_VIDEO_LHVC:
+			case GF_CODECID_HEVC:
+			case GF_CODECID_LHVC:
 				is_hevc=GF_TRUE;
-			case GPAC_OTI_VIDEO_AVC:
-			case GPAC_OTI_VIDEO_SVC:
-			case GPAC_OTI_VIDEO_MVC:
+			case GF_CODECID_AVC:
+			case GF_CODECID_SVC:
+			case GF_CODECID_MVC:
 				gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG);
 				break;
-			case GPAC_OTI_SCENE_VTT_MP4:
+			case GF_CODECID_VTT:
 				ifce->decoder_config = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -912,12 +912,12 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 	ifce->timescale = gf_rtp_get_clockrate(rtp->rtp_ch);
 	if (rtp->depacketizer->sl_map.config) {
 		switch (ifce->object_type_indication) {
-		case GPAC_OTI_VIDEO_MPEG4_PART2:
+		case GF_CODECID_MPEG4_PART2:
 			rtp->cat_dsi = GF_TRUE;
 			break;
-		case GPAC_OTI_VIDEO_AVC:
-		case GPAC_OTI_VIDEO_SVC:
-		case GPAC_OTI_VIDEO_MVC:
+		case GF_CODECID_AVC:
+		case GF_CODECID_SVC:
+		case GF_CODECID_MVC:
 			rtp->is_264 = GF_TRUE;
 			rtp->depacketizer->flags |= GF_RTP_AVC_USE_ANNEX_B;
 			{
@@ -946,7 +946,7 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 #endif
 			}
 			break;
-		case GPAC_OTI_AUDIO_AAC_MPEG4:
+		case GF_CODECID_AAC_MPEG4:
 			ifce->decoder_config = (char*)gf_malloc(sizeof(char) * rtp->depacketizer->sl_map.configSize);
 			ifce->decoder_config_size = rtp->depacketizer->sl_map.configSize;
 			memcpy(ifce->decoder_config, rtp->depacketizer->sl_map.config, rtp->depacketizer->sl_map.configSize);
@@ -1491,8 +1491,8 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 			case GF_STREAM_VISUAL:
 				/*turn on image repeat*/
 				switch (source->streams[i].object_type_indication) {
-				case GPAC_OTI_IMAGE_JPEG:
-				case GPAC_OTI_IMAGE_PNG:
+				case GF_CODECID_JPEG:
+				case GF_CODECID_PNG:
 					((GF_ESIMP4 *)source->streams[i].input_udta)->image_repeat_ms = carousel_rate;
 					break;
 				default:
@@ -1750,9 +1750,9 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				source->streams[source->nb_streams].stream_type = GF_STREAM_AUDIO;
 				/*hack: http urls are not decomposed therefore audio_input_port remains null*/
 				if (audio_input_port) {	/*UDP/RTP*/
-					source->streams[source->nb_streams].object_type_indication = GPAC_OTI_AUDIO_MPEG1;
+					source->streams[source->nb_streams].object_type_indication = GF_CODECID_MPEG_AUDIO;
 				} else { /*HTTP*/
-					aac_reader->oti = source->streams[source->nb_streams].object_type_indication = GPAC_OTI_AUDIO_AAC_MPEG4;
+					aac_reader->oti = source->streams[source->nb_streams].object_type_indication = GF_CODECID_AAC_MPEG4;
 				}
 				source->streams[source->nb_streams].input_ctrl = void_input_ctrl;
 				source->streams[source->nb_streams].stream_id = AUDIO_DATA_ESID;
@@ -1811,7 +1811,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 			if (video_buffer) {
 				/*add the video program*/
 				source->streams[source->nb_streams].stream_type = GF_STREAM_VISUAL;
-				source->streams[source->nb_streams].object_type_indication = GPAC_OTI_VIDEO_AVC;
+				source->streams[source->nb_streams].object_type_indication = GF_CODECID_AVC;
 				source->streams[source->nb_streams].input_ctrl = void_input_ctrl;
 				source->streams[source->nb_streams].stream_id = VIDEO_DATA_ESID;
 				source->streams[source->nb_streams].timescale = 1000;

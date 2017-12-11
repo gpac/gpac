@@ -236,7 +236,7 @@ void isor_declare_objects(ISOMReader *read)
 		}
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(esd->slConfig->timestampResolution));
 		if (esd->decoderConfig->decoderSpecificInfo) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
@@ -317,7 +317,7 @@ void isor_declare_objects(ISOMReader *read)
 		//gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
 		if (esd->decoderConfig->decoderSpecificInfo) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));

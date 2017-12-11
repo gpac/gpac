@@ -245,7 +245,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 {
 
 	GF_SLConfig my_sl;
-	u32 descIndex, MinSize, MaxSize, avgTS, streamType, oti, const_dur, nb_ch, maxDTSDelta;
+	u32 descIndex, MinSize, MaxSize, avgTS, streamType, codecid, const_dur, nb_ch, maxDTSDelta;
 	u8 OfficialPayloadID;
 	u32 TrackMediaSubType, TrackMediaType, hintType, nbEdts, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth, IV_length, KI_length;
 	const char *url, *urn;
@@ -280,12 +280,12 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	PL_ID = 0;
 	OfficialPayloadID = 0;
 	force_dts_delta = 0;
-	streamType = oti = 0;
+	streamType = 0;
 	mpeg4mode = NULL;
 	required_rate = 0;
 	is_crypted = 0;
 	IV_length = KI_length = 0;
-	oti = 0;
+	codecid = 0;
 	nb_ch = 0;
 	avc_nalu_size = 0;
 	has_mpeg4_mapping = 1;
@@ -297,7 +297,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
 	if ( (TrackMediaType==GF_ISOM_MEDIA_TEXT) || (TrackMediaType==GF_ISOM_MEDIA_SUBT)) {
 		hintType = GF_RTP_PAYT_3GPP_TEXT;
-		oti = GPAC_OTI_TEXT_MPEG4;
+		codecid = GF_CODECID_TEXT_MPEG4;
 		streamType = GF_STREAM_TEXT;
 		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
 		PL_ID = 0x10;
@@ -313,12 +313,12 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			hintType = GF_RTP_PAYT_MPEG4;
 			if (esd) {
 				streamType = esd->decoderConfig->streamType;
-				oti = esd->decoderConfig->objectTypeIndication;
+				codecid = esd->decoderConfig->objectTypeIndication;
 				if (esd->URLString) hintType = 0;
 				/*AAC*/
 				if ((streamType==GF_STREAM_AUDIO) && esd->decoderConfig->decoderSpecificInfo
 				        /*(nb: we use mpeg4 for MPEG-2 AAC)*/
-				        && ((oti==GPAC_OTI_AUDIO_AAC_MPEG4) || (oti==GPAC_OTI_AUDIO_AAC_MPEG4) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_MP) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_LCP) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_SSRP)) ) {
+				        && ((codecid==GF_CODECID_AAC_MPEG4) || (codecid==GF_CODECID_AAC_MPEG4) || (codecid==GF_CODECID_AAC_MPEG2_MP) || (codecid==GF_CODECID_AAC_MPEG2_LCP) || (codecid==GF_CODECID_AAC_MPEG2_SSRP)) ) {
 
 					u32 sample_rate;
 					GF_M4ADecSpecInfo a_cfg;
@@ -350,7 +350,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					required_rate = sample_rate;
 				}
 				/*MPEG1/2 audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && ((oti==GPAC_OTI_AUDIO_MPEG2_PART3) || (oti==GPAC_OTI_AUDIO_MPEG1))) {
+				else if ((streamType==GF_STREAM_AUDIO) && ((codecid==GF_CODECID_MPEG2_PART3) || (codecid==GF_CODECID_MPEG_AUDIO))) {
 					u32 sample_rate;
 					if (!is_crypted) {
 						GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
@@ -371,7 +371,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					}
 				}
 				/*QCELP audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && (oti==GPAC_OTI_AUDIO_QCELP)) {
+				else if ((streamType==GF_STREAM_AUDIO) && (codecid==GF_CODECID_QCELP)) {
 					hintType = GF_RTP_PAYT_QCELP;
 					OfficialPayloadID = 12;
 					required_rate = 8000;
@@ -379,7 +379,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					nb_ch = 1;
 				}
 				/*EVRC/SVM audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && ((oti==GPAC_OTI_AUDIO_EVRC) || (oti==GPAC_OTI_AUDIO_SMV)) ) {
+				else if ((streamType==GF_STREAM_AUDIO) && ((codecid==GF_CODECID_EVRC) || (codecid==GF_CODECID_SMV)) ) {
 					hintType = GF_RTP_PAYT_EVRC_SMV;
 					required_rate = 8000;
 					streamType = GF_STREAM_AUDIO;
@@ -387,13 +387,13 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				}
 				/*visual streams*/
 				else if (streamType==GF_STREAM_VISUAL) {
-					if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
+					if (codecid==GF_CODECID_MPEG4_PART2) {
 						GF_M4VDecSpecInfo dsi;
 						gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 						PL_ID = dsi.VideoPL;
 					}
 					/*MPEG1/2 video*/
-					if ( ((oti>=GPAC_OTI_VIDEO_MPEG2_SIMPLE) && (oti<=GPAC_OTI_VIDEO_MPEG2_422)) || (oti==GPAC_OTI_VIDEO_MPEG1)) {
+					if ( ((codecid>=GF_CODECID_MPEG2_SIMPLE) && (codecid<=GF_CODECID_MPEG2_422)) || (codecid==GF_CODECID_MPEG1)) {
 						if (!is_crypted) {
 							hintType = GF_RTP_PAYT_MPEG12_VIDEO;
 							OfficialPayloadID = 32;
@@ -402,8 +402,8 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					/*for ISMA*/
 					if (is_crypted) {
 						/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
-						if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) force_dts_delta = 22;
-						else if ((oti==GPAC_OTI_VIDEO_AVC) || (oti==GPAC_OTI_VIDEO_SVC)) {
+						if (codecid==GF_CODECID_MPEG4_PART2) force_dts_delta = 22;
+						else if ((codecid==GF_CODECID_AVC) || (codecid==GF_CODECID_SVC)) {
 							flags &= ~GP_RTP_PCK_USE_MULTI;
 							force_dts_delta = 22;
 						}
@@ -425,7 +425,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			streamType = GF_STREAM_VISUAL;
 			OfficialPayloadID = 34;
 			/*not 100% compliant (short header is missing) but should still work*/
-			oti = GPAC_OTI_VIDEO_MPEG4_PART2;
+			codecid = GF_CODECID_MPEG4_PART2;
 			PL_ID = 0x01;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -460,7 +460,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				hintType = GF_RTP_PAYT_H264_SVC;
 			streamType = GF_STREAM_VISUAL;
 			avc_nalu_size = avcc ? avcc->nal_unit_size : svcc ? svcc->nal_unit_size : mvcc->nal_unit_size;
-			oti = GPAC_OTI_VIDEO_AVC;
+			codecid = GF_CODECID_AVC;
 			PL_ID = 0x0F;
 			gf_odf_avc_cfg_del(avcc);
 			gf_odf_avc_cfg_del(svcc);
@@ -477,7 +477,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			hintType = GF_RTP_PAYT_HEVC;
 			streamType = GF_STREAM_VISUAL;
 			avc_nalu_size = hevcc->nal_unit_size;
-			oti = GPAC_OTI_VIDEO_HEVC;
+			codecid = GF_CODECID_HEVC;
 			PL_ID = 0x0F;
 			flags |= GP_RTP_PCK_USE_MULTI;
 			gf_odf_hevc_cfg_del(hevcc);
@@ -488,7 +488,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_QCELP;
 			streamType = GF_STREAM_AUDIO;
-			oti = GPAC_OTI_AUDIO_QCELP;
+			codecid = GF_CODECID_QCELP;
 			OfficialPayloadID = 12;
 			nb_ch = 1;
 			break;
@@ -497,7 +497,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
-			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC : GPAC_OTI_AUDIO_SMV;
+			codecid = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? GF_CODECID_EVRC : GF_CODECID_SMV;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_DIMS:
@@ -613,7 +613,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	//init the builder
 	gf_rtp_builder_init(tmp->rtp_p, PayloadID, Path_MTU, max_ptime,
-	                    streamType, oti, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
+	                    streamType, codecid, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
 
 	/*ISMA compliance is a pain...*/
 	if (force_dts_delta) tmp->rtp_p->slMap.DTSDeltaLength = force_dts_delta;
@@ -631,7 +631,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	gf_isom_rtp_set_timescale(file, tmp->HintTrack, descIndex, my_sl.timestampResolution);
 
 	if (hintType==GF_RTP_PAYT_MPEG4) {
-		tmp->rtp_p->slMap.ObjectTypeIndication = oti;
+		tmp->rtp_p->slMap.ObjectTypeIndication = codecid;
 		/*set this SL for extraction.*/
 		gf_isom_set_extraction_slc(file, TrackNum, 1, &my_sl);
 	}
@@ -1023,7 +1023,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			sprintf(sdpLine, "a=rvc-config-predef:%d", esd->decoderConfig->predefined_rvc_config);
 		} else {
 			/*temporary ...*/
-			if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
+			if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC)) {
 				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_avc.xml");
 			} else {
 				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_sp.xml");
@@ -1204,10 +1204,10 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				esd = gf_isom_get_esd(file, i+1, 1);
 				if (!esd) continue;
 				if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
-					if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) has_i_v ++;
+					if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) has_i_v ++;
 					else has_v++;
 				} else if (esd->decoderConfig->streamType==GF_STREAM_AUDIO) {
-					if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4) has_i_a ++;
+					if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4) has_i_a ++;
 					else has_a++;
 				}
 				gf_odf_desc_del((GF_Descriptor *)esd);

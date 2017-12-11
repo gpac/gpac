@@ -2114,13 +2114,13 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		char *dst, *raw;
 		GF_Err e;
-		u8 oti;
+		u32 codecid;
 		u32 osize, w, h, j, pf;
 		GF_BitStream *bs;
 
 		/*decompress jpeg*/
 		bs = gf_bs_new( (char *) buf+skip, size-skip, GF_BITSTREAM_READ);
-		gf_img_parse(bs, &oti, &osize, &w, &h, NULL, NULL);
+		gf_img_parse(bs, &codecid, &osize, &w, &h, NULL, NULL);
 		gf_bs_del(bs);
 
 		osize = w*h*4;

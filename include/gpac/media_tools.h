@@ -60,7 +60,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
 #ifndef GPAC_DISABLE_ISOM
 /*!
  Creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
-only, since the OTI used when emulated is not standard...
+only, since the OTI/codecid used when emulated is not standard...
  * \param mp4 source file
  * \param track track for which the esd is to be emulated
  * \return rebuilt ESD. It is the caller responsibility to delete it.
@@ -69,7 +69,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
 
 /*!
 Creates (if needed) a GF_ESD for the given image item - THIS IS RESERVED for local playback
-only, since the OTI used when emulated is not standard...
+only, since the OTI/codecid used when emulated is not standard...
 * \param mp4 source file
 * \param item_id item for which the esd is to be emulated
 * \return rebuilt ESD. It is the caller responsibility to delete it.
@@ -251,10 +251,10 @@ struct __track_import_info
 	u32 track_num;
 	/*! stream type (one of GF_STREAM_XXXX)*/
 	u32 stream_type;
-	/*! object type ( one of GPAC_OTI_*)*/
-	u32 media_oti;
+	/*! codec ID ( one of GF_CODECID_XXX*)*/
+	u32 codecid;
 	/*! object type expressed as 4CC ('MPG1', 'MPG2', ISO 4CC, AVI 4CC)*/
-	u32 media_4cc;
+//	u32 media_4cc;
 	/*! import flags supported by the importer*/
 	u32 flags;
 	/*! video format info*/

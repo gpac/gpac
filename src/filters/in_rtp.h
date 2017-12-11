@@ -92,7 +92,9 @@ typedef struct
 	Double last_ntp;
 
 	Bool is_scalable, done, retry_tcp;
-	
+
+	Double last_start_range;
+
 	u32 cur_mid;
 } GF_RTPIn;
 

@@ -308,14 +308,14 @@ const char *gf_hevc_get_profile_name(u8 profile_idc);
 
 
 /*gets image size (bs must contain the whole image)
-@OTI: image type (JPEG=0x6C, PNG=0x6D)
+@codecid: image type (JPEG=0x6C, PNG=0x6D)
 @width, height: image resolution - for jpeg max size if thumbnail included*/
-void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len);
+void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len);
 
 GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp);
 
 GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size);
-GF_Err gf_img_file_dec(char *png_file, u32 *oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size);
+GF_Err gf_img_file_dec(char *png_file, u32 *codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size);
 GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
 GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file);
 

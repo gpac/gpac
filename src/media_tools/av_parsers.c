@@ -412,7 +412,7 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 			dsi->width = (p[0] << 4) | ((p[1] >> 4) & 0xf);
 			dsi->height = ((p[1] & 0xf) << 8) | p[2];
 
-			dsi->VideoPL = GPAC_OTI_VIDEO_MPEG1;
+			dsi->VideoPL = GF_CODECID_MPEG1;
 			par = (p[3] >> 4) & 0xf;
 			switch (par) {
 			case 2:
@@ -1647,10 +1647,10 @@ u8 gf_mp3_object_type_indication(u32 hdr)
 {
 	switch (gf_mp3_version(hdr)) {
 	case 3:
-		return GPAC_OTI_AUDIO_MPEG1;
+		return GF_CODECID_MPEG_AUDIO;
 	case 2:
 	case 0:
-		return GPAC_OTI_AUDIO_MPEG2_PART3;
+		return GF_CODECID_MPEG2_PART3;
 	default:
 		return 0x00;
 	}

@@ -154,7 +154,7 @@ static void m2tsdmx_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type, v
 
 static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD *esd)
 {
-	u32 i, count, oti=0, stype=0;
+	u32 i, count, codecid=0, stype=0;
 	GF_FilterPid *opid;
 	Bool m4sys_stream = GF_FALSE;
 	Bool m4sys_iod_stream = GF_FALSE;
@@ -165,36 +165,36 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	switch (stream->stream_type) {
 	case GF_M2TS_VIDEO_MPEG1:
 		stype = GF_STREAM_VISUAL;
-		oti = GPAC_OTI_VIDEO_MPEG1;
+		codecid = GF_CODECID_MPEG1;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_MPEG2:
 	case GF_M2TS_VIDEO_DCII:
 		stype = GF_STREAM_VISUAL;
-		oti = GPAC_OTI_VIDEO_MPEG2_422;
+		codecid = GF_CODECID_MPEG2_422;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_MPEG4:
 		stype = GF_STREAM_VISUAL;
-		oti = GPAC_OTI_VIDEO_MPEG4_PART2;
+		codecid = GF_CODECID_MPEG4_PART2;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_H264:
 		stype = GF_STREAM_VISUAL;
-		oti = GPAC_OTI_VIDEO_AVC;
+		codecid = GF_CODECID_AVC;
 		unframed = GF_TRUE;
 		if (stream->program->is_scalable)
 			has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_SVC:
 		stype = GF_STREAM_VISUAL;
-		oti = GPAC_OTI_VIDEO_SVC;
+		codecid = GF_CODECID_SVC;
 		has_scal_layer = GF_TRUE;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_HEVC:
 		stype = GF_STREAM_VISUAL;
-		oti = GPAC_OTI_VIDEO_HEVC;
+		codecid = GF_CODECID_HEVC;
 		unframed = GF_TRUE;
 		if (stream->program->is_scalable)
 			has_scal_layer = GF_TRUE;
@@ -204,35 +204,35 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	case GF_M2TS_VIDEO_MHVC:
 	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 		stype = GF_STREAM_VISUAL;
-		oti = GPAC_OTI_VIDEO_LHVC;
+		codecid = GF_CODECID_LHVC;
 		has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_MPEG1:
 		stype = GF_STREAM_AUDIO;
-		oti = GPAC_OTI_AUDIO_MPEG1;
+		codecid = GF_CODECID_MPEG_AUDIO;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_MPEG2:
 		stype = GF_STREAM_AUDIO;
-		oti = GPAC_OTI_AUDIO_MPEG2_PART3;
+		codecid = GF_CODECID_MPEG2_PART3;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_LATM_AAC:
 	case GF_M2TS_AUDIO_AAC:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
 		stype = GF_STREAM_AUDIO;
-		oti = GPAC_OTI_AUDIO_AAC_MPEG4;
+		codecid = GF_CODECID_AAC_MPEG4;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_AC3:
 		stype = GF_STREAM_AUDIO;
-		oti = GPAC_OTI_AUDIO_AC3;
+		codecid = GF_CODECID_AC3;
 		break;
 	case GF_M2TS_AUDIO_EC3:
 		stype = GF_STREAM_AUDIO;
-		oti = GPAC_OTI_AUDIO_EAC3;
+		codecid = GF_CODECID_EAC3;
 		break;
 	//TODO: MP4on2 is currently broken in filters
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
@@ -271,7 +271,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		esd->slConfig = NULL;
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->streamType : GF_STREAM_SCENE) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->objectTypeIndication : GPAC_OTI_SCENE_BIFS) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->objectTypeIndication : GF_CODECID_BIFS) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID ? esd->OCRESID : esd->ESID) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID) );
 		if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo )
@@ -284,7 +284,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stream->flags |= GF_M2TS_ES_IS_MPEG4_OD;
 	} else {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(stype) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(oti) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 		if (unframed)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
@@ -481,7 +481,7 @@ static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
 	ctx->eit_pid = gf_filter_pid_new(ctx->filter);
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_ID, &PROP_UINT(GF_M2TS_PID_EIT_ST_CIT) );
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_PRIVATE_SCENE) );
-	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_PRIVATE_SCENE_EPG) );
+	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_DVB_EIT) );
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(GF_M2TS_PID_EIT_ST_CIT) );
 }
@@ -665,7 +665,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_Err e=GF_OK;
 	const GF_PropertyValue *p;;
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
 
@@ -677,16 +676,10 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	ctx->ipid = pid;
-
-	if (e) {
-		gf_filter_setup_failure(filter, e);
-		return e;
-	}
-
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (p && p->value.string && !ctx->duration.num) {
 		FILE *stream = gf_fopen(p->value.string, "r");
+		ctx->ipid = pid;
 		ctx->is_file = GF_TRUE;
 		ctx->ts->seek_mode = GF_TRUE;
 		ctx->ts->on_event = m2tsdmx_on_event_duration_probe;
@@ -702,8 +695,16 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->ts->on_event = m2tsdmx_on_event;
 		ctx->ts->user = filter;
 	} else if (!p) {
+		GF_FilterEvent evt;
 		ctx->duration.num = 1;
+
+		//not-file base TS, we need to start demuxing the first time we see the PID
+		if (!ctx->ipid) {
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+			gf_filter_pid_send_event(pid, &evt);
+		}
 	}
+	ctx->ipid = pid;
 	return GF_OK;
 }
 
@@ -951,18 +952,18 @@ static const GF_FilterCapability M2TSDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS_V2),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS_V2),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V1),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V2),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V1),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V2),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_PRIVATE_SCENE_EPG),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_DVB_EIT),
 };
 
 

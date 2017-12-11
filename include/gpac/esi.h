@@ -140,7 +140,7 @@ typedef struct __elementary_stream_ifce
 	u16 program_number;
 	/*MPEG-4 ST/OTIs*/
 	u8 stream_type;
-	u8 object_type_indication;
+	u32 object_type_indication;
 	/*stream 4CC for non-mpeg codecs, 0 otherwise (stream is identified through StreamType/ObjectType)*/
 	u32 fourcc;
 	/*packed 3-char language code (4CC with last byte ' ')*/

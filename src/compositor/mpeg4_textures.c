@@ -319,7 +319,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 
 			/*BIFS decoded playback*/
 			switch (ct->objectTypeIndication) {
-			case GPAC_OTI_IMAGE_JPEG:
+			case GF_CODECID_JPEG:
 				out_size = 0;
 				e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
 				if (e==GF_BUFFER_TOO_SMALL) {
@@ -337,7 +337,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 					}
 				}
 				break;
-			case GPAC_OTI_IMAGE_PNG:
+			case GF_CODECID_PNG:
 				out_size = 0;
 				e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
 				if (e==GF_BUFFER_TOO_SMALL) {

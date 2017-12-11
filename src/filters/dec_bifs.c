@@ -44,14 +44,14 @@ static GF_Err bifs_dec_configure_bifs_dec(GF_BIFSDecCtx *ctx, GF_FilterPid *pid)
 {
 	GF_Err e;
 	u32 es_id=0;
-	u32 oti=0;
+	u32 codecid=0;
 	const GF_PropertyValue *prop;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (prop) es_id = prop->value.uint;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (prop) oti = prop->value.uint;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (prop) codecid = prop->value.uint;
 
 
 	//we must have a dsi
@@ -72,7 +72,7 @@ static GF_Err bifs_dec_configure_bifs_dec(GF_BIFSDecCtx *ctx, GF_FilterPid *pid)
 	}
 
 
-	e = gf_bifs_decoder_configure_stream(ctx->bifs_dec, es_id, prop->value.data.ptr, prop->value.data.size, oti);
+	e = gf_bifs_decoder_configure_stream(ctx->bifs_dec, es_id, prop->value.data.ptr, prop->value.data.size, codecid);
 	if (e) return e;
 
 	return GF_OK;
@@ -98,8 +98,8 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (!prop || (prop->value.uint != GF_STREAM_SCENE)) {
 		return GF_NOT_SUPPORTED;
 	}
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (!prop || ( (prop->value.uint != GPAC_OTI_SCENE_BIFS) && (prop->value.uint != GPAC_OTI_SCENE_BIFS_V2)) ) {
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!prop || ( (prop->value.uint != GF_CODECID_BIFS) && (prop->value.uint != GF_CODECID_BIFS_V2)) ) {
 		return GF_NOT_SUPPORTED;
 	}
 	//we must have a dsi
@@ -124,11 +124,11 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 
 
-	//declare a new output PID of type STREAM, OTI RAW
+	//declare a new output PID of type SCENE, codecid RAW
 	out_pid = gf_filter_pid_new(filter);
 
 	gf_filter_pid_copy_properties(out_pid, pid);
-	gf_filter_pid_set_property(out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);
 	return GF_OK;
 }
@@ -251,14 +251,14 @@ static const GF_FilterCapability BIFSDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS_V2),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS_V2),
 };
 
 static const GF_FilterCapability BIFSDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister BIFSDecRegister = {

@@ -44,7 +44,7 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *opid;
 
-	u32 oti, sample_rate, block_size;
+	u32 codecid, sample_rate, block_size;
 	Bool done;
 
 	u64 cts;
@@ -119,7 +119,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 	stream = gf_fopen(p->value.string, "r");
 	if (!stream) return;
 
-	ctx->oti = 0;
+	ctx->codecid = 0;
 	ctx->sample_rate = 8000;
 	ctx->block_size = 160;
 
@@ -341,11 +341,11 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	if (has_pad) gf_bs_read_u8(bs);
 
 	if (!strncmp(GUID, QCP_QCELP_GUID_1, 16) || !strncmp(GUID, QCP_QCELP_GUID_2, 16)) {
-		ctx->oti = GPAC_OTI_AUDIO_QCELP;
+		ctx->codecid = GF_CODECID_QCELP;
 	} else if (!strncmp(GUID, QCP_EVRC_GUID, 16)) {
-		ctx->oti = GPAC_OTI_AUDIO_EVRC;
+		ctx->codecid = GF_CODECID_EVRC;
 	} else if (!strncmp(GUID, QCP_SMV_GUID, 16)) {
-		ctx->oti = GPAC_OTI_AUDIO_SMV;
+		ctx->codecid = GF_CODECID_SMV;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[QCPDmx] Unsupported codec GUID %s\n", GUID));
 		if (!file_bs) gf_bs_del(bs);
@@ -376,7 +376,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(1) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(ctx->oti ) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(avg_bps));
 	qcpdmx_check_dur(filter, ctx);
@@ -658,9 +658,9 @@ static const GF_FilterCapability QCPDmxInputs[] =
 static const GF_FilterCapability QCPDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_QCELP),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_SMV),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_EVRC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_QCELP),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SMV),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EVRC),
 	{}
 };
 
