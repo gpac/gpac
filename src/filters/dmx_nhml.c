@@ -381,7 +381,7 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, char **dict, u32 offset)
 	size = ctx->samp_buffer_size*ZLIB_COMPRESS_SAFE;
 	if (ctx->zlib_buffer_alloc < size) {
 		ctx->zlib_buffer_alloc = size;
-		ctx->zlib_buffer_alloc = gf_realloc(ctx->zlib_buffer, sizeof(char)*size);
+		ctx->zlib_buffer = gf_realloc(ctx->zlib_buffer, sizeof(char)*size);
 	}
 
 	stream.next_in = (Bytef*) ctx->samp_buffer + offset;
@@ -599,7 +599,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 #endif
 		/*unknown desc related*/
 		else if (!stricmp(att->name, "compressorName")) {
-			strncpy(compressor_name, 99, att->value);
+			strncpy(compressor_name, att->value, 99);
 			compressor_name[99]=0;
 		} else if (!stricmp(att->name, "codecVersion")) {
 			NHML_SCAN_INT("%u", version)
@@ -753,7 +753,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	if (height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(height) );
 
 	if (par_den) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(par_num, par_den) );
-	if (bits_per_sample) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BPS, &PROP_FRAC(bits_per_sample) );
+	if (bits_per_sample) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BPS, &PROP_UINT(bits_per_sample) );
 	if (sample_rate) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sample_rate) );
 	if (nb_channels) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_channels) );
 	if (bit_depth) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(bit_depth) );

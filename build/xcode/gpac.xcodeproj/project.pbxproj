@@ -2119,7 +2119,6 @@
 		9201FF9A18D5A444003D1ACA /* compositor */ = {
 			isa = PBXGroup;
 			children = (
-				92B9A5B81F866E0500A24FE4 /* mpeg4_inputsensor.c */,
 				92B9A53D1F8660D200A24FE4 /* audio_input.c */,
 				92B9A5281F8660CF00A24FE4 /* audio_mixer.c */,
 				92B9A5471F8660D300A24FE4 /* audio_render.c */,
@@ -2158,6 +2157,7 @@
 				92B9A5561F8660D500A24FE4 /* mpeg4_grouping.c */,
 				92B9A5521F8660D500A24FE4 /* mpeg4_grouping.h */,
 				92B9A54F1F8660D400A24FE4 /* mpeg4_inline.c */,
+				92B9A5B81F866E0500A24FE4 /* mpeg4_inputsensor.c */,
 				92B9A5401F8660D200A24FE4 /* mpeg4_layer_2d.c */,
 				92B9A5181F8660CE00A24FE4 /* mpeg4_layer_3d.c */,
 				92B9A5191F8660CE00A24FE4 /* mpeg4_layout.c */,

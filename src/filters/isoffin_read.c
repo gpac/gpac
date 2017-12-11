@@ -587,7 +587,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				ch->next_track = isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
 			}
 		}
-		return GF_OK;
+		return GF_TRUE;
 	}
 
 	if (!com->base.on_pid) return GF_FALSE;

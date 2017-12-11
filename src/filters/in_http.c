@@ -192,7 +192,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->nb_read = 0;
 			ctx->last_state = GF_OK;
-			return GF_OK;
+			return GF_TRUE;
 		}
 
 		assert(ctx->is_end);

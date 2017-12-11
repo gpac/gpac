@@ -366,7 +366,7 @@ u32 gf_isom_text_sample_size(GF_TextSample *samp)
 {
 	GF_Box *a;
 	u32 i, size;
-	if (!samp) return NULL;
+	if (!samp) return 0;
 
 	size = 2 + samp->len;
 	if (samp->styles) {

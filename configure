@@ -171,6 +171,7 @@ avcap_cflags=""
 avcap_ldflags="-lavcap"
 has_opensvc="no"
 has_openhevc="no"
+has_vtb="no"
 
 win32="no"
 mingw32="no"
@@ -1607,6 +1608,21 @@ elif docc -I$local_inc -L$local_lib -logg -lm ; then
 else
     has_vorbis=no
     has_theora=no
+fi
+
+
+#look for VideoToolBox support
+
+if test "$darwin" = "yes" ; then
+vtb_ldflags="-framework VideoToolBox"
+	cat > $TMPC << EOF
+#include <VideoToolbox/VideoToolbox.h>
+int main( void ) { return 0; }
+EOF
+
+if docc $LDFLAGS $vtb_ldflags ; then
+    has_vtb="yes"
+fi
 fi
 
 
@@ -3096,6 +3112,13 @@ if test "$has_png" != "no" ; then
     echo "#define GPAC_HAS_PNG" >> $TMPH
 fi
 
+echo "CONFIG_VTB=$has_vtb" >> config.mak
+if test "$has_vtb" != "no" ; then
+    echo "#define GPAC_HAS_VTB" >> $TMPH
+    echo "vtb_ldflags=$vtb_ldflags" >> config.mak
+fi
+
+
 echo "CONFIG_JP2=$has_openjpeg" >> config.mak
 echo "CONFIG_FAAD=$has_faad" >> config.mak
 echo "CONFIG_MAD=$has_mad" >> config.mak
@@ -3339,7 +3362,7 @@ echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
-    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filters src/filters_imp src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
+    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/filters_imp src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
 
     APP_DIRS="applications/gpac applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx applications/mp42ts applications/dashcast"
 

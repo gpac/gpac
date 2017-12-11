@@ -1352,11 +1352,13 @@ static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u3
 	return NULL;
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc)
 {
 	return gf_filter_get_info_internal(filter, prop_4cc, NULL);
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name)
 {
 	return gf_filter_get_info_internal(filter, 0, prop_name);

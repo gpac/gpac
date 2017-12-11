@@ -767,7 +767,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			idx = group->idx;
 
 			gf_dash_group_set_quality_degradation_hint(ctx->dash, group->idx, fevt->quality_switch.quality_degradation);
-			if (! fevt->quality_switch.ID) return GF_OK;
+			if (! fevt->quality_switch.ID) return GF_TRUE;
 
 			if (fevt->quality_switch.dependent_group_index) {
 				if (fevt->quality_switch.dependent_group_index > gf_dash_group_get_num_groups_depending_on(ctx->dash, group->idx))
@@ -950,7 +950,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 				p_end += gf_dash_get_period_start(ctx->dash);
 				if (p_end<1000*fevt->play.start_range) {
 					ctx->seek_request = fevt->play.start_range;
-					return GF_OK;
+					return GF_TRUE;
 				}
 			}
 		}
@@ -970,10 +970,10 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 			//to remove once we manage to keep the service alive
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
-			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_OK;
+			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
 		} else if (!fevt->play.initial_broadcast_play) {
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
-			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_OK;
+			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
 
 			//seek on a single group
 			gf_dash_group_seek(ctx->dash, group->idx, fevt->play.start_range);

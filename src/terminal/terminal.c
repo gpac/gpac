@@ -55,6 +55,7 @@ struct _tag_terminal
 
 GF_Compositor *gf_sc_from_filter(GF_Filter *filter);
 
+GF_EXPORT
 GF_Compositor *gf_term_get_compositor(GF_Terminal *term)
 {
 	return term->compositor;
@@ -71,6 +72,7 @@ static Bool check_user(GF_User *user)
 }
 
 
+GF_EXPORT
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 {
 	return gf_fs_send_event(term->fsess, evt);
@@ -459,6 +461,7 @@ void gf_term_connect(GF_Terminal * term, const char *URL)
 	gf_term_connect_from_time_ex(term->compositor, URL, 0, 0, 0, NULL);
 }
 
+GF_EXPORT
 void gf_sc_connect(GF_Compositor *compositor, const char *URL)
 {
 	gf_term_connect_from_time_ex(compositor, URL, 0, 0, 0, NULL);
@@ -1699,6 +1702,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 #endif
 }
 
+GF_EXPORT
 void gf_term_print_stats(GF_Terminal *term)
 {
 	gf_fs_print_stats(term->fsess);

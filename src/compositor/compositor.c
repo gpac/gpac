@@ -40,6 +40,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node);
 #define SC_DEF_HEIGHT	240
 
 
+GF_EXPORT
 Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt)
 {
 	return gf_fs_forward_event(compositor->fsess, evt, 0, 0);
@@ -1874,6 +1875,7 @@ Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	return 1;
 }
 
+GF_EXPORT
 u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 {
 	switch (type) {
@@ -3275,6 +3277,7 @@ static Bool gf_sc_on_event(void *cbck, GF_Event *event)
 	return gf_sc_on_event_ex((GF_Compositor *)cbck, event, GF_FALSE);
 }
 
+GF_EXPORT
 Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)
 {
 	switch (event->type) {
@@ -3823,6 +3826,7 @@ void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node)
 
 
 #include "../filter_core/filter_session.h"
+GF_EXPORT
 GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor)
 {
 	return compositor->filter->session->download_manager;
