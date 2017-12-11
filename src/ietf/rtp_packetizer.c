@@ -141,7 +141,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 	builder->Path_MTU = PathMTU;
 	builder->PayloadType = PayloadType;
 	builder->slMap.StreamType = StreamType;
-	builder->slMap.ObjectTypeIndication = codecid;
+	builder->slMap.CodecID = codecid;
 	builder->slMap.PL_ID = PL_ID;
 	builder->max_ptime = max_ptime;
 	if (pref_mode) strcpy(builder->slMap.mode, pref_mode);
@@ -377,7 +377,7 @@ check_header:
 		builder->slMap.IV_delta_length = gf_get_bit_size(maxSize);
 	}
 	/*ISMACryp video mode*/
-	if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GF_CODECID_MPEG4_PART2)
+	if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.CodecID==GF_CODECID_MPEG4_PART2)
 	        && (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length
 	        && !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
 	        /*shall have SignalTS*/
@@ -386,7 +386,7 @@ check_header:
 		strcpy(builder->slMap.mode, "mpeg4-video");
 	}
 	/*ISMACryp AVC video mode*/
-	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GF_CODECID_AVC)
+	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.CodecID==GF_CODECID_AVC)
 	         && (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length
 	         && !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
 	         /*shall have SignalTS*/
@@ -447,7 +447,7 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 
 	switch (rtpb->rtp_payt) {
 	case GF_RTP_PAYT_MPEG4:
-		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.ObjectTypeIndication==GF_CODECID_MPEG4_PART2)) {
+		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.CodecID==GF_CODECID_MPEG4_PART2)) {
 			strcpy(szMediaName, "video");
 			/*ISMACryp video*/
 			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) && rtpb->slMap.IV_length
@@ -508,7 +508,7 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 		return GF_TRUE;
 	case GF_RTP_PAYT_EVRC_SMV:
 		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, (rtpb->slMap.ObjectTypeIndication==0xA0) ? "EVRC" : "SMV");
+		strcpy(szPayloadName, (rtpb->slMap.CodecID==0xA0) ? "EVRC" : "SMV");
 		/*header-free version*/
 		if (rtpb->auh_size<=1) strcat(szPayloadName, "0");
 		return GF_TRUE;
@@ -583,7 +583,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	}
 
 	/*optional fields*/
-	if (builder->slMap.ObjectTypeIndication) SDP_ADD_INT("objectType", builder->slMap.ObjectTypeIndication);
+	if (builder->slMap.CodecID) SDP_ADD_INT("objectType", builder->slMap.CodecID);
 	if (builder->slMap.ConstantSize) SDP_ADD_INT("constantSize", builder->slMap.ConstantSize);
 	if (builder->slMap.ConstantDuration) SDP_ADD_INT("constantDuration", builder->slMap.ConstantDuration);
 	if (builder->slMap.maxDisplacement) SDP_ADD_INT("maxDisplacement", builder->slMap.maxDisplacement);

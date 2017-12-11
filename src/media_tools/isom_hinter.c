@@ -631,7 +631,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	gf_isom_rtp_set_timescale(file, tmp->HintTrack, descIndex, my_sl.timestampResolution);
 
 	if (hintType==GF_RTP_PAYT_MPEG4) {
-		tmp->rtp_p->slMap.ObjectTypeIndication = codecid;
+		tmp->rtp_p->slMap.CodecID = codecid;
 		/*set this SL for extraction.*/
 		gf_isom_set_extraction_slc(file, TrackNum, 1, &my_sl);
 	}
