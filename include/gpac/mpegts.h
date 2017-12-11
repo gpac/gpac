@@ -51,6 +51,12 @@
 extern "C" {
 #endif
 
+/* media types consts from media_import.c */
+enum {
+	GF_M2TS_META_ID3 	= GF_4CC('I','D','3',' '),
+};
+
+
 
 /*MPEG-2 Descriptor tags*/
 enum

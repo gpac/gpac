@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -404,47 +404,6 @@ enum
 	/*! codecid for RAW media streams. No decoder config associated (config through PID properties)*/
 	GF_CODECID_RAW = GF_4CC('R','A','W','M'),
 };
-
-
-
-
-/* media types consts from media_import.c */
-enum {
-	GF_MEDIA_TYPE_CHAP 	= GF_4CC('C','H','A','P'),
-	GF_MEDIA_TYPE_ID3 	= GF_4CC('I','D','3',' '),
-	GF_MEDIA_TYPE_NHNL 	= GF_4CC('N','H','n','l'),
-	GF_MEDIA_TYPE_NHNT 	= GF_4CC('N','H','n','t'),
-
-	//the rest is unused
-	GF_MEDIA_TYPE_AC3 	= GF_4CC('A','C','3',' '),
-	GF_MEDIA_TYPE_BIFS 	= GF_4CC('B','I','F','S'),
-	GF_MEDIA_TYPE_DAC3 	= GF_4CC('D','A','C','3'),
-	GF_MEDIA_TYPE_DEC3 	= GF_4CC('D','E','C','3'),
-	GF_MEDIA_TYPE_DTS 	= GF_4CC('D','T','S',' '),
-	GF_MEDIA_TYPE_H264 	= GF_4CC('H','2','6','4'),
-	GF_MEDIA_TYPE_HEVC 	= GF_4CC('H','E','V','C'),
-	GF_MEDIA_TYPE_JPEG 	= GF_4CC('J','P','E','G'),
-	GF_MEDIA_TYPE_LASR 	= GF_4CC('L','A','S','R'),
-	GF_MEDIA_TYPE_LHVC 	= GF_4CC('L','H','V','C'),
-	GF_MEDIA_TYPE_LPCM 	= GF_4CC('L','P','C','M'),
-	GF_MEDIA_TYPE_M4SP 	= GF_4CC('M','4','S','P'),
-	GF_MEDIA_TYPE_M4SS 	= GF_4CC('M','4','S','S'),
-	GF_MEDIA_TYPE_MP1A 	= GF_4CC('M','P','1','A'),
-	GF_MEDIA_TYPE_MP1V 	= GF_4CC('M','P','1','V'),
-	GF_MEDIA_TYPE_MP2A 	= GF_4CC('M','P','2','A'),
-	GF_MEDIA_TYPE_MP2V 	= GF_4CC('M','P','2','V'),
-	GF_MEDIA_TYPE_MP4A 	= GF_4CC('M','P','4','A'),
-	GF_MEDIA_TYPE_MP4V 	= GF_4CC('M','P','4','V'),
-	GF_MEDIA_TYPE_MPG1 	= GF_4CC('M','P','G','1'),
-	GF_MEDIA_TYPE_MPG2 	= GF_4CC('M','P','G','2'),
-	GF_MEDIA_TYPE_MPGA 	= GF_4CC('M','P','G','A'),
-	GF_MEDIA_TYPE_PNG 	= GF_4CC('P','N','G',' '),
-	GF_MEDIA_TYPE_SVC 	= GF_4CC('S','V','C',' '),
-	GF_MEDIA_TYPE_THEO 	= GF_4CC('t','h','e','o'),
-	GF_MEDIA_TYPE_UNK 	= GF_4CC('U','N','K',' '),
-
-};
-
 
 
 /*!

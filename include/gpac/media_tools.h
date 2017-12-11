@@ -253,8 +253,7 @@ struct __track_import_info
 	u32 stream_type;
 	/*! codec ID ( one of GF_CODECID_XXX*)*/
 	u32 codecid;
-	/*! object type expressed as 4CC ('MPG1', 'MPG2', ISO 4CC, AVI 4CC)*/
-//	u32 media_4cc;
+	Bool is_chapter;
 	/*! import flags supported by the importer*/
 	u32 flags;
 	/*! video format info*/

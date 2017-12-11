@@ -33,6 +33,13 @@
 #include <gpac/avparse.h>
 #endif
 
+
+enum
+{
+	GF_MEDIA_TYPE_NHNL 	= GF_4CC('N','H','n','l'),
+	GF_MEDIA_TYPE_NHNT 	= GF_4CC('N','H','n','t')
+};
+
 typedef struct
 {
 	u64 pos;
