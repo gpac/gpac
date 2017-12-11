@@ -122,7 +122,7 @@ typedef struct
 	u32 reaggregation_alloc_size, reaggregation_size;
 } GF_OHEVCDecCtx;
 
-static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 oti, const GF_PropertyValue *dsi)
+static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid, const GF_PropertyValue *dsi)
 {
 	GF_HEVCConfig *cfg = NULL;
 	char *data;
@@ -140,7 +140,7 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 		return GF_OK;
 	}
 	//FIXME in isomedia this should be an LHCC, not an HVCC
-	if (oti==GPAC_OTI_VIDEO_LHVC) {
+	if (codecid==GF_CODECID_LHVC) {
 		cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 	} else {
 		cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
@@ -221,7 +221,7 @@ static void ohevcdec_set_codec_name(GF_Filter *filter)
 
 static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 i, j, dep_id=0, id=0, cfg_crc=0, oti, stride_mul=1;
+	u32 i, j, dep_id=0, id=0, cfg_crc=0, codecid, stride_mul=1;
 	Bool found, has_scalable = GF_FALSE;
 	const GF_PropertyValue *p, *dsi;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
@@ -258,9 +258,9 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 	if (p) id = p->value.uint;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	oti = p ? p->value.uint : 0;
-	if (!oti) return GF_NOT_SUPPORTED;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	codecid = p ? p->value.uint : 0;
+	if (!codecid) return GF_NOT_SUPPORTED;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SCALABLE);
 	if (p) has_scalable = p->value.boolean;
@@ -331,13 +331,13 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	//scalable stream setup
 	if (dep_id) {
-		GF_Err e = ohevcdec_configure_scalable_pid(ctx, pid, oti, dsi);
+		GF_Err e = ohevcdec_configure_scalable_pid(ctx, pid, codecid, dsi);
 		ohevcdec_set_codec_name(filter);
 		return e;
 	}
 
 
-	if (oti == GPAC_OTI_VIDEO_AVC)
+	if (codecid == GF_CODECID_AVC)
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		ctx->avc_base_id = id;
 #else
@@ -346,7 +346,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	
 	if (dsi && dsi->value.data.size) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
-		if (oti==GPAC_OTI_VIDEO_AVC) {
+		if (oti==GF_CODECID_AVC) {
 			GF_AVCConfig *avcc = NULL;
 			AVCState avc;
 			memset(&avc, 0, sizeof(AVCState));
@@ -476,7 +476,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 
 	return GF_OK;
@@ -1033,17 +1033,17 @@ static const GF_FilterCapability OHEVCDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_HEVC),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_LHVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 #ifdef  OPENHEVC_HAS_AVC_BASE
-	{ .code=GF_PROP_PID_OTI, .val=PROP_UINT(GPAC_OTI_VIDEO_AVC), .in_bundle=1, .priority=255 }
+	{ .code=GF_PROP_PID_CODECID, .val=PROP_UINT(GF_CODECID_AVC), .in_bundle=1, .priority=255 }
 #endif
 };
 
 static const GF_FilterCapability OHEVCDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_OHEVCDecCtx, _n)

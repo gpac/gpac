@@ -71,7 +71,7 @@ typedef struct
 static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 {
 	u32 sync_id = 0;
-	u32 obj_oti = 0;
+	u32 codecid = 0;
 	u32 a_fmt = 0;
 	Bool unframed = GF_FALSE;
 	u32 i, count;
@@ -104,11 +104,11 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		|| !stricmp(comp, "MP43") /*not tested*/
 		|| !stricmp(comp, "FMP4") /*not tested*/
 	) {
-		obj_oti = GPAC_OTI_VIDEO_MPEG4_PART2;
+		codecid = GF_CODECID_MPEG4_PART2;
 	} else if ( !stricmp(comp, "H264") /*not tested*/
 		|| !stricmp(comp, "X264") /*not tested*/
 	) {
-		obj_oti = GPAC_OTI_VIDEO_AVC;
+		codecid = GF_CODECID_AVC;
 	} else if (!stricmp(comp, "DIV3") || !stricmp(comp, "DIV4")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not compliant with MPEG-4 Visual - please recompress the file first\n", comp));
 	} else {
@@ -116,7 +116,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	}
 
 	ctx->v_in_use = GF_FALSE;
-	if (obj_oti) {
+	if (codecid) {
 		if (!ctx->v_opid) {
 			ctx->v_opid = gf_filter_pid_new(filter);
 		}
@@ -127,7 +127,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 
 
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_OTI, &PROP_UINT(obj_oti) );
+		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
@@ -144,72 +144,72 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	for (i=0; i<count; i++) {
 		AVI_set_audio_track(ctx->avi, i);
 
-		obj_oti = 0;
+		codecid = 0;
 		a_fmt = AVI_audio_format(ctx->avi);
 		switch (a_fmt) {
 		case WAVE_FORMAT_PCM:
-			obj_oti = GF_4CC('P','C','M',' ');
+			codecid = GF_CODECID_PCM;
 			comp = "pcm";
 			break;
 		case WAVE_FORMAT_ADPCM:
-			obj_oti = GF_4CC('A','P','C','M');
+			codecid = GF_CODECID_ADPCM;
 			comp = "adpcm";
 			break;
 		case WAVE_FORMAT_IBM_CVSD:
-			obj_oti = GF_4CC('C','S','V','D');
+			codecid = GF_CODECID_IBM_CVSD;
 			comp = "cvsd";
 			break;
 		case WAVE_FORMAT_ALAW:
-			obj_oti = GF_4CC('A','L','A','W');
+			codecid = GF_CODECID_ALAW;
 			comp = "alaw";
 			break;
 		case WAVE_FORMAT_MULAW:
-			obj_oti = GF_4CC('M','L','A','W');
+			codecid = GF_CODECID_MULAW;
 			comp = "mulaw";
 			break;
 		case WAVE_FORMAT_OKI_ADPCM:
-			obj_oti = GF_4CC('O','P','C','M');
+			codecid = GF_CODECID_OKI_ADPCM;
 			comp = "oki_adpcm";
 			break;
 		case WAVE_FORMAT_DVI_ADPCM:
-			obj_oti = GF_4CC('D','P','C','M');
+			codecid = GF_CODECID_DVI_ADPCM;
 			comp = "dvi_adpcm";
 			break;
 		case WAVE_FORMAT_DIGISTD:
-			obj_oti = GF_4CC('D','S','T','D');
+			codecid = GF_CODECID_DIGISTD;
 			comp = "digistd";
 			break;
 		case WAVE_FORMAT_YAMAHA_ADPCM:
-			obj_oti = GF_4CC('Y','P','C','M');
+			codecid = GF_CODECID_YAMAHA_ADPCM;
 			comp = "yam_adpcm";
 			break;
 		case WAVE_FORMAT_DSP_TRUESPEECH:
-			obj_oti = GF_4CC('T','S','P','E');
+			codecid = GF_CODECID_DSP_TRUESPEECH;
 			comp = "truespeech";
 			break;
 		case WAVE_FORMAT_GSM610:
-			obj_oti = GF_4CC('G','6','1','0');
+			codecid = GF_CODECID_GSM610;
 			comp = "gsm610";
 			break;
 		case IBM_FORMAT_MULAW:
-			obj_oti = GF_4CC('I','U','L','W');
+			codecid = GF_CODECID_IBM_MULAW;
 			comp = "ibm_mulaw";
 			break;
 		case IBM_FORMAT_ALAW:
-			obj_oti = GF_4CC('I','A','L','W');
+			codecid = GF_CODECID_IBM_ALAW;
 			comp = "ibm_alaw";
 			break;
 		case IBM_FORMAT_ADPCM:
-			obj_oti = GF_4CC('I','P','C','M');
+			codecid = GF_CODECID_IBM_ADPCM;
 			comp = "ibm_adpcm";
 			break;
 		case 0x55:
-			obj_oti = GPAC_OTI_AUDIO_MPEG1;
+			codecid = GF_CODECID_MPEG_AUDIO;
 			comp = "mp3";
 			unframed = GF_TRUE;
 			break;
 		case 0x0000706d:
-			obj_oti = GPAC_OTI_AUDIO_AAC_MPEG4;
+			codecid = GF_CODECID_AAC_MPEG4;
 			comp = "aac";
 			unframed = GF_TRUE;
 			break;
@@ -218,7 +218,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			break;
 		}
 
-		if (obj_oti) {
+		if (codecid) {
 			AVIAstream *st = NULL;
 			u32 j, c  = gf_list_count(ctx->audios);
 			for (j=0; j<c; j++) {
@@ -237,7 +237,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			st->audio_done = GF_FALSE;
 
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT( obj_oti) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT( codecid) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT( AVI_audio_rate(ctx->avi) ) );
 			st->nb_channels = AVI_audio_channels(ctx->avi);
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT( st->nb_channels ) );

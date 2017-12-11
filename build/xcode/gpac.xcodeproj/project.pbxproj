@@ -229,6 +229,7 @@
 		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		9288E8641FB1BF07005460C5 /* reframe_mpgvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */; };
+		9289D9F31FDABAFC00C24F83 /* mp4box.h in Headers */ = {isa = PBXBuildFile; fileRef = 9289D9F21FDABAFB00C24F83 /* mp4box.h */; };
 		928E7AC51FB9F2B800D2470E /* dmx_nhnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */; };
 		928E7AC71FB9FCDD00D2470E /* dmx_nhml.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */; };
 		9290F5111FAB4C2C0038C30D /* mux_isom.c in Sources */ = {isa = PBXBuildFile; fileRef = 9290F5101FAB4C2C0038C30D /* mux_isom.c */; };
@@ -411,7 +412,6 @@
 		92BBFCDB1A7122AD006A7735 /* isomedia.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC791A7122AD006A7735 /* isomedia.h */; };
 		92BBFCDC1A7122AD006A7735 /* laser.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC7A1A7122AD006A7735 /* laser.h */; };
 		92BBFCDD1A7122AD006A7735 /* list.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC7B1A7122AD006A7735 /* list.h */; };
-		92BBFCDE1A7122AD006A7735 /* map.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC7C1A7122AD006A7735 /* map.h */; };
 		92BBFCDF1A7122AD006A7735 /* maths.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC7D1A7122AD006A7735 /* maths.h */; };
 		92BBFCE01A7122AD006A7735 /* media_tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC7E1A7122AD006A7735 /* media_tools.h */; };
 		92BBFCE11A7122AD006A7735 /* mediaobject.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC7F1A7122AD006A7735 /* mediaobject.h */; };
@@ -1095,6 +1095,7 @@
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mpgvid.c; path = filters/reframe_mpgvid.c; sourceTree = "<group>"; };
+		9289D9F21FDABAFB00C24F83 /* mp4box.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mp4box.h; path = ../../../applications/mp4box/mp4box.h; sourceTree = "<group>"; };
 		928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_nhnt.c; path = filters/dmx_nhnt.c; sourceTree = "<group>"; };
 		928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_nhml.c; path = filters/dmx_nhml.c; sourceTree = "<group>"; };
 		9290F5101FAB4C2C0038C30D /* mux_isom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_isom.c; path = filters/mux_isom.c; sourceTree = "<group>"; };
@@ -1278,7 +1279,6 @@
 		92BBFC791A7122AD006A7735 /* isomedia.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = isomedia.h; path = ../include/gpac/isomedia.h; sourceTree = "<group>"; };
 		92BBFC7A1A7122AD006A7735 /* laser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = laser.h; path = ../include/gpac/laser.h; sourceTree = "<group>"; };
 		92BBFC7B1A7122AD006A7735 /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = list.h; path = ../include/gpac/list.h; sourceTree = "<group>"; };
-		92BBFC7C1A7122AD006A7735 /* map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = map.h; path = ../include/gpac/map.h; sourceTree = "<group>"; };
 		92BBFC7D1A7122AD006A7735 /* maths.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = maths.h; path = ../include/gpac/maths.h; sourceTree = "<group>"; };
 		92BBFC7E1A7122AD006A7735 /* media_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = media_tools.h; path = ../include/gpac/media_tools.h; sourceTree = "<group>"; };
 		92BBFC7F1A7122AD006A7735 /* mediaobject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mediaobject.h; path = ../include/gpac/mediaobject.h; sourceTree = "<group>"; };
@@ -2353,7 +2353,6 @@
 				92BBFC791A7122AD006A7735 /* isomedia.h */,
 				92BBFC7A1A7122AD006A7735 /* laser.h */,
 				92BBFC7B1A7122AD006A7735 /* list.h */,
-				92BBFC7C1A7122AD006A7735 /* map.h */,
 				92BBFC7D1A7122AD006A7735 /* maths.h */,
 				92BBFC7E1A7122AD006A7735 /* media_tools.h */,
 				92BBFC7F1A7122AD006A7735 /* mediaobject.h */,
@@ -2445,6 +2444,7 @@
 		92BE509218D6325E00AA59D8 /* MP4Box */ = {
 			isa = PBXGroup;
 			children = (
+				9289D9F21FDABAFB00C24F83 /* mp4box.h */,
 				92BE50A418D6348A00AA59D8 /* filedump.c */,
 				92BE50A518D6348A00AA59D8 /* fileimport.c */,
 				92BE50A618D6348A00AA59D8 /* live.c */,
@@ -2664,7 +2664,6 @@
 				92586A721EA7665D00A0838A /* ft_font.h in Headers */,
 				92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */,
 				92BBFCEE1A7122AD006A7735 /* mpegts.h in Headers */,
-				92BBFCDE1A7122AD006A7735 /* map.h in Headers */,
 				92BBFCCB1A7122AD006A7735 /* laser_dev.h in Headers */,
 				92BBFCCA1A7122AD006A7735 /* isomedia_dev.h in Headers */,
 				92BBFCE71A7122AD006A7735 /* ipmp.h in Headers */,
@@ -2672,6 +2671,7 @@
 				92BBFCB01A7122AD006A7735 /* cache.h in Headers */,
 				92BBFCFE1A7122AD006A7735 /* setup.h in Headers */,
 				92BBFCFB1A7122AD006A7735 /* scenegraph_svg.h in Headers */,
+				9289D9F31FDABAFC00C24F83 /* mp4box.h in Headers */,
 				92BBFCC01A7122AD006A7735 /* html5_mse.h in Headers */,
 				92B9A5AF1F8660D700A24FE4 /* visual_manager_2d.h in Headers */,
 				92BBFCE11A7122AD006A7735 /* mediaobject.h in Headers */,

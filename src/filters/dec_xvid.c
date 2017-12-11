@@ -216,7 +216,7 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
@@ -398,14 +398,14 @@ packed_frame :
 static const GF_FilterCapability XVIDInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG4_PART2),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability XVIDOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_XVIDCtx, _n)

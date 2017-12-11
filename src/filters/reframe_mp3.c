@@ -45,7 +45,7 @@ typedef struct
 
 	GF_BitStream *bs;
 	u64 file_pos, cts, prev_cts;
-	u32 sr, nb_ch, oti;
+	u32 sr, nb_ch, codecid;
 	GF_Fraction duration;
 	Double start_range;
 	Bool in_seek;
@@ -167,13 +167,13 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		mp3_dmx_check_dur(filter, ctx);
 	}
 	if ((ctx->sr == gf_mp3_sampling_rate(ctx->hdr)) && (ctx->nb_ch == gf_mp3_num_channels(ctx->hdr) )
-		&& (ctx->oti == gf_mp3_object_type_indication(ctx->hdr) )
+		&& (ctx->codecid == gf_mp3_object_type_indication(ctx->hdr) )
 	)
 		return;
 
 
 	ctx->nb_ch = gf_mp3_num_channels(ctx->hdr);
-	ctx->oti = gf_mp3_object_type_indication(ctx->hdr);
+	ctx->codecid = gf_mp3_object_type_indication(ctx->hdr);
 	sr = gf_mp3_sampling_rate(ctx->hdr);
 
 	//we change sample rate, change cts
@@ -186,7 +186,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(gf_mp3_object_type_indication(ctx->hdr) ) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(gf_mp3_object_type_indication(ctx->hdr) ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(gf_mp3_window_size(ctx->hdr) ) );
 }
 
@@ -485,8 +485,8 @@ static const GF_FilterCapability MP3DmxInputs[] =
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG1),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG2_PART3),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
 	{}
 };
 
@@ -494,8 +494,8 @@ static const GF_FilterCapability MP3DmxInputs[] =
 static const GF_FilterCapability MP3DmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG1),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG2_PART3),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
 	{}
 };
 

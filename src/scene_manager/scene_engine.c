@@ -212,7 +212,7 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 			esd->decoderConfig->decoderSpecificInfo = NULL;
 			esd->ESID = sc->ESID;
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
-			esd->decoderConfig->objectTypeIndication = sc->objectType;
+			esd->decoderConfig->objectTypeIndication = sc->codec_id;
 			gf_list_add(iod->ESDescriptors, esd);
 
 			if (!sc->timeScale) sc->timeScale = 1000;
@@ -237,20 +237,20 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 
 
 		if (sc->streamType == GF_STREAM_SCENE) {
-			switch (sc->objectType) {
+			switch (sc->codec_id) {
 #ifndef GPAC_DISABLE_BIFS_ENC
-			case GPAC_OTI_SCENE_BIFS:
-			case GPAC_OTI_SCENE_BIFS_V2:
+			case GF_CODECID_BIFS:
+			case GF_CODECID_BIFS_V2:
 				e = gf_sm_setup_bifsenc(seng, sc, esd);
 				break;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
-			case GPAC_OTI_SCENE_LASER:
+			case GF_CODECID_LASER:
 				e = gf_sm_setup_lsrenc(seng, sc, esd);
 				break;
 #endif
-			case GPAC_OTI_SCENE_DIMS:
+			case GF_CODECID_DIMS:
 				/* Nothing to be done here */
 				break;
 			default:
@@ -507,7 +507,7 @@ static Bool gf_sm_check_for_modif(GF_SceneEngine *seng, GF_AUContext *au)
 	}
 
 	if (!seng->first_dims_sent) {
-		if (au->owner->objectType==GPAC_OTI_SCENE_DIMS) {
+		if (au->owner->codec_id==GF_CODECID_DIMS) {
 			GF_Node *root = gf_sg_get_root_node(seng->ctx->scene_graph);
 			if (gf_node_dirty_get(root)) {
 				modified=1;
@@ -547,25 +547,25 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 
 			if (from_start && !j && !gf_sm_check_for_modif(seng, au)) continue;
 
-			switch (sc->objectType) {
+			switch (sc->codec_id) {
 #ifndef GPAC_DISABLE_BIFS_ENC
-			case GPAC_OTI_SCENE_BIFS:
-			case GPAC_OTI_SCENE_BIFS_V2:
+			case GF_CODECID_BIFS:
+			case GF_CODECID_BIFS_V2:
 				e = gf_bifs_encode_au(seng->bifsenc, sc->ESID, au->commands, &data, &size);
 				break;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
-			case GPAC_OTI_SCENE_LASER:
+			case GF_CODECID_LASER:
 				e = gf_laser_encode_au(seng->lsrenc, sc->ESID, au->commands, 0, &data, &size);
 				break;
 #endif
-			case GPAC_OTI_SCENE_DIMS:
+			case GF_CODECID_DIMS:
 				e = gf_seng_encode_dims_au(seng, sc->ESID, au->commands, &data, &size);
 				break;
 
 			default:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode AU for Scene OTI %x\n", sc->objectType));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode AU for Scene OTI %x\n", sc->codec_id));
 				break;
 			}
 			callback(seng->calling_object, sc->ESID, data, size, au->timing);
@@ -661,7 +661,7 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_a
 
 	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
 	sc = gf_list_get(seng->ctx->streams, 0);
-	if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
+	if (sc->codec_id == GF_CODECID_DIMS) {
 		gf_seng_create_new_au(sc, 0);
 	}
 
@@ -732,24 +732,24 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 	data = NULL;
 	size = 0;
 
-	switch(sc->objectType) {
+	switch(sc->codec_id) {
 #ifndef GPAC_DISABLE_BIFS_ENC
-	case GPAC_OTI_SCENE_BIFS:
-	case GPAC_OTI_SCENE_BIFS_V2:
+	case GF_CODECID_BIFS:
+	case GF_CODECID_BIFS_V2:
 		e = gf_bifs_encode_au(seng->bifsenc, ESID, new_au->commands, &data, &size);
 		break;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
-	case GPAC_OTI_SCENE_LASER:
+	case GF_CODECID_LASER:
 		e = gf_laser_encode_au(seng->lsrenc, ESID, new_au->commands, 0, &data, &size);
 		break;
 #endif
-	case GPAC_OTI_SCENE_DIMS:
+	case GF_CODECID_DIMS:
 		e = gf_seng_encode_dims_au(seng, ESID, new_au->commands, &data, &size);
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode commands for Scene OTI %x\n", sc->objectType));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode commands for Scene OTI %x\n", sc->codec_id));
 		break;
 	}
 	callback(seng->calling_object, ESID, data, size, 0);
@@ -777,7 +777,7 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 	}
 	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
 	sc = gf_list_get(seng->ctx->streams, 0);
-	if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
+	if (sc->codec_id == GF_CODECID_DIMS) {
 		dims = 1;
 		gf_seng_create_new_au(sc, 0);
 	}
@@ -837,7 +837,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 }
 
 GF_EXPORT
-GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char ** const config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale)
+GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char ** const config, u32 *config_len, u32 *streamType, u32 *codec_id, u32 *timeScale)
 {
 	GF_StreamContext *sc = gf_list_get(seng->ctx->streams, idx);
 	if (!sc || !ESID || !config || !config_len) return GF_BAD_PARAM;
@@ -845,7 +845,7 @@ GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char 
 	*config = sc->dec_cfg;
 	*config_len = sc->dec_cfg_len;
 	if (streamType) *streamType = sc->streamType;
-	if (objectType) *objectType = sc->objectType;
+	if (codec_id) *codec_id = sc->codec_id;
 	if (timeScale) *timeScale = sc->timeScale;
 	return GF_OK;
 }
@@ -1077,7 +1077,7 @@ char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 	if (!seng->ctx->root_od) return NULL;
 
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
-		if ((sc->streamType == GF_STREAM_SCENE) && (sc->objectType != GPAC_OTI_SCENE_DIMS))
+		if ((sc->streamType == GF_STREAM_SCENE) && (sc->codec_id != GF_CODECID_DIMS))
 			break;
 	}
 	if (!sc) return NULL;
@@ -1100,7 +1100,7 @@ GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng)
 
 	if (!seng->ctx->root_od) return NULL;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
-		if ((sc->streamType == GF_STREAM_SCENE) && (sc->objectType != GPAC_OTI_SCENE_DIMS))
+		if ((sc->streamType == GF_STREAM_SCENE) && (sc->codec_id != GF_CODECID_DIMS))
 			break;
 	}
 	if (!sc) return NULL;

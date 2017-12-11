@@ -105,7 +105,7 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 {
 	GF_ObjectManager *odm;
 	const GF_PropertyValue *prop;
-	u32 mtype, oti;
+	u32 mtype, codecid;
 	u32 i, count;
 	GF_Scene *scene = NULL;
 	GF_Scene *top_scene = NULL;
@@ -147,9 +147,9 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!prop) return GF_NOT_SUPPORTED;
 	mtype = prop->value.uint;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!prop) return GF_NOT_SUPPORTED;
-	oti = prop->value.uint;
+	codecid = prop->value.uint;
 
 	odm = gf_filter_pid_get_udta(pid);
 	if (odm) {
@@ -206,8 +206,8 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		scene->is_dynamic_scene = GF_FALSE;
 	}
 
-	//TODO: pure OCR streams
-	if (oti != GPAC_OTI_RAW_MEDIA_STREAM)
+	//pure OCR streams are handled by dispatching OCR on the PID(s)
+	if (codecid != GF_CODECID_RAW)
 		return GF_NOT_SUPPORTED;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
@@ -308,7 +308,7 @@ static const GF_FilterCapability CompositorFilterInputs[] =
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	//we don't accept text streams for now, we only use scene streams for text
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE)
 };

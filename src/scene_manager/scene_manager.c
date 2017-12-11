@@ -46,7 +46,7 @@ GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 }
 
 GF_EXPORT
-GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u8 objectType)
+GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u32 codec_id)
 {
 	u32 i;
 	GF_StreamContext *tmp;
@@ -69,7 +69,7 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 	tmp->AUs = gf_list_new();
 	tmp->ESID = ES_ID;
 	tmp->streamType = streamType;
-	tmp->objectType = objectType ? objectType : 1;
+	tmp->codec_id = codec_id ? codec_id : 1;
 	tmp->timeScale = 1000;
 	gf_list_add(ctx->streams, tmp);
 	return tmp;
@@ -428,7 +428,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 			Bool base_stream_found = 0;
 
 			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
-			if (sc->objectType == GPAC_OTI_SCENE_DIMS) base_stream_found = 1;
+			if (sc->codec_id == GF_CODECID_DIMS) base_stream_found = 1;
 
 			/*apply all commands - this will also apply the SceneReplace*/
 			while (gf_list_count(sc->AUs)) {
@@ -528,15 +528,15 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 			if (base_stream_found) {
 				au = gf_sm_stream_au_new(sc, 0, 0, 1);
 
-				switch (sc->objectType) {
-				case GPAC_OTI_SCENE_BIFS:
-				case GPAC_OTI_SCENE_BIFS_V2:
+				switch (sc->codec_id) {
+				case GF_CODECID_BIFS:
+				case GF_CODECID_BIFS_V2:
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_SCENE_REPLACE);
 					break;
-				case GPAC_OTI_SCENE_LASER:
+				case GF_CODECID_LASER:
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_LSR_NEW_SCENE);
 					break;
-				case GPAC_OTI_SCENE_DIMS:
+				case GF_CODECID_DIMS:
 				/* We do not create a new command, empty AU is enough in DIMS*/
 				default:
 					com = NULL;

@@ -113,7 +113,7 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
@@ -380,13 +380,13 @@ static const GF_FilterCapability J2KInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_JPEG_2000),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_J2K),
 };
 
 static const GF_FilterCapability J2KOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister J2KRegister = {

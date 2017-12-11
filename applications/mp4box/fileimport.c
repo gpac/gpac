@@ -24,7 +24,8 @@
  */
 
 
-#include <gpac/tools.h>
+#include "mp4box.h"
+
 #include <gpac/media_tools.h>
 #include <gpac/constants.h>
 #include <gpac/scene_manager.h>
@@ -168,8 +169,7 @@ void convert_file_info(char *inName, u32 trackID)
 			fprintf(stderr, "Other (%s) ", gf_4cc_to_str(import.tk_info[i].stream_type));
 			break;
 		}
-		if (import.tk_info[i].media_oti) fprintf(stderr, "OTI %d ", import.tk_info[i].media_oti);
-		if (import.tk_info[i].media_4cc) fprintf(stderr, "4cc %s ", gf_4cc_to_str(import.tk_info[i].media_4cc));
+		if (import.tk_info[i].codecid) fprintf(stderr, "CodecID %d ", import.tk_info[i].codecid);
 
 		if (import.tk_info[i].lang) fprintf(stderr, " - lang %s", gf_4cc_to_str(import.tk_info[i].lang));
 

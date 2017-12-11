@@ -86,7 +86,7 @@ static GF_Err theoradec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, pid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
 	if (ctx->ipid) {
 		theora_clear(&ctx->td);
@@ -265,13 +265,13 @@ static const GF_FilterCapability TheoraDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_THEORA),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_THEORA),
 };
 
 static const GF_FilterCapability TheoraDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister TheoraDecRegister = {

@@ -91,8 +91,8 @@ GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	ctx->ac3_parser_bs = gf_ac3_parser_bs;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (p && p->value.uint==GPAC_OTI_AUDIO_EAC3) ctx->is_eac3 = GF_TRUE;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (p && p->value.uint==GF_CODECID_EAC3) ctx->is_eac3 = GF_TRUE;
 	else {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
 		if (p && p->value.string && strstr(p->value.string, "eac3")) ctx->is_eac3 = GF_TRUE;
@@ -201,9 +201,9 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
 	if (!ctx->is_eac3) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_AUDIO_AC3) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_AC3) );
 	} else {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_AUDIO_EAC3) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_EAC3) );
 	}
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_int(bs, ctx->hdr.fscod, 2);
@@ -514,8 +514,8 @@ static const GF_FilterCapability AC3DmxInputs[] =
 	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ac3"),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AC3),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_EAC3),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AC3),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EAC3),
 	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -523,7 +523,7 @@ static const GF_FilterCapability AC3DmxInputs[] =
 static const GF_FilterCapability AC3DmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AC3),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AC3),
 	//TODO check with E-AC3
 };
 

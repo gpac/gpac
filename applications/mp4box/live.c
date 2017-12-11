@@ -26,8 +26,7 @@
  */
 
 
-#include <gpac/constants.h>
-#include <gpac/isomedia.h>
+#include "mp4box.h"
 
 #ifndef GPAC_DISABLE_SENG
 #include <gpac/scene_engine.h>

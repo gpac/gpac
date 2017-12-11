@@ -96,10 +96,10 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->stream_type) );
 		switch (mpeg2ps_get_video_stream_type(ctx->ps, st->stream_num)) {
 		case MPEG_VIDEO_MPEG1:
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG1) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG1) );
 			break;
 		case MPEG_VIDEO_MPEG2:
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG2_MAIN) );
 			break;
 		default:
 			break;
@@ -152,13 +152,13 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->stream_type) );
 		switch (mpeg2ps_get_audio_stream_type(ctx->ps, st->stream_num)) {
 		case MPEG_AUDIO_MPEG:
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT( GPAC_OTI_AUDIO_MPEG1) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT( GF_CODECID_MPEG_AUDIO) );
 			break;
 		case MPEG_AUDIO_AC3:
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT( GPAC_OTI_AUDIO_AC3) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT( GF_CODECID_AC3) );
 			break;
 		case MPEG_AUDIO_LPCM:
-			gf_filter_pid_set_property(st->opid, GF_PROP_PID_OTI, &PROP_UINT(GF_4CC('L','P','C','M') ) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_4CC('L','P','C','M') ) );
 			break;
 		default:
 			break;

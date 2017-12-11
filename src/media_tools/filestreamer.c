@@ -453,12 +453,12 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 
 	nb_tracks = gf_isom_get_track_count(streamer->isom);
 	for (i=0; i<nb_tracks; i++) {
-		u32 mediaSize, mediaDuration, flags, MinSize, MaxSize, avgTS, streamType, oti, const_dur, nb_ch, samplerate, maxDTSDelta, TrackMediaSubType, TrackMediaType, bandwidth, IV_length, KI_length, dsi_len;
+		u32 mediaSize, mediaDuration, flags, MinSize, MaxSize, avgTS, streamType, codecid, const_dur, nb_ch, samplerate, maxDTSDelta, TrackMediaSubType, TrackMediaType, bandwidth, IV_length, KI_length, dsi_len;
 		const char *url, *urn;
 		char *dsi;
 		Bool is_crypted;
 
-		dsi_len = samplerate = streamType = oti = nb_ch = IV_length = KI_length = 0;
+		dsi_len = samplerate = streamType = codecid = nb_ch = IV_length = KI_length = 0;
 		is_crypted = 0;
 		dsi = NULL;
 
@@ -519,7 +519,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 			GF_ESD *esd = gf_isom_get_esd(streamer->isom, track->track_num, 1);
 			if (esd) {
 				streamType = esd->decoderConfig->streamType;
-				oti = esd->decoderConfig->objectTypeIndication;
+				codecid = esd->decoderConfig->objectTypeIndication;
 
 				/*systems streams*/
 				if (streamType==GF_STREAM_AUDIO) {
@@ -555,7 +555,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				track->avc_nalu_size = avcc->nal_unit_size;
 				gf_odf_avc_cfg_del(avcc);
 				streamType = GF_STREAM_VISUAL;
-				oti = GPAC_OTI_VIDEO_AVC;
+				codecid = GF_CODECID_AVC;
 			}
 			svcc = gf_isom_svc_config_get(streamer->isom, track->track_num, 1);
 			if (svcc)
@@ -563,7 +563,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				track->avc_nalu_size = svcc->nal_unit_size;
 				gf_odf_avc_cfg_del(svcc);
 				streamType = GF_STREAM_VISUAL;
-				oti = GPAC_OTI_VIDEO_SVC;
+				codecid = GF_CODECID_SVC;
 			}
 			mvcc = gf_isom_mvc_config_get(streamer->isom, track->track_num, 1);
 			if (mvcc)
@@ -571,7 +571,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				track->avc_nalu_size = mvcc->nal_unit_size;
 				gf_odf_avc_cfg_del(mvcc);
 				streamType = GF_STREAM_VISUAL;
-				oti = GPAC_OTI_VIDEO_MVC;
+				codecid = GF_CODECID_MVC;
 			}
 			break;
 		}
@@ -588,14 +588,14 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				track->avc_nalu_size = hevcc->nal_unit_size;
 				gf_odf_hevc_cfg_del(hevcc);
 				streamType = GF_STREAM_VISUAL;
-				oti = GPAC_OTI_VIDEO_HEVC;
+				codecid = GF_CODECID_HEVC;
 			}
 			lhvcc = gf_isom_lhvc_config_get(streamer->isom, track->track_num, 1);
 			if (lhvcc) {
 				track->avc_nalu_size = lhvcc->nal_unit_size;
 				gf_odf_hevc_cfg_del(lhvcc);
 				streamType = GF_STREAM_VISUAL;
-				oti = GPAC_OTI_VIDEO_LHVC;
+				codecid = GF_CODECID_LHVC;
 			}
 			flags |= GP_RTP_PCK_USE_MULTI;
 			break;
@@ -603,7 +603,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		break;
 		default:
 			streamType = TrackMediaType;
-			oti = TrackMediaSubType;
+			codecid = TrackMediaSubType;
 			break;
 		}
 
@@ -616,7 +616,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 			if (use_sel_enc) flags |= GP_RTP_PCK_SELECTIVE_ENCRYPTION;
 		}
 
-		track->rtp = gf_rtp_streamer_new_extended(streamType, oti, track->timescale,
+		track->rtp = gf_rtp_streamer_new_extended(streamType, codecid, track->timescale,
 		             (char *) streamer->dest_ip, track->port, path_mtu, ttl, ifce_addr,
 		             flags, dsi, dsi_len,
 		             payt, samplerate, nb_ch,

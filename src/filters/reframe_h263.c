@@ -192,7 +192,7 @@ static void h263dmx_check_pid(GF_Filter *filter, GF_H263DmxCtx *ctx, u32 width, 
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_VIDEO_H263));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_H263));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
 
@@ -576,7 +576,7 @@ static const GF_FilterCapability H263DmxInputs[] =
 	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "263|h263"),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_H263),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_H263),
 	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -584,7 +584,7 @@ static const GF_FilterCapability H263DmxInputs[] =
 static const GF_FilterCapability H263DmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_H263),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_H263),
 	{}
 };
 

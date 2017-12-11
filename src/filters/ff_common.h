@@ -32,9 +32,10 @@
 #include <libavutil/pixdesc.h>
 #include <libavutil/dict.h>
 
-enum {
-	GF_FFMPEG_DECODER_CONFIG = GF_4CC('f','f','D','C'),
-};
+#define GF_FFMPEG_DECODER_CONFIG GF_4CC('f','f','D','C')
+
+#define GF_CODECID_FFMPEG GF_4CC('F','F','I','D')
+
 
 //rendering/translating to internal supported formats for text streams is not yet implemented
 //#define FF_SUB_SUPPORT

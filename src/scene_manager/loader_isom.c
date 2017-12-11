@@ -56,8 +56,8 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 					import = 0;
 					break;
 				case GF_STREAM_SCENE:
-					if ((esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_AFX) &&
-					        (esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE)
+					if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
+					        (esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
 					   ) {
 						import = 0;
 					}
@@ -102,8 +102,8 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 				import = 0;
 				break;
 			case GF_STREAM_SCENE:
-				if ((esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_AFX) &&
-				        (esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE)
+				if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
+				        (esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
 				   ) {
 					import = 0;
 				}
@@ -208,8 +208,8 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 		if (!esd) continue;
 
 
-		if ((esd->decoderConfig->objectTypeIndication == GPAC_OTI_SCENE_AFX) ||
-		        (esd->decoderConfig->objectTypeIndication == GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE)
+		if ((esd->decoderConfig->objectTypeIndication == GF_CODECID_AFX) ||
+		        (esd->decoderConfig->objectTypeIndication == GF_CODECID_SYNTHESIZED_TEXTURE)
 		   ) {
 			nb_samp += gf_isom_get_sample_count(load->isom, i+1);
 			continue;
@@ -217,7 +217,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 		sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 		sc->streamType = esd->decoderConfig->streamType;
 		sc->ESID = esd->ESID;
-		sc->objectType = esd->decoderConfig->objectTypeIndication;
+		sc->codec_id = esd->decoderConfig->objectTypeIndication;
 		sc->timeScale = gf_isom_get_media_timescale(load->isom, i+1);
 
 		/*we still need to reconfig the BIFS*/

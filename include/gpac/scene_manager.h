@@ -97,7 +97,7 @@ typedef struct _stream_context
 
 	/*stream type - used as a hint, the encoder(s) may override it*/
 	u8 streamType;
-	u8 objectType;
+	u32 codec_id;
 	u32 timeScale;
 	GF_List *AUs;
 
@@ -148,7 +148,7 @@ void gf_sm_del(GF_SceneManager *ctx);
 /*retrive or create a stream context in the presentation context
 WARNING: if a stream with the same streamType and no ESID already exists in the context,
 it is assigned the requested ES_ID - this is needed to solve base layer*/
-GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u8 objectType);
+GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u32 codec_id);
 /*removes and destroy stream context from presentation context*/
 void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc);
 /*locate a stream based on its id*/

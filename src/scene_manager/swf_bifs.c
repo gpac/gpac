@@ -1161,7 +1161,7 @@ static GF_Err swf_init_od(SWFReader *read, Bool root_only)
 		esd = (GF_ESD *) gf_odf_desc_esd_new(0);
 		if (!esd) return GF_OUT_OF_MEM;
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_BIFS;
 		esd->slConfig->timestampResolution = read->bifs_es->timeScale;
 		esd->ESID = 1;
 		gf_list_add(read->load->ctx->root_od->ESDescriptors, esd);
@@ -1183,7 +1183,7 @@ static GF_Err swf_init_od(SWFReader *read, Bool root_only)
 	esd = (GF_ESD *) gf_odf_desc_esd_new(0);
 	if (!esd) return GF_OUT_OF_MEM;
 	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
+	esd->decoderConfig->objectTypeIndication = GF_CODECID_BIFS;
 	esd->slConfig->timestampResolution = read->od_es->timeScale = read->bifs_es->timeScale;
 	esd->ESID = 2;
 	esd->OCRESID = 1;
@@ -1251,7 +1251,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	/*always depends on main scene*/
 	esd->dependsOnESID = 1;
 	esd->decoderConfig->streamType = GF_STREAM_SCENE;
-	esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
+	esd->decoderConfig->objectTypeIndication = GF_CODECID_BIFS;
 	esd->slConfig->timestampResolution = read->bifs_es->timeScale;
 	gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 	esd->decoderConfig->decoderSpecificInfo = NULL;
@@ -2201,7 +2201,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	esd->ESID = esd->OCRESID = 3;
 	esd->dependsOnESID = 1;
 	esd->decoderConfig->streamType = GF_STREAM_SCENE;
-	esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
+	esd->decoderConfig->objectTypeIndication = GF_CODECID_BIFS;
 	esd->slConfig->timestampResolution = read->bifs_es->timeScale;
 	gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 	esd->decoderConfig->decoderSpecificInfo = NULL;

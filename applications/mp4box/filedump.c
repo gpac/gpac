@@ -23,7 +23,7 @@
  *
  */
 
-#include <gpac/tools.h>
+#include "mp4box.h"
 
 #if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
 
@@ -2103,7 +2103,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				u32 w, h;
 				u16 rvc_predef;
 				w = h = 0;
-				if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
+				if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 					if (!esd->decoderConfig->decoderSpecificInfo) {
 #else
@@ -2210,8 +2210,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
-				} else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC)
-				           || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC)
+				} else if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_HEVC)
+				           || (esd->decoderConfig->objectTypeIndication==GF_CODECID_LHVC)
 				          ) {
 					GF_OperatingPointsInformation *oinf;
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
@@ -2281,7 +2281,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				}
 
 				/*OGG media*/
-				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_OGG) {
+				else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_THEORA) {
 					char *szName;
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stderr, "\t");
@@ -2289,15 +2289,15 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					else szName = "Unknown";
 					fprintf(stderr, "Ogg/%s video / GPAC Mux  - Visual Size %d x %d\n", szName, w, h);
 				}
-				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG) {
+				else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_JPEG) {
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					fprintf(stderr, "JPEG Stream - Visual Size %d x %d\n", w, h);
 				}
-				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_PNG) {
+				else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_PNG) {
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					fprintf(stderr, "PNG Stream - Visual Size %d x %d\n", w, h);
 				}
-				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG_2000) {
+				else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_J2K) {
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					fprintf(stderr, "JPEG2000 Stream - Visual Size %d x %d\n", w, h);
 				}
@@ -2318,11 +2318,11 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #endif
 				Bool is_mp2 = GF_FALSE;
 				switch (esd->decoderConfig->objectTypeIndication) {
-				case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-				case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-				case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+				case GF_CODECID_AAC_MPEG2_MP:
+				case GF_CODECID_AAC_MPEG2_LCP:
+				case GF_CODECID_AAC_MPEG2_SSRP:
 					is_mp2 = GF_TRUE;
-				case GPAC_OTI_AUDIO_AAC_MPEG4:
+				case GF_CODECID_AAC_MPEG4:
 #ifndef GPAC_DISABLE_AV_PARSERS
 					if (!esd->decoderConfig->decoderSpecificInfo)
 						e = GF_NON_COMPLIANT_BITSTREAM;
@@ -2346,8 +2346,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stderr, "MPEG-2/4 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 #endif
 					break;
-				case GPAC_OTI_AUDIO_MPEG2_PART3:
-				case GPAC_OTI_AUDIO_MPEG1:
+				case GF_CODECID_MPEG2_PART3:
+				case GF_CODECID_MPEG_AUDIO:
 					if (msub_type == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 						fprintf(stderr, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 					} else {
@@ -2372,28 +2372,27 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					}
 					break;
 				/*OGG media*/
-				case GPAC_OTI_MEDIA_OGG:
-				{
-					char *szName;
-					if (full_dump) fprintf(stderr, "\t");
-					if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[3], "vorbis", 6)) szName = "Vorbis";
-					else if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[2], "Speex", 5)) szName = "Speex";
-					else if (!strnicmp(&esd->decoderConfig->decoderSpecificInfo->data[2], "Flac", 4)) szName = "Flac";
-					else szName = "Unknown";
-					fprintf(stderr, "Ogg/%s audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", szName, sr, nb_ch);
-				}
+				case GF_CODECID_VORBIS:
+					fprintf(stderr, "Ogg/Vorbis audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
+					break;
+				case GF_CODECID_FLAC:
+					fprintf(stderr, "Ogg/FLAC audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
+					break;
+				case GF_CODECID_SPEEX:
+					fprintf(stderr, "Ogg/Speex audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
+					break;
 				break;
-				case GPAC_OTI_AUDIO_EVRC:
+				case GF_CODECID_EVRC:
 					fprintf(stderr, "EVRC Audio - Sample Rate 8000 - 1 channel\n");
 					break;
-				case GPAC_OTI_AUDIO_SMV:
+				case GF_CODECID_SMV:
 					fprintf(stderr, "SMV Audio - Sample Rate 8000 - 1 channel\n");
 					break;
-				case GPAC_OTI_AUDIO_QCELP:
+				case GF_CODECID_QCELP:
 					fprintf(stderr, "QCELP Audio - Sample Rate 8000 - 1 channel\n");
 					break;
 				/*packetVideo hack for EVRC...*/
-				case 0xD1:
+				case GF_CODECID_EVRC_PV:
 					if (esd->decoderConfig->decoderSpecificInfo && (esd->decoderConfig->decoderSpecificInfo->dataLength==8)
 					        && !strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "pvmm", 4)) {
 						if (full_dump) fprintf(stderr, "\t");
@@ -2410,19 +2409,19 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, "\tWidth %d Height %d Pixel Metrics %s\n", b_cfg->pixelWidth, b_cfg->pixelHeight, b_cfg->pixelMetrics ? "yes" : "no");
 					}
 					gf_odf_desc_del((GF_Descriptor *)b_cfg);
-				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_AFX) {
+				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AFX) {
 					u8 tag = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data[0] : 0xFF;
 					const char *afxtype = gf_afx_get_type_description(tag);
 					fprintf(stderr, "AFX Stream - type %s (%d)\n", afxtype, tag);
-				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_FONT) {
+				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_FONT) {
 					fprintf(stderr, "Font Data stream\n");
-				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_LASER) {
+				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_LASER) {
 					GF_LASERConfig l_cfg;
 					gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
 					fprintf(stderr, "LASER Stream - %s\n", l_cfg.newSceneIndicator ? "Full Scene" : "Scene Segment");
-				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_TEXT_MPEG4) {
+				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_TEXT_MPEG4) {
 					fprintf(stderr, "MPEG-4 Streaming Text stream\n");
-				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE) {
+				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_SYNTHESIZED_TEXTURE) {
 					fprintf(stderr, "Synthetized Texture stream stream\n");
 				} else {
 					fprintf(stderr, "Unknown Systems stream OTI %d\n", esd->decoderConfig->objectTypeIndication);

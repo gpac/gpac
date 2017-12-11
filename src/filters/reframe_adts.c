@@ -235,13 +235,13 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	GF_BitStream *dsi;
 	GF_M4ADecSpecInfo acfg;
 	char *dsi_b;
-	u32 i, sbr_sr_idx, dsi_s, sr, sbr_sr, oti, timescale=0;
+	u32 i, sbr_sr_idx, dsi_s, sr, sbr_sr, codecid, timescale=0;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG4));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_AAC_MPEG4));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 
@@ -270,9 +270,9 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : timescale));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
-	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
-	oti = ctx->hdr.is_mp2 ? ctx->hdr.profile+GPAC_OTI_AUDIO_AAC_MPEG2_MP-1 : GPAC_OTI_AUDIO_AAC_MPEG4;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(oti) );
+	/*keep MPEG-2 AAC codecid even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
+	codecid = ctx->hdr.is_mp2 ? ctx->hdr.profile+GF_CODECID_AAC_MPEG2_MP-1 : GF_CODECID_AAC_MPEG4;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codecid) );
 
 	//force explicit SBR if explicit PS
 	if (ctx->ps==AAC_SIGNAL_EXPLICIT) {
@@ -668,7 +668,7 @@ static const GF_FilterCapability ADTSDmxInputs[] =
 	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "aac"),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG4),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
 	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -676,10 +676,10 @@ static const GF_FilterCapability ADTSDmxInputs[] =
 static const GF_FilterCapability ADTSDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG4),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG2_MP),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG2_LCP),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG2_SSRP),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
 	{}
 };
 

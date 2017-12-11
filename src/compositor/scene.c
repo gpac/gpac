@@ -1290,7 +1290,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 				continue;
 
 			if (type==GF_STREAM_TEXT) {
-				if ((odm->type!=type) && (odm->type!=GF_STREAM_ND_SUBPIC)) continue;
+				if (odm->type!=type) continue;
 			}
 			else if (type==GF_STREAM_SCENE) {
 				if (!odm->subscene || !odm->subscene->is_dynamic_scene) continue;
@@ -3129,11 +3129,11 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	odm->lower_layer_odm = odm_base;
 
 	switch (odm_base->original_oti) {
-	case GPAC_OTI_VIDEO_AVC:
-	case GPAC_OTI_VIDEO_SVC:
-	case GPAC_OTI_VIDEO_MVC:
+	case GF_CODECID_AVC:
+	case GF_CODECID_SVC:
+	case GF_CODECID_MVC:
 		switch (odm->original_oti) {
-		case GPAC_OTI_VIDEO_LHVC:
+		case GF_CODECID_LHVC:
 			if (!odm_base->hybrid_layered_coded) {
 				force_attach=GF_TRUE;
 			}
@@ -3141,7 +3141,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 			break;
 		}
 		break;
-	case GPAC_OTI_VIDEO_HEVC:
+	case GF_CODECID_HEVC:
 		force_attach=GF_TRUE;
 		break;
 	}

@@ -122,14 +122,14 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	Bool destroy_esd;
 	u32 size, track, di, dsi_len;
 	GF_ISOSample *samp;
-	u8 OTI;
+	u32 codecid;
 	char *dsi, *data;
 	FILE *src;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
 		import->tk_info[0].stream_type = GF_STREAM_SCENE;
-		import->tk_info[0].media_oti = GPAC_OTI_SCENE_AFX;
+		import->tk_info[0].codecid = GF_CODECID_AFX;
 		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_NO_DURATION;
 		import->nb_tracks = 1;
 		return GF_OK;
@@ -146,7 +146,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	gf_fclose(src);
 	if ((s32) size < 0) return GF_IO_ERR;
 
-	OTI = GPAC_OTI_SCENE_AFX;
+	codecid = GF_CODECID_AFX;
 
 	dsi = (char *)gf_malloc(1);
 	dsi_len = 1;
@@ -161,7 +161,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	import->esd->decoderConfig->streamType = GF_STREAM_SCENE;
-	import->esd->decoderConfig->objectTypeIndication = OTI;
+	import->esd->decoderConfig->objectTypeIndication = codecid;
 	import->esd->decoderConfig->bufferSizeDB = size;
 	import->esd->decoderConfig->avgBitrate = 8*size;
 	import->esd->decoderConfig->maxBitrate = 8*size;
@@ -322,7 +322,7 @@ static Bool LOAS_LoadFrame(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *nb_by
 
 static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 {
-	u8 oti;
+	u32 codecid;
 	Bool destroy_esd;
 	GF_Err e;
 	Bool sync_frame;
@@ -344,8 +344,8 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 	/*sync_frame = */LOAS_LoadFrame(bs, &acfg, &nbbytes, (u8 *)aac_buf);
 
-	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
-	oti = GPAC_OTI_AUDIO_AAC_MPEG4;
+	/*keep MPEG-2 AAC codecid even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
+	codecid = GF_CODECID_AAC_MPEG4;
 	timescale = sr = acfg.base_sr;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -379,7 +379,7 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-	import->esd->decoderConfig->objectTypeIndication = oti;
+	import->esd->decoderConfig->objectTypeIndication = codecid;
 	import->esd->decoderConfig->bufferSizeDB = 20;
 	import->esd->slConfig->timestampResolution = timescale;
 	if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
@@ -545,7 +545,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
+		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2)) {
 			GF_M4VDecSpecInfo dsi;
 			gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			w = dsi.width;
@@ -563,7 +563,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		ps = GF_FALSE;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4)) {
+		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4)) {
 			if (origin_esd->decoderConfig->decoderSpecificInfo) {
 				GF_M4ADecSpecInfo dsi;
 				gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
@@ -584,7 +584,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		w = h = 0;
 		trans_x = trans_y = 0;
 		layer = 0;
-		if (origin_esd && origin_esd->decoderConfig->objectTypeIndication == GPAC_OTI_MEDIA_SUBPIC) {
+		if (origin_esd && origin_esd->decoderConfig->objectTypeIndication == GF_CODECID_SUBPIC) {
 			gf_isom_get_track_layout_info(import->orig, track_in, &w, &h, &trans_x, &trans_y, &layer);
 		}
 	}
@@ -991,7 +991,7 @@ static GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		for (c = 0; c < 32; c++) {
 			if (vobsub->langs[c].id != 0) {
 				import->tk_info[import->nb_tracks].track_num = c + 1;
-				import->tk_info[import->nb_tracks].media_oti = GPAC_OTI_MEDIA_SUBPIC;
+				import->tk_info[import->nb_tracks].codecid = GF_CODECID_SUBPIC;
 				import->tk_info[import->nb_tracks].stream_type = GF_STREAM_VISUAL;
 				import->tk_info[import->nb_tracks].flags	 = 0;
 				import->nb_tracks++;
@@ -1045,8 +1045,8 @@ static GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor*)gf_odf_desc_new(GF_ODF_DSI_TAG);
 	}
 
-	import->esd->decoderConfig->streamType		 = GF_STREAM_ND_SUBPIC;
-	import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_SUBPIC;
+	import->esd->decoderConfig->streamType = GF_STREAM_TEXT;
+	import->esd->decoderConfig->objectTypeIndication = GF_CODECID_SUBPIC;
 
 	import->esd->decoderConfig->decoderSpecificInfo->dataLength = sizeof(vobsub->palette);
 	import->esd->decoderConfig->decoderSpecificInfo->data		= (char*)&vobsub->palette[0][0];
@@ -1266,8 +1266,8 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		gf_fclose(f);
 		if (is_chap_or_sub) {
 			import->nb_tracks = 1;
-			import->tk_info[0].media_4cc = GF_MEDIA_TYPE_CHAP;
 			import->tk_info[0].stream_type = GF_STREAM_TEXT;
+			import->tk_info[0].codecid = GF_MEDIA_TYPE_CHAP;
 			return GF_OK;
 		}
 		return GF_NOT_SUPPORTED;
@@ -1551,8 +1551,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 			tki->stream_type = p ? p->value.uint : GF_STREAM_UNKNOWN;
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-			tki->media_oti = p ? p->value.uint : GPAC_OTI_FORBIDDEN;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+			tki->codecid = p ? p->value.uint : GF_CODECID_NONE;
 			//todo
 			tki->flags=0;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);

@@ -45,22 +45,6 @@ extern "C" {
  *	@{
  */
 
-/*!
- *	\brief Supported file types
- *	\hideinitializer
- *
- * Supported file types in most operations (file playback, editing, saving ...).
-*/
-typedef enum {
-	GF_FILE_TYPE_NOT_SUPPORTED	= 0,
-	GF_FILE_TYPE_ISO_MEDIA		= 1,
-	GF_FILE_TYPE_BT_WRL_X3DV	= 2,
-	GF_FILE_TYPE_XMT_X3D		= 3,
-	GF_FILE_TYPE_SVG			= 4,
-	GF_FILE_TYPE_SWF			= 5,
-	GF_FILE_TYPE_LSR_SAF		= 6,
-} GF_FileType;
-
 
 /*!
  *	\brief Supported media stream types
@@ -101,47 +85,17 @@ enum
 
 	/* From 0x20 to Ox3F, this is the user private range */
 
-	/*!Nero Digital Subpicture Stream*/
-	GF_STREAM_ND_SUBPIC = 0x38,
-
 	/*GPAC internal stream types*/
 
 
 	/*!GPAC Private Scene streams\n
 	*\n\note
-	*this stream type (MPEG-4 user-private) is reserved for streams only used to create a scene decoder
+	*This stream type (MPEG-4 user-private) is reserved for streams used to create a scene decoder
 	*handling the scene without input streams, as is the case for file readers (BT/VRML/XML..).\n
-	*The decoderSpecificInfo carried is as follows:
-	 \code
-		u32 file_size:	total file size
-		char file_name[dsi_size - sizeof(u32)]: local file name.
-		\n\note: File may be a cache file, it is the decoder responsability to check if the file is completely
-		downloaded before parsing if needed.
-	 \endcode
-	*The inBufferLength param for decoders using these streams is the stream clock in ms (no input data is given).\n
-	*The "dummy_in" module is available to generate these streams for common files, and also takes care of proper
-	clock init in case of seeking.\n
-	*This is a reentrant stream type: if any media object with this streamtype also exist in the scene, they will be
-	*attached to the scene decoder (except when a new inline scene is detected, in which case a new decoder will
-	*be created). This allows for animation/sprite usage along with the systems timing/stream management.\n
-	*\n
-	*the objectTypeIndication currently in use for these streams are documented below\n
 	*/
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
 
-	/*!GPAC Private Media streams\n
-	*\n\note
-	*this stream type (MPEG-4 user-private) is reserved for media streams bypassing GPAC for decoding
-	and composition. The media decoder is only in charge of repositioning the video output, and the compositor will
-	draw an empty rectangle if using alpha composition
-
-	*The decoderSpecificInfo carried only contains an opaque pointer in the data field, which depends on the underlying InputServce provider
-
-	*the objectTypeIndication currently in use for these streams are documented below\n
-	*/
-	GF_STREAM_PRIVATE_MEDIA	= 0x21,
-
-	GF_STREAM_METADATA = 0x22,
+	GF_STREAM_METADATA = 0x21,
 
 	GF_STREAM_ENCRYPTED		= 0xE0,
 	/*stream carries files, each file being a complete AU*/
@@ -150,34 +104,6 @@ enum
 	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
 };
 
-
-/*!
- *	Media Object types
- *
- *	This type provides a hint to network modules which may have to generate an service descriptor on the fly.
- *	They occur only if objects/services used in the scene are not referenced through ObjectDescriptors (MPEG-4)
- *	but direct through URL
-*/
-enum
-{
-	/*!service descriptor expected is of undefined type. This should be treated like GF_MEDIA_OBJECT_SCENE*/
-	GF_MEDIA_OBJECT_UNDEF = 0,
-	/*!service descriptor expected is of SCENE type and shall contain a scene stream and OD one if needed*/
-	GF_MEDIA_OBJECT_SCENE,
-	/*!service descriptor expected is of SCENE UPDATES type (animation streams)*/
-	GF_MEDIA_OBJECT_UPDATES,
-	/*!service descriptor expected is of VISUAL type*/
-	GF_MEDIA_OBJECT_VIDEO,
-	/*!service descriptor expected is of AUDIO type*/
-	GF_MEDIA_OBJECT_AUDIO,
-	/*!service descriptor expected is of TEXT type (3GPP/MPEG4)*/
-	GF_MEDIA_OBJECT_TEXT,
-	/*!service descriptor expected is of UserInteraction type (MPEG-4 InputSensor)*/
-	GF_MEDIA_OBJECT_INTERACT
-};
-
-/*! All Media Objects inserted through URLs and not MPEG-4 OD Framework use this ODID*/
-#define GF_MEDIA_EXTERNAL_ID		1050
 
 
 /*!
@@ -275,101 +201,96 @@ typedef enum
 
 
 /*!
- * \brief Scene ObjectTypeIndication Formats
+ * \brief Codec IDs
  *
- *	Supported ObjectTypeIndication for scene description streams. *_FILE_* are only used with private scene streams
- * and only carry the file name for the scene. Other internal stream types can be used in a real streaming environment
-*/
+ * Codec ID identifies the stream coding type. The enum is devided into values less than 255, which are equivalent
+ * to MPEG-4 systems ObjectTypeIndication. Other values are 4CCs, usually matching ISOMEDIA sample entry types*/
 enum
 {
 	/*!Never used by PID declarations, but used by filters caps*/
-	GPAC_OTI_FORBIDDEN = 0,
-	/*!OTI for BIFS v1*/
-	GPAC_OTI_SCENE_BIFS = 0x01,
-	/*!OTI for OD v1*/
-	GPAC_OTI_OD_V1 = 0x01,
-	/*!OTI for BIFS v2*/
-	GPAC_OTI_SCENE_BIFS_V2 = 0x02,
-	/*!OTI for OD v2*/
-	GPAC_OTI_OD_V2 = 0x02,
-	/*!OTI for BIFS InputSensor streams*/
-	GPAC_OTI_SCENE_INTERACT = 0x03,
-	/*!OTI for streams with extended BIFS config*/
-	GPAC_OTI_SCENE_BIFS_EXTENDED = 0x04,
-	/*!OTI for AFX streams with AFXConfig*/
-	GPAC_OTI_SCENE_AFX = 0x05,
-	/*!OTI for Font data streams */
-	GPAC_OTI_FONT = 0x06,
-	/*!OTI for synthesized texture streams */
-	GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE = 0x07,
-	/*!OTI for streaming text streams */
-	GPAC_OTI_TEXT_MPEG4 = 0x08,
-	/*!OTI for LASeR streams*/
-	GPAC_OTI_SCENE_LASER = 0x09,
-	/*!OTI for SAF streams*/
-	GPAC_OTI_SCENE_SAF = 0x0A,
+	GF_CODECID_NONE = 0,
+	/*! codecid for BIFS v1*/
+	GF_CODECID_BIFS = 0x01,
+	/*! codecid for OD v1*/
+	GF_CODECID_OD_V1 = 0x01,
+	/*! codecid for BIFS v2*/
+	GF_CODECID_BIFS_V2 = 0x02,
+	/*! codecid for OD v2*/
+	GF_CODECID_OD_V2 = 0x02,
+	/*! codecid for BIFS InputSensor streams*/
+	GF_CODECID_INTERACT = 0x03,
+	/*! codecid for streams with extended BIFS config*/
+	GF_CODECID_BIFS_EXTENDED = 0x04,
+	/*! codecid for AFX streams with AFXConfig*/
+	GF_CODECID_AFX = 0x05,
+	/*! codecid for Font data streams */
+	GF_CODECID_FONT = 0x06,
+	/*! codecid for synthesized texture streams */
+	GF_CODECID_SYNTHESIZED_TEXTURE = 0x07,
+	/*! codecid for streaming text streams */
+	GF_CODECID_TEXT_MPEG4 = 0x08,
+	/*! codecid for LASeR streams*/
+	GF_CODECID_LASER = 0x09,
+	/*! codecid for SAF streams*/
+	GF_CODECID_SAF = 0x0A,
 
-	/*!OTI for MPEG-4 Video Part 2 streams*/
-	GPAC_OTI_VIDEO_MPEG4_PART2 = 0x20,
-	/*!OTI for MPEG-4 Video Part 10 (H.264 | AVC ) streams*/
-	GPAC_OTI_VIDEO_AVC = 0x21,
-	/*!OTI for AVC Parameter sets streams*/
-	GPAC_OTI_VIDEO_AVC_PS = 0x22,
-	/*!OTI for HEVC video */
-	GPAC_OTI_VIDEO_HEVC = 0x23,
-	/*!OTI for H264-SVC streams*/
-	GPAC_OTI_VIDEO_SVC = 0x24,
-	/*!OTI for HEVC layered streams*/
-	GPAC_OTI_VIDEO_LHVC = 0x25,
-	/*!OTI for H264-SVC streams*/
-	GPAC_OTI_VIDEO_MVC = 0x29,
-	/*!OTI for MPEG-4 AAC streams*/
-	GPAC_OTI_AUDIO_AAC_MPEG4 = 0x40,
-
-	/*!OTI for MPEG-2 Visual Simple Profile streams*/
-	GPAC_OTI_VIDEO_MPEG2_SIMPLE = 0x60,
-	/*!OTI for MPEG-2 Visual Main Profile streams*/
-	GPAC_OTI_VIDEO_MPEG2_MAIN = 0x61,
-	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-	GPAC_OTI_VIDEO_MPEG2_SNR = 0x62,
-	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-	GPAC_OTI_VIDEO_MPEG2_SPATIAL = 0x63,
-	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-	GPAC_OTI_VIDEO_MPEG2_HIGH = 0x64,
-	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-	GPAC_OTI_VIDEO_MPEG2_422 = 0x65,
-
-
-	/*!OTI for MPEG-2 AAC Main Profile streams*/
-	GPAC_OTI_AUDIO_AAC_MPEG2_MP = 0x66,
-	/*!OTI for MPEG-2 AAC Low Complexity Profile streams*/
-	GPAC_OTI_AUDIO_AAC_MPEG2_LCP = 0x67,
-	/*!OTI for MPEG-2 AAC Scalable Sampling Rate Profile streams*/
-	GPAC_OTI_AUDIO_AAC_MPEG2_SSRP = 0x68,
-	/*!OTI for MPEG-2 Audio Part 3 streams*/
-	GPAC_OTI_AUDIO_MPEG2_PART3 = 0x69,
-	/*!OTI for MPEG-1 Video streams*/
-	GPAC_OTI_VIDEO_MPEG1 = 0x6A,
-	/*!OTI for MPEG-1 Audio streams*/
-	GPAC_OTI_AUDIO_MPEG1 = 0x6B,
-	/*!OTI for JPEG streams*/
-	GPAC_OTI_IMAGE_JPEG = 0x6C,
-	/*!OTI for PNG streams*/
-	GPAC_OTI_IMAGE_PNG = 0x6D,
-	/*!OTI for JPEG-2000 streams*/
-	GPAC_OTI_IMAGE_JPEG_2000 = 0x6E,
-
-	GPAC_OTI_ID3 = 0x6F,
+	/*! codecid for MPEG-4 Video Part 2 streams*/
+	GF_CODECID_MPEG4_PART2 = 0x20,
+	/*! codecid for MPEG-4 Video Part 10 (H.264 | AVC ) streams*/
+	GF_CODECID_AVC = 0x21,
+	/*! codecid for AVC Parameter sets streams*/
+	GF_CODECID_AVC_PS = 0x22,
+	/*! codecid for HEVC video */
+	GF_CODECID_HEVC = 0x23,
+	/*! codecid for H264-SVC streams*/
+	GF_CODECID_SVC = 0x24,
+	/*! codecid for HEVC layered streams*/
+	GF_CODECID_LHVC = 0x25,
+	/*! codecid for H264-SVC streams*/
+	GF_CODECID_MVC = 0x29,
+	/*! codecid for MPEG-4 AAC streams*/
+	GF_CODECID_AAC_MPEG4 = 0x40,
+	/*! codecid for MPEG-2 Visual Simple Profile streams*/
+	GF_CODECID_MPEG2_SIMPLE = 0x60,
+	/*! codecid for MPEG-2 Visual Main Profile streams*/
+	GF_CODECID_MPEG2_MAIN = 0x61,
+	/*! codecid for MPEG-2 Visual SNR Profile streams*/
+	GF_CODECID_MPEG2_SNR = 0x62,
+	/*! codecid for MPEG-2 Visual SNR Profile streams*/
+	GF_CODECID_MPEG2_SPATIAL = 0x63,
+	/*! codecid for MPEG-2 Visual SNR Profile streams*/
+	GF_CODECID_MPEG2_HIGH = 0x64,
+	/*! codecid for MPEG-2 Visual SNR Profile streams*/
+	GF_CODECID_MPEG2_422 = 0x65,
+	/*! codecid for MPEG-2 AAC Main Profile streams*/
+	GF_CODECID_AAC_MPEG2_MP = 0x66,
+	/*! codecid for MPEG-2 AAC Low Complexity Profile streams*/
+	GF_CODECID_AAC_MPEG2_LCP = 0x67,
+	/*! codecid for MPEG-2 AAC Scalable Sampling Rate Profile streams*/
+	GF_CODECID_AAC_MPEG2_SSRP = 0x68,
+	/*! codecid for MPEG-2 Audio Part 3 streams*/
+	GF_CODECID_MPEG2_PART3 = 0x69,
+	/*! codecid for MPEG-1 Video streams*/
+	GF_CODECID_MPEG1 = 0x6A,
+	/*! codecid for MPEG-1 Audio streams*/
+	GF_CODECID_MPEG_AUDIO = 0x6B,
+	/*! codecid for JPEG streams*/
+	GF_CODECID_JPEG = 0x6C,
+	/*! codecid for PNG streams*/
+	GF_CODECID_PNG = 0x6D,
+	/*! codecid for JPEG-2000 streams*/
+	GF_CODECID_J2K = 0x6E,
 
 	/*!
 	 * \brief Extra ObjectTypeIndication
 	 *
-	 *	ObjectTypeIndication for media (audio/video) codecs not defined in MPEG-4. Since GPAC signals streams through MPEG-4 Descriptions,
-	 *	it needs extensions for non-MPEG-4 streams such as AMR, H263 , etc.\n
+	 *	ObjectTypeIndication for media (audio/video) codecs not defined in MPEG-4. Can be used to encapsulate streams
+	 * in MPEG-4 systems signaling
+	 *
 	 *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
 	 *	DSI Syntax for audio streams
 	 \code
-	 *	u32 codec_four_cc: the codec 4CC reg code / codec id for ffmpeg
+	 *	u32 codec_four_cc: the codec 4CC reg code at m4ra.org or GPAC's 4CC (this enum)
 	 *	u32 sample_rate: sampling rate or 0 if unknown
 	 *	u16 nb_channels: num channels or 0 if unknown
 	 *	u16 frame_size: num audio samples per frame or 0 if unknown
@@ -380,88 +301,73 @@ enum
 	 \n
 	 *	DSI Syntax for video streams
 	 \code
-	 *	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
+	 *	u32 codec_four_cc: the codec 4CC reg code at m4ra.org or GPAC's 4CC (this enum)
 	 *	u16 width: video width or 0 if unknown
 	 *	u16 height: video height or 0 if unknown
 	 *	char *data: per-codec extensions till end of DSI bitstream
 	 \endcode
 	*/
-	GPAC_OTI_MEDIA_GENERIC = 0x80,
-	/*!
-	 * \brief FFMPEG ObjectTypeIndication
-	 *
-	 *	ObjectTypeIndication for FFMPEG codecs not defined in MPEG-4. FFMPEG uses the base GPAC_OTI_MEDIA_GENERIC specific info formats, and extends it as follows:
-	 \code
-	 *	u32 bit_rate: the stream rate or 0 if unknown
-	 *	u32 codec_tag: FFMPEG codec tag as defined in libavcodec
-	 *	char *data: codec extensions till end of DSI bitstream
-	 \endcode
-	 */
-	GPAC_OTI_MEDIA_FFMPEG = 0x81,
+	GF_CODECID_GPAC_GENERIC = 0xA0,
 
-	GPAC_OTI_VIDEO_H263 = 0x82,
+	GF_CODECID_LAST_MPEG4_MAPPING = 0xFF,
 
-	/*!OTI for EVRC Voice streams*/
-	GPAC_OTI_AUDIO_EVRC = 0xA0,
-	/*!OTI for SMV Voice streams*/
-	GPAC_OTI_AUDIO_SMV = 0xA1,
-	/*!OTI for 3GPP2 CMF streams*/
-	GPAC_OTI_3GPP2_CMF = 0xA2,
-	/*!OTI for SMPTE VC-1 Video streams*/
-	GPAC_OTI_VIDEO_SMPTE_VC1 = 0xA3,
-	/*!OTI for Dirac Video streams*/
-	GPAC_OTI_VIDEO_DIRAC = 0xA4,
-	/*!OTI for AC-3 audio streams*/
-	GPAC_OTI_AUDIO_AC3 = 0xA5,
-	/*!OTI for enhanced AC-3 audio streams*/
-	GPAC_OTI_AUDIO_EAC3 = 0xA6,
-	/*!OTI for DRA audio streams*/
-	GPAC_OTI_AUDIO_DRA = 0xA7,
-	/*!OTI for ITU G719 audio streams*/
-	GPAC_OTI_AUDIO_ITU_G719 = 0xA8,
-	/*!OTI for DTS Coherent Acoustics audio streams*/
-	GPAC_OTI_AUDIO_DTS_CA = 0xA9,
-	/*!OTI for DTS-HD High Resolution audio streams*/
-	GPAC_OTI_AUDIO_DTS_HD_HR = 0xAA,
-	/*!OTI for DTS-HD Master audio streams*/
-	GPAC_OTI_AUDIO_DTS_HD_MASTER = 0xAB,
-	/*!OTI for AMR*/
-	GPAC_OTI_AUDIO_AMR = 0xAC,
-	/*!OTI for AMR-WB*/
-	GPAC_OTI_AUDIO_AMR_WB = 0xAD,
+	/*!H263 visual streams*/
+	GF_CODECID_H263 = GF_4CC('s','2','6','3'),
 
-	/*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
-	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_SVG = 0xC1,
-	/*!OTI for LASeR/SAF+XML dummy stream (dsi = file name) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_LASER = 0xC2,
-	/*!OTI for XBL dummy streams (dsi = file name) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_XBL = 0xC3,
-	/*!OTI for EPG dummy streams (dsi = null) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_EPG = 0xC4,
-	/*!OTI for WGT dummy streams (dsi = null) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_WGT = 0xC5,
-	/*!OTI for VTT dummy stream (dsi = file name) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_VTT = 0xC6,
+	/*! codecid for EVRC Voice streams*/
+	GF_CODECID_EVRC	= GF_4CC('s','e','v','c'),
+	/*! codecid for SMV Voice streams*/
+	GF_CODECID_SMV		= GF_4CC('s','s','m','v'),
+	/*! codecid for 13K Voice / QCELP audio streams*/
+	GF_CODECID_QCELP = GF_4CC('s','q','c','p'),
+	/*! codecid for AMR*/
+	GF_CODECID_AMR = GF_4CC('s','a','m','r'),
+	/*! codecid for AMR-WB*/
+	GF_CODECID_AMR_WB = GF_4CC('s','a','w','b'),
+	/*! codecid for EVRC, PacketVideo MUX*/
+	GF_CODECID_EVRC_PV	= GF_4CC('p','e','v','c'),
 
-	/*!OTI for streaming SVG - GPAC internal*/
-	GPAC_OTI_SCENE_SVG = 0xD0,
-	/*!OTI for streaming SVG + gz - GPAC internal*/
-	GPAC_OTI_SCENE_SVG_GZ = 0xD1,
-	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
-	GPAC_OTI_SCENE_DIMS = 0xD2,
-	/*!OTI for streaming VTT - GPAC internal*/
-	GPAC_OTI_SCENE_VTT = 0xD3,
-	/*!OTI for streaming VTT from MP4- GPAC internal*/
-	GPAC_OTI_SCENE_VTT_MP4 = 0xD4,
-	/*!OTI for streaming simple text from MP4- GPAC internal*/
-	GPAC_OTI_SCENE_SIMPLE_TEXT_MP4 = 0xD5,
+	/*! codecid for SMPTE VC-1 Video streams*/
+	GF_CODECID_SMPTE_VC1 = GF_4CC('v','c','-','1'),
+	/*! codecid for Dirac Video streams*/
+	GF_CODECID_DIRAC = GF_4CC('d','r','a','c'),
+	/*! codecid for AC-3 audio streams*/
+	GF_CODECID_AC3 = GF_4CC('a','c','-','3'),
+	/*! codecid for enhanced AC-3 audio streams*/
+	GF_CODECID_EAC3 = GF_4CC('e','c','-','3'),
+	/*! codecid for DRA audio streams*/
+	GF_CODECID_DRA = GF_4CC('d','r','a','1'),
+	/*! codecid for ITU G719 audio streams*/
+	GF_CODECID_G719 = GF_4CC('g','7','1','9'),
+	/*! codecid for DTS  Express low bit rate audio*/
+	GF_CODECID_DTS_LBR = GF_4CC('d','t','s','e'),
+	/*! codecid for DTS Coherent Acoustics audio streams*/
+	GF_CODECID_DTS_CA = GF_4CC('d','t','s','c'),
+	/*! codecid for DTS-HD High Resolution audio streams*/
+	GF_CODECID_DTS_HD_HR = GF_4CC('d','t','s','h'),
+	/*! codecid for DTS-HD Master audio streams*/
+	GF_CODECID_DTS_HD_MASTER = GF_4CC('d','t','s','l'),
+	/*! codecid for DTS-X Master audio streams*/
+	GF_CODECID_DTS_X = GF_4CC('d','t','s','x'),
+
+	/*! codecid for DVB EPG*/
+	GF_CODECID_DVB_EIT = GF_4CC('e','i','t',' '),
+
+	/*! codecid for streaming SVG*/
+	GF_CODECID_SVG = GF_4CC('s','g','g',' '),
+	/*! codecid for streaming SVG + gz*/
+	GF_CODECID_SVG_GZ = GF_4CC('s','v','g','z'),
+	/*! codecid for DIMS (dsi = 3GPP DIMS configuration)*/
+	GF_CODECID_DIMS = GF_4CC('d','i','m','s'),
+	/*! codecid for streaming VTT*/
+	GF_CODECID_VTT = GF_4CC('w','v','t','t'),
+	/*! codecid for streaming simple text*/
+	GF_CODECID_SIMPLE_TEXT = GF_4CC('s','t','x','t'),
 
 	/*!
-	 * \brief OGG ObjectTypeIndication
+	 * \brief OGG DecoderConfig
 	 *
-	 *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec
+	 *	The DecoderConfig for theora, vorbis, flac and opus contains all intitialization ogg packets for the codec
 	 * and is formated as follows:\n
 	 *\code
 		while (dsi_size) {
@@ -470,42 +376,75 @@ enum
 			dsi_size -= packet_size;
 		}\endcode
 	*/
-	GPAC_OTI_MEDIA_OGG = 0xD6, //TODO get rid of this
+	//TODO, cross-check
+	GF_CODECID_THEORA = GF_4CC('t','h','e','u'),
+	GF_CODECID_VORBIS = GF_4CC('v','o','r','b'),
+	GF_CODECID_FLAC = GF_4CC('f','l','a','c'),
+	GF_CODECID_SPEEX = GF_4CC('s','p','e','x'),
 
-	GPAC_OTI_THEORA = 0xD7,
-	GPAC_OTI_VORBIS = 0xD8,
-	GPAC_OTI_FLAC = 0xD9,
-	GPAC_OTI_SPEEX = 0xDA,
+	//associated stream type is text
+	GF_CODECID_SUBPIC = GF_4CC('s','u','b','p'),
 
-	GPAC_OTI_MEDIA_SUBPIC = 0xE0,
 
-	/*!OTI for 13K Voice / QCELP audio streams*/
-	GPAC_OTI_AUDIO_QCELP = 0xE1,
+	GF_CODECID_PCM = GF_4CC('P','C','M',' '),
+	GF_CODECID_ADPCM = GF_4CC('A','P','C','M'),
+	GF_CODECID_IBM_CVSD = GF_4CC('C','S','V','D'),
+	GF_CODECID_ALAW = GF_4CC('A','L','A','W'),
+	GF_CODECID_MULAW = GF_4CC('M','L','A','W'),
+	GF_CODECID_OKI_ADPCM = GF_4CC('O','P','C','M'),
+	GF_CODECID_DVI_ADPCM = GF_4CC('D','P','C','M'),
+	GF_CODECID_DIGISTD = GF_4CC('D','S','T','D'),
+	GF_CODECID_YAMAHA_ADPCM = GF_4CC('Y','P','C','M'),
+	GF_CODECID_DSP_TRUESPEECH = GF_4CC('T','S','P','E'),
+	GF_CODECID_GSM610 = GF_4CC('G','6','1','0'),
+	GF_CODECID_IBM_MULAW = GF_4CC('I','U','L','W'),
+	GF_CODECID_IBM_ALAW = GF_4CC('I','A','L','W'),
+	GF_CODECID_IBM_ADPCM = GF_4CC('I','P','C','M'),
 
-	/*!OTI for RAW media streams. Input data is directly dispatched to the composition memory.  The DSI contains is formated (MSBF) as follows:\n
-	*	DSI Syntax for audio streams
-	\code
-	*	u32 sample_rate: sampling rate
-	*	u16 nb_channels: num channels
-	*	u16 nb_bits_per_sample: num of bits per audio sample
-	*	u32 frame_size: max size of audio frame in byte
-	*	u32 channel_config: GPAC mask of GF_AUDIO_CH_ constants, or 0 if unknown
-	\endcode
-	\n
-	*	DSI Syntax for video streams
-	\code
-	*	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
-	*	u16 width: video width or 0 if unknown
-	*	u16 height: video height or 0 if unknown
-	*	u32 frame_size: size of the video frame
-	*	u32 stride: horizontal stride of the video frame
-	\endcode
-	*/
-	GPAC_OTI_RAW_MEDIA_STREAM = 0x101,
-
-	/*!OTI for LIBPLAYER private streams. The data pointer in the DSI is the libplayer handle object*/
-	GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER = 0xF1
+	/*! codecid for RAW media streams. No decoder config associated (config through PID properties)*/
+	GF_CODECID_RAW = GF_4CC('R','A','W','M'),
 };
+
+
+
+
+/* media types consts from media_import.c */
+enum {
+	GF_MEDIA_TYPE_CHAP 	= GF_4CC('C','H','A','P'),
+	GF_MEDIA_TYPE_ID3 	= GF_4CC('I','D','3',' '),
+	GF_MEDIA_TYPE_NHNL 	= GF_4CC('N','H','n','l'),
+	GF_MEDIA_TYPE_NHNT 	= GF_4CC('N','H','n','t'),
+
+	//the rest is unused
+	GF_MEDIA_TYPE_AC3 	= GF_4CC('A','C','3',' '),
+	GF_MEDIA_TYPE_BIFS 	= GF_4CC('B','I','F','S'),
+	GF_MEDIA_TYPE_DAC3 	= GF_4CC('D','A','C','3'),
+	GF_MEDIA_TYPE_DEC3 	= GF_4CC('D','E','C','3'),
+	GF_MEDIA_TYPE_DTS 	= GF_4CC('D','T','S',' '),
+	GF_MEDIA_TYPE_H264 	= GF_4CC('H','2','6','4'),
+	GF_MEDIA_TYPE_HEVC 	= GF_4CC('H','E','V','C'),
+	GF_MEDIA_TYPE_JPEG 	= GF_4CC('J','P','E','G'),
+	GF_MEDIA_TYPE_LASR 	= GF_4CC('L','A','S','R'),
+	GF_MEDIA_TYPE_LHVC 	= GF_4CC('L','H','V','C'),
+	GF_MEDIA_TYPE_LPCM 	= GF_4CC('L','P','C','M'),
+	GF_MEDIA_TYPE_M4SP 	= GF_4CC('M','4','S','P'),
+	GF_MEDIA_TYPE_M4SS 	= GF_4CC('M','4','S','S'),
+	GF_MEDIA_TYPE_MP1A 	= GF_4CC('M','P','1','A'),
+	GF_MEDIA_TYPE_MP1V 	= GF_4CC('M','P','1','V'),
+	GF_MEDIA_TYPE_MP2A 	= GF_4CC('M','P','2','A'),
+	GF_MEDIA_TYPE_MP2V 	= GF_4CC('M','P','2','V'),
+	GF_MEDIA_TYPE_MP4A 	= GF_4CC('M','P','4','A'),
+	GF_MEDIA_TYPE_MP4V 	= GF_4CC('M','P','4','V'),
+	GF_MEDIA_TYPE_MPG1 	= GF_4CC('M','P','G','1'),
+	GF_MEDIA_TYPE_MPG2 	= GF_4CC('M','P','G','2'),
+	GF_MEDIA_TYPE_MPGA 	= GF_4CC('M','P','G','A'),
+	GF_MEDIA_TYPE_PNG 	= GF_4CC('P','N','G',' '),
+	GF_MEDIA_TYPE_SVC 	= GF_4CC('S','V','C',' '),
+	GF_MEDIA_TYPE_THEO 	= GF_4CC('t','h','e','o'),
+	GF_MEDIA_TYPE_UNK 	= GF_4CC('U','N','K',' '),
+
+};
+
 
 
 /*!
@@ -803,7 +742,10 @@ static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 5
 
 /*! @} */
 
-#define GF_VENDOR_GPAC GF_4CC('G', 'P', 'A', 'C')
+#define GF_VENDOR_GPAC		GF_4CC('G','P','A','C')
+
+#define GF_LANG_UNKNOWN		GF_4CC('u','n','d',' ')
+
 
 /* ID3v2 tags from mpegts.c */
 typedef enum {
@@ -882,51 +824,6 @@ typedef enum {
 	ID3V2_FRAME_WPUB = GF_4CC('W','P','U','B'),
 	ID3V2_FRAME_WXXX = GF_4CC('W','X','X','X')
 } GF_ID3v2FrameType;
-
-
-/* media types consts from media_import.c */
-enum {
-
-	GF_MEDIA_TYPE_AC3 	= GF_4CC('A','C','3',' '),
-	GF_MEDIA_TYPE_BIFS 	= GF_4CC('B','I','F','S'),
-	GF_MEDIA_TYPE_CHAP 	= GF_4CC('C','H','A','P'),
-	GF_MEDIA_TYPE_DAC3 	= GF_4CC('D','A','C','3'),
-	GF_MEDIA_TYPE_DEC3 	= GF_4CC('D','E','C','3'),
-	GF_MEDIA_TYPE_DTS 	= GF_4CC('D','T','S',' '),
-	GF_MEDIA_TYPE_H264 	= GF_4CC('H','2','6','4'),
-	GF_MEDIA_TYPE_HEVC 	= GF_4CC('H','E','V','C'),
-	GF_MEDIA_TYPE_ID3 	= GF_4CC('I','D','3',' '),
-	GF_MEDIA_TYPE_JPEG 	= GF_4CC('J','P','E','G'),
-	GF_MEDIA_TYPE_LASR 	= GF_4CC('L','A','S','R'),
-	GF_MEDIA_TYPE_LHVC 	= GF_4CC('L','H','V','C'),
-	GF_MEDIA_TYPE_LPCM 	= GF_4CC('L','P','C','M'),
-	GF_MEDIA_TYPE_M4SP 	= GF_4CC('M','4','S','P'),
-	GF_MEDIA_TYPE_M4SS 	= GF_4CC('M','4','S','S'),
-	GF_MEDIA_TYPE_MP1A 	= GF_4CC('M','P','1','A'),
-	GF_MEDIA_TYPE_MP1V 	= GF_4CC('M','P','1','V'),
-	GF_MEDIA_TYPE_MP2A 	= GF_4CC('M','P','2','A'),
-	GF_MEDIA_TYPE_MP2V 	= GF_4CC('M','P','2','V'),
-	GF_MEDIA_TYPE_MP4A 	= GF_4CC('M','P','4','A'),
-	GF_MEDIA_TYPE_MP4V 	= GF_4CC('M','P','4','V'),
-	GF_MEDIA_TYPE_MPG1 	= GF_4CC('M','P','G','1'),
-	GF_MEDIA_TYPE_MPG2 	= GF_4CC('M','P','G','2'),
-	GF_MEDIA_TYPE_MPGA 	= GF_4CC('M','P','G','A'),
-	GF_MEDIA_TYPE_NHNL 	= GF_4CC('N','H','n','l'),
-	GF_MEDIA_TYPE_NHNT 	= GF_4CC('N','H','n','t'),
-	GF_MEDIA_TYPE_PNG 	= GF_4CC('P','N','G',' '),
-	GF_MEDIA_TYPE_SVC 	= GF_4CC('S','V','C',' '),
-	GF_MEDIA_TYPE_THEO 	= GF_4CC('t','h','e','o'),
-	GF_MEDIA_TYPE_UNK 	= GF_4CC('U','N','K',' '),
-
-	/* from mpegts.c */
-	GF_MEDIA_STREAM_AC3	= GF_4CC('A','C','-','3'),
-	GF_MEDIA_STREAM_VC1	= GF_4CC('V','C','-','1'),
-
-	/* from m2ts_muc.c */
-	GF_MEDIA_LANG_UND	= GF_4CC('u','n','d',' '),
-
-};
-
 
 /* meta types from box_code_meta.c - fileimport.c */
 enum {

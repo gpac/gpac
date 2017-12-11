@@ -480,9 +480,9 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		esd = NULL;
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 		/*NOT BIFS*/
-		if (!scene_type && (sc->objectType > 2) ) continue;
+		if (!scene_type && (sc->codec_id > 2) ) continue;
 		/*NOT LASeR*/
-		if (scene_type && (sc->objectType != 0x09) ) continue;
+		if (scene_type && (sc->codec_id != 0x09) ) continue;
 		j++;
 	}
 	if (!j) {
@@ -538,9 +538,9 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		esd = NULL;
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 		/*NOT BIFS*/
-		if (!scene_type && (sc->objectType > 2) ) continue;
+		if (!scene_type && (sc->codec_id > 2) ) continue;
 		/*NOT LASeR*/
-		if (scene_type && (sc->objectType != 0x09) ) continue;
+		if (scene_type && (sc->codec_id != 0x09) ) continue;
 
 		delete_desc = 0;
 		esd = NULL;
@@ -715,7 +715,7 @@ force_scene_rap:
 
 			esd->decoderConfig->decoderSpecificInfo->data = data;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
-			esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_LASER;
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_LASER;
 		}
 #endif
 		/*create stream description*/
@@ -1026,7 +1026,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			delete_desc = 1;
 			esd = gf_odf_desc_esd_new(2);
 			esd->ESID = sc->ESID;
-			esd->decoderConfig->objectTypeIndication = GPAC_OTI_OD_V1;
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_OD_V1;
 			esd->decoderConfig->streamType = GF_STREAM_OD;
 		}
 
@@ -1036,7 +1036,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
 		track = gf_isom_new_track(mp4, sc->ESID, GF_ISOM_MEDIA_OD, esd->slConfig->timestampResolution);
 		if (!sc->ESID) sc->ESID = gf_isom_get_track_id(mp4, track);
-		if (!esd->decoderConfig->objectTypeIndication) esd->decoderConfig->objectTypeIndication = GPAC_OTI_OD_V1;
+		if (!esd->decoderConfig->objectTypeIndication) esd->decoderConfig->objectTypeIndication = GF_CODECID_OD_V1;
 		gf_isom_set_track_enabled(mp4, track, 1);
 		/*no DSI required*/
 		/*create stream description*/
@@ -1092,7 +1092,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 								switch (imp_esd->decoderConfig->streamType) {
 								case GF_STREAM_SCENE:
 									/*import AFX streams, but not others*/
-									if (imp_esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_AFX)
+									if (imp_esd->decoderConfig->objectTypeIndication==GF_CODECID_AFX)
 										break;
 									continue;
 								case GF_STREAM_OD:

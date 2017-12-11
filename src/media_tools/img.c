@@ -51,7 +51,7 @@
 #endif	/*GPAC_HAS_JPEG*/
 
 GF_EXPORT
-void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len)
+void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len)
 {
 	u8 b1, b2, b3;
 	u32 size, type;
@@ -60,7 +60,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	gf_bs_seek(bs, 0);
 
 	*mtype = *width = *height = 0;
-	*OTI = 0;
+	*codecid = 0;
 	if (dsi) {
 		*dsi = NULL;
 		*dsi_len = 0;
@@ -112,7 +112,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 				break;
 			}
 		}
-		*OTI = GPAC_OTI_IMAGE_JPEG;
+		*codecid = GF_CODECID_JPEG;
 		*mtype = GF_ISOM_MEDIA_JPEG;
 		if (dsi) {
 			GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -136,7 +136,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 
 		*width = gf_bs_read_u32(bs);
 		*height = gf_bs_read_u32(bs);
-		*OTI = GPAC_OTI_IMAGE_PNG;
+		*codecid = GF_CODECID_PNG;
 		*mtype = GF_ISOM_MEDIA_PNG;
 	}
 	/*try j2k*/
@@ -147,7 +147,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	        || (type==GF_ISOM_BOX_TYPE_JP2H ) ) {
 
 			if (type==GF_ISOM_BOX_TYPE_JP2H) {
-				*OTI = GPAC_OTI_IMAGE_JPEG_2000;
+				*codecid = GF_CODECID_J2K;
 				*mtype = GF_ISOM_MEDIA_JP2;
 				goto j2k_restart;
 			}
@@ -155,7 +155,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 			type = gf_bs_read_u32(bs);
 			if (type!=0x0D0A870A) goto exit;
 
-			*OTI = GPAC_OTI_IMAGE_JPEG_2000;
+			*codecid = GF_CODECID_J2K;
 			*mtype = GF_ISOM_MEDIA_JP2;
 
 			while (gf_bs_available(bs)) {
@@ -711,23 +711,23 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 #endif	/*GPAC_HAS_PNG*/
 
 GF_EXPORT
-GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
+GF_Err gf_img_file_dec(char *png_filename, u32 *hint_codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
 {
-	u32 fsize, read, oti;
+	u32 fsize, read, codecid;
 	FILE *f;
 	char *data;
 	GF_Err e;
 	f = gf_fopen(png_filename, "rb");
 	if (!f) return GF_URL_ERROR;
 
-	oti = 0;
-	if (!hint_oti || ! *hint_oti) {
+	codecid = 0;
+	if (!hint_codecid || ! *hint_codecid) {
 		char *ext = strrchr(png_filename, '.');
 		if (!ext) return GF_NOT_SUPPORTED;
-		if (!stricmp(ext, ".png")) oti = GPAC_OTI_IMAGE_PNG;
-		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) oti = GPAC_OTI_IMAGE_JPEG;
-	} else if (hint_oti) {
-		oti = *hint_oti;
+		if (!stricmp(ext, ".png")) codecid = GF_CODECID_PNG;
+		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) codecid = GF_CODECID_JPEG;
+	} else if (hint_codecid) {
+		codecid = *hint_codecid;
 	}
 	gf_fseek(f, 0, SEEK_END);
 	fsize = (u32)gf_ftell(f);
@@ -739,7 +739,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 
 	e = GF_NOT_SUPPORTED;
 	*dst_size = 0;
-	if (oti == GPAC_OTI_IMAGE_JPEG) {
+	if (codecid == GF_CODECID_JPEG) {
 #ifdef GPAC_HAS_JPEG
 		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
 		if (*dst_size) {
@@ -747,7 +747,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, *dst, dst_size, 0);
 		}
 #endif
-	} else if (oti == GPAC_OTI_IMAGE_PNG) {
+	} else if (codecid == GF_CODECID_PNG) {
 #ifdef GPAC_HAS_PNG
 		e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);
 		if (*dst_size) {

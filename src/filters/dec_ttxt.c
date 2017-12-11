@@ -208,7 +208,7 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 {
 	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
-	u32 st, oti, dsi_crc;
+	u32 st, codecid, dsi_crc;
 	const GF_PropertyValue *p, *dsi;
 
 	if (is_remove) {
@@ -220,11 +220,11 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	if (ctx->ipid && !gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
 	assert(!ctx->ipid || (ctx->ipid == pid));
 
-	st = oti = 0;
+	st = codecid = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) st = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (p) oti = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (p) codecid = p->value.uint;
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!dsi) return GF_NOT_SUPPORTED;
@@ -237,15 +237,15 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 
 	if (ctx->cfg) gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
 	ctx->cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
-	if (oti == GPAC_OTI_TEXT_MPEG4) {
-		e = gf_odf_get_text_config(dsi->value.data.ptr, dsi->value.data.size, oti, ctx->cfg);
+	if (codecid == GF_CODECID_TEXT_MPEG4) {
+		e = gf_odf_get_text_config(dsi->value.data.ptr, dsi->value.data.size, codecid, ctx->cfg);
 		if (e) {
 			gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
 			ctx->cfg = NULL;
 			return e;
 		}
 		ctx->is_tx3g = GF_FALSE;
-	} else if (oti == GF_ISOM_SUBTYPE_TX3G) {
+	} else if (codecid == GF_ISOM_SUBTYPE_TX3G) {
 		GF_TextSampleDescriptor * sd = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
 		if (!sd) {
 			gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
@@ -264,7 +264,7 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	}
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 
 	return GF_OK;
 }
@@ -1299,14 +1299,14 @@ static const GF_FilterCapability TTXTDecInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_TEXT_MPEG4),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GF_ISOM_SUBTYPE_TX3G),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_TX3G),
 };
 
 static const GF_FilterCapability TTXTDecOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister TTXTDecRegister = {

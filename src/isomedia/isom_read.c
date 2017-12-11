@@ -326,7 +326,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		gf_m4a_write_config(&aacinfo, &aac->esd->desc->decoderConfig->decoderSpecificInfo->data, &aac->esd->desc->decoderConfig->decoderSpecificInfo->dataLength);
 #endif
 		aac->esd->desc->decoderConfig->streamType = GF_STREAM_AUDIO;
-		aac->esd->desc->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+		aac->esd->desc->decoderConfig->objectTypeIndication = GF_CODECID_AAC_MPEG4;
 		aac->bitspersample = bps;
 		aac->samplerate_hi = sample_rate;
 		aac->channel_count = nb_channels;
@@ -3368,29 +3368,29 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 				GF_DecoderConfig *dcd = gf_isom_get_decoder_config(file, i+1, 1);
 				switch (dcd->streamType) {
 				case GF_STREAM_VISUAL:
-					if (dcd->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) nb_m4v++;
-					else if ((dcd->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (dcd->objectTypeIndication==GPAC_OTI_VIDEO_SVC) || (dcd->objectTypeIndication==GPAC_OTI_VIDEO_MVC)) nb_avc++;
+					if (dcd->objectTypeIndication==GF_CODECID_MPEG4_PART2) nb_m4v++;
+					else if ((dcd->objectTypeIndication==GF_CODECID_AVC) || (dcd->objectTypeIndication==GF_CODECID_SVC) || (dcd->objectTypeIndication==GF_CODECID_MVC)) nb_avc++;
 					else nb_v++;
 					break;
 				case GF_STREAM_AUDIO:
 					switch (dcd->objectTypeIndication) {
-					case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-					case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-					case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
-					case GPAC_OTI_AUDIO_AAC_MPEG4:
+					case GF_CODECID_AAC_MPEG2_MP:
+					case GF_CODECID_AAC_MPEG2_LCP:
+					case GF_CODECID_AAC_MPEG2_SSRP:
+					case GF_CODECID_AAC_MPEG4:
 						nb_aac++;
 						break;
-					case GPAC_OTI_AUDIO_MPEG2_PART3:
-					case GPAC_OTI_AUDIO_MPEG1:
+					case GF_CODECID_MPEG2_PART3:
+					case GF_CODECID_MPEG_AUDIO:
 						nb_mp3++;
 						break;
-					case GPAC_OTI_AUDIO_EVRC:
+					case GF_CODECID_EVRC:
 						nb_evrc++;
 						break;
-					case GPAC_OTI_AUDIO_SMV:
+					case GF_CODECID_SMV:
 						nb_smv++;
 						break;
-					case GPAC_OTI_AUDIO_QCELP:
+					case GF_CODECID_QCELP:
 						nb_qcelp++;
 						break;
 					default:

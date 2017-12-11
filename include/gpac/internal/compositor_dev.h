@@ -2135,6 +2135,36 @@ void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
 
 void gf_odm_check_clock_mediatime(GF_ObjectManager *odm);
 
+
+/*!
+ *	Media Object types
+ *
+ *	This type provides a hint to network modules which may have to generate an service descriptor on the fly.
+ *	They occur only if objects/services used in the scene are not referenced through ObjectDescriptors (MPEG-4)
+ *	but direct through URL
+*/
+enum
+{
+	/*!service descriptor expected is of undefined type. This should be treated like GF_MEDIA_OBJECT_SCENE*/
+	GF_MEDIA_OBJECT_UNDEF = 0,
+	/*!service descriptor expected is of SCENE type and shall contain a scene stream and OD one if needed*/
+	GF_MEDIA_OBJECT_SCENE,
+	/*!service descriptor expected is of SCENE UPDATES type (animation streams)*/
+	GF_MEDIA_OBJECT_UPDATES,
+	/*!service descriptor expected is of VISUAL type*/
+	GF_MEDIA_OBJECT_VIDEO,
+	/*!service descriptor expected is of AUDIO type*/
+	GF_MEDIA_OBJECT_AUDIO,
+	/*!service descriptor expected is of TEXT type (3GPP/MPEG4)*/
+	GF_MEDIA_OBJECT_TEXT,
+	/*!service descriptor expected is of UserInteraction type (MPEG-4 InputSensor)*/
+	GF_MEDIA_OBJECT_INTERACT
+};
+
+/*! All Media Objects inserted through URLs and not MPEG-4 OD Framework use this ODID*/
+#define GF_MEDIA_EXTERNAL_ID		1050
+
+
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
 MediaObject and an ObjectManager, we have to keep them separated in order to handle OD remove commands which destroy
 ObjectManagers. */

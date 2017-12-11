@@ -600,7 +600,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		return GF_NOT_SUPPORTED;
 	}
 	if (esd) {
-		if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) avc_size_length = 1;
+		if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC)) avc_size_length = 1;
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 	if (avc_size_length) {
@@ -1156,7 +1156,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		return GF_NOT_SUPPORTED;
 	}
 	if (esd) {
-		if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
+		if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC)) {
 			GF_AVCConfig *avccfg = gf_isom_avc_config_get(mp4, track, 1);
 			GF_AVCConfig *svccfg = gf_isom_svc_config_get(mp4, track, 1);
 			if (avccfg)
@@ -1168,7 +1168,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			is_nalu_video = GF_TRUE;
 			bytes_in_nalhr = 1;
 		}
-		else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
+		else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_HEVC) {
 			GF_HEVCConfig *hevccfg = gf_isom_hevc_config_get(mp4, track, 1);
 			if (hevccfg)
 				nalu_size_length = hevccfg->nal_unit_size;

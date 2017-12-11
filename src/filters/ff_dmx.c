@@ -280,56 +280,56 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 		switch (codec->codec_id) {
 		case CODEC_ID_MP2:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_MPEG1) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG_AUDIO) );
 			break;
 		case CODEC_ID_MP3:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_MPEG2_PART3) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG2_PART3) );
 			break;
 		case CODEC_ID_AAC:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AAC_MPEG4) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AAC_MPEG4) );
 			expose_ffdec=GF_TRUE;
 			break;
 		case CODEC_ID_MPEG4:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG4_PART2) );
 			expose_ffdec=GF_TRUE;
 			break;
 		case CODEC_ID_H264:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_AVC) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AVC) );
 			expose_ffdec=GF_TRUE;
 			break;
 		case CODEC_ID_MPEG1VIDEO:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG1) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG1) );
 			break;
 		case CODEC_ID_MPEG2VIDEO:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG2_MAIN) );
 			break;
 		case CODEC_ID_H263:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_H263) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_H263) );
 			break;
 		case CODEC_ID_AMR_NB:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AMR) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AMR) );
 			break;
 		case CODEC_ID_AMR_WB:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AMR_WB) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AMR_WB) );
 			break;
 		case CODEC_ID_QCELP:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_QCELP) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_QCELP) );
 			break;
 		case AV_CODEC_ID_EVRC:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_EVRC) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_EVRC) );
 			break;
 		case AV_CODEC_ID_SMV:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_SMV) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SMV) );
 			break;
 		case AV_CODEC_ID_AC3:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AC3) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AC3) );
 			break;
 		case AV_CODEC_ID_EAC3:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_EAC3) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_EAC3) );
 			break;
-		//todo - map all possible MPEG and common types to internal GPAC OTI
+		//todo - map all possible MPEG and common types to internal GPAC codecid
 		default:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_MEDIA_FFMPEG) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG) );
 			expose_ffdec=GF_TRUE;
 			break;
 		}

@@ -24,7 +24,6 @@
  */
 
 #include <gpac/filters.h>
-/*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
 
@@ -108,60 +107,56 @@ GF_Err img_process(GF_Filter *filter)
 	if (!ctx->opid) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 mtype, dsi_size;
-		u8 anOTI;
 		char *dsi=NULL;
 #endif
 		const char *ext, *mime;
 		const GF_PropertyValue *prop;
-		u32 oti = 0;
+		u32 codecid = 0;
 
-		if (!oti) {
-			if ((size >= 54) && (data[0] == 'B') && (data[1] == 'M')) {
-				oti = GPAC_OTI_RAW_MEDIA_STREAM;
-				ctx->is_bmp = GF_TRUE;
-			}
-#ifndef GPAC_DISABLE_AV_PARSERS
-			else {
-				bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-				gf_img_parse(bs, &anOTI, &mtype, &w, &h, &dsi, &dsi_size);
-				gf_bs_del(bs);
-				oti = anOTI;
-			}
-#endif
+		if ((size >= 54) && (data[0] == 'B') && (data[1] == 'M')) {
+			codecid = GF_CODECID_RAW;
+			ctx->is_bmp = GF_TRUE;
 		}
+#ifndef GPAC_DISABLE_AV_PARSERS
+		else {
+			bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+			gf_img_parse(bs, &codecid, &mtype, &w, &h, &dsi, &dsi_size);
+			gf_bs_del(bs);
+		}
+#endif
 
 		prop = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
 		ext = (prop && prop->value.string) ? prop->value.string : "";
 		prop = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_MIME);
 		mime = (prop && prop->value.string) ? prop->value.string : "";
 
-		if (!oti) {
+		if (!codecid) {
 			if (!stricmp(ext, "jpeg") || !stricmp(ext, "jpg") || !strcmp(mime, "image/jpg")) {
-				oti = GPAC_OTI_IMAGE_JPEG;
+				codecid = GF_CODECID_JPEG;
 			} else if (!stricmp(ext, "png") || !strcmp(mime, "image/png")) {
-				oti = GPAC_OTI_IMAGE_PNG;
+				codecid = GF_CODECID_PNG;
 			} else if (!stricmp(ext, "jp2") || !stricmp(ext, "j2k") || !strcmp(mime, "image/jp2")) {
-				oti = GPAC_OTI_IMAGE_JPEG_2000;
+				codecid = GF_CODECID_J2K;
 			} else if (!stricmp(ext, "pngd")) {
-				oti = GPAC_OTI_IMAGE_PNG;
+				codecid = GF_CODECID_PNG;
 				pf = GF_PIXEL_RGBD;
 			} else if (!stricmp(ext, "pngds")) {
-				oti = GPAC_OTI_IMAGE_PNG;
+				codecid = GF_CODECID_PNG;
 				pf = GF_PIXEL_RGBDS;
 			} else if (!stricmp(ext, "pngs")) {
-				oti = GPAC_OTI_IMAGE_PNG;
+				codecid = GF_CODECID_PNG;
 				pf = GF_PIXEL_RGBS;
 			} else if (!stricmp(ext, "bmp") || !strcmp(mime, "image/png")) {
-				oti = GPAC_OTI_RAW_MEDIA_STREAM;
+				codecid = GF_CODECID_RAW;
 			}
 		}
-		if (!oti) return GF_NOT_SUPPORTED;
+		if (!codecid) return GF_NOT_SUPPORTED;
 
 		ctx->opid = gf_filter_pid_new(filter);
 		if (!ctx->opid) return GF_SERVICE_ERROR;
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(oti));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codecid));
 		if (pf) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, & PROP_UINT(pf));
 		if (w) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(w));
 		if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
@@ -273,9 +268,9 @@ static const GF_FilterCapability ReframeImgInputs[] =
 static const GF_FilterCapability ReframeImgOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_PNG),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_JPEG),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_JPEG_2000),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_PNG),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_JPEG),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_J2K),
 	{}
 };
 

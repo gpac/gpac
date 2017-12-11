@@ -70,7 +70,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 			return GF_NOT_SUPPORTED;
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
+		if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) {
 			e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
 			if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
 			gf_odf_desc_del((GF_Descriptor *) esd);
@@ -292,7 +292,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		switch (mType) {
 		case GF_ISOM_MEDIA_VISUAL:
 			image_track = 0;
-			if (esd && ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_PNG)) )
+			if (esd && ((esd->decoderConfig->objectTypeIndication==GF_CODECID_JPEG) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_PNG)) )
 				image_track = 1;
 
 			/*remove image tracks if wanted*/
@@ -391,7 +391,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			if (!w || !h) {
 				gf_isom_get_visual_info(mp4file, VideoTrack, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				if ((v_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+				if ((v_esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
 					GF_M4VDecSpecInfo dsi;
 					gf_m4v_get_config(v_esd->decoderConfig->decoderSpecificInfo->data, v_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (!is_image && (!w || !h)) {
@@ -433,7 +433,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-			if (a_esd->decoderConfig->objectTypeIndication == GPAC_OTI_AUDIO_AAC_MPEG4) {
+			if (a_esd->decoderConfig->objectTypeIndication == GF_CODECID_AAC_MPEG4) {
 				GF_M4ADecSpecInfo cfg;
 				gf_m4a_get_config(a_esd->decoderConfig->decoderSpecificInfo->data, a_esd->decoderConfig->decoderSpecificInfo->dataLength, &cfg);
 				audioPL = cfg.audioPL;
@@ -466,7 +466,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
 	_esd->decoderConfig->bufferSizeDB = samp->dataLength;
-	_esd->decoderConfig->objectTypeIndication = GPAC_OTI_OD_V1;
+	_esd->decoderConfig->objectTypeIndication = GF_CODECID_OD_V1;
 	_esd->decoderConfig->streamType = GF_STREAM_OD;
 	_esd->ESID = odID;
 	_esd->OCRESID = no_ocr ? 0 : bifsID;
@@ -483,7 +483,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
 	_esd->decoderConfig->bufferSizeDB = 20;
-	_esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS_V2;
+	_esd->decoderConfig->objectTypeIndication = GF_CODECID_BIFS_V2;
 	_esd->decoderConfig->streamType = GF_STREAM_SCENE;
 	_esd->ESID = bifsID;
 	_esd->OCRESID = 0;
@@ -611,7 +611,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			{
 				GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
 				/*both MPEG4-Video and H264/AVC/SVC are supported*/
-				if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MVC)) {
+				if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_MVC)) {
 					nb_vid++;
 				} else {
 					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
@@ -643,11 +643,11 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			{
 				GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
 				switch (esd->decoderConfig->objectTypeIndication) {
-				case GPAC_OTI_AUDIO_QCELP:
-				case GPAC_OTI_AUDIO_EVRC:
-				case GPAC_OTI_AUDIO_SMV:
+				case GF_CODECID_QCELP:
+				case GF_CODECID_EVRC:
+				case GF_CODECID_SMV:
 					is_3g2 = 1;
-				case GPAC_OTI_AUDIO_AAC_MPEG4:
+				case GF_CODECID_AAC_MPEG4:
 					nb_aud++;
 					break;
 				default:
@@ -836,7 +836,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
 		gf_bs_write_u32(bs, subtype);
@@ -859,7 +859,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
 		gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_H263);
@@ -878,7 +878,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->ESID = gf_isom_get_track_id(mp4, track);
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = (ac3 && ac3->is_ec3) ? GPAC_OTI_AUDIO_EAC3 : GPAC_OTI_AUDIO_AC3;
+		esd->decoderConfig->objectTypeIndication = (ac3 && ac3->is_ec3) ? GF_CODECID_EAC3 : GF_CODECID_AC3;
 		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = NULL;
 		if (ac3) gf_free(ac3);
@@ -891,7 +891,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->ESID = gf_isom_get_track_id(mp4, track);
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_MPEG_AUDIO;
 		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = NULL;
 		return esd;
@@ -904,7 +904,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->ESID = gf_isom_get_track_id(mp4, track);
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = (subtype == GF_ISOM_SUBTYPE_JPEG) ? GPAC_OTI_IMAGE_JPEG : GPAC_OTI_IMAGE_PNG;
+		esd->decoderConfig->objectTypeIndication = (subtype == GF_ISOM_SUBTYPE_JPEG) ? GF_CODECID_JPEG : GF_CODECID_PNG;
 		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = NULL;
 		return esd;
@@ -918,7 +918,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
 		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_DIMS;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_DIMS;
 		gf_isom_get_dims_description(mp4, track, 1, &dims);
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
@@ -942,7 +942,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	esd->OCRESID = esd->ESID = gf_isom_get_track_id(mp4, track);
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-	esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+	esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
 	/*format ext*/
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, subtype);
@@ -1000,7 +1000,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->ESID = (u16)item_id;
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_HEVC;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_HEVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
 		if (e == GF_OK && props.config) {			
 			gf_odf_hevc_cfg_write(((GF_HEVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -1018,7 +1018,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->ESID = (u16)item_id;
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_AVC;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_AVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
 		if (e == GF_OK && props.config) {
 			gf_odf_avc_cfg_write(((GF_AVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -1036,7 +1036,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->ESID = (u16)item_id;
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_IMAGE_JPEG;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_JPEG;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
 		if (e == GF_OK && props.config) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("JPEG image item decoder config not supported, patch welcome\n"));
@@ -1054,7 +1054,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->ESID = (u16)item_id;
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_IMAGE_PNG;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_PNG;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;

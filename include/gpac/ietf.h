@@ -1306,7 +1306,7 @@ specified is too close to the PathMTU
 */
 
 void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 MaxPayloadSize, u32 max_ptime,
-                         u32 StreamType, u32 OTI, u32 PL_ID,
+                         u32 StreamType, u32 codecid, u32 PL_ID,
                          u32 avgSize, u32 maxSize,
                          u32 avgTS, u32 maxDTS,
                          u32 IV_length, u32 KI_length,

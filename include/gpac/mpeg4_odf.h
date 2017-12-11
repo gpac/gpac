@@ -1195,10 +1195,10 @@ GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined);
 
 /*! special function for authoring - convert DSI to BIFSConfig
  \param dsi BIFS decoder specific info
- \param oti BIFS object type indication
+ \param codecid BIFS codecid/object type indication
  \return decoded BIFS Config descriptor - It is the caller responsability of freeing it
  */
-GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti);
+GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u32 codecid);
 /*! special function for authoring - convert DSI to LASERConfig
  \param dsi LASER decoder specific info
  \param cfg the LASER config object to be filled
@@ -1208,11 +1208,11 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
 /*! sepcial function for authoring - convert DSI to TextConfig
  \param data TEXT decoder config block
  \param data_len TEXT decoder config block size
- \param oti TEXT object type indication
+ \param codecid TEXT codecid/object type indication
  \param cfg the text config object to be filled
  \return error if any
  */
-GF_Err gf_odf_get_text_config(char *data, u32 data_len, u8 oti, GF_TextConfig *cfg);
+GF_Err gf_odf_get_text_config(char *data, u32 data_len, u32 codecid, GF_TextConfig *cfg);
 /*! special function for authoring - convert DSI to UIConfig
  \param dsi text decoder specific info
  \param cfg the text config object to be filled
