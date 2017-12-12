@@ -38,7 +38,7 @@
 #  pragma comment(lib, "openhevc")
 
 #if !defined _WIN64
-void oh_select_view_layer(OpenHevc_Handle codec, int val)
+void oh_select_view_layer(OHHandle codec, int val)
 {
 }
 #endif
