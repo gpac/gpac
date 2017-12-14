@@ -61,7 +61,7 @@ typedef struct
 
 
 
-GF_Err udpin_setup_socket(GF_Filter *filter, GF_UDPInCtx *ctx)
+static GF_Err udpin_setup_socket(GF_Filter *filter, GF_UDPInCtx *ctx)
 {
 	GF_Err e = GF_OK;
 	char *str, *url;
@@ -120,7 +120,8 @@ GF_Err udpin_setup_socket(GF_Filter *filter, GF_UDPInCtx *ctx)
 	gf_sk_set_block_mode(ctx->socket, 0);
 	return e;
 }
-GF_Err udpin_initialize(GF_Filter *filter)
+
+static GF_Err udpin_initialize(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
 	GF_UDPInCtx *ctx = (GF_UDPInCtx *) gf_filter_get_udta(filter);
@@ -139,7 +140,7 @@ GF_Err udpin_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-void udpin_finalize(GF_Filter *filter)
+static void udpin_finalize(GF_Filter *filter)
 {
 	GF_UDPInCtx *ctx = (GF_UDPInCtx *) gf_filter_get_udta(filter);
 	if (ctx->socket) gf_sk_del(ctx->socket);
@@ -149,7 +150,7 @@ void udpin_finalize(GF_Filter *filter)
 	if (ctx->block) gf_free(ctx->block);
 }
 
-GF_FilterProbeScore udpin_probe_url(const char *url, const char *mime_type)
+static GF_FilterProbeScore udpin_probe_url(const char *url, const char *mime_type)
 {
 	if (!strnicmp(url, "udp://", 6)) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "tcp://", 6)) return GF_FPROBE_SUPPORTED;
@@ -158,13 +159,14 @@ GF_FilterProbeScore udpin_probe_url(const char *url, const char *mime_type)
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
-void udpin_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+/*static void udpin_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	GF_UDPInCtx *ctx = (GF_UDPInCtx *) gf_filter_get_udta(filter);
 	ctx->pck_out = GF_FALSE;
 }
+*/
 
-void udpin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+static void udpin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	u32 size;
 	char *data;

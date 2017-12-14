@@ -758,7 +758,7 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 	} \
 
 
-GF_Err gf_media_export_native(GF_MediaExporter *dumper)
+GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 {
 #ifdef GPAC_DISABLE_AV_PARSERS
 	return GF_NOT_SUPPORTED;
@@ -1498,6 +1498,49 @@ exit:
 		gf_fclose(out);
 	return e;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
+}
+
+#include <gpac/filters.h>
+
+GF_Err gf_media_export_native(GF_MediaExporter *dumper)
+{
+	const char *src;
+	char szArgs[4096];
+	char szSubArg[1024];
+	GF_Filter *file_out, *reframer;
+	GF_FilterSession *fsess;
+	GF_Err e = GF_OK;
+
+	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_FALSE);
+
+	//mux args, for now we only dump to file
+	sprintf(szArgs, "fileout:dst=%s:dynext:FID=2:SID=1", dumper->out_name);
+
+	file_out = gf_fs_load_filter(fsess, szArgs);
+	if (!file_out) {
+		gf_fs_del(fsess);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load output file dumper\n"));
+		return GF_FILTER_NOT_FOUND;
+	}
+	//force a reframer filter, connected to our output
+	strcpy(szArgs, "reframer:FID=1");
+	reframer = gf_fs_load_filter(fsess, szArgs);
+	if (!reframer) {
+		gf_fs_del(fsess);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load reframer filter\n"));
+		return GF_FILTER_NOT_FOUND;
+	}
+
+	src = dumper->in_name ? dumper->in_name : gf_isom_get_filename(dumper->file);
+	gf_fs_load_source(fsess, src, NULL, NULL, &e);
+	if (e) {
+		gf_fs_del(fsess);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
+		return e;
+	}
+	gf_fs_run(fsess);
+	gf_fs_del(fsess);
+	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_AVILIB
