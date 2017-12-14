@@ -87,7 +87,10 @@ static const GF_FilterCapability ReframerOutputs[] =
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	//we don't accep files as input so don't output them
 	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	//we don't produce RAW streams - this will avoid loading the filter for compositor/other raw access
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{}
 };
 
@@ -104,6 +107,5 @@ GF_FilterRegister ReframerRegister = {
 
 const GF_FilterRegister *reframer_register(GF_FilterSession *session)
 {
-	return NULL;
-//	return &ReframerRegister;
+	return &ReframerRegister;
 }
