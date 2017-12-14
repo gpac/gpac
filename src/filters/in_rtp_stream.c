@@ -616,23 +616,28 @@ void rtpin_stream_read(GF_RTPInStream *stream)
 	*/
 	tot_size = 0;
 
-	while (1) {
+	//while (1)
+	{
 		size = gf_rtp_read_rtcp(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
-		if (!size) break;
-		tot_size += size;
-		rtpin_stream_on_rtcp_pck(stream, stream->buffer, size);
+		if (size) {
+			tot_size += size;
+			rtpin_stream_on_rtcp_pck(stream, stream->buffer, size);
+		}
 	}
 
-	while (1) {
+	//while (1)
+	{
 		size = gf_rtp_read_rtp(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
-		if (!size) break;
-		tot_size += size;
-		rtpin_stream_on_rtp_pck(stream, stream->buffer, size);
+		if (size) {
+			tot_size += size;
+			rtpin_stream_on_rtp_pck(stream, stream->buffer, size);
+		}
 	}
 	/*and send the report*/
 	if (stream->flags & RTP_ENABLE_RTCP) gf_rtp_send_rtcp_report(stream->rtp_ch, rtpin_rtsp_tcp_send_report, stream);
 
 	if (tot_size) stream->rtpin->udp_timeout = 0;
+	else gf_sleep(1);
 
 	/*detect timeout*/
 	if (stream->rtpin->udp_timeout) {
