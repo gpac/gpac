@@ -476,8 +476,6 @@ s32 gf_sk_get_handle(GF_Socket *sock)
 	return (s32) sock->socket;
 }
 
-
-
 //connects a socket to a remote peer on a given port
 GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *local_ip)
 {
@@ -794,12 +792,15 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 
 
 	if (options & GF_SOCK_REUSE_PORT) {
+#if 0
 		optval = 1;
 		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, SSO_CAST &optval, sizeof(optval));
 #ifdef SO_REUSEPORT
 		optval = 1;
 		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEPORT, SSO_CAST &optval, sizeof(optval));
 #endif
+#endif
+
 	}
 
 	/*bind the socket*/
@@ -843,7 +844,8 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 #endif
 
 	//the socket must be bound or connected
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (!sock || !sock->socket)
+		return GF_BAD_PARAM;
 
 #ifndef __SYMBIAN32__
 	//can we write?
@@ -1188,7 +1190,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	}
 #endif
 	if (sock->flags & GF_SOCK_HAS_PEER)
-		res = (s32) recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
+		res = (s32) recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, NULL, NULL);
 	else {
 		res = (s32) recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
 		if (res == 0)
