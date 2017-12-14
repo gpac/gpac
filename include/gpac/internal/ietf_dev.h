@@ -161,6 +161,9 @@ struct __tag_rtp_channel
 	u32 last_SR_rtp_time;
 	/*payload info*/
 	u32 total_pck, total_bytes;
+
+	GF_BitStream *bs;
+
 };
 
 /*gets UTC in the channel RTP timescale*/

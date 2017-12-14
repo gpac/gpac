@@ -1620,6 +1620,8 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 
 	/*remove*/
 	case GF_AVC_NALU_ACCESS_UNIT:
+		*skip_nal = GF_TRUE;
+		return 1;
 	case GF_AVC_NALU_FILLER_DATA:
 	case GF_AVC_NALU_END_OF_SEQ:
 	case GF_AVC_NALU_END_OF_STREAM:
@@ -2071,6 +2073,17 @@ GF_Err naludmx_process(GF_Filter *filter)
 			nal_parse_result = naludmx_parse_nal_avc(ctx, hdr_start, hdr_avail, nal_type, &skip_nal, &is_slice, &is_islice);
 		}
 
+		//new frame
+		if (nal_parse_result>0) {
+			//new frame - we flush later on
+			naludmx_finalize_au_flags(ctx);
+
+			ctx->has_islice = GF_FALSE;
+			ctx->first_slice_in_au = GF_TRUE;
+			ctx->sei_recovery_frame_count = -1;
+			ctx->au_sap = GF_FILTER_SAP_NONE;
+		}
+
 		if (skip_nal) {
 			assert(remain >= sc_size+next);
 			if (next<0) {
@@ -2123,16 +2136,6 @@ GF_Err naludmx_process(GF_Filter *filter)
 			start += sc_size+next;
 			remain -= sc_size+next;
 			continue;
-		}
-		//new frame
-		if (nal_parse_result>0) {
-			//new frame - we flush later on
-			naludmx_finalize_au_flags(ctx);
-
-			ctx->has_islice = GF_FALSE;
-			ctx->first_slice_in_au = GF_TRUE;
-			ctx->sei_recovery_frame_count = -1;
-			ctx->au_sap = GF_FILTER_SAP_NONE;
 		}
 
 		if (is_islice) ctx->has_islice = GF_TRUE;

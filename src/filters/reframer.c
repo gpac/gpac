@@ -104,5 +104,6 @@ GF_FilterRegister ReframerRegister = {
 
 const GF_FilterRegister *reframer_register(GF_FilterSession *session)
 {
-	return &ReframerRegister;
+	return NULL;
+//	return &ReframerRegister;
 }

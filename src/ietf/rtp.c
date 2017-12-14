@@ -39,6 +39,7 @@ GF_RTPChannel *gf_rtp_new()
 		return NULL;
 	tmp->first_SR = 1;
 	tmp->SSRC = gf_rand();
+	tmp->bs = gf_bs_new("d", 1, GF_BITSTREAM_READ);
 	return tmp;
 }
 
@@ -62,6 +63,7 @@ void gf_rtp_del(GF_RTPChannel *ch)
 	if (ch->s_tool) gf_free(ch->s_tool);
 	if (ch->s_note) gf_free(ch->s_note);
 	if (ch->s_priv) gf_free(ch->s_priv);
+	if (ch->bs) gf_bs_del(ch->bs);
 	memset(ch, 0, sizeof(GF_RTPChannel));
 	gf_free(ch);
 }
@@ -291,7 +293,6 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		}
 	}
 
-
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Packet Log Format: SSRC SequenceNumber TimeStamp NTP@recvTime deviance, Jiter, PckLost PckTotal BytesTotal\n"));
@@ -328,7 +329,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch)
 	d = 0.5 + ((Double) gf_rand()) / ((Double) RAND_MAX);
 	/*of a minimal 5sec interval expressed in 1/65536 of a sec*/
 	d = 5.0 * d * 65536;
-	/*we should estimate bandwidth sharing too, but as we only support one sender*/
+	/*we should estimate bandwidth sharing too*/
 	ch->next_report_time = gf_rtp_get_report_time() + (u32) d;
 }
 
@@ -344,7 +345,10 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 	if (!ch || !ch->rtp) return 0;
 
 	e = gf_sk_receive(ch->rtp, buffer, buffer_size, 0, &res);
-	if (!res || e || (res < 12)) res = 0;
+	if (!res || e || (res < 12)) {
+		assert(res==0);
+		res = 0;
+	}
 	if (res) {
 		ch->total_bytes+=res;
 		ch->total_pck++;
@@ -370,7 +374,6 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 			ch->last_nat_keepalive_time = now;
 		} else {
 			if (now - ch->last_nat_keepalive_time >= ch->nat_keepalive_time_period) {
-#if 0
 				char rtp_nat[12];
 				rtp_nat[0] = (u8) 0xC0;
 				rtp_nat[1] = ch->PayloadType;
@@ -384,8 +387,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 				rtp_nat[9] = (ch->SenderSSRC>>16)&0xFF;
 				rtp_nat[10] = (ch->SenderSSRC>>8)&0xFF;
 				rtp_nat[11] = (ch->SenderSSRC)&0xFF;
-#endif
-				e = gf_sk_send(ch->rtp, buffer, 12);
+				e = gf_sk_send(ch->rtp, rtp_nat, 12);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Error sending NAT keep-alive packet: %s - disabling NAT\n", gf_error_to_string(e) ));
 					ch->nat_keepalive_time_period = 0;
