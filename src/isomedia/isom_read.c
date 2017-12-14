@@ -3632,6 +3632,22 @@ void gf_isom_reset_seq_num(GF_ISOFile *movie)
 }
 
 GF_EXPORT
+void gf_isom_reset_sample_count(GF_ISOFile *movie)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	u32 i;
+	if (!movie) return;
+	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
+		trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
+		trak->sample_count_at_seg_start = 0;
+	}
+	movie->NextMoofNumber = 0;
+#endif
+}
+
+
+GF_EXPORT
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance)
 {
 	GF_TrackBox *trak;
