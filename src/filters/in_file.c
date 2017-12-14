@@ -129,7 +129,7 @@ GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char 
 }
 
 
-GF_Err filein_initialize(GF_Filter *filter)
+static GF_Err filein_initialize(GF_Filter *filter)
 {
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 	char *frag_par = NULL;
@@ -189,7 +189,7 @@ GF_Err filein_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-void filein_finalize(GF_Filter *filter)
+static void filein_finalize(GF_Filter *filter)
 {
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
@@ -198,7 +198,7 @@ void filein_finalize(GF_Filter *filter)
 
 }
 
-GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)
+static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)
 {
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
@@ -270,7 +270,7 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 }
 
 
-void filein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+static void filein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 	ctx->pck_out = GF_FALSE;

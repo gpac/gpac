@@ -68,7 +68,7 @@ typedef struct
 
 GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **pid, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size);
 
-GF_Err httpin_initialize(GF_Filter *filter)
+static GF_Err httpin_initialize(GF_Filter *filter)
 {
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 	GF_Err e;
@@ -107,7 +107,7 @@ void httpin_finalize(GF_Filter *filter)
 	if (ctx->cached) gf_fclose(ctx->cached);
 }
 
-GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
+static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
 {
 	if (!strnicmp(url, "http://", 7) ) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "https://", 8) ) return GF_FPROBE_SUPPORTED;

@@ -308,6 +308,9 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 	char szPath[GF_MAX_PATH];
 	GF_PropertyValue argv;
 
+	if (!value) return gf_props_parse_value(type, name, NULL, enum_values);
+
+
 	if (!strnicmp(value, "$GPAC_SHARED", 12)) {
 		if (gf_get_default_shared_directory(szPath)) {
 			strcat(szPath, value+12);
