@@ -516,9 +516,14 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 static void BS_WriteByte(GF_BitStream *bs, u8 val)
 {
 	/*we don't allow write on READ buffers*/
-	if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_FILE_READ) ) return;
-	if (!bs->original && !bs->stream) return;
-
+	if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_FILE_READ) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write on read bitstream\n"));
+		return;
+	}
+	if (!bs->original && !bs->stream) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write on unassigned bitstream\n"));
+		return;
+	}
 	/*we are in MEM mode*/
 	if ( (bs->bsmode == GF_BITSTREAM_WRITE) || (bs->bsmode == GF_BITSTREAM_WRITE_DYN) ) {
 		if (bs->position == bs->size) {
