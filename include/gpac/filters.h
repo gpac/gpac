@@ -278,7 +278,10 @@ typedef struct __gf_filter_register
 	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions
 	u32 private_size;
 	//indicates all calls shall take place in fthe main thread (running GL output) - to be refined
-	Bool requires_main_thread;
+	u8 requires_main_thread;
+	//when set indicates the filter does not take part of dynamic filter chain resolution and can only be used
+	//by explicitly loading the filter
+	u8 explicit_only;
 	//indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1
 	u32 max_extra_pids;
 

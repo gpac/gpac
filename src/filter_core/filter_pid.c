@@ -837,6 +837,12 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 		u32 path_weight=0;
 		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 		if (freg==filter_reg) continue;
+		//filter shall be explicetly loaded
+		if (freg->explicit_only) continue;
+
+		//freg already being tested for this chain
+		if (gf_list_find(filter_chain, (void *) freg)>=0)
+			continue;
 
 		//source filter, can't add pid
 		if (!freg->configure_pid) continue;
@@ -902,6 +908,8 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 
 		//source filter, can't add pid
 		if (!freg->configure_pid) continue;
+		//freg shall be instantiated 
+		if (freg->explicit_only) continue;
 
 		//blacklisted filter, can't add pid
 		if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0)
