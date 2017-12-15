@@ -2539,9 +2539,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				92061A841FE0484500B5C464 /* reframer.c */,
-				92061A821FDFB14800B5C464 /* write_adts.c */,
-				9234CF4C1FD8344500CCDFA1 /* in_rtp */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -2575,6 +2572,7 @@
 				92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */,
 				92BB855A1F7BFB61009BC9C8 /* in_file.c */,
 				92BB855E1F7BFB61009BC9C8 /* in_http.c */,
+				9234CF4C1FD8344500CCDFA1 /* in_rtp */,
 				926656C91F836DE200299CC6 /* in_udp.c */,
 				92BB855F1F7BFB62009BC9C8 /* inspect.c */,
 				92BB85641F7BFB63009BC9C8 /* isoffin_load.c */,
@@ -2586,6 +2584,7 @@
 				92BB85591F7BFB61009BC9C8 /* load_svg.c */,
 				9290F5101FAB4C2C0038C30D /* mux_isom.c */,
 				9289D9F41FDEFFCD00C24F83 /* out_file.c */,
+				92061A841FE0484500B5C464 /* reframer.c */,
 				92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */,
 				92BB85561F7BFB60009BC9C8 /* reframe_adts.c */,
 				92BB85841F7C606A009BC9C8 /* reframe_amr.c */,
@@ -2596,6 +2595,7 @@
 				92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */,
 				92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
+				92061A821FDFB14800B5C464 /* write_adts.c */,
 			);
 			name = filters;
 			sourceTree = "<group>";
@@ -4053,7 +4053,7 @@
 					"-lvorbis",
 					"-ltheora",
 					"-lOpenSVCDec",
-					"-lLibOpenHevcWrapper",
+					"-lopenhevc",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -4155,7 +4155,7 @@
 					"-lvorbis",
 					"-ltheora",
 					"-lOpenSVCDec",
-					"-lLibOpenHevcWrapper",
+					"-lopenhevc",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -4764,7 +4764,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = "-lLibOpenHevcWrapper";
+				OTHER_LDFLAGS = "-lopenhevc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -4797,7 +4797,7 @@
 					/opt/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				OTHER_LDFLAGS = "-lLibOpenHevcWrapper";
+				OTHER_LDFLAGS = "-lopenhevc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};

@@ -351,7 +351,7 @@ static SAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVis
 	return RAP_NO;
 }
 
-static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal_unit_size_field, GF_MPEGVisualSampleEntryBox *entry, Bool is_hevc)
+static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal_unit_size_field, GF_MPEGVisualSampleEntryBox *entry, Bool is_hevc, Bool *has_vps)
 {
 	u32 i, count;
 	if (is_hevc) {
@@ -359,6 +359,10 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 			count = gf_list_count(entry->hevc_config->config->param_array);
 			for (i=0; i<count; i++) {
 				GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(entry->hevc_config->config->param_array, i);
+				if (ar->type == GF_HEVC_NALU_VID_PARAM) {
+					if (! *has_vps)  *has_vps = GF_TRUE;
+					else continue;
+				}
 				rewrite_nalus_list(ar->nalus, ps_bs, rewrite_start_codes, nal_unit_size_field);
 			}
 		}
@@ -366,6 +370,10 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 			count = gf_list_count(entry->lhvc_config->config->param_array);
 			for (i=0; i<count; i++) {
 				GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(entry->lhvc_config->config->param_array, i);
+				if (ar->type == GF_HEVC_NALU_VID_PARAM) {
+					if (! *has_vps)  *has_vps = GF_TRUE;
+					else continue;
+				}
 				rewrite_nalus_list(ar->nalus, ps_bs, rewrite_start_codes, nal_unit_size_field);
 			}
 		}
@@ -397,7 +405,9 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 //	Bool check_cra_bla = (mdia->information->sampleTable->SyncSample && mdia->information->sampleTable->SyncSample->nb_entries>1) ? 0 : 1;
 	Bool check_cra_bla = GF_TRUE;
 	Bool insert_nalu_delim = GF_TRUE;
+	Bool force_sei_inspect = GF_FALSE;
 	GF_Err e = GF_OK;
+	GF_BitStream *sei_suffix_bs = NULL;
 	Bool ps_transfered = GF_FALSE;
 	u32 nal_size, nal_unit_size_field, extractor_mode;
 	Bool rewrite_ps, rewrite_start_codes, insert_vdrd_code;
@@ -438,7 +448,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 						base_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di);
 						if (base_samp && base_samp->data) {
-							sample->data = gf_realloc(sample->data, sample->dataLength+base_samp->dataLength);
+							if (!sample->alloc_size || (sample->alloc_size<sample->dataLength+base_samp->dataLength) ) {
+								sample->data = gf_realloc(sample->data, sample->dataLength+base_samp->dataLength);
+								if (sample->alloc_size) sample->alloc_size = sample->dataLength+base_samp->dataLength;
+							}
 							memmove(sample->data + base_samp->dataLength, sample->data , sample->dataLength);
 							memcpy(sample->data, base_samp->data, base_samp->dataLength);
 							sample->dataLength += base_samp->dataLength;
@@ -453,12 +466,16 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 		sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
 		if ((s32) sabt_ref > 0) {
+			force_sei_inspect = GF_TRUE;
 			for (i=0; i<sabt_ref; i++) {
 				GF_ISOSample *tile_samp;
 				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
 				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di);
 				if (tile_samp  && tile_samp ->data) {
-					sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
+					if (!sample->alloc_size || (sample->alloc_size<sample->dataLength+tile_samp->dataLength) ) {
+						sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
+						if (sample->alloc_size) sample->alloc_size = sample->dataLength+tile_samp->dataLength;
+					}
 					memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
 					sample->dataLength += tile_samp->dataLength;
 				}
@@ -513,7 +530,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 
 	/*otherwise do nothing*/
-	else if (!rewrite_ps && !rewrite_start_codes && !scal) {
+	else if (!rewrite_ps && !rewrite_start_codes && !scal && !force_sei_inspect) {
 		return GF_OK;
 	}
 
@@ -547,8 +564,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		if (e) return e;
 	}
 	//setup ouput
-	if (!mdia->nalu_out_bs)
+	if (!mdia->nalu_out_bs) {
+		char *output;
+		u32 outSize;
 		mdia->nalu_out_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_get_content(mdia->nalu_out_bs, &output, &outSize);
+	}
 
 	gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
 
@@ -589,6 +610,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 
 	if (rewrite_ps) {
+		Bool has_vps = GF_FALSE;
 		//in inspect mode or single-layer mode just use the xPS from this layer
 		if (extractor_mode == GF_ISOM_NALU_EXTRACT_DEFAULT) {
 			u32 i;
@@ -601,11 +623,11 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 						an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 
 					if (an_entry)
-						nalu_merge_ps(mdia->nalu_ps_bs, rewrite_start_codes, nal_unit_size_field, an_entry, is_hevc);
+						nalu_merge_ps(mdia->nalu_ps_bs, rewrite_start_codes, nal_unit_size_field, an_entry, is_hevc, &has_vps);
 				}
 			}
 		}
-		nalu_merge_ps(mdia->nalu_ps_bs, rewrite_start_codes, nal_unit_size_field, entry, is_hevc);
+		nalu_merge_ps(mdia->nalu_ps_bs, rewrite_start_codes, nal_unit_size_field, entry, is_hevc, &has_vps);
 
 
 		if (is_hevc) {
@@ -630,13 +652,16 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				}
 				gf_bs_write_data(mdia->nalu_out_bs, mdia->in_sample_buffer, sample->dataLength);
 				gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
+
 				return GF_OK;
 			}
 		}
+	} else {
+		ps_transfered = GF_TRUE;
 	}
 
 	/*little optimization if we are not asked to rewrite extractors or start codes: copy over the sample*/
-	if (!scal && !rewrite_start_codes && !rewrite_ps) {
+	if (!scal && !rewrite_start_codes && !rewrite_ps && !force_sei_inspect) {
 		if (! ps_transfered)
 		{
 			gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
@@ -651,6 +676,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		mdia->tmp_nal_copy_buffer = gf_malloc(sizeof(char) * 4096);
 		mdia->tmp_nal_copy_buffer_alloc = 4096;
 	}
+
 
 	while (gf_bs_available(mdia->nalu_parser)) {
 		nal_size = gf_bs_read_int(mdia->nalu_parser, 8*nal_unit_size_field);
@@ -671,6 +697,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 
 		if (is_hevc) {
+			GF_BitStream *write_to_bs = mdia->nalu_out_bs;
 			if (!ps_transfered) {
 				gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
 				ps_transfered = GF_TRUE;
@@ -724,7 +751,14 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
 				}
+
 				gf_bs_read_data(mdia->nalu_parser, mdia->tmp_nal_copy_buffer, nal_size-2);
+
+				if (nal_type==GF_HEVC_NALU_SEI_SUFFIX) {
+					if (!sei_suffix_bs) sei_suffix_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					write_to_bs = sei_suffix_bs;
+				}
+
 				if (rewrite_start_codes)
 					gf_bs_write_u32(mdia->nalu_out_bs, 1);
 				else
@@ -774,6 +808,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 	}
 
+	if (sei_suffix_bs) {
+		gf_bs_transfer(mdia->nalu_out_bs, sei_suffix_bs, GF_FALSE);
+		gf_bs_del(sei_suffix_bs);
+	}
 	/*done*/
 	gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
 
