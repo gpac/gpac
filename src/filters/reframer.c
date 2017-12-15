@@ -73,10 +73,11 @@ GF_Err reframer_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+//input caps are explicit only for reframer, so we don't load the reframer during resolution process
 static const GF_FilterCapability ReframerInputs[] =
 {
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{ .code=GF_PROP_PID_STREAM_TYPE, .val=PROP_UINT(GF_STREAM_FILE), .exclude=1, .in_bundle=1, .explicit_only=1 },
+	{ .code=GF_PROP_PID_UNFRAMED, .val=PROP_BOOL(GF_TRUE), .exclude=1, .in_bundle=1, .explicit_only=1 },
 	{}
 };
 
