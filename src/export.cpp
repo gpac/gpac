@@ -841,6 +841,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_rvc_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_rap_roll_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_fragment_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_sample_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_seq_num) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_original_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_nalu_extract_mode) )

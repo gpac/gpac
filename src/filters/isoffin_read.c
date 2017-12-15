@@ -483,8 +483,12 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? GF_TRUE : GF_FALSE;
 	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
-	if (!track || !gf_isom_is_track_encrypted(read->mov, track)) return ch;
-
+	if (!track || !gf_isom_is_track_encrypted(read->mov, track)) {
+		if (ch->nalu_extract_mode) {
+			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
+		}
+		return ch;
+	}
 	ch->is_encrypted = GF_TRUE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(p->value.uint) );

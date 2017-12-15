@@ -31,23 +31,12 @@
 #if defined(GPAC_HAS_OPENHEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 
 #include <gpac/internal/media_dev.h>
-#include <openHevcWrapper.h>
-
-
-#ifdef OPENHEVC_HAS_AVC_BASE
-#undef  OPENHEVC_HAS_AVC_BASE
-#endif
+#include <libopenhevc/openhevc.h>
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
-#  pragma comment(lib, "libLibOpenHevcWrapper")
-
-#if !defined _WIN64
-void libOpenHevcSetViewLayers(OpenHevc_Handle codec, int val)
-{
-}
+#  pragma comment(lib, "openhevc")
 #endif
 
-#endif
 
 #define HEVC_MAX_STREAMS 2
 
@@ -95,7 +84,7 @@ typedef struct
 	Bool has_pic;
 	Bool probe_layers;
 
-	OpenHevc_Handle codec;
+	OHHandle codec;
 	u32 nb_layers, cur_layer;
 
 	Bool decoder_started;
@@ -115,7 +104,7 @@ typedef struct
 	Bool force_stereo_reset;
 
 	GF_FilterHWFrame hw_frame;
-	OpenHevc_Frame frame_ptr;
+	OHFrame frame_ptr;
 	Bool frame_out;
 
 	char *reaggregation_buffer;
@@ -135,8 +124,8 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	if (!dsi || !dsi->value.data.size) {
 		ctx->nb_layers++;
 		ctx->cur_layer++;
-		libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
-		libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
+		oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
+		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 		return GF_OK;
 	}
 	//FIXME in isomedia this should be an LHCC, not an HVCC
@@ -153,13 +142,13 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	
 	ctx->nb_layers++;
 	ctx->cur_layer++;
-	libOpenHevcSetActiveDecoders(ctx->codec, ctx->nb_layers-1);
-	libOpenHevcSetViewLayers(ctx->codec, ctx->nb_layers-1);
+	oh_select_active_layer(ctx->codec, ctx->nb_layers-1);
+	oh_select_view_layer(ctx->codec, ctx->nb_layers-1);
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	//LHVC mode with base AVC layer: set extradata for LHVC
 	if (ctx->avc_base_id) {
-		libOpenShvcCopyExtraData(ctx->codec, NULL, (u8 *) dsi->value.data.ptr, 0, dsi->value.data.size);
+		oh_extradata_cpy_lhvc(ctx->codec, NULL, (u8 *) dsi->value.data.ptr, 0, dsi->value.data.size);
 	} else
 #endif
 	//LHVC mode with base HEVC layer: decode the LHVC SPS/PPS/VPS
@@ -178,11 +167,11 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 		gf_bs_del(bs);
 		//the decoder may not be already started
 		if (!ctx->decoder_started) {
-			libOpenHevcStartDecoder(ctx->codec);
+			oh_start(ctx->codec);
 			ctx->decoder_started=1;
 		}
 		
-		libOpenHevcDecode(ctx->codec, (u8 *)data, data_len, 0);
+		oh_decode(ctx->codec, (u8 *)data, data_len, 0);
 		gf_free(data);
 	}
 	gf_odf_hevc_cfg_del(cfg);
@@ -232,7 +221,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			if (ctx->opid) gf_filter_pid_remove(ctx->opid);
 			ctx->opid = NULL;
 			ctx->nb_streams = 0;
-			if (ctx->codec) libOpenHevcClose(ctx->codec);
+			if (ctx->codec) oh_close(ctx->codec);
 			ctx->codec = NULL;
 			return GF_OK;
 		} else {
@@ -346,7 +335,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	
 	if (dsi && dsi->value.data.size) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
-		if (oti==GF_CODECID_AVC) {
+		if (codecid==GF_CODECID_AVC) {
 			GF_AVCConfig *avcc = NULL;
 			AVCState avc;
 			memset(&avc, 0, sizeof(AVCState));
@@ -417,42 +406,42 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	if (ctx->avc_base_id) {
-		ctx->codec = libOpenShvcInit(ctx->nb_threads, ctx->threading);
+		ctx->codec = oh_init_lhvc(ctx->nb_threads, ctx->threading);
 	} else
 #endif
 	{
-		ctx->codec = libOpenHevcInit(ctx->nb_threads, ctx->threading);
+		ctx->codec = oh_init(ctx->nb_threads, ctx->threading);
 	}
 
 #if defined(OPENHEVC_HAS_AVC_BASE) && !defined(GPAC_DISABLE_LOG)
 	if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_DEBUG) ) {
-		libOpenHevcSetDebugMode(ctx->codec, OHEVC_LOG_DEBUG);
+		oh_set_log_level(ctx->codec, OHEVC_LOG_DEBUG);
 	} else if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_INFO) ) {
-		libOpenHevcSetDebugMode(ctx->codec, OHEVC_LOG_INFO);
+		oh_set_log_level(ctx->codec, OHEVC_LOG_INFO);
 	} else if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_WARNING) ) {
-		libOpenHevcSetDebugMode(ctx->codec, OHEVC_LOG_WARNING);
+		oh_set_log_level(ctx->codec, OHEVC_LOG_WARNING);
 	} else {
-		libOpenHevcSetDebugMode(ctx->codec, OHEVC_LOG_ERROR);
+		oh_set_log_level(ctx->codec, OHEVC_LOG_ERROR);
 	}
-	libOpenHevcSetLogCallback(ctx->codec, openhevc_log_callback);
+	oh_set_log_callback(ctx->codec, openhevc_log_callback);
 #endif
 
 	if (dsi) {
 		if (has_scalable) {
 			ctx->cur_layer = ctx->nb_layers;
-			libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
-			libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
+			oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
+			oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 		} else {
-			libOpenHevcSetActiveDecoders(ctx->codec, 1);
-			libOpenHevcSetViewLayers(ctx->codec, 0);
+			oh_select_active_layer(ctx->codec, 1);
+			oh_select_view_layer(ctx->codec, 0);
 		}
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
-			libOpenShvcCopyExtraData(ctx->codec, (u8 *) dsi->value.data.ptr, NULL, dsi->value.data.size, 0);
+			oh_extradata_cpy_lhvc(ctx->codec, (u8 *) dsi->value.data.ptr, NULL, dsi->value.data.size, 0);
 		} else
 #endif
-			libOpenHevcCopyExtraData(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
+			oh_extradata_cpy(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
 	}else{
 		//decode and display layer 0 by default - will be changed when attaching enhancement layers
 
@@ -462,8 +451,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->nb_layers = 2;
 			ctx->cur_layer = 2;
 		}
-		libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
-		libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
+		oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
+		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 	}
 
 	//in case we don't have a config record
@@ -513,8 +502,8 @@ static Bool ohevcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt
 			if (ctx->cur_layer<=1) return GF_FALSE;
 			ctx->cur_layer--;
 		}
-		libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
-		libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
+		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
+		oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
 		if (ctx->is_multiview)
 			ctx->force_stereo_reset = ctx->force_stereo;
 
@@ -528,7 +517,7 @@ static Bool ohevcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt
 			u32 nl = ctx->nb_layers;
 
 			//quick hack, we have an issue with openHEVC resuming after being flushed ...
-			libOpenHevcClose(ctx->codec);
+			oh_close(ctx->codec);
 			ctx->codec = NULL;
 			ctx->decoder_started = GF_FALSE;
 			for (i=0; i<ctx->nb_streams; i++) {
@@ -537,8 +526,8 @@ static Bool ohevcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt
 			ctx->cur_layer = cl;
 			ctx->nb_layers = nl;
 			if (ctx->codec) {
-				libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
-				libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
+				oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
+				oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 			}
 		}
 	}
@@ -563,14 +552,14 @@ GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **o
 
 	e = GF_OK;
 	if (plane_idx==0) {
-		*outPlane = (const u8 *) ctx->frame_ptr.pvY;
-		*outStride = ctx->frame_ptr.frameInfo.nYPitch;
+		*outPlane = (const u8 *) ctx->frame_ptr.data_y_p;
+		*outStride = ctx->frame_ptr.frame_par.linesize_y;
 	} else if (plane_idx==1) {
-		*outPlane = (const u8 *)  ctx->frame_ptr.pvU;
-		*outStride = ctx->frame_ptr.frameInfo.nUPitch;
+		*outPlane = (const u8 *)  ctx->frame_ptr.data_cb_p;
+		*outStride = ctx->frame_ptr.frame_par.linesize_cb;
 	} else if (plane_idx==2) {
-		*outPlane = (const u8 *)  ctx->frame_ptr.pvV;
-		*outStride = ctx->frame_ptr.frameInfo.nVPitch;
+		*outPlane = (const u8 *)  ctx->frame_ptr.data_cr_p;
+		*outStride = ctx->frame_ptr.frame_par.linesize_cr;
 	} else
 		return GF_BAD_PARAM;
 
@@ -593,10 +582,10 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	ctx->hw_frame.get_plane = ohevcframe_get_plane;
 	//we only keep one frame out, force releasing it
 	ctx->hw_frame.hardware_reset_pending = GF_TRUE;
-	libOpenHevcGetOutput(ctx->codec, 1, &ctx->frame_ptr);
+	oh_output_update(ctx->codec, 1, &ctx->frame_ptr);
 
 	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &ctx->hw_frame, ohevcframe_release);
-	gf_filter_pck_set_cts(dst_pck, ctx->frame_ptr.frameInfo.nTimeStamp);
+	gf_filter_pck_set_cts(dst_pck, ctx->frame_ptr.frame_par.pts);
 	if (ctx->frame_infos_size) {
 		gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
 		gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
@@ -613,22 +602,22 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	char *data;
 	u32 a_w, a_h, a_stride, bit_depth;
 	u64 cts;
-	OpenHevc_Frame_cpy openHevcFrame_FL, openHevcFrame_SL;
+	OHFrame_cpy openHevcFrame_FL, openHevcFrame_SL;
 	int chromat_format;
 
 	if (ctx->no_copy && !ctx->pack_hfr) {
-		libOpenHevcGetPictureInfo(ctx->codec, &openHevcFrame_FL.frameInfo);
+		oh_frameinfo_update(ctx->codec, &openHevcFrame_FL.frame_par);
 	} else {
-		libOpenHevcGetPictureInfoCpy(ctx->codec, &openHevcFrame_FL.frameInfo);
-		if (ctx->nb_layers == 2) libOpenHevcGetPictureInfoCpy(ctx->codec, &openHevcFrame_SL.frameInfo);
+		oh_cropped_frameinfo(ctx->codec, &openHevcFrame_FL.frame_par);
+		if (ctx->nb_layers == 2) oh_cropped_frameinfo_from_layer(ctx->codec, &openHevcFrame_SL.frame_par, 1);
 	}
 
-	a_w = openHevcFrame_FL.frameInfo.nWidth;
-	a_h = openHevcFrame_FL.frameInfo.nHeight;
-	a_stride = openHevcFrame_FL.frameInfo.nYPitch;
-	bit_depth = openHevcFrame_FL.frameInfo.nBitDepth;
-	chromat_format = openHevcFrame_FL.frameInfo.chromat_format;
-	cts = (u32) openHevcFrame_FL.frameInfo.nTimeStamp;
+	a_w = openHevcFrame_FL.frame_par.width;
+	a_h = openHevcFrame_FL.frame_par.height;
+	a_stride = openHevcFrame_FL.frame_par.linesize_y;
+	bit_depth = openHevcFrame_FL.frame_par.bitdepth;
+	chromat_format = openHevcFrame_FL.frame_par.chromat_format;
+	cts = (u32) openHevcFrame_FL.frame_par.pts;
 
 	while (cts && ctx->frame_infos_size && (cts != ctx->frame_infos[0].cts) ) {
 		ohevcdec_drop_frameinfo(ctx);
@@ -641,23 +630,23 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 	if (ctx->force_stereo_reset || !ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)
 		|| (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1))
-		|| (ctx->sar.num*openHevcFrame_FL.frameInfo.sample_aspect_ratio.den != ctx->sar.den*openHevcFrame_FL.frameInfo.sample_aspect_ratio.num)
+		|| (ctx->sar.num*openHevcFrame_FL.frame_par.sample_aspect_ratio.den != ctx->sar.den*openHevcFrame_FL.frame_par.sample_aspect_ratio.num)
 	 ) {
 		u32 pixfmt;
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
-		if( chromat_format == YUV420 ) {
+		if( chromat_format == OH_YUV420 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-		} else if  ( chromat_format == YUV422 ) {
+		} else if  ( chromat_format == OH_YUV422 ) {
 			ctx->out_size = ctx->stride * ctx->height * 2;
-		} else if ( chromat_format == YUV444 ) {
+		} else if ( chromat_format == OH_YUV444 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3;
 		} 
 		ctx->luma_bpp = ctx->chroma_bpp = bit_depth;
 		ctx->chroma_format_idc = chromat_format + 1;
-		ctx->sar.num = openHevcFrame_FL.frameInfo.sample_aspect_ratio.num;
-		ctx->sar.den = openHevcFrame_FL.frameInfo.sample_aspect_ratio.den;
+		ctx->sar.num = openHevcFrame_FL.frame_par.sample_aspect_ratio.num;
+		ctx->sar.den = openHevcFrame_FL.frame_par.sample_aspect_ratio.den;
 		if (!ctx->sar.num) ctx->sar.num = ctx->sar.den = 1;
 
 		if (ctx->pack_hfr) {
@@ -688,7 +677,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 
 	if (ctx->pack_hfr) {
-		OpenHevc_Frame openHFrame;
+		OHFrame openHFrame;
 		u8 *pY, *pU, *pV;
 		u32 idx_w, idx_h;
 
@@ -706,10 +695,10 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		ohevcdec_drop_frameinfo(ctx);
 		pY = (u8*) (ctx->packed_data + idx_h + idx_w );
 
-		if (chromat_format == YUV422) {
+		if (chromat_format == OH_YUV422) {
 			pU = (u8*)(ctx->packed_data + 4 * ctx->stride  * ctx->height + idx_w / 2 + idx_h / 2);
 			pV = (u8*)(ctx->packed_data + 4 * (3 * ctx->stride * ctx->height /2)  + idx_w / 2 + idx_h / 2);
-		} else if (chromat_format == YUV444) {
+		} else if (chromat_format == OH_YUV444) {
 			pU = (u8*)(ctx->packed_data + 4 * ctx->stride * ctx->height + idx_w + idx_h);
 			pV = (u8*)(ctx->packed_data + 4 * ( 2 * ctx->stride * ctx->height) + idx_w + idx_h);
 		} else {
@@ -718,10 +707,10 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		
 		}
 
-		if (libOpenHevcGetOutput(ctx->codec, 1, &openHFrame)) {
+		if (oh_output_update(ctx->codec, 1, &openHFrame)) {
 			u32 i, s_stride, hs_stride, qs_stride, d_stride, dd_stride, hd_stride;
 
-			s_stride = openHFrame.frameInfo.nYPitch;
+			s_stride = openHFrame.frame_par.linesize_y;
 			qs_stride = s_stride / 4;
 			hs_stride = s_stride / 2;
 
@@ -729,38 +718,38 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 			dd_stride = 2*ctx->stride;
 			hd_stride = ctx->stride/2;
 
-			if (chromat_format == YUV422) {
+			if (chromat_format == OH_YUV422) {
 				for (i = 0; i < ctx->height; i++) {
-					memcpy(pY, (u8 *)openHFrame.pvY + i*s_stride, d_stride);
+					memcpy(pY, (u8 *)openHFrame.data_y_p + i*s_stride, d_stride);
 					pY += dd_stride;
 
-					memcpy(pU, (u8 *)openHFrame.pvU + i*hs_stride, hd_stride);
+					memcpy(pU, (u8 *)openHFrame.data_cb_p + i*hs_stride, hd_stride);
 					pU += d_stride;
 
-					memcpy(pV, (u8 *)openHFrame.pvV + i*hs_stride, hd_stride);
+					memcpy(pV, (u8 *)openHFrame.data_cr_p + i*hs_stride, hd_stride);
 					pV += d_stride;
 				}
-			} else if (chromat_format == YUV444) {
+			} else if (chromat_format == OH_YUV444) {
 				for (i = 0; i < ctx->height; i++) {
-					memcpy(pY, (u8 *)openHFrame.pvY + i*s_stride, d_stride);
+					memcpy(pY, (u8 *)openHFrame.data_y_p + i*s_stride, d_stride);
 					pY += dd_stride;
 
-					memcpy(pU, (u8 *)openHFrame.pvU + i*s_stride, d_stride);
+					memcpy(pU, (u8 *)openHFrame.data_cb_p + i*s_stride, d_stride);
 					pU += dd_stride;
 
-					memcpy(pV, (u8 *)openHFrame.pvV + i*s_stride, d_stride);
+					memcpy(pV, (u8 *)openHFrame.data_cr_p + i*s_stride, d_stride);
 					pV += dd_stride;
 				}
 			} else {
 				for (i = 0; i<ctx->height; i++) {
-					memcpy(pY, (u8 *)openHFrame.pvY + i*s_stride, d_stride);
+					memcpy(pY, (u8 *)openHFrame.data_y_p + i*s_stride, d_stride);
 					pY += dd_stride;
 
 					if (!(i % 2)) {
-						memcpy(pU, (u8 *)openHFrame.pvU + i*qs_stride, hd_stride);
+						memcpy(pU, (u8 *)openHFrame.data_cb_p + i*qs_stride, hd_stride);
 						pU += d_stride;
 
-						memcpy(pV, (u8 *)openHFrame.pvV + i*qs_stride, hd_stride);
+						memcpy(pV, (u8 *)openHFrame.data_cr_p + i*qs_stride, hd_stride);
 						pV += d_stride;
 					}
 				}
@@ -778,37 +767,37 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &data);
 
-	openHevcFrame_FL.pvY = (void*) data;
+	openHevcFrame_FL.data_y = (void*) data;
 
 	if (ctx->nb_layers==2 && ctx->is_multiview && !ctx->no_copy){
 		int out1, out2;
-		if( chromat_format == YUV420){
-			openHevcFrame_SL.pvY = (void*) (data +  ctx->stride * ctx->height);
-			openHevcFrame_FL.pvU = (void*) (data + 2*ctx->stride * ctx->height);
-			openHevcFrame_SL.pvU = (void*) (data +  9*ctx->stride * ctx->height/4);
-			openHevcFrame_FL.pvV = (void*) (data + 5*ctx->stride * ctx->height/2);
-			openHevcFrame_SL.pvV = (void*) (data + 11*ctx->stride * ctx->height/4);
+		if( chromat_format == OH_YUV420){
+			openHevcFrame_SL.data_y = (void*) (data +  ctx->stride * ctx->height);
+			openHevcFrame_FL.data_cb = (void*) (data + 2*ctx->stride * ctx->height);
+			openHevcFrame_SL.data_cb = (void*) (data +  9*ctx->stride * ctx->height/4);
+			openHevcFrame_FL.data_cr = (void*) (data + 5*ctx->stride * ctx->height/2);
+			openHevcFrame_SL.data_cr = (void*) (data + 11*ctx->stride * ctx->height/4);
 		}
 
-		libOpenHevcSetViewLayers(ctx->codec, 0);
-		out1 = libOpenHevcGetOutputCpy(ctx->codec, 1, &openHevcFrame_FL);
-		libOpenHevcSetViewLayers(ctx->codec, 1);
-		out2 = libOpenHevcGetOutputCpy(ctx->codec, 1, &openHevcFrame_SL);
+		oh_select_view_layer(ctx->codec, 0);
+		out1 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL);
+		oh_select_view_layer(ctx->codec, 1);
+		out2 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_SL);
 		
 		gf_filter_pck_set_cts(pck, cts);
 		gf_filter_pck_send(pck);
 
 	} else {
-		openHevcFrame_FL.pvU = (void*) (data + ctx->stride * ctx->height);
-		if( chromat_format == YUV420) {
-			openHevcFrame_FL.pvV = (void*) (data + 5*ctx->stride * ctx->height/4);
-		} else if (chromat_format == YUV422) {
-			openHevcFrame_FL.pvV = (void*) (data + 3*ctx->stride * ctx->height/2);
-		} else if ( chromat_format == YUV444) {
-			openHevcFrame_FL.pvV = (void*) (data + 2*ctx->stride * ctx->height);
+		openHevcFrame_FL.data_cb = (void*) (data + ctx->stride * ctx->height);
+		if( chromat_format == OH_YUV420) {
+			openHevcFrame_FL.data_cr = (void*) (data + 5*ctx->stride * ctx->height/4);
+		} else if (chromat_format == OH_YUV422) {
+			openHevcFrame_FL.data_cr = (void*) (data + 3*ctx->stride * ctx->height/2);
+		} else if ( chromat_format == OH_YUV444) {
+			openHevcFrame_FL.data_cr = (void*) (data + 2*ctx->stride * ctx->height);
 		}
 
-		if (libOpenHevcGetOutputCpy(ctx->codec, 1, &openHevcFrame_FL)) {
+		if (oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL)) {
 			gf_filter_pck_set_cts(pck, cts);
 			if (ctx->frame_infos_size) {
 				gf_filter_pck_set_duration(pck, ctx->frame_infos[0].duration);
@@ -836,7 +825,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	if (ctx->frame_out) return GF_EOS;
 
 	if (!ctx->decoder_started) {
-		libOpenHevcStartDecoder(ctx->codec);
+		oh_start(ctx->codec);
 		ctx->decoder_started=1;
 	}
 
@@ -876,10 +865,10 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	if (nb_eos == ctx->nb_streams) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id)
-			got_pic = libOpenShvcDecode2(ctx->codec, NULL, NULL, 0, 0, 0, 0);
+			got_pic = oh_decode_lhvc(ctx->codec, NULL, NULL, 0, 0, 0, 0);
 		else
 #endif
-			got_pic = libOpenHevcDecode(ctx->codec, NULL, 0, 0);
+			got_pic = oh_decode(ctx->codec, NULL, 0, 0);
 
 		if ( got_pic ) {
 			return ohevcdec_flush_picture(ctx);
@@ -949,9 +938,9 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
 			if (ctx->avc_base_id == ctx->streams[idx].id) {
-				got_pic = libOpenShvcDecode2(ctx->codec, (u8 *) data, NULL, data_size, 0, cts, 0);
+				got_pic = oh_decode_lhvc(ctx->codec, (u8 *) data, NULL, data_size, 0, cts, 0);
 			} else if (ctx->cur_layer>1) {
-				got_pic = libOpenShvcDecode2(ctx->codec, (u8*)NULL, (u8 *) data, 0, data_size, 0, cts);
+				got_pic = oh_decode_lhvc(ctx->codec, (u8*)NULL, (u8 *) data, 0, data_size, 0, cts);
 			}
 		} else
 #endif
@@ -973,8 +962,8 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 					if (layer_id>0) {
 						ctx->nb_layers = ctx->cur_layer = 2;
 						ctx->probe_layers = GF_FALSE;
-						libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
-						libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
+						oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
+						oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 						ohevcdec_set_codec_name(filter);
 						break;
 					}
@@ -988,11 +977,11 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 				memcpy(ctx->reaggregation_buffer + ctx->reaggregation_size, data, sizeof(char)*data_size);
 				ctx->reaggregation_size += data_size;
 				if (idx+1 == ctx->nb_streams) {
-					got_pic = libOpenHevcDecode(ctx->codec, (u8 *) ctx->reaggregation_buffer, ctx->reaggregation_size, cts);
+					got_pic = oh_decode(ctx->codec, (u8 *) ctx->reaggregation_buffer, ctx->reaggregation_size, cts);
 					ctx->reaggregation_size = 0;
 				}
 			} else {
-				got_pic = libOpenHevcDecode(ctx->codec, (u8 *) data, data_size, cts);
+				got_pic = oh_decode(ctx->codec, (u8 *) data, data_size, cts);
 			}
 		}
 		if (got_pic)
@@ -1025,7 +1014,7 @@ static void ohevcdec_finalize(GF_Filter *filter)
 {
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *) gf_filter_get_udta(filter);
 	if (ctx->frame_infos) gf_free(ctx->frame_infos);
-	if (ctx->codec) libOpenHevcClose(ctx->codec);
+	if (ctx->codec) oh_close(ctx->codec);
 	if (ctx->reaggregation_buffer) gf_free(ctx->reaggregation_buffer);
 }
 
