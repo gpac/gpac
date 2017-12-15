@@ -88,8 +88,6 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 	GF_Err e;
 	u32 di, ref_track_index, ref_track_num, data_offset, data_length, cur_extract_mode, ref_extract_mode, ref_nalu_size, nb_bytes_nalh;
 	GF_TrackReferenceTypeBox *dpnd;
-	GF_ISOSample *ref_samp;
-	GF_BitStream *ref_bs;
 	GF_TrackBox *ref_trak;
 	s8 sample_offset;
 	u32 last_byte, ref_sample_num, prev_ref_sample_num;
@@ -150,8 +148,14 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			ref_trak = gf_isom_get_track_from_file(file, ref_track_num);
 			if (!ref_trak) return GF_ISOM_INVALID_FILE;
 
-			ref_samp = gf_isom_sample_new();
-			if (!ref_samp) return GF_IO_ERR;
+			if (!mdia->extracted_samp) {
+				mdia->extracted_samp = gf_isom_sample_new();
+				if (!mdia->extracted_samp) return GF_IO_ERR;
+			}
+			if (!mdia->extracted_bs) {
+				mdia->extracted_bs = gf_bs_new("a", 1, GF_BITSTREAM_READ);
+				if (!mdia->extracted_bs) return GF_IO_ERR;
+			}
 
 			e = stbl_findEntryForTime(ref_trak->Media->information->sampleTable, sampleDTS, 0, &ref_sample_num, &prev_ref_sample_num);
 			if (e) return e;
@@ -160,9 +164,10 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			if ((sample_offset<0) && (ref_sample_num > (u32) -sample_offset)) return GF_ISOM_INVALID_FILE;
 			ref_sample_num = (u32) ( (s32) ref_sample_num + sample_offset);
 
-			e = Media_GetSample(ref_trak->Media, ref_sample_num, &ref_samp, &di, GF_FALSE, NULL);
+			e = Media_GetSample(ref_trak->Media, ref_sample_num, &mdia->extracted_samp, &di, GF_FALSE, NULL);
 			if (e) return e;
-
+			if (!mdia->extracted_samp->alloc_size)
+				mdia->extracted_samp->alloc_size = mdia->extracted_samp->dataLength;
 #if 0
 			if (!header_written && rewrite_start_codes) {
 				gf_bs_write_int(dst_bs, 1, 32);
@@ -179,21 +184,21 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 				}
 			}
 #endif
-			ref_bs = gf_bs_new(ref_samp->data + data_offset, ref_samp->dataLength - data_offset, GF_BITSTREAM_READ);
+			gf_bs_reassign_buffer(mdia->extracted_bs, mdia->extracted_samp->data + data_offset, mdia->extracted_samp->dataLength - data_offset);
 
-			if (ref_samp->dataLength - data_offset >= data_length) {
+			if (mdia->extracted_samp->dataLength - data_offset >= data_length) {
 
-				while (data_length && gf_bs_available(ref_bs)) {
+				while (data_length && gf_bs_available(mdia->extracted_bs)) {
 					if (!header_written) {
-						ref_nalu_size = gf_bs_read_int(ref_bs, 8*nal_unit_size_field);
+						ref_nalu_size = gf_bs_read_int(mdia->extracted_bs, 8*nal_unit_size_field);
 
 						if (!data_length)
 							data_length = ref_nalu_size + nal_unit_size_field;
 
 						assert(data_length>nal_unit_size_field);
 						data_length -= nal_unit_size_field;
-						if (data_length > gf_bs_available(ref_bs)) {
-							data_length = (u32)gf_bs_available(ref_bs);
+						if (data_length > gf_bs_available(mdia->extracted_bs)) {
+							data_length = (u32)gf_bs_available(mdia->extracted_bs);
 						}
 					} else {
 						ref_nalu_size = data_length;
@@ -203,7 +208,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 						mdia->tmp_nal_copy_buffer_alloc = ref_nalu_size;
 						mdia->tmp_nal_copy_buffer = (char*) gf_realloc(mdia->tmp_nal_copy_buffer, sizeof(char) * ref_nalu_size );
 					}
-					gf_bs_read_data(ref_bs, mdia->tmp_nal_copy_buffer, ref_nalu_size);
+					gf_bs_read_data(mdia->extracted_bs, mdia->tmp_nal_copy_buffer, ref_nalu_size);
 
 					if (!header_written) {
 						if (rewrite_start_codes)
@@ -221,10 +226,6 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Extractor size is larger than refered sample size - skipping.\n"));
 			}
-			gf_isom_sample_del(&ref_samp);
-			ref_samp = NULL;
-			gf_bs_del(ref_bs);
-			ref_bs = NULL;
 			gf_isom_set_nalu_extract_mode(file, ref_track_num, cur_extract_mode);
 
 			if (!is_hevc) break;
