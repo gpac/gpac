@@ -447,7 +447,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					case GF_ISOM_SUBTYPE_HEV1:
 					case GF_ISOM_SUBTYPE_HEV2:
 
-						base_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di);
+						if (!mdia->extracted_samp) {
+							mdia->extracted_samp = gf_isom_sample_new();
+							if (!mdia->extracted_samp) return GF_OUT_OF_MEM;
+						}
+
+						base_samp = gf_isom_get_sample_ex(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di, mdia->extracted_samp);
 						if (base_samp && base_samp->data) {
 							if (!sample->alloc_size || (sample->alloc_size<sample->dataLength+base_samp->dataLength) ) {
 								sample->data = gf_realloc(sample->data, sample->dataLength+base_samp->dataLength);
@@ -457,7 +462,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 							memcpy(sample->data, base_samp->data, base_samp->dataLength);
 							sample->dataLength += base_samp->dataLength;
 						}
-						if (base_samp) gf_isom_sample_del(&base_samp);
 						Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_BASE, &scal);
 						break;
 					}
@@ -471,7 +475,13 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			for (i=0; i<sabt_ref; i++) {
 				GF_ISOSample *tile_samp;
 				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
-				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di);
+
+				if (!mdia->extracted_samp) {
+					mdia->extracted_samp = gf_isom_sample_new();
+					if (!mdia->extracted_samp) return GF_OUT_OF_MEM;
+				}
+
+				tile_samp = gf_isom_get_sample_ex(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di, mdia->extracted_samp);
 				if (tile_samp  && tile_samp ->data) {
 					if (!sample->alloc_size || (sample->alloc_size<sample->dataLength+tile_samp->dataLength) ) {
 						sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
@@ -480,7 +490,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
 					sample->dataLength += tile_samp->dataLength;
 				}
-				if (tile_samp) gf_isom_sample_del(&tile_samp);
 			}
 		}
 	}
