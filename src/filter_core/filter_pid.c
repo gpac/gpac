@@ -703,6 +703,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 					if (cap->exclude) {
 						if (prop_equal) {
 							prop_equal = GF_FALSE;
+							prop_excluded = GF_FALSE;
 							break;
 						}
 						prop_excluded = GF_TRUE;
@@ -739,6 +740,7 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 	for (i=0; i<src->nb_output_caps; i++) {
 		u32 j, k;
 		Bool matched=GF_FALSE;
+		Bool exclude=GF_FALSE;
 		const GF_FilterCapability *out_cap = &src->output_caps[i];
 
 		if (!out_cap->in_bundle) {
@@ -781,6 +783,7 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 					//prop type matched and prop is excluded: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
+						exclude = GF_TRUE;
 						break;
 					}
 					prop_equal = !prop_equal;
@@ -790,6 +793,7 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 					//prop type matched and prop is excluded: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
+						exclude = GF_TRUE;
 						break;
 					}
 					prop_equal = !prop_equal;
@@ -799,6 +803,7 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 					matched = GF_TRUE;
 				}
 			}
+			if (exclude) break;
 		}
 		if (!matched) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap not matched\n"));
