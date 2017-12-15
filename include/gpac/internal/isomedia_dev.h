@@ -805,6 +805,10 @@ typedef struct __tag_media_box
 	u32 in_sample_buffer_alloc;
 	char *tmp_nal_copy_buffer;
 	u32 tmp_nal_copy_buffer_alloc;
+
+	GF_ISOSample *extracted_samp;
+	GF_BitStream *extracted_bs;
+
 } GF_MediaBox;
 
 typedef struct
