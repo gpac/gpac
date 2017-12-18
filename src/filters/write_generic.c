@@ -49,6 +49,7 @@ typedef struct
 	const char *dcfg;
 	u32 dcfg_size;
 
+	GF_Fraction duration;
 	Bool first;
 } GF_GenDumpCtx;
 
@@ -228,6 +229,8 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			ctx->split_files = GF_FALSE;
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
+	if (p) ctx->duration = p->value.frac;
 	return GF_OK;
 }
 
@@ -275,6 +278,12 @@ GF_Err gendump_process(GF_Filter *filter)
 	}
 
 	gf_filter_pck_send(dst_pck);
+
+	if (ctx->exporter) {
+		u32 timescale = gf_filter_pck_get_timescale(pck);
+		u64 ts = gf_filter_pck_get_cts(pck);
+		gf_set_progress("Exporting", ts*ctx->duration.den, ctx->duration.num*timescale);
+	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 
