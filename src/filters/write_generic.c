@@ -149,6 +149,22 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->dcfg_size = 9;
 		ctx->rcfg = GF_FALSE;
 		break;
+	case GF_CODECID_SMV:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("smv") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/smv") );
+		ctx->dcfg = "#!SMV\n";
+		ctx->dcfg_size = 6;
+		ctx->rcfg = GF_FALSE;
+		break;
+	case GF_CODECID_EVRC_PV:
+	case GF_CODECID_EVRC:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("evc") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/evrc") );
+		ctx->dcfg = "#!EVRC\n";
+		ctx->dcfg_size = 7;
+		ctx->rcfg = GF_FALSE;
+		break;
+
 	case GF_CODECID_AC3:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ac3") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/ac3") );
@@ -313,11 +329,8 @@ static const GF_FilterCapability GenDumpInputs[] =
 	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS_V2),
 	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V1),
 	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V2),
-	//these one need QCP
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EVRC),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SMV),
+	//this one need QCP
 	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_QCELP),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EVRC_PV),
 
 	//other not supported (yet)
 	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_THEORA),

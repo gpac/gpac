@@ -417,8 +417,14 @@ void isor_declare_objects(ISOMReader *read)
 		if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING((char *)namespace) );
 		if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING((char *)schemaloc) );
 
+		if (w)
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
+
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, i+1) ) );
+
 		if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, strlen(stxtcfg) ));
 
+		w = gf_isom_get_constant_sample_size(read->mov, i+1);
 
 		gf_filter_pid_set_info(pid, GF_PROP_PID_REVERSE_PLAYBACK, &PROP_BOOL(GF_TRUE) );
 
