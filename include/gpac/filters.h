@@ -608,6 +608,8 @@ enum
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
 	//(uint) number of frames
 	GF_PROP_PID_NB_FRAMES = GF_4CC('N','F','R','M'),
+	//(uint) size of frames
+	GF_PROP_PID_FRAME_SIZE = GF_4CC('C','F','R','S'),
 
 	//(rational) PID timeshift depth
 	GF_PROP_PID_TIMESHIFT = GF_4CC('P','T','S','H'),
@@ -660,6 +662,8 @@ enum
 
 	//(uint) average bitrate
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
+	//(luint) data size of media
+	GF_PROP_PID_MEDIA_DATA_SIZE = GF_4CC('M','D','S','Z'),
 	//(bool) data ref is possible
 	GF_PROP_PID_CAN_DATAREF = GF_4CC('D','R','E','F'),
 	//(string) URL of source file

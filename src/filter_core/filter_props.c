@@ -518,6 +518,9 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_UNFRAMED, "Unframed", "indicates the media data is not framed (eg each PACKET is not a complete AU/frame)", GF_PROP_BOOL},
 	{ GF_PROP_PID_DURATION, "Duration", "indicates the PID duration", GF_PROP_FRACTION},
 	{ GF_PROP_PID_NB_FRAMES, "NumFrames", "indicates the number of frames in the stream", GF_PROP_UINT},
+	{ GF_PROP_PID_FRAME_SIZE, "ConstantFrameSize", "indicates size of the frame for constant frame size streams", GF_PROP_UINT},
+
+
 	{ GF_PROP_PID_TIMESHIFT, "TimeshiftDepth", "indicates the depth of the timeshift buffer", GF_PROP_FRACTION},
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level of the stream", GF_PROP_UINT},
@@ -543,6 +546,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_HEIGHT_MAX, "MaxHeight", "Max Visual Height (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
 	{ GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_UINT},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "PID bitrate in bps", GF_PROP_UINT},
+	{ GF_PROP_PID_MEDIA_DATA_SIZE, "MediaDat Size", "Size in bytes of media in PID", GF_PROP_LUINT},
 	{ GF_PROP_PID_CAN_DATAREF, "DataRef", "Inidcates this PID can use data ref", GF_PROP_BOOL},
 	{ GF_PROP_PID_URL, "URL", "URL of source", GF_PROP_STRING},
 	{ GF_PROP_PID_REMOTE_URL, "RemoteURL", "Remote URL of source", GF_PROP_STRING},
