@@ -207,7 +207,7 @@ void isor_declare_objects(ISOMReader *read)
 				an_esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
 			}
 
-			gf_odf_desc_del((GF_Descriptor *)an_esd->langDesc);
+			gf_odf_desc_del((GF_Descriptor *)an_esd);
 		} else {
 			lang_desc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 			gf_isom_get_media_language(read->mov, i+1, &lang_desc->full_lang_code);
