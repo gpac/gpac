@@ -1363,24 +1363,6 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
  */
 const char *gf_esd_get_textual_description(GF_ESD *esd);
 
-/*! Gets a textual description of an AFX stream type
- \param afx_code target stream type descriptor
- \return textural description of the AFX stream
-*/
-const char *gf_afx_get_type_description(u8 afx_code);
-
-/*! Gets the stream type name based on stream type
- \param streamType stream type GF_STREAM_XXX as defined in constants.h
- \return NULL if unknown, otherwise value
- */
-const char *gf_odf_stream_type_name(u32 streamType);
-	
-/*! Gets the stream type based on stream type name
- \param streamType name of the stream type
- \return stream type GF_STREAM_XXX as defined in constants.h, 0 if unknown
- */
-u32 gf_odf_stream_type_by_name(const char *streamType);
-
 /*! Since IPMP V2, we introduce a new set of functions to read / write a list of descriptors
 that have no containers (a bit like an OD command, but for descriptors)
 This is useful for IPMPv2 DecoderSpecificInfo which contains a set of IPMP_Declarators

@@ -839,6 +839,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 static const GF_FilterArgs ISOFFInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(alltracks), "loads all tracks (except hint) event when not supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{}
 };
 

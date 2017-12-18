@@ -233,6 +233,10 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 		if (static_map->mime)
 			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_MIME, &PROP_STRING((char*)static_map->mime) );
 	}
+	if (stream->depacketizer->w)
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_WIDTH, &PROP_UINT(stream->depacketizer->w) );
+	if (stream->depacketizer->h)
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(stream->depacketizer->h) );
 
 
 	/*ISMACryp config*/

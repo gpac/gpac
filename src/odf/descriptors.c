@@ -30,58 +30,6 @@
 #include <gpac/avparse.h>
 #endif
 
-GF_EXPORT
-const char *gf_odf_stream_type_name(u32 streamType)
-{
-	switch (streamType) {
-	case GF_STREAM_OD:
-		return "ObjectDescriptor";
-	case GF_STREAM_OCR:
-		return "ClockReference";
-	case GF_STREAM_SCENE:
-		return "SceneDescription";
-	case GF_STREAM_VISUAL:
-		return "Visual";
-	case GF_STREAM_AUDIO:
-		return "Audio";
-	case GF_STREAM_MPEG7:
-		return "MPEG7";
-	case GF_STREAM_IPMP:
-		return "IPMP";
-	case GF_STREAM_OCI:
-		return "OCI";
-	case GF_STREAM_MPEGJ:
-		return "MPEGJ";
-	case GF_STREAM_INTERACT:
-		return "Interaction";
-	case GF_STREAM_FONT:
-		return "Font";
-	case GF_STREAM_TEXT:
-		return "Text/Subtitle";
-	default:
-		return "Unknown";
-	}
-}
-
-GF_EXPORT
-u32 gf_odf_stream_type_by_name(const char *streamType)
-{
-	if (!streamType) return 0;
-	if (!stricmp(streamType, "ObjectDescriptor")) return GF_STREAM_OD;
-	if (!stricmp(streamType, "ClockReference")) return GF_STREAM_OCR;
-	if (!stricmp(streamType, "SceneDescription")) return GF_STREAM_SCENE;
-	if (!stricmp(streamType, "Visual")) return GF_STREAM_VISUAL;
-	if (!stricmp(streamType, "Audio")) return GF_STREAM_AUDIO;
-	if (!stricmp(streamType, "MPEG7")) return GF_STREAM_MPEG7;
-	if (!stricmp(streamType, "IPMP")) return GF_STREAM_IPMP;
-	if (!stricmp(streamType, "OCI")) return GF_STREAM_OCI;
-	if (!stricmp(streamType, "MPEGJ")) return GF_STREAM_MPEGJ;
-	if (!stricmp(streamType, "Interaction")) return GF_STREAM_INTERACT;
-	if (!stricmp(streamType, "Text")) return GF_STREAM_TEXT;
-	return 0;
-}
-
-
 s32 gf_odf_size_field_size(u32 size_desc)
 {
 	if (size_desc < 0x00000080) {
@@ -1127,202 +1075,55 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc)
 	return cfg;
 }
 
-GF_EXPORT
-const char *gf_afx_get_type_description(u8 afx_code)
-{
-	switch (afx_code) {
-	case GPAC_AFX_3DMC:
-		return "AFX 3D Mesh Compression";
-	case GPAC_AFX_WAVELET_SUBDIVISION:
-		return "AFX Wavelet Subdivision Surface";
-	case GPAC_AFX_MESHGRID:
-		return "AFX Mesh Grid";
-	case GPAC_AFX_COORDINATE_INTERPOLATOR:
-		return "AFX Coordinate Interpolator";
-	case GPAC_AFX_ORIENTATION_INTERPOLATOR:
-		return "AFX Orientation Interpolator";
-	case GPAC_AFX_POSITION_INTERPOLATOR:
-		return "AFX Position Interpolator";
-	case GPAC_AFX_OCTREE_IMAGE:
-		return "AFX Octree Image";
-	case GPAC_AFX_BBA:
-		return "AFX BBA";
-	case GPAC_AFX_POINT_TEXTURE:
-		return "AFX Point Texture";
-	case GPAC_AFX_3DMC_EXT:
-		return "AFX 3D Mesh Compression Extension";
-	case GPAC_AFX_FOOTPRINT:
-		return "AFX FootPrint Representation";
-	case GPAC_AFX_ANIMATED_MESH:
-		return "AFX Animated Mesh Compression";
-	case GPAC_AFX_SCALABLE_COMPLEXITY:
-		return "AFX Scalable Complexity Representation";
-	default:
-		break;
-	}
-	return "AFX Unknown";
-}
 
 
 GF_EXPORT
 const char *gf_esd_get_textual_description(GF_ESD *esd)
 {
+	const char *name;
+
 	if (!esd || !esd->decoderConfig) return "Bad parameter";
 
+	name = gf_codecid_name_oti(esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+
+	if (!name) name = gf_stream_type_name(esd->decoderConfig->streamType);
+
+	if (!name) name = gf_4cc_to_str(esd->decoderConfig->objectTypeIndication);
+
 	switch (esd->decoderConfig->streamType) {
-	case GF_STREAM_OD:
-		return "MPEG-4 Object Descriptor";
-	case GF_STREAM_OCR:
-		return "MPEG-4 Object Clock Reference";
 	case GF_STREAM_SCENE:
 		switch (esd->decoderConfig->objectTypeIndication) {
-		case 0x0:
-		case 0x1:
-		case 0x2:
-		case 0x3:
-		case 0xFF:
-			return "MPEG-4 BIFS Scene Description";
-		case GF_CODECID_BIFS_EXTENDED:
-			return "MPEG-4 Extended BIFS Scene Description";
 		case GF_CODECID_AFX:
 			if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data)
-				return "AFX Unknown";
-			return gf_afx_get_type_description(esd->decoderConfig->decoderSpecificInfo->data[0]);
+				return name;
+			return gf_stream_type_afx_name(esd->decoderConfig->decoderSpecificInfo->data[0]);
 		case GF_CODECID_LASER:
 		{
 			GF_LASERConfig l_cfg;
 			gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
 			if (! l_cfg.newSceneIndicator ) return "LASeR Scene Segment Description";
 		}
-		return "LASeR Scene Description";
-		case GF_CODECID_SYNTHESIZED_TEXTURE:
-			return "MPEG-4 Synthesized Texture";
-		case GF_CODECID_SAF:
-			return "MPEG-4 SAF";
+			return name;
 		default:
-			return "Unknown Scene Type";
-		}
-		break;
-	case GF_STREAM_VISUAL:
-		switch (esd->decoderConfig->objectTypeIndication) {
-		case GF_CODECID_MPEG2_SIMPLE:
-			return "MPEG-2 Visual Simple Profile";
-		case GF_CODECID_MPEG2_MAIN:
-			return "MPEG-2 Visual Main Profile";
-		case GF_CODECID_MPEG2_SNR:
-			return "MPEG-2 Visual SNR Profile";
-		case GF_CODECID_MPEG2_SPATIAL:
-			return "MPEG-2 Visual SNR Profile";
-		case GF_CODECID_MPEG2_HIGH:
-			return "MPEG-2 Visual SNR Profile";
-		case GF_CODECID_MPEG2_422:
-			return "MPEG-2 Visual SNR Profile";
-		case GF_CODECID_MPEG1:
-			return "MPEG-1 Video";
-		case GF_CODECID_JPEG:
-			return "JPEG Image";
-		case GF_CODECID_PNG:
-			return "PNG Image";
-		case GF_CODECID_J2K:
-			return "JPEG2000 Image";
-		case GF_CODECID_MPEG4_PART2:
-			return "MPEG-4 Part 2 Video";
-		case GF_CODECID_AVC:
-			return "MPEG-4 AVC|H264 Video";
-		case GF_CODECID_SVC:
-			return "MPEG-4 SVC Video";
-		case GF_CODECID_AVC_PS:
-			return "MPEG-4 AVC|H264 Parameter Set";
-		case GF_CODECID_HEVC:
-			return "MPEG-H HEVC Video";
-		case GF_CODECID_LHVC:
-			return "MPEG-H L-HEVC Video";
-		case GF_CODECID_SMPTE_VC1:
-			return "SMPTE VC-1 Video";
-		case GF_CODECID_DIRAC:
-			return "Dirac Video";
-		default:
-			return "Unknown Video type";
+			return name;
 		}
 		break;
 	case GF_STREAM_AUDIO:
 		switch (esd->decoderConfig->objectTypeIndication) {
-		case GF_CODECID_AAC_MPEG2_MP:
-			return "MPEG-2 AAC Main Profile";
-		case GF_CODECID_AAC_MPEG2_LCP:
-			return "MPEG-2 AAC Low Complexity Profile";
-		case GF_CODECID_AAC_MPEG2_SSRP:
-			return "MPEG-2 AAC Scaleable Sampling Rate Profile";
-		case GF_CODECID_MPEG2_PART3:
-			return "MPEG-2 Audio Part 3";
-		case GF_CODECID_MPEG_AUDIO:
-			return "MPEG-1 Audio";
 		case GF_CODECID_AAC_MPEG4:
+#ifndef GPAC_DISABLE_AV_PARSERS
 		{
-#ifdef GPAC_DISABLE_AV_PARSERS
-			return "MPEG-4 AAC";
-#else
 			GF_M4ADecSpecInfo a_cfg;
 			if (!esd->decoderConfig->decoderSpecificInfo) return "MPEG-4 AAC";
 			gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 			return gf_m4a_object_type_name(a_cfg.base_object_type);
+		}
 #endif
-		}
-		break;
-		case GF_CODECID_EVRC:
-			return "EVRC Voice";
-		case GF_CODECID_SMV:
-			return "SMV Voice";
-		case GF_CODECID_AC3:
-			return "AC-3 audio";
-		case GF_CODECID_EAC3:
-			return "Enhanced AC-3 Audio";
-		case GF_CODECID_DRA:
-			return "DRA Audio";
-		case GF_CODECID_G719:
-			return "ITU G719 Audio";
-		case GF_CODECID_DTS_CA:
-			return "DTS Coherent Acoustics audio";
-		case GF_CODECID_DTS_HD_HR:
-			return "DTS-HD High Resolution audio";
-		case GF_CODECID_DTS_HD_MASTER:
-			return "DTS-HD Master audios";
+		//fallthrough
 		default:
-			return "Unknown Audio Type";
+			return name;
 		}
 		break;
-	case GF_STREAM_MPEG7:
-		return "MPEG-7 Description";
-	case GF_STREAM_IPMP:
-		return "MPEG-4 IPMP";
-	case GF_STREAM_OCI:
-		return "MPEG-4 OCI";
-	case GF_STREAM_MPEGJ:
-		return "MPEG-4 MPEG-J";
-	case GF_STREAM_INTERACT:
-		return "MPEG-4 User Interaction";
-	case GF_STREAM_IPMP_TOOL:
-		return "MPEG-4 IPMP Tool";
-	case GF_STREAM_FONT:
-		return "MPEG-4 Font Data";
-	case GF_STREAM_TEXT:
-		return "Streaming Text / Subtitle";
-
-	case GF_STREAM_PRIVATE_SCENE:
-		switch (esd->decoderConfig->objectTypeIndication) {
-		case GF_CODECID_DVB_EIT:
-			return "DVB Event Information";
-		case GF_CODECID_SVG:
-			return "SVG over RTP";
-		case GF_CODECID_SVG_GZ:
-			return "SVG+gz over RTP";
-		case GF_CODECID_DIMS:
-			return "3GPP DIMS";
-		default:
-			return "Unknown Scene Description";
-		}
-		break;
-	default:
-		return gf_4cc_to_str(esd->decoderConfig->objectTypeIndication);
 	}
+	return name;
 }

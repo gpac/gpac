@@ -2120,7 +2120,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		/*decompress jpeg*/
 		bs = gf_bs_new( (char *) buf+skip, size-skip, GF_BITSTREAM_READ);
-		gf_img_parse(bs, &codecid, &osize, &w, &h, NULL, NULL);
+		gf_img_parse(bs, &codecid, &w, &h, NULL, NULL);
 		gf_bs_del(bs);
 
 		osize = w*h*4;

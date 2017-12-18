@@ -634,7 +634,9 @@ static u32 ff_codecid_gpac_to_ffmpeg(u32 codecid)
 	case GF_CODECID_MPEG2_SNR:
 	case GF_CODECID_MPEG2_422:
 			return CODEC_ID_MPEG2VIDEO;
-	case GF_CODECID_H263: return CODEC_ID_H263;
+	case GF_CODECID_S263:
+	case GF_CODECID_H263:
+			return CODEC_ID_H263;
 	case GF_CODECID_JPEG: return CODEC_ID_MJPEG;
 	case GF_CODECID_PNG: return CODEC_ID_PNG;
 	case GF_CODECID_J2K: return CODEC_ID_JPEG2000;

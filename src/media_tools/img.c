@@ -51,7 +51,7 @@
 #endif	/*GPAC_HAS_JPEG*/
 
 GF_EXPORT
-void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len)
+void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, char **dsi, u32 *dsi_len)
 {
 	u8 b1, b2, b3;
 	u32 size, type;
@@ -59,7 +59,7 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *h
 	pos = gf_bs_get_position(bs);
 	gf_bs_seek(bs, 0);
 
-	*mtype = *width = *height = 0;
+	*width = *height = 0;
 	*codecid = 0;
 	if (dsi) {
 		*dsi = NULL;
@@ -113,7 +113,6 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *h
 			}
 		}
 		*codecid = GF_CODECID_JPEG;
-		*mtype = GF_ISOM_MEDIA_JPEG;
 		if (dsi) {
 			GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(bs_dsi, offset);
@@ -137,7 +136,6 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *h
 		*width = gf_bs_read_u32(bs);
 		*height = gf_bs_read_u32(bs);
 		*codecid = GF_CODECID_PNG;
-		*mtype = GF_ISOM_MEDIA_PNG;
 	}
 	/*try j2k*/
 	else {
@@ -148,7 +146,6 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *h
 
 			if (type==GF_ISOM_BOX_TYPE_JP2H) {
 				*codecid = GF_CODECID_J2K;
-				*mtype = GF_ISOM_MEDIA_JP2;
 				goto j2k_restart;
 			}
 
@@ -156,7 +153,6 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *h
 			if (type!=0x0D0A870A) goto exit;
 
 			*codecid = GF_CODECID_J2K;
-			*mtype = GF_ISOM_MEDIA_JP2;
 
 			while (gf_bs_available(bs)) {
 j2k_restart:

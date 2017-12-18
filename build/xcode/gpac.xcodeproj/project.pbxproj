@@ -227,6 +227,8 @@
 		926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C51F7D45F700299CC6 /* dmx_ogg.c */; };
 		926656C81F7E92C200299CC6 /* dmx_m2ts.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C71F7E92C200299CC6 /* dmx_m2ts.c */; };
 		926656CA1F836DE300299CC6 /* in_udp.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C91F836DE200299CC6 /* in_udp.c */; };
+		926CE14D1FE7E388002B3CF6 /* write_generic.c in Sources */ = {isa = PBXBuildFile; fileRef = 926CE14C1FE7E388002B3CF6 /* write_generic.c */; };
+		926CE14F1FE81865002B3CF6 /* constants.c in Sources */ = {isa = PBXBuildFile; fileRef = 926CE14E1FE81865002B3CF6 /* constants.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
@@ -1097,6 +1099,8 @@
 		926656C51F7D45F700299CC6 /* dmx_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_ogg.c; path = filters/dmx_ogg.c; sourceTree = "<group>"; };
 		926656C71F7E92C200299CC6 /* dmx_m2ts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_m2ts.c; path = filters/dmx_m2ts.c; sourceTree = "<group>"; };
 		926656C91F836DE200299CC6 /* in_udp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_udp.c; path = filters/in_udp.c; sourceTree = "<group>"; };
+		926CE14C1FE7E388002B3CF6 /* write_generic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_generic.c; path = filters/write_generic.c; sourceTree = "<group>"; };
+		926CE14E1FE81865002B3CF6 /* constants.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = constants.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mpgvid.c; path = filters/reframe_mpgvid.c; sourceTree = "<group>"; };
@@ -1652,6 +1656,7 @@
 		9201008C18D5A444003D1ACA /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				926CE14E1FE81865002B3CF6 /* constants.c */,
 				92F930801A5ADB870072A85C /* os_divers.c */,
 				92F930811A5ADB870072A85C /* os_file.c */,
 				922B48781A5ADAB3006CBBBA /* os_module.c */,
@@ -2596,6 +2601,7 @@
 				92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
 				92061A821FDFB14800B5C464 /* write_adts.c */,
+				926CE14C1FE7E388002B3CF6 /* write_generic.c */,
 			);
 			name = filters;
 			sourceTree = "<group>";
@@ -3396,6 +3402,7 @@
 				9201017118D5A445003D1ACA /* scene_dump.c in Sources */,
 				9201017218D5A445003D1ACA /* scene_engine.c in Sources */,
 				9201017318D5A445003D1ACA /* scene_manager.c in Sources */,
+				926CE14F1FE81865002B3CF6 /* constants.c in Sources */,
 				926656CA1F836DE300299CC6 /* in_udp.c in Sources */,
 				92C1FF581E7C42DF0093B61E /* raster_load.c in Sources */,
 				9201017418D5A445003D1ACA /* scene_stats.c in Sources */,
@@ -3469,6 +3476,7 @@
 				92B9A5A51F8660D700A24FE4 /* mpeg4_gradients.c in Sources */,
 				920101AB18D5A445003D1ACA /* configfile.c in Sources */,
 				920101AD18D5A445003D1ACA /* downloader.c in Sources */,
+				926CE14D1FE7E388002B3CF6 /* write_generic.c in Sources */,
 				920101AE18D5A445003D1ACA /* error.c in Sources */,
 				920101B018D5A445003D1ACA /* list.c in Sources */,
 				92B9A5931F8660D700A24FE4 /* mpeg4_text.c in Sources */,

@@ -106,7 +106,7 @@ GF_Err img_process(GF_Filter *filter)
 
 	if (!ctx->opid) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-		u32 mtype, dsi_size;
+		u32 dsi_size;
 		char *dsi=NULL;
 #endif
 		const char *ext, *mime;
@@ -120,7 +120,7 @@ GF_Err img_process(GF_Filter *filter)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		else {
 			bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-			gf_img_parse(bs, &codecid, &mtype, &w, &h, &dsi, &dsi_size);
+			gf_img_parse(bs, &codecid, &w, &h, &dsi, &dsi_size);
 			gf_bs_del(bs);
 		}
 #endif
@@ -161,6 +161,8 @@ GF_Err img_process(GF_Filter *filter)
 		if (w) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(w));
 		if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
+
+		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(1) );
 
 		if (ext || mime)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
