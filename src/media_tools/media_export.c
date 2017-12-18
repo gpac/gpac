@@ -764,17 +764,12 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 	Bool add_ext;
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
-	char szName[1000], szEXT[5], GUID[16];
+	char szName[1000], GUID[16];
 	FILE *out;
 	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
-	GF_AVCConfig *avccfg, *svccfg, *mvccfg;
-	GF_HEVCConfig *hevccfg, *lhvccfg;
-	GF_M4ADecSpecInfo a_cfg;
-	const char *stxtcfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
 	Bool is_ogg, has_qcp_pad, is_vobsub;
-	u32 aac_type, aac_mode;
 	char *dsi;
 	QCPRateTable rtable[8];
 	Bool is_stdout = GF_FALSE;
@@ -782,12 +777,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 
 	dsi_size = 0;
 	dsi = NULL;
-	hevccfg = NULL;
-	avccfg = NULL;
-	svccfg = NULL;
-	mvccfg = NULL;
-	lhvccfg = NULL;
-	stxtcfg = NULL;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
@@ -801,7 +790,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 		is_stdout = GF_TRUE;
 	}
 
-	aac_mode = aac_type = 0;
 	qcp_type = 0;
 	is_ogg = GF_FALSE;
 	is_vobsub = GF_FALSE;
@@ -839,25 +827,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 		switch (dcfg->streamType) {
 		case GF_STREAM_VISUAL:
 			switch (dcfg->objectTypeIndication) {
-
-			case GF_CODECID_AVC:
-			case GF_CODECID_SVC:
-			case GF_CODECID_MVC:
-				avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
-				svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
-				mvccfg = gf_isom_mvc_config_get(dumper->file, track, 1);
-				if (add_ext)
-					strcat(szName, ".h264");
-				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
-				break;
-			case GF_CODECID_HEVC:
-			case GF_CODECID_LHVC:
-				hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
-				lhvccfg = gf_isom_lhvc_config_get(dumper->file, track, 1);
-				if (add_ext)
-					strcat(szName, ".hvc");
-				gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC stream to hevc");
-				break;
 			case GF_CODECID_THEORA:
 				if (add_ext)
 					strcat(szName, ".ogg");
@@ -949,32 +918,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 			if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
 			return gf_media_export_nhml(dumper, GF_TRUE);
-		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264)
-		           || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264)
-		           || (m_stype==GF_ISOM_SUBTYPE_AVC3_H264)
-		           || (m_stype==GF_ISOM_SUBTYPE_AVC4_H264)
-		           || (m_stype==GF_ISOM_SUBTYPE_SVC_H264)
-		           || (m_stype==GF_ISOM_SUBTYPE_MVC_H264)
-		          ) {
-			avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
-			svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
-			mvccfg = gf_isom_mvc_config_get(dumper->file, track, 1);
-			if (add_ext)
-				strcat(szName, ".h264");
-			gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
-		} else if ((m_stype==GF_ISOM_SUBTYPE_HEV1)
-		           || (m_stype==GF_ISOM_SUBTYPE_HVC1)
-		           || (m_stype==GF_ISOM_SUBTYPE_HVC2)
-		           || (m_stype==GF_ISOM_SUBTYPE_HEV2)
-		           || (m_stype==GF_ISOM_SUBTYPE_LHV1)
-		           || (m_stype==GF_ISOM_SUBTYPE_LHE1)
-		           || (m_stype==GF_ISOM_SUBTYPE_HVT1)
-		          ) {
-			hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
-			lhvccfg = gf_isom_lhvc_config_get(dumper->file, track, 1);
-			if (add_ext)
-				strcat(szName, ".hvc");
-			gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC stream to hevc");
 		} else if (m_stype==GF_ISOM_SUBTYPE_WVTT) {
 			gf_export_message(dumper, GF_OK, "Extracting WebVTT");
 			is_webvtt = GF_TRUE;
@@ -997,12 +940,7 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting EVRC audio");
 		}
 	}
-	if (aac_mode) {
-		gf_m4a_get_config(dsi, dsi_size, &a_cfg);
-		if (aac_mode==2) aac_type = a_cfg.base_object_type - 1;
-		gf_free(dsi);
-		dsi = NULL;
-	}
+
 	if (dumper->flags & GF_EXPORT_SVC_LAYER) {
 		gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_LAYER_ONLY);
 	}
@@ -1011,11 +949,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
 		/* We don't need to go further in this mode */
 		if (dsi) gf_free(dsi);
-		if (avccfg) gf_odf_avc_cfg_del(avccfg);
-		if (svccfg) gf_odf_avc_cfg_del(svccfg);
-		if (mvccfg) gf_odf_avc_cfg_del(mvccfg);
-		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-		if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 		return GF_OK;
 	}
 
@@ -1043,105 +976,19 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 	}
 	if (!out) {
 		if (dsi) gf_free(dsi);
-		if (avccfg) gf_odf_avc_cfg_del(avccfg);
-		if (svccfg) gf_odf_avc_cfg_del(svccfg);
-		if (mvccfg) gf_odf_avc_cfg_del(mvccfg);
-		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-		if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	if (avccfg) {
-		DUMP_AVCPARAM(avccfg->sequenceParameterSets);
-		DUMP_AVCPARAM(avccfg->pictureParameterSets);
-	}
+	/* Start writing the stream out */
+	gf_bs_del(bs);
+	bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 
-	if (hevccfg) {
-		DUMP_HEVCPARAM(hevccfg);
-	}
-
-	if (svccfg || mvccfg || mvccfg || lhvccfg) {
-		if (!(dumper->flags & GF_EXPORT_SVC_LAYER)) {
-			GF_AVCConfig *cfg;
-			GF_HEVCConfig *hcfg;
-			u32 ref_track = 0, t;
-			s32 countRef;
-
-			// copy avcC and svcC from base layer
-			gf_isom_get_reference(dumper->file, track, GF_ISOM_REF_BASE, 1, &ref_track);
-			cfg = gf_isom_avc_config_get(dumper->file, ref_track, 1);
-			hcfg = gf_isom_hevc_config_get(dumper->file, ref_track, 1);
-			if (cfg) {
-				if (!lhvccfg) {
-					DUMP_AVCPARAM(cfg->sequenceParameterSets);
-					DUMP_AVCPARAM(cfg->pictureParameterSets);
-				}
-				gf_odf_avc_cfg_del(cfg);
-				cfg = NULL;
-			}
-			if (hcfg) {
-				DUMP_HEVCPARAM(hcfg);
-				DUMP_HEVCPARAM(hcfg);
-				gf_odf_hevc_cfg_del(hcfg);
-				hcfg = NULL;
-			}
-
-			// copy avcC and svcC from lower layer
-			countRef = gf_isom_get_reference_count(dumper->file, track, GF_ISOM_REF_SCAL);
-			if (countRef < 0) {
-				e = gf_isom_last_error(dumper->file);
-				goto exit;
-			}
-			for (t = 2; t <= (u32) countRef; t++) { // referenceIndex 1 is the base layer
-				gf_isom_get_reference(dumper->file, track, GF_ISOM_REF_SCAL, t, &ref_track);
-				cfg = gf_isom_svc_config_get(dumper->file, ref_track, 1);
-				if (cfg) {
-					DUMP_AVCPARAM(cfg->sequenceParameterSets);
-					DUMP_AVCPARAM(cfg->pictureParameterSets);
-					gf_odf_avc_cfg_del(cfg);
-					cfg = NULL;
-				}
-				hcfg = gf_isom_lhvc_config_get(dumper->file, ref_track, 1);
-				if (hcfg) {
-					DUMP_HEVCPARAM(hcfg);
-					gf_odf_hevc_cfg_del(hcfg);
-					hcfg = NULL;
-				}
-			}
-		}
-		if (svccfg) {
-			DUMP_AVCPARAM(svccfg->sequenceParameterSets);
-			DUMP_AVCPARAM(svccfg->pictureParameterSets);
-		}
-		if (mvccfg) {
-			DUMP_AVCPARAM(mvccfg->sequenceParameterSets);
-			DUMP_AVCPARAM(mvccfg->pictureParameterSets);
-		}
-		if (lhvccfg) {
-			DUMP_HEVCPARAM(lhvccfg);
-		}
-	}
-
-
-	if (avccfg || hevccfg || lhvccfg) {
-		gf_bs_get_content(bs, &dsi, &dsi_size);
-		gf_bs_del(bs);
-
-		/* Start writing the stream out */
-		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
+	if (dsi) {
 		gf_bs_write_data(bs, dsi, dsi_size);
-	} else {
-		/* Start writing the stream out */
-		gf_bs_del(bs);
-		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-
-		if (dsi) {
-			gf_bs_write_data(bs, dsi, dsi_size);
-			gf_free(dsi);
-			dsi=NULL;
-		}
+		gf_free(dsi);
+		dsi=NULL;
 	}
 
 
@@ -1149,10 +996,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 		if (qcp_type==2) gf_bs_write_data(bs, "#!SMV\n", 6);
 		else gf_bs_write_data(bs, "#!EVRC\n", 7);
 		qcp_type = 0;
-	} else if ((m_stype==GF_ISOM_SUBTYPE_STXT) || (m_stype==GF_ISOM_SUBTYPE_METT)) {
-		if (stxtcfg) {
-			gf_bs_write_data(bs, stxtcfg, (u32)strlen(stxtcfg));
-		}
 	}
 
 	count = gf_isom_get_sample_count(dumper->file, track);
@@ -1259,59 +1102,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 			e = gf_isom_last_error(dumper->file);
 			break;
 		}
-		/*AVC sample to NALU*/
-		if (avccfg || svccfg || mvccfg || hevccfg || lhvccfg) {
-			u32 j, nal_size, remain, nal_unit_size;
-			char *ptr = samp->data;
-			nal_unit_size = 0;
-			if (avccfg) nal_unit_size= avccfg->nal_unit_size;
-			else if (svccfg) nal_unit_size = svccfg->nal_unit_size;
-			else if (mvccfg) nal_unit_size = mvccfg->nal_unit_size;
-			else if (hevccfg) nal_unit_size = hevccfg->nal_unit_size;
-			else if (lhvccfg) nal_unit_size = lhvccfg->nal_unit_size;
-
-			if (i && dsi && samp->IsRAP) {
-				gf_bs_write_data(bs, dsi, dsi_size);
-			}
-
-			remain = samp->dataLength;
-			while (remain) {
-				nal_size = 0;
-				if (remain<nal_unit_size) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Sample %d (size %d): Corrupted NAL Unit: header size %d - bytes left %d\n", i+1, samp->dataLength, nal_unit_size, remain) );
-					break;
-				}
-				for (j=0; j<nal_unit_size; j++) {
-					nal_size |= ((u8) *ptr);
-					if (j+1<nal_unit_size) nal_size<<=8;
-					remain--;
-					ptr++;
-				}
-				gf_bs_write_u32(bs, 1);
-				if (remain < nal_size) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Sample %d (size %d): Corrupted NAL Unit: size %d - bytes left %d\n", i+1, samp->dataLength, nal_size, remain) );
-					nal_size = remain;
-				}
-				gf_bs_write_data(bs, ptr, nal_size);
-				ptr += nal_size;
-				remain -= nal_size;
-			}
-		}
-		/*adts frame header*/
-		else if (aac_mode > 0) {
-			gf_bs_write_int(bs, 0xFFF, 12);/*sync*/
-			gf_bs_write_int(bs, (aac_mode==1) ? 1 : 0, 1);/*mpeg2 aac*/
-			gf_bs_write_int(bs, 0, 2); /*layer*/
-			gf_bs_write_int(bs, 1, 1); /* protection_absent*/
-			gf_bs_write_int(bs, aac_type, 2);
-			gf_bs_write_int(bs, a_cfg.base_sr_index, 4);
-			gf_bs_write_int(bs, 0, 1);
-			gf_bs_write_int(bs, a_cfg.nb_chan, 3);
-			gf_bs_write_int(bs, 0, 4);
-			gf_bs_write_int(bs, 7+samp->dataLength, 13);
-			gf_bs_write_int(bs, 0x7FF, 11);
-			gf_bs_write_int(bs, 0, 2);
-		}
 		/*fix rate octet for QCP*/
 		else if (qcp_type) {
 			u32 j;
@@ -1322,7 +1112,7 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 				}
 			}
 		}
-		if (!avccfg && !svccfg && !mvccfg && !hevccfg && !lhvccfg &!is_webvtt) {
+		if (!is_webvtt) {
 			gf_bs_write_data(bs, samp->data, samp->dataLength);
 		}
 		gf_isom_sample_del(&samp);
@@ -1331,11 +1121,6 @@ GF_Err gf_media_export_native_old(GF_MediaExporter *dumper)
 	}
 	if (has_qcp_pad) gf_bs_write_u8(bs, 0);
 exit:
-	if (avccfg) gf_odf_avc_cfg_del(avccfg);
-	if (svccfg) gf_odf_avc_cfg_del(svccfg);
-	if (mvccfg) gf_odf_avc_cfg_del(mvccfg);
-	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 	gf_bs_del(bs);
 	if (dsi) gf_free(dsi);
 	if (!is_stdout)
@@ -1367,6 +1152,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	}
 	//force a reframer filter, connected to our input
 	strcpy(szArgs, "reframer:SID=1:exporter");
+	if (dumper->flags & GF_EXPORT_SVC_LAYER)
+		strcat(szArgs, ":extract=layer");
+
 	reframer = gf_fs_load_filter(fsess, szArgs);
 	if (!reframer) {
 		gf_fs_del(fsess);

@@ -35,7 +35,7 @@
 typedef struct
 {
 	//opts
-	u32 exporter, mpeg2;
+	Bool exporter, mpeg2;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -45,6 +45,8 @@ typedef struct
 	u32 codecid, channels, sr_idx, aac_type;
 	Bool first;
 
+	GF_Fraction duration;
+	
 	GF_BitStream *bs_w;
 } GF_ADTSMxCtx;
 
@@ -117,6 +119,8 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	}
 	ctx->ipid = pid;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
+	if (p) ctx->duration = p->value.frac;
 
 	return GF_OK;
 }
@@ -168,6 +172,12 @@ GF_Err adtsmx_process(GF_Filter *filter)
 	ctx->first = GF_FALSE;
 
 	gf_filter_pck_send(dst_pck);
+
+	if (ctx->exporter) {
+		u32 timescale = gf_filter_pck_get_timescale(pck);
+		u64 ts = gf_filter_pck_get_cts(pck);
+		gf_set_progress("Exporting", ts*ctx->duration.den, ctx->duration.num*timescale);
+	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 
