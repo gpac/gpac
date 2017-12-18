@@ -340,7 +340,7 @@ enum
 	/*! codecid for DIMS (dsi = 3GPP DIMS configuration)*/
 	GF_CODECID_DIMS = GF_4CC('d','i','m','s'),
 	/*! codecid for streaming VTT*/
-	GF_CODECID_VTT = GF_4CC('w','v','t','t'),
+	GF_CODECID_WEBVTT = GF_4CC('w','v','t','t'),
 	/*! codecid for streaming simple text*/
 	GF_CODECID_SIMPLE_TEXT = GF_4CC('s','t','x','t'),
 	/*! codecid for meta data streams in text format*/

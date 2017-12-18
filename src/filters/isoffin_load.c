@@ -268,6 +268,10 @@ void isor_declare_objects(ISOMReader *read)
 				codec_id = GF_CODECID_SUBS_XML;
 				gf_isom_xml_subtitle_get_description(read->mov, i+1, 1, &namespace, &schemaloc, &mime);
 				break;
+			case GF_ISOM_SUBTYPE_WVTT:
+				codec_id = GF_CODECID_WEBVTT;
+				stxtcfg = gf_isom_get_webvtt_config(read->mov, i+1, 1);
+				break;
 			default:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", i+1, gf_4cc_to_str(m_subtype) ));
 

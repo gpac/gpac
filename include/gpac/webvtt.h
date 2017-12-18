@@ -81,6 +81,8 @@ void gf_webvtt_cue_del(GF_WebVTTCue * cue);
 GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *printLength);
 #endif
 
+GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start);
+
 /*! @} */
 
 #ifdef __cplusplus

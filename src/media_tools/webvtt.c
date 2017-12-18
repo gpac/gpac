@@ -1408,7 +1408,7 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-static GF_Err gf_webvtt_parser_dump_finalize(GF_WebVTTParser *parser, u64 duration)
+GF_Err gf_webvtt_parser_finalize(GF_WebVTTParser *parser, u64 duration)
 {
 	GF_WebVTTSample *sample;
 	assert(gf_list_count(parser->samples) <= 1);
@@ -1478,6 +1478,13 @@ GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp)
 	return gf_webvtt_dump_cues(dump, samp->cues);
 }
 
+
+void gf_webvtt_parser_cue_callback(GF_WebVTTParser *parser, void (*on_cue_read)(void *, GF_WebVTTCue *), void *udta)
+{
+	parser->on_cue_read = on_cue_read;
+	parser->user = udta;
+}
+
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 
 GF_EXPORT
@@ -1523,7 +1530,7 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 		gf_isom_sample_del(&samp);
 	}
 	duration = gf_isom_get_media_duration(dumper->file, track);
-	gf_webvtt_parser_dump_finalize(parser, duration);
+	gf_webvtt_parser_finalize(parser, duration);
 
 	fprintf(out, "</WebVTTTrack>\n");
 	

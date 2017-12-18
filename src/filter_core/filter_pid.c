@@ -1793,6 +1793,8 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal EOS on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
+	if (pid->pid->has_seen_eos) return;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("EOS signaled on PID %s in filter %s\n", pid->name, pid->filter->name));
 	//we create a fake packet for eos signaling
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);

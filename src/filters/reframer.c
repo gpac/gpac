@@ -53,8 +53,9 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 GF_Err reframer_process(GF_Filter *filter)
 {
-	u32 i, count = gf_filter_get_ipid_count(filter);
+	u32 i, nb_eos, count = gf_filter_get_ipid_count(filter);
 
+	nb_eos = 0;
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		GF_FilterPid *opid = ipid ? gf_filter_pid_get_udta(ipid) : NULL;
@@ -64,14 +65,17 @@ GF_Err reframer_process(GF_Filter *filter)
 		while (1) {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) {
-				if (gf_filter_pid_is_eos(ipid))
+				if (gf_filter_pid_is_eos(ipid)) {
 					gf_filter_pid_set_eos(opid);
+					nb_eos++;
+				}
 				break;
 			}
 			gf_filter_pck_forward(pck, opid);
 			gf_filter_pid_drop_packet(ipid);
 		}
 	}
+	if (nb_eos==count) return GF_EOS;
 	return GF_OK;
 }
 

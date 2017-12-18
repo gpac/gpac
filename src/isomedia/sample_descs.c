@@ -988,6 +988,14 @@ GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 t
 	return wvtt;
 }
 
+GF_EXPORT
+const char *gf_isom_get_webvtt_config(GF_ISOFile *file, u32 track, u32 index)
+{
+	GF_WebVTTSampleEntryBox *wvtt = gf_webvtt_isom_get_description(file, track, index);
+	if (!wvtt) return NULL;
+	return wvtt->config ? wvtt->config->string : NULL;
+}
+
 #endif /*GPAC_DISABLE_VTT*/
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1155,6 +1163,7 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	a->bufferSizeDB = decode_buffer_size;
 	return GF_OK;
 }
+
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
