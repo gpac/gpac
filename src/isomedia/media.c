@@ -130,20 +130,16 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_SMV;
 		return GF_OK;
+	case GF_ISOM_SUBTYPE_3GP_AMR:
+		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_AMR;
+		return GF_OK;
+	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
+		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_AMR_WB;
+		return GF_OK;
 	default:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] unsupported sample description type %s\n", gf_4cc_to_str(entry->type)));
 		break;
 	}
-	/*this is a user-reserved used in gpac - we need a std codecid for AMR/AMRWB*/
-	(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_u32(bs, entry->type);
-	gf_bs_write_u16(bs, entry->samplerate_hi);
-	gf_bs_write_u16(bs, (entry->type == GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
-	gf_bs_write_u8(bs, entry->channel_count);
-	gf_bs_write_u8(bs, entry->bitspersample);
-	gf_bs_write_u8(bs, 0);
-	gf_bs_get_content(bs, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
-	gf_bs_del(bs);
 	return GF_OK;
 }
 
@@ -292,17 +288,10 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;
 		} else {
-			GF_BitStream *bs;
 			esd =  gf_odf_desc_esd_new(2);
 			*out_esd = esd;
 			esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-			esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, entry->type);
-			gf_bs_write_u16(bs, ((GF_MPEGVisualSampleEntryBox*)entry)->Width);
-			gf_bs_write_u16(bs, ((GF_MPEGVisualSampleEntryBox*)entry)->Height);
-			gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
-			gf_bs_del(bs);
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_H263;
 			break;
 		}
 

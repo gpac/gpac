@@ -1008,6 +1008,7 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		while (a_pid) {
 			GF_FilterPidInst *pidi;
 			args = a_pid->filter->src_args;
+			if (!args) args = a_pid->filter->orig_args;
 			if (args) break;
 			pidi = gf_list_get(a_pid->filter->input_pids, 0);
 			if (!pidi) break;

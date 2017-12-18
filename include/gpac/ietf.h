@@ -1390,6 +1390,9 @@ struct __tag_rtp_depacketizer
 	GP_RTPSLMap sl_map;
 	u32 clock_rate;
 
+	//clip rect and frame size info
+	u32 x, y, w, h;
+
 	/*inter-packet reconstruction bitstream (for 3GP text and H264)*/
 	GF_BitStream *inter_bs;
 

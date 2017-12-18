@@ -457,6 +457,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		comp_name = "QCELP";
 		use_3gpp_config = GF_TRUE;
 		break;
+	case GF_CODECID_S263:
 	case GF_CODECID_H263:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_H263;
 		comp_name = "H263";

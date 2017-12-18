@@ -76,7 +76,6 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 
 void isor_declare_objects(ISOMReader *read)
 {
-	GF_ESD *esd;
 	ISOMChannel *ch;
 #ifdef FILTER_FIXME
 	const char *tag;
@@ -92,31 +91,65 @@ void isor_declare_objects(ISOMReader *read)
 	}
 	if (od) gf_odf_desc_del(od);
 
-	/*TODO check for alternate tracks*/
+	/*TODO
+	 add support for multiple stream descriptions
+	 check for alternate tracks
+    */
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
-		u32 w, h, sr, nb_ch;
-		GF_ESD *base_esd=NULL;
+		u32 w, h, sr, nb_ch, streamtype, codec_id, depends_on_id, esid, avg_rate;
+		GF_ESD *an_esd;
+		const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
+		GF_Language *lang_desc = NULL;
 		Bool external_base=GF_FALSE;
+		Bool has_scalable_layers = GF_FALSE;
+		char *dsi = NULL;
+		u32 dsi_size = 0;
 		Double track_dur=0;
 		GF_FilterPid *pid;
 		u32 mtype, m_subtype;
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
+		streamtype = codec_id = esid = depends_on_id = avg_rate = 0;
+		mime = encoding = stxtcfg = namespace = schemaloc = NULL;
+
 		mtype = gf_isom_get_media_type(read->mov, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_AUDIO:
+			streamtype = GF_STREAM_AUDIO;
+			break;
 		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_PICT:
+		case GF_ISOM_MEDIA_QTVR:
+			streamtype = GF_STREAM_VISUAL;
+			break;
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_SUBPIC:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
+			streamtype = GF_STREAM_TEXT;
 			break;
+		case GF_ISOM_MEDIA_FLASH:
+		case GF_ISOM_MEDIA_DIMS:
 		case GF_ISOM_MEDIA_SCENE:
-		case GF_ISOM_MEDIA_OD:
+			streamtype = GF_STREAM_SCENE;
 			break;
-		default:
+		case GF_ISOM_MEDIA_OD:
+			streamtype = GF_STREAM_OD;
+			break;
+		case GF_ISOM_MEDIA_META:
+			streamtype = GF_STREAM_METADATA;
+			break;
+		case GF_ISOM_MEDIA_HINT:
 			continue;
+		default:
+			if (!read->alltracks) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not supported, ignoring track - you may retry by specifying alltracks options\n", i+1, gf_4cc_to_str(mtype) ));
+				continue;
+			}
+			streamtype = GF_STREAM_UNKNOWN;
+			break;
 		}
 		//some subtypes are not declared as readable objects
 		m_subtype = gf_isom_get_media_subtype(read->mov, i+1, 1);
@@ -151,15 +184,113 @@ void isor_declare_objects(ISOMReader *read)
 
 		if ((gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) && !highest_stream)
 			continue;
-		esd = gf_media_map_esd(read->mov, i+1);
-		if (!esd) continue;
-
-		if (esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
-			gf_odf_desc_del((GF_Descriptor *)esd);
-			continue;
-		}
 
 		ocr_es_id = 0;
+		an_esd = gf_media_map_esd(read->mov, i+1);
+		if (an_esd) {
+			if (an_esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
+				gf_odf_desc_del((GF_Descriptor *)an_esd);
+				continue;
+			}
+			streamtype = an_esd->decoderConfig->streamType;
+			codec_id = an_esd->decoderConfig->objectTypeIndication;
+			ocr_es_id = an_esd->OCRESID;
+			depends_on_id = an_esd->dependsOnESID;
+			lang_desc = an_esd->langDesc;
+			an_esd->langDesc = NULL;
+			esid = an_esd->ESID;
+
+			if (an_esd->decoderConfig->decoderSpecificInfo && an_esd->decoderConfig->decoderSpecificInfo->data) {
+				dsi = an_esd->decoderConfig->decoderSpecificInfo->data;
+				dsi_size = an_esd->decoderConfig->decoderSpecificInfo->dataLength;
+				an_esd->decoderConfig->decoderSpecificInfo->data = NULL;
+				an_esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
+			}
+
+			gf_odf_desc_del((GF_Descriptor *)an_esd->langDesc);
+		} else {
+			lang_desc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
+			gf_isom_get_media_language(read->mov, i+1, &lang_desc->full_lang_code);
+
+			codec_id = m_subtype;
+			if (!streamtype) streamtype = gf_codecid_type(m_subtype);
+
+			switch (m_subtype) {
+			case GF_ISOM_SUBTYPE_3GP_AMR:
+				codec_id = GF_CODECID_AMR;
+				break;
+			case GF_ISOM_SUBTYPE_3GP_AMR_WB:
+				codec_id = GF_CODECID_AMR_WB;
+				break;
+			case GF_ISOM_SUBTYPE_3GP_H263:
+			case GF_ISOM_SUBTYPE_H263:
+				codec_id = GF_CODECID_H263;
+				break;
+			case GF_ISOM_SUBTYPE_XDVB:
+				codec_id = GF_CODECID_MPEG2_MAIN;
+				break;
+			case GF_ISOM_MEDIA_FLASH:
+				codec_id = GF_CODECID_FLASH;
+				break;
+			case GF_ISOM_SUBTYPE_AC3:
+				codec_id = GF_CODECID_AC3;
+				break;
+			case GF_ISOM_SUBTYPE_EC3:
+				codec_id = GF_CODECID_EAC3;
+				break;
+			case GF_ISOM_SUBTYPE_MP3:
+				codec_id = GF_CODECID_MPEG_AUDIO;
+				break;
+			case GF_ISOM_SUBTYPE_JPEG:
+				codec_id = GF_CODECID_JPEG;
+				break;
+			case GF_ISOM_SUBTYPE_PNG:
+				codec_id = GF_CODECID_PNG;
+				break;
+			case GF_ISOM_SUBTYPE_JP2K:
+				codec_id = GF_CODECID_J2K;
+				break;
+			case GF_ISOM_SUBTYPE_STXT:
+				codec_id = GF_CODECID_SIMPLE_TEXT;
+				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
+				break;
+			case GF_ISOM_SUBTYPE_METT:
+				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
+				codec_id = GF_CODECID_META_TEXT;
+				break;
+			case GF_ISOM_SUBTYPE_METX:
+				codec_id = GF_CODECID_META_XML;
+				break;
+			case GF_ISOM_SUBTYPE_SBTT:
+				codec_id = GF_CODECID_SUBS_TEXT;
+				break;
+			case GF_ISOM_SUBTYPE_STPP:
+				codec_id = GF_CODECID_SUBS_XML;
+				gf_isom_xml_subtitle_get_description(read->mov, i+1, 1, &namespace, &schemaloc, &mime);
+				break;
+			default:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", i+1, gf_4cc_to_str(m_subtype) ));
+
+			{
+				GF_GenericSampleDescription *udesc;
+
+				codec_id = m_subtype;
+				udesc = gf_isom_get_generic_sample_description(read->mov, i+1, 1);
+				if (udesc) {
+					dsi = udesc->extension_buf;
+					dsi_size = udesc->extension_buf_size;
+					udesc->extension_buf = NULL;
+					udesc->extension_buf_size = 0;
+					gf_free(udesc);
+				}
+			}
+				break;
+			}
+
+
+		}
+		if (!streamtype || !codec_id) continue;
+
 		gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
 			
 		if (base_track) {
@@ -180,22 +311,19 @@ void isor_declare_objects(ISOMReader *read)
 				}
 			}
 			if (external_base) {
-				base_esd = gf_media_map_esd(read->mov, base_track);
-				if (base_esd) esd->dependsOnESID = base_esd->ESID;
-				esd->has_scalable_layers = GF_TRUE;
+				depends_on_id = gf_isom_get_track_id(read->mov, base_track);
+				has_scalable_layers = GF_TRUE;
 			} else {
-				esd->dependsOnESID=0;
 				switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, 1)) {
 				case GF_ISOM_HEVCTYPE_HEVC_LHVC:
 				case GF_ISOM_HEVCTYPE_LHVC_ONLY:
-					esd->has_scalable_layers = GF_TRUE;
+					has_scalable_layers = GF_TRUE;
 					break;
 				//this is likely temporal sublayer of base
 				case GF_ISOM_HEVCTYPE_HEVC_ONLY:
-					esd->has_scalable_layers = GF_FALSE;
+					has_scalable_layers = GF_FALSE;
 					if (gf_isom_get_reference_count(read->mov, i+1, GF_ISOM_REF_SCAL)<=0) {
-						base_esd = gf_media_map_esd(read->mov, base_track);
-						if (base_esd) esd->dependsOnESID = base_esd->ESID;
+						depends_on_id = gf_isom_get_track_id(read->mov, base_track);
 					}
 					break;
 				}
@@ -204,47 +332,37 @@ void isor_declare_objects(ISOMReader *read)
 			switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, 1)) {
 			case GF_ISOM_HEVCTYPE_HEVC_LHVC:
 			case GF_ISOM_HEVCTYPE_LHVC_ONLY:
-				esd->has_scalable_layers = GF_TRUE;
+				has_scalable_layers = GF_TRUE;
 				break;
 			}
 		}
 
-		if (!esd->langDesc) {
-			esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
-			gf_isom_get_media_language(read->mov, i+1, &esd->langDesc->full_lang_code);
+		if (base_track && !ocr_es_id) {
+			ocr_es_id = gf_isom_get_track_id(read->mov, base_track);
 		}
-
-		if (base_esd) {
-			if (!ocr_es_id) ocr_es_id = base_esd->OCRESID;
-			base_esd->OCRESID = ocr_es_id;
-		}
-		if (!ocr_es_id) ocr_es_id = esd->OCRESID ? esd->OCRESID : esd->ESID;
-		esd->OCRESID = ocr_es_id;
+		if (!ocr_es_id) ocr_es_id = esid;
 
 		//OK declare PID
 		pid = gf_filter_pid_new(read->filter);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esid));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(ocr_es_id));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(depends_on_id));
 
 		//MPEG-4 systems present
 		if (use_iod)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_ESID, &PROP_UINT(esd->ESID));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_ESID, &PROP_UINT(esid));
 
 		if (gf_isom_is_track_in_root_od(read->mov, i+1)) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE));
 		}
 
-		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(esd->slConfig->timestampResolution));
-		if (esd->decoderConfig->decoderSpecificInfo) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
-
-			esd->decoderConfig->decoderSpecificInfo->data=NULL;
-			esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(streamtype));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(codec_id));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT( gf_isom_get_media_timescale(read->mov, i+1) ) );
+		if (dsi) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
 		}
-		if (esd->langDesc) {
+		if (lang_desc) {
 			char *lang=NULL;
 			s32 idx;
 			gf_isom_get_media_language(read->mov, i+1, &lang);
@@ -255,22 +373,25 @@ void isor_declare_objects(ISOMReader *read)
 			} else {
 				gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang ));
 			}
+			gf_odf_desc_del((GF_Descriptor *)lang_desc);
 		}
-		if (esd->decoderConfig->avgBitrate) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT(esd->decoderConfig->avgBitrate));
+		if (avg_rate) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT(avg_rate));
 		}
 
+		w = h = 0;
 		gf_isom_get_visual_info(read->mov, i+1, 1, &w, &h);
 		if (w && h) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(w));
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(h));
 		}
+		sr = nb_ch = 0;
 		gf_isom_get_audio_info(read->mov, i+1, 1, &sr, &nb_ch, NULL);
 		if (sr && nb_ch) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 			gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 		}
-		if (esd->has_scalable_layers)
+		if (has_scalable_layers)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
 
 		ch = isor_create_channel(read, pid, i+1, 0);
@@ -280,6 +401,7 @@ void isor_declare_objects(ISOMReader *read)
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
 		gf_filter_pid_set_info(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(ch->duration, read->time_scale));
+		gf_filter_pid_set_info(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT( gf_isom_get_sample_count(read->mov, ch->track)));
 
 		track_dur = (Double) (s64) ch->duration;
 		track_dur /= read->time_scale;
@@ -290,17 +412,23 @@ void isor_declare_objects(ISOMReader *read)
 		gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
 		gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
 
+		if (mime) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING((char *)mime) );
+		if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING((char *)encoding) );
+		if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING((char *)namespace) );
+		if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING((char *)schemaloc) );
+
+		if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, strlen(stxtcfg) ));
+
+
 		gf_filter_pid_set_info(pid, GF_PROP_PID_REVERSE_PLAYBACK, &PROP_BOOL(GF_TRUE) );
 
-		//todo: map other ESD params if needed
-
-		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
 	/*declare image items*/
 	count = gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0);
 	for (i=0; count && i<1; i++) {
 		GF_ImageItemProperties props;
 		GF_FilterPid *pid;
+		GF_ESD *esd;
 		u32 item_id = gf_isom_get_meta_primary_item_id(read->mov, GF_TRUE, 0);
 		if (!item_id) continue;
 

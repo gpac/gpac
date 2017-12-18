@@ -918,7 +918,7 @@ static GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 	if (e) goto exit;
 
-	gf_import_message(import, GF_OK, "Raw Access Unit import (StreamType %s)", gf_odf_stream_type_name(import->esd->decoderConfig->streamType));
+	gf_import_message(import, GF_OK, "Raw Access Unit import (StreamType %s)", gf_stream_type_name(import->esd->decoderConfig->streamType));
 
 	samp = gf_isom_sample_new();
 	gf_fseek(src, 0, SEEK_END);

@@ -2088,7 +2088,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		if (!esd) {
 			fprintf(stderr, "WARNING: Broken MPEG-4 Track\n");
 		} else {
-			const char *st = gf_odf_stream_type_name(esd->decoderConfig->streamType);
+			const char *st = gf_stream_type_name(esd->decoderConfig->streamType);
 			if (st) {
 				fprintf(stderr, "MPEG-4 Config%s%s Stream - ObjectTypeIndication 0x%02x\n",
 				        full_dump ? "\n\t" : ": ", st, esd->decoderConfig->objectTypeIndication);
@@ -2411,7 +2411,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					gf_odf_desc_del((GF_Descriptor *)b_cfg);
 				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AFX) {
 					u8 tag = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data[0] : 0xFF;
-					const char *afxtype = gf_afx_get_type_description(tag);
+					const char *afxtype = gf_stream_type_afx_name(tag);
 					fprintf(stderr, "AFX Stream - type %s (%d)\n", afxtype, tag);
 				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_FONT) {
 					fprintf(stderr, "Font Data stream\n");

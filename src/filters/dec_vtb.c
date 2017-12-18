@@ -448,23 +448,13 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
         break;
     }
 	case GF_CODECID_H263:
+	case GF_CODECID_S263:
 		ctx->reorder_probe = 0;
 		if (w && h) {
 			ctx->width = w;
 			ctx->height = h;
 			ctx->vtb_type = kCMVideoCodecType_H263;
 			break;
-		}
-		//fallthrough
-	case GF_CODECID_GPAC_GENERIC:
-		if (p && p->value.data.ptr && p->value.data.size) {
-			char *dsi = p->value.data.ptr;
-			if (p->value.data.size<8) return GF_NON_COMPLIANT_BITSTREAM;
-			if (strnicmp(dsi, "s263", 4)) return GF_NOT_SUPPORTED;
-			
-			ctx->width = ((u8) dsi[4]); ctx->width<<=8; ctx->width |= ((u8) dsi[5]);
-			ctx->height = ((u8) dsi[6]); ctx->height<<=8; ctx->height |= ((u8) dsi[7]);
-			ctx->vtb_type = kCMVideoCodecType_H263;
 		}
 		break;
 		
@@ -1405,6 +1395,7 @@ static const GF_FilterCapability VTBDecInputs[] =
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_HIGH),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_422),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_H263),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_S263),
 #endif
 };
 

@@ -1370,54 +1370,29 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_AMR:
 	case GF_RTP_PAYT_AMR_WB:
 	{
-		GF_BitStream *bs;
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.CodecID = GF_CODECID_GPAC_GENERIC;
-		/*create DSI*/
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		if (rtp->payt == GF_RTP_PAYT_AMR) {
-			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR);
-			gf_bs_write_u32(bs, 8000);
-			gf_bs_write_u16(bs, 1);
-			gf_bs_write_u16(bs, 160);
-		} else {
-			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR_WB);
-			gf_bs_write_u32(bs, 16000);
-			gf_bs_write_u16(bs, 1);
-			gf_bs_write_u16(bs, 320);
-		}
-		gf_bs_write_u8(bs, 16);
-		gf_bs_write_u8(bs, 1);
-		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
-		gf_bs_del(bs);
+		rtp->sl_map.CodecID = (rtp->payt == GF_RTP_PAYT_AMR) ? GF_CODECID_AMR : GF_CODECID_AMR_WB;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_amr;
 	}
 	break;
 	case GF_RTP_PAYT_H263:
 	{
-		u32 x, y, w, h;
 		GF_X_Attribute *att;
-		GF_BitStream *bs;
-		x = y = w = h = 0;
+
 		j=0;
 		while ((att = (GF_X_Attribute *)gf_list_enum(media->Attributes, &j))) {
 			if (stricmp(att->Name, "cliprect")) continue;
 			/*only get the display area*/
-			sscanf(att->Value, "%u,%u,%u,%u", &y, &x, &h, &w);
+			sscanf(att->Value, "%u,%u,%u,%u", &rtp->y, &rtp->x, &rtp->h, &rtp->w);
 		}
 
 		rtp->sl_map.StreamType = GF_STREAM_VISUAL;
-		rtp->sl_map.CodecID = GF_CODECID_GPAC_GENERIC;
-		/*create DSI*/
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_H263);
-		gf_bs_write_u16(bs, w);
-		gf_bs_write_u16(bs, h);
-		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
-		gf_bs_del(bs);
+		rtp->sl_map.CodecID = GF_CODECID_H263;
+
 		/*we signal RAPs*/
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
+
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_h263;
 	}

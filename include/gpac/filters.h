@@ -606,6 +606,9 @@ enum
 	GF_PROP_PID_UNFRAMED = GF_4CC('P','F','R','M'),
 	//(rational) PID duration
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
+	//(uint) number of frames
+	GF_PROP_PID_NB_FRAMES = GF_4CC('N','F','R','M'),
+
 	//(rational) PID timeshift depth
 	GF_PROP_PID_TIMESHIFT = GF_4CC('P','T','S','H'),
 	//(uint) timescale of pid
@@ -726,6 +729,8 @@ enum
 	GF_PROP_PCK_SUBS = GF_4CC('S','U','B','S'),
 	//(uint)
 	GF_PROP_PID_MAX_NALU_SIZE = GF_4CC('N','A','L','S'),
+	//(uint)
+	GF_PROP_PCK_FILENUM = GF_4CC('F','N','U','M'),
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
@@ -947,6 +952,14 @@ typedef struct
 	u32 private_data_size;
 	u8 *private_data;
 } GF_CENCPSSHSysInfo;
+
+
+/*! Gets the stream type name based on stream type
+ \param streamType stream type GF_STREAM_XXX as defined in constants.h
+ \return NULL if unknown, otherwise value
+ */
+const char *gf_stream_type_name(u32 streamType);
+
 
 #ifdef __cplusplus
 }

@@ -35,7 +35,7 @@
 typedef struct
 {
 	//opts
-	u32 frame_size, mpeg2;
+	u32 exporter, mpeg2;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -53,7 +53,7 @@ typedef struct
 
 GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 i;
+	u32 i, sr, bps;
 	const GF_PropertyValue *p;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo acfg;
@@ -68,24 +68,15 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	if (!ctx->opid) {
-		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("aac") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/aac") );
-		ctx->first = GF_TRUE;
-	}
-	ctx->ipid = pid;
-
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
 	ctx->codecid = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (!p) return GF_NOT_SUPPORTED;
-	ctx->sr_idx = p->value.uint;
+	sr = p->value.uint;
 	for (i=0; i<16; i++) {
-		if (GF_M4ASampleRates[i] == (u32) p->value.uint) {
+		if (GF_M4ASampleRates[i] == (u32) sr) {
 			ctx->sr_idx = i;
 			break;
 		}
@@ -94,6 +85,9 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (!p) return GF_NOT_SUPPORTED;
 	ctx->channels = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BPS);
+	bps = p ? p->value.uint : 16;
 
 	ctx->aac_type = 0;
 	if (ctx->codecid==GF_CODECID_AAC_MPEG4) {
@@ -109,6 +103,20 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	} else {
 		ctx->aac_type = ctx->codecid - GF_CODECID_AAC_MPEG2_MP;
 	}
+
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("aac") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/aac") );
+		ctx->first = GF_TRUE;
+
+		if (ctx->exporter) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting MPEG-%d AAC - SampleRate %d %d channels %d bits per sample\n", sr, ctx->channels, bps));
+		}
+
+	}
+	ctx->ipid = pid;
 
 	return GF_OK;
 }
@@ -193,7 +201,7 @@ static const GF_FilterCapability ADTSMxOutputs[] =
 #define OFFS(_n)	#_n, offsetof(GF_ADTSMxCtx, _n)
 static const GF_FilterArgs ADTSMxArgs[] =
 {
-	{ OFFS(frame_size), "size of AAC frame in audio samples", GF_PROP_UINT, "1024", NULL, GF_FALSE},
+	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(mpeg2), "Signals as MPEG2 AAC", GF_PROP_UINT, "auto", "auto|no|yes", GF_FALSE},
 	{}
 };

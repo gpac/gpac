@@ -83,6 +83,7 @@ const GF_FilterRegister *rtpin_register(GF_FilterSession *session);
 const GF_FilterRegister *fileout_register(GF_FilterSession *session);
 const GF_FilterRegister *adtsmx_register(GF_FilterSession *session);
 const GF_FilterRegister *reframer_register(GF_FilterSession *session);
+const GF_FilterRegister *gendump_register(GF_FilterSession *session);
 
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -137,6 +138,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, fileout_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, adtsmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, reframer_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, gendump_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );

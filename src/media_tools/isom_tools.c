@@ -794,8 +794,6 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 GF_EXPORT
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 {
-	u32 type;
-	GF_GenericSampleDescription *udesc;
 	GF_BitStream *bs;
 	GF_ESD *esd;
 
@@ -828,88 +826,6 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		return gf_isom_get_esd(mp4, track, 1);
 	}
 
-	if ((subtype == GF_ISOM_SUBTYPE_3GP_AMR) || (subtype == GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
-		GF_3GPConfig *gpc = gf_isom_3gp_config_get(mp4, track, 1);
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-		esd->ESID = gf_isom_get_track_id(mp4, track);
-		esd->OCRESID = esd->ESID;
-		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		/*format ext*/
-		gf_bs_write_u32(bs, subtype);
-		gf_bs_write_u32(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
-		gf_bs_write_u16(bs, 1);
-		gf_bs_write_u16(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
-		gf_bs_write_u8(bs, 16);
-		gf_bs_write_u8(bs, gpc ? gpc->frames_per_sample : 0);
-		if (gpc) gf_free(gpc);
-		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_bs_del(bs);
-		return esd;
-	}
-
-	if (subtype == GF_ISOM_SUBTYPE_3GP_H263) {
-		u32 w, h;
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-		esd->ESID = gf_isom_get_track_id(mp4, track);
-		esd->OCRESID = esd->ESID;
-		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		/*format ext*/
-		gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_H263);
-		gf_isom_get_visual_info(mp4, track, 1, &w, &h);
-		gf_bs_write_u16(bs, w);
-		gf_bs_write_u16(bs, h);
-		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_bs_del(bs);
-		return esd;
-	}
-
-	if ((subtype == GF_ISOM_SUBTYPE_AC3) || (subtype == GF_ISOM_SUBTYPE_EC3)) {
-		GF_AC3Config *ac3 = gf_isom_ac3_config_get(mp4, track, 1);
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-		esd->ESID = gf_isom_get_track_id(mp4, track);
-		esd->OCRESID = esd->ESID;
-		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = (ac3 && ac3->is_ec3) ? GF_CODECID_EAC3 : GF_CODECID_AC3;
-		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
-		esd->decoderConfig->decoderSpecificInfo = NULL;
-		if (ac3) gf_free(ac3);
-		return esd;
-	}
-
-	if (subtype == GF_ISOM_SUBTYPE_MP3) {
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-		esd->ESID = gf_isom_get_track_id(mp4, track);
-		esd->OCRESID = esd->ESID;
-		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = GF_CODECID_MPEG_AUDIO;
-		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
-		esd->decoderConfig->decoderSpecificInfo = NULL;
-		return esd;
-	}
-
-
-	if ( (subtype == GF_ISOM_SUBTYPE_JPEG) || (subtype == GF_ISOM_SUBTYPE_PNG) ) {
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-		esd->ESID = gf_isom_get_track_id(mp4, track);
-		esd->OCRESID = esd->ESID;
-		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = (subtype == GF_ISOM_SUBTYPE_JPEG) ? GF_CODECID_JPEG : GF_CODECID_PNG;
-		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
-		esd->decoderConfig->decoderSpecificInfo = NULL;
-		return esd;
-	}
-
 	if (subtype == GF_ISOM_SUBTYPE_3GP_DIMS) {
 		GF_DIMSDescription dims;
 		esd = gf_odf_desc_esd_new(0);
@@ -934,41 +850,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		gf_bs_del(bs);
 		return esd;
 	}
-
-	type = gf_isom_get_media_type(mp4, track);
-	if ((type != GF_ISOM_MEDIA_AUDIO) && (type != GF_ISOM_MEDIA_VISUAL)) return NULL;
-
-	esd = gf_odf_desc_esd_new(0);
-	esd->OCRESID = esd->ESID = gf_isom_get_track_id(mp4, track);
-	esd->slConfig->useTimestampsFlag = 1;
-	esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-	esd->decoderConfig->objectTypeIndication = GF_CODECID_GPAC_GENERIC;
-	/*format ext*/
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_u32(bs, subtype);
-	udesc = gf_isom_get_generic_sample_description(mp4, track, 1);
-	if (udesc) {
-		if (type==GF_ISOM_MEDIA_AUDIO) {
-			esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-			gf_bs_write_u32(bs, udesc->samplerate);
-			gf_bs_write_u16(bs, udesc->nb_channels);
-			gf_bs_write_u16(bs, 0);
-			gf_bs_write_u8(bs, udesc->bits_per_sample);
-			gf_bs_write_u8(bs, 0);
-		} else {
-			esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-			gf_bs_write_u16(bs, udesc->width);
-			gf_bs_write_u16(bs, udesc->height);
-		}
-		if (udesc->extension_buf_size) {
-			gf_bs_write_data(bs, udesc->extension_buf, udesc->extension_buf_size);
-			gf_free(udesc->extension_buf);
-		}
-		gf_free(udesc);
-	}
-	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
-	gf_bs_del(bs);
-	return esd;
+	return NULL;
 }
 
 GF_EXPORT

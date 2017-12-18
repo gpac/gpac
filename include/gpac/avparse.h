@@ -310,7 +310,7 @@ const char *gf_hevc_get_profile_name(u8 profile_idc);
 /*gets image size (bs must contain the whole image)
 @codecid: image type (JPEG=0x6C, PNG=0x6D)
 @width, height: image resolution - for jpeg max size if thumbnail included*/
-void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len);
+void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, char **dsi, u32 *dsi_len);
 
 GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp);
 

@@ -30,6 +30,8 @@
 extern "C" {
 #endif
 
+#include <gpac/setup.h>
+
 /*!
  *	\file <gpac/constants.h>
  *	\brief Most constants defined in GPAC are in this file.
@@ -104,6 +106,11 @@ enum
 	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
 };
 
+/*! Gets the stream type name based on stream type
+ \param streamType stream type GF_STREAM_XXX as defined in constants.h
+ \return NULL if unknown, otherwise value
+ */
+const char *gf_stream_type_name(u32 streamType);
 
 
 /*!
@@ -281,38 +288,11 @@ enum
 	/*! codecid for JPEG-2000 streams*/
 	GF_CODECID_J2K = 0x6E,
 
-	/*!
-	 * \brief Extra ObjectTypeIndication
-	 *
-	 *	ObjectTypeIndication for media (audio/video) codecs not defined in MPEG-4. Can be used to encapsulate streams
-	 * in MPEG-4 systems signaling
-	 *
-	 *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
-	 *	DSI Syntax for audio streams
-	 \code
-	 *	u32 codec_four_cc: the codec 4CC reg code at m4ra.org or GPAC's 4CC (this enum)
-	 *	u32 sample_rate: sampling rate or 0 if unknown
-	 *	u16 nb_channels: num channels or 0 if unknown
-	 *	u16 frame_size: num audio samples per frame or 0 if unknown
-	 *	u8 nb_bits_per_sample: nb bits or 0 if unknown
-	 *	u8 num_frames_per_au: num audio frames per AU (used in 3GPP, max 15), 0 if unknown
-	 *	char *data: per-codec extensions till end of DSI bitstream
-	 \endcode
-	 \n
-	 *	DSI Syntax for video streams
-	 \code
-	 *	u32 codec_four_cc: the codec 4CC reg code at m4ra.org or GPAC's 4CC (this enum)
-	 *	u16 width: video width or 0 if unknown
-	 *	u16 height: video height or 0 if unknown
-	 *	char *data: per-codec extensions till end of DSI bitstream
-	 \endcode
-	*/
-	GF_CODECID_GPAC_GENERIC = 0xA0,
-
 	GF_CODECID_LAST_MPEG4_MAPPING = 0xFF,
 
 	/*!H263 visual streams*/
-	GF_CODECID_H263 = GF_4CC('s','2','6','3'),
+	GF_CODECID_S263 = GF_4CC('s','2','6','3'),
+	GF_CODECID_H263 = GF_4CC('h','2','6','3'),
 
 	/*! codecid for EVRC Voice streams*/
 	GF_CODECID_EVRC	= GF_4CC('s','e','v','c'),
@@ -363,6 +343,14 @@ enum
 	GF_CODECID_VTT = GF_4CC('w','v','t','t'),
 	/*! codecid for streaming simple text*/
 	GF_CODECID_SIMPLE_TEXT = GF_4CC('s','t','x','t'),
+	/*! codecid for meta data streams in text format*/
+	GF_CODECID_META_TEXT = GF_4CC('m','e','t','t'),
+	/*! codecid for meta data streams in XML format*/
+	GF_CODECID_META_XML = GF_4CC('m','e','t','x'),
+	/*! codecid for subtitle streams in text format*/
+	GF_CODECID_SUBS_TEXT = GF_4CC('s','b','t','t'),
+	/*! codecid for subtitle streams in xml format*/
+	GF_CODECID_SUBS_XML = GF_4CC('s','t','p','p'),
 
 	/*!
 	 * \brief OGG DecoderConfig
@@ -381,6 +369,8 @@ enum
 	GF_CODECID_VORBIS = GF_4CC('v','o','r','b'),
 	GF_CODECID_FLAC = GF_4CC('f','l','a','c'),
 	GF_CODECID_SPEEX = GF_4CC('s','p','e','x'),
+
+	GF_CODECID_OPUS = GF_4CC('O','p','u','s'),
 
 	//associated stream type is text
 	GF_CODECID_SUBPIC = GF_4CC('s','u','b','p'),
@@ -401,9 +391,31 @@ enum
 	GF_CODECID_IBM_ALAW = GF_4CC('I','A','L','W'),
 	GF_CODECID_IBM_ADPCM = GF_4CC('I','P','C','M'),
 
+
+	GF_CODECID_FLASH = GF_4CC( 'f', 'l', 's', 'h' ),
+
 	/*! codecid for RAW media streams. No decoder config associated (config through PID properties)*/
 	GF_CODECID_RAW = GF_4CC('R','A','W','M'),
 };
+
+/*! Gets a textual description for the given codecID
+ \param codecid target codec ID
+ \return textual description of the stream
+*/
+const char *gf_codecid_name(u32 codecid);
+
+/*! Gets a textual description for the given MPEG-4 stream type and object type
+ \param stream_type stream type of the stream
+ \param oti ObjectTypeIndication of the stream
+ \return textual description of the stream
+*/
+const char *gf_codecid_name_oti(u32 stream_type, u32 oti);
+
+/*! Gets the associated streamtype for the given codecID
+ \param codecid target codec ID
+ \return stream type if known, GF_STREAM_UNKNOWN otherwise
+*/
+u32 gf_codecid_type(u32 codecid);
 
 
 /*!
@@ -438,6 +450,11 @@ enum
 	/*!Scalable Complexity*/
 	GPAC_AFX_SCALABLE_COMPLEXITY = 0x0C,
 };
+/*! Gets a textual description of an AFX stream type
+ \param afx_code target stream type descriptor
+ \return textural description of the AFX stream
+*/
+const char *gf_stream_type_afx_name(u8 afx_code);
 
 
 /*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
@@ -802,6 +819,14 @@ enum {
 
 	GF_META_TYPE_RVCI 	= GF_4CC('r','v','c','i'),
 
+};
+
+
+/* meta types from box_code_meta.c - fileimport.c */
+enum {
+
+	GF_S4CC_MPEG4 = GF_4CC('m', 'p', '4', 's'),
+	GF_S4CC_LASER = GF_4CC('l', 's', 'r', '1'),
 };
 
 #ifdef __cplusplus
