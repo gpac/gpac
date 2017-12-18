@@ -31,11 +31,6 @@
 #include <gpac/avparse.h>
 #endif
 
-typedef struct
-{
-	Bool is_mp2, no_crc;
-	u32 profile, sr_idx, nb_ch, frame_size, hdr_size;
-} ADTSHeader;
 
 typedef struct
 {
@@ -48,6 +43,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	u32 codecid, channels, sr_idx, aac_type;
+	Bool first;
 
 	GF_BitStream *bs_w;
 } GF_ADTSMxCtx;
@@ -77,6 +73,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("aac") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/aac") );
+		ctx->first = GF_TRUE;
 	}
 	ctx->ipid = pid;
 
@@ -158,6 +155,10 @@ GF_Err adtsmx_process(GF_Filter *filter)
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 
+
+	gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
+	ctx->first = GF_FALSE;
+
 	gf_filter_pck_send(dst_pck);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
@@ -186,8 +187,6 @@ static const GF_FilterCapability ADTSMxInputs[] =
 static const GF_FilterCapability ADTSMxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "aac"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-m4a|audio/aac|audio/aacp|audio/x-aac"),
 	{}
 };
 

@@ -85,6 +85,11 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (p && p->value.string) {
 		fileout_open_close(ctx, ctx->dst, p->value.string);
 	}
+	if (!ctx->pid) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		gf_filter_pid_send_event(pid, &evt);
+	}
 	ctx->pid = pid;
 	return GF_OK;
 }

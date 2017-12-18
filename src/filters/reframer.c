@@ -43,6 +43,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_reset_properties(opid);
 	} else {
 		opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_udta(pid, opid);
 	}
 	gf_filter_pid_copy_properties(opid, pid);
 	return GF_OK;
@@ -57,7 +58,8 @@ GF_Err reframer_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		GF_FilterPid *opid = ipid ? gf_filter_pid_get_udta(ipid) : NULL;
-		if (!ipid || !opid) continue;
+		assert(ipid);
+		assert(opid);
 
 		while (1) {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);

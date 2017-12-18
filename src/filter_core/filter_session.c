@@ -1082,7 +1082,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	strcpy(args, "src=");
 	strcat(args, sURL);
 	if (user_args_len) {
-		strcat(args, ":");
+		strcat(args, ":gpac:");
 		strcat(args, user_args);
 	}
 

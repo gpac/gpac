@@ -379,15 +379,14 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		if (filter->freg->args && filter->freg->args[0].arg_name) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter with arguments but no private stack size, no arg passing\n"));
 		}
-		return;
+	} else {
+		filter->filter_udta = gf_malloc(filter->freg->private_size);
+		if (!filter->filter_udta) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate private data stack\n"));
+			return;
+		}
+		memset(filter->filter_udta, 0, filter->freg->private_size);
 	}
-
-	filter->filter_udta = gf_malloc(filter->freg->private_size);
-	if (!filter->filter_udta) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate private data stack\n"));
-		return;
-	}
-	memset(filter->filter_udta, 0, filter->freg->private_size);
 
 	//instantiate all others with defauts value
 	i=0;
@@ -463,7 +462,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			goto skip_arg;
 
 		i=0;
-		while (filter->freg->args) {
+		while (filter->filter_udta && filter->freg->args) {
 			const GF_FilterArgs *a = &filter->freg->args[i];
 			i++;
 			if (!a || !a->arg_name) break;
@@ -490,11 +489,13 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		}
 		if (!found) {
 			if (!strcmp("FID", szArg)) {
-				gf_filter_set_id(filter, value);
+				if (arg_type != GF_FILTER_ARG_GLOBAL)
+					gf_filter_set_id(filter, value);
 				found = GF_TRUE;
 			}
 			else if (!strcmp("SID", szArg)) {
-				gf_filter_set_sources(filter, value);
+				if (arg_type==GF_FILTER_ARG_LOCAL)
+					gf_filter_set_sources(filter, value);
 				found = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {

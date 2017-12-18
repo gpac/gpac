@@ -1399,12 +1399,6 @@ static const GF_FilterCapability MP4MuxInputs[] =
 };
 
 
-static const GF_FilterCapability MP4MuxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{}
-};
-
 #define OFFS(_n)	#_n, offsetof(GF_MP4MuxCtx, _n)
 static const GF_FilterArgs MP4MuxArgs[] =
 {
@@ -1430,7 +1424,6 @@ GF_FilterRegister MP4MuxRegister = {
 	.initialize = mp4_mux_initialize,
 	.finalize = mp4_mux_finalize,
 	INCAPS(MP4MuxInputs),
-	OUTCAPS(MP4MuxOutputs),
 	.configure_pid = mp4_mux_configure_pid,
 	.process = mp4_mux_process,
 //	.process_event = mp4_mux_process_event
