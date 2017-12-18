@@ -3743,8 +3743,6 @@ typedef struct
 
 GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex);
 
-GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start);
-
 #endif /* GPAC_DISABLE_VTT */
 
 //exported for sgpd comparison in traf merge

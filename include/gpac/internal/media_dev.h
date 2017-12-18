@@ -552,9 +552,16 @@ void gf_webvtt_parser_del(GF_WebVTTParser *parser);
 void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser);
 void gf_webvtt_parser_restart(GF_WebVTTParser *parser);
 
+#include <gpac/webvtt.h>
+void gf_webvtt_parser_cue_callback(GF_WebVTTParser *parser, void (*on_cue_read)(void *, GF_WebVTTCue *), void *udta);
+GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues);
+GF_Err gf_webvtt_parser_finalize(GF_WebVTTParser *parser, u64 duration);
+
 void gf_webvtt_sample_del(GF_WebVTTSample * samp);
 u64 gf_webvtt_sample_get_start(GF_WebVTTSample * samp);
 u64 gf_webvtt_sample_get_end(GF_WebVTTSample * samp);
+
+
 
 #ifndef GPAC_DISABLE_ISOM
 GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_mode, u32 index);

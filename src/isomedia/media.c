@@ -235,16 +235,16 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 #ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_WVTT:
 	{
-		GF_BitStream *bs;
+		GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
 		esd =  gf_odf_desc_esd_new(2);
 		*out_esd = esd;
 		esd->decoderConfig->streamType = GF_STREAM_TEXT;
-		esd->decoderConfig->objectTypeIndication = GF_CODECID_VTT;
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(bs, entry->type);
-		gf_isom_box_write((GF_Box *)((GF_WebVTTSampleEntryBox*)entry)->config, bs);
-		gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_bs_del(bs);
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_WEBVTT;
+		if (vtte->config) {
+			esd->decoderConfig->decoderSpecificInfo->dataLength = strlen(vtte->config->string);
+			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+			memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
+		}
 	}
 	break;
 	case GF_ISOM_BOX_TYPE_STPP:
