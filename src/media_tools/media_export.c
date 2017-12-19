@@ -402,6 +402,16 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			return GF_FILTER_NOT_FOUND;
 		}
 	}
+	else if (dumper->flags & GF_EXPORT_NHNT) {
+		GF_Filter *nhnt;
+		sprintf(szArgs, "write_nhnt");
+		nhnt = gf_fs_load_filter(fsess, szArgs);
+		if (!nhnt) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHNT write filter\n"));
+			return GF_FILTER_NOT_FOUND;
+		}
+	}
 
 	//force a reframer filter, connected to our input
 	sprintf(szArgs, "reframer:SID=1#PID=%d:exporter", dumper->trackID);
@@ -609,115 +619,6 @@ exit:
 }
 #endif /*GPAC_DISABLE_AVILIB*/
 
-GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
-{
-	GF_ESD *esd;
-	char szName[1000];
-	FILE *out_med, *out_inf, *out_nhnt;
-	GF_BitStream *bs;
-	Bool has_b_frames;
-	u32 track, i, di, count, pos;
-
-	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
-		return GF_BAD_PARAM;
-	}
-	esd = gf_isom_get_esd(dumper->file, track, 1);
-	if (!esd) return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Invalid MPEG-4 stream in track ID %d", dumper->trackID);
-
-	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
-		gf_odf_desc_del((GF_Descriptor *) esd);
-		return GF_OK;
-	}
-
-	sprintf(szName, "%s.media", dumper->out_name);
-	out_med = gf_fopen(szName, "wb");
-	if (!out_med) {
-		gf_odf_desc_del((GF_Descriptor *) esd);
-		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
-	}
-
-	sprintf(szName, "%s.nhnt", dumper->out_name);
-	out_nhnt = gf_fopen(szName, "wb");
-	if (!out_nhnt) {
-		gf_fclose(out_med);
-		gf_odf_desc_del((GF_Descriptor *) esd);
-		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
-	}
-
-
-	bs = gf_bs_from_file(out_nhnt, GF_BITSTREAM_WRITE);
-
-	if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
-		sprintf(szName, "%s.info", dumper->out_name);
-		out_inf = gf_fopen(szName, "wb");
-		if (out_inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, out_inf);
-		gf_fclose(out_inf);
-	}
-
-	/*write header*/
-	/*'NHnt' format*/
-	gf_bs_write_data(bs, "NHnt", 4);
-	/*version 1*/
-	gf_bs_write_u8(bs, 0);
-	/*streamType*/
-	gf_bs_write_u8(bs, esd->decoderConfig->streamType);
-	/*OTI*/
-	gf_bs_write_u8(bs, esd->decoderConfig->objectTypeIndication);
-	/*reserved*/
-	gf_bs_write_u16(bs, 0);
-	/*bufferDB*/
-	gf_bs_write_u24(bs, esd->decoderConfig->bufferSizeDB);
-	/*avg BitRate*/
-	gf_bs_write_u32(bs, esd->decoderConfig->avgBitrate);
-	/*max bitrate*/
-	gf_bs_write_u32(bs, esd->decoderConfig->maxBitrate);
-	/*timescale*/
-	gf_bs_write_u32(bs, esd->slConfig->timestampResolution);
-
-	gf_odf_desc_del((GF_Descriptor *) esd);
-
-	has_b_frames = gf_isom_has_time_offset(dumper->file, track);
-
-	pos = 0;
-	count = gf_isom_get_sample_count(dumper->file, track);
-	for (i=0; i<count; i++) {
-		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
-		if (!samp) break;
-		gf_fwrite(samp->data, samp->dataLength, 1, out_med);
-
-		/*dump nhnt info*/
-		gf_bs_write_u24(bs, samp->dataLength);
-		gf_bs_write_int(bs, samp->IsRAP, 1);
-		/*AU start & end flag always true*/
-		gf_bs_write_int(bs, 1, 1);
-		gf_bs_write_int(bs, 1, 1);
-		/*reserved*/
-		gf_bs_write_int(bs, 0, 3);
-		/*type - try to guess it*/
-		if (has_b_frames) {
-			if (samp->IsRAP) gf_bs_write_int(bs, 0, 2);
-			/*if CTS offset, assime P*/
-			else if (samp->CTS_Offset) gf_bs_write_int(bs, 1, 2);
-			else gf_bs_write_int(bs, 2, 2);
-		} else {
-			gf_bs_write_int(bs, samp->IsRAP ? 0 : 1, 2);
-		}
-		gf_bs_write_u32(bs, pos);
-		/*TODO support for large files*/
-		gf_bs_write_u32(bs, (u32) (samp->DTS + samp->CTS_Offset) );
-		gf_bs_write_u32(bs, (u32) samp->DTS);
-
-		pos += samp->dataLength;
-		gf_isom_sample_del(&samp);
-		gf_set_progress("NHNT Export", i+1, count);
-		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
-	}
-	gf_fclose(out_med);
-	gf_bs_del(bs);
-	gf_fclose(out_nhnt);
-	return GF_OK;
-}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 inTrackNum, GF_ISOFile *outfile, Bool ResetDependancies, Bool AddToIOD)
@@ -2087,7 +1988,8 @@ GF_Err gf_media_export(GF_MediaExporter *dumper)
 	else if (dumper->flags & GF_EXPORT_RAW_SAMPLES)
 		return gf_media_export_native(dumper);
 
-	else if (dumper->flags & GF_EXPORT_NHNT) return gf_media_export_nhnt(dumper);
+	else if (dumper->flags & GF_EXPORT_NHNT)
+		return gf_media_export_native(dumper);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	else if (dumper->flags & GF_EXPORT_MP4) return gf_media_export_isom(dumper);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

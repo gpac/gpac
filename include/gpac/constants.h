@@ -417,6 +417,11 @@ const char *gf_codecid_name_oti(u32 stream_type, u32 oti);
 */
 u32 gf_codecid_type(u32 codecid);
 
+/*! Gets the associated ObjectTypeIndication if any for the given codecID
+ \param codecid target codec ID
+ \return ObjectTypeIndication if defined, 0 otherwise
+*/
+u8 gf_codecid_oti(u32 codecid);
 
 /*!
  * \brief AFX Object Code

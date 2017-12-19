@@ -231,6 +231,7 @@
 		926CE14F1FE81865002B3CF6 /* constants.c in Sources */ = {isa = PBXBuildFile; fileRef = 926CE14E1FE81865002B3CF6 /* constants.c */; };
 		926CE1511FE81A8E002B3CF6 /* write_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 926CE1501FE81A8E002B3CF6 /* write_nalu.c */; };
 		926F15531FE867B000C40779 /* write_vtt.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15521FE867B000C40779 /* write_vtt.c */; };
+		926F15551FE964D000C40779 /* write_nhnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15541FE964CF00C40779 /* write_nhnt.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
@@ -1106,6 +1107,7 @@
 		926CE14E1FE81865002B3CF6 /* constants.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = constants.c; sourceTree = "<group>"; };
 		926CE1501FE81A8E002B3CF6 /* write_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_nalu.c; path = filters/write_nalu.c; sourceTree = "<group>"; };
 		926F15521FE867B000C40779 /* write_vtt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_vtt.c; path = filters/write_vtt.c; sourceTree = "<group>"; };
+		926F15541FE964CF00C40779 /* write_nhnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_nhnt.c; path = filters/write_nhnt.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		9288350B1FE82E63002F603D /* write_qcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_qcp.c; path = filters/write_qcp.c; sourceTree = "<group>"; };
@@ -2609,6 +2611,7 @@
 				92061A821FDFB14800B5C464 /* write_adts.c */,
 				926CE14C1FE7E388002B3CF6 /* write_generic.c */,
 				926CE1501FE81A8E002B3CF6 /* write_nalu.c */,
+				926F15541FE964CF00C40779 /* write_nhnt.c */,
 				9288350B1FE82E63002F603D /* write_qcp.c */,
 				926F15521FE867B000C40779 /* write_vtt.c */,
 			);
@@ -3397,6 +3400,7 @@
 				9201016B18D5A445003D1ACA /* encode_isom.c in Sources */,
 				926CE1511FE81A8E002B3CF6 /* write_nalu.c in Sources */,
 				92BB85851F7C606A009BC9C8 /* reframe_amr.c in Sources */,
+				926F15551FE964D000C40779 /* write_nhnt.c in Sources */,
 				9201016C18D5A445003D1ACA /* loader_bt.c in Sources */,
 				92B9A5B21F8660D700A24FE4 /* mpeg4_mediacontrol.c in Sources */,
 				92EC32CB1FAC5ACB003FB9C3 /* reframe_qcp.c in Sources */,

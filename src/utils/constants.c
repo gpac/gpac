@@ -179,6 +179,14 @@ const char *gf_codecid_name_oti(u32 stream_type, u32 oti)
 	return r->name;
 }
 
+GF_EXPORT
+u8 gf_codecid_oti(u32 codecid)
+{
+	CodecIDReg *r = gf_codecid_reg_find(codecid);
+	if (!r) return 0;
+	return r->mpeg4_oti;
+}
+
 
 GF_EXPORT
 const char *gf_stream_type_name(u32 streamType)
