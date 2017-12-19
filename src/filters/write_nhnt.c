@@ -80,6 +80,15 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 	ctx->codecid = cid;
 
+	if (ctx->codecid<GF_CODECID_LAST_MPEG4_MAPPING) ctx->oti = ctx->codecid;
+	else {
+		ctx->oti = gf_codecid_oti(ctx->codecid);
+	}
+	if (!ctx->oti) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("CodecID %s has no mapping to MPEG-4 systems, cannot use NHNT. Use NHML instead\n", gf_4cc_to_str(cid) ));
+		return GF_NOT_SUPPORTED;
+	}
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	ctx->streamtype = p ? p->value.uint : GF_STREAM_UNKNOWN;
 
@@ -141,10 +150,6 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 
 	ctx->first = GF_TRUE;
-	if (ctx->codecid<GF_CODECID_LAST_MPEG4_MAPPING) ctx->oti = ctx->codecid;
-	else {
-		ctx->oti = gf_codecid_oti(ctx->codecid);
-	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p) ctx->duration = p->value.frac;
