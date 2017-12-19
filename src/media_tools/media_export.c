@@ -429,7 +429,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	}
 
 	src = dumper->in_name ? dumper->in_name : gf_isom_get_filename(dumper->file);
-	gf_fs_load_source(fsess, src, "FID=1", NULL, &e);
+	gf_fs_load_source(fsess, src, "FID=1:noedit", NULL, &e);
 	if (e) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
