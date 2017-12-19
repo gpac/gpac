@@ -45,7 +45,7 @@ typedef struct
 {
 	//arguments
 	char *src;
-	Bool alltracks;
+	Bool alltracks, noedit;
 
 
 	//internal
