@@ -532,8 +532,9 @@ void *gf_filter_pid_get_udta(GF_FilterPid *pid)
 }
 
 
-static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const char *source_ids)
+static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const char *source_ids, Bool *pid_excluded)
 {
+	*pid_excluded = GF_FALSE;
 	if (!source_ids)
 		return GF_TRUE;
 	if (!id)
@@ -564,6 +565,20 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 			//match pid name
 			if (!strcmp(src_pid->name, pid_name)) return GF_TRUE;
 
+			if (!strnicmp(pid_name, "PID=", 4)) {
+				name = gf_filter_pid_get_property(src_pid, GF_PROP_PID_ID);
+				if (name) {
+					u32 pid_id_target;
+					if ((sscanf(pid_name, "PID=%d", &pid_id_target) == 1) && (pid_id_target==name->value.uint)) {
+						return GF_TRUE;
+					}
+					*pid_excluded = GF_TRUE;
+					return GF_FALSE;
+				} else {
+					//if the PID is unnamed ignore the #PID= directive, wait for further connections
+					return GF_TRUE;
+				}
+			}
 			//special case for stream types filters
 			name = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
 			if (name) {
@@ -579,10 +594,10 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 					matched=5;
 					type=GF_STREAM_SCENE;
 				} else if (!strnicmp(pid_name, "font", 4) && (name->value.uint==GF_STREAM_FONT)) {
-					matched=5;
+					matched=4;
 					type=GF_STREAM_FONT;
 				} else if (!strnicmp(pid_name, "text", 4) && (name->value.uint==GF_STREAM_TEXT)) {
-					matched=5;
+					matched=4;
 					type=GF_STREAM_TEXT;
 				}
 
@@ -603,6 +618,7 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 							}
 						}
 					}
+					*pid_excluded = GF_TRUE;
 				}
 			}
 
@@ -1036,6 +1052,23 @@ exit:
 	return chain_input;
 }
 
+static const char *gf_filter_last_id_in_chain(GF_Filter *filter)
+{
+	u32 i;
+	const char *id;
+	if (filter->id) return filter->id;
+	if (!filter->dynamic_filter) return NULL;
+
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		if (pidi->pid->filter->id) return pidi->pid->filter->id;
+		//stop at first non dyn filter
+		if (!pidi->pid->filter->dynamic_filter) continue;
+		id = gf_filter_last_id_in_chain(pidi->pid->filter);
+		if (id) return id;
+	}
+	return NULL;
+}
 
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
@@ -1044,9 +1077,13 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	Bool first_pass=GF_TRUE;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
+	Bool filter_found_but_pid_excluded = GF_FALSE;
+	const char *filter_id;
 
 	if (pid->destroyed)
 		return;
+
+	filter_id = gf_filter_last_id_in_chain(filter);
 
 restart:
 
@@ -1083,10 +1120,15 @@ restart:
 			if (filter_in_parent_chain(filter->cloned_from, filter_dst) ) continue;
 		}
 
-		//if we have sourceID info on the pid, check them
-		if (filter->id) {
+		//if we have sourceID info on the destination, check them
+		//since we may have inserted filters in the middle, ask for the last explicitely loaded ID in the chain
+		if (filter_id) {
 			if (filter_dst->source_ids) {
-				if (!filter_source_id_match(pid, filter->id, filter_dst->source_ids)) continue;
+				Bool pid_excluded=GF_FALSE;
+				if (!filter_source_id_match(pid, filter_id, filter_dst->source_ids, &pid_excluded)) {
+					if (pid_excluded) filter_found_but_pid_excluded = GF_TRUE;
+					continue;
+				}
 			} else {
 				//when a filter has an ID, we only allow connection to filters with source IDs
 				continue;
@@ -1123,7 +1165,7 @@ restart:
 	}
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
-	//connection in proces, do nothing
+	//connection task posted, nothing left to do
 	if (found_dest) return;
 
 	//nothing found, redo a pass, this time allowing for link resolve
@@ -1131,9 +1173,13 @@ restart:
 		first_pass = GF_FALSE;
 		goto restart;
 	}
-
-	//no filter found for this pid !
-	GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No filter found for PID %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
+	if (filter_found_but_pid_excluded) {
+		//PID was not included in explicit connection lists
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
+	} else {
+		//no filter found for this pid !
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No filter found for PID %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
+	}
 	return;
 }
 

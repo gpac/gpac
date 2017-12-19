@@ -39,6 +39,7 @@ typedef struct
 
 	FILE *file;
 	Bool is_std;
+	u32 nb_write;
 } GF_FileOutCtx;
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx)
@@ -58,25 +59,34 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	if (ctx->is_std) {
 		ctx->file = stdout;
 	} else {
-		if (ctx->dynext && ext) {
+		if (ctx->dynext) {
+			Bool has_ext = (strchr(filename, '.')==NULL) ? GF_FALSE : GF_TRUE;
 			char szName[GF_MAX_PATH];
-			if (file_idx) {
+
+			if (file_idx && (strstr(filename, "\%d") || strstr(filename, "\%0") ) ) {
+				sprintf(szName, filename, file_idx);
+				had_file = GF_FALSE;
+			} else if (file_idx) {
 				sprintf(szName, "%s_%d", filename, file_idx);
 				had_file = GF_FALSE;
 			} else {
 				strcpy(szName, filename);
 			}
-			strcat(szName, ".");
-			strcat(szName, ext);
+			if (!has_ext && ext) {
+				strcat(szName, ".");
+				strcat(szName, ext);
+			}
+
 			ctx->file = gf_fopen(szName, ctx->append ? "a+" : "w");
 		} else {
 			ctx->file = gf_fopen(filename, ctx->append ? "a+" : "w");
 		}
-		if (had_file && !ctx->append) {
+		if (had_file && !ctx->append && ctx->nb_write) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));
 
 		}
 	}
+	ctx->nb_write = 0;
 	if (!ctx->file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] cannot open output file %s\n", filename));
 		return GF_IO_ERR;
@@ -154,6 +164,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	if (start) {
 		const char *name = NULL;
 		fname = fext = NULL;
+		//file num increased per packet, open new file
 		fnum = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (fnum) {
 			fname = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILEPATH);
@@ -175,6 +186,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 		if (nb_write!=pck_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 		}
+		ctx->nb_write += nb_write;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] output file handle is not opened, discarding %d bytes\n", pck_size));
 

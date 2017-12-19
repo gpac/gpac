@@ -89,7 +89,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		if (err) *err = e;
 		return NULL;
 	}
-	if (filter) filter->orig_args = args;
+	if (filter && args) filter->orig_args = gf_strdup(args);
 
 	return filter;
 }
@@ -186,6 +186,7 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->id) gf_free(filter->id);
 	if (filter->source_ids) gf_free(filter->source_ids);
 	if (filter->filter_udta) gf_free(filter->filter_udta);
+	if (filter->orig_args) gf_free(filter->orig_args);
 	gf_free(filter);
 }
 
@@ -508,7 +509,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		}
 
 		if (!found && (arg_type==GF_FILTER_ARG_LOCAL) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter options, ignoring\n", szArg));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter %s options, ignoring\n", szArg, filter->freg->name));
 		}
 skip_arg:
 		if (escaped) {

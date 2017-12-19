@@ -237,369 +237,6 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 #endif
 }
 
-static void write_jp2_file(GF_BitStream *bs, char *data, u32 data_size, char *dsi, u32 dsi_size)
-{
-	gf_bs_write_u32(bs, 12);
-	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_JP);
-	gf_bs_write_u32(bs, 0x0D0A870A);
-
-	gf_bs_write_u32(bs, 20);
-	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FTYP);
-	gf_bs_write_u32(bs, GF_ISOM_BRAND_JP2);
-	gf_bs_write_u32(bs, 0);
-	gf_bs_write_u32(bs, GF_ISOM_BRAND_JP2);
-
-	gf_bs_write_data(bs, dsi, dsi_size);
-	gf_bs_write_data(bs, data, data_size);
-}
-
-GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
-{
-	GF_DecoderConfig *dcfg;
-	GF_GenericSampleDescription *udesc;
-	char szName[1000], szEXT[10], szNum[1000], *dsi;
-	char *ext_start = NULL;
-	FILE *out;
-	Bool is_stdout = GF_FALSE;
-	GF_BitStream *bs;
-	u32 track, i, di, count, m_type, m_stype, dsi_size, is_mj2k;
-	Bool is_wvtt = GF_FALSE;
-
-	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
-		return GF_BAD_PARAM;
-	}
-	m_type = gf_isom_get_media_type(dumper->file, track);
-	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
-	dsi_size = 0;
-
-	if (dumper->sample_num) sprintf(szNum, " %d", dumper->sample_num);
-	else strcpy(szNum, "s");
-
-	is_mj2k = 0;
-	dsi = NULL;
-	udesc = NULL;
-	dcfg = NULL;
-	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP))
-		dcfg = gf_isom_get_decoder_config(dumper->file, track, 1);
-
-	strcpy(szName, dumper->out_name ? dumper->out_name : "");
-	if (dcfg) {
-		switch (dcfg->streamType) {
-		case GF_STREAM_VISUAL:
-			switch (dcfg->objectTypeIndication) {
-			case GF_CODECID_MPEG4_PART2:
-				strcpy(szEXT, ".cmp");
-				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 Visual sample%s", szNum);
-				break;
-			case GF_CODECID_AVC:
-			case GF_CODECID_SVC:
-			case GF_CODECID_MVC:
-				strcpy(szEXT, ".264");
-				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
-				break;
-			case GF_CODECID_HEVC:
-			case GF_CODECID_LHVC:
-				strcpy(szEXT, ".hvc");
-				gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);
-				break;
-			case GF_CODECID_JPEG:
-				strcpy(szEXT, ".jpg");
-				gf_export_message(dumper, GF_OK, "Dumping JPEG image%s", szNum);
-				break;
-			case GF_CODECID_PNG:
-				strcpy(szEXT, ".png");
-				gf_export_message(dumper, GF_OK, "Dumping PNG image%s", szNum);
-				break;
-			case GF_CODECID_J2K:
-				strcpy(szEXT, ".jp2");
-				gf_export_message(dumper, GF_OK, "Dumping JPEG 2000 image%s", szNum);
-				break;
-			case GF_CODECID_THEORA:
-				strcpy(szEXT, ".theo");
-				gf_export_message(dumper, GF_OK, "Dumping Theora video sample%s", szNum);
-				break;
-			default:
-				strcpy(szEXT, ".raw");
-				gf_export_message(dumper, GF_OK, "Dumping Unknown video sample%s (OTI %d)", szNum, dcfg->objectTypeIndication);
-				break;
-			}
-			break;
-		case GF_STREAM_AUDIO:
-			switch (dcfg->objectTypeIndication) {
-			case GF_CODECID_AAC_MPEG2_MP:
-			case GF_CODECID_AAC_MPEG2_LCP:
-			case GF_CODECID_AAC_MPEG2_SSRP:
-			case GF_CODECID_AAC_MPEG4:
-				strcpy(szEXT, ".aac");
-				gf_export_message(dumper, GF_OK, "Dumping MPEG-%d AAC sample%s", (dcfg->objectTypeIndication==GF_CODECID_AAC_MPEG4) ? 4 : 2, szNum);
-				break;
-			case GF_CODECID_MPEG2_PART3:
-			case GF_CODECID_MPEG_AUDIO:
-				strcpy(szEXT, ".mp3");
-				gf_export_message(dumper, GF_OK, "Dumping MPEG-1/2 Audio (MP3) sample%s", szNum);
-				break;
-			case GF_CODECID_VORBIS:
-				strcpy(szEXT, ".vorb");
-				gf_export_message(dumper, GF_OK, "Dumping Vorbis audio sample%s", szNum);
-				break;
-			case GF_CODECID_SPEEX:
-				strcpy(szEXT, ".spx");
-				gf_export_message(dumper, GF_OK, "Dumping Speex audio sample%s", szNum);
-				break;
-			case GF_CODECID_FLAC:
-				strcpy(szEXT, ".flac");
-				gf_export_message(dumper, GF_OK, "Dumping Flac audio sample%s", szNum);
-				break;
-			default:
-				strcpy(szEXT, ".raw");
-				gf_export_message(dumper, GF_OK, "Dumping Unknown audio sample%s (OTI %d)", szNum, dcfg->objectTypeIndication);
-				break;
-			}
-			break;
-		case GF_STREAM_SCENE:
-			strcpy(szEXT, ".bifs");
-			gf_export_message(dumper, GF_OK, "Dumping BIFS sample%s", szNum);
-			break;
-		case GF_STREAM_OD:
-			strcpy(szEXT, ".od");
-			gf_export_message(dumper, GF_OK, "Dumping OD sample%s", szNum);
-			break;
-		case GF_STREAM_MPEGJ:
-			strcpy(szEXT, ".mpj");
-			gf_export_message(dumper, GF_OK, "Dumping MPEG-J sample%s", szNum);
-			break;
-		case GF_STREAM_OCI:
-			strcpy(szEXT, ".oci");
-			gf_export_message(dumper, GF_OK, "Dumping OCI sample%s", szNum);
-			break;
-		case GF_STREAM_MPEG7:
-			strcpy(szEXT, ".mp7");
-			gf_export_message(dumper, GF_OK, "Dumping MPEG7 sample%s", szNum);
-			break;
-		case GF_STREAM_IPMP:
-			strcpy(szEXT, ".ipmp");
-			gf_export_message(dumper, GF_OK, "Dumping IPMP sample%s", szNum);
-			break;
-		case GF_STREAM_TEXT:
-			strcpy(szEXT, ".tx3g");
-			gf_export_message(dumper, GF_OK, "Dumping 3GP Text sample%s", szNum);
-			break;
-		default:
-			gf_odf_desc_del((GF_Descriptor *) dcfg);
-			return gf_export_message(dumper, GF_NOT_SUPPORTED, "Cannot dump systems track ID %d sample%s - use NHNT", dumper->trackID, szNum);
-		}
-		gf_odf_desc_del((GF_Descriptor *) dcfg);
-	} else if ((m_stype==GF_ISOM_SUBTYPE_3GP_AMR) || (m_stype==GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
-		strcpy(szEXT, ".amr");
-		gf_export_message(dumper, GF_OK, "Extracting AMR Audio sample%s", szNum);
-	} else if (m_stype==GF_ISOM_SUBTYPE_3GP_H263) {
-		gf_export_message(dumper, GF_OK, "Extracting H263 Video sample%s", szNum);
-		strcpy(szEXT, ".263");
-	} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
-		gf_export_message(dumper, GF_OK, "Extracting DIMS sample%s", szNum);
-		strcpy(szEXT, ".dims");
-	} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
-		gf_export_message(dumper, GF_OK, "Extracting AC3 sample%s", szNum);
-		strcpy(szEXT, ".ac3");
-	} else if (m_stype==GF_ISOM_SUBTYPE_MP3) {
-		gf_export_message(dumper, GF_OK, "Extracting MP3 sample%s", szNum);
-		strcpy(szEXT, ".mp3");
-	} else if (m_stype==GF_ISOM_SUBTYPE_XDVB ) {
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 sample%s", szNum);
-		strcpy(szEXT, ".m2v");
-	} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264)
-	           || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264)
-	           || (m_stype==GF_ISOM_SUBTYPE_AVC3_H264)
-	           || (m_stype==GF_ISOM_SUBTYPE_AVC4_H264)
-	           || (m_stype==GF_ISOM_SUBTYPE_SVC_H264)
-	           || (m_stype==GF_ISOM_SUBTYPE_MVC_H264)
-	          ) {
-		strcpy(szEXT, ".h264");
-		gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
-	} else if ((m_stype==GF_ISOM_SUBTYPE_HVC1)
-	           || (m_stype==GF_ISOM_SUBTYPE_HEV1)
-	           || (m_stype==GF_ISOM_SUBTYPE_HVC2)
-	           || (m_stype==GF_ISOM_SUBTYPE_HEV2)
-	           || (m_stype==GF_ISOM_SUBTYPE_LHV1)
-	           || (m_stype==GF_ISOM_SUBTYPE_LHE1)
-	           || (m_stype==GF_ISOM_SUBTYPE_HVT1)
-	          ) {
-		strcpy(szEXT, ".hvc");
-		gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);
-	} else if (m_stype==GF_ISOM_SUBTYPE_WVTT) {
-		gf_export_message(dumper, GF_OK, "Extracting WebVTT sample%s", szNum);
-		strcpy(szEXT, ".vtt");
-		is_wvtt = GF_TRUE;
-	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
-		gf_export_message(dumper, GF_OK, "Extracting Simple Text sample%s", szNum);
-		strcpy(szEXT, ".txt");
-	} else if (m_stype==GF_ISOM_SUBTYPE_METT) {
-		gf_export_message(dumper, GF_OK, "Extracting Metadata Text sample%s", szNum);
-		strcpy(szEXT, ".txt");
-	} else if (m_stype==GF_ISOM_SUBTYPE_SBTT) {
-		gf_export_message(dumper, GF_OK, "Extracting Subtitle Text sample%s", szNum);
-		strcpy(szEXT, ".txt");
-	} else if (m_stype==GF_ISOM_SUBTYPE_METX) {
-		gf_export_message(dumper, GF_OK, "Extracting Metadata XML sample%s", szNum);
-		strcpy(szEXT, ".xml");
-	} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
-		gf_export_message(dumper, GF_OK, "Extracting Subtitle XML sample%s", szNum);
-		strcpy(szEXT, ".xml");
-	} else if (m_type==GF_ISOM_MEDIA_HINT) {
-		return gf_export_hint(dumper);
-	} else if (m_stype==GF_ISOM_BRAND_MJP2) {
-		strcpy(szEXT, ".jp2");
-		gf_export_message(dumper, GF_OK, "Dumping JPEG 2000 sample%s", szNum);
-		udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
-		dsi = udesc->extension_buf;
-		dsi_size = udesc->extension_buf_size;
-		gf_free(udesc);
-		is_mj2k = 1;
-	} else {
-		strcpy(szEXT, ".");
-		strcat(szEXT, gf_4cc_to_str(m_stype));
-		udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
-		switch (m_type) {
-		case GF_ISOM_MEDIA_VISUAL:
-			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->compressor_name: "Unknown");
-			break;
-		case GF_ISOM_MEDIA_AUDIO:
-			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown");
-			break;
-		default:
-			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s sample%s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->compressor_name : "Unknown", szNum);
-			break;
-		}
-		if (udesc && udesc->extension_buf) gf_free(udesc->extension_buf);
-		if (udesc) gf_free(udesc);
-	}
-	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
-
-	if (!strcmp(dumper->out_name, "std"))
-		is_stdout = 1;
-	else
-		ext_start = gf_file_ext_start(dumper->out_name);
-
-
-
-	gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_TILE_ONLY | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
-
-	if (dumper->sample_num == (u32) -1) {
-		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
-		if (!samp) return GF_BAD_PARAM;
-		if (ext_start) {
-			ext_start[0]=0;
-			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, ext_start+1);
-			ext_start[0]='.';
-		} else {
-			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
-		}
-		out = is_stdout ? stdout : gf_fopen(szName, "wb");
-		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-		gf_isom_sample_del(&samp);
-		gf_bs_del(bs);
-
-		if (!is_stdout)
-			gf_fclose(out);
-		if (dsi)
-			gf_free(dsi);
-		return GF_OK;
-	}
-
-
-	if (dumper->sample_num) {
-		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
-		if (!samp) return GF_BAD_PARAM;
-		if (ext_start) {
-			ext_start[0]=0;
-			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, ext_start+1);
-			ext_start[0]='.';
-		} else {
-			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
-		}
-		out = is_stdout ? stdout : gf_fopen(szName, "wb");
-		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-		if (is_mj2k)
-			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
-		else {
-#ifndef GPAC_DISABLE_VTT
-			if (is_wvtt) {
-				GF_Err e;
-				e = gf_webvtt_dump_header(out, dumper->file, track, GF_FALSE, 1);
-				if (e == GF_OK) {
-					GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample);
-					u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
-					gf_webvtt_dump_iso_sample(out, timescale, samp);
-				}
-			} else
-#endif
-			{
-				gf_bs_write_data(bs, samp->data, samp->dataLength);
-			}
-		}
-		gf_isom_sample_del(&samp);
-		gf_bs_del(bs);
-
-		if (!is_stdout)
-			gf_fclose(out);
-		if (dsi)
-			gf_free(dsi);
-		return GF_OK;
-	}
-
-	count = gf_isom_get_sample_count(dumper->file, track);
-	for (i=0; i<count; i++) {
-		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
-		if (!samp) break;
-
-		if (ext_start) {
-			ext_start[0]=0;
-			if (count>=1000) {
-				sprintf(szName, "%s_%08d%s", dumper->out_name, dumper->sample_num, ext_start+1);
-			} else {
-				sprintf(szName, "%s_%03d%s", dumper->out_name, dumper->sample_num, ext_start+1);
-			}
-			ext_start[0]='.';
-		} else {
-			if (count>=1000) {
-				sprintf(szName, "%s_%08d%s", dumper->out_name, i+1, szEXT);
-			} else {
-				sprintf(szName, "%s_%03d%s", dumper->out_name, i+1, szEXT);
-			}
-		}
-
-		out = is_stdout ? stdout : gf_fopen(szName, "wb");
-		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-		if (dsi) gf_bs_write_data(bs, dsi, dsi_size);
-		if (is_mj2k)
-			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
-		else {
-#ifndef GPAC_DISABLE_VTT
-			if (is_wvtt) {
-				GF_Err e;
-				e = gf_webvtt_dump_header(out, dumper->file, track, GF_FALSE, 1);
-				if (e == GF_OK) {
-					GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample);
-					u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
-					gf_webvtt_dump_iso_sample(out, timescale, samp);
-				}
-			} else
-#endif
-			{
-				gf_bs_write_data(bs, samp->data, samp->dataLength);
-			}
-		}
-		gf_isom_sample_del(&samp);
-		gf_set_progress("Media Export", i+1, count);
-		gf_bs_del(bs);
-		if (!is_stdout)
-			gf_fclose(out);
-		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
-	}
-	if (dsi) gf_free(dsi);
-	return GF_OK;
-}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 track, char *dsi, u32 dsiSize)
@@ -734,7 +371,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 {
 	const char *src;
-	char szArgs[4096];
+	char szArgs[4096], szSubArgs[1024];
 	GF_Filter *file_out, *reframer;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
@@ -750,8 +387,24 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load output file dumper\n"));
 		return GF_FILTER_NOT_FOUND;
 	}
+	//raw sample frame, force loading filter generic write in frame mode
+	if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
+		GF_Filter *rframe;
+		sprintf(szArgs, "write_gen:frame");
+		if (dumper->sample_num) {
+			sprintf(szSubArgs, ":sstart=%d:send=%d", dumper->sample_num, dumper->sample_num);
+			strcat(szArgs, szSubArgs);
+		}
+		rframe = gf_fs_load_filter(fsess, szArgs);
+		if (!rframe) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
+			return GF_FILTER_NOT_FOUND;
+		}
+	}
+
 	//force a reframer filter, connected to our input
-	strcpy(szArgs, "reframer:SID=1:exporter");
+	sprintf(szArgs, "reframer:SID=1#PID=%d:exporter", dumper->trackID);
 	if (dumper->flags & GF_EXPORT_SVC_LAYER)
 		strcat(szArgs, ":extract=layer");
 	if (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE)
@@ -2431,7 +2084,9 @@ GF_Err gf_media_export(GF_MediaExporter *dumper)
 #endif /*GPAC_DISABLE_MPEG2TS*/
 		return gf_media_export_native(dumper);
 	}
-	else if (dumper->flags & GF_EXPORT_RAW_SAMPLES) return gf_media_export_samples(dumper);
+	else if (dumper->flags & GF_EXPORT_RAW_SAMPLES)
+		return gf_media_export_native(dumper);
+
 	else if (dumper->flags & GF_EXPORT_NHNT) return gf_media_export_nhnt(dumper);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	else if (dumper->flags & GF_EXPORT_MP4) return gf_media_export_isom(dumper);

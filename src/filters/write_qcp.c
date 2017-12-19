@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / AAC ADTS write filter
+ *  This file is part of GPAC / QCP write filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by

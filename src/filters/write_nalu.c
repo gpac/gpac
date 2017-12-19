@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU video write filter
