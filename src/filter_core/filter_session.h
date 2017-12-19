@@ -318,8 +318,8 @@ struct __gf_filter
 	void *on_setup_error_udta;
 	GF_Filter *on_setup_error_filter;
 
-	//const pointer to the argument string
-	const char *orig_args;
+	//internal copy of argument string
+	char *orig_args;
 	//remember how the args were set, either by explicit loading of filters or during filter chain
 	GF_FilterArgType arg_type;
 	//allocated pointer to the argument string for source filters

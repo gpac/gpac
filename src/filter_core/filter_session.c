@@ -435,7 +435,6 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
 			filter = gf_filter_new(fsess, f_reg, args, GF_FILTER_ARG_LOCAL, NULL);
-			if (filter) filter->orig_args = args;
 			return filter;
 		}
 	}

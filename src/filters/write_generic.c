@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
  *  This file is part of GPAC / generic stream write filter
@@ -27,15 +27,14 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
-#include <gpac/avparse.h>
-#endif
+#include <gpac/internal/isomedia_dev.h>
 
 
 typedef struct
 {
 	//opts
-	Bool exporter, rcfg;
+	Bool exporter, rcfg, frame;
+	u32 sstart, send;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -44,6 +43,7 @@ typedef struct
 
 	u32 codecid;
 	Bool split_files;
+	Bool is_mj2k;
 	u32 sample_num;
 
 	const char *dcfg;
@@ -51,6 +51,8 @@ typedef struct
 
 	GF_Fraction duration;
 	Bool first;
+
+	GF_BitStream *bs;
 } GF_GenDumpCtx;
 
 
@@ -58,8 +60,9 @@ typedef struct
 
 GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 cid, chan, sr, bps, w, h;
+	u32 cid, chan, sr, bps, w, h, stype;
 	const char *name;
+	char szExt[5];
 	const GF_PropertyValue *p;
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 
@@ -84,6 +87,9 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->opid = gf_filter_pid_new(filter);
 
 	ctx->ipid = pid;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	stype = p ? p->value.uint : 0;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	sr = p ? p->value.uint : 0;
@@ -129,6 +135,7 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("jp2") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("image/jp2") );
 		ctx->split_files = GF_TRUE;
+		ctx->is_mj2k = GF_TRUE;
 		break;
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:
@@ -173,7 +180,10 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("eac3") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/eac3") );
 		break;
-
+	case GF_CODECID_DIMS:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("dims") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/3gpp-dims") );
+		break;
 	case GF_CODECID_FLASH:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("swf") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/swf") );
@@ -231,18 +241,99 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->split_files = GF_TRUE;
 		break;
 
-	default:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("und") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("aac") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/aac") );
 		break;
+	case GF_CODECID_AVC:
+	case GF_CODECID_AVC_PS:
+	case GF_CODECID_SVC:
+	case GF_CODECID_MVC:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("264") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/avc") );
+		break;
+	case GF_CODECID_HEVC:
+	case GF_CODECID_LHVC:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("hvc") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/hevc") );
+		break;
+	case GF_CODECID_WEBVTT:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("vtt") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("text/webtvv") );
+		break;
+	case GF_CODECID_QCELP:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("qcelp") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcelp") );
+		break;
+	case GF_CODECID_THEORA:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("theo") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/theora") );
+		break;
+	case GF_CODECID_VORBIS:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("vorb") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/vorbis") );
+		break;
+	case GF_CODECID_SPEEX:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("spx") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/speex") );
+		break;
+	case GF_CODECID_FLAC:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("flac") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/flac") );
+		break;
+
+	default:
+		switch (stype) {
+		case GF_STREAM_SCENE:
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("bifs") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/bifs") );
+			break;
+		case GF_STREAM_OD:
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("od") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/od") );
+			break;
+		case GF_STREAM_MPEGJ:
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mpj") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/mpegj") );
+			break;
+		case GF_STREAM_OCI:
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("oci") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-mpeg4-oci") );
+			break;
+		case GF_STREAM_MPEG7:
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mp7") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/mpeg7") );
+			break;
+		case GF_STREAM_IPMP:
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ipmp") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-mpeg4-ipmp") );
+			break;
+		case GF_STREAM_TEXT:
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("tx3g") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("text/3gpp") );
+			break;
+		default:
+			strcpy(szExt, gf_4cc_to_str(cid));
+			if (!strlen(szExt)) strcpy(szExt, "raw");
+			
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
+			break;
+		}
 	}
 	ctx->first = GF_TRUE;
+	//avoid creating a file when dumping individual samples
 	if (ctx->split_files) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
 		if (!p || (p->value.uint>1))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PCK_FILENUM, &PROP_UINT(0) );
 		else
 			ctx->split_files = GF_FALSE;
+	} else if (ctx->frame) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PCK_FILENUM, &PROP_UINT(0) );
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
@@ -250,12 +341,41 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
+static GF_FilterPacket *gendump_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 data_size)
+{
+	u32 size;
+	char *output;
+	GF_FilterPacket *dst_pck;
+	size = ctx->dcfg_size + data_size + 8*4;
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+
+	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
+	else gf_bs_reassign_buffer(ctx->bs, output, size);
+
+	gf_bs_write_u32(ctx->bs, 12);
+	gf_bs_write_u32(ctx->bs, GF_ISOM_BOX_TYPE_JP);
+	gf_bs_write_u32(ctx->bs, 0x0D0A870A);
+
+	gf_bs_write_u32(ctx->bs, 20);
+	gf_bs_write_u32(ctx->bs, GF_ISOM_BOX_TYPE_FTYP);
+	gf_bs_write_u32(ctx->bs, GF_ISOM_BRAND_JP2);
+	gf_bs_write_u32(ctx->bs, 0);
+	gf_bs_write_u32(ctx->bs, GF_ISOM_BRAND_JP2);
+
+	gf_bs_write_data(ctx->bs, ctx->dcfg, ctx->dcfg_size);
+	gf_bs_write_data(ctx->bs, data, data_size);
+
+	return dst_pck;
+}
+
+
 GF_Err gendump_process(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	char *data;
 	u32 pck_size;
+	Bool split_files = ctx->split_files;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -267,7 +387,20 @@ GF_Err gendump_process(GF_Filter *filter)
 	}
 	ctx->sample_num++;
 
-	if (ctx->dcfg_size && gf_filter_pck_get_sap(pck)) {
+	if (ctx->sstart) {
+		if (ctx->sstart > ctx->sample_num) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+		if ((ctx->sstart <= ctx->send) && (ctx->sample_num>ctx->send) ) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+	}
+
+	if (ctx->frame) {
+		split_files = GF_TRUE;
+	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k) {
 		dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
@@ -280,12 +413,16 @@ GF_Err gendump_process(GF_Filter *filter)
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
-	dst_pck = gf_filter_pck_new_ref(ctx->opid, data, pck_size, pck);
+	if (ctx->is_mj2k) {
+		dst_pck = gendump_write_j2k(ctx, data, pck_size);
+	} else {
+		dst_pck = gf_filter_pck_new_ref(ctx->opid, data, pck_size, pck);
+	}
 	gf_filter_pck_merge_properties(pck, dst_pck);
-	//keep byte offset
+	//keep byte offset ?
 //	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 
-	if (ctx->split_files) {
+	if (split_files) {
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->sample_num) );
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 	} else {
@@ -351,23 +488,52 @@ static const GF_FilterArgs GenDumpArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(sstart), "Start number of frame to dump", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(send), "End number of frame to dump. If start<end, all samples after start are dumped", GF_PROP_UINT, "0", NULL, GF_FALSE},
+
 	{}
 };
 
+static GF_Err gendump_initialize(GF_Filter *filter);
+
+void gendump_finalize(GF_Filter *filter)
+{
+	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->bs) gf_bs_del(ctx->bs);
+}
 
 GF_FilterRegister GenDumpRegister = {
 	.name = "write_gen",
 	.description = "Generic single stream output",
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,
+	.initialize = gendump_initialize,
+	.finalize = gendump_finalize,
 	INCAPS(GenDumpInputs),
 	OUTCAPS(GenDumpOutputs),
 	.configure_pid = gendump_configure_pid,
 	.process = gendump_process
 };
 
+static const GF_FilterCapability FrameDumpInputs[] =
+{
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+};
+
+static GF_Err gendump_initialize(GF_Filter *filter)
+{
+	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->frame) {
+		GenDumpRegister.input_caps = FrameDumpInputs;
+		GenDumpRegister.nb_input_caps = sizeof(FrameDumpInputs) / sizeof(GF_FilterCapability);
+	}
+	return GF_OK;
+}
+
 
 const GF_FilterRegister *gendump_register(GF_FilterSession *session)
 {
 	return &GenDumpRegister;
 }
+

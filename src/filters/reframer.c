@@ -97,10 +97,23 @@ static const GF_FilterCapability ReframerOutputs[] =
 	{}
 };
 
+typedef struct
+{
+	Bool exporter;
+} GF_ReframerCtx;
+
+#define OFFS(_n)	#_n, offsetof(GF_ReframerCtx, _n)
+static const GF_FilterArgs ReframerArgs[] =
+{
+	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{}
+};
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
 	.description = "Passthrough filter forcing reframers instatiation for file to file operations",
+	.private_size = sizeof(GF_ReframerCtx),
+	.args = ReframerArgs,
 	.explicit_only = 1,
 	INCAPS(ReframerInputs),
 	OUTCAPS(ReframerOutputs),
