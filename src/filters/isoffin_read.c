@@ -475,7 +475,8 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		}
 		ch->next_track = 0;
 		/*in scalable mode add SPS/PPS in-band*/
-		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
+		if (ch->base_track)
+			ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
 		break;
 	}
 	if (!read->noedit)
@@ -808,8 +809,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				gf_filter_pck_set_duration(pck, sample_dur);
 				gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);
 
-				gf_filter_pck_set_property(pck, GF_PROP_PCK_ENCRYPTED, &PROP_BOOL(ch->current_slh.cenc_encrypted) );
 				if (ch->current_slh.cenc_encrypted) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_ENCRYPTED, &PROP_BOOL(ch->current_slh.cenc_encrypted) );
 					gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_PATTERN, &PROP_FRAC_INT(ch->current_slh.skip_byte_block, ch->current_slh.crypt_byte_block) );
 
 					if (ch->current_slh.cenc_encrypted && !ch->current_slh.IV_size) {

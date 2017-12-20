@@ -448,7 +448,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	u32 width, height, codec_tag, sample_rate, nb_channels, version, revision, vendor_code, temporal_quality, spatial_quality, h_res, v_res, bit_depth, bits_per_sample;
 
 	u32 dims_profile, dims_level, dims_pathComponents, dims_fullRequestHost, dims_streamType, dims_containsRedundant;
-	char *dims_textEncoding, *dims_contentEncoding, *dims_content_script_types, *dims_mime_type, *dims_xml_schema_loc;
+	char *textEncoding, *dims_contentEncoding, *dims_content_script_types, *mime_type, *xml_schema_loc, *xmlns;
 	FILE *nhml, *info;
 	const GF_PropertyValue *p;
 	char *auxiliary_mime_types = NULL;
@@ -525,7 +525,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	width = height = codec_tag = sample_rate = nb_channels = version = revision = vendor_code = temporal_quality = spatial_quality = h_res = v_res = bit_depth = bits_per_sample = 0;
 
 	dims_pathComponents = dims_fullRequestHost = 0;
-	dims_textEncoding = dims_contentEncoding = dims_content_script_types = dims_mime_type = dims_xml_schema_loc = NULL;
+	textEncoding = dims_contentEncoding = dims_content_script_types = mime_type = xml_schema_loc = xmlns = NULL;
 	dims_profile = dims_level = 255;
 	dims_streamType = GF_TRUE;
 	dims_containsRedundant = 1;
@@ -639,8 +639,8 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			} else if (!stricmp(att->value, "main+redundant")) {
 				dims_containsRedundant = 3;
 			}
-		} else if (!stricmp(att->name, "text_encoding")) {
-			dims_textEncoding = att->value;
+		} else if (!stricmp(att->name, "text_encoding") || !stricmp(att->name, "encoding")) {
+			textEncoding = att->value;
 		} else if (!stricmp(att->name, "content_encoding")) {
 			if (!strcmp(att->value, "deflate")) {
 				dims_contentEncoding = att->value;
@@ -649,15 +649,15 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (!stricmp(att->name, "content_script_types")) {
 			dims_content_script_types = att->value;
 		} else if (!stricmp(att->name, "mime_type")) {
-			dims_mime_type = att->value;
+			mime_type = att->value;
 		} else if (!stricmp(att->name, "media_namespace")) {
-			dims_mime_type = att->value;
+			xmlns = att->value;
 		} else if (!stricmp(att->name, "media_schema_location")) {
-			dims_xml_schema_loc = att->value;
+			xml_schema_loc = att->value;
 		} else if (!stricmp(att->name, "xml_namespace")) {
-			dims_mime_type = att->value;
+			xmlns = att->value;
 		} else if (!stricmp(att->name, "xml_schema_location")) {
-			dims_xml_schema_loc = att->value;
+			xml_schema_loc = att->value;
 		} else if (!stricmp(att->name, "xmlHeaderEnd")) {
 			strcpy(szXmlHeaderEnd, att->value);
 		}
@@ -765,29 +765,29 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		if (dims_fullRequestHost) gf_filter_pid_set_property_str(ctx->opid, "dims:fullRequestHost", &PROP_UINT(dims_fullRequestHost) );
 		if (dims_streamType) gf_filter_pid_set_property_str(ctx->opid, "dims:streamType", &PROP_BOOL(dims_streamType) );
 		if (dims_containsRedundant) gf_filter_pid_set_property_str(ctx->opid, "dims:redundant", &PROP_UINT(dims_containsRedundant) );
-		if (dims_textEncoding) gf_filter_pid_set_property_str(ctx->opid, "dims:textEncoding", &PROP_STRING(dims_textEncoding) );
-		if (dims_contentEncoding) gf_filter_pid_set_property_str(ctx->opid, "dims:encoding", &PROP_STRING(dims_contentEncoding) );
+		if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
+		if (dims_contentEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:content_encoding", &PROP_STRING(dims_contentEncoding) );
 		if (dims_content_script_types) gf_filter_pid_set_property_str(ctx->opid, "dims:scriptTypes", &PROP_STRING(dims_content_script_types) );
-		if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "dims:mime", &PROP_STRING(dims_mime_type) );
-		if (dims_xml_schema_loc) gf_filter_pid_set_property_str(ctx->opid, "dims:schemaloc", &PROP_STRING(dims_xml_schema_loc) );
+		if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
+		if (xml_schema_loc) gf_filter_pid_set_property_str(ctx->opid, "meta:schemaloc", &PROP_STRING(xml_schema_loc) );
 
 	} else if (mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT || mtype == GF_ISOM_MEDIA_TEXT) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(mtype) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_tag) );
 
 		if (codec_tag == GF_ISOM_SUBTYPE_STPP) {
-			if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(dims_mime_type) );
-			if (dims_xml_schema_loc) gf_filter_pid_set_property_str(ctx->opid, "meta:schemaloc", &PROP_STRING(dims_xml_schema_loc) );
+			if (xmlns) gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(xmlns) );
+			if (xml_schema_loc) gf_filter_pid_set_property_str(ctx->opid, "meta:schemaloc", &PROP_STRING(xml_schema_loc) );
 			if (auxiliary_mime_types) gf_filter_pid_set_property_str(ctx->opid, "meta:aux_mimes", &PROP_STRING(auxiliary_mime_types) );
 
 		} else if (codec_tag == GF_ISOM_SUBTYPE_SBTT) {
-			if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(dims_mime_type) );
-			if (dims_textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(dims_textEncoding) );
+			if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
+			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
 			if (specInfo) gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_STRING_NO_COPY(specInfo) );
 			specInfo = NULL;
 		} else if (codec_tag == GF_ISOM_SUBTYPE_STXT) {
-			if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(dims_mime_type) );
-			if (dims_textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(dims_textEncoding) );
+			if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
+			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
 			if (specInfo) gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_STRING_NO_COPY(specInfo) );
 			specInfo = NULL;
 		} else {
@@ -798,12 +798,12 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_tag) );
 
 		if (codec_tag == GF_ISOM_SUBTYPE_METX) {
-			if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(dims_mime_type) );
-			if (dims_xml_schema_loc) gf_filter_pid_set_property_str(ctx->opid, "meta:schemaloc", &PROP_STRING(dims_xml_schema_loc) );
-			if (dims_textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(dims_textEncoding) );
+			if (xmlns) gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(xmlns) );
+			if (xml_schema_loc) gf_filter_pid_set_property_str(ctx->opid, "meta:schemaloc", &PROP_STRING(xml_schema_loc) );
+			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
 		} else if (codec_tag == GF_ISOM_SUBTYPE_METT) {
-			if (dims_mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(dims_mime_type) );
-			if (dims_textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(dims_textEncoding) );
+			if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
+			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
 			if (specInfo) gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_STRING_NO_COPY(specInfo) );
 			specInfo = NULL;
 		} else {

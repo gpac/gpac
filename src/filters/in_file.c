@@ -61,9 +61,9 @@ GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char 
 	}
 
 	if (local_file)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILEPATH, &PROP_STRING((char *)local_file));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILEPATH, &PROP_STRING(local_file));
 
-	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING((char *)url));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
 	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
 	sep = strrchr(url, '/');
@@ -123,7 +123,7 @@ GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char 
 		}
 	}
 	if (mime_type)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING((char *) mime_type));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( mime_type));
 
 	return GF_OK;
 }

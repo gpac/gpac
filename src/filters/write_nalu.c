@@ -47,6 +47,7 @@ typedef struct
 	u32 dsi_size;
 
 	GF_Fraction duration;
+	u64 first_ts;
 
 	GF_BitStream *bs_w, *bs_r;
 } GF_NALUMxCtx;
@@ -324,7 +325,6 @@ GF_Err nalumx_process(GF_Filter *filter)
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 
 	gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
-	ctx->first = GF_FALSE;
 
 	gf_filter_pck_send(dst_pck);
 
@@ -333,9 +333,11 @@ GF_Err nalumx_process(GF_Filter *filter)
 		u64 ts = gf_filter_pck_get_dts(pck);
 		if (ts == GF_FILTER_NO_TS)
 			ts = gf_filter_pck_get_cts(pck);
-
-		gf_set_progress("Exporting", ts*ctx->duration.den, ctx->duration.num*timescale);
+		if (ctx->first)
+			ctx->first_ts = ts;
+		gf_set_progress("Exporting", (ts-ctx->first_ts)*ctx->duration.den, ctx->duration.num*timescale);
 	}
+	ctx->first = GF_FALSE;
 	gf_filter_pid_drop_packet(ctx->ipid);
 
 	return GF_OK;

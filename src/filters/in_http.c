@@ -311,11 +311,11 @@ static GF_Err httpin_process(GF_Filter *filter)
 			idx = 0;
 			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
 				if (!strcmp(hname, "icy-name")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-name", & PROP_STRING((char *) hval));
+					gf_filter_pid_set_info_str(ctx->pid, "icy-name", & PROP_STRING(hval));
 				} else if (!strcmp(hname, "icy-genre")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-genre", & PROP_STRING((char *) hval));
+					gf_filter_pid_set_info_str(ctx->pid, "icy-genre", & PROP_STRING(hval));
 				} else if (!strcmp(hname, "icy-meta")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-meta", & PROP_STRING((char *) hval));
+					gf_filter_pid_set_info_str(ctx->pid, "icy-meta", & PROP_STRING(hval));
 				}
 			}
 		}

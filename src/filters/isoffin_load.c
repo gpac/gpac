@@ -108,6 +108,8 @@ void isor_declare_objects(ISOMReader *read)
 		Double track_dur=0;
 		GF_FilterPid *pid;
 		u32 mtype, m_subtype;
+		GF_GenericSampleDescription *udesc = NULL;
+
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
@@ -272,11 +274,11 @@ void isor_declare_objects(ISOMReader *read)
 				codec_id = GF_CODECID_WEBVTT;
 				stxtcfg = gf_isom_get_webvtt_config(read->mov, i+1, 1);
 				break;
+			case GF_ISOM_SUBTYPE_3GP_DIMS:
+				codec_id = GF_CODECID_DIMS;
+				break;
 			default:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", i+1, gf_4cc_to_str(m_subtype) ));
-
-			{
-				GF_GenericSampleDescription *udesc;
 
 				codec_id = m_subtype;
 				udesc = gf_isom_get_generic_sample_description(read->mov, i+1, 1);
@@ -285,15 +287,16 @@ void isor_declare_objects(ISOMReader *read)
 					dsi_size = udesc->extension_buf_size;
 					udesc->extension_buf = NULL;
 					udesc->extension_buf_size = 0;
-					gf_free(udesc);
 				}
-			}
 				break;
 			}
 
 
 		}
-		if (!streamtype || !codec_id) continue;
+		if (!streamtype || !codec_id) {
+			if (udesc) gf_free(udesc);
+			continue;
+		}
 
 		gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
 			
@@ -416,10 +419,10 @@ void isor_declare_objects(ISOMReader *read)
 		gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
 		gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
 
-		if (mime) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING((char *)mime) );
-		if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING((char *)encoding) );
-		if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING((char *)namespace) );
-		if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING((char *)schemaloc) );
+		if (mime) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime) );
+		if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING(encoding) );
+		if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(namespace) );
+		if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING(schemaloc) );
 
 		if (w)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
@@ -432,6 +435,46 @@ void isor_declare_objects(ISOMReader *read)
 
 		gf_filter_pid_set_info(pid, GF_PROP_PID_REVERSE_PLAYBACK, &PROP_BOOL(GF_TRUE) );
 
+		if (codec_id == GF_CODECID_DIMS) {
+			GF_DIMSDescription dims;
+			memset(&dims, 0, sizeof(GF_DIMSDescription));
+
+			gf_isom_get_dims_description(read->mov, ch->track, 1, &dims);
+			gf_filter_pid_set_property_str(ch->pid, "dims:profile", &PROP_UINT(dims.profile));
+			gf_filter_pid_set_property_str(ch->pid, "dims:level", &PROP_UINT(dims.level));
+			gf_filter_pid_set_property_str(ch->pid, "dims:pathComponents", &PROP_UINT(dims.pathComponents));
+			gf_filter_pid_set_property_str(ch->pid, "dims:fullRequestHost", &PROP_BOOL(dims.fullRequestHost));
+			gf_filter_pid_set_property_str(ch->pid, "dims:streamType", &PROP_BOOL(dims.streamType));
+			gf_filter_pid_set_property_str(ch->pid, "dims:redundant", &PROP_BOOL(dims.containsRedundant));
+			if (dims.content_script_types)
+				gf_filter_pid_set_property_str(ch->pid, "dims:scriptTypes", &PROP_STRING(dims.content_script_types));
+			if (dims.textEncoding)
+				gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING(dims.textEncoding));
+			if (dims.contentEncoding)
+				gf_filter_pid_set_property_str(ch->pid, "meta:content_encoding", &PROP_STRING(dims.contentEncoding));
+			if (dims.xml_schema_loc)
+				gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING(dims.xml_schema_loc));
+			if (dims.mime_type)
+				gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(dims.mime_type));
+		}
+		if (udesc) {
+			gf_filter_pid_set_property_str(ch->pid, "codec_vendor", &PROP_UINT(udesc->vendor_code));
+			gf_filter_pid_set_property_str(ch->pid, "codec_version", &PROP_UINT(udesc->version));
+			gf_filter_pid_set_property_str(ch->pid, "codec_revision", &PROP_UINT(udesc->revision));
+			gf_filter_pid_set_property_str(ch->pid, "compressor_name", &PROP_STRING(udesc->compressor_name));
+			gf_filter_pid_set_property_str(ch->pid, "temporal_quality", &PROP_UINT(udesc->temporal_quality));
+			gf_filter_pid_set_property_str(ch->pid, "spatial_quality", &PROP_UINT(udesc->spatial_quality));
+			if (udesc->h_res) {
+				gf_filter_pid_set_property_str(ch->pid, "hres", &PROP_UINT(udesc->h_res));
+				gf_filter_pid_set_property_str(ch->pid, "vres", &PROP_UINT(udesc->v_res));
+			} else if (udesc->nb_channels) {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(udesc->nb_channels));
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BPS, &PROP_UINT(udesc->bits_per_sample));
+			}
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(udesc->depth));
+
+			gf_free(udesc);
+		}
 	}
 	/*declare image items*/
 	count = gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0);

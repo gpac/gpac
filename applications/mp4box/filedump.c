@@ -1688,9 +1688,8 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			}
 
 			if (!fmt_handled) {
-				dumper.nhml_only = GF_TRUE;
-				dumper.flags = GF_EXPORT_NATIVE | GF_EXPORT_NHML | GF_EXPORT_NHML_FULL;
-				gf_media_export_nhml(&dumper, GF_FALSE);
+				dumper.flags = GF_EXPORT_NHML | GF_EXPORT_NHML_FULL;
+				gf_media_export(&dumper);
 			}
 		}
 #else

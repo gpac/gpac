@@ -305,6 +305,8 @@ GF_FilterRegister NHNTDumpRegister = {
 	.name = "write_nhnt",
 	.description = "NHNT stream output",
 	.private_size = sizeof(GF_NHNTDumpCtx),
+	//NHNT output is explicit only, so we don't load the filter during resolution process
+	.explicit_only = 1,
 	.args = NHNTDumpArgs,
 	.finalize = nhntdump_finalize,
 	INCAPS(NHNTDumpInputs),

@@ -795,7 +795,7 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		/*mark pcr as not initialized*/
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[GF_M2TSDmxCtx] Setting default reframing for PID %d\n", pes->pid));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GF_M2TSDmxCtx] Setting default reframing for PID %d\n", pes->pid));
 
 		/*this is a multplex, only trigger the play command for the first stream activated*/
 		ctx->nb_playing++;
@@ -955,18 +955,10 @@ static const GF_FilterCapability M2TSDmxOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS_V2),
-	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V1),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V2),
-	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_DVB_EIT),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 
