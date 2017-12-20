@@ -104,12 +104,15 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 		fflush(stderr);
 	}
 	if (done==total) {
-		u32 len = (u32) strlen(szT) + 40;
-		while (len) {
-			fprintf(stderr, " ");
-			len--;
-		};
-		fprintf(stderr, "\r");
+		if (prev_pos) {
+			u32 len = (u32) strlen(szT) + 40;
+			while (len) {
+				fprintf(stderr, " ");
+				len--;
+			};
+			fprintf(stderr, "\r");
+		}
+		prev_pos = 0;
 	}
 }
 
@@ -119,7 +122,8 @@ static void *user_cbk;
 GF_EXPORT
 void gf_set_progress(const char *title, u64 done, u64 total)
 {
-	if (done>total) done=total;
+	if (done>=total)
+		done=total;
 	if (prog_cbk) {
 		prog_cbk(user_cbk, title, done, total);
 	}

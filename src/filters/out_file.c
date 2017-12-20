@@ -104,11 +104,16 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 	gf_filter_pid_check_caps(pid);
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PCK_FILENUM);
-	if (!p) {
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-		if (p && p->value.string) {
-			fileout_open_close(ctx, ctx->dst, p->value.string, 0);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+	if (p && p->value.string) {
+		fileout_open_close(ctx, p->value.string, NULL, 0);
+	} else {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PCK_FILENUM);
+		if (!p) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+			if (p && p->value.string) {
+				fileout_open_close(ctx, ctx->dst, p->value.string, 0);
+			}
 		}
 	}
 	if (!ctx->pid) {

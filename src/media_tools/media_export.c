@@ -28,6 +28,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
+#include <gpac/filters.h>
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 
@@ -46,8 +47,6 @@
 #ifndef GPAC_DISABLE_ZLIB
 #include <zlib.h>
 #endif
-
-GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc);
 
 static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format, ...)
 {
@@ -366,262 +365,8 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 #endif // GPAC_DISABLE_AV_PARSERS
 
 
-#include <gpac/filters.h>
-
-GF_Err gf_media_export_native(GF_MediaExporter *dumper)
-{
-	const char *src;
-	char szArgs[4096], szSubArgs[1024];
-	GF_Filter *file_out, *reframer;
-	GF_FilterSession *fsess;
-	GF_Err e = GF_OK;
-
-	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_FALSE);
-
-	//mux args, for now we only dump to file
-	sprintf(szArgs, "fileout:dst=%s:dynext", dumper->out_name);
-
-	file_out = gf_fs_load_filter(fsess, szArgs);
-	if (!file_out) {
-		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load output file dumper\n"));
-		return GF_FILTER_NOT_FOUND;
-	}
-	//raw sample frame, force loading filter generic write in frame mode
-	if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
-		GF_Filter *rframe;
-		sprintf(szArgs, "write_gen:frame");
-		if (dumper->sample_num) {
-			sprintf(szSubArgs, ":sstart=%d:send=%d", dumper->sample_num, dumper->sample_num);
-			strcat(szArgs, szSubArgs);
-		}
-		rframe = gf_fs_load_filter(fsess, szArgs);
-		if (!rframe) {
-			gf_fs_del(fsess);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
-			return GF_FILTER_NOT_FOUND;
-		}
-	}
-	else if (dumper->flags & GF_EXPORT_NHNT) {
-		GF_Filter *nhnt;
-		sprintf(szArgs, "write_nhnt");
-		nhnt = gf_fs_load_filter(fsess, szArgs);
-		if (!nhnt) {
-			gf_fs_del(fsess);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHNT write filter\n"));
-			return GF_FILTER_NOT_FOUND;
-		}
-	}
-
-	//force a reframer filter, connected to our input
-	sprintf(szArgs, "reframer:SID=1#PID=%d:exporter", dumper->trackID);
-	if (dumper->flags & GF_EXPORT_SVC_LAYER)
-		strcat(szArgs, ":extract=layer");
-	if (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE)
-		strcat(szArgs, ":merge");
-
-
-	reframer = gf_fs_load_filter(fsess, szArgs);
-	if (!reframer) {
-		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load reframer filter\n"));
-		return GF_FILTER_NOT_FOUND;
-	}
-
-	src = dumper->in_name ? dumper->in_name : gf_isom_get_filename(dumper->file);
-	gf_fs_load_source(fsess, src, "FID=1:noedit", NULL, &e);
-	if (e) {
-		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
-		return e;
-	}
-	gf_fs_run(fsess);
-	gf_fs_del(fsess);
-	return GF_OK;
-}
-
-#ifndef GPAC_DISABLE_AVILIB
-static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
-{
-	GF_Err e;
-	Bool is_stdout = 0;
-	u32 max_size, tot_size, num_samples, i;
-	s32 size;
-	char *comp, *frame;
-	char szOutFile[1024];
-	avi_t *in;
-	FILE *fout;
-
-	in = AVI_open_input_file(dumper->in_name, 1);
-	if (!in) return gf_export_message(dumper, GF_URL_ERROR, "Unsupported avi file");
-	fout = NULL;
-
-	e = GF_OK;
-	if (dumper->trackID==1) {
-		Bool key;
-		comp = AVI_video_compressor(in);
-		if (!stricmp(comp, "DIVX") || !stricmp(comp, "DX50")	/*DivX*/
-		        || !stricmp(comp, "XVID") /*XviD*/
-		        || !stricmp(comp, "3iv2") /*3ivX*/
-		        || !stricmp(comp, "fvfw") /*ffmpeg*/
-		        || !stricmp(comp, "NDIG") /*nero*/
-		        || !stricmp(comp, "MP4V") /*!! not tested*/
-		        || !stricmp(comp, "M4CC") /*Divio - not tested*/
-		        || !stricmp(comp, "PVMM") /*PacketVideo - not tested*/
-		        || !stricmp(comp, "SEDG") /*Samsung - not tested*/
-		        || !stricmp(comp, "RMP4") /*Sigma - not tested*/
-		   ) {
-			sprintf(szOutFile, "%s.cmp", dumper->out_name);
-		} else if (!stricmp(comp, "VSSH") || strstr(comp, "264")) {
-			sprintf(szOutFile, "%s.h264", dumper->out_name);
-		} else {
-			sprintf(szOutFile, "%s.%s", dumper->out_name, comp);
-		}
-		gf_export_message(dumper, GF_OK, "Extracting AVI video (format %s) to %s", comp, szOutFile);
-
-		if (!strcmp(dumper->out_name, "std"))
-			is_stdout = 1;
-		else if (strrchr(dumper->out_name, '.')) {
-			strcpy(szOutFile, dumper->out_name);
-		}
-
-		fout = is_stdout ? stdout : gf_fopen(szOutFile, "wb");
-
-		max_size = 0;
-		frame = NULL;
-		num_samples = (u32) AVI_video_frames(in);
-		for (i=0; i<num_samples; i++) {
-			size = (s32) AVI_frame_size(in, i);
-			if (!size) {
-				AVI_read_frame(in, NULL, (int*)&key);
-				continue;
-			}
-			if ((u32) size > max_size) {
-				frame = (char*)gf_realloc(frame, sizeof(char) * size);
-				max_size = size;
-			}
-			AVI_read_frame(in, frame, (int*)&key);
-			if ((u32) size>4) gf_fwrite(frame, 1, size, fout);
-			gf_set_progress("AVI Extract", i+1, num_samples);
-		}
-		gf_free(frame);
-		if(!is_stdout)
-			gf_fclose(fout);
-		fout = NULL;
-		goto exit;
-	}
-	i = 0;
-	tot_size = max_size = 0;
-	size = (s32) AVI_audio_size(in, i);
-	if (size < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[AVIExport] Error reading AVI audio sample\n"));
-		e = GF_NON_COMPLIANT_BITSTREAM;
-		goto exit;
-	}
-
-	while (size > 0) {
-		if (max_size < (u32) size) max_size = size;
-		tot_size += size;
-		i++;
-		size = (s32) AVI_audio_size(in, i);
-	}
-
-	frame = (char*)gf_malloc(sizeof(char) * max_size);
-	AVI_seek_start(in);
-	AVI_set_audio_position(in, 0);
-
-	switch (in->track[in->aptr].a_fmt) {
-	case WAVE_FORMAT_PCM:
-		comp = "pcm";
-		break;
-	case WAVE_FORMAT_ADPCM:
-		comp = "adpcm";
-		break;
-	case WAVE_FORMAT_IBM_CVSD:
-		comp = "cvsd";
-		break;
-	case WAVE_FORMAT_ALAW:
-		comp = "alaw";
-		break;
-	case WAVE_FORMAT_MULAW:
-		comp = "mulaw";
-		break;
-	case WAVE_FORMAT_OKI_ADPCM:
-		comp = "oki_adpcm";
-		break;
-	case WAVE_FORMAT_DVI_ADPCM:
-		comp = "dvi_adpcm";
-		break;
-	case WAVE_FORMAT_DIGISTD:
-		comp = "digistd";
-		break;
-	case WAVE_FORMAT_YAMAHA_ADPCM:
-		comp = "yam_adpcm";
-		break;
-	case WAVE_FORMAT_DSP_TRUESPEECH:
-		comp = "truespeech";
-		break;
-	case WAVE_FORMAT_GSM610:
-		comp = "gsm610";
-		break;
-	case IBM_FORMAT_MULAW:
-		comp = "ibm_mulaw";
-		break;
-	case IBM_FORMAT_ALAW:
-		comp = "ibm_alaw";
-		break;
-	case IBM_FORMAT_ADPCM:
-		comp = "ibm_adpcm";
-		break;
-	case 0x55:
-		comp = "mp3";
-		break;
-	case 0x0000706d:
-		comp = "aac";
-		break;
-	default:
-		comp = "raw";
-		break;
-	}
-	sprintf(szOutFile, "%s.%s", dumper->out_name, comp);
-	gf_export_message(dumper, GF_OK, "Extracting AVI %s audio", comp);
-
-	if (!strcmp(dumper->out_name, "std")) {
-		is_stdout = 1;
-	} else if (strrchr(dumper->out_name, '.')) {
-		strcpy(szOutFile, dumper->out_name);
-	}
-
-	fout = is_stdout ? stdout : gf_fopen(szOutFile, "wb");
-	num_samples = 0;
-	while (1) {
-		Bool continuous;
-		size = (s32) AVI_read_audio(in, frame, max_size, (int*)&continuous);
-		if (size < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[AVIExport] Error reading AVI audio sample\n"));
-			e = GF_NON_COMPLIANT_BITSTREAM;
-			goto exit;
-		}
-		if (size == 0)
-			break;
-
-		num_samples += size;
-		gf_fwrite(frame, 1, size, fout);
-		gf_set_progress("AVI Extract", num_samples, tot_size);
-
-	}
-
-
-exit:
-	if (fout && !is_stdout) gf_fclose(fout);
-	AVI_close(in);
-	return e;
-}
-#endif /*GPAC_DISABLE_AVILIB*/
-
-
 #ifndef GPAC_DISABLE_ISOM_WRITE
-static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 inTrackNum, GF_ISOFile *outfile, Bool ResetDependancies, Bool AddToIOD)
+static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 inTrackNum, GF_ISOFile *outfile, Bool ResetDependancies, Bool AddToIOD)
 {
 	GF_ESD *esd;
 	GF_InitialObjectDescriptor *iod;
@@ -828,7 +573,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 		gf_isom_set_pl_indication(outfile, GF_ISOM_PL_MPEGJ, 0xFF);
 	}
 
-	e = MP4T_CopyTrack(dumper, dumper->file, track, outfile, 1, add_to_iod);
+	e = gf_export_isom_copy_track(dumper, dumper->file, track, outfile, 1, add_to_iod);
 	if (!add_to_iod) {
 		u32 i;
 		for (i=0; i<gf_isom_get_track_count(outfile); i++) {
@@ -983,318 +728,6 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_AVILIB*/
-
-#include <gpac/base_coding.h>
-
-GF_EXPORT
-GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
-{
-	GF_ESD *esd;
-	char szName[1000], szMedia[1000];
-	FILE *med, *inf, *nhml;
-	Bool full_dump;
-	u32 w, h;
-	Bool uncompress;
-	u32 track, i, di, count, pos, mstype;
-	Bool is_stpp;
-	const char *szRootName;
-
-	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
-		return GF_BAD_PARAM;
-	}
-	if (!track) return gf_export_message(dumper, GF_BAD_PARAM, "Invalid track ID %d", dumper->trackID);
-
-	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
-		dumper->flags |= GF_EXPORT_NHML_FULL;
-		return GF_OK;
-	}
-	esd = gf_isom_get_esd(dumper->file, track, 1);
-	full_dump = (dumper->flags & GF_EXPORT_NHML_FULL) ? 1 : 0;
-	szRootName = "NHNTStream";
-	med = NULL;
-	szMedia[0]=0;
-
-	if (dims_doc) {
-		sprintf(szName, "%s.dml", dumper->out_name);
-		szRootName = "DIMSStream";
-	} else if (!dumper->nhml_only) {
-		sprintf(szMedia, "%s.media", dumper->out_name);
-		med = gf_fopen(szMedia, "wb");
-		if (!med) {
-			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
-			return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szMedia);
-		}
-
-		sprintf(szName, "%s.nhml", dumper->out_name);
-	}
-	if (dumper->dump_file) {
-		nhml = dumper->dump_file;
-	} else {
-		nhml = gf_fopen(szName, "wt");
-		if (!nhml) {
-			gf_fclose(med);
-			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
-			return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
-		}
-		fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
-	}
-
-	mstype = gf_isom_get_mpeg4_subtype(dumper->file, track, 1);
-	if (!mstype) mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
-
-	is_stpp = (mstype==GF_ISOM_SUBTYPE_STPP) ? GF_TRUE : GF_FALSE;
-
-	gf_export_message(dumper, GF_OK, "Exporting NHML for track %s", gf_4cc_to_str(mstype) );
-
-	/*write header*/
-	fprintf(nhml, "<%s version=\"1.0\" timeScale=\"%d\" ", szRootName, gf_isom_get_media_timescale(dumper->file, track) );
-	if (esd) {
-		fprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-		if (!dumper->nhml_only && esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
-			sprintf(szName, "%s.info", dumper->out_name);
-			inf = gf_fopen(szName, "wb");
-			if (inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
-			gf_fclose(inf);
-			fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
-		}
-		gf_odf_desc_del((GF_Descriptor *) esd);
-
-		if (gf_isom_get_media_type(dumper->file, track)==GF_ISOM_MEDIA_VISUAL) {
-			gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
-			fprintf(nhml, "width=\"%d\" height=\"%d\" ", w, h);
-		}
-		else if (gf_isom_get_media_type(dumper->file, track)==GF_ISOM_MEDIA_AUDIO) {
-			u32 sr, nb_ch;
-			u8 bps;
-			gf_isom_get_audio_info(dumper->file, track, 1, &sr, &nb_ch, &bps);
-			fprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", sr, nb_ch);
-		}
-	} else if (!dims_doc) {
-		GF_GenericSampleDescription *sdesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
-		u32 mtype = gf_isom_get_media_type(dumper->file, track);
-		fprintf(nhml, "mediaType=\"%s\" ", gf_4cc_to_str(mtype));
-		fprintf(nhml, "mediaSubType=\"%s\" ", gf_4cc_to_str(mstype ));
-		if (sdesc) {
-			if (mtype==GF_ISOM_MEDIA_VISUAL) {
-				fprintf(nhml, "codecVendor=\"%s\" codecVersion=\"%d\" codecRevision=\"%d\" ", gf_4cc_to_str(sdesc->vendor_code), sdesc->version, sdesc->revision);
-				fprintf(nhml, "width=\"%d\" height=\"%d\" compressorName=\"%s\" temporalQuality=\"%d\" spatialQuality=\"%d\" horizontalResolution=\"%d\" verticalResolution=\"%d\" bitDepth=\"%d\" ",
-				        sdesc->width, sdesc->height, sdesc->compressor_name, sdesc->temporal_quality, sdesc->spatial_quality, sdesc->h_res, sdesc->v_res, sdesc->depth);
-			} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
-				fprintf(nhml, "codecVendor=\"%s\" codecVersion=\"%d\" codecRevision=\"%d\" ", gf_4cc_to_str(sdesc->vendor_code), sdesc->version, sdesc->revision);
-				fprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" bitsPerSample=\"%d\" ", sdesc->samplerate, sdesc->nb_channels, sdesc->bits_per_sample);
-			}
-			if (sdesc->extension_buf) {
-				sprintf(szName, "%s.info", dumper->out_name);
-				inf = gf_fopen(szName, "wb");
-				if (inf) gf_fwrite(sdesc->extension_buf, sdesc->extension_buf_size, 1, inf);
-				gf_fclose(inf);
-				fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
-				gf_free(sdesc->extension_buf);
-			}
-			gf_free(sdesc);
-		} else {
-			const char *mime, *encoding, *config, *namespace, *location;
-			switch (mstype) {
-			case GF_ISOM_SUBTYPE_METT:
-				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &config) == GF_OK) {
-					if (mime)
-						fprintf(nhml, "mime_type=\"%s\" ", mime);
-					if (config) {
-						sprintf(szName, "%s.info", dumper->out_name);
-						inf = gf_fopen(szName, "wb");
-						if (inf) gf_fwrite(config, strlen(config), 1, inf);
-						gf_fclose(inf);
-						fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
-					}
-					if (encoding)
-						fprintf(nhml, "encoding=\"%s\" ", encoding);
-				}
-				break;
-			case GF_ISOM_SUBTYPE_METX:
-			case GF_ISOM_SUBTYPE_STPP:
-				if (gf_isom_xml_subtitle_get_description(dumper->file, track, 1, &namespace, &location, &mime) == GF_OK) {
-					if (mime)
-						fprintf(nhml, "mime_type=\"%s\" ", mime);
-					if (namespace)
-						fprintf(nhml, "xml_namespace=\"%s\" ", namespace);
-					if (location)
-						fprintf(nhml, "xml_schema_location=\"%s\" ", location);
-				}
-				break;
-			}
-		}
-	}
-
-	if (gf_isom_is_track_in_root_od(dumper->file, track)) fprintf(nhml, "inRootOD=\"yes\" ");
-	fprintf(nhml, "trackID=\"%d\" ", dumper->trackID);
-
-	uncompress = 0;
-
-	if (mstype == GF_ISOM_MEDIA_DIMS) {
-		GF_DIMSDescription dims;
-
-		fprintf(nhml, "xmlns=\"http://www.3gpp.org/richmedia\" ");
-		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
-		fprintf(nhml, "width=\"%d\" height=\"%d\" ", w, h);
-
-		gf_isom_get_dims_description(dumper->file, track, 1, &dims);
-		fprintf(nhml, "profile=\"%d\" level=\"%d\" pathComponents=\"%d\" ", dims.profile, dims.level, dims.pathComponents);
-		fprintf(nhml, "useFullRequestHost=\"%s\" stream_type=\"%s\" ", dims.fullRequestHost ? "yes" : "no", dims.streamType ? "primary" : "secondary");
-		fprintf(nhml, "contains_redundant=\"%s\" ", (dims.containsRedundant==1) ? "main" : (dims.containsRedundant==2) ? "redundant" : "main+redundant");
-		if (strlen(dims.textEncoding) ) fprintf(nhml, "text_encoding=\"%s\" ", dims.textEncoding);
-		if (strlen(dims.contentEncoding) ) {
-			fprintf(nhml, "content_encoding=\"%s\" ", dims.contentEncoding);
-			if (!strcmp(dims.contentEncoding, "deflate")) uncompress = 1;
-		}
-		if (dims.content_script_types) fprintf(nhml, "content_script_types=\"%s\" ", dims.content_script_types);
-	} else if (szMedia[0]) {
-		fprintf(nhml, "baseMediaFile=\"%s\" ", gf_file_basename(szMedia));
-	}
-
-
-	fprintf(nhml, ">\n");
-
-
-	pos = 0;
-	count = gf_isom_get_sample_count(dumper->file, track);
-	for (i=0; i<count; i++) {
-		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
-		if (!samp) break;
-
-		if (med)
-			gf_fwrite(samp->data, samp->dataLength, 1, med);
-
-		if (dims_doc) {
-			GF_BitStream *bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
-
-			while (gf_bs_available(bs)) {
-				u64 pos = gf_bs_get_position(bs);
-				u16 size = gf_bs_read_u16(bs);
-				u8 flags = gf_bs_read_u8(bs);
-				u8 prev;
-
-				if (pos+size+2>samp->dataLength)
-					break;
-
-				prev = samp->data[pos+2+size];
-				samp->data[pos+2+size] = 0;
-
-
-				fprintf(nhml, "<DIMSUnit time=\""LLU"\"", LLU_CAST samp->DTS);
-				/*DIMS flags*/
-				if (flags & GF_DIMS_UNIT_S) fprintf(nhml, " is-Scene=\"yes\"");
-				if (flags & GF_DIMS_UNIT_M) fprintf(nhml, " is-RAP=\"yes\"");
-				if (flags & GF_DIMS_UNIT_I) fprintf(nhml, " is-redundant=\"yes\"");
-				if (flags & GF_DIMS_UNIT_D) fprintf(nhml, " redundant-exit=\"yes\"");
-				if (flags & GF_DIMS_UNIT_P) fprintf(nhml, " priority=\"high\"");
-				if (flags & GF_DIMS_UNIT_C) fprintf(nhml, " compressed=\"yes\"");
-				fprintf(nhml, ">");
-				if (uncompress && (flags & GF_DIMS_UNIT_C)) {
-#ifndef GPAC_DISABLE_ZLIB
-					char svg_data[2049];
-					int err;
-					u32 done = 0;
-					z_stream d_stream;
-					d_stream.zalloc = (alloc_func)0;
-					d_stream.zfree = (free_func)0;
-					d_stream.opaque = (voidpf)0;
-					d_stream.next_in  = (Bytef*)samp->data+pos+3;
-					d_stream.avail_in = size-1;
-					d_stream.next_out = (Bytef*)svg_data;
-					d_stream.avail_out = 2048;
-
-					err = inflateInit(&d_stream);
-					if (err == Z_OK) {
-						while ((s32) d_stream.total_in < size-1) {
-							err = inflate(&d_stream, Z_NO_FLUSH);
-							if (err < Z_OK) break;
-							svg_data[d_stream.total_out - done] = 0;
-							fprintf(nhml, "%s", svg_data);
-							if (err== Z_STREAM_END) break;
-							done = (u32) d_stream.total_out;
-							d_stream.avail_out = 2048;
-							d_stream.next_out = (Bytef*)svg_data;
-						}
-						inflateEnd(&d_stream);
-					}
-#else
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Error: your version of GPAC was compile with no libz support."));
-					gf_bs_del(bs);
-					gf_isom_sample_del(&samp);
-					if (med) gf_fclose(med);
-					gf_fclose(nhml);
-					return GF_NOT_SUPPORTED;
-#endif
-				} else {
-					gf_fwrite(samp->data+pos+3, size-1, 1, nhml);
-				}
-				fprintf(nhml, "</DIMSUnit>\n");
-
-				samp->data[pos+2+size] = prev;
-				gf_bs_skip_bytes(bs, size-1);
-			}
-			gf_bs_del(bs);
-
-		} else {
-			fprintf(nhml, "<NHNTSample DTS=\""LLU"\" dataLength=\"%d\" ", LLU_CAST samp->DTS, samp->dataLength);
-			if (full_dump || samp->CTS_Offset) fprintf(nhml, "CTSOffset=\"%u\" ", samp->CTS_Offset);
-			if (samp->IsRAP==RAP) fprintf(nhml, "isRAP=\"yes\" ");
-			else if (samp->IsRAP==RAP_REDUNDANT) fprintf(nhml, "isSyncShadow=\"yes\" ");
-			else if (full_dump) fprintf(nhml, "isRAP=\"no\" ");
-			if (full_dump) fprintf(nhml, "mediaOffset=\"%d\" ", pos);
-
-			fprintf(nhml, ">\n");
-			if (is_stpp && dumper->nhml_only) {
-				u32 n, k, scount = gf_isom_sample_has_subsamples(dumper->file, track, i+1, 0);
-				u32 offset=0;
-				if (scount) {
-					for (k=0; k<scount;k++) {
-						u32 ssize;
-						char last;
-						gf_isom_sample_get_subsample(dumper->file, track, i+1, 0, k+1, &ssize, NULL, NULL, NULL);
-						if (offset+ssize>samp->dataLength) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong subsample info for sample %d on track %d: sample size %d vs subsample offset+size %dn", i+1, dumper->trackID, samp->dataLength, offset+ssize));
-							break;
-						}
-						last = samp->data[offset+ssize];
-						samp->data[offset+ssize]=0;
-
-						if (!k) {
-							fprintf(nhml, "<NHNTSubSample>\n");
-							for (n=0; n<samp->dataLength;n++) fputc(samp->data[n], nhml);
-							fprintf(nhml, "</NHNTSubSample>\n");
-						} else {
-							char *buf = gf_malloc(sizeof(char)*2*samp->dataLength);
-							u32 size = gf_base64_encode(samp->data, samp->dataLength, buf, 2*samp->dataLength);
-							buf[size] = 0;
-							fprintf(nhml, "<NHNTSubSample data=\"data:application/octet-string;base64,%s\">\n", buf);
-							gf_free(buf);
-						}
-						samp->data[offset+ssize]=last;
-						offset += ssize;
-					}
-				} else {
-					fprintf(nhml, "<NHNTSubSample><![CDATA[\n");
-					for (n=0; n<samp->dataLength;n++) fputc(samp->data[n], nhml);
-					fprintf(nhml, "]]></NHNTSubSample>\n");
-				}
-			}
-			fprintf(nhml, "</NHNTSample>\n");
-		}
-
-		pos += samp->dataLength;
-		gf_isom_sample_del(&samp);
-		gf_set_progress("NHML Export", i+1, count);
-		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
-	}
-	fprintf(nhml, "</%s>\n", szRootName);
-	if (med) gf_fclose(med);
-	if (!dumper->dump_file) {
-		gf_fclose(nhml);
-	}
-	return GF_OK;
-}
 
 /* Required for base64 encoding of DecoderSpecificInfo */
 #include <gpac/base_coding.h>
@@ -1773,238 +1206,121 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 #endif
 }
 
-#ifndef GPAC_DISABLE_MPEG2TS
 
-void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
+static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 {
-//	if (evt_type == GF_M2TS_EVT_PAT_REPEAT) ts->user = NULL;
-	if (evt_type == GF_M2TS_EVT_PMT_REPEAT) ts->user = NULL;
-	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) gf_m2ts_abort_parsing(ts, GF_FALSE);
-}
+	const char *src;
+	char szArgs[4096], szSubArgs[1024];
+	GF_Filter *file_out, *reframer;
+	GF_FilterSession *fsess;
+	GF_Err e = GF_OK;
 
-struct _ts_export
-{
-	FILE *dst;
-	Bool is_latm;
-};
+	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_FALSE);
 
-void m2ts_export_dump(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
-{
-	struct _ts_export *tsx = (struct _ts_export *) ts->user;
-
-	if (evt_type == GF_M2TS_EVT_PES_PCK) {
-		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK *)par;
-
-		if (tsx->is_latm) {
-			GF_BitStream *bs = gf_bs_from_file(tsx->dst, GF_BITSTREAM_WRITE);
-
-			gf_bs_write_int(bs, 0xFFF, 12);/*sync*/
-			gf_bs_write_int(bs, 0, 1);/*mpeg2 aac*/
-			gf_bs_write_int(bs, 0, 2); /*layer*/
-			gf_bs_write_int(bs, 1, 1); /* protection_absent*/
-
-			gf_bs_write_int(bs, pck->stream->aud_aac_obj_type - 1 , 2);
-
-			gf_bs_write_int(bs, pck->stream->aud_aac_sr_idx, 4);
-			gf_bs_write_int(bs, 0, 1);
-			gf_bs_write_int(bs, pck->stream->aud_nb_ch, 3);
-			gf_bs_write_int(bs, 0, 4);
-			gf_bs_write_int(bs, 7+pck->data_len, 13);
-			gf_bs_write_int(bs, 0x7FF, 11);
-			gf_bs_write_int(bs, 0, 2);
-
-			gf_bs_del(bs);
-		}
-		gf_fwrite(pck->data, pck->data_len, 1, tsx->dst);
-	}
-	else if (evt_type == GF_M2TS_EVT_SL_PCK) {
-		GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
-		gf_fwrite(pck->data + 5, pck->data_len - 5, 1, tsx->dst);
-	}
-}
-
-GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
-{
-	char data[188], szFile[GF_MAX_PATH];
-	GF_M2TS_PES *stream;
-	u32 i;
-	u64 size, fsize, fdone;
-	Bool is_stdout=0;
-	GF_M2TS_Demuxer *ts;
-	FILE *src;
-	struct _ts_export tsx;
-
-	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
-
-	src = gf_fopen(dumper->in_name, "rb");
-	if (!src) return gf_export_message(dumper, GF_FILTER_NOT_FOUND, "Error opening %s", dumper->in_name);
-
-	gf_fseek(src, 0, SEEK_END);
-	fsize = gf_ftell(src);
-	gf_fseek(src, 0, SEEK_SET);
-
-	ts = gf_m2ts_demux_new();
-	ts->on_event = m2ts_export_check;
-	ts->user = dumper;
-	/*get PAT*/
-	while (!feof(src)) {
-		size = fread(data, 1, 188, src);
-		if (size<188) break;
-		assert(size == 188);
-		gf_m2ts_process_data(ts, data, (u32)size);
-		if (!ts->user) break;
-	}
-	if (!ts->abort_parsing && ts->user) {
-		gf_fclose(src);
-		gf_m2ts_demux_del(ts);
-		return gf_export_message(dumper, GF_URL_ERROR, "Cannot locate program association table");
-	}
-	ts->abort_parsing = GF_FALSE;
-
-	stream = NULL;
-	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		GF_M2TS_PES *pes = (GF_M2TS_PES *)ts->ess[i];
-		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
-		if (pes->pid == dumper->trackID) {
-			stream = pes;
-			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
-			break;
-		} else {
-			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
+	//except in nhml inband file dump, create a sink filter
+	if (!dumper->dump_file) {
+		//mux args, for now we only dump to file
+		sprintf(szArgs, "fileout:dst=%s:dynext", dumper->out_name);
+		file_out = gf_fs_load_filter(fsess, szArgs);
+		if (!file_out) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load output file dumper\n"));
+			return GF_FILTER_NOT_FOUND;
 		}
 	}
-	if (!stream) {
-		gf_fclose(src);
-		gf_m2ts_demux_del(ts);
-		return gf_export_message(dumper, GF_URL_ERROR, "Cannot find PID %d in transport stream", dumper->trackID);
+	//raw sample frame, force loading filter generic write in frame mode
+	if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
+		GF_Filter *rframe;
+		sprintf(szArgs, "write_gen:frame");
+		if (dumper->sample_num) {
+			sprintf(szSubArgs, ":sstart=%d:send=%d", dumper->sample_num, dumper->sample_num);
+			strcat(szArgs, szSubArgs);
+		}
+		rframe = gf_fs_load_filter(fsess, szArgs);
+		if (!rframe) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
+			return GF_FILTER_NOT_FOUND;
+		}
+	}
+	else if (dumper->flags & GF_EXPORT_NHNT) {
+		GF_Filter *nhnt;
+		sprintf(szArgs, "write_nhnt");
+		nhnt = gf_fs_load_filter(fsess, szArgs);
+		if (!nhnt) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHNT write filter\n"));
+			return GF_FILTER_NOT_FOUND;
+		}
+	}
+	else if (dumper->flags & GF_EXPORT_NHML) {
+		GF_Filter *nhml;
+		sprintf(szArgs, "write_nhml:name=%s", dumper->out_name);
+		if (dumper->flags & GF_EXPORT_NHML_FULL)
+			strcat(szArgs, ":full");
+		if (dumper->dump_file) {
+			sprintf(szSubArgs, ":nhmlonly:filep=%p", dumper->dump_file);
+			strcat(szArgs, szSubArgs);
+		}
+		nhml = gf_fs_load_filter(fsess, szArgs);
+		if (!nhml) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHML write filter\n"));
+			return GF_FILTER_NOT_FOUND;
+		}
 	}
 
-	tsx.is_latm = 0;
-	sprintf(szFile, "%s_pid%d", dumper->out_name ? dumper->out_name : "", stream->pid);
-	switch (stream->stream_type) {
-	case GF_M2TS_VIDEO_MPEG1:
-		strcat(szFile, ".m1v");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Visual stream to m1v");
-		break;
-	case GF_M2TS_VIDEO_MPEG2:
-		strcat(szFile, ".m2v");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Visual stream to m1v");
-		break;
-	case GF_M2TS_AUDIO_MPEG1:
-		strcat(szFile, ".mp3");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Audio stream to mp3");
-		break;
-	case GF_M2TS_AUDIO_MPEG2:
-		strcat(szFile, ".mp3");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Audio stream to mp3");
-		break;
-	case GF_M2TS_AUDIO_AAC:
-		strcat(szFile, ".aac");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Audio stream to aac");
-		break;
-	case GF_M2TS_AUDIO_LATM_AAC:
-		strcat(szFile, ".aac");
-		tsx.is_latm = 1;
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Audio LATM stream to aac");
-		break;
-	case GF_M2TS_VIDEO_MPEG4:
-		strcat(szFile, ".cmp");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Visual stream to cmp");
-		break;
-	case GF_M2TS_VIDEO_H264:
-		strcat(szFile, ".264");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC/H264 Visual stream to h264");
-		break;
-	case GF_M2TS_VIDEO_HEVC:
-		strcat(szFile, ".hvc");
-		gf_export_message(dumper, GF_OK, "Extracting MPEG-H HEVC Visual stream to hvc");
-		break;
-	case GF_M2TS_VIDEO_SVC:
-		strcat(szFile, ".264");
-		gf_export_message(dumper, GF_OK, "Extracting H264-SVC Visual stream to h264");
-		break;
-	case GF_M2TS_METADATA_ID3_HLS:
-		strcat(szFile, ".txt");
-		gf_export_message(dumper, GF_OK, "Extracting ID3 tags from metadata stream");
-		break;
-	default:
-		strcat(szFile, ".raw");
-		gf_export_message(dumper, GF_OK, "Extracting Unknown stream to raw");
-		break;
+	//force a reframer filter, connected to our input
+	sprintf(szArgs, "reframer:SID=1#PID=%d:exporter", dumper->trackID);
+	if (dumper->flags & GF_EXPORT_SVC_LAYER)
+		strcat(szArgs, ":extract=layer");
+	if (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE)
+		strcat(szArgs, ":merge");
+
+
+	reframer = gf_fs_load_filter(fsess, szArgs);
+	if (!reframer) {
+		gf_fs_del(fsess);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load reframer filter\n"));
+		return GF_FILTER_NOT_FOUND;
 	}
 
-	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
-		is_stdout=1;
-
-	tsx.dst = is_stdout ? stdout : gf_fopen(szFile, "wb");
-	if (!tsx.dst) {
-		gf_fclose(src);
-		gf_m2ts_demux_del(ts);
-		return gf_export_message(dumper, GF_IO_ERR, "Cannot open file %s for writing", szFile);
+	src = dumper->in_name ? dumper->in_name : gf_isom_get_filename(dumper->file);
+	gf_fs_load_source(fsess, src, "FID=1:noedit", NULL, &e);
+	if (e) {
+		gf_fs_del(fsess);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
+		return e;
 	}
-
-	gf_m2ts_reset_parsers(ts);
-	gf_fseek(src, 0, SEEK_SET);
-	fdone = 0;
-	ts->user = &tsx;
-	ts->on_event = m2ts_export_dump;
-	while (!feof(src)) {
-		size = fread(data, 1, 188, src);
-		if (size<188) break;
-		assert(size == 188);
-		gf_m2ts_process_data(ts, data, (u32)size);
-		fdone += size;
-		gf_set_progress("MPEG-2 TS Extract", fdone, fsize);
-		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
-	}
-	gf_set_progress("MPEG-2 TS Extract", fsize, fsize);
-
-	if (!is_stdout)
-		gf_fclose(tsx.dst);
-	gf_fclose(src);
-	gf_m2ts_demux_del(ts);
+	gf_fs_run(fsess);
+	gf_fs_del(fsess);
 	return GF_OK;
 }
-
-#endif /*GPAC_DISABLE_MPEG2TS*/
 
 GF_EXPORT
 GF_Err gf_media_export(GF_MediaExporter *dumper)
 {
 	if (!dumper) return GF_BAD_PARAM;
-	if (!dumper->out_name && !(dumper->flags & GF_EXPORT_PROBE_ONLY)) return GF_BAD_PARAM;
+	if (!dumper->out_name && !(dumper->flags & GF_EXPORT_PROBE_ONLY) && !dumper->dump_file) return GF_BAD_PARAM;
 
-	if (dumper->flags & GF_EXPORT_NATIVE) {
-#ifndef GPAC_DISABLE_MPEG2TS
-		if (dumper->in_name) {
-			char *ext = strrchr(dumper->in_name, '.');
-			if (ext && (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4)) ) {
-				return gf_media_export_ts_native(dumper);
-			}
-		}
-#endif /*GPAC_DISABLE_MPEG2TS*/
-		return gf_media_export_native(dumper);
-	}
-	else if (dumper->flags & GF_EXPORT_RAW_SAMPLES)
-		return gf_media_export_native(dumper);
+	//internal export not using filters
 
-	else if (dumper->flags & GF_EXPORT_NHNT)
-		return gf_media_export_native(dumper);
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	else if (dumper->flags & GF_EXPORT_MP4) return gf_media_export_isom(dumper);
+	if (dumper->flags & GF_EXPORT_MP4) return gf_media_export_isom(dumper);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
-
-#ifndef GPAC_DISABLE_AVILIB
-	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
-	else if (dumper->flags & GF_EXPORT_AVI_NATIVE) return gf_media_export_avi_track(dumper);
-#endif /*GPAC_DISABLE_AVILIB*/
-	else if (dumper->flags & GF_EXPORT_NHML) return gf_media_export_nhml(dumper, 0);
-	else if (dumper->flags & GF_EXPORT_SAF) return gf_media_export_saf(dumper);
 #ifndef GPAC_DISABLE_VTT
 	else if (dumper->flags & GF_EXPORT_WEBVTT_META) return gf_media_export_webvtt_metadata(dumper);
 #endif
 	else if (dumper->flags & GF_EXPORT_SIX) return gf_media_export_six(dumper);
-	else return GF_NOT_SUPPORTED;
+
+	//the following ones should be moved to muxing filters
+#ifndef GPAC_DISABLE_AVILIB
+	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
+#endif /*GPAC_DISABLE_AVILIB*/
+	else if (dumper->flags & GF_EXPORT_SAF) return gf_media_export_saf(dumper);
+
+	//the rest is handled by the generic exporter
+	return gf_media_export_filters(dumper);
 }
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/

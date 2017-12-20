@@ -822,7 +822,7 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 			}
 			if (exclude) break;
 		}
-		if (!matched) {
+		if (!matched && !out_cap->exclude) {
 //			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap not matched\n"));
 			all_caps_matched = GF_FALSE;
 		} else {
