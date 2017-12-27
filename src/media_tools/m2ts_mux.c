@@ -29,7 +29,7 @@
 
 #if !defined(GPAC_DISABLE_MPEG2TS_MUX)
 
-/*90khz internal delay between two updates for bitrate compute per stream */
+/* 90khz internal delay between two updates for bitrate compute per stream */
 #define BITRATE_UPDATE_WINDOW	90000
 /* length of adaptation_field_length; */
 #define ADAPTATION_LENGTH_LENGTH 1
@@ -901,7 +901,7 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 	u64 pcr_offset;
 
 	if (*dts > *cts) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: DTS "LLD" is greater than CTS "LLD" (likel ISOBMF CTTSv1 input) - adjusting to CTS\n", stream->pid, *dts, *cts));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: DTS "LLD" is greater than CTS "LLD" (like ISOBMF CTTSv1 input) - adjusting to CTS\n", stream->pid, *dts, *cts));
 		*dts = *cts;
 	}
 
@@ -910,8 +910,6 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 		*cts = *cts * stream->ts_scale.num / stream->ts_scale.den ;
 		*dts = *dts * stream->ts_scale.num / stream->ts_scale.den ;
 		if (duration) *duration = (u32)( *duration * stream->ts_scale.num / stream->ts_scale.den ) ;
-
-
 	}
 	if (!stream->program->initial_ts_set) {
 		u32 nb_bits = (u32) (stream->program->mux->tot_pck_sent - stream->program->num_pck_at_pcr_init) * 1504;
