@@ -203,10 +203,8 @@ static void OnNewFrameVideo(DtMxData *pData, void *opaque)
 
 			for (u32 i = 0; i < nb_pix; i++) {
 				u16 srcy = ((u16)(*pSrcY)) << 2;
-				if (dtc->clip_sdi) {
-					if (srcy < nYRangeMin)      srcy = nYRangeMin;
-					else if (srcy > nYRangeMax) srcy = nYRangeMax;
-				}
+				if (srcy < nYRangeMin)      srcy = nYRangeMin;
+				else if (srcy > nYRangeMax) srcy = nYRangeMax;
 				*(short *)pDstY = srcy;
 
 				pSrcY++;
@@ -216,10 +214,8 @@ static void OnNewFrameVideo(DtMxData *pData, void *opaque)
 			nb_pix = dtc->width*dtc->height / 4;
 			for (u32 i = 0; i < nb_pix; i++) {
 				u16 srcu = ((u16)(*pSrcU)) << 2;
-				if (dtc->clip_sdi) {
-					if (srcu < nYRangeMin)      srcu = nYRangeMin;
-					else if (srcu > nYRangeMax) srcu = nYRangeMax;
-				}
+				if (srcu < nYRangeMin)      srcu = nYRangeMin;
+				else if (srcu > nYRangeMax) srcu = nYRangeMax;
 
 				*(short *)pDstU = srcu;
 				*(short *)(pDstU + lineC) = srcu;
@@ -230,10 +226,8 @@ static void OnNewFrameVideo(DtMxData *pData, void *opaque)
 
 			for (u32 i = 0; i < nb_pix; i++) {
 				u16 srcv = ((u16)(*pSrcV)) << 2;
-				if (dtc->clip_sdi) {
-					if (srcv < nYRangeMin)      srcv = nYRangeMin;
-					else if (srcv > nYRangeMax) srcv = nYRangeMax;
-				}
+				if (srcv < nYRangeMin)      srcv = nYRangeMin;
+				else if (srcv > nYRangeMax) srcv = nYRangeMax;
 
 				*(short *)pDstV = srcv;
 				*(short *)(pDstV + lineC) = srcv;
