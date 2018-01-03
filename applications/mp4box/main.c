@@ -1863,7 +1863,7 @@ s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+u32 i, j, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_SceneDumpFormat dump_mode;
@@ -4842,9 +4842,8 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(outfile, outName);
 	}
 
-
-	for (i=0; i<nb_track_act; i++) {
-		TrackAction *tka = &tracks[i];
+	for (j=0; j<nb_track_act; j++) {
+		TrackAction *tka = &tracks[j];
 		u32 track = tka->trackID ? gf_isom_get_track_by_id(file, tka->trackID) : 0;
 		u32 timescale = gf_isom_get_timescale(file);
 		switch (tka->act_type) {
