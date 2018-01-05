@@ -233,9 +233,11 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
 	u32 m_subtype=0;
+	u32 override_stype=0;
 	u32 amr_mode_set = 0;
 	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
 	GF_Fraction fps, sar;
+	const char *lang_name = NULL;
 	const char *comp_name = NULL;
 	const char *imp_name = NULL;
 	const char *src_url = NULL;
@@ -523,12 +525,16 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		comp_name = "WebVTT";
 		is_text_subs = GF_TRUE;
 		break;
+	case GF_CODECID_SUBPIC:
+		use_m4sys = GF_TRUE;
+		override_stype = GF_STREAM_ND_SUBPIC;
+		comp_name = "VobSub";
+		break;
 
 	default:
 		m_subtype = tkw->codecid;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
-		comp_name = gf_4cc_to_str(m_subtype);
 		tkw->skip_bitrate_update = GF_TRUE;
 
 		p = gf_filter_pid_get_property_str(pid, "meta:mime");
@@ -545,6 +551,8 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (p) meta_auxmimes = p->value.string;
 		break;
 	}
+	if (!comp_name) comp_name = gf_codecid_name(tkw->codecid);
+	if (!comp_name) comp_name = gf_4cc_to_str(m_subtype);
 
 	if (!needs_sample_entry) return GF_OK;
 
@@ -570,6 +578,9 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_chan = p->value.uint;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
+	if (p) lang_name = p->value.string;
+
 	if (is_text_subs && !width && !height) {
 		mp4_mux_get_video_size(ctx, &width, &height);
 	}
@@ -584,8 +595,8 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//nope, create sample entry
 	if (use_m4sys) {
 		GF_ESD *esd = gf_odf_desc_esd_new(2);
-		esd->decoderConfig->streamType = tkw->stream_type;
-		esd->decoderConfig->objectTypeIndication = tkw->codecid;
+		esd->decoderConfig->streamType = override_stype ? override_stype : tkw->stream_type;
+		esd->decoderConfig->objectTypeIndication = gf_codecid_oti(tkw->codecid);
 		esd->slConfig->timestampResolution = tkw->timescale;
 		if (dsi && !skip_dsi) {
 			esd->decoderConfig->decoderSpecificInfo->data = dsi->value.data.ptr;
@@ -884,6 +895,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_isom_set_track_layout_info(ctx->mov, tkw->track_num, width<<16, height<<16, 0, 0, z_order);
 	}
 
+	if (lang_name) gf_isom_set_media_language(ctx->mov, tkw->track_num, (char*)lang_name);
 
 	if (ctx->importer && !tkw->import_msg_header_done) {
 		tkw->import_msg_header_done = GF_TRUE;
@@ -1104,7 +1116,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 		tkw->next_is_first_sample = GF_FALSE;
 
-		gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, duration);
+		if (duration)
+			gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, duration);
 
 		if (ctx->dur.num) {
 			u32 mdur = gf_isom_get_media_duration(ctx->mov, tkw->track_num);
@@ -1331,7 +1344,7 @@ static void mp4_mux_finalize(GF_Filter *filter)
 
 		p = gf_filter_pid_get_property_str(tkw->ipid, "ttxt:rem_last");
 		if (p && p->value.boolean)
-				gf_isom_remove_sample(ctx->mov, tkw->track_num, tkw->nb_samples);
+			gf_isom_remove_sample(ctx->mov, tkw->track_num, tkw->nb_samples);
 
 		p = gf_filter_pid_get_property_str(tkw->ipid, "ttxt:last_dur");
 		if (p)

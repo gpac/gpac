@@ -324,10 +324,8 @@ GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs)
 
 	//then encode our desc...
 	e = gf_odf_write_descriptor(bs, desc);
-	if (e) {
-		gf_bs_del(bs);
-		return e;
-	}
+	if (e) return e;
+	
 	return GF_OK;
 }
 

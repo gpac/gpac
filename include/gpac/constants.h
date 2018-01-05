@@ -87,6 +87,9 @@ enum
 
 	/* From 0x20 to Ox3F, this is the user private range */
 
+	/*!Nero Digital Subpicture Stream*/
+	GF_STREAM_ND_SUBPIC = 0x38,
+
 	/*GPAC internal stream types*/
 
 

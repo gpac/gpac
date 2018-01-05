@@ -227,6 +227,7 @@
 		926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C51F7D45F700299CC6 /* dmx_ogg.c */; };
 		926656C81F7E92C200299CC6 /* dmx_m2ts.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C71F7E92C200299CC6 /* dmx_m2ts.c */; };
 		926656CA1F836DE300299CC6 /* in_udp.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C91F836DE200299CC6 /* in_udp.c */; };
+		926998B41FEACE8F00AA759D /* dmx_vobsub.c in Sources */ = {isa = PBXBuildFile; fileRef = 926998B31FEACE8F00AA759D /* dmx_vobsub.c */; };
 		926CE14D1FE7E388002B3CF6 /* write_generic.c in Sources */ = {isa = PBXBuildFile; fileRef = 926CE14C1FE7E388002B3CF6 /* write_generic.c */; };
 		926CE14F1FE81865002B3CF6 /* constants.c in Sources */ = {isa = PBXBuildFile; fileRef = 926CE14E1FE81865002B3CF6 /* constants.c */; };
 		926CE1511FE81A8E002B3CF6 /* write_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 926CE1501FE81A8E002B3CF6 /* write_nalu.c */; };
@@ -1104,6 +1105,7 @@
 		926656C51F7D45F700299CC6 /* dmx_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_ogg.c; path = filters/dmx_ogg.c; sourceTree = "<group>"; };
 		926656C71F7E92C200299CC6 /* dmx_m2ts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_m2ts.c; path = filters/dmx_m2ts.c; sourceTree = "<group>"; };
 		926656C91F836DE200299CC6 /* in_udp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_udp.c; path = filters/in_udp.c; sourceTree = "<group>"; };
+		926998B31FEACE8F00AA759D /* dmx_vobsub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_vobsub.c; path = filters/dmx_vobsub.c; sourceTree = "<group>"; };
 		926CE14C1FE7E388002B3CF6 /* write_generic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_generic.c; path = filters/write_generic.c; sourceTree = "<group>"; };
 		926CE14E1FE81865002B3CF6 /* constants.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = constants.c; sourceTree = "<group>"; };
 		926CE1501FE81A8E002B3CF6 /* write_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_nalu.c; path = filters/write_nalu.c; sourceTree = "<group>"; };
@@ -1666,7 +1668,6 @@
 		9201008C18D5A444003D1ACA /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				926CE14E1FE81865002B3CF6 /* constants.c */,
 				92F930801A5ADB870072A85C /* os_divers.c */,
 				92F930811A5ADB870072A85C /* os_file.c */,
 				922B48781A5ADAB3006CBBBA /* os_module.c */,
@@ -1676,6 +1677,7 @@
 				9201009018D5A444003D1ACA /* cache.c */,
 				9201009118D5A444003D1ACA /* color.c */,
 				9201009218D5A444003D1ACA /* configfile.c */,
+				926CE14E1FE81865002B3CF6 /* constants.c */,
 				9201009318D5A444003D1ACA /* dlmalloc.c */,
 				9201009418D5A444003D1ACA /* downloader.c */,
 				9201009518D5A444003D1ACA /* error.c */,
@@ -2554,7 +2556,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				926F15561FE986B000C40779 /* write_nhml.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -2581,6 +2582,7 @@
 				928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */,
 				928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */,
 				92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */,
+				926998B31FEACE8F00AA759D /* dmx_vobsub.c */,
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
 				926245971FD691A000184072 /* ff_common.h */,
 				92BB85501F7BFB60009BC9C8 /* ff_dec.c */,
@@ -2614,6 +2616,7 @@
 				92061A821FDFB14800B5C464 /* write_adts.c */,
 				926CE14C1FE7E388002B3CF6 /* write_generic.c */,
 				926CE1501FE81A8E002B3CF6 /* write_nalu.c */,
+				926F15561FE986B000C40779 /* write_nhml.c */,
 				926F15541FE964CF00C40779 /* write_nhnt.c */,
 				9288350B1FE82E63002F603D /* write_qcp.c */,
 				926F15521FE867B000C40779 /* write_vtt.c */,
@@ -3358,6 +3361,7 @@
 				92B9A5811F8660D700A24FE4 /* svg_geometry.c in Sources */,
 				9201015118D5A445003D1ACA /* m2ts_mux.c in Sources */,
 				9201015218D5A445003D1ACA /* m3u8.c in Sources */,
+				926998B41FEACE8F00AA759D /* dmx_vobsub.c in Sources */,
 				9201015318D5A445003D1ACA /* media_export.c in Sources */,
 				9201015418D5A445003D1ACA /* media_import.c in Sources */,
 				92B9A5791F8660D700A24FE4 /* mpeg4_grouping_2d.c in Sources */,

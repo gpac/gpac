@@ -941,7 +941,8 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		//source filter, can't add pid
 		if (!freg->configure_pid) continue;
 		//freg shall be instantiated 
-		if (freg->explicit_only) continue;
+		if (freg->explicit_only)
+			continue;
 
 		//blacklisted filter, can't add pid
 		if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0)

@@ -1167,14 +1167,21 @@ GF_Err gf_odf_read_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd, u32 DescSize)
 	return GF_OK;
 }
 
+#include <gpac/constants.h>
+
 GF_Err gf_odf_size_dcd(GF_DecoderConfig *dcd, u32 *outSize)
 {
 	GF_Err e;
 	u32 tmpSize;
+	u32 oti;
 	if (! dcd) return GF_BAD_PARAM;
 
-	if (dcd->objectTypeIndication>0xFF) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Attempt to write an internal ESD with codec ID %s , not mappable to 8 bits MPEG-4 Systems OTI", gf_4cc_to_str(dcd->objectTypeIndication) ));
+	oti = dcd->objectTypeIndication;
+	if (oti > 0xFF) {
+		oti = gf_codecid_oti(oti);
+	}
+	if (oti > 0xFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Attempt to write an internal ESD with codec ID %s (%s) , not mappable to 8 bits MPEG-4 Systems OTI", gf_4cc_to_str(dcd->objectTypeIndication), gf_codecid_name(dcd->objectTypeIndication) ));
 		return GF_BAD_PARAM;
 	}
 
@@ -1196,11 +1203,15 @@ GF_Err gf_odf_size_dcd(GF_DecoderConfig *dcd, u32 *outSize)
 GF_Err gf_odf_write_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd)
 {
 	GF_Err e;
-	u32 size;
+	u32 size, oti;
 	if (! dcd) return GF_BAD_PARAM;
 	
-	if (dcd->objectTypeIndication>0xFF) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Attempt to write an internal ESD with codec ID %s , not mappable to 8 bits MPEG-4 Systems OTI", gf_4cc_to_str(dcd->objectTypeIndication) ));
+	oti = dcd->objectTypeIndication;
+	if (oti > 0xFF) {
+		oti = gf_codecid_oti(oti);
+	}
+	if (oti > 0xFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Attempt to write an internal ESD with codec ID %s (%s) , not mappable to 8 bits MPEG-4 Systems OTI", gf_4cc_to_str(dcd->objectTypeIndication), gf_codecid_name(dcd->objectTypeIndication) ));
 		return GF_BAD_PARAM;
 	}
 
@@ -1209,7 +1220,7 @@ GF_Err gf_odf_write_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd)
 	e = gf_odf_write_base_descriptor(bs, dcd->tag, size);
 	if (e) return e;
 
-	gf_bs_write_int(bs, dcd->objectTypeIndication, 8);
+	gf_bs_write_int(bs, oti, 8);
 	gf_bs_write_int(bs, dcd->streamType, 6);
 	gf_bs_write_int(bs, dcd->upstream, 1);
 	gf_bs_write_int(bs, 1, 1);	//reserved field...
