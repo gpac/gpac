@@ -47,6 +47,9 @@ typedef struct _tag_vobsub_lang
 	u32      id;
 	char    *name;
 	GF_List *subpos;
+	u32 idx, current;
+	Bool is_seek;
+	u64 last_dts;
 } vobsub_lang;
 
 typedef struct _tag_vobsub_file

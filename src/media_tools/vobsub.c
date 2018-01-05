@@ -357,6 +357,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			vobsub->langs[id].id   = lang_id;
 			vobsub->langs[id].name = lang_table[vobsub_lang_name((u16)lang_id)].lang;
+			vobsub->langs[id].idx = id;
 
 			vobsub->langs[id].subpos = gf_list_new();
 			if (vobsub->langs[id].subpos == NULL)
@@ -452,29 +453,27 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 void vobsub_free(vobsub_file *vobsub)
 {
-	s32 c;
+	s32 i;
 
 	if (vobsub == NULL)
-	{
 		return;
-	}
 
-	for (c = 0; c < 32; c++)
-	{
-		if (vobsub->langs[c].subpos)
-		{
-			GF_List    *list = vobsub->langs[c].subpos;
+	for (i = 0; i < 32; i++) {
+		if (vobsub->langs[i].subpos) {
+			GF_List *list = vobsub->langs[i].subpos;
 			vobsub_pos *vspos;
-			u32         pos = 0;
+			u32 pos = 0;
 
-			do
-			{
+			do {
 				vspos = (vobsub_pos*)gf_list_enum(list, &pos);
 				gf_free(vspos);
 			}
 			while (vspos != NULL);
+
+			gf_list_del(list);
 		}
 	}
+	gf_free(vobsub);
 }
 
 GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *duration)
