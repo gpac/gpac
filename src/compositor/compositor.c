@@ -1525,6 +1525,19 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		sscanf(sOpt, "%u-%u", &compositor->tile_visibility_nb_tests, &compositor->tile_visibility_threshold);
 	}
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TileVisibilityDebug");
+	if (!sOpt) {
+		gf_cfg_set_key(compositor->user->config, "Compositor", "TileVisibilityDebug", "no");
+	} else if (!strcmp(sOpt, "yes")) {
+		compositor->tile_visibility_debug = GF_TRUE;
+	}
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TileVisibilityForced");
+	if (!sOpt) {
+		gf_cfg_set_key(compositor->user->config, "Compositor", "TileVisibilityForced", "no");
+	} else if (!strcmp(sOpt, "yes")) {
+		compositor->force_all_tiles_visible = GF_TRUE;
+	}
+
 #endif //GPAC_DISABLE_3D
 
 

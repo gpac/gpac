@@ -241,6 +241,16 @@ next_segment:
 				flags = 0;
 				if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
 				if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
+				else {
+					//whenever we load a base segment, reset all sample count info
+					gf_isom_reset_sample_count(read->mov);
+					for (i=0; i<count; i++) {
+						ISOMChannel *ch = gf_list_get(read->channels, i);
+						if (ch) ch->sample_num = 0;
+					}
+				}
+
+
 				e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, flags);
 
 				if (param.url_query.current_download  && (e==GF_ISOM_INCOMPLETE_FILE)) {
@@ -476,7 +486,7 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 	ch->current_slh.compositionTimeStampFlag = 1;
 	ch->current_slh.decodingTimeStampFlag = 1;
-	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, NULL);
+	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, NULL, GF_FALSE);
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 }
 
