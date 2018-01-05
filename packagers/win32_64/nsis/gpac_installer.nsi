@@ -440,7 +440,7 @@ SectionEnd
 
 Section "OpenHEVC Decoder" SecOHEVC
   SectionIn 1
-  File "${GPAC_BIN}\libLibOpenHevcWrapper.dll"
+  File "${GPAC_BIN}\openhevc-1.dll"
   File "${GPAC_BIN}\gm_openhevc_dec.dll"
 SectionEnd
 

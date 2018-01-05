@@ -2105,15 +2105,19 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		ps = GF_FALSE;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4)) {
-			GF_M4ADecSpecInfo dsi;
-			gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-			sr = dsi.base_sr;
-			if (dsi.has_sbr) sbr_sr = dsi.sbr_sr;
-			ch = dsi.nb_chan;
-			PL = dsi.audioPL;
-			sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR || dsi.base_object_type==GF_M4A_AAC_PS) ? 2 : 1) : GF_FALSE;
-			ps = dsi.has_ps;
+        if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4)) {
+            if (origin_esd->decoderConfig->decoderSpecificInfo) {
+                GF_M4ADecSpecInfo dsi;
+                gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+                sr = dsi.base_sr;
+                if (dsi.has_sbr) sbr_sr = dsi.sbr_sr;
+                ch = dsi.nb_chan;
+                PL = dsi.audioPL;
+                sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR || dsi.base_object_type==GF_M4A_AAC_PS) ? 2 : 1) : GF_FALSE;
+                ps = dsi.has_ps;
+            } else {
+                GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Missing DecoderSpecificInfo in MPEG-4 AAC stream\n"));
+            }
 		}
 #endif
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);

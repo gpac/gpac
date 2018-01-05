@@ -431,6 +431,14 @@ Sets the number of points to test for tile visibility to int1, and consider the 
 <p style="text-indent: 5%">
 Uses the mouse to simulate gazing direction on the display for quality adaptation. Default is no.</p>
 
+<b>TileVisibilityDebug</b> [value: <i>yes,no</i>]
+<p style="text-indent: 5%">
+Enables tiles visibility debugging. This disables the tile having full coverage of the SRD, only displaying sub tiles. Default is no.</p>
+
+<b>TileVisibilityForced</b> [value: <i>yes,no</i>]
+<p style="text-indent: 5%">
+Forces tiles visibility. All tiles will be considered as visible, regardless the current viewpoint. Default is no.</p>
+
 <br/><br/>
 
 <a name="Audio"></a>
@@ -468,6 +476,19 @@ Default audio stereo balance used when launching GPAC - 0 for full left, 100 for
 <b>Filter</b> [value: string]
 <p style="text-indent: 5%">
 Defines a set of audio filters. Audio filters are declared as a list of strings separated with ";;". The exact syntax of the string is filter specific.</p>
+
+<b>ForceFrequency</b> [value: integer]
+<p style="text-indent: 5%">
+Force audio output frequency. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
+<b>ForceChannels</b> [value: integer]
+<p style="text-indent: 5%">
+Force audio output channels. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
+<b>ForceLayout</b> [value: hexa integer]
+<p style="text-indent: 5%">
+Force audio output frequency. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
+<b>ForceBPS</b> [value: integer]
+<p style="text-indent: 5%">
+Force audio output bits per sample. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
 
 <br/><br/>
 

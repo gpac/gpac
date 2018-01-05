@@ -1400,7 +1400,11 @@ int mp4client_main(int argc, char **argv)
 			sscanf(argv[i+1], "%f", &scale);
 			i++;
 		}
-		
+		else if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
+			/* already parsed */
+			i++;
+		}
+
 		/*arguments only used in non-gui mode*/
 		if (!gui_mode) {
 			if (arg[0] != '-') {
