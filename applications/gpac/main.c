@@ -59,7 +59,7 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 }
 
 
-void gpac_usage()
+static void gpac_usage(void)
 {
 	fprintf(stderr, "Usage: gpac [options] FILTER_ARGS\n"
 #ifdef GPAC_MEMORY_TRACKING
@@ -131,7 +131,7 @@ void gpac_usage()
 
 }
 
-int gpac_main(int argc, char **argv)
+static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
 	int i;

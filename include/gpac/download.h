@@ -124,7 +124,7 @@ typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, const char *site_url, char *us
  *Assigns the callback function used for user password retrieval. If no such function is assigned to the download manager,
  *all downloads requiring authentication will fail.
  *\param dm the download manager object
- *\param get_pass \ref gf_dm_get_usr_pass callback function for user and password retrieval.
+ *\param get_pass specifies \ref gf_dm_get_usr_pass callback function for user and password retrieval.
  *\param usr_cbk opaque user data passed to callback function
  */
 void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_pass, void *usr_cbk);
@@ -221,7 +221,7 @@ typedef void (*gf_dm_user_io)(void *usr_cbk, GF_NETIO_Parameter *parameter);
  *\param dm the download manager object
  *\param url file to retrieve (no PUT/POST yet, only downloading is supported)
  *\param dl_flags combination of session download flags
- *\param user_io \ref gf_dm_user_io callback function for data reception and service messages
+ *\param user_io specifies \ref gf_dm_user_io callback function for data reception and service messages
  *\param usr_cbk opaque user data passed to callback function
  *\param error error for failure cases
  *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local
@@ -238,7 +238,7 @@ GF_DownloadSession * gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32
  *\param dm The download manager used to create the download session
  *\param url file to retrieve (no PUT/POST yet, only downloading is supported)
  *\param dl_flags combination of session download flags
- *\param user_io \ref gf_dm_user_io callback function for data reception and service messages
+ *\param user_io specifies \ref gf_dm_user_io callback function for data reception and service messages
  *\param usr_cbk opaque user data passed to callback function
  *\param e error for failure cases
  *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local

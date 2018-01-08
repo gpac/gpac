@@ -275,6 +275,8 @@ typedef struct __gf_filter_register
 	const char *author;
 	//mandatory - description of the filter
 	const char *description;
+	//optionnal - comment for the filter
+	const char *comment;
 	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions
 	u32 private_size;
 	//indicates all calls shall take place in fthe main thread (running GL output) - to be refined
