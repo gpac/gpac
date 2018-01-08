@@ -960,6 +960,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				sap_type = (!stricmp(att->value, "yes")) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE;
 			}
 			else if (!stricmp(att->name, "isSyncShadow")) redundant_rap = !stricmp(att->value, "yes") ? 1 : 0;
+			else if (!stricmp(att->name, "SAPType") ) sap_type = atoi(att->value);
 			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) ctx->samp_buffer_size = atoi(att->value);
 			else if (!stricmp(att->name, "mediaFile")) {
