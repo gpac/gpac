@@ -569,14 +569,14 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 		sprintf(nhml, "CTSOffset=\"%d\" ", (s32) ((s64)cts - (s64)dts));
 		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
 	}
-	if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2) ) {
+	if (sap==GF_FILTER_SAP_1) {
 		sprintf(nhml, "isRAP=\"yes\" ");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
-	} else if (sap==GF_FILTER_SAP_3) {
-		sprintf(nhml, "isRAP=\"openGOP\" ");
 		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
 	} else if (sap==GF_FILTER_SAP_REDUNDANT) {
 		sprintf(nhml, "isSyncShadow=\"yes\" ");
+		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	} else if (sap) {
+		sprintf(nhml, "SAPType=\"%d\" ", sap);
 		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
 	} else if (ctx->full) {
 		sprintf(nhml, "isRAP=\"no\" ");
