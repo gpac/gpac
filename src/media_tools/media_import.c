@@ -3590,7 +3590,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	samp->IsRAP = RAP;
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
-		u32 j, dims_flags;
+		u32 j, dims_flags, sap_type;
 		Bool append, compress, has_subbs;
 		char *base_data = NULL;
 		if (node->type) continue;
@@ -3607,6 +3607,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		append = GF_FALSE;
 		compress = do_compress;
 		sample_duration = 0;
+		sap_type = 0;
 
 		j=0;
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
@@ -3624,6 +3625,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				samp->IsRAP = (!stricmp(att->value, "yes")) ? RAP : RAP_NO;
 			}
 			else if (!stricmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? RAP_REDUNDANT : RAP_NO;
+			else if (!stricmp(att->name, "SAPType") && !samp->IsRAP) sap_type = atoi(att->value);
 			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
 			else if (!stricmp(att->name, "mediaFile")) {
@@ -3879,7 +3881,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				}
 			}
 		}
-
+		if (sap_type==SAP_TYPE_3) {
+			gf_isom_set_sample_rap_group(import->dest, track, gf_isom_get_sample_count(import->dest, track), 0);
+		}
 		samp->IsRAP = RAP_NO;
 		samp->CTS_Offset = 0;
 		if (sample_duration)
