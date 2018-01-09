@@ -40,6 +40,10 @@
 
 //#define FFMPEG_DIRECT_DISPATCH
 
+#ifndef FF_INPUT_BUFFER_PADDING_SIZE
+#define FF_INPUT_BUFFER_PADDING_SIZE 0
+#endif
+
 /**
  * Allocates data for FFMPEG decoding
  * \param oldBuffer The oldBuffer (freed if not NULL)
