@@ -19,6 +19,8 @@
 
 [![Coverage](http://gpacvm-ext.enst.fr/django/testres/badge/cov/linux64)](http://gpacvm-ext.enst.fr/django/testres/)
 
+![License](https://img.shields.io/badge/license-LGPL-blue.svg)
+
 README for GPAC version 0.7.2-DEV
 
 GPAC is a multimedia framework oriented towards rich media and distributed under the LGPL license (see COPYING).
