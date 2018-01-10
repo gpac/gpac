@@ -1,5 +1,23 @@
-[![Build Status](https://travis-ci.org/gpac/gpac.svg?branch=master)](https://travis-ci.org/gpac/gpac)
-[![codecov.io](https://codecov.io/github/gpac/gpac/coverage.svg?branch=master)](https://codecov.io/github/gpac/gpac?branch=master)
+[![Build Status](http://gpacvm-ext.enst.fr/django/testres/badge/build/ubuntu64)](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master)
+[![Tests](http://gpacvm-ext.enst.fr/django/testres/badge/tests/linux64)](http://gpacvm-ext.enst.fr/django/testres/)
+
+[![Build Status](http://gpacvm-ext.enst.fr/django/testres/badge/build/ubuntu32)](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master)
+[![Tests](http://gpacvm-ext.enst.fr/django/testres/badge/tests/linux32)](http://gpacvm-ext.enst.fr/django/testres/)
+
+[![Build Status](http://gpacvm-ext.enst.fr/django/testres/badge/build/windows64)](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master)
+[![Tests](http://gpacvm-ext.enst.fr/django/testres/badge/tests/win64)](http://gpacvm-ext.enst.fr/django/testres/)
+
+[![Build Status](http://gpacvm-ext.enst.fr/django/testres/badge/build/windows32)](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master)
+[![Tests](http://gpacvm-ext.enst.fr/django/testres/badge/tests/win32)](http://gpacvm-ext.enst.fr/django/testres/)
+
+[![Build Status](http://gpacvm-ext.enst.fr/django/testres/badge/build/macos)](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master)
+[![Tests](http://gpacvm-ext.enst.fr/django/testres/badge/tests/macos)](http://gpacvm-ext.enst.fr/django/testres/)
+
+[![Build Status](http://gpacvm-ext.enst.fr/django/testres/badge/build/ios)](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master)
+
+[![Build Status](http://gpacvm-ext.enst.fr/django/testres/badge/build/android)](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master)
+
+[![Coverage](http://gpacvm-ext.enst.fr/django/testres/badge/cov/linux64)](http://gpacvm-ext.enst.fr/django/testres/)
 
 README for GPAC version 0.7.2-DEV
 
