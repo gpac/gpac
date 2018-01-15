@@ -559,6 +559,7 @@ struct __tag_compositor
 	u32 screen_buffer_alloc_size;
 
 	u32 tile_visibility_nb_tests, tile_visibility_threshold;
+	Bool tile_visibility_debug, force_all_tiles_visible;
 #endif
 
 	Bool texture_from_decoder_memory;
@@ -1033,6 +1034,7 @@ typedef struct _audiointerface
 	Bool (*GetConfig)(struct _audiointerface *ai, Bool for_reconf);
 	/*updated cfg, or 0 otherwise*/
 	u32 chan, bps, samplerate, ch_cfg;
+	Bool forced_layout;
 } GF_AudioInterface;
 
 typedef struct __audiomix GF_AudioMixer;
@@ -1131,6 +1133,8 @@ typedef struct _audio_render
 	u32 nb_filled, nb_used;
 
 	Bool step_mode;
+
+	Fixed yaw, pitch, roll;
 
 } GF_AudioRenderer;
 

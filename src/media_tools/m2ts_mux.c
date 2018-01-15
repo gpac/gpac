@@ -140,6 +140,7 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 		table->table_id = table_id;
 		if (prev_table) prev_table->next = table;
 		else stream->tables = table;
+		table->version_number = stream->initial_version_number;
 	}
 
 	if (!table_payload_length) return;
@@ -436,7 +437,7 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
                                   Bool has_pcr, u64 pcr_time,
                                   Bool is_rap,
                                   u32 padding_length,
-                                  char *af_descriptors, u32 af_descriptors_size)
+                                  char *af_descriptors, u32 af_descriptors_size, Bool set_discontinuity)
 {
 	u32 adaptation_length;
 
@@ -448,7 +449,7 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 	}
 
 	gf_bs_write_int(bs,	adaptation_length, 8);
-	gf_bs_write_int(bs,	0, 1);			// discontinuity indicator
+	gf_bs_write_int(bs,	set_discontinuity ? 1 : 0, 1);			// discontinuity indicator
 	gf_bs_write_int(bs,	is_rap, 1);		// random access indicator
 	gf_bs_write_int(bs,	0, 1);			// es priority indicator
 	gf_bs_write_int(bs,	has_pcr, 1);	// PCR_flag
@@ -575,7 +576,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 #ifdef USE_AF_STUFFING
 	if (adaptation_field_control != GF_M2TS_ADAPTATION_NONE)
-		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, 0, 0, 0, padding_length, NULL, 0);
+		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, 0, 0, 0, padding_length, NULL, 0, GF_FALSE);
 #endif
 
 	/*pointer field*/
@@ -1794,7 +1795,8 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			stream->program->nb_pck_last_pcr = stream->program->mux->tot_pck_sent;
 		}
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? GF_TRUE : GF_FALSE;
-		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length, hdr_len ? stream->curr_pck.mpeg2_af_descriptors : NULL, hdr_len ? stream->curr_pck.mpeg2_af_descriptors_size : 0);
+		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length, hdr_len ? stream->curr_pck.mpeg2_af_descriptors : NULL, hdr_len ? stream->curr_pck.mpeg2_af_descriptors_size : 0, stream->set_initial_disc);
+		stream->set_initial_disc = GF_FALSE;
 
 		if (stream->curr_pck.mpeg2_af_descriptors) {
 			gf_free(stream->curr_pck.mpeg2_af_descriptors);
@@ -2128,6 +2130,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	stream->program = program;
 	if (is_pcr) program->pcr = stream;
 	stream->loop_descriptors = gf_list_new();
+	stream->set_initial_disc = program->initial_disc_set;
 
 	if (program->streams) {
 		/*if PCR keep stream at the beginning*/
@@ -2315,7 +2318,7 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_nu
 }
 
 GF_EXPORT
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling)
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling, u32 pmt_version, Bool initial_disc)
 {
 	GF_M2TS_Mux_Program *program;
 
@@ -2338,6 +2341,9 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	program->pmt = gf_m2ts_stream_new(pmt_pid);
 	program->pmt->program = program;
 	program->pmt->table_needs_update = GF_TRUE;
+	program->pmt->initial_version_number = pmt_version;
+	program->initial_disc_set = initial_disc;
+	program->pmt->set_initial_disc = initial_disc;
 	muxer->pat->table_needs_update = GF_TRUE;
 	program->pmt->process = gf_m2ts_stream_process_pmt;
 	program->pmt->refresh_rate_ms = pmt_refresh_rate ? pmt_refresh_rate : (u32) -1;

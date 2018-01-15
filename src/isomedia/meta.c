@@ -192,7 +192,7 @@ u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num,
 }
 
 GF_EXPORT
-GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name, char **out_data, u32 *out_size, const char **out_mime )
+GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name, char **out_data, u32 *out_size, const char **out_mime, Bool use_annex_b)
 {
 	GF_BitStream *item_bs;
 	char szPath[1024];
@@ -228,6 +228,15 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		location_entry = NULL;
 	}
 
+	switch (item_type) {
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_JPEG:
+		break;
+	default:
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Extracting item type %s not supported\n", gf_4cc_to_str(item_type) ));
+		return GF_NOT_SUPPORTED;
+	}
 
 	if (!location_entry) return GF_BAD_PARAM;
 
@@ -289,7 +298,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		resource = gf_fopen(szPath, "wb");
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	} else {
-		if (item_name) strcpy(szPath, item_name);
+		if (item_name && strlen(item_name) > 0) strcpy(szPath, item_name);
 		else sprintf(szPath, "item_id%02d", item_id);
 		resource = gf_fopen(szPath, "wb");
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
@@ -310,7 +319,8 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 			c2 = gf_list_count(e->property_index);
 			for (j=0; j<c2; j++) {
 				u32 *idx = gf_list_get(e->property_index, j);
-				hvcc = gf_list_get(meta->item_props->property_container->other_boxes, *idx);
+				if (! (*idx) ) continue;
+				hvcc = gf_list_get(meta->item_props->property_container->other_boxes, (*idx) - 1);
 				if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
 				if (hvcc->type == GF_ISOM_BOX_TYPE_HVCC) break;
 				if (hvcc->type == GF_ISOM_BOX_TYPE_AVCC) {
@@ -321,18 +331,28 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 			}
 			if (avcc || hvcc) break;
 		}
-
 		if (hvcc) {
-			hvcc->config->write_annex_b = GF_TRUE;
-			gf_odf_hevc_cfg_write_bs(hvcc->config, item_bs);
-			hvcc->config->write_annex_b = GF_FALSE;
-			nalu_size_length = hvcc->config->nal_unit_size;
-		}
-		else if (avcc) {
-			avcc->config->write_annex_b = GF_TRUE;
-			gf_odf_avc_cfg_write_bs(avcc->config, item_bs);
-			avcc->config->write_annex_b = GF_FALSE;
-			nalu_size_length = avcc->config->nal_unit_size;
+			if (! hvcc->config) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Missing HEVC config in hvcC\n"));
+			} else {
+				if (use_annex_b) {
+					hvcc->config->write_annex_b = GF_TRUE;
+					gf_odf_hevc_cfg_write_bs(hvcc->config, item_bs);
+					hvcc->config->write_annex_b = GF_FALSE;
+				}
+				nalu_size_length = hvcc->config->nal_unit_size;
+			}
+		} else if (avcc) {
+			if (! avcc->config) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Missing AVC config in avcC\n"));
+			} else {
+				if (use_annex_b) {
+					avcc->config->write_annex_b = GF_TRUE;
+					gf_odf_avc_cfg_write_bs(avcc->config, item_bs);
+					avcc->config->write_annex_b = GF_FALSE;
+				}
+				nalu_size_length = avcc->config->nal_unit_size;
+			}
 		}
 	}
 
@@ -348,7 +368,11 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 				u32 nal_size = gf_bs_read_int(file->movieFileMap->bs, 8*nalu_size_length);
 				assert(remain>nalu_size_length);
 
-				gf_bs_write_u32(item_bs, 1);
+				if (use_annex_b)
+					gf_bs_write_u32(item_bs, 1);
+				else
+					gf_bs_write_int(item_bs, nal_size, 8*nalu_size_length);
+
 				remain -= nalu_size_length + nal_size;
 				while (nal_size) {
 					u32 cache_size = (nal_size>4096) ? 4096 : (u32) nal_size;
@@ -378,13 +402,13 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 GF_EXPORT
 GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name)
 {
-	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, dump_file_name, NULL, NULL, NULL);
+	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, dump_file_name, NULL, NULL, NULL, GF_TRUE);
 }
 
 GF_EXPORT
-GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **out_mime)
+GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **out_mime, Bool use_annex_b)
 {
-	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, NULL, out_data, out_size, out_mime);
+	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, NULL, out_data, out_size, out_mime, use_annex_b);
 }
 
 GF_EXPORT
@@ -561,7 +585,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 	memset(prop, 0, sizeof(GF_ImageItemProperties));
 	if (!meta->item_props) return GF_OK;
 
-	ipma = (GF_ItemPropertyAssociationBox *)gf_list_get(meta->item_props->other_boxes, 0);
+	ipma = meta->item_props->property_association;
 	ipco = meta->item_props->property_container;
 
 	count = gf_list_count(ipma->entries);

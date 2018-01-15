@@ -1347,9 +1347,11 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;
 			}
+			else if (txh->compositor->force_all_tiles_visible) {
+				visible = GF_TRUE;
 			//estimate visibility asap, even if texture not yet ready (we have SRD info):
 			//this allows sending stop commands which will free inactive decoder HW context
-			else {
+			} else {
 				u32 i, j;
 				u32 nb_visible=0;
 				u32 nb_tests = tr_state->visual->compositor->tile_visibility_nb_tests;
@@ -1381,6 +1383,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					visible = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is %s - %d sample points visible out of %d\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  nb_visible, i));
 			}
+
 			if (visible) {
 				stack->mesh->flags |= MESH_WAS_VISIBLE;
 			} else {
@@ -1420,7 +1423,9 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					if (txh->data) {
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 						visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
-						visual_3d_draw(tr_state, stack->mesh);
+						if (!tr_state->visual->compositor->tile_visibility_debug ||  (vrinfo.srd_w != vrinfo.srd_max_x)) {
+							visual_3d_draw(tr_state, stack->mesh);
+						}
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
 					}
 				} else {

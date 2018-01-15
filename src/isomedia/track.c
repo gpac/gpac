@@ -102,7 +102,7 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 		if (e) return e;
 		if (dpnd) {
 			//ONLY ONE STREAM DEPENDENCY IS ALLOWED
-			if (dpnd->trackIDCount != 1) return GF_ISOM_INVALID_MEDIA;
+			if (!k && (dpnd->trackIDCount != 1)) return GF_ISOM_INVALID_MEDIA;
 			//fix the spec: where is the index located ??
 			esd->dependsOnESID = dpnd->trackIDs[0];
 			break;
@@ -1079,9 +1079,11 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 		case GF_ISOM_BOX_TYPE_MP4A:
 			entry_a = (GF_MPEGAudioSampleEntryBox*) entry;
-			//OK, delete the previous ESD
-			gf_odf_desc_del((GF_Descriptor *) entry_a->esd->desc);
-			entry_a->esd->desc = esd;
+            if (entry_a->esd) { // some non-conformant files may not have an ESD ...
+                //OK, delete the previous ESD
+                gf_odf_desc_del((GF_Descriptor *) entry_a->esd->desc);
+                entry_a->esd->desc = esd;
+            }
 			break;
 		case GF_ISOM_BOX_TYPE_AVC1:
 		case GF_ISOM_BOX_TYPE_AVC2:

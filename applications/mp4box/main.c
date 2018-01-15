@@ -520,6 +520,7 @@ void PrintImportUsage()
 	        " \"                       merge : all layers are merged in a single track\n"
 	        " \"                       splitbase : all layers are merged in a track, and the AVC base in another\n"
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
+	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
@@ -1862,7 +1863,7 @@ s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+u32 i, j, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_SceneDumpFormat dump_mode;
@@ -3084,6 +3085,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 				sprintf(szTk, "%d", trackID);
 				if (!strcmp(szTk, argv[i + 1])) i++;
 				else trackID = 0;
+			}
+			else if ((i + 1<(u32)argc) && !strcmp(argv[i + 1], "*")) {
+				trackID = (u32)-1;
+				i++;
 			}
 			else {
 				trackID = 0;
@@ -4397,9 +4402,23 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
-	if ((dump_ttxt || dump_srt) && trackID)
-		dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
-							  GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+	if ((dump_ttxt || dump_srt) && trackID) {
+
+		if (trackID == (u32)-1) {
+
+			u32 j;
+			for (j=0; j<gf_isom_get_track_count(file); j++) {
+				trackID = gf_isom_get_track_id(file, j+1);
+				dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+									GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+			}
+
+		}
+		else {
+			dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+								GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+		}
+	}
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (dump_rtp) dump_isom_rtp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
@@ -4830,9 +4849,8 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(outfile, outName);
 	}
 
-
-	for (i=0; i<nb_track_act; i++) {
-		TrackAction *tka = &tracks[i];
+	for (j=0; j<nb_track_act; j++) {
+		TrackAction *tka = &tracks[j];
 		u32 track = tka->trackID ? gf_isom_get_track_by_id(file, tka->trackID) : 0;
 		u32 timescale = gf_isom_get_timescale(file);
 		switch (tka->act_type) {

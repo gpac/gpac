@@ -2174,11 +2174,11 @@ static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 
 void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent)
 {
+	char tmp_indent[256];
 	fprintf(out, "%s<SegmentBase", indent);
 	gf_mpd_print_segment_base_attr(out, s);
 	fprintf(out, ">\n");
-
-	char tmp_indent[256];
+	
 	sprintf(tmp_indent, "%s ",indent);
 	
 	if (s->initialization_segment) gf_mpd_print_url(out, s->initialization_segment, "Initialization", tmp_indent);
@@ -2237,13 +2237,13 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 
 static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *indent)
 {
+	char tmp_indent[256];
 	fprintf(out, "%s<SegmentList", indent);
 	if (s->xlink_href) {
 		fprintf(out, " xlink:href=\"%s\"", s->xlink_href);
 		if (s->xlink_actuate_on_load)
 			fprintf(out, " actuate=\"onLoad\"");
-	}
-	char tmp_indent[256];
+	}	
 	sprintf(tmp_indent, "%s ",indent);
 	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, tmp_indent, GF_FALSE);
 	
@@ -2560,7 +2560,6 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 }
 
-
 static GF_Err gf_mpd_write_m3u8_playlist_tags(GF_MPD_AdaptationSet const * const as,GF_MPD_Representation const * const rs, FILE *out, char *m3u8_name)
 {
 	if(rs->mime_type){
@@ -2665,6 +2664,7 @@ static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, char
 	
 	return GF_OK;
 }
+
 
 static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 {
