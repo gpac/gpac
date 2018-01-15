@@ -4520,6 +4520,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	//solve xlink - if
 	while (retry) {
 		period = gf_list_get(dash->mpd->periods, dash->active_period_index);
+		if (!period) return GF_EOS;
 		if (!period->xlink_href) break;
 		gf_dash_solve_period_xlink(dash, dash->active_period_index);
 		retry --;
@@ -6983,11 +6984,14 @@ GF_EXPORT
 Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos)
 {
 	Bool res = (dash->active_period_index+1 < gf_list_count(dash->mpd->periods)) ? 0 : 1;
+	//this code seems buggy, commented for now
+#if 0
 	if (res && dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 		GF_MPD_Period*period = gf_list_last(dash->mpd->periods);
 		//consider we are
 		if (!period->duration || dash->mpd->media_presentation_duration) res = GF_FALSE;
 	}
+#endif
 	return res;
 }
 GF_EXPORT
