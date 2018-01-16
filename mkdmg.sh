@@ -32,7 +32,7 @@ then
 rm -fr tmpdmg
 fi
 mkdir -p tmpdmg/GPAC.app
-rsync -r --exclude=.git $source_path/packagers/osx//GPAC.app/ ./tmpdmg/GPAC.app/
+rsync -r --exclude=.git $source_path/packagers/osx/GPAC.app/ ./tmpdmg/GPAC.app/
 ln -s /Applications ./tmpdmg/Applications
 cp $source_path/README.md ./tmpdmg
 cp $source_path/COPYING ./tmpdmg
@@ -108,11 +108,15 @@ sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/s
 
 #GPAC.app now ready, build pkg
 echo "Building PKG"
-pkgbuild --install-location /Applications --component ./tmpdmg/GPAC.app --scripts ./packagers/osx/scripts --ownership preserve ./tmppkg.pkg
+find ./tmpdmg/ -name '*.DS_Store' -type f -delete
+chmod -R 755 ./tmpdmg/
+xattr -rc ./tmpdmg/
+
+pkgbuild --install-location /Applications --root ./tmpdmg/ --scripts ./packagers/osx/scripts --ownership preserve ./tmppkg.pkg
 cat ./packagers/osx/res/preamble.txt > ./packagers/osx/res/full_license.txt
 cat ./COPYING >> ./packagers/osx/res/full_license.txt
 
-productbuild --distribution packagers/osx//distribution.xml --resources ./packagers/osx/res --package-path ./tmppkg.pkg gpac.pkg
+productbuild --distribution packagers/osx/distribution.xml --resources ./packagers/osx/res --package-path ./tmppkg.pkg gpac.pkg
 
 rm ./packagers/osx/res/full_license.txt
 
