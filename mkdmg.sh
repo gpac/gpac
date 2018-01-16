@@ -108,7 +108,7 @@ sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/s
 
 #GPAC.app now ready, build pkg
 echo "Building PKG"
-pkgbuild --install-location /Applications --component ./tmpdmg/GPAC.app --scripts ./packagers/osx/scripts ./tmppkg.pkg
+pkgbuild --install-location /Applications --component ./tmpdmg/GPAC.app --scripts ./packagers/osx/scripts --ownership preserve ./tmppkg.pkg
 cat ./packagers/osx/res/preamble.txt > ./packagers/osx/res/full_license.txt
 cat ./COPYING >> ./packagers/osx/res/full_license.txt
 
