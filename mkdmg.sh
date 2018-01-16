@@ -112,7 +112,7 @@ find ./tmpdmg/ -name '*.DS_Store' -type f -delete
 chmod -R 755 ./tmpdmg/
 xattr -rc ./tmpdmg/
 
-pkgbuild --install-location /Applications --root ./tmpdmg/ --scripts ./packagers/osx/scripts --ownership preserve ./tmppkg.pkg
+pkgbuild --install-location /Applications --component ./tmpdmg/GPAC.app --scripts ./packagers/osx/scripts --ownership preserve ./tmppkg.pkg
 cat ./packagers/osx/res/preamble.txt > ./packagers/osx/res/full_license.txt
 cat ./COPYING >> ./packagers/osx/res/full_license.txt
 
