@@ -915,7 +915,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_MPD_Representation *representation_obj = NULL;
 	GF_MPD_SegmentTimeline *seg_tl = NULL;
 	GF_List *segment_urls = NULL;
-	GF_List *Index_Offset_for_m3u8 = NULL;
+	GF_List *segment_Byte_Offset_for_m3u8 = NULL;
 	Bool seg_dur_adjusted = GF_FALSE;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
@@ -1048,6 +1048,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	else {
 		segment_urls = gf_list_new();
 	}
+	
+	if(dasher->m3u8_name && dasher->single_file_mode)
+		segment_Byte_Offset_for_m3u8 = gf_list_new();
 
 	szCodecs[0] = 0;
 	nb_sync = 0;
@@ -1626,7 +1629,7 @@ restart_fragmentation_pass:
 				break;
 			}
 
-                       SegmentDuration = 0;
+			SegmentDuration = 0;
 			switch_segment = GF_FALSE;
 			first_sample_in_segment = GF_TRUE;
 
@@ -2222,7 +2225,7 @@ restart_fragmentation_pass:
 			MaxFragmentDuration = (u32) (dasher->fragment_duration * dasher->dash_scale);
 
 			if (!simulation_pass) {
-				u64 idx_start_range, idx_end_range;
+				u64 idx_start_range, idx_end_range,segment_size_in_bytes;
 				Bool last_segment = flush_all_samples ? GF_TRUE : GF_FALSE;
 
 				if (dasher->subduration && (segment_start_time + MaxSegmentDuration/2 >= dasher->dash_scale * dasher->subduration)) {
@@ -2233,8 +2236,11 @@ restart_fragmentation_pass:
 				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU" - segment AST "LLU" (MPD AST "LLU")\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + period_duration + (u64)segment_start_time, generation_start_utc ));
-				gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, last_segment, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
+				gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, last_segment, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
+				if(dasher->m3u8_name && dasher->single_file_mode)
+					gf_list_add(segment_Byte_Offset_for_m3u8,segment_size_in_bytes);
 				nbFragmentInSegment = 0;
+				
 
 				//take care of scalable reps
 				if (dash_input->moof_seqnum_increase) {
@@ -2299,14 +2305,14 @@ restart_fragmentation_pass:
 
 	/*flush last segment*/
 	if (!switch_segment) {
-		u64 idx_start_range, idx_end_range;
+		u64 idx_start_range, idx_end_range,segment_size_byte;
 
 		segment_start_time += SegmentDuration;
 		total_seg_dur += SegmentDuration;
 		last_seg_dur = SegmentDuration;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
-		gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, GF_TRUE, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
+		gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, GF_TRUE, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, segment_size_byte);
 		nb_segments++;
 
 		if (!seg_rad_name) {
@@ -2622,6 +2628,10 @@ restart_fragmentation_pass:
 				segmentbase->index_range->start_range = index_start_range;
 				segmentbase->index_range->end_range = index_end_range;
 				segmentbase->presentation_time_offset = presentationTimeOffset;
+				if(dasher->single_file_mode && dasher->m3u8_name){
+					segmentbase->Segments_Byte_Size_list=gf_list_new();
+					segmentbase->Segments_Byte_Size_list=segment_Byte_Offset_for_m3u8;
+				}
 				if (!is_bs_switching) {
 					GF_MPD_URL *URL;
 					GF_MPD_ByteRange *ByteRange;
