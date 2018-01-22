@@ -915,6 +915,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_MPD_Representation *representation_obj = NULL;
 	GF_MPD_SegmentTimeline *seg_tl = NULL;
 	GF_List *segment_urls = NULL;
+	GF_List *Index_Offset_for_m3u8 = NULL;
 	Bool seg_dur_adjusted = GF_FALSE;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
@@ -2095,19 +2096,19 @@ restart_fragmentation_pass:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done with fragment %d, fragment length %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength));
 
 		SegmentDuration += maxFragDurationOverSegment;
-               if (!use_url_template) {
-                   GF_MPD_SegmentURL *seg_url;
-                   const char *name = gf_dasher_strip_output_dir(dasher->mpd_name, SegmentName);
-                   seg_url = gf_mpd_segmenturl_new(name, 0, 0, NULL, 0, 0);
-                   seg_url->duration=SegmentDuration;
-                   if (dasher->dash_ctx) {
-                       char szKey[100], szVal[4046];
-                       sprintf(szKey, "UrlInfo%d", cur_seg );
-                       sprintf(szVal, "<SegmentURL media=\"%s\"/>", name);
-                       gf_cfg_set_key(dasher->dash_ctx, RepURLsSecName, szKey, szVal);
-                   }
-               gf_list_add(segment_urls, seg_url);
-               }
+		if (!use_url_template) {
+			GF_MPD_SegmentURL *seg_url;
+			const char *name = gf_dasher_strip_output_dir(dasher->mpd_name, SegmentName);
+			seg_url = gf_mpd_segmenturl_new(name, 0, 0, NULL, 0, 0);
+			seg_url->duration=SegmentDuration;
+			if (dasher->dash_ctx) {
+				char szKey[100], szVal[4046];
+				sprintf(szKey, "UrlInfo%d", cur_seg );
+				sprintf(szVal, "<SegmentURL media=\"%s\"/>", name);
+				gf_cfg_set_key(dasher->dash_ctx, RepURLsSecName, szKey, szVal);
+			}
+			gf_list_add(segment_urls, seg_url);
+		}
 
 		/*if no simulation and no SIDX or realtime is used, flush fragments as we write them*/
 		if (!simulation_pass && (!dasher->enable_sidx || dasher->real_time) ) {
@@ -2249,7 +2250,7 @@ restart_fragmentation_pass:
 					if (dasher->single_file_mode!=1) {
 						GF_MPD_SegmentURL *seg_url;
 						seg_url = gf_mpd_segmenturl_new(NULL, start_range, end_range, NULL, idx_start_range, idx_end_range);
-                                               seg_url->duration=SegmentDuration;
+						seg_url->duration=SegmentDuration;
 						gf_list_add(segment_urls, seg_url);
 						if (dasher->dash_ctx) {
 							char szKey[100], szVal[4046];
@@ -2263,7 +2264,7 @@ restart_fragmentation_pass:
 				}
 			}
 
-                        SegmentDuration = 0;
+			 SegmentDuration = 0;
 
 			/*next fragment will exceed segment length, abort fragment at next rap (possibly after MaxSegmentDuration)*/
 			if (split_seg_at_rap && SegmentDuration && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
