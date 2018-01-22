@@ -137,6 +137,7 @@ typedef struct
 	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
+	GF_List *Segments_Byte_Size_list;	\
 
 
 typedef struct

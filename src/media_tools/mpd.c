@@ -418,8 +418,8 @@ GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 
 		seg_url->index_range->start_range = idx_start_range;
 		seg_url->index_range->end_range = idx_end_range;
 	}
-       if(media)
-           seg_url->media=gf_strdup(media);
+	if(media)
+		seg_url->media=gf_strdup(media);
 	return seg_url;
 }
 
