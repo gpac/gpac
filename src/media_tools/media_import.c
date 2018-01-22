@@ -2087,12 +2087,18 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
-			GF_M4VDecSpecInfo dsi;
-			gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-			w = dsi.width;
-			h = dsi.height;
-			PL = dsi.VideoPL;
+		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) ) {
+			if (!origin_esd->decoderConfig->decoderSpecificInfo) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] File %s has invalid track #%d: decoderSpecificInfo is missing.\n", orig_name, trackID));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] extracting track (with -raw %d) and reimporting might fix it.\n", trackID));
+			}
+			else {
+				GF_M4VDecSpecInfo dsi;
+				gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+				w = dsi.width;
+				h = dsi.height;
+				PL = dsi.VideoPL;
+			}
 		}
 #endif
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, PL);
