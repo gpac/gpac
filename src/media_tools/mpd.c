@@ -2443,7 +2443,6 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	u32 i;
 	GF_MPD_Representation *rep;
 	GF_MPD_other_descriptors *Asld;
-	GF_MPD_Descriptor *desc;
 
 	fprintf(out, "  <AdaptationSet");
 
