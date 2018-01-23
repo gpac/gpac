@@ -1651,6 +1651,19 @@ restart_fragmentation_pass:
 							gf_delete_file(gf_isom_get_filename(output));
 						}
 					}
+					if (!use_url_template) {
+						GF_MPD_SegmentURL *seg_url;
+						const char *name = gf_dasher_strip_output_dir(dasher->mpd_name, SegmentName);
+						seg_url = gf_mpd_segmenturl_new(name, 0, 0, NULL, 0, 0);
+						seg_url->duration=SegmentDuration;
+						if (dasher->dash_ctx) {
+							char szKey[100], szVal[4046];
+							sprintf(szKey, "UrlInfo%d", cur_seg );
+							sprintf(szVal, "<SegmentURL media=\"%s\"/>", name);
+							gf_cfg_set_key(dasher->dash_ctx, RepURLsSecName, szKey, szVal);
+						}
+						gf_list_add(segment_urls, seg_url);
+					}
 
 				} else {
 					e = gf_isom_start_segment(output, NULL, dasher->fragments_in_memory);
@@ -2099,19 +2112,6 @@ restart_fragmentation_pass:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done with fragment %d, fragment length %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength));
 
 		SegmentDuration += maxFragDurationOverSegment;
-		if (!use_url_template) {
-			GF_MPD_SegmentURL *seg_url;
-			const char *name = gf_dasher_strip_output_dir(dasher->mpd_name, SegmentName);
-			seg_url = gf_mpd_segmenturl_new(name, 0, 0, NULL, 0, 0);
-			seg_url->duration=SegmentDuration;
-			if (dasher->dash_ctx) {
-				char szKey[100], szVal[4046];
-				sprintf(szKey, "UrlInfo%d", cur_seg );
-				sprintf(szVal, "<SegmentURL media=\"%s\"/>", name);
-				gf_cfg_set_key(dasher->dash_ctx, RepURLsSecName, szKey, szVal);
-			}
-			gf_list_add(segment_urls, seg_url);
-		}
 
 		/*if no simulation and no SIDX or realtime is used, flush fragments as we write them*/
 		if (!simulation_pass && (!dasher->enable_sidx || dasher->real_time) ) {
@@ -2218,6 +2218,7 @@ restart_fragmentation_pass:
 			}*/
 			force_switch_segment = GF_FALSE;
 			switch_segment = GF_TRUE;
+			SegmentDuration = 0;
 
 			split_at_rap = GF_FALSE;
 			has_rap = GF_FALSE;
@@ -2256,7 +2257,6 @@ restart_fragmentation_pass:
 					if (dasher->single_file_mode!=1) {
 						GF_MPD_SegmentURL *seg_url;
 						seg_url = gf_mpd_segmenturl_new(NULL, start_range, end_range, NULL, idx_start_range, idx_end_range);
-						seg_url->duration=SegmentDuration;
 						gf_list_add(segment_urls, seg_url);
 						if (dasher->dash_ctx) {
 							char szKey[100], szVal[4046];
@@ -2270,7 +2270,6 @@ restart_fragmentation_pass:
 				}
 			}
 
-			 SegmentDuration = 0;
 
 			/*next fragment will exceed segment length, abort fragment at next rap (possibly after MaxSegmentDuration)*/
 			if (split_seg_at_rap && SegmentDuration && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
@@ -4209,6 +4208,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/*compute name for indexed segments*/
 	const char *basename = gf_dasher_strip_output_dir(dasher->mpd_name, szOutName);
 	GF_MPD_Representation *representation_obj = NULL;
+	GF_MPD_SegmentList *seg_list = NULL;
 
 	if (dash_input->media_duration) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] media duration cannot be forced with MPEG2-TS segmenter. Ignoring.\n"));
@@ -4535,7 +4535,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] PTSOffset "LLD" - startNumber %d - time %g\n", presentationTimeOffset - 1, segment_index, (Double) (s64) (ts_seg.sidx->earliest_presentation_time + pcr_shift) / 90000.0));
 			}
 		} else {
-			GF_MPD_SegmentList *seg_list;
+
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, NULL, gf_dasher_strip_output_dir(dasher->mpd_name, dasher->seg_rad_name ? dasher->seg_rad_name : szOutName), "ts", 0, bandwidth, segment_index, dasher->use_segment_timeline);
 			if (dasher->single_file_mode){
 				GF_MPD_BaseURL *baseurl;
@@ -4582,10 +4582,14 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			/*rewrite previous URLs*/
 			const char *opt;
 			u32 count, i;
+			GF_MPD_SegmentURL *seg_url;
 			count = gf_cfg_get_key_count(dasher->dash_ctx, szRepURLsSecName);
 			for (i=0; i<count; i++) {
 				const char *key_name = gf_cfg_get_key_name(dasher->dash_ctx, szRepURLsSecName, i);
 				opt = gf_cfg_get_key(dasher->dash_ctx, szRepURLsSecName, key_name);
+				GF_SAFEALLOC(seg_url,GF_MPD_SegmentURL);
+				seg_url->media=gf_strdup(opt);
+				gf_list_add(seg_list->segment_URLs,seg_url);
 				//fprintf(dasher->mpd_file, "     %s\n", opt);
 			}
 		}
@@ -4665,7 +4669,6 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 				if (!dasher->use_url_template) {
 					GF_MPD_SegmentURL *seg_url;
-					GF_MPD_SegmentList *seg_list;
 					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, NULL, dasher->seg_rad_name, "ts", 0, bandwidth, segment_index, dasher->use_segment_timeline);					
 					seg_list=representation_obj->segment_list;
 					seg_url = gf_mpd_segmenturl_new(SegName, 0, 0, NULL, 0, 0);
@@ -5380,12 +5383,12 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 		}
 
 		if (bitstream_switching_mode && !use_url_template && (single_file_mode!=1) && strlen(szInitSegment) ) {
-			GF_MPD_SegmentList *seg;
-			GF_SAFEALLOC(seg, GF_MPD_SegmentList);
-			seg->start_number=(u32)-1;
-			GF_SAFEALLOC(seg->initialization_segment, GF_MPD_URL);
-			seg->initialization_segment->sourceURL = gf_strdup(gf_dasher_strip_output_dir(mpd_name, szInitSegment));
-			adaptation_set_obj->segment_list = seg;
+			GF_MPD_SegmentList *seg_list;
+			GF_SAFEALLOC(seg_list, GF_MPD_SegmentList);
+			seg_list->start_number=(u32)-1;
+			GF_SAFEALLOC(seg_list->initialization_segment, GF_MPD_URL);
+			seg_list->initialization_segment->sourceURL = gf_strdup(gf_dasher_strip_output_dir(mpd_name, szInitSegment));
+			adaptation_set_obj->segment_list = seg_list;
 		}
 	}
 	return GF_OK;
@@ -5661,6 +5664,8 @@ static u32 gf_dash_get_dependency_bandwidth(GF_DashSegInput *inputs, u32 nb_dash
 	return 0; //we should never be here !!!!
 }
 
+
+#if 0
 static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 {
 	FILE *period_mpd;
@@ -5694,6 +5699,7 @@ static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 	//we cannot delet the file because we don't know if we will be called again with a new period, in which case we need to reinsert this XML ...
 	return GF_OK;
 }
+#endif
 
 static void purge_dash_context(GF_Config *dash_ctx)
 {
