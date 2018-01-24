@@ -916,6 +916,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_MPD_SegmentTimeline *seg_tl = NULL;
 	GF_List *segment_urls = NULL;
 	GF_List *segment_Byte_Offset_for_m3u8 = NULL;
+	GF_List *segment_durations_for_m3u8 = NULL;
 	Bool seg_dur_adjusted = GF_FALSE;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
@@ -1051,6 +1052,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	
 	if(dasher->m3u8_name && dasher->single_file_mode)
 		segment_Byte_Offset_for_m3u8 = gf_list_new();
+	
+	segment_durations_for_m3u8 = gf_list_new();
 
 	szCodecs[0] = 0;
 	nb_sync = 0;
@@ -1663,6 +1666,7 @@ restart_fragmentation_pass:
 							gf_cfg_set_key(dasher->dash_ctx, RepURLsSecName, szKey, szVal);
 						}
 						gf_list_add(segment_urls, seg_url);
+						seg_url->Segments_duration_list=segment_durations_for_m3u8;
 					}
 
 				} else {
@@ -2218,7 +2222,7 @@ restart_fragmentation_pass:
 			}*/
 			force_switch_segment = GF_FALSE;
 			switch_segment = GF_TRUE;
-			SegmentDuration = 0;
+
 
 			split_at_rap = GF_FALSE;
 			has_rap = GF_FALSE;
@@ -2269,6 +2273,11 @@ restart_fragmentation_pass:
 					file_size += gf_isom_get_file_size(output);
 				}
 			}
+			Double * seg_dur_m3u8_tmp= NULL;
+			GF_SAFEALLOC(seg_dur_m3u8_tmp,Double);
+			*seg_dur_m3u8_tmp=SegmentDuration;
+			gf_list_add(segment_durations_for_m3u8,seg_dur_m3u8_tmp);
+			SegmentDuration = 0;
 
 
 			/*next fragment will exceed segment length, abort fragment at next rap (possibly after MaxSegmentDuration)*/
