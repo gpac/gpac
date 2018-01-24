@@ -446,6 +446,10 @@ enum
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
+	/*Google Spatial Audio boxes*/
+	GF_ISOM_BOX_TYPE_SA3D 	= GF_4CC('S','A','3','D'),
+	GF_ISOM_BOX_TYPE_SAND 	= GF_4CC('S','A','N','D'),
+
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
 
@@ -1199,6 +1203,30 @@ typedef struct
 	GF_AC3Config cfg;
 } GF_AC3ConfigBox;
 
+/*Google Spatial Audio boxes*/
+typedef struct
+{
+	u32 channel_map;
+} GF_SpatialAudioChannelEntry;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u8 version;
+	u8 ambisonic_type;
+	u32 ambisonic_order;
+	u8 ambisonic_channel_ordering;
+	u8 ambisonic_normalization;
+	u32 num_channels;
+	GF_SpatialAudioChannelEntry *channels;
+} GF_SpatialAudioBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u8 version;
+} GF_NonDiegeticAudioBox;
+
 typedef struct
 {
 	GF_ISOM_AUDIO_SAMPLE_ENTRY
@@ -1210,6 +1238,10 @@ typedef struct
 
 	//for AC3/EC3 audio
 	GF_AC3ConfigBox *cfg_ac3;
+
+	//for Spatial Audio
+	GF_SpatialAudioBox *sa3d;
+	GF_NonDiegeticAudioBox *sand;
 } GF_MPEGAudioSampleEntryBox;
 
 /*this is the default visual sdst (to handle unknown media)*/

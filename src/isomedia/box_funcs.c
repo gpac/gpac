@@ -676,6 +676,10 @@ ISOM_BOX_IMPL_DECL(ainf)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
+/*Google Spatial Audio boxes*/
+ISOM_BOX_IMPL_DECL(SA3D)
+ISOM_BOX_IMPL_DECL(SAND)
+
 
 #define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, "p12" }
 
@@ -1162,7 +1166,11 @@ static const struct box_registry_entry {
 	/* Image tracks */
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JPEG, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2K, video_sample_entry, "stsd", "apple"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_PNG, video_sample_entry, "stsd", "apple")
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_PNG, video_sample_entry, "stsd", "apple"),
+
+	/*Google Spatial Audio boxes*/
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_SA3D, SA3D, "mp4a", "google"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_SAND, SAND, "mp4a", "google")
 };
 
 GF_EXPORT

@@ -685,6 +685,13 @@ GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)
 
 	if (p->esd) {
 		gf_isom_box_dump(p->esd, trace);
+
+		if (p->sa3d) {
+			gf_isom_box_dump(p->sa3d, trace);
+		}
+		if (p->sand) {
+			gf_isom_box_dump(p->sand, trace);
+		}
 	} else if (p->cfg_3gpp) {
 		gf_isom_box_dump(p->cfg_3gpp, trace);
 
@@ -5181,5 +5188,36 @@ GF_Err ainf_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+/*Google Spatial Audio boxes*/
 
+GF_Err SA3D_dump(GF_Box *a, FILE *trace)
+{
+	GF_SpatialAudioBox *p;
+	u32 i;
+
+	p = (GF_SpatialAudioBox *)a;
+	gf_isom_box_dump_start(a, "SpatialAudioBox", trace);
+
+	fprintf(trace, "version=\"%d\" ambisonic_type=\"%d\" ambisonic_order=\"%d\" ambisonic_channel_ordering=\"%d\" ambisonic_normalization=\"%d\" num_channels=\"%d\">\n", p->version, p->ambisonic_type, p->ambisonic_order, p->ambisonic_channel_ordering, p->ambisonic_normalization, p->num_channels);
+
+	for (i=0; i<p->num_channels; i++) {
+		fprintf(trace, "<SpatialAudioChannelEntry index=\"%d\" channel_map=\"%d\"/>\n", i, p->channels[i].channel_map);
+	}
+
+	gf_isom_box_dump_done("SpatialAudioBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err SAND_dump(GF_Box *a, FILE *trace)
+{
+	GF_NonDiegeticAudioBox *p;
+
+	p = (GF_NonDiegeticAudioBox *)a;
+	gf_isom_box_dump_start(a, "NonDiegeticAudioBox", trace);
+
+	fprintf(trace, "version=\"%d\">\n", p->version);
+
+	gf_isom_box_dump_done("NonDiegeticAudioBox", a, trace);
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
