@@ -2613,11 +2613,13 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
 		fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n\n",s->initialization_segment->sourceURL);
 		
 		if (s->segment_URLs) {
-			u32 i;
+			u32 i,j;
 			GF_MPD_SegmentURL *url;
+			Double *duration;
 			i = 0;
 			while ( (url = gf_list_enum(s->segment_URLs, &i))) {
-				fprintf(out,"#EXTINF:%f\n",(float)(url->duration)/1000.0);
+				duration = gf_list_enum(url->Segments_duration_list,&j);
+				fprintf(out,"#EXTINF:%f\n",(float)(*duration)/1000.0);
 				fprintf(out,"%s\n",url->media);
 			}
 		}
