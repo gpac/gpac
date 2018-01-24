@@ -2624,6 +2624,15 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
 			}
 		}
 	}
+	else if(rs->segment_base){
+		GF_MPD_SegmentBase *b=rs->segment_base;
+		u32 i;
+		u64 *segment_base_offset;
+		while ( (segment_base_offset = gf_list_enum(b->Segments_Byte_Size_list, &i))) {
+			fprintf(out,"#EXT-X-BYTERANGE:%d \n",*segment_base_offset);
+		}
+		
+	}
 
 	gf_fclose(out);
 	

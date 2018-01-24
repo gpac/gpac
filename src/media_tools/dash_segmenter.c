@@ -2230,7 +2230,9 @@ restart_fragmentation_pass:
 			MaxFragmentDuration = (u32) (dasher->fragment_duration * dasher->dash_scale);
 
 			if (!simulation_pass) {
-				u64 idx_start_range, idx_end_range,segment_size_in_bytes;
+				u64 idx_start_range, idx_end_range;
+				u64 *segment_size_in_bytes;
+				GF_SAFEALLOC(segment_size_in_bytes,u64);
 				Bool last_segment = flush_all_samples ? GF_TRUE : GF_FALSE;
 
 				if (dasher->subduration && (segment_start_time + MaxSegmentDuration/2 >= dasher->dash_scale * dasher->subduration)) {
@@ -2241,7 +2243,7 @@ restart_fragmentation_pass:
 				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU" - segment AST "LLU" (MPD AST "LLU")\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + period_duration + (u64)segment_start_time, generation_start_utc ));
-				gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, last_segment, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
+				gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, last_segment, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, segment_size_in_bytes);
 				if(dasher->m3u8_name && dasher->single_file_mode)
 					gf_list_add(segment_Byte_Offset_for_m3u8,segment_size_in_bytes);
 				nbFragmentInSegment = 0;
