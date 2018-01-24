@@ -3858,6 +3858,9 @@ void audio_sample_entry_del(GF_Box *s)
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
 	if (ptr->cfg_ac3) gf_isom_box_del((GF_Box *)ptr->cfg_ac3);
 	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
+	if (ptr->sa3d) gf_isom_box_del((GF_Box *)ptr->sa3d);
+	if (ptr->sand) gf_isom_box_del((GF_Box *)ptr->sand);
+
 	gf_free(ptr);
 }
 
@@ -3886,6 +3889,15 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		break;
 	case GF_ISOM_BOX_TYPE_DEC3:
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		break;
+
+	case GF_ISOM_BOX_TYPE_SA3D:
+		if (ptr->sa3d) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->sa3d = (GF_SpatialAudioBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_SAND:
+		if (ptr->sand) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->sand = (GF_NonDiegeticAudioBox *)a;
 		break;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
@@ -3993,6 +4005,14 @@ GF_Err audio_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->cfg_ac3, bs);
 		if (e) return e;
 	}
+	if (ptr->sa3d) {
+		e = gf_isom_box_write((GF_Box *)ptr->sa3d, bs);
+		if (e) return e;
+	}
+	if (ptr->sand) {
+		e = gf_isom_box_write((GF_Box *)ptr->sand, bs);
+		if (e) return e;
+	}
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
@@ -4016,6 +4036,16 @@ GF_Err audio_sample_entry_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->cfg_ac3);
 		if (e) return e;
 		ptr->size += ptr->cfg_ac3->size;
+	}
+	if (ptr->sa3d) {
+		e = gf_isom_box_size((GF_Box *)ptr->sa3d);
+		if (e) return e;
+		ptr->size += ptr->sa3d->size;
+	}
+	if (ptr->sand) {
+		e = gf_isom_box_size((GF_Box *)ptr->sand);
+		if (e) return e;
+		ptr->size += ptr->sand->size;
 	}
 	return gf_isom_box_array_size(s, ptr->protections);
 }
@@ -11153,5 +11183,133 @@ GF_Err ainf_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void SA3D_del(GF_Box *s)
+{
+	GF_SpatialAudioBox *ptr = (GF_SpatialAudioBox *)s;
+	if (ptr->channels) gf_free(ptr->channels);
+	gf_free(ptr);
+}
+
+GF_Err SA3D_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_SpatialAudioBox *ptr = (GF_SpatialAudioBox *)s;
+
+	ptr->version = gf_bs_read_u8(bs);
+	ISOM_DECREASE_SIZE(ptr, 1);
+
+	ptr->ambisonic_type = gf_bs_read_u8(bs);
+	ISOM_DECREASE_SIZE(ptr, 1);
+
+	ptr->ambisonic_order = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 4);
+
+	ptr->ambisonic_channel_ordering = gf_bs_read_u8(bs);
+	ISOM_DECREASE_SIZE(ptr, 1);
+
+	ptr->ambisonic_normalization = gf_bs_read_u8(bs);
+	ISOM_DECREASE_SIZE(ptr, 1);
+
+	ptr->num_channels = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 4);
+
+	if (ptr->num_channels > ptr->size / 4) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of channels %d in SA3D\n", ptr->num_channels));
+		return GF_ISOM_INVALID_FILE;
+	}
+
+	ptr->channels = gf_malloc(sizeof(GF_SpatialAudioChannelEntry)*ptr->num_channels);
+	if (!ptr->channels) return GF_OUT_OF_MEM;
+	for (i=0; i<ptr->num_channels; i++) {
+		ptr->channels[i].channel_map = gf_bs_read_u32(bs);
+	}
+	ISOM_DECREASE_SIZE(ptr, ptr->num_channels*4);
+
+	return GF_OK;
+}
+
+GF_Box *SA3D_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_SpatialAudioBox, GF_ISOM_BOX_TYPE_SA3D);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err SA3D_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_SpatialAudioBox *ptr = (GF_SpatialAudioBox *)s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->version);
+	gf_bs_write_u8(bs, ptr->ambisonic_type);
+	gf_bs_write_u32(bs, ptr->ambisonic_order);
+	gf_bs_write_u8(bs, ptr->ambisonic_channel_ordering);
+	gf_bs_write_u8(bs, ptr->ambisonic_normalization);
+	gf_bs_write_u32(bs, ptr->num_channels);
+	for (i=0; i<ptr->num_channels; i++) {
+		gf_bs_write_u32(bs, ptr->channels[i].channel_map);
+	}
+	return GF_OK;
+}
+
+GF_Err SA3D_Size(GF_Box *s)
+{
+	GF_SpatialAudioBox *ptr = (GF_SpatialAudioBox *)s;
+	ptr->size += 12 + (4 * ptr->num_channels);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+void SAND_del(GF_Box *s)
+{
+	GF_NonDiegeticAudioBox *ptr = (GF_NonDiegeticAudioBox *)s;
+	gf_free(ptr);
+}
+
+GF_Err SAND_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_NonDiegeticAudioBox *ptr = (GF_NonDiegeticAudioBox *)s;
+
+	ptr->version = gf_bs_read_u8(bs);
+	ISOM_DECREASE_SIZE(ptr, 1);
+
+	return GF_OK;
+}
+
+GF_Box *SAND_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_NonDiegeticAudioBox, GF_ISOM_BOX_TYPE_SAND);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err SAND_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_NonDiegeticAudioBox *ptr = (GF_NonDiegeticAudioBox *)s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->version);
+
+	return GF_OK;
+}
+
+GF_Err SAND_Size(GF_Box *s)
+{
+	GF_NonDiegeticAudioBox *ptr = (GF_NonDiegeticAudioBox *)s;
+	ptr->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM*/
