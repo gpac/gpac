@@ -7140,6 +7140,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 		if (max_adaptation_set) {
 			gf_mpd_print_period(period_obj, GF_TRUE, dasher->period_mpd_file);
+			if(dasher->m3u8_name)
+				gf_mpd_write_m3u8_file(dasher->mpd, dasher->m3u8_name,period_obj);
 			gf_mpd_period_free(period_obj);
 			gf_fclose(dasher->period_mpd_file);
 			period_obj = NULL;
@@ -7236,8 +7238,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	}
 
 	gf_mpd_write_file(dasher->mpd, szTempMPD);
-	if(dasher->m3u8_name)
-		gf_mpd_write_m3u8_file(dasher->mpd, dasher->m3u8_name);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH MPD done\n"));
 
