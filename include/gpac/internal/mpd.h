@@ -140,6 +140,7 @@ typedef struct
 	GF_List *Segments_Byte_Size_list;	\
 
 
+
 typedef struct
 {
 	GF_MPD_SEGMENT_BASE
@@ -171,6 +172,7 @@ typedef struct
 	char *key_url;
 	bin128 key_iv;
 	u64 hls_utc_start_time;
+	GF_List *Segments_duration_list;	\
 } GF_MPD_SegmentURL;
 
 GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 end_range, const char *index, u64 idx_start_range, u64 idx_end_range);
