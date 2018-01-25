@@ -944,7 +944,7 @@ static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 	fprintf(dump, "\"");
 }
 
-static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size)
+static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
 {
 	s32 res;
 	u8 type;
@@ -955,10 +955,14 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	s32 idx;
 	GF_BitStream *bs;
 
+
 	if (!ptr_size) {
 		fprintf(dump, "error=\"invalid nal size 0\"");
 		return;
 	}
+
+	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(ptr, ptr_size) );
+
 	if (hevc) {
 #ifndef GPAC_DISABLE_HEVC
 		res = gf_media_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
@@ -1246,7 +1250,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 }
 #endif
 
-void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
+void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
 	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
 	s32 countRef;
@@ -1298,7 +1302,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", i+1, slc->size);\
-			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);\
+			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
@@ -1421,7 +1425,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);
+				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
 #endif
 				fprintf(dump, "/>\n");
 			}
@@ -1450,7 +1454,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 
-void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name)
+void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc)
 {
 	FILE *dump;
 	if (inName) {
@@ -1465,7 +1469,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	} else {
 		dump = stdout;
 	}
-	dump_isom_nal_ex(file, trackID, dump);
+	dump_isom_nal_ex(file, trackID, dump, dump_crc);
 
 	if (inName) gf_fclose(dump);
 }
@@ -1674,7 +1678,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 				fmt_handled = GF_TRUE;
 			}
 			else if (gf_isom_get_avc_svc_type(the_file, i+1, 1) || gf_isom_get_hevc_lhvc_type(the_file, i+1, 1)) {
-				dump_isom_nal_ex(the_file, trackID, dump);
+				dump_isom_nal_ex(the_file, trackID, dump, GF_FALSE);
 				fmt_handled = GF_TRUE;
 			} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT) ) {
 

@@ -311,10 +311,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		char *ext2 = strchr(ext+1, ':');
 
 		// if the colon is part of a file path/url we keep it
-		if (ext2 && ( !strncmp(ext2, "://", 3) || !strncmp(ext2, ":\\", 2) ) ) {
+		if (ext2 && !strncmp(ext2, "://", 3) ) {
 			ext2[0] = ':';
 			ext2 = strchr(ext2+1, ':');
 		}
+
+		// keep windows drive: path, can be after a file://
+		if (ext2 && ( !strncmp(ext2, ":\\", 2) || !strncmp(ext2, ":/", 2) ) ) {
+			ext2[0] = ':';
+			ext2 = strchr(ext2+1, ':');
+		}
+
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
