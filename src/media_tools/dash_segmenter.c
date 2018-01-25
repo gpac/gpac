@@ -2641,6 +2641,8 @@ restart_fragmentation_pass:
 				if(dasher->single_file_mode && dasher->m3u8_name){
 					segmentbase->Segments_Byte_Size_list=gf_list_new();
 					segmentbase->Segments_Byte_Size_list=segment_Byte_Offset_for_m3u8;
+					segmentbase->Segments_duration_list=gf_list_new();
+					segmentbase->Segments_duration_list=segment_durations_for_m3u8;
 				}
 				if (!is_bs_switching) {
 					GF_MPD_URL *URL;
