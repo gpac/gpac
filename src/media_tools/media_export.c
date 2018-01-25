@@ -2401,6 +2401,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			if (full_dump || samp->CTS_Offset) fprintf(nhml, "CTSOffset=\"%u\" ", samp->CTS_Offset);
 			if (samp->IsRAP==RAP) fprintf(nhml, "isRAP=\"yes\" ");
 			else if (samp->IsRAP==RAP_REDUNDANT) fprintf(nhml, "isSyncShadow=\"yes\" ");
+			else if (samp->IsRAP) fprintf(nhml, "SAPType=\"%d\" ", samp->IsRAP);
 			else if (full_dump) fprintf(nhml, "isRAP=\"no\" ");
 			if (full_dump) fprintf(nhml, "mediaOffset=\"%d\" ", pos);
 

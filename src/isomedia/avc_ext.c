@@ -1559,11 +1559,8 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(cfg->param_array, i);
 
 		/*we want to force hev1*/
-		if (operand_type==GF_ISOM_HVCC_SET_INBAND)
+		if (operand_type==GF_ISOM_HVCC_SET_INBAND) {
 			ar->array_completeness = 0;
-
-		if (!ar->array_completeness) {
-			array_incomplete = 1;
 
 			while (gf_list_count(ar->nalus)) {
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, 0);
@@ -1575,8 +1572,9 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 			gf_free(ar);
 			gf_list_rem(cfg->param_array, i);
 			i--;
-
 		}
+		if (!ar->array_completeness) 
+			array_incomplete = 1;
 	}
 	return array_incomplete;
 }

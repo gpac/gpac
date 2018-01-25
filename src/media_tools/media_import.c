@@ -2087,12 +2087,18 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
-			GF_M4VDecSpecInfo dsi;
-			gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-			w = dsi.width;
-			h = dsi.height;
-			PL = dsi.VideoPL;
+		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) ) {
+			if (!origin_esd->decoderConfig->decoderSpecificInfo) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] File %s has invalid track #%d: decoderSpecificInfo is missing.\n", orig_name, trackID));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] extracting track (with -raw %d) and reimporting might fix it.\n", trackID));
+			}
+			else {
+				GF_M4VDecSpecInfo dsi;
+				gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+				w = dsi.width;
+				h = dsi.height;
+				PL = dsi.VideoPL;
+			}
 		}
 #endif
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, PL);
@@ -3590,7 +3596,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	samp->IsRAP = RAP;
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
-		u32 j, dims_flags;
+		u32 j, dims_flags, sap_type;
 		Bool append, compress, has_subbs;
 		char *base_data = NULL;
 		if (node->type) continue;
@@ -3607,6 +3613,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		append = GF_FALSE;
 		compress = do_compress;
 		sample_duration = 0;
+		sap_type = 0;
 
 		j=0;
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
@@ -3624,6 +3631,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				samp->IsRAP = (!stricmp(att->value, "yes")) ? RAP : RAP_NO;
 			}
 			else if (!stricmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? RAP_REDUNDANT : RAP_NO;
+			else if (!stricmp(att->name, "SAPType") && !samp->IsRAP) sap_type = atoi(att->value);
 			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
 			else if (!stricmp(att->name, "mediaFile")) {
@@ -3879,7 +3887,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				}
 			}
 		}
-
+		if (sap_type==SAP_TYPE_3) {
+			gf_isom_set_sample_rap_group(import->dest, track, gf_isom_get_sample_count(import->dest, track), 0);
+		}
 		samp->IsRAP = RAP_NO;
 		samp->CTS_Offset = 0;
 		if (sample_duration)
