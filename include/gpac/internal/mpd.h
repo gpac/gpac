@@ -138,6 +138,7 @@ typedef struct
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
 	GF_List *Segments_Byte_Size_list;	\
+	GF_List *Segments_duration_list;	\
 
 
 

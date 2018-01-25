@@ -2609,14 +2609,15 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
 	fprintf(out,"#EXT-X-PLAYLIST-TYPE:VOD\n");
 	fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
 	if (rs->segment_list) {
+		u32 i,j;
+		GF_MPD_SegmentURL *url;
+		Double *duration;
 		GF_MPD_SegmentList *s=rs->segment_list;
 		fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n\n",s->initialization_segment->sourceURL);
 		
 		if (s->segment_URLs) {
-			u32 i,j;
-			GF_MPD_SegmentURL *url;
-			Double *duration;
 			i = 0;
+			j = 0;
 			while ( (url = gf_list_enum(s->segment_URLs, &i))) {
 				duration = gf_list_enum(url->Segments_duration_list,&j);
 				fprintf(out,"#EXTINF:%f\n",(float)(*duration)/1000.0);
@@ -2625,11 +2626,18 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
 		}
 	}
 	else if(rs->segment_base){
+		u32 i=0;
+		u32 j=0;
+		u64 *current_offset;
+		u64 prev_offset=0;
+		Double *duration;
 		GF_MPD_SegmentBase *b=rs->segment_base;
-		u32 i;
-		u64 *segment_base_offset;
-		while ( (segment_base_offset = gf_list_enum(b->Segments_Byte_Size_list, &i))) {
-			fprintf(out,"#EXT-X-BYTERANGE:%d \n",*segment_base_offset);
+		while ( (current_offset = gf_list_enum(b->Segments_Byte_Size_list, &i))) {
+			if(!(duration = gf_list_enum(b->Segments_duration_list,&j)))
+				break;
+			fprintf(out,".#EXTINF:%f\n",(float)(*duration)/1000.0);
+			fprintf(out,"#EXT-X-BYTERANGE:%d@%d \n",((*current_offset)-prev_offset),prev_offset);
+			prev_offset=(*current_offset);
 		}
 		
 	}
