@@ -2628,15 +2628,19 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
 	else if(rs->segment_base){
 		u32 i=0;
 		u32 j=0;
+		u32 k=0;
 		u64 *current_offset;
 		u64 prev_offset=0;
 		Double *duration;
+		GF_MPD_BaseURL *url;
 		GF_MPD_SegmentBase *b=rs->segment_base;
+		url=gf_list_enum(rs->base_URLs, &k);
 		while ( (current_offset = gf_list_enum(b->Segments_Byte_Size_list, &i))) {
 			if(!(duration = gf_list_enum(b->Segments_duration_list,&j)))
 				break;
 			fprintf(out,".#EXTINF:%f\n",(float)(*duration)/1000.0);
 			fprintf(out,"#EXT-X-BYTERANGE:%d@%d \n",((*current_offset)-prev_offset),prev_offset);
+			fprintf(out,"%s\n",url->URL);
 			prev_offset=(*current_offset);
 		}
 		
