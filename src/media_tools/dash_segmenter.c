@@ -918,10 +918,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_List *segment_Byte_Offset_for_m3u8 = NULL;
 	GF_List *segment_durations_for_m3u8 = NULL;
 	Bool seg_dur_adjusted = GF_FALSE;
+	Double *seg_dur_m3u8_tmp = NULL;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
-	fragmenters = NULL;
+	fragmenters = NULL;	
 
 	if (!dash_input) return GF_BAD_PARAM;
 	if (!seg_ext) seg_ext = "m4s";
@@ -2232,8 +2233,8 @@ restart_fragmentation_pass:
 			if (!simulation_pass) {
 				u64 idx_start_range, idx_end_range;
 				u64 *segment_size_in_bytes;
-				GF_SAFEALLOC(segment_size_in_bytes,u64);
 				Bool last_segment = flush_all_samples ? GF_TRUE : GF_FALSE;
+				GF_SAFEALLOC(segment_size_in_bytes,u64);
 
 				if (dasher->subduration && (segment_start_time + MaxSegmentDuration/2 >= dasher->dash_scale * dasher->subduration)) {
 					//onDemand with subdur: if we are done dashing the content set last segment to TRUE to flush sidx
@@ -2275,7 +2276,7 @@ restart_fragmentation_pass:
 					file_size += gf_isom_get_file_size(output);
 				}
 			}
-			Double * seg_dur_m3u8_tmp= NULL;
+			
 			GF_SAFEALLOC(seg_dur_m3u8_tmp,Double);
 			*seg_dur_m3u8_tmp=SegmentDuration;
 			gf_list_add(segment_durations_for_m3u8,seg_dur_m3u8_tmp);
