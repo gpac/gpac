@@ -279,40 +279,40 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		}
 
 		switch (codec->codec_id) {
-		case CODEC_ID_MP2:
+		case AV_CODEC_ID_MP2:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG_AUDIO) );
 			break;
-		case CODEC_ID_MP3:
+		case AV_CODEC_ID_MP3:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG2_PART3) );
 			break;
-		case CODEC_ID_AAC:
+		case AV_CODEC_ID_AAC:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AAC_MPEG4) );
 			expose_ffdec=GF_TRUE;
 			break;
-		case CODEC_ID_MPEG4:
+		case AV_CODEC_ID_MPEG4:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG4_PART2) );
 			expose_ffdec=GF_TRUE;
 			break;
-		case CODEC_ID_H264:
+		case AV_CODEC_ID_H264:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AVC) );
 			expose_ffdec=GF_TRUE;
 			break;
-		case CODEC_ID_MPEG1VIDEO:
+		case AV_CODEC_ID_MPEG1VIDEO:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG1) );
 			break;
-		case CODEC_ID_MPEG2VIDEO:
+		case AV_CODEC_ID_MPEG2VIDEO:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG2_MAIN) );
 			break;
-		case CODEC_ID_H263:
+		case AV_CODEC_ID_H263:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_H263) );
 			break;
-		case CODEC_ID_AMR_NB:
+		case AV_CODEC_ID_AMR_NB:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AMR) );
 			break;
-		case CODEC_ID_AMR_WB:
+		case AV_CODEC_ID_AMR_WB:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AMR_WB) );
 			break;
-		case CODEC_ID_QCELP:
+		case AV_CODEC_ID_QCELP:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_QCELP) );
 			break;
 		case AV_CODEC_ID_EVRC:

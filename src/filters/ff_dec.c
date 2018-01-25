@@ -100,19 +100,19 @@ static void ffdec_finalize(GF_Filter *filter)
 static u32 ffdec_gpac_convert_pix_fmt(u32 pix_fmt)
 {
 	switch (pix_fmt) {
-	case PIX_FMT_YUV420P: return GF_PIXEL_YV12;
-	case PIX_FMT_YUV420P10LE: return  GF_PIXEL_YV12_10;
-	case PIX_FMT_YUV422P: return GF_PIXEL_YUV422;
-	case PIX_FMT_YUV422P10LE: return GF_PIXEL_YUV422_10;
-	case PIX_FMT_YUV444P: return GF_PIXEL_YUV444;
-	case PIX_FMT_YUV444P10LE: return GF_PIXEL_YUV444_10;
-	case PIX_FMT_RGBA: return GF_PIXEL_RGBA;
-	case PIX_FMT_RGB24: return GF_PIXEL_RGB_24;
-	case PIX_FMT_BGR24: return GF_PIXEL_BGR_24;
+	case AV_PIX_FMT_YUV420P: return GF_PIXEL_YV12;
+	case AV_PIX_FMT_YUV420P10LE: return  GF_PIXEL_YV12_10;
+	case AV_PIX_FMT_YUV422P: return GF_PIXEL_YUV422;
+	case AV_PIX_FMT_YUV422P10LE: return GF_PIXEL_YUV422_10;
+	case AV_PIX_FMT_YUV444P: return GF_PIXEL_YUV444;
+	case AV_PIX_FMT_YUV444P10LE: return GF_PIXEL_YUV444_10;
+	case AV_PIX_FMT_RGBA: return GF_PIXEL_RGBA;
+	case AV_PIX_FMT_RGB24: return GF_PIXEL_RGB_24;
+	case AV_PIX_FMT_BGR24: return GF_PIXEL_BGR_24;
 	//force output in RGB24
-	case PIX_FMT_YUVJ420P: return GF_PIXEL_RGB_24;
-	case PIX_FMT_YUVJ422P: return GF_PIXEL_RGB_24;
-	case PIX_FMT_YUVJ444P: return GF_PIXEL_RGB_24;
+	case AV_PIX_FMT_YUVJ420P: return GF_PIXEL_RGB_24;
+	case AV_PIX_FMT_YUVJ422P: return GF_PIXEL_RGB_24;
+	case AV_PIX_FMT_YUVJ444P: return GF_PIXEL_RGB_24;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %d\n", pix_fmt));
 	}
@@ -278,12 +278,12 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	case GF_PIXEL_RGB_24:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.linesize[0] = 3*ffdec->width;
-		pix_out = PIX_FMT_RGB24;
+		pix_out = AV_PIX_FMT_RGB24;
 		break;
 	case GF_PIXEL_RGBA:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.linesize[0] = 4*ffdec->width;
-		pix_out = PIX_FMT_RGBA;
+		pix_out = AV_PIX_FMT_RGBA;
 		break;
 	case GF_PIXEL_YV12:
 		pict.data[0] =  (uint8_t *)out_buffer;
@@ -291,7 +291,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.data[2] =  (uint8_t *)out_buffer + 5 * ffdec->stride * ffdec->height / 4;
 		pict.linesize[0] = ffdec->stride;
 		pict.linesize[1] = pict.linesize[2] = ffdec->stride/2;
-		pix_out = PIX_FMT_YUV420P;
+		pix_out = AV_PIX_FMT_YUV420P;
 		break;
 	case GF_PIXEL_YUV422:
 		pict.data[0] =  (uint8_t *)out_buffer;
@@ -299,14 +299,14 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.data[2] =  (uint8_t *)out_buffer + 3*ffdec->stride * ffdec->height/2;
 		pict.linesize[0] = ffdec->stride;
 		pict.linesize[1] = pict.linesize[2] = ffdec->stride/2;
-		pix_out = PIX_FMT_YUV422P;
+		pix_out = AV_PIX_FMT_YUV422P;
 		break;
 	case GF_PIXEL_YUV444:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
 		pict.data[2] =  (uint8_t *)out_buffer + 2*ffdec->stride * ffdec->height;
 		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ffdec->stride;
-		pix_out = PIX_FMT_YUV444P;
+		pix_out = AV_PIX_FMT_YUV444P;
 		break;
 	case GF_PIXEL_YV12_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
@@ -314,7 +314,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.data[2] =  (uint8_t *)out_buffer + 5 * ffdec->stride * ffdec->height / 4;
 		pict.linesize[0] = ffdec->stride;
 		pict.linesize[1] = pict.linesize[2] = ffdec->stride/2;
-		pix_out = PIX_FMT_YUV420P10LE;
+		pix_out = AV_PIX_FMT_YUV420P10LE;
 		break;
 	case GF_PIXEL_YUV422_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
@@ -322,13 +322,13 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.data[2] =  (uint8_t *)out_buffer + 3*ffdec->stride * ffdec->height/2;
 		pict.linesize[0] = ffdec->stride;
 		pict.linesize[1] = pict.linesize[2] = ffdec->stride/2;
-		pix_out = PIX_FMT_YUV422P10LE;
+		pix_out = AV_PIX_FMT_YUV422P10LE;
 	case GF_PIXEL_YUV444_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
 		pict.data[2] =  (uint8_t *)out_buffer + 2*ffdec->stride * ffdec->height;
 		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ffdec->stride;
-		pix_out = PIX_FMT_YUV444P10LE;
+		pix_out = AV_PIX_FMT_YUV444P10LE;
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] Unsupported pixel format %s\n", av_get_pix_fmt_name(ffdec->codec_ctx->pix_fmt) ));
@@ -611,35 +611,35 @@ static GF_Err ffdec_process(GF_Filter *filter)
 static u32 ff_codecid_gpac_to_ffmpeg(u32 codecid)
 {
 	switch (codecid) {
-	case GF_CODECID_MPEG_AUDIO: return CODEC_ID_MP2;
-	case GF_CODECID_MPEG2_PART3: return CODEC_ID_MP3;
-	case GF_CODECID_AAC_MPEG4: return CODEC_ID_AAC;
-	case GF_CODECID_AC3: return CODEC_ID_AC3;
-	case GF_CODECID_EAC3: return CODEC_ID_EAC3;
-	case GF_CODECID_AMR: return CODEC_ID_AMR_NB;
-	case GF_CODECID_AMR_WB: return CODEC_ID_AMR_WB;
-	case GF_CODECID_QCELP: return CODEC_ID_QCELP;
-	case GF_CODECID_VORBIS: return CODEC_ID_VORBIS;
-	case GF_CODECID_FLAC: return CODEC_ID_FLAC;
-	case GF_CODECID_SPEEX: return CODEC_ID_SPEEX;
-	case GF_CODECID_THEORA: return CODEC_ID_THEORA;
-	case GF_CODECID_MPEG4_PART2: return CODEC_ID_MPEG4;
-	case GF_CODECID_AVC: return CODEC_ID_H264;
+	case GF_CODECID_MPEG_AUDIO: return AV_CODEC_ID_MP2;
+	case GF_CODECID_MPEG2_PART3: return AV_CODEC_ID_MP3;
+	case GF_CODECID_AAC_MPEG4: return AV_CODEC_ID_AAC;
+	case GF_CODECID_AC3: return AV_CODEC_ID_AC3;
+	case GF_CODECID_EAC3: return AV_CODEC_ID_EAC3;
+	case GF_CODECID_AMR: return AV_CODEC_ID_AMR_NB;
+	case GF_CODECID_AMR_WB: return AV_CODEC_ID_AMR_WB;
+	case GF_CODECID_QCELP: return AV_CODEC_ID_QCELP;
+	case GF_CODECID_VORBIS: return AV_CODEC_ID_VORBIS;
+	case GF_CODECID_FLAC: return AV_CODEC_ID_FLAC;
+	case GF_CODECID_SPEEX: return AV_CODEC_ID_SPEEX;
+	case GF_CODECID_THEORA: return AV_CODEC_ID_THEORA;
+	case GF_CODECID_MPEG4_PART2: return AV_CODEC_ID_MPEG4;
+	case GF_CODECID_AVC: return AV_CODEC_ID_H264;
 	case GF_CODECID_HEVC: return AV_CODEC_ID_HEVC;
-	case GF_CODECID_MPEG1: return CODEC_ID_MPEG1VIDEO;
+	case GF_CODECID_MPEG1: return AV_CODEC_ID_MPEG1VIDEO;
 	case GF_CODECID_MPEG2_SIMPLE:
 	case GF_CODECID_MPEG2_MAIN:
 	case GF_CODECID_MPEG2_HIGH:
 	case GF_CODECID_MPEG2_SPATIAL:
 	case GF_CODECID_MPEG2_SNR:
 	case GF_CODECID_MPEG2_422:
-			return CODEC_ID_MPEG2VIDEO;
+			return AV_CODEC_ID_MPEG2VIDEO;
 	case GF_CODECID_S263:
 	case GF_CODECID_H263:
-			return CODEC_ID_H263;
-	case GF_CODECID_JPEG: return CODEC_ID_MJPEG;
-	case GF_CODECID_PNG: return CODEC_ID_PNG;
-	case GF_CODECID_J2K: return CODEC_ID_JPEG2000;
+			return AV_CODEC_ID_H263;
+	case GF_CODECID_JPEG: return AV_CODEC_ID_MJPEG;
+	case GF_CODECID_PNG: return AV_CODEC_ID_PNG;
+	case GF_CODECID_J2K: return AV_CODEC_ID_JPEG2000;
 
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDecode] GPAC CODECID %d not mapped to FFMPEG codec types, patch welcome\n", codecid ));
@@ -752,10 +752,8 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (prop && prop->value.data.ptr && prop->value.data.size) {
 			ffdec->codec_ctx->extradata_size = prop->value.data.size;
-			ffdec->codec_ctx->extradata = gf_malloc(sizeof(char) * (FF_INPUT_BUFFER_PADDING_SIZE + prop->value.data.size));
+			ffdec->codec_ctx->extradata = gf_malloc(sizeof(char) * prop->value.data.size);
 			memcpy(ffdec->codec_ctx->extradata, prop->value.data.ptr, prop->value.data.size);
-			memset(ffdec->codec_ctx->extradata + sizeof(char) * prop->value.data.size, 0, sizeof(char) * FF_INPUT_BUFFER_PADDING_SIZE);
-
 			ffdec->extra_data_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
 		}
 
