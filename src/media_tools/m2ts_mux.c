@@ -1041,7 +1041,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 		/*EOS*/
 		if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) return ret;
-		assert( stream->ifce->input_ctrl);
+		assert(stream->ifce->input_ctrl);
 		stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_PULL, &stream->curr_pck);
 	} else {
 		GF_M2TS_Packet *curr_pck;
@@ -1321,7 +1321,7 @@ static GFINLINE u64 gf_m2ts_get_pcr(GF_M2TS_Mux_Stream *stream)
 {
 	u64 pcr;
 	/*compute PCR*/
-	if (stream->program->mux->fixed_rate ) {
+	if (stream->program->mux->fixed_rate) {
 		Double abs_pcr = (Double) (stream->program->mux->tot_pck_sent - stream->program->num_pck_at_pcr_init);
 		abs_pcr *= 27000000;
 		abs_pcr *= 1504;
@@ -2529,7 +2529,6 @@ void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 		mux->time.sec = mux->time.nanosec = 0;
 		mux->init_sys_time = 0;
 	}
-
 }
 
 GF_EXPORT

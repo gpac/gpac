@@ -2681,7 +2681,7 @@ int main(int argc, char **argv)
 		nb_pck_in_pack=0;
 		while ((ts_pck = gf_m2ts_mux_process(muxer, &status, &usec_till_next)) != NULL) {
 
-			if (ts_pack_buffer ) {
+			if (ts_pack_buffer) {
 				memcpy(ts_pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
 				nb_pck_in_pack++;
 

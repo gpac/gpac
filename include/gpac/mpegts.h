@@ -1362,7 +1362,7 @@ GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode a
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);
 GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_forced_pcr);
 
-/*user inteface functions*/
+/*user interface functions*/
 GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale);
 
 void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *program_name, const char *mux_provider_name);

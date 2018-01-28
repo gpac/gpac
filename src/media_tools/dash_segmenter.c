@@ -1690,7 +1690,7 @@ restart_fragmentation_pass:
 					Double diff = (cur_seg-2) * sdur;
 					diff -= ((Double)tf->start_tfdt) / tf->TimeScale;
 					if (ABS(diff) > sdur/2) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment %s (Number #%d): drift between MPD timeline and tfdt exceeds 50%% of segment duraion (MPD time minus TFDT %lf secs) - bitstream will not be compliant, try using segment template or reencode\n", SegmentName, cur_seg-1, diff));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment %s (Number #%d): drift between MPD timeline and tfdt exceeds 50%% of segment duration (MPD time minus TFDT %lf secs) - bitstream will not be compliant, try using segment template or reencode\n", SegmentName, cur_seg-1, diff));
 					}
 				}
 			}
