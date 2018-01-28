@@ -38,6 +38,12 @@ extern "C" {
 #include <gpac/color.h>
 #include <gpac/thread.h>
 
+#if defined(WIN32) && !defined(__GNUC__)
+# include <intrin.h>
+#else
+#  include <emmintrin.h>
+#endif
+
 typedef struct {
 	GF_VideoOutput *dr;
 	enum {

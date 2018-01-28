@@ -622,11 +622,12 @@ void gf_bs_write_float(GF_BitStream *bs, Float value)
 }
 
 GF_EXPORT
-void gf_bs_write_double (GF_BitStream *bs, Double value)
+void gf_bs_write_double(GF_BitStream *bs, Double value)
 {
 	u32 i;
 	union
-	{	Double d;
+	{
+		Double d;
 		char sz [8];
 	} double_value;
 	double_value.d = value;
