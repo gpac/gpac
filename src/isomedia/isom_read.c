@@ -436,9 +436,14 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 GF_EXPORT
 GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 {
-	if (movie->openMode != GF_ISOM_OPEN_WRITE || movie->fileName || movie->segment_bs || !movie->editFileMap) //memory mode
+	if (movie->openMode != GF_ISOM_OPEN_WRITE || !movie->editFileMap) //memory mode
 		return GF_NOT_SUPPORTED;
-	*out_bs = movie->editFileMap->bs;
+
+	if (movie->segment_bs)
+		*out_bs = movie->segment_bs;
+	else
+		*out_bs = movie->editFileMap->bs;
+
 	return GF_OK;
 }
 
@@ -830,7 +835,7 @@ u8 gf_isom_is_track_in_root_od(GF_ISOFile *movie, u32 trackNumber)
 
 
 //gets the enable flag of a track
-//0: NO, 1: yes, 2: error
+//0: NO, 1: YES, 2: ERROR
 GF_EXPORT
 u8 gf_isom_is_track_enabled(GF_ISOFile *the_file, u32 trackNumber)
 {
