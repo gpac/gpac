@@ -1619,7 +1619,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 	/*update segment file*/
 	if (SegName || !gf_isom_get_filename(movie)) {
 		if (movie->editFileMap) gf_isom_datamap_del(movie->editFileMap);
-		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, & movie->editFileMap);
+		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, &movie->editFileMap);
 		movie->segment_start = 0;
 		movie->styp_written = GF_FALSE;
 		if (e) return e;
