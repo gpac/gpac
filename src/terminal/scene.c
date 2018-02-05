@@ -1251,16 +1251,16 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	}
 }
 
-static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
+static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *name, const char *def_name)
 {
 	GF_Proto *proto;
 	GF_Node *node;
-	char *name = "urn:inet:gpac:builtin:VRGeometry";
+	if (!name) name = "urn:inet:gpac:builtin:VRGeometry";
 
-	proto = gf_sg_find_proto(sg, 0, name);
+	proto = gf_sg_find_proto(sg, 0, (char *) name);
 	if (!proto) {
 		MFURL *url;
-		proto = gf_sg_proto_new(sg, 0, name, GF_FALSE);
+		proto = gf_sg_proto_new(sg, 0,  (char *) name, GF_FALSE);
 		url = gf_sg_proto_get_extern_url(proto);
 		if (url)
 			url->vals = gf_malloc(sizeof(SFURL));
@@ -1308,7 +1308,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		GF_Node *app = n2;
 
 		if (scene->vr_type) {
-			n2 = load_vr_proto_node(scene->graph, name_geo);
+			n2 = load_vr_proto_node(scene->graph, NULL, name_geo);
 		} else {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
 		}
@@ -1336,7 +1336,7 @@ just once when receiving the first OD AU (ressources are NOT destroyed when seek
 to update the OD ressources, we still take care of it*/
 void gf_scene_regenerate(GF_Scene *scene)
 {
-	GF_Node *n1, *n2;
+	GF_Node *n1, *n2, *root;
 	GF_Event evt;
 	M_AudioClip *ac;
 	M_MovieTexture *mt;
@@ -1361,6 +1361,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
+		root = n1;
 
 		if (! scene->root_od->parentscene) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Background2D, "DYN_BACK");
@@ -1455,6 +1456,12 @@ void gf_scene_regenerate(GF_Scene *scene)
 			addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "ADDON_SCENE");
 			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
 			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
+		}
+		//VR mode, add VR headup
+		else {
+			GF_Node *vrhud = load_vr_proto_node(scene->graph, "urn:inet:gpac:builtin:VRHUD", NULL);
+			gf_node_list_add_child( &((GF_ParentNode *)root)->children, (GF_Node*)vrhud);
+			gf_node_register(vrhud, root);
 		}
 
 

@@ -560,6 +560,7 @@ struct __tag_compositor
 
 	u32 tile_visibility_nb_tests, tile_visibility_threshold;
 	Bool tile_visibility_debug, force_all_tiles_visible;
+	u32 vrhud_mode;
 #endif
 
 	Bool texture_from_decoder_memory;
@@ -849,6 +850,8 @@ struct _traversing_state
 	GF_List *viewpoints;
 #endif
 
+	/*disable partial sphere rendrering in VR*/
+	Bool disable_partial_sphere;
 
 	/*current transformation from top-level*/
 	GF_Matrix2D transform;
