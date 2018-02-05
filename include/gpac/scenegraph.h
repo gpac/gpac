@@ -396,6 +396,8 @@ void *gf_sg_get_private(GF_SceneGraph *sg);
 /*set the scene timer (fct returns time in sec)*/
 void gf_sg_set_scene_time_callback(GF_SceneGraph *scene, Double (*GetSceneTime)(void *user_priv) );
 
+GF_SceneGraph *gf_sg_get_parent(GF_SceneGraph *scene);
+
 enum
 {
 	/*function called upon node creation.

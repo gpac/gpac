@@ -2390,3 +2390,9 @@ Bool gf_node_parent_of(GF_Node *node, GF_Node *target)
 	}
 	return 0;
 }
+
+GF_SceneGraph *gf_sg_get_parent(GF_SceneGraph *scene)
+{
+	return scene ? scene->parent_scene : NULL;
+}
+
