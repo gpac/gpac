@@ -3672,6 +3672,7 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 			GF_SampleGroupDescriptionBox *sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
 			switch (sgdesc->grouping_type) {
 			case GF_ISOM_SAMPLE_GROUP_RAP:
+			case GF_ISOM_SAMPLE_GROUP_SYNC:
 				if (is_rap) *is_rap = GF_TRUE;
 				break;
 			case GF_ISOM_SAMPLE_GROUP_ROLL:
@@ -3725,6 +3726,7 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 		switch (sgdesc->grouping_type) {
 		case GF_ISOM_SAMPLE_GROUP_RAP:
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
 			if (is_rap) *is_rap = GF_TRUE;
 			break;
 		case GF_ISOM_SAMPLE_GROUP_ROLL:
@@ -3777,6 +3779,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 
 	switch (grouping_type) {
 	case GF_ISOM_SAMPLE_GROUP_RAP:
+	case GF_ISOM_SAMPLE_GROUP_SYNC:
 	case GF_ISOM_SAMPLE_GROUP_ROLL:
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
 	case GF_ISOM_SAMPLE_GROUP_OINF:
