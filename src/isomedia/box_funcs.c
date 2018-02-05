@@ -779,6 +779,7 @@ static const struct box_registry_entry {
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SYNC, "p15"),
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_TSCL, "p15"),
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_VIPR, "p15"),
+	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_LBLI, "p15"),
 
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_3GAG, "3gpp"),
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AVCB, "3gpp"),

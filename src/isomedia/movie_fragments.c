@@ -628,6 +628,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 
 		switch (sg->grouping_type) {
 		case GF_ISOM_SAMPLE_GROUP_RAP:
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
 			rap_type = GF_TRUE;
 			break;
 		case GF_ISOM_SAMPLE_GROUP_ROLL:

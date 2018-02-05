@@ -2631,6 +2631,11 @@ typedef struct
 	u8 SAP_type;
 } GF_SAPEntry;
 
+/*SAPEntry - 'sync' type*/
+typedef struct
+{
+	u8 NALU_type;
+} GF_SYNCEntry;
 
 /*Operating Points Information - 'oinf' type*/
 typedef struct
