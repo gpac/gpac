@@ -6320,7 +6320,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample)
+				if (!is_empty_sample && !layer_id)
 					flush_sample = GF_TRUE;
 			}
 
@@ -6353,7 +6353,8 @@ restart_import:
 			}
 			if (nal_size) {
 				//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
-				if (!layer_id || !layer_ids[layer_id - 1]) flush_sample = GF_TRUE;
+				if (!layer_id || !layer_ids[layer_id - 1])
+					flush_sample = GF_TRUE;
 			}
 			break;
 
