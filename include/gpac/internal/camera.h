@@ -99,7 +99,7 @@ typedef struct _camera
 	u32 flags;
 
 	/*viewport info*/
-	GF_Rect vp;
+	GF_Rect vp, proj_vp;
 	/*not always same as VP due to aspect ratio*/
 	Fixed width, height;
 	Fixed z_near, z_far;
