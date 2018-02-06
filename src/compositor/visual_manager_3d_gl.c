@@ -1570,8 +1570,11 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 
 void visual_3d_enable_depth_buffer(GF_VisualManager *visual, Bool on)
 {
-	if (on) glEnable(GL_DEPTH_TEST);
-	else glDisable(GL_DEPTH_TEST);
+	if (on) {
+		glEnable(GL_DEPTH_TEST);
+	} else {
+		glDisable(GL_DEPTH_TEST);
+	}
 }
 
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp)
@@ -2698,7 +2701,11 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		        && (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
 		        && (mesh->flags & MESH_IS_SOLID)) {
 			glEnable(GL_CULL_FACE);
-			glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+			if (tr_state->reverse_backface) {
+				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CCW : GL_CW);
+			} else {
+				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+			}
 		} else {
 			glDisable(GL_CULL_FACE);
 		}

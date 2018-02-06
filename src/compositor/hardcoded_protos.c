@@ -912,7 +912,6 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 		memcpy(&backup_cam, tr_state->camera, sizeof(GF_Camera));
 
-
 		camera_invalidate(tr_state->camera);
 		tr_state->camera->is_3D = GF_FALSE;
 		tr_state->camera->flags |= CAM_NO_LOOKAT;
@@ -1472,10 +1471,13 @@ static void compositor_init_vr_geometry(GF_Compositor *compositor, GF_Node *node
 static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
-	GF_Matrix mx_bck;
+	GF_Matrix mv_bck, proj_bck, cam_bck;
 	SFVec3f target;
 	GF_Rect vp, orig_vp;
-	u32 mode;
+	u32 mode, i, cull_bck;
+	Fixed angle_yaw, angle_pitch;
+	SFVec3f axis;
+	Fixed dlen;
 	GF_Node *subtree = gf_node_get_private(node);
 	if (is_destroy) return;
 
@@ -1483,13 +1485,33 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 	mode = tr_state->visual->compositor->vrhud_mode;
 	if (!mode) return;
 
-	gf_mx_copy(mx_bck, tr_state->model_matrix);
+	gf_mx_copy(mv_bck, tr_state->model_matrix);
+	gf_mx_copy(cam_bck, tr_state->camera->modelview);
 
 	tr_state->disable_partial_sphere = GF_TRUE;
 	target = tr_state->camera->target;
 	orig_vp = tr_state->camera->proj_vp;
-	if (mode<=1) {
-		//rear mirror
+
+	//compute pitch (elevation)
+	dlen = tr_state->camera->target.x*tr_state->camera->target.x + tr_state->camera->target.z*tr_state->camera->target.z;
+	dlen = gf_sqrt(dlen);
+	angle_pitch = gf_atan2(tr_state->camera->target.y, dlen);
+	//compute yaw (rotation Y)
+	angle_yaw = gf_atan2(tr_state->camera->target.z, tr_state->camera->target.x);
+
+	//compute axis for the pitch
+	axis = tr_state->camera->target;
+	axis.y=0;
+	gf_vec_norm(&axis);
+
+	visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
+
+	if (mode==2) {
+		//rear mirror, reverse x-axis on projection
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		//inverse backface culling
+		tr_state->reverse_backface = GF_TRUE;
 		vp = orig_vp;
 		vp.width/=VRHUD_SCALE;
 		vp.height/=VRHUD_SCALE;
@@ -1497,83 +1519,112 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 		vp.y = orig_vp.y + orig_vp.height-vp.height;
 
 		visual_3d_set_viewport(tr_state->visual, vp);
-		visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 
 		gf_mx_add_rotation(&tr_state->model_matrix, GF_PI, tr_state->camera->up.x, tr_state->camera->up.y, tr_state->camera->up.z);
 		gf_node_traverse(subtree, rs);
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+	} else if (mode==1) {
+		gf_mx_copy(proj_bck, tr_state->camera->projection);
+		gf_mx_init(tr_state->camera->modelview);
 
-	} else {
-		Fixed angle;
-		SFVec3f axis;
-		Fixed dlen = tr_state->camera->target.x*tr_state->camera->target.x + tr_state->camera->target.z*tr_state->camera->target.z;
-		dlen = gf_sqrt(dlen);
-		angle = gf_atan2(tr_state->camera->target.y, dlen);
+		//force projection with PI/2 fov and AR 1:1
+		tr_state->camera->projection.m[0] = -1;
+		tr_state->camera->projection.m[5] = 1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		//force cull inside
+		cull_bck = tr_state->cull_flag;
+		tr_state->cull_flag = CULL_INSIDE;
+		//inverse backface culling
+		tr_state->reverse_backface = GF_TRUE;
 
-		axis = tr_state->camera->target;
-		axis.y=0;
-		gf_vec_norm(&axis);
+		//draw 3 viewports, each separated by PI/2 rotation
+		for (i=0; i<3; i++) {
+			vp = orig_vp;
+			vp.height/=VRHUD_SCALE;
+			vp.width=vp.height;
+			//we reverse X in the projection, so reverse the viewports
+			vp.x = orig_vp.x + orig_vp.width/2 - 3*vp.width/2 + (3-i-1)*vp.width;
+			vp.y = orig_vp.y + orig_vp.height - vp.height;
+			visual_3d_set_viewport(tr_state->visual, vp);
+			tr_state->disable_cull = GF_TRUE;
+
+			gf_mx_init(tr_state->model_matrix);
+			gf_mx_add_rotation(&tr_state->model_matrix, angle_yaw-GF_PI, 0, 1, 0);
+			gf_mx_add_rotation(&tr_state->model_matrix, i*GF_PI2, 0, 1, 0);
+
+			gf_node_traverse(subtree, rs);
+		}
+		gf_mx_copy(tr_state->camera->projection, proj_bck);
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		tr_state->cull_flag = cull_bck;
+		gf_mx_copy(tr_state->camera->modelview, cam_bck);
+	}
+	else if ((mode==4) || (mode==3)) {
+		// mirror, reverse x-axis on projection
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		//inverse backface culling
+		tr_state->reverse_backface = GF_TRUE;
 
 		//side left view
 		vp = orig_vp;
 		vp.width/=VRHUD_SCALE;
 		vp.height/=VRHUD_SCALE;
-		if (mode==2) {
-			vp.x = orig_vp.x + orig_vp.width/2 - 3*vp.width/2;
+		if (mode==3) {
+			vp.x = orig_vp.x;
 		} else {
 			vp.x = orig_vp.x + orig_vp.width/2 - 2*vp.width;
 		}
 		vp.y = orig_vp.y + orig_vp.height - vp.height;
 		visual_3d_set_viewport(tr_state->visual, vp);
-		visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 
-		gf_mx_add_rotation(&tr_state->model_matrix, angle, -axis.z, 0, axis.x);
 		gf_mx_add_rotation(&tr_state->model_matrix, -2*GF_PI/3, 0, 1, 0);
 
 		gf_node_traverse(subtree, rs);
 
 		//side right view
-		if (mode==2) {
-			vp.x = orig_vp.x + orig_vp.width/2+vp.width/2;
+		if (mode==3) {
+			vp.x = orig_vp.x + orig_vp.width - vp.width;
 		} else {
 			vp.x = orig_vp.x + orig_vp.width/2+vp.width;
 		}
-
 		visual_3d_set_viewport(tr_state->visual, vp);
-		visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 
-		gf_mx_copy(tr_state->model_matrix, mx_bck);
-		gf_mx_add_rotation(&tr_state->model_matrix, angle, -axis.z, 0, axis.x);
+		gf_mx_copy(tr_state->model_matrix, mv_bck);
 		gf_mx_add_rotation(&tr_state->model_matrix, 2*GF_PI/3, 0, 1, 0);
 
 		gf_node_traverse(subtree, rs);
 
-		if (mode==3) {
+		if (mode==4) {
 			//upper view
 			vp.x = orig_vp.x + orig_vp.width/2 - vp.width;
-
 			visual_3d_set_viewport(tr_state->visual, vp);
-			visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 
-			gf_mx_copy(tr_state->model_matrix, mx_bck);
-			gf_mx_add_rotation(&tr_state->model_matrix, angle - GF_PI2, -axis.z, 0, axis.x);
+			gf_mx_copy(tr_state->model_matrix, mv_bck);
+			gf_mx_add_rotation(&tr_state->model_matrix, - GF_PI2, -axis.z, 0, axis.x);
 			gf_node_traverse(subtree, rs);
 
 			//down view
 			vp.x = orig_vp.x + orig_vp.width/2;
-
 			visual_3d_set_viewport(tr_state->visual, vp);
-			visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 
-			gf_mx_copy(tr_state->model_matrix, mx_bck);
-			gf_mx_add_rotation(&tr_state->model_matrix, angle + GF_PI2, -axis.z, 0, axis.x);
+			gf_mx_copy(tr_state->model_matrix, mv_bck);
+			gf_mx_add_rotation(&tr_state->model_matrix, GF_PI2, -axis.z, 0, axis.x);
 
 			gf_node_traverse(subtree, rs);
 		}
+
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
 	}
-	gf_mx_copy(tr_state->model_matrix, mx_bck);
+
+	//restore camera and VP
+	gf_mx_copy(tr_state->model_matrix, mv_bck);
 	visual_3d_set_viewport(tr_state->visual, orig_vp);
 	visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
 	tr_state->disable_partial_sphere = GF_FALSE;
+	tr_state->reverse_backface = GF_FALSE;
 }
 
 void compositor_init_vrhud(GF_Compositor *compositor, GF_Node *node)

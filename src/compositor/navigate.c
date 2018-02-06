@@ -626,7 +626,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		case GF_KEY_H:
 			if (keys & GF_KEY_MOD_CTRL) {
 				compositor->vrhud_mode++;
-				if (compositor->vrhud_mode==4) compositor->vrhud_mode=0;;
+				if (compositor->vrhud_mode==5) compositor->vrhud_mode=0;;
 				gf_sc_invalidate(compositor, NULL);
 				return 1;
 			}

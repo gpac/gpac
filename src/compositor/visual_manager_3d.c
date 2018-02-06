@@ -2080,6 +2080,7 @@ void visual_3d_set_texture_matrix(GF_VisualManager *visual, GF_Matrix *mx)
 	if (mx) gf_mx_copy(visual->tx_matrix, *mx);
 }
 
+
 void visual_3d_has_inactive_light(GF_VisualManager *visual)
 {
 	visual->has_inactive_lights = GF_TRUE;
