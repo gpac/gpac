@@ -921,7 +921,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {
-			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+			visual_3d_set_viewport(tr_state->visual, tr_state->camera->proj_vp);
 			visual_3d_projection_matrix_modified(tr_state->visual);
 
 			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
@@ -931,7 +931,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 			visual_3d_projection_matrix_modified(tr_state->visual);
 
-			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+			visual_3d_set_viewport(tr_state->visual, tr_state->camera->proj_vp);
 		} else if (tr_state->traversing_mode == TRAVERSE_PICK) {
 			Fixed prev_dist = tr_state->visual->compositor->hit_square_dist;
 			GF_Ray r = tr_state->ray;
@@ -1474,7 +1474,7 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 	GF_Matrix mx_bck;
 	SFVec3f target;
-	GF_Rect vp;
+	GF_Rect vp, orig_vp;
 	u32 mode;
 	GF_Node *subtree = gf_node_get_private(node);
 	if (is_destroy) return;
@@ -1487,13 +1487,14 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 
 	tr_state->disable_partial_sphere = GF_TRUE;
 	target = tr_state->camera->target;
-	if (mode==1) {
+	orig_vp = tr_state->camera->proj_vp;
+	if (mode<=1) {
 		//rear mirror
-		vp = tr_state->camera->vp;
+		vp = orig_vp;
 		vp.width/=VRHUD_SCALE;
 		vp.height/=VRHUD_SCALE;
-		vp.x = (tr_state->camera->vp.width-vp.width)/2;
-		vp.y = tr_state->camera->vp.height-vp.height;
+		vp.x = orig_vp.x + (orig_vp.width-vp.width)/2;
+		vp.y = orig_vp.y + orig_vp.height-vp.height;
 
 		visual_3d_set_viewport(tr_state->visual, vp);
 		visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
@@ -1512,16 +1513,16 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 		axis.y=0;
 		gf_vec_norm(&axis);
 
-		//side left mirror
-		vp = tr_state->camera->vp;
+		//side left view
+		vp = orig_vp;
 		vp.width/=VRHUD_SCALE;
 		vp.height/=VRHUD_SCALE;
 		if (mode==2) {
-			vp.x = tr_state->camera->vp.width/2 - 3*vp.width/2;
+			vp.x = orig_vp.x + orig_vp.width/2 - 3*vp.width/2;
 		} else {
-			vp.x = tr_state->camera->vp.width/2 - 2*vp.width;
+			vp.x = orig_vp.x + orig_vp.width/2 - 2*vp.width;
 		}
-		vp.y = tr_state->camera->vp.height-vp.height;
+		vp.y = orig_vp.y + orig_vp.height - vp.height;
 		visual_3d_set_viewport(tr_state->visual, vp);
 		visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 
@@ -1530,12 +1531,11 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 
 		gf_node_traverse(subtree, rs);
 
-
-		//side right mirror
+		//side right view
 		if (mode==2) {
-			vp.x = tr_state->camera->vp.width/2+vp.width/2;
+			vp.x = orig_vp.x + orig_vp.width/2+vp.width/2;
 		} else {
-			vp.x = tr_state->camera->vp.width/2+vp.width;
+			vp.x = orig_vp.x + orig_vp.width/2+vp.width;
 		}
 
 		visual_3d_set_viewport(tr_state->visual, vp);
@@ -1548,12 +1548,8 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_traverse(subtree, rs);
 
 		if (mode==3) {
-			//upper mirror
-			vp = tr_state->camera->vp;
-			vp.width/=VRHUD_SCALE;
-			vp.height/=VRHUD_SCALE;
-			vp.x = tr_state->camera->vp.width/2 - vp.width;
-			vp.y = tr_state->camera->vp.height-vp.height;
+			//upper view
+			vp.x = orig_vp.x + orig_vp.width/2 - vp.width;
 
 			visual_3d_set_viewport(tr_state->visual, vp);
 			visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
@@ -1562,12 +1558,8 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mx_add_rotation(&tr_state->model_matrix, angle - GF_PI2, -axis.z, 0, axis.x);
 			gf_node_traverse(subtree, rs);
 
-			//down mirror
-			vp = tr_state->camera->vp;
-			vp.width/=VRHUD_SCALE;
-			vp.height/=VRHUD_SCALE;
-			vp.x = tr_state->camera->vp.width/2;
-			vp.y = tr_state->camera->vp.height-vp.height;
+			//down view
+			vp.x = orig_vp.x + orig_vp.width/2;
 
 			visual_3d_set_viewport(tr_state->visual, vp);
 			visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
@@ -1579,7 +1571,7 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 	gf_mx_copy(tr_state->model_matrix, mx_bck);
-	visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+	visual_3d_set_viewport(tr_state->visual, orig_vp);
 	visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
 	tr_state->disable_partial_sphere = GF_FALSE;
 }

@@ -382,7 +382,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		key_trans = cam->world_bbox.radius / 100;
 	}
 
-	key_pan = FIX_ONE/25;
+	key_pan = FIX_ONE/20;
 	key_exam = FIX_ONE/20;
 	key_inv = 1;
 
