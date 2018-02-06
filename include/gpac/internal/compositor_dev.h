@@ -853,6 +853,8 @@ struct _traversing_state
 	/*disable partial sphere rendrering in VR*/
 	Bool disable_partial_sphere;
 
+	Bool reverse_backface;
+
 	/*current transformation from top-level*/
 	GF_Matrix2D transform;
 	/*current color transformation from top-level*/
