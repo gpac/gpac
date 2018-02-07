@@ -90,6 +90,8 @@ typedef enum
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 	/*! event send when we need the decoding statistics*/
 	GF_DASH_EVENT_CODEC_STAT_QUERY,
+	/*! event send whenever cache is full, to allow client to dispatch any segment*/
+	GF_DASH_EVENT_CACHE_FULL,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/

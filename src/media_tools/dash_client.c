@@ -5847,6 +5847,8 @@ restart_period:
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Switching to period #%d\n", dash->active_period_index+1));
 					goto restart_period;
 				}
+				if (!all_groups_done)
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CACHE_FULL, 0, GF_OK);
 
 				gf_sleep(30);
 			}
@@ -6810,6 +6812,9 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64
 	if (!group) return NULL;
 
 	/*solve dependencies if any*/
+#if 0
+	/*non-compliant way: init segment shall be different for each dependent reps, using the base is wrong
+	unless bitstream switching is set (handled below)*/
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 
 	while (rep && rep->dependency_id) {
@@ -6818,6 +6823,10 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64
 		rep = gf_dash_find_rep(dash, rep->dependency_id, &group);
 		if (sep) sep[0] = ' ';
 	}
+#else
+	/*the the highest rep and use its init segment*/
+	rep = gf_list_last(group->adaptation_set->representations);
+#endif
 
 	if (group->bs_switching_init_segment_url) {
 		if (start_range) *start_range = group->bs_switching_init_segment_url_start_range;

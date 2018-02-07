@@ -926,6 +926,13 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		gf_service_command(mpdin->service, &com, GF_OK);
 		gf_dash_group_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
 	}
+	if (dash_evt==GF_DASH_EVENT_CACHE_FULL) {
+		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
+			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
+			if (group && gf_dash_is_group_selected(mpdin->dash, i))
+				MPD_NotifyData(group, 0);
+		}
+	}
 
 	return GF_OK;
 }
