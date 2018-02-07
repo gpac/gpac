@@ -311,8 +311,7 @@ void PrintDASHUsage()
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
 	        "	                            using the -frag switch.\n"
 	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
-	        " -dash-strict dur     enables DASH-ing of the file(s) with a segment duration of DUR ms (old behaviour)\n"
-	        "                       Note: the duration will be the closest to \'dur\', and will remain constant\n"
+	        " -dash-strict dur     [DEPRECATED, will behave like -dash]\n"
 	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionally writing live context to F\n"
 	        "                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
 	        " -ddbg-live[=F] dur   same as -dash-live without time regulation for debug purposes.\n"
@@ -402,6 +401,7 @@ void PrintDASHUsage()
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
 	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
+	        " -bound               enables video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -1944,6 +1944,7 @@ static u32 run_for=0;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 static Bool no_cache=GF_FALSE;
 static Bool no_loop=GF_FALSE;
+static Bool split_on_bound=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3231,7 +3232,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i + 1]);
 				return 2;
 			}
-			dash_duration_strict = GF_TRUE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] -dash-strict is deprecated, will behave like -dash\n"));
 			i++;
 		}
 		else if (!stricmp(arg, "-subdur")) {
@@ -3273,6 +3274,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-no-loop")) {
 			no_loop = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-bound")) {
+			split_on_bound = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
@@ -3468,7 +3472,6 @@ int mp4boxMain(int argc, char **argv)
 	split_start = -1.0;
 	interleaving_time = 0;
 	dash_duration = dash_subduration = 0.0;
-	dash_duration_strict = GF_FALSE;
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
@@ -4067,7 +4070,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
 		if (!e) e = gf_dasher_enable_single_file(dasher, single_file);
 		if (!e) e = gf_dasher_set_switch_mode(dasher, bitstream_switching_mode);
-		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, dash_duration_strict, interleaving_time);
+		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time);
 		if (!e) e = gf_dasher_enable_rap_splitting(dasher, seg_at_rap, frag_at_rap);
 		if (!e) e = gf_dasher_set_segment_marker(dasher, segment_marker);
 		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
@@ -4084,6 +4087,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
+		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
