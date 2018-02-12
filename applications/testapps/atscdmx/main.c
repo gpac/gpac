@@ -1,0 +1,102 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2018
+ *					All rights reserved
+ *
+ *  This file is part of GPAC - ATSC/ROUTE implementation
+ *
+ */
+
+#include <gpac/atsc.h>
+
+void PrintUsage()
+{
+	fprintf(stderr, "USAGE: [OPTS]\n"
+#ifdef GPAC_MEMORY_TRACKING
+            "-mem-track:			enables memory tracker\n"
+            "-mem-track-stack:	enables memory tracker with stack dumping\n"
+#endif
+	        "-ifce IP:			IP adress of network interface to use\n"
+	        "-dir PATH:			local filesystem path to which the files are written. If not set, memory mode is used.\n"
+	        "                    NOTE: memory mode is not yet implemented ...\n"
+	        "-service ID:		ID of the service to play. If not set, all services are dumped. If 0, no services are dumped\n"
+	        "\n"
+	        "\n on OSX with VM packet replay you will need to force mcast routing, eg:\n"
+	        "route add -net 239.255.1.4/32 -interface vboxnet0\n"
+	       );
+}
+
+int main(int argc, char **argv)
+{
+	u32 i, serviceID=0xFFFFFFFF;
+	Bool run = GF_TRUE;
+	GF_MemTrackerType mem_track = GF_MemTrackerNone;
+	const char *ifce = NULL;
+	const char *dir = NULL;
+	GF_ATSCDmx *atscd;
+	if (argc<1) {
+		PrintUsage();
+		return 0;
+	}
+
+	for (i=0; i<(u32)argc; i++) {
+		char *arg = argv[i];
+
+		if (!strcmp(arg, "-ifce")) ifce=argv[++i];
+		if (!strcmp(arg, "-dir")) dir=argv[++i];
+		if (!strcmp(arg, "-service")) serviceID=atoi(argv[++i]);
+		if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
+#ifdef GPAC_MEMORY_TRACKING
+            mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
+#else
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", argv[i]);
+#endif
+		}
+	}
+
+	/*****************/
+	/*   gpac init   */
+	/*****************/
+#ifdef GPAC_MEMORY_TRACKING
+	gf_sys_init(mem_track);
+#else
+	gf_sys_init(GF_MemTrackerNone);
+#endif
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+	gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
+
+	atscd = gf_atsc_dmx_new(ifce, dir, 0);
+	gf_atsc_tune_in(atscd, serviceID);
+
+	while (atscd && run) {
+		GF_Err e = gf_atsc_dmx_process(atscd);
+		if (e && (e != GF_IP_NETWORK_EMPTY)) break;
+
+		gf_atsc_dmx_process_services(atscd);
+		gf_sleep(1);
+
+		if (gf_prompt_has_input()) {
+			u8 c = gf_prompt_get_char();
+			switch (c) {
+			case 'q':
+				run = GF_FALSE;
+				break;
+			}
+		}
+	}
+	gf_atsc_dmx_del(atscd);
+
+	gf_sys_close();
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
+	        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+		gf_memory_print();
+		return 2;
+	}
+#endif
+	return 0;
+}
+
