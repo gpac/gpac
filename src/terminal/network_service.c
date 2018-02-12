@@ -1501,3 +1501,12 @@ GF_Err gf_term_service_cache_close(GF_ClientService *ns, Bool no_save)
 	ns->cache = NULL;
 	return e;
 }
+
+
+GF_EXPORT
+GF_DownloadManager *gf_term_service_get_dm(GF_ClientService *ns)
+{
+	if (!ns->term) return NULL;
+	return ns->term->downloader;
+}
+

@@ -514,6 +514,7 @@
 		92BE50D618D6D6C100AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D3C6262031E94F00BA1735 /* atsc_dmx.c */; };
 		92D3C6292031E98600BA1735 /* atsc.h in Headers */ = {isa = PBXBuildFile; fileRef = 92D3C6282031E98600BA1735 /* atsc.h */; };
+		92D3C6312031F4C200BA1735 /* atsc_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D3C6302031F4C100BA1735 /* atsc_in.c */; };
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
 		92F8D46C1F6FF7A100616F7C /* netctrl.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D46B1F6FF7A100616F7C /* netctrl.c */; };
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
@@ -1424,6 +1425,7 @@
 		92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92D3C6262031E94F00BA1735 /* atsc_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = atsc_dmx.c; sourceTree = "<group>"; };
 		92D3C6282031E98600BA1735 /* atsc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = atsc.h; path = ../include/gpac/atsc.h; sourceTree = "<group>"; };
+		92D3C6302031F4C100BA1735 /* atsc_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = atsc_in.c; path = ../../modules/atsc_in/atsc_in.c; sourceTree = "<group>"; };
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92F8D46B1F6FF7A100616F7C /* netctrl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = netctrl.c; path = ../../modules/netctrl/netctrl.c; sourceTree = "<group>"; };
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
@@ -2427,6 +2429,7 @@
 		92AAF0E918D6E35200E2FF12 /* builtin_modules */ = {
 			isa = PBXGroup;
 			children = (
+				92D3C62D2031F48500BA1735 /* atsc_in */,
 				92A9D3C81CCA79BD006FF303 /* amr_in */,
 				92AAF0F318D6E5BB00E2FF12 /* audio_filter */,
 				92AAF0F618D6E5EA00E2FF12 /* bifs_dec */,
@@ -2948,6 +2951,14 @@
 				92BE511018D6DA6300AA59D8 /* surface.c */,
 			);
 			name = soft_raster;
+			sourceTree = "<group>";
+		};
+		92D3C62D2031F48500BA1735 /* atsc_in */ = {
+			isa = PBXGroup;
+			children = (
+				92D3C6302031F4C100BA1735 /* atsc_in.c */,
+			);
+			name = atsc_in;
 			sourceTree = "<group>";
 		};
 		92F8D46A1F6FF78600616F7C /* netctrl */ = {
@@ -3697,6 +3708,7 @@
 				9201014818D5A445003D1ACA /* dvb_mpe.c in Sources */,
 				9201014918D5A445003D1ACA /* filestreamer.c in Sources */,
 				9201014A18D5A445003D1ACA /* gpac_ogg.c in Sources */,
+				92D3C6312031F4C200BA1735 /* atsc_in.c in Sources */,
 				9201014B18D5A445003D1ACA /* html5_media.c in Sources */,
 				9201014C18D5A445003D1ACA /* html5_mse.c in Sources */,
 				9201014D18D5A445003D1ACA /* img.c in Sources */,
