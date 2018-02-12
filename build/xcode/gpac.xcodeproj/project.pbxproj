@@ -403,6 +403,8 @@
 		92AAF1D918D710A000E2FF12 /* vtt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D518D7109A00E2FF12 /* vtt_dec.c */; };
 		92AAF1DA18D710A000E2FF12 /* vtt_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D618D7109A00E2FF12 /* vtt_in.c */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
+		92BAF030202C564D001ED2F1 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BAF023202C542C001ED2F1 /* main.c */; };
+		92BAF031202C565D001ED2F1 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -510,6 +512,8 @@
 		92BE50D418D6D62600AA59D8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50D218D6D62600AA59D8 /* main.c */; };
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50D618D6D6C100AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D3C6262031E94F00BA1735 /* atsc_dmx.c */; };
+		92D3C6292031E98600BA1735 /* atsc.h in Headers */ = {isa = PBXBuildFile; fileRef = 92D3C6282031E98600BA1735 /* atsc.h */; };
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
 		92F8D46C1F6FF7A100616F7C /* netctrl.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D46B1F6FF7A100616F7C /* netctrl.c */; };
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
@@ -589,6 +593,15 @@
 
 /* Begin PBXCopyFilesBuildPhase section */
 		2839E2861A1635F7002D73E1 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		92BAF027202C5569001ED2F1 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -1289,6 +1302,9 @@
 		92AAF1D518D7109A00E2FF12 /* vtt_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_dec.c; path = ../../modules/vtt_in/vtt_dec.c; sourceTree = "<group>"; };
 		92AAF1D618D7109A00E2FF12 /* vtt_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_in.c; path = ../../modules/vtt_in/vtt_in.c; sourceTree = "<group>"; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		92BAF023202C542C001ED2F1 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/testapps/atscdmx/main.c; sourceTree = "<group>"; };
+		92BAF029202C5569001ED2F1 /* atscdmx */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = atscdmx; sourceTree = BUILT_PRODUCTS_DIR; };
+		92BAF02B202C5569001ED2F1 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -1406,6 +1422,8 @@
 		92BE510F18D6DA6300AA59D8 /* stencil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = stencil.c; path = ../../modules/soft_raster/stencil.c; sourceTree = "<group>"; };
 		92BE511018D6DA6300AA59D8 /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = ../../modules/soft_raster/surface.c; sourceTree = "<group>"; };
 		92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		92D3C6262031E94F00BA1735 /* atsc_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = atsc_dmx.c; sourceTree = "<group>"; };
+		92D3C6282031E98600BA1735 /* atsc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = atsc.h; path = ../include/gpac/atsc.h; sourceTree = "<group>"; };
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92F8D46B1F6FF7A100616F7C /* netctrl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = netctrl.c; path = ../../modules/netctrl/netctrl.c; sourceTree = "<group>"; };
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
@@ -1520,6 +1538,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		92BAF026202C5569001ED2F1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				92BAF031202C565D001ED2F1 /* libgpac.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		92BE508D18D6325E00AA59D8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1621,6 +1647,7 @@
 		9201002218D5A444003D1ACA /* media_tools */ = {
 			isa = PBXGroup;
 			children = (
+				92D3C6262031E94F00BA1735 /* atsc_dmx.c */,
 				9201002318D5A444003D1ACA /* ait.c */,
 				9201002418D5A444003D1ACA /* av_parsers.c */,
 				9201002518D5A444003D1ACA /* avilib.c */,
@@ -1799,6 +1826,7 @@
 				92BE50AC18D6375100AA59D8 /* applications */,
 				92BE50AD18D6376A00AA59D8 /* modules */,
 				9201FE7E18D5A444003D1ACA /* libgpac */,
+				92BAF02A202C5569001ED2F1 /* atscdmx */,
 				92B02F4D1DD2004300F85E77 /* Frameworks */,
 			);
 			sourceTree = "<group>";
@@ -1820,6 +1848,7 @@
 				92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */,
 				9225732418D7267900D6FD98 /* gm_ogg_in.dylib */,
 				92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */,
+				92BAF029202C5569001ED2F1 /* atscdmx */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2694,9 +2723,26 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		92BAF022202C541B001ED2F1 /* atscdmx */ = {
+			isa = PBXGroup;
+			children = (
+				92BAF023202C542C001ED2F1 /* main.c */,
+			);
+			name = atscdmx;
+			sourceTree = "<group>";
+		};
+		92BAF02A202C5569001ED2F1 /* atscdmx */ = {
+			isa = PBXGroup;
+			children = (
+				92BAF02B202C5569001ED2F1 /* main.c */,
+			);
+			path = atscdmx;
+			sourceTree = "<group>";
+		};
 		92BBFC471A71228A006A7735 /* include */ = {
 			isa = PBXGroup;
 			children = (
+				92D3C6282031E98600BA1735 /* atsc.h */,
 				92BBFC481A7122AD006A7735 /* ait.h */,
 				92BBFC491A7122AD006A7735 /* avparse.h */,
 				92BBFC4A1A7122AD006A7735 /* base_coding.h */,
@@ -2830,6 +2876,7 @@
 		92BE50AC18D6375100AA59D8 /* applications */ = {
 			isa = PBXGroup;
 			children = (
+				92BAF022202C541B001ED2F1 /* atscdmx */,
 				92D5356F1A5C0CF700F2442A /* carbon_events.c */,
 				2839E2911A1635FE002D73E1 /* DashCast */,
 				92BE50C918D6D60100AA59D8 /* MP4Client */,
@@ -3050,6 +3097,7 @@
 				920101B418D5A445003D1ACA /* module_wrap.h in Headers */,
 				92BBFD001A7122AD006A7735 /* sync_layer.h in Headers */,
 				92AAF0EC18D6E5AA00E2FF12 /* rast_soft.h in Headers */,
+				92D3C6292031E98600BA1735 /* atsc.h in Headers */,
 				92AAF10D18D6E69500E2FF12 /* img_in.h in Headers */,
 				92BBFD011A7122AD006A7735 /* term_info.h in Headers */,
 				92BBFCF01A7122AD006A7735 /* nodes_mpeg4.h in Headers */,
@@ -3329,6 +3377,23 @@
 			productReference = 92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
+		92BAF028202C5569001ED2F1 /* atscdmx */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 92BAF02D202C5569001ED2F1 /* Build configuration list for PBXNativeTarget "atscdmx" */;
+			buildPhases = (
+				92BAF025202C5569001ED2F1 /* Sources */,
+				92BAF026202C5569001ED2F1 /* Frameworks */,
+				92BAF027202C5569001ED2F1 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = atscdmx;
+			productName = atscdmx;
+			productReference = 92BAF029202C5569001ED2F1 /* atscdmx */;
+			productType = "com.apple.product-type.tool";
+		};
 		92BE508F18D6325E00AA59D8 /* MP4Box */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 92BE509918D6325E00AA59D8 /* Build configuration list for PBXNativeTarget "MP4Box" */;
@@ -3396,6 +3461,13 @@
 			attributes = {
 				LastUpgradeCheck = 0800;
 				ORGANIZATIONNAME = "Telecom ParisTech";
+				TargetAttributes = {
+					92BAF028202C5569001ED2F1 = {
+						CreatedOnToolsVersion = 9.2;
+						DevelopmentTeam = Y3MQ824CRS;
+						ProvisioningStyle = Automatic;
+					};
+				};
 			};
 			buildConfigurationList = 9201F92C18D5A359003D1ACA /* Build configuration list for PBXProject "gpac" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -3423,6 +3495,7 @@
 				92AAF1BD18D70B1C00E2FF12 /* openhevc_dec */,
 				9225732318D7267900D6FD98 /* ogg_in */,
 				2839E27D1A162C24002D73E1 /* opensvc */,
+				92BAF028202C5569001ED2F1 /* atscdmx */,
 			);
 		};
 /* End PBXProject section */
@@ -3673,6 +3746,7 @@
 				9201017918D5A445003D1ACA /* base_scenegraph.c in Sources */,
 				9201017A18D5A445003D1ACA /* commands.c in Sources */,
 				9201017B18D5A445003D1ACA /* dom_events.c in Sources */,
+				92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */,
 				9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */,
 				9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */,
 				9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */,
@@ -3860,6 +3934,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				92AAF1C518D70B4600E2FF12 /* openhevc_dec.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		92BAF025202C5569001ED2F1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				92BAF030202C564D001ED2F1 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4907,6 +4989,99 @@
 			};
 			name = Release;
 		};
+		92BAF02E202C5569001ED2F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = Y3MQ824CRS;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					/usr/local/include/,
+					../../extra_lib/include,
+				);
+				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/gcc;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SYMROOT = ../../bin/osx/;
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		92BAF02F202C5569001ED2F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Y3MQ824CRS;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					/usr/local/include/,
+					../../extra_lib/include,
+				);
+				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/gcc;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SYMROOT = ../../bin/osx/;
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
 		92BE509718D6325E00AA59D8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -5163,6 +5338,15 @@
 			buildConfigurations = (
 				92AAF1C018D70B1C00E2FF12 /* Debug */,
 				92AAF1C118D70B1C00E2FF12 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		92BAF02D202C5569001ED2F1 /* Build configuration list for PBXNativeTarget "atscdmx" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				92BAF02E202C5569001ED2F1 /* Debug */,
+				92BAF02F202C5569001ED2F1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

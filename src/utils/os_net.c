@@ -941,7 +941,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	Bool is_ipv6 = GF_FALSE;
 	u32 type;
 #endif
-	unsigned long local_add_id;
+	u32 local_add_id;
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
 
@@ -1085,7 +1085,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 		memset(&local_address, 0, sizeof(struct sockaddr_in ));
 		local_address.sin_family = AF_INET;
-		local_address.sin_addr.s_addr = (u32) local_add_id;
+		local_address.sin_addr.s_addr = local_add_id;
 		local_address.sin_port = htons( MultiPortNumber);
 
 		ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
@@ -1098,14 +1098,14 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		}
 		/*setup local interface*/
 		if (local_interface_ip) {
-			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add_id, sizeof(local_add_id));
+			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (void *) &local_add_id, sizeof(local_add_id));
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
 	}
 
 	/*now join the multicast*/
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
-	M_req.imr_interface.s_addr = (u32) local_add_id;
+	M_req.imr_interface.s_addr = local_add_id;
 
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) {
