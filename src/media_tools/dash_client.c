@@ -146,6 +146,9 @@ struct __dash_client
 
 	Bool use_threaded_download;
 
+	//0: not atsc - 1: atsc but clock not init 2- atsc clock init
+	u32 atsc_clock_state;
+
 	//in ms
 	u32 time_in_tsb, prev_time_in_tsb;
 	u32 tsb_exceeded;
@@ -270,8 +273,6 @@ struct __dash_group
 	u32 cache_duration;
 	u32 time_at_first_reload_required;
 	u32 force_representation_idx_plus_one;
-	//0: not atsc - 1: atsc but clock not init 2- atsc clock init
-	u32 atsc_clock_state;
 
 	Bool force_segment_switch;
 	Bool is_downloading;
@@ -511,15 +512,15 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		//when trying to locate the live edge
 		fetch_time = gf_net_get_utc();
 	}
-
+	//if ATSC and clock not setup, do it
 	val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-dash-atsc");
-	if (val) {
+	if (val && !group->dash->utc_drift_estimate) {
 		u32 i;
 		Bool found = GF_FALSE;
 		u32 timeline_offset_ms=0;
-		if (!group->atsc_clock_state) {
+		if (!group->dash->atsc_clock_state) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Detected ATSC DASH service ID %s\n", val));
-			group->atsc_clock_state = 1;
+			group->dash->atsc_clock_state = 1;
 		}
 
 		for (i=0; i<gf_list_count(group->period->adaptation_sets); i++) {
@@ -574,13 +575,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->dash->utc_drift_estimate = ((s64) fetch_time - (s64) utc);
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff of ATSC broadcast "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU" - bootstraping on segment %s\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime, val));
 
-			group->atsc_clock_state = 2;
+			group->dash->atsc_clock_state = 2;
 		} else {
-			group->atsc_clock_state = 3;
+			group->dash->atsc_clock_state = 3;
 		}
 	}
 
-	if ((!group->atsc_clock_state || (group->atsc_clock_state>2)) && !group->dash->ntp_forced && group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
+	if ((!group->dash->atsc_clock_state || (group->dash->atsc_clock_state>2)) && !group->dash->ntp_forced && group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
 		val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server-UTC");
 		if (val) {
 			u64 utc;
@@ -827,7 +828,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		nb_seg /= group->segment_duration;
 		shift = (u32) nb_seg;
 
-		if ((group->atsc_clock_state == 2) && shift) {
+		if ((group->dash->atsc_clock_state == 2) && shift) {
 			//shift currently points to the next segment after the one used for clock bootstrap, use the right one
 			shift--;
 			//avoid querying too early the cache since segments do not usually arrive exactly on time ...
@@ -2384,7 +2385,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 
 	if (!group->timeline_setup) {
 		gf_dash_group_timeline_setup(mpd, group, 0);
-		if (group->atsc_clock_state==1)
+		if (group->dash->atsc_clock_state==1)
 			return GF_IP_NETWORK_EMPTY;
 		group->timeline_setup = 1;
 		item_index = group->download_segment_index;
