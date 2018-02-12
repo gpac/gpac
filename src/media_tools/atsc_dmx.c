@@ -125,6 +125,10 @@ struct __gf_atscdmx {
 
 	GF_DOMParser *dom;
 	u32 service_autotune;
+
+	void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size);
+	void *udta;
+
 };
 
 void gf_atsc_route_session_del(GF_ATSCRouteSession *rs)
@@ -359,7 +363,7 @@ GF_Err gf_atsc_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			else if (atscd->service_autotune==service_id) service->opened = GF_TRUE;
 
 			gf_list_add(atscd->services, service);
-
+			if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_FOUND, service_id, NULL, NULL, 0);
 		}
 	}
 	return GF_OK;
@@ -393,6 +397,16 @@ GF_Err gf_atsc_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *s, u32 t
 		for (i=0; i<count; i++) {
 			obj = gf_list_get(s->objects, i);
 			if ((obj->toi == toi) && (obj->tsi==tsi)) break;
+
+			if (!tsi && !obj->tsi && ((obj->toi&0xFFFFFF00) == (toi&0xFFFFFF00)) ) {
+				//change in version of bundle but same other flags: reuse this one
+				obj->nb_frags = obj->nb_recv_frags = 0;
+				obj->nb_bytes = 0;
+				obj->total_length = total_len;
+				obj->toi = toi;
+				obj->status = GF_LCT_OBJ_INIT;
+				break;
+			}
 			obj = NULL;
 		}
 	}
@@ -496,6 +510,8 @@ GF_Err gf_atsc_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *s, u32 t
 
 GF_Err gf_atsc_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *content, char *content_location)
 {
+	u32 len = strlen(content);
+
 	if (s->output_dir) {
 		FILE *out;
 		char szPath[GF_MAX_PATH];
@@ -505,9 +521,7 @@ GF_Err gf_atsc_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *co
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create MPD file %s\n", s->service_id, szPath ));
 			return GF_IO_ERR;
 		} else {
-			u32 bytes, len;
-			len = strlen(content);
-			bytes = fwrite(content, 1, len, out);
+			u32 bytes = fwrite(content, 1, len, out);
 			gf_fclose(out);
 			if (bytes != len) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to write MPD file %d written for %d total\n", s->service_id, bytes, len));
@@ -516,7 +530,13 @@ GF_Err gf_atsc_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *co
 		}
 		return GF_OK;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d working in memory mode, not yet supported - MPD file %s - content %s\n", s->service_id, content_location, content ));
+
+	if (atscd->on_event) {
+		atscd->on_event(atscd->udta, GF_ATSC_EVT_MPD, s->service_id, content_location, content, len);
+	}
+	else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d working in memory mode without callback - MPD file %s - content %s\n", s->service_id, content_location, content ));
+	}
 	return GF_NOT_SUPPORTED;
 }
 
@@ -803,6 +823,22 @@ GF_Err gf_atsc_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCService *
 	return GF_OK;
 }
 
+static void gf_atsc_obj_to_reservoir(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *obj)
+{
+	//remove other objects
+	obj->closed_flag = GF_FALSE;
+	obj->nb_bytes = 0;
+	obj->nb_frags = GF_FALSE;
+	obj->nb_recv_frags = 0;
+	obj->rlct = NULL;
+	obj->toi = 0;
+	obj->total_length = 0;
+	obj->tsi = 0;
+	obj->status = GF_LCT_OBJ_INIT;
+	gf_list_del_item(s->objects, obj);
+	gf_list_add(atscd->object_reservoir, obj);
+}
+
 GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *obj)
 {
 	char szPath[GF_MAX_PATH], *sep;
@@ -821,8 +857,22 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 	obj->status = GF_LCT_OBJ_DISPATCHED;
 
 	if (!atscd->base_dir) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d : object TSI %u TOI %u received in memory mode, not supported yet\n", s->service_id, obj->tsi, obj->toi));
-		return GF_NOT_SUPPORTED;
+		Bool is_init = GF_FALSE;
+		if (!atscd->on_event) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d : object TSI %u TOI %u received in memory mode without callback\n", s->service_id, obj->tsi, obj->toi));
+			return GF_NOT_SUPPORTED;
+		}
+
+		if (obj->rlct->init_toi == obj->toi) {
+			sprintf(szPath, "%s", obj->rlct->init_filename);
+			is_init = GF_TRUE;
+		} else {
+			sprintf(szPath, obj->rlct->toi_template, obj->toi);
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d received object TSI %u TOI %u size %d in file %s\n", s->service_id, obj->tsi, obj->toi, obj->total_length, szPath));
+		atscd->on_event(atscd->udta, is_init ? GF_ATSC_EVT_INIT_SEG : GF_ATSC_EVT_SEG, s->service_id, szPath, obj->payload, obj->total_length);
+
+		return GF_OK;
 	}
 
 	if (obj->rlct->init_toi == obj->toi) {
@@ -833,12 +883,13 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 		sprintf(szPath, "%s/%s", s->output_dir, szFileName);
 	}
 
+
 	sep = strrchr(szPath, '/');
 	sep[0]=0;
 	if (gf_dir_exists(szPath)==GF_FALSE) {
 		GF_Err e = gf_mkdir(szPath);
 		if (e==GF_IO_ERR) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create output dire %s\n", s->service_id, szPath ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create output dir %s\n", s->service_id, szPath ));
 			return GF_IO_ERR;
 		}
 	}
@@ -862,18 +913,7 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 	//keep init segment active
 	if (obj->toi==obj->rlct->init_toi) return GF_OK;
 
-	//remove other objects
-	obj->closed_flag = GF_FALSE;
-	obj->nb_bytes = 0;
-	obj->nb_frags = GF_FALSE;
-	obj->nb_recv_frags = 0;
-	obj->rlct = NULL;
-	obj->toi = 0;
-	obj->total_length = 0;
-	obj->tsi = 0;
-	obj->status = GF_LCT_OBJ_INIT;
-	gf_list_del_item(s->objects, obj);
-	gf_list_add(atscd->object_reservoir, obj);
+	gf_atsc_obj_to_reservoir(atscd, s, obj);
 	return GF_OK;
 }
 
@@ -1077,6 +1117,7 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 			if (a_S) s->stsid_version = v+1;
 
 			gf_atsc_dmx_process_service_signaling(atscd, s, gather_object, cc);
+			//we don't release the LCT object, so that we can disard future versions
 		} else {
 			gf_atsc_dmx_process_object(atscd, s, gather_object);
 		}
@@ -1184,5 +1225,83 @@ GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd)
 		break;
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size), void *udta)
+{
+	if (!atscd) return GF_BAD_PARAM;
+	atscd->udta = udta;
+	atscd->on_event = on_event;
+	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_atsc_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id)
+{
+	u32 i=0;
+	GF_ATSCService *s;
+	while ((s = gf_list_enum(atscd->services, &i))) {
+		if (s->service_id != service_id) continue;
+		return gf_list_count(s->objects);
+	}
+	return 0;
+}
+
+GF_EXPORT
+void gf_atsc_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *fileName, Bool purge_previous)
+{
+	u32 i=0;
+	GF_ATSCService *s=NULL;
+	GF_LCTObject *obj = NULL;
+	while ((s = gf_list_enum(atscd->services, &i))) {
+		if (s->service_id == service_id) break;
+		s = NULL;
+	}
+	if (!s) return;
+	i=0;
+	while ((obj = gf_list_enum(s->objects, &i))) {
+		u32 toi;
+		if (obj->rlct && (sscanf(fileName, obj->rlct->toi_template, &toi) == 1)) {
+			if (toi == obj->toi) {
+				GF_ATSCLCTChannel *rlct = obj->rlct;
+				gf_atsc_obj_to_reservoir(atscd, s, obj);
+				if (purge_previous) {
+					i=0;
+					while ((obj = gf_list_enum(s->objects, &i))) {
+						if (obj->rlct != rlct) continue;
+						if (obj->toi==rlct->init_toi) continue;
+						if (obj->toi<toi) {
+							i--;
+							gf_atsc_obj_to_reservoir(atscd, s, obj);
+						}
+					}
+				}
+				return;
+			}
+		}
+		else if (obj->rlct && !strcmp(fileName, obj->rlct->init_filename)) {
+			gf_atsc_obj_to_reservoir(atscd, s, obj);
+			return;
+		}
+	}
+}
+
+
+GF_EXPORT
+void gf_atsc_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id)
+{
+	u32 i=0;
+	GF_ATSCService *s=NULL;
+	GF_LCTObject *obj = NULL;
+	while ((s = gf_list_enum(atscd->services, &i))) {
+		if (s->service_id == service_id) break;
+		s = NULL;
+	}
+	if (!s) return;
+
+	obj = gf_list_get(s->objects, 0);
+	if (obj)
+		gf_atsc_obj_to_reservoir(atscd, s, obj);
 }
 
