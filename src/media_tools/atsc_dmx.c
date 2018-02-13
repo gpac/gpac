@@ -510,7 +510,7 @@ GF_Err gf_atsc_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *s, u32 t
 
 GF_Err gf_atsc_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *content, char *content_location)
 {
-	u32 len = strlen(content);
+	u32 len = (u32) strlen(content);
 
 	if (s->output_dir) {
 		FILE *out;
@@ -521,7 +521,7 @@ GF_Err gf_atsc_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *co
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create MPD file %s\n", s->service_id, szPath ));
 			return GF_IO_ERR;
 		} else {
-			u32 bytes = fwrite(content, 1, len, out);
+			u32 bytes = (u32) fwrite(content, 1, (size_t) len, out);
 			gf_fclose(out);
 			if (bytes != len) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to write MPD file %d written for %d total\n", s->service_id, bytes, len));
@@ -901,7 +901,7 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 		return GF_IO_ERR;
 	} else {
 		u32 bytes;
-		bytes = fwrite(obj->payload, 1, obj->total_length, out);
+		bytes = (u32) fwrite(obj->payload, 1, (size_t) obj->total_length, out);
 		gf_fclose(out);
 		if (bytes != obj->total_length) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to write DASH resource file %d written for %d total\n", s->service_id, bytes, obj->total_length));
@@ -1104,10 +1104,10 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 	}
 
 	start_offset = gf_bs_read_u32(bs);
-	pos = gf_bs_get_position(bs);
+	pos = (u32) gf_bs_get_position(bs);
 	gf_bs_del(bs);
 
-	e = gf_atsc_service_gather_object(atscd, s, tsi, toi, start_offset, atscd->buffer + pos, nb_read-pos, tol_size, B, &gather_object);
+	e = gf_atsc_service_gather_object(atscd, s, tsi, toi, start_offset, atscd->buffer + pos, nb_read-pos, (u32) tol_size, B, &gather_object);
 
 	if (tsi && rlct && gather_object && !gather_object->rlct) gather_object->rlct = rlct;
 

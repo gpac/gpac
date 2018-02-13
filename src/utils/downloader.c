@@ -3945,7 +3945,7 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 
 	gf_cache_set_mime(the_entry, mime);
 	gf_cache_set_range(the_entry, size, start_range, end_range);
-	gf_cache_set_content(the_entry, data, size, GF_FALSE);
+	gf_cache_set_content(the_entry, data, (u32) size, GF_FALSE);
 
 	gf_mx_v(dm->cache_mx );
 	return the_entry;

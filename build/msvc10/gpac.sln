@@ -6,6 +6,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Osmo4", "Osmo4.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "aac_in", "aac_in.vcxproj", "{1F7CD37F-DC9A-4AC7-881B-36B263A644C7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "atsc_in", "atsc_in.vcxproj", "{1F7DE37F-DC9A-4AC7-881B-36B263A644C7}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bifs_dec", "bifs_dec.vcxproj", "{73CF10D0-DEC8-4D4B-AAB8-45864694CB8B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ctx_load", "ctx_load.vcxproj", "{BAE0C03A-56E0-4D37-89F5-62DD03BFC013}"

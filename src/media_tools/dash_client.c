@@ -517,7 +517,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	if (val && !group->dash->utc_drift_estimate) {
 		u32 i;
 		Bool found = GF_FALSE;
-		u32 timeline_offset_ms=0;
+		u64 timeline_offset_ms=0;
 		if (!group->dash->atsc_clock_state) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Detected ATSC DASH service ID %s\n", val));
 			group->dash->atsc_clock_state = 1;
@@ -543,7 +543,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			end = sep+4;
 			while (start && start>seg_url && (*(start-1)=='0')) { start--; nb_space++;}
 			start[0]=0;
-			len = strlen(seg_url)-2;
+			len = (u32) strlen(seg_url)-2;
 			if (!strncmp(val, seg_url+2, len)) {
 				u32 number=0;
 				char szTemplate[100];
@@ -8031,7 +8031,7 @@ void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp)
 
 GF_EXPORT
 s32 gf_dash_get_utc_drift_estimate(GF_DashClient *dash) {
-	return dash->utc_drift_estimate;
+	return (s32) dash->utc_drift_estimate;
 }
 
 GF_EXPORT
