@@ -284,7 +284,13 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 	}
 	return e;
 }
-
+#else
+GF_EXPORT
+GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+{
+	*out_size = 0;
+	return GF_NOT_SUPPORTED;
+}
 #endif /*GPAC_DISABLE_ZLIB*/
 
 #endif /* GPAC_DISABLE_CORE_TOOLS*/
