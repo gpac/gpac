@@ -30,7 +30,7 @@
 
 #define GF_ATSC_MCAST_ADDR	"224.0.23.60"
 #define GF_ATSC_MCAST_PORT	4937
-#define GF_ATSC_SOCK_SIZE	0xFFFF
+#define GF_ATSC_SOCK_SIZE	0x2000
 
 typedef struct
 {
@@ -78,6 +78,7 @@ typedef struct
 	GF_LCTFragInfo *frags;
 	GF_LCTObjectStatus status;
 	Bool closed_flag;
+	u32 download_time_ms;
 
 	GF_ATSCLCTChannel *rlct;
 } GF_LCTObject;
@@ -129,7 +130,7 @@ struct __gf_atscdmx {
 	GF_DOMParser *dom;
 	u32 service_autotune;
 
-	void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size, u32 tsi, u32 toi);
+	void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *info);
 	void *udta;
 
 };
@@ -381,10 +382,10 @@ GF_Err gf_atsc_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			else if (atscd->service_autotune==service_id) service->opened = GF_TRUE;
 
 			gf_list_add(atscd->services, service);
-			if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_FOUND, service_id, NULL, NULL, 0, 0, 0);
+			if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_FOUND, service_id, NULL);
 		}
 	}
-	if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_SCAN, 0, NULL, NULL, 0, 0, 0);
+	if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_SCAN, 0, NULL);
 	return GF_OK;
 }
 
@@ -403,6 +404,7 @@ GF_Err gf_atsc_service_flush_object(GF_ATSCService *s, GF_LCTObject *obj)
 	if (start_offset != obj->total_length) {
 		obj->status = GF_LCT_OBJ_DONE_ERR;
 	}
+	obj->download_time_ms = gf_sys_clock() - obj->download_time_ms;
 	return GF_EOS;
 }
 
@@ -446,7 +448,11 @@ GF_Err gf_atsc_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *s, u32 t
 		obj->total_length = total_len;
 		if (!total_len) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u started without total-length assigned !\n", s->service_id, toi, tsi ));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d starting object TSI %u TOI %u total-length %d\n", s->service_id, toi, tsi, total_len));
+
 		}
+		obj->download_time_ms = gf_sys_clock();
 		gf_list_add(s->objects, obj);
 	} else if (!obj->total_length) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, toi, tsi, total_len));
@@ -551,7 +557,12 @@ GF_Err gf_atsc_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *co
 	}
 
 	if (atscd->on_event) {
-		atscd->on_event(atscd->udta, GF_ATSC_EVT_MPD, s->service_id, content_location, content, len, 0, 0);
+		GF_ATSCEventFileInfo finfo;
+		memset(&finfo, 0, sizeof(GF_ATSCEventFileInfo));
+		finfo.data = content;
+		finfo.size = len;
+		finfo.filename = content_location;
+		atscd->on_event(atscd->udta, GF_ATSC_EVT_MPD, s->service_id, &finfo);
 	}
 	else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d received MPD file %s content:\n%s\n", s->service_id, content_location, content ));
@@ -845,14 +856,17 @@ GF_Err gf_atsc_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCService *
 static void gf_atsc_obj_to_reservoir(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *obj)
 {
 	//remove other objects
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d : moving object tsi %u toi %u to reservoir\n", s->service_id, obj->tsi, obj->toi));
+	if (s->last_active_obj==obj) s->last_active_obj = NULL;
 	obj->closed_flag = GF_FALSE;
 	obj->nb_bytes = 0;
 	obj->nb_frags = GF_FALSE;
 	obj->nb_recv_frags = 0;
 	obj->rlct = NULL;
 	obj->toi = 0;
-	obj->total_length = 0;
 	obj->tsi = 0;
+	obj->total_length = 0;
+	obj->download_time_ms = 0;
 	obj->status = GF_LCT_OBJ_INIT;
 	gf_list_del_item(s->objects, obj);
 	gf_list_add(atscd->object_reservoir, obj);
@@ -862,6 +876,7 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 {
 	char szPath[GF_MAX_PATH], *sep;
 	u32 i, count, nb_objs;
+	Bool partial = GF_FALSE;
 	FILE *out;
 
 	if (!obj->rlct) {
@@ -872,6 +887,7 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 
 	if (obj->status==GF_LCT_OBJ_DONE_ERR) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d : object TSI %u TOI %u partial received only\n", s->service_id, obj->tsi, obj->toi));
+		partial = GF_TRUE;
 	}
 	if (obj->status == GF_LCT_OBJ_DISPATCHED) return GF_OK;
 	obj->status = GF_LCT_OBJ_DISPATCHED;
@@ -885,11 +901,20 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 		} else {
 			sprintf(szPath, obj->rlct->toi_template, obj->toi);
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d received object TSI %u TOI %u size %d in file %s\n", s->service_id, obj->tsi, obj->toi, obj->total_length, szPath));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d got file %s (TSI %u TOI %u) size %d in %d ms (%d bytes in %d fragments)\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
 
-		if (atscd->on_event)
-			atscd->on_event(atscd->udta, is_init ? GF_ATSC_EVT_INIT_SEG : GF_ATSC_EVT_SEG, s->service_id, szPath, obj->payload, obj->total_length, obj->tsi, obj->toi);
-
+		if (atscd->on_event) {
+			GF_ATSCEventFileInfo finfo;
+			memset(&finfo, 0, sizeof(GF_ATSCEventFileInfo));
+			finfo.filename = szPath;
+			finfo.data = obj->payload;
+			finfo.size = obj->total_length;
+			finfo.tsi = obj->tsi;
+			finfo.toi = obj->toi;
+			finfo.corrupted = partial;
+			finfo.download_ms = obj->download_time_ms;
+			atscd->on_event(atscd->udta, is_init ? GF_ATSC_EVT_INIT_SEG : GF_ATSC_EVT_SEG, s->service_id, &finfo);
+		}
 		return GF_OK;
 	}
 
@@ -926,7 +951,7 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 			return GF_IO_ERR;
 		}
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d received object TSI %u TOI %u size %d in file %s\n", s->service_id, obj->tsi, obj->toi, obj->total_length, szPath));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d got file %s (TSI %u TOI %u) size %d in %d ms (%d bytes in %d fragments)\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
 
 	//keep init segment active
 	if (obj->toi==obj->rlct->init_toi) return GF_OK;
@@ -994,7 +1019,6 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 	GF_Err e;
 	u32 nb_read, v, C, psi, S, O, H, Res, A, B, hdr_len, cp, cc, tsi, toi, pos;
 	u32 a_G=0, a_U=0, a_S=0, a_M=0, a_A=0, a_H=0, a_D=0;
-	Bool hdr_ok = GF_TRUE;
 	u64 tol_size=0;
 	u32 start_offset;
 	GF_ATSCLCTChannel *rlct=NULL;
@@ -1025,39 +1049,36 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 
 	if (v!=1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d : wrong LCT header version %d\n", s->service_id, v));
-		hdr_ok = GF_FALSE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (C!=0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d : wrong ROUTE LCT header C %d, expecting 0\n", s->service_id, C));
-		hdr_ok = GF_FALSE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if ((psi!=0) && (psi!=2) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d : wrong ROUTE LCT header PSI %d, expecting b00 or b10\n", s->service_id, psi));
-		hdr_ok = GF_FALSE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (S!=1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d : wrong ROUTE LCT header S, shall be 1\n", s->service_id));
-		hdr_ok = GF_FALSE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (O!=1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d : wrong ROUTE LCT header S, shall be b01\n", s->service_id));
-		hdr_ok = GF_FALSE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (H!=0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d : wrong ROUTE LCT header H, shall be 0\n", s->service_id));
-		hdr_ok = GF_FALSE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (hdr_len<4) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d : wrong ROUTE LCT header len %d, shall be at least 4 0\n", s->service_id, hdr_len));
-		hdr_ok = GF_FALSE;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	if (psi==0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d : FEC ROUTE not implemented\n", s->service_id));
-		hdr_ok = GF_FALSE;
-	}
-	if (!hdr_ok) {
-		return GF_NON_COMPLIANT_BITSTREAM;
+		return GF_NOT_SUPPORTED;
 	}
 
 	cc = gf_bs_read_u32(atscd->bs);
@@ -1087,6 +1108,7 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 			}
 		}
 		if (!in_session) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d : no session with TSI %u defined, skipping packet\n", s->service_id, tsi));
 			return GF_OK;
 		}
 	} else {
@@ -1106,6 +1128,7 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 
 		//for now we only care about S and M
 		if (!a_S && ! a_M) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d : SLT bundle without MPD or S-TSID, skipping packet\n", s->service_id));
 			return GF_OK;
 		}
 	}
@@ -1153,6 +1176,8 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 	start_offset = gf_bs_read_u32(atscd->bs);
 	pos = (u32) gf_bs_get_position(atscd->bs);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d : LCT packet TSI %u TOI %u size %d startOffset %u TOL "LLU"\n", s->service_id, tsi, toi, nb_read-pos, start_offset, tol_size));
+
 	e = gf_atsc_service_gather_object(atscd, s, tsi, toi, start_offset, atscd->buffer + pos, nb_read-pos, (u32) tol_size, B, &gather_object);
 
 	if (tsi && rlct && gather_object && !gather_object->rlct) gather_object->rlct = rlct;
@@ -1172,30 +1197,32 @@ GF_Err gf_atsc_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_ATSC
 	return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_atsc_dmx_process_services(GF_ATSCDmx *atscd)
+static GF_Err gf_atsc_dmx_process_services(GF_ATSCDmx *atscd)
 {
 	u32 i, count = gf_list_count(atscd->services);
+	Bool is_empty = GF_TRUE;
 	for (i=0; i<count; i++) {
 		u32 j;
+		GF_Err e;
 		GF_ATSCRouteSession *rsess;
 		GF_ATSCService *s = gf_list_get(atscd->services, i);
 		if (!s->opened) continue;
 
-		gf_atsc_dmx_process_service(atscd, s, NULL);
-
+		e = gf_atsc_dmx_process_service(atscd, s, NULL);
+		if (e!=GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 		if (!s->secondary_sockets) continue;
 		j=0;
 		while ((rsess = gf_list_enum(s->route_sessions, &j) )) {
-			if (rsess->sock )
-				gf_atsc_dmx_process_service(atscd, s, rsess);
+			if (rsess->sock) {
+				e = gf_atsc_dmx_process_service(atscd, s, rsess);
+				if (e!=GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
+			}
 		}
 	}
-	return GF_OK;
+	return is_empty ? GF_IP_NETWORK_EMPTY : GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd)
+static GF_Err gf_atsc_dmx_process_lls(GF_ATSCDmx *atscd)
 {
 	u32 read;
 	GF_Err e;
@@ -1274,7 +1301,18 @@ GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd)
 }
 
 GF_EXPORT
-GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size, u32 tsi, u32 toi), void *udta)
+GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd)
+{
+	Bool is_empty = GF_TRUE;
+	GF_Err e = gf_atsc_dmx_process_lls(atscd);
+	if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
+	e = gf_atsc_dmx_process_services(atscd);
+	if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
+	return is_empty ? GF_IP_NETWORK_EMPTY : GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *info), void *udta)
 {
 	if (!atscd) return GF_BAD_PARAM;
 	atscd->udta = udta;
@@ -1324,6 +1362,9 @@ void gf_atsc_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *
 		if (obj->rlct && (sscanf(fileName, obj->rlct->toi_template, &toi) == 1)) {
 			if (toi == obj->toi) {
 				GF_ATSCLCTChannel *rlct = obj->rlct;
+				//we likely have a loop here
+				if (obj == s->last_active_obj) return;
+
 				gf_atsc_obj_to_reservoir(atscd, s, obj);
 				if (purge_previous) {
 					i=0;
@@ -1332,6 +1373,8 @@ void gf_atsc_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *
 						if (obj->toi==rlct->init_toi) continue;
 						if (obj->toi<toi) {
 							i--;
+							//we likely have a loop here
+							if (obj == s->last_active_obj) return;
 							gf_atsc_obj_to_reservoir(atscd, s, obj);
 						}
 					}
@@ -1360,7 +1403,34 @@ void gf_atsc_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id)
 	if (!s) return;
 
 	obj = gf_list_get(s->objects, 0);
-	if (obj)
+	if (obj) {
+		assert(obj != s->last_active_obj);
 		gf_atsc_obj_to_reservoir(atscd, s, obj);
+	}
+}
+
+GF_EXPORT
+void gf_atsc_dmx_purge_objects(GF_ATSCDmx *atscd, u32 service_id)
+{
+	u32 i=0;
+	GF_ATSCService *s=NULL;
+	GF_LCTObject *obj = NULL;
+	while ((s = gf_list_enum(atscd->services, &i))) {
+		if (s->service_id == service_id) break;
+		s = NULL;
+	}
+	if (!s) return;
+
+	i=0;
+	while ((obj = gf_list_enum(s->objects, &i))) {
+		//only purge non signaling objects
+		if (!obj->tsi) continue;
+		//if object is being received keep it
+		if (s->last_active_obj == obj) continue;
+		//if object is init segment keep it - this may need refinement in case we had init segment updates
+		if (obj->rlct && (obj->rlct->init_toi==obj->toi)) continue;
+		//trash
+		gf_atsc_obj_to_reservoir(atscd, s, obj);
+	}
 }
 
