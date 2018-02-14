@@ -403,8 +403,6 @@
 		92AAF1D918D710A000E2FF12 /* vtt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D518D7109A00E2FF12 /* vtt_dec.c */; };
 		92AAF1DA18D710A000E2FF12 /* vtt_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D618D7109A00E2FF12 /* vtt_in.c */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
-		92BAF030202C564D001ED2F1 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BAF023202C542C001ED2F1 /* main.c */; };
-		92BAF031202C565D001ED2F1 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -594,15 +592,6 @@
 
 /* Begin PBXCopyFilesBuildPhase section */
 		2839E2861A1635F7002D73E1 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-		92BAF027202C5569001ED2F1 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -1304,7 +1293,6 @@
 		92AAF1D618D7109A00E2FF12 /* vtt_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_in.c; path = ../../modules/vtt_in/vtt_in.c; sourceTree = "<group>"; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		92BAF023202C542C001ED2F1 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/testapps/atscdmx/main.c; sourceTree = "<group>"; };
-		92BAF029202C5569001ED2F1 /* atscdmx */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = atscdmx; sourceTree = BUILT_PRODUCTS_DIR; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -1536,14 +1524,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				92AAF1C618D70BAE00E2FF12 /* libgpac.dylib in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		92BAF026202C5569001ED2F1 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				92BAF031202C565D001ED2F1 /* libgpac.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1848,7 +1828,6 @@
 				92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */,
 				9225732418D7267900D6FD98 /* gm_ogg_in.dylib */,
 				92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */,
-				92BAF029202C5569001ED2F1 /* atscdmx */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3378,23 +3357,6 @@
 			productReference = 92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
-		92BAF028202C5569001ED2F1 /* atscdmx */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 92BAF02D202C5569001ED2F1 /* Build configuration list for PBXNativeTarget "atscdmx" */;
-			buildPhases = (
-				92BAF025202C5569001ED2F1 /* Sources */,
-				92BAF026202C5569001ED2F1 /* Frameworks */,
-				92BAF027202C5569001ED2F1 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = atscdmx;
-			productName = atscdmx;
-			productReference = 92BAF029202C5569001ED2F1 /* atscdmx */;
-			productType = "com.apple.product-type.tool";
-		};
 		92BE508F18D6325E00AA59D8 /* MP4Box */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 92BE509918D6325E00AA59D8 /* Build configuration list for PBXNativeTarget "MP4Box" */;
@@ -3462,13 +3424,6 @@
 			attributes = {
 				LastUpgradeCheck = 0800;
 				ORGANIZATIONNAME = "Telecom ParisTech";
-				TargetAttributes = {
-					92BAF028202C5569001ED2F1 = {
-						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = Y3MQ824CRS;
-						ProvisioningStyle = Automatic;
-					};
-				};
 			};
 			buildConfigurationList = 9201F92C18D5A359003D1ACA /* Build configuration list for PBXProject "gpac" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -3496,7 +3451,6 @@
 				92AAF1BD18D70B1C00E2FF12 /* openhevc_dec */,
 				9225732318D7267900D6FD98 /* ogg_in */,
 				2839E27D1A162C24002D73E1 /* opensvc */,
-				92BAF028202C5569001ED2F1 /* atscdmx */,
 			);
 		};
 /* End PBXProject section */
@@ -3936,14 +3890,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				92AAF1C518D70B4600E2FF12 /* openhevc_dec.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		92BAF025202C5569001ED2F1 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				92BAF030202C564D001ED2F1 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4991,99 +4937,6 @@
 			};
 			name = Release;
 		};
-		92BAF02E202C5569001ED2F1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = Y3MQ824CRS;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					/usr/local/include/,
-					../../extra_lib/include,
-				);
-				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/gcc;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SYMROOT = ../../bin/osx/;
-				SYSTEM_HEADER_SEARCH_PATHS = "";
-			};
-			name = Debug;
-		};
-		92BAF02F202C5569001ED2F1 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = Y3MQ824CRS;
-				ENABLE_NS_ASSERTIONS = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					/usr/local/include/,
-					../../extra_lib/include,
-				);
-				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/gcc;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SYMROOT = ../../bin/osx/;
-				SYSTEM_HEADER_SEARCH_PATHS = "";
-			};
-			name = Release;
-		};
 		92BE509718D6325E00AA59D8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -5340,15 +5193,6 @@
 			buildConfigurations = (
 				92AAF1C018D70B1C00E2FF12 /* Debug */,
 				92AAF1C118D70B1C00E2FF12 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		92BAF02D202C5569001ED2F1 /* Build configuration list for PBXNativeTarget "atscdmx" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				92BAF02E202C5569001ED2F1 /* Debug */,
-				92BAF02F202C5569001ED2F1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
