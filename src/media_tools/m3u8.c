@@ -784,7 +784,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 		if (stream == NULL) {
 			stream = stream_new(attribs->stream_id);
 			if (stream == NULL) {
-				/* OUT of memory */
+				/* out of memory */
 				gf_m3u8_master_playlist_del(playlist);
 				return GF_OUT_OF_MEM;
 			}
@@ -826,7 +826,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 			}
 			curr_playlist = playlist_element_new(TYPE_PLAYLIST, fullURL, attribs);
 			if (curr_playlist == NULL) {
-				/* OUT of memory */
+				/* out of memory */
 				gf_m3u8_master_playlist_del(playlist);
 				return GF_OUT_OF_MEM;
 			}
@@ -858,7 +858,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				assert(baseURL);
 				curr_playlist = playlist_element_new(TYPE_PLAYLIST, baseURL, attribs);
 				if (curr_playlist == NULL) {
-					/* OUT of memory */
+					/* out of memory */
 					gf_m3u8_master_playlist_del(playlist);
 					return GF_OUT_OF_MEM;
 				}

@@ -442,7 +442,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	GF_SAFEALLOC(entry, struct __DownloadedCacheEntryStruct);
 
 	if ( !entry ) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_cache_create_entry:%d : OUT of memory !\n", __LINE__));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_cache_create_entry:%d : out of memory !\n", __LINE__));
 		return NULL;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, entry=%p\n", __LINE__, entry));
@@ -533,7 +533,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	if ( !entry->properties )
 	{
 		GF_Err err;
-		/* OUT of memory ? */
+		/* out of memory ? */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, aborting due to OUT of MEMORY !\n", __LINE__));
 		err = gf_cache_delete_entry ( entry );
 		if ( err != GF_OK ) {

@@ -149,6 +149,8 @@ void PrintLiveUsage();
 u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *outName);
 #endif
 
+u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID);
+
 int mp4boxTerminal(int argc, char **argv);
 
 u32 quiet = 0;
@@ -857,6 +859,20 @@ void PrintSWFUsage()
 	       );
 }
 
+void PrintATSCUsage()
+{
+	fprintf(stderr,
+	        "ATSC3 reader Options\n"
+	        "\n"
+	        "MP4Box can read ATSC3 sessions from network. \n"
+	        "\n"
+	        " -atsc 			enables ATSC3 reader\n"
+	        " -ifce IP			IP adress of network interface to use\n"
+	        " -dir PATH			local filesystem path to which the files are written. If not set, nothing is written to disk.\n"
+	        " -service ID:		ID of the service to grab. If not set or -1, all services are dumped. If 0, no services are dumped. If -2, the first service found is used.\n"
+	        "\n"
+	       );
+}
 void PrintUsage()
 {
 	fprintf (stderr, "MP4Box [option] input [option]\n"
@@ -873,6 +889,7 @@ void PrintUsage()
 	         " -h format            supported formats help\n"
 	         " -h rtp               file streamer help\n"
 	         " -h live              BIFS streamer help\n"
+	         " -h atsc              ATSC3 reader help\n"
 	         " -h all               all options are printed\n"
 	         "\n"
 	         " -nodes               lists supported MPEG4 nodes\n"
@@ -1829,9 +1846,9 @@ static GF_Err hash_file(char *name, u32 dump_std)
 Bool log_sys_clock = GF_FALSE;
 Bool log_utc_time = GF_FALSE;
 
-static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
+static void on_mp4box_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
-	FILE *logs = cbk;
+	FILE *logs = cbk ? cbk : stderr;
 
 	if (log_sys_clock) {
 		fprintf(logs, "At "LLD" ", gf_sys_clock_high_res() );
@@ -1926,6 +1943,9 @@ Bool frag_at_rap = GF_FALSE;
 Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
+Bool grab_atsc = GF_FALSE;
+const char *atsc_output_dir = NULL;
+s32 atsc_service = -1;
 u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
@@ -1937,8 +1957,9 @@ const char *dash_source = NULL;
 const char *dash_more_info = NULL;
 #if !defined(GPAC_DISABLE_STREAMING)
 const char *grab_m2ts = NULL;
-const char *grab_ifce = NULL;
 #endif
+const char *grab_ifce = NULL;
+
 FILE *logfile = NULL;
 static u32 run_for=0;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
@@ -2775,6 +2796,7 @@ else if (!stricmp(arg, "-h")) {
 	else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
 	else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
 	else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
+	else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	else if (!strcmp(argv[i + 1], "rtp")) PrintStreamerUsage();
 	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
@@ -2791,6 +2813,7 @@ else if (!stricmp(arg, "-h")) {
 		PrintEncryptUsage();
 		PrintMetaUsage();
 		PrintSWFUsage();
+		PrintATSCUsage();
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		PrintStreamerUsage();
 		PrintLiveUsage();
@@ -2872,7 +2895,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 			logfile = gf_fopen(argv[i + 1], "wt");
-			gf_log_set_callback(logfile, on_gpac_log);
+			gf_log_set_callback(logfile, on_mp4box_log);
 			i++;
 		}
 		else if (!strcmp(arg, "-lc") || !strcmp(arg, "-log-clock")) {
@@ -2900,13 +2923,25 @@ Bool mp4box_parse_args(int argc, char **argv)
 			grab_m2ts = argv[i + 1];
 			i++;
 		}
+#endif
 		else if (!stricmp(arg, "-ifce")) {
 			CHECK_NEXT_ARG
 			grab_ifce = argv[i + 1];
 			i++;
 		}
-
-#endif
+		else if (!stricmp(arg, "-atsc")) {
+			grab_atsc = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-dir")) {
+			CHECK_NEXT_ARG
+			atsc_output_dir = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-service")) {
+			CHECK_NEXT_ARG
+			atsc_service = atoi(argv[i + 1]);
+			i++;
+		}
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
@@ -3543,8 +3578,19 @@ int mp4boxMain(int argc, char **argv)
 		return mp4box_cleanup(i - 1);
 	}
 
+	if (!logfile && (log_sys_clock || log_utc_time) )
+		gf_log_set_callback(NULL, on_mp4box_log);
+
 	if (!inName && dump_std)
 		inName = "std";
+
+	if (grab_atsc) {
+		if (!gf_logs) {
+			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+			gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
+		}
+		return grab_atsc_session(atsc_output_dir, grab_ifce, atsc_service);
+	}
 
 	if (!inName) {
 		PrintUsage();

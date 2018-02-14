@@ -431,6 +431,8 @@ typedef enum
 	GF_MPD_RESOLVE_URL_INDEX,
 	//same as GF_MPD_RESOLVE_URL_MEDIA but does not replace $Time$ and $Number$
 	GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE,
+	//same as GF_MPD_RESOLVE_URL_MEDIA but does not use startNumber
+	GF_MPD_RESOLVE_URL_MEDIA_NOSTART,
 } GF_MPD_URLResolveType;
 
 /*resolves a URL based for a given segment, based on the MPD url, the type of resolution

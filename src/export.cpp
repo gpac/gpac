@@ -2207,6 +2207,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_get_object_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_remove_object_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_remove_first_object) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_find_service) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_add_cache_entry) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_force_headers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_service_get_dm) )

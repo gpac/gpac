@@ -958,4 +958,43 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 
 #endif /* GPAC_DISABLE_MPEG2TS */
 
+#include <gpac/atsc.h>
+
+u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID)
+{
+	GF_ATSCDmx *atscd;
+	Bool run = GF_TRUE;
+
+	atscd = gf_atsc_dmx_new(ifce, dir, 0);
+	if (!atscd) {
+		fprintf(stderr, "Failed to create ATSC3 demuxer\n");
+		return 1;
+	}
+	gf_atsc_tune_in(atscd, (u32) serviceID);
+	if (!dir) fprintf(stderr, "No output dir, ATSC3 demux inspect mode only\n");
+	fprintf(stderr, "Starting ATSC3 demux, press 'q' to stop\n");
+
+	while (atscd && run) {
+		Bool is_empty = GF_TRUE;
+		GF_Err e = gf_atsc_dmx_process(atscd);
+		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
+
+		gf_atsc_dmx_process_services(atscd);
+		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
+
+		if (gf_prompt_has_input()) {
+			u8 c = gf_prompt_get_char();
+			switch (c) {
+			case 'q':
+				run = GF_FALSE;
+				break;
+			}
+		}
+
+		if (is_empty)
+			gf_sleep(1);
+	}
+	gf_atsc_dmx_del(atscd);
+	return 0;
+}
 
