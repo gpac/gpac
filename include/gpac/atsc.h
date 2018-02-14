@@ -26,6 +26,8 @@ GF_ATSCDmx *gf_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_s
 
 GF_Err gf_atsc_tune_in(GF_ATSCDmx *atscd, u32 serviceID);
 
+GF_Err gf_atsc_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
+
 GF_Err gf_atsc_dmx_process_services(GF_ATSCDmx *atscd);
 
 typedef enum
@@ -42,7 +44,7 @@ typedef enum
 	GF_ATSC_EVT_SEG,
 } GF_ATSCEventType;
 
-GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size), void *udta);
+GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size, u32 tsi, u32 toi), void *udta);
 
 u32 gf_atsc_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id);
 

@@ -42,6 +42,8 @@ typedef struct
 	GF_ATSCDmx *atsc_dmx;
 	DownloadedCacheEntry mpd_cache_entry;
 	u32 tune_service_id;
+
+	u32 sync_tsi, last_toi;
 } ATSCIn;
 
 
@@ -73,7 +75,7 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 
 GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry entry, const char *headers);
 
-void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size)
+void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size, u32 tsi, u32 toi)
 {
 	char szPath[GF_MAX_PATH];
 	ATSCIn *atscd = (ATSCIn *)udta;
@@ -109,6 +111,11 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, const char
 		gf_dm_force_headers(atscd->dm, atscd->mpd_cache_entry, szPath);
 
 		gf_service_declare_media(atscd->service, (GF_Descriptor *) od, GF_TRUE);
+
+		atscd->sync_tsi = 0;
+		atscd->last_toi = 0;
+		if (atscd->clock_init_seg) gf_free(atscd->clock_init_seg);
+		atscd->clock_init_seg = NULL;
 	}
 		break;
 	case GF_ATSC_EVT_SEG:
@@ -118,6 +125,22 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, const char
 			gf_dm_force_headers(atscd->dm, atscd->mpd_cache_entry, szPath);
 		}
 		is_init = GF_FALSE;
+		if (!atscd->sync_tsi) {
+			atscd->sync_tsi = tsi;
+			atscd->last_toi = toi;
+		} else if (atscd->sync_tsi == tsi) {
+			if (atscd->last_toi > toi) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSCDmx] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", atscd->tune_service_id, tsi, atscd->last_toi, toi));
+				if (atscd->mpd_cache_entry) {
+					if (atscd->clock_init_seg) gf_free(atscd->clock_init_seg);
+					atscd->clock_init_seg = gf_strdup(filename);
+					sprintf(szPath, "x-dash-atsc: %d\r\nx-dash-first-seg: %s\r\nx-atsc-loop: yes\r\n", evt_param, atscd->clock_init_seg);
+					gf_dm_force_headers(atscd->dm, atscd->mpd_cache_entry, szPath);
+				}
+			}
+			atscd->last_toi = toi;
+		}
+		//fallthrough
 
 	case GF_ATSC_EVT_INIT_SEG:
 

@@ -960,7 +960,7 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 
 #include <gpac/atsc.h>
 
-u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID)
+u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs)
 {
 	GF_ATSCDmx *atscd;
 	Bool run = GF_TRUE;
@@ -971,6 +971,9 @@ u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID)
 		return 1;
 	}
 	gf_atsc_tune_in(atscd, (u32) serviceID);
+	if (atsc_max_segs>=0)
+		gf_atsc_set_max_objects_store(atscd, (u32) atsc_max_segs);
+
 	if (!dir) fprintf(stderr, "No output dir, ATSC3 demux inspect mode only\n");
 	fprintf(stderr, "Starting ATSC3 demux, press 'q' to stop\n");
 

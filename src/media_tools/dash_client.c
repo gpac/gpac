@@ -1017,7 +1017,7 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 		if (persistent_mode!=2) {
 			e = dash_io->setup_from_url(dash_io, *sess, url, group_idx);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot resetup session for url %s: %s\n", url, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot resetup downloader for url %s: %s\n", url, gf_error_to_string(e) ));
 				return e;
 			}
 		}
@@ -5093,6 +5093,23 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost - we add 100ms safety
 	else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure <= group->current_downloaded_segment_duration + dash->segment_lost_after_ms )) {
 	} else {
+		if ((group->dash->atsc_clock_state==2) && (e==GF_URL_ERROR)) {
+			const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-atsc-loop");
+			if (val && !strcmp(val, "yes")) {
+				u32 i=0;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ATSC loop detected, reseting timeline\n"));
+				dash->utc_drift_estimate = 0;
+				dash->atsc_clock_state = 1;
+				while ((group = gf_list_enum(dash->groups, &i))) {
+					group->start_number_at_last_ast = 0;
+					gf_dash_group_timeline_setup(dash->mpd, group, 0);
+					group->loop_detected = GF_TRUE;
+					group->time_at_first_failure = 0;
+					group->prev_segment_ok = GF_TRUE;
+				}
+				return GF_OK;
+			}
+		}
 		if (group->prev_segment_ok) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
 			group->time_at_first_failure = 0;
@@ -6309,7 +6326,7 @@ static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
 		}
 		e = dash->dash_io->setup_from_url(dash->dash_io, getter->session, url, group_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot resetup session for url %s: %s\n", url, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot resetup downloader for url %s: %s\n", url, gf_error_to_string(e) ));
 			return e;
 		}
 		sess = (GF_DASHFileIOSession *)getter->session;

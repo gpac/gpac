@@ -149,7 +149,7 @@ void PrintLiveUsage();
 u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *outName);
 #endif
 
-u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID);
+u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs);
 
 int mp4boxTerminal(int argc, char **argv);
 
@@ -870,6 +870,7 @@ void PrintATSCUsage()
 	        " -ifce IP			IP adress of network interface to use\n"
 	        " -dir PATH			local filesystem path to which the files are written. If not set, nothing is written to disk.\n"
 	        " -service ID:		ID of the service to grab. If not set or -1, all services are dumped. If 0, no services are dumped. If -2, the first service found is used.\n"
+	        " -nb-segs N:		sets max segments to keep on disk per stream. -1 (default) keeps all.\n"
 	        "\n"
 	       );
 }
@@ -1944,6 +1945,7 @@ Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
 Bool grab_atsc = GF_FALSE;
+s32 atsc_max_segs = -1;
 const char *atsc_output_dir = NULL;
 s32 atsc_service = -1;
 u32 timescale = 0;
@@ -2934,12 +2936,17 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-dir")) {
 			CHECK_NEXT_ARG
-			atsc_output_dir = atoi(argv[i + 1]);
+			atsc_output_dir = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-service")) {
 			CHECK_NEXT_ARG
 			atsc_service = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-nb_segs")) {
+			CHECK_NEXT_ARG
+			atsc_max_segs = atoi(argv[i + 1]);
 			i++;
 		}
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
@@ -3589,7 +3596,7 @@ int mp4boxMain(int argc, char **argv)
 			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 			gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
 		}
-		return grab_atsc_session(atsc_output_dir, grab_ifce, atsc_service);
+		return grab_atsc_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs);
 	}
 
 	if (!inName) {
