@@ -76,6 +76,8 @@ struct _net_service
 	u32 nb_ch_users;
 	/*number of attached remote ODM (OD URLs)*/
 	u32 nb_odm_users;
+	//original serviceID in case remote OD created the service
+	u32 serviceID;
 
 	/*clock objects. Kept at service level since ESID namespace is the service one*/
 	GF_List *Clocks;

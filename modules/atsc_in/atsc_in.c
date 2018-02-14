@@ -41,6 +41,7 @@ typedef struct
 	char *clock_init_seg;
 	GF_ATSCDmx *atsc_dmx;
 	DownloadedCacheEntry mpd_cache_entry;
+	u32 tune_service_id;
 } ATSCIn;
 
 
@@ -81,20 +82,33 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, const char
 
 	switch (evt) {
 	case GF_ATSC_EVT_SERVICE_FOUND:
+		if (!atscd->tune_service_id) {
+			atscd->tune_service_id = evt_param;
+			gf_atsc_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
+		}
+		break;
+	case GF_ATSC_EVT_SERVICE_SCAN:
+		if (atscd->tune_service_id && !gf_atsc_dmx_find_service(atscd->atsc_dmx, atscd->tune_service_id)) {
+
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSCDmx] Asked to tune to service %d but no such service, tuning to first one\n", atscd->tune_service_id));
+
+			atscd->tune_service_id = 0;
+			gf_atsc_tune_in(atscd->atsc_dmx, (u32) -2);
+		}
 		break;
 	case GF_ATSC_EVT_MPD:
 	{
-		GF_ObjectDescriptor *odm = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-		//odm->ServiceID = evt_param;
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		od->ServiceID = evt_param;
 
 		sprintf(szPath, "http://gpatsc/service%d/%s", evt_param, filename);
-		odm->URLString = gf_strdup(szPath);
+		od->URLString = gf_strdup(szPath);
 		atscd->mpd_cache_entry = gf_dm_add_cache_entry(atscd->dm, szPath, data, size, 0, 0, "application/dash+xml", GF_FALSE);
 
 		sprintf(szPath, "x-dash-atsc: %d\r\n", evt_param);
 		gf_dm_force_headers(atscd->dm, atscd->mpd_cache_entry, szPath);
 
-		gf_service_declare_media(atscd->service, (GF_Descriptor *) odm, GF_TRUE);
+		gf_service_declare_media(atscd->service, (GF_Descriptor *) od, GF_TRUE);
 	}
 		break;
 	case GF_ATSC_EVT_SEG:
@@ -146,12 +160,17 @@ static u32 ATSCIn_Run(void *par)
 
 	gf_service_connect_ack(atscd->service, NULL, GF_OK);
 	gf_atsc_set_callback(atscd->atsc_dmx, ATSCIn_on_event, atscd);
-	gf_atsc_tune_in(atscd->atsc_dmx, 0xFFFFFFFF);
+	if (atscd->tune_service_id)
+		gf_atsc_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
 
 	while (atscd->state==1) {
-		gf_atsc_dmx_process(atscd->atsc_dmx);
+		Bool is_empty = GF_TRUE;
+		GF_Err e = gf_atsc_dmx_process(atscd->atsc_dmx);
+		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 		gf_atsc_dmx_process_services(atscd->atsc_dmx);
+		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 
+		if (is_empty) gf_sleep(1);
 	}
 	atscd->state = 3;
 	return 0;
@@ -164,6 +183,7 @@ GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_
 
 static GF_Err ATSCIn_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
+	char *opts;
 	ATSCIn *atscd = plug->priv;
 	atscd->service = serv;
 	if (!atscd->atsc_dmx) {
@@ -173,6 +193,16 @@ static GF_Err ATSCIn_ConnectService(GF_InputService *plug, GF_ClientService *ser
 		atscd->dm = gf_term_service_get_dm(serv);
 		if (!atscd->dm) return GF_SERVICE_ERROR;
 		gf_dm_set_localcache_provider(atscd->dm, ATSCIn_LocalCacheCbk, atscd);
+	}
+	opts = (char *)url + 7;
+	if (opts[0]==0) opts = NULL;
+	while (opts) {
+		char *sep = strchr(opts, ':');
+		if (sep) sep[0] = 0;
+		if (!strncmp(opts, "service=", 8)) atscd->tune_service_id = atoi(opts+8);
+		if (!sep) break;
+		sep[0] = ':';
+		opts = sep+1;
 	}
 	atscd->state = 1;
 	gf_th_run(atscd->th, ATSCIn_Run, atscd);

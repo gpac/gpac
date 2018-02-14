@@ -2658,8 +2658,12 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 				fprintf(stderr, "#%d - ", num);
 				if (odi.media_url) {
 					fprintf(stderr, "%s", odi.media_url);
-				} else {
+				} else if (odi.od) {
 					fprintf(stderr, "ID %d", odi.od->objectDescriptorID);
+				} else if (odi.service_url) {
+					fprintf(stderr, "%s", odi.service_url);
+				} else {
+					fprintf(stderr, "unknown");
 				}
 				fprintf(stderr, " - %s", (odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
 				if (odi.od && odi.od->ServiceID) fprintf(stderr, " - Service ID %d", odi.od->ServiceID);
@@ -2690,7 +2694,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 			if (!odm) break;
 			if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {
 				if (szURL && strstr(odi.service_url, szURL)) break;
-				if ((number == (u32)(-1)) && (odi.od->objectDescriptorID == OD_ID)) break;
+				if ((number == (u32)(-1)) && odi.od && (odi.od->objectDescriptorID == OD_ID)) break;
 				else if (i == (u32)(number-1)) break;
 			}
 			odm = NULL;

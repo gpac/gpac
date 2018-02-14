@@ -369,6 +369,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 		/*if desc is NULL for a media, the media will be declared later by the service (gf_term_media_add)*/
 		if (od_type != GF_MEDIA_OBJECT_SCENE) {
+			if (odm->ambi_ch_id) odm->net_service->serviceID = odm->ambi_ch_id;
+			odm->ambi_ch_id = 0;
 			return;
 		}
 		/*create empty service descriptor, this will automatically create a dynamic scene*/
@@ -715,6 +717,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->OD->URLString = NULL;
 		/*store original OD ID */
 		if (!odm->media_current_time) odm->media_current_time = odm->OD->objectDescriptorID;
+		/*store original serviceID */
+		odm->ambi_ch_id = odm->OD->ServiceID;
 
 		gf_odf_desc_del((GF_Descriptor *)odm->OD);
 		odm->OD = NULL;
@@ -745,6 +749,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->OD->objectDescriptorID = odm->media_current_time;
 		odm->media_current_time = 0;
 		odm->flags |= GF_ODM_REMOTE_OD;
+		//restore serviceID
+		odm->OD->ServiceID = odm->ambi_ch_id;
+		odm->ambi_ch_id = 0;
+	} else if (!odm->OD->ServiceID) {
+		odm->OD->ServiceID = odm->net_service->serviceID;
 	}
 
 	/*HACK - temp storage of sync ref*/

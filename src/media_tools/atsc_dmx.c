@@ -273,6 +273,10 @@ GF_Err gf_atsc_tune_in(GF_ATSCDmx *atscd, u32 serviceID)
 	while ((s = gf_list_enum(atscd->services, &i))) {
 		if (s->service_id==serviceID) s->opened = GF_TRUE;
 		else if (serviceID==0xFFFFFFFF) s->opened = GF_TRUE;
+		else if (!s->opened && (serviceID==0xFFFFFFFE)) {
+			s->opened = GF_TRUE;
+			break;
+		}
 		else s->opened = 0;
 	}
 	return GF_OK;
@@ -349,7 +353,7 @@ GF_Err gf_atsc_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 
 			if (atscd->base_dir) {
 				service->output_dir = gf_malloc(sizeof(char) * (strlen(atscd->base_dir) + 20) );
-				sprintf(service->output_dir, "%s/service_%d", atscd->base_dir, service_id);
+				sprintf(service->output_dir, "%s/service%d", atscd->base_dir, service_id);
 				if (! gf_dir_exists(service->output_dir)) {
 					e = gf_mkdir(service->output_dir);
 					if (e==GF_IO_ERR) {
@@ -366,6 +370,7 @@ GF_Err gf_atsc_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_FOUND, service_id, NULL, NULL, 0);
 		}
 	}
+	if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_SCAN, 0, NULL, NULL, 0);
 	return GF_OK;
 }
 
@@ -535,7 +540,7 @@ GF_Err gf_atsc_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *co
 		atscd->on_event(atscd->udta, GF_ATSC_EVT_MPD, s->service_id, content_location, content, len);
 	}
 	else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d working in memory mode without callback - MPD file %s - content %s\n", s->service_id, content_location, content ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d received MPD file %s content:\n%s\n", s->service_id, content_location, content ));
 	}
 	return GF_NOT_SUPPORTED;
 }
@@ -858,10 +863,6 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 
 	if (!atscd->base_dir) {
 		Bool is_init = GF_FALSE;
-		if (!atscd->on_event) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d : object TSI %u TOI %u received in memory mode without callback\n", s->service_id, obj->tsi, obj->toi));
-			return GF_NOT_SUPPORTED;
-		}
 
 		if (obj->rlct->init_toi == obj->toi) {
 			sprintf(szPath, "%s", obj->rlct->init_filename);
@@ -870,7 +871,9 @@ GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTOb
 			sprintf(szPath, obj->rlct->toi_template, obj->toi);
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d received object TSI %u TOI %u size %d in file %s\n", s->service_id, obj->tsi, obj->toi, obj->total_length, szPath));
-		atscd->on_event(atscd->udta, is_init ? GF_ATSC_EVT_INIT_SEG : GF_ATSC_EVT_SEG, s->service_id, szPath, obj->payload, obj->total_length);
+
+		if (atscd->on_event)
+			atscd->on_event(atscd->udta, is_init ? GF_ATSC_EVT_INIT_SEG : GF_ATSC_EVT_SEG, s->service_id, szPath, obj->payload, obj->total_length);
 
 		return GF_OK;
 	}
@@ -1235,6 +1238,19 @@ GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_A
 	atscd->on_event = on_event;
 	return GF_OK;
 }
+
+GF_EXPORT
+Bool gf_atsc_dmx_find_service(GF_ATSCDmx *atscd, u32 service_id)
+{
+	u32 i=0;
+	GF_ATSCService *s;
+	while ((s = gf_list_enum(atscd->services, &i))) {
+		if (s->service_id != service_id) continue;
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 
 GF_EXPORT
 u32 gf_atsc_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id)

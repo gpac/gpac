@@ -536,9 +536,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			set = gf_list_get(group->period->adaptation_sets, i);
 			rep = gf_list_get(set->representations, 0);
-			gf_mpd_resolve_url(group->dash->mpd, rep, set, group->period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL);
+			gf_mpd_resolve_url(group->dash->mpd, rep, set, group->period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL);
 
-			sep = strstr(seg_url, "987");
+			sep = seg_url ? strstr(seg_url, "987") : NULL;
+			if (!sep) {
+				if (seg_url) gf_free(seg_url);
+				continue;
+			}
 			start = sep;
 			end = sep+4;
 			while (start && start>seg_url && (*(start-1)=='0')) { start--; nb_space++;}
@@ -557,7 +561,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				strcat(szTemplate, "d");
 				strcat(szTemplate, end);
 				if (sscanf(val, szTemplate, &number) == 1) {
-					timeline_offset_ms = seg_dur*number;
+					u32 startNum = 1;
+					if (group->period->segment_template) startNum = group->period->segment_template->start_number;
+					if (set->segment_template) startNum = set->segment_template->start_number;
+					if (rep->segment_template) startNum = rep->segment_template->start_number;
+					if (number+1>=startNum) {
+						timeline_offset_ms = seg_dur*(number+1-startNum);
+					}
 					found = GF_TRUE;
 				}
 			}
@@ -997,7 +1007,9 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 	if (! *sess) {
 		*sess = dash_io->create(dash_io, persistent_mode ? 1 : 0, url, group_idx);
 		if (!(*sess)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot try to download %s... OUT of memory ?\n", url));
+			if (dash->atsc_clock_state)
+				return GF_IP_NETWORK_EMPTY;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot try to download %s... out of memory ?\n", url));
 			return GF_OUT_OF_MEM;
 		}
 	} else {
@@ -1090,7 +1102,7 @@ retry:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] failed to download, retrying once with %s...\n", url));
 			*sess = dash_io->create(dash_io, 0, url, group_idx);
 			if (! (*sess)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... OUT of memory ?\n", url));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... out of memory ?\n", url));
 				if (group)
 					group->is_downloading = GF_FALSE;
 				return GF_OUT_OF_MEM;
@@ -3408,9 +3420,11 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	}
 
 	if (e!= GF_OK && !group->segment_must_be_streamed) {
-		dash->mpd_stop_request = 1;
 		gf_free(base_init_url);
 		if (key_url) gf_free(key_url);
+		if (!group->dash->atsc_clock_state || (group->dash->atsc_clock_state==3)) {
+			dash->mpd_stop_request = 1;
+		}
 		return e;
 	}
 

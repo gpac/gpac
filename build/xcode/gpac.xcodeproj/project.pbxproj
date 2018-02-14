@@ -1305,7 +1305,6 @@
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		92BAF023202C542C001ED2F1 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/testapps/atscdmx/main.c; sourceTree = "<group>"; };
 		92BAF029202C5569001ED2F1 /* atscdmx */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = atscdmx; sourceTree = BUILT_PRODUCTS_DIR; };
-		92BAF02B202C5569001ED2F1 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -1828,7 +1827,6 @@
 				92BE50AC18D6375100AA59D8 /* applications */,
 				92BE50AD18D6376A00AA59D8 /* modules */,
 				9201FE7E18D5A444003D1ACA /* libgpac */,
-				92BAF02A202C5569001ED2F1 /* atscdmx */,
 				92B02F4D1DD2004300F85E77 /* Frameworks */,
 			);
 			sourceTree = "<group>";
@@ -2732,14 +2730,6 @@
 				92BAF023202C542C001ED2F1 /* main.c */,
 			);
 			name = atscdmx;
-			sourceTree = "<group>";
-		};
-		92BAF02A202C5569001ED2F1 /* atscdmx */ = {
-			isa = PBXGroup;
-			children = (
-				92BAF02B202C5569001ED2F1 /* main.c */,
-			);
-			path = atscdmx;
 			sourceTree = "<group>";
 		};
 		92BBFC471A71228A006A7735 /* include */ = {
