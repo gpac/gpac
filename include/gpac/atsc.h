@@ -16,43 +16,118 @@ extern "C" {
  *	Specific extensions for ATSC ROUTE demux
  */
 
+/*!The GF_ATSCDmx object.*/
 typedef struct __gf_atscdmx GF_ATSCDmx;
 
-GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd);
-
-void gf_atsc_dmx_del(GF_ATSCDmx *atscd);
-
-GF_ATSCDmx *gf_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
-
-GF_Err gf_atsc_tune_in(GF_ATSCDmx *atscd, u32 serviceID);
-
-GF_Err gf_atsc_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
-
-GF_Err gf_atsc_dmx_process_services(GF_ATSCDmx *atscd);
-
+/*!The types of events used to communicate withe the demuxer user.*/
 typedef enum
 {
-	//new service detected, ID is in evt_param
+	/*! A new service detected, service ID is in evt_param*/
 	GF_ATSC_EVT_SERVICE_FOUND = 0,
-	//service scan completed
+	/*! Service scan completed, no evt_param*/
 	GF_ATSC_EVT_SERVICE_SCAN,
-	//new MPD available for service,  service ID is in evt_param
+	/*! New MPD available for service, service ID is in evt_param*/
 	GF_ATSC_EVT_MPD,
-	//init segment update,  service ID is in evt_param
+	/*! Init segment update, service ID is in evt_param, file info is in finfo*/
 	GF_ATSC_EVT_INIT_SEG,
-	//segment reception,  service ID is in evt_param
+	/*! Segment reception, service ID is in evt_param, file info is in finfo*/
 	GF_ATSC_EVT_SEG,
 } GF_ATSCEventType;
 
-GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, const char *filename, char *data, u32 size, u32 tsi, u32 toi), void *udta);
+/*! Structure used to communicate file objects properties to the user*/
+typedef struct
+{
+	/*! original file name*/
+	const char *filename;
+	/*! data pointer*/
+	char *data;
+	/*! data size*/
+	u32 size;
+	/*! object TSI*/
+	u32 tsi;
+	/*! object TOI*/
+	u32 toi;
+	/*! download time in ms*/
+	u32 download_ms;
+	/*! flag set if file is corrupted*/
+	Bool corrupted;
+} GF_ATSCEventFileInfo;
 
+/*! Creates a new ATSC demultiplexer
+ \param ifce network interface to monitor, NULL for INADDR_ANY
+ \param dir output directory for files. If NULL, files are not written to disk and user callback will be called if set
+ \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+ \return the ATSC demultiplexer created
+*/
+GF_ATSCDmx *gf_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
+/*! Deletes an ATSC demultiplexer
+ \param atscd the ATSC demultiplexer to delete
+*/
+void gf_atsc_dmx_del(GF_ATSCDmx *atscd);
+
+/*! Processes demultiplexing, returns when nothing to read
+ \param atscd the ATSC demultiplexer
+ \return error code if any, GF_IP_NETWORK_EMPTY if nothing was read
+ */
+GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd);
+
+/*! Sets user callback for disk-less operations
+ \param atscd the ATSC demultiplexer
+ \param on_event the user callback function
+ \param udta the user data passed back by the callback
+ \return error code if any
+ */
+GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *finfo), void *udta);
+
+/*! Sets the maximum number of objects to store on disk per TSI
+ \param atscd the ATSC demultiplexer
+ \param max_segs max number of objects (segments) to store. If 0, all objects are kept
+ \return error code if any
+ */
+GF_Err gf_atsc_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
+
+/*! Sets the maximum number of objects to store on disk per TSI
+ \param atscd the ATSC demultiplexer
+ \param service_id ID of the service to tune in. 0 means no service, 0xFFFFFFFF means all services and 0xFFFFFFFE means first service found
+ \return error code if any
+ */
+GF_Err gf_atsc_tune_in(GF_ATSCDmx *atscd, u32 service_id);
+
+
+/*! Gets the number of objects currently loaded in the service
+ \param atscd the ATSC demultiplexer
+ \param service_id ID of the service to query
+ \return number of objects in service
+ */
 u32 gf_atsc_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id);
 
+/*! Removes an object with a given filename
+ \param atscd the ATSC demultiplexer
+ \param service_id ID of the service to query
+ \param fileName name of the file associated with the object
+ \param purge_previous if set, indicates that all objects with the same TSI and a TOI less than TOI of the deleted object will be removed
+ */
 void gf_atsc_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *fileName, Bool purge_previous);
 
+/*! Removes the first object loaded in the service
+ \param atscd the ATSC demultiplexer
+ \param service_id ID of the service to query
+ */
 void gf_atsc_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
 
+/*! Checks existence of a service
+ \param atscd the ATSC demultiplexer
+ \param service_id ID of the service to query
+ \return true if service is found, false otherwise
+ */
 Bool gf_atsc_dmx_find_service(GF_ATSCDmx *atscd, u32 service_id);
+
+/*! Removes all non-signaling objects (ie TSI!=0), keeping only init segments and currently/last downloaded objects
+\note this is mostly usefull in case of looping session, or at MPD switch boundaries
+ \param atscd the ATSC demultiplexer
+ \param service_id ID of the service to cleanup
+ */
+void gf_atsc_dmx_purge_objects(GF_ATSCDmx *atscd, u32 service_id);
 
 #ifdef __cplusplus
 }

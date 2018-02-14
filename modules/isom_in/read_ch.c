@@ -950,6 +950,10 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		if (read->has_pending_segments) {
 			read->has_pending_segments--;
 		}
+		if (param.url_query.discontinuity_type==2) {
+			gf_isom_reset_fragment_info(read->mov, 0);
+			read->clock_discontinuity = 1;
+		}
 
 		if (e==GF_EOS) {
 			for (i=0; i<count; i++) {

@@ -982,9 +982,6 @@ u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc
 		GF_Err e = gf_atsc_dmx_process(atscd);
 		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 
-		gf_atsc_dmx_process_services(atscd);
-		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
-
 		if (gf_prompt_has_input()) {
 			u8 c = gf_prompt_get_char();
 			switch (c) {

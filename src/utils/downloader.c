@@ -1017,6 +1017,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 }
 
 char *gf_cache_get_forced_headers(const DownloadedCacheEntry entry);
+u32 gf_cache_get_downtime(const DownloadedCacheEntry entry);
 
 static void gf_dm_sess_reload_cached_headers(GF_DownloadSession *sess)
 {
@@ -1175,7 +1176,11 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 			sess->status = GF_NETIO_DATA_TRANSFERED;
 			sess->total_size = gf_cache_get_content_length(sess->cache_entry);
 			sess->bytes_done = sess->total_size;
-
+			sess->total_time_since_req = gf_cache_get_downtime(sess->cache_entry);
+			if (sess->total_time_since_req)
+				sess->bytes_per_sec = (u32) ((1000 * (u64) sess->bytes_done) / sess->total_time_since_req);
+			else
+				sess->bytes_per_sec = 0;
 			gf_dm_sess_reload_cached_headers(sess);
 		}
 	}
@@ -3912,9 +3917,10 @@ Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime);
 Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range);
 Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size, Bool copy);
 Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers);
+Bool gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
 
 GF_EXPORT
-const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, char *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory)
+const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, char *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms)
 {
 	u32 i, count;
 	DownloadedCacheEntry the_entry = NULL;
@@ -3946,6 +3952,7 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 	gf_cache_set_mime(the_entry, mime);
 	gf_cache_set_range(the_entry, size, start_range, end_range);
 	gf_cache_set_content(the_entry, data, (u32) size, GF_FALSE);
+	gf_cache_set_downtime(the_entry, download_time_ms);
 
 	gf_mx_v(dm->cache_mx );
 	return the_entry;

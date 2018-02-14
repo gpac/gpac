@@ -122,10 +122,8 @@ int main(int argc, char **argv)
 
 	while (atscd && run) {
 		GF_Err e = gf_atsc_dmx_process(atscd);
-		if (e && (e != GF_IP_NETWORK_EMPTY)) break;
-
-		gf_atsc_dmx_process_services(atscd);
-		gf_sleep(1);
+		if (e == GF_IP_NETWORK_EMPTY)
+			gf_sleep(1);
 
 		if (gf_prompt_has_input()) {
 			u8 c = gf_prompt_get_char();

@@ -165,6 +165,7 @@ struct __DownloadedCacheEntryStruct
 	u32 mem_allocated;
 	u8 *mem_storage;
 	char *forced_headers;
+	u32 downtime;
 };
 
 Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info) {
@@ -1009,8 +1010,15 @@ char *gf_cache_get_forced_headers(const DownloadedCacheEntry entry)
 	if (!entry) return NULL;
 	return entry->forced_headers;
 }
-
-
+void gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms)
+{
+	if (entry) entry->downtime = download_time_ms;
+}
+u32 gf_cache_get_downtime(const DownloadedCacheEntry entry)
+{
+	if (!entry) return 0;
+	return entry->downtime;
+}
 
 Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size, Bool copy)
 {

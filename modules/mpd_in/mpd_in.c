@@ -441,8 +441,10 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 		param->url_query.key_IV = &group->key_IV;
 
-		if (gf_dash_group_loop_detected(mpdin->dash, group_idx))
+		if (gf_dash_group_loop_detected(mpdin->dash, group_idx)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Clock discontinuity found\n"));
 			param->url_query.discontinuity_type = 2;
+		}
 
 
 #ifndef GPAC_DISABLE_LOG
