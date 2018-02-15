@@ -148,6 +148,8 @@ struct __dash_client
 
 	//0: not atsc - 1: atsc but clock not init 2- atsc clock init
 	u32 atsc_clock_state;
+	//atsc AST shift in ms
+	u32 atsc_ast_shift;
 
 	//in ms
 	u32 time_in_tsb, prev_time_in_tsb;
@@ -843,7 +845,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			shift--;
 			//avoid querying too early the cache since segments do not usually arrive exactly on time ...
 			//TODO - make this configurable
-			availabilityStartTime += 500;
+			availabilityStartTime += group->dash->atsc_ast_shift;
 		}
 
 		//not time shifting, we are at the live edge, we must stick to start of segment otherwise we won't have enough data to play until next segment is ready
@@ -6640,6 +6642,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 	dash->segment_lost_after_ms = 100;
 	dash->debug_group_index = -1;
 	dash->tile_rate_decrease = 100;
+	dash->atsc_ast_shift = 1000;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Client created\n"));
 	return dash;
 }
@@ -8108,6 +8111,12 @@ GF_EXPORT
 void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads)
 {
 	dash->use_threaded_download = use_threads;
+}
+
+GF_EXPORT
+void gf_dash_set_atsc_ast_shift(GF_DashClient *dash, u32 ast_shift)
+{
+	dash->atsc_ast_shift = ast_shift;
 }
 
 GF_EXPORT
