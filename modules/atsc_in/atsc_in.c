@@ -82,6 +82,7 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 	u32 nb_obj;
 	Bool is_init = GF_TRUE;
 	Bool is_loop = GF_FALSE;
+	DownloadedCacheEntry cache_entry;
 
 	switch (evt) {
 	case GF_ATSC_EVT_SERVICE_FOUND:
@@ -151,7 +152,9 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		sprintf(szPath, "http://gpatsc/service%d/%s", evt_param, finfo->filename);
 		//we copy over the init segment, but only share the data pointer for segments
 
-		gf_dm_add_cache_entry(atscd->dm, szPath, finfo->data, finfo->size, 0, 0, "video/mp4", is_init ? GF_TRUE : GF_FALSE, finfo->download_ms);
+		cache_entry = gf_dm_add_cache_entry(atscd->dm, szPath, finfo->data, finfo->size, 0, 0, "video/mp4", is_init ? GF_TRUE : GF_FALSE, finfo->download_ms);
+
+		if (cache_entry) gf_dm_force_headers(atscd->dm, cache_entry, "x-atsc: yes\r\n");
 
 		if (is_loop) break;
 		

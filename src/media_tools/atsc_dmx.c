@@ -455,18 +455,18 @@ static GF_Err gf_atsc_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *s
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
 		if (!total_len) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u started without total-length assigned !\n", s->service_id, toi, tsi ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u started without total-length assigned !\n", s->service_id, tsi, toi ));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d starting object TSI %u TOI %u total-length %d\n", s->service_id, toi, tsi, total_len));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d starting object TSI %u TOI %u total-length %d\n", s->service_id, tsi, toi, total_len));
 
 		}
 		obj->download_time_ms = gf_sys_clock();
 		gf_list_add(s->objects, obj);
 	} else if (!obj->total_length) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, toi, tsi, total_len));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, tsi, toi, total_len));
 		obj->total_length = total_len;
 	} else if (total_len && (obj->total_length != total_len)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u mismatch in total-length %u  assigned, %u redeclared\n", s->service_id, toi, tsi, obj->total_length, total_len));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u mismatch in total-length %u  assigned, %u redeclared\n", s->service_id, tsi, toi, obj->total_length, total_len));
 	}
 	if (s->last_active_obj != obj) {
 		//last object had EOS and not completed
