@@ -1085,7 +1085,8 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 		memset(&local_address, 0, sizeof(struct sockaddr_in ));
 		local_address.sin_family = AF_INET;
-		local_address.sin_addr.s_addr = local_add_id;
+//		local_address.sin_addr.s_addr = local_add_id;
+		local_address.sin_addr.s_addr = htonl(INADDR_ANY);
 		local_address.sin_port = htons( MultiPortNumber);
 
 		ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
