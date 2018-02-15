@@ -3094,7 +3094,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	Double max_available_speed;
 	u32 dl_rate;
 	u32 k;
-	s32 new_index;
+	s32 new_index, old_index;
 	GF_DASH_Group *base_group;
 	GF_MPD_Representation *rep;
 	GF_MPD_Representation *new_rep;
@@ -3171,6 +3171,19 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 		rep->playback.waiting_codec_reset = GF_FALSE;
 	}
 
+	old_index = group->active_rep_index;
+	//scalable case, force the rate algo to consider the active rep is the max rep
+	if (group->base_rep_index_plus_one) {
+		group->active_rep_index = group->force_max_rep_index;
+	}
+	if (group->dash->atsc_clock_state) {
+		rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+		if (rep->playback.broadcat_flag && (dl_rate < rep->bandwidth)) {
+			dl_rate = rep->bandwidth+1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d representation %d segment sent over broadcast, forcing bandwidth to %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set), group->active_rep_index, dl_rate));
+		}
+	}
+
 	/* Call a specific adaptation algorithm (see GPAC configuration)
 	Each algorithm should:
 	- return the new_index value to the desired quality
@@ -3200,6 +3213,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	}
 
 	if (new_index==-1) {
+		group->active_rep_index = old_index;
 		group->rate_adaptation_postponed = GF_TRUE;
 		return;
 	}
@@ -3208,17 +3222,16 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	if (new_index != group->active_rep_index) {
 		new_rep = gf_list_get(group->adaptation_set->representations, (u32)new_index);
 		if (!new_rep) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Cannot find new representation index: %d\n", new_index));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Cannot find new representation index %d\n", new_index));
 			return;
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d switching after playing %d segments, from rep %d to "
-				"rep %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set),
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d switching after playing %d segments, from rep %d to rep %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set),
 				group->nb_segments_since_switch, group->active_rep_index, new_index));
 		group->nb_segments_since_switch = 0;
 
 		if (force_lower_complexity) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Requesting codec reset"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Requesting codec reset\n"));
 			new_rep->playback.waiting_codec_reset = GF_TRUE;
 		}
 		/* request downloads for the new representation */
@@ -3233,9 +3246,12 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 			arep->playback.probe_switch_count = 0;
 		}
 
-	} else if (force_lower_complexity) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Speed %f is too fast to play - speed down \n", dash->speed));
-		/*FIXME: should do something here*/
+	} else {
+		group->active_rep_index = old_index;
+		if (force_lower_complexity) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Speed %f is too fast to play - speed down\n", dash->speed));
+			/*FIXME: should do something here*/
+		}
 	}
 
 	/* Remembering the buffer level for the processing of the next segment */
@@ -5097,7 +5113,8 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	} else {
 		if ((group->dash->atsc_clock_state==2) && (e==GF_URL_ERROR)) {
 			const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-atsc-loop");
-			if (val && !strcmp(val, "yes")) {
+			//if explicit loop or more than 5 consecutive seg lost restart synchro
+			if ((group->nb_consecutive_segments_lost >= 5) || (val && !strcmp(val, "yes"))) {
 				u32 i=0;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ATSC loop detected, reseting timeline\n"));
 				dash->utc_drift_estimate = 0;
@@ -5118,6 +5135,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			group->prev_segment_ok = GF_FALSE;
 		}
 		group->nb_consecutive_segments_lost ++;
+
 		//we are lost ....
 		if (group->nb_consecutive_segments_lost == 20) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
@@ -5178,6 +5196,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	/*remember the active rep index, since group->active_rep_index may change because of bandwidth control algorithm*/
 	representation_index = group->active_rep_index;
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	rep->playback.broadcat_flag = GF_FALSE;
 
 	/* if the index of the segment to be downloaded is greater or equal to the last segment (as seen in the playlist),
 	 we need to check if a new playlist is ready */
@@ -5357,6 +5376,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		}
 		group->current_base_url_idx = 0;
 	} else {
+		const char *hdr;
 		base_group->max_bitrate = 0;
 		base_group->min_bitrate = (u32)-1;
 
@@ -5421,6 +5441,12 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		resource_name = dash->dash_io->get_url(dash->dash_io, base_group->segment_download);
 
 		Bps = dash->dash_io->get_bytes_per_sec(dash->dash_io, base_group->segment_download);
+
+		hdr = dash->dash_io->get_header_value(dash->dash_io, base_group->segment_download, "x-atsc");
+		if (hdr && !strcmp(hdr, "yes"))
+			rep->playback.broadcat_flag = GF_TRUE;
+		else
+			assert(0);
 	}
 
 	if (local_file_name && (e == GF_OK || group->segment_must_be_streamed )) {
