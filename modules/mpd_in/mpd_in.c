@@ -1207,6 +1207,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		gf_dash_disable_speed_adaptation(mpdin->dash, GF_TRUE);
 
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UTCShiftATSC");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UTCShiftATSC", "1000");
+	else gf_dash_set_atsc_ast_shift(mpdin->dash, atoi(opt) );
+
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
 	if (e) {

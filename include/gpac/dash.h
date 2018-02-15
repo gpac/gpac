@@ -521,7 +521,11 @@ typedef enum {
 	GF_DASH_ALGO_BOLA_O
 } GF_DASHAdaptationAlgorithm;
 
+//sets adaptation logic algorithm
 void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo);
+
+//sets availabilityStartTime shift for ATSC
+void gf_dash_set_atsc_ast_shift(GF_DashClient *dash, u32 ast_shift);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 
