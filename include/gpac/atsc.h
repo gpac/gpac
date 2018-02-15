@@ -129,6 +129,31 @@ Bool gf_atsc_dmx_find_service(GF_ATSCDmx *atscd, u32 service_id);
  */
 void gf_atsc_dmx_purge_objects(GF_ATSCDmx *atscd, u32 service_id);
 
+
+/*! Gets high resolution system time clock of the first packet received
+ \param atscd the ATSC demultiplexer
+ \return system clock in microseconds of first packet received
+ */
+u64 gf_atsc_dmx_get_first_packet_time(GF_ATSCDmx *atscd);
+
+/*! Gets high resolution system time clock of the last packet received
+ \param atscd the ATSC demultiplexer
+ \return system clock in microseconds of last packet received
+ */
+u64 gf_atsc_dmx_get_last_packet_time(GF_ATSCDmx *atscd);
+
+/*! Gets the number of packets received since start of the session, for all active services
+ \param atscd the ATSC demultiplexer
+ \return number of packets received
+ */
+u64 gf_atsc_dmx_get_nb_packets(GF_ATSCDmx *atscd);
+
+/*! Gets the number of bytes received since start of the session, for all active services
+ \param atscd the ATSC demultiplexer
+ \return number of bytes received
+ */
+u64 gf_atsc_dmx_get_recv_bytes(GF_ATSCDmx *atscd);
+
 #ifdef __cplusplus
 }
 #endif

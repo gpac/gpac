@@ -298,7 +298,7 @@ void PrintUsage()
 	        "\t-help:          shows this screen\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
-	        "GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n"
+	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n",
 	        GF_IMPORT_DEFAULT_FPS,

@@ -198,7 +198,7 @@ u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
 void PrintVersion()
 {
 	fprintf(stderr, "MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
-	        "GPAC Copyright (c) Telecom ParisTech 2000-2012\n"
+	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n", gpac_features());
 }
@@ -2879,7 +2879,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			PrintUsage();
 			return 1;
 		}
-		else if (!stricmp(arg, "-version")) {
+		else if (!stricmp(arg, "-version") || !stricmp(arg, "-v")) {
 			PrintVersion();
 			return 1;
 		}
@@ -2944,7 +2944,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			atsc_service = atoi(argv[i + 1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-nb_segs")) {
+		else if (!stricmp(arg, "-nb-segs")) {
 			CHECK_NEXT_ARG
 			atsc_max_segs = atoi(argv[i + 1]);
 			i++;
