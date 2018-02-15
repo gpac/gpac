@@ -687,7 +687,7 @@ static GF_Err gf_atsc_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 			}
 
 			if (!init_file_name) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d missing init file name in LS/ROUTE session, could be problematic\n", s->service_id));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d missing init file name in LS/ROUTE session, could be problematic - will consider any TOI %u (-1) present as a ghost init segment\n", s->service_id, (u32)-1));
 				//force an init at -1, some streams still have the init not declared but send on TOI -1
 				// interpreting it as a regular segment would break clock setup
 				init_file_toi = (u32) -1;

@@ -4832,11 +4832,28 @@ select_active_rep:
 					sep = strchr(rep_sel->codecs, '.');
 					if (sep) sep[0] = 0;
 					ok = !strnicmp(rep->codecs, rep_sel->codecs, strlen(rep_sel->codecs) );
+					//check for scalable coding
+					if (!ok && rep->dependency_id) {
+						if (!strncmp(rep->codecs, "avc", 3)) {
+							//we accept LHVC with different configs as enhancement for AVC
+							if (!strncmp(rep_sel->codecs, "lhv", 3) || !strncmp(rep_sel->codecs, "lhe", 3) ) ok = 1;
+							//we accept SVC and MVC as enhancement for AVC
+							else if (!strncmp(rep_sel->codecs, "svc", 3) || !strncmp(rep_sel->codecs, "mvc", 3) ) ok = 1;
+						}
+						else if (!strncmp(rep->codecs, "hvc", 3) || !strncmp(rep->codecs, "hev", 3)) {
+							//we accept HEVC and HEVC+LHVC with different configs
+							if (!strncmp(rep_sel->codecs, "hvc", 3) || !strncmp(rep_sel->codecs, "hev", 3) ) ok = 1;
+							//we accept LHVC with different configs
+							else if (!strncmp(rep_sel->codecs, "lhv", 3) || !strncmp(rep_sel->codecs, "lhe", 3) ) ok = 1;
+						}
+					}
+
 					if (sep) sep[0] = '.';
 					if (!ok) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Different codec types (%s vs %s) in same AdaptationSet\n", rep_sel->codecs, rep->codecs));
-						//rep->playback.disabled = 1;
-						//continue;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Different codec types (%s vs %s) in same AdaptationSet - disabling rep %s\n", rep_sel->codecs, rep->codecs, rep->codecs));
+						//we don(t support mixes
+						rep->playback.disabled = 1;
+						continue;
 					}
 				}
 			}
