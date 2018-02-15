@@ -143,7 +143,7 @@ static void gf_atsc_route_session_del(GF_ATSCRouteSession *rs)
 	if (rs->sock) gf_sk_del(rs->sock);
 	while (gf_list_count(rs->channels)) {
 		GF_ATSCLCTChannel *lc = gf_list_pop_back(rs->channels);
-		gf_free(lc->init_filename);
+		if (lc->init_filename) gf_free(lc->init_filename);
 		gf_free(lc->toi_template);
 		gf_free(lc);
 	}
@@ -606,8 +606,8 @@ static GF_Err gf_atsc_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 
 		j=0;
 		while ((att = gf_list_enum(rs->attributes, &j))) {
-			if (!strcmp(att->name, "dIpAddr")) dst_ip = att->value;
-			else if (!strcmp(att->name, "dPort")) dst_port = atoi(att->value);
+			if (!stricmp(att->name, "dIpAddr")) dst_ip = att->value;
+			else if (!stricmp(att->name, "dPort")) dst_port = atoi(att->value);
 		}
 
 		GF_SAFEALLOC(rsess, GF_ATSCRouteSession);
@@ -676,21 +676,21 @@ static GF_Err gf_atsc_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 						if ((fdt->type == GF_XML_NODE_TYPE) && (strstr(fdt->name, "File")!=NULL)) break;
 						fdt = NULL;
 					}
-					if (!fdt) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d missing fdt for init in LS/ROUTE session, not supported\n", s->service_id));
-						return GF_NOT_SUPPORTED;
-					}
-					l=0;
-					while ((att = gf_list_enum(fdt->attributes, &l))) {
-						if (!strcmp(att->name, "Content-Location")) init_file_name = att->value;
-						else if (!strcmp(att->name, "TOI")) init_file_toi = atoi(att->value);
+					if (fdt) {
+						l=0;
+						while ((att = gf_list_enum(fdt->attributes, &l))) {
+							if (!strcmp(att->name, "Content-Location")) init_file_name = att->value;
+							else if (!strcmp(att->name, "TOI")) init_file_toi = atoi(att->value);
+						}
 					}
 				}
 			}
 
 			if (!init_file_name) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d missing init file name in LS/ROUTE session, not supported\n", s->service_id));
-				return GF_NOT_SUPPORTED;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d missing init file name in LS/ROUTE session, could be problematic\n", s->service_id));
+				//force an init at -1, some streams still have the init not declared but send on TOI -1
+				// interpreting it as a regular segment would break clock setup
+				init_file_toi = (u32) -1;
 			}
 			if (!file_template) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d missing file TOI template in LS/ROUTE session, not supported\n", s->service_id));
@@ -706,7 +706,7 @@ static GF_Err gf_atsc_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 			GF_SAFEALLOC(rlct, GF_ATSCLCTChannel);
 			rlct->init_toi = init_file_toi;
 			rlct->tsi = tsi;
-			rlct->init_filename = gf_strdup(init_file_name);
+			rlct->init_filename = init_file_name ? gf_strdup(init_file_name) : NULL;
 			rlct->toi_template = gf_strdup(file_template);
 			sep = strstr(rlct->toi_template, "$TOI$");
 			sep[0] = 0;
@@ -910,7 +910,7 @@ static GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, G
 			sprintf(szPath, obj->rlct->toi_template, obj->toi);
 		}
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
+		if (partial || gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d got file %s (TSI %u TOI %u) size %d in %d ms (%d bytes in %d fragments)\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d got file %s (TSI %u TOI %u) size %d in %d ms\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
@@ -965,7 +965,7 @@ static GF_Err gf_atsc_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, G
 		}
 	}
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
+	if (partial || gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d got file %s (TSI %u TOI %u) size %d in %d ms (%d bytes in %d fragments)\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d got file %s (TSI %u TOI %u) size %d in %d ms\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
@@ -1410,7 +1410,7 @@ void gf_atsc_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *
 				return;
 			}
 		}
-		else if (obj->rlct && !strcmp(fileName, obj->rlct->init_filename)) {
+		else if (obj->rlct && obj->rlct->init_filename && !strcmp(fileName, obj->rlct->init_filename)) {
 			gf_atsc_obj_to_reservoir(atscd, s, obj);
 			return;
 		}
