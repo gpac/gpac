@@ -370,7 +370,7 @@ static GF_Err gf_atsc_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			service->route_sessions = gf_list_new();
 
 			if (atscd->base_dir) {
-				u32 len = strlen(atscd->base_dir);
+				u32 len = (u32) strlen(atscd->base_dir);
 				service->output_dir = gf_malloc(sizeof(char) * (len + 20) );
 				if ((atscd->base_dir[len-1]=='/') || (atscd->base_dir[len-1]=='\\')) {
 					sprintf(service->output_dir, "%sservice%d", atscd->base_dir, service_id);
