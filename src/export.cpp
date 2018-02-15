@@ -2208,6 +2208,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_remove_first_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_find_service) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_purge_objects) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_get_first_packet_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_get_last_packet_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_get_nb_packets) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc_dmx_get_recv_bytes) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_add_cache_entry) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_force_headers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_service_get_dm) )
