@@ -422,7 +422,7 @@ Section "FreeType" SecFT
   File "${GPAC_BIN}\gm_ft_font.dll"
 SectionEnd
 
-Section "FreeType" SecATSC
+Section "ATSC" SecATSC
   SectionIn 1
   File "${GPAC_BIN}\gm_atsc_in.dll"
 SectionEnd
