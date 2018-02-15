@@ -5107,7 +5107,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 					group->time_at_first_failure = 0;
 					group->prev_segment_ok = GF_TRUE;
 				}
-				return GF_OK;
+				return GF_DASH_DownloadCancel;
 			}
 		}
 		if (group->prev_segment_ok) {
