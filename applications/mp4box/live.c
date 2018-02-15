@@ -997,7 +997,7 @@ static void atsc_stats(GF_ATSCDmx *atscd, u32 now)
 	}
 }
 
-u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs)
+u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs, u32 stats_rate)
 {
 	GF_ATSCDmx *atscd;
 	Bool run = GF_TRUE;
@@ -1038,10 +1038,12 @@ u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc
 				fprintf(stderr, "\nNo ATSC3 service found in %u ms, aborting\n", now);
 				run = GF_FALSE;
 			}
-			st = gf_sys_clock();
-			if (now >= nb_stats*1000) {
-				nb_stats+=1;
-				atsc_stats(atscd, now);
+			if (stats_rate) {
+				st = gf_sys_clock();
+				if (now >= nb_stats*1000*stats_rate) {
+					nb_stats+=1;
+					atsc_stats(atscd, now);
+				}
 			}
 		}
 	}

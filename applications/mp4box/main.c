@@ -149,7 +149,7 @@ void PrintLiveUsage();
 u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *outName);
 #endif
 
-u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs);
+u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs, u32 stats_rate);
 
 int mp4boxTerminal(int argc, char **argv);
 
@@ -871,6 +871,10 @@ void PrintATSCUsage()
 	        " -dir PATH			local filesystem path to which the files are written. If not set, nothing is written to disk.\n"
 	        " -service ID:		ID of the service to grab. If not set or -1, all services are dumped. If 0, no services are dumped. If -2, the first service found is used.\n"
 	        " -nb-segs N:		sets max segments to keep on disk per stream. -1 (default) keeps all.\n"
+	        " -stats N:		    prints stats every N seconds. If 0 (default) stats disabled.\n"
+	        "\n"
+	        "On OSX with VM packet replay you will need to force mcast routing, eg:\n"
+	        "route add -net 239.255.1.4/32 -interface vboxnet0\n"
 	        "\n"
 	       );
 }
@@ -1946,6 +1950,7 @@ Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
 Bool grab_atsc = GF_FALSE;
 s32 atsc_max_segs = -1;
+u32 atsc_stats_rate = 0;
 const char *atsc_output_dir = NULL;
 s32 atsc_service = -1;
 u32 timescale = 0;
@@ -2949,6 +2954,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			atsc_max_segs = atoi(argv[i + 1]);
 			i++;
 		}
+		else if (!stricmp(arg, "-stats")) {
+			CHECK_NEXT_ARG
+			atsc_stats_rate = atoi(argv[i + 1]);
+			i++;
+		}
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
@@ -3596,7 +3606,7 @@ int mp4boxMain(int argc, char **argv)
 			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 			gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
 		}
-		return grab_atsc_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs);
+		return grab_atsc_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs, atsc_stats_rate);
 	}
 
 	if (!inName) {
