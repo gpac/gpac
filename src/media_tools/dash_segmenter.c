@@ -140,6 +140,9 @@ struct __gf_dash_segmenter
 
 	/* indicates if a segment must contain its theorical boundary */
 	Bool split_on_bound;
+
+	/* used to segment video as close to the boundary as possible */
+	Bool split_on_closest;
 };
 
 struct _dash_segment_input
@@ -1983,7 +1986,7 @@ restart_fragmentation_pass:
 
 										else if (!tf->all_sample_raps && !mpd_timeline_bs && use_url_template) {
 
-											Double diff_next;
+											Double diff_next, diff_current;
 											Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
 
 											/* tfdt of first sample in next segment
@@ -1993,11 +1996,17 @@ restart_fragmentation_pass:
 											*/
 
 											diff_next = ((Double)next_sap_time) / tf->TimeScale - (cur_seg-1) * sdur;
+											diff_current = ((Double)tf->next_sample_dts) / tf->TimeScale - (cur_seg - 1) * sdur;
 
 											if (diff_next > sdur/2) {
 												do_split = GF_TRUE;
 												seg_dur_adjusted = GF_TRUE;
 												GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Stopping because of drift between next_sap_time=%2.f and boundary=%.2f (drift: %.2f)\n", next_sap_time / (double)tf->TimeScale, (cur_seg-1) * sdur, diff_next));
+											}
+
+											if (dasher->split_on_closest && ABS(diff_next) > ABS(diff_current)) {
+												do_split = GF_TRUE;
+												GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Stopping because of drift between next_sap_time=%.2f and boundary=%.2f (drift: %.2f) is bigger than current drift at %.2f (%.2f).\n", next_sap_time / (double)tf->TimeScale, (cur_seg - 1) * sdur, diff_next, ((Double)tf->next_sample_dts) / tf->TimeScale, diff_current));
 											}
 										}
 
@@ -5964,6 +5973,14 @@ GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_boun
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->split_on_bound = split_on_bound;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	dasher->split_on_closest = split_on_closest;
 	return GF_OK;
 }
 
