@@ -404,6 +404,7 @@ void PrintDASHUsage()
 	        " -no-cache            disable file cache for dash inputs .\n"
 	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
 	        " -bound               enables video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)\n"
+	        " -closest             enables video segmentation closest to the segment boundary (before or after)\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -1973,6 +1974,7 @@ static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 static Bool no_cache=GF_FALSE;
 static Bool no_loop=GF_FALSE;
 static Bool split_on_bound=GF_FALSE;
+static Bool split_on_closest=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3330,6 +3332,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-bound")) {
 			split_on_bound = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-closest")) {
+			split_on_closest = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
 			seg_ext = argv[i + 1];
@@ -4151,6 +4156,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
+		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);

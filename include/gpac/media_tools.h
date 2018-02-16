@@ -883,6 +883,14 @@ GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop);
 GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_bound);
 
 /*!
+ Enable/Disable split on closest mode.
+ *	\param dasher the DASH segmenter object
+ *	\param split_on_bound if true, video streams are segmented as close to the segment boundary as possible
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest);
+
+/*!
  Adds a media input to the DASHer
  *	\param dasher the DASH segmenter object
  *	\param input media source to add
