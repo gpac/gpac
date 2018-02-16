@@ -871,7 +871,7 @@ void PrintATSCUsage()
 	        " -dir PATH			local filesystem path to which the files are written. If not set, nothing is written to disk.\n"
 	        " -service ID:		ID of the service to grab. If not set or -1, all services are dumped. If 0, no services are dumped. If -2, the first service found is used.\n"
 	        " -nb-segs N:		sets max segments to keep on disk per stream. -1 (default) keeps all.\n"
-	        " -stats N:		    prints stats every N seconds. If 0 (default) stats disabled.\n"
+	        " -atsc-stats N:	prints stats every N seconds. If 0 (default) stats disabled.\n"
 	        "\n"
 	        "On OSX with VM packet replay you will need to force mcast routing, eg:\n"
 	        "route add -net 239.255.1.4/32 -interface vboxnet0\n"
@@ -2954,7 +2954,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			atsc_max_segs = atoi(argv[i + 1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-stats")) {
+		else if (!stricmp(arg, "-atsc-stats")) {
 			CHECK_NEXT_ARG
 			atsc_stats_rate = atoi(argv[i + 1]);
 			i++;
