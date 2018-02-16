@@ -986,7 +986,7 @@ static void atsc_stats(GF_ATSCDmx *atscd, u32 now)
 
 	et -= st;
 	if (et) {
-		rate = nb_bytes*8;
+		rate = (Double)nb_bytes*8;
 		rate /= et;
 	}
 	if (now) {

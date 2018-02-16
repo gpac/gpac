@@ -2403,9 +2403,7 @@ restart_fragmentation_pass:
 		}
 	}
 
-	if (!max_segment_duration) {
-		max_segment_duration = dasher->segment_duration;
-	}
+	max_segment_duration = dasher->segment_duration;
 
 	/* Write adaptation set content protection element */
 	if (protected_track && first_in_set && (dasher->cp_location_mode != GF_DASH_CPMODE_REPRESENTATION)) {
