@@ -245,7 +245,7 @@ typedef struct
 	// BOLA Utility
 	Double bola_v;
 
-	Bool broadcat_flag;
+	Bool broadcast_flag;
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {

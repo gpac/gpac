@@ -3178,7 +3178,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	}
 	if (group->dash->atsc_clock_state) {
 		rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
-		if (rep->playback.broadcat_flag && (dl_rate < rep->bandwidth)) {
+		if (rep->playback.broadcast_flag && (dl_rate < rep->bandwidth)) {
 			dl_rate = rep->bandwidth+1;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d representation %d segment sent over broadcast, forcing bandwidth to %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set), group->active_rep_index, dl_rate));
 		}
@@ -5213,7 +5213,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	/*remember the active rep index, since group->active_rep_index may change because of bandwidth control algorithm*/
 	representation_index = group->active_rep_index;
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
-	rep->playback.broadcat_flag = GF_FALSE;
+	rep->playback.broadcast_flag = GF_FALSE;
 
 	/* if the index of the segment to be downloaded is greater or equal to the last segment (as seen in the playlist),
 	 we need to check if a new playlist is ready */
@@ -5461,7 +5461,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 		hdr = dash->dash_io->get_header_value(dash->dash_io, base_group->segment_download, "x-atsc");
 		if (hdr && !strcmp(hdr, "yes"))
-			rep->playback.broadcat_flag = GF_TRUE;
+			rep->playback.broadcast_flag = GF_TRUE;
 		else
 			assert(0);
 	}
