@@ -4503,7 +4503,7 @@ GF_Err tenc_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->Per_Sample_IV_Size);
 	else {
 		fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->constant_IV_size);
-		dump_data_hex(trace, (char *) ptr->KID, 16);
+		dump_data_hex(trace, (char *) ptr->constant_IV, ptr->constant_IV_size);
 		fprintf(trace, "\"  KID=\"");
 	}
 	dump_data_hex(trace, (char *) ptr->KID, 16);
