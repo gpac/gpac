@@ -357,6 +357,7 @@ EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -
 endif
 
 OBJS+=../modules/netctrl/netctrl.o
+OBJS+=../modules/atsc_in/atsc_in.o
 
 #end of static modules
 

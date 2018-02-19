@@ -824,7 +824,7 @@ static s32 BS_CutBuffer(GF_BitStream *bs)
 	return nbBytes;
 }
 
-/*For DYN mode, this gets the content out without cutting the buffer to the  number of written bytes*/
+/*For DYN mode, this gets the content out without cutting the buffer to the number of written bytes*/
 GF_EXPORT
 void gf_bs_get_content_no_truncate(GF_BitStream *bs, char **output, u32 *outSize, u32 *alloc_size)
 {

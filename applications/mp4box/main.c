@@ -871,7 +871,7 @@ void PrintATSCUsage()
 	        " -dir PATH			local filesystem path to which the files are written. If not set, nothing is written to disk.\n"
 	        " -service ID:		ID of the service to grab. If not set or -1, all services are dumped. If 0, no services are dumped. If -2, the first service found is used.\n"
 	        " -nb-segs N:		sets max segments to keep on disk per stream. -1 (default) keeps all.\n"
-	        " -stats N:		    prints stats every N seconds. If 0 (default) stats disabled.\n"
+	        " -atsc-stats N:	prints stats every N seconds. If 0 (default) stats disabled.\n"
 	        "\n"
 	        "On OSX with VM packet replay you will need to force mcast routing, eg:\n"
 	        "route add -net 239.255.1.4/32 -interface vboxnet0\n"
@@ -2954,7 +2954,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			atsc_max_segs = atoi(argv[i + 1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-stats")) {
+		else if (!stricmp(arg, "-atsc-stats")) {
 			CHECK_NEXT_ARG
 			atsc_stats_rate = atoi(argv[i + 1]);
 			i++;
@@ -5117,18 +5117,20 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				char *d, *ext;
-				FILE *t = gf_fopen(val, "rb");
-				gf_fseek(t, 0, SEEK_END);
-				tlen = (u32) gf_ftell(t);
-				gf_fseek(t, 0, SEEK_SET);
-				d = gf_malloc(sizeof(char) * tlen);
-				tlen = (u32) fread(d, sizeof(char), tlen, t);
-				gf_fclose(t);
+				if (val) {
+					FILE *t = gf_fopen(val, "rb");
+					gf_fseek(t, 0, SEEK_END);
+					tlen = (u32)gf_ftell(t);
+					gf_fseek(t, 0, SEEK_SET);
+					d = gf_malloc(sizeof(char) * tlen);
+					tlen = (u32)fread(d, sizeof(char), tlen, t);
+					gf_fclose(t);
 
-				ext = strrchr(val, '.');
-				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
+					ext = strrchr(val, '.');
+					if (!stricmp(ext, ".png")) tlen |= 0x80000000;
+				}
 				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
-				gf_free(d);
+				if (d) gf_free(d);
 			}
 			break;
 			case GF_ISOM_ITUNE_TEMPO:
@@ -5151,20 +5153,22 @@ int mp4boxMain(int argc, char **argv)
 				u32 n, t;
 				char _t[8];
 				n = t = 0;
-				memset(_t, 0, sizeof(char)*8);
-				tlen = (itag==GF_ISOM_ITUNE_DISK) ? 6 : 8;
-				if (sscanf(val, "%u/%u", &n, &t) == 2) {
-					_t[3]=n;
-					_t[2]=n>>8;
-					_t[5]=t;
-					_t[4]=t>>8;
+				if (val) {
+					memset(_t, 0, sizeof(char) * 8);
+					tlen = (itag == GF_ISOM_ITUNE_DISK) ? 6 : 8;
+					if (sscanf(val, "%u/%u", &n, &t) == 2) {
+						_t[3] = n;
+						_t[2] = n >> 8;
+						_t[5] = t;
+						_t[4] = t >> 8;
+					}
+					else if (sscanf(val, "%u", &n) == 1) {
+						_t[3] = n;
+						_t[2] = n >> 8;
+					}
+					else tlen = 0;
 				}
-				else if (sscanf(val, "%u", &n) == 1) {
-					_t[3]=n;
-					_t[2]=n>>8;
-				}
-				else tlen = 0;
-				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
+				if (!val || tlen) gf_isom_apple_set_tag(file, itag, val ? _t : NULL, tlen);
 			}
 			break;
 			case GF_ISOM_ITUNE_GAPLESS:
