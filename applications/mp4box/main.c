@@ -5117,6 +5117,7 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				char *d, *ext;
+				d=NULL;
 				if (val) {
 					FILE *t = gf_fopen(val, "rb");
 					gf_fseek(t, 0, SEEK_END);
