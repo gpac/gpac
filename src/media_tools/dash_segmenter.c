@@ -433,6 +433,10 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
+#ifndef GPAC_DISABLE_AV1 //Romain: TODO
+	GF_AV1Config *av1c;
+#endif
+
 	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
 
 	if (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
@@ -537,7 +541,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot find AVC configuration box"));
 			return GF_ISOM_INVALID_FILE;
 		}
-#ifndef GPAC_DISABLE_HEVC
+#ifndef GPAC_DISABLE_HEVC //Romain: TODO for AV1
 	case GF_ISOM_SUBTYPE_HVC1:
 	case GF_ISOM_SUBTYPE_HEV1:
 	case GF_ISOM_SUBTYPE_HVC2:

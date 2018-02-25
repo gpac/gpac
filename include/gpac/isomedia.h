@@ -435,6 +435,8 @@ enum
 	GF_ISOM_BRAND_HVCE = GF_4CC( 'h', 'v', 'c', 'e' ),
 	GF_ISOM_BRAND_HVCI = GF_4CC( 'h', 'v', 'c', 'i' ),
 
+	GF_ISOM_BRAND_AV01 = GF_4CC( 'a', 'v', '0', '1'),
+
 	GF_ISOM_BRAND_ISMA = GF_4CC( 'I', 'S', 'M', 'A' ),
 
 	/* dash related brands (ISO/IEC 23009-1) */
@@ -2046,6 +2048,10 @@ typedef enum {
 	GF_ISOM_LEHVC_WITH_BASE_BACKWARD,
 } GF_ISOMLHEVCTrackType;
 GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, GF_ISOMLHEVCTrackType track_type);
+
+
+/*creates new AV1 config*/
+GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

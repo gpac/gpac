@@ -182,6 +182,9 @@ enum
 
 	GF_ISOM_BOX_TYPE_LHVC	= GF_4CC( 'l', 'h', 'v', 'C' ),
 
+	GF_ISOM_BOX_TYPE_AV1C = GF_4CC('a', 'v', '1', 'C'),
+	GF_ISOM_BOX_TYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
+
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
 	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
@@ -1119,6 +1122,12 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
+	GF_AV1Config *config;
+} GF_AV1ConfigurationBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
 	GF_3GPConfig cfg;
 } GF_3GPPConfigBox;
 
@@ -1136,6 +1145,8 @@ typedef struct
 	/*hevc extension*/
 	GF_HEVCConfigurationBox *hevc_config;
 	GF_HEVCConfigurationBox *lhvc_config;
+	/*av1 extension*/
+	GF_AV1ConfigurationBox *av1_config;
 
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;

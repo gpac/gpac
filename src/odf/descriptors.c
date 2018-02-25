@@ -1069,6 +1069,30 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc)
 	return cfg;
 }
 
+
+GF_EXPORT
+GF_AV1Config *gf_odf_av1_cfg_new()
+{
+	GF_AV1Config *cfg;
+	GF_SAFEALLOC(cfg, GF_AV1Config);
+	if (!cfg) return NULL;
+	cfg->OBUs_array = gf_list_new();
+	return cfg;
+}
+
+GF_EXPORT
+void gf_odf_av1_cfg_del(GF_AV1Config *cfg)
+{
+	if (!cfg) return;
+	while (gf_list_count(cfg->OBUs_array)) {
+		GF_AV1_OBUArray *a = (GF_AV1_OBUArray*)gf_list_get(cfg->OBUs_array, 0);
+		gf_list_rem(cfg->OBUs_array, 0);
+		gf_free(a);
+	}
+	gf_list_del(cfg->OBUs_array);
+	gf_free(cfg);
+}
+
 GF_EXPORT
 const char *gf_afx_get_type_description(u8 afx_code)
 {
