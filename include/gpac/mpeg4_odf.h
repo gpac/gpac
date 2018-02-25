@@ -992,6 +992,23 @@ typedef struct
 
 } GF_HEVCConfig;
 
+/*! used for storing AV1 OBUs*/
+typedef struct
+{
+	u8 OBULength;
+	u8 *OBU;
+} GF_AV1_OBUArray;
+
+/*! AV1 config record - not a real MPEG-4 descriptor*/
+typedef struct
+{
+	Bool has_enhancement_layers;
+	Bool has_temporal_layers;
+	u8 OBULengthSizeMinusOne;//Romain:   => "Only the value 0, 1, 3 are allowed."
+	u8 numOBUs;
+	GF_List *OBUs_array; /*GF_AV1_OBUArray*/
+} GF_AV1Config;
+
 /*! Media Segment Descriptor used for Media Control Extensions*/
 typedef struct
 {
@@ -1287,6 +1304,13 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
  \return the decoded HEVC config
  */
 GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc);
+
+/*! AV1 config constructor
+\return the created AV1 config*/
+GF_AV1Config *gf_odf_av1_cfg_new();
+/*! AV1 config destructor
+\param cfg the AV1 config to destroy*/
+void gf_odf_av1_cfg_del(GF_AV1Config *cfg);
 
 /*! destroy the descriptors in a list but not the list
  \param descList descriptor list to destroy

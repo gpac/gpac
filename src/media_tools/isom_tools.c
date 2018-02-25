@@ -54,7 +54,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		if (e) return e;
 #endif
 	}
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS) //Romain: AV1 equivalent?
 	else if (stype==GF_ISOM_SUBTYPE_HVC1) {
 		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
 		gf_media_hevc_change_par(hvcc, ar_num, ar_den);

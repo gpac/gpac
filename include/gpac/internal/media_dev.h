@@ -491,6 +491,32 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
+
+typedef enum {
+	OBU_SEQUENCE_HEADER = 1,
+	OBU_TEMPORAL_DELIMITER = 2,
+	OBU_FRAME_HEADER = 3,
+	OBU_TILE_GROUP = 4,
+	OBU_METADATA = 5,
+	OBU_PADDING = 15,
+} ObuType;
+
+/*!\brief OBU metadata types. */
+typedef enum {
+	OBU_METADATA_TYPE_PRIVATE_DATA = 0,
+	OBU_METADATA_TYPE_HDR_CLL = 1,
+	OBU_METADATA_TYPE_HDR_MDCV = 2,
+	OBU_METADATA_TYPE_SCALABILITY = 3,
+} ObuMetadataType;
+
+typedef struct
+{
+	u16 width, height;
+} AV1State;
+
+GF_Err gf_media_aom_parse_ivf(GF_BitStream *bs, AV1State *state, u32 *frame_size);
+GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u32 *obu_size, ObuType *obu_type, AV1State *state);
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 typedef struct

@@ -1545,6 +1545,118 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 	return GF_OK;
 }
 
+/*Romain: AV1
+file:///D:/Works/motion_spell/missions/201801_aom_av1/av1-isobmff/index.html
+
+AV1 Sample Entry
+Sample entry type:	av01, under stsd
+
+sync sample for this specification is a temporal unit satisfying the following constraints:
+Its first frame is a Key Frame;
+It contains the associated Sequence Header and Frame Header OBUs.
+
+cf also "sample group"
+S-Frames () SHOULD be signaled using sample groups and the AV1SFrameSampleGroupEntry.
+
+"if a file contains multiple tracks which are alternative representations of the same content, in particular using S-Frames, those tracks should be marked
+as belonging to the same alternate group and should use a track selection box with an appropriate attribute (e.g. bitr)."
+*/
+
+GF_Err gf_media_aom_parse_ivf(GF_BitStream *bs, AV1State *state, u32 *frame_size)
+{
+	//Romain: check we have enough bytes in bs
+	u32 dw = gf_bs_read_u32(bs);
+	if (dw != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Invalid signature\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	dw = gf_bs_read_u16(bs);
+	if (dw != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong IVF version. 0 expected, got %u\n", dw));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	dw = gf_bs_read_u32(bs); //codec_fourcc //Romain: check?
+	dw = gf_bs_read_u16(bs);
+	state->width = state->width < dw ? dw : state->width;
+	dw = gf_bs_read_u16(bs);
+	state->height = state->height < dw ? dw : state->height;
+	dw = gf_bs_read_u32(bs); //time_base.numerator
+	dw = gf_bs_read_u32(bs); //time_base.denominator
+
+	*frame_size = gf_bs_read_u32(bs);
+	if (*frame_size > 256 * 1024 * 1024) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong frame size %u\n", *frame_size));
+		*frame_size = 0;
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	return GF_OK;
+}
+
+static int aom_uleb_decode(const u8 *buffer, size_t available, u32 *value, size_t *length)
+{
+	if (buffer && value) {
+		for (size_t i = 0; i < 8 && i < available; ++i) {
+			const u8 decoded_byte = *(buffer + i) & 0x7f;
+			*value |= ((u32)decoded_byte) << (i * 7);
+			if ((*(buffer + i) >> 7) == 0) {
+				if (length) {
+					*length = i + 1;
+				}
+				return 0;
+			}
+		}
+	}
+
+	return -1;
+}
+
+#define OBU_LENGTH_FIELD_SIZE 8
+GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u32 *obu_size, ObuType *obu_type, AV1State *state)
+{
+	size_t length_field_size = 0;
+	u8 buf[OBU_LENGTH_FIELD_SIZE] = { 0 };
+	u64 pos = 0;
+
+	if (!bs || !obu_type || !obu_size || !obu_type || !state)
+		return GF_BAD_PARAM;
+
+	pos = gf_bs_get_position(bs);
+	if (gf_bs_read_data(bs, buf, OBU_LENGTH_FIELD_SIZE) < OBU_LENGTH_FIELD_SIZE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1 OBU] Could not read %u bytes to compute OBU size\n", OBU_LENGTH_FIELD_SIZE));
+		return GF_BAD_PARAM;
+	}
+	if (aom_uleb_decode(buf, OBU_LENGTH_FIELD_SIZE, obu_size, &length_field_size) != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1 OBU] Could not compute OBU size\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	gf_bs_seek(bs, pos + length_field_size);
+
+	buf[0] = gf_bs_read_u8(bs);
+	*obu_type = (buf[0] >> 3) & 0xF;
+
+#if 0 //Romain: TODO handle enhancement in State
+	// break if obu_extension_flag is found and enhancement_id change
+	if (buf[0] & 0x1) {
+		const u8 obu_extension_header = data[length_field_size + OBU_HEADER_SIZE_BYTES];
+		const int curr_layer_id = (obu_extension_header >> 3) & 0x3;
+		if (curr_layer_id && (curr_layer_id > last_layer_id)) {
+			// new enhancement layer
+			*bytes_read -= obu_size;
+			const int i_obu_size = (int)obu_size;
+			fseek(infile, -i_obu_size, SEEK_CUR);
+			break;
+		}
+	}
+#endif
+
+	gf_bs_seek(bs, pos);
+
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 GF_EXPORT
@@ -1572,7 +1684,6 @@ const char *gf_mp3_version_name(u32 hdr)
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-
 
 GF_EXPORT
 u8 gf_mp3_layer(u32 hdr)
