@@ -117,11 +117,11 @@ int main(int argc, char **argv)
 	/*****************/
 	/*   atsc init   */
 	/*****************/
-	atscd = gf_atsc_dmx_new(ifce, dir, 0);
-	gf_atsc_tune_in(atscd, serviceID);
+	atscd = gf_atsc3_dmx_new(ifce, dir, 0);
+	gf_atsc3_tune_in(atscd, serviceID);
 
 	while (atscd && run) {
-		GF_Err e = gf_atsc_dmx_process(atscd);
+		GF_Err e = gf_atsc3_dmx_process(atscd);
 		if (e == GF_IP_NETWORK_EMPTY)
 			gf_sleep(1);
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	gf_atsc_dmx_del(atscd);
+	gf_atsc3_dmx_del(atscd);
 
 	if (logfile) gf_fclose(logfile);
 	gf_sys_close();

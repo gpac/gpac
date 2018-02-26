@@ -59,17 +59,17 @@ typedef struct
  \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
  \return the ATSC demultiplexer created
 */
-GF_ATSCDmx *gf_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
+GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
 /*! Deletes an ATSC demultiplexer
  \param atscd the ATSC demultiplexer to delete
 */
-void gf_atsc_dmx_del(GF_ATSCDmx *atscd);
+void gf_atsc3_dmx_del(GF_ATSCDmx *atscd);
 
 /*! Processes demultiplexing, returns when nothing to read
  \param atscd the ATSC demultiplexer
  \return error code if any, GF_IP_NETWORK_EMPTY if nothing was read
  */
-GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd);
+GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd);
 
 /*! Sets user callback for disk-less operations
  \param atscd the ATSC demultiplexer
@@ -77,21 +77,21 @@ GF_Err gf_atsc_dmx_process(GF_ATSCDmx *atscd);
  \param udta the user data passed back by the callback
  \return error code if any
  */
-GF_Err gf_atsc_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *finfo), void *udta);
+GF_Err gf_atsc3_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *finfo), void *udta);
 
 /*! Sets the maximum number of objects to store on disk per TSI
  \param atscd the ATSC demultiplexer
  \param max_segs max number of objects (segments) to store. If 0, all objects are kept
  \return error code if any
  */
-GF_Err gf_atsc_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
+GF_Err gf_atsc3_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
 
 /*! Sets the maximum number of objects to store on disk per TSI
  \param atscd the ATSC demultiplexer
  \param service_id ID of the service to tune in. 0 means no service, 0xFFFFFFFF means all services and 0xFFFFFFFE means first service found
  \return error code if any
  */
-GF_Err gf_atsc_tune_in(GF_ATSCDmx *atscd, u32 service_id);
+GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 service_id);
 
 
 /*! Gets the number of objects currently loaded in the service
@@ -99,7 +99,7 @@ GF_Err gf_atsc_tune_in(GF_ATSCDmx *atscd, u32 service_id);
  \param service_id ID of the service to query
  \return number of objects in service
  */
-u32 gf_atsc_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id);
+u32 gf_atsc3_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id);
 
 /*! Removes an object with a given filename
  \param atscd the ATSC demultiplexer
@@ -107,52 +107,52 @@ u32 gf_atsc_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id);
  \param fileName name of the file associated with the object
  \param purge_previous if set, indicates that all objects with the same TSI and a TOI less than TOI of the deleted object will be removed
  */
-void gf_atsc_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *fileName, Bool purge_previous);
+void gf_atsc3_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *fileName, Bool purge_previous);
 
 /*! Removes the first object loaded in the service
  \param atscd the ATSC demultiplexer
  \param service_id ID of the service to query
  */
-void gf_atsc_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
+void gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
 
 /*! Checks existence of a service
  \param atscd the ATSC demultiplexer
  \param service_id ID of the service to query
  \return true if service is found, false otherwise
  */
-Bool gf_atsc_dmx_find_service(GF_ATSCDmx *atscd, u32 service_id);
+Bool gf_atsc3_dmx_find_service(GF_ATSCDmx *atscd, u32 service_id);
 
 /*! Removes all non-signaling objects (ie TSI!=0), keeping only init segments and currently/last downloaded objects
 \note this is mostly usefull in case of looping session, or at MPD switch boundaries
  \param atscd the ATSC demultiplexer
  \param service_id ID of the service to cleanup
  */
-void gf_atsc_dmx_purge_objects(GF_ATSCDmx *atscd, u32 service_id);
+void gf_atsc3_dmx_purge_objects(GF_ATSCDmx *atscd, u32 service_id);
 
 
 /*! Gets high resolution system time clock of the first packet received
  \param atscd the ATSC demultiplexer
  \return system clock in microseconds of first packet received
  */
-u64 gf_atsc_dmx_get_first_packet_time(GF_ATSCDmx *atscd);
+u64 gf_atsc3_dmx_get_first_packet_time(GF_ATSCDmx *atscd);
 
 /*! Gets high resolution system time clock of the last packet received
  \param atscd the ATSC demultiplexer
  \return system clock in microseconds of last packet received
  */
-u64 gf_atsc_dmx_get_last_packet_time(GF_ATSCDmx *atscd);
+u64 gf_atsc3_dmx_get_last_packet_time(GF_ATSCDmx *atscd);
 
 /*! Gets the number of packets received since start of the session, for all active services
  \param atscd the ATSC demultiplexer
  \return number of packets received
  */
-u64 gf_atsc_dmx_get_nb_packets(GF_ATSCDmx *atscd);
+u64 gf_atsc3_dmx_get_nb_packets(GF_ATSCDmx *atscd);
 
 /*! Gets the number of bytes received since start of the session, for all active services
  \param atscd the ATSC demultiplexer
  \return number of bytes received
  */
-u64 gf_atsc_dmx_get_recv_bytes(GF_ATSCDmx *atscd);
+u64 gf_atsc3_dmx_get_recv_bytes(GF_ATSCDmx *atscd);
 
 #ifdef __cplusplus
 }

@@ -58,7 +58,7 @@ static void ATSCIn_del(ATSCIn *atscd)
 {
 	if (atscd->th) gf_th_del(atscd->th);
 	if (atscd->clock_init_seg) gf_free(atscd->clock_init_seg);
-	if (atscd->atsc_dmx) gf_atsc_dmx_del(atscd->atsc_dmx);
+	if (atscd->atsc_dmx) gf_atsc3_dmx_del(atscd->atsc_dmx);
 
 	gf_free(atscd);
 }
@@ -88,16 +88,16 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 	case GF_ATSC_EVT_SERVICE_FOUND:
 		if (!atscd->tune_service_id) {
 			atscd->tune_service_id = evt_param;
-			gf_atsc_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
+			gf_atsc3_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
 		}
 		break;
 	case GF_ATSC_EVT_SERVICE_SCAN:
-		if (atscd->tune_service_id && !gf_atsc_dmx_find_service(atscd->atsc_dmx, atscd->tune_service_id)) {
+		if (atscd->tune_service_id && !gf_atsc3_dmx_find_service(atscd->atsc_dmx, atscd->tune_service_id)) {
 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSCDmx] Asked to tune to service %d but no such service, tuning to first one\n", atscd->tune_service_id));
 
 			atscd->tune_service_id = 0;
-			gf_atsc_tune_in(atscd->atsc_dmx, (u32) -2);
+			gf_atsc3_tune_in(atscd->atsc_dmx, (u32) -2);
 		}
 		break;
 	case GF_ATSC_EVT_MPD:
@@ -134,7 +134,7 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 			if (atscd->last_toi > finfo->toi) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSCDmx] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", atscd->tune_service_id, finfo->tsi, atscd->last_toi, finfo->toi));
 
-				gf_atsc_dmx_purge_objects(atscd->atsc_dmx, evt_param);
+				gf_atsc3_dmx_purge_objects(atscd->atsc_dmx, evt_param);
 				is_loop = GF_TRUE;
 				if (atscd->mpd_cache_entry) {
 					if (atscd->clock_init_seg) gf_free(atscd->clock_init_seg);
@@ -158,11 +158,11 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 
 		if (is_loop) break;
 		
-		nb_obj = gf_atsc_dmx_get_object_count(atscd->atsc_dmx, evt_param);
+		nb_obj = gf_atsc3_dmx_get_object_count(atscd->atsc_dmx, evt_param);
 		if (nb_obj>10) {
 			while (nb_obj>10) {
-				gf_atsc_dmx_remove_first_object(atscd->atsc_dmx, evt_param);
-				nb_obj = gf_atsc_dmx_get_object_count(atscd->atsc_dmx, evt_param);
+				gf_atsc3_dmx_remove_first_object(atscd->atsc_dmx, evt_param);
+				nb_obj = gf_atsc3_dmx_get_object_count(atscd->atsc_dmx, evt_param);
 			}
 		}
 		break;
@@ -181,7 +181,7 @@ static Bool ATSCIn_LocalCacheCbk(void *par, char *url, Bool is_destroy)
 		subr[0] = 0;
 		sid = atoi(url+21);
 		subr[0] = '/';
-		gf_atsc_dmx_remove_object_by_name(atscd->atsc_dmx, sid, subr+1, GF_TRUE);
+		gf_atsc3_dmx_remove_object_by_name(atscd->atsc_dmx, sid, subr+1, GF_TRUE);
 	}
 	return GF_TRUE;
 }
@@ -191,12 +191,12 @@ static u32 ATSCIn_Run(void *par)
 	ATSCIn *atscd = (ATSCIn *)par;
 
 	gf_service_connect_ack(atscd->service, NULL, GF_OK);
-	gf_atsc_set_callback(atscd->atsc_dmx, ATSCIn_on_event, atscd);
+	gf_atsc3_set_callback(atscd->atsc_dmx, ATSCIn_on_event, atscd);
 	if (atscd->tune_service_id)
-		gf_atsc_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
+		gf_atsc3_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
 
 	while (atscd->state==1) {
-		GF_Err e = gf_atsc_dmx_process(atscd->atsc_dmx);
+		GF_Err e = gf_atsc3_dmx_process(atscd->atsc_dmx);
 		if (e == GF_IP_NETWORK_EMPTY) gf_sleep(1);
 	}
 	atscd->state = 3;
@@ -231,7 +231,7 @@ static GF_Err ATSCIn_ConnectService(GF_InputService *plug, GF_ClientService *ser
 	}
 
 	if (!atscd->atsc_dmx) {
-		atscd->atsc_dmx = gf_atsc_dmx_new(ifce, NULL, buffer_size);
+		atscd->atsc_dmx = gf_atsc3_dmx_new(ifce, NULL, buffer_size);
 
 		atscd->dm = gf_term_service_get_dm(serv);
 		if (!atscd->dm) return GF_SERVICE_ERROR;

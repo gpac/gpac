@@ -149,7 +149,7 @@ void PrintLiveUsage();
 u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *outName);
 #endif
 
-u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs, u32 stats_rate);
+u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs, u32 stats_rate);
 
 int mp4boxTerminal(int argc, char **argv);
 
@@ -3611,7 +3611,7 @@ int mp4boxMain(int argc, char **argv)
 			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 			gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
 		}
-		return grab_atsc_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs, atsc_stats_rate);
+		return grab_atsc3_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs, atsc_stats_rate);
 	}
 
 	if (!inName) {
