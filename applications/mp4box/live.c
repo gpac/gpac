@@ -979,10 +979,10 @@ void atsc_on_evt(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFi
 static void atsc_stats(GF_ATSCDmx *atscd, u32 now)
 {
 	Double rate=0.0;
-	u64 st = gf_atsc_dmx_get_first_packet_time(atscd);
-	u64 et = gf_atsc_dmx_get_last_packet_time(atscd);
-	u64 nb_pck = gf_atsc_dmx_get_nb_packets(atscd);
-	u64 nb_bytes = gf_atsc_dmx_get_recv_bytes(atscd);
+	u64 st = gf_atsc3_dmx_get_first_packet_time(atscd);
+	u64 et = gf_atsc3_dmx_get_last_packet_time(atscd);
+	u64 nb_pck = gf_atsc3_dmx_get_nb_packets(atscd);
+	u64 nb_bytes = gf_atsc3_dmx_get_recv_bytes(atscd);
 
 	et -= st;
 	if (et) {
@@ -997,29 +997,29 @@ static void atsc_stats(GF_ATSCDmx *atscd, u32 now)
 	}
 }
 
-u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs, u32 stats_rate)
+u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs, u32 stats_rate)
 {
 	GF_ATSCDmx *atscd;
 	Bool run = GF_TRUE;
 	u32 nb_stats=1;
 	u32 start_time = gf_sys_clock();
 
-	atscd = gf_atsc_dmx_new(ifce, dir, 0);
+	atscd = gf_atsc3_dmx_new(ifce, dir, 0);
 	if (!atscd) {
 		fprintf(stderr, "Failed to create ATSC3 demuxer\n");
 		return 1;
 	}
-	gf_atsc_set_callback(atscd, atsc_on_evt, NULL);
-	gf_atsc_tune_in(atscd, (u32) serviceID);
+	gf_atsc3_set_callback(atscd, atsc_on_evt, NULL);
+	gf_atsc3_tune_in(atscd, (u32) serviceID);
 	if (atsc_max_segs>=0)
-		gf_atsc_set_max_objects_store(atscd, (u32) atsc_max_segs);
+		gf_atsc3_set_max_objects_store(atscd, (u32) atsc_max_segs);
 
 	if (!dir) fprintf(stderr, "No output dir, ATSC3 demux inspect mode only\n");
 	fprintf(stderr, "Starting ATSC3 demux, press 'q' to stop\n");
 
 	while (atscd && run) {
 		Bool is_empty = GF_TRUE;
-		GF_Err e = gf_atsc_dmx_process(atscd);
+		GF_Err e = gf_atsc3_dmx_process(atscd);
 		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 
 		if (gf_prompt_has_input()) {
@@ -1048,7 +1048,7 @@ u32 grab_atsc_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc
 		}
 	}
 	atsc_stats(atscd, 0);
-	gf_atsc_dmx_del(atscd);
+	gf_atsc3_dmx_del(atscd);
 	fprintf(stderr, "\n");
 	return 0;
 }
