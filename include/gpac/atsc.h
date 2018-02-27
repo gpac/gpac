@@ -154,6 +154,12 @@ u64 gf_atsc3_dmx_get_nb_packets(GF_ATSCDmx *atscd);
  */
 u64 gf_atsc3_dmx_get_recv_bytes(GF_ATSCDmx *atscd);
 
+/*! Gather only  objects with given TSI (for debug purposes)
+ \param atscd the ATSC demultiplexer
+ \param tsi the target TSI, 0 for no filtering
+ */
+void gf_atsc3_dmx_debug_tsi(GF_ATSCDmx *atscd, u32 tsi);
+
 #ifdef __cplusplus
 }
 #endif

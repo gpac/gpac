@@ -30,7 +30,7 @@
 
 #define GF_ATSC_MCAST_ADDR	"224.0.23.60"
 #define GF_ATSC_MCAST_PORT	4937
-#define GF_ATSC_SOCK_SIZE	0x2000
+#define GF_ATSC_SOCK_SIZE	0x5000
 
 typedef struct
 {
@@ -135,6 +135,8 @@ struct __gf_atscdmx {
 
 	void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *info);
 	void *udta;
+
+	u32 debug_tsi;
 
 	u64 nb_packets;
 	u64 total_bytes_recv;
@@ -262,6 +264,7 @@ GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[ATSC] Failed to create UDP socket\n"));
 		return NULL;
 	}
+	gf_sk_set_usec_wait(atscd->sock, 1);
 	e = gf_sk_setup_multicast(atscd->sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 1, GF_FALSE, (char *) ifce);
 	if (e) {
 		gf_atsc3_dmx_del(atscd);
@@ -361,6 +364,7 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			service->protocol = protocol;
 
 			service->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+			gf_sk_set_usec_wait(service->sock, 1);
 			e = gf_sk_setup_multicast(service->sock, dst_ip, dst_port, 0, GF_FALSE, (char*) atscd->ip_ifce);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Failed to setup multicast on %s:%d for service %d\n", dst_ip, dst_port, service_id));
@@ -405,6 +409,21 @@ static void gf_atsc3_obj_to_reservoir(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_L
 {
 	//remove other objects
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d : moving object tsi %u toi %u to reservoir\n", s->service_id, obj->tsi, obj->toi));
+
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)){
+		u32 i, count = gf_list_count(s->objects);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d : active objects TOIs for tsi %u: ", s->service_id, obj->tsi));
+		for (i=0;i<count;i++) {
+			GF_LCTObject *o = gf_list_get(s->objects, i);
+			if (o==obj) continue;
+			if (o->tsi != obj->tsi) continue;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, (" %u", o->toi));
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\n"));
+	}
+#endif
+
 	if (s->last_active_obj==obj) s->last_active_obj = NULL;
 	obj->closed_flag = GF_FALSE;
 	obj->nb_bytes = 0;
@@ -419,6 +438,7 @@ static void gf_atsc3_obj_to_reservoir(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_L
 	obj->status = GF_LCT_OBJ_INIT;
 	gf_list_del_item(s->objects, obj);
 	gf_list_add(atscd->object_reservoir, obj);
+
 }
 
 static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *obj)
@@ -473,7 +493,7 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 	}
 
 	if (obj->rlct->init_toi == obj->toi) {
-		sprintf(szPath, "%s/%s", s->output_dir, obj->rlct->init_filename);
+		sprintf(szPath, "%s/%s", s->output_dir, obj->rlct->init_filename ? obj->rlct->init_filename : "ghost-init.mp4");
 	} else {
 		char szFileName[1024];
 		sprintf(szFileName, obj->rlct->toi_template, obj->toi);
@@ -515,8 +535,10 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 	//keep init segment active
 	if (obj->toi==obj->rlct->init_toi) return GF_OK;
 	//no limit on objects, move to reservoir
-	if (!atscd->max_seg_store)
+	if (!atscd->max_seg_store) {
 		gf_atsc3_obj_to_reservoir(atscd, s, obj);
+		return GF_OK;
+	}
 
 	//remove all pending objects except init segment
 	count = gf_list_count(s->objects);
@@ -524,7 +546,7 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 	for (i=0; i<count; i++) {
 		GF_LCTObject *o = gf_list_get(s->objects, i);
 		if (o->tsi != obj->tsi) continue;
-		if (o->toi==obj->rlct->init_toi) continue;
+		if (obj->rlct && (o->toi==obj->rlct->init_toi)) continue;
 		nb_objs++;
 		if (o==obj) break;
 	}
@@ -619,7 +641,7 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 		}
 		obj->download_time_ms = gf_sys_clock();
 		gf_list_add(s->objects, obj);
-	} else if (!obj->total_length) {
+	} else if (!obj->total_length && total_len) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, tsi, toi, total_len));
 		obj->total_length = total_len;
 	} else if (total_len && (obj->total_length != total_len)) {
@@ -634,12 +656,17 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 			} else {
 				gf_atsc3_obj_to_reservoir(atscd, s, s->last_active_obj);
 			}
+ 			s->last_active_obj = obj;
 		} else if (in_order) {
-			for (i=0; i<gf_list_count(s->objects); i++) {
+			u32 count = gf_list_count(s->objects);
+ 			s->last_active_obj = obj;
+			for (i=0; i<count; i++) {
+				u32 new_count;
 				GF_LCTObject *o = gf_list_get(s->objects, i);
 				if (o==obj) break;
+				//we can only detect losses if a new TOI on the same TSI is found
 				if (o->tsi != obj->tsi) continue;
-				if (s->last_active_obj->status>=GF_LCT_OBJ_DONE_ERR) continue;
+				if (o->status>=GF_LCT_OBJ_DONE_ERR) continue;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u not completely received but in-order delivery signaled and new TOI %u - forcing dispatch\n", s->service_id, o->tsi, o->toi, toi ));
 				if (o->tsi) {
@@ -648,11 +675,18 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 				} else {
 					gf_atsc3_obj_to_reservoir(atscd, s, o);
 				}
+				new_count = gf_list_count(s->objects);
+				//objects purged
+				if (new_count<count) {
+					i=-1;
+					count = new_count;
+				}
 			}
 		}
- 		s->last_active_obj = obj;
 	}
 	*gather_obj = obj;
+	assert(obj->toi == toi);
+	assert(obj->tsi == tsi);
 
 	//keep receiving if we are done with errors
 	if (obj->status >= GF_LCT_OBJ_DONE) {
@@ -698,21 +732,36 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 	}
 	obj->nb_recv_frags++;
 
+	assert(obj->toi == toi);
+	assert(obj->tsi == tsi);
 	if (start_offset + size > obj->alloc_size) {
 		obj->alloc_size = start_offset + size;
+		//use total size if available
+		if (obj->alloc_size < obj->total_length)
+			obj->alloc_size = obj->total_length;
+		//for signaling objects, we set byte after last to 0 to use string functions
+		if (!tsi)
+			obj->alloc_size++;
 		obj->payload = gf_realloc(obj->payload, obj->alloc_size);
 	}
+	assert(obj->alloc_size >= start_offset + size);
+
 	memcpy(obj->payload + start_offset, data, size);
 	obj->nb_bytes += size;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d TSI %u TOI %u append LCT fragment, offset %d total size %d recv bytes %d - offset diff since last %d\n", s->service_id, obj->tsi, obj->toi, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
 
 	obj->prev_start_offset = start_offset;
+	assert(obj->toi == toi);
+	assert(obj->tsi == tsi);
 
 	//check if we are done
 	done = GF_FALSE;
 	if (obj->total_length) {
 		if (obj->nb_bytes >= obj->total_length) {
 			done = GF_TRUE;
+		}
+		else if (close_flag) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u closed flag found but not yet completed\n", s->service_id, tsi, toi ));
 		}
 	} else {
 		if (close_flag) obj->closed_flag = GF_TRUE;
@@ -797,6 +846,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 		//need a new socket for the session
 		if ((strcmp(s->dst_ip, dst_ip)) || (s->port != dst_port) ) {
 			rsess->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+			gf_sk_set_usec_wait(rsess->sock, 1);
 			e = gf_sk_setup_multicast(rsess->sock, dst_ip, dst_port, 0, GF_FALSE, (char *) atscd->ip_ifce);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d  failed to setup mcast for route session on %s:%d\n", s->service_id, dst_ip, dst_port));
@@ -961,6 +1011,8 @@ static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCS
 		payload = object->payload;
 		payload_size = object->total_length;
 	}
+	payload[payload_size] = 0;
+
 	//check for multipart
 	if (!strncmp(payload, "Content-Type: multipart/", 24)) {
 		sep = strstr(payload, "boundary=\"");
@@ -988,7 +1040,6 @@ static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCS
 			sep = strstr(payload, boundary);
 			if (!sep) break;
 			payload = sep + strlen(boundary) + 2;
-
 			sep = strstr(payload, boundary);
 			if (!sep) break;
 			sep[0] = 0;
@@ -1081,6 +1132,8 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 		e = gf_sk_receive(s->sock, atscd->buffer, atscd->buffer_size, 0, &nb_read);
 	}
 	if (e != GF_OK) return e;
+	assert(nb_read);
+
 	atscd->nb_packets++;
 	atscd->total_bytes_recv += nb_read;
 	atscd->last_pck_time = gf_sys_clock_high_res();
@@ -1141,12 +1194,14 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 	toi = gf_bs_read_u32(atscd->bs);
 	hdr_len-=4;
 
-	if (tsi==10) return GF_OK;
+	//filter TSI if not 0 (service TSI) and debug mode set
+	if (atscd->debug_tsi && tsi && (tsi!=atscd->debug_tsi)) return GF_OK;
 
 	//look for TSI 0 first
 	if (tsi!=0) {
 		u32 i=0;
 		Bool in_session = GF_FALSE;
+
 		if (s->last_active_obj && (s->last_active_obj->tsi==tsi)) {
 			in_session = GF_TRUE;
 			rlct = s->last_active_obj->rlct;
@@ -1272,7 +1327,10 @@ static GF_Err gf_atsc3_dmx_process_services(GF_ATSCDmx *atscd)
 		GF_ATSCService *s = gf_list_get(atscd->services, i);
 		if (!s->opened) continue;
 
-		e = gf_atsc3_dmx_process_service(atscd, s, NULL);
+		while (1) {
+			e = gf_atsc3_dmx_process_service(atscd, s, NULL);
+			if (e) break;
+		}
 		if (e!=GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 		if (!s->secondary_sockets) continue;
 		j=0;
@@ -1526,5 +1584,11 @@ GF_EXPORT
 u64 gf_atsc3_dmx_get_recv_bytes(GF_ATSCDmx *atscd)
 {
 	return atscd ? atscd->total_bytes_recv : 0;
+}
+
+GF_EXPORT
+void gf_atsc3_dmx_debug_tsi(GF_ATSCDmx *atscd, u32 tsi)
+{
+	if (atscd) atscd->debug_tsi = tsi;
 }
 
