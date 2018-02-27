@@ -947,8 +947,9 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 			mo->odm->action_type = GF_ODM_ACTION_DELETE;
 			ret = GF_TRUE;
 		}
-		else
+		else if (mo->odm->action_type!=GF_ODM_ACTION_DELETE) {
 			mo->odm->action_type = GF_ODM_ACTION_STOP;
+		}
 
 		gf_term_lock_media_queue(mo->odm->term, GF_FALSE);
 	} else {

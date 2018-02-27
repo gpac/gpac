@@ -89,9 +89,10 @@ GF_Err gf_atsc3_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
 /*! Sets the maximum number of objects to store on disk per TSI
  \param atscd the ATSC demultiplexer
  \param service_id ID of the service to tune in. 0 means no service, 0xFFFFFFFF means all services and 0xFFFFFFFE means first service found
+ \param tune_others if set, will tune all non-selected services to get the MPD, but won't receive any media data
  \return error code if any
  */
-GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 service_id);
+GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 service_id, Bool tune_others);
 
 
 /*! Gets the number of objects currently loaded in the service
@@ -159,6 +160,20 @@ u64 gf_atsc3_dmx_get_recv_bytes(GF_ATSCDmx *atscd);
  \param tsi the target TSI, 0 for no filtering
  */
 void gf_atsc3_dmx_debug_tsi(GF_ATSCDmx *atscd, u32 tsi);
+
+/*! Sets udta for given service id
+ \param atscd the ATSC demultiplexer
+ \param service_id the target service
+ \param udta the target user data
+ */
+void gf_atsc3_dmx_set_service_udta(GF_ATSCDmx *atscd, u32 service_id, void *udta);
+
+/*! Gets udta for given service id
+ \param atscd the ATSC demultiplexer
+ \param service_id the target service
+ \return the user data associated with the service
+ */
+void *gf_atsc3_dmx_get_service_udta(GF_ATSCDmx *atscd, u32 service_id);
 
 #ifdef __cplusplus
 }

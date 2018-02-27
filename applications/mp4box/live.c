@@ -1017,7 +1017,7 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 		return 1;
 	}
 	gf_atsc3_set_callback(atscd, atsc_on_evt, atscd);
-	gf_atsc3_tune_in(atscd, (u32) serviceID);
+	gf_atsc3_tune_in(atscd, (u32) serviceID, GF_FALSE);
 	if (atsc_max_segs>=0)
 		gf_atsc3_set_max_objects_store(atscd, (u32) atsc_max_segs);
 

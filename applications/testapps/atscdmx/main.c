@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	/*   atsc init   */
 	/*****************/
 	atscd = gf_atsc3_dmx_new(ifce, dir, 0);
-	gf_atsc3_tune_in(atscd, serviceID);
+	gf_atsc3_tune_in(atscd, serviceID, GF_FALSE);
 
 	while (atscd && run) {
 		GF_Err e = gf_atsc3_dmx_process(atscd);

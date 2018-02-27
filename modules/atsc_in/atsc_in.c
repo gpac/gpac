@@ -40,7 +40,6 @@ typedef struct
 	u32 state;
 	char *clock_init_seg;
 	GF_ATSCDmx *atsc_dmx;
-	DownloadedCacheEntry mpd_cache_entry;
 	u32 tune_service_id;
 
 	u32 sync_tsi, last_toi;
@@ -86,10 +85,6 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 
 	switch (evt) {
 	case GF_ATSC_EVT_SERVICE_FOUND:
-		if (!atscd->tune_service_id) {
-			atscd->tune_service_id = evt_param;
-			gf_atsc3_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
-		}
 		break;
 	case GF_ATSC_EVT_SERVICE_SCAN:
 		if (atscd->tune_service_id && !gf_atsc3_dmx_find_service(atscd->atsc_dmx, atscd->tune_service_id)) {
@@ -97,20 +92,22 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSCDmx] Asked to tune to service %d but no such service, tuning to first one\n", atscd->tune_service_id));
 
 			atscd->tune_service_id = 0;
-			gf_atsc3_tune_in(atscd->atsc_dmx, (u32) -2);
+			gf_atsc3_tune_in(atscd->atsc_dmx, (u32) -2, GF_TRUE);
 		}
 		break;
 	case GF_ATSC_EVT_MPD:
 	{
 		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->ServiceID = evt_param;
+		od->RedirectOnly = 1;
 
 		sprintf(szPath, "http://gpatsc/service%d/%s", evt_param, finfo->filename);
 		od->URLString = gf_strdup(szPath);
-		atscd->mpd_cache_entry = gf_dm_add_cache_entry(atscd->dm, szPath, finfo->data, finfo->size, 0, 0, "application/dash+xml", GF_FALSE, 0);
+		cache_entry = gf_dm_add_cache_entry(atscd->dm, szPath, finfo->data, finfo->size, 0, 0, "application/dash+xml", GF_FALSE, 0);
 
 		sprintf(szPath, "x-dash-atsc: %d\r\n", evt_param);
-		gf_dm_force_headers(atscd->dm, atscd->mpd_cache_entry, szPath);
+		gf_dm_force_headers(atscd->dm, cache_entry, szPath);
+		gf_atsc3_dmx_set_service_udta(atscd->atsc_dmx, evt_param, cache_entry);
 
 		gf_service_declare_media(atscd->service, (GF_Descriptor *) od, GF_TRUE);
 
@@ -122,11 +119,11 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		break;
 	case GF_ATSC_EVT_SEG:
 		if (finfo->corrupted) return;
-
-		if (atscd->mpd_cache_entry) {
+		cache_entry = gf_atsc3_dmx_get_service_udta(atscd->atsc_dmx, evt_param);
+		if (cache_entry) {
 			if (!atscd->clock_init_seg) atscd->clock_init_seg = gf_strdup(finfo->filename);
 			sprintf(szPath, "x-dash-atsc: %d\r\nx-dash-first-seg: %s\r\n", evt_param, atscd->clock_init_seg);
-			gf_dm_force_headers(atscd->dm, atscd->mpd_cache_entry, szPath);
+			gf_dm_force_headers(atscd->dm, cache_entry, szPath);
 		}
 		is_init = GF_FALSE;
 		if (!atscd->sync_tsi) {
@@ -138,11 +135,11 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 
 				gf_atsc3_dmx_purge_objects(atscd->atsc_dmx, evt_param);
 				is_loop = GF_TRUE;
-				if (atscd->mpd_cache_entry) {
+				if (cache_entry) {
 					if (atscd->clock_init_seg) gf_free(atscd->clock_init_seg);
 					atscd->clock_init_seg = gf_strdup(finfo->filename);
 					sprintf(szPath, "x-dash-atsc: %d\r\nx-dash-first-seg: %s\r\nx-atsc-loop: yes\r\n", evt_param, atscd->clock_init_seg);
-					gf_dm_force_headers(atscd->dm, atscd->mpd_cache_entry, szPath);
+					gf_dm_force_headers(atscd->dm, cache_entry, szPath);
 				}
 			}
 			atscd->last_toi = finfo->toi;
@@ -177,14 +174,24 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 static Bool ATSCIn_LocalCacheCbk(void *par, char *url, Bool is_destroy)
 {
 	ATSCIn *atscd = (ATSCIn *)par;
+	u32 sid=0;
+	char *subr;
 	if (strncmp(url, "http://gpatsc/service", 21)) return GF_FALSE;
+
+	subr = strchr(url+21, '/');
+	subr[0] = 0;
+	sid = atoi(url+21);
+	subr[0] = '/';
 	if (is_destroy) {
-		u32 sid=0;
-		char *subr = strchr(url+21, '/');
-		subr[0] = 0;
-		sid = atoi(url+21);
-		subr[0] = '/';
 		gf_atsc3_dmx_remove_object_by_name(atscd->atsc_dmx, sid, subr+1, GF_TRUE);
+	} else if (sid && (sid != atscd->tune_service_id)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSCDmx] Request on service %d but tuned on service %d, retuning\n", sid, atscd->tune_service_id));
+		atscd->tune_service_id = sid;
+		atscd->sync_tsi = 0;
+		atscd->last_toi = 0;
+		if (atscd->clock_init_seg) gf_free(atscd->clock_init_seg);
+		atscd->clock_init_seg = NULL;
+		gf_atsc3_tune_in(atscd->atsc_dmx, sid, GF_TRUE);
 	}
 	return GF_TRUE;
 }
@@ -196,7 +203,9 @@ static u32 ATSCIn_Run(void *par)
 	gf_service_connect_ack(atscd->service, NULL, GF_OK);
 	gf_atsc3_set_callback(atscd->atsc_dmx, ATSCIn_on_event, atscd);
 	if (atscd->tune_service_id)
-		gf_atsc3_tune_in(atscd->atsc_dmx, atscd->tune_service_id);
+		gf_atsc3_tune_in(atscd->atsc_dmx, atscd->tune_service_id, GF_FALSE);
+	else
+		gf_atsc3_tune_in(atscd->atsc_dmx, 0, GF_TRUE);
 
 	while (atscd->state==1) {
 		GF_Err e = gf_atsc3_dmx_process(atscd->atsc_dmx);
