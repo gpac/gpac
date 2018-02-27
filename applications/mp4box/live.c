@@ -960,6 +960,8 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 
 #include <gpac/atsc.h>
 
+static Bool inspect_mode = GF_FALSE;
+
 static u32 nb_services=0;
 void atsc_on_evt(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *info)
 {
@@ -970,6 +972,11 @@ void atsc_on_evt(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFi
 		break;
 	case GF_ATSC_EVT_SERVICE_SCAN:
 		fprintf(stderr, "Done scaning all services\n");
+		break;
+	case GF_ATSC_EVT_SEG:
+		if (inspect_mode) {
+			gf_atsc3_dmx_remove_object_by_name( (GF_ATSCDmx *) udta, evt_param, (char *) info->filename, GF_FALSE);
+		}
 		break;
 	default:
 		break;
@@ -997,7 +1004,7 @@ static void atsc_stats(GF_ATSCDmx *atscd, u32 now)
 	}
 }
 
-u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs, u32 stats_rate)
+u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs, u32 stats_rate, u32 debug_tsi)
 {
 	GF_ATSCDmx *atscd;
 	Bool run = GF_TRUE;
@@ -1009,12 +1016,20 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 		fprintf(stderr, "Failed to create ATSC3 demuxer\n");
 		return 1;
 	}
-	gf_atsc3_set_callback(atscd, atsc_on_evt, NULL);
+	gf_atsc3_set_callback(atscd, atsc_on_evt, atscd);
 	gf_atsc3_tune_in(atscd, (u32) serviceID);
 	if (atsc_max_segs>=0)
 		gf_atsc3_set_max_objects_store(atscd, (u32) atsc_max_segs);
 
-	if (!dir) fprintf(stderr, "No output dir, ATSC3 demux inspect mode only\n");
+	if (debug_tsi) {
+		fprintf(stderr, "Filtering objects from TSI %d only\n", debug_tsi);
+		gf_atsc3_dmx_debug_tsi(atscd, debug_tsi);
+	}
+
+	if (!dir) {
+		fprintf(stderr, "No output dir, ATSC3 demux inspect mode only\n");
+		inspect_mode = GF_TRUE;
+	}
 	fprintf(stderr, "Starting ATSC3 demux, press 'q' to stop\n");
 
 	while (atscd && run) {

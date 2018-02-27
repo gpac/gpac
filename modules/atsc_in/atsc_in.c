@@ -121,6 +121,8 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 	}
 		break;
 	case GF_ATSC_EVT_SEG:
+		if (finfo->corrupted) return;
+
 		if (atscd->mpd_cache_entry) {
 			if (!atscd->clock_init_seg) atscd->clock_init_seg = gf_strdup(finfo->filename);
 			sprintf(szPath, "x-dash-atsc: %d\r\nx-dash-first-seg: %s\r\n", evt_param, atscd->clock_init_seg);
@@ -148,6 +150,7 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		//fallthrough
 
 	case GF_ATSC_EVT_INIT_SEG:
+		if (finfo->corrupted) return;
 
 		sprintf(szPath, "http://gpatsc/service%d/%s", evt_param, finfo->filename);
 		//we copy over the init segment, but only share the data pointer for segments
