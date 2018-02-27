@@ -95,6 +95,13 @@ typedef struct
 	GF_List *channels;
 } GF_ATSCRouteSession;
 
+typedef enum
+{
+	GF_ATSC_TUNE_OFF=0,
+	GF_ATSC_TUNE_ON,
+	GF_ATSC_TUNE_SLS_ONLY,
+} GF_ATSCTuneMode;
+
 typedef struct
 {
 	u32 service_id;
@@ -110,7 +117,8 @@ typedef struct
 
 	GF_List *route_sessions;
 
-	Bool opened;
+	GF_ATSCTuneMode tune_mode;
+	void *udta;
 } GF_ATSCService;
 
 struct __gf_atscdmx {
@@ -132,7 +140,8 @@ struct __gf_atscdmx {
 
 	GF_DOMParser *dom;
 	u32 service_autotune;
-
+	Bool tune_all_sls;
+	
 	void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *info);
 	void *udta;
 
@@ -279,21 +288,23 @@ GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_
 }
 
 GF_EXPORT
-GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 serviceID)
+GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 serviceID, Bool tune_all_sls)
 {
 	u32 i;
 	GF_ATSCService *s;
 	if (!atscd) return GF_BAD_PARAM;
 	atscd->service_autotune = serviceID;
+	atscd->tune_all_sls = tune_all_sls;
 	i=0;
 	while ((s = gf_list_enum(atscd->services, &i))) {
-		if (s->service_id==serviceID) s->opened = GF_TRUE;
-		else if (serviceID==0xFFFFFFFF) s->opened = GF_TRUE;
-		else if (!s->opened && (serviceID==0xFFFFFFFE)) {
-			s->opened = GF_TRUE;
-			break;
+		if (s->service_id==serviceID) s->tune_mode = GF_ATSC_TUNE_ON;
+		else if (serviceID==0xFFFFFFFF) s->tune_mode = GF_ATSC_TUNE_ON;
+		else if ((s->tune_mode!=GF_ATSC_TUNE_ON) && (serviceID==0xFFFFFFFE)) {
+			s->tune_mode = GF_ATSC_TUNE_ON;
+			serviceID = s->service_id;
+		} else {
+			s->tune_mode = tune_all_sls ? GF_ATSC_TUNE_SLS_ONLY : GF_ATSC_TUNE_OFF;
 		}
-		else s->opened = 0;
 	}
 	return GF_OK;
 }
@@ -393,8 +404,9 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 					}
 				}
 			}
-			if (atscd->service_autotune==0xFFFFFFFF) service->opened = GF_TRUE;
-			else if (atscd->service_autotune==service_id) service->opened = GF_TRUE;
+			if (atscd->service_autotune==0xFFFFFFFF) service->tune_mode = GF_ATSC_TUNE_ON;
+			else if (atscd->service_autotune==service_id) service->tune_mode = GF_ATSC_TUNE_ON;
+			else if (atscd->tune_all_sls) service->tune_mode = GF_ATSC_TUNE_SLS_ONLY;
 
 			gf_list_add(atscd->services, service);
 			if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_FOUND, service_id, NULL);
@@ -774,6 +786,9 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 static GF_Err gf_atsc3_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, char *content, char *content_location)
 {
 	u32 len = (u32) strlen(content);
+
+	if (s->tune_mode==GF_ATSC_TUNE_SLS_ONLY)
+		s->tune_mode = GF_ATSC_TUNE_OFF;
 
 	if (s->output_dir) {
 		FILE *out;
@@ -1201,6 +1216,7 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 	if (tsi!=0) {
 		u32 i=0;
 		Bool in_session = GF_FALSE;
+		if (s->tune_mode==GF_ATSC_TUNE_SLS_ONLY) return GF_OK;
 
 		if (s->last_active_obj && (s->last_active_obj->tsi==tsi)) {
 			in_session = GF_TRUE;
@@ -1325,13 +1341,16 @@ static GF_Err gf_atsc3_dmx_process_services(GF_ATSCDmx *atscd)
 		GF_Err e;
 		GF_ATSCRouteSession *rsess;
 		GF_ATSCService *s = gf_list_get(atscd->services, i);
-		if (!s->opened) continue;
+		if (s->tune_mode==GF_ATSC_TUNE_OFF) continue;
 
 		while (1) {
 			e = gf_atsc3_dmx_process_service(atscd, s, NULL);
 			if (e) break;
 		}
 		if (e!=GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
+
+		if (s->tune_mode!=GF_ATSC_TUNE_ON) continue;
+
 		if (!s->secondary_sockets) continue;
 		j=0;
 		while ((rsess = gf_list_enum(s->route_sessions, &j) )) {
@@ -1560,6 +1579,32 @@ void gf_atsc3_dmx_purge_objects(GF_ATSCDmx *atscd, u32 service_id)
 		//trash
 		gf_atsc3_obj_to_reservoir(atscd, s, obj);
 	}
+}
+
+GF_EXPORT
+void gf_atsc3_dmx_set_service_udta(GF_ATSCDmx *atscd, u32 service_id, void *udta)
+{
+	u32 i=0;
+	GF_ATSCService *s=NULL;
+	while ((s = gf_list_enum(atscd->services, &i))) {
+		if (s->service_id == service_id) {
+			s->udta = udta;
+			return;
+		}
+	}
+}
+
+GF_EXPORT
+void *gf_atsc3_dmx_get_service_udta(GF_ATSCDmx *atscd, u32 service_id)
+{
+	u32 i=0;
+	GF_ATSCService *s=NULL;
+	while ((s = gf_list_enum(atscd->services, &i))) {
+		if (s->service_id == service_id) {
+			return s->udta;
+		}
+	}
+	return NULL;
 }
 
 GF_EXPORT

@@ -820,7 +820,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	e = GF_IO_ERR;
 	timeout = 1000;
 	while (term->root_scene || gf_list_count(term->net_services) || gf_list_count(term->net_services_to_remove)) {
-		gf_sleep(30);
+		gf_sleep(10);
 		/*this shouldn't be needed but unfortunately there's a bug hanging around there...*/
 		timeout--;
 		if (!timeout) break;
@@ -829,8 +829,10 @@ GF_Err gf_term_del(GF_Terminal * term)
 		assert(!gf_list_count(term->net_services));
 		assert(!gf_list_count(term->net_services_to_remove));
 		e = GF_OK;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] All network services deleted\n"));
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Couldn not unload all services in 10 seconds, will leak ...\n"));
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] All network services deleted\n"));
 
 	/*unload extensions*/
 	for (i=0; i< gf_list_count(term->extensions); i++) {
@@ -1226,6 +1228,8 @@ void gf_term_handle_services(GF_Terminal *term)
 
 		/*if object has already been attached to its service (eg, task was posted but media_add occured inbetween), ignore*/
 		if (!connect->odm->net_service && !(connect->odm->flags & GF_ODM_DESTROYED) ) {
+			gf_term_connect_object(term, connect->odm, connect->service_url, connect->parent_url);
+		} else if (connect->odm->OD && connect->odm->OD->RedirectOnly) {
 			gf_term_connect_object(term, connect->odm, connect->service_url, connect->parent_url);
 		}
 
@@ -1647,6 +1651,13 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 	if (net_locked)
 		gf_term_lock_net(term, 0);
 
+	if (odm->net_service) {
+		assert(odm->net_service->owner != odm);
+		assert(odm->OD);
+		assert(odm->OD->URLString);
+		assert(odm->net_service->nb_odm_users);
+		odm->net_service->nb_odm_users--;
+	}
 	odm->net_service = gf_term_service_new(term, odm, serviceURL, (odm->addon || reloc_result) ? NULL : parent_url, &e);
 	if (!odm->net_service) {
 		gf_term_message(term, serviceURL, "Cannot open service", e);

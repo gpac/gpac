@@ -1788,6 +1788,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_object_subscene_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_select_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_select_service) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_find_service) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_toggle_addons) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_object_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_download_info) )
@@ -2214,6 +2215,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_last_packet_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_nb_packets) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_recv_bytes) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_set_service_udta) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_service_udta) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_add_cache_entry) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_force_headers) )

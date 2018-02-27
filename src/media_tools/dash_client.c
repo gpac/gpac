@@ -598,7 +598,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			group->dash->atsc_clock_state = 2;
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Failed to setup ATSC clock from segment template, using NTP\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Failed to setup ATSC clock from segment template with bootstrap URL %s, using NTP\n", val));
 			group->dash->atsc_clock_state = 3;
 		}
 	}
@@ -5158,6 +5158,8 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 					group->time_at_first_failure = 0;
 					group->prev_segment_ok = GF_TRUE;
 				}
+				if (new_base_seg_url) gf_free(new_base_seg_url);
+				if (key_url) gf_free(key_url);
 				return GF_DASH_DownloadCancel;
 			}
 		}
@@ -5865,6 +5867,8 @@ restart_period:
 		gf_mx_v(group->cache_mutex);
 		if (e == GF_IP_NETWORK_EMPTY) {
 			gf_dash_buffer_off(group);
+			if (dash->mpd_stop_request)
+				goto exit;
 			gf_sleep(30);
 			i--;
 			continue;

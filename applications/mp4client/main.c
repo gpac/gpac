@@ -2305,12 +2305,16 @@ force_input:
 			odm = NULL;
 			root_od = gf_term_get_root_object(term);
 			if (root_od) {
-				odm = gf_term_get_object(term, root_od, index);
-				if (odm) {
-					gf_term_select_object(term, odm);
-				} else {
-					fprintf(stderr, "Cannot find object at index %d - trying with serviceID\n", index);
+				if ( gf_term_find_service(term, root_od, index)) {
 					gf_term_select_service(term, root_od, index);
+				} else {
+					fprintf(stderr, "Cannot find service %d - trying with object index\n", index);
+					odm = gf_term_get_object(term, root_od, index);
+					if (odm) {
+						gf_term_select_object(term, odm);
+					} else {
+						fprintf(stderr, "Cannot find object at index %d\n", index);
+					}
 				}
 			}
 		}
@@ -2659,7 +2663,11 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 				if (odi.media_url) {
 					fprintf(stderr, "%s", odi.media_url);
 				} else if (odi.od) {
-					fprintf(stderr, "ID %d", odi.od->objectDescriptorID);
+				 	if (odi.od->URLString) {
+						fprintf(stderr, "%s", odi.od->URLString);
+					} else {
+						fprintf(stderr, "ID %d", odi.od->objectDescriptorID);
+					}
 				} else if (odi.service_url) {
 					fprintf(stderr, "%s", odi.service_url);
 				} else {
