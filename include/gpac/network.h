@@ -434,6 +434,13 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 start_f
  */
 s32 gf_sk_get_handle(GF_Socket *sock);
 
+/*!
+ *Sets the socket wait time in microseconds. Default wait time is 500 microseconds. Any value >= 1000000 will reset to default.
+ *\param sock the socket object
+ *\param usec_wait wait time in microseconds
+ */
+void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait);
+
 
 /*!
  *\brief gets ipv6 support

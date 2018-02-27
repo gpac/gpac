@@ -149,8 +149,6 @@ typedef s32 SOCKET;
 #endif
 
 
-#define SOCK_MICROSEC_WAIT	500
-
 #ifdef GPAC_HAS_IPV6
 static u32 ipv6_check_state = 0;
 #endif
@@ -186,6 +184,8 @@ struct __tag_socket
 	struct sockaddr_in dest_addr;
 #endif
 	u32 dest_addr_len;
+
+	u32 usec_wait;
 };
 
 
@@ -366,6 +366,7 @@ GF_Socket *gf_sk_new(u32 SocketType)
 	tmp->dest_addr_len = sizeof(struct sockaddr);
 #endif
 
+	tmp->usec_wait = 500;
 #ifdef WIN32
 	wsa_init ++;
 #endif
@@ -474,6 +475,12 @@ void gf_sk_reset(GF_Socket *sock)
 s32 gf_sk_get_handle(GF_Socket *sock)
 {
 	return (s32) sock->socket;
+}
+
+void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait)
+{
+	if (!sock) return;
+	sock->usec_wait = (usec_wait>=1000000) ? 500 : usec_wait;
 }
 
 
@@ -850,7 +857,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO CHECK IF THIS IS CORRECT
 	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
@@ -1164,7 +1171,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
@@ -1188,7 +1195,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 		return GF_IP_NETWORK_EMPTY;
 	}
 #endif
-	if (sock->flags & GF_SOCK_HAS_PEER)
+	if (0 && (sock->flags & GF_SOCK_HAS_PEER))
 		res = (s32) recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {
 		res = (s32) recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
@@ -1254,7 +1261,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
@@ -1401,7 +1408,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
@@ -1487,7 +1494,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = Second;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
@@ -1537,7 +1544,7 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = Second;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
