@@ -527,7 +527,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 		for (i=0; i<gf_list_count(group->period->adaptation_sets); i++) {
 			u64 sr, seg_dur;
-			u32 len, nb_space=0;
+			u32 j, len, nb_space=0;
 			GF_MPD_AdaptationSet *set;
 			char *sep, *start, *end, *seg_url = NULL;
 			val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-dash-first-seg");
@@ -537,43 +537,52 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			}
 
 			set = gf_list_get(group->period->adaptation_sets, i);
-			rep = gf_list_get(set->representations, 0);
-			gf_mpd_resolve_url(group->dash->mpd, rep, set, group->period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL);
+			for (j=0; j<gf_list_count(set->representations); j++) {
+				rep = gf_list_get(set->representations, j);
+				gf_mpd_resolve_url(group->dash->mpd, rep, set, group->period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL);
 
-			sep = seg_url ? strstr(seg_url, "987") : NULL;
-			if (!sep) {
-				if (seg_url) gf_free(seg_url);
-				continue;
-			}
-			start = sep;
-			end = sep+4;
-			while (start && start>seg_url && (*(start-1)=='0')) { start--; nb_space++;}
-			start[0]=0;
-			len = (u32) strlen(seg_url)-2;
-			if (!strncmp(val, seg_url+2, len)) {
-				u32 number=0;
-				char szTemplate[100];
-				strcpy(szTemplate, seg_url+2);
-				strcat(szTemplate, "%");
-				if (nb_space) {
-					char szFmt[20];
-					sprintf(szFmt, "0%d", nb_space+4);
-					strcat(szTemplate, szFmt);
+				sep = seg_url ? strstr(seg_url, "987") : NULL;
+				if (!sep) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Failed to resolve template for segment #9876 on rep #%d\n", j+1));
+					if (seg_url) gf_free(seg_url);
+					continue;
 				}
-				strcat(szTemplate, "d");
-				strcat(szTemplate, end);
-				if (sscanf(val, szTemplate, &number) == 1) {
-					u32 startNum = 1;
-					if (group->period->segment_template) startNum = group->period->segment_template->start_number;
-					if (set->segment_template) startNum = set->segment_template->start_number;
-					if (rep->segment_template) startNum = rep->segment_template->start_number;
-					if (number+1>=startNum) {
-						timeline_offset_ms = seg_dur*(number+1-startNum);
+				start = sep;
+				end = sep+4;
+				while (start && start>seg_url && (*(start-1)=='0')) { start--; nb_space++;}
+				start[0]=0;
+				len = (u32) strlen(seg_url)-2;
+				if (!strncmp(val, seg_url+2, len)) {
+					u32 number=0;
+					char szTemplate[100];
+
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Resolve ATSC clock on bootstrap segment URL %s template %s\n", val, seg_url+2));
+
+					strcpy(szTemplate, seg_url+2);
+					strcat(szTemplate, "%");
+					if (nb_space) {
+						char szFmt[20];
+						sprintf(szFmt, "0%d", nb_space+4);
+						strcat(szTemplate, szFmt);
 					}
-					found = GF_TRUE;
+					strcat(szTemplate, "d");
+					strcat(szTemplate, end);
+					if (sscanf(val, szTemplate, &number) == 1) {
+						u32 startNum = 1;
+						if (group->period->segment_template) startNum = group->period->segment_template->start_number;
+						if (set->segment_template) startNum = set->segment_template->start_number;
+						if (rep->segment_template) startNum = rep->segment_template->start_number;
+						if (number+1>=startNum) {
+							timeline_offset_ms = seg_dur*(number+1-startNum);
+						}
+						found = GF_TRUE;
+					}
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] ATSC bootstrap segment URL %s does not match template %s for rep #%d\n", val, seg_url+2, j+1));
 				}
+				gf_free(seg_url);
+				if (found) break;
 			}
-			gf_free(seg_url);
 			if (found) break;
 		}
 		if (found) {
@@ -589,8 +598,14 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			group->dash->atsc_clock_state = 2;
 		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Failed to setup ATSC clock from segment template, using NTP\n"));
 			group->dash->atsc_clock_state = 3;
 		}
+	}
+	else if (val) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] ATSC clock already setup - UTC diff of ATSC broadcast "LLD" ms\n", group->dash->utc_drift_estimate));
+	} else if (val) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] No ATSC entity on HTPP request\n"));
 	}
 
 	if ((!group->dash->atsc_clock_state || (group->dash->atsc_clock_state>2)) && !group->dash->ntp_forced && group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
@@ -4834,17 +4849,17 @@ select_active_rep:
 					ok = !strnicmp(rep->codecs, rep_sel->codecs, strlen(rep_sel->codecs) );
 					//check for scalable coding
 					if (!ok && rep->dependency_id) {
-						if (!strncmp(rep->codecs, "avc", 3)) {
+						if (!strncmp(rep_sel->codecs, "avc", 3)) {
 							//we accept LHVC with different configs as enhancement for AVC
-							if (!strncmp(rep_sel->codecs, "lhv", 3) || !strncmp(rep_sel->codecs, "lhe", 3) ) ok = 1;
+							if (!strncmp(rep->codecs, "lhv", 3) || !strncmp(rep->codecs, "lhe", 3) ) ok = 1;
 							//we accept SVC and MVC as enhancement for AVC
-							else if (!strncmp(rep_sel->codecs, "svc", 3) || !strncmp(rep_sel->codecs, "mvc", 3) ) ok = 1;
+							else if (!strncmp(rep->codecs, "svc", 3) || !strncmp(rep->codecs, "mvc", 3) ) ok = 1;
 						}
-						else if (!strncmp(rep->codecs, "hvc", 3) || !strncmp(rep->codecs, "hev", 3)) {
+						else if (!strncmp(rep_sel->codecs, "hvc", 3) || !strncmp(rep_sel->codecs, "hev", 3)) {
 							//we accept HEVC and HEVC+LHVC with different configs
-							if (!strncmp(rep_sel->codecs, "hvc", 3) || !strncmp(rep_sel->codecs, "hev", 3) ) ok = 1;
+							if (!strncmp(rep->codecs, "hvc", 3) || !strncmp(rep->codecs, "hev", 3) ) ok = 1;
 							//we accept LHVC with different configs
-							else if (!strncmp(rep_sel->codecs, "lhv", 3) || !strncmp(rep_sel->codecs, "lhe", 3) ) ok = 1;
+							else if (!strncmp(rep->codecs, "lhv", 3) || !strncmp(rep->codecs, "lhe", 3) ) ok = 1;
 						}
 					}
 
