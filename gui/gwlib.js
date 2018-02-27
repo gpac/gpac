@@ -552,6 +552,7 @@ gwskin.tooltip_exec = function (obj, show) {
 
 gwskin.tooltip_callback = function (obj, show) {
 
+    if (! obj._tooltip) return;
     if (!show) {
         gwskin.tooltip_timeout.obj = null;
         gwskin.tooltip_timeout.stop(0);
@@ -561,6 +562,8 @@ gwskin.tooltip_callback = function (obj, show) {
     gwskin.tooltip_timeout.obj = obj;
     gwskin.tooltip_timeout.on_active = function (val) {
         if (!val && gwskin.tooltip_timeout.obj) {
+            //deactivate tooltip after first run
+            obj._tooltip = false;
             gwskin.tooltip_exec(gwskin.tooltip_timeout.obj, true);
         }
     }
@@ -1875,7 +1878,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
             }
 
             if (this.on_over) this.on_over(value);
-            if (this._tooltip && gwskin.tooltip_callback) gwskin.tooltip_callback(this, value);
+            if (gwskin.tooltip_callback) gwskin.tooltip_callback(this, value);
         }
     };
     Browser.addRoute(obj._touch, 'isOver', obj, obj._on_over);
