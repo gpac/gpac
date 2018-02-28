@@ -880,7 +880,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 			//extract TSI
 			k=0;
 			while ((att = gf_list_enum(ls->attributes, &k))) {
-				if (!strcmp(att->name, "tsi")) tsi = atoi(att->value);
+				if (!strcmp(att->name, "tsi")) tsi = (u32) atoll(att->value);
 			}
 			if (!tsi) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d missing TSI in LS/ROUTE session\n", s->service_id));
@@ -926,7 +926,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 						l=0;
 						while ((att = gf_list_enum(fdt->attributes, &l))) {
 							if (!strcmp(att->name, "Content-Location")) init_file_name = att->value;
-							else if (!strcmp(att->name, "TOI")) init_file_toi = atoi(att->value);
+							else if (!strcmp(att->name, "TOI")) init_file_toi = (u32) atoll(att->value);
 						}
 					}
 				}
