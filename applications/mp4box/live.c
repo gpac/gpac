@@ -1037,18 +1037,19 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 		GF_Err e = gf_atsc3_dmx_process(atscd);
 		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 
-		if (gf_prompt_has_input()) {
-			u8 c = gf_prompt_get_char();
-			switch (c) {
-			case 'q':
-				run = GF_FALSE;
-				break;
-			}
-		}
-
 		if (is_empty) {
 			u32 st, now = gf_sys_clock()- start_time;
 			gf_sleep(1);
+
+			if (gf_prompt_has_input()) {
+				u8 c = gf_prompt_get_char();
+				switch (c) {
+				case 'q':
+					run = GF_FALSE;
+					break;
+				}
+			}
+
 			if (!nb_services && (now >=10000)) {
 				fprintf(stderr, "\nNo ATSC3 service found in %u ms, aborting\n", now);
 				run = GF_FALSE;
