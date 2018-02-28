@@ -396,6 +396,7 @@
     <ClInclude Include="..\..\include\gpac\webvtt.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\gpac\atsc.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -1171,6 +1172,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\isomedia\iff.c">
       <Filter>isomedia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\media_tools\atsc_dmx.c">
+      <Filter>media_tools</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
