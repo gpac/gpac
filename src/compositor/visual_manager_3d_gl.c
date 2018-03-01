@@ -850,7 +850,7 @@ static void gf_glQueryUniforms(GF_SHADERID progObj)
 
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORMS, &numUniforms);
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformLen);
-	uniformName = malloc(sizeof(char) * maxUniformLen);
+	uniformName = gf_malloc(sizeof(char) * maxUniformLen);
 	for(index = 0; index < numUniforms; index++) {
 		GLint size;
 		GLenum type;
@@ -897,6 +897,7 @@ static void gf_glQueryUniforms(GF_SHADERID progObj)
 			break;
 		}
 	}
+	gf_free(uniformName);
 }
 
 static void gf_glQueryAttributes(GF_SHADERID progObj)
@@ -909,7 +910,7 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 	printf("Listing Attribs... \n");
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTES, &numAttributes);
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeLen);
-	attributeName = malloc(sizeof(char) * maxAttributeLen);
+	attributeName = gf_malloc(sizeof(char) * maxAttributeLen);
 	for(index = 0; index < numAttributes; index++) {
 		GLint size;
 		GLenum type;
@@ -956,6 +957,7 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 			break;
 		}
 	}
+	gf_free(attributeName);
 }
 #endif
 
