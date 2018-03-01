@@ -292,7 +292,7 @@ void PrintUsage()
 	        "\t-help:          shows this screen\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
-	        "GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n"
+	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n",
 	        GF_IMPORT_DEFAULT_FPS,
@@ -2269,12 +2269,16 @@ force_input:
 			odm = NULL;
 			root_od = gf_term_get_root_object(term);
 			if (root_od) {
-				odm = gf_term_get_object(term, root_od, index);
-				if (odm) {
-					gf_term_select_object(term, odm);
-				} else {
-					fprintf(stderr, "Cannot find object at index %d - trying with serviceID\n", index);
+				if ( gf_term_find_service(term, root_od, index)) {
 					gf_term_select_service(term, root_od, index);
+				} else {
+					fprintf(stderr, "Cannot find service %d - trying with object index\n", index);
+					odm = gf_term_get_object(term, root_od, index);
+					if (odm) {
+						gf_term_select_object(term, odm);
+					} else {
+						fprintf(stderr, "Cannot find object at index %d\n", index);
+					}
 				}
 			}
 		}
@@ -2624,6 +2628,10 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 				fprintf(stderr, "#%d - ", num);
 				if (odi.media_url) {
 					fprintf(stderr, "%s", odi.media_url);
+				} else if (odi.service_url) {
+					fprintf(stderr, "%s", odi.service_url);
+				} else if (odi.remote_url) {
+					fprintf(stderr, "%s", odi.remote_url);
 				} else {
 					fprintf(stderr, "ID %d", odi.ODID);
 				}

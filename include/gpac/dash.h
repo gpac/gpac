@@ -92,6 +92,8 @@ typedef enum
 	GF_DASH_EVENT_CODEC_STAT_QUERY,
 	/*! event send when no threading to trigger segment download abort*/
 	GF_DASH_EVENT_ABORT_DOWNLOAD,
+	/*! event send whenever cache is full, to allow client to dispatch any segment*/
+	GF_DASH_EVENT_CACHE_FULL,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -537,6 +539,10 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, GF_Err
 
 //sets group download statistics for non threaded modes
 void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done);
+
+//sets availabilityStartTime shift for ATSC
+void gf_dash_set_atsc_ast_shift(GF_DashClient *dash, u32 ast_shift);
+
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

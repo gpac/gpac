@@ -83,7 +83,6 @@ struct __gf_dash_segmenter
 	Bool segments_start_with_rap;
 
 	Double segment_duration;
-	Bool segment_duration_strict;
 	Double fragment_duration;
 	//has to be freed
 	char *seg_rad_name;
@@ -139,6 +138,12 @@ struct __gf_dash_segmenter
 	Bool no_cache;
 
 	Bool disable_loop;
+
+	/* indicates if a segment must contain its theorical boundary */
+	Bool split_on_bound;
+
+	/* used to segment video as close to the boundary as possible */
+	Bool split_on_closest;
 };
 
 struct _dash_segment_input
@@ -1690,8 +1695,9 @@ restart_fragmentation_pass:
 					Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
 					Double diff = (cur_seg-2) * sdur;
 					diff -= ((Double)tf->start_tfdt) / tf->TimeScale;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Drift control for segment %d: segment_boundary=%.2f\t media_time=%.2f\tdrift=%.2f\n", cur_seg, (cur_seg - 2) * sdur, ((Double)tf->start_tfdt) / tf->TimeScale, diff));
 					if (ABS(diff) > sdur/2) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment %s (Number #%d): drift between MPD timeline and tfdt exceeds 50%% of segment duraion (MPD time minus TFDT %lf secs) - bitstream will not be compliant, try using segment template or reencode\n", SegmentName, cur_seg-1, diff));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment %s (Number #%d): drift between MPD timeline and tfdt exceeds 50%% of segment duration (MPD time minus TFDT %lf secs) - bitstream will not be compliant, try increasing segment duration or reencoding for better keyframe alignment\n", SegmentName, cur_seg-1, diff));
 					}
 				}
 			}
@@ -1937,62 +1943,87 @@ restart_fragmentation_pass:
 							frag_dur = (tf->FragmentLength+next_dur)*dasher->dash_scale / tf->TimeScale;
 							next_sample_rap = GF_TRUE;
 							next_sap_time = isom_get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
+
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
-								Double SegmentStart;
 								u64 next_sap_dur;
 								Bool do_split = GF_FALSE;
 
 								next_sap_time += tf->loop_ts_offset;
-								if (dasher->segment_duration_strict) {
-									SegmentStart = 0;
-								} else {
-									SegmentStart = segment_start_time;
-								}
-								/*this is the fragment duration from last sample added to next SAP*/
+
+								/*this is the fragment duration if we add up to the next SAP */
 								next_sap_dur = frag_dur + (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dasher->dash_scale / tf->TimeScale;
 
 								if (!tf->splitable) {
-									/*all samples RAP: if adding up to next sap exceeds max segment length, force segment split*/
-									if (SegmentDuration + next_sap_dur >  MaxSegmentDuration) {
-										if (tf->all_sample_raps) {
+
+									/**
+									*** we are at a RAP now, if we keep it in the current segment, we'll have to advance at least to the next RAP
+									*** so we check if the next RAP fit into the limit
+									*** there are two behaviors for segment limits:
+									*** 1. we go as close the segment boundary in media time without going over
+									***    i.e. segment_start = max{ RAP <= segment_number*dash_duration }
+									*** 2. we allow segment to grow up to 150% of the dash duration without drifting more than 50% of dash duration
+									*** audio uses 1., video uses 2. by default and 1. if -bound is specified
+									**/
+
+									// method 1.
+									if (tf->all_sample_raps || dasher->split_on_bound) {
+
+										if (next_sap_time * dasher->dash_scale / (double)tf->TimeScale <= (cur_seg - 1)*MaxSegmentDuration) {
+												if (SegmentDuration + next_sap_dur > MaxSegmentDuration)
+													GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Adjusting for drift for segment %d trackID %d: \tnext_sap_time: %.2f\tsegment_boundary: %d\t segment_duration: %d\n", cur_seg, tf->TrackID, next_sap_time * dasher->dash_scale / (double)tf->TimeScale, (cur_seg - 1)*MaxSegmentDuration, next_sap_dur));
+										}
+										else {
 											do_split = GF_TRUE;
-										} else {
-										/*not all samples RAP: if adding up to next sap equals or exceeds 1.5*max segment length, we can split here since next seg after this one would at least be 0.5*segment_duration
-										this allows flexibility in segment length to cope with varying GOP length
-										*/
-											if (SegmentDuration + next_sap_dur >= 3*MaxSegmentDuration/2) {
+										}
+
+									}
+									// method 2.
+									else {
+
+										if (SegmentDuration + next_sap_dur >= 3 * MaxSegmentDuration / 2) {
+											do_split = GF_TRUE;
+										}
+
+										else if (!tf->all_sample_raps && !mpd_timeline_bs && use_url_template) {
+
+											Double diff_next, diff_current;
+											Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
+
+											/* tfdt of first sample in next segment
+											** minus segment start time of next segment
+											** should be less than 50% of duration.
+											** If not we need to break into smaller segments
+											*/
+
+											diff_next = ((Double)next_sap_time) / tf->TimeScale - (cur_seg-1) * sdur;
+											diff_current = ((Double)tf->next_sample_dts) / tf->TimeScale - (cur_seg - 1) * sdur;
+
+											if (diff_next > sdur/2) {
 												do_split = GF_TRUE;
+												seg_dur_adjusted = GF_TRUE;
+												GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Stopping because of drift between next_sap_time=%2.f and boundary=%.2f (drift: %.2f)\n", next_sap_time / (double)tf->TimeScale, (cur_seg-1) * sdur, diff_next));
+											}
+
+											if (dasher->split_on_closest && ABS(diff_next) > ABS(diff_current)) {
+												do_split = GF_TRUE;
+												GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Stopping because of drift between next_sap_time=%.2f and boundary=%.2f (drift: %.2f) is bigger than current drift at %.2f (%.2f).\n", next_sap_time / (double)tf->TimeScale, (cur_seg - 1) * sdur, diff_next, ((Double)tf->next_sample_dts) / tf->TimeScale, diff_current));
 											}
 										}
+
 									}
+
+
 								}
 
-								/* we need to force the creation of a new segment if the next split would result in a zero duration sample*/
-								if (tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur == SegmentStart + MaxSegmentDuration)) {
-									do_split = GF_TRUE;
-								}
-								/*avoid drift with segment template*/
-								if (!tf->all_sample_raps && !mpd_timeline_bs && use_url_template) {
-									Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
-									Double diff;
-									//tfdt of first sample in next segment
-									diff = ((Double)next_sap_time) / tf->TimeScale;
-									//minus segment start time of next segment
-									diff -= (cur_seg-1) * sdur;
-									//should be less than 50% of duration. If not we need to break
-									//into smaller segments
-									if (ABS(diff) > sdur/2) {
-										do_split = GF_TRUE;
-										seg_dur_adjusted = GF_TRUE;
-									}
-								}
 
 								if (do_split) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
 									stop_frag = GF_TRUE;
+									GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %d trackID %d: Splitting at time %.2f\tnext_sap_time: %.2f\tsegment_boundary: %d\t segment_duration: %d\n", cur_seg, tf->TrackID, tf->next_sample_dts * dasher->dash_scale / (double)tf->TimeScale, next_sap_time * dasher->dash_scale / (double)tf->TimeScale, (cur_seg - 1)*MaxSegmentDuration, next_sap_dur));
+
 								}
 							}
 						} else if (!has_rap) {
@@ -2016,21 +2047,17 @@ restart_fragmentation_pass:
 
 						if (seg_dur >= MaxSegmentDuration) {
 							last_frag_in_seg = GF_TRUE;
-							if (!split_seg_at_rap) {
-								segment_dur_exceeded = GF_TRUE;
-							} else if (seg_dur >= 3*MaxSegmentDuration/2) {
-								segment_dur_exceeded = GF_TRUE;
-							}
+							segment_dur_exceeded = GF_TRUE;
 						}
 
 						if ((!last_frag_in_seg && (tf->FragmentLength * dasher->dash_scale >= MaxFragmentDuration * tf->TimeScale))
 						        /* if we don't split segment at rap and if the current fragment makes the segment longer than required, stop the current fragment */
 						        || (!split_seg_at_rap && segment_dur_exceeded)
+								/* this can only happen if seg==MaxSegmentDuration, stop to avoid split with sample_duration==0 on next loop */
+								|| (tf->splitable && segment_dur_exceeded)
 						   ) {
+
 							stop_frag = GF_TRUE;
-							if (split_seg_at_rap && (next && !next->IsRAP) && segment_dur_exceeded) {
-								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Require segment starts with RAP but next segment will not be compatible\n"));
-							}
 						}
 					}
 				}
@@ -2389,9 +2416,7 @@ restart_fragmentation_pass:
 		}
 	}
 
-	if (!max_segment_duration || !dasher->segment_duration_strict) {
-		max_segment_duration = dasher->segment_duration;
-	}
+	max_segment_duration = dasher->segment_duration;
 
 	/* Write adaptation set content protection element */
 	if (protected_track && first_in_set && (dasher->cp_location_mode != GF_DASH_CPMODE_REPRESENTATION)) {
@@ -5823,11 +5848,10 @@ GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode 
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Bool segment_duration_strict, Double default_fragment_duration)
+GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->segment_duration = default_segment_duration * 1000 / dasher->dash_scale;
-	dasher->segment_duration_strict = segment_duration_strict;
 	if (default_fragment_duration)
 		dasher->fragment_duration = default_fragment_duration * 1000 / dasher->dash_scale;
 	else
@@ -5966,6 +5990,21 @@ GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_bound)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	dasher->split_on_bound = split_on_bound;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	dasher->split_on_closest = split_on_closest;
+	return GF_OK;
+}
 
 static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input)
 {

@@ -319,7 +319,7 @@ void main()
 		rgb.b = dot(yuv, B_mul);
 
 		rgba = vec4(rgb, alpha);
-		
+
 #elif defined(GF_GL_IS_ExternalOES)
 		rgba = texture2D(imgOES, TexCoord);
 #else
@@ -340,9 +340,11 @@ void main()
 		//we have mat 2D + texture
 #ifndef GF_GL_IS_ExternalOES
 		if (hasMaterial2D) {
-			if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0) {
+			if (gfEmissionColor.a > 0.0) {
 				fragColor *= gfEmissionColor;
-			} else if(fragColor.rgb == vec3(0.0, 0.0, 0.0)){
+			}
+			//hack - if full transparency on texture with material2D, use material color
+			else if (fragColor.rgb == vec3(0.0, 0.0, 0.0)){
 				fragColor.rgb = gfEmissionColor.rgb;
 			}
 		}

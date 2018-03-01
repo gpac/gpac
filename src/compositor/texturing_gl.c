@@ -1631,6 +1631,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		}
 	}
 #endif /*GPAC_DISABLE_X3D*/
+
 	return ret;
 }
 

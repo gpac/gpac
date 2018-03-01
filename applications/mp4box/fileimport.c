@@ -1193,6 +1193,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 			has_enough_sync = GF_TRUE;
 		else if (gf_isom_get_sample_group_info(mp4, tki->tk, 1, GF_ISOM_SAMPLE_GROUP_RAP, NULL, NULL, NULL))
 			has_enough_sync = GF_TRUE;
+		else if (gf_isom_get_sample_group_info(mp4, tki->tk, 1, GF_ISOM_SAMPLE_GROUP_SYNC, NULL, NULL, NULL))
+			has_enough_sync = GF_TRUE;
 
 		if (!has_enough_sync) {
 			fprintf(stderr, "Not enough Random Access points in input file - cannot split\n");

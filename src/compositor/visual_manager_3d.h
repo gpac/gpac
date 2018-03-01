@@ -226,7 +226,6 @@ void visual_3d_set_texture_matrix(GF_VisualManager *visual, GF_Matrix *mx);
 void visual_3d_projection_matrix_modified(GF_VisualManager *visual);
 
 
-
 /*setup viewport (vp: top-left, width, height)*/
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp);
 

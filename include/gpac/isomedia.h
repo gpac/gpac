@@ -193,6 +193,7 @@ enum {
 	GF_ISOM_SAMPLE_GROUP_SYNC = GF_4CC( 's', 'y', 'n', 'c'), //p15
 	GF_ISOM_SAMPLE_GROUP_TSCL = GF_4CC( 't', 's', 'c', 'l'), //p15
 	GF_ISOM_SAMPLE_GROUP_VIPR = GF_4CC( 'v', 'i', 'p', 'r'), //p15
+	GF_ISOM_SAMPLE_GROUP_LBLI = GF_4CC( 'l', 'b', 'l', 'i'), //p15
 
 	GF_ISOM_SAMPLE_GROUP_3GAG = GF_4CC( '3', 'g', 'a', 'g'), //3gpp
 	GF_ISOM_SAMPLE_GROUP_AVCB = GF_4CC( 'a', 'v', 'c', 'b'), //3gpp

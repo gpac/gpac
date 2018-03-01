@@ -164,6 +164,8 @@ struct __DownloadedCacheEntryStruct
 	Bool memory_stored;
 	u32 mem_allocated;
 	u8 *mem_storage;
+	char *forced_headers;
+	u32 downtime;
 };
 
 Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info) {
@@ -441,7 +443,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	GF_SAFEALLOC(entry, struct __DownloadedCacheEntryStruct);
 
 	if ( !entry ) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_cache_create_entry:%d : OUT of memory !\n", __LINE__));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_cache_create_entry:%d : out of memory !\n", __LINE__));
 		return NULL;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, entry=%p\n", __LINE__, entry));
@@ -532,7 +534,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	if ( !entry->properties )
 	{
 		GF_Err err;
-		/* OUT of memory ? */
+		/* out of memory ? */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, aborting due to OUT of MEMORY !\n", __LINE__));
 		err = gf_cache_delete_entry ( entry );
 		if ( err != GF_OK ) {
@@ -838,8 +840,11 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_free ( entry->mimeType );
 		entry->mimeType = NULL;
 	}
-	if (entry->mem_storage) {
+	if (entry->mem_storage && entry->mem_allocated) {
 		gf_free(entry->mem_storage);
+	}
+	if ( entry->forced_headers ) {
+		gf_free ( entry->forced_headers );
 	}
 
 	if ( entry->cache_filename ) {
@@ -972,6 +977,74 @@ Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)
 	if (entry->writeFilePtr) return GF_TRUE;
 	if (entry->mem_storage && entry->written_in_cache && entry->contentLength && (entry->written_in_cache<entry->contentLength))
 		return GF_TRUE;
+	return GF_FALSE;
+}
+
+Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime)
+{
+	if (!entry || !entry->memory_stored) return GF_FALSE;
+	if (entry->mimeType) gf_free(entry->mimeType);
+	entry->mimeType = gf_strdup(mime);
+	return GF_TRUE;
+}
+
+Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range)
+{
+	if (!entry || !entry->memory_stored) return GF_FALSE;
+	entry->range_start = start_range;
+	entry->range_end = end_range;
+	entry->contentLength = (u32) size;
+	return GF_TRUE;
+}
+
+Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers)
+{
+	if (!entry || !entry->memory_stored) return GF_FALSE;
+	if (entry->forced_headers) gf_free(entry->forced_headers);
+	entry->forced_headers = headers ? gf_strdup(headers) : NULL;
+	return GF_TRUE;
+}
+
+char *gf_cache_get_forced_headers(const DownloadedCacheEntry entry)
+{
+	if (!entry) return NULL;
+	return entry->forced_headers;
+}
+void gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms)
+{
+	if (entry) entry->downtime = download_time_ms;
+}
+u32 gf_cache_get_downtime(const DownloadedCacheEntry entry)
+{
+	if (!entry) return 0;
+	return entry->downtime;
+}
+
+Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size, Bool copy)
+{
+	if (!entry || !entry->memory_stored) return GF_FALSE;
+
+	if (!copy) {
+		if (entry->mem_allocated) gf_free(entry->mem_storage);
+		entry->mem_storage = (u8 *) data;
+		entry->written_in_cache = size;
+		entry->mem_allocated = 0;
+		sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to memory from external module\n", size));
+		return GF_TRUE;
+	}
+	if ( size > entry->mem_allocated) {
+		u32 new_size;
+		new_size = MAX(entry->mem_allocated*2, size);
+		entry->mem_storage = (u8*)gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (new_size+2));
+		entry->mem_allocated = new_size;
+		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
+	}
+	memcpy(entry->mem_storage, data, size);
+	entry->written_in_cache = size;
+	sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to cache memory\n", size));
 	return GF_FALSE;
 }
 

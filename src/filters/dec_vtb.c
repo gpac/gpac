@@ -357,11 +357,13 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			cfg->nal_unit_size = 4;
 				
 			gf_list_add(cfg->sequenceParameterSets, sps);
-			gf_list_add(cfg->pictureParameterSets, pps);
-				
+			//we send all PPS
+			gf_list_del(cfg->pictureParameterSets);
+			cfg->pictureParameterSets = ctx->PPSs;
+
 			gf_odf_avc_cfg_write(cfg, &dsi_data, &dsi_data_size);
 			gf_list_reset(cfg->sequenceParameterSets);
-			gf_list_reset(cfg->pictureParameterSets);
+			cfg->pictureParameterSets = NULL;
 			gf_odf_avc_cfg_del((cfg));
 			
 			dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
@@ -495,14 +497,15 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			GF_SAFEALLOC(ppsa, GF_HEVCParamArray);
 			ppsa->array_completeness = 1;
 			ppsa->type = GF_HEVC_NALU_PIC_PARAM;
-			ppsa->nalus = gf_list_new();
-			gf_list_add(ppsa->nalus, pps);
+			//we send all PPS
+			ppsa->nalus = ctx->PPSs;
+
 			gf_list_add(cfg->param_array, ppsa);
 
 			gf_odf_hevc_cfg_write(cfg, &dsi_data, &dsi_data_size);
 			gf_list_reset(vpsa->nalus);
 			gf_list_reset(spsa->nalus);
-			gf_list_reset(ppsa->nalus);
+			ppsa->nalus = NULL;
 			gf_odf_hevc_cfg_del(cfg);
 
 			dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);

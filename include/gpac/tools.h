@@ -955,7 +955,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock);
  * \param value the value parsed
  * \return error code if any
  */
-GF_Err gf_bin128_parse(char *string, bin128 value);
+GF_Err gf_bin128_parse(const char *string, bin128 value);
 
 /*!
  *	\brief Delete Directory
@@ -963,7 +963,7 @@ GF_Err gf_bin128_parse(char *string, bin128 value);
  *	Delete a  dir within the full path.
  *	\param DirPathName the file path name.
  */
-GF_Err gf_rmdir(char *DirPathName);
+GF_Err gf_rmdir(const char *DirPathName);
 
 /*!
  *	\brief Create Directory
@@ -971,7 +971,7 @@ GF_Err gf_rmdir(char *DirPathName);
  *	Create a directory within the full path.
  *	\param DirPathName the dir path name.
  */
-GF_Err gf_mkdir(char* DirPathName);
+GF_Err gf_mkdir(const char* DirPathName);
 
 /*!
  *	\brief Check Directory Exists
@@ -979,7 +979,7 @@ GF_Err gf_mkdir(char* DirPathName);
  *	Create a directory within the full path.
  *	\param DirPathName the dir path name.
  */
-Bool gf_dir_exists(char *DirPathName);
+Bool gf_dir_exists(const char *DirPathName);
 
 /*!
  *	\brief Create Directory
@@ -987,7 +987,7 @@ Bool gf_dir_exists(char *DirPathName);
  *	Cleanup a directory within the full path, removing all the files and the directories.
  *	\param DirPathName the dir path name.
  */
-GF_Err gf_cleanup_dir(char* DirPathName);
+GF_Err gf_cleanup_dir(const char* DirPathName);
 
 
 /**

@@ -54,7 +54,7 @@ enum
 	*/
 	GF_ESI_INPUT_DATA_FLUSH,
 	/*pulls a COMPLETE AU from the stream
-		corresponding parameter: pointer to a GF_ESIPacket to fill. The indut data_len in the packet is used to indicate any padding in bytes
+		corresponding parameter: pointer to a GF_ESIPacket to fill. The input data_len in the packet is used to indicate any padding in bytes
 	*/
 	GF_ESI_INPUT_DATA_PULL,
 	/*releases the currently pulled AU from the stream - AU cannot be pulled after that, unless seek happens
@@ -160,9 +160,6 @@ typedef struct __elementary_stream_ifce
 	/* MPEG-4 SL Config if any*/
 	GF_SLConfig *sl_config;
 
-	struct __esi_video_info info_video;
-	struct __esi_audio_info info_audio;
-
 	/*input ES control from caller*/
 	GF_Err (*input_ctrl)(struct __elementary_stream_ifce *_self, u32 ctrl_type, void *param);
 	/*input user data of interface - usually set by interface owner*/
@@ -176,32 +173,6 @@ typedef struct __elementary_stream_ifce
 	u32 depends_on_stream;
 
 } GF_ESInterface;
-
-typedef struct __service_ifce
-{
-	u32 type;
-
-	/*input service control from caller*/
-	GF_Err (*input_ctrl)(struct __service_ifce *_self, u32 ctrl_type, void *param);
-	/*input user data of interface - usually set by interface owner*/
-	void *input_udta;
-
-	/*output service control of destination*/
-	GF_Err (*output_ctrl)(struct __service_ifce *_self, u32 ctrl_type, void *param);
-	/*output user data of interface - usually set during interface setup*/
-	void *output_udta;
-
-	GF_ESInterface **streams;
-	u32 nb_streams;
-} GF_ServiceInterface;
-
-
-typedef struct __data_io
-{
-	u32 (*read)(struct __data_io *_self, char *buffer, u32 nb_bytes);
-	u32 (*write)(struct __data_io *_self, char *buffer, u32 nb_bytes);
-	void *udta;
-} GF_DataIO;
 
 /*! @} */
 
