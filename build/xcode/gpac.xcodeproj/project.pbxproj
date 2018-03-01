@@ -196,6 +196,8 @@
 		920101C518D5A445003D1ACA /* xml_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100AC18D5A444003D1ACA /* xml_parser.c */; };
 		920101CF18D5AC67003D1ACA /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101CE18D5AC67003D1ACA /* OpenGL.framework */; };
 		920101D118D5ACA7003D1ACA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101D018D5ACA7003D1ACA /* libz.dylib */; };
+		9202FEB2204840FB000EE9B1 /* load_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85591F7BFB61009BC9C8 /* load_svg.c */; };
+		9202FEB32048411D000EE9B1 /* dec_vorbis.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C11F7D10F400299CC6 /* dec_vorbis.c */; };
 		92061A831FDFB14800B5C464 /* write_adts.c in Sources */ = {isa = PBXBuildFile; fileRef = 92061A821FDFB14800B5C464 /* write_adts.c */; };
 		92061A851FE0484600B5C464 /* reframer.c in Sources */ = {isa = PBXBuildFile; fileRef = 92061A841FE0484500B5C464 /* reframer.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
@@ -222,7 +224,6 @@
 		92586A7F1EAA5A4300A0838A /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7E1EAA5A4300A0838A /* validator.c */; };
 		925CE3451FA2E642004EC6F5 /* decrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */; };
 		926245981FD691A000184072 /* ff_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 926245971FD691A000184072 /* ff_common.h */; };
-		926656C21F7D10F400299CC6 /* dec_vorbis.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C11F7D10F400299CC6 /* dec_vorbis.c */; };
 		926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C31F7D3DF700299CC6 /* dec_theora.c */; };
 		926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C51F7D45F700299CC6 /* dmx_ogg.c */; };
 		926656C81F7E92C200299CC6 /* dmx_m2ts.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C71F7E92C200299CC6 /* dmx_m2ts.c */; };
@@ -360,7 +361,6 @@
 		92BB856C1F7BFB63009BC9C8 /* reframe_adts.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85561F7BFB60009BC9C8 /* reframe_adts.c */; };
 		92BB856D1F7BFB63009BC9C8 /* dec_img.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85571F7BFB60009BC9C8 /* dec_img.c */; };
 		92BB856E1F7BFB63009BC9C8 /* compose.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85581F7BFB61009BC9C8 /* compose.c */; };
-		92BB856F1F7BFB63009BC9C8 /* load_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85591F7BFB61009BC9C8 /* load_svg.c */; };
 		92BB85701F7BFB63009BC9C8 /* in_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB855A1F7BFB61009BC9C8 /* in_file.c */; };
 		92BB85711F7BFB63009BC9C8 /* reframe_mp3.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB855B1F7BFB61009BC9C8 /* reframe_mp3.c */; };
 		92BB85721F7BFB63009BC9C8 /* ff_common.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB855C1F7BFB61009BC9C8 /* ff_common.c */; };
@@ -492,6 +492,8 @@
 		92C1FF5A1E7C42DF0093B61E /* stencil.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF521E7C42DF0093B61E /* stencil.c */; };
 		92C1FF5B1E7C42DF0093B61E /* surface.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF531E7C42DF0093B61E /* surface.c */; };
 		92CDAEE81FBD9D0C0007C1C0 /* reframe_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */; };
+		92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D3C6262031E94F00BA1735 /* atsc_dmx.c */; };
+		92D3C6292031E98600BA1735 /* atsc.h in Headers */ = {isa = PBXBuildFile; fileRef = 92D3C6282031E98600BA1735 /* atsc.h */; };
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
 		92DB148D1E4F05B500382A81 /* filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148B1E4F05B500382A81 /* filters.h */; };
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
@@ -1373,6 +1375,8 @@
 		92C1FF531E7C42DF0093B61E /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = ../modules/soft_raster/surface.c; sourceTree = "<group>"; };
 		92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_nalu.c; path = filters/reframe_nalu.c; sourceTree = "<group>"; };
+		92D3C6262031E94F00BA1735 /* atsc_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = atsc_dmx.c; sourceTree = "<group>"; };
+		92D3C6282031E98600BA1735 /* atsc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = atsc.h; path = ../include/gpac/atsc.h; sourceTree = "<group>"; };
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92DB148B1E4F05B500382A81 /* filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filters.h; path = ../include/gpac/filters.h; sourceTree = "<group>"; };
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
@@ -1571,6 +1575,7 @@
 		9201002218D5A444003D1ACA /* media_tools */ = {
 			isa = PBXGroup;
 			children = (
+				92D3C6262031E94F00BA1735 /* atsc_dmx.c */,
 				9201002318D5A444003D1ACA /* ait.c */,
 				9201002418D5A444003D1ACA /* av_parsers.c */,
 				9201002518D5A444003D1ACA /* avilib.c */,
@@ -2375,6 +2380,7 @@
 			children = (
 				92DB148B1E4F05B500382A81 /* filters.h */,
 				92DB148C1E4F05B500382A81 /* main.h */,
+				92D3C6282031E98600BA1735 /* atsc.h */,
 				92BBFC481A7122AD006A7735 /* ait.h */,
 				92BBFC491A7122AD006A7735 /* avparse.h */,
 				92BBFC4A1A7122AD006A7735 /* base_coding.h */,
@@ -2788,6 +2794,7 @@
 				920101B418D5A445003D1ACA /* module_wrap.h in Headers */,
 				92BBFD001A7122AD006A7735 /* sync_layer.h in Headers */,
 				92DB148D1E4F05B500382A81 /* filters.h in Headers */,
+				92D3C6292031E98600BA1735 /* atsc.h in Headers */,
 				92BBFD011A7122AD006A7735 /* term_info.h in Headers */,
 				92BBFCF01A7122AD006A7735 /* nodes_mpeg4.h in Headers */,
 				92BBFCDA1A7122AD006A7735 /* iso639.h in Headers */,
@@ -3221,6 +3228,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9202FEB32048411D000EE9B1 /* dec_vorbis.c in Sources */,
+				9202FEB2204840FB000EE9B1 /* load_svg.c in Sources */,
 				92C1FF5B1E7C42DF0093B61E /* surface.c in Sources */,
 				92B9A5981F8660D700A24FE4 /* media_object.c in Sources */,
 				92F930821A5ADB870072A85C /* os_divers.c in Sources */,
@@ -3471,8 +3480,7 @@
 				9201017A18D5A445003D1ACA /* commands.c in Sources */,
 				9201017B18D5A445003D1ACA /* dom_events.c in Sources */,
 				92B9A56A1F8660D700A24FE4 /* svg_grouping.c in Sources */,
-				92BB856F1F7BFB63009BC9C8 /* load_svg.c in Sources */,
-				926656C21F7D10F400299CC6 /* dec_vorbis.c in Sources */,
+				92D3C6272031E94F00BA1735 /* atsc_dmx.c in Sources */,
 				9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */,
 				9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */,
 				9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */,

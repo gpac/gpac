@@ -957,4 +957,121 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 
 #endif /* GPAC_DISABLE_MPEG2TS */
 
+#include <gpac/atsc.h>
+
+static Bool inspect_mode = GF_FALSE;
+
+static u32 nb_services=0;
+void atsc_on_evt(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *info)
+{
+	switch (evt) {
+	case GF_ATSC_EVT_SERVICE_FOUND:
+		fprintf(stderr, "found service id %d\n", evt_param);
+		nb_services++;
+		break;
+	case GF_ATSC_EVT_SERVICE_SCAN:
+		fprintf(stderr, "Done scaning all services\n");
+		break;
+	case GF_ATSC_EVT_SEG:
+		if (inspect_mode) {
+			gf_atsc3_dmx_remove_object_by_name( (GF_ATSCDmx *) udta, evt_param, (char *) info->filename, GF_FALSE);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+static void atsc_stats(GF_ATSCDmx *atscd, u32 now)
+{
+	Double rate=0.0;
+	u64 st = gf_atsc3_dmx_get_first_packet_time(atscd);
+	u64 et = gf_atsc3_dmx_get_last_packet_time(atscd);
+	u64 nb_pck = gf_atsc3_dmx_get_nb_packets(atscd);
+	u64 nb_bytes = gf_atsc3_dmx_get_recv_bytes(atscd);
+
+	et -= st;
+	if (et) {
+		rate = (Double)nb_bytes*8;
+		rate /= et;
+	}
+	if (now) {
+		fprintf(stderr, "                                                                                                 \r");
+		fprintf(stderr, "At %us stats: "LLU" bytes "LLU" packets in "LLU" ms rate %.02f mbps\r", now/1000, nb_bytes, nb_pck, et/1000, rate);
+	} else {
+		fprintf(stderr, "\nFinal stats: "LLU" bytes "LLU" packets in "LLU" ms rate %.02f mbps\n", nb_bytes, nb_pck, et/1000, rate);
+	}
+}
+
+u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs, u32 stats_rate, u32 debug_tsi)
+{
+	GF_ATSCDmx *atscd;
+	Bool run = GF_TRUE;
+	GF_SystemRTInfo rti;
+	u32 nb_stats=1;
+	u32 start_time = gf_sys_clock();
+
+	gf_sys_get_rti(0, &rti, 0);
+
+	atscd = gf_atsc3_dmx_new(ifce, dir, 0);
+	if (!atscd) {
+		fprintf(stderr, "Failed to create ATSC3 demuxer\n");
+		return 1;
+	}
+	gf_atsc3_set_callback(atscd, atsc_on_evt, atscd);
+	gf_atsc3_tune_in(atscd, (u32) serviceID, GF_FALSE);
+	if (atsc_max_segs>=0)
+		gf_atsc3_set_max_objects_store(atscd, (u32) atsc_max_segs);
+
+	if (debug_tsi) {
+		fprintf(stderr, "Filtering objects from TSI %d only\n", debug_tsi);
+		gf_atsc3_dmx_debug_tsi(atscd, debug_tsi);
+	}
+
+	if (!dir) {
+		fprintf(stderr, "No output dir, ATSC3 demux inspect mode only\n");
+		inspect_mode = GF_TRUE;
+	}
+	fprintf(stderr, "Starting ATSC3 demux, press 'q' to stop, 'm' for memory/cpu info\n");
+
+	while (atscd && run) {
+		Bool is_empty = GF_TRUE;
+		GF_Err e = gf_atsc3_dmx_process(atscd);
+		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
+
+		if (is_empty) {
+			u32 st, now = gf_sys_clock()- start_time;
+			gf_sleep(1);
+
+			if (gf_prompt_has_input()) {
+				u8 c = gf_prompt_get_char();
+				switch (c) {
+				case 'q':
+					run = GF_FALSE;
+					break;
+				case 'm':
+					gf_sys_get_rti(100, &rti, 0);
+					fprintf(stderr, "CPU %02d - memory "LLU"\n", rti.process_cpu_usage,  rti.gpac_memory);
+					break;
+				}
+			}
+
+			if (!nb_services && (now >=10000)) {
+				fprintf(stderr, "\nNo ATSC3 service found in %u ms, aborting\n", now);
+				run = GF_FALSE;
+			}
+			if (stats_rate) {
+				st = gf_sys_clock();
+				if (now >= nb_stats*1000*stats_rate) {
+					nb_stats+=1;
+					atsc_stats(atscd, now);
+				}
+			}
+		}
+	}
+	atsc_stats(atscd, 0);
+	gf_atsc3_dmx_del(atscd);
+	fprintf(stderr, "\n");
+	return 0;
+}
 

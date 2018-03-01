@@ -81,6 +81,9 @@ void gf_term_select_service(GF_Terminal *term, GF_ObjectManager *odm, u32 servic
 /*sets addon on or off (only one addon possible for now). When OFF , the associated service is shut down*/
 void gf_term_toggle_addons(GF_Terminal *term, Bool show_addons);
 
+/*returns TRUE if given service ID is declared for multiplexed services*/
+Bool gf_term_find_service(GF_Terminal *term, GF_ObjectManager *odm, u32 service_id);
+
 typedef struct
 {
 	u32 ODID;
@@ -98,6 +101,8 @@ typedef struct
 	const char *service_handler;
 	/*name of service*/
 	const char *service_url;
+	/*service redirect object*/
+	const char *remote_url;
 	/*set if the service is owned by this object*/
 	Bool owns_service;
 

@@ -87,7 +87,7 @@ static char* wcs_to_utf8(const wchar_t* str)
 #endif
 
 
-GF_Err gf_rmdir(char *DirPathName)
+GF_Err gf_rmdir(const char *DirPathName)
 {
 #if defined (_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
@@ -121,7 +121,7 @@ GF_Err gf_rmdir(char *DirPathName)
 }
 
 GF_EXPORT
-GF_Err gf_mkdir(char* DirPathName)
+GF_Err gf_mkdir(const char* DirPathName)
 {
 #if defined (_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
@@ -160,7 +160,7 @@ GF_Err gf_mkdir(char* DirPathName)
 
 
 GF_EXPORT
-Bool gf_dir_exists(char* DirPathName)
+Bool gf_dir_exists(const char* DirPathName)
 {
 #if defined (_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
@@ -198,7 +198,7 @@ static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnum
 	return GF_FALSE;
 }
 
-GF_Err gf_cleanup_dir(char* DirPathName)
+GF_Err gf_cleanup_dir(const char* DirPathName)
 {
 	Bool directory_clean_mode;
 

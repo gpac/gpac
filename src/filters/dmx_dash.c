@@ -37,7 +37,7 @@ enum {
 typedef struct
 {
 	//opts
-	s32 shift_utc, debug_as;
+	s32 shift_utc, debug_as, atsc_shift;
 	u32 max_buffer, auto_switch, timeshift, tiles_rate, store, delay40X, exp_threshold, switch_count;
 	Bool server_utc, screen_res, aggressive, speed;
 	GF_DASHInitialSelectionMode start_with;
@@ -718,6 +718,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 	gf_dash_set_algo(ctx->dash, ctx->algo);
 	gf_dash_set_utc_shift(ctx->dash, ctx->shift_utc);
+	gf_dash_set_atsc_ast_shift(ctx->dash, ctx->atsc_shift);
 	gf_dash_enable_utc_drift_compensation(ctx->dash, ctx->server_utc);
 	gf_dash_set_tile_adaptation_mode(ctx->dash, ctx->tile_mode, ctx->tiles_rate);
 
@@ -1238,6 +1239,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(use_bmin), "Uses the indicated min buffer time of the MPD if true, otherwise uses default player settings", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
 	{ OFFS(shift_utc), "shifts DASH UTC clock", GF_PROP_SINT, "0", NULL, GF_FALSE},
+	{ OFFS(atsc_shift), "shifts ATSC requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FALSE},
 	{ OFFS(server_utc), "Uses ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FALSE},
 	{ OFFS(screen_res), "Uses screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FALSE},
 	{ OFFS(timeshift), "Sets initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)", GF_PROP_UINT, "0", NULL, GF_FALSE},

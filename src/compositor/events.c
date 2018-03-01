@@ -1997,6 +1997,18 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 			compositor->gaze_x = evt->mouse.x;
 			compositor->gaze_y = evt->mouse.y;
 		}
+#ifndef GPAC_DISABLE_3D
+		else if ((compositor->visual->autostereo_type==GF_3D_STEREO_SIDE) || (compositor->visual->autostereo_type==GF_3D_STEREO_HEADSET)) {
+			if (evt->mouse.x > compositor->visual->camera.proj_vp.width)
+				evt->mouse.x -= FIX2INT(compositor->visual->camera.proj_vp.width);
+			evt->mouse.x *= 2;
+		}
+		else if (compositor->visual->autostereo_type==GF_3D_STEREO_TOP) {
+			if (evt->mouse.y > compositor->visual->camera.proj_vp.height)
+				evt->mouse.y -= FIX2INT(compositor->visual->camera.proj_vp.height);
+			evt->mouse.y *= 2;
+		}
+#endif
 
 		if (compositor->visual->center_coords) {
 			x = evt->mouse.x;

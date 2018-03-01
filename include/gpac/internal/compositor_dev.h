@@ -568,6 +568,7 @@ struct __tag_compositor
 
 	u32 tile_visibility_nb_tests, tile_visibility_threshold;
 	Bool tile_visibility_debug, force_all_tiles_visible;
+	u32 vrhud_mode;
 #endif
 
 	Bool orientation_sensors_active;
@@ -884,6 +885,10 @@ struct _traversing_state
 	GF_List *viewpoints;
 #endif
 
+	/*disable partial sphere rendrering in VR*/
+	Bool disable_partial_sphere;
+
+	Bool reverse_backface;
 
 	/*current transformation from top-level*/
 	GF_Matrix2D transform;
@@ -2076,6 +2081,8 @@ struct _od_manager
 
 	s32 last_drawn_frame_ntp_diff;
 	u32 ambi_ch_id;
+
+	const char *redirect_url;
 };
 
 GF_ObjectManager *gf_odm_new();

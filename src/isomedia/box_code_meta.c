@@ -814,8 +814,11 @@ GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	count = gf_list_count(ptr->item_infos);
-	gf_bs_write_u16(bs, count);
-
+	if (ptr->version == 0)
+		gf_bs_write_u16(bs, count);
+	else
+		gf_bs_write_u32(bs, count);
+		
 	if (count) {
 		gf_isom_box_array_write(s, ptr->item_infos, bs);
 	}
@@ -827,7 +830,7 @@ GF_Err iinf_Size(GF_Box *s)
 	u32 count;
 	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
-	ptr->size += 2;
+	ptr->size += (ptr->version == 0) ? 2 : 4;
 	if ((count = gf_list_count(ptr->item_infos))) {
 		gf_isom_box_array_size(s, ptr->item_infos);
 	}
