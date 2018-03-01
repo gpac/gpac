@@ -30,7 +30,7 @@
 
 #define GF_ATSC_MCAST_ADDR	"224.0.23.60"
 #define GF_ATSC_MCAST_PORT	4937
-#define GF_ATSC_SOCK_SIZE	0x5000000
+#define GF_ATSC_SOCK_SIZE	0x80000
 
 typedef struct
 {
@@ -141,7 +141,7 @@ struct __gf_atscdmx {
 	u32 service_autotune;
 	Bool tune_all_sls;
 
-	GF_SockGroup *all_sockets;
+	GF_SockGroup *active_sockets;
 
 
 	void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *info);
@@ -177,7 +177,7 @@ static void gf_atsc3_lct_obj_del(GF_LCTObject *o)
 static void gf_atsc3_service_del(GF_ATSCDmx *atscd, GF_ATSCService *s)
 {
 	if (s->sock) {
-		gf_sk_group_unregister(atscd->all_sockets, s->sock);
+		gf_sk_group_unregister(atscd->active_sockets, s->sock);
 		gf_sk_del(s->sock);
 	}
 	if (s->output_dir) gf_free(s->output_dir);
@@ -210,7 +210,7 @@ void gf_atsc3_dmx_del(GF_ATSCDmx *atscd)
 		}
 		gf_list_del(atscd->services);
 	}
-	if (atscd->all_sockets) gf_sk_group_del(atscd->all_sockets);
+	if (atscd->active_sockets) gf_sk_group_del(atscd->active_sockets);
 	if (atscd->object_reservoir) {
 		while (gf_list_count(atscd->object_reservoir)) {
 			GF_LCTObject *obj = gf_list_pop_back(atscd->object_reservoir);
@@ -277,8 +277,8 @@ GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_
 		return NULL;
 	}
 
-	atscd->all_sockets = gf_sk_group_new();
-	if (!atscd->all_sockets) {
+	atscd->active_sockets = gf_sk_group_new();
+	if (!atscd->active_sockets) {
 		gf_atsc3_dmx_del(atscd);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[ATSC] Failed to create socket group\n"));
 		return NULL;
@@ -290,7 +290,7 @@ GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[ATSC] Failed to create UDP socket\n"));
 		return NULL;
 	}
-	gf_sk_group_register(atscd->all_sockets, atscd->sock);
+	gf_sk_group_register(atscd->active_sockets, atscd->sock);
 
 	gf_sk_set_usec_wait(atscd->sock, 1);
 	e = gf_sk_setup_multicast(atscd->sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 1, GF_FALSE, (char *) ifce);
@@ -306,6 +306,23 @@ GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_
 	return atscd;
 }
 
+static void gf_atsc3_register_service_sockets(GF_ATSCDmx *atscd, GF_ATSCService *s, Bool do_register)
+{
+	u32 i;
+	GF_ATSCRouteSession *rsess;
+	if (do_register) gf_sk_group_register(atscd->active_sockets, s->sock);
+	else gf_sk_group_unregister(atscd->active_sockets, s->sock);
+
+	if (!s->secondary_sockets) return;
+
+	i=0;
+	while ((rsess = gf_list_enum(s->route_sessions, &i))) {
+		if (! rsess->sock) continue;
+		if (do_register) gf_sk_group_register(atscd->active_sockets, rsess->sock);
+		else gf_sk_group_unregister(atscd->active_sockets, rsess->sock);
+	}
+}
+
 GF_EXPORT
 GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 serviceID, Bool tune_all_sls)
 {
@@ -316,6 +333,7 @@ GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 serviceID, Bool tune_all_sls)
 	atscd->tune_all_sls = tune_all_sls;
 	i=0;
 	while ((s = gf_list_enum(atscd->services, &i))) {
+		GF_ATSCTuneMode prev_mode = s->tune_mode;
 		if (s->service_id==serviceID) s->tune_mode = GF_ATSC_TUNE_ON;
 		else if (serviceID==0xFFFFFFFF) s->tune_mode = GF_ATSC_TUNE_ON;
 		else if ((s->tune_mode!=GF_ATSC_TUNE_ON) && (serviceID==0xFFFFFFFE)) {
@@ -323,6 +341,20 @@ GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 serviceID, Bool tune_all_sls)
 			serviceID = s->service_id;
 		} else {
 			s->tune_mode = tune_all_sls ? GF_ATSC_TUNE_SLS_ONLY : GF_ATSC_TUNE_OFF;
+		}
+		//we were previously not tuned
+		if (prev_mode == GF_ATSC_TUNE_OFF) {
+			//we are now tuned, register sockets
+			if (s->tune_mode != GF_ATSC_TUNE_OFF) {
+				gf_atsc3_register_service_sockets(atscd, s, GF_TRUE);
+			}
+		}
+		//we were previously tuned
+		else {
+			//we are now not tuned, unregister sockets
+			if (s->tune_mode == GF_ATSC_TUNE_OFF) {
+				gf_atsc3_register_service_sockets(atscd, s, GF_FALSE);
+			}
 		}
 	}
 	return GF_OK;
@@ -355,7 +387,7 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			u32 protocol = 0;
 			u32 service_id=0;
 			while ( ( att = gf_list_enum(n->attributes, &j)) ) {
-				if (!strcmp(att->name, "serviceId")) service_id = atoi(att->value);
+				if (!strcmp(att->name, "serviceId")) sscanf(att->value, "%u", &service_id);
 			}
 
 			j=0;
@@ -364,8 +396,8 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 				if (!strcmp(m->name, "BroadcastSvcSignaling")) {
 					u32 k=0;
 					while ( ( att = gf_list_enum(m->attributes, &k)) ) {
-						if (!strcmp(att->name, "slsProtocol")) protocol=atoi(att->value);
-						if (!strcmp(att->name, "slsDestinationIpAddress")) dst_ip=att->value;
+						if (!strcmp(att->name, "slsProtocol")) protocol = atoi(att->value);
+						if (!strcmp(att->name, "slsDestinationIpAddress")) dst_ip = att->value;
 						else if (!strcmp(att->name, "slsDestinationUdpPort")) dst_port = atoi(att->value);
 						//don't care about the rest
 					}
@@ -426,9 +458,10 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			if (atscd->service_autotune==0xFFFFFFFF) service->tune_mode = GF_ATSC_TUNE_ON;
 			else if (atscd->service_autotune==service_id) service->tune_mode = GF_ATSC_TUNE_ON;
 			else if (atscd->tune_all_sls) service->tune_mode = GF_ATSC_TUNE_SLS_ONLY;
-			
+
+			//we are tuning, register socket
 			if (service->tune_mode != GF_ATSC_TUNE_OFF) 
-				gf_sk_group_register(atscd->all_sockets, service->sock);
+				gf_sk_group_register(atscd->active_sockets, service->sock);
 
 			gf_list_add(atscd->services, service);
 			if (atscd->on_event) atscd->on_event(atscd->udta, GF_ATSC_EVT_SERVICE_FOUND, service_id, NULL);
@@ -684,11 +717,12 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 	if (s->last_active_obj != obj) {
 		//last object had EOS and not completed
 		if (s->last_active_obj && s->last_active_obj->closed_flag && (s->last_active_obj->status<GF_LCT_OBJ_DONE_ERR)) {
-		 	if (s->last_active_obj->tsi) {
-		 		gf_atsc3_service_flush_object(s, s->last_active_obj);
-				gf_atsc3_dmx_process_object(atscd, s, s->last_active_obj);
+			GF_LCTObject *o = s->last_active_obj;
+		 	if (o->tsi) {
+		 		gf_atsc3_service_flush_object(s, o);
+				gf_atsc3_dmx_process_object(atscd, s, o);
 			} else {
-				gf_atsc3_obj_to_reservoir(atscd, s, s->last_active_obj);
+				gf_atsc3_obj_to_reservoir(atscd, s, o);
 			}
  			s->last_active_obj = obj;
 		} else if (in_order) {
@@ -802,6 +836,7 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 	}
 	if (!done) return GF_OK;
 
+	s->last_active_obj = NULL;
 	return gf_atsc3_service_flush_object(s, obj);
 }
 
@@ -809,8 +844,11 @@ static GF_Err gf_atsc3_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 {
 	u32 len = (u32) strlen(content);
 
-	if (s->tune_mode==GF_ATSC_TUNE_SLS_ONLY)
+	if (s->tune_mode==GF_ATSC_TUNE_SLS_ONLY) {
 		s->tune_mode = GF_ATSC_TUNE_OFF;
+		//unregister sockets
+		gf_atsc3_register_service_sockets(atscd, s, GF_FALSE);
+	}
 
 	if (s->output_dir) {
 		FILE *out;
@@ -890,9 +928,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 				return e;
 			}
 			s->secondary_sockets++;
-			if (s->tune_mode == GF_ATSC_TUNE_ON) gf_sk_group_register(atscd->all_sockets, rsess->sock);
-
-			gf_sk_set_udta(rsess->sock, rsess);
+			if (s->tune_mode == GF_ATSC_TUNE_ON) gf_sk_group_register(atscd->active_sockets, rsess->sock);
 		}
 		gf_list_add(s->route_sessions, rsess);
 
@@ -905,7 +941,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 			//extract TSI
 			k=0;
 			while ((att = gf_list_enum(ls->attributes, &k))) {
-				if (!strcmp(att->name, "tsi")) tsi = atoi(att->value);
+				if (!strcmp(att->name, "tsi")) sscanf(att->value, "%u", &tsi);
 			}
 			if (!tsi) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d missing TSI in LS/ROUTE session\n", s->service_id));
@@ -1449,10 +1485,10 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 	GF_Err e;
 	
 	//check all active sockets
-	e = gf_sk_group_select(atscd->all_sockets);
+	e = gf_sk_group_select(atscd->active_sockets, 10);
 	if (e) return e;
 
-	if (gf_sk_group_is_set(atscd->all_sockets, atscd->sock)) {
+	if (gf_sk_group_sock_is_set(atscd->active_sockets, atscd->sock)) {
 		e = gf_atsc3_dmx_process_lls(atscd);
 		if (e) 
 			return e;
@@ -1466,7 +1502,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 		GF_ATSCService *s = (GF_ATSCService *)gf_list_get(atscd->services, i);
 		if (s->tune_mode==GF_ATSC_TUNE_OFF) continue;
 
-		if (gf_sk_group_is_set(atscd->all_sockets, s->sock)) {
+		if (gf_sk_group_sock_is_set(atscd->active_sockets, s->sock)) {
 			e = gf_atsc3_dmx_process_service(atscd, s, NULL);
 			if (e)
 				return e;
@@ -1476,7 +1512,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 
 		j=0;
 		while ((rsess = (GF_ATSCRouteSession *)gf_list_enum(s->route_sessions, &j) )) {
-			if (gf_sk_group_is_set(atscd->all_sockets, rsess->sock)) {
+			if (gf_sk_group_sock_is_set(atscd->active_sockets, rsess->sock)) {
 				e = gf_atsc3_dmx_process_service(atscd, s, rsess);
 				if (e) 
 					return e;
@@ -1539,7 +1575,7 @@ void gf_atsc3_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char 
 			if (toi == obj->toi) {
 				GF_ATSCLCTChannel *rlct = obj->rlct;
 				//we likely have a loop here
-				if (obj == s->last_active_obj) return;
+				if (obj == s->last_active_obj) break;
 
 				gf_atsc3_obj_to_reservoir(atscd, s, obj);
 				if (purge_previous) {
@@ -1563,6 +1599,7 @@ void gf_atsc3_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char 
 			return;
 		}
 	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Failed to remove object %s from service, object not found\n", fileName));
 }
 
 

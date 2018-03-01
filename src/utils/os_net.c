@@ -186,7 +186,6 @@ struct __tag_socket
 	u32 dest_addr_len;
 
 	u32 usec_wait;
-	void *udta;
 };
 
 
@@ -1160,22 +1159,11 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	return GF_OK;
 }
 
-void gf_sk_set_udta(GF_Socket *sock, void *udta)
-{
-	if (sock) sock->udta = udta;
-}
-void *gf_sk_get_udta(GF_Socket *sock)
-{
-	if (sock) return sock->udta;
-	return NULL;
-}
-
 #include <gpac/list.h>
 struct __tag_sock_group
 {
 	GF_List *sockets;
 	fd_set group;
-	u32 max_sd, usec_wait;
 };
 
 GF_SockGroup *gf_sk_group_new()
@@ -1184,7 +1172,6 @@ GF_SockGroup *gf_sk_group_new()
 	GF_SAFEALLOC(tmp, GF_SockGroup);
 	tmp->sockets = gf_list_new();
 	FD_ZERO(&tmp->group);
-	tmp->usec_wait = 1000;
 	return tmp;
 }
 
@@ -1207,22 +1194,26 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 	}
 }
 
-GF_Err gf_sk_group_select(GF_SockGroup *sg)
+GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 {
 	s32 ready;
 	u32 i=0;
-	u32 max_fd=0, max_wait=1000;
 	struct timeval timeout;
+	u32 max_fd=0;
 	GF_Socket *sock;
 
 	FD_ZERO(&sg->group);
 	while ((sock = gf_list_enum(sg->sockets, &i))) {
 		FD_SET(sock->socket, &sg->group);
-		if (max_wait > sock->usec_wait) max_wait = sock->usec_wait;
 		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
 	}
-	timeout.tv_sec = 0;
-	timeout.tv_usec = max_wait;
+	if (usec_wait>=1000000) {
+		timeout.tv_sec = usec_wait/1000000;
+		timeout.tv_usec = usec_wait - (timeout.tv_sec*1000000);
+	} else {
+		timeout.tv_sec = 0;
+		timeout.tv_usec = usec_wait;
+	}
 	ready = select((int) max_fd+1, &sg->group, NULL, NULL, &timeout);
 
 	if (ready == SOCKET_ERROR) {
@@ -1248,7 +1239,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg)
 	return GF_OK;
 }
 
-Bool gf_sk_group_is_set(GF_SockGroup *sg, GF_Socket *sk)
+Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk)
 {
 	if (sg && sk && FD_ISSET(sk->socket, &sg->group)) return GF_TRUE;
 	return GF_FALSE;
