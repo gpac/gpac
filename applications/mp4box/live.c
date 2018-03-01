@@ -1008,8 +1008,11 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 {
 	GF_ATSCDmx *atscd;
 	Bool run = GF_TRUE;
+	GF_SystemRTInfo rti;
 	u32 nb_stats=1;
 	u32 start_time = gf_sys_clock();
+
+	gf_sys_get_rti(0, &rti, 0);
 
 	atscd = gf_atsc3_dmx_new(ifce, dir, 0);
 	if (!atscd) {
@@ -1030,7 +1033,7 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 		fprintf(stderr, "No output dir, ATSC3 demux inspect mode only\n");
 		inspect_mode = GF_TRUE;
 	}
-	fprintf(stderr, "Starting ATSC3 demux, press 'q' to stop\n");
+	fprintf(stderr, "Starting ATSC3 demux, press 'q' to stop, 'm' for memory/cpu info\n");
 
 	while (atscd && run) {
 		Bool is_empty = GF_TRUE;
@@ -1046,6 +1049,10 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 				switch (c) {
 				case 'q':
 					run = GF_FALSE;
+					break;
+				case 'm':
+					gf_sys_get_rti(100, &rti, 0);
+					fprintf(stderr, "CPU %02d - memory "LLU"\n", rti.process_cpu_usage,  rti.gpac_memory);
 					break;
 				}
 			}
