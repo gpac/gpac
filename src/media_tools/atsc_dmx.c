@@ -49,6 +49,7 @@ typedef struct
 	char *toi_template;
 	GF_ATSCLCTReg CPs[8];
 	u32 nb_cps;
+	u32 last_dispatched_tsi, last_dispatched_toi;
 
 } GF_ATSCLCTChannel;
 
@@ -74,7 +75,7 @@ typedef struct
 	u32 total_length;
 	//fragment reaggregation
 	char *payload;
-	u32 nb_bytes, alloc_size;
+	u32 nb_bytes, nb_recv_bytes, alloc_size;
 	u32 nb_frags, nb_alloc_frags, nb_recv_frags;
 	GF_LCTFragInfo *frags;
 	GF_LCTObjectStatus status;
@@ -114,6 +115,8 @@ typedef struct
 	char *output_dir;
 	u32 port;
 	char *dst_ip;
+	u32 last_dispatched_toi_on_tsi_zero;
+	u32 stsid_crc;
 
 	GF_List *route_sessions;
 	GF_ATSCTuneMode tune_mode;
@@ -300,6 +303,7 @@ GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_
 		return NULL;
 	}
 	gf_sk_set_buffer_size(atscd->sock, GF_FALSE, sock_buffer_size);
+	gf_sk_set_block_mode(atscd->sock, GF_TRUE);
 	//create static bs
 	atscd->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
@@ -661,11 +665,24 @@ static GF_Err gf_atsc3_service_flush_object(GF_ATSCService *s, GF_LCTObject *obj
 	return GF_EOS;
 }
 
-static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *s, u32 tsi, u32 toi, u32 start_offset, char *data, u32 size, u32 total_len, Bool close_flag, Bool in_order, GF_LCTObject **gather_obj)
+static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *s, u32 tsi, u32 toi, u32 start_offset, char *data, u32 size, u32 total_len, Bool close_flag, Bool in_order, GF_ATSCLCTChannel *rlct, GF_LCTObject **gather_obj)
 {
 	Bool inserted, done;
 	u32 i, count;
 	GF_LCTObject *obj = s->last_active_obj;
+
+	//in case last packet(s) are duplicated after we sent the object, skip them
+	if (rlct) {
+		if ((tsi==rlct->last_dispatched_tsi) && (toi==rlct->last_dispatched_toi)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d TSI %u TOI %u LCT fragment on already dispatched object, skipping\n", s->service_id, tsi, toi));
+			return GF_OK;
+		}
+	} else {
+		if (!tsi && (toi==s->last_dispatched_toi_on_tsi_zero)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d TSI %u TOI %u LCT fragment on already dispatched object, skipping\n", s->service_id, tsi, toi));
+			return GF_OK;
+		}
+	}
 
 	if (!obj || (obj->tsi!=tsi) || (obj->toi!=toi)) {
 		count = gf_list_count(s->objects);
@@ -676,7 +693,7 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 			if (!tsi && !obj->tsi && ((obj->toi&0xFFFFFF00) == (toi&0xFFFFFF00)) ) {
 				//change in version of bundle but same other flags: reuse this one
 				obj->nb_frags = obj->nb_recv_frags = 0;
-				obj->nb_bytes = 0;
+				obj->nb_bytes = obj->nb_recv_bytes = 0;
 				obj->total_length = total_len;
 				obj->toi = toi;
 				obj->status = GF_LCT_OBJ_INIT;
@@ -700,6 +717,8 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 		obj->tsi = tsi;
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
+		if (tsi && rlct) obj->rlct = rlct;
+
 		if (!total_len) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u started without total-length assigned !\n", s->service_id, tsi, toi ));
 		} else {
@@ -761,13 +780,19 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d object TSI %u TOI %u already received - skipping\n", s->service_id, tsi, toi ));
 		return GF_EOS;
 	}
+	obj->nb_recv_bytes += size;
 	inserted = GF_FALSE;
 	for (i=0; i<obj->nb_frags; i++) {
+		if ((obj->frags[i].offset <= start_offset) && (obj->frags[i].offset + obj->frags[i].size >= start_offset + size) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d LCT fragment already received\n", s->service_id));
+			return GF_OK;
+		}
+
 		//insert fragment
 		if (obj->frags[i].offset > start_offset) {
 			//check overlap (not sure if this is legal)
 			if (start_offset + size > obj->frags[i].offset) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d Overlapping LCT fragment, not supported\n", s->service_id));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d Overlapping LCT fragment, not supported\n", s->service_id));
 				return GF_NOT_SUPPORTED;
 			}
 			if (obj->nb_frags==obj->nb_alloc_frags) {
@@ -777,6 +802,7 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 			memmove(&obj->frags[i+1], &obj->frags[i], sizeof(GF_LCTFragInfo) * (obj->nb_frags - i)  );
 			obj->frags[i].offset = start_offset;
 			obj->frags[i].size = size;
+			obj->nb_bytes += size;
 			obj->nb_frags++;
 			inserted = GF_TRUE;
 			break;
@@ -784,6 +810,7 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 		//expand fragment
 		if (obj->frags[i].offset + obj->frags[i].size == start_offset) {
 			obj->frags[i].size += size;
+			obj->nb_bytes += size;
 			inserted = GF_TRUE;
 			break;
 		}
@@ -797,6 +824,7 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 		obj->frags[obj->nb_frags].offset = start_offset;
 		obj->frags[obj->nb_frags].size = size;
 		obj->nb_frags++;
+		obj->nb_bytes += size;
 	}
 	obj->nb_recv_frags++;
 
@@ -815,7 +843,6 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 	assert(obj->alloc_size >= start_offset + size);
 
 	memcpy(obj->payload + start_offset, data, size);
-	obj->nb_bytes += size;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d TSI %u TOI %u append LCT fragment, offset %d total size %d recv bytes %d - offset diff since last %d\n", s->service_id, obj->tsi, obj->toi, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
 
 	obj->prev_start_offset = start_offset;
@@ -837,6 +864,12 @@ static GF_Err gf_atsc3_service_gather_object(GF_ATSCDmx *atscd, GF_ATSCService *
 	if (!done) return GF_OK;
 
 	s->last_active_obj = NULL;
+	if (obj->rlct) {
+		obj->rlct->last_dispatched_tsi = obj->tsi;
+		obj->rlct->last_dispatched_toi = obj->toi;
+	} else {
+		s->last_dispatched_toi_on_tsi_zero = obj->toi;
+	}
 	return gf_atsc3_service_flush_object(s, obj);
 }
 
@@ -883,12 +916,57 @@ static GF_Err gf_atsc3_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 	return GF_NOT_SUPPORTED;
 }
 
+static GF_Err gf_atsc3_service_parse_mbms_enveloppe(GF_ATSCDmx *atscd, GF_ATSCService *s, char *content, char *content_location, u32 *stsid_version, u32 *mpd_version)
+{
+	u32 i, j;
+	GF_Err e;
+	GF_XMLAttribute *att;
+	GF_XMLNode *it, *root;
+
+	e = gf_xml_dom_parse_string(atscd->dom, content);
+	root = gf_xml_dom_get_root(atscd->dom);
+	if (e || !root) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to parse S-TSID: %s\n", s->service_id, gf_error_to_string(e) ));
+		return e;
+	}
+
+	i=0;
+	while ((it = gf_list_enum(root->content, &i))) {
+		const char *content_type = NULL;
+		const char *uri = NULL;
+		u32 version = 0;
+
+		if (strcmp(it->name, "item")) continue;
+
+		j=0;
+		while ((att = gf_list_enum(it->attributes, &j))) {
+			if (!stricmp(att->name, "contentType")) content_type = att->value;
+			else if (!stricmp(att->name, "metadataURI")) uri = att->value;
+			else if (!stricmp(att->name, "version")) version = atoi(att->value);
+		}
+		if (!content_type) continue;
+		if (!strcmp(content_type, "application/s-tsid")) *stsid_version = version;
+		else if (!strcmp(content_type, "application/dash+xml")) *mpd_version = version;
+	}
+	return GF_OK;
+}
+
 static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s, char *content, char *content_location)
 {
 	GF_Err e;
 	GF_XMLAttribute *att;
 	GF_XMLNode *rs, *ls, *srcf, *efdt, *node, *root;
-	u32 i, j, k;
+	u32 i, j, k, crc;
+
+	crc = gf_crc_32(content, strlen(content) );
+	if (!s->stsid_crc) {
+		s->stsid_crc = crc;
+	} else if (s->stsid_crc != crc) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d update of S-TSID not yet supported, skipping\n", s->service_id));
+		return GF_NOT_SUPPORTED;
+	} else {
+		return GF_OK;
+	}
 
 	e = gf_xml_dom_parse_string(atscd->dom, content);
 	root = gf_xml_dom_get_root(atscd->dom);
@@ -1043,7 +1121,11 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 
 					}
 					if (lreg->format_id != 1) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d payload formatID %d not supported\n", s->service_id, lreg->format_id));
+						if (lreg->format_id && (lreg->format_id<5)) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d payload formatID %d not supported\n", s->service_id, lreg->format_id));
+						} else {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d payload formatID %d reserved, assuming 1\n", s->service_id, lreg->format_id));
+						}
 					}
 					rlct->nb_cps++;
 					if (rlct->nb_cps==8) {
@@ -1059,7 +1141,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 	return GF_OK;
 }
 
-static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *object, u8 cc)
+static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *object, u8 cc, u32 stsid_version, u32 mpd_version)
 {
 	char *payload, *boundary=NULL, *sep;
 	char szContentType[100], szContentLocation[1024];
@@ -1154,13 +1236,29 @@ static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCS
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
-		if (!strcmp(szContentType, "application/mbms-enveloppe+xml")) {
+		if (!strcmp(szContentType, "application/mbms-envelope+xml")) {
+			e = gf_atsc3_service_parse_mbms_enveloppe(atscd, s, payload, szContentLocation, &stsid_version, &mpd_version);
 
+			if (e || !stsid_version || !mpd_version) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d MBMS envelope error %s, S-TSID version %d MPD version %d\n",s->service_id, gf_error_to_string(e), stsid_version, mpd_version ));
+				gf_free(boundary);
+				return e ? e : GF_SERVICE_ERROR;
+			}
 		} else if (!strcmp(szContentType, "application/mbms-user-service-description+xml")) {
 		} else if (!strcmp(szContentType, "application/dash+xml")) {
-			gf_atsc3_service_setup_dash(atscd, s, payload, szContentLocation);
+			if (mpd_version && (mpd_version+1 != s->mpd_version)) {
+				s->mpd_version = mpd_version+1;
+				gf_atsc3_service_setup_dash(atscd, s, payload, szContentLocation);
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d same MPD version, ignoring\n",s->service_id));
+			}
 		} else if (!strcmp(szContentType, "application/s-tsid")) {
-			gf_atsc3_service_setup_stsid(atscd, s, payload, szContentLocation);
+			if (stsid_version && (stsid_version+1 != s->stsid_version)) {
+				s->stsid_version = stsid_version+1;
+				gf_atsc3_service_setup_stsid(atscd, s, payload, szContentLocation);
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d same S-TSID version, ignoring\n",s->service_id));
+			}
 		}
 		if (!sep) break;
 		sep[0] = boundary[0];
@@ -1375,16 +1473,18 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d : LCT packet TSI %u TOI %u size %d startOffset %u TOL "LLU"\n", s->service_id, tsi, toi, nb_read-pos, start_offset, tol_size));
 
-	e = gf_atsc3_service_gather_object(atscd, s, tsi, toi, start_offset, atscd->buffer + pos, nb_read-pos, (u32) tol_size, B, in_order, &gather_object);
-
-	if (tsi && rlct && gather_object && !gather_object->rlct) gather_object->rlct = rlct;
+	e = gf_atsc3_service_gather_object(atscd, s, tsi, toi, start_offset, atscd->buffer + pos, nb_read-pos, (u32) tol_size, B, in_order, rlct, &gather_object);
 
 	if (e==GF_EOS) {
 		if (!tsi) {
-			if (a_M) s->mpd_version = v+1;
-			if (a_S) s->stsid_version = v+1;
+			if (gather_object->status==GF_LCT_OBJ_DONE_ERR) {
+				gf_atsc3_obj_to_reservoir(atscd, s, gather_object);
+				return GF_OK;
+			}
+			//we don't assign version here, we use mbms envelope for that since the bundle may have several
+			//packages
 
-			gf_atsc3_dmx_process_service_signaling(atscd, s, gather_object, cc);
+			gf_atsc3_dmx_process_service_signaling(atscd, s, gather_object, cc, a_S ? v : 0, a_M ? v : 0);
 			//we don't release the LCT object, so that we can disard future versions
 		} else {
 			gf_atsc3_dmx_process_object(atscd, s, gather_object);
@@ -1490,8 +1590,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 
 	if (gf_sk_group_sock_is_set(atscd->active_sockets, atscd->sock)) {
 		e = gf_atsc3_dmx_process_lls(atscd);
-		if (e) 
-			return e;
+		if (e) return e;
 	}
 
 	count = gf_list_count(atscd->services);
@@ -1504,8 +1603,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 
 		if (gf_sk_group_sock_is_set(atscd->active_sockets, s->sock)) {
 			e = gf_atsc3_dmx_process_service(atscd, s, NULL);
-			if (e)
-				return e;
+			if (e) return e;
 		}
 		if (s->tune_mode!=GF_ATSC_TUNE_ON) continue;
 		if (!s->secondary_sockets) continue;
@@ -1514,8 +1612,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 		while ((rsess = (GF_ATSCRouteSession *)gf_list_enum(s->route_sessions, &j) )) {
 			if (gf_sk_group_sock_is_set(atscd->active_sockets, rsess->sock)) {
 				e = gf_atsc3_dmx_process_service(atscd, s, rsess);
-				if (e) 
-					return e;
+				if (e) return e;
 			}
 		}
 
