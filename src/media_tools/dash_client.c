@@ -5480,8 +5480,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		hdr = dash->dash_io->get_header_value(dash->dash_io, base_group->segment_download, "x-atsc");
 		if (hdr && !strcmp(hdr, "yes"))
 			rep->playback.broadcast_flag = GF_TRUE;
-		else
-			assert(0);
 	}
 
 	if (local_file_name && (e == GF_OK || group->segment_must_be_streamed )) {
