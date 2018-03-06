@@ -977,6 +977,11 @@ void atsc_on_evt(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFi
 			gf_atsc3_dmx_remove_object_by_name( (GF_ATSCDmx *) udta, evt_param, (char *) info->filename, GF_FALSE);
 		}
 		break;
+	case GF_ATSC_EVT_MPD:
+		if (inspect_mode) {
+			fprintf(stderr, "MPD update found\n");
+		}
+		break;
 	default:
 		break;
 	}
