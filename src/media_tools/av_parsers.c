@@ -2385,6 +2385,10 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		sps->offset_for_non_ref_pic = bs_get_se(bs);
 		sps->offset_for_top_to_bottom_field = bs_get_se(bs);
 		sps->poc_cycle_length = bs_get_ue(bs);
+		if (sps->poc_cycle_length > ARRAY_LENGTH(sps->offset_for_ref_frame)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] offset_for_ref_frame overflow from poc_cycle_length\n"));
+			goto exit;
+		}
 		for(i=0; i<sps->poc_cycle_length; i++) sps->offset_for_ref_frame[i] = bs_get_se(bs);
 	}
 	if (sps->poc_type > 2) {
