@@ -1067,6 +1067,7 @@ void gf_fm_request_call(u32 type, u32 param, int *value);
 
 /* \endcond */
 
+#define ARRAY_LENGTH(a) (sizeof(a) / sizeof((a)[0]))
 
 #ifdef __cplusplus
 }
