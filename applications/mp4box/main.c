@@ -57,9 +57,6 @@
 #define BUFFSIZE	8192
 #define DEFAULT_INTERLEAVING_IN_SEC 0.5
 
-
-u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs, u32 stats_rate, u32 debug_tsi);
-
 int mp4boxTerminal(int argc, char **argv);
 
 u32 quiet = 0;
