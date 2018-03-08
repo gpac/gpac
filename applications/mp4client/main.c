@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / command-line client
@@ -79,7 +79,7 @@ Bool no_prog = 0;
 #define VK_MOD  GF_KEY_MOD_CTRL
 #endif
 
-//with the new API threading flags is always  set to GF_TERM_NO_COMPOSITOR_THREAD to flusg the prompt
+//with the new API threading flags always have GF_TERM_NO_COMPOSITOR_THREAD set to flush the prompt
 static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD;
 
 static Bool no_audio = GF_FALSE;
@@ -90,6 +90,7 @@ static u32 bench_mode_start = 0;
 static u32 bench_buffer = 0;
 static Bool eos_seen = GF_FALSE;
 static Bool addon_visible = GF_TRUE;
+
 Bool is_connected = GF_FALSE;
 Bool startup_file = GF_FALSE;
 GF_User user;
@@ -140,6 +141,9 @@ enum
 	DUMP_RGB_DEPTH = 1<<17,
 	DUMP_RGB_DEPTH_SHAPE = 1<<18
 };
+
+u32 dump_mode = DUMP_NONE;
+Float scale = 1;
 
 Bool dump_file(char *the_url, char *out_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
 
@@ -843,12 +847,29 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 	case GF_EVENT_SCENE_SIZE:
-		if (forced_width && forced_height) {
+
+		if ((forced_width && forced_height) || scale || dump_mode) {
 			GF_Event size;
-			size.type = GF_EVENT_SIZE;
-			size.size.width = forced_width;
-			size.size.height = forced_height;
-			gf_term_user_event(term, &size);
+			u32 nw = forced_width ? forced_width : evt->size.width;
+			u32 nh = forced_height ? forced_height : evt->size.height;
+
+			if (scale != 1) {
+				nw  = (u32)(nw * scale);
+				nh = (u32)(nh * scale);
+			}
+			if (dump_mode) {
+				/*we work in RGB24, and we must make sure the pitch is %4*/
+				if ((nw*3)%4) {
+					fprintf(stderr, "Adjusting width (%d) to have a stride multiple of 4\n", nw);
+					while ((nw*3)%4) nw--;
+				}
+			}
+			if ((nw != evt->size.width) || (nh != evt->size.height)) {
+				size.type = GF_EVENT_SIZE;
+				size.size.width = nw;
+				size.size.height = nh;
+				gf_term_user_event(term, &size);
+			}
 		}
 		break;
 
@@ -1189,7 +1210,7 @@ int mp4client_main(int argc, char **argv)
 	char c;
 	const char *str;
 	int ret_val = 0;
-	u32 i, times[100], nb_times, dump_mode;
+	u32 i, times[100], nb_times;
 	u32 simulation_time_in_ms = 0;
 	u32 initial_service_id = 0;
 	Bool auto_exit = GF_FALSE;
@@ -1208,7 +1229,6 @@ int mp4client_main(int argc, char **argv)
 	Bool fill_ar, visible, do_uncache, has_command;
 	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *mosaic;
 	FILE *logfile = NULL;
-	Float scale = 1;
 #ifndef WIN32
 	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
 #endif
@@ -1218,7 +1238,6 @@ int mp4client_main(int argc, char **argv)
 
 	memset(&user, 0, sizeof(GF_User));
 
-	dump_mode = DUMP_NONE;
 	fill_ar = visible = do_uncache = has_command = GF_FALSE;
 	url_arg = out_arg = the_cfg = rti_file = views = mosaic = NULL;
 	nb_times = 0;

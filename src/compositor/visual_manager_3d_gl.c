@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -3682,10 +3682,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 {
 	/*FIXME*/
 	u32 i;
-#ifndef GPAC_USE_TINYGL
-	char*tmp;
-	u32 hy;
-#endif //GPAC_USE_TINYGL
 
 	fb->width = compositor->display_width;
 	fb->height = compositor->display_height;
@@ -3797,8 +3793,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif /*GPAC_USE_GLES1X*/
 	} else { /*if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT))*/
 		u32 size;
-		fb->pitch_x = 4;
-		fb->pitch_y = 4*compositor->vp_width;
+		fb->pitch_x = 3;
+		fb->pitch_y = fb->pitch_x * compositor->vp_width;
 		size = fb->pitch_y * fb->height;
 		if (compositor->screen_buffer_alloc_size < size) {
 			compositor->screen_buffer_alloc_size = size;
@@ -3806,9 +3802,10 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		}
 
 		fb->video_buffer = compositor->screen_buffer;
-		fb->pixel_format = GF_PIXEL_RGBA;
 
-		glReadPixels(0, 0, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
+		fb->pixel_format = (fb->pitch_x == 4) ? GF_PIXEL_RGBA : GF_PIXEL_RGB_24;
+
+		glReadPixels(0, 0, fb->width, fb->height, (fb->pitch_x == 4) ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 		/*	} else {
 				fb->pitch_x = 3;
 				fb->pitch_y = 3*compositor->vp_width;
@@ -3819,7 +3816,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		*/
 	}
 
-#ifndef GPAC_USE_TINYGL
+#if 0
+//#ifndef GPAC_USE_TINYGL
 	/*flip image (openGL always handle image data bottom to top) */
 	tmp = (char*)gf_malloc(sizeof(char)*fb->pitch_y);
 	hy = fb->height/2;

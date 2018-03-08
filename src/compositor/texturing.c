@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -258,8 +258,11 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	if (!txh->data && !txh->hw_frame) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Visual Texture] No output frame available \n"));
 
+		if (txh->compositor->use_step_mode) {
+			txh->compositor->ms_until_next_frame = -1;
+		}
 		/*TODO - check if this is needed */
-		if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
+		else if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
 			//txh->needs_refresh = 1;
 			gf_sc_invalidate(txh->compositor, NULL);
 		}

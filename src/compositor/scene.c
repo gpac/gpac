@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -700,13 +700,13 @@ void gf_scene_buffering_info(GF_Scene *scene)
 
 		if (odm->nb_buffering) {
 			max_buffer += odm->buffer_playout_us;
-			buf_val = gf_filter_pid_query_buffer_duration(odm->pid);
+			buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
 			if (buf_val > max_buffer) buf_val = max_buffer;
 			cur_buffer += (buf_val>0) ? buf_val : 1;
 			i=0;
 			while ((xpid = gf_list_enum(odm->extra_pids, &i))) {
 				max_buffer += odm->buffer_playout_us;
-				buf_val = gf_filter_pid_query_buffer_duration(xpid->pid);
+				buf_val = gf_filter_pid_query_buffer_duration(xpid->pid, GF_FALSE);
 				if (buf_val > max_buffer) buf_val = max_buffer;
 				cur_buffer += (buf_val>0) ? buf_val : 1;
 			}
@@ -723,13 +723,13 @@ void gf_scene_buffering_info(GF_Scene *scene)
 		if (!odm->nb_buffering) continue;
 
 		max_buffer += odm->buffer_playout_us;
-		buf_val = gf_filter_pid_query_buffer_duration(odm->pid);
+		buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
 		if (buf_val > max_buffer) buf_val = max_buffer;
 		cur_buffer += (buf_val>0) ? buf_val : 1;
 		j=0;
 		while ((xpid = gf_list_enum(odm->extra_pids, &j))) {
 			max_buffer += odm->buffer_playout_us;
-			buf_val = gf_filter_pid_query_buffer_duration(xpid->pid);
+			buf_val = gf_filter_pid_query_buffer_duration(xpid->pid, GF_FALSE);
 			if (buf_val > max_buffer) buf_val = max_buffer;
 			cur_buffer += (buf_val>0) ? buf_val : 1;
 		}

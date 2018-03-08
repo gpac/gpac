@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / compositor filter
@@ -62,6 +62,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	u32 i, count;
 	s32 ms_until_next = 0;
 	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
+	if (!ctx) return GF_BAD_PARAM;
 
 	count = gf_list_count(ctx->compositor->systems_pids);
 	for (i=0; i<count; i++) {
@@ -276,6 +277,7 @@ static void compose_finalize(GF_Filter *filter)
 
 GF_Err compose_initialize(GF_Filter *filter)
 {
+	GF_FilterPid *pid;
 	GF_CompositorFilter *ctx = gf_filter_get_udta(filter);
 
 	ctx->magic = GF_4CC('c','o','m','p');
@@ -292,6 +294,33 @@ GF_Err compose_initialize(GF_Filter *filter)
 	ctx->compositor->fsess->caps.max_screen_height = ctx->compositor->video_out->max_screen_height;
 	ctx->compositor->fsess->caps.max_screen_bpp = ctx->compositor->video_out->max_screen_bpp;
 
+	//declare video output pid
+	pid = ctx->compositor->vout = gf_filter_pid_new(filter);
+	gf_filter_pid_set_name(pid, "vout");
+	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB_24) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->compositor->output_width) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->compositor->output_height) );
+
+	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ctx->compositor->frame_rate*1000, 1000) );
+
+	//declare audio output pid
+	if (! (ctx->compositor->user->init_flags & GF_TERM_NO_AUDIO) && ctx->compositor->audio_renderer) {
+		GF_AudioRenderer *ar = ctx->compositor->audio_renderer;
+		pid = ar->aout = gf_filter_pid_new(filter);
+		gf_filter_pid_set_udta(pid, ctx->compositor);
+		gf_filter_pid_set_name(pid, "aout");
+		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(44100) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_BPS, &PROP_UINT(16) );
+		gf_filter_pid_set_max_buffer(ar->aout, 1000*ar->total_duration);
+	}
 	return GF_OK;
 }
 

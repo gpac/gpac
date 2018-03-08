@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -308,8 +308,11 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	odm->ID = pid_odid;
 	odm->mo = the_mo;
 	odm->ServiceID = ServiceID;
-	if (!odm->pid)
+	if (!odm->pid) {
 		odm->type = mtype;
+		if (mtype == GF_STREAM_AUDIO)
+			scene->compositor->audio_renderer->nb_audio_objects++;
+	}
 
 	//register PID with ODM, but don't call setup object
 	gf_odm_register_pid(odm, pid, GF_TRUE);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -544,6 +544,10 @@ enum
 	GF_AUDIO_FMT_FLTP,
 	/*! sample = 1 double, planar channels*/
 	GF_AUDIO_FMT_DBLP,
+	/*! sample = signed integer, interleaved channels*/
+	GF_AUDIO_FMT_S24,
+	/*! sample = signed integer, planar channels*/
+	GF_AUDIO_FMT_S24P,
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -434,8 +434,11 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 
+void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst);
+
 void gf_filter_forward_clock(GF_Filter *filter);
 
+void gf_filter_process_inline(GF_Filter *filter);
 
 typedef struct
 {
@@ -512,6 +515,8 @@ struct __gf_filter_pid
 	Bool pid_info_changed;
 	Bool destroyed;
 	volatile u32 discard_input_packets;
+	volatile u32 init_task_pending;
+	volatile Bool props_changed_since_connect;
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
 	u32 nb_reaggregation_pending;

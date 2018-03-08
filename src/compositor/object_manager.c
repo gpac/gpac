@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -216,6 +216,8 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
 		GF_Event evt;
+		if ((odm->type == GF_STREAM_AUDIO) && odm->parentscene->compositor->audio_renderer->nb_audio_objects)
+			odm->parentscene->compositor->audio_renderer->nb_audio_objects--;
 
 		if (odm->addon) {
 			gf_list_del_item(odm->parentscene->declared_addons, odm->addon);
@@ -1404,7 +1406,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	}
 
 	if (odm->nb_buffering) {
-		u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid);
+		u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid, GF_TRUE);
 		if ( ! odm->ck->clock_init) {
 			u64 time;
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
@@ -1530,7 +1532,7 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 	if (odm->nb_buffering)
 		media_event->bufferValid = GF_TRUE;
 
-	buf_val = gf_filter_pid_query_buffer_duration(odm->pid);
+	buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
 	if (buf_val > odm->buffer_playout_us) buf_val = odm->buffer_playout_us;
 	val = (buf_val * 100) / odm->buffer_playout_us;
 	if (*min_buffer > val) *min_buffer = val;
@@ -1541,7 +1543,7 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 	i=0;
 	while ((xpid = gf_list_enum(odm->extra_pids, &i))) {
 
-		buf_val = gf_filter_pid_query_buffer_duration(odm->pid);
+		buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
 		if (buf_val > odm->buffer_playout_us) buf_val = odm->buffer_playout_us;
 		val = (buf_val * 100) / odm->buffer_playout_us;
 		if (*min_buffer > val) *min_buffer = val;
@@ -1733,7 +1735,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			info->max_buffer = 0;
 
 			if (pid)
-				info->buffer = gf_filter_pid_query_buffer_duration(pid) / 1000;
+				info->buffer = gf_filter_pid_query_buffer_duration(pid, GF_FALSE) / 1000;
 			info->max_buffer = odm->buffer_max_us / 1000;
 			info->min_buffer = odm->buffer_min_us / 1000;
 

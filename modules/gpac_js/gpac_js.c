@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2012
+ *			Copyright (c) Telecom ParisTech 2007-2018
  *			All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -594,9 +594,6 @@ static JSBool SMJS_FUNCTION(gpac_set_option)
 		key_val = SMJS_CHARS(c, argv[2]);
 
 	gf_cfg_set_key(compositor->user->config, sec_name, key_name, key_val);
-	if (!strcmp(sec_name, "Audio") && !strcmp(key_name, "Filter")) {
-		gf_sc_reload_audio_filters(compositor);
-	}
 	if (!strcmp(sec_name, "Compositor") && !strcmp(key_name, "StereoType")) {
 		gf_sc_reload_config(compositor);
 	}
