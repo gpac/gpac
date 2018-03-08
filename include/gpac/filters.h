@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -409,6 +409,8 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
 
 const char *gf_filter_pid_get_args(GF_FilterPid *pid);
 
+void gf_filter_pid_set_max_buffer(GF_FilterPid *pid, u32 total_duration_us);
+
 Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 
 void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *nb_pck, u32 *max_duration, u32 *duration);
@@ -445,7 +447,7 @@ const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *id
 
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks);
 
-u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid);
+u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_output);
 
 void gf_filter_pid_try_pull(GF_FilterPid *pid);
 
@@ -484,6 +486,9 @@ void gf_filter_pck_unref(GF_FilterPacket *pck);
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data);
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct);
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 data_size, GF_FilterPacket *reference);
+
+GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, packet_destructor destruct);
+
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck);
 
 void gf_filter_pck_discard(GF_FilterPacket *pck);
@@ -524,6 +529,9 @@ u32 gf_filter_pck_get_duration(GF_FilterPacket *pck);
 
 //realloc packet not already sent. Returns data start and new range of data. This will reset byte offset information
 GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **data_start, char **new_range_start, u32 *new_size);
+
+//truncate packet to given size
+GF_Err gf_filter_pck_truncate(GF_FilterPacket *pck, u32 size);
 
 //SAP types as defined in annex I of ISOBMFF
 typedef enum
@@ -703,6 +711,12 @@ enum
 	//(bool) reverse playback capability of the pid
 	GF_PROP_PID_REVERSE_PLAYBACK = GF_4CC('R','P','B','C'),
 
+	//(uint) (info) volume
+	GF_PROP_PID_AUDIO_VOLUME = GF_4CC('A','V','O','L'),
+	//(uint) (info) pan
+	GF_PROP_PID_AUDIO_PAN = GF_4CC('A','P','A','N'),
+	//(uint) (info) thread priority
+	GF_PROP_PID_AUDIO_PRIORITY = GF_4CC('A','P','R','I'),
 
 	GF_PROP_PID_PROTECTION_SCHEME_TYPE = GF_4CC('S','C','H','T'),
 	GF_PROP_PID_PROTECTION_SCHEME_VERSION = GF_4CC('S','C','H','V'),
@@ -784,7 +798,6 @@ typedef struct
 	FILTER_EVENT_BASE
 } GF_FEVT_Base;
 
-
 /*GF_FEVT_PLAY, GF_FEVT_SET_SPEED*/
 typedef struct
 {
@@ -795,7 +808,9 @@ typedef struct
 	/*params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
 	Double speed;
 
-	/*params for GF_NET_CHAN_PLAY only: indicates this is the first PLAY on an element inserted from bcast*/
+	/* set when PLAY event is sent upstream to audio out, indicates HW buffer reset*/
+	u8 hw_buffer_reset;
+	/*params for GF_FEVT_PLAY only: indicates this is the first PLAY on an element inserted from bcast*/
 	u8 initial_broadcast_play;
 	/*params for GF_NET_CHAN_PLAY only
 		0: range is in media time

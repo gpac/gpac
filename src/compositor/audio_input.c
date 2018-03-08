@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -47,6 +47,8 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	if (!ai->stream) return NULL;
 
 	done = ai->stream_finished;
+	ai->input_ifce.is_buffering = GF_FALSE;
+
 	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->step_mode ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, 0, &ai->stream_finished, &ts, size, NULL, NULL, NULL);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (done != ai->stream_finished) {
@@ -59,6 +61,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUDIO, ("[Audio Input] No data in audio object\n"));
 		}
 		gf_mo_adjust_clock(ai->stream, 0);
+		ai->input_ifce.is_buffering = gf_mo_is_buffering(ai->stream);
 		*size = 0;
 		return NULL;
 	}

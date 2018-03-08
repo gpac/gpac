@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -108,6 +108,9 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 
 /*returns min frame duration for his object or 0 if unknown*/
 u32 gf_mo_get_min_frame_dur(GF_MediaObject *mo);
+u32 gf_mo_map_timestamp_to_sys_clock(GF_MediaObject *mo, u32 ts);
+Bool gf_mo_is_buffering(GF_MediaObject *mo);
+
 
 typedef enum
 {

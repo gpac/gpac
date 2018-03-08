@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -225,6 +225,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 		u32 i, count=gf_list_count(fsess->filters);
 		//first pass: disconnect all filters, since some may have references to property maps or packets 
 		for (i=0; i<count; i++) {
+			u32 j;
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
 			filter->process_th_id = 0;
 
@@ -236,7 +237,14 @@ void gf_fs_del(GF_FilterSession *fsess)
 				gf_list_del(filter->postponed_packets);
 				filter->postponed_packets = NULL;
 			}
-
+			for (j=0; j<filter->num_input_pids; j++) {
+				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, j);
+				gf_filter_pid_inst_reset(pidi);
+			}
+		}
+		//second pass, finalize all
+		for (i=0; i<count; i++) {
+			GF_Filter *filter = gf_list_get(fsess->filters, i);
 			if (filter->freg->finalize) {
 				filter->finalized = GF_TRUE;
 				FSESS_CHECK_THREAD(filter)
@@ -246,6 +254,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 		while (gf_list_count(fsess->filters)) {
 			GF_Filter *filter = gf_list_pop_back(fsess->filters);
+
 			gf_filter_del(filter);
 		}
 		gf_list_del(fsess->filters);
@@ -319,6 +328,9 @@ const GF_FilterRegister * gf_fs_get_filter_registry(GF_FilterSession *fsess, u32
 	return gf_list_get(fsess->registry, idx);
 }
 
+//#define CHECK_TASK_LIST_INTEGRITY
+
+#ifdef CHECK_TASK_LIST_INTEGRITY
 static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 {
 	u32 k, c = gf_fq_count(fq);
@@ -327,6 +339,7 @@ static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 		assert(a != task);
 	}
 }
+#endif
 
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
@@ -393,7 +406,9 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 
 
 	if (task->notified) {
+#ifdef CHECK_TASK_LIST_INTEGRITY
 		check_task_list(fsess->main_thread_tasks, task);
+#endif
 
 		//only notify/count tasks posted on the main task lists, the other ones don't use sema_wait
 		safe_int_inc(&fsess->tasks_pending);
@@ -593,8 +608,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						task->in_main_task_list_only = GF_TRUE;
 					}
 
+#ifdef CHECK_TASK_LIST_INTEGRITY
 					check_task_list(current_filter->tasks, task);
 					check_task_list(fsess->main_thread_tasks, task);
+#endif
 
 					//next in filter should be handled before this task, move task at the end of the filter task
 					next = gf_fq_head(current_filter->tasks);
@@ -714,7 +731,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in filter tasks (%d pending)\n", thid, task->filter->name, task->log_name, fsess->tasks_pending));
 				task->notified = GF_FALSE;
 				task->in_main_task_list_only = GF_FALSE;
+#ifdef CHECK_TASK_LIST_INTEGRITY
 				check_task_list(fsess->main_thread_tasks, task);
+#endif
 				gf_fq_add(current_filter->tasks, task);
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
@@ -723,7 +742,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				task->notified = GF_TRUE;
 				safe_int_inc(&fsess->tasks_pending);
 
+#ifdef CHECK_TASK_LIST_INTEGRITY
 				if (prev_current_filter) check_task_list(prev_current_filter->tasks, task);
+#endif
 				task->in_main_task_list_only = GF_TRUE;
 				//main thread
 				if (task->filter && task->filter->freg->requires_main_thread) {
@@ -735,6 +756,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 			}
 		} else {
+#ifdef CHECK_TASK_LIST_INTEGRITY
 			check_task_list(fsess->main_thread_tasks, task);
 			if (prev_current_filter)
 				check_task_list(prev_current_filter->tasks, task);
@@ -746,7 +768,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					check_task_list(af->tasks, task);
 				}
 			}
-
+#endif
 			memset(task, 0, sizeof(GF_FSTask));
 			gf_fq_add(fsess->tasks_reservoir, task);
 		}
@@ -774,7 +796,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 
 		//no main thread, return
-		if (!thid && fsess->no_main_thread && !current_filter) {
+		if (!thid && fsess->no_main_thread && !current_filter && !fsess->pid_connect_tasks_pending) {
 			return 0;
 		}
 	}
@@ -1237,6 +1259,8 @@ void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 		gf_fs_post_task(fsess, gf_fs_cleanup_filters_task, NULL, NULL, "filters_cleanup", fsess);
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+#else
+	safe_int_dec(&fsess->pid_connect_tasks_pending);
 #endif
 }
 

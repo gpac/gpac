@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -133,6 +133,13 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data)
 {
 	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
+}
+
+GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, packet_destructor destruct)
+{
+	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
+	if (pck) pck->destructor = destruct;
+	return pck;
 }
 
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct)
@@ -428,7 +435,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 
 	//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
 	pck->info.pid_props_changed = GF_FALSE;
-	if (!pid->request_property_map && pid->nb_pck_sent) {
+	if (!pid->request_property_map && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
 		pck->info.pid_props_changed = GF_TRUE;
@@ -436,6 +443,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	//any new pid_set_property after this packet will trigger a new property map
 	pck->info.pid_info_changed = GF_FALSE;
 	pid->request_property_map = GF_TRUE;
+	pid->props_changed_since_connect = GF_FALSE;
 	if (pid->pid_info_changed) {
 		pck->info.pid_info_changed = GF_TRUE;
 		pid->pid_info_changed = GF_FALSE;
@@ -1002,6 +1010,25 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **da
 	*new_size = pck->data_length;
 
 
+	return GF_OK;
+}
+
+GF_Err gf_filter_pck_truncate(GF_FilterPacket *pck, u32 size)
+{
+	assert(pck);
+	if (PCK_IS_INPUT(pck)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to truncate input packet on output PID in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (! pck->src_filter) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to truncate an already sent packet in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (pck->filter_owns_mem) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to truncate a shared memory packet in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (pck->data_length > size) pck->data_length = size;
 	return GF_OK;
 }
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -563,6 +563,9 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_UTC_TIME, "UTC", "UTC date and time of PID", GF_PROP_LUINT},
 	{ GF_PROP_PID_UTC_TIMESTAMP, "UTCTimestamp", "timestamp corresponding to UTC date and time of PID", GF_PROP_LUINT},
 	{ GF_PROP_PID_REVERSE_PLAYBACK, "ReversePlayback", "PID is capable of reverse playback", GF_PROP_BOOL},
+	{ GF_PROP_PID_AUDIO_VOLUME, "AudioVolume", "Volume of audio PID", GF_PROP_UINT},
+	{ GF_PROP_PID_AUDIO_PAN, "AudioPan", "Balance/Pan of audio PID", GF_PROP_UINT},
+	{ GF_PROP_PID_AUDIO_PRIORITY, "AudioPriority", "Audio thread priority", GF_PROP_UINT},
 	{ GF_PROP_PID_PROTECTION_SCHEME_TYPE, "ProtectionScheme", "protection scheme type (4CC) used", GF_PROP_UINT},
 	{ GF_PROP_PID_PROTECTION_SCHEME_VERSION, "SchemeVersion", "protection scheme version used", GF_PROP_UINT},
 	{ GF_PROP_PID_PROTECTION_SCHEME_URI, "SchemeURI", "protection scheme URI", GF_PROP_STRING},

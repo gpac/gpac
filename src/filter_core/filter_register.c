@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -90,6 +90,8 @@ const GF_FilterRegister *vttmx_register(GF_FilterSession *session);
 const GF_FilterRegister *nhntdump_register(GF_FilterSession *session);
 const GF_FilterRegister *nhmldump_register(GF_FilterSession *session);
 const GF_FilterRegister *vobsubdmx_register(GF_FilterSession *session);
+const GF_FilterRegister *aviout_register(GF_FilterSession *session);
+const GF_FilterRegister *aout_register(GF_FilterSession *session);
 
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -151,6 +153,8 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, nhntdump_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, nhmldump_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, vobsubdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, aviout_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, aout_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );

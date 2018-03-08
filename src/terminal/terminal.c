@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Media terminal sub-project
@@ -37,6 +37,9 @@
 
 /*textual command processing*/
 #include <gpac/scene_manager.h>
+
+void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID);
+void gf_filter_reconnect_output(GF_Filter *filter);
 
 
 /*forwards all clocks of the given amount of time. Can only be used when terminal is in paused mode
@@ -363,7 +366,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 		return NULL;
 	}
 
-	comp_filter = gf_fs_load_filter(tmp->fsess, "compositor");
+	comp_filter = gf_fs_load_filter(tmp->fsess, "compositor:FID=compose");
 	tmp->compositor = comp_filter ? gf_sc_from_filter(comp_filter) : NULL;
 	if (!tmp->compositor) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load compositor filter.\n"));
@@ -376,6 +379,15 @@ GF_Terminal *gf_term_new(GF_User *user)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
 	gf_sc_set_fps(tmp->compositor, 30.0);
 
+	//load audio filter chain
+	if (! (user->init_flags & GF_TERM_NO_AUDIO) ) {
+		GF_Filter *audio_out = gf_fs_load_filter(tmp->fsess, "aout:SID=compose#audio");
+		if (!audio_out) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter - audio disabled\n"));
+		} else {
+			gf_filter_reconnect_output(tmp->compositor->filter);
+		}
+	}
 
 #ifdef FILTER_FIXME
 	tmp->downloader = gf_dm_new(user->config);
@@ -1352,8 +1364,8 @@ GF_EXPORT
 GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height)
 {
 	if (!term) return GF_BAD_PARAM;
-	if (width) *width = term->compositor->vp_width;
-	if (height) *height = term->compositor->vp_height;
+	if (width) *width = term->compositor->display_width;
+	if (height) *height = term->compositor->display_height;
 	return GF_OK;
 }
 
@@ -1412,7 +1424,7 @@ GF_EXPORT
 GF_Err gf_term_process_flush_video(GF_Terminal *term)
 {
 	if (!(term->user->init_flags & GF_TERM_NO_COMPOSITOR_THREAD) ) return GF_BAD_PARAM;
-	gf_sc_flush_video(term->compositor);
+	gf_sc_flush_video(term->compositor, GF_FALSE);
 	return GF_OK;
 }
 
@@ -1723,3 +1735,11 @@ void gf_term_print_stats(GF_Terminal *term)
 }
 
 
+GF_EXPORT
+void gf_term_connect_output_filter(GF_Terminal *term, const char *filter_desc)
+{
+	GF_Filter *out = gf_fs_load_filter(term->fsess, filter_desc);
+
+	gf_filter_set_sources(out, "compose");
+	gf_filter_reconnect_output(term->compositor->filter);
+}

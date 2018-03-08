@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -140,7 +140,7 @@ void gf_filter_del(GF_Filter *filter)
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs) {
-		if (filter->max_nb_consecutive_process * 10 < filter->max_nb_process) {
+		if (filter->max_nb_process>10 && (filter->max_nb_consecutive_process * 10 < filter->max_nb_process)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("\nFilter %s extensively uses memory alloc/free in process(): \n", filter->name));
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("\tmax stats of over %d calls (%d consecutive calls with no alloc/free):\n", filter->max_nb_process, filter->max_nb_consecutive_process));
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("\t\t%d allocs %d callocs %d reallocs %d free\n", filter->max_stats_nb_alloc, filter->max_stats_nb_calloc, filter->max_stats_nb_realloc, filter->max_stats_nb_free));
@@ -600,8 +600,10 @@ static void gf_filter_process_task(GF_FSTask *task)
 
 	filter->schedule_next_time = 0;
 	if (filter->pid_connection_pending) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has connection pending, skiping process\n", filter->name));
-		gf_filter_check_pending_tasks(filter, task);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has connection pending, requeuing process\n", filter->name));
+		//do not cancel the process task since it might have been triggered by the filter itself,
+		//we would not longer call it
+		task->requeue_request = GF_TRUE;
 		return;
 	}
 	if (filter->removed) {
@@ -690,6 +692,57 @@ static void gf_filter_process_task(GF_FSTask *task)
 	else {
 		gf_filter_check_pending_tasks(filter, task);
 	}
+}
+
+void gf_filter_process_inline(GF_Filter *filter)
+{
+	GF_Err e;
+	if (filter->pid_connection_pending || filter->removed || filter->stream_reset_pending) {
+		return;
+	}
+	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
+		return;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s inline process\n", filter->name));
+
+	if (filter->postponed_packets) {
+		while (gf_list_count(filter->postponed_packets)) {
+			GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
+			gf_filter_pck_send(pck);
+		}
+		gf_list_del(filter->postponed_packets);
+		filter->postponed_packets = NULL;
+		if (filter->process_task_queued==1) {
+			filter->process_task_queued = 0;
+			return;
+		}
+	}
+	FSESS_CHECK_THREAD(filter)
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (filter->session->check_allocs)
+		e = gf_filter_process_check_alloc(filter);
+	else
+#endif
+		e = filter->freg->process(filter);
+
+	//flush all pending pid init requests following the call to init
+	if (filter->has_pending_pids) {
+		filter->has_pending_pids=GF_FALSE;
+		while (gf_fq_count(filter->pending_pids)) {
+			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
+			gf_filter_pid_post_init_task(filter, pid);
+		}
+	}
+	//no requeue if end of session
+	if (filter->session->run_status != GF_OK) {
+		return;
+	}
+	if ((e==GF_EOS) || filter->removed || filter->finalized) {
+		filter->process_task_queued = 0;
+		return;
+	}
+	if (e) filter->session->last_process_error = e;
 }
 
 void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val)

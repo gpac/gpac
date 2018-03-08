@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -70,7 +70,7 @@ return 1 if there are pending tasks (frame late, fonts pending, etc) or 0 if eve
 Bool gf_sc_draw_frame(GF_Compositor *sr, Bool no_video_flush, s32 *ms_till_next);
 
 /*flushes the video to screen - typically used after @gf_sc_draw_frame without flush*/
-void gf_sc_flush_video(GF_Compositor *compositor);
+void gf_sc_flush_video(GF_Compositor *compositor, Bool is_locked);
 
 /*inits rendering info for the node - shall be called for all nodes the parent system doesn't handle*/
 void gf_sc_on_node_init(GF_Compositor *sr, GF_Node *node);
@@ -174,8 +174,6 @@ void *gf_sc_get_visual_compositor(GF_Compositor *sr);
 GF_Compositor *gf_sc_get_compositor(GF_Node *node);
 
 Bool gf_sc_script_action(GF_Compositor *sr, u32 type, GF_Node *n, GF_JSAPIParam *param);
-
-void gf_sc_reload_audio_filters(GF_Compositor *compositor);
 
 Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri);
 

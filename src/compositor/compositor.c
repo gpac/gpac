@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -126,7 +126,12 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 	u32 width,height;
 
 	/*reconfig audio if needed (non-threaded compositors)*/
-	if (compositor->audio_renderer && !compositor->audio_renderer->th) gf_sc_ar_reconfig(compositor->audio_renderer);
+	if (compositor->audio_renderer
+#ifdef ENABLE_AOUT
+	 	&& !compositor->audio_renderer->th
+#endif
+	)
+		gf_sc_ar_reconfig(compositor->audio_renderer);
 
 	if (compositor->msg_type) {
 
@@ -242,15 +247,20 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		}
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
 	}
-	if (notif_size && compositor->video_listeners) {
-		u32 k=0;
-		GF_VideoListener *l;
-		while ((l = gf_list_enum(compositor->video_listeners, &k))) {
-			if ( compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) )
-				l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 4);
-			else
-				l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 3);
+	if (notif_size) {
+
+		if (compositor->video_listeners) {
+			u32 k=0;
+			GF_VideoListener *l;
+			while ((l = gf_list_enum(compositor->video_listeners, &k))) {
+				if ( compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) )
+					l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 4);
+				else
+					l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 3);
+			}
 		}
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->display_width));
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->display_height));
 	}
 
 	/*3D driver changed message, recheck extensions*/
@@ -270,11 +280,45 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 	}
 }
 
+
+static void gf_sc_hw_frame_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
+	GF_Compositor *compositor = hwframe->user_data;
+	compositor->hwframe.user_data = NULL;
+	if (compositor->fb.video_buffer) {
+		gf_sc_release_screen_buffer(compositor, &compositor->fb);
+		compositor->fb.video_buffer = NULL;
+	}
+	compositor->flush_pending = (compositor->skip_flush!=1) ? GF_TRUE : GF_FALSE;
+	compositor->skip_flush = 0;
+}
+
+GF_Err gf_sc_hw_frame_get_plane(GF_FilterHWFrame *hwframe, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+{
+	GF_Compositor *compositor = hwframe->user_data;
+
+	if (plane_idx==0) {
+		if (!compositor->fb.video_buffer)
+			gf_sc_get_screen_buffer(compositor, &compositor->fb, 0);
+	}
+	*outPlane = compositor->fb.video_buffer;
+	*outStride = compositor->fb.pitch_y;
+	return GF_OK;
+}
+
 GF_EXPORT
 Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_next)
 {
 	Bool ret = GF_FALSE;
 
+	//frame still pending
+	if (compositor->hwframe.user_data)
+		return GF_TRUE;
+
+	if (compositor->flush_pending) {
+		gf_sc_flush_video(compositor, GF_FALSE);
+	}
 	if (no_flush)
 		compositor->skip_flush=1;
 
@@ -766,8 +810,12 @@ void gf_sc_set_fps(GF_Compositor *compositor, Double fps)
 
 u32 gf_sc_get_audio_buffer_length(GF_Compositor *compositor)
 {
+#ifdef ENABLE_AOUT
 	if (!compositor || !compositor->audio_renderer || !compositor->audio_renderer->audio_out) return 0;
 	return compositor->audio_renderer->audio_out->GetTotalBufferTime(compositor->audio_renderer->audio_out);
+#else
+	return 0;
+#endif
 }
 
 
@@ -1004,6 +1052,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 #endif
 		const char *opt;
 		Bool had_size_info = compositor->has_size_info;
+
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(compositor->scene, &width, &height);
 		compositor->has_size_info = (width && height) ? 1 : 0;
@@ -1110,6 +1159,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 				gf_sc_set_size(compositor,width, height);
 			}
 		}
+	} else {
+		gf_sc_ar_reset(compositor->audio_renderer);
 	}
 
 	gf_sc_reset_framerate(compositor);
@@ -2187,6 +2238,11 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			compositor->msg_type |= GF_SR_CFG_FULLSCREEN;
 		}
 
+		if (compositor->vout) {
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->output_width) );
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->output_height) );
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_FPS, &PROP_FRAC_INT(compositor->frame_rate*1000, 1000) );
+		}
 	}
 }
 
@@ -2376,6 +2432,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		compositor->recompute_ar = 0;
 	}
 	compositor->zoom_changed = 0;
+	compositor->audio_renderer->scene_ready = GF_TRUE;
 }
 
 
@@ -2398,17 +2455,18 @@ static void compositor_release_textures(GF_Compositor *compositor, Bool frame_dr
 	}
 }
 
-void gf_sc_flush_video(GF_Compositor *compositor)
+void gf_sc_flush_video(GF_Compositor *compositor, Bool locked)
 {
 	GF_Window rc;
 
 	//release compositor in case we have vsync
-	gf_sc_lock(compositor, 0);
+	if (locked) gf_sc_lock(compositor, 0);
 	rc.x = rc.y = 0;
 	rc.w = compositor->display_width;
 	rc.h = compositor->display_height;
 	compositor->video_out->Flush(compositor->video_out, &rc);
-	gf_sc_lock(compositor, 1);
+	compositor->flush_pending = GF_FALSE;
+	if (locked) gf_sc_lock(compositor, 1);
 }
 
 void gf_sc_render_frame(GF_Compositor *compositor)
@@ -2417,7 +2475,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	GF_SceneGraph *sg;
 #endif
 	GF_List *temp_queue;
-	u32 in_time, end_time, i, count, frame_duration;
+	u32 in_time, end_time, i, count, frame_duration, frame_ts;
 	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
@@ -2532,6 +2590,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
 #endif
+	//frame TS (when no texture) is scene sample clock (ie AR clock) minus number of samples already send
+	//by the audio renderer
+	frame_ts = compositor->scene_sampled_clock - gf_sc_ar_get_delay(compositor->audio_renderer);
+
 	/*update all video textures*/
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
@@ -2547,7 +2609,11 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (!txh->stream_finished) {
 			u32 d = gf_mo_get_min_frame_dur(txh->stream);
 			if (d && (d < frame_duration)) frame_duration = d;
-
+			//if the texture needs update (new frame), compute its timestamp in system timebase
+			if (txh->needs_refresh) {
+				u32 ts = gf_mo_map_timestamp_to_sys_clock(txh->stream, txh->stream->timestamp);
+				if (ts<frame_ts) frame_ts = ts;
+			}
 			all_tx_done=0;
 		}
 	}
@@ -2716,6 +2782,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	/*if invalidated, draw*/
 	if (compositor->frame_draw_type) {
+		Bool emit_frame = GF_FALSE;
 		Bool textures_released = 0;
 
 #ifndef GPAC_DISABLE_LOG
@@ -2730,7 +2797,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		/*video flush only*/
 		if (compositor->frame_draw_type==GF_SC_DRAW_FLUSH) {
 			compositor->frame_draw_type = 0;
-
 		}
 		/*full render*/
 		else {
@@ -2750,13 +2816,17 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				}
 			}
 
+			if (compositor->ms_until_next_frame < 0) emit_frame = GF_FALSE;
+			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
+			else if (compositor->fonts_pending) emit_frame = GF_FALSE;
+			else emit_frame = GF_TRUE;
 		}
 		/*and flush*/
 #ifndef GPAC_DISABLE_LOG
 		flush_time = gf_sys_clock();
 #endif
 
-		if(compositor->user->init_flags & GF_TERM_INIT_HIDE)
+		if (compositor->user->init_flags & GF_TERM_INIT_HIDE)
 			compositor->skip_flush = 1;
 
 		//if no overlays, release textures before flushing, otherwise we might loose time waiting for vsync
@@ -2765,8 +2835,22 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			textures_released = 1;
 		}
 
-		if (compositor->skip_flush!=1) {
-			gf_sc_flush_video(compositor);
+		//new frame generated, emit packet
+		if (emit_frame) {
+			GF_FilterPacket *pck;
+			compositor->hwframe.user_data = compositor;
+			compositor->hwframe.get_plane = gf_sc_hw_frame_get_plane;
+			pck = gf_filter_pck_new_hw_frame(compositor->vout, &compositor->hwframe, gf_sc_hw_frame_done);
+
+			gf_filter_pck_set_cts(pck, frame_ts);
+			gf_filter_pck_send(pck);
+			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - AR clock %d\n", frame_ts, compositor->audio_renderer->current_time));
+		}
+
+		if (compositor->flush_pending) {
+			gf_sc_flush_video(compositor, GF_TRUE);
 		} else {
 			compositor->skip_flush = 0;
 		}

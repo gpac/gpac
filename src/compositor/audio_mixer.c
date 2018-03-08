@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -71,6 +71,7 @@ struct __audiomix
 	/*set to true by mixer when detecting an audio config change*/
 	Bool must_reconfig;
 	Bool isEmpty;
+	Bool source_buffering;
 	/*set to non null if this outputs directly to the driver, in which case audio formats have to be checked*/
 	struct _audio_render *ar;
 
@@ -176,6 +177,12 @@ Bool gf_mixer_empty(GF_AudioMixer *am)
 }
 
 GF_EXPORT
+Bool gf_mixer_buffering(GF_AudioMixer *am)
+{
+	return am->source_buffering;
+}
+
+GF_EXPORT
 void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 {
 	MixerInput *in;
@@ -219,8 +226,11 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 static GF_Err get_best_samplerate(GF_AudioMixer *am, u32 *out_sr, u32 *out_ch, u32 *out_bps)
 {
 	if (!am->ar) return GF_OK;
+#ifdef ENABLE_AOUT
 	if (!am->ar->audio_out || !am->ar->audio_out->QueryOutputSampleRate) return GF_OK;
 	return am->ar->audio_out->QueryOutputSampleRate(am->ar->audio_out, out_sr, out_ch, out_bps);
+#endif
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -646,6 +656,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	s32 *out_mix, nb_act_src;
 	char *data, *ptr;
 
+	am->source_buffering = GF_FALSE;
 	//reset buffer whatever the state of the mixer is
 	memset(buffer, 0, buffer_size);
 
@@ -692,7 +703,10 @@ single_source_mix:
 	while (buffer_size) {
 		size = 0;
 		data = single_source->src->FetchFrame(single_source->src->callback, &size, delay);
-		if (!data || !size) break;
+		if (!data || !size) {
+			am->source_buffering = single_source->src->is_buffering;
+			break;
+		}
 		/*don't copy more than possible*/
 		if (size > buffer_size) size = buffer_size;
 		if (!is_muted) {

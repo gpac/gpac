@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Rendering sub-project
@@ -198,7 +198,7 @@ struct __tag_compositor
 	/*2D rasterizer*/
 	GF_Raster2D *rasterizer;
 
-	/*all textures (texture handlers)*/
+	/*video listeners (old API, should get rid of this)*/
 	GF_List *video_listeners;
 	Bool discard_input_events;
 	u32 video_th_id;
@@ -436,6 +436,8 @@ struct __tag_compositor
 
 	/*0: flush to be done - 1: flush can be skipped - 2: forces flush*/
 	u32 skip_flush;
+	Bool flush_pending;
+
 #ifndef GPAC_DISABLE_SVG
 	u32 num_clicks;
 #endif
@@ -613,6 +615,9 @@ struct __tag_compositor
 	//associated filter, used to load input filters
 	GF_Filter *filter;
 	GF_FilterSession *fsess;
+	GF_FilterPid *vout;
+	GF_FilterHWFrame hwframe;
+	GF_VideoSurface fb;
 
 	/*all X3D key/mouse/string sensors*/
 	GF_List *x3d_sensors;
@@ -1075,6 +1080,8 @@ typedef struct _audiointerface
 	/*updated cfg, or 0 otherwise*/
 	u32 chan, bps, samplerate, ch_cfg;
 	Bool forced_layout;
+	//updated at each frame, used if frame fetch returns NULL
+	Bool is_buffering;
 } GF_AudioInterface;
 
 typedef struct __audiomix GF_AudioMixer;
@@ -1104,23 +1111,30 @@ void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
 u32 gf_mixer_get_block_align(GF_AudioMixer *am);
 Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
 Bool gf_mixer_empty(GF_AudioMixer *am);
+Bool gf_mixer_buffering(GF_AudioMixer *am);
 
+//#define ENABLE_AOUT
 
 /*the audio renderer*/
 typedef struct _audio_render
 {
-	GF_AudioOutput *audio_out;
+	u32 total_duration, max_bytes_out, samplerate, bytes_per_samp, nb_bytes_out, buffer_size, nb_buffers;
+	u64 current_time_sr, time_at_last_config_sr;
+	GF_FilterPid *aout;
+	u32 video_ts;
+	Bool scene_ready;
+	u32 nb_audio_objects;
 
-	Bool disable_resync;
-	Bool disable_multichannel;
-	Bool clock_use_audio_out;
-
-	/*frozen time counter if set*/
-	Bool Frozen;
 	/*startup time, used when no audio output is set*/
 	u64 start_time;
 	/*freeze time, used when no audio output is set*/
 	u64 freeze_time;
+
+	Bool disable_resync;
+	Bool disable_multichannel;
+
+	/*frozen time counter if set*/
+	Bool Frozen;
 
 	/*system clock compute when audio output is present*/
 	u32 current_time, bytes_per_second, time_at_last_config;
@@ -1133,12 +1147,6 @@ typedef struct _audio_render
 	/*client*/
 	GF_User *user;
 	u32 config_forced;
-
-	GF_List *audio_listeners;
-	/*audio thread if output not self-threaded*/
-	GF_Thread *th;
-	/*thread state: 0: not init, 1: running, 2: waiting for stop, 3: done*/
-	u32 audio_th_state;
 
 	u32 audio_delay, volume, pan, mute;
 
@@ -1181,6 +1189,9 @@ void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source);
 void gf_sc_ar_reconfig(GF_AudioRenderer *ar);
 u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar);
 
+void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts);
+
+
 void gf_sc_flush_next_audio(GF_Compositor *compositor);
 Bool gf_sc_check_audio_pending(GF_Compositor *compositor);
 
@@ -1195,8 +1206,6 @@ typedef struct _soundinterface
 	/*node owning the structure*/
 	GF_Node *owner;
 } GF_SoundInterface;
-
-typedef struct __audiofilteritem GF_AudioFilterItem;
 
 /*audio common to AudioClip and AudioSource*/
 typedef struct
@@ -1215,7 +1224,6 @@ typedef struct
 	Bool register_with_renderer, register_with_parent;
 
 	GF_SoundInterface *snd;
-	GF_AudioFilterItem *filter;
 } GF_AudioInput;
 /*setup interface with audio renderer - overwrite any functions needed after setup EXCEPT callback object*/
 void gf_sc_audio_setup(GF_AudioInput *ai, GF_Compositor *sr, GF_Node *node);
@@ -1475,7 +1483,7 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh);
 #endif
 
 
-
+/*TODO - remove this !!*/
 typedef struct
 {
 	void *udta;
@@ -1487,24 +1495,6 @@ typedef struct
 
 GF_Err gf_sc_add_video_listener(GF_Compositor *compositor, GF_VideoListener *vl);
 GF_Err gf_sc_remove_video_listener(GF_Compositor *compositor, GF_VideoListener *vl);
-
-typedef struct
-{
-	void *udta;
-	/*called when audio frame is ready to be sent to the sound card.
-		@buffer, @buffer_size: audio buffer
-		@time: the terminal global clock in ms
-		@delay: Due to sound card latencies, audio is sent to the sound card delay milliseconds earlier than
-		its associated video.
-	*/
-	void (*on_audio_frame)(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay);
-	/*called when audio output has been reconfigured*/
-	void (*on_audio_reconfig)(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_channel, u32 channel_cfg);
-} GF_AudioListener;
-
-/*adds a new audio listener - the on_audio_reconfig callback will be called before this function returns*/
-GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
-GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 
 
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size);
@@ -1620,7 +1610,6 @@ struct _gf_scene
 
 	/*duration of inline scene*/
 	u64 duration;
-
 
 	u32 nb_buffering;
 

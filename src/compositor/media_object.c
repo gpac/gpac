@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -377,9 +377,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	pck_ts = (u32) (1000*gf_filter_pck_get_cts(mo->pck) / timescale);
 
 	/*not running and no resync (ie audio)*/
-	if (!resync && !gf_clock_is_started(mo->odm->ck)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: CB not running, returning\n", mo->odm->ID));
-		return NULL;
+	if (!gf_clock_is_started(mo->odm->ck)) {
+		if (!resync) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: CB not running, returning\n", mo->odm->ID));
+			return NULL;
+		} else if (mo->odm->ck->nb_buffering && mo->odm->type==GF_STREAM_AUDIO) {
+			return NULL;
+		}
 	}
 
 	if (resync==GF_MO_FETCH_PAUSED)
@@ -412,11 +416,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		if (!retry_pull) break;
 
 		gf_filter_pid_try_pull(mo->odm->pid);
-		//we will wait max 100 ms for the CB to be re-fill
-		gf_sleep(1);
 	}
 	if (!retry_pull && (force_decode_mode==1)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not force a pull from pid - blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
 	}
 
 	/*resync*/
@@ -1023,9 +1025,17 @@ GF_EXPORT
 u32 gf_mo_get_min_frame_dur(GF_MediaObject *mo)
 {
 	return mo ? mo->frame_dur : 0;
-
+}
+GF_EXPORT
+u32 gf_mo_map_timestamp_to_sys_clock(GF_MediaObject *mo, u32 ts)
+{
+	return (mo && mo->odm)? mo->odm->ck->start_time + ts : 0;
 }
 
+Bool gf_mo_is_buffering(GF_MediaObject *mo)
+{
+	return (mo && mo->odm && mo->odm->ck->nb_buffering) ? GF_TRUE : GF_FALSE;
+}
 
 GF_EXPORT
 Fixed gf_mo_get_speed(GF_MediaObject *mo, Fixed in_speed)
@@ -1317,7 +1327,6 @@ void gf_mo_del(GF_MediaObject *mo)
 	assert(gf_list_count(mo->evt_targets) == 0);
 	gf_list_del(mo->evt_targets);
 	if (mo->pck) gf_filter_pck_unref(mo->pck);
-
 	gf_sg_mfurl_del(mo->URLs);
 	gf_free(mo);
 }
