@@ -391,7 +391,7 @@ struct __gf_filter
 
 #ifdef GPAC_MEMORY_TRACKING
 	u64 stats_mem_allocated;
-	u32 stats_nb_alloc, stats_nb_realloc, stats_nb_calloc, stats_nb_free;
+	u32 stats_nb_alloc, stats_nb_realloc, stats_nb_calloc, stats_nb_free, nb_alloc_pck, nb_realloc_pck;
 	u32 nb_process_since_reset, nb_consecutive_process;
 	u32 max_stats_nb_alloc, max_stats_nb_realloc, max_stats_nb_calloc, max_stats_nb_free;
 	u32 max_nb_consecutive_process, max_nb_process;
@@ -514,6 +514,7 @@ struct __gf_filter_pid
 	Bool request_property_map;
 	Bool pid_info_changed;
 	Bool destroyed;
+	Bool not_connected_ok;
 	volatile u32 discard_input_packets;
 	volatile u32 init_task_pending;
 	volatile Bool props_changed_since_connect;

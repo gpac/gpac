@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Romain Bouqueau - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-20XX
+ *			Copyright (c) Telecom ParisTech 2010-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -469,10 +469,10 @@ void gf_mem_enable_tracker(unsigned int enable_backtrace)
 
 size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free)
 {
-	(*nb_allocs) =  nb_calls_alloc;
-	(*nb_callocs) =  nb_calls_calloc;
-	(*nb_reallocs) =  nb_calls_realloc;
-	(*nb_free) =  nb_calls_free;
+	if (nb_allocs) (*nb_allocs) = nb_calls_alloc;
+	if (nb_callocs) (*nb_callocs) = nb_calls_calloc;
+	if (nb_reallocs) (*nb_reallocs) = nb_calls_realloc;
+	if (nb_free) (*nb_free) = nb_calls_free;
 	return gpac_allocated_memory;
 }
 
