@@ -145,22 +145,6 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 }
 
 
-void gf_sc_flush_next_audio(GF_Compositor *compositor)
-{
-	compositor->audio_renderer->step_mode = GF_TRUE;
-}
-
-Bool gf_sc_check_audio_pending(GF_Compositor *compositor)
-{
-	Bool res = GF_FALSE;
-	gf_mixer_lock(compositor->audio_renderer->mixer, GF_TRUE);
-	if (compositor->audio_renderer->step_mode)
-		res = GF_FALSE;
-	gf_mixer_lock(compositor->audio_renderer->mixer, GF_FALSE);
-
-	return res;
-}
-
 GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 {
 	const char *sOpt;
@@ -183,6 +167,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
+	ar->non_rt_output = GF_TRUE;
 
 	ar->volume = 100;
 	sOpt = gf_cfg_get_key(user->config, "Audio", "Volume");
@@ -360,7 +345,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		gf_mixer_lock(ar->mixer, GF_FALSE);
 
 		if (!written) {
-			if (!ar->step_mode) written = ar->buffer_size;
+			if (!ar->non_rt_output) written = ar->buffer_size;
 			else if (ar->scene_ready && ar->nb_audio_objects && !gf_mixer_buffering(ar->mixer) ) written = ar->buffer_size;
 			else {
 				gf_filter_pck_truncate(pck, 0);
@@ -374,7 +359,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		}
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 		gf_filter_pck_set_cts(pck, ar->current_time_sr);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS "LLU" nb samples %d - AR clock %u\n", ar->current_time_sr, written / ar->bytes_per_samp, ar->current_time));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS "LLU" nb samples %d - AR clock %u\n", ar->current_time_sr, written / ar->bytes_per_samp, ar->current_time));
 
 		ar->nb_bytes_out += written;
 		gf_filter_pck_send(pck);
@@ -413,6 +398,7 @@ void gf_sc_ar_reconfig(GF_AudioRenderer *ar)
 
 u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar)
 {
+	if (!ar->bytes_per_second) return 0;
 	//try to FIXME, this is not as precise as what we have before using ar->audio_out->GetAudioDelay(ar->audio_out)
 	// since we don't know how much of the first packet data out there has been consumed
 	return 1000 * ar->nb_bytes_out / ar->bytes_per_second;

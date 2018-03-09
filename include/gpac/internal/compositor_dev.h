@@ -1150,7 +1150,8 @@ typedef struct _audio_render
 
 	u32 audio_delay, volume, pan, mute;
 
-	Bool step_mode;
+	//set when output is not realtime
+	Bool non_rt_output;
 
 	Fixed yaw, pitch, roll;
 
@@ -1191,9 +1192,6 @@ u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar);
 
 void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts);
 
-
-void gf_sc_flush_next_audio(GF_Compositor *compositor);
-Bool gf_sc_check_audio_pending(GF_Compositor *compositor);
 
 /*the sound node interface for intensity & spatialization*/
 typedef struct _soundinterface
