@@ -49,7 +49,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	done = ai->stream_finished;
 	ai->input_ifce.is_buffering = GF_FALSE;
 
-	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->step_mode ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, 0, &ai->stream_finished, &ts, size, NULL, NULL, NULL);
+	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->non_rt_output ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, 0, &ai->stream_finished, &ts, size, NULL, NULL, NULL);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (done != ai->stream_finished) {
 		gf_sc_invalidate(ai->compositor, NULL);
@@ -68,7 +68,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	ai->need_release = GF_TRUE;
 
 	//step mode, return the frame without sync check
-	if (ai->compositor->audio_renderer->step_mode) {
+	if (ai->compositor->audio_renderer->non_rt_output) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] audio frame CTS %u %d bytes fetched\n", ts, *size));
 		return frame;
 	}

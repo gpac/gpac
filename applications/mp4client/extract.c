@@ -468,13 +468,14 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	if (prev) *prev = 0;
 
 	gf_term_set_simulation_frame_rate(term, (Double) fps);
-
+	
 	if (mode==DUMP_AVI) {
-		sprintf(szPath, "aviout:dst=%s.avi", szOutPath);
+		sprintf(szPath, "avimx:dst=%s.avi", szOutPath);
 		if (dump_mode_flags & DUMP_DEPTH_ONLY) {
 			strcat(szPath, ":depth");
 		}
-		gf_term_connect_output_filter(term, szPath);
+		e = gf_term_connect_output_filter(term, szPath);
+		if (e) return 1;
 	}
 
 	fprintf(stderr, "Opening URL %s\n", url);
@@ -600,7 +601,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		gf_term_step_clocks(term, time - prev_time);
 		prev_time = time;
 
-		if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
+		if (0 && gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
 			fprintf(stderr, "Aborting dump\n");
 			break;
 		}

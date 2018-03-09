@@ -142,8 +142,6 @@ static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, B
 		gf_sc_lock(compositor, 0);
 
 	}
-
-	gf_sc_flush_next_audio(compositor);
 	return GF_OK;
 }
 
@@ -380,7 +378,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_sc_set_fps(tmp->compositor, 30.0);
 
 	//load audio filter chain
-	if (! (user->init_flags & GF_TERM_NO_AUDIO) ) {
+	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
 		GF_Filter *audio_out = gf_fs_load_filter(tmp->fsess, "aout:SID=compose#audio");
 		if (!audio_out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter - audio disabled\n"));
@@ -1398,10 +1396,6 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 			if (!term->compositor->root_scene || !term->compositor->root_scene->root_od)
 				break;
 
-			//wait for audio to be flushed
-			if (gf_sc_check_audio_pending(term->compositor) )
-				continue;
-
 			//force end of buffer
 			if (gf_scene_check_clocks(term->compositor->root_scene->root_od->scene_ns, term->compositor->root_scene, 1))
 				break;
@@ -1736,10 +1730,11 @@ void gf_term_print_stats(GF_Terminal *term)
 
 
 GF_EXPORT
-void gf_term_connect_output_filter(GF_Terminal *term, const char *filter_desc)
+GF_Err gf_term_connect_output_filter(GF_Terminal *term, const char *filter_desc)
 {
 	GF_Filter *out = gf_fs_load_filter(term->fsess, filter_desc);
-
+	if (!out) return GF_NOT_FOUND;
 	gf_filter_set_sources(out, "compose");
 	gf_filter_reconnect_output(term->compositor->filter);
+	return GF_OK;
 }

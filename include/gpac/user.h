@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -83,9 +83,8 @@ enum
 	/*disables frame-rate regulation (used when dumping content)*/
 	GF_TERM_NO_REGULATION = 1<<5,
 
-	/*uses audio hardware clock rather than system clock. The clock is increased at the rate of audio sample consumption. This should only be used for extraction
-	purposes, as it may result in non-smooth visual playback (time is not continuously increasing)*/
-	GF_TERM_USE_AUDIO_HW_CLOCK = 1<<6,
+	/*initializes client without a default audio out - used for dump modes where audio plauback is not needed*/
+	GF_TERM_NO_DEF_AUDIO_OUT = 1<<6,
 
 	/*works without window thread*/
 	GF_TERM_WINDOW_NO_THREAD = 1<<10,

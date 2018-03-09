@@ -319,8 +319,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 	if (compositor->flush_pending) {
 		gf_sc_flush_video(compositor, GF_FALSE);
 	}
-	if (no_flush)
-		compositor->skip_flush=1;
+	compositor->skip_flush = no_flush ? 1 : 0;
 
 	gf_sc_render_frame(compositor);
 
@@ -828,7 +827,6 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 	/*step mode*/
 	if (PlayState==GF_STATE_STEP_PAUSE) {
 		compositor->step_mode = GF_TRUE;
-		gf_sc_flush_next_audio(compositor);
 		compositor->paused = 1;
 	} else {
 		compositor->step_mode = GF_FALSE;
@@ -2590,10 +2588,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
 #endif
-	//frame TS (when no texture) is scene sample clock (ie AR clock) minus number of samples already send
-	//by the audio renderer
-	frame_ts = compositor->scene_sampled_clock - gf_sc_ar_get_delay(compositor->audio_renderer);
-
+	//compute earliest frame TS in all textures that need refresh (skip textures with same timing)
+	frame_ts = (u32) -1;
 	/*update all video textures*/
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
@@ -2617,6 +2613,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			all_tx_done=0;
 		}
 	}
+	//no texture found/updated, use scene sampled clock
+	if (frame_ts==(u32) -1)
+		frame_ts = compositor->scene_sampled_clock - gf_sc_ar_get_delay(compositor->audio_renderer);
+
 
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
 	//forced a relayout - do it right away
@@ -2846,13 +2846,11 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			gf_filter_pck_send(pck);
 			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - AR clock %d\n", frame_ts, compositor->audio_renderer->current_time));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - AR clock %d\n", frame_ts, compositor->audio_renderer->current_time));
 		}
 
 		if (compositor->flush_pending) {
 			gf_sc_flush_video(compositor, GF_TRUE);
-		} else {
-			compositor->skip_flush = 0;
 		}
 
 #ifndef GPAC_DISABLE_LOG

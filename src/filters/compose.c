@@ -297,6 +297,10 @@ GF_Err compose_initialize(GF_Filter *filter)
 	//declare video output pid
 	pid = ctx->compositor->vout = gf_filter_pid_new(filter);
 	gf_filter_pid_set_name(pid, "vout");
+	//compositor initiated for RT playback, vout pid may not be connected
+	if (! (ctx->compositor->user->init_flags & GF_TERM_NO_DEF_AUDIO_OUT))
+		gf_filter_pid_set_loose_connect(pid);
+
 	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
 	gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000) );
@@ -309,6 +313,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 	//declare audio output pid
 	if (! (ctx->compositor->user->init_flags & GF_TERM_NO_AUDIO) && ctx->compositor->audio_renderer) {
 		GF_AudioRenderer *ar = ctx->compositor->audio_renderer;
+		ar->non_rt_output = GF_FALSE;
 		pid = ar->aout = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, ctx->compositor);
 		gf_filter_pid_set_name(pid, "aout");

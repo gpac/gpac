@@ -57,9 +57,9 @@ typedef struct
 	char comp_name[5];
 
 	u64 last_video_time_ms;
-} GF_AVIOutCtx;
+} GF_AVIMuxCtx;
 
-static GF_Err aviout_open_close(GF_AVIOutCtx *ctx, const char *filename, const char *ext, u32 file_idx)
+static GF_Err avimux_open_close(GF_AVIMuxCtx *ctx, const char *filename, const char *ext, u32 file_idx)
 {
 	Bool had_file = GF_FALSE;
 	if (ctx->avi_out) {
@@ -87,13 +87,13 @@ static GF_Err aviout_open_close(GF_AVIOutCtx *ctx, const char *filename, const c
 	return GF_OK;
 }
 
-static GF_Err aviout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	AVIStream *stream;
 	const GF_PropertyValue *p;
 	u32 w, h, sr, bps, nb_ch, pf, codec_id, type, br, timescale, wfmt;
 	GF_Fraction fps;
-	GF_AVIOutCtx *ctx = (GF_AVIOutCtx *) gf_filter_get_udta(filter);
+	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
 
 	stream = gf_filter_pid_get_udta(pid);
 
@@ -103,7 +103,7 @@ static GF_Err aviout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_free(stream);
 
 		if (!gf_list_count(ctx->streams))
-			aviout_open_close(ctx, NULL, NULL, 0);
+			avimux_open_close(ctx, NULL, NULL, 0);
 		return GF_OK;
 	}
 	gf_filter_pid_check_caps(pid);
@@ -221,9 +221,9 @@ static GF_Err aviout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return GF_OK;
 }
 
-static GF_Err aviout_initialize(GF_Filter *filter)
+static GF_Err avimux_initialize(GF_Filter *filter)
 {
-	GF_AVIOutCtx *ctx = (GF_AVIOutCtx *) gf_filter_get_udta(filter);
+	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->dst) return GF_OK;
 	ctx->streams = gf_list_new();
@@ -231,14 +231,14 @@ static GF_Err aviout_initialize(GF_Filter *filter)
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
 	}
-	aviout_open_close(ctx, ctx->dst, NULL, 0);
+	avimux_open_close(ctx, ctx->dst, NULL, 0);
 	return GF_OK;
 }
 
-static void aviout_finalize(GF_Filter *filter)
+static void avimux_finalize(GF_Filter *filter)
 {
-	GF_AVIOutCtx *ctx = (GF_AVIOutCtx *) gf_filter_get_udta(filter);
-	aviout_open_close(ctx, NULL, NULL, 0);
+	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
+	avimux_open_close(ctx, NULL, NULL, 0);
 	while (gf_list_count(ctx->streams)) {
 		AVIStream *st = gf_list_pop_back(ctx->streams);
 		gf_free(st);
@@ -246,7 +246,7 @@ static void aviout_finalize(GF_Filter *filter)
 	gf_list_del(ctx->streams);
 }
 
-static GF_Err aviout_process(GF_Filter *filter)
+static GF_Err avimux_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
 	s32 res=0;
@@ -254,7 +254,7 @@ static GF_Err aviout_process(GF_Filter *filter)
 	AVIStream *video_st=NULL;
 	const char *pck_data;
 	u32 pck_size;
-	GF_AVIOutCtx *ctx = (GF_AVIOutCtx *) gf_filter_get_udta(filter);
+	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
 
 	//no video in mux, force writing 100ms of audio
 	if (!ctx->has_video) ctx->last_video_time_ms += 100;
@@ -350,7 +350,7 @@ static GF_Err aviout_process(GF_Filter *filter)
 
 	if (nb_eos==count) {
 		if (ctx->avi_out)
-			aviout_open_close(ctx, NULL, NULL, 0);
+			avimux_open_close(ctx, NULL, NULL, 0);
 		return GF_EOS;
 	}
 
@@ -359,15 +359,15 @@ static GF_Err aviout_process(GF_Filter *filter)
 
 
 
-#define OFFS(_n)	#_n, offsetof(GF_AVIOutCtx, _n)
+#define OFFS(_n)	#_n, offsetof(GF_AVIMuxCtx, _n)
 
-static const GF_FilterArgs AVIOutArgs[] =
+static const GF_FilterArgs AVIMuxArgs[] =
 {
 	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{}
 };
 
-static const GF_FilterCapability AVIOutInputs[] =
+static const GF_FilterCapability AVIMuxInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
@@ -380,25 +380,25 @@ static const GF_FilterCapability AVIOutInputs[] =
 };
 
 
-GF_FilterRegister AVIOutRegister = {
-	.name = "aviout",
-	.description = "AVI  Output",
-	.private_size = sizeof(GF_AVIOutCtx),
+GF_FilterRegister AVIMuxRegister = {
+	.name = "avimx",
+	.description = "AVI Muxer",
+	.private_size = sizeof(GF_AVIMuxCtx),
 	.max_extra_pids = -1,
-	.args = AVIOutArgs,
-	INCAPS(AVIOutInputs),
-	.initialize = aviout_initialize,
-	.finalize = aviout_finalize,
-	.configure_pid = aviout_configure_pid,
-	.process = aviout_process
+	.args = AVIMuxArgs,
+	INCAPS(AVIMuxInputs),
+	.initialize = avimux_initialize,
+	.finalize = avimux_finalize,
+	.configure_pid = avimux_configure_pid,
+	.process = avimux_process
 };
 
 #endif
 
-const GF_FilterRegister *aviout_register(GF_FilterSession *session)
+const GF_FilterRegister *avimux_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_AVILIB
-	return &AVIOutRegister;
+	return &AVIMuxRegister;
 #else
 	return NULL;
 #endif
