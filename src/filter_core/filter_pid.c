@@ -1200,7 +1200,8 @@ restart:
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
 	} else {
 		//no filter found for this pid !
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No filter found for PID %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
+		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter found for PID %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
+
 	}
 	safe_int_dec(&pid->init_task_pending);
 	return;
@@ -2200,7 +2201,7 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 
 	assert(! evt->base.on_pid);
 
-	canceled = f->freg->process_event(f, evt);
+	canceled = f->freg->process_event ? f->freg->process_event(f, evt) : GF_TRUE;
 	if (!canceled) {
 		for (i=0; i<f->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(f->output_pids, i);
@@ -2441,4 +2442,12 @@ void gf_filter_pid_set_max_buffer(GF_FilterPid *pid, u32 total_duration_us)
 }
 
 
+void gf_filter_pid_set_loose_connect(GF_FilterPid *pid)
+{
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Setting loose connect on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return;
+	}
+	pid->not_connected_ok = GF_TRUE;
+}
 

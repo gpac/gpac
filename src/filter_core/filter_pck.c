@@ -99,12 +99,18 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		closest->alloc_size = data_size;
 		closest->data = gf_realloc(closest->data, closest->alloc_size);
 		pck = closest;
+#ifdef GPAC_MEMORY_TRACKING
+		pid->filter->nb_realloc_pck++;
+#endif
 	}
 
 	if (!pck) {
 		GF_SAFEALLOC(pck, GF_FilterPacket);
 		pck->data = gf_malloc(sizeof(char)*data_size);
 		pck->alloc_size = data_size;
+#ifdef GPAC_MEMORY_TRACKING
+		pid->filter->nb_alloc_pck+=2;
+#endif
 	} else {
 		//pop first item and swap pointers. We can safely do this since this filter
 		//is the only one accessing the queue in pop mode, all others are just pushing to it
@@ -404,9 +410,15 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
 	u32 i, count, nb_dispatch=0, max_nb_pck=0, max_buf_dur=0;
+	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
 	GF_FilterPid *pid;
 	s64 duration=0;
 	u32 timescale=0;
+#ifdef GPAC_MEMORY_TRACKING
+	u32 nb_allocs=0, nb_reallocs=0, prev_nb_allocs=0, prev_nb_reallocs=0;
+	if (pck->pid->filter->nb_process_since_reset)
+		gf_mem_get_stats(&prev_nb_allocs, NULL, &prev_nb_reallocs, NULL);
+#endif
 
 	if (!pck->src_filter) return GF_BAD_PARAM;
 
@@ -464,6 +476,14 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s connection pending, queuing packet\n", pck->pid->filter->name, pck->pid->name));
 		if (!pid->filter->postponed_packets) pid->filter->postponed_packets = gf_list_new();
 		gf_list_add(pid->filter->postponed_packets, pck);
+
+#ifdef GPAC_MEMORY_TRACKING
+		if (pck->pid->filter->nb_process_since_reset) {
+			gf_mem_get_stats(&nb_allocs, NULL, &nb_reallocs, NULL);
+			pck->pid->filter->nb_alloc_pck += (nb_allocs - prev_nb_allocs);
+			pck->pid->filter->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
+		}
+#endif
 		return GF_OK;
 	}
 	//now dispatched
@@ -709,6 +729,14 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	//todo needs Compare&Swap
 	pid->nb_buffer_unit = max_nb_pck;
 	pid->buffer_duration = max_buf_dur;
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (pck->pid->filter->nb_process_since_reset) {
+		gf_mem_get_stats(&nb_allocs, NULL, &nb_reallocs, NULL);
+		pck->pid->filter->nb_alloc_pck += (nb_allocs - prev_nb_allocs);
+		pck->pid->filter->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
+	}
+#endif
 
 	gf_filter_pid_would_block(pid);
 
@@ -1002,6 +1030,9 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **da
 	if (pck->data_length + nb_bytes_to_add > pck->alloc_size) {
 		pck->alloc_size = pck->data_length + nb_bytes_to_add;
 		pck->data = gf_realloc(pck->data, pck->alloc_size);
+#ifdef GPAC_MEMORY_TRACKING
+		pck->pid->filter->nb_realloc_pck++;
+#endif
 	}
 	pck->info.byte_offset = GF_FILTER_NO_BO;
 	*data_start = pck->data;

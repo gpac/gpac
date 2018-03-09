@@ -415,6 +415,8 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 
 void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *nb_pck, u32 *max_duration, u32 *duration);
 
+void gf_filter_pid_set_loose_connect(GF_FilterPid *pid);
+
 typedef struct
 {
 	u32 average_process_rate;
