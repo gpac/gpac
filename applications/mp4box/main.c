@@ -2942,7 +2942,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-avi")) {
 			CHECK_NEXT_ARG
 			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_AVI);
-			i++;
+			if (tracks[nb_track_act-1].trackID)
+				i++;
 		}
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
@@ -4485,8 +4486,11 @@ int mp4boxMain(int argc, char **argv)
 			} else if (outName) {
 				mdump.out_name = outName;
 				mdump.flags |= GF_EXPORT_MERGE;
-			} else {
+			} else if (mdump.trackID) {
 				sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
+				mdump.out_name = szFile;
+			} else {
+				sprintf(szFile, "%s_export", outfile);
 				mdump.out_name = szFile;
 			}
 			if (tka->trackID==(u32) -1) {
