@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE output filter
@@ -215,7 +215,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{}
 };
 
-static const GF_FilterCapability FileOutOutputs[] =
+static const GF_FilterCapability FileOutInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 };
@@ -226,7 +226,7 @@ GF_FilterRegister FileOutRegister = {
 	.description = "Generic File Output",
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
-	INCAPS(FileOutOutputs),
+	INCAPS(FileOutInputs),
 	.initialize = fileout_initialize,
 	.finalize = fileout_finalize,
 	.configure_pid = fileout_configure_pid,

@@ -43,10 +43,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	u32 codecid, channels, sr_idx, aac_type;
-	Bool first;
 
-	GF_Fraction duration;
-	
 	GF_BitStream *bs_w;
 } GF_ADTSMxCtx;
 
@@ -108,19 +105,11 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("aac") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/aac") );
-		ctx->first = GF_TRUE;
-
-		if (ctx->exporter) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting MPEG-%d AAC - SampleRate %d %d channels %d bits per sample\n", sr, ctx->channels, bps));
-		}
-
 	}
 	ctx->ipid = pid;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) ctx->duration = p->value.frac;
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
 	return GF_OK;
 }
@@ -168,19 +157,10 @@ GF_Err adtsmx_process(GF_Filter *filter)
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 
 
-	gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
-	ctx->first = GF_FALSE;
+	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 
 	gf_filter_pck_send(dst_pck);
-
-	if (ctx->exporter) {
-		u32 timescale = gf_filter_pck_get_timescale(pck);
-		u64 ts = gf_filter_pck_get_cts(pck);
-		gf_set_progress("Exporting", ts*ctx->duration.den, ctx->duration.num*timescale);
-	}
-
 	gf_filter_pid_drop_packet(ctx->ipid);
-
 	return GF_OK;
 }
 
@@ -197,21 +177,23 @@ static const GF_FilterCapability ADTSMxInputs[] =
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
-
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 
 static const GF_FilterCapability ADTSMxOutputs[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
+	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_ADTSMxCtx, _n)
 static const GF_FilterArgs ADTSMxArgs[] =
 {
-	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(mpeg2), "Signals as MPEG2 AAC", GF_PROP_UINT, "auto", "auto|no|yes", GF_FALSE},
 	{}
 };
@@ -219,7 +201,7 @@ static const GF_FilterArgs ADTSMxArgs[] =
 
 GF_FilterRegister ADTSMxRegister = {
 	.name = "write_adts",
-	.description = "ADTS Mux",
+	.description = "Raw AAC to ADTS writer",
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = ADTSMxArgs,
 	.finalize = adtsmx_finalize,

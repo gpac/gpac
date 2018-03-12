@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / NALU video write filter
+ *  This file is part of GPAC / NALU video AnnexB write filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,7 @@
 typedef struct
 {
 	//opts
-	Bool exporter, rcfg;
+	Bool rcfg;
 	u32 extract;
 
 	//only one input pid declared
@@ -39,15 +39,11 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *opid;
 
-	u32 codecid, channels, sr_idx, aac_type;
-	Bool first, is_hevc;
+	Bool is_hevc;
 
 	u32 nal_hdr_size, crc, crc_enh;
 	char *dsi;
 	u32 dsi_size;
-
-	GF_Fraction duration;
-	u64 first_ts;
 
 	GF_BitStream *bs_w, *bs_r;
 } GF_NALUMxCtx;
@@ -137,12 +133,16 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_le
 	if (svcc) gf_odf_avc_cfg_del(svcc);
 	if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 	if (lvcc) gf_odf_hevc_cfg_del(lvcc);
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+
 	return GF_OK;
 }
 
 GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 w, h, crc, crc_enh;
+	u32 w, h, crc, crc_enh, codecid;
 	const GF_PropertyValue *p, *dcd, *dcd_enh;
 	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
 
@@ -156,7 +156,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
-	ctx->codecid = p->value.uint;
+	codecid = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	w = p ? p->value.uint : 0;
@@ -173,9 +173,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	ctx->crc = crc;
 	ctx->crc_enh = crc_enh;
 
-
-	ctx->aac_type = 0;
-	if ((ctx->codecid==GF_CODECID_HEVC) || (ctx->codecid==GF_CODECID_LHVC)) {
+	if ((codecid==GF_CODECID_HEVC) || (codecid==GF_CODECID_LHVC)) {
 		ctx->is_hevc = GF_TRUE;
 	} else {
 		ctx->is_hevc = GF_FALSE;
@@ -183,19 +181,10 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ctx->is_hevc ? "hvc" : "264") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(ctx->is_hevc ? "video/hevc" : "video/avc") );
-		ctx->first = GF_TRUE;
-
-		if (ctx->exporter) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - Size %dx%d\n", gf_codecid_name(ctx->codecid), w, h));
-		}
+		gf_filter_pid_copy_properties(ctx->opid, pid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 	}
 	ctx->ipid = pid;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) ctx->duration = p->value.frac;
 
 	return nalumx_make_inband_header(ctx, dcd->value.data.ptr, dcd->value.data.size, dcd_enh ? dcd_enh->value.data.ptr : NULL, dcd_enh ? dcd_enh->value.data.size : 0);
 }
@@ -324,20 +313,9 @@ GF_Err nalumx_process(GF_Filter *filter)
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 
-	gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
-
+	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_send(dst_pck);
 
-	if (ctx->exporter) {
-		u32 timescale = gf_filter_pck_get_timescale(pck);
-		u64 ts = gf_filter_pck_get_dts(pck);
-		if (ts == GF_FILTER_NO_TS)
-			ts = gf_filter_pck_get_cts(pck);
-		if (ctx->first)
-			ctx->first_ts = ts;
-		gf_set_progress("Exporting", (ts-ctx->first_ts)*ctx->duration.den, ctx->duration.num*timescale);
-	}
-	ctx->first = GF_FALSE;
 	gf_filter_pid_drop_packet(ctx->ipid);
 
 	return GF_OK;
@@ -367,15 +345,22 @@ static const GF_FilterCapability NALUMxInputs[] =
 
 static const GF_FilterCapability NALUMxOutputs[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+//	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC_PS),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
+	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{}
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_NALUMxCtx, _n)
 static const GF_FilterArgs NALUMxArgs[] =
 {
-	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(extract), "Extracts full, base or layer only", GF_PROP_UINT, "all", "all|base|layer", GF_FALSE},
 	{}
 };
@@ -383,7 +368,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 
 GF_FilterRegister NALUMxRegister = {
 	.name = "write_nal",
-	.description = "NALU AVC|H264 and HEVC Mux",
+	.description = "ISOBMFF to NALU writer for AVC|H264 and HEVC",
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
 	.finalize = nalumx_finalize,

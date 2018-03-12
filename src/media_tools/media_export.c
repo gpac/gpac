@@ -589,145 +589,6 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 
 
 
-#ifndef GPAC_DISABLE_AVILIB
-
-GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
-{
-	GF_ESD *esd;
-	GF_ISOSample *samp;
-	char szName[1000], *v4CC;
-	avi_t *avi_out;
-	char dumdata[1];
-	u32 track, i, di, count, w, h, frame_d;
-#ifndef GPAC_DISABLE_AV_PARSERS
-	GF_M4VDecSpecInfo dsi;
-#endif
-	Double FPS;
-
-	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
-		return GF_BAD_PARAM;
-	}
-	esd = gf_isom_get_esd(dumper->file, track, 1);
-	if (!esd) return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Invalid MPEG-4 stream in track ID %d", dumper->trackID);
-
-	if ((esd->decoderConfig->streamType!=GF_STREAM_VISUAL) ||
-	        ( (esd->decoderConfig->objectTypeIndication!=GF_CODECID_MPEG4_PART2)
-	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_AVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_SVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_MVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_HEVC)
-	          && (esd->decoderConfig->objectTypeIndication!=GF_CODECID_LHVC)
-	        ) ) {
-		gf_odf_desc_del((GF_Descriptor*)esd);
-		return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Track ID %d is not MPEG-4 Visual - cannot extract to AVI", dumper->trackID);
-	}
-	if (!esd->decoderConfig->decoderSpecificInfo) {
-		gf_odf_desc_del((GF_Descriptor*)esd);
-		return gf_export_message(dumper, GF_NON_COMPLIANT_BITSTREAM, "Missing decoder config for track ID %d", dumper->trackID);
-	}
-	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
-
-	if (strrchr(dumper->out_name, '.')) {
-		strcpy(szName, dumper->out_name);
-	} else {
-		sprintf(szName, "%s.avi", dumper->out_name);
-	}
-	avi_out = AVI_open_output_file(szName);
-	if (!avi_out) {
-		gf_odf_desc_del((GF_Descriptor *)esd);
-		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
-	}
-
-	/*compute FPS - note we assume constant frame rate without dropped frames...*/
-	count = gf_isom_get_sample_count(dumper->file, track);
-	FPS = gf_isom_get_media_timescale(dumper->file, track);
-	FPS *= (count-1);
-	samp = gf_isom_get_sample(dumper->file, track, count, &di);
-	if (!samp) {
-		return gf_export_message(dumper, GF_ISOM_INVALID_FILE, "Error fetching first sample");
-	}
-	FPS /= (s64) samp->DTS;
-	gf_isom_sample_del(&samp);
-
-	frame_d = 0;
-	/*AVC - FIXME dump format is probably wrong...*/
-	if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_MVC)) {
-		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
-		v4CC = "h264";
-	}
-	/*HEVC - FIXME dump format is probably wrong...*/
-	else if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_HEVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_LHVC)) {
-		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
-		v4CC = "hevc";
-	}
-	/*MPEG4*/
-	else {
-#ifndef GPAC_DISABLE_AV_PARSERS
-		/*ignore visual size info, get it from dsi*/
-		gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-		w = dsi.width;
-		h = dsi.height;
-#else
-		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
-#endif
-
-		v4CC = "XVID";
-
-		/*compute VfW delay*/
-		if (gf_isom_has_time_offset(dumper->file, track)) {
-			s32 max_CTSO;
-			u64 DTS;
-			DTS = max_CTSO = 0;
-			for (i=0; i<count; i++) {
-				samp = gf_isom_get_sample_info(dumper->file, track, i+1, NULL, NULL);
-				if (!samp) break;
-				if (samp->CTS_Offset>max_CTSO) max_CTSO = samp->CTS_Offset;
-				DTS = samp->DTS;
-				gf_isom_sample_del(&samp);
-			}
-			if (count>1) DTS /= (count-1);
-			if (DTS) frame_d = max_CTSO / (u32) DTS;
-			frame_d -= 1;
-			/*dummy delay frame for xvid unpacked bitstreams*/
-			dumdata[0] = 127;
-		}
-	}
-
-	gf_export_message(dumper, GF_OK, "Creating AVI file %d x %d @ %.2f FPS - 4CC \"%s\"", w, h, FPS,v4CC);
-	if (frame_d) gf_export_message(dumper, GF_OK, "B-Frames detected - using unpacked bitstream with max B-VOP delta %d", frame_d);
-
-	AVI_set_video(avi_out, w, h, FPS, v4CC);
-
-
-	for (i=0; i<count; i++) {
-		samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
-		if (!samp) break;
-
-		/*add DSI before each I-frame in MPEG-4 SP*/
-		if (samp->IsRAP && (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2)) {
-			char *data = (char*) gf_malloc(sizeof(char) * (samp->dataLength + esd->decoderConfig->decoderSpecificInfo->dataLength));
-			memcpy(data, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-			memcpy(data + esd->decoderConfig->decoderSpecificInfo->dataLength, samp->data, samp->dataLength);
-			AVI_write_frame(avi_out, data, samp->dataLength + esd->decoderConfig->decoderSpecificInfo->dataLength, 1);
-			gf_free(data);
-		} else {
-			AVI_write_frame(avi_out, samp->data, samp->dataLength, samp->IsRAP);
-		}
-		gf_isom_sample_del(&samp);
-		while (frame_d) {
-			AVI_write_frame(avi_out, dumdata, 1, 0);
-			frame_d--;
-		}
-		gf_set_progress("AVI Export", i+1, count);
-		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
-	}
-
-	gf_odf_desc_del((GF_Descriptor *) esd);
-	AVI_close(avi_out);
-	return GF_OK;
-}
-#endif /*GPAC_DISABLE_AVILIB*/
 
 /* Required for base64 encoding of DecoderSpecificInfo */
 #include <gpac/base_coding.h>
@@ -1218,9 +1079,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_FALSE);
 
 	//except in nhml inband file dump, create a sink filter
-	if (!dumper->dump_file) {
+	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
 		//mux args, for now we only dump to file
-		sprintf(szArgs, "fileout:dst=%s:dynext", dumper->out_name);
+		sprintf(szArgs, "fileout:SID=2:dst=%s:dynext", dumper->out_name);
 		file_out = gf_fs_load_filter(fsess, szArgs);
 		if (!file_out) {
 			gf_fs_del(fsess);
@@ -1231,7 +1092,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	//raw sample frame, force loading filter generic write in frame mode
 	if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
 		GF_Filter *rframe;
-		sprintf(szArgs, "write_gen:frame");
+		sprintf(szArgs, "write_gen:SID=2:frame");
 		if (dumper->sample_num) {
 			sprintf(szSubArgs, ":sstart=%d:send=%d", dumper->sample_num, dumper->sample_num);
 			strcat(szArgs, szSubArgs);
@@ -1245,7 +1106,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	}
 	else if (dumper->flags & GF_EXPORT_NHNT) {
 		GF_Filter *nhnt;
-		sprintf(szArgs, "write_nhnt");
+		sprintf(szArgs, "write_nhnt:SID=2");
 		nhnt = gf_fs_load_filter(fsess, szArgs);
 		if (!nhnt) {
 			gf_fs_del(fsess);
@@ -1255,7 +1116,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	}
 	else if (dumper->flags & GF_EXPORT_NHML) {
 		GF_Filter *nhml;
-		sprintf(szArgs, "write_nhml:name=%s", dumper->out_name);
+		sprintf(szArgs, "write_nhml:SID=2:name=%s", dumper->out_name);
 		if (dumper->flags & GF_EXPORT_NHML_FULL)
 			strcat(szArgs, ":full");
 		if (dumper->dump_file) {
@@ -1269,9 +1130,27 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			return GF_FILTER_NOT_FOUND;
 		}
 	}
+	else if (dumper->flags & GF_EXPORT_AVI) {
+		GF_Filter *avimx;
+		sprintf(szArgs, "avimx:SID=2:dst=%s", dumper->out_name);
+		if (!strstr(szArgs, ".avi")) strcat(szArgs, ".avi");
+		strcat(szArgs, ":noraw");
+
+		avimx = gf_fs_load_filter(fsess, szArgs);
+		if (!avimx) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load AVI output filter\n"));
+			return GF_FILTER_NOT_FOUND;
+		}
+	}
 
 	//force a reframer filter, connected to our input
-	sprintf(szArgs, "reframer:SID=1#PID=%d:exporter", dumper->trackID);
+	sprintf(szArgs, "reframer:FID=2:SID=1");
+	if (dumper->trackID) {
+		sprintf(szSubArgs, "#PID=%d", dumper->trackID);
+		strcat(szArgs, szSubArgs);
+	}
+	strcat(szArgs, ":exporter");
 	if (dumper->flags & GF_EXPORT_SVC_LAYER)
 		strcat(szArgs, ":extract=layer");
 	if (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE)
@@ -1315,7 +1194,7 @@ GF_Err gf_media_export(GF_MediaExporter *dumper)
 
 	//the following ones should be moved to muxing filters
 #ifndef GPAC_DISABLE_AVILIB
-	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
+//	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
 #endif /*GPAC_DISABLE_AVILIB*/
 	else if (dumper->flags & GF_EXPORT_SAF) return gf_media_export_saf(dumper);
 
