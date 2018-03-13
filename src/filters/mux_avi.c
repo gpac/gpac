@@ -254,7 +254,9 @@ static GF_Err avimux_process(GF_Filter *filter)
 	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
 
 	//no video in mux, force writing 100ms of audio
-	if (!ctx->has_video || ctx->video_is_eos) ctx->last_video_time_ms += 100;
+	//hack in raw mode, avoids flushing frames after video TS for video dump
+	//this should be fixed
+	if (!ctx->has_video || (ctx->noraw && ctx->video_is_eos)) ctx->last_video_time_ms += 100;
 
 
 	//flush all audio
@@ -351,6 +353,8 @@ static GF_Err avimux_process(GF_Filter *filter)
 		}
 
 		if (cts!=GF_FILTER_NO_TS) {
+			u32 dur = gf_filter_pck_get_duration(pck);
+			cts += dur;
 			cts *= 1000;
 			cts /= video_st->timescale;
 			ctx->last_video_time_ms = cts + 1;

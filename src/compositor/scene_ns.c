@@ -310,8 +310,10 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	odm->ServiceID = ServiceID;
 	if (!odm->pid) {
 		odm->type = mtype;
-		if (mtype == GF_STREAM_AUDIO)
+		if (mtype == GF_STREAM_AUDIO) {
 			scene->compositor->audio_renderer->nb_audio_objects++;
+			scene->compositor->audio_renderer->scene_ready = GF_FALSE;
+		}
 	}
 
 	//register PID with ODM, but don't call setup object

@@ -544,6 +544,29 @@ static void reset_filter_args(GF_Filter *filter)
 	}
 }
 
+static void gf_filter_renegociate_output(GF_Filter *filter)
+{
+	u32 i;
+	assert(filter->nb_caps_renegociate );
+	safe_int_dec(& filter->nb_caps_renegociate );
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		if (pid->caps_negociate) {
+			GF_Err e = 10;
+			if (filter->freg->reconfigure_output) {
+				e = filter->freg->reconfigure_output(filter, pid);
+			}
+			if (e==10) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s cannot reconfigure output pids, filter chain for renegociation not yet implemented\n", filter->name));
+			} else if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s output reconfiguration error %s, filter chain for renegociation not yet implemented\n", filter->name, gf_error_to_string(e)));
+			}
+			gf_props_del(pid->caps_negociate);
+			pid->caps_negociate = NULL;
+		}
+	}
+}
+
 static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 {
 	safe_int_dec(&filter->process_task_queued);
@@ -657,6 +680,10 @@ static void gf_filter_process_task(GF_FSTask *task)
 		}
 	}
 	FSESS_CHECK_THREAD(filter)
+
+	if (task->filter->nb_caps_renegociate) {
+		gf_filter_renegociate_output(task->filter);
+	}
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)

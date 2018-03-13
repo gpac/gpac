@@ -1146,7 +1146,7 @@ typedef struct _audio_render
 	Bool need_reconfig;
 	/*client*/
 	GF_User *user;
-	u32 config_forced;
+	u32 config_forced, wait_for_rcfg;
 
 	u32 audio_delay, volume, pan, mute;
 
