@@ -122,6 +122,7 @@ u32 gf_isom_probe_file(const char *fileName)
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MOOF:
 	case GF_ISOM_BOX_TYPE_STYP:
+	case GF_ISOM_BOX_TYPE_SIDX:
 		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
