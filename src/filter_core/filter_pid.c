@@ -340,8 +340,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 		pidinst->filter = NULL;
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		
-		//if connect or reconfigure and error, direct delete of pid
-		if (!is_remove) {
+		//if connect and error, direct delete of pid
+		if (new_pid_inst) {
 			gf_list_del_item(pid->destinations, pidinst);
 			pid->num_destinations = gf_list_count(pid->destinations);
 			gf_filter_pid_inst_del(pidinst);
@@ -1280,6 +1280,10 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 		gf_props_del( gf_list_pop_back(pid->properties) );
 	}
 	gf_list_del(pid->properties);
+
+	if (pid->caps_negociate)
+		gf_props_del(pid->caps_negociate);
+
 	if (pid->name) gf_free(pid->name);
 	gf_free(pid);
 }
@@ -1341,22 +1345,20 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 		return GF_OUT_OF_MEM;
 	}
 	if (prop_4cc==GF_PROP_PID_TIMESCALE) map->timescale = value->value.uint;
-	return gf_props_set_property(map, prop_4cc, prop_name, dyn_name, value);
-}
-
-GF_EXPORT
-GF_Err gf_filter_pid_set_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
-{
-	GF_Err e;
-	if (!prop_4cc) return GF_BAD_PARAM;
-	e = gf_filter_pid_set_property_full(pid, prop_4cc, NULL, NULL, value, GF_FALSE);
 
 	if (value && (prop_4cc == GF_PROP_PID_ID)) {
 		char szName[100];
 		sprintf(szName, "PID%d", value->value.uint);
 		gf_filter_pid_set_name(pid, szName);
 	}
-	return GF_OK;
+	return gf_props_set_property(map, prop_4cc, prop_name, dyn_name, value);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_set_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
+{
+	if (!prop_4cc) return GF_BAD_PARAM;
+	return gf_filter_pid_set_property_full(pid, prop_4cc, NULL, NULL, value, GF_FALSE);
 }
 
 GF_EXPORT
@@ -1393,6 +1395,50 @@ GF_Err gf_filter_pid_set_info_dyn(GF_FilterPid *pid, char *name, const GF_Proper
 	if (!name) return GF_BAD_PARAM;
 	return gf_filter_pid_set_property_full(pid, 0, NULL, name, value, GF_TRUE);
 }
+
+static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
+{
+	GF_FilterPidInst *pidinst;
+	if (!prop_4cc) return GF_BAD_PARAM;
+
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to negociate property on output PID in filter %s - ignoring\n", pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	pidinst = (GF_FilterPidInst *) pid;
+	pid = pid->pid;
+	if (pid->num_destinations>1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to negociate property on PID with multiple destination in filter %s - not supported\n", pid->filter->name));
+		return GF_NOT_SUPPORTED;
+	}
+	if (!pid->caps_negociate) {
+		pid->caps_negociate = gf_props_new(pid->filter);
+		safe_int_inc(&pid->filter->nb_caps_renegociate);
+	}
+	return gf_props_set_property(pid->caps_negociate, prop_4cc, prop_name, dyn_name, value);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_negociate_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
+{
+	if (!prop_4cc) return GF_BAD_PARAM;
+	return gf_filter_pid_negociate_property_full(pid, prop_4cc, NULL, NULL, value);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_negociate_property_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value)
+{
+	if (!name) return GF_BAD_PARAM;
+	return gf_filter_pid_negociate_property_full(pid, 0, name, NULL, value);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_negociate_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value)
+{
+	if (!name) return GF_BAD_PARAM;
+	return gf_filter_pid_negociate_property_full(pid, 0, NULL, name, value);
+}
+
 
 static GF_PropertyMap *filter_pid_get_prop_map(GF_FilterPid *pid)
 {
@@ -2451,3 +2497,22 @@ void gf_filter_pid_set_loose_connect(GF_FilterPid *pid)
 	pid->not_connected_ok = GF_TRUE;
 }
 
+const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc)
+{
+	GF_PropertyMap *map = pid->caps_negociate;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	return map ? gf_props_get_property(map, prop_4cc, NULL) : NULL;
+}
+
+const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const char *prop_name)
+{
+	GF_PropertyMap *map = pid->caps_negociate;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	return map ? gf_props_get_property(map, 0, prop_name) : NULL;
+}

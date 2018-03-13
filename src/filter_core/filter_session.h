@@ -410,6 +410,8 @@ struct __gf_filter
 	Bool dynamic_filter;
 	//sticky filters won't unload if all inputs are deconnected. Usefull for sink filters
 	Bool sticky;
+	//one of the output PID needs reconfiguration
+	volatile u32 nb_caps_renegociate;
 
 	volatile u32 process_task_queued;
 
@@ -546,6 +548,8 @@ struct __gf_filter_pid
 
 	Bool initial_play_done;
 	void *udta;
+
+	GF_PropertyMap *caps_negociate;
 };
 
 

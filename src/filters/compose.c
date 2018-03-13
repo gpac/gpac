@@ -235,6 +235,40 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return GF_OK;
 }
 
+static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
+{
+	const GF_PropertyValue *p;
+	u32 sr, bps, nb_ch, cfg;
+	Bool needs_reconfigure = GF_FALSE;
+	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
+
+	if (ctx->compositor->vout == pid) return GF_NOT_SUPPORTED;
+	if (ctx->compositor->audio_renderer->aout != pid) return GF_NOT_SUPPORTED;
+
+	gf_mixer_get_config(ctx->compositor->audio_renderer->mixer, &sr, &nb_ch, &bps, &cfg);
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_SAMPLE_RATE);
+	if (p && (p->value.uint != sr)) {
+		sr = p->value.uint;
+		needs_reconfigure = GF_TRUE;
+	}
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_NUM_CHANNELS);
+	if (p && (p->value.uint != nb_ch)) {
+		nb_ch = p->value.uint;
+		needs_reconfigure = GF_TRUE;
+	}
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_BPS);
+	if (p && (p->value.uint != bps)) {
+		bps = p->value.uint;
+		needs_reconfigure = GF_TRUE;
+	}
+	if (!needs_reconfigure) return GF_OK;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Audio output caps negotiated to %d Hz %d channels %d bps\n", sr, nb_ch, bps));
+	gf_mixer_set_config(ctx->compositor->audio_renderer->mixer, sr, nb_ch, bps, 0);
+	ctx->compositor->audio_renderer->need_reconfig = GF_TRUE;
+	return GF_OK;
+}
+
 static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_ObjectManager *odm;
@@ -313,7 +347,6 @@ GF_Err compose_initialize(GF_Filter *filter)
 	//declare audio output pid
 	if (! (ctx->compositor->user->init_flags & GF_TERM_NO_AUDIO) && ctx->compositor->audio_renderer) {
 		GF_AudioRenderer *ar = ctx->compositor->audio_renderer;
-		ar->non_rt_output = GF_FALSE;
 		pid = ar->aout = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, ctx->compositor);
 		gf_filter_pid_set_name(pid, "aout");
@@ -360,6 +393,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.process = compose_process,
 	.process_event = compose_process_event,
 	.configure_pid = compose_config_input,
+	.reconfigure_output = compose_reconfig_output,
 	.update_arg = compose_update_arg
 };
 

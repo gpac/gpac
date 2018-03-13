@@ -25,6 +25,20 @@
 
 #include <gpac/internal/compositor_dev.h>
 
+void gf_ar_rcfg_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	u32 size;
+	GF_AudioRenderer *ar = (GF_AudioRenderer *) gf_filter_pck_get_data(pck, &size);
+	assert(!size);
+	assert(ar->wait_for_rcfg);
+	ar->wait_for_rcfg --;
+	if (ar->wait_for_rcfg) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure negociation %d still pending\n", ar->wait_for_rcfg));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure negociation done\n"));
+	}
+}
+
 static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 {
 	const char *opt;
@@ -80,6 +94,8 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	while (ar->max_bytes_out % (2*ar->bytes_per_samp) ) ar->max_bytes_out++;
 	ar->buffer_size = ar->bytes_per_samp * bsize;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure audio to %d Hz %d channels %d bps\n", freq, nb_chan, nb_bits));
+
 	if (ar->aout) {
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(freq) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_TIMESCALE, &PROP_UINT(freq) );
@@ -111,6 +127,13 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	ar->time_at_last_config = ar->current_time;
 	ar->bytes_requested = 0;
 	ar->bytes_per_second = freq * nb_chan * nb_bits / 8;
+	if (ar->aout) {
+		GF_FilterPacket *pck;
+		//issue a dummy packet to tag the point at which we reconfigured
+		pck = gf_filter_pck_new_shared(ar->aout, (u8 *) ar, 0, gf_ar_rcfg_done);
+		ar->wait_for_rcfg ++;
+		gf_filter_pck_send(pck);
+	}
 	return GF_OK;
 }
 
@@ -314,11 +337,16 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 	if (ar->need_reconfig) return;
 	if (ar->Frozen) return;
 
+	//reconfiguration is pending, wait for the packet issued at reconfig to be consummed before issuing any new frame
+	if (ar->wait_for_rcfg) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Waiting for audio output reconfiguration\n"));
+		return;
+	}
 	if (ar->scene_ready) {
 		if (!ar->start_time) {
 			ar->start_time = gf_sys_clock_high_res();
 		}
-		if (!ar->nb_audio_objects) {
+		if (!ar->nb_audio_objects && !ar->non_rt_output) {
 			ar->current_time = (gf_sys_clock_high_res() - ar->start_time)/1000;
 			return;
 		}
@@ -326,12 +354,16 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 
 	while (ar->nb_bytes_out < ar->max_bytes_out) {
 		char *data;
+		u32 dur;
 		u32 delay_ms = 0;
 		GF_FilterPacket *pck;
 
+		//FIXME - find a better regulation algo if needed, this breaks audio-only playback
+#if 0
 		//if audio output is too ahead of video time, don't push packets
-		if ( ar->current_time > 5*ar->total_duration + ar->video_ts)
+		if (ar->current_time > 5*ar->total_duration + ar->video_ts)
 			break;
+#endif
 
 		pck = gf_filter_pck_new_alloc_destructor(ar->aout, ar->buffer_size, &data, gf_ar_pck_done);
 		if (!pck) break;
@@ -359,7 +391,9 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		}
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 		gf_filter_pck_set_cts(pck, ar->current_time_sr);
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS "LLU" nb samples %d - AR clock %u\n", ar->current_time_sr, written / ar->bytes_per_samp, ar->current_time));
+		dur = written / ar->bytes_per_samp;
+		gf_filter_pck_set_duration(pck, dur);
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS "LLU" nb samples %d - AR clock %u\n", ar->current_time_sr, dur, ar->current_time));
 
 		ar->nb_bytes_out += written;
 		gf_filter_pck_send(pck);
@@ -368,8 +402,6 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		ar->current_time_sr = ar->time_at_last_config_sr + (u32) (ar->bytes_requested / ar->bytes_per_samp);
 		ar->current_time = ar->time_at_last_config + (u32) (ar->bytes_requested * 1000 / ar->bytes_per_second);
 	}
-//	ar->step_mode = GF_FALSE;
-
 }
 
 

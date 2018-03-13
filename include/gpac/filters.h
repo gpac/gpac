@@ -323,6 +323,10 @@ typedef struct __gf_filter_register
 	//optional - process a given event. Retruns TRUE if the event has to be canceled, FALSE otherwise
 	Bool (*process_event)(GF_Filter *filter, const GF_FilterEvent *evt);
 
+	//optional
+	//Called whenever an output pid needs caps renegotiaition. If not set, a filter chain will be loaded to solve the cap negotiation
+	GF_Err (*reconfigure_output)(GF_Filter *filter, GF_FilterPid *pid);
+
 	//required for source filters - probe the given URL, returning a score
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
 
@@ -416,6 +420,14 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *nb_pck, u32 *max_duration, u32 *duration);
 
 void gf_filter_pid_set_loose_connect(GF_FilterPid *pid);
+
+
+GF_Err gf_filter_pid_negociate_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negociate_property_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negociate_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value);
+
+const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const char *prop_name);
 
 typedef struct
 {

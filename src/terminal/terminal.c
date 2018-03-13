@@ -380,6 +380,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	//load audio filter chain
 	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
 		GF_Filter *audio_out = gf_fs_load_filter(tmp->fsess, "aout:SID=compose#audio");
+		tmp->compositor->audio_renderer->non_rt_output = GF_FALSE;
 		if (!audio_out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter - audio disabled\n"));
 		} else {

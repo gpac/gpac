@@ -46,7 +46,7 @@ typedef struct
 	GF_AudioOutput *audio_out;
 	GF_Thread *th;
 	u32 audio_th_state;
-	Bool needs_recfg;
+	Bool needs_recfg, wait_recfg;
 
 	u32 pck_offset;
 } GF_AudioOutCtx;
@@ -64,8 +64,21 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	e = ctx->audio_out->ConfigureOutput(ctx->audio_out, &sr, &nb_ch, &bps, ch_cfg);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioOutput] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
+		if (bps!=16) bps = 16;
+		if (sr!=44100) sr = 44100;
+		if (nb_ch!=2) nb_ch = 2;
 	}
-	
+	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (bps!=ctx->bps)) {
+		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
+		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_BPS, &PROP_UINT(bps));
+		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+		ctx->needs_recfg = GF_FALSE;
+		//drop all packets until next reconfig
+		ctx->wait_recfg = GF_TRUE;
+	} else if (e==GF_OK) {
+		ctx->needs_recfg = GF_FALSE;
+		ctx->wait_recfg = GF_FALSE;
+	}
 }
 
 u32 aout_th_proc(void *p)
@@ -78,10 +91,10 @@ u32 aout_th_proc(void *p)
 
 	while (ctx->audio_th_state == 1) {
 		if (ctx->needs_recfg) {
-			ctx->needs_recfg = GF_FALSE;
 			aout_reconfig(ctx);
+		} else {
+			ctx->audio_out->WriteAudio(ctx->audio_out);
 		}
-		ctx->audio_out->WriteAudio(ctx->audio_out);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOutput] Exiting audio thread\n"));
 	ctx->audio_out->Shutdown(ctx->audio_out);
@@ -104,8 +117,11 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->pid);
 		if (!pck)
 			return done;
+		if (ctx->needs_recfg) {
+			return done;
+		}
 		data = gf_filter_pck_get_data(pck, &size);
-		if (data) {
+		if (data && !ctx->wait_recfg) {
 			u32 nb_copy;
 			assert(size >= ctx->pck_offset);
 			
@@ -118,8 +134,8 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				return done;
 			}
 			ctx->pck_offset = 0;
-			gf_filter_pid_drop_packet(ctx->pid);
 		}
+		gf_filter_pid_drop_packet(ctx->pid);
 	}
 
 	return done;
@@ -161,7 +177,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 	if (p) ch_cfg = p->value.uint;
 
-	if ((ctx->sr==sr) && (ctx->bps == bps) && (ctx->nb_ch = nb_ch) && (ctx->ch_cfg == ch_cfg)) return GF_OK;
+	if ((ctx->sr==sr) && (ctx->bps == bps) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) return GF_OK;
 
 	ctx->pid = pid;
 	ctx->timescale = timescale;
@@ -173,8 +189,9 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_PRIORITY);
 	if (p) aout_set_priority(ctx, p->value.uint);
 
-	if (ctx->th) ctx->needs_recfg = GF_TRUE;
-	else aout_reconfig(ctx);
+	ctx->needs_recfg = GF_TRUE;
+	//not threaded, request a task to restart audio (cannot do it during the audio callback)
+	if (!ctx->th) gf_filter_post_process_task(filter);
 	return GF_OK;
 }
 
@@ -289,6 +306,11 @@ static void aout_finalize(GF_Filter *filter)
 static GF_Err aout_process(GF_Filter *filter)
 {
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
+
+	if (!ctx->th && ctx->needs_recfg) {
+		aout_reconfig(ctx);
+	}
+
 	if (ctx->th || ctx->audio_out->SelfThreaded) return GF_EOS;
 
 	ctx->audio_out->WriteAudio(ctx->audio_out);
