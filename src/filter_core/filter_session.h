@@ -422,6 +422,9 @@ struct __gf_filter
 	u64 next_clock_dispatch;
 	u32 next_clock_dispatch_timescale;
 	GF_FilterClockType next_clock_dispatch_type;
+
+	GF_PropertyMap *caps_negociate;
+	Bool is_pid_adaptation_filter;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_FilterArgType arg_type, GF_Err *err);
@@ -441,6 +444,8 @@ void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst);
 void gf_filter_forward_clock(GF_Filter *filter);
 
 void gf_filter_process_inline(GF_Filter *filter);
+
+void gf_filter_pid_retry_caps_negotiate(GF_FilterPid *src_pid, GF_FilterPid *pid, GF_Filter *dst_filter);
 
 typedef struct
 {
@@ -550,6 +555,8 @@ struct __gf_filter_pid
 	void *udta;
 
 	GF_PropertyMap *caps_negociate;
+	GF_List *adapters_blacklist;
+	GF_Filter *caps_dst_filter;
 };
 
 

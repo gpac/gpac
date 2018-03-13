@@ -331,7 +331,7 @@ static void gf_ar_pck_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 
 void gf_ar_send_packets(GF_AudioRenderer *ar)
 {
-	u32 written;
+	u32 written, max_send=100;
 	if (!ar->aout) return;
 	if (!ar->scene_ready) return;
 	if (ar->need_reconfig) return;
@@ -352,7 +352,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		}
 	}
 
-	while (ar->nb_bytes_out < ar->max_bytes_out) {
+	while (max_send && (ar->nb_bytes_out < ar->max_bytes_out)) {
 		char *data;
 		u32 dur;
 		u32 delay_ms = 0;
@@ -401,6 +401,8 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		ar->bytes_requested += written;
 		ar->current_time_sr = ar->time_at_last_config_sr + (u32) (ar->bytes_requested / ar->bytes_per_samp);
 		ar->current_time = ar->time_at_last_config + (u32) (ar->bytes_requested * 1000 / ar->bytes_per_second);
+
+		max_send--;
 	}
 }
 

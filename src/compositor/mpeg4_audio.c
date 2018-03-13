@@ -518,7 +518,8 @@ static Bool audiobuffer_get_volume(void *callback, Fixed *vol)
 	if (ai->snd->GetChannelVolume) {
 		return ai->snd->GetChannelVolume(ai->snd->owner, vol);
 	} else {
-		vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = FIX_ONE;
+//		u32 i;
+//		for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++) vol[i] = FIX_ONE;
 		return GF_FALSE;
 	}
 }

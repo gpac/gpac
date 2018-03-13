@@ -25,9 +25,6 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-/*max number of channels we support in mixer*/
-#define GF_SR_MAX_CHANNELS	24
-
 /*
 	Notes about the mixer:
 	1- spatialization is out of scope for the mixer (eg that's the sound node responsability)
@@ -39,19 +36,19 @@ typedef struct
 {
 	GF_AudioInterface *src;
 
-	s32 *ch_buf[GF_SR_MAX_CHANNELS];
+	s32 *ch_buf[GF_AUDIO_MIXER_MAX_CHANNELS];
 	/*resampled buffer*/
 	u32 buffer_size;
 
 	u32 bytes_per_sec;
 
 	Bool has_prev;
-	s32 last_channels[GF_SR_MAX_CHANNELS];
+	s32 last_channels[GF_AUDIO_MIXER_MAX_CHANNELS];
 
 	u32 in_bytes_used, out_samples_written, out_samples_to_write;
 
 	Fixed speed;
-	Fixed pan[6];
+	Fixed pan[GF_AUDIO_MIXER_MAX_CHANNELS];
 
 	Bool muted;
 } MixerInput;
@@ -119,7 +116,7 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 	while (gf_list_count(am->sources)) {
 		MixerInput *in = (MixerInput *)gf_list_get(am->sources, 0);
 		gf_list_rem(am->sources, 0);
-		for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
+		for (j=0; j<GF_AUDIO_MIXER_MAX_CHANNELS; j++) {
 			if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
 		}
 		gf_free(in);
@@ -211,7 +208,7 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 		MixerInput *in = (MixerInput *)gf_list_get(am->sources, i);
 		if (in->src != src) continue;
 		gf_list_rem(am->sources, i);
-		for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
+		for (j=0; j<GF_AUDIO_MIXER_MAX_CHANNELS; j++) {
 			if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
 		}
 		gf_free(in);
@@ -259,6 +256,7 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u3
 	}
 	/*if main mixer recfg output*/
 	if (am->ar)	am->ar->need_reconfig = GF_TRUE;
+	am->must_reconfig = GF_FALSE;
 	gf_mixer_lock(am, GF_FALSE);
 }
 
@@ -319,7 +317,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 			if ((count==1) && (max_channels!=in->src->chan)) {
 				cfg_changed = 1;
 				max_channels = in->src->chan;
-				if (in->src->forced_layout)
+//				if (in->src->forced_layout)
 					ch_cfg |= in->src->ch_cfg;
 			}
 			else {
@@ -346,13 +344,15 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		/*cfg has changed, we must reconfig everything*/
 		if (cfg_changed || (max_sample_rate != am->sample_rate) ) {
 			in->has_prev = GF_FALSE;
-			memset(&in->last_channels, 0, sizeof(s32)*GF_SR_MAX_CHANNELS);
+			memset(&in->last_channels, 0, sizeof(s32)*GF_AUDIO_MIXER_MAX_CHANNELS);
 		}
 	}
 
 	if (cfg_changed || (max_sample_rate && (max_sample_rate != am->sample_rate)) ) {
 		if (max_channels>2) {
-			if (ch_cfg != am->channel_cfg) {
+			if (!ch_cfg) {
+				//TODO pickup default layout ?
+			} else if (ch_cfg != am->channel_cfg) {
 				/*recompute num channel based on all input channels*/
 				max_channels = 0;
 				if (ch_cfg & GF_AUDIO_CH_FRONT_LEFT) max_channels ++;
@@ -390,7 +390,7 @@ static GFINLINE u32 get_channel_out_pos(u32 in_ch, u32 out_cfg)
 			pos++;
 		}
 	}
-	return GF_SR_MAX_CHANNELS;
+	return GF_AUDIO_MIXER_MAX_CHANNELS;
 }
 
 /*this is crude, we'd need a matrix or something*/
@@ -442,7 +442,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, B
 
 	/*more output than input channels*/
 	else if (nb_in<nb_out) {
-		s32 bckup[GF_SR_MAX_CHANNELS];
+		s32 bckup[GF_AUDIO_MIXER_MAX_CHANNELS];
 		u32 pos;
 		u32 cfg = in_cfg;
 		u32 ch = 0;
@@ -456,7 +456,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, B
 				if (ch==10) return;
 			}
 			pos = get_channel_out_pos((1<<ch), out_cfg);
-			assert(pos != GF_SR_MAX_CHANNELS);
+			assert(pos != GF_AUDIO_MIXER_MAX_CHANNELS);
 			inChan[pos] = bckup[i];
 			ch++;
 			cfg>>=1;
@@ -465,7 +465,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, B
 	}
 	/*less output than input channels (eg sound card doesn't support requested format*/
 	else if (nb_in>nb_out) {
-		s32 bckup[GF_SR_MAX_CHANNELS];
+		s32 bckup[GF_AUDIO_MIXER_MAX_CHANNELS];
 		u32 pos;
 		u32 cfg = in_cfg;
 		u32 ch = 0;
@@ -480,7 +480,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, B
 			}
 			pos = get_channel_out_pos( (1<<ch), out_cfg);
 			/*this channel is present in output, copy over*/
-			if (pos < GF_SR_MAX_CHANNELS) {
+			if (pos < GF_AUDIO_MIXER_MAX_CHANNELS) {
 				inChan[pos] = bckup[i];
 			} else {
 				/*map to stereo (we assume that the driver cannot handle ANY multichannel cfg)*/
@@ -521,7 +521,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	s16 *in_s16 = NULL;
 	u8 *in_s24 = NULL;
 	s8 *in_s8 = NULL;
-	s32 frac, inChan[GF_SR_MAX_CHANNELS], inChanNext[GF_SR_MAX_CHANNELS];
+	s32 frac, inChan[GF_AUDIO_MIXER_MAX_CHANNELS], inChanNext[GF_AUDIO_MIXER_MAX_CHANNELS];
 	
 	in_s8 = (s8 *) in->src->FetchFrame(in->src->callback, &src_size, audio_delay);
 	if (!in_s8 || !src_size) {
@@ -558,8 +558,8 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 
 	/*while space to fill and input data, convert*/
 	use_prev = in->has_prev;
-	memset(inChan, 0, sizeof(s32)*GF_SR_MAX_CHANNELS);
-	memset(inChanNext, 0, sizeof(s32)*GF_SR_MAX_CHANNELS);
+	memset(inChan, 0, sizeof(s32)*GF_AUDIO_MIXER_MAX_CHANNELS);
+	memset(inChanNext, 0, sizeof(s32)*GF_AUDIO_MIXER_MAX_CHANNELS);
 	i = 0;
 	next = prev = 0;
 	while (1) {
@@ -650,7 +650,7 @@ GF_EXPORT
 u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 delay)
 {
 	MixerInput *in, *single_source;
-	Fixed pan[6];
+	Fixed pan[GF_AUDIO_MIXER_MAX_CHANNELS];
 	Bool is_muted, force_mix;
 	u32 i, j, count, size, in_size, nb_samples, nb_written;
 	s32 *out_mix, nb_act_src;
@@ -751,7 +751,7 @@ do_mix:
 		if (in->muted) continue;
 
 		if (in->buffer_size < nb_samples) {
-			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
+			for (j=0; j<GF_AUDIO_MIXER_MAX_CHANNELS; j++) {
 				if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
 				in->ch_buf[j] = (s32 *) gf_malloc(sizeof(s32) * nb_samples);
 			}
@@ -784,7 +784,7 @@ do_mix:
 			assert(in->src->samplerate);
 			in->out_samples_to_write = nb_samples;
 			if (in->src->IsMuted(in->src->callback)) {
-				memset(in->pan, 0, sizeof(Fixed)*6);
+				memset(in->pan, 0, sizeof(Fixed)*GF_AUDIO_MIXER_MAX_CHANNELS);
 			} else {
 				if (!force_mix  && !in->src->GetChannelVolume(in->src->callback, in->pan)) {
 					/*track first active source with same cfg as mixer*/

@@ -552,17 +552,85 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		if (pid->caps_negociate) {
-			GF_Err e = 10;
+			GF_Filter *new_f;
+			Bool is_ok = GF_FALSE;
 			if (filter->freg->reconfigure_output) {
-				e = filter->freg->reconfigure_output(filter, pid);
+				GF_Err e = filter->freg->reconfigure_output(filter, pid);
+				if (e) {
+					if (filter->is_pid_adaptation_filter) {
+						GF_FilterPidInst *src_pidi = gf_list_get(filter->input_pids, 0);
+						GF_FilterPidInst *pidi = gf_list_get(pid->destinations, 0);
+
+						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration error %s, discarding filter and reloading new adaptation chain\n", filter->name, gf_error_to_string(e)));
+
+						assert(filter->num_input_pids==1);
+
+						gf_filter_pid_retry_caps_negotiate(src_pidi->pid, pid, pidi->filter);
+
+						continue;
+					}
+					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s output reconfiguration error %s, loading filter chain for renegociation\n", filter->name, gf_error_to_string(e)));
+				} else {
+					is_ok = GF_TRUE;
+				}
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s cannot reconfigure output pids, loading filter chain for renegociation\n", filter->name));
 			}
-			if (e==10) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s cannot reconfigure output pids, filter chain for renegociation not yet implemented\n", filter->name));
-			} else if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s output reconfiguration error %s, filter chain for renegociation not yet implemented\n", filter->name, gf_error_to_string(e)));
+
+			if (!is_ok) {
+				GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
+				GF_FilterPidInst *pidi = gf_list_get(pid->destinations, 0);
+				GF_Filter *filter_dst = NULL;
+				//we are currently connected to output
+				if (pidi) {
+					filter_dst = pidi->filter;
+					assert(pid->num_destinations==1);
+
+					//disconnect pid, but prevent filter from unloading
+					if (!filter_dst->sticky) filter_dst->sticky = 2;
+
+					gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
+				}
+				//we are deconnected (unload of a previous adaptation filter)
+				else  {
+					filter_dst = pid->caps_dst_filter;
+					assert(pid->num_destinations==0);
+					pid->caps_dst_filter = NULL;
+				}
+
+				if (!filter_dst) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
+					gf_props_del(pid->caps_negociate);
+					pid->caps_negociate = NULL;
+					continue;
+				}
+
+				//reconnect output pid
+
+				new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst);
+				//try to load filters
+				if (! new_f) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter to adapat caps between pid %s in filter %s to filter %s - NOT CONNECTED!\n", pid->name, filter->name, filter_dst->name));
+
+					if (pid->adapters_blacklist) {
+						gf_list_del(pid->adapters_blacklist);
+						pid->adapters_blacklist = NULL;
+					}
+				} else {
+					//move the pid caps to the new filter, they will be used for the pid_init task
+					new_f->caps_negociate = pid->caps_negociate;
+					pid->caps_negociate = NULL;
+					new_f->is_pid_adaptation_filter = GF_TRUE;
+					new_f->dst_filter = filter_dst;
+
+					safe_int_inc(&pid->filter->pid_connection_pending);
+					gf_filter_pid_post_connect_task(new_f, pid);
+				}
 			}
-			gf_props_del(pid->caps_negociate);
-			pid->caps_negociate = NULL;
+			if (pid->caps_negociate) {
+				gf_props_del(pid->caps_negociate);
+				pid->caps_negociate = NULL;
+			}
 		}
 	}
 }

@@ -414,6 +414,7 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
 const char *gf_filter_pid_get_args(GF_FilterPid *pid);
 
 void gf_filter_pid_set_max_buffer(GF_FilterPid *pid, u32 total_duration_us);
+u32 gf_filter_pid_get_max_buffer(GF_FilterPid *pid);
 
 Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 

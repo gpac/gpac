@@ -928,7 +928,7 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 	return nb_matched;
 }
 
-static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned)
+static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, Bool reconfigurable_only)
 {
 	GF_Filter *chain_input = NULL;
 	GF_FilterSession *fsess = pid->filter->session;
@@ -936,7 +936,9 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 	u32 max_weight=0;
 	u32 min_length=GF_INT_MAX;
 	const GF_FilterRegister *dst_filter = dst->freg;
-	*filter_reassigned = GF_FALSE;
+
+	if (filter_reassigned)
+		*filter_reassigned = GF_FALSE;
 
 	//browse all our registered filters
 	u32 i, count=gf_list_count(fsess->registry);
@@ -950,18 +952,24 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 
 		//source filter, can't add pid
 		if (!freg->configure_pid) continue;
+
 		//freg shall be instantiated 
 		if (freg->explicit_only)
+			continue;
+
+		//we only want reconfigurable output filters
+		if (reconfigurable_only && !freg->reconfigure_output) continue;
+
+		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
+		if (pid->filter->freg == freg)
 			continue;
 
 		//blacklisted filter, can't add pid
 		if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0)
 			continue;
 
-		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
-		if (pid->filter->freg == freg) {
+		if (pid->adapters_blacklist && (gf_list_find(pid->adapters_blacklist, (void *) freg)>=0))
 			continue;
-		}
 
 		//no match of pid caps for this filter
 		freg_weight = filter_pid_caps_match(pid, freg, &priority, pid->filter->dst_filter) ? 1 : 0;
@@ -1017,15 +1025,17 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 	count = gf_list_count(filter_chain);
 	if (count==0) {
 		//if source filter, try to load another filter - we should complete this with a cache of filter sources
-		if (!pid->filter->num_input_pids && !pid->filter->sticky) {
+		if (filter_reassigned && !pid->filter->num_input_pids && !pid->filter->sticky) {
 			if (! gf_filter_swap_source_registry(pid->filter) ) {
 				//no filter found for this pid !
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter chain found - NOT CONNECTED\n"));
 			}
 			*filter_reassigned = GF_TRUE;
-		} else {
+		} else if (!reconfigurable_only) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for pid %s from filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
 		}
+	} else if (reconfigurable_only && (count>1)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
 	} else {
 		const char *args = pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
@@ -1063,6 +1073,16 @@ exit:
 	return chain_input;
 }
 
+static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned)
+{
+	return gf_filter_pid_resolve_link_internal(pid, dst, filter_reassigned, GF_FALSE);
+}
+
+GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst)
+{
+	return gf_filter_pid_resolve_link_internal(pid, dst, NULL, GF_TRUE);
+}
+
 static const char *gf_filter_last_id_in_chain(GF_Filter *filter)
 {
 	u32 i;
@@ -1081,6 +1101,22 @@ static const char *gf_filter_last_id_in_chain(GF_Filter *filter)
 	return NULL;
 }
 
+void gf_filter_pid_retry_caps_negotiate(GF_FilterPid *src_pid, GF_FilterPid *pid, GF_Filter *dst_filter)
+{
+	assert(dst_filter);
+	src_pid->caps_negociate = pid->caps_negociate;
+	pid->caps_negociate = NULL;
+	src_pid->caps_dst_filter = dst_filter;
+	//blacklist filter for adaptation
+	if (!src_pid->adapters_blacklist) src_pid->adapters_blacklist = gf_list_new();
+	gf_list_add(src_pid->adapters_blacklist, (void *) pid->filter->freg);
+	//once != 0 will trigger reconfiguration, so set this once all vars have been set
+	safe_int_inc(& src_pid->filter->nb_caps_renegociate );
+
+	//disconnect source pid from filter - this will unload the filter itself
+	gf_fs_post_task(src_pid->filter->session, gf_filter_pid_disconnect_task, pid->filter, src_pid, "pidinst_disconnect", NULL);
+}
+
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 i, count;
@@ -1096,6 +1132,33 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 		return;
 	}
 	pid->props_changed_since_connect = GF_FALSE;
+
+	if (filter->caps_negociate) {
+		GF_Err e;
+		GF_FilterPidInst *src_pidi = gf_list_get(filter->input_pids, 0);
+		GF_FilterPid *src_pid = src_pidi->pid;
+		assert(filter->dst_filter);
+		assert(filter->is_pid_adaptation_filter);
+		assert(filter->num_input_pids==1);
+		assert(filter->freg->reconfigure_output);
+		pid->caps_negociate = filter->caps_negociate;
+		filter->caps_negociate = NULL;
+		e = filter->freg->reconfigure_output(filter, pid);
+
+		if (e!=GF_OK) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration error %s, discarding filter and reloading new adaptation chain\n", filter->name, gf_error_to_string(e)));
+			gf_filter_pid_retry_caps_negotiate(src_pid, pid, filter->dst_filter);
+			return;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration OK (between filters %s and %s)\n", filter->name, src_pid->filter->name, filter->dst_filter->name));
+		//success !
+		if (src_pid->adapters_blacklist) {
+			gf_list_del(pid->adapters_blacklist);
+			src_pid->adapters_blacklist = NULL;
+		}
+		gf_props_del(pid->caps_negociate);
+		pid->caps_negociate = NULL;
+	}
 
 	filter_id = gf_filter_last_id_in_chain(filter);
 
@@ -1284,6 +1347,9 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 	if (pid->caps_negociate)
 		gf_props_del(pid->caps_negociate);
 
+	if (pid->adapters_blacklist)
+		gf_list_del(pid->adapters_blacklist);
+
 	if (pid->name) gf_free(pid->name);
 	gf_free(pid);
 }
@@ -1413,6 +1479,11 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 	}
 	if (!pid->caps_negociate) {
 		pid->caps_negociate = gf_props_new(pid->filter);
+		//we start a new caps negotiation step, reset any blacklist on pid
+		if (pid->adapters_blacklist) {
+			gf_list_del(pid->adapters_blacklist);
+			pid->adapters_blacklist = NULL;
+		}
 		safe_int_inc(&pid->filter->nb_caps_renegociate);
 	}
 	return gf_props_set_property(pid->caps_negociate, prop_4cc, prop_name, dyn_name, value);
@@ -2485,6 +2556,15 @@ void gf_filter_pid_set_max_buffer(GF_FilterPid *pid, u32 total_duration_us)
 		return;
 	}
 	pid->max_buffer_time = pid->user_max_buffer_time = total_duration_us;
+}
+
+u32 gf_filter_pid_get_max_buffer(GF_FilterPid *pid)
+{
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Querying max buffer on output PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return 0;
+	}
+	return pid->pid->user_max_buffer_time;
 }
 
 
