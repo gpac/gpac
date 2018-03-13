@@ -1054,8 +1054,11 @@ struct _traversing_state
 };
 
 /*
-	Audio mixer - MAX 6 CHANNELS SUPPORTED
+	Audio mixer - MAX GF_AUDIO_MIXER_MAX_CHANNELS CHANNELS SUPPORTED
 */
+
+/*max number of channels we support in mixer*/
+#define GF_AUDIO_MIXER_MAX_CHANNELS	24
 
 /*the audio object as used by the mixer. All audio nodes need to implement this interface*/
 typedef struct _audiointerface
@@ -1067,7 +1070,7 @@ typedef struct _audiointerface
 	void (*ReleaseFrame) (void *callback, u32 nb_bytes);
 	/*get media speed*/
 	Fixed (*GetSpeed)(void *callback);
-	/*gets volume for each channel - vol = Fixed[6]. returns 1 if volume shall be changed (!= 1.0)*/
+	/*gets volume for each channel - vol = Fixed[GF_AUDIO_MIXER_MAX_CHANNELS]. returns 1 if volume shall be changed (!= 1.0)*/
 	Bool (*GetChannelVolume)(void *callback, Fixed *vol);
 	/*returns 1 if muted*/
 	Bool (*IsMuted)(void *callback);
@@ -1196,7 +1199,7 @@ void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts);
 /*the sound node interface for intensity & spatialization*/
 typedef struct _soundinterface
 {
-	/*gets volume for each channel - vol = Fixed[6]. returns 1 if volume shall be changed (!= 1.0)
+	/*gets volume for each channel - vol = Fixed[GF_AUDIO_MIXER_MAX_CHANNELS]. returns 1 if volume shall be changed (!= 1.0)
 	if NULL channels are always at full intensity*/
 	Bool (*GetChannelVolume)(GF_Node *owner, Fixed *vol);
 	/*get sound priority (0: min, 255: max) - used by mixer to determine*/

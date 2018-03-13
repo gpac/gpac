@@ -500,6 +500,7 @@
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
 		92DB148D1E4F05B500382A81 /* filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148B1E4F05B500382A81 /* filters.h */; };
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
+		92E249902057B973002CC029 /* resample_audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E2498F2057B973002CC029 /* resample_audio.c */; };
 		92EC32CB1FAC5ACB003FB9C3 /* reframe_qcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */; };
 		92EC32CD1FAC81D6003FB9C3 /* reframe_h263.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */; };
 		92EE76411FD0315D008926F5 /* load_text.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EE76401FD0315D008926F5 /* load_text.c */; };
@@ -1386,6 +1387,7 @@
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92DB148B1E4F05B500382A81 /* filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filters.h; path = ../include/gpac/filters.h; sourceTree = "<group>"; };
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
+		92E2498F2057B973002CC029 /* resample_audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = resample_audio.c; path = filters/resample_audio.c; sourceTree = "<group>"; };
 		92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_qcp.c; path = filters/reframe_qcp.c; sourceTree = "<group>"; };
 		92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_h263.c; path = filters/reframe_h263.c; sourceTree = "<group>"; };
 		92EE76401FD0315D008926F5 /* load_text.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = load_text.c; path = filters/load_text.c; sourceTree = "<group>"; };
@@ -2595,7 +2597,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				925730812056A610009DB328 /* rewrite_mp4v.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -2654,7 +2655,9 @@
 				9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */,
 				92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */,
 				92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */,
+				92E2498F2057B973002CC029 /* resample_audio.c */,
 				9257307D2056948D009DB328 /* rewrite_adts.c */,
+				925730812056A610009DB328 /* rewrite_mp4v.c */,
 				9257307E2056948D009DB328 /* rewrite_nalu.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
 				926CE14C1FE7E388002B3CF6 /* write_generic.c */,
@@ -3256,6 +3259,7 @@
 				92B9A58B1F8660D700A24FE4 /* mpeg4_path_layout.c in Sources */,
 				920100B118D5A444003D1ACA /* bifs_codec.c in Sources */,
 				92F8D47B1F71642E00616F7C /* filter_session.c in Sources */,
+				92E249902057B973002CC029 /* resample_audio.c in Sources */,
 				920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */,
 				920100B318D5A444003D1ACA /* com_dec.c in Sources */,
 				9234CF4A1FD8344000CCDFA1 /* in_rtp_signaling.c in Sources */,

@@ -69,8 +69,11 @@ static void TraverseSound2D(GF_Node *node, void *rs, Bool is_destroy)
 }
 static Bool SND2D_GetChannelVolume(GF_Node *node, Fixed *vol)
 {
+	u32 i;
 	Fixed volume = ((M_Sound2D *)node)->intensity;
-	vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = volume;
+	for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++) {
+		vol[i] = volume;
+	}
 	return (volume==FIX_ONE) ? 0 : 1;
 }
 
@@ -258,10 +261,12 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 }
 static Bool SND_GetChannelVolume(GF_Node *node, Fixed *vol)
 {
+	u32 i;
 	M_Sound *snd = (M_Sound *)node;
 	SoundStack *st = (SoundStack *)gf_node_get_private(node);
+	for (i=2; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++)
+		vol[i] = st->intensity;
 
-	vol[2] = vol[3] = vol[4] = vol[5] = st->intensity;
 	if (snd->spatialize) {
 		vol[0] = st->lgain;
 		vol[1] = st->rgain;

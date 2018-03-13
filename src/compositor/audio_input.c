@@ -154,7 +154,10 @@ static Bool gf_audio_input_get_volume(void *callback, Fixed *vol)
 	if (ai->snd && ai->snd->GetChannelVolume) {
 		return ai->snd->GetChannelVolume(ai->snd->owner, vol);
 	} else {
-		vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = ai->intensity;
+		u32 i;
+		for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++)
+			vol[i] = ai->intensity;
+			
 		return (ai->intensity==FIX_ONE) ? GF_FALSE : GF_TRUE;
 	}
 }

@@ -115,8 +115,9 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		const char *data;
 		u32 size;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->pid);
-		if (!pck)
+		if (!pck) {
 			return done;
+		}
 		if (ctx->needs_recfg) {
 			return done;
 		}
