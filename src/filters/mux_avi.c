@@ -142,7 +142,7 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p) sr = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BPS);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
 	if (p) bps = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_ch = p->value.uint;

@@ -656,8 +656,6 @@ enum
 	GF_PROP_PID_CHANNEL_LAYOUT = GF_4CC('C','H','L','O'),
 	//(uint) audio format: u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp
 	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('A','F','M','T'),
-	//(uint) bits per sample
-	GF_PROP_PID_BPS = GF_4CC('A','B','P','S'),
 	//(uint) frame width
 	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),
 	//(uint) frame height

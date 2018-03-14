@@ -810,7 +810,6 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		//for now we convert everything to s16, to be updated later on
 		ffdec->sample_fmt = GF_AUDIO_FMT_S16;
 		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
-		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_BPS, &PROP_UINT(16) );
 
 		//override PID props with what decoder gives us
 		if (ffdec->codec_ctx->channels) {
