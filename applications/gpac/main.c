@@ -131,6 +131,25 @@ static void gpac_usage(void)
 
 }
 
+static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
+{
+	if (gf_prompt_has_input()) {
+		char c = gf_prompt_get_char();
+		switch (c) {
+		case 'q':
+			gf_fs_abort(fsess);
+			return GF_FALSE;
+		default:
+			break;
+		}
+	}
+	if (gf_fs_is_last_task(fsess))
+		return GF_FALSE;
+	*reschedule_ms = 500;
+	return GF_TRUE;
+}
+
+
 static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
@@ -282,11 +301,16 @@ static int gpac_main(int argc, char **argv)
 
 	//all good to go, load filters
 	for (i=1; i<argc; i++) {
+		GF_Err e;
 		GF_Filter *filter;
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
 
-		filter = gf_fs_load_filter(session, arg);
+		if (!strncmp(arg, "src=", 4) ) {
+			filter = gf_fs_load_source(session, arg+4, NULL, NULL, &e);
+		} else {
+			filter = gf_fs_load_filter(session, arg);
+		}
 		if (!filter) {
 			fprintf(stderr, "Failed to load filter %s\n", arg);
 			e = GF_NOT_SUPPORTED;
@@ -300,6 +324,8 @@ static int gpac_main(int argc, char **argv)
 		goto exit;
 	}
 
+	fprintf(stderr, "Running session, press 'q' to abort\n");
+	gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
 	gf_fs_run(session);
 
 	if (dump_stats)

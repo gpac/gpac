@@ -996,6 +996,10 @@ typedef struct
  */
 const char *gf_stream_type_name(u32 streamType);
 
+GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name);
+
+GF_Err gf_fs_abort(GF_FilterSession *fsess);
+Bool gf_fs_is_last_task(GF_FilterSession *fsess);
 
 #ifdef __cplusplus
 }

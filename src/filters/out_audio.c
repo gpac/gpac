@@ -180,6 +180,11 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if ((ctx->sr==sr) && (ctx->bps == bps) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) return GF_OK;
 
+	if (!ctx->pid) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		gf_filter_pid_send_event(pid, &evt);
+	}
 	ctx->pid = pid;
 	ctx->timescale = timescale;
 	ctx->sr = sr;

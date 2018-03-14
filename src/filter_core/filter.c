@@ -441,7 +441,16 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			escaped = strstr(sep, ":gpac:");
 			if (escaped) sep = escaped;
 		}
-		if (!strncmp(args, "src=", 4) && !escaped) sep = NULL;
+		if (sep && !strncmp(args, "src=", 4) && !escaped) {
+			Bool file_exists;
+			sep[0]=0;
+			file_exists = gf_file_exists(args+4);
+			sep[0]=':';
+			if (!file_exists) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Non-escaped argument pattern \"%s\" in src %s, assuming arguments are part of source URL. Use src=PATH:gpac:ARGS to differentiate\n", sep, args));
+				sep = NULL;
+			}
+		}
 
 		if (sep) len = sep-args;
 		else len = strlen(args);

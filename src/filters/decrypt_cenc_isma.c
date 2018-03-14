@@ -813,7 +813,7 @@ GF_FilterRegister CENCDecRegister = {
 
 #endif /*GPAC_DISABLE_MCRYPT*/
 
-const GF_FilterRegister *decenc_register(GF_FilterSession *session)
+const GF_FilterRegister *decrypt_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_MCRYPT
 	return &CENCDecRegister;

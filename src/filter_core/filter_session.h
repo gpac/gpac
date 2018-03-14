@@ -186,7 +186,7 @@ struct __gf_fs_task
 	Bool in_main_task_list_only;
 	Bool requeue_request;
 
-	u32 schedule_next_time;
+	u64 schedule_next_time;
 
 
 	gf_fs_task_callback run_task;
