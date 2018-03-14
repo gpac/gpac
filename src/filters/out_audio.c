@@ -39,6 +39,7 @@ typedef struct
 	//options
 	char *drv;
 	u32 bnum, bdur, threaded, priority;
+	GF_Fraction dur;
 
 	GF_FilterPid *pid;
 	u32 sr, afmt, nb_ch, ch_cfg, timescale;
@@ -49,6 +50,9 @@ typedef struct
 	Bool needs_recfg, wait_recfg;
 
 	u32 pck_offset;
+	u64 first_cts;
+	Bool aborted;
+
 } GF_AudioOutCtx;
 
 
@@ -122,7 +126,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	GF_AudioOutCtx *ctx = ptr;
 
 	memset(buffer, 0, buffer_size);
-	if (!ctx->pid) return 0;
+	if (!ctx->pid || ctx->aborted) return 0;
 
 	while (done < buffer_size) {
 		const char *data;
@@ -135,6 +139,24 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 			return done;
 		}
 		data = gf_filter_pck_get_data(pck, &size);
+
+		if (ctx->dur.den) {
+			u64 cts = gf_filter_pck_get_cts(pck);
+			if (!ctx->first_cts) ctx->first_cts = cts+1;
+
+			if ((cts - ctx->first_cts + 1) * ctx->dur.den > ctx->dur.num*ctx->timescale) {
+				gf_filter_pid_drop_packet(ctx->pid);
+				if (!ctx->aborted) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
+					gf_filter_pid_send_event(ctx->pid, &evt);
+
+					ctx->aborted = GF_TRUE;
+				}
+				return done;
+			}
+		}
+
 		if (data && !ctx->wait_recfg) {
 			u32 nb_copy;
 			assert(size >= ctx->pck_offset);
@@ -148,6 +170,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				return done;
 			}
 			ctx->pck_offset = 0;
+
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
 	}
@@ -377,6 +400,8 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(bnum), "number of audio buffers - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
+
 	{}
 };
 
