@@ -72,14 +72,14 @@ static void gpac_usage(void)
 			"\t-stats          : print stats after execution.\n"
 	        "\t-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
 			"\t-no-block       : disables blocking mode of filters\n"
-	        "\t-sched=MODE     : sets SCHEDULER MODE. POSSIBLE MODES ARE::\n"
+	        "\t-sched=MODE     : sets scheduler mdoe. Possible modes are:\n"
 	        "\t             free: uses lock-free queues (default)\n"
 	        "\t             lock: uses mutexes for queues when several threads\n"
 	        "\t             flock: uses mutexes for queues even when no thread (debug mode)\n"
 	        "\t             direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
 			"\n"
 			"\t-ltf            : loads test filters for unit tests.\n"
-	        "\t-strict-error:  exit when the player reports its first error\n"
+	        "\t-strict-error:  exit at first error\n"
 	        "\t-log-file=file: sets output log file. Also works with -lf\n"
 	        "\t-logs=log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "\t                 levelX can be one of:\n"
@@ -123,7 +123,7 @@ static void gpac_usage(void)
 	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
 			"\n"
 	        "gpac - gpac command line filter engine - version "GPAC_FULL_VERSION"\n"
-	        "GPAC Written by Jean Le Feuvre (c) Telecom ParisTech 2017-\n"
+	        "GPAC Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n",
 	        gpac_features()
@@ -139,6 +139,9 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		case 'q':
 			gf_fs_abort(fsess);
 			return GF_FALSE;
+		case 's':
+			gf_fs_print_stats(fsess);
+			break;
 		default:
 			break;
 		}
