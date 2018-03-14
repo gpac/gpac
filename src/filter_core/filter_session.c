@@ -882,6 +882,14 @@ u32 gf_fs_run_step(GF_FilterSession *fsess)
 	return 0;
 }
 
+GF_Err gf_fs_abort(GF_FilterSession *fsess)
+{
+	if (!fsess) return GF_BAD_PARAM;
+	if (!fsess->run_status)
+		fsess->run_status = GF_EOS;
+	return GF_OK;
+}
+
 GF_Err gf_fs_stop(GF_FilterSession *fsess)
 {
 	u32 i, count = fsess->threads ? gf_list_count(fsess->threads) : 0;
@@ -1288,6 +1296,49 @@ GF_Err gf_fs_get_last_process_error(GF_FilterSession *fs)
 	e = fs->last_process_error;
 	fs->last_process_error = GF_OK;
 	return e;
+}
+
+typedef struct
+{
+	GF_FilterSession *fsess;
+	void *callback;
+	Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms);
+} GF_UserTask;
+
+static void gf_fs_user_task(GF_FSTask *task)
+{
+	u32 reschedule_ms=0;
+	GF_UserTask *utask = (GF_UserTask *)task->udta;
+	task->schedule_next_time = 0;
+	task->requeue_request = utask->task_execute(utask->fsess, utask->callback, &reschedule_ms);
+	if (!task->requeue_request) {
+		gf_free(utask);
+		task->udta = NULL;
+	} else {
+		task->schedule_next_time = gf_sys_clock_high_res() + 1000*reschedule_ms;
+	}
+}
+
+GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name)
+{
+	GF_UserTask *utask;
+	if (!fsess || !task_execute) return GF_BAD_PARAM;
+	GF_SAFEALLOC(utask, GF_UserTask);
+	utask->fsess = fsess;
+	utask->callback = udta_callback;
+	utask->task_execute = task_execute;
+	gf_fs_post_task(fsess, gf_fs_user_task, NULL, NULL, log_name ? log_name : "user_task", utask);
+	return GF_OK;
+}
+
+
+Bool gf_fs_is_last_task(GF_FilterSession *fsess)
+{
+	if (!fsess) return GF_TRUE;
+	if (fsess->tasks_pending>1) return GF_FALSE;
+	if (gf_fq_count(fsess->main_thread_tasks)) return GF_FALSE;
+	if (gf_fq_count(fsess->tasks)) return GF_FALSE;
+	return GF_TRUE;
 }
 
 

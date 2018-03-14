@@ -285,7 +285,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	default:
 		break;
 	}
-	//all events cancelled
+	//all events cancelled (play/stop/etc...)
 	return GF_TRUE;
 }
 
@@ -382,7 +382,7 @@ static const GF_FilterCapability CompositorFilterInputs[] =
 
 const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
-	.description = "Compositor Filter running the GPAC interactive media compositor. Sink filter for now",
+	.description = "Compositor Filter running the GPAC interactive media compositor",
 	.private_size = sizeof(GF_CompositorFilter),
 	.requires_main_thread = GF_TRUE,
 	.max_extra_pids = (u32) -1,
