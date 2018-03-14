@@ -36,7 +36,7 @@ typedef struct
 	GF_FilterPid *ipid, *opid;
 	GF_AudioMixer *mixer;
 	Bool cfg_forced;
-	u32 freq, nb_ch, bps, ch_cfg;
+	u32 freq, nb_ch, afmt, ch_cfg;
 	GF_AudioInterface input_ai;
 	Bool passthrough;
 
@@ -107,7 +107,7 @@ static void resample_finalize(GF_Filter *filter)
 static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	u32 sr, nb_ch, bps, ch_cfg;
+	u32 sr, nb_ch, bps, ch_cfg, afmt;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 	if (is_remove) {
 		if (ctx->opid) {
@@ -138,36 +138,36 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (p) nb_ch = p->value.uint;
 	if (!nb_ch) nb_ch = 1;
 
-	bps = ctx->bps;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BPS);
-	if (p) bps = p->value.uint;
-	if (!bps) bps = 16;
+	afmt = ctx->afmt;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+	if (p) afmt = p->value.uint;
 
 	ch_cfg = ctx->ch_cfg;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 	if (p) ch_cfg = p->value.uint;
 	if (!ch_cfg) ch_cfg = (nb_ch==1) ? GF_AUDIO_CH_FRONT_CENTER : (GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
 
+	bps = gf_audio_fmt_bit_depth(afmt);
 
-	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (bps==ctx->bps) && (ch_cfg==ctx->ch_cfg)) return GF_OK;
+	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (afmt==ctx->afmt) && (ch_cfg==ctx->ch_cfg)) return GF_OK;
 	ctx->input_ai.samplerate = sr;
 	ctx->input_ai.bps = bps;
 	ctx->input_ai.chan = nb_ch;
 	ctx->input_ai.ch_cfg = ch_cfg;
 
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	ctx->bps = bps;
+	ctx->afmt = afmt;
 	ctx->freq = sr;
 	ctx->nb_ch = nb_ch;
 	ctx->ch_cfg = ch_cfg;
-	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, ctx->bps, ctx->ch_cfg);
+	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, bps, ctx->ch_cfg);
 	ctx->passthrough = GF_FALSE;
 
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.bps==ctx->bps))
+	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.bps==bps))
 		ctx->passthrough = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BPS, &PROP_UINT(bps));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg));
 	return GF_OK;
@@ -180,7 +180,10 @@ static GF_Err resample_process(GF_Filter *filter)
 	u32 osize, written;
 	GF_FilterPacket *pck, *dstpck;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+	u32 bps;
 	if (!ctx->ipid) return GF_OK;
+
+	bps = gf_audio_fmt_bit_depth(ctx->afmt);
 
 	while (1) {
 		pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -198,7 +201,7 @@ static GF_Err resample_process(GF_Filter *filter)
 		}
 		ctx->data = gf_filter_pck_get_data(pck, &ctx->size);
 		osize = 8 * ctx->size / ctx->input_ai.chan / ctx->input_ai.bps;
-		osize *= ctx->nb_ch * ctx->bps / 8;
+		osize *= ctx->nb_ch * bps / 8;
 
 		dstpck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
 		if (!dstpck) return GF_OK;
@@ -216,7 +219,7 @@ static GF_Err resample_process(GF_Filter *filter)
 
 static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 {
-	u32 sr, nb_ch, bps, ch_cfg;
+	u32 sr, nb_ch, bps, afmt, ch_cfg;
 	const GF_PropertyValue *p;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->opid != pid) return GF_BAD_PARAM;
@@ -229,28 +232,29 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_ch = p->value.uint;
 
-	bps = ctx->bps;
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_BPS);
-	if (p) bps = p->value.uint;
+	afmt = ctx->afmt;
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_FORMAT);
+	if (p) afmt = p->value.uint;
 
 	ch_cfg = ctx->ch_cfg;
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 	if (p) ch_cfg = p->value.uint;
 
-	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (bps==ctx->bps) && (ch_cfg==ctx->ch_cfg)) return GF_OK;
+	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (afmt==ctx->afmt) && (ch_cfg==ctx->ch_cfg)) return GF_OK;
 
-	ctx->bps = bps;
+	ctx->afmt = afmt;
 	ctx->freq = sr;
 	ctx->nb_ch = nb_ch;
 	ctx->ch_cfg = ch_cfg;
-	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, ctx->bps, ctx->ch_cfg);
+	bps = gf_audio_fmt_bit_depth(afmt);
+	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, bps, ctx->ch_cfg);
 	ctx->passthrough = GF_FALSE;
 
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.bps==ctx->bps))
+	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.bps==bps))
 		ctx->passthrough = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BPS, &PROP_UINT(bps));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg));
 

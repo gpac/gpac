@@ -95,8 +95,8 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	sr = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	chan = p ? p->value.uint : 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BPS);
-	bps = p ? p->value.uint : 16;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+	bps = p ? gf_audio_fmt_bit_depth(p->value.uint) : 16;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	w = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);

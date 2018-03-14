@@ -550,6 +550,11 @@ enum
 	GF_AUDIO_FMT_S24P,
 };
 
+/*! returns number of bots per sample for the given format
+ \param audio_fmt desired audio format
+ \return bit depth of format
+*/
+u32 gf_audio_fmt_bit_depth(u32 audio_fmt);
 
 
 /*DIMS unit flags */

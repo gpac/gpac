@@ -41,7 +41,7 @@ typedef struct
 	u32 bnum, bdur, threaded, priority;
 
 	GF_FilterPid *pid;
-	u32 sr, bps, nb_ch, ch_cfg, timescale;
+	u32 sr, afmt, nb_ch, ch_cfg, timescale;
 
 	GF_AudioOutput *audio_out;
 	GF_Thread *th;
@@ -54,12 +54,12 @@ typedef struct
 
 void aout_reconfig(GF_AudioOutCtx *ctx)
 {
-	u32 sr, bps, nb_ch, ch_cfg;
+	u32 sr, bps, old_bps, nb_ch, ch_cfg;
 	GF_Err e = GF_OK;
-	sr=ctx->sr;
-	nb_ch=ctx->nb_ch;
-	bps=ctx->bps;
-	ch_cfg=ctx->ch_cfg;
+	sr = ctx->sr;
+	nb_ch = ctx->nb_ch;
+	bps = old_bps = gf_audio_fmt_bit_depth(ctx->afmt);
+	ch_cfg = ctx->ch_cfg;
 
 	e = ctx->audio_out->ConfigureOutput(ctx->audio_out, &sr, &nb_ch, &bps, ch_cfg);
 	if (e) {
@@ -68,9 +68,22 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		if (sr!=44100) sr = 44100;
 		if (nb_ch!=2) nb_ch = 2;
 	}
-	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (bps!=ctx->bps)) {
+	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (bps!=old_bps)) {
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
-		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_BPS, &PROP_UINT(bps));
+		switch (bps) {
+		case 8:
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_U8));
+			break;
+		case 16:
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
+			break;
+		case 24:
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S24));
+			break;
+		case 32:
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S32));
+			break;
+		}
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 		ctx->needs_recfg = GF_FALSE;
 		//drop all packets until next reconfig
@@ -154,7 +167,7 @@ void aout_set_priority(GF_AudioOutCtx *ctx, u32 prio)
 static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	u32 sr, bps, nb_ch, ch_cfg, timescale;
+	u32 sr, nb_ch, afmt, ch_cfg, timescale;
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -165,20 +178,20 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	assert(!ctx->pid || (ctx->pid==pid));
 	gf_filter_pid_check_caps(pid);
 
-	sr = bps = nb_ch = ch_cfg = timescale = 0;
+	sr = afmt = nb_ch = ch_cfg = timescale = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) timescale = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p) sr = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BPS);
-	if (p) bps = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+	if (p) afmt = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) nb_ch = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 	if (p) ch_cfg = p->value.uint;
 
-	if ((ctx->sr==sr) && (ctx->bps == bps) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) return GF_OK;
+	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) return GF_OK;
 
 	if (!ctx->pid) {
 		GF_FilterEvent evt;
@@ -188,7 +201,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->pid = pid;
 	ctx->timescale = timescale;
 	ctx->sr = sr;
-	ctx->bps = bps;
+	ctx->afmt = afmt;
 	ctx->nb_ch = nb_ch;
 	ctx->ch_cfg = ch_cfg;
 

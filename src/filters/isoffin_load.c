@@ -469,7 +469,23 @@ void isor_declare_objects(ISOMReader *read)
 				gf_filter_pid_set_property_str(ch->pid, "vres", &PROP_UINT(udesc->v_res));
 			} else if (udesc->nb_channels) {
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(udesc->nb_channels));
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BPS, &PROP_UINT(udesc->bits_per_sample));
+				switch (udesc->bits_per_sample) {
+				case 8:
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_U8));
+					break;
+				case 16:
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
+					break;
+				case 24:
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S24));
+					break;
+				case 32:
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S32));
+					break;
+				default:
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d unsupported audio bit depth %d\n", i+1, udesc->bits_per_sample ));
+					break;
+				}
 			}
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(udesc->depth));
 

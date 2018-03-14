@@ -85,8 +85,8 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (!p) return GF_NOT_SUPPORTED;
 	ctx->channels = p->value.uint;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BPS);
-	bps = p ? p->value.uint : 16;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+	bps = p ? gf_audio_fmt_bit_depth(p->value.uint) : 16;
 
 	ctx->aac_type = 0;
 	if (ctx->codecid==GF_CODECID_AAC_MPEG4) {

@@ -131,8 +131,8 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->sr = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	ctx->chan = p ? p->value.uint : 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BPS);
-	ctx->bps = p ? p->value.uint : 16;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+	ctx->bps = p ? gf_audio_fmt_bit_depth(p->value.uint) : 16;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	ctx->w = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
@@ -281,7 +281,9 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
 		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
 		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
-		NHML_PRINT_UINT(GF_PROP_PID_BPS, NULL, "bitsPerSample")
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT);
+		sprintf(nhml, "bitsPerSample=\"%d\" ", gf_audio_fmt_bit_depth(p->value.uint));
+		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
 	}
 
 	NHML_PRINT_4CC(0, "codec_vendor", "codecVendor")

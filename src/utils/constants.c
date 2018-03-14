@@ -257,4 +257,30 @@ const char *gf_stream_type_afx_name(u8 afx_code)
 	return "AFX Unknown";
 }
 
+u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
+{
+	switch (audio_fmt) {
+	case GF_AUDIO_FMT_U8P:
+	case GF_AUDIO_FMT_U8: return 8;
+
+	case GF_AUDIO_FMT_S16P:
+	case GF_AUDIO_FMT_S16: return 16;
+
+	case GF_AUDIO_FMT_S32P:
+	case GF_AUDIO_FMT_S32: return 32;
+
+	case GF_AUDIO_FMT_FLTP:
+	case GF_AUDIO_FMT_FLT: return 32;
+
+	case GF_AUDIO_FMT_DBLP:
+	case GF_AUDIO_FMT_DBL: return 64;
+
+	case GF_AUDIO_FMT_S24P:
+	case GF_AUDIO_FMT_S24:  return 24;
+
+	default:
+		break;
+	}
+	return 0;
+}
 

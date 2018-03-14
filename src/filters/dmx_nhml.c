@@ -753,7 +753,24 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	if (height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(height) );
 
 	if (par_den) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(par_num, par_den) );
-	if (bits_per_sample) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BPS, &PROP_UINT(bits_per_sample) );
+	switch (bits_per_sample) {
+	case 8:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_U8) );
+		break;
+	case 16:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+		break;
+	case 24:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S24) );
+		break;
+	case 32:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S32) );
+		break;
+	default:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Unsupported audio bit depth %d\n", bits_per_sample));
+		break;
+	}
+
 	if (sample_rate) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sample_rate) );
 	if (nb_channels) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_channels) );
 	if (bit_depth) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(bit_depth) );

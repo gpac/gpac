@@ -100,7 +100,6 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(freq) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_TIMESCALE, &PROP_UINT(freq) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chan) );
-		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_BPS, &PROP_UINT(nb_bits) );
 		switch (nb_bits) {
 		case 8:
 			gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_U8) );

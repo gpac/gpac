@@ -238,7 +238,7 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	const GF_PropertyValue *p;
-	u32 sr, bps, nb_ch, cfg;
+	u32 sr, bps, nb_ch, cfg, afmt;
 	Bool needs_reconfigure = GF_FALSE;
 	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
 
@@ -256,9 +256,20 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 		nb_ch = p->value.uint;
 		needs_reconfigure = GF_TRUE;
 	}
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_BPS);
-	if (p && (p->value.uint != bps)) {
-		bps = p->value.uint;
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_FORMAT);
+	afmt = GF_AUDIO_FMT_S16;
+	if (bps==8) afmt = GF_AUDIO_FMT_U8;
+	else if (bps==24) afmt = GF_AUDIO_FMT_S24;
+	else if (bps==32) afmt = GF_AUDIO_FMT_S32;
+
+	if (p && (p->value.uint != afmt)) {
+		if (afmt==GF_AUDIO_FMT_S16) bps=16;
+		else if (afmt==GF_AUDIO_FMT_U8) bps=8;
+		else if (afmt==GF_AUDIO_FMT_S24) bps=24;
+		else if (afmt==GF_AUDIO_FMT_S32) bps=32;
+		//internal mixer doesn't support other audio formats
+		else return GF_NOT_SUPPORTED;
+
 		needs_reconfigure = GF_TRUE;
 	}
 	if (!needs_reconfigure) return GF_OK;
@@ -356,7 +367,6 @@ GF_Err compose_initialize(GF_Filter *filter)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(44100) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_BPS, &PROP_UINT(16) );
 		gf_filter_pid_set_max_buffer(ar->aout, 1000*ar->total_duration);
 	}
 	return GF_OK;
