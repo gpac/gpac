@@ -770,17 +770,17 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
 }
 
 GF_EXPORT
-GF_Err gf_list_transfer(GF_List *l1, GF_List *l2)
+GF_Err gf_list_transfer(GF_List *dst, GF_List *src)
 {
 	GF_Err e;
-	if (!l1 || !l2) return GF_BAD_PARAM;
-	if (l1 == l2) return GF_OK;
+	if (!dst || !src) return GF_BAD_PARAM;
+	if (dst == src) return GF_OK;
 
-	while (gf_list_count(l2)) {
-		void *ptr = gf_list_get(l2, 0);
-		e = gf_list_rem(l2, 0);
+	while (gf_list_count(src)) {
+		void *ptr = gf_list_get(src, 0);
+		e = gf_list_rem(src, 0);
 		if (e) return e;
-		e = gf_list_add(l1, ptr);
+		e = gf_list_add(dst, ptr);
 		if (e) return e;
 	}
 	return GF_OK;

@@ -200,10 +200,10 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2);
  *	\brief list transfer
  *
  *	Transfer content between lists
- *	\param l1 destination list object
- *	\param l2 source list object
+ *	\param dst destination list object
+ *	\param src source list object
  */
-GF_Err gf_list_transfer(GF_List *l1, GF_List *l2);
+GF_Err gf_list_transfer(GF_List *dst, GF_List *src);
 
 /*!
  *	\brief clone list
