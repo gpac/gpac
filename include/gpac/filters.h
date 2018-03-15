@@ -1000,6 +1000,9 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 GF_Err gf_fs_abort(GF_FilterSession *fsess);
 Bool gf_fs_is_last_task(GF_FilterSession *fsess);
 
+void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp);
+void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
+
 #ifdef __cplusplus
 }
 #endif

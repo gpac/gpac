@@ -94,6 +94,7 @@ const GF_FilterRegister *avimux_register(GF_FilterSession *session);
 const GF_FilterRegister *aout_register(GF_FilterSession *session);
 const GF_FilterRegister *m4vmx_register(GF_FilterSession *session);
 const GF_FilterRegister *resample_register(GF_FilterSession *session);
+const GF_FilterRegister *vout_register(GF_FilterSession *session);
 
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -159,6 +160,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, aout_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, m4vmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, resample_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, vout_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );

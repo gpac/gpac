@@ -728,8 +728,11 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
 		if (opt && !strcmp(opt, "yes")) {
-#if defined(__APPLE__) && !defined(GPAC_IPHONE)
 			ctx->disable_vsync = GF_TRUE;
+		}
+
+		if (ctx->disable_vsync) {
+#if defined(__APPLE__) && !defined(GPAC_IPHONE)
 #else
 			SDL_GL_SetSwapInterval(0);
 #endif
@@ -1721,6 +1724,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		SDLVID();
+		ctx->disable_vsync=evt->setup.disable_vsync;
 		switch (evt->setup.opengl_mode) {
 		case 0:
 			/*force a resetup of the window*/
@@ -1992,6 +1996,51 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 			}
 		}
 
+	} else if ((src_pf == GF_PIXEL_NV12) || (src_pf == GF_PIXEL_NV21)) {
+		u32 i, j;
+		u8 *src_y, *src_uv;
+
+		src_y = pY;
+		src_uv = pU;
+		if (!src_uv) src_uv = src_y + src_stride * src_height;
+
+		if (src_wnd->y || src_wnd->x) {
+			src_y += src_wnd->x;
+			src_uv += 2*src_wnd->x;
+			src_y += src_stride * src_wnd->y;
+			src_uv += src_stride * src_wnd->y;
+		}
+
+		if ( (pitch_y == (s32) src_stride) && (src_wnd->w == src_width) && (src_wnd->h == src_height)) {
+			assert(!src_wnd->x);
+			assert(!src_wnd->y);
+			memcpy(pYD, pY, sizeof(unsigned char)*src_width*src_height);
+		} else {
+			for (i = 0; i < src_wnd->h; i++) {
+				u8 *src = src_y + i * src_stride;
+				u8 *dst = (u8 * ) pYD + i * pitch_y;
+				memcpy(dst, src, src_width);
+			}
+		}
+		for (i = 0; i < src_wnd->h/2; i++) {
+			u8 *src_u = src_uv + i * src_stride;
+			u8 *dst_u, *dst_v;
+			if (src_pf == GF_PIXEL_NV12) {
+				dst_u = pUD + i * pitch_y / 2;
+				dst_v = pVD + i * pitch_y / 2;
+			} else {
+				dst_v = pUD + i * pitch_y / 2;
+				dst_u = pVD + i * pitch_y / 2;
+			}
+			for (j = 0; j < src_wnd->w/2; j++) {
+				*dst_u = *src_u;
+				src_u++;
+				*dst_v = *src_u;
+				src_u++;
+				dst_u++;
+				dst_v++;
+			}
+		}
 	} else {
 		
 		if (!pU || !pV) {
@@ -2181,6 +2230,16 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_YV12;
 		break;
+	case GF_PIXEL_NV12:
+		need_copy=1;
+		pool = &ctx->pool_yuv;
+		format=SDL_PIXELFORMAT_YV12;
+		break;
+	case GF_PIXEL_NV21:
+		need_copy=1;
+		pool = &ctx->pool_yuv;
+		format=SDL_PIXELFORMAT_YV12;
+		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -2204,9 +2263,16 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		u8* pixels;
 		int pitch;
 		u8 *pY, *pU, *pV;
+		GF_Window swnd;
 		/*copy pixels*/
 		if (SDL_LockTexture(*pool, NULL, (void**)&pixels, &pitch) < 0) {
 			return GF_NOT_SUPPORTED;
+		}
+		if (!src_wnd) {
+			swnd.x = swnd.y=0;
+			swnd.w = video_src->width;
+			swnd.h = video_src->height;
+			src_wnd = &swnd;
 		}
 
 		pY = pixels;
