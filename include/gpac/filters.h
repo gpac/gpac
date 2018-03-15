@@ -410,6 +410,7 @@ void *gf_filter_pid_get_udta(GF_FilterPid *pid);
 void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name);
 const char *gf_filter_pid_get_name(GF_FilterPid *pid);
 const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
+const char *gf_filter_pid_original_args(GF_FilterPid *pid);
 
 const char *gf_filter_pid_get_args(GF_FilterPid *pid);
 
