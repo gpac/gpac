@@ -1322,6 +1322,20 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 #endif
 
 			txh->tx_io->pbo_pushed = 0;
+		} else if (txh->hw_frame) {
+			if (txh->hw_frame->get_gl_texture) {
+				u32 gl_format;
+				txh->hw_frame->get_gl_texture(txh->hw_frame, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix);
+				glBindTexture(gl_format, txh->tx_io->id);
+				GL_CHECK_ERR
+				goto push_exit;
+
+			} else {
+				u32 stride;
+				txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &data, &stride);
+				do_tex_image_2d(txh, tx_mode, first_load, (u8 *) data, txh->stride, w, h, txh->tx_io->pbo_id);
+			}
+			txh->tx_io->pbo_pushed = 0;
 		} else {
 			do_tex_image_2d(txh, tx_mode, first_load, (u8 *) data, txh->stride, w, h, txh->tx_io->pbo_id);
 			txh->tx_io->pbo_pushed = 0;

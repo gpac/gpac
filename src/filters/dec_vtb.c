@@ -47,6 +47,34 @@
 
 #include "../../src/compositor/gl_inc.h"
 
+
+#ifdef GPAC_IPHONE
+#define VTB_GL_TEXTURE
+
+#define GF_CVGLTextureREF CVOpenGLESTextureRef
+#define GF_CVGLTextureCacheREF CVOpenGLESTextureCacheRef
+#define GF_kCVPixelBufferOpenGLCompatibilityKey kCVPixelBufferOpenGLESCompatibilityKey
+#define GF_CVOpenGLTextureCacheFlush CVOpenGLESTextureCacheFlush
+#define GF_CVOpenGLTextureGetTarget CVOpenGLESTextureGetTarget
+#define GF_CVOpenGLTextureGetName CVOpenGLESTextureGetName
+
+#else
+
+//not working yet, not sure why
+//#define VTB_GL_TEXTURE
+
+#include <CoreVideo/CVOpenGLTexture.h>
+
+#define GF_CVGLTextureREF CVOpenGLTextureRef
+#define GF_CVGLTextureCacheREF CVOpenGLTextureCacheRef
+#define GF_kCVPixelBufferOpenGLCompatibilityKey kCVPixelBufferOpenGLCompatibilityKey
+#define GF_CVOpenGLTextureCacheFlush CVOpenGLTextureCacheFlush
+#define GF_CVOpenGLTextureGetTarget CVOpenGLTextureGetTarget
+#define GF_CVOpenGLTextureGetName CVOpenGLTextureGetName
+
+
+#endif
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 typedef struct
@@ -117,9 +145,9 @@ typedef struct
 	Bool is_hevc;
 
 	//openGL output
-#ifdef GPAC_IPHONE
+#ifdef VTB_GL_TEXTURE
 	Bool use_gl_textures;
-	CVOpenGLESTextureCacheRef cache_texture;
+	GF_CVGLTextureCacheREF cache_texture;
 #endif
 	void *gl_context;
 } GF_VTBDecCtx;
@@ -136,8 +164,8 @@ typedef struct
 	u32 duration;
 	u32 timescale;
 	//openGL mode
-#ifdef GPAC_IPHONE
-	CVOpenGLESTextureRef y, u, v;
+#ifdef VTB_GL_TEXTURE
+	GF_CVGLTextureREF y, u, v;
 #endif
 } GF_VTBHWFrame;
 
@@ -228,9 +256,9 @@ static CFDictionaryRef vtbdec_create_buffer_attributes(GF_VTBDecCtx *ctx, OSType
     CFDictionarySetValue(buffer_attributes, kCVPixelBufferPixelFormatTypeKey, pixel_fmt);
     CFRelease(pixel_fmt);
 
-#ifdef GPAC_IPHONE
+#ifdef VTB_GL_TEXTURE
 	if (ctx->use_gl_textures)
-		CFDictionarySetValue(buffer_attributes, kCVPixelBufferOpenGLESCompatibilityKey, kCFBooleanTrue);
+		CFDictionarySetValue(buffer_attributes, GF_kCVPixelBufferOpenGLCompatibilityKey, kCFBooleanTrue);
 #endif
 
     CFDictionarySetValue(buffer_attributes, kCVPixelBufferIOSurfacePropertiesKey, surf_props);
@@ -251,7 +279,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	CFDataRef data = NULL;
 	char *dsi_data=NULL;
 	u32 dsi_data_size=0;
-	u32 w, h;
+	u32 w, h, stride;
 	w = h = 0;
 	
     dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
@@ -261,6 +289,10 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	
 	kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
 	ctx->pix_fmt = GF_PIXEL_NV12;
+
+//	kColorSpace = kCVPixelFormatType_24RGB;
+//	ctx->pix_fmt = GF_PIXEL_RGB_24;
+
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
 
@@ -668,10 +700,14 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
     }
 	
 	//good to go !
+	stride = ctx->width;
 	if (ctx->pix_fmt == GF_PIXEL_YUV422) {
 		ctx->out_size = ctx->width*ctx->height*2;
 	} else if (ctx->pix_fmt == GF_PIXEL_YUV444) {
 		ctx->out_size = ctx->width*ctx->height*3;
+	} else if (ctx->pix_fmt == GF_PIXEL_RGB_24) {
+		ctx->out_size = ctx->width*ctx->height*3;
+		stride *= 3;
 	} else {
 		// (ctx->pix_fmt == GF_PIXEL_YV12)
 		ctx->out_size = ctx->width*ctx->height*3/2;
@@ -683,7 +719,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->width) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(stride) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
 
@@ -1438,12 +1474,12 @@ void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck
 	if (f->locked) {
 		CVPixelBufferUnlockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
 	}
-#ifdef GPAC_IPHONE
+#ifdef VTB_GL_TEXTURE
 	if (f->y) CVBufferRelease(f->y);
 	if (f->u) CVBufferRelease(f->u);
 	if (f->v) CVBufferRelease(f->v);
 	if (f->ctx->cache_texture)
-		CVOpenGLESTextureCacheFlush(f->ctx->cache_texture, 0);
+		GF_CVOpenGLTextureCacheFlush(f->ctx->cache_texture, 0);
 #endif
 	
 	if (f->frame) {
@@ -1484,16 +1520,29 @@ GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **out
 	return e;
 }
 
-#ifdef GPAC_IPHONE
+#ifdef VTB_GL_TEXTURE
 
+/*Define codec matrix*/
+typedef struct __matrix GF_CodecMatrix;
+
+#ifdef GPAC_IPHONE
 void *myGetGLContext();
+#else
+
+#include <OpenGL/CGLCurrent.h>
+void *myGetGLContext()
+{
+	return CGLGetCurrentContext();
+}
+#endif
+
 
 GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {
     OSStatus status;
 	GLenum target_fmt;
 	u32 w, h;
-	CVOpenGLESTextureRef *outTexture=NULL;
+	GF_CVGLTextureREF *outTexture=NULL;
 	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (! gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
 	*gl_tex_format = 0;
@@ -1509,7 +1558,11 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 	if (! f->ctx->decoded_frames_pending) return GF_IO_ERR;
 	
 	if (!f->ctx->cache_texture) {
+#ifdef GPAC_IPHONE
 		status = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, f->ctx->gl_context, NULL, &f->ctx->cache_texture);
+#else
+		status = CVOpenGLTextureCacheCreate(kCFAllocatorDefault, NULL, f->ctx->gl_context, CGLGetPixelFormat(f->ctx->gl_context), NULL, &f->ctx->cache_texture);
+#endif
 		if (status != kCVReturnSuccess) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error creating cache texture\n"));
 			return GF_IO_ERR;
@@ -1524,9 +1577,15 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 		}
 		f->locked = GF_TRUE;
 	}
-	
-	if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
+
+    if (CVPixelBufferIsPlanar(f->frame)) {
+		w = CVPixelBufferGetPlaneCount(f->frame);
+		if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
+			return GF_BAD_PARAM;
+		}
+	} else if (plane_idx!=0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index %d on interleaved format\n", plane_idx));
 		return GF_BAD_PARAM;
 	}
 
@@ -1546,15 +1605,19 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 	}
 	//don't create texture if already done !
 	if ( *outTexture == NULL) {
+#ifdef GPAC_IPHONE
 		status = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, f->ctx->cache_texture, f->frame, NULL, GL_TEXTURE_2D, target_fmt, w, h, target_fmt, GL_UNSIGNED_BYTE, plane_idx, outTexture);
-	
+#else
+		status = CVOpenGLTextureCacheCreateTextureFromImage(kCFAllocatorDefault, f->ctx->cache_texture, f->frame, NULL, outTexture);
+#endif
+
 		if (status != kCVReturnSuccess) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error creating cache texture for plane %d\n", plane_idx));
 			return GF_IO_ERR;
 		}
 	}
-	*gl_tex_format = CVOpenGLESTextureGetTarget(*outTexture);
-	*gl_tex_id = CVOpenGLESTextureGetName(*outTexture);
+	*gl_tex_format = GF_CVOpenGLTextureGetTarget(*outTexture);
+	*gl_tex_id = GF_CVOpenGLTextureGetName(*outTexture);
 
 	return GF_OK;
 }
@@ -1570,7 +1633,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	vtb_frame->hw_frame.user_data = vtb_frame;
 	vtb_frame->hw_frame.get_plane = vtbframe_get_plane;
-#ifdef GPAC_IPHONE
+#ifdef VTB_GL_TEXTURE
 	if (ctx->use_gl_textures)
 		vtb_frame->hw_frame.get_gl_texture = vtbframe_get_gl_texture;
 #endif
@@ -1607,7 +1670,7 @@ static Bool vtbdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static GF_Err vtbdec_initialize(GF_Filter *filter)
 {
 	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *) gf_filter_get_udta(filter);
-#ifdef GPAC_IPHONE
+#ifdef VTB_GL_TEXTURE
 	if (ctx->no_copy)
 		ctx->use_gl_textures = GF_TRUE;
 #endif
@@ -1622,7 +1685,7 @@ static void vtbdec_finalize(GF_Filter *filter)
 	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *) gf_filter_get_udta(filter);
 	vtbdec_delete_decoder(ctx);
 
-#ifdef GPAC_IPHONE
+#ifdef VTB_GL_TEXTURE
 	if (ctx->cache_texture) {
 		CFRelease(ctx->cache_texture);
     }

@@ -288,6 +288,10 @@ struct __gf_media_session
 	GF_Err last_connect_error, last_process_error;
 
 	GF_FilterSessionCaps caps;
+
+	u64 hint_clock_us;
+	Double hint_timestamp;
+
 };
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);

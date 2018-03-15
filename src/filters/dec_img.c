@@ -103,10 +103,14 @@ static GF_Err imgdec_process(GF_Filter *filter)
 			case GF_PIXEL_RGB_24:
 				ctx->BPP = 3;
 				break;
+			case GF_PIXEL_RGBA:
+				ctx->BPP = 4;
+				break;
 			}
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(ctx->width));
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(ctx->height));
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, & PROP_UINT(ctx->pixel_format));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->BPP*ctx->width) );
 		}
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, out_size, &output);
 		if (!dst_pck) return GF_SERVICE_ERROR;

@@ -29,11 +29,6 @@
 #include <gpac/modules/audio_out.h>
 #include <gpac/thread.h>
 
-#ifndef GPAC_DISABLE_AVILIB
-
-#include <gpac/internal/avilib.h>
-
-
 typedef struct
 {
 	//options
@@ -53,6 +48,7 @@ typedef struct
 	u64 first_cts;
 	Bool aborted;
 
+	GF_Filter *filter;
 } GF_AudioOutCtx;
 
 
@@ -67,7 +63,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	e = ctx->audio_out->ConfigureOutput(ctx->audio_out, &sr, &nb_ch, &bps, ch_cfg);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioOutput] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOutput] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
 		if (bps!=16) bps = 16;
 		if (sr!=44100) sr = 44100;
 		if (nb_ch!=2) nb_ch = 2;
@@ -131,6 +127,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	while (done < buffer_size) {
 		const char *data;
 		u32 size;
+		u64 cts;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->pid);
 		if (!pck) {
 			return done;
@@ -140,8 +137,8 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		}
 		data = gf_filter_pck_get_data(pck, &size);
 
-		if (ctx->dur.den) {
-			u64 cts = gf_filter_pck_get_cts(pck);
+		cts = gf_filter_pck_get_cts(pck);
+		if (ctx->dur.num) {
 			if (!ctx->first_cts) ctx->first_cts = cts+1;
 
 			if ((cts - ctx->first_cts + 1) * ctx->dur.den > ctx->dur.num*ctx->timescale) {
@@ -156,7 +153,11 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				return done;
 			}
 		}
-
+		if (!done) {
+			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), ((Double)cts)/ctx->timescale);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale));
+		}
+		
 		if (data && !ctx->wait_recfg) {
 			u32 nb_copy;
 			assert(size >= ctx->pck_offset);
@@ -170,7 +171,6 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				return done;
 			}
 			ctx->pck_offset = 0;
-
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
 	}
@@ -245,9 +245,11 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	GF_User *user = gf_fs_get_user( gf_filter_get_session(filter) );
 
 	if (!user) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioOut] No user/modules defined, cannot load audio output\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] No user/modules defined, cannot load audio output\n"));
 		return GF_IO_ERR;
 	}
+	ctx->filter = filter;
+
 	if (ctx->drv) {
 		ctx->audio_out = (GF_AudioOutput *) gf_modules_load_interface_by_name(user->modules, ctx->drv, GF_AUDIO_OUTPUT_INTERFACE);
 	}
@@ -270,7 +272,7 @@ static GF_Err aout_initialize(GF_Filter *filter)
 				ctx->audio_out = NULL;
 				continue;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioOut] Audio output module %s loaded\n", ctx->audio_out->module_name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Audio output module %s loaded\n", ctx->audio_out->module_name));
 			/*check that's a valid audio compositor*/
 			if ((ctx->audio_out->SelfThreaded && ctx->audio_out->SetPriority) || ctx->audio_out->WriteAudio) {
 				/*remember the module we use*/
@@ -284,14 +286,14 @@ static GF_Err aout_initialize(GF_Filter *filter)
 
 	/*if not init we run with a NULL audio compositor*/
 	if (!ctx->audio_out) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioOut] No audio output modules found, cannot load audio output\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] No audio output modules found, cannot load audio output\n"));
 		return GF_IO_ERR;
 	}
 
 	ctx->audio_out->FillBuffer = aout_fill_output;
 	ctx->audio_out->audio_renderer = ctx;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioOut] Setting up audio module %s\n", ctx->audio_out->module_name));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Setting up audio module %s\n", ctx->audio_out->module_name));
 
 
 	sOpt = gf_cfg_get_key(user->config, "Audio", "ForceConfig");
@@ -305,7 +307,7 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	e = ctx->audio_out->Setup(ctx->audio_out, user->os_window_handler, ctx->bnum, ctx->bdur);
 
 	if (e != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioOut] Could not setup module %s\n", ctx->audio_out->module_name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Could not setup module %s\n", ctx->audio_out->module_name));
 		gf_modules_close_interface((GF_BaseInterface *)ctx->audio_out);
 		ctx->audio_out = NULL;
 		return e;
@@ -330,12 +332,12 @@ static void aout_finalize(GF_Filter *filter)
 	if (ctx->audio_out) {
 		/*kill audio thread*/
 		if (ctx->th) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioOut] stopping audio thread\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] stopping audio thread\n"));
 			ctx->audio_th_state = 2;
 			while (ctx->audio_th_state != 3) {
 				gf_sleep(33);
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioOut] audio thread stopped\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] audio thread stopped\n"));
 			gf_th_del(ctx->th);
 		} else {
 			ctx->audio_out->Shutdown(ctx->audio_out);
@@ -427,15 +429,8 @@ GF_FilterRegister AudioOutRegister = {
 	.process_event = aout_process_event
 };
 
-#endif
-
 const GF_FilterRegister *aout_register(GF_FilterSession *session)
 {
-#ifndef GPAC_DISABLE_AVILIB
 	return &AudioOutRegister;
-#else
-	return NULL;
-#endif
-
 }
 

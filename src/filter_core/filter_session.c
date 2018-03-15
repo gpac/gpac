@@ -882,6 +882,7 @@ u32 gf_fs_run_step(GF_FilterSession *fsess)
 	return 0;
 }
 
+GF_EXPORT
 GF_Err gf_fs_abort(GF_FilterSession *fsess)
 {
 	if (!fsess) return GF_BAD_PARAM;
@@ -890,6 +891,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_fs_stop(GF_FilterSession *fsess)
 {
 	u32 i, count = fsess->threads ? gf_list_count(fsess->threads) : 0;
@@ -1023,7 +1025,6 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }
 
-
 GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
@@ -1144,6 +1145,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	return filter;
 }
 
+GF_EXPORT
 GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
 	return gf_fs_load_source_internal(fsess, url, args, parent_url, err, NULL, NULL);
@@ -1319,6 +1321,7 @@ static void gf_fs_user_task(GF_FSTask *task)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name)
 {
 	GF_UserTask *utask;
@@ -1332,6 +1335,7 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 }
 
 
+GF_EXPORT
 Bool gf_fs_is_last_task(GF_FilterSession *fsess)
 {
 	if (!fsess) return GF_TRUE;

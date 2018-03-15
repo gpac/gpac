@@ -379,8 +379,8 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 static const GF_FilterCapability J2KInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_J2K),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability J2KOutputs[] =
