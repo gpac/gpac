@@ -245,6 +245,9 @@ typedef struct
 	// BOLA Utility
 	Double bola_v;
 
+	/*index of the next enhancement representation plus 1, 0 is reserved in case of the highest representation*/
+	u32 enhancement_rep_index_plus_one;
+
 	Bool broadcast_flag;
 } GF_DASH_RepresentationPlayback;
 
@@ -263,9 +266,6 @@ typedef struct {
 	GF_MPD_SegmentTemplate *segment_template;
 
 	GF_List *sub_representations;
-
-	/*index of the next enhancement representation plus 1, 0 is reserved in case of the highest representation*/
-	u32 enhancement_rep_index_plus_one;
 
 	/*GPAC playback implementation*/
 	GF_DASH_RepresentationPlayback playback;
