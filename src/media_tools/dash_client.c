@@ -5524,8 +5524,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		}
 		dash_store_stats(dash, group, Bps, file_size, rep->playback.broadcast_flag);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Representation index %d max enhancement rep %d enhancement rep plus one %d\n", representation_index, group->max_complementary_rep_index, rep->playback.enhancement_rep_index_plus_one));
-
 		/* download enhancement representation of this segment*/
 		if ((representation_index != group->max_complementary_rep_index) && rep->playback.enhancement_rep_index_plus_one) {
 			group->active_rep_index = rep->playback.enhancement_rep_index_plus_one - 1;
