@@ -190,7 +190,6 @@
 		920101C318D5A445003D1ACA /* url.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100AA18D5A444003D1ACA /* url.c */; };
 		920101C418D5A445003D1ACA /* utf.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100AB18D5A444003D1ACA /* utf.c */; };
 		920101C518D5A445003D1ACA /* xml_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100AC18D5A444003D1ACA /* xml_parser.c */; };
-		920101CF18D5AC67003D1ACA /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101CE18D5AC67003D1ACA /* OpenGL.framework */; };
 		920101D118D5ACA7003D1ACA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101D018D5ACA7003D1ACA /* libz.dylib */; };
 		9202FEB2204840FB000EE9B1 /* load_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85591F7BFB61009BC9C8 /* load_svg.c */; };
 		9202FEB32048411D000EE9B1 /* dec_vorbis.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C11F7D10F400299CC6 /* dec_vorbis.c */; };
@@ -463,6 +462,12 @@
 		92BBFD091A7122AD006A7735 /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA81A7122AD006A7735 /* version.h */; };
 		92BBFD0A1A7122AD006A7735 /* webvtt.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA91A7122AD006A7735 /* webvtt.h */; };
 		92BBFD0B1A7122AD006A7735 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCAA1A7122AD006A7735 /* xml.h */; };
+		92BD5567205AE296007C4C06 /* ff_avin.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BD5566205AE296007C4C06 /* ff_avin.c */; };
+		92BD5568205AE807007C4C06 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA641A15240800372C59 /* AVFoundation.framework */; };
+		92BD5569205AE93A007C4C06 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2CC1A163E1E002D73E1 /* Foundation.framework */; };
+		92BD556B205AE974007C4C06 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92BD556A205AE974007C4C06 /* CoreGraphics.framework */; };
+		92BD556D205AE99A007C4C06 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
+		92BD5571205AE9BD007C4C06 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92BD5570205AE9BD007C4C06 /* AppKit.framework */; };
 		92BE50A318D632DA00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50A818D6348A00AA59D8 /* filedump.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A418D6348A00AA59D8 /* filedump.c */; };
 		92BE50A918D6348A00AA59D8 /* fileimport.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A518D6348A00AA59D8 /* fileimport.c */; };
@@ -1309,6 +1314,10 @@
 		92BBFCA81A7122AD006A7735 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../include/gpac/version.h; sourceTree = "<group>"; };
 		92BBFCA91A7122AD006A7735 /* webvtt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = webvtt.h; path = ../include/gpac/webvtt.h; sourceTree = "<group>"; };
 		92BBFCAA1A7122AD006A7735 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = xml.h; path = ../include/gpac/xml.h; sourceTree = "<group>"; };
+		92BD5566205AE296007C4C06 /* ff_avin.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_avin.c; path = filters/ff_avin.c; sourceTree = "<group>"; };
+		92BD556A205AE974007C4C06 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		92BD556E205AE9B0007C4C06 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = System/Library/Frameworks/CoreImage.framework; sourceTree = SDKROOT; };
+		92BD5570205AE9BD007C4C06 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		92BE509018D6325E00AA59D8 /* MP4Box */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Box; sourceTree = BUILT_PRODUCTS_DIR; };
 		92BE50A418D6348A00AA59D8 /* filedump.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filedump.c; path = ../../applications/mp4box/filedump.c; sourceTree = SOURCE_ROOT; };
 		92BE50A518D6348A00AA59D8 /* fileimport.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fileimport.c; path = ../../applications/mp4box/fileimport.c; sourceTree = SOURCE_ROOT; };
@@ -1364,6 +1373,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92BD5571205AE9BD007C4C06 /* AppKit.framework in Frameworks */,
+				92BD556D205AE99A007C4C06 /* OpenGL.framework in Frameworks */,
+				92BD556B205AE974007C4C06 /* CoreGraphics.framework in Frameworks */,
+				92BD5569205AE93A007C4C06 /* Foundation.framework in Frameworks */,
+				92BD5568205AE807007C4C06 /* AVFoundation.framework in Frameworks */,
 				926C7E652019D76300E90AF6 /* Security.framework in Frameworks */,
 				926C7E642019D75300E90AF6 /* AudioToolbox.framework in Frameworks */,
 				9235E0531CFECD520051D8A1 /* CoreFoundation.framework in Frameworks */,
@@ -1371,7 +1385,6 @@
 				9235E0501CFECD370051D8A1 /* CoreVideo.framework in Frameworks */,
 				9235E04E1CFECD300051D8A1 /* CoreMedia.framework in Frameworks */,
 				920101D118D5ACA7003D1ACA /* libz.dylib in Frameworks */,
-				920101CF18D5AC67003D1ACA /* OpenGL.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2249,6 +2262,9 @@
 		92B02F4D1DD2004300F85E77 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				92BD5570205AE9BD007C4C06 /* AppKit.framework */,
+				92BD556E205AE9B0007C4C06 /* CoreImage.framework */,
+				92BD556A205AE974007C4C06 /* CoreGraphics.framework */,
 				92BB854C1F7BE2BA009BC9C8 /*  */,
 				92B02F4E1DD2004400F85E77 /* OpenGL.framework */,
 			);
@@ -2469,6 +2485,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92BD5566205AE296007C4C06 /* ff_avin.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -3195,6 +3212,7 @@
 				92BB85711F7BFB63009BC9C8 /* reframe_mp3.c in Sources */,
 				9201018118D5A445003D1ACA /* mpeg4_valuator.c in Sources */,
 				9201018218D5A445003D1ACA /* smil_anim.c in Sources */,
+				92BD5567205AE296007C4C06 /* ff_avin.c in Sources */,
 				9201018318D5A445003D1ACA /* smil_timing.c in Sources */,
 				9201018418D5A445003D1ACA /* svg_attributes.c in Sources */,
 				92B9A5831F8660D700A24FE4 /* hardcoded_protos.c in Sources */,
@@ -3677,6 +3695,11 @@
 					"-ltheora",
 					"-lOpenSVCDec",
 					"-lopenhevc",
+					"-lxcb",
+					"-lxcb-shm",
+					"-lxcb-shape",
+					"-lxcb-xfixes",
+					"-lSDL2",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3779,6 +3802,11 @@
 					"-ltheora",
 					"-lOpenSVCDec",
 					"-lopenhevc",
+					"-lxcb",
+					"-lxcb-shm",
+					"-lxcb-shape",
+					"-lxcb-xfixes",
+					"-lSDL2",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
