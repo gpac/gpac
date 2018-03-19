@@ -398,6 +398,8 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 {
+	if (!strncmp(url, "video://", 8)) return GF_FPROBE_NOT_SUPPORTED;
+	if (!strncmp(url, "audio://", 8)) return GF_FPROBE_NOT_SUPPORTED;
 	return GF_FPROBE_MAYBE_SUPPORTED;
 }
 

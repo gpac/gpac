@@ -79,7 +79,7 @@ void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 {
-	char szDef[100];
+	char szDef[200];
 	GF_FilterArgs arg;
 	memset(&arg, 0, sizeof(GF_FilterArgs));
 	arg.arg_name = opt->name;
@@ -91,10 +91,22 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	case AV_OPT_TYPE_INT64:
 	case AV_OPT_TYPE_INT:
 		arg.arg_type = (opt->type==AV_OPT_TYPE_INT64) ? GF_PROP_LSINT : GF_PROP_SINT;
-		sprintf(szDef, ""LLD, opt->default_val.i64);
+		sprintf(szDef, LLD, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
-		sprintf(szDef, "%d-%d", (s32) opt->min, (s32) opt->max);
+		sprintf(szDef, LLD"-"LLD, (s64) opt->min, (s64) opt->max);
 		arg.min_max_enum = gf_strdup(szDef);
+		break;
+	case AV_OPT_TYPE_UINT64:
+//	case AV_OPT_TYPE_UINT:
+		arg.arg_type = GF_PROP_LUINT;
+		sprintf(szDef, LLU, opt->default_val.i64);
+		arg.arg_default_val = gf_strdup(szDef);
+		sprintf(szDef, LLU"-"LLU, (u64) opt->min, (u64) opt->max);
+		arg.min_max_enum = gf_strdup(szDef);
+		break;
+	case AV_OPT_TYPE_BOOL:
+		arg.arg_type = GF_PROP_BOOL;
+		arg.arg_default_val = gf_strdup(opt->default_val.i64 ? "true" : "false");
 		break;
 	case AV_OPT_TYPE_FLOAT:
 		arg.arg_type = GF_PROP_FLOAT;
@@ -163,7 +175,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		}
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] Unhandled option type %d\n", opt->type));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unhandled option type %d\n", opt->type));
 	}
 	return arg;
 }
@@ -181,6 +193,10 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 	else if (type==1) {
 		fname = "ffdec";
 		flags=AV_OPT_FLAG_DECODING_PARAM;
+	}
+	else if (type==2) {
+		fname = "ffavin";
+		flags=AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_AUDIO_PARAM|AV_OPT_FLAG_DECODING_PARAM;
 	}
 	else return;
 
