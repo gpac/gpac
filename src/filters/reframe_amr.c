@@ -157,6 +157,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 
 	ctx->index_size = 0;
 
+	cur_dur = 0;
 	duration = 0;
 	while (!feof(stream)) {
 		u32 size=0;

@@ -1178,7 +1178,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	assert(sess->remaining_data_size==0);
 
 	sess->local_cache_only = GF_FALSE;
-	if (sess->dm->local_cache_url_provider_cbk) {
+	if (sess->dm && sess->dm->local_cache_url_provider_cbk) {
 		Bool res = sess->dm->local_cache_url_provider_cbk(sess->dm->lc_udta, (char *)url, GF_FALSE);
 		if (res == GF_TRUE) {
 			sess->local_cache_only = GF_TRUE;
@@ -2249,7 +2249,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		return; //nothing to do
 	if (sess->chunked) {
  		data = (u8 *) gf_dm_get_chunk_data(sess, first_chunk_in_payload, (char *) payload, &nbBytes, &hdr_size);
-		first_chunk_in_payload = GF_FALSE;
+		//first_chunk_in_payload = GF_FALSE;
 		if (!hdr_size && !data) {
 			/* keep the data and wait for the rest */
 			if (sess->remaining_data) gf_free(sess->remaining_data);

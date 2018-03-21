@@ -955,7 +955,7 @@ GF_Err stsz_dump(GF_Box *a, FILE * trace)
 	if ((a->type != GF_ISOM_BOX_TYPE_STSZ) || !p->sampleSize) {
 		if (!p->sizes && p->size) {
 			fprintf(trace, "<!--WARNING: No Sample Size indications-->\n");
-		} else {
+		} else if (p->sizes) {
 			for (i=0; i<p->sampleCount; i++) {
 				fprintf(trace, "<SampleSizeEntry Size=\"%d\"/>\n", p->sizes[i]);
 			}
@@ -979,7 +979,7 @@ GF_Err stco_dump(GF_Box *a, FILE * trace)
 
 	if (!p->offsets && p->size) {
 		fprintf(trace, "<!--Warning: No Chunk Offsets indications-->\n");
-	} else {
+	} else if (p->offsets) {
 		for (i=0; i<p->nb_entries; i++) {
 			fprintf(trace, "<ChunkEntry offset=\"%u\"/>\n", p->offsets[i]);
 		}
@@ -1002,7 +1002,7 @@ GF_Err stss_dump(GF_Box *a, FILE * trace)
 
 	if (!p->sampleNumbers && p->size) {
 		fprintf(trace, "<!--Warning: No Key Frames indications-->\n");
-	} else {
+	} else if (p->sampleNumbers) {
 		for (i=0; i<p->nb_entries; i++) {
 			fprintf(trace, "<SyncSampleEntry sampleNumber=\"%u\"/>\n", p->sampleNumbers[i]);
 		}
@@ -1025,7 +1025,7 @@ GF_Err stdp_dump(GF_Box *a, FILE * trace)
 
 	if (!p->priorities && p->size) {
 		fprintf(trace, "<!--Warning: No Degradation Priority indications-->\n");
-	} else {
+	} else if (p->priorities) {
 		for (i=0; i<p->nb_entries; i++) {
 			fprintf(trace, "<DegradationPriorityEntry DegradationPriority=\"%d\"/>\n", p->priorities[i]);
 		}
@@ -1115,7 +1115,7 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 
 	if (!p->offsets && p->size) {
 		fprintf(trace, "<!-- Warning: No Chunk Offsets indications/>\n");
-	} else {
+	} else if (p->offsets) {
 		for (i=0; i<p->nb_entries; i++)
 			fprintf(trace, "<ChunkOffsetEntry offset=\""LLU"\"/>\n", LLU_CAST p->offsets[i]);
 	}

@@ -28,13 +28,13 @@
 #include <gpac/constants.h>
 
 #include "ff_common.h"
-#include <libavdevice/avdevice.h>
 
 
 typedef struct
 {
 	//options
 	const char *src;
+	const char *fmt, *dev;
 	u32 buffer_size;
 
 
@@ -102,28 +102,42 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	ctx->initialized = GF_TRUE;
 	if (!ctx->src) return GF_SERVICE_ERROR;
 
-	while (1) {
-		dev = av_input_video_device_next(dev);
-		if (!dev) break;
-    	if (!dev || !dev->priv_class  || !AV_IS_INPUT_DEVICE(dev->priv_class->category))
-        	continue;
-
-    	if (!dev->get_device_list) {
-    		continue;
-    	}
-	}
-
+	dev = NULL;
+	if (ctx->fmt) {
 		dev = av_find_input_format("avfoundation");
 		if (dev == NULL) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find the format\n"));
-			return -1;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Cannot find the input format %s\n", ctx->fmt));
+		} else if (dev->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Format %s is not a video input device\n", ctx->fmt));
+			dev = NULL;
 		}
+	}
+	while (!dev) {
+		dev = av_input_video_device_next(dev);
+		if (!dev) break;
+    	if (!dev || !dev->priv_class  || (dev->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) )
+        	continue;
 
+		//listing devices is on its way of implementation in ffmpeg ...
+/*
+    	if (dev->get_device_list) {
+
+    	} else {
+		}
+*/
+		break;
+	}
+	if (!dev) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Cannot find the format\n"));
+	}
+
+#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+#endif
 
 	fmt_ctx = NULL;
 
 	/* Open video */
-	res = avformat_open_input(&fmt_ctx, "", dev, &ctx->options);
+	res = avformat_open_input(&fmt_ctx, ctx->dev, dev, &ctx->options);
 	if ( (res < 0) && !stricmp(ctx->src+8, "screen-capture-recorder") ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", res));
 		av_dict_set(&ctx->options, "video_size", NULL, 0);
@@ -223,12 +237,14 @@ GF_FilterRegister FFAVInRegister = {
 
 void ffavin_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {
-	ffmpeg_registry_free(session, reg, 1);
+	ffmpeg_registry_free(session, reg, 3);
 }
 
 static const GF_FilterArgs FFAVInArgs[] =
 {
-	{ OFFS(src), "url of device, video:// or audio://", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(src), "url of device, video:// or audio://", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(fmt), "name of device class. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(dev), "name of device or index of device", GF_PROP_STRING, "0", NULL, GF_FALSE},
 	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
 	{}
 };
@@ -236,9 +252,6 @@ static const GF_FilterArgs FFAVInArgs[] =
 const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
 	GF_FilterArgs *args;
-	u32 i=0;
-	const struct AVOption *opt;
-	AVFormatContext *ctx;
 	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
 	ffmpeg_initialize();
 
@@ -248,29 +261,13 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 	}
 
 	FFAVInRegister.registry_free = ffavin_regfree;
-	ctx = avformat_alloc_context();
-
-	while (ctx->av_class->option) {
-		opt = &ctx->av_class->option[i];
-		if (!opt || !opt->name) break;
-		i++;
-	}
-	i+=2;
-
-	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
-	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
+	args = gf_malloc(sizeof(GF_FilterArgs)*(5));
+	memset(args, 0, sizeof(GF_FilterArgs)*(5));
 	FFAVInRegister.args = args;
 	args[0] = (GF_FilterArgs){ OFFS(src), "url of device", GF_PROP_STRING, NULL, NULL, GF_FALSE} ;
-	i=0;
-	while (ctx->av_class->option) {
-		opt = &ctx->av_class->option[i];
-		if (!opt || !opt->name) break;
-		args[i+1] = ffmpeg_arg_translate(opt);
-		i++;
-	}
-	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
-
-	avformat_free_context(ctx);
+	args[1] = (GF_FilterArgs){ OFFS(fmt), "name of device class. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, GF_FALSE} ;
+	args[2] = (GF_FilterArgs){ OFFS(dev), "name of device or index of device", GF_PROP_STRING, "0", NULL, GF_FALSE} ;
+	args[3] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
 
 	ffmpeg_expand_registry(session, &FFAVInRegister, 2);
 

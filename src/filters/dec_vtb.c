@@ -219,7 +219,6 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 				insert = GF_TRUE;
 			}
 		} else {
-			diff = (s64) (aframe->cts * frame->timescale);
 			diff = - (s64) (frame->cts * aframe->timescale);
 			if ((diff>0) && (ctx->last_timescale_out * frame->cts > frame->timescale * ctx->last_cts_out) ) {
 				insert = GF_TRUE;
@@ -578,13 +577,11 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		break;
     case GF_CODECID_MPEG4_PART2 :
 	{
-		Bool reset_dsi = GF_FALSE;
 		char *vosh = NULL;
 		u32 vosh_size = 0;
 		ctx->vtb_type = kCMVideoCodecType_MPEG4Video;
 
 		if (!p || !p->value.data.ptr) {
-			reset_dsi = GF_TRUE;
 			vosh = ctx->vosh;
 			vosh_size = ctx->vosh_size;
 		} else {
@@ -647,7 +644,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	if (! ctx->width || !ctx->height) return GF_NOT_SUPPORTED;
 
-    status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault, ctx->vtb_type, ctx->width, ctx->height, dec_dsi, &ctx->fmt_desc);
+    /*status = */CMVideoFormatDescriptionCreate(kCFAllocatorDefault, ctx->vtb_type, ctx->width, ctx->height, dec_dsi, &ctx->fmt_desc);
 
     if (!ctx->fmt_desc) {
 		if (dec_dsi) CFRelease(dec_dsi);
@@ -756,12 +753,10 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 	else gf_bs_reassign_buffer(ctx->ps_bs, data, size);
 
 	if (hevc_nal_type) {
-		is_sps = GF_FALSE;
 		if (hevc_nal_type==GF_HEVC_NALU_SEQ_PARAM) {
 			dest = ctx->SPSs;
 			ps_id = gf_media_hevc_read_sps(data, size, &ctx->hevc);
 			if (ps_id<0) return;
-			is_sps = GF_TRUE;
 		}
 		else if (hevc_nal_type==GF_HEVC_NALU_PIC_PARAM) {
 			dest = ctx->PPSs;
@@ -1042,7 +1037,7 @@ static void vtbdec_delete_decoder(GF_VTBDecCtx *ctx)
 
 static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
 {
-	u32 i, sc_size;
+	u32 i, sc_size=0;
 	char *ptr = inBuffer;
 	u32 nal_size;
 	GF_Err e = GF_OK;
@@ -1055,7 +1050,6 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 	}
 	
 	if (!ctx->nalu_size_length) {
-		sc_size=0;
 		nal_size = gf_media_nalu_next_start_code((u8 *) inBuffer, inBufferLength, &sc_size);
 		if (!sc_size) return GF_NON_COMPLIANT_BITSTREAM;
 		ptr += nal_size + sc_size;
@@ -1241,7 +1235,6 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	) {
         u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(vtbframe->frame);
 		char *dst;
-		Bool needs_stride=GF_FALSE;
 		u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(vtbframe->frame, 0);
 
 		GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &dst);
@@ -1267,7 +1260,6 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 					}
 				}
 				if (stride != w) {
-					needs_stride=GF_TRUE;
 					for (j=0; j<h; j++) {
 						memcpy(dst, data, sizeof(char)*w);
 						dst += w;

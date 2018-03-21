@@ -1899,6 +1899,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	nb_tracks = gf_isom_get_track_count(mp4);
 	e = GF_OK;
 	for (i=0; i<nb_tracks; i++) {
+		u32 ctype;
 		GF_Err (*gf_decrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
 		u32 trackID = gf_isom_get_track_id(mp4, i+1);
@@ -1922,8 +1923,8 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			tci.trackID = trackID;
 		}
 
-
-		switch (info->crypt_type) {
+		ctype = info ? info->crypt_type : scheme_type;
+		switch (ctype) {
 		case GF_CRYPT_ISMA_CRYPT_TYPE:
 			gf_decrypt_track = gf_ismacryp_decrypt_track;
 			break;
@@ -1957,14 +1958,14 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			continue;
 		}
 
-		if (info->crypt_type == GF_CRYPT_ISMA_CRYPT_TYPE) {
+		if (ctype == GF_CRYPT_ISMA_CRYPT_TYPE) {
 			/*get key and salt from KMS*/
 			/*GPAC*/
 			if (!strnicmp(KMS_URI, "(key)", 5)) {
 				char data[100];
 				gf_base64_decode((char*)KMS_URI+5, (u32) strlen(KMS_URI)-5, data, 100);
 				memcpy(tci.key, data, sizeof(char)*16);
-				if (info->crypt_type == GF_CRYPT_ISMA_CRYPT_TYPE) memcpy(tci.salt, data+16, sizeof(char)*8);
+				if (ctype == GF_CRYPT_ISMA_CRYPT_TYPE) memcpy(tci.salt, data+16, sizeof(char)*8);
 			}
 			/*MPEG4IP*/
 			else if (!stricmp(KMS_URI, "AudioKey") || !stricmp(KMS_URI, "VideoKey")) {

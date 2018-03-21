@@ -938,6 +938,9 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_PNG;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Error fetching item properties %s\n", gf_error_to_string(e) ));
+		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;

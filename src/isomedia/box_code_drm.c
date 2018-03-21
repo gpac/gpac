@@ -333,7 +333,7 @@ GF_Err schi_Size(GF_Box *s)
 	if (ptr->islt) {
 		e = gf_isom_box_size((GF_Box *) ptr->islt);
 		if (e) return e;
-		ptr->size += ptr->isfm->size;
+		ptr->size += ptr->islt->size;
 	}
 	if (ptr->odkm) {
 		e = gf_isom_box_size((GF_Box *) ptr->odkm);

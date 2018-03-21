@@ -325,7 +325,6 @@ GF_EXPORT
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF_FilterPid *for_pid)
 {
 	GF_Err e;
-	GF_MediaObject *syncRef;
 
 	if (!odm->scene_ns) {
 		if (odm->flags & GF_ODM_DESTROYED) {
@@ -342,8 +341,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		odm->media_current_time = 0;
 		odm->flags |= GF_ODM_REMOTE_OD;
 	}
-
-	syncRef = (GF_MediaObject*)odm->sync_ref;
 
 	if (odm->scene_ns->owner &&  (odm->scene_ns->owner->flags & GF_ODM_INHERIT_TIMELINE)) {
 		odm->flags |= GF_ODM_INHERIT_TIMELINE;
@@ -601,7 +598,6 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 		if (parent_od->scene_ns && (gf_list_count(parent_od->scene_ns->Clocks)==1)) {
 			ck = (GF_Clock*)gf_list_get(parent_od->scene_ns->Clocks, 0);
 			if (!odm->ServiceID || (odm->ServiceID==ck->service_id)) {
-				OD_OCR_ID = ck->clock_id;
 				goto clock_setup;
 			}
 		}
@@ -708,6 +704,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 	GF_FilterEvent com;
 	GF_Clock *parent_ck = NULL;
 
+	if (!scene) return;
+	
 	if (odm->mo && odm->mo->pck && !(odm->flags & GF_ODM_PREFETCH)) {
 		/*reset*/
 		gf_filter_pck_unref(odm->mo->pck);
@@ -1020,15 +1018,11 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 {
-	u32 i, count, nb_eos, nb_share_clock, nb_ck_running;
+	u32 i, count;
 	Bool all_done = GF_TRUE;
 #ifndef GPAC_DISABLE_VRML
 	if (gf_odm_check_segment_switch(odm)) return;
 #endif
-
-	nb_share_clock=0;
-	nb_eos = odm->has_seen_eos ? 1 : 0;
-	nb_ck_running = 0;
 
 	if (odm->pid==pid) {
 		odm->has_seen_eos = GF_TRUE;
@@ -1102,7 +1096,7 @@ void gf_odm_signal_eos_reached(GF_ObjectManager *odm)
 		}
 	} else {
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
-		if (gf_sc_check_end_of_scene(scene->compositor, 0)) {
+		if (scene && odm->parentscene && gf_sc_check_end_of_scene(scene->compositor, 0)) {
 			GF_Event evt;
 			evt.type = GF_EVENT_EOS;
 			gf_sc_send_event(odm->parentscene->compositor, &evt);
@@ -1393,7 +1387,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		pid = odm->pid;
 
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
-
+	if (!scene) return GF_FALSE;
 	pck = gf_filter_pid_get_packet(pid);
 	ck_type = gf_filter_pid_get_clock_info(pid, &clock_reference, &timescale);
 

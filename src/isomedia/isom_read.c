@@ -84,7 +84,7 @@ GF_ISOSample *gf_isom_sample_new()
 GF_EXPORT
 void gf_isom_sample_del(GF_ISOSample **samp)
 {
-	if (! *samp) return;
+	if (!samp || ! *samp) return;
 	if ((*samp)->data && (*samp)->dataLength) gf_free((*samp)->data);
 	gf_free(*samp);
 	*samp = NULL;
@@ -273,7 +273,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 		//locate pps and sps
-		end = gf_media_nalu_next_start_code((u8 *) CodecParams, CodecParamLen, &sc_size);
+		gf_media_nalu_next_start_code((u8 *) CodecParams, CodecParamLen, &sc_size);
 		pos += sc_size;
 		while (pos<CodecParamLen) {
 			GF_AVCConfigSlot *slc;
@@ -2966,7 +2966,6 @@ u32 gf_isom_get_highest_track_in_scalable_segment(GF_ISOFile *movie, u32 for_bas
 			case GF_ISOM_SUBTYPE_LHV1:
 				ref = gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_BASE);
 				if (ref<=0) continue;
-				ref_type = GF_ISOM_REF_BASE;
 				break;
 			default:
 				continue;
@@ -4142,7 +4141,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 exit:
 
 	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
-	if ((senc->is_piff || (trak->moov && trak->moov->mov->is_smooth) ) && !(*IV_size) ) {
+	if ((senc->is_piff || (trak->moov && trak->moov->mov->is_smooth) ) && IV_size && !(*IV_size) ) {
 		if (!senc->is_piff) {
 			senc->is_piff = GF_TRUE;
 			senc->IV_size=8;

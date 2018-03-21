@@ -2408,7 +2408,7 @@ restart_fragmentation_pass:
 				sprintf(sOpt, "%f", max_segment_duration);
 				gf_cfg_set_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
 			} else {
-				max_segment_duration = seg_dur;
+				//max_segment_duration = seg_dur;
 			}
 		} else {
 			sprintf(sOpt, "%f", max_segment_duration);

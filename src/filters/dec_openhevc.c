@@ -182,9 +182,9 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 void openhevc_log_callback(void *udta, int l, const char*fmt, va_list vl)
 {
 	u32 level = GF_LOG_DEBUG;
-	if (l <= OHEVC_LOG_ERROR) l = GF_LOG_ERROR;
-	else if (l <= OHEVC_LOG_WARNING) l = GF_LOG_WARNING;
-	else if (l <= OHEVC_LOG_INFO) l = GF_LOG_INFO;
+	if (l <= OHEVC_LOG_ERROR) level = GF_LOG_ERROR;
+	else if (l <= OHEVC_LOG_WARNING) level = GF_LOG_WARNING;
+	else if (l <= OHEVC_LOG_INFO) level = GF_LOG_INFO;
 //	else if (l >= OHEVC_LOG_VERBOSE) return;
 
 	if (gf_log_tool_level_on(GF_LOG_CODEC, level)) {
@@ -210,7 +210,7 @@ static void ohevcdec_set_codec_name(GF_Filter *filter)
 
 static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 i, j, dep_id=0, id=0, cfg_crc=0, codecid, stride_mul=1;
+	u32 i, j, dep_id=0, id=0, cfg_crc=0, codecid;
 	Bool found, has_scalable = GF_FALSE;
 	const GF_PropertyValue *p, *dsi;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
@@ -390,8 +390,6 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					//multiview
 					if ((vps_id>=0) && (hevc.vps[vps_id].scalability_mask[1])) {
 						ctx->is_multiview = GF_TRUE;
-						if (ctx->force_stereo)
-							stride_mul=2;
 					}
 				}
 				else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -544,13 +542,11 @@ void ohevcframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *p
 
 GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
-	GF_Err e;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
 	*outPlane = NULL;
 	*outStride = 0;
 
-	e = GF_OK;
 	if (plane_idx==0) {
 		*outPlane = (const u8 *) ctx->frame_ptr.data_y_p;
 		*outStride = ctx->frame_ptr.frame_par.linesize_y;
@@ -783,10 +779,13 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		out1 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL);
 		oh_select_view_layer(ctx->codec, 1);
 		out2 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_SL);
-		
-		gf_filter_pck_set_cts(pck, cts);
-		gf_filter_pck_send(pck);
 
+		if (out1 && out2) {
+			gf_filter_pck_set_cts(pck, cts);
+			gf_filter_pck_send(pck);
+		} else {
+			gf_filter_pck_discard(pck);
+		}
 	} else {
 		openHevcFrame_FL.data_cb = (void*) (data + ctx->stride * ctx->height);
 		if( chromat_format == OH_YUV420) {

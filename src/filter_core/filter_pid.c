@@ -175,7 +175,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	//set input buffer size
 	count=pid->filter->num_input_pids;
 	for (i=0; i<count; i++) {
-		u32 i_codecid, i_type=0;
+		u32 i_codecid=0, i_type=0;
 		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
 
 		p = gf_filter_pid_get_property(pidi->pid, GF_PROP_PID_STREAM_TYPE);
@@ -766,7 +766,6 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 	Bool all_caps_matched = src->nb_output_caps ? GF_TRUE : GF_FALSE;
 
 	//check all output caps of src filter
-	i=0;
 	for (i=0; i<src->nb_output_caps; i++) {
 		u32 j, k;
 		Bool matched=GF_FALSE;
@@ -917,7 +916,7 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 
 		sub_weight = gf_filter_check_dst_caps(fsess, freg, black_list, current_filter_chain, dst_filter);
 		if (!sub_weight) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs does not match filter %s input caps, skiping filter\n", freg->name, dst_filter->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs does not match filter %s input caps, skiping filter\n", freg->name, dst_filter ? dst_filter->name : "none"));
 			continue;
 		}
 		path_weight += sub_weight;
@@ -1487,14 +1486,12 @@ GF_Err gf_filter_pid_set_info_dyn(GF_FilterPid *pid, char *name, const GF_Proper
 
 static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
 {
-	GF_FilterPidInst *pidinst;
 	if (!prop_4cc) return GF_BAD_PARAM;
 
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to negociate property on output PID in filter %s - ignoring\n", pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	pidinst = (GF_FilterPidInst *) pid;
 	pid = pid->pid;
 	if (pid->num_destinations>1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to negociate property on PID with multiple destination in filter %s - not supported\n", pid->filter->name));
@@ -2296,6 +2293,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		GF_FilterEvent *an_evt;
 		GF_FilterPidInst *pid_inst = gf_list_get(f->input_pids, i);
 		GF_FilterPid *pid = pid_inst->pid;
+		if (!pid) continue;
 
 		if (dispatched_filters) {
 			if (gf_list_find(dispatched_filters, pid_inst->pid->filter) >=0 )
@@ -2317,10 +2315,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			an_evt = evt;
 		}
 		an_evt->base.on_pid = task->pid ? pid : NULL;
-		if (pid) {
-			safe_int_inc(&pid->filter->num_events_queued);
-		}
 
+		safe_int_inc(&pid->filter->num_events_queued);
+		
 		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? pid : NULL, "downstream_event", an_evt);
 	}
 	if (dispatched_filters) gf_list_del(dispatched_filters);

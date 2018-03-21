@@ -541,7 +541,6 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 
 static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment, GF_Scene *original_parent_scene)
 {
-	GF_ObjectManager *root_od;
 	GF_ObjectManager *odm;
 	char *url, *final_url;
 	if (!mo || !scene) return;
@@ -553,7 +552,6 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	odm->parentscene = scene;
 	odm->ID = GF_MEDIA_EXTERNAL_ID;
 	odm->parentscene = scene;
-	root_od = scene->root_od;
 	if (scene->force_single_timeline) lock_timelines = GF_TRUE;
 
 	url = mo->URLs.vals[0].url;
@@ -3150,10 +3148,10 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 {
 #ifdef FILTER_FIXME
 	Bool nalu_annex_b;
+	Bool force_attach=GF_FALSE;
 #endif
 	GF_ObjectManager *odm_base = NULL;
 	u32 i, count;
-	Bool force_attach=GF_FALSE;
 
 	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
@@ -3177,14 +3175,19 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		switch (odm->original_oti) {
 		case GF_CODECID_LHVC:
 			if (!odm_base->hybrid_layered_coded) {
+#ifdef FILTER_FIXME
 				force_attach=GF_TRUE;
+#endif
+
 			}
 			odm_base->hybrid_layered_coded=GF_TRUE;
 			break;
 		}
 		break;
 	case GF_CODECID_HEVC:
+#ifdef FILTER_FIXME
 		force_attach=GF_TRUE;
+#endif
 		break;
 	}
 	odm->lower_layer_odm = odm_base;

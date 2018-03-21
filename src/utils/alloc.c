@@ -750,7 +750,7 @@ Bool gf_check_address(void *ptr)
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed in:\n", ptr);
 		res = GF_FALSE;
         log_backtrace(GF_MEMORY_ERROR, element);
-		assert(0);
+//		assert(0);
 	}
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);

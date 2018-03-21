@@ -23,14 +23,7 @@
  *
  */
 
-#include <gpac/filters.h>
-#include <gpac/list.h>
-#include <gpac/constants.h>
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/opt.h>
-#include <libavutil/pixdesc.h>
-#include <libavutil/dict.h>
+#include "ff_common.h"
 
 static Bool ffmpeg_init = GF_FALSE;
 
@@ -196,6 +189,7 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 	}
 	else if (type==2) {
 		fname = "ffavin";
+		avdevice_register_all();
 		flags=AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_AUDIO_PARAM|AV_OPT_FLAG_DECODING_PARAM;
 	}
 	else return;
@@ -209,7 +203,6 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 		const char *description = NULL;
 		char szDef[100];
 		GF_FilterRegister *freg;
-		i=0;
 		if (type==0) {
 			fmt = av_iformat_next(fmt);
 			if (!fmt) break;
@@ -222,6 +215,13 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 			av_class = codec->priv_class;
 			subname = codec->name;
 			description = codec->long_name;
+		} else if (type==2) {
+			fmt = av_input_video_device_next(fmt);
+			if (!fmt) break;
+			av_class = fmt->priv_class;
+			subname = fmt->name;
+			description = fmt->long_name;
+    		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
 		} else {
 			break;
 		}

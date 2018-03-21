@@ -1616,7 +1616,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		while (desc_len) {
 			u8 tag = data[0];
 			u32 len = data[1];
-			if (es) {
+			if (es && pes) {
 				switch (tag) {
 				case GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR:
 					pes->lang = GF_4CC(' ', data[2], data[3], data[4]);
@@ -2670,7 +2670,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 GF_EXPORT
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 {
-	GF_Err e=GF_OK;;
+	GF_Err e=GF_OK;
 	u32 pos, pck_size;
 	Bool is_align = 1;
 
@@ -2716,7 +2716,6 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 		return GF_OK;
 	}
 	pck_size = ts->prefix_present ? 192 : 188;
-	e=GF_OK;
 	for (;;) {
 		/*wait for a complete packet*/
 		if (data_size < pos  + pck_size) {

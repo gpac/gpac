@@ -683,6 +683,10 @@ enum
 	GF_PROP_PID_HEIGHT_MAX = GF_4CC('M', 'H','E','I'),
 	//(uint) Z-index of video pid
 	GF_PROP_PID_ZORDER = GF_4CC('V', 'Z','I','X'),
+	//(uint) frame width
+	GF_PROP_PID_TRANS_X = GF_4CC('V','T','R','X'),
+	//(uint) frame height
+	GF_PROP_PID_TRANS_Y = GF_4CC('V','T','R','Y'),
 
 	//(uint) average bitrate
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),

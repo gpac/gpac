@@ -281,7 +281,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(m4sys_iod_stream) );
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(((GF_M2TS_ES*)stream)->slcfg->timestampResolution) );
-		if (esd->decoderConfig->streamType==GF_STREAM_OD)
+		if (esd->decoderConfig && (esd->decoderConfig->streamType==GF_STREAM_OD))
 			stream->flags |= GF_M2TS_ES_IS_MPEG4_OD;
 	} else {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(stype) );
@@ -292,6 +292,8 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
 	}
+	if (has_scal_layer)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
 

@@ -179,14 +179,19 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	}
 
 	duration = 0;
+	cur_dur = 0;
 	while (gf_bs_available(bs)) {
 		u8 ftype;
 		u32 tinc;
 		u64 fsize, start;
 		Bool is_coded;
-		u64 pos = gf_bs_get_position(bs);
+		u64 pos;
 		pos = gf_m4v_get_object_start(vparser);
 		e = gf_m4v_parse_frame(vparser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Could not parse video frame\n"));
+			continue;
+		}
 
 		duration += ctx->fps.den;
 		cur_dur += ctx->fps.den;
@@ -529,7 +534,6 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		Bool full_frame;
 		char *pck_data;
 		s32 current;
-		u32 w, h;
 		u8 sc_type, forced_sc_type;
 		Bool sc_type_forced = GF_FALSE;
 		Bool skip_pck = GF_FALSE;
@@ -668,7 +672,6 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		//parse headers
-		w = h = 0;
 
 		//we have a start code loaded, eg the data packet does not have a full start code at the begining
 		if (sc_type_forced) {

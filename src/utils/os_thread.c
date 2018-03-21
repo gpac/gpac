@@ -543,7 +543,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 #endif
 	u32 caller;
 #ifndef GPAC_DISABLE_LOG
-	const char *mx_holder_name = mx->Holder ? log_th_name(mx->Holder) : "none";
+	const char *mx_holder_name;
 #endif
 
 	if (!mx) return 1;
@@ -554,7 +554,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	mx_holder_name = log_th_name(mx->Holder);
+	mx_holder_name = mx->Holder ? log_th_name(mx->Holder) : "none";
 	if (mx->Holder)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Thread %s waiting a release from thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(caller), mx_holder_name ));
 #endif

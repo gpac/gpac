@@ -528,7 +528,6 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		if (alread_sync) {
 			gf_bs_reassign_buffer(ctx->bs, ctx->header+1, 6);
 			sync = start;
-			sync_pos = 0;
 		} else {
 			sync = memchr(start, 0xFF, remain);
 			sync_pos = sync ? sync - start : remain;

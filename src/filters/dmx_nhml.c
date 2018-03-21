@@ -274,7 +274,7 @@ static void nhml_node_end(void *sax_cbck, const char *node_name, const char *nam
 
 static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xmlFrom, char *xmlTo)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 read;
 	XMLBreaker breaker;
 	char *tmp;
@@ -326,7 +326,6 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	e = gf_xml_sax_parse_file(breaker.sax, xml_file, NULL);
 	gf_xml_sax_del(breaker.sax);
 	if (e<0) goto exit;
-	e = GF_OK;
 
 	if (!breaker.to_id) {
 		gf_fseek(xml, 0, SEEK_END);
@@ -442,7 +441,7 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, char **dict, u32 offset)
 static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 {
 	GF_Err e;
-	Bool destroy_esd, inRootOD, is_dims;
+	Bool inRootOD;
 	u32 i, tkID, mtype, streamType, codecid, specInfoSize, header_end, par_den, par_num;
 	GF_XMLAttribute *att;
 	u32 width, height, codec_tag, sample_rate, nb_channels, version, revision, vendor_code, temporal_quality, spatial_quality, h_res, v_res, bit_depth, bits_per_sample;
@@ -457,11 +456,10 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	char compressor_name[100];
 	GF_XMLNode *node;
 	u64 media_size, last_dts;
-	char *szRootName, *szSampleName, *szSubSampleName, *szImpName;
+	char *szRootName, *szSampleName, *szImpName;
 
 	szRootName = ctx->is_dims ? "DIMSStream" : "NHNTStream";
 	szSampleName = ctx->is_dims ? "DIMSUnit" : "NHNTSample";
-	szSubSampleName = ctx->is_dims ? "DIMSSubUnit" : "NHNTSubSample";
 	szImpName = ctx->is_dims ? "DIMS" : "NHML";
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
@@ -500,11 +498,9 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	destroy_esd = GF_FALSE;
 	ctx->dts_inc = 0;
 	inRootOD = GF_FALSE;
 	ctx->do_compress = GF_FALSE;
-	is_dims = GF_FALSE;
 	specInfo = NULL;
 
 #ifndef GPAC_DISABLE_ZLIB
@@ -672,7 +668,6 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	if (ctx->is_dims || (codec_tag==GF_ISOM_SUBTYPE_3GP_DIMS)) {
 		mtype = GF_ISOM_MEDIA_DIMS;
 		codec_tag=GF_ISOM_SUBTYPE_3GP_DIMS;
-		is_dims = GF_TRUE;
 		streamType = 0;
 	}
 
@@ -1178,6 +1173,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				if (sample_duration || ctx->dts_inc)
 					gf_filter_pck_set_duration(pck, sample_duration ? sample_duration : ctx->dts_inc);
 
+				if (byte_offset != GF_FILTER_NO_BO)
+					gf_filter_pck_set_byte_offset(pck, byte_offset);
+
 				if (ctx->in_seek) {
 					if (dts+cts_offset >= ctx->start_range * ctx->timescale)
 						ctx->in_seek = GF_FALSE;
@@ -1286,13 +1284,10 @@ GF_Err nhmldmx_process(GF_Filter *filter)
 	GF_NHMLDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_Err e;
-	u32 pkt_size;
 	Bool start, end;
-	const char *data;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (pck) {
-		data = gf_filter_pck_get_data(pck, &pkt_size);
 		gf_filter_pck_get_framing(pck, &start, &end);
 		//for now we only work with complete files
 		assert(end);

@@ -470,7 +470,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 
 	avformat_free_context(ctx);
 
-	ffmpeg_expand_registry(session, &FFDemuxRegister, 0);
+	ffmpeg_expand_registry(session, &FFDemuxRegister, 2);
 
 	return &FFDemuxRegister;
 }

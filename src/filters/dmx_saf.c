@@ -78,7 +78,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 {
 	Bool is_rap, go;
 	GF_SAFStream *st;
-	u32 cts, au_sn, au_size, type, i, stream_id;
+	u32 cts, au_size, type, i, stream_id;
 	u64 bs_pos;
 	GF_BitStream *bs;
 
@@ -104,7 +104,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 		if (avail<10) break;
 
 		is_rap = (Bool)gf_bs_read_int(bs, 1);
-		au_sn = gf_bs_read_int(bs, 15);
+		/*au_sn = */gf_bs_read_int(bs, 15);
 		gf_bs_read_int(bs, 2);
 		cts = gf_bs_read_int(bs, 30);
 		au_size = gf_bs_read_int(bs, 16);

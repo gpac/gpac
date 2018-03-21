@@ -251,7 +251,10 @@ static GF_Err xviddec_process(GF_Filter *filter)
 #endif
 	char *buffer;
 	Bool is_seek;
-	s32 postproc, res;
+#if 0
+	s32 postproc;
+#endif
+	s32 res;
 	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 
@@ -307,8 +310,8 @@ packed_frame :
 #endif
 
 
-	postproc = ctx->base_filters;
 #if 0
+	postproc = ctx->base_filters;
 	/*to check, not convinced yet by results...*/
 	switch (mmlevel) {
 	case GF_CODEC_LEVEL_SEEK:

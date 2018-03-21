@@ -566,7 +566,6 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	u32 i;
-	GF_Err e;
 	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, j, rem_styles;
 	Bool set_start_char, set_end_char, rem_color;
 	u32 line, len;
@@ -580,7 +579,6 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
 	if (!ctx->is_playing) return GF_OK;
 
-	e = GF_OK;
 	txt_line = 0;
 	set_start_char = set_end_char = GF_FALSE;
 	char_len = 0;
@@ -1223,7 +1221,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 	if (ctx->zorder) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_SINT(ctx->zorder) );
-	if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING( ctx->lang) );
+	if (lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang) );
 	gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(TTML_NAMESPACE) );
 
 	/*** body ***/
@@ -1447,7 +1445,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 
 exit:
 	ctx->non_compliant_ttml = GF_TRUE;
-	return GF_NON_COMPLIANT_BITSTREAM;
+	return e;
 }
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -1579,7 +1577,6 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	u32 i, j, len, line;
-	GF_Err e;
 	GF_TextSample *samp;
 	Double ts_scale;
 	char szLine[2048], szTime[20], szText[2048];
@@ -1597,7 +1594,6 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 		gf_fseek(ctx->src, 0, SEEK_SET);
 	}
 
-	e = GF_OK;
 	if (ctx->fps.den && ctx->fps.num) {
 		ts_scale = ((Double) ctx->fps.num) / ctx->fps.den;
 	} else {
@@ -1774,7 +1770,6 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 	root = gf_xml_dom_get_root(ctx->parser);
 
-	e = GF_OK;
 	if (strcmp(root->name, "TextStream")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Invalid Timed Text file - expecting \"TextStream\" got %s", root->name));
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -1831,8 +1826,10 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 				gf_filter_pid_set_property_str(ctx->opid, "tref:chap", &PROP_UINT(tref_id) );
 			}
 
-			if (w) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
-			if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+			if (w) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
+			if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
+			if (tx) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_X, &PROP_UINT(tx) );
+			if (ty) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_X, &PROP_UINT(ty) );
 			if (layer) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_SINT(ctx->zorder) );
 			if (ctx->lang) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, &PROP_STRING( ctx->lang) );
 
@@ -2291,7 +2288,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 		GF_TextSampleDescriptor td;
 		GF_TextSample * samp = NULL;
 		u64 duration;
-		u32 descIndex, nb_styles, nb_marks;
+		u32 nb_styles, nb_marks;
 		Bool isRAP, same_style, same_box;
 
 		if (probe_first_desc_only && ctx->text_descs && gf_list_count(ctx->text_descs))
@@ -2311,7 +2308,6 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 		nb_styles = 0;
 		nb_marks = 0;
 		same_style = same_box = GF_FALSE;
-		descIndex = 1;
 		j=0;
 		while ((desc=(GF_XMLNode*)gf_list_enum(node->content, &j))) {
 			if (desc->type) continue;

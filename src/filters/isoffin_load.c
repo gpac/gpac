@@ -113,7 +113,7 @@ void isor_declare_objects(ISOMReader *read)
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
-		streamtype = codec_id = esid = depends_on_id = avg_rate = 0;
+		esid = depends_on_id = avg_rate = 0;
 		mime = encoding = stxtcfg = namespace = schemaloc = NULL;
 
 		mtype = gf_isom_get_media_type(read->mov, i+1);
@@ -214,7 +214,7 @@ void isor_declare_objects(ISOMReader *read)
 			lang_desc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 			gf_isom_get_media_language(read->mov, i+1, &lang_desc->full_lang_code);
 
-			codec_id = m_subtype;
+//			codec_id = m_subtype;
 			if (!streamtype) streamtype = gf_codecid_type(m_subtype);
 
 			switch (m_subtype) {
@@ -528,7 +528,7 @@ void isor_declare_objects(ISOMReader *read)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(props.height));
 		}
 
-		ch = isor_create_channel(read, pid, 0, item_id);
+		/*ch = */isor_create_channel(read, pid, 0, item_id);
 		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
 

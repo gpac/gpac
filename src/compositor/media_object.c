@@ -316,7 +316,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	u32 obj_time, obj_time_orig;
 	s64 diff;
 	Bool skip_resync;
-	const char *data = NULL;
 	const GF_PropertyValue *v;
 	u32 timescale=0;
 	u64 pck_ts=0, next_ts=0;
@@ -371,7 +370,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	*eos = mo->is_eos;
 	assert(mo->pck);
 
-	data = gf_filter_pck_get_data(mo->pck, size);
+	/*data = */gf_filter_pck_get_data(mo->pck, size);
 	timescale = gf_filter_pck_get_timescale(mo->pck);
 
 	pck_ts = (u32) (1000*gf_filter_pck_get_cts(mo->pck) / timescale);
@@ -1191,7 +1190,9 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
 GF_EXPORT
 u32 gf_mo_has_audio(GF_MediaObject *mo)
 {
-	char *sub_url, *ext;
+#ifdef FILTER_FIXME
+	char *sub_url;
+#endif
 	u32 i;
 	GF_SceneNamespace *ns;
 	GF_Scene *scene;
@@ -1201,20 +1202,24 @@ u32 gf_mo_has_audio(GF_MediaObject *mo)
 
 	ns = mo->odm->scene_ns;
 	scene = mo->odm->parentscene;
+#ifdef FILTER_FIXME
 	sub_url = strchr(ns->url, '#');
+#endif
 	for (i=0; i<gf_list_count(scene->resources); i++) {
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 		if (odm->scene_ns != ns) continue;
 		//object already associated
 		if (odm->mo) continue;
 
+#ifdef FILTER_FIXME
 		if (sub_url) {
-			ext = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
+			char *ext = mo->URLs.count ? mo->URLs.vals[0].url : NULL;
 			if (ext) ext = strchr(ext, '#');
 			if (!ext || strcmp(sub_url, ext)) continue;
 		}
+#endif
 		/*we have one audio object not bound with the scene from the same service, let's use it*/
-		if (odm->mo->type == GF_MEDIA_OBJECT_AUDIO) return 1;
+		if (odm->type == GF_STREAM_AUDIO) return 1;
 	}
 	return 0;
 }

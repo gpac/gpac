@@ -149,8 +149,8 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 {
 	u32 entry_type;
 	GF_BitStream *bs;
-	u32 st, codecid, dsi_crc;
-	const GF_PropertyValue *p, *dsi;
+	u32 dsi_crc;
+	const GF_PropertyValue *dsi;
 	GF_VTTDec *ctx = (GF_VTTDec *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -162,16 +162,8 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->ipid && !gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
 	assert(!ctx->ipid || (ctx->ipid == pid));
 
-	st = codecid = 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-	if (p) st = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (p) codecid = p->value.uint;
-
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!dsi) return GF_NOT_SUPPORTED;
-
-	if (st != GF_STREAM_TEXT) return GF_NOT_SUPPORTED;
 
 	dsi_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 	if (dsi_crc == ctx->dsi_crc) return GF_OK;

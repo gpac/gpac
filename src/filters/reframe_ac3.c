@@ -132,6 +132,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	duration = 0;
+	cur_dur = 0;
 	while (	ctx->ac3_parser_bs(bs, &hdr, GF_FALSE) ) {
 		if ((sr>=0) && (sr != hdr.sample_rate)) {
 			duration *= hdr.sample_rate;
@@ -378,8 +379,6 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 
 		if (alread_sync) {
 			gf_bs_reassign_buffer(ctx->bs, ctx->header, 6);
-			sync = start;
-			sync_pos = 0;
 		} else {
 			if (remain < 6) {
 				memcpy(ctx->header, start, remain);

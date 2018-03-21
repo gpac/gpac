@@ -1203,7 +1203,6 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 		period->duration = max_dur*1000;
 	}
 
-	nb_streams = gf_list_count(pl->streams);
 	/*check if we use templates*/
 	template_base = NULL;
 	template_ext = NULL;

@@ -52,7 +52,7 @@ typedef struct
 
 GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 i, sr, bps;
+	u32 i, sr;
 	const GF_PropertyValue *p;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo acfg;
@@ -84,9 +84,6 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (!p) return GF_NOT_SUPPORTED;
 	ctx->channels = p->value.uint;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
-	bps = p ? gf_audio_fmt_bit_depth(p->value.uint) : 16;
 
 	ctx->aac_type = 0;
 	if (ctx->codecid==GF_CODECID_AAC_MPEG4) {

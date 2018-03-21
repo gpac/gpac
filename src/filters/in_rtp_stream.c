@@ -206,10 +206,9 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	GF_RTSPRange *range;
 	GF_RTPInStream *tmp;
 	GF_RTPMap *map;
-	u32 i, ESID, ODID, ssrc, rtp_seq, rtp_time;
+	u32 i, ESID, ODID;
 	Bool force_bcast = GF_FALSE;
 	Double Start, End;
-	Float CurrentTime;
 	u16 rvc_predef = 0;
 	char *rvc_config_att = NULL;
 	u32 s_port_first, s_port_last;
@@ -222,13 +221,11 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	//extract all relevant info from the GF_SDPMedia
 	Start = 0.0;
 	End = -1.0;
-	CurrentTime = 0.0f;
 	ODID = 0;
 	ESID = 0;
 	ctrl = NULL;
 	range = NULL;
 	s_port_first = s_port_last = 0;
-	ssrc = rtp_seq = rtp_time = 0;
 	mid = prev_stream = base_stream = 0;
 	i=0;
 	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
@@ -407,7 +404,7 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 	if (!stream->rtp_ch) return;
 
 	gf_filter_pid_set_info_str(stream->opid, "nets:loss", &PROP_UINT( gf_rtp_get_loss(stream->rtp_ch) ) );
-	if (stream->flags & RTP_INTERLEAVED) {
+	if (stream->rtsp && (stream->flags & RTP_INTERLEAVED)) {
 		gf_filter_pid_set_info_str(stream->opid, "nets:interleaved", &PROP_UINT( gf_rtsp_get_session_port(stream->rtsp->session) ) );
 		gf_filter_pid_set_info_str(stream->opid, "nets:rtpid", &PROP_UINT( gf_rtp_get_low_interleave_id(stream->rtp_ch) ) );
 		gf_filter_pid_set_info_str(stream->opid, "nets:rctpid", &PROP_UINT( gf_rtp_get_hight_interleave_id(stream->rtp_ch) ) );

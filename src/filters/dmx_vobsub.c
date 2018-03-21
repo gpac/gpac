@@ -232,7 +232,6 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 	GF_List *subpic;
 	vobsub_lang *vslang;
 	u32 c, count;
-	u32 last_samp_dur = 0;
 	GF_FilterPacket *dst_pck;
 
 	unsigned char buf[0x800];
@@ -323,8 +322,6 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 			return GF_CORRUPTED_DATA;
 		}
 
-		last_samp_dur = duration;
-
 		gf_filter_pck_set_cts(dst_pck, pos->start * 90);
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 		gf_filter_pck_set_duration(dst_pck, duration);
@@ -348,7 +345,6 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	u32 pkt_size, i, count, nb_eos;
 	Bool start, end;
-	const char *data;
 
 	if (!ctx->idx_parsed) {
 		GF_Err e;
@@ -386,7 +382,7 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = gf_filter_pck_get_data(pck, &pkt_size);
+	/*data =*/ gf_filter_pck_get_data(pck, &pkt_size);
 	gf_filter_pck_get_framing(pck, &start, &end);
 	//for now we only work with complete files
 	assert(end);

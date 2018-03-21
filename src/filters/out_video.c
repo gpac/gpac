@@ -344,7 +344,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	assert(!ctx->pid || (ctx->pid==pid));
 	gf_filter_pid_check_caps(pid);
 
-	w = h = pfmt = timescale = 0;
+	w = h = pfmt = timescale = stride = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) timescale = p->value.uint;
 
@@ -717,7 +717,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 
 	e = ctx->video_out->Setup(ctx->video_out, ctx->user->os_window_handler, ctx->user->os_display, ctx->user->init_flags);
 	if (e!=GF_OK) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("Failed to Setup Video Driver %s!\n", sOpt));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("Failed to Setup Video Driver %s!\n", ctx->video_out->module_name));
 		gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
 		ctx->video_out = NULL;
 		return e;
@@ -729,7 +729,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 #endif
 	) {
 		if (ctx->mode < MODE_2D) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("No openGL support - using 2D rasterizer!\n", sOpt));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("No openGL support - using 2D rasterizer!\n", ctx->video_out->module_name));
 			ctx->mode = MODE_2D;
 		}
 	}
@@ -800,7 +800,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	Float dw, dh;
 	char *data;
 	u32 size, stride_luma, stride_chroma;
-	char *pY, *pU, *pV;
+	char *pY=NULL, *pU=NULL, *pV=NULL;
 
 	if (!ctx->glsl_program) return;
 
