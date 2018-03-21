@@ -537,7 +537,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 		stride *= 2;
 		break;
 	case 3:
-		pix_format = GF_PIXEL_RGB_24;
+		pix_format = GF_PIXEL_RGB;
 		txh->transparent = 0;
 		stride *= 3;
 		break;

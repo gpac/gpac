@@ -1902,7 +1902,7 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 		Fixed v[4];
 		switch (txh->pixelformat) {
 		/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
-		case GF_PIXEL_RGB_24:
+		case GF_PIXEL_RGB:
 			if (tr_state->visual->has_material_2d) {
 				SFColor c;
 				c.red = c.green = c.blue = FIX_ONE;

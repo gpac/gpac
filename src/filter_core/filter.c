@@ -396,11 +396,12 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		const GF_FilterArgs *a = &filter->freg->args[i];
 		i++;
 		if (!a || !a->arg_name) break;
-		if (!a->arg_default_val) continue;
 		if (a->meta_arg) {
 			has_meta_args = GF_TRUE;
 			continue;
 		}
+		if (!a->arg_default_val) continue;
+
 		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, a->arg_default_val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
@@ -424,13 +425,26 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		u32 len;
 		Bool found=GF_FALSE;
 		char *escaped = NULL;
+		Bool internal_url = GF_FALSE;
 		//look for our arg separator
 		char *sep = strchr(args, ':');
 		if (sep && !strncmp(sep, "://", 3)) {
-			//get root /
-			sep = strchr(sep+3, '/');
-			//get first : after root
-			if (sep) sep = strchr(sep+1, ':');
+			//filter internal url schemes
+			if (!strncmp(args, "src=video://", 12)
+				|| !strncmp(args, "src=audio://", 12)
+				|| !strncmp(args, "src=av://", 9)
+				|| !strncmp(args, "src=gmem://", 11)
+				|| !strncmp(args, "src=gpac://", 11)
+			) {
+				internal_url = GF_TRUE;
+				sep = strchr(sep+3, ':');
+
+			} else {
+				//get root /
+				sep = strchr(sep+3, '/');
+				//get first : after root
+				if (sep) sep = strchr(sep+1, ':');
+			}
 		}
 
 		//watchout for "C:\\"
@@ -441,7 +455,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			escaped = strstr(sep, ":gpac:");
 			if (escaped) sep = escaped;
 		}
-		if (sep && !strncmp(args, "src=", 4) && !escaped) {
+		if (sep && !strncmp(args, "src=", 4) && !escaped && !internal_url) {
 			Bool file_exists;
 			sep[0]=0;
 			file_exists = gf_file_exists(args+4);

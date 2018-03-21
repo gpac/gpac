@@ -107,12 +107,12 @@ static u32 ffdec_gpac_convert_pix_fmt(u32 pix_fmt)
 	case AV_PIX_FMT_YUV444P: return GF_PIXEL_YUV444;
 	case AV_PIX_FMT_YUV444P10LE: return GF_PIXEL_YUV444_10;
 	case AV_PIX_FMT_RGBA: return GF_PIXEL_RGBA;
-	case AV_PIX_FMT_RGB24: return GF_PIXEL_RGB_24;
-	case AV_PIX_FMT_BGR24: return GF_PIXEL_BGR_24;
+	case AV_PIX_FMT_RGB24: return GF_PIXEL_RGB;
+	case AV_PIX_FMT_BGR24: return GF_PIXEL_BGR;
 	//force output in RGB24
-	case AV_PIX_FMT_YUVJ420P: return GF_PIXEL_RGB_24;
-	case AV_PIX_FMT_YUVJ422P: return GF_PIXEL_RGB_24;
-	case AV_PIX_FMT_YUVJ444P: return GF_PIXEL_RGB_24;
+	case AV_PIX_FMT_YUVJ420P: return GF_PIXEL_RGB;
+	case AV_PIX_FMT_YUVJ422P: return GF_PIXEL_RGB;
+	case AV_PIX_FMT_YUVJ444P: return GF_PIXEL_RGB;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %d\n", pix_fmt));
 	}
@@ -208,15 +208,15 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	FF_CHECK_PROP(height, height, GF_PROP_PID_HEIGHT)
 
 	switch (pix_fmt) {
-	case GF_PIXEL_RGB_32:
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
 		stride = ffdec->width * 4;
 		outsize = stride * ffdec->height;
 		break;
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
 		stride = ffdec->width * 3;
 		outsize = stride * ffdec->height;
 		break;
@@ -275,7 +275,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	switch (ffdec->pixel_fmt) {
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.linesize[0] = 3*ffdec->width;
 		pix_out = AV_PIX_FMT_RGB24;

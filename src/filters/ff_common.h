@@ -48,4 +48,3 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
 void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type);
 
 
-

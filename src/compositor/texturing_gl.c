@@ -538,19 +538,19 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->gl_type = GL_TEXTURE_2D;
 		if (!is_pow2) txh->tx_io->flags = TX_MUST_SCALE;
 		break;
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		txh->tx_io->gl_format = GL_RGB;
 		txh->tx_io->nb_comp = 3;
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		txh->tx_io->gl_format = GL_RGB;
 		txh->tx_io->nb_comp = 3;
 		break;
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		txh->tx_io->gl_format = GL_RGBA;
 		txh->tx_io->nb_comp = 4;
 		break;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 	case GF_PIXEL_RGBA:
 		txh->tx_io->gl_format = GL_RGBA;
 		txh->tx_io->nb_comp = 4;
@@ -587,7 +587,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 #endif
 
 	//fallthrough
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YUVD:
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->compositor->shader_only_mode) ) {
@@ -602,7 +602,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		break;
 
 	case GF_PIXEL_RGBD:
-	case GF_PIXEL_RGB_24_DEPTH:
+	case GF_PIXEL_RGB_DEPTH:
 		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
 		txh->tx_io->gl_format = GL_RGB;
 		txh->tx_io->nb_comp = 3;
@@ -825,16 +825,16 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 			bpp = 4;
 			break;
 		}
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		bpp = 3;
 		break;
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		bpp = 4;
 		break;
 	case GF_PIXEL_GREYSCALE:
 	case GF_PIXEL_ALPHAGREY:
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_RGBX:
 	case GF_PIXEL_RGBA:
 common:
 		txh->tx_io->conv_format = txh->pixelformat;
@@ -878,7 +878,7 @@ common:
 			txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 			return 1;
 		}
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 		bpp = 3;
 		break;
 	case GF_PIXEL_YUVD:
@@ -920,7 +920,7 @@ common:
 
 	dst.video_buffer = txh->tx_io->conv_data;
 	switch (txh->pixelformat) {
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_YV12_10:
 	case GF_PIXEL_YUV422:
@@ -931,9 +931,9 @@ common:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV12_10:
 	case GF_PIXEL_I420:
-	case GF_PIXEL_BGR_24:
-	case GF_PIXEL_BGR_32:
-		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
+	case GF_PIXEL_BGR:
+	case GF_PIXEL_BGRX:
+		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB;
 		/*stretch and flip*/
 		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, !txh->is_flipped, NULL, NULL);
 		if ( !txh->is_flipped)
@@ -942,8 +942,8 @@ common:
 	case GF_PIXEL_YUVD:
 		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
 			src.pixel_format = GF_PIXEL_YV12;
-			txh->tx_io->conv_format = GF_PIXEL_RGB_24_DEPTH;
-			dst.pixel_format = GF_PIXEL_RGB_24;
+			txh->tx_io->conv_format = GF_PIXEL_RGB_DEPTH;
+			dst.pixel_format = GF_PIXEL_RGB;
 			dst.pitch_y = 3*txh->width;
 			/*stretch YUV->RGB*/
 			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
@@ -960,8 +960,8 @@ common:
 	case GF_PIXEL_RGBD:
 		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
 			dst.pitch_y = 3*txh->width;
-			txh->tx_io->conv_format = GF_PIXEL_RGB_24_DEPTH;
-			dst.pixel_format = GF_PIXEL_RGB_24;
+			txh->tx_io->conv_format = GF_PIXEL_RGB_DEPTH;
+			dst.pixel_format = GF_PIXEL_RGB;
 
 			for (j=0; j<txh->height; j++) {
 				u8 *src = (u8 *) txh->data + (txh->height-j-1)*txh->stride;
@@ -1464,7 +1464,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 
 	if (txh->pixelformat==GF_PIXEL_RGBA) {
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
-	} else if (txh->pixelformat==GF_PIXEL_RGB_24) {
+	} else if (txh->pixelformat==GF_PIXEL_RGB) {
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGB, GL_UNSIGNED_BYTE, txh->data);
 	}
 #ifdef GF_SR_USE_DEPTH

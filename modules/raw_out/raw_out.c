@@ -79,7 +79,7 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 		rc->pixel_format = GF_PIXEL_ARGB;
 	} else {
 		rc->bpp = 3;
-		rc->pixel_format = GF_PIXEL_RGB_24;
+		rc->pixel_format = GF_PIXEL_RGB;
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "RAWVideo", "PixelFormat");
 		if (opt) {
 			if (!strcmp(opt, "555")) {
@@ -90,16 +90,16 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 				rc->pixel_format = GF_PIXEL_RGB_565;
 			} else if (!strcmp(opt, "bgr")) {
 				rc->bpp = 3;
-				rc->pixel_format = GF_PIXEL_BGR_24;
+				rc->pixel_format = GF_PIXEL_BGR;
 			} else if (!strcmp(opt, "rgb")) {
 				rc->bpp = 3;
-				rc->pixel_format = GF_PIXEL_RGB_24;
+				rc->pixel_format = GF_PIXEL_RGB;
 			} else if (!strcmp(opt, "bgr32")) {
 				rc->bpp = 4;
-				rc->pixel_format = GF_PIXEL_BGR_32;
+				rc->pixel_format = GF_PIXEL_BGRX;
 			} else if (!strcmp(opt, "rgb32")) {
 				rc->bpp = 4;
-				rc->pixel_format = GF_PIXEL_RGB_32;
+				rc->pixel_format = GF_PIXEL_RGBX;
 			} else if (!strcmp(opt, "rgba")) {
 				rc->bpp = 4;
 				rc->pixel_format = GF_PIXEL_RGBA;

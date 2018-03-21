@@ -274,7 +274,7 @@ static void composite_update(GF_TextureHandler *txh)
 	gf_node_dirty_clear(st->txh.owner, 0);
 
 	back = gf_list_get(st->visual->back_stack, 0);
-	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB_24;
+	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB;
 	else new_pixel_format = GF_PIXEL_RGBA;
 
 
@@ -286,7 +286,7 @@ static void composite_update(GF_TextureHandler *txh)
 #ifndef GPAC_DISABLE_3D
 	/*no alpha support in offscreen rendering*/
 	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
-		new_pixel_format = GF_PIXEL_RGB_24;
+		new_pixel_format = GF_PIXEL_RGB;
 #endif
 
 	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
@@ -321,18 +321,18 @@ static void composite_update(GF_TextureHandler *txh)
 			if (new_pixel_format==GF_PIXEL_RGBA) {
 				new_pixel_format=GF_PIXEL_ARGB;
 			} else {
-				new_pixel_format=GF_PIXEL_BGR_24;
+				new_pixel_format=GF_PIXEL_BGR;
 			}
 		} else {
-			if (new_pixel_format==GF_PIXEL_RGB_24) {
-				new_pixel_format=GF_PIXEL_RGB_32;
+			if (new_pixel_format==GF_PIXEL_RGB) {
+				new_pixel_format=GF_PIXEL_RGBX;
 			}
 		}
 	}
 	else if (h<-1) {
 		h = -h;
-		if (new_pixel_format==GF_PIXEL_RGB_24) {
-			new_pixel_format=GF_PIXEL_RGB_32;
+		if (new_pixel_format==GF_PIXEL_RGB) {
+			new_pixel_format=GF_PIXEL_RGBX;
 		}
 	}
 
@@ -406,7 +406,7 @@ static void composite_update(GF_TextureHandler *txh)
 			txh->stride = txh->width * 4;
 			txh->transparent = 1;
 			break;
-		case GF_PIXEL_RGB_24:
+		case GF_PIXEL_RGB:
 			txh->stride = txh->width * 3;
 			txh->transparent = 0;
 			break;

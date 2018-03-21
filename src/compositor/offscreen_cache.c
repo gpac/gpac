@@ -102,7 +102,7 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 		gf_free(cache->txh.data);
 #ifdef CACHE_DEBUG_ALPHA
 	cache->txh.stride = pix_bounds->width * 3;
-	cache->txh.pixelformat = GF_PIXEL_RGB_24;
+	cache->txh.pixelformat = GF_PIXEL_RGB;
 	cache->txh.transparent = 0;
 #endif
 

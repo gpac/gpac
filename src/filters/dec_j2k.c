@@ -90,7 +90,7 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ctx->pixel_format = GF_PIXEL_ALPHAGREY;
 			break;
 		case 3:
-			ctx->pixel_format = GF_PIXEL_RGB_24;
+			ctx->pixel_format = GF_PIXEL_RGB;
 			break;
 		case 4:
 			ctx->pixel_format = GF_PIXEL_RGBA;
@@ -219,7 +219,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		pf = GF_PIXEL_ALPHAGREY;
 		break;
 	case 3:
-		pf = GF_PIXEL_RGB_24;
+		pf = GF_PIXEL_RGB;
 		break;
 	case 4:
 		pf = GF_PIXEL_RGBA;

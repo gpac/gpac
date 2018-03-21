@@ -311,7 +311,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 		*pixel_format = GF_PIXEL_GREYSCALE;
 		break;
 	case 3:
-		*pixel_format = GF_PIXEL_RGB_24;
+		*pixel_format = GF_PIXEL_RGB;
 		break;
 	default:
 		jpeg_destroy_decompress(&jpx.cinfo);
@@ -477,7 +477,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		*pixel_format = GF_PIXEL_ALPHAGREY;
 		break;
 	case PNG_COLOR_TYPE_RGB:
-		*pixel_format = GF_PIXEL_RGB_24;
+		*pixel_format = GF_PIXEL_RGB;
 		break;
 	case PNG_COLOR_TYPE_RGB_ALPHA:
 		*pixel_format = GF_PIXEL_RGBA;
@@ -547,10 +547,10 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 		nb_comp = 1;
 		type = PNG_COLOR_TYPE_GRAY_ALPHA;
 		break;
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
-	case GF_PIXEL_RGB_32:
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
 		nb_comp = 3;
 		type = PNG_COLOR_TYPE_RGB;
 		break;
@@ -633,14 +633,14 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 		png_set_bgr(png_ptr);
 	}
 	switch (pixel_format) {
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
 		png_set_bgr(png_ptr);
 		break;
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		png_set_bgr(png_ptr);
 		break;
 	}

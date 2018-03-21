@@ -100,7 +100,7 @@ static GF_Err imgdec_process(GF_Filter *filter)
 			case GF_PIXEL_GREYSCALE:
 				ctx->BPP = 1;
 				break;
-			case GF_PIXEL_RGB_24:
+			case GF_PIXEL_RGB:
 				ctx->BPP = 3;
 				break;
 			case GF_PIXEL_RGBA:
