@@ -304,7 +304,6 @@ static int gpac_main(int argc, char **argv)
 
 	//all good to go, load filters
 	for (i=1; i<argc; i++) {
-		GF_Err e;
 		GF_Filter *filter;
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
@@ -335,6 +334,9 @@ static int gpac_main(int argc, char **argv)
 		gf_fs_print_stats(session);
 
 exit:
+	if (e) {
+		gf_fs_run(session);
+	}
 	gf_fs_del(session);
 	gf_sys_close();
 	if (e) return 1;

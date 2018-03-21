@@ -1250,6 +1250,14 @@ static void load_line_yuyv(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch
 	pV = (u8 *)pY + 3;
 	gf_yuv_load_lines_packed((unsigned char*)dst_bits, 4*width, pY, pU, pV, width);
 }
+static void load_line_uyvy(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
+{
+	u8 *pY, *pU, *pV;
+	pU = (u8 *)src_bits + x_offset + y_offset*y_pitch;
+	pY = (u8 *)pU + 1;
+	pV = (u8 *)pU + 3;
+	gf_yuv_load_lines_packed((unsigned char*)dst_bits, 4*width, pY, pU, pV, width);
+}
 
 
 static void gf_yuv_load_lines_nv12_nv21(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, s32 y_stride, s32 uv_stride, s32 width, Bool swap_uv)
@@ -1372,11 +1380,11 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_RGB_565:
 		load_line = load_line_rgb_565;
 		break;
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 	case GF_PIXEL_RGBS:
 		load_line = load_line_rgb_24;
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		load_line = load_line_bgr_24;
 		break;
 	case GF_PIXEL_ARGB:
@@ -1386,7 +1394,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_RGBAS:
 		has_alpha = GF_TRUE;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		load_line = load_line_rgb_32;
 		break;
 	case GF_PIXEL_RGBDS:
@@ -1396,7 +1404,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_RGBD:
 		load_line = load_line_rgbd;
 		break;
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		load_line = load_line_bgr_32;
 		break;
 	case GF_PIXEL_YV12:
@@ -1441,10 +1449,15 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		yuv_planar_type = 2;
 		yuv2rgb_init();
 		break;
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 		yuv_planar_type = 0;
 		yuv2rgb_init();
 		load_line = load_line_yuyv;
+		break;
+	case GF_PIXEL_UYVY:
+		yuv_planar_type = 0;
+		yuv2rgb_init();
+		load_line = load_line_uyvy;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -1460,15 +1473,15 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		dst_bpp = sizeof(unsigned char)*2;
 		copy_row = has_alpha ? merge_row_rgb_565 : copy_row_rgb_565;
 		break;
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		dst_bpp = sizeof(unsigned char)*3;
 		copy_row = has_alpha ? merge_row_rgb_24 : copy_row_rgb_24;
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		dst_bpp = sizeof(unsigned char)*3;
 		copy_row = has_alpha ? merge_row_bgr_24 : copy_row_bgr_24;
 		break;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		dst_bpp = sizeof(unsigned char)*4;
 		copy_row = has_alpha ? merge_row_bgrx : copy_row_bgrx;
 		break;
@@ -1484,7 +1497,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		dst_bpp = sizeof(unsigned char)*4;
 		copy_row = has_alpha ? merge_row_rgba : copy_row_rgbx;
 		break;
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		dst_bpp = sizeof(unsigned char)*4;
 		copy_row = has_alpha ? merge_row_rgbx : copy_row_rgbx;
 		break;

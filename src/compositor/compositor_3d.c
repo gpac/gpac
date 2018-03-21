@@ -125,12 +125,12 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 		GF_Err e = compositor->video_out->LockBackBuffer(compositor->video_out, &bb, 1);
 		if (e==GF_OK) {
 			switch (bb.pixel_format) {
-			case GF_PIXEL_RGB_32:
+			case GF_PIXEL_RGBX:
 			case GF_PIXEL_ARGB:
 				bpp = 32;
 				break;
-			case GF_PIXEL_RGB_24:
-			case GF_PIXEL_BGR_24:
+			case GF_PIXEL_RGB:
+			case GF_PIXEL_BGR:
 				bpp = 24;
 				break;
 			case GF_PIXEL_RGB_565:

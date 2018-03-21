@@ -97,27 +97,27 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 {
 	u16 col;
 	switch (pf) {
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 	case GF_PIXEL_ARGB:
 		fputc(ptr[0], fout);
 		fputc(ptr[1], fout);
 		fputc(ptr[2], fout);
 		return 4;
 
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 	case GF_PIXEL_RGBA:
 		fputc(ptr[2], fout);
 		fputc(ptr[1], fout);
 		fputc(ptr[0], fout);
 		return 4;
 
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		fputc(ptr[2], fout);
 		fputc(ptr[1], fout);
 		fputc(ptr[0], fout);
 		return 3;
 
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		fputc(ptr[2], fout);
 		fputc(ptr[1], fout);
 		fputc(ptr[0], fout);

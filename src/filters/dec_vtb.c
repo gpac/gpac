@@ -290,7 +290,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	ctx->pix_fmt = GF_PIXEL_NV12;
 
 //	kColorSpace = kCVPixelFormatType_24RGB;
-//	ctx->pix_fmt = GF_PIXEL_RGB_24;
+//	ctx->pix_fmt = GF_PIXEL_RGB;
 
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
@@ -702,7 +702,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		ctx->out_size = ctx->width*ctx->height*2;
 	} else if (ctx->pix_fmt == GF_PIXEL_YUV444) {
 		ctx->out_size = ctx->width*ctx->height*3;
-	} else if (ctx->pix_fmt == GF_PIXEL_RGB_24) {
+	} else if (ctx->pix_fmt == GF_PIXEL_RGB) {
 		ctx->out_size = ctx->width*ctx->height*3;
 		stride *= 3;
 	} else {

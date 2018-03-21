@@ -195,8 +195,7 @@ static char *glsl_nv12_shader = "#version 120\n"\
 		vec3 yuv, rgb;\
 		texc = gl_TexCoord[0].st;\
 		yuv.x = texture2D(y_plane, texc).r; \
-		yuv.y = texture2D(u_plane, texc).r; \
-		yuv.z = texture2D(u_plane, texc).a; \
+		yuv.yz = texture2D(u_plane, texc).ra; \
 		yuv += offset; \
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
@@ -226,13 +225,90 @@ static char *glsl_nv21_shader = "#version 120\n"\
 		gl_FragColor = vec4(rgb, 1.0);\
 	}";
 
+static char *glsl_uyvy_shader = "#version 120\n"\
+	"uniform sampler2D y_plane;\
+	uniform float width;\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	void main(void)  \
+	{\
+		vec2 texc, t_texc;\
+		vec3 yuv, rgb;\
+		vec4 uyvy;\
+		float tex_s;\
+		texc = gl_TexCoord[0].st;\
+		t_texc = texc * vec2(1, 1);\
+		uyvy = texture2D(y_plane, t_texc); \
+		tex_s = texc.x*width;\
+		if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
+        	uyvy.g = uyvy.a; \
+    	}\
+    	yuv.r = uyvy.g;\
+    	yuv.g = uyvy.r;\
+    	yuv.b = uyvy.b;\
+		yuv += offset; \
+	    rgb.r = dot(yuv, R_mul); \
+	    rgb.g = dot(yuv, G_mul); \
+	    rgb.b = dot(yuv, B_mul); \
+		gl_FragColor = vec4(rgb, 1.0);\
+	}";
+
+static char *glsl_yuyv_shader = "#version 120\n"\
+	"uniform sampler2D y_plane;\
+	uniform float width;\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	void main(void)  \
+	{\
+		vec2 texc, t_texc;\
+		vec3 yuv, rgb;\
+		vec4 yuyv;\
+		float tex_s;\
+		texc = gl_TexCoord[0].st;\
+		t_texc = texc * vec2(1, 1);\
+		yuyv = texture2D(y_plane, t_texc); \
+		tex_s = texc.x*width;\
+		if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
+        	yuyv.r = yuyv.b; \
+    	}\
+    	yuv.r = yuyv.r;\
+    	yuv.g = yuyv.g;\
+    	yuv.b = yuyv.a;\
+		yuv += offset; \
+	    rgb.r = dot(yuv, R_mul); \
+	    rgb.g = dot(yuv, G_mul); \
+	    rgb.b = dot(yuv, B_mul); \
+		gl_FragColor = vec4(rgb, 1.0);\
+	}";
+
 static char *glsl_rgb_shader = "#version 120\n"\
 	"uniform sampler2D rgbtx;\
+	uniform int rgb_mode;\
 	void main(void)  \
 	{\
 		vec2 texc;\
+		vec4 col;\
 		texc = gl_TexCoord[0].st;\
-		gl_FragColor = texture2D(rgbtx, texc); \
+		col = texture2D(rgbtx, texc); \
+		if (rgb_mode==1) {\
+			gl_FragColor.r = col.b;\
+			gl_FragColor.g = col.g;\
+			gl_FragColor.b = col.r;\
+		} else if (rgb_mode==2) {\
+			gl_FragColor.r = col.g;\
+			gl_FragColor.g = col.b;\
+			gl_FragColor.b = col.a;\
+		} else if (rgb_mode==3) {\
+			gl_FragColor.r = col.g;\
+			gl_FragColor.g = col.a;\
+			gl_FragColor.b = col.b;\
+		} else {\
+			gl_FragColor = col;\
+		}\
 	}";
 
 static char *default_glsl_vertex = "\
@@ -332,6 +408,7 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Event evt;
+	int rgb_mode=0;
 	const GF_PropertyValue *p;
 	u32 w, h, pfmt, stride, timescale;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
@@ -397,7 +474,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->width = w;
 	ctx->height = h;
 	ctx->pfmt = pfmt;
-	ctx->stride = stride;
+	ctx->stride = stride ? stride : w;
 	ctx->uv_w = ctx->uv_h = ctx->uv_stride = 0;
 	ctx->bit_depth = 0;
 	ctx->has_alpha = GF_FALSE;
@@ -438,6 +515,13 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->uv_stride = ctx->stride/2;
 		ctx->is_yuv = GF_TRUE;
 		break;
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_YUYV:
+		ctx->uv_w = ctx->width/2;
+		ctx->uv_h = ctx->height;
+		ctx->uv_stride = ctx->stride/2;
+		ctx->is_yuv = GF_TRUE;
+		break;
 	case GF_PIXEL_GREYSCALE:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_LUMINANCE;
@@ -450,27 +534,44 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->bytes_per_pix = 2;
 #endif
 		break;
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGB;
 		ctx->bytes_per_pix = 3;
 #endif
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGB;
 		ctx->bytes_per_pix = 3;
+		rgb_mode=1;
 #endif
 		break;
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGBA;
 		ctx->bytes_per_pix = 4;
+		rgb_mode=1;
 #endif
 		break;
+	case GF_PIXEL_XRGB:
+#ifndef GPAC_DISABLE_3D
+		ctx->pixel_format = GL_RGBA;
+		ctx->bytes_per_pix = 4;
+		rgb_mode=2;
+#endif
+		break;
+	case GF_PIXEL_XBGR:
+#ifndef GPAC_DISABLE_3D
+		ctx->pixel_format = GL_RGBA;
+		ctx->bytes_per_pix = 4;
+		rgb_mode=3;
+#endif
+		break;
+
 	case GF_PIXEL_RGBA:
 		ctx->has_alpha = GF_TRUE;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGBA;
 		ctx->bytes_per_pix = 4;
@@ -526,6 +627,12 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		} else if (ctx->pfmt==GF_PIXEL_NV12) {
 			ctx->num_textures = 2;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_nv12_shader);
+		} else if (ctx->pfmt==GF_PIXEL_UYVY) {
+			ctx->num_textures = 1;
+			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_uyvy_shader);
+		} else if (ctx->pfmt==GF_PIXEL_YUYV) {
+			ctx->num_textures = 1;
+			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_yuyv_shader);
 		} else if (ctx->is_yuv) {
 			ctx->num_textures = 3;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_yuv_shader);
@@ -575,6 +682,23 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			}
 			glUniform1i(loc, i);
 		}
+		if (ctx->pfmt==GF_PIXEL_UYVY) {
+			GLint loc;
+			loc = glGetUniformLocation(ctx->glsl_program, "width");
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to locate width uniform in shader\n"));
+			} else {
+				glUniform1f(loc, (GLfloat) ctx->width);
+			}
+		} else if (!ctx->is_yuv) {
+			GLint loc;
+			loc = glGetUniformLocation(ctx->glsl_program, "rgb_mode");
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to locate rgb_mode uniform in shader\n"));
+			} else {
+				glUniform1i(loc, rgb_mode);
+			}
+		}
 		glUseProgram(0);
 
 #ifdef WIN32
@@ -584,21 +708,24 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->first_tx_load = (ctx->mode==MODE_GL_PBO) ? GF_FALSE : GF_TRUE;
 		if (ctx->is_yuv && (ctx->mode==MODE_GL_PBO)) {
 			glGenBuffers(1, &ctx->pbo_Y);
-			glGenBuffers(1, &ctx->pbo_U);
-
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
-			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->width*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
 
-			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
+			if (ctx->num_textures>1) {
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->width*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
+
+				glGenBuffers(1, &ctx->pbo_U);
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
+			} else {
+				//packed YUV
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, 4*ctx->width/2*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
+
+			}
 
 			if (ctx->num_textures==3) {
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
-
 				glGenBuffers(1, &ctx->pbo_V);
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_V);
 				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
-			} else {
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, 2*ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
 			}
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
@@ -880,8 +1007,12 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	} else {
 		if (ctx->is_yuv) {
 			pY = data;
-			pU = pY + ctx->stride*ctx->height;
-			pV = pU + ctx->uv_stride * ctx->uv_h;
+			if (ctx->num_textures>1) {
+				pU = pY + ctx->stride*ctx->height;
+				if (ctx->num_textures>2) {
+					pV = pU + ctx->uv_stride * ctx->uv_h;
+				}
+			}
 		}
 	}
 
@@ -915,76 +1046,118 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		u32 i, linesize, count, p_stride;
 		u8 *ptr;
 
-		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		//packed YUV
+		if (ctx->num_textures==1) {
 
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
-		ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
-		linesize = ctx->width*ctx->bytes_per_pix;
-		p_stride = ctx->stride;
-		count = ctx->height;
-
-		for (i=0; i<count; i++) {
-			memcpy(ptr, pY, linesize);
-			pY += p_stride;
-			ptr += linesize;
-		}
-
-		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
-
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
-		ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
-
-		linesize = ctx->uv_w * ctx->bytes_per_pix;
-		p_stride = ctx->uv_stride;
-		count = ctx->uv_h;
-		//NV12 and  NV21
-		if (!pV) {
-			linesize *= 2;
-			p_stride *= 2;
-		}
-
-		for (i=0; i<count; i++) {
-			memcpy(ptr, pU, linesize);
-			pU += p_stride;
-			ptr += linesize;
-		}
-
-		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
-
-		if (pV) {
-			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_V);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
 			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
 
+			linesize = ctx->width/2 * ctx->bytes_per_pix * 4;
+			p_stride = ctx->stride/2 * ctx->bytes_per_pix * 4;
+			count = ctx->height;
+
 			for (i=0; i<count; i++) {
-				memcpy(ptr, pV, linesize);
-				pV += p_stride;
+				memcpy(ptr, pY, linesize);
+				pY += p_stride;
 				ptr += linesize;
 			}
 
 			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
-		}
 
-		needs_stride=0;
+			glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
+			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
+			glTexImage2D(TEXTURE_TYPE, 0, GL_RGBA, ctx->width/2, ctx->height, 0, GL_RGBA, ctx->memory_format, NULL);
 
-		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
-		glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->width, ctx->height, 0, ctx->pixel_format, ctx->memory_format, NULL);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
-		glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-		glTexImage2D(TEXTURE_TYPE, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->uv_w, ctx->uv_h, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, NULL);
+		} else {
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
-		if (pV) {
-			glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
-			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_V);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
+			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+
+			linesize = ctx->width*ctx->bytes_per_pix;
+			p_stride = ctx->stride;
+			count = ctx->height;
+
+			for (i=0; i<count; i++) {
+				memcpy(ptr, pY, linesize);
+				pY += p_stride;
+				ptr += linesize;
+			}
+
+			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
+
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
+			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+
+			linesize = ctx->uv_w * ctx->bytes_per_pix;
+			p_stride = ctx->uv_stride;
+			count = ctx->uv_h;
+			//NV12 and  NV21
+			if (!pV) {
+				linesize *= 2;
+				p_stride *= 2;
+			}
+
+			for (i=0; i<count; i++) {
+				memcpy(ptr, pU, linesize);
+				pU += p_stride;
+				ptr += linesize;
+			}
+
+			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
+
+			if (pV) {
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_V);
+				ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+
+				for (i=0; i<count; i++) {
+					memcpy(ptr, pV, linesize);
+					pV += p_stride;
+					ptr += linesize;
+				}
+
+				glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
+			}
+
+			needs_stride=0;
+
+			glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
+			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
+			glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->width, ctx->height, 0, ctx->pixel_format, ctx->memory_format, NULL);
+
+			glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
 			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-			glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->uv_w, ctx->uv_h, 0, ctx->pixel_format, ctx->memory_format, NULL);
-		}
+			glTexImage2D(TEXTURE_TYPE, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->uv_w, ctx->uv_h, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, NULL);
 
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+			if (pV) {
+				glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_V);
+				if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
+				glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->uv_w, ctx->uv_h, 0, ctx->pixel_format, ctx->memory_format, NULL);
+			}
+
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		}
+	}
+	else if ((ctx->pfmt==GF_PIXEL_UYVY) || (ctx->pfmt==GF_PIXEL_YUYV)) {
+		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
+		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
+		if (ctx->first_tx_load) {
+			glTexImage2D(TEXTURE_TYPE, 0, GL_RGBA, ctx->width/2, ctx->height, 0, GL_RGBA, ctx->memory_format, pY);
+			ctx->first_tx_load = GF_FALSE;
+		} else {
+			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width/2, ctx->height, GL_RGBA, ctx->memory_format, pY);
+
+		}
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
 	else if (ctx->first_tx_load) {
@@ -1218,8 +1391,10 @@ static GF_Err vout_process(GF_Filter *filter)
 			//compute time ellapsed since last clock ref in timescale
 			s64 diff = now;
 			diff -= (s64) clock_us;
-			diff *= ctx->timescale;
-			diff /= 1000000;
+			if (ctx->timescale!=1000000) {
+				diff *= ctx->timescale;
+				diff /= 1000000;
+			}
 			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
@@ -1231,11 +1406,23 @@ static GF_Err vout_process(GF_Filter *filter)
 				return GF_OK;
 			}
 		} else if (!ctx->first_cts) {
-			ctx->first_cts = 1 + cts;
-			ctx->clock_at_first_cts = now;
+			//init clock on second frame, first frame likely will have large rendering time
+			//due to GPU config. While this is not important for recorded media, it may impact
+			//monitoring of live source (webcams) by consuming frame really late which may
+			//block frame sampling when blocking mode is enabled
+			if (!ctx->clock_at_first_cts) {
+				ctx->clock_at_first_cts = 1;
+			} else {
+				ctx->first_cts = 1 + cts;
+				ctx->clock_at_first_cts = now;
+			}
 		} else {
 			s64 diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
-			diff -= (s64) ( (cts-ctx->first_cts+1) * 1000000  / ctx->timescale);
+			if (ctx->timescale != 1000000)
+				diff -= (s64) ( (cts-ctx->first_cts+1) * 1000000  / ctx->timescale);
+			else
+				diff -= (s64) (cts-ctx->first_cts+1);
+
 			if (diff<0) {
 				gf_filter_ask_rt_reschedule(filter, -diff);
 				//not ready yet

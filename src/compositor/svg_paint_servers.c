@@ -390,7 +390,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 		if (!txh->data) {
 			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
-		e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, GF_TRUE);
+		e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB, GF_PIXEL_RGB, GF_TRUE);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
@@ -475,7 +475,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 		}
 	} else {
 		txh->stride = GRAD_TEXTURE_SIZE*3;
-		txh->pixelformat = GF_PIXEL_RGB_24;
+		txh->pixelformat = GF_PIXEL_RGB;
 	}
 	gf_sc_texture_set_data(txh);
 	return;

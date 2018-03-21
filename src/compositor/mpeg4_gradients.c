@@ -224,7 +224,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 		if (!st->tx_data) {
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
-		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, 1);
+		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB, GF_PIXEL_RGB, 1);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
@@ -325,7 +325,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 		}
 	} else {
 		txh->stride = GRAD_TEXTURE_SIZE*3;
-		txh->pixelformat = GF_PIXEL_RGB_24;
+		txh->pixelformat = GF_PIXEL_RGB;
 	}
 	txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 	gf_sc_texture_set_data(txh);
@@ -420,7 +420,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 		if (!st->tx_data) {
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
-		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, 1);
+		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB, GF_PIXEL_RGB, 1);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
@@ -527,7 +527,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 		}
 	} else {
 		txh->stride = GRAD_TEXTURE_SIZE*3;
-		txh->pixelformat = GF_PIXEL_RGB_24;
+		txh->pixelformat = GF_PIXEL_RGB;
 	}
 //	tx_set_blend_enable(txh, 1);
 	txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;

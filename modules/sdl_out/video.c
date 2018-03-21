@@ -1428,13 +1428,13 @@ u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format, Bool force_alpha)
 		if ((format->Rmask==0xf800) && (format->Gmask==0x07e0) && (format->Bmask==0x001f) ) return GF_PIXEL_RGB_565;
 		return 0;
 	case 24:
-		if (format->Rmask==0x00FF0000) return GF_PIXEL_RGB_24;
-		if (format->Rmask==0x000000FF) return GF_PIXEL_BGR_24;
+		if (format->Rmask==0x00FF0000) return GF_PIXEL_RGB;
+		if (format->Rmask==0x000000FF) return GF_PIXEL_BGR;
 		return 0;
 	case 32:
 		if (format->Amask==0xFF000000) return GF_PIXEL_ARGB;
-		if (format->Rmask==0x00FF0000) return force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGB_32;
-		if (format->Rmask==0x000000FF) return force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGR_32;
+		if (format->Rmask==0x00FF0000) return force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGBX;
+		if (format->Rmask==0x000000FF) return force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGRX;
 		return 0;
 	default:
 		return 0;
@@ -1453,7 +1453,7 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 		video_info->pitch_x = 0;
 		video_info->pitch_y = ctx->width*3;
 		video_info->video_buffer = ctx->back_buffer_pixels;
-		video_info->pixel_format = GF_PIXEL_RGB_24;
+		video_info->pixel_format = GF_PIXEL_RGB;
 		video_info->is_hardware_memory = 0;
 		if (ctx->needs_bb_grab) {
 			SDL_RenderReadPixels(ctx->renderer, NULL, SDL_PIXELFORMAT_RGB24, video_info->video_buffer, video_info->pitch_y);
@@ -2063,7 +2063,7 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 		memcpy(pYD, pY, sizeof(unsigned char)*src_width*src_height);
 		memcpy(pVD, pV, sizeof(unsigned char)*src_width*src_height/4);
 		memcpy(pUD, pU, sizeof(unsigned char)*src_width*src_height/4);
-	} else if (src_pf==GF_PIXEL_YUY2) {
+	} else if (src_pf==GF_PIXEL_YUYV) {
 		u32 i, j;
 		unsigned char *dst_y, *dst_u, *dst_v;
 
@@ -2193,7 +2193,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	//this is a clear (not very elegant ...)
 	if ((video_src->width<=2) && (video_src->height<=2)) {
 		u8 *pix =(u8 *) video_src->video_buffer;
-		if (video_src->pixel_format == GF_PIXEL_RGB_24) {
+		if (video_src->pixel_format == GF_PIXEL_RGB) {
 			SDL_SetRenderDrawColor(ctx->renderer, pix[0], pix[1], pix[2], 0xFF);
 		} else {
 			SDL_SetRenderDrawColor(ctx->renderer, pix[0], pix[1], pix[2], pix[3]);
@@ -2207,9 +2207,25 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	}
 
 	switch (video_src->pixel_format) {
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		pool = &ctx->pool_rgb;
 		format=SDL_PIXELFORMAT_RGB24;
+		break;
+	case GF_PIXEL_XRGB:
+		pool = &ctx->pool_rgb;
+		format=SDL_PIXELFORMAT_RGB888;
+		break;
+	case GF_PIXEL_RGBX:
+		pool = &ctx->pool_rgb;
+		format=SDL_PIXELFORMAT_RGBX8888;
+		break;
+	case GF_PIXEL_XBGR:
+		pool = &ctx->pool_rgb;
+		format=SDL_PIXELFORMAT_BGR888;
+		break;
+	case GF_PIXEL_BGRX:
+		pool = &ctx->pool_rgb;
+		format=SDL_PIXELFORMAT_BGRX8888;
 		break;
 	case GF_PIXEL_RGBA:
 		pool = &ctx->pool_rgba;
@@ -2231,14 +2247,20 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		format=SDL_PIXELFORMAT_YV12;
 		break;
 	case GF_PIXEL_NV12:
-		need_copy=1;
 		pool = &ctx->pool_yuv;
-		format=SDL_PIXELFORMAT_YV12;
+		format=SDL_PIXELFORMAT_NV12;
 		break;
 	case GF_PIXEL_NV21:
-		need_copy=1;
 		pool = &ctx->pool_yuv;
-		format=SDL_PIXELFORMAT_YV12;
+		format=SDL_PIXELFORMAT_NV21;
+		break;
+	case GF_PIXEL_UYVY:
+		pool = &ctx->pool_yuv;
+		format=SDL_PIXELFORMAT_UYVY;
+		break;
+	case GF_PIXEL_YUYV:
+		pool = &ctx->pool_yuv;
+		format=SDL_PIXELFORMAT_YUY2;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -2362,7 +2384,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		return GF_NOT_SUPPORTED;
 
 	switch (video_src->pixel_format) {
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		pool = &ctx->pool_rgb;
 		bpp = 3;
 		break;

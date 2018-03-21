@@ -155,7 +155,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 			const char *n = av_get_pix_fmt_name(i);
 			if (!n) continue;
 
-			len = strlen(n)+ i ? 2 : 1;
+			len = strlen(n)+ (i ? 2 : 1);
 			if (len+all_len>def_size) {
 				def_size+=1000;
 				enum_val = gf_realloc(enum_val, sizeof(char)*def_size);

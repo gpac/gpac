@@ -1228,7 +1228,7 @@ static void CustomTexture_update(GF_TextureHandler *txh)
         //in our case we only want to test openGL so no need to fill in the texture width/height stride
         //since we will upload ourselves the texture
         txh->transparent = 0;
-        txh->pixelformat = GF_PIXEL_RGB_24;
+        txh->pixelformat = GF_PIXEL_RGB;
 
         //signaling we modified associated data (even if no data in our case) to mark texture as dirty
         gf_sc_texture_set_data(txh);

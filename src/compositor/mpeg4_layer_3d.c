@@ -157,7 +157,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	new_pixel_format = GF_PIXEL_RGBA;
 #ifndef GPAC_USE_TINYGL
 //	if (!compositor_background_transparent(gf_list_get(tr_state->backgrounds, 0)) )
-//		new_pixel_format = GF_PIXEL_RGB_24;
+//		new_pixel_format = GF_PIXEL_RGB;
 
 	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
 #ifdef GPAC_USE_GLES1X
@@ -165,7 +165,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 #else
 	/*no support for alpha in offscreen rendering*/
 	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
-		new_pixel_format = GF_PIXEL_RGB_24;
+		new_pixel_format = GF_PIXEL_RGB;
 #endif
 
 #endif

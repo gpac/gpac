@@ -774,13 +774,13 @@ static void texture_set_callback(EVG_Texture *_this)
 	case GF_PIXEL_ARGB:
 		_this->tx_get_pixel = get_pix_argb;
 		return;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		_this->tx_get_pixel = get_pix_rgb_32;
 		return;
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		_this->tx_get_pixel = get_pix_rgb_24;
 		return;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		_this->tx_get_pixel = get_pix_bgr_24;
 		return;
 	case GF_PIXEL_RGB_444:
@@ -813,11 +813,11 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 	switch (pixelFormat) {
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		_this->Bpp = 4;
 		break;
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
 		_this->Bpp = 3;
 		break;
 	case GF_PIXEL_RGB_555:
@@ -906,7 +906,7 @@ void evg_set_texture_active(EVGStencil *st)
 
 	if (_this->orig_format == GF_PIXEL_YV12) {
 		_this->Bpp = 3;
-		_this->pixel_format = GF_PIXEL_RGB_24;
+		_this->pixel_format = GF_PIXEL_RGB;
 	} else {
 		_this->Bpp = 4;
 		_this->pixel_format = GF_PIXEL_ARGB;

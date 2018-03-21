@@ -117,14 +117,14 @@ GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u
 	case GF_PIXEL_RGB_565:
 		BPP = 2;
 		break;
-	case GF_PIXEL_BGR_24:
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_BGR:
+	case GF_PIXEL_RGB:
 		BPP = 3;
 		break;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		BPP = 4;
 		break;
 	default:
@@ -172,12 +172,12 @@ GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 	case GF_PIXEL_RGB_565:
 		BPP = 2;
 		break;
-	case GF_PIXEL_BGR_24:
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_BGR:
+	case GF_PIXEL_RGB:
 		BPP = 3;
 		break;
-	case GF_PIXEL_RGB_32:
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
 		BPP = 4;
@@ -255,15 +255,15 @@ GF_Err evg_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 
 	switch (surf->pixelFormat) {
 	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		return evg_surface_clear_bgra(surf, clear, color);
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		return evg_surface_clear_rgbx(surf, clear, color);
 	case GF_PIXEL_RGBA:
 		return evg_surface_clear_rgba(surf, clear, color);
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		return evg_surface_clear_bgr(surf, clear, color);
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		return evg_surface_clear_rgb(surf, clear, color);
 	case GF_PIXEL_RGB_565:
 		return evg_surface_clear_565(surf, clear, color);
@@ -393,7 +393,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		}
 		break;
 
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		if (use_const) {
 			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
@@ -406,7 +406,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		}
 		break;
 
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		if (use_const) {
 			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
@@ -419,7 +419,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		}
 		break;
 
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		if (use_const) {
 			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
@@ -431,7 +431,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_var;
 		}
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		if (use_const) {
 			if (!a) return GF_FALSE;
 			if (a!=0xFF) {

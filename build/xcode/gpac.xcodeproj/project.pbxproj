@@ -462,7 +462,6 @@
 		92BBFD091A7122AD006A7735 /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA81A7122AD006A7735 /* version.h */; };
 		92BBFD0A1A7122AD006A7735 /* webvtt.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCA91A7122AD006A7735 /* webvtt.h */; };
 		92BBFD0B1A7122AD006A7735 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFCAA1A7122AD006A7735 /* xml.h */; };
-		92BD5567205AE296007C4C06 /* ff_avin.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BD5566205AE296007C4C06 /* ff_avin.c */; };
 		92BD5568205AE807007C4C06 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA641A15240800372C59 /* AVFoundation.framework */; };
 		92BD5569205AE93A007C4C06 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2CC1A163E1E002D73E1 /* Foundation.framework */; };
 		92BD556B205AE974007C4C06 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92BD556A205AE974007C4C06 /* CoreGraphics.framework */; };
@@ -1314,7 +1313,6 @@
 		92BBFCA81A7122AD006A7735 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../include/gpac/version.h; sourceTree = "<group>"; };
 		92BBFCA91A7122AD006A7735 /* webvtt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = webvtt.h; path = ../include/gpac/webvtt.h; sourceTree = "<group>"; };
 		92BBFCAA1A7122AD006A7735 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = xml.h; path = ../include/gpac/xml.h; sourceTree = "<group>"; };
-		92BD5566205AE296007C4C06 /* ff_avin.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_avin.c; path = filters/ff_avin.c; sourceTree = "<group>"; };
 		92BD556A205AE974007C4C06 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		92BD556E205AE9B0007C4C06 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = System/Library/Frameworks/CoreImage.framework; sourceTree = SDKROOT; };
 		92BD5570205AE9BD007C4C06 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -2485,7 +2483,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				92BD5566205AE296007C4C06 /* ff_avin.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -3212,7 +3209,6 @@
 				92BB85711F7BFB63009BC9C8 /* reframe_mp3.c in Sources */,
 				9201018118D5A445003D1ACA /* mpeg4_valuator.c in Sources */,
 				9201018218D5A445003D1ACA /* smil_anim.c in Sources */,
-				92BD5567205AE296007C4C06 /* ff_avin.c in Sources */,
 				9201018318D5A445003D1ACA /* smil_timing.c in Sources */,
 				9201018418D5A445003D1ACA /* svg_attributes.c in Sources */,
 				92B9A5831F8660D700A24FE4 /* hardcoded_protos.c in Sources */,

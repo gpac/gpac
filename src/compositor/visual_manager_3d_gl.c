@@ -3803,14 +3803,14 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 		fb->video_buffer = compositor->screen_buffer;
 
-		fb->pixel_format = (fb->pitch_x == 4) ? GF_PIXEL_RGBA : GF_PIXEL_RGB_24;
+		fb->pixel_format = (fb->pitch_x == 4) ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 
 		glReadPixels(0, 0, fb->width, fb->height, (fb->pitch_x == 4) ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 		/*	} else {
 				fb->pitch_x = 3;
 				fb->pitch_y = 3*compositor->vp_width;
 				fb->video_buffer = (char*)gf_malloc(sizeof(char) * fb->pitch_y * fb->height);
-				fb->pixel_format = GF_PIXEL_RGB_24;
+				fb->pixel_format = GF_PIXEL_RGB;
 
 				glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 		*/
@@ -3849,7 +3849,7 @@ GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSur
 	if (view_idx>=compositor->visual->nb_views) return GF_BAD_PARAM;
 	fb->width = compositor->visual->auto_stereo_width;
 	fb->height = compositor->visual->auto_stereo_height;
-	fb->pixel_format = GF_PIXEL_RGB_24;
+	fb->pixel_format = GF_PIXEL_RGB;
 	fb->pitch_y = 3*fb->width;
 	fb->video_buffer = gf_malloc(sizeof(char)*3*fb->width*fb->height);
 	if (!fb->video_buffer) return GF_OUT_OF_MEM;
@@ -4094,7 +4094,7 @@ restart:
 
 		data = (u8 *) gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
-		if (pixel_format!=GF_PIXEL_RGB_24_DEPTH) return;
+		if (pixel_format!=GF_PIXEL_RGB_DEPTH) return;
 		data += txh->height*txh->width*3;
 
 		for (h=0; h<txh->height; h++) {

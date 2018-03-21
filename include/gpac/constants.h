@@ -137,13 +137,17 @@ typedef enum
 	/*!16 bit RGB*/
 	GF_PIXEL_RGB_565	=	GF_4CC('R','5','6','5'),
 	/*!24 bit RGB*/
-	GF_PIXEL_RGB_24		=	GF_4CC('R','G','B','3'),
+	GF_PIXEL_RGB		=	GF_4CC('R','G','B','3'),
 	/*!24 bit BGR*/
-	GF_PIXEL_BGR_24		=	GF_4CC('B','G','R','3'),
-	/*!32 bit RGB. Component ordering in bytes is B-G-R-X.*/
-	GF_PIXEL_RGB_32		=	GF_4CC('R','G','B','4'),
-	/*!32 bit BGR. Component ordering in bytes is R-G-B-X.*/
-	GF_PIXEL_BGR_32		=	GF_4CC('B','G','R','4'),
+	GF_PIXEL_BGR		=	GF_4CC('B','G','R','3'),
+	/*!32 bit RGB. Component ordering in bytes is R-G-B-X.*/
+	GF_PIXEL_RGBX		=	GF_4CC('R','G','B','4'),
+	/*!32 bit BGR. Component ordering in bytes is B-G-R-X.*/
+	GF_PIXEL_BGRX		=	GF_4CC('B','G','R','4'),
+	/*!32 bit RGB. Component ordering in bytes is X-R-G-B.*/
+	GF_PIXEL_XRGB		=	GF_4CC('R','G','B','X'),
+	/*!32 bit BGR. Component ordering in bytes is X-B-G-R.*/
+	GF_PIXEL_XBGR		=	GF_4CC('B','G','R','X'),
 
 	/*!32 bit ARGB. Component ordering in bytes is B-G-R-A.*/
 	GF_PIXEL_ARGB		=	GF_4CC('A','R','G','B'),
@@ -159,10 +163,10 @@ typedef enum
 	GF_PIXEL_RGBAS		=	GF_4CC('R', 'G', 'A', 'S'),
 
 	/*internal format for OpenGL using pachek RGB 24 bit plus planar depth plane at the end of the image*/
-	GF_PIXEL_RGB_24_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
+	GF_PIXEL_RGB_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
 
 	/*!YUV packed format*/
-	GF_PIXEL_YUY2		=	GF_4CC('Y','U','Y','2'),
+	GF_PIXEL_YUYV		=	GF_4CC('Y','U','Y','2'),
 	/*!YUV packed format*/
 	GF_PIXEL_YVYU		=	GF_4CC('Y','V','Y','U'),
 	/*!YUV packed format*/

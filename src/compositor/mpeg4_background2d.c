@@ -126,7 +126,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 		stack->txh.width = 2;
 		stack->txh.height = 2;
 		stack->txh.stride = 6;
-		stack->txh.pixelformat = GF_PIXEL_RGB_24;
+		stack->txh.pixelformat = GF_PIXEL_RGB;
 	}
 
 	if (use_texture) {

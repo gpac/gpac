@@ -581,7 +581,7 @@ void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 Bac
 		video_src.width = 2;
 		video_src.pitch_x = 0;
 		video_src.pitch_y = 6;
-		video_src.pixel_format = GF_PIXEL_RGB_24;
+		video_src.pixel_format = GF_PIXEL_RGB;
 		video_src.video_buffer = data;
 
 		src_wnd.x = src_wnd.y = 0;
@@ -837,8 +837,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 //			return 0;
 
 		switch (txh->pixelformat) {
-		case GF_PIXEL_RGB_24:
-		case GF_PIXEL_BGR_24:
+		case GF_PIXEL_RGB:
+		case GF_PIXEL_BGR:
 		case GF_PIXEL_RGBS:
 		case GF_PIXEL_RGBD:
 //		case GF_PIXEL_RGB_555:
@@ -861,7 +861,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_IYUV:
 		case GF_PIXEL_I420:
 		case GF_PIXEL_YVYU:
-		case GF_PIXEL_YUY2:
+		case GF_PIXEL_YUYV:
 		case GF_PIXEL_YUVD:
 		case GF_PIXEL_YUV422:
 		case GF_PIXEL_YUV444:
@@ -1112,8 +1112,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	switch (ctx->aspect.fill_texture->pixelformat) {
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYSCALE:
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
 	case GF_PIXEL_ARGB:
@@ -1121,7 +1121,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_YVYU:
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV12:
