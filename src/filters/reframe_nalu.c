@@ -188,7 +188,6 @@ typedef struct
 
 GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	Bool was_hevc;
 	const GF_PropertyValue *p;
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
 
@@ -207,8 +206,6 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->fps.den = 0;
 		ctx->fps.num = ctx->timescale;
 	}
-
-	was_hevc = ctx->is_hevc;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) {
@@ -862,7 +859,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 	u32 max_w, max_h, max_ew, max_eh;
 
 
-	max_w = max_h = 0;
+	max_w = max_h = max_ew = max_eh = 0;
 	sar->num = sar->den = 1;
 
 	avcc = gf_odf_avc_cfg_new();
@@ -1701,7 +1698,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 GF_Err naludmx_process(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck;
 	GF_Err e;
 	char *data;
 	u8 *start;
@@ -1950,11 +1947,11 @@ GF_Err naludmx_process(GF_Filter *filter)
 			if (bytes_from_store) {
 				if (bytes_from_store>=current) {
 					//we still have that many bytes from the store to dispatch
-					bytes_from_store -= current;
+//					bytes_from_store -= current;
 				} else {
 					//we are done, the nal header and start code is completely in the new packet
 					u32 shift = current - bytes_from_store;
-					bytes_from_store = 0;
+//					bytes_from_store = 0;
 					assert(remain >= shift);
 					start += shift;
 					remain -= shift;
@@ -2382,7 +2379,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		au_start = ctx->first_pck_in_au ? GF_FALSE : GF_TRUE;
 
 		if (ctx->sei_buffer_size) {
-			dst_pck = naludmx_start_nalu(ctx, ctx->sei_buffer_size, &au_start, &pck_data);
+			/*dst_pck = */naludmx_start_nalu(ctx, ctx->sei_buffer_size, &au_start, &pck_data);
 			memcpy(pck_data + ctx->nal_length, ctx->sei_buffer, ctx->sei_buffer_size);
 			ctx->nb_sei++;
 			if (ctx->subsamples) {
@@ -2392,7 +2389,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->svc_prefix_buffer_size) {
-			dst_pck = naludmx_start_nalu(ctx, ctx->svc_prefix_buffer_size, &au_start, &pck_data);
+			/*dst_pck = */naludmx_start_nalu(ctx, ctx->svc_prefix_buffer_size, &au_start, &pck_data);
 			memcpy(pck_data + ctx->nal_length, ctx->svc_prefix_buffer, ctx->svc_prefix_buffer_size);
 			if (ctx->subsamples) {
 				naludmx_add_subsample(ctx, ctx->svc_prefix_buffer_size, ctx->svc_nalu_prefix_priority, ctx->svc_nalu_prefix_reserved);
@@ -2401,7 +2398,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		}
 
 		//nalu size field, always on 4 bytes at parser level
-		dst_pck = naludmx_start_nalu(ctx, size, &au_start, &pck_data);
+		/*dst_pck = */naludmx_start_nalu(ctx, size, &au_start, &pck_data);
 		pck_data += ctx->nal_length;
 
 		//bytes come from both our store and the data packet

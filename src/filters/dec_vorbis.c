@@ -128,6 +128,8 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 
 	for (i=0 ; i<channels ; i++) {
 		ptr = &data[i];
+		if (!ptr) break;
+		
 		if (channels>2) {
 			/*center is third in gpac*/
 			if (i==1) ptr = &data[2];
@@ -145,7 +147,7 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 			val = (s32) (mono[j] * 32767.f);
 			if (val > 32767) val = 32767;
 			if (val < -32768) val = -32768;
-			*ptr = val;
+			(*ptr) = val;
 			ptr += channels;
 		}
 	}

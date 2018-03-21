@@ -142,6 +142,7 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	duration = 0;
+	cur_dur = 0;
 	while (gf_bs_available(bs)) {
 		u8 type;
 		u64 pos = gf_bs_get_position(bs);
@@ -466,7 +467,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 			gf_filter_pck_send(dst_pck);
 
 			h263dmx_update_cts(ctx);
-			first_frame_found = GF_TRUE;
+			//first_frame_found = GF_TRUE;
 		}
 
 		if (ctx->bytes_in_header) {

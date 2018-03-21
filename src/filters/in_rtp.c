@@ -95,8 +95,6 @@ found:
 	}
 	test = strstr(sURL, "://");
 	test += 3;
-	//check for service
-	retest = strstr(test, "/");
 
 	//check for port
 	retest = strrchr(test, ':');
@@ -283,10 +281,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_RTPInStream *stream;
 	GF_RTPIn *ctx = (GF_RTPIn *) gf_filter_get_udta(filter);
-	GF_RTPInRTSP *sess = NULL;
 	Bool reset_stream = GF_FALSE;
-
-	sess = ctx->session;
 
 	if (evt->base.type == GF_FEVT_QUALITY_SWITCH) {
 		gf_rtp_switch_quality(ctx, evt->quality_switch.up);

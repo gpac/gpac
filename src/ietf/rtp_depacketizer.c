@@ -1312,6 +1312,10 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.auh_min_len = rtp->sl_map.auh_first_min_len;
 		rtp->sl_map.auh_first_min_len += rtp->sl_map.IndexLength;
 		rtp->sl_map.auh_min_len += rtp->sl_map.IndexDeltaLength;
+		if (!map) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		/*RFC3016 flags*/
 		if (!stricmp(map->payload_name, "MP4V-ES")) {
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
@@ -1409,6 +1413,10 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		tcfg.Base3GPPFormat = 0x10;
 		tcfg.MPEGExtendedFormat = 0x10;
 		tcfg.profileLevel = 0x10;
+		if (!map) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		tcfg.timescale = map->ClockRate;
 		tcfg.sampleDescriptionFlags = 1;
 		tx3g = NULL;
@@ -1486,7 +1494,13 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_H264_SVC:
 	{
 		GF_SDP_FMTP *fmtp;
-		GF_AVCConfig *avcc = gf_odf_avc_cfg_new();
+		GF_AVCConfig *avcc;
+		if (!map) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		avcc = gf_odf_avc_cfg_new();
 		avcc->AVCProfileIndication = (rtp->sl_map.PL_ID>>16) & 0xFF;
 		avcc->profile_compatibility = (rtp->sl_map.PL_ID>>8) & 0xFF;
 		avcc->AVCLevelIndication = rtp->sl_map.PL_ID & 0xFF;
@@ -1557,7 +1571,12 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 #ifndef GPAC_DISABLE_HEVC
 	{
 		GF_SDP_FMTP *fmtp;
-		GF_HEVCConfig *hevcc = gf_odf_hevc_cfg_new();
+		GF_HEVCConfig *hevcc;
+		if (!map) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		hevcc = gf_odf_hevc_cfg_new();
 		hevcc->configurationVersion = 1;
 		hevcc->nal_unit_size = 4;
 		rtp->sl_map.StreamType = 4;

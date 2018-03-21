@@ -1031,7 +1031,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	GF_FilterEvent evt;
 	const char *next_url, *next_url_init_or_switch_segment, *src_url, *key_url;
 	u64 start_range, end_range, switch_start_range, switch_end_range;
-	u32 nb_segments_cached;
 	bin128 key_IV;
 	Bool group_done;
 
@@ -1046,7 +1045,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 	group->stats_uploaded = GF_FALSE;
 	group_done = GF_FALSE;
-	nb_segments_cached = gf_dash_group_get_num_segments_ready(ctx->dash, group->idx, &group_done);
 
 	if (group_done) {
 		if (!gf_dash_get_period_switch_status(ctx->dash) && gf_dash_in_last_period(ctx->dash, GF_TRUE)) {

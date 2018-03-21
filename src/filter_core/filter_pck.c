@@ -372,7 +372,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 			safe_int_inc(&dst->filter->pending_packets);
 
-			if (info.duration && pck->pid_props->timescale) {
+			if (info.duration && pck->pid_props && pck->pid_props->timescale) {
 				s64 duration = ((u64) info.duration) * 1000000;
 				duration /= pck->pid_props->timescale;
 				safe_int_add(&dst->buffer_duration, duration);
@@ -557,7 +557,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 #endif
 	} else {
-		duration = pck->info.duration = 0;
+		pck->info.duration = 0;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent clock reference "LLU"%s\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, (pck->info.clock_type==GF_FILTER_CLOCK_PCR_DISC) ? " - discontinuity detected" : ""));
 	}
 

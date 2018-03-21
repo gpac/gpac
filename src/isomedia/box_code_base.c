@@ -1268,7 +1268,7 @@ GF_Err esds_Read(GF_Box *s, GF_BitStream *bs)
 			ptr->desc = NULL;
 		} else {
 			/*fix broken files*/
-			if (!ptr->desc->URLString) {
+			if (ptr->desc && !ptr->desc->URLString) {
 				if (!ptr->desc->slConfig) {
 					ptr->desc->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 					ptr->desc->slConfig->predefined = SLPredef_MP4;
@@ -3531,6 +3531,7 @@ GF_Err minf_Read(GF_Box *s, GF_BitStream *bs)
 		dref = gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
 		if (!dref) return GF_OUT_OF_MEM;
 		e = dinf_AddBox(dinf, dref);
+		if (e) return e;
 
 		url = gf_isom_box_new(GF_ISOM_BOX_TYPE_URL);
 		if (!url) return GF_OUT_OF_MEM;
@@ -8996,7 +8997,7 @@ GF_Err leva_Read(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < ptr->level_count; i++) {
 		GF_LevelAssignment *level = &ptr->levels[i];
 		u8 tmp;
-		if (ptr->size < 5) return GF_BAD_PARAM;
+		if (!level || ptr->size < 5) return GF_BAD_PARAM;
 		level->track_id = gf_bs_read_u32(bs);
 		tmp = gf_bs_read_u8(bs);
 		level->padding_flag = tmp >> 7;

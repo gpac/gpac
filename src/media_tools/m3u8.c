@@ -305,7 +305,7 @@ static char** extract_attributes(const char *name, const char *line, const int n
 			while (line[start+spaces] == ' ')
 				spaces++;
 			if ((sz-spaces<=1) && (line[start+spaces]==',')) {
-				start = i+1;
+				//start = i+1;
 			} else {
 				if (!strncmp(&line[start+spaces], "\t", sz-spaces) || !strncmp(&line[start+spaces], "\n", sz-spaces)) {
 				} else {

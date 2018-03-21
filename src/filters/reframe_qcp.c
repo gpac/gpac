@@ -126,6 +126,9 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	if (!ctx->hdr_processed ) {
 		e = qcpdmx_process_header(filter, ctx, NULL, 0, bs);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[QCPDmx] Header parsed error %s\n", gf_error_to_string(e) ));
+		}
 	} else {
 		gf_bs_skip_bytes(bs, 170);
 	}
@@ -152,6 +155,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 	ctx->data_chunk_size = data_chunk_size;
 
 	duration = 0;
+	cur_dur = 0;
 	while (data_chunk_size) {
 		u32 idx, size=0;
 		u64 pos;
@@ -276,7 +280,7 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *data, u32 size, GF_BitStream *file_bs)
 {
 	char magic[12], GUID[17], name[81], fmt[162];
-	u32 riff_size, chunk_size, bps, size_in_packet, i, avg_bps;
+	u32 riff_size, chunk_size, i, avg_bps;
 	Bool has_pad;
 	const GF_PropertyValue *p;
 	GF_BitStream *bs;
@@ -326,7 +330,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	ctx->pck_size = gf_bs_read_u16_le(bs);
 	ctx->block_size = gf_bs_read_u16_le(bs);
 	ctx->sample_rate = gf_bs_read_u16_le(bs);
-	bps = gf_bs_read_u16_le(bs);
+	/*bps = */gf_bs_read_u16_le(bs);
 	ctx->rate_table_count = gf_bs_read_u32_le(bs);
 	chunk_size -= 14;
 	/*skip var rate*/
@@ -361,7 +365,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	chunk_size = gf_bs_read_u32_le(bs);
 	has_pad = (chunk_size%2) ? GF_TRUE : GF_FALSE;
 	ctx->vrat_rate_flag = gf_bs_read_u32_le(bs);
-	size_in_packet = gf_bs_read_u32_le(bs);
+	/*size_in_packet =*/gf_bs_read_u32_le(bs);
 	chunk_size -= 8;
 	gf_bs_skip_bytes(bs, chunk_size);
 	if (has_pad) gf_bs_read_u8(bs);
@@ -465,7 +469,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 
 	while (remain) {
-		u32 i, chunk_size;
+		u32 i, chunk_size=0;
 		u32 idx = 0;
 		u32 size = 0;
 		u64 b_offset;
@@ -572,7 +576,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		/*get frame rate idx*/
 		if (ctx->vrat_rate_flag) {
 			idx = start[0];
-			chunk_size-=1;
+			//chunk_size-=1;
 			for (i=0; i<ctx->rate_table_count; i++) {
 				if (ctx->rate_table[i].rate_idx==idx) {
 					size = ctx->rate_table[i].pck_size;

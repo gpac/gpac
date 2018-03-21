@@ -392,7 +392,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 							}
 						}
 						//we should only parse senc/psec when no saiz/saio is present, otherwise we fetch the info directly
-						if (traf->trex && traf->trex->track && traf->sample_encryption) {
+						if (traf->trex && traf->tfhd && traf->trex->track && traf->sample_encryption) {
 							GF_TrackBox *trak = GetTrackbyID(mov->moov, traf->tfhd->trackID);
 							e = senc_Parse(mov->movieFileMap->bs, trak, traf, traf->sample_encryption);
 							if (e) return e;

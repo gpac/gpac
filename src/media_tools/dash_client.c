@@ -2262,7 +2262,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 				group->hls_next_start_time = 0;
 
 				//check in new list where the start is
-				for (k=0; k<gf_list_count(rep->segment_list->segment_URLs); k++) {
+				for (k=0; rep->segment_list && k<gf_list_count(rep->segment_list->segment_URLs); k++) {
 					s64 start_diff;
 					seg_url = (GF_MPD_SegmentURL *) gf_list_get(rep->segment_list->segment_URLs, k);
 
@@ -3709,13 +3709,13 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 	}
 	if (group->urlToDeleteNext) {
 		if (!dash->keep_files && !group->local_files)
-			dash->dash_io->delete_cache_file(dash->dash_io, group->segment_download, group->urlToDeleteNext);
+			if (dash->dash_io) dash->dash_io->delete_cache_file(dash->dash_io, group->segment_download, group->urlToDeleteNext);
 
 		gf_free(group->urlToDeleteNext);
 		group->urlToDeleteNext = NULL;
 	}
 	if (group->segment_download) {
-		dash->dash_io->del(dash->dash_io, group->segment_download);
+		if (dash->dash_io) dash->dash_io->del(dash->dash_io, group->segment_download);
 		group->segment_download = NULL;
 	}
 	while (group->nb_cached_segments) {
@@ -3732,7 +3732,7 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 static void gf_dash_reset_groups(GF_DashClient *dash)
 {
 	/*send playback destroy event*/
-	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_DESTROY_PLAYBACK, -1, GF_OK);
+	if (dash->dash_io) dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_DESTROY_PLAYBACK, -1, GF_OK);
 
 	while (gf_list_count(dash->groups)) {
 		GF_DASH_Group *group = gf_list_last(dash->groups);
@@ -6061,7 +6061,6 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 		e = gf_dash_update_manifest(dash);
 		if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
 
-		group_count = gf_list_count(dash->groups);
 		diff = gf_sys_clock() - diff;
 		if (e) {
 			if (!dash->in_error) {

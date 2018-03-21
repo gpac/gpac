@@ -323,6 +323,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.linesize[0] = ffdec->stride;
 		pict.linesize[1] = pict.linesize[2] = ffdec->stride/2;
 		pix_out = AV_PIX_FMT_YUV422P10LE;
+		break;
 	case GF_PIXEL_YUV444_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
@@ -494,9 +495,12 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 			if (ffdec->sample_rate == timescale) {
 				pts += ffdec->nb_samples_already_in_frame;
 			} else {
+/*
 				u64 diff = ffdec->nb_samples_already_in_frame;
 				diff *= timescale;
 				diff /= ffdec->sample_rate;
+*/
+
 			}
 		}
 //	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] out PTS "LLU"\n", pts));

@@ -149,68 +149,52 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		switch (a_fmt) {
 		case WAVE_FORMAT_PCM:
 			codecid = GF_CODECID_PCM;
-			comp = "pcm";
 			break;
 		case WAVE_FORMAT_ADPCM:
 			codecid = GF_CODECID_ADPCM;
-			comp = "adpcm";
 			break;
 		case WAVE_FORMAT_IBM_CVSD:
 			codecid = GF_CODECID_IBM_CVSD;
-			comp = "cvsd";
 			break;
 		case WAVE_FORMAT_ALAW:
 			codecid = GF_CODECID_ALAW;
-			comp = "alaw";
 			break;
 		case WAVE_FORMAT_MULAW:
 			codecid = GF_CODECID_MULAW;
-			comp = "mulaw";
 			break;
 		case WAVE_FORMAT_OKI_ADPCM:
 			codecid = GF_CODECID_OKI_ADPCM;
-			comp = "oki_adpcm";
 			break;
 		case WAVE_FORMAT_DVI_ADPCM:
 			codecid = GF_CODECID_DVI_ADPCM;
-			comp = "dvi_adpcm";
 			break;
 		case WAVE_FORMAT_DIGISTD:
 			codecid = GF_CODECID_DIGISTD;
-			comp = "digistd";
 			break;
 		case WAVE_FORMAT_YAMAHA_ADPCM:
 			codecid = GF_CODECID_YAMAHA_ADPCM;
-			comp = "yam_adpcm";
 			break;
 		case WAVE_FORMAT_DSP_TRUESPEECH:
 			codecid = GF_CODECID_DSP_TRUESPEECH;
-			comp = "truespeech";
 			break;
 		case WAVE_FORMAT_GSM610:
 			codecid = GF_CODECID_GSM610;
-			comp = "gsm610";
 			break;
 		case IBM_FORMAT_MULAW:
 			codecid = GF_CODECID_IBM_MULAW;
-			comp = "ibm_mulaw";
 			break;
 		case IBM_FORMAT_ALAW:
 			codecid = GF_CODECID_IBM_ALAW;
-			comp = "ibm_alaw";
 			break;
 		case IBM_FORMAT_ADPCM:
 			codecid = GF_CODECID_IBM_ADPCM;
-			comp = "ibm_adpcm";
 			break;
 		case 0x55:
 			codecid = GF_CODECID_MPEG_AUDIO;
-			comp = "mp3";
 			unframed = GF_TRUE;
 			break;
 		case 0x0000706d:
 			codecid = GF_CODECID_AAC_MPEG4;
-			comp = "aac";
 			unframed = GF_TRUE;
 			break;
 		default:

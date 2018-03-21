@@ -332,10 +332,10 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(oti));
 
 			gf_bs_read_u16(ctx->bs);
-			val = gf_bs_read_u24(ctx->bs); //bufferSizeDB
+			/*val = */gf_bs_read_u24(ctx->bs); //bufferSizeDB
 			val = gf_bs_read_u32(ctx->bs); //avgBitrate
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, &PROP_UINT(val));
-			val = gf_bs_read_u32(ctx->bs); //maxBitrate
+			/*val = */gf_bs_read_u32(ctx->bs); //maxBitrate
 			ctx->timescale = gf_bs_read_u32(ctx->bs);
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale));
 

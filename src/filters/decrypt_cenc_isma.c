@@ -502,7 +502,6 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PID_PCK_CENC_IV_SIZE);
 	if (!prop) {
 		const_IV = gf_filter_pid_get_property(ipid, GF_PROP_PID_PCK_CENC_IV_CONST);
-		if (!const_IV) prop = gf_filter_pid_get_property(ipid, GF_PROP_PID_PCK_CENC_IV_SIZE);
 	} else {
 		ctx->sai.IV_size = prop->value.uint;
 	}
@@ -717,13 +716,13 @@ static GF_Err decenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 static Bool decenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FilterPid *opid, *ipid;
+	GF_FilterPid *ipid;
 	Bool is_play = GF_FALSE;
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
 
 	ipid = evt->base.on_pid;
 	if (!ipid) return GF_FALSE;
-	opid = gf_filter_pid_get_udta(ipid);
+
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		is_play = GF_TRUE;

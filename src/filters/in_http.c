@@ -227,7 +227,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	Bool is_start;
 	u32 nb_read=0, total_size;
 	GF_FilterPacket *pck;
-	GF_Err e;
+	GF_Err e=GF_OK;
 	u32 bytes_done, bytes_per_sec;
 	GF_NetIOStatus net_status;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);

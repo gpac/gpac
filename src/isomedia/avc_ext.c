@@ -658,7 +658,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 						gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
 						break;
 					}
-					ps_transfered = GF_TRUE;
 				}
 				gf_bs_write_data(mdia->nalu_out_bs, mdia->in_sample_buffer, sample->dataLength);
 				gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
@@ -675,7 +674,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		if (! ps_transfered)
 		{
 			gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
-			ps_transfered = GF_TRUE;
 		}
 		gf_bs_write_data(mdia->nalu_out_bs, mdia->in_sample_buffer, sample->dataLength);
 		gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
@@ -770,12 +768,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				}
 
 				if (rewrite_start_codes)
-					gf_bs_write_u32(mdia->nalu_out_bs, 1);
+					gf_bs_write_u32(write_to_bs, 1);
 				else
-					gf_bs_write_int(mdia->nalu_out_bs, nal_size, 8*nal_unit_size_field);
+					gf_bs_write_int(write_to_bs, nal_size, 8*nal_unit_size_field);
 
-				gf_bs_write_u16(mdia->nalu_out_bs, nal_hdr);
-				gf_bs_write_data(mdia->nalu_out_bs, mdia->tmp_nal_copy_buffer, nal_size-2);
+				gf_bs_write_u16(write_to_bs, nal_hdr);
+				gf_bs_write_data(write_to_bs, mdia->tmp_nal_copy_buffer, nal_size-2);
 			}
 #endif
 

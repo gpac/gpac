@@ -107,6 +107,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	ctx->index_size = 0;
 
 	duration = 0;
+	cur_dur = 0;
 	while (1) {
 		u32 sr, dur;
 		u64 pos;

@@ -595,7 +595,6 @@ static GF_Err gf_m4v_parse_config_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 			break;
 		/*EOS*/
 		case -1:
-			go = 0;
 			m4v->current_object_start = gf_bs_get_position(m4v->bs);
 			return GF_EOS;
 		/*don't interest us*/
@@ -2296,8 +2295,9 @@ static s32 gf_media_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u3
 		return -1;
 	}
 
-	if (!nal_hdr) nal_hdr = gf_bs_read_int(bs, 8);
-
+	if (!nal_hdr) {
+		/*nal_hdr =*/ gf_bs_read_int(bs, 8);
+	}
 	profile_idc = gf_bs_read_int(bs, 8);
 
 	pcomp = gf_bs_read_int(bs, 8);
@@ -2625,8 +2625,9 @@ static s32 gf_media_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u3
 
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
-	if (!nal_hdr) nal_hdr = gf_bs_read_u8(bs);
-
+	if (!nal_hdr) {
+		/*nal_hdr = */gf_bs_read_u8(bs);
+	}
 	pps_id = bs_get_ue(bs);
 	if (pps_id>=255) {
 		return -1;
@@ -2696,7 +2697,9 @@ static s32 gf_media_avc_read_sps_ext_bs_internal(GF_BitStream *bs, u32 nal_hdr)
 	s32 sps_id;
 
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
-	if (!nal_hdr) nal_hdr = gf_bs_read_u8(bs);
+	if (!nal_hdr) {
+		/*nal_hdr = */gf_bs_read_u8(bs);
+	}
 	sps_id = bs_get_ue(bs);
 	return sps_id;
 }
@@ -3617,9 +3620,9 @@ void hevc_pred_weight_table(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si
 
 	num_ref_idx = num_ref_idx_l0_active;
 
-	/*luma_log2_weight_denom=*/i=bs_get_ue(bs);
+	/*luma_log2_weight_denom=*/bs_get_ue(bs);
 	if (ChromaArrayType != 0)
-		/*delta_chroma_log2_weight_denom=*/i=bs_get_se(bs);
+		/*delta_chroma_log2_weight_denom=*/bs_get_se(bs);
 
 parse_weights:
 	for (i=0; i<num_ref_idx; i++) {
@@ -3894,14 +3897,14 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			s32 remain = (offset & 15);
 
 			for (i=0; i<num_entry_point_offsets; i++) {
-				u32 res = 0;
+				//u32 res = 0;
 				for (j=0; j<segments; j++) {
-					res <<= 16;
-					res += gf_bs_read_int(bs, 16);
+					//res <<= 16;
+					/*res +=*/ gf_bs_read_int(bs, 16);
 				}
 				if (remain) {
-					res <<= remain;
-					res += gf_bs_read_int(bs, remain);
+					//res <<= remain;
+					/*res += */ gf_bs_read_int(bs, remain);
 				}
 				// entry_point_offset = val + 1; // +1; // +1 to get the size
 			}

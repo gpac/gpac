@@ -142,7 +142,7 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_le
 
 GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 w, h, crc, crc_enh, codecid;
+	u32 crc, crc_enh, codecid;
 	const GF_PropertyValue *p, *dcd, *dcd_enh;
 	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
 
@@ -157,11 +157,6 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
 	codecid = p->value.uint;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-	w = p ? p->value.uint : 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-	h = p ? p->value.uint : 0;
 
 	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;

@@ -476,11 +476,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	while (1) {
 		Bool notified;
 		Bool requeue = GF_FALSE;
-		Bool task_from_filter = GF_FALSE;
 		u64 active_start, task_time;
-		u32 pending_packets=0;
 		GF_FSTask *task=NULL;
+#ifdef CHECK_TASK_LIST_INTEGRITY
 		GF_Filter *prev_current_filter = NULL;
+#endif
 
 		if (do_use_sema && (current_filter==NULL)) {
 			//wait for something to be done
@@ -509,7 +509,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				assert( ! task->in_main_task_list_only );
 				assert( ! task->notified );
 			}
-			task_from_filter = GF_TRUE;
 		}
 
 		if (!task) {
@@ -672,7 +671,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			assert(!current_filter->in_process);
 			current_filter->in_process = GF_TRUE;
 			current_filter->process_th_id = gf_th_id();
-			pending_packets = current_filter->pending_packets;
 		}
 
 		sess_thread->nb_tasks++;
@@ -694,8 +692,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		//may now be NULL if task was a filter destruction task
 		current_filter = task->filter;
 
+#ifdef CHECK_TASK_LIST_INTEGRITY
 		prev_current_filter = task->filter;
-
+#endif
 		//source task was current filter, pop the filter task list
 		if (current_filter) {
 			current_filter->nb_tasks_done++;
@@ -742,7 +741,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_fq_add(current_filter->tasks, task);
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in main tasks (%d pending)\n", thid, task->filter->name, task->log_name, fsess->tasks_pending));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in main tasks (%d pending)\n", thid, task->filter ? task->filter->name : "none", task->log_name, fsess->tasks_pending));
 
 				task->notified = GF_TRUE;
 				safe_int_inc(&fsess->tasks_pending);
@@ -1038,7 +1037,8 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	memset(szExt, 0, sizeof(szExt));
 
 	if (err) *err = GF_OK;
-	
+
+	mime_type = NULL;
 	sURL = NULL;
 	if (!url || !strncmp(url, "\\\\", 2) ) {
 		return NULL;

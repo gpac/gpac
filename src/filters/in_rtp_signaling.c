@@ -500,7 +500,7 @@ err_exit:
 	stream->status = RTP_Disconnected;
 	stream->check_rtp_time = RTP_SET_TIME_NONE;
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Error processing event %s\n", gf_filter_event_name(ch_ctrl->evt.base.type) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Error processing event %s: %s\n", gf_filter_event_name(ch_ctrl->evt.base.type), gf_error_to_string(e) ));
 
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
@@ -639,6 +639,7 @@ err_exit:
 		gf_rtsp_reset_aggregation(stream->rtsp->session);
 		stream->check_rtp_time = RTP_SET_TIME_NONE;
 	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Error processing user command %s\n", gf_error_to_string(e) ));
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
 }

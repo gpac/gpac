@@ -1439,7 +1439,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 			       ps->audio_streams[stream_ix];
 
 			// pick up here - find the final time...
-			if (sptr->end_dts_loc != 0) {
+			if (sptr && (sptr->end_dts_loc != 0)) {
 				file_seek_to(ps->fd, sptr->end_dts_loc);
 				sptr->m_fd = ps->fd;
 				frame_cnt_since_last = 0;
@@ -1757,7 +1757,6 @@ Bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps, u32 streamno,
                              u64 *timestamp)
 {
 	mpeg2ps_stream_t *sptr;
-	u64 ts;
 	if (invalid_audio_streamno(ps, streamno)) return 0;
 
 	sptr = ps->audio_streams[streamno];
@@ -1769,7 +1768,7 @@ Bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps, u32 streamno,
 	}
 
 	if (freq_timestamp) {
-		ts = stream_convert_frame_ts_to_msec(sptr,
+		/*ts = */stream_convert_frame_ts_to_msec(sptr,
 		                                     ts_type,
 		                                     ps->first_dts,
 		                                     freq_timestamp);

@@ -1235,6 +1235,9 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 	if (!a_sai)
 		return GF_NOT_SUPPORTED;
 
+	if (!sai)
+		return GF_BAD_PARAM;
+
 	GF_SAFEALLOC((*sai), GF_CENCSampleAuxInfo);
 	if (!(*sai) ) return GF_OUT_OF_MEM;
 	if (senc) {

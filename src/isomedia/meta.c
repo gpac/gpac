@@ -242,24 +242,22 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 
 	/* offsets are expressed from the start of the idat box instead of the start of the file */
 	if (location_entry->construction_method == 1) {
-		int found = 0;
+		Bool found = GF_FALSE;
 
 		count = gf_list_count(meta->other_boxes);
 		for (i = 0; i <count; i++) {
 			GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
 
 			if (a->type == GF_ISOM_BOX_TYPE_IDAT) {
-
 				GF_MediaDataBox *p = (GF_MediaDataBox *)a;
 				idat_offset = p->bsOffset;
-				found = 1;
+				found = GF_TRUE;
 				break;
-
 			}
-			if (!found) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Item %d references an inexistant idat box\n", item_num));
-				return GF_BAD_PARAM;
-			}
+		}
+		if (!found) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Item %d references an inexistant idat box\n", item_num));
+			return GF_BAD_PARAM;
 		}
 	}
 	/* when construction_method==1, data_reference_index is ignored */

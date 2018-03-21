@@ -379,8 +379,7 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
 	GF_ODFDecCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPid *ipid;
-	//an
+
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
 		break;
@@ -388,8 +387,6 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		return GF_FALSE;
 	}
 	if (!com->attach_scene.on_pid) return GF_TRUE;
-
-	ipid = gf_filter_pid_get_udta(com->attach_scene.on_pid);
 
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {

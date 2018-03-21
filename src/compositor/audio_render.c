@@ -42,9 +42,8 @@ void gf_ar_rcfg_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 {
 	const char *opt;
-	Bool skip_hw_config = GF_FALSE;
 	u32 freq, nb_bits, nb_chan, ch_cfg;
-	u32 in_ch, in_cfg, in_bps, in_freq, bsize;
+	u32 bsize;
 
 	freq = nb_bits = nb_chan = ch_cfg = 0;
 	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceFrequency");
@@ -72,17 +71,11 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		/*user disabled multichannel audio*/
 		if (ar->disable_multichannel && (nb_chan>2) ) nb_chan = 2;
 	} else {
-		if (ar->config_forced) skip_hw_config = GF_TRUE;
-		else ar->config_forced++;
+		if (!ar->config_forced) ar->config_forced++;
 	}
 
 
-	in_ch = nb_chan;
-	in_cfg = ch_cfg;
-	in_bps = nb_bits;
-	in_freq = freq;
-
-	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, in_cfg);
+	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, ch_cfg);
 
 	if (ar->samplerate) {
 		ar->time_at_last_config_sr = ar->current_time_sr * freq / ar->samplerate;
@@ -318,10 +311,9 @@ void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts)
 
 static void gf_ar_pck_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	const char *data;
 	u32 size;
 	GF_Compositor *compositor = gf_filter_pid_get_udta(pid);
-	data = gf_filter_pck_get_data(pck, &size);
+	/*data = */gf_filter_pck_get_data(pck, &size);
 	if (!size) return;
 	
 	assert(size <= compositor->audio_renderer->nb_bytes_out);

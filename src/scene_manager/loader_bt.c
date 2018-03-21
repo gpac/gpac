@@ -2664,7 +2664,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		info.fieldType = gf_sg_vrml_get_sf_type(info.fieldType);
 
 		while (!gf_bt_check_code(parser, ']')) {
-			u32 pos;
+			u32 pos=0;
 			if (gf_bt_parse_int(parser, "position", (SFInt32 *)&pos)) goto err;
 			str = gf_bt_get_next(parser, 0);
 			if (strcmp(str, "BY")) {

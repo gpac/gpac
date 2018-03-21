@@ -285,9 +285,9 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 					*buffer = image->comps[0].data[i];
 					buffer++;
 				}
-				w = image->comps[1].w;
+//				w = image->comps[1].w;
 				wr = int_ceildivpow2(image->comps[1].w, image->comps[1].factor);
-				h = image->comps[1].h;
+//				h = image->comps[1].h;
 				hr = int_ceildivpow2(image->comps[1].h, image->comps[1].factor);
 				wh = wr*hr;
 				for (i=0; i<wh; i++) {
@@ -304,7 +304,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 				}
 				w = image->comps[1].w;
 				wr = int_ceildivpow2(image->comps[1].w, image->comps[1].factor);
-				h = image->comps[1].h;
+//				h = image->comps[1].h;
 				hr = int_ceildivpow2(image->comps[1].h, image->comps[1].factor);
 				wh = wr*hr;
 				for (i=0; i<wh; i++) {

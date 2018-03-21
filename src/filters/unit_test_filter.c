@@ -610,6 +610,9 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
 		}
 		p = gf_props_parse_value(GF_PROP_STRING, "prop", "test", NULL);
+		if (!p.value.string || strcmp(p.value.string, "test")) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
+		}
 		sprintf(szFmt, "%p:%d", stack, (u32) sizeof(stack));
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", szFmt, NULL);
 		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
@@ -628,34 +631,61 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		old_strict = gf_log_set_strict_error(GF_FALSE);
 
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_SINT, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_UINT, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_LSINT, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_LUINT, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_STRING, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", "", NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_POINTER, "prop", "", NULL);
-
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_SINT, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_UINT, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_LSINT, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_LUINT, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_STRING, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_POINTER, "prop", NULL, NULL);
+		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_UINT, "prop", "test", "foo|bar");
+		if (p.type) {}
 		p = gf_props_parse_value(100, "prop", "test", NULL);
+		if (p.type) {}
 
 		gf_log_set_strict_error(old_strict);
 

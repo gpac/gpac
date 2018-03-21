@@ -201,8 +201,10 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	odm = NULL;
 	min_od_id = 0;
 	for (i=0; i<gf_list_count(scene->scene_objects); i++) {
-		char *frag, *ext;
-		char *url;
+#if FILTER_FIXME
+		char *frag = NULL;
+#endif
+		char *ext, *url;
 		u32 match_esid = 0;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 
@@ -226,10 +228,11 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		}
 		if (!mo->URLs.count || !mo->URLs.vals[0].url) continue;
 
-		frag = NULL;
 		ext = strrchr(mo->URLs.vals[0].url, '#');
 		if (ext) {
+#if FILTER_FIXME
 			frag = strchr(ext, '=');
+#endif
 			ext[0] = 0;
 		}
 		url = mo->URLs.vals[0].url;
@@ -238,7 +241,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		else if (!strnicmp(url, "gpac://", 7)) url += 7;
 		else if (!strnicmp(url, "pid://", 6)) match_esid = atoi(url+6);
 
-		if (!match_esid && !strstr(mo->odm->scene_ns->url, url)) {
+		if (!match_esid && mo->odm->scene_ns && !strstr(mo->odm->scene_ns->url, url)) {
 			if (ext) ext[0] = '#';
 			continue;
 		}

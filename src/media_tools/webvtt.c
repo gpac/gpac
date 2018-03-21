@@ -948,8 +948,8 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 	GF_Err e;
 	Bool do_parse = GF_TRUE;
 	GF_WebVTTCue *cue = NULL;
-	u32 start = 0;
-	u32 end = 0;
+//	u32 start = 0;
+//	u32 end = 0;
 	char *prevLine = NULL;
 	char *header = NULL;
 	u32 header_len = 0;
@@ -1071,8 +1071,8 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 					cue = NULL;
 					parser->state = WEBVTT_PARSER_STATE_WAITING_CUE;
 				} else {
-					start = (u32)gf_webvtt_timestamp_get(&cue->start);
-					end   = (u32)gf_webvtt_timestamp_get(&cue->end);
+//					start = (u32)gf_webvtt_timestamp_get(&cue->start);
+//					end   = (u32)gf_webvtt_timestamp_get(&cue->end);
 					parser->state = WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD;
 				}
 			} else {
