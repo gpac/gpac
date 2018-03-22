@@ -334,7 +334,7 @@ typedef struct
 	//options
 	char *drv;
 	GF_VideoOutMode mode;
-	Bool vsync, linear, fullscreen;
+	Bool vsync, linear, fullscreen, drop;
 	GF_Fraction dur;
 	Double speed, hold;
 	u32 back;
@@ -444,6 +444,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
+		//set a minimum buffer (although we don't buffer)
+		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, pid);
+		fevt.buffer_req.max_buffer_us = 100000;
+		gf_filter_pid_send_event(pid, &fevt);
+
 		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
 		gf_filter_pid_send_event(pid, &fevt);
 
@@ -1414,6 +1419,7 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (ctx->vsync) {
+		u64 ref_clock = 0;
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u64 clock_us, now = gf_sys_clock_high_res();
 		Double media_ts;
@@ -1434,12 +1440,14 @@ static GF_Err vout_process(GF_Filter *filter)
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
 			if (cts > ref_ts) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms greater than reference clock "LLU" ms, waiting\n", gf_sys_clock(), cts*1000/ctx->timescale, ref_ts*1000/ctx->timescale));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
 				gf_filter_ask_rt_reschedule(filter, 3);
 				//not ready yet
 				return GF_OK;
 			}
+			ref_clock = ref_ts;
 		} else if (!ctx->first_cts) {
 			//init clock on second frame, first frame likely will have large rendering time
 			//due to GPU config. While this is not important for recorded media, it may impact
@@ -1451,6 +1459,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				ctx->first_cts = 1 + cts;
 				ctx->clock_at_first_cts = now;
 			}
+			ref_clock = cts;
 		} else {
 			s64 diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
 			if (ctx->timescale != 1000000)
@@ -1459,12 +1468,37 @@ static GF_Err vout_process(GF_Filter *filter)
 				diff -= (s64) (cts-ctx->first_cts+1);
 
 			if (diff<0) {
-					gf_filter_ask_rt_reschedule(filter, -diff);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" us too early, waiting\n", gf_sys_clock(), -diff));
+				gf_filter_ask_rt_reschedule(filter, -diff);
 				//not ready yet
 				return GF_OK;
 			}
+			if (ctx->timescale != 1000000)
+				ref_clock = diff * ctx->timescale / 1000000 + cts;
+			else
+				ref_clock = diff + cts;
 		}
+		//detach packet from pid, so that we can query next cts
+		gf_filter_pck_ref(&pck);
+		gf_filter_pid_drop_packet(ctx->pid);
+
+		if (ctx->drop) {
+			u64 next_ts;
+			//peeking next packet CTS might fail if no packet in buffer, in which case we don't drop
+			if (gf_filter_pid_get_first_packet_cts(ctx->pid, &next_ts)) {
+				if (next_ts<ref_clock) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms drop frame "LLU" ms reference clock "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale, (1000*ref_clock)/ctx->timescale));
+
+					gf_filter_pck_unref(pck);
+					return GF_OK;
+				}
+			}
+		}
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale));
+	} else {
+		gf_filter_pck_ref(&pck);
+		gf_filter_pid_drop_packet(ctx->pid);
 	}
 
 	if (ctx->pfmt) {
@@ -1477,7 +1511,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			vout_draw_2d(ctx, pck);
 		}
 	}
-	gf_filter_pid_drop_packet(ctx->pid);
+	gf_filter_pck_unref(pck);
 	ctx->nb_frames++;
 	return GF_OK;
 }
@@ -1494,6 +1528,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 {
 	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(mode), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FALSE},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},

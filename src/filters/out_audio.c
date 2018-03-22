@@ -34,6 +34,7 @@ typedef struct
 	//options
 	char *drv;
 	u32 bnum, bdur, threaded, priority;
+	Bool clock;
 	GF_Fraction dur;
 
 	GF_FilterPid *pid;
@@ -140,9 +141,9 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				return done;
 			}
 		}
-		if (!done && 0) {
+		if (!done && ctx->clock) {
 			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), ((Double)cts)/ctx->timescale);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale));
 		}
 		
 		if (data && !ctx->wait_recfg) {
@@ -397,6 +398,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
+	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
 	{}
 };
