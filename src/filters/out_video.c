@@ -334,10 +334,13 @@ typedef struct
 	//options
 	char *drv;
 	GF_VideoOutMode mode;
-	Bool vsync, linear;
+	Bool vsync, linear, fullscreen;
 	GF_Fraction dur;
 	Double speed, hold;
 	u32 back;
+	GF_PropVec2i size;
+	GF_PropVec2i pos;
+
 
 	GF_FilterPid *pid;
 	u32 width, height, stride, pfmt, timescale;
@@ -455,6 +458,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.width = w;
 		evt.setup.height = h;
+		if ((ctx->size.x>0) && (ctx->size.y>0)) {
+			evt.setup.width = ctx->size.x;
+			evt.setup.height = ctx->size.y;
+		}
+
 #ifndef GPAC_DISABLE_3D
 		if (ctx->mode<MODE_2D) {
 			evt.setup.opengl_mode = 1;
@@ -465,10 +473,27 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
-		ctx->display_width = w;
-		ctx->display_height = h;
+		ctx->display_width = evt.setup.width;
+		ctx->display_height = evt.setup.height;
+		ctx->display_changed = GF_TRUE;
+	} else if ((ctx->size.x>0) && (ctx->size.y>0)) {
+		ctx->display_width = ctx->size.x;
+		ctx->display_height = ctx->size.y;
 		ctx->display_changed = GF_TRUE;
 	}
+	if (ctx->fullscreen) {
+		u32 nw=0, nh=0;
+		ctx->video_out->SetFullScreen(ctx->video_out, GF_TRUE, &nw, &nh);
+	} else if ((ctx->pos.x!=-1) && (ctx->pos.y!=-1)) {
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_MOVE;
+		evt.move.relative = 0;
+		evt.move.x = ctx->pos.x;
+		evt.move.y = ctx->pos.y;
+		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	}
+
+
 	ctx->pid = pid;
 	ctx->timescale = timescale;
 	ctx->width = w;
@@ -596,6 +621,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->is_yuv) {
 		ctx->bytes_per_pix = (ctx->bit_depth > 8) ? 2 : 1;
 	}
+
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_SET_GL;
+	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
 	DEL_SHADER(ctx->vertex_shader);
 	DEL_SHADER(ctx->fragment_shader);
@@ -926,10 +955,15 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	u32 needs_stride = 0;
 	Float dw, dh;
 	char *data;
+	GF_Event evt;
 	u32 size, stride_luma, stride_chroma;
 	char *pY=NULL, *pU=NULL, *pV=NULL;
 
 	if (!ctx->glsl_program) return;
+
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_SET_GL;
+	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
 	if (ctx->display_changed) {
 		GF_Matrix mx;
@@ -1424,7 +1458,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				diff -= (s64) (cts-ctx->first_cts+1);
 
 			if (diff<0) {
-				gf_filter_ask_rt_reschedule(filter, -diff);
+					gf_filter_ask_rt_reschedule(filter, -diff);
 				//not ready yet
 				return GF_OK;
 			}
@@ -1465,6 +1499,9 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FALSE},
+	{ OFFS(size), "Default init size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
+	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
+	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
 	{}
 };

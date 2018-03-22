@@ -215,6 +215,8 @@ typedef enum {
 		- when sent from gpac to user, indicate aspect ratio has been modified and video output is ready
 	*/
 	GF_EVENT_VIDEO_SETUP,
+	//set current GL context for the calling thread
+	GF_EVENT_SET_GL,
 	/*queries the list of system colors - only exchanged between compositor and video output*/
 	GF_EVENT_SYS_COLORS,
 

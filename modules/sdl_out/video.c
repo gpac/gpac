@@ -1515,7 +1515,6 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 			CGLSetParameter(gl_ctx, kCGLCPSwapInterval, &sync);
 		}
 #endif
-
 		SDL_GL_SwapWindow(ctx->screen);
 		return GF_OK;
 	}
@@ -1813,6 +1812,15 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		return GF_NOT_SUPPORTED;
 #endif
 
+	case GF_EVENT_SET_GL:
+	{
+		SDLVID();
+		if (SDL_GL_MakeCurrent(ctx->screen, ctx->gl_context)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot make context current: %s\n", SDL_GetError()));
+			return GF_IO_ERR;
+		}
+	}
+		return GF_OK;
 	}
 	return GF_OK;
 }
