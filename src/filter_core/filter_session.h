@@ -543,6 +543,8 @@ struct __gf_filter_pid
 	u32 user_max_buffer_time, user_max_playout_time;
 	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
 	u64 buffer_duration;
+	//true if the pid carries raw media
+	Bool raw_media;
 
 	volatile u32 would_block; // concurrent set
 	volatile u32 nb_decoder_inputs;
