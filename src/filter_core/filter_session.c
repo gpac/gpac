@@ -31,6 +31,7 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 	GF_Semaphore *sem = main ? fsess->semaphore_main : fsess->semaphore_other;
 	if (sem) {
 		if (notify) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Notify scheduler %s semaphore\n", main ? "main" : "secondary"));
 			if ( ! gf_sema_notify(sem, 1)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Cannot notify scheduler of new task, semaphore failure\n"));
 			}
@@ -218,6 +219,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	assert(fsess);
 
 	gf_fs_stop(fsess);
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session destroy\n"));
 
 	//temporary until we don't introduce fsess_stop
 	assert(fsess->run_status != GF_OK);
@@ -314,6 +316,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	if (fsess->evt_mx) gf_mx_del(fsess->evt_mx);
 	if (fsess->event_listeners) gf_list_del(fsess->event_listeners);
 	gf_free(fsess);
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session destroyed\n"));
 }
 
 GF_EXPORT
@@ -360,7 +363,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 		atask.run_task = task_fun;
 		atask.log_name = log_name;
 		atask.udta = udta;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter ? filter->name : "", log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter ? filter->name : "none", log_name, fsess->tasks_pending));
 
 		task_fun(&atask);
 		filter = atask.filter;
@@ -398,10 +401,10 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Posted task %p Filter %s::%s (%d pending) on %s\n", task, filter->name, task->log_name, fsess->tasks_pending, task->notified ? "main task list" : "filter task list"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted task %p Filter %s::%s (%d pending) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, task->notified ? (filter->freg->requires_main_thread ? "main" : "secondary") : "filter"));
 	} else {
 		task->notified = GF_TRUE;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Posted filter-less task %s (%d pending)\n", task->log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted filter-less task %s (%d pending) on secondary task list\n", gf_th_id(), task->log_name, fsess->tasks_pending));
 	}
 
 
@@ -483,6 +486,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 
 		if (do_use_sema && (current_filter==NULL)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", thid, use_main_sema ? "main" : "secondary"));
 			//wait for something to be done
 			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
 		}
@@ -544,12 +548,18 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			//no pending tasks and first time main task queue is empty, flush to detect if we
 			//are indeed done
 			if (!fsess->tasks_pending && !sess_thread->has_seen_eot && !gf_fq_count(fsess->tasks)) {
-
-				if (thid || !gf_fq_count(fsess->main_thread_tasks)) {
-					if (do_use_sema) {
-						//maybe last task, force a notify to check if we are truly done
-						sess_thread->has_seen_eot = GF_TRUE;
+				if (do_use_sema) {
+					//maybe last task, force a notify to check if we are truly done
+					sess_thread->has_seen_eot = GF_TRUE;
+					//not main thread and some tasks pending on main, notify only ourselves
+					if (thid && gf_fq_count(fsess->main_thread_tasks)) {
 						gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
+					}
+					//main thread exit probing, send a notify to main sema (for this thread), and N for the secondary one
+					else {
+						gf_sema_notify(fsess->semaphore_main, 1);
+						gf_sema_notify(fsess->semaphore_other, th_count);
+
 					}
 				}
 			}
@@ -587,18 +597,32 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					if (next) {
 						s64 ndiff;
 						if (next->schedule_next_time <= now) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task time ready for execution\n", thid, task->log_name));
+
+							if (do_use_sema) {
+								gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
+							}
 							continue;
 						}
 						if (!fsess->no_regulation) {
 							ndiff = next->schedule_next_time - now;
 							if (ndiff<diff) diff = ndiff;
-							gf_sleep(diff);
+						} else {
+							diff = 0;
 						}
+					} else {
+						diff = 0;
+					}
+
+					if (diff) {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, seleeping for %d ms\n", thid, task->log_name, diff));
+						gf_sleep(diff);
+					} else {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, rerun\n", thid, task->log_name, diff));
 					}
 					if (do_use_sema) {
 						gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 					}
-
 					continue;
 				}
 
@@ -676,7 +700,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		sess_thread->nb_tasks++;
 		sess_thread->has_seen_eot = GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d task#%d %p executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task, task->filter ? task->filter->name : "(none)", task->log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d task#%d %p executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task, task->filter ? task->filter->name : "none", task->log_name, fsess->tasks_pending));
 
 		fsess->task_in_process = GF_TRUE;
 		assert( task->run_task );
@@ -741,7 +765,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_fq_add(current_filter->tasks, task);
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in main tasks (%d pending)\n", thid, task->filter ? task->filter->name : "none", task->log_name, fsess->tasks_pending));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in %s tasks (%d pending)\n", thid, task->filter ? task->filter->name : "none", task->log_name, (task->filter && task->filter->freg->requires_main_thread) ? "main" : "secondary", fsess->tasks_pending));
 
 				task->notified = GF_TRUE;
 				safe_int_inc(&fsess->tasks_pending);
@@ -786,12 +810,13 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			current_filter->in_process = GF_FALSE;
 		}
 
-		//not requeuing, no pending tasks and first time main task queue is empty, flush to detect if we
-		//are indeed done
+		//not requeuing and first time we have an empty task queue, flush to detect if we are indeed done
 		if (!current_filter && !fsess->tasks_pending && !sess_thread->has_seen_eot && !gf_fq_count(fsess->tasks)) {
+			//if not the main thread, or if main thread and task list is empty, enter end of session probing mode
 			if (thid || !gf_fq_count(fsess->main_thread_tasks) ) {
-				//maybe last task, force a notify to check if we are truly done
-				sess_thread->has_seen_eot = GF_TRUE;
+				//maybe last task, force a notify to check if we are truly done. We only tag "session done" for the non-main
+				//threads, in order to enter the end-of session signaling above
+				if (thid) sess_thread->has_seen_eot = GF_TRUE;
 				gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 			}
 		}
@@ -815,8 +840,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	if (!fsess->run_status)
 		fsess->run_status = GF_EOS;
 
-	for (i=0; i < th_count; i++) {
-		gf_fs_sema_io(fsess, GF_TRUE, i ? GF_FALSE : GF_TRUE);
+	if (!thid) {
+		//main thread exit, notify the semaphore
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Exiting main, notifying secondary semaphore for %d threads\n", th_count));
+		if ( ! gf_sema_notify(fsess->semaphore_other, th_count)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Failed to notify semaphore, might hang up !!\n"));
+		}
 	}
 	return 0;
 }
@@ -870,6 +899,7 @@ GF_Err gf_fs_run(GF_FilterSession *fsess)
 
 	//wait for all threads to be done
 	while (nb_threads+1 != fsess->nb_threads_stopped) {
+		gf_sleep(1);
 	}
 
 	return fsess->run_status;
@@ -884,6 +914,7 @@ u32 gf_fs_run_step(GF_FilterSession *fsess)
 GF_EXPORT
 GF_Err gf_fs_abort(GF_FilterSession *fsess)
 {
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user\n"));
 	if (!fsess) return GF_BAD_PARAM;
 	if (!fsess->run_status)
 		fsess->run_status = GF_EOS;
@@ -895,6 +926,7 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 {
 	u32 i, count = fsess->threads ? gf_list_count(fsess->threads) : 0;
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session stop\n"));
 	if (count+1 == fsess->nb_threads_stopped) {
 		return GF_OK;
 	}
@@ -1108,6 +1140,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	if (!candidate_freg) {
 		gf_free(sURL);
 		if (err) *err = GF_NOT_SUPPORTED;
+		if (filter) filter->finalized = GF_TRUE;
 		return NULL;
 	}
 	if (sep) sep[0] = ':';
