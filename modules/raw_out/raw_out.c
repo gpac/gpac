@@ -201,7 +201,7 @@ static void RAW_AudioShutdown(GF_AudioOutput *dr)
 }
 
 /*we assume what was asked is what we got*/
-static GF_Err RAW_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err RAW_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
 {
 	RAWCTX;
 	rc->sample_rate = *SampleRate;
@@ -258,7 +258,7 @@ void *NewRawAudioOutput()
 	driv->SelfThreaded = GF_FALSE;
 	driv->Setup = RAW_AudioSetup;
 	driv->Shutdown = RAW_AudioShutdown;
-	driv->ConfigureOutput = RAW_ConfigureOutput;
+	driv->Configure = RAW_Configure;
 	driv->GetAudioDelay = RAW_GetAudioDelay;
 	driv->GetTotalBufferTime = RAW_GetTotalBufferTime;
 	driv->SetVolume = RAW_SetVolume;

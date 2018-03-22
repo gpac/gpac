@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / modules interfaces
@@ -48,7 +48,7 @@ extern "C" {
 */
 
 /*interface name and version for audio output*/
-#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', '1')
+#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', '2')
 
 /*interface returned on query interface*/
 typedef struct _audiooutput
@@ -75,12 +75,12 @@ typedef struct _audiooutput
 	GF_Err (*QueryOutputSampleRate)(struct _audiooutput *aout, u32 *io_desired_samplerate, u32 *io_NbChannels, u32 *io_nbBitsPerSample);
 
 	/*set output config - if audio is not running, driver must start it
-	*SampleRate, *NbChannels, *nbBitsPerSample:
+	*SampleRate, *NbChannels, *audioFormat:
 		input: desired value
 		output: final values
 	channel_cfg is the channels output cfg, eg set of flags as specified in constants.h
 	*/
-	GF_Err (*ConfigureOutput) (struct _audiooutput *aout, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg);
+	GF_Err (*Configure) (struct _audiooutput *aout, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg);
 
 	/*returns total buffer size used in ms. This is needed to compute the min size of audio decoders output*/
 	u32 (*GetTotalBufferTime)(struct _audiooutput *aout);

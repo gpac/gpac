@@ -54,36 +54,23 @@ typedef struct
 
 void aout_reconfig(GF_AudioOutCtx *ctx)
 {
-	u32 sr, bps, old_bps, nb_ch, ch_cfg;
+	u32 sr, afmt, old_afmt, nb_ch, ch_cfg;
 	GF_Err e = GF_OK;
 	sr = ctx->sr;
 	nb_ch = ctx->nb_ch;
-	bps = old_bps = gf_audio_fmt_bit_depth(ctx->afmt);
+	afmt = old_afmt = ctx->afmt;
 	ch_cfg = ctx->ch_cfg;
 
-	e = ctx->audio_out->ConfigureOutput(ctx->audio_out, &sr, &nb_ch, &bps, ch_cfg);
+	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOutput] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
-		if (bps!=16) bps = 16;
-		if (sr!=44100) sr = 44100;
-		if (nb_ch!=2) nb_ch = 2;
+		if (afmt != GF_AUDIO_FMT_S16) afmt = GF_AUDIO_FMT_S16;
+		if (sr != 44100) sr = 44100;
+		if (nb_ch != 2) nb_ch = 2;
 	}
-	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (bps!=old_bps)) {
+	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt)) {
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
-		switch (bps) {
-		case 8:
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_U8));
-			break;
-		case 16:
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
-			break;
-		case 24:
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S24));
-			break;
-		case 32:
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S32));
-			break;
-		}
+		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 		ctx->needs_recfg = GF_FALSE;
 		//drop all packets until next reconfig
@@ -153,7 +140,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				return done;
 			}
 		}
-		if (!done) {
+		if (!done && 0) {
 			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), ((Double)cts)/ctx->timescale);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale));
 		}
@@ -218,6 +205,13 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (!ctx->pid) {
 		GF_FilterEvent evt;
+		//set buffer reqs to 100 ms - we don't "bufer" in the filter, but this will allow dispatching
+		//several input frames in the buffer (default being 1000 us max in buffers). Not doing so could cause
+		//the session to end because input is blocked (no tasks posted) and output still holds a packet 
+		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
+		evt.buffer_req.max_buffer_us = 100000;
+		gf_filter_pid_send_event(pid, &evt);
+
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 		gf_filter_pid_send_event(pid, &evt);
 	}
@@ -411,8 +405,7 @@ static const GF_FilterCapability AudioOutInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	CAP_INC_UINT(GF_PROP_PID_AUDIO_FORMAT, GF_AUDIO_FMT_S16),
-	CAP_INC_UINT(GF_PROP_PID_AUDIO_FORMAT, GF_AUDIO_FMT_S24),
+	//we accept all audio formats, but will ask for input reconfiguration if sound card does not support
 };
 
 
