@@ -26,21 +26,30 @@
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
+#include <gpac/network.h>
 #include "ff_common.h"
 
-#define FF_MAX_PROBE_FRAMES	10
+enum
+{
+	COPY_NO,
+	COPY_A,
+	COPY_V,
+	COPY_AV
+};
 
 typedef struct
 {
 	//options
 	const char *src;
 	u32 buffer_size;
-	Bool copy;
+	u32 copy, probes;
 	Bool sclock;
 	const char *fmt, *dev;
 
-
 	//internal data
+	const char *fname;
+	u32 log_class;
+
 	Bool initialized;
 	Bool raw_data;
 	//input file
@@ -55,16 +64,24 @@ typedef struct
 
 	u64 first_sample_clock, last_frame_ts;
 	u32 probe_frames;
-	AVPacket pkt;
 
-	u64 probe_times[FF_MAX_PROBE_FRAMES];
+	AVPacket pkt;
+	s32 audio_idx, video_idx;
+
+	u64 *probe_times;
+
+	Bool copy_audio, copy_video;
 } GF_FFDemuxCtx;
 
 static void ffdmx_finalize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ffd = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
-	gf_free(ffd->pids);
-	if (ffd->options) av_dict_free(&ffd->options);
+	if (ffd->pids)
+		gf_free(ffd->pids);
+	if (ffd->options)
+		av_dict_free(&ffd->options);
+	if (ffd->probe_times)
+		gf_free(ffd->probe_times);
 	return;
 }
 
@@ -74,6 +91,7 @@ void ffdmx_shared_pck_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPac
 	if (ffd->raw_pck_out) {
 		av_free_packet(&ffd->pkt);
 		ffd->raw_pck_out = GF_FALSE;
+		gf_filter_post_process_task(filter);
 	}
 }
 
@@ -83,6 +101,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	u32 i;
 	u64 sample_time;
 	char *data_dst;
+	Bool copy = GF_TRUE;
 	GF_FilterPacket *pck_dst;
 	GF_FFDemuxCtx *ffd = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
 
@@ -90,13 +109,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		return GF_EOS;
 
 	if (ffd->raw_pck_out)
-		return GF_OK;
-
-	for (i=0; i<ffd->ctx->nb_streams; i++) {
-		if (ffd->pids[i] && gf_filter_pid_would_block(ffd->pids[i])) {
-			return GF_OK;
-		}
-	}
+		return GF_EOS;
 
 	sample_time = gf_sys_clock_high_res();
 	av_init_packet(&ffd->pkt);
@@ -117,30 +130,34 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 	if (ffd->pkt.pts == AV_NOPTS_VALUE) {
 		if (ffd->pkt.dts == AV_NOPTS_VALUE) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDemux] No PTS for packet on stream %d\n", ffd->pkt.stream_index ));
+			GF_LOG(GF_LOG_WARNING, ffd->log_class, ("[%s] No PTS for packet on stream %d\n", ffd->fname, ffd->pkt.stream_index ));
 		} else {
 			ffd->pkt.pts = ffd->pkt.dts;
 		}
 	}
 
 	if (! ffd->pids[ffd->pkt.stream_index] ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFDemux] No PID defined for given stream %d\n", ffd->pkt.stream_index ));
+		GF_LOG(GF_LOG_DEBUG, ffd->log_class, ("[%s] No PID defined for given stream %d\n", ffd->fname, ffd->pkt.stream_index ));
 		av_free_packet(&ffd->pkt);
 		return GF_OK;
 	}
 
-	if (ffd->raw_data && (ffd->probe_frames<FF_MAX_PROBE_FRAMES) ) {
+	if (ffd->raw_data && (ffd->probe_frames<ffd->probes) ) {
+		if (ffd->pkt.stream_index==ffd->audio_idx) {
+			av_free_packet(&ffd->pkt);
+			return GF_OK;
+		}
+		
 		ffd->probe_times[ffd->probe_frames] = ffd->sclock ? sample_time : ffd->pkt.pts;
 		ffd->probe_frames++;
-		if (ffd->probe_frames==FF_MAX_PROBE_FRAMES) {
+		if (ffd->probe_frames==ffd->probes) {
 			u32 i;
 			u32 best_diff=0, max_stat=0;
-			fprintf(stderr, "Frame probing done:\n");
-			for (i=0; i<FF_MAX_PROBE_FRAMES; i++) {
+			for (i=0; i<ffd->probes; i++) {
 				if (i) {
 					u32 j, nb_stats=0;
 					u32 diff = (u32) (ffd->probe_times[i]-ffd->probe_times[i-1]);
-					for (j=1; j<FF_MAX_PROBE_FRAMES; j++) {
+					for (j=1; j<ffd->probes; j++) {
 						s32 sdiff = (s32) (ffd->probe_times[j]-ffd->probe_times[j-1]);
 						sdiff -= (s32) diff;
 						if (sdiff<0) sdiff = -sdiff;
@@ -152,15 +169,19 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 					}
 				}
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FFDemux] Suggested best diff is %d us (%d frames)\n", best_diff, max_stat));
+			GF_LOG(GF_LOG_INFO, ffd->log_class, ("[%s] Video probing done, frame diff is %d us (for %d frames out of %d)\n", ffd->fname, best_diff, max_stat, ffd->probes));
 		} else {
 			av_free_packet(&ffd->pkt);
 			return GF_OK;
 		}
 	}
 
+	if (ffd->raw_data) {
+		if (ffd->pkt.stream_index==ffd->audio_idx) copy = ffd->copy_audio;
+		else copy = ffd->copy_video;
+	}
 
-	if (ffd->raw_data && !ffd->copy) {
+	if (ffd->raw_data && !copy) {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 		pck_dst = gf_filter_pck_new_shared(ffd->pids[ffd->pkt.stream_index], ffd->pkt.data, ffd->pkt.size, ffdmx_shared_pck_release);
 		ffd->raw_pck_out = GF_TRUE;
@@ -203,11 +224,17 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	if (ffd->pkt.flags & AV_PKT_FLAG_CORRUPT)
 		gf_filter_pck_set_corrupted(pck_dst, GF_TRUE);
 
+	gf_net_get_utc();
+
+	if (ffd->raw_data) {
+		u64 ntp = gf_net_get_ntp_ts();
+		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ntp) );
+	}
 	e = gf_filter_pck_send(pck_dst);
 
 	if (!ffd->raw_pck_out)
 		av_free_packet(&ffd->pkt);
-	return e;
+	return GF_OK;
 }
 
 
@@ -222,11 +249,11 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		case GF_PROP_STRING:
 			res = av_dict_set(&ffd->options, arg_name, arg_val->value.string, 0);
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] Failed to set option %s:%s\n", arg_name, arg_val ));
+				GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Failed to set option %s:%s\n", ffd->fname, arg_name, arg_val ));
 			}
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
+			GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Failed to set option %s:%s, unrecognized type %d\n", ffd->fname, arg_name, arg_val, arg_val->type ));
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
@@ -237,20 +264,10 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 {
-	GF_Err e;
 	u32 i;
 	u32 nb_a, nb_v, nb_t;
-	s32 res;
 	char szName[50];
 
-	res = avformat_find_stream_info(ffd->ctx, ffd->options ? &ffd->options : NULL);
-
-	if (res <0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFDemux] cannot locate streams - error %s\n", av_err2str(res)));
-		e = GF_NOT_SUPPORTED;
-		return e;
-	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFDemux] file %s opened - %d streams\n", ffd->src, ffd->ctx->nb_streams));
 
 	ffd->pids = gf_malloc(sizeof(GF_FilterPid *)*ffd->ctx->nb_streams);
 	memset(ffd->pids, 0, sizeof(GF_FilterPid *)*ffd->ctx->nb_streams);
@@ -261,6 +278,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 		Bool expose_ffdec=GF_FALSE;
 		AVStream *stream = ffd->ctx->streams[i];
 		AVCodecContext *codec = stream->codec;
+
 		switch(codec->codec_type) {
 		case AVMEDIA_TYPE_AUDIO:
 			pid = gf_filter_pid_new(filter);
@@ -268,7 +286,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
 			nb_a++;
 			sprintf(szName, "audio%d", nb_a);
-			gf_filter_pid_set_name(pid, szName);
+			if (ffd->audio_idx<0)
+				ffd->audio_idx = i;
 			break;
 
 		case AVMEDIA_TYPE_VIDEO:
@@ -277,7 +296,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
 			nb_v++;
 			sprintf(szName, "video%d", nb_v);
-			gf_filter_pid_set_name(pid, szName);
+			if (ffd->video_idx<0)
+				ffd->video_idx = i;
 			break;
 #ifdef FF_SUB_SUPPORT
 		case AVMEDIA_TYPE_SUBTITLE:
@@ -286,17 +306,18 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 			nb_t++;
 			sprintf(szName, "text%d", nb_t);
-			gf_filter_pid_set_name(pid, szName);
 			break;
 #endif
 		default:
+			sprintf(szName, "ffdmx%d", i+1);
 			break;
 		}
 		if (!pid) continue;
 		ffd->pids[i] = pid;
 		gf_filter_pid_set_udta(pid, stream);
 
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(stream->id ? stream->id : 1) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(stream->id ? stream->id : i+1) );
+		gf_filter_pid_set_name(pid, szName);
 
 		if (ffd->raw_data && ffd->sclock) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000000) );
@@ -373,6 +394,43 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 		case AV_CODEC_ID_RAWVIDEO:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 			break;
+    	case AV_CODEC_ID_PCM_S16LE:
+    	case AV_CODEC_ID_PCM_S16BE:
+    	case AV_CODEC_ID_PCM_U16LE:
+    	case AV_CODEC_ID_PCM_U16BE:
+    	case AV_CODEC_ID_PCM_S8:
+    	case AV_CODEC_ID_PCM_U8:
+    	case AV_CODEC_ID_PCM_MULAW:
+    	case AV_CODEC_ID_PCM_ALAW:
+    	case AV_CODEC_ID_PCM_S32LE:
+    	case AV_CODEC_ID_PCM_S32BE:
+    	case AV_CODEC_ID_PCM_U32LE:
+    	case AV_CODEC_ID_PCM_U32BE:
+    	case AV_CODEC_ID_PCM_S24LE:
+    	case AV_CODEC_ID_PCM_S24BE:
+    	case AV_CODEC_ID_PCM_U24LE:
+    	case AV_CODEC_ID_PCM_U24BE:
+    	case AV_CODEC_ID_PCM_S24DAUD:
+    	case AV_CODEC_ID_PCM_ZORK:
+    	case AV_CODEC_ID_PCM_S16LE_PLANAR:
+    	case AV_CODEC_ID_PCM_DVD:
+    	case AV_CODEC_ID_PCM_F32BE:
+    	case AV_CODEC_ID_PCM_F32LE:
+    	case AV_CODEC_ID_PCM_F64BE:
+    	case AV_CODEC_ID_PCM_F64LE:
+    	case AV_CODEC_ID_PCM_BLURAY:
+    	case AV_CODEC_ID_PCM_LXF:
+    	case AV_CODEC_ID_S302M:
+    	case AV_CODEC_ID_PCM_S8_PLANAR:
+    	case AV_CODEC_ID_PCM_S24LE_PLANAR:
+    	case AV_CODEC_ID_PCM_S32LE_PLANAR:
+    	case AV_CODEC_ID_PCM_S16BE_PLANAR:
+    	case AV_CODEC_ID_PCM_S64LE:
+    	case AV_CODEC_ID_PCM_S64BE:
+    	case AV_CODEC_ID_PCM_F16LE:
+    	case AV_CODEC_ID_PCM_F24LE:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+			break;
 		//todo - map all possible MPEG and common types to internal GPAC codecid
 		default:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG) );
@@ -400,9 +458,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 		if (codec->framerate.num && codec->framerate.den)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec->framerate.num, codec->framerate.den ) );
 
-		if (codec->pix_fmt) {
+		if (codec->pix_fmt>0) {
 			u32 pfmt = 0;
-
 			switch (codec->pix_fmt) {
 			case AV_PIX_FMT_YUV420P: pfmt = GF_PIXEL_YV12; break;
 			case AV_PIX_FMT_YUV420P10LE: pfmt = GF_PIXEL_YV12_10; break;
@@ -423,9 +480,27 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 			case AV_PIX_FMT_BGR0: pfmt = GF_PIXEL_BGRX; break;
 
 			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFMPEG] Unsupported pixel format %d\n", codec->pix_fmt));
+				GF_LOG(GF_LOG_WARNING, ffd->log_class, ("[%s] Unsupported pixel format %d\n", ffd->fname, codec->pix_fmt));
 			}
 			gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT( pfmt) );
+		}
+		if (codec->sample_fmt>0) {
+			u32 sfmt = 0;
+			switch (codec->sample_fmt) {
+			case AV_SAMPLE_FMT_U8: sfmt = GF_AUDIO_FMT_U8; break;
+			case AV_SAMPLE_FMT_S16: sfmt = GF_AUDIO_FMT_S16; break;
+			case AV_SAMPLE_FMT_S32: sfmt = GF_AUDIO_FMT_S32; break;
+			case AV_SAMPLE_FMT_FLT: sfmt = GF_AUDIO_FMT_FLT; break;
+			case AV_SAMPLE_FMT_DBL: sfmt = GF_AUDIO_FMT_DBL; break;
+			case AV_SAMPLE_FMT_U8P: sfmt = GF_AUDIO_FMT_U8P; break;
+			case AV_SAMPLE_FMT_S16P: sfmt = GF_AUDIO_FMT_S16P; break;
+			case AV_SAMPLE_FMT_S32P: sfmt = GF_AUDIO_FMT_S32P; break;
+			case AV_SAMPLE_FMT_FLTP: sfmt = GF_AUDIO_FMT_FLTP; break;
+			case AV_SAMPLE_FMT_DBLP: sfmt = GF_AUDIO_FMT_DBLP; break;
+			default:
+				GF_LOG(GF_LOG_WARNING, ffd->log_class, ("[%s] Unsupported sample format %d\n", ffd->fname, codec->sample_fmt));
+			}
+			gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( sfmt) );
 		}
 
 		if (codec->bit_rate)
@@ -446,6 +521,8 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	s32 res;
 	char *ext;
 	AVInputFormat *av_in = NULL;
+	ffd->fname = "FFDmx";
+	ffd->log_class = GF_LOG_CONTAINER;
 
 //	av_log_set_level(AV_LOG_DEBUG);
 
@@ -458,7 +535,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		if (!stricmp(ext+1, "cmp")) av_in = av_find_input_format("m4v");
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFDemux] opening file %s - av_in %08x\n", ffd->src, av_in));
+	GF_LOG(GF_LOG_DEBUG, ffd->log_class, ("[%s] opening file %s - av_in %08x\n", ffd->fname, ffd->src, av_in));
 
 	res = avformat_open_input(&ffd->ctx, ffd->src, av_in, ffd->options ? &ffd->options : NULL);
 	switch (res) {
@@ -477,9 +554,18 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		break;
 	}
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] Fail to open %s - error %s\n", ffd->src, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Fail to open %s - error %s\n", ffd->fname, ffd->src, av_err2str(res) ));
 		return e;
 	}
+
+	res = avformat_find_stream_info(ffd->ctx, ffd->options ? &ffd->options : NULL);
+
+	if (res <0) {
+		GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] cannot locate streams - error %s\n", ffd->fname, av_err2str(res)));
+		e = GF_NOT_SUPPORTED;
+		return e;
+	}
+	GF_LOG(GF_LOG_DEBUG, ffd->log_class, ("[%s] file %s opened - %d streams\n", ffd->fname, ffd->src, ffd->ctx->nb_streams));
 
 	return ffdmx_init_common(filter, ffd);
 }
@@ -494,7 +580,7 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		if (!ffd->nb_playing && !ffd->raw_data) {
 			int res = av_seek_frame(ffd->ctx, -1, (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
 			if (res<0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDemux] Fail to seek %s to %g - error %s\n", ffd->src, com->play.start_range, av_err2str(res) ));
+				GF_LOG(GF_LOG_WARNING, ffd->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ffd->fname, ffd->src, com->play.start_range, av_err2str(res) ));
 			}
 		}
 		ffd->nb_playing++;
@@ -521,6 +607,7 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 {
 	if (!strncmp(url, "video://", 8)) return GF_FPROBE_NOT_SUPPORTED;
 	if (!strncmp(url, "audio://", 8)) return GF_FPROBE_NOT_SUPPORTED;
+	if (!strncmp(url, "av://", 5)) return GF_FPROBE_NOT_SUPPORTED;
 	return GF_FPROBE_MAYBE_SUPPORTED;
 }
 
@@ -600,9 +687,17 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 
 static GF_Err ffavin_initialize(GF_Filter *filter)
 {
-	s32 res;
+	s32 res, i;
+	Bool has_a, has_v;
+	char szPatchedName[1024];
+	const char *dev_name=NULL;
+	const char *default_fmt=NULL;
 	AVInputFormat *dev_fmt=NULL;
 	GF_FFDemuxCtx *ffd = gf_filter_get_udta(filter);
+	Bool wants_audio = GF_FALSE;
+	Bool wants_video = GF_FALSE;
+	ffd->fname = "FFAVIn";
+	ffd->log_class = GF_LOG_MMIO;
 
 //	av_log_set_level(AV_LOG_DEBUG);
 
@@ -610,57 +705,149 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	ffd->initialized = GF_TRUE;
 	if (!ffd->src) return GF_SERVICE_ERROR;
 
-	dev_fmt = NULL;
-	if (ffd->fmt) {
-		dev_fmt = av_find_input_format("avfoundation");
+	default_fmt = ffd->fmt;
+	if (!default_fmt) {
+#ifdef WIN32
+		default_fmt = "dshow";
+#elif defined(__DARWIN) || defined(__APPLE__)
+		default_fmt = "avfoundation";
+#else
+		default_fmt = "video4linux2";
+#endif
+	}
+
+	if (default_fmt) {
+		dev_fmt = av_find_input_format(default_fmt);
 		if (dev_fmt == NULL) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Cannot find the input format %s\n", ffd->fmt));
+			GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Cannot find the input format %s\n", ffd->fname, ffd->fmt));
 		} else if (dev_fmt->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Format %s is not a video input device\n", ffd->fmt));
+			GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s]] %s is not a video input device\n", ffd->fname, ffd->fmt));
 			dev_fmt = NULL;
 		}
 	}
-	while (!dev_fmt) {
-		dev_fmt = av_input_video_device_next(dev_fmt);
-		if (!dev_fmt) break;
-    	if (!dev_fmt || !dev_fmt->priv_class  || (dev_fmt->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) )
-        	continue;
-
-		//listing devices is on its way of implementation in ffmpeg ...
-/*
-    	if (dev->get_device_list) {
-
-    	} else {
-		}
-*/
-		break;
-	}
 	if (!dev_fmt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Cannot find the format\n"));
+		while (1) {
+			dev_fmt = av_input_video_device_next(dev_fmt);
+			if (!dev_fmt) break;
+			if (!dev_fmt || !dev_fmt->priv_class) continue;
+			if ((dev_fmt->priv_class->category != AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) && (dev_fmt->priv_class->category != AV_CLASS_CATEGORY_DEVICE_AUDIO_INPUT))
+				continue;
+
+			//listing devices is on its way of implementation in ffmpeg ... for now break at first provider
+			break;
+		}
 	}
 
+	dev_name = ffd->dev;
+
+	if (!strncmp(ffd->src, "video://", 8)) wants_video = GF_TRUE;
+	else if (!strncmp(ffd->src, "audio://", 8)) wants_audio = GF_TRUE;
+	else if (!strncmp(ffd->src, "av://", 5)) wants_video = wants_audio = GF_TRUE;
+
+	if (wants_video && wants_audio && !strcmp(dev_name, "0")) {
+		strcpy(szPatchedName, "0:0");
+		dev_name = (char *) szPatchedName;
+	}
 #if defined(__APPLE__) && !defined(GPAC_IPHONE)
+	else if (!strncmp(dev_fmt->priv_class->class_name, "AVFoundation", 12) && wants_audio) {
+		if (ffd->dev[0] != ':') {
+			strcpy(szPatchedName, ":");
+			strcat(szPatchedName, ffd->dev);
+			dev_name = (char *) szPatchedName;
+		}
+	}
 #endif
 
 	/* Open video */
-	res = avformat_open_input(&ffd->ctx, ffd->dev, dev_fmt, &ffd->options);
-	if ( (res < 0) && !stricmp(ffd->src+8, "screen-capture-recorder") ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FFAVIn] Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", res));
+	res = avformat_open_input(&ffd->ctx, dev_name, dev_fmt, &ffd->options);
+	if ( (res < 0) && !stricmp(ffd->dev, "screen-capture-recorder") ) {
+		GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", ffd->fname, res));
 		av_dict_set(&ffd->options, "video_size", NULL, 0);
-		res = avformat_open_input(&ffd->ctx, ffd->src+8, dev_fmt, &ffd->options);
-	}
-
-	if ( (res < 0) && ffd->options) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FFAVIn] Error %d opening input - retrying without options\n", res));
-		res = avformat_open_input(&ffd->ctx, ffd->src+8, dev_fmt, NULL);
+		res = avformat_open_input(&ffd->ctx, ffd->dev, dev_fmt, &ffd->options);
 	}
 
 	if (res < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FFAVIn] Cannot open file %s:%s \n", dev_fmt->priv_class->class_name, ffd->dev));
+		if (ffd->options) {
+			GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Error %d opening input - retrying without options\n", ffd->fname, res));
+			res = avformat_open_input(&ffd->ctx, dev_name, dev_fmt, NULL);
+		} else {
+			av_dict_set(&ffd->options, "framerate", "30", 0);
+			GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Error %d opening input - retrying with 30 fps\n", ffd->fname, res));
+			res = avformat_open_input(&ffd->ctx, dev_name, dev_fmt, &ffd->options);
+			if (res < 0) {
+				av_dict_set(&ffd->options, "framerate", "25", 0);
+				GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Error %d opening input - retrying with 25 fps\n", ffd->fname, res));
+				res = avformat_open_input(&ffd->ctx, dev_name, dev_fmt, &ffd->options);
+			}
+		}
+	}
+
+	if (res < 0) {
+		GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] Cannot open device %s:%s\n", ffd->fname, dev_fmt->priv_class->class_name, ffd->dev));
 		return -1;
 	}
 	av_dump_format(ffd->ctx, 0, ffd->dev, 0);
 	ffd->raw_data = GF_TRUE;
+	ffd->audio_idx = ffd->video_idx = -1;
+
+	res = avformat_find_stream_info(ffd->ctx, ffd->options ? &ffd->options : NULL);
+
+	if (res <0) {
+		GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] cannot locate streams - error %s\n", ffd->fname,  av_err2str(res)));
+		return GF_NOT_SUPPORTED;
+	}
+
+	//check we have the stream we want
+	has_a = has_v = GF_FALSE;
+	for (i = 0; i < ffd->ctx->nb_streams; i++) {
+		switch(ffd->ctx->streams[i]->codec->codec_type) {
+		case AVMEDIA_TYPE_AUDIO:
+			has_a = GF_TRUE;
+			break;
+		case AVMEDIA_TYPE_VIDEO:
+			has_v = GF_TRUE;
+			break;
+		default:
+			break;
+		}
+	}
+	if (wants_audio && !has_a) {
+		GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] No audio stream in input device\n", ffd->fname));
+		return GF_NOT_SUPPORTED;
+	}
+	if (wants_video && !has_v) {
+		GF_LOG(GF_LOG_ERROR, ffd->log_class, ("[%s] No video stream in input device\n", ffd->fname));
+		return GF_NOT_SUPPORTED;
+	}
+	ffd->probe_frames = ffd->probes;
+	if (has_v && ffd->probes) {
+		ffd->probe_times = gf_malloc(sizeof(u64) * ffd->probes);
+		memset(ffd->probe_times, 0, sizeof(u64) * ffd->probes);
+		//we probe timestamps in either modes because timestamps of first frames are sometimes off
+		ffd->probe_frames = 0;
+	}
+
+	GF_LOG(GF_LOG_INFO, ffd->log_class, ("[%s] device %s:%s opened - %d streams\n", ffd->fname, dev_fmt->priv_class->class_name, ffd->dev, ffd->ctx->nb_streams));
+
+	ffd->copy_audio = ffd->copy_video = GF_FALSE;
+	switch (ffd->copy) {
+	case COPY_NO:
+		break;
+	case COPY_A:
+		ffd->copy_audio = GF_TRUE;
+		break;
+	case COPY_V:
+		ffd->copy_video = GF_TRUE;
+		break;
+	default:
+		ffd->copy_audio = ffd->copy_video = GF_TRUE;
+		break;
+	}
+	if (wants_audio && wants_video) {
+		if (!ffd->copy_audio || !ffd->copy_video) {
+			GF_LOG(GF_LOG_WARNING, ffd->log_class, ("[%s] using muxed capture av:// without copy on %s, this might introduce packet losses due to blocking modes or delayed consumption of the frames. If experiencing problems, either use copy=AV option or consider using two filters video:// and audio://\n", ffd->fname, (!ffd->copy_audio && !ffd->copy_video) ? "audio and video streams" : ffd->copy_video ? "audio stream" : "video stream"));
+		}
+	}
 	return ffdmx_init_common(filter, ffd);
 }
 
@@ -668,12 +855,13 @@ static GF_FilterProbeScore ffavin_probe_url(const char *url, const char *mime)
 {
 	if (!strncmp(url, "video://", 8)) return GF_FPROBE_MAYBE_SUPPORTED;
 	if (!strncmp(url, "audio://", 8)) return GF_FPROBE_MAYBE_SUPPORTED;
+	if (!strncmp(url, "av://", 5)) return GF_FPROBE_MAYBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
-	.description = "FFMPEG AVDevice "LIBAVDEVICE_IDENT,
+	.description = "FFMPEG Audio Video Capture "LIBAVDEVICE_IDENT,
 	.private_size = sizeof(GF_FFDemuxCtx),
 	.initialize = ffavin_initialize,
 	.finalize = ffdmx_finalize,
@@ -686,15 +874,18 @@ GF_FilterRegister FFAVInRegister = {
 
 static const GF_FilterArgs FFAVInArgs[] =
 {
-	{ OFFS(src), "url of device, video:// or audio://", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(fmt), "name of device class. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(dev), "name of device or index of device", GF_PROP_STRING, "0", NULL, GF_FALSE},
-	{ OFFS(copy), "Copy raw frames rather instead of sharing them", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(src), "url of device, video:// audio:// or av://", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(fmt), "name of device class. If not set, defaults to first device class. Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(dev), "name of device or index of device. Typical names can be the webcam name ('FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux), 'screen-capture-recorder' (see http://screencapturer.sf.net/) on windows, 'Capture screen 0' on OSX (0=first screen), or X display name (eg ':0.0') on linux", GF_PROP_STRING, "0", NULL, GF_FALSE},
+	{ OFFS(copy), "Copy raw frames rather instead of sharing them", GF_PROP_UINT, "A", "NO|A|V|AV", GF_FALSE},
 	{ OFFS(sclock), "Use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(probes), "Probes a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FALSE},
 
-	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
+
+	{ "*", -1, "Any possible args defined for AVInputFormat and AVFormatContext", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
 	{}
 };
+
 
 //number of arguments defined above
 const int FFAVIN_STATIC_ARGS = (sizeof (FFAVInArgs) / sizeof (GF_FilterArgs)) - 1;
@@ -720,7 +911,7 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 	args = gf_malloc(sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
 	memset(args, 0, sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
 	for (i=0; i<FFAVIN_STATIC_ARGS; i++)
-		args[i] = FFAVInRegister.args[i];
+		args[i] = FFAVInArgs[i];
 
 	FFAVInRegister.args = args;
 
