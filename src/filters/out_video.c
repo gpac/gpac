@@ -734,8 +734,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (glMapBuffer==NULL) ctx->pbo = GF_FALSE;
 #endif
 
-		ctx->first_tx_load = (ctx->mode==MODE_GL_PBO) ? GF_FALSE : GF_TRUE;
+		ctx->first_tx_load = GF_TRUE;
 		if (ctx->is_yuv && (ctx->mode==MODE_GL_PBO)) {
+			ctx->first_tx_load = GF_FALSE;
 			glGenBuffers(1, &ctx->pbo_Y);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
 
@@ -1517,6 +1518,7 @@ GF_FilterRegister VideoOutRegister = {
 	.name = "vout",
 	.description = "Video Output",
 	.private_size = sizeof(GF_VideoOutCtx),
+	.requires_main_thread = GF_TRUE,
 	.args = VideoOutArgs,
 	INCAPS(VideoOutInputs),
 	.initialize = vout_initialize,
