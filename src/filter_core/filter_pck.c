@@ -232,7 +232,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 
 	if (!is_filter_destroyed) {
 		assert(pck->pid);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, pck->info.cts));
 	}
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
 

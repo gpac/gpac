@@ -465,6 +465,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		Bool internal_url = GF_FALSE;
 		//look for our arg separator
 		char *sep = strchr(args, ':');
+
 		if (sep && !strncmp(sep, "://", 3)) {
 			//filter internal url schemes
 			if (!strncmp(args, "src=video://", 12)
@@ -704,6 +705,8 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	} else if (filter->pending_packets) {
 		safe_int_inc(&filter->process_task_queued);
 		task->requeue_request = GF_TRUE;
+	} else {
+		task->requeue_request = GF_FALSE;
 	}
 }
 

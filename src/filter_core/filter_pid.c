@@ -165,6 +165,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	pid->max_buffer_time = pid->filter->session->default_pid_buffer_max_us;
 	if (codecid!=GF_CODECID_RAW)
 		return;
+	pid->raw_media = GF_TRUE;
 
 	if (pid->user_max_buffer_time) pid->max_buffer_time = pid->user_max_buffer_time;
 
@@ -1046,8 +1047,26 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	}
 	count = gf_list_count(filter_chain);
 	if (count==0) {
+		Bool can_reassign = GF_TRUE;
+		//reassign only for source filters
+		if (pid->filter->num_input_pids) can_reassign = GF_FALSE;
+		//sticky filters cannot be unloaded
+		else if (pid->filter->sticky) can_reassign = GF_FALSE;
+		//if we don't have pending PIDs to setup from the source
+		else if (pid->filter->pid_connection_pending) can_reassign = GF_FALSE;
+		//if we don't have pending PIDs to setup from the source
+		else if (pid->filter->num_output_pids) {
+			u32 k;
+			for (k=0; k<pid->filter->num_output_pids; k++) {
+				GF_FilterPid *apid = gf_list_get(pid->filter->output_pids, k);
+				if (apid->num_destinations || apid->init_task_pending) {
+					can_reassign = GF_FALSE;
+					break;
+				}
+			}
+		}
 		//if source filter, try to load another filter - we should complete this with a cache of filter sources
-		if (filter_reassigned && !pid->filter->num_input_pids && !pid->filter->sticky) {
+		if (filter_reassigned && can_reassign) {
 			if (! gf_filter_swap_source_registry(pid->filter) ) {
 				//no filter found for this pid !
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter chain found - NOT CONNECTED\n"));
@@ -2207,7 +2226,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			gf_free(evt);
 			return;
 		}
-		if (evt->base.on_pid->nb_decoder_inputs) {
+		if (evt->base.on_pid->nb_decoder_inputs || evt->base.on_pid->raw_media) {
 			evt->base.on_pid->max_buffer_time = evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
 			//update blocking state
