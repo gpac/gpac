@@ -521,6 +521,24 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 	case GF_PROP_DOUBLE:
 		sprintf(nhml, "%g", att->value.number);
 		break;
+	case GF_PROP_VEC2I:
+		sprintf(nhml, "%dx%d", att->value.vec2i.x, att->value.vec2i.y);
+		break;
+	case GF_PROP_VEC2:
+		sprintf(nhml, "%lgx%lg", att->value.vec2.x, att->value.vec2.y);
+		break;
+	case GF_PROP_VEC3I:
+		sprintf(nhml, "%dx%dx%d", att->value.vec3i.x, att->value.vec3i.y, att->value.vec3i.z);
+		break;
+	case GF_PROP_VEC3:
+		sprintf(nhml, "%lgx%lgx%lg", att->value.vec3.x, att->value.vec3.y, att->value.vec3.y);
+		break;
+	case GF_PROP_VEC4I:
+		sprintf(nhml, "%dx%dx%dx%d", att->value.vec4i.x, att->value.vec4i.y, att->value.vec4i.z, att->value.vec4i.w);
+		break;
+	case GF_PROP_VEC4:
+		sprintf(nhml, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
+		break;
 	case GF_PROP_NAME:
 		sprintf(nhml, "%s", att->value.string);
 		break;

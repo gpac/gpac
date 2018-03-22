@@ -279,6 +279,43 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 			res = GF_TRUE;
 		}
 		break;
+	case GF_PROP_VEC2I:
+		if (a->offset_in_private + sizeof(GF_PropVec2i) <= filter->freg->private_size) {
+			*(GF_PropVec2i *)ptr = argv->value.vec2i;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_VEC2:
+		if (a->offset_in_private + sizeof(GF_PropVec2) <= filter->freg->private_size) {
+			*(GF_PropVec2 *)ptr = argv->value.vec2;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_VEC3I:
+		if (a->offset_in_private + sizeof(GF_PropVec3i) <= filter->freg->private_size) {
+			*(GF_PropVec3i *)ptr = argv->value.vec3i;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_VEC3:
+		if (a->offset_in_private + sizeof(GF_PropVec3) <= filter->freg->private_size) {
+			*(GF_PropVec3 *)ptr = argv->value.vec3;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_VEC4I:
+		if (a->offset_in_private + sizeof(GF_PropVec4i) <= filter->freg->private_size) {
+			*(GF_PropVec4i *)ptr = argv->value.vec4i;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_VEC4:
+		if (a->offset_in_private + sizeof(GF_PropVec4) <= filter->freg->private_size) {
+			*(GF_PropVec4 *)ptr = argv->value.vec4;
+			res = GF_TRUE;
+		}
+		break;
+
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
 		if (a->offset_in_private + sizeof(char *) <= filter->freg->private_size) {

@@ -119,6 +119,12 @@ typedef enum
 	GF_PROP_FRACTION,
 	GF_PROP_FLOAT,
 	GF_PROP_DOUBLE,
+	GF_PROP_VEC2I,
+	GF_PROP_VEC2,
+	GF_PROP_VEC3I,
+	GF_PROP_VEC3,
+	GF_PROP_VEC4I,
+	GF_PROP_VEC4,
 	//string property, memory is duplicated when setting the property and managed internally
 	GF_PROP_STRING,
 	//string property, memory is NOT duplicated when setting the property but is then managed (and free) internally
@@ -145,6 +151,49 @@ typedef struct
 
 typedef struct
 {
+	s32 x;
+	s32 y;
+} GF_PropVec2i;
+
+typedef struct
+{
+	Double x;
+	Double y;
+} GF_PropVec2;
+
+typedef struct
+{
+	s32 x;
+	s32 y;
+	s32 z;
+} GF_PropVec3i;
+
+typedef struct
+{
+	Double x;
+	Double y;
+	Double z;
+} GF_PropVec3;
+
+typedef struct
+{
+	s32 x;
+	s32 y;
+	s32 z;
+	s32 w;
+} GF_PropVec4i;
+
+typedef struct
+{
+	Double x;
+	Double y;
+	Double z;
+	Double w;
+} GF_PropVec4;
+
+
+typedef struct
+{
 	GF_PropType type;
 	union {
 		u64 longuint;
@@ -155,6 +204,12 @@ typedef struct
 		GF_Fraction frac;
 		Fixed fnumber;
 		Double number;
+		GF_PropVec2i vec2i;
+		GF_PropVec2 vec2;
+		GF_PropVec3i vec3i;
+		GF_PropVec3 vec3;
+		GF_PropVec4i vec4i;
+		GF_PropVec4 vec4;
 		//alloc/freed by filter
 		GF_PropData data;
 		//alloc/freed by filter if type is GF_PROP_STRING, otherwise const char *

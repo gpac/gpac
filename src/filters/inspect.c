@@ -108,6 +108,24 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_DOUBLE:
 		fprintf(dump, "%g", att->value.number);
 		break;
+	case GF_PROP_VEC2I:
+		fprintf(dump, "%dx%d", att->value.vec2i.x, att->value.vec2i.y);
+		break;
+	case GF_PROP_VEC2:
+		fprintf(dump, "%lgx%lg", att->value.vec2.x, att->value.vec2.y);
+		break;
+	case GF_PROP_VEC3I:
+		fprintf(dump, "%dx%dx%d", att->value.vec3i.x, att->value.vec3i.y, att->value.vec3i.z);
+		break;
+	case GF_PROP_VEC3:
+		fprintf(dump, "%lgx%lgx%lg", att->value.vec3.x, att->value.vec3.y, att->value.vec3.y);
+		break;
+	case GF_PROP_VEC4I:
+		fprintf(dump, "%dx%dx%dx%d", att->value.vec4i.x, att->value.vec4i.y, att->value.vec4i.z, att->value.vec4i.w);
+		break;
+	case GF_PROP_VEC4:
+		fprintf(dump, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
+		break;
 	case GF_PROP_NAME:
 		fprintf(dump, "%s", att->value.string);
 		break;
