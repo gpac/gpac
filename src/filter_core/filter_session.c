@@ -516,12 +516,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 
 		if (!task) {
+			//no more task and EOS signal
+			if (fsess->run_status != GF_OK)
+				break;
 			if (!fsess->tasks_pending && fsess->main_th.has_seen_eot) {
 				//check all threads
 				Bool all_done = GF_TRUE;
-				//no more task and EOS signal
-				if (fsess->run_status != GF_OK)
-					break;
 
 				for (i=0; i<th_count; i++) {
 					GF_SessionThread *st = gf_list_get(fsess->threads, i);
@@ -679,8 +679,14 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
 						current_filter->in_process = GF_FALSE;
 						if (current_filter->freg->requires_main_thread) {
+							if (do_use_sema) {
+								gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
+							}
 							gf_fq_add(fsess->main_thread_tasks, task);
 						} else {
+							if (do_use_sema) {
+								gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
+							}
 							gf_fq_add(fsess->tasks, task);
 						}
 						current_filter = NULL;
@@ -840,13 +846,14 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	if (!fsess->run_status)
 		fsess->run_status = GF_EOS;
 
-	if (!thid) {
-		//main thread exit, notify the semaphore
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Exiting main, notifying secondary semaphore for %d threads\n", th_count));
-		if ( ! gf_sema_notify(fsess->semaphore_other, th_count)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Failed to notify semaphore, might hang up !!\n"));
-		}
+	// thread exit, notify the semaphores
+	if (fsess->semaphore_main && ! gf_sema_notify(fsess->semaphore_main, 1)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Failed to notify main semaphore, might hang up !!\n"));
 	}
+	if (fsess->semaphore_other && ! gf_sema_notify(fsess->semaphore_other, th_count)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Failed to notify secondary semaphore, might hang up !!\n"));
+	}
+
 	return 0;
 }
 
