@@ -859,6 +859,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 	}
 	else {
+		assert (!filter->schedule_next_time);
 		gf_filter_check_pending_tasks(filter, task);
 	}
 }
@@ -1362,5 +1363,6 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_
 	if (time_in_us) *time_in_us = filter->session->hint_clock_us;
 	if (media_timestamp) *media_timestamp = filter->session->hint_timestamp;
 }
+
 
 
