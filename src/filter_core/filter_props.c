@@ -126,6 +126,42 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.number = 0;
 		}
 		break;
+	case GF_PROP_VEC2I:
+		if (!value || (sscanf(value, "%dx%d", &p.value.vec2i.x, &p.value.vec2i.y) != 2)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s - using {0,0}\n", value, name));
+			p.value.vec2i.x = p.value.vec2i.x = 0;
+		}
+		break;
+	case GF_PROP_VEC2:
+		if (!value || (sscanf(value, "%lgx%lg", &p.value.vec2.x, &p.value.vec2.y) != 2)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2 arg %s - using {0,0}\n", value, name));
+			p.value.vec2.x = p.value.vec2.x = 0;
+		}
+		break;
+	case GF_PROP_VEC3I:
+		if (!value || (sscanf(value, "%dx%dx%d", &p.value.vec3i.x, &p.value.vec3i.y, &p.value.vec3i.z) != 3)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec3i arg %s - using {0,0,0}\n", value, name));
+			p.value.vec3i.x = p.value.vec3i.x = p.value.vec3i.z = 0;
+		}
+		break;
+	case GF_PROP_VEC3:
+		if (!value || (sscanf(value, "%lgx%lgx%lg", &p.value.vec3.x, &p.value.vec3.y, &p.value.vec3.z) != 3)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec3 arg %s - using {0,0,0}\n", value, name));
+			p.value.vec3.x = p.value.vec3.x = p.value.vec3.z = 0;
+		}
+		break;
+	case GF_PROP_VEC4I:
+		if (!value || (sscanf(value, "%dx%dx%dx%d", &p.value.vec4i.x, &p.value.vec4i.y, &p.value.vec4i.z, &p.value.vec4i.w) != 4)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4i arg %s - using {0,0,0}\n", value, name));
+			p.value.vec4i.x = p.value.vec4i.x = p.value.vec4i.z = p.value.vec4i.w = 0;
+		}
+		break;
+	case GF_PROP_VEC4:
+		if (!value || (sscanf(value, "%lgx%lgx%lgx%lg", &p.value.vec4.x, &p.value.vec4.y, &p.value.vec4.z, &p.value.vec4.w) != 4)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4 arg %s - using {0,0,0}\n", value, name));
+			p.value.vec4.x = p.value.vec4.x = p.value.vec4.z = p.value.vec4.w = 0;
+		}
+		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:

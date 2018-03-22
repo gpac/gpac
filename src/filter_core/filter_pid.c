@@ -1265,7 +1265,7 @@ restart:
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
 		found_dest = GF_TRUE;
-		break;
+//		break;
 	}
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
