@@ -126,6 +126,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_VEC4:
 		fprintf(dump, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
 		break;
+	case GF_PROP_PIXFMT:
+		fprintf(dump, "%s", gf_pixfmt_name(att->value.uint));
+		break;
 	case GF_PROP_NAME:
 		fprintf(dump, "%s", att->value.string);
 		break;

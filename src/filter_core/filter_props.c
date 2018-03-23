@@ -24,6 +24,7 @@
  */
 
 #include "filter_session.h"
+#include <gpac/constants.h>
 
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values)
 {
@@ -45,13 +46,16 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_SINT:
-		if (!value || (sscanf(value, "%d", &p.value.sint)!=1)) {
+		if (value && !strcmp(value, "+I")) p.value.sint = GF_INT_MAX;
+		else if (value && !strcmp(value, "-I")) p.value.sint = GF_INT_MIN;
+		else if (!value || (sscanf(value, "%d", &p.value.sint)!=1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for int arg %s - using 0\n", value, name));
 			p.value.sint = 0;
 		}
 		break;
 	case GF_PROP_UINT:
-		if (!value) {
+		if (value && !strcmp(value, "+I")) p.value.sint = 0xFFFFFFFF;
+		else if (!value) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		} else if (enum_values && strchr(enum_values, '|')) {
@@ -77,13 +81,16 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_LSINT:
-		if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
+		if (value && !strcmp(value, "+I")) p.value.longsint = 0x7FFFFFFFFFFFFFFFUL;
+		else if (value && !strcmp(value, "-I")) p.value.longsint = 0x8000000000000000UL;
+		else if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		}
 		break;
 	case GF_PROP_LUINT:
-		if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
+		if (value && !strcmp(value, "+I")) p.value.longuint = 0xFFFFFFFFFFFFFFFFUL;
+		else if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		}
@@ -107,7 +114,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_FLOAT:
-		if (!value) {
+		if (value && !strcmp(value, "+I")) p.value.fnumber = FIX_MAX;
+		else if (value && !strcmp(value, "-I")) p.value.fnumber = FIX_MIN;
+		else if (!value) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for float arg %s - using 0\n", value, name));
 			p.value.fnumber = 0;
 		} else {
@@ -121,7 +130,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_DOUBLE:
-		if (!value || (sscanf(value, "%lg", &p.value.number) != 1) ) {
+		if (value && !strcmp(value, "+I")) p.value.number = GF_MAX_DOUBLE;
+		else if (value && !strcmp(value, "-I")) p.value.number = GF_MIN_DOUBLE;
+		else if (!value || (sscanf(value, "%lg", &p.value.number) != 1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for double arg %s - using 0\n", value, name));
 			p.value.number = 0;
 		}
@@ -162,6 +173,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.vec4.x = p.value.vec4.x = p.value.vec4.z = p.value.vec4.w = 0;
 		}
 		break;
+	case GF_PROP_PIXFMT:
+		p.value.uint = gf_pixfmt_parse(value);
+		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
@@ -201,7 +215,9 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 
 	switch (p1->type) {
 	case GF_PROP_SINT: return (p1->value.sint==p2->value.sint) ? GF_TRUE : GF_FALSE;
-	case GF_PROP_UINT: return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_PIXFMT:
+	case GF_PROP_UINT:
+	 	return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_LSINT: return (p1->value.longsint==p2->value.longsint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_LUINT: return (p1->value.longuint==p2->value.longuint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_BOOL: return (p1->value.boolean==p2->value.boolean) ? GF_TRUE : GF_FALSE;
@@ -210,6 +226,20 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 
 	case GF_PROP_FLOAT: return (p1->value.fnumber==p2->value.fnumber) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_DOUBLE: return (p1->value.number==p2->value.number) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_VEC2I:
+		return ((p1->value.vec2i.x==p2->value.vec2i.x) && (p1->value.vec2i.y==p2->value.vec2i.y)) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_VEC2:
+		return ((p1->value.vec2.x==p2->value.vec2.x) && (p1->value.vec2.y==p2->value.vec2.y)) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_VEC3I:
+		return ((p1->value.vec3i.x==p2->value.vec3i.x) && (p1->value.vec3i.y==p2->value.vec3i.y) && (p1->value.vec3i.z==p2->value.vec3i.z)) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_VEC3:
+		return ((p1->value.vec3.x==p2->value.vec3.x) && (p1->value.vec3.y==p2->value.vec3.y) && (p1->value.vec3.z==p2->value.vec3.z)) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_VEC4I:
+		return ((p1->value.vec4i.x==p2->value.vec4i.x) && (p1->value.vec4i.y==p2->value.vec4i.y) && (p1->value.vec4i.z==p2->value.vec4i.z) && (p1->value.vec4i.w==p2->value.vec4i.w)) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_VEC4:
+		return ((p1->value.vec4.x==p2->value.vec4.x) && (p1->value.vec4.y==p2->value.vec4.y) && (p1->value.vec4.z==p2->value.vec4.z) && (p1->value.vec4.w==p2->value.vec4.w)) ? GF_TRUE : GF_FALSE;
+
+
 	case GF_PROP_STRING:
 	case GF_PROP_NAME:
 		if (!p1->value.string) return p2->value.string ? GF_FALSE : GF_TRUE;
@@ -524,6 +554,13 @@ const char *gf_props_get_type_name(u32 type)
 	case GF_PROP_DATA: return "data";
 	case GF_PROP_CONST_DATA: return "const data";
 	case GF_PROP_POINTER: return "pointer";
+	case GF_PROP_VEC2I: return "vec2d int";
+	case GF_PROP_VEC2: return "vec2d float";
+	case GF_PROP_VEC3I: return "vec3d int";
+	case GF_PROP_VEC3: return "vec3d float";
+	case GF_PROP_VEC4I: return "vec4d int";
+	case GF_PROP_VEC4: return "vec4d float";
+	case GF_PROP_PIXFMT: return "pixel format";
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
 	return "Undefined";

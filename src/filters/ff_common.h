@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -47,4 +47,8 @@ void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
 void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type);
 
+u32 ffmpeg_pixfmt_from_gpac(u32 pfmt);
+u32 ffmpeg_pixfmt_to_gpac(u32 pfmt);
+u32 ffmpeg_codecid_from_gpac(u32 codec_id);
+u32 ffmpeg_codecid_to_gpac(u32 codec_id);
 

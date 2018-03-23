@@ -521,6 +521,9 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 	case GF_PROP_DOUBLE:
 		sprintf(nhml, "%g", att->value.number);
 		break;
+	case GF_PROP_PIXFMT:
+		sprintf(nhml, "%s", gf_pixfmt_name(att->value.uint));
+		break;
 	case GF_PROP_VEC2I:
 		sprintf(nhml, "%dx%d", att->value.vec2i.x, att->value.vec2i.y);
 		break;

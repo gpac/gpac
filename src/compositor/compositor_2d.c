@@ -858,8 +858,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				use_soft_stretch = GF_FALSE;
 			break;
 		case GF_PIXEL_YV12:
-		case GF_PIXEL_IYUV:
-		case GF_PIXEL_I420:
 		case GF_PIXEL_YVYU:
 		case GF_PIXEL_YUYV:
 		case GF_PIXEL_YUVD:
@@ -1119,10 +1117,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_YV12:
-	case GF_PIXEL_IYUV:
 	case GF_PIXEL_YVYU:
 	case GF_PIXEL_YUYV:
-	case GF_PIXEL_I420:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV12_10:

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -282,5 +282,228 @@ u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
 		break;
 	}
 	return 0;
+}
+
+
+typedef struct
+{
+	u32 pixfmt;
+	const char *name; //as used in gpac
+} GF_PixFmt;
+
+static const GF_PixFmt GF_PixelFormats[] =
+{
+	{GF_PIXEL_YV12, "yuv420"},
+	{GF_PIXEL_YV12_10, "yuv420_10"},
+	{GF_PIXEL_YUV422, "yuv422"},
+	{GF_PIXEL_YUV422_10, "yuv422_10"},
+	{GF_PIXEL_YUV444, "yuv444"},
+	{GF_PIXEL_YUV444_10, "yuv444_10"},
+	{GF_PIXEL_RGBA, "rgba"},
+	{GF_PIXEL_RGB, "rgb"},
+	{GF_PIXEL_BGR, "bgr"},
+	{GF_PIXEL_UYVY, "uyvy"},
+	{GF_PIXEL_YUYV, "yuyv"},
+	{GF_PIXEL_NV12, "nv12"},
+	{GF_PIXEL_NV21, "nv21"},
+	{GF_PIXEL_XRGB, "xrgb"},
+	{GF_PIXEL_RGBX, "rgbx"},
+	{GF_PIXEL_XBGR, "rgbx"},
+	{GF_PIXEL_BGRX, "rgbx"},
+	{},
+};
+
+u32 gf_pixfmt_enum(u32 *idx, const char **out_name)
+{
+	u32 pf, c=sizeof(GF_PixelFormats) / sizeof(GF_PixFmt);
+	if (!idx) return 0;
+	if (*idx >= c) return 0;
+	if (! GF_PixelFormats[*idx].pixfmt) return 0;
+	if (out_name) *out_name = GF_PixelFormats[*idx].name;
+	pf = GF_PixelFormats[*idx].pixfmt;
+	(*idx) ++;
+	return pf;
+}
+
+u32 gf_pixfmt_parse(const char *pf_name)
+{
+	u32 i=0;
+	if (!pf_name) return 0;
+	while (GF_PixelFormats[i].pixfmt) {
+		if (!strcmp(GF_PixelFormats[i].name, pf_name)) return GF_PixelFormats[i].pixfmt;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s\n", pf_name));
+	return 0;
+}
+const char *gf_pixfmt_name(u32 pfmt)
+{
+	u32 i=0;
+	while (GF_PixelFormats[i].pixfmt) {
+		if (GF_PixelFormats[i].pixfmt==pfmt) return GF_PixelFormats[i].name;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
+	return "unknown";
+
+}
+
+static char szAllPixelFormats[5000] = {};
+
+const char *gf_pixfmt_all_names()
+{
+	if (!szAllPixelFormats[0]) {
+		u32 i=0;
+		u32 tot_len=0;
+		while (GF_PixelFormats[i].pixfmt) {
+			u32 len = strlen(GF_PixelFormats[i].name);
+			if (len+tot_len+1>=5000) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
+				break;
+			}
+			if (i) {
+				strcat((char *)szAllPixelFormats, ",");
+				tot_len += 1;
+			}
+			strcat((char *)szAllPixelFormats, GF_PixelFormats[i].name);
+			tot_len += len;
+			i++;
+		}
+	}
+	return szAllPixelFormats;
+}
+
+Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *out_size, u32 *out_stride, u32 *out_stride_uv, u32 *out_planes, u32 *out_plane_uv_height)
+{
+	u32 stride=0, stride_uv=0, size=0, planes=0, uv_height=0;
+	Bool keep_stride = (!out_stride || (*out_stride==0)) ? GF_TRUE : GF_FALSE;
+	Bool keep_stride_uv = (!out_stride_uv || (*out_stride_uv==0)) ? GF_TRUE : GF_FALSE;
+
+	switch (pixfmt) {
+	case GF_PIXEL_GREYSCALE:
+		stride = keep_stride ? width : *out_stride;
+		size = stride * height;
+		planes=1;
+		break;
+	case GF_PIXEL_ALPHAGREY:
+		stride = keep_stride ? 2*width : *out_stride;
+		size = stride * height;
+		planes=1;
+		break;
+	case GF_PIXEL_RGB_444:
+	case GF_PIXEL_RGB_555:
+	case GF_PIXEL_RGB_565:
+		stride = keep_stride ? 2*width : *out_stride;
+		size = stride * height;
+		planes=1;
+		break;
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
+	case GF_PIXEL_XRGB:
+	case GF_PIXEL_XBGR:
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_RGBD:
+	case GF_PIXEL_RGBDS:
+	case GF_PIXEL_RGBAS:
+		stride = keep_stride ? 4*width : *out_stride;
+		size = stride * height;
+		planes=1;
+		break;
+	case GF_PIXEL_RGB_DEPTH:
+		stride = keep_stride ? 3*width : *out_stride;
+		stride_uv = keep_stride_uv ? width : *out_stride_uv;
+		size = 4 * width * height;
+		planes=1;
+		break;
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
+	case GF_PIXEL_RGBS:
+		stride = keep_stride ? 3*width : *out_stride;
+		size = stride * height;
+		planes=1;
+		break;
+	case GF_PIXEL_YV12:
+		stride = keep_stride ? width : *out_stride;
+		uv_height = height / 2;
+		size = 3*stride * height / 2;
+		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		planes=3;
+		break;
+	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVD:
+		stride = keep_stride ? width : *out_stride;
+		uv_height = height / 2;
+		size = 3*stride * height / 2 + width*height;
+		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		planes=4;
+		break;
+	case GF_PIXEL_YV12_10:
+		stride = keep_stride ? 2*width : *out_stride;
+		size = 3*stride * height / 2;
+		uv_height = height / 2;
+		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		planes=3;
+		break;
+	case GF_PIXEL_YUV422:
+		stride = keep_stride ? width : *out_stride;
+		size = stride * height * 2;
+		uv_height = height;
+		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		planes=3;
+		break;
+	case GF_PIXEL_YUV422_10:
+		stride = keep_stride ? 2*width : *out_stride;
+		size = stride * height * 2;
+		uv_height = height;
+		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		planes=3;
+		break;
+	case GF_PIXEL_YUV444:
+		stride = keep_stride ? width : *out_stride;
+		size = stride * height * 3;
+		uv_height = height;
+		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
+		planes=3;
+		break;
+	case GF_PIXEL_YUV444_10:
+		stride = keep_stride ? 2*width : *out_stride;
+		size = stride * height * 3;
+		uv_height = height;
+		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
+		planes=3;
+		break;
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+		stride = keep_stride ? width : *out_stride;
+		size = 3 * stride * height * 2;
+		uv_height = height/2;
+		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		planes=2;
+		break;
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+		stride = keep_stride ? 2*width : *out_stride;
+		size = 3 * stride * height * 2;
+		uv_height = height/2;
+		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		planes=2;
+		break;
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_VYUY:
+	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+		stride = keep_stride ? 2*width : *out_stride;
+		size = height * stride;
+		planes=1;
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get size info\n", gf_pixfmt_name(pixfmt) ));
+		return GF_FALSE;
+	}
+	if (out_size) *out_size = size;
+	if (out_stride) *out_stride = stride;
+	if (out_stride_uv) *out_stride_uv = stride_uv;
+	if (out_planes) *out_planes = planes;
+	if (out_plane_uv_height) *out_plane_uv_height = uv_height;
+	return GF_TRUE;
 }
 

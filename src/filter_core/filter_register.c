@@ -34,6 +34,7 @@ const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session);
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session);
 const GF_FilterRegister *ffavin_register(GF_FilterSession *session);
+const GF_FilterRegister *ffsws_register(GF_FilterSession *session);
 const GF_FilterRegister *inspect_register(GF_FilterSession *session);
 const GF_FilterRegister *probe_register(GF_FilterSession *session);
 const GF_FilterRegister *compose_filter_register(GF_FilterSession *session);
@@ -166,6 +167,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffavin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffsws_register(a_sess) );
 }
 
 GF_EXPORT

@@ -830,8 +830,6 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 		_this->Bpp = 1;
 		break;
 	case GF_PIXEL_YV12:
-	case GF_PIXEL_IYUV:
-	case GF_PIXEL_I420:
 		_this->orig_format = GF_PIXEL_YV12;
 		_this->orig_buf = (u8 *) pixels;
 		_this->orig_stride = stride;
