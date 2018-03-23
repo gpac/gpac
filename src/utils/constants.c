@@ -476,7 +476,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		stride = keep_stride ? width : *out_stride;
 		size = 3 * stride * height * 2;
 		uv_height = height/2;
-		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
 		planes=2;
 		break;
 	case GF_PIXEL_NV12_10:
@@ -484,7 +484,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		stride = keep_stride ? 2*width : *out_stride;
 		size = 3 * stride * height * 2;
 		uv_height = height/2;
-		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
 		planes=2;
 		break;
 	case GF_PIXEL_UYVY:
@@ -505,5 +505,62 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	if (out_planes) *out_planes = planes;
 	if (out_plane_uv_height) *out_plane_uv_height = uv_height;
 	return GF_TRUE;
+}
+
+u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
+{
+	switch (pixfmt) {
+	case GF_PIXEL_GREYSCALE:
+		return 1;
+	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_RGB_444:
+	case GF_PIXEL_RGB_555:
+	case GF_PIXEL_RGB_565:
+		return 2;
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
+	case GF_PIXEL_XRGB:
+	case GF_PIXEL_XBGR:
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_RGBD:
+	case GF_PIXEL_RGBDS:
+	case GF_PIXEL_RGBAS:
+	case GF_PIXEL_RGB_DEPTH:
+		return 4;
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
+	case GF_PIXEL_RGBS:
+		return 3;
+	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVD:
+		return 1;
+	case GF_PIXEL_YV12_10:
+		return 2;
+	case GF_PIXEL_YUV422:
+		return 1;
+	case GF_PIXEL_YUV422_10:
+		return 2;
+	case GF_PIXEL_YUV444:
+		return 1;
+	case GF_PIXEL_YUV444_10:
+		return 2;
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+		return 1;
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+		return 2;
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_VYUY:
+	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+		return 1;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get bytes per pixel info\n", gf_pixfmt_name(pixfmt) ));
+		break;
+	}
+	return 0;
 }
 

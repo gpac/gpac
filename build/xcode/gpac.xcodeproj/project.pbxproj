@@ -490,6 +490,7 @@
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
 		92E249902057B973002CC029 /* resample_audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E2498F2057B973002CC029 /* resample_audio.c */; };
 		92E318CF20645036007BE021 /* ff_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318CE20645036007BE021 /* ff_rescale.c */; };
+		92E318D120651834007BE021 /* vcrop.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318D020651834007BE021 /* vcrop.c */; };
 		92EC32CB1FAC5ACB003FB9C3 /* reframe_qcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */; };
 		92EC32CD1FAC81D6003FB9C3 /* reframe_h263.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */; };
 		92EE76411FD0315D008926F5 /* load_text.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EE76401FD0315D008926F5 /* load_text.c */; };
@@ -1339,6 +1340,7 @@
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
 		92E2498F2057B973002CC029 /* resample_audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = resample_audio.c; path = filters/resample_audio.c; sourceTree = "<group>"; };
 		92E318CE20645036007BE021 /* ff_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_rescale.c; path = filters/ff_rescale.c; sourceTree = "<group>"; };
+		92E318D020651834007BE021 /* vcrop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcrop.c; path = filters/vcrop.c; sourceTree = "<group>"; };
 		92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_qcp.c; path = filters/reframe_qcp.c; sourceTree = "<group>"; };
 		92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_h263.c; path = filters/reframe_h263.c; sourceTree = "<group>"; };
 		92EE76401FD0315D008926F5 /* load_text.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = load_text.c; path = filters/load_text.c; sourceTree = "<group>"; };
@@ -2547,6 +2549,7 @@
 				925730812056A610009DB328 /* rewrite_mp4v.c */,
 				9257307E2056948D009DB328 /* rewrite_nalu.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
+				92E318D020651834007BE021 /* vcrop.c */,
 				926CE14C1FE7E388002B3CF6 /* write_generic.c */,
 				926F15561FE986B000C40779 /* write_nhml.c */,
 				926F15541FE964CF00C40779 /* write_nhnt.c */,
@@ -3095,6 +3098,7 @@
 				92B9A57C1F8660D700A24FE4 /* svg_filters.c in Sources */,
 				92B9A5A01F8660D700A24FE4 /* mpeg4_sensors.c in Sources */,
 				9201014518D5A445003D1ACA /* dash_client.c in Sources */,
+				92E318D120651834007BE021 /* vcrop.c in Sources */,
 				92B9A5971F8660D700A24FE4 /* audio_render.c in Sources */,
 				9201014618D5A445003D1ACA /* dash_segmenter.c in Sources */,
 				9201014718D5A445003D1ACA /* dsmcc.c in Sources */,
