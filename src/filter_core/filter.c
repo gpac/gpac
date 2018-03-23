@@ -526,11 +526,25 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 		i=0;
 		while (filter->filter_udta && filter->freg->args) {
+			Bool is_my_arg = GF_FALSE;
 			const GF_FilterArgs *a = &filter->freg->args[i];
 			i++;
 			if (!a || !a->arg_name) break;
 
-			if (!strcmp(a->arg_name, szArg)) {
+			if (!strcmp(a->arg_name, szArg)) is_my_arg = GF_TRUE;
+			//little optim here, if no value check for enums
+			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') ) {
+				char *found = strstr(a->min_max_enum, szArg);
+				if (found) {
+					char c = found[strlen(szArg)];
+					if (!c || (c=='|')) {
+						is_my_arg = GF_TRUE;
+						value = szArg;
+					}
+				}
+			}
+
+			if (is_my_arg) {
 				GF_PropertyValue argv;
 				found=GF_TRUE;
 
