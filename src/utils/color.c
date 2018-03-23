@@ -121,7 +121,6 @@ static void gf_yuv422_load_lines_planar(unsigned char *dst, s32 dststride, unsig
 	for (x = 0; x < hw; x++) {
 		s32 b_u, g_uv, r_v, rgb_y;
 
-
 		b_u = B_U[*u_src];
 		g_uv = G_U[*u_src] + G_V[*v_src];
 		r_v = R_V[*v_src];
@@ -132,8 +131,6 @@ static void gf_yuv422_load_lines_planar(unsigned char *dst, s32 dststride, unsig
 		dst[3] = 0xFF;
 		y_src++;
 
-
-
 		rgb_y = RGB_Y[*y_src];
 		dst[4] = col_clip((rgb_y + r_v) >> SCALEBITS_OUT);
 		dst[5] = col_clip((rgb_y - g_uv) >> SCALEBITS_OUT);
@@ -142,7 +139,6 @@ static void gf_yuv422_load_lines_planar(unsigned char *dst, s32 dststride, unsig
 		y_src++;
 		u_src++;
 		v_src++;
-
 
 		b_u = B_U[*u_src2];
 		g_uv = G_U[*u_src2] + G_V[*v_src2];
@@ -431,19 +427,16 @@ static void gf_yuv444_10_load_lines_planar(unsigned char *dst, s32 dststride, un
 
 static void gf_yuv_load_lines_packed(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 width)
 {
-	u32 hw, x;
+	u32 hw;
 
 	hw = width / 2;
-	for (x = 0; x < hw; x++) {
-		s32 u, v;
+	while (hw) {
 		s32 b_u, g_uv, r_v, rgb_y;
+		hw--;
 
-		u = *u_src;
-		v = *v_src;
-
-		b_u = B_U[u];
-		g_uv = G_U[u] + G_V[v];
-		r_v = R_V[v];
+		b_u = B_U[*u_src];
+		g_uv = G_U[*u_src] + G_V[*v_src];
+		r_v = R_V[*v_src];
 
 		rgb_y = RGB_Y[*y_src];
 		dst[0] = col_clip( (rgb_y + r_v) >> SCALEBITS_OUT);
@@ -1076,6 +1069,32 @@ static void load_line_rgb_32(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 		dst_bits += 4;
 	}
 }
+static void load_line_xrgb(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
+{
+	u32 i;
+	src_bits += x_offset*4 + y_offset*y_pitch;
+	for (i=0; i<width; i++) {
+		src_bits++;
+		dst_bits[0] = *src_bits++;
+		dst_bits[1] = *src_bits++;
+		dst_bits[2] = *src_bits++;
+		dst_bits[3] = 0xFF;
+		dst_bits += 4;
+	}
+}
+static void load_line_bgrx(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
+{
+	u32 i;
+	src_bits += x_offset*4 + y_offset*y_pitch;
+	for (i=0; i<width; i++) {
+		dst_bits[2] = *src_bits++;
+		dst_bits[1] = *src_bits++;
+		dst_bits[0] = *src_bits++;
+		dst_bits[3] = 0xFF;
+		src_bits++;
+		dst_bits += 4;
+	}
+}
 
 static void load_line_rgbd(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
 {
@@ -1105,19 +1124,6 @@ static void load_line_rgbds(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitc
 }
 
 static void load_line_argb(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
-{
-	u32 i;
-	src_bits += x_offset*4 + y_offset*y_pitch;
-	for (i=0; i<width; i++) {
-		dst_bits[2] = *src_bits++;
-		dst_bits[1] = *src_bits++;
-		dst_bits[0] = *src_bits++;
-		dst_bits[3] = *src_bits++;
-		dst_bits += 4;
-	}
-}
-
-static void load_line_bgr_32(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
 {
 	u32 i;
 	src_bits += x_offset*4 + y_offset*y_pitch;
@@ -1255,12 +1261,12 @@ static void load_line_uyvy(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch
 	u8 *pY, *pU, *pV;
 	pU = (u8 *)src_bits + x_offset + y_offset*y_pitch;
 	pY = (u8 *)pU + 1;
-	pV = (u8 *)pU + 3;
+	pV = (u8 *)pU + 2;
 	gf_yuv_load_lines_packed((unsigned char*)dst_bits, 4*width, pY, pU, pV, width);
 }
 
 
-static void gf_yuv_load_lines_nv12_nv21(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, s32 y_stride, s32 uv_stride, s32 width, Bool swap_uv)
+static void gf_yuv_load_lines_nv12_nv21(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char *v_src, s32 y_stride, s32 width)
 {
 	u32 hw, x;
 	unsigned char *dst2 = (unsigned char *) dst + dststride;
@@ -1271,13 +1277,8 @@ static void gf_yuv_load_lines_nv12_nv21(unsigned char *dst, s32 dststride, unsig
 		s32 u, v;
 		s32 b_u, g_uv, r_v, rgb_y;
 
-		if (swap_uv) {
-			v = u_src[2*x];
-			u = u_src[2*x+1];
-		} else {
-			u = u_src[2*x];
-			v = u_src[2*x+1];
-		}
+		u = u_src[2*x];
+		v = v_src[2*x];
 
 		b_u = B_U[u];
 		g_uv = G_U[u] + G_V[v];
@@ -1324,8 +1325,8 @@ static void load_line_nv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	}
 
 	pY += x_offset + y_offset*y_pitch;
-	pU += x_offset + y_offset*y_pitch/2;
-	gf_yuv_load_lines_nv12_nv21(dst_bits, 4*width, pY, pU, y_pitch, y_pitch/2, width, GF_FALSE);
+	pU += x_offset + y_offset*y_pitch/2; //half vertical sampling
+	gf_yuv_load_lines_nv12_nv21(dst_bits, 4*width, pY, pU, pU + 1, y_pitch, width);
 }
 static void load_line_nv21(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU)
 {
@@ -1335,8 +1336,8 @@ static void load_line_nv21(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	}
 
 	pY += x_offset + y_offset*y_pitch;
-	pU += x_offset + y_offset*y_pitch/2;
-	gf_yuv_load_lines_nv12_nv21(dst_bits, 4*width, pY, pU, y_pitch, y_pitch/2, width, GF_TRUE);
+	pU += x_offset + y_offset*y_pitch/2; //half vertical sampling
+	gf_yuv_load_lines_nv12_nv21(dst_bits, 4*width, pY, pU+1, pU, y_pitch, width);
 }
 
 static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_);
@@ -1397,15 +1398,18 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_RGBX:
 		load_line = load_line_rgb_32;
 		break;
+	case GF_PIXEL_XRGB:
+		load_line = load_line_xrgb;
+		break;
+	case GF_PIXEL_BGRX:
+		load_line = load_line_bgrx;
+		break;
 	case GF_PIXEL_RGBDS:
 		load_line = load_line_rgbds;
 		has_alpha = GF_TRUE;
 		break;
 	case GF_PIXEL_RGBD:
 		load_line = load_line_rgbd;
-		break;
-	case GF_PIXEL_BGRX:
-		load_line = load_line_bgr_32;
 		break;
 	case GF_PIXEL_YV12:
 		yuv2rgb_init();
@@ -1458,6 +1462,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_uyvy;
 		break;
 	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Source pixel format %s not supported by gf_stretch_bits\n", gf_pixfmt_name(src->pixel_format) ));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -1500,6 +1505,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		copy_row = has_alpha ? merge_row_rgbx : copy_row_rgbx;
 		break;
 	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Destination pixel format %s not supported by gf_stretch_bits\n", gf_pixfmt_name(dst->pixel_format) ));
 		return GF_NOT_SUPPORTED;
 	}
 	/*x_pitch 0 means linear framebuffer*/
