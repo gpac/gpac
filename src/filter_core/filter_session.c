@@ -991,14 +991,14 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		if (ipids) {
 			fprintf(stderr, "\t\t"LLU" packets processed "LLU" bytes processed", f->nb_pck_processed, f->nb_bytes_processed);
 			if (f->time_process) {
-				fprintf(stderr, " (%g pck/sec %g kbps)", (Double) f->nb_pck_processed*1000000/f->time_process, (Double) f->nb_bytes_processed*8000/f->time_process);
+				fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_processed*1000000/f->time_process, (Double) f->nb_bytes_processed*8/f->time_process);
 			}
 			fprintf(stderr, "\n");
 		}
 		if (opids) {
 			fprintf(stderr, "\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent);
 			if (f->time_process) {
-				fprintf(stderr, " (%g pck/sec %g kbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8000/f->time_process);
+				fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8/f->time_process);
 			}
 			fprintf(stderr, "\n");
 		}

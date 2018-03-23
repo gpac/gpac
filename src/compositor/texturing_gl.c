@@ -867,7 +867,6 @@ common:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV12_10:
-	case GF_PIXEL_I420:
 		if (txh->tx_io->gl_format == compositor->gl_caps.yuv_texture) {
 			txh->tx_io->conv_format = GF_PIXEL_YVYU;
 			txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
@@ -930,7 +929,6 @@ common:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV12_10:
-	case GF_PIXEL_I420:
 	case GF_PIXEL_BGR:
 	case GF_PIXEL_BGRX:
 		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB;

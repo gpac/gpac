@@ -97,28 +97,6 @@ static void ffdec_finalize(GF_Filter *filter)
 	return;
 }
 
-static u32 ffdec_gpac_convert_pix_fmt(u32 pix_fmt)
-{
-	switch (pix_fmt) {
-	case AV_PIX_FMT_YUV420P: return GF_PIXEL_YV12;
-	case AV_PIX_FMT_YUV420P10LE: return  GF_PIXEL_YV12_10;
-	case AV_PIX_FMT_YUV422P: return GF_PIXEL_YUV422;
-	case AV_PIX_FMT_YUV422P10LE: return GF_PIXEL_YUV422_10;
-	case AV_PIX_FMT_YUV444P: return GF_PIXEL_YUV444;
-	case AV_PIX_FMT_YUV444P10LE: return GF_PIXEL_YUV444_10;
-	case AV_PIX_FMT_RGBA: return GF_PIXEL_RGBA;
-	case AV_PIX_FMT_RGB24: return GF_PIXEL_RGB;
-	case AV_PIX_FMT_BGR24: return GF_PIXEL_BGR;
-	//force output in RGB24
-	case AV_PIX_FMT_YUVJ420P: return GF_PIXEL_RGB;
-	case AV_PIX_FMT_YUVJ422P: return GF_PIXEL_RGB;
-	case AV_PIX_FMT_YUVJ444P: return GF_PIXEL_RGB;
-	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %d\n", pix_fmt));
-	}
-	return 0;
-}
-
 static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec)
 {
 	AVPacket pkt;
@@ -131,7 +109,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	Bool seek_flag = GF_FALSE;
 	GF_FilterSAPType sap_type = GF_FILTER_SAP_NONE;
 	u32 pck_duration = 0;
-	u32 size=0, pix_fmt, outsize, pix_out, stride;
+	u32 size=0, pix_fmt, outsize, pix_out, stride, stride_uv, uv_height, nb_planes;
 	char *out_buffer;
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
@@ -198,53 +176,16 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	}
 	if (!gotpic) return GF_OK;
 
-	pix_fmt = ffdec_gpac_convert_pix_fmt(ffdec->codec_ctx->pix_fmt);
-	if (!pix_fmt) {
-		return GF_NOT_SUPPORTED;
-	}
+	pix_fmt = ffmpeg_pixfmt_to_gpac(ffdec->codec_ctx->pix_fmt);
+	if (!pix_fmt) pix_fmt = GF_PIXEL_RGB;
+
 	//update all props
 	FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 	FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
 	FF_CHECK_PROP(height, height, GF_PROP_PID_HEIGHT)
 
-	switch (pix_fmt) {
-	case GF_PIXEL_RGBX:
-	case GF_PIXEL_BGRX:
-	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBA:
-		stride = ffdec->width * 4;
-		outsize = stride * ffdec->height;
-		break;
-	case GF_PIXEL_RGB:
-	case GF_PIXEL_BGR:
-		stride = ffdec->width * 3;
-		outsize = stride * ffdec->height;
-		break;
-	case GF_PIXEL_YV12:
-		stride = ffdec->width;
-		outsize = 3*stride * ffdec->height / 2;
-		break;
-	case GF_PIXEL_YV12_10:
-		stride = ffdec->width*2;
-		outsize = 3*stride * ffdec->height / 2;
-		break;
-	case GF_PIXEL_YUV422:
-		stride = ffdec->width;
-		outsize = stride * ffdec->height * 2;
-		break;
-	case GF_PIXEL_YUV422_10:
-		stride = ffdec->width*2;
-		outsize = stride * ffdec->height * 2;
-		break;
-	case GF_PIXEL_YUV444:
-		stride = ffdec->width;
-		outsize = stride * ffdec->height * 3;
-		break;
-	case GF_PIXEL_YUV444_10:
-		stride = ffdec->width*2;
-		outsize = stride * ffdec->height * 3;
-		break;
-	default:
+	stride_uv = uv_height = nb_planes = 0;
+	if (gf_pixel_get_size_info(pix_fmt, ffdec->width, ffdec->height, &outsize, &stride, &stride_uv, &nb_planes, &uv_height) != GF_OK) {
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -274,6 +215,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	dst_pck = gf_filter_pck_new_alloc(ffdec->out_pid, outsize, &out_buffer);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
+	//TODO: cleanup, we should not convert pixel format in the decoder but through filters !
 	switch (ffdec->pixel_fmt) {
 	case GF_PIXEL_RGB:
 		pict.data[0] =  (uint8_t *)out_buffer;
@@ -434,6 +376,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	output_size = frame->nb_samples*ffdec->channels*2;//always in s16 fmt
 	dst_pck = gf_filter_pck_new_alloc(ffdec->out_pid, output_size, &data);
 
+	//TODO: cleanup, we should not convert sample format in the decoder but through filters !
 	if (frame->format==AV_SAMPLE_FMT_FLTP) {
 		s32 i, j;
 		s16 *output = (s16 *) data;
@@ -494,16 +437,8 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		if (ffdec->nb_samples_already_in_frame) {
 			if (ffdec->sample_rate == timescale) {
 				pts += ffdec->nb_samples_already_in_frame;
-			} else {
-/*
-				u64 diff = ffdec->nb_samples_already_in_frame;
-				diff *= timescale;
-				diff /= ffdec->sample_rate;
-*/
-
 			}
 		}
-//	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] out PTS "LLU"\n", pts));
 		gf_filter_pck_set_cts(dst_pck, pts);
 	}
 
@@ -612,45 +547,6 @@ static GF_Err ffdec_process(GF_Filter *filter)
 	return ffdec->process(filter, ffdec);
 }
 
-static u32 ff_codecid_gpac_to_ffmpeg(u32 codecid)
-{
-	switch (codecid) {
-	case GF_CODECID_MPEG_AUDIO: return AV_CODEC_ID_MP2;
-	case GF_CODECID_MPEG2_PART3: return AV_CODEC_ID_MP3;
-	case GF_CODECID_AAC_MPEG4: return AV_CODEC_ID_AAC;
-	case GF_CODECID_AC3: return AV_CODEC_ID_AC3;
-	case GF_CODECID_EAC3: return AV_CODEC_ID_EAC3;
-	case GF_CODECID_AMR: return AV_CODEC_ID_AMR_NB;
-	case GF_CODECID_AMR_WB: return AV_CODEC_ID_AMR_WB;
-	case GF_CODECID_QCELP: return AV_CODEC_ID_QCELP;
-	case GF_CODECID_VORBIS: return AV_CODEC_ID_VORBIS;
-	case GF_CODECID_FLAC: return AV_CODEC_ID_FLAC;
-	case GF_CODECID_SPEEX: return AV_CODEC_ID_SPEEX;
-	case GF_CODECID_THEORA: return AV_CODEC_ID_THEORA;
-	case GF_CODECID_MPEG4_PART2: return AV_CODEC_ID_MPEG4;
-	case GF_CODECID_AVC: return AV_CODEC_ID_H264;
-	case GF_CODECID_HEVC: return AV_CODEC_ID_HEVC;
-	case GF_CODECID_MPEG1: return AV_CODEC_ID_MPEG1VIDEO;
-	case GF_CODECID_MPEG2_SIMPLE:
-	case GF_CODECID_MPEG2_MAIN:
-	case GF_CODECID_MPEG2_HIGH:
-	case GF_CODECID_MPEG2_SPATIAL:
-	case GF_CODECID_MPEG2_SNR:
-	case GF_CODECID_MPEG2_422:
-			return AV_CODEC_ID_MPEG2VIDEO;
-	case GF_CODECID_S263:
-	case GF_CODECID_H263:
-			return AV_CODEC_ID_H263;
-	case GF_CODECID_JPEG: return AV_CODEC_ID_MJPEG;
-	case GF_CODECID_PNG: return AV_CODEC_ID_PNG;
-	case GF_CODECID_J2K: return AV_CODEC_ID_JPEG2000;
-
-	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDecode] GPAC CODECID %d not mapped to FFMPEG codec types, patch welcome\n", codecid ));
-		return 0;
-	}
-}
-
 static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
@@ -722,7 +618,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		u32 codec_id;
 		if (ffdec->codec_ctx) {
 			u32 cfg_crc=0;
-			u32 codec_id = ff_codecid_gpac_to_ffmpeg(gpac_codecid);
+			u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid);
 
 			//TODO: flush decoder to dispatch internally pending frames and create a new decoder
 			if (ffdec->codec_ctx->codec->id != codec_id) {
@@ -743,7 +639,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			}
 		}
 
-		codec_id = ff_codecid_gpac_to_ffmpeg(gpac_codecid);
+		codec_id = ffmpeg_codecid_from_gpac(gpac_codecid);
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) return GF_NOT_SUPPORTED;
 
@@ -790,10 +686,12 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ffdec->process = ffdec_process_video;
 
 		if (ffdec->codec_ctx->pix_fmt>=0) {
-			pix_fmt = ffdec_gpac_convert_pix_fmt(ffdec->codec_ctx->pix_fmt);
-			if (pix_fmt) {
-				FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
+			pix_fmt = ffmpeg_pixfmt_to_gpac(ffdec->codec_ctx->pix_fmt);
+			if (!pix_fmt) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", pix_fmt));
+				pix_fmt = GF_PIXEL_RGB;
 			}
+			FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 		}
 		if (ffdec->codec_ctx->width) {
 			FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)

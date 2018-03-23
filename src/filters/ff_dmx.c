@@ -278,6 +278,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 		Bool expose_ffdec=GF_FALSE;
 		AVStream *stream = ffd->ctx->streams[i];
 		AVCodecContext *codec = stream->codec;
+		u32 gpac_codec_id;
 
 		switch(codec->codec_type) {
 		case AVMEDIA_TYPE_AUDIO:
@@ -342,101 +343,14 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 			}
 		}
 
-		switch (codec->codec_id) {
-		case AV_CODEC_ID_MP2:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG_AUDIO) );
-			break;
-		case AV_CODEC_ID_MP3:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG2_PART3) );
-			break;
-		case AV_CODEC_ID_AAC:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AAC_MPEG4) );
-			expose_ffdec=GF_TRUE;
-			break;
-		case AV_CODEC_ID_MPEG4:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG4_PART2) );
-			expose_ffdec=GF_TRUE;
-			break;
-		case AV_CODEC_ID_H264:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AVC) );
-			expose_ffdec=GF_TRUE;
-			break;
-		case AV_CODEC_ID_MPEG1VIDEO:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG1) );
-			break;
-		case AV_CODEC_ID_MPEG2VIDEO:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_MPEG2_MAIN) );
-			break;
-		case AV_CODEC_ID_H263:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_H263) );
-			break;
-		case AV_CODEC_ID_AMR_NB:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AMR) );
-			break;
-		case AV_CODEC_ID_AMR_WB:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AMR_WB) );
-			break;
-		case AV_CODEC_ID_QCELP:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_QCELP) );
-			break;
-		case AV_CODEC_ID_EVRC:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_EVRC) );
-			break;
-		case AV_CODEC_ID_SMV:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SMV) );
-			break;
-		case AV_CODEC_ID_AC3:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AC3) );
-			break;
-		case AV_CODEC_ID_EAC3:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_EAC3) );
-			break;
-		case AV_CODEC_ID_RAWVIDEO:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-			break;
-    	case AV_CODEC_ID_PCM_S16LE:
-    	case AV_CODEC_ID_PCM_S16BE:
-    	case AV_CODEC_ID_PCM_U16LE:
-    	case AV_CODEC_ID_PCM_U16BE:
-    	case AV_CODEC_ID_PCM_S8:
-    	case AV_CODEC_ID_PCM_U8:
-    	case AV_CODEC_ID_PCM_MULAW:
-    	case AV_CODEC_ID_PCM_ALAW:
-    	case AV_CODEC_ID_PCM_S32LE:
-    	case AV_CODEC_ID_PCM_S32BE:
-    	case AV_CODEC_ID_PCM_U32LE:
-    	case AV_CODEC_ID_PCM_U32BE:
-    	case AV_CODEC_ID_PCM_S24LE:
-    	case AV_CODEC_ID_PCM_S24BE:
-    	case AV_CODEC_ID_PCM_U24LE:
-    	case AV_CODEC_ID_PCM_U24BE:
-    	case AV_CODEC_ID_PCM_S24DAUD:
-    	case AV_CODEC_ID_PCM_ZORK:
-    	case AV_CODEC_ID_PCM_S16LE_PLANAR:
-    	case AV_CODEC_ID_PCM_DVD:
-    	case AV_CODEC_ID_PCM_F32BE:
-    	case AV_CODEC_ID_PCM_F32LE:
-    	case AV_CODEC_ID_PCM_F64BE:
-    	case AV_CODEC_ID_PCM_F64LE:
-    	case AV_CODEC_ID_PCM_BLURAY:
-    	case AV_CODEC_ID_PCM_LXF:
-    	case AV_CODEC_ID_S302M:
-    	case AV_CODEC_ID_PCM_S8_PLANAR:
-    	case AV_CODEC_ID_PCM_S24LE_PLANAR:
-    	case AV_CODEC_ID_PCM_S32LE_PLANAR:
-    	case AV_CODEC_ID_PCM_S16BE_PLANAR:
-    	case AV_CODEC_ID_PCM_S64LE:
-    	case AV_CODEC_ID_PCM_S64BE:
-    	case AV_CODEC_ID_PCM_F16LE:
-    	case AV_CODEC_ID_PCM_F24LE:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-			break;
-		//todo - map all possible MPEG and common types to internal GPAC codecid
-		default:
+		gpac_codec_id = ffmpeg_codecid_to_gpac(codec->codec_id);
+		if (!gpac_codec_id) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG) );
 			expose_ffdec=GF_TRUE;
-			break;
+		} else {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(gpac_codec_id) );
 		}
+
 		if (expose_ffdec) {
 			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
 		} else if (codec->extradata_size) {

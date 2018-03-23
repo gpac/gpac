@@ -165,53 +165,75 @@ typedef enum
 	/*internal format for OpenGL using pachek RGB 24 bit plus planar depth plane at the end of the image*/
 	GF_PIXEL_RGB_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
 
-	/*!YUV packed format*/
+	/*!YUV packed 422 format*/
 	GF_PIXEL_YUYV		=	GF_4CC('Y','U','Y','2'),
-	/*!YUV packed format*/
+	/*!YUV packed 422 format*/
 	GF_PIXEL_YVYU		=	GF_4CC('Y','V','Y','U'),
-	/*!YUV packed format*/
+	/*!YUV packed 422 format*/
 	GF_PIXEL_UYVY		=	GF_4CC('U','Y','V','Y'),
-	/*!YUV packed format*/
+	/*!YUV packed 422 format*/
 	GF_PIXEL_VYUY		=	GF_4CC('V','Y','U','Y'),
-	/*!YUV packed format*/
-	GF_PIXEL_Y422		=	GF_4CC('Y','4','2','2'),
-	/*!YUV packed format*/
-	GF_PIXEL_UYNV		=	GF_4CC('U','Y','N','V'),
-	/*!YUV packed format*/
-	GF_PIXEL_YUNV		=	GF_4CC('Y','U','N','V'),
-	/*!YUV packed format*/
-	GF_PIXEL_V422		=	GF_4CC('V','4','2','2'),
 
 	/*!YUV planar format*/
 	GF_PIXEL_YV12		=	GF_4CC('Y','V','1','2'),
-	/*!YUV planar format*/
-	GF_PIXEL_IYUV		=	GF_4CC('I','Y','U','V'),
-	/*!YUV planar format*/
-	GF_PIXEL_I420		=	GF_4CC('I','4','2','0'),
-	/*!YUV planar format*/
-	GF_PIXEL_I444		=	GF_4CC('I','4','4','4'),
 	/*!420 Y planar UV interleaved*/
 	GF_PIXEL_NV21		=	GF_4CC('N','V','2','1'),
+	/*!420 Y planar UV interleaved, 10 bits */
+	GF_PIXEL_NV21_10	=	GF_4CC('N','2','1','0'),
 	/*!420 Y planar VU interleaved (U and V swapped) */
 	GF_PIXEL_NV12		=	GF_4CC('N','V','1','2'),
 	/*!420 Y planar VU interleaved (U and V swapped), 10 bits */
 	GF_PIXEL_NV12_10	=	GF_4CC('N','1','2','0'),
-
 	/*!YV12 + Alpha plane*/
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),
-
 	/*!YV12 + Depth plane*/
 	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D'),
-
 	/*!YUV planar format in 10 bits mode, all components are stored as shorts*/
 	GF_PIXEL_YV12_10	=	GF_4CC('Y','0','1','0'),
-
 	GF_PIXEL_YUV422		=	GF_4CC('Y','4','4','2'),
 	GF_PIXEL_YUV422_10	=	GF_4CC('Y','2','1','0'),
 	GF_PIXEL_YUV444		=	GF_4CC('Y','4','4','4'),
 	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0')
 
 } GF_PixelFormat;
+
+
+/*! enumerates GPAC pixel formats
+ \param[in,out] idx index of the pixel format to query, incremented at each call
+ \param[out] out_name output name of the pixel format
+ \return pixel format code
+*/
+u32 gf_pixfmt_enum(u32 *idx, const char **out_name);
+
+/*! enumerates GPAC pixel formats
+ \param pf_name name of the pixel format
+ \return pixel format code
+*/
+u32 gf_pixfmt_parse(const char *pf_name);
+
+/*! gets name of pixel formats
+ \param pfmt  pixel format code
+ \return pixel format name
+*/
+const char *gf_pixfmt_name(u32 pfmt);
+
+/*! gets the list of all supported pixel format names
+ \return list of supported pixel format names
+*/
+const char *gf_pixfmt_all_names();
+
+/*! returns size and stride characteristics for the pixef format
+ \param pfmt  pixel format code
+ \param width target frame width
+ \param height target frame height
+ \param[out] out_size output frame size
+ \param[out] out_stride output frame stride for single plane or plane 0
+ \param[out] out_stride_uv output frame stride for UV planes
+ \param[out] out_planes output frame plane numbers
+ \param[out] out_plane_uv_height height of UV planes
+ \return error code if any
+*/
+Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *out_size, u32 *out_stride, u32 *out_stride_uv, u32 *out_planes, u32 *out_plane_uv_height);
 
 
 /*!
@@ -559,7 +581,6 @@ enum
  \return bit depth of format
 */
 u32 gf_audio_fmt_bit_depth(u32 audio_fmt);
-
 
 /*DIMS unit flags */
 /*!
