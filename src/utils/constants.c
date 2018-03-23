@@ -308,8 +308,8 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_NV21, "nv21"},
 	{GF_PIXEL_XRGB, "xrgb"},
 	{GF_PIXEL_RGBX, "rgbx"},
-	{GF_PIXEL_XBGR, "rgbx"},
-	{GF_PIXEL_BGRX, "rgbx"},
+	{GF_PIXEL_XBGR, "xbgr"},
+	{GF_PIXEL_BGRX, "bgrx"},
 	{},
 };
 
@@ -331,6 +331,7 @@ u32 gf_pixfmt_parse(const char *pf_name)
 	if (!pf_name) return 0;
 	while (GF_PixelFormats[i].pixfmt) {
 		if (!strcmp(GF_PixelFormats[i].name, pf_name)) return GF_PixelFormats[i].pixfmt;
+		i++;
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s\n", pf_name));
 	return 0;
@@ -340,6 +341,7 @@ const char *gf_pixfmt_name(u32 pfmt)
 	u32 i=0;
 	while (GF_PixelFormats[i].pixfmt) {
 		if (GF_PixelFormats[i].pixfmt==pfmt) return GF_PixelFormats[i].name;
+		i++;
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
 	return "unknown";

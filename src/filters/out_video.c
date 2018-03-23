@@ -538,11 +538,14 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->uv_stride = ctx->stride/2;
 		ctx->is_yuv = GF_TRUE;
 		break;
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+		ctx->bit_depth = 10;
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV21:
 		ctx->uv_w = ctx->width/2;
 		ctx->uv_h = ctx->height/2;
-		ctx->uv_stride = ctx->stride/2;
+		ctx->uv_stride = ctx->stride;
 		ctx->is_yuv = GF_TRUE;
 		break;
 	case GF_PIXEL_UYVY:
@@ -750,7 +753,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 				glGenBuffers(1, &ctx->pbo_U);
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
 			} else {
 				//packed YUV
 				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, 4*ctx->width/2*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
@@ -758,9 +760,16 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			}
 
 			if (ctx->num_textures==3) {
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
+
 				glGenBuffers(1, &ctx->pbo_V);
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_V);
 				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
+			}
+			//nv12/21
+			else {
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, 2*ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
+
 			}
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
@@ -793,8 +802,24 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		} else {
 			glDisable(GL_BLEND);
 		}
+		return GF_OK;
 	}
 #endif
+
+	if (ctx->pfmt==GF_PIXEL_NV21) {
+		ctx->num_textures = 2;
+	} else if (ctx->pfmt==GF_PIXEL_NV12) {
+		ctx->num_textures = 2;
+	} else if (ctx->pfmt==GF_PIXEL_UYVY) {
+		ctx->num_textures = 1;
+	} else if (ctx->pfmt==GF_PIXEL_YUYV) {
+		ctx->num_textures = 1;
+	} else if (ctx->is_yuv) {
+		ctx->num_textures = 3;
+	} else {
+		ctx->num_textures = 1;
+	}
+
 	return GF_OK;
 }
 
@@ -1098,7 +1123,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
 
 			linesize = ctx->width/2 * ctx->bytes_per_pix * 4;
-			p_stride = ctx->stride/2 * ctx->bytes_per_pix * 4;
+			p_stride = stride_luma;
 			count = ctx->height;
 
 			for (i=0; i<count; i++) {
@@ -1111,12 +1136,8 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 			glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
-			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma);
 			glTexImage2D(TEXTURE_TYPE, 0, GL_RGBA, ctx->width/2, ctx->height, 0, GL_RGBA, ctx->memory_format, NULL);
-
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-
 		} else {
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
@@ -1144,7 +1165,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			//NV12 and  NV21
 			if (!pV) {
 				linesize *= 2;
-				p_stride *= 2;
 			}
 
 			for (i=0; i<count; i++) {
@@ -1322,18 +1342,18 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching chroma plane from hardware frame\n"));
 			return;
 		}
-		if (ctx->is_yuv) {
+		if (ctx->is_yuv && (ctx->num_textures>1)) {
 			e = hw_frame->get_plane(hw_frame, 1, (const u8 **) &src_surf.u_ptr, &stride_chroma);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching luma U plane from hardware frame\n"));
 				return;
 			}
-		}
-		if ((ctx->pfmt!= GF_PIXEL_NV12) && (ctx->pfmt!= GF_PIXEL_NV21)) {
-			e = hw_frame->get_plane(hw_frame, 2, (const u8 **) &src_surf.v_ptr, &stride_chroma);
-			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching luma V plane from hardware frame\n"));
-				return;
+			if ((ctx->pfmt!= GF_PIXEL_NV12) && (ctx->pfmt!= GF_PIXEL_NV21)) {
+				e = hw_frame->get_plane(hw_frame, 2, (const u8 **) &src_surf.v_ptr, &stride_chroma);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching luma V plane from hardware frame\n"));
+					return;
+				}
 			}
 		}
 	} else {

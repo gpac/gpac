@@ -2221,19 +2221,19 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		break;
 	case GF_PIXEL_XRGB:
 		pool = &ctx->pool_rgb;
-		format=SDL_PIXELFORMAT_RGB888;
+		format=SDL_PIXELFORMAT_BGRX8888;
 		break;
 	case GF_PIXEL_RGBX:
 		pool = &ctx->pool_rgb;
-		format=SDL_PIXELFORMAT_RGBX8888;
+		format=SDL_PIXELFORMAT_BGR888;
 		break;
 	case GF_PIXEL_XBGR:
 		pool = &ctx->pool_rgb;
-		format=SDL_PIXELFORMAT_BGR888;
+		format=SDL_PIXELFORMAT_RGBX8888;
 		break;
 	case GF_PIXEL_BGRX:
 		pool = &ctx->pool_rgb;
-		format=SDL_PIXELFORMAT_BGRX8888;
+		format=SDL_PIXELFORMAT_RGB888;
 		break;
 	case GF_PIXEL_RGBA:
 		pool = &ctx->pool_rgba;
