@@ -1035,6 +1035,43 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks);
 }
 
+void gf_fs_print_connections(GF_FilterSession *fsess)
+{
+	u32 i, j, k, count;
+
+	fprintf(stderr, "\n");
+	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+
+	count=gf_list_count(fsess->filters);
+	fprintf(stderr, "Filter connections - %d filters\n", count);
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		fprintf(stderr, "\tFilter %s", f->name);
+		if (f->id) fprintf(stderr, " ID %s", f->id);
+		if (f->source_ids) fprintf(stderr, " sources %s", f->source_ids);
+		fprintf(stderr, " %d in %d out:\n", f->num_input_pids, f->num_output_pids);
+
+		for (j=0; j<f->num_input_pids; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(f->input_pids, j);
+			fprintf(stderr, "\t\t%s input from %s", pidi->pid->name, pidi->pid->filter->name);
+			if (pidi->pid->filter->id) fprintf(stderr, " ID %s", pidi->pid->filter->id);
+			fprintf(stderr, "\n");
+		}
+		for (j=0; j<f->num_output_pids; j++) {
+			GF_FilterPid *pid = gf_list_get(f->output_pids, j);
+			for (k=0; k<pid->num_destinations; k++) {
+				GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
+				fprintf(stderr, "\t\t%s output to %s", pid->name, pidi->filter->name);
+				if (pidi->filter->id) fprintf(stderr, " ID %s", pidi->filter->id);
+				fprintf(stderr, "\n");
+			}
+		}
+		fprintf(stderr, "\n");
+	}
+	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+}
+
+
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val)
 {
 	GF_FilterUpdate *upd;

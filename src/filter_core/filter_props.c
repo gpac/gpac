@@ -686,3 +686,79 @@ Bool gf_props_4cc_check_props()
 	return res;
 }
 
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data)
+{
+	switch (att->type) {
+	case GF_PROP_SINT:
+		sprintf(dump, "%d", att->value.sint);
+		break;
+	case GF_PROP_UINT:
+		sprintf(dump, "%u", att->value.uint);
+		break;
+	case GF_PROP_LSINT:
+		sprintf(dump, ""LLD, att->value.longsint);
+		break;
+	case GF_PROP_LUINT:
+		sprintf(dump, ""LLU, att->value.longuint);
+		break;
+	case GF_PROP_FRACTION:
+		sprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
+		break;
+	case GF_PROP_BOOL:
+		sprintf(dump, "%s", att->value.boolean ? "true" : "false");
+		break;
+	case GF_PROP_FLOAT:
+		sprintf(dump, "%f", FIX2FLT(att->value.fnumber) );
+		break;
+	case GF_PROP_DOUBLE:
+		sprintf(dump, "%g", att->value.number);
+		break;
+	case GF_PROP_VEC2I:
+		sprintf(dump, "%dx%d", att->value.vec2i.x, att->value.vec2i.y);
+		break;
+	case GF_PROP_VEC2:
+		sprintf(dump, "%lgx%lg", att->value.vec2.x, att->value.vec2.y);
+		break;
+	case GF_PROP_VEC3I:
+		sprintf(dump, "%dx%dx%d", att->value.vec3i.x, att->value.vec3i.y, att->value.vec3i.z);
+		break;
+	case GF_PROP_VEC3:
+		sprintf(dump, "%lgx%lgx%lg", att->value.vec3.x, att->value.vec3.y, att->value.vec3.y);
+		break;
+	case GF_PROP_VEC4I:
+		sprintf(dump, "%dx%dx%dx%d", att->value.vec4i.x, att->value.vec4i.y, att->value.vec4i.z, att->value.vec4i.w);
+		break;
+	case GF_PROP_VEC4:
+		sprintf(dump, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
+		break;
+	case GF_PROP_PIXFMT:
+		sprintf(dump, "%s", gf_pixfmt_name(att->value.uint));
+		break;
+	case GF_PROP_NAME:
+	case GF_PROP_STRING:
+	case GF_PROP_STRING_NO_COPY:
+		return att->value.string;
+		break;
+	case GF_PROP_DATA:
+	case GF_PROP_CONST_DATA:
+	case GF_PROP_DATA_NO_COPY:
+		if (dump_data && att->value.data.size < 40) {
+			u32 i;
+			sprintf(dump, "%d bytes 0x", att->value.data.size);
+			for (i=0; i<att->value.data.size; i++) {
+				sprintf(dump, "%02X", (unsigned char) att->value.data.ptr[i]);
+			}
+		} else {
+			sprintf(dump, "%d bytes CRC32 0x%08X", att->value.data.size, gf_crc_32(att->value.data.ptr, att->value.data.size));
+		}
+		break;
+	case GF_PROP_POINTER:
+		sprintf(dump, "%p", att->value.ptr);
+		break;
+	case GF_PROP_FORBIDEN:
+		sprintf(dump, "forbiden");
+		break;
+	}
+	return dump;
+}
+

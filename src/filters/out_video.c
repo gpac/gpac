@@ -504,11 +504,15 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->width = w;
 	ctx->height = h;
 	ctx->pfmt = pfmt;
-	ctx->stride = stride ? stride : w;
 	ctx->uv_w = ctx->uv_h = ctx->uv_stride = 0;
 	ctx->bit_depth = 0;
 	ctx->has_alpha = GF_FALSE;
 	ctx->swap_uv = GF_FALSE;
+	if (!stride) {
+		gf_pixel_get_size_info(ctx->pfmt, w, h, NULL, &stride, &ctx->uv_stride, NULL, &ctx->uv_h);
+	}
+	ctx->stride = stride ? stride : w;
+
 
 #ifndef GPAC_DISABLE_3D
 	ctx->pixel_format = GL_LUMINANCE;

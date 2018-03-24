@@ -583,6 +583,8 @@ void gf_filter_update_arg_task(GF_FSTask *task);
 void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
 
+Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
+
 #endif //_GF_FILTER_SESSION_H_
 
 

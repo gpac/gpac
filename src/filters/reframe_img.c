@@ -237,33 +237,9 @@ GF_Err img_process(GF_Filter *filter)
 
 static const GF_FilterCapability ReframeImgInputs[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/jpg"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/jpg|image/jp2|image/bmp|image/png|image/x-png+depth|image/x-png+depth+mask|image/x-png+stereo"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "jpg|jpeg"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/jp2"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "jp2"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/bmp"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bmp"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/png"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "png"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/x-png+depth"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "pngd"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/x-png+depth+mask"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "pngds"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/x-png+stereo"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "pngs"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "jpg|jpeg|jp2|bmp|png|pngd|pngds|pngs"),
 };
 
 
