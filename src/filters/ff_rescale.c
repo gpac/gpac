@@ -362,10 +362,10 @@ static const GF_FilterCapability FFSWSOutputs[] =
 
 GF_FilterRegister FFSWSRegister = {
 	.name = "ffsws",
-	.description = "FFMPEG Software Rescale "LIBSWSCALE_IDENT"\nNote on params:\n"\
-	 			"For bicubic, tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)\n"\
+	.description = "FFMPEG Software Rescale "LIBSWSCALE_IDENT,
+	.comment = "For bicubic, tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)\n"\
 				"For gauss p1 tunes the exponent and thus cutoff frequency\n"\
-				"For lanczos p1 tunes the width of the window function\n",
+				"For lanczos p1 tunes the width of the window function",
 
 	.private_size = sizeof(GF_FFSWScaleCtx),
 	.args = FFSWSArgs,

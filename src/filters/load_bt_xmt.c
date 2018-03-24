@@ -780,17 +780,10 @@ static void ctxload_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability CTXLoadInputs[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-bt|application/x-xmt|model/vrml|x-model/x-vrml|model/x3d+vrml|model/x3d+xml|"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-bt|application/x-xmt|model/vrml|x-model/x-vrml|model/x3d+vrml|model/x3d+xml|application/x-shockwave-flash|application/x-LASeR+xml"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz|xmt|xmt.gz|xmtz|wrl|wrl.gz|x3dv|x3dv.gz|x3dvz|x3d|x3d.gz|x3dz"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz|xmt|xmt.gz|xmtz|wrl|wrl.gz|x3dv|x3dv.gz|x3dvz|x3d|x3d.gz|x3dz|swf|xsr"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-shockwave-flash"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "swf"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-LASeR+xml"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "xsr"),
 };
 
 static const GF_FilterCapability CTXLoadOutputs[] =

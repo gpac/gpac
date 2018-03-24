@@ -650,7 +650,7 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 	return GF_FALSE;
 }
 
-static Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
+Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 {
 	u32 i, count;
 	if (parent == filter) return GF_TRUE;

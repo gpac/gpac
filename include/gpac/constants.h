@@ -223,7 +223,7 @@ const char *gf_pixfmt_name(u32 pfmt);
 const char *gf_pixfmt_all_names();
 
 /*! returns size and stride characteristics for the pixel format
- \param pfmt  pixfmt format code
+ \param pixfmt  pixfmt format code
  \param width target frame width
  \param height target frame height
  \param[out] out_size output frame size
@@ -236,7 +236,7 @@ const char *gf_pixfmt_all_names();
 Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *out_size, u32 *out_stride, u32 *out_stride_uv, u32 *out_planes, u32 *out_plane_uv_height);
 
 /*! Gets the number of bytes per pixel on first plane
- \param pfmt  pixel format code
+ \param pixfmt  pixel format code
  \return number of bytes per pixel
 */
 u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt);

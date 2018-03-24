@@ -219,10 +219,23 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID)
 }
 void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
+	u32 old_len, len;
 	assert(filter);
-
-	if (filter->source_ids) gf_free(filter->source_ids);
-	filter->source_ids = sources_ID ? gf_strdup(sources_ID) : NULL;
+	if (!sources_ID) {
+		if (filter->source_ids) gf_free(filter->source_ids);
+		filter->source_ids = NULL;
+		return;
+	}
+	if (!filter->source_ids) {
+		filter->source_ids = gf_strdup(sources_ID);
+		return;
+	}
+	old_len = strlen(filter->source_ids);
+	len = old_len + strlen(sources_ID) + 2;
+	filter->source_ids = gf_realloc(filter->source_ids, len);
+	filter->source_ids[old_len] = 0;
+	strcat(filter->source_ids, ',');
+	strcat(filter->source_ids, sources_ID);
 }
 
 void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
@@ -1379,5 +1392,23 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_
 	if (media_timestamp) *media_timestamp = filter->session->hint_timestamp;
 }
 
+GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from)
+{
+	if (!filter || !link_from) return GF_BAD_PARAM;
+	if (filter == link_from) return GF_BAD_PARAM;
+	if (filter->num_input_pids || link_from->num_input_pids) return GF_BAD_PARAM;
+	//link from may have input pids declared but pending if source filter
+	if (filter->num_output_pids) return GF_BAD_PARAM;
+	//don't allow loops
+	if (filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
+
+	if (!link_from->id) {
+		char szFID[1024];
+		sprintf(szFID, "__gpac__%p__", link_from);
+		gf_filter_set_id(link_from, szFID);
+	}
+	gf_filter_set_sources(filter, link_from->id);
+	return GF_OK;
+}
 
 

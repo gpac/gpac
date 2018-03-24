@@ -80,82 +80,11 @@ static void inspect_finalize(GF_Filter *filter)
 
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att)
 {
+	char szDump[100];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
 	fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
-	switch (att->type) {
-	case GF_PROP_SINT:
-		fprintf(dump, "%d", att->value.sint);
-		break;
-	case GF_PROP_UINT:
-		fprintf(dump, "%u", att->value.uint);
-		break;
-	case GF_PROP_LSINT:
-		fprintf(dump, ""LLD, att->value.longsint);
-		break;
-	case GF_PROP_LUINT:
-		fprintf(dump, ""LLU, att->value.longuint);
-		break;
-	case GF_PROP_FRACTION:
-		fprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
-		break;
-	case GF_PROP_BOOL:
-		fprintf(dump, "%s", att->value.boolean ? "true" : "false");
-		break;
-	case GF_PROP_FLOAT:
-		fprintf(dump, "%f", FIX2FLT(att->value.fnumber) );
-		break;
-	case GF_PROP_DOUBLE:
-		fprintf(dump, "%g", att->value.number);
-		break;
-	case GF_PROP_VEC2I:
-		fprintf(dump, "%dx%d", att->value.vec2i.x, att->value.vec2i.y);
-		break;
-	case GF_PROP_VEC2:
-		fprintf(dump, "%lgx%lg", att->value.vec2.x, att->value.vec2.y);
-		break;
-	case GF_PROP_VEC3I:
-		fprintf(dump, "%dx%dx%d", att->value.vec3i.x, att->value.vec3i.y, att->value.vec3i.z);
-		break;
-	case GF_PROP_VEC3:
-		fprintf(dump, "%lgx%lgx%lg", att->value.vec3.x, att->value.vec3.y, att->value.vec3.y);
-		break;
-	case GF_PROP_VEC4I:
-		fprintf(dump, "%dx%dx%dx%d", att->value.vec4i.x, att->value.vec4i.y, att->value.vec4i.z, att->value.vec4i.w);
-		break;
-	case GF_PROP_VEC4:
-		fprintf(dump, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
-		break;
-	case GF_PROP_PIXFMT:
-		fprintf(dump, "%s", gf_pixfmt_name(att->value.uint));
-		break;
-	case GF_PROP_NAME:
-		fprintf(dump, "%s", att->value.string);
-		break;
-	case GF_PROP_STRING:
-	case GF_PROP_STRING_NO_COPY:
-		fprintf(dump, "%s", att->value.string);
-		break;
-	case GF_PROP_DATA:
-	case GF_PROP_CONST_DATA:
-	case GF_PROP_DATA_NO_COPY:
-		if (ctx->dump_data) {
-			u32 i;
-			fprintf(dump, "%d bytes 0x", att->value.data.size);
-			for (i=0; i<att->value.data.size; i++) {
-				fprintf(dump, "%02X", (unsigned char) att->value.data.ptr[i]);
-			}
-		} else {
-			fprintf(dump, "%d bytes CRC32 0x%08X", att->value.data.size, gf_crc_32(att->value.data.ptr, att->value.data.size));
-		}
-		break;
-	case GF_PROP_POINTER:
-		fprintf(dump, "%p", att->value.ptr);
-		break;
-	case GF_PROP_FORBIDEN:
-		fprintf(dump, "forbiden");
-		break;
-	}
+	fprintf(dump, "%s", gf_prop_dump_val(att, szDump, ctx->dump_data) );
 	fprintf(dump, "\n");
 }
 
@@ -312,7 +241,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(logfile), "Sets inspect log filename", GF_PROP_STRING, "stderr", "file/stderr/stdout", GF_FALSE},
+	{ OFFS(logfile), "Sets inspect log filename", GF_PROP_STRING, "stderr", "file|stderr|stdout", GF_FALSE},
 	{ OFFS(framing), "Enables full frame/block reconstruction before inspection", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(pid_only), "Only dumps PID state change, not packets", GF_PROP_BOOL, "false", NULL, GF_FALSE},
@@ -350,7 +279,6 @@ static const GF_FilterCapability ProberInputs[] =
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{}
-
 };
 
 

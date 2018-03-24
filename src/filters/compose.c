@@ -397,7 +397,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.requires_main_thread = GF_TRUE,
 	.max_extra_pids = (u32) -1,
 	INCAPS(CompositorFilterInputs),
-	.args = CompositorFilterArgs,
+//	.args = CompositorFilterArgs,
 	.initialize = compose_initialize,
 	.finalize = compose_finalize,
 	.process = compose_process,

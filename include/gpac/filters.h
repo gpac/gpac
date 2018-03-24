@@ -34,6 +34,7 @@ extern "C" {
 #include <gpac/list.h>
 #include <gpac/events.h>
 #include <gpac/user.h>
+#include <gpac/constants.h>
 
 #include <gpac/download.h>
 
@@ -98,6 +99,7 @@ void gf_fs_del(GF_FilterSession *ms);
 GF_Filter *gf_fs_load_filter(GF_FilterSession *ms, const char *name);
 GF_Err gf_fs_run(GF_FilterSession *ms);
 void gf_fs_print_stats(GF_FilterSession *ms);
+void gf_fs_print_connections(GF_FilterSession *fsess);
 
 u32 gf_fs_run_step(GF_FilterSession *fsess);
 
@@ -221,6 +223,8 @@ typedef struct
 
 const char *gf_props_get_type_name(u32 type);
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values);
+
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data);
 
 //helper macros to set properties
 #define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
@@ -1062,6 +1066,8 @@ Bool gf_fs_is_last_task(GF_FilterSession *fsess);
 
 void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp);
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
+
+GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from);
 
 #ifdef __cplusplus
 }

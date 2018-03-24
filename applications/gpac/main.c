@@ -35,9 +35,13 @@ static s32 nb_threads=0;
 static GF_SystemRTInfo rti;
 static u32 list_filters = 0;
 static Bool dump_stats = GF_FALSE;
+static Bool dump_graph = GF_FALSE;
 static Bool print_filter_info = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
+
+static void print_filters(int argc, char **argv, GF_FilterSession *session);
+
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk ? cbk : stderr;
@@ -61,18 +65,47 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 
 static void gpac_usage(void)
 {
-	fprintf(stderr, "Usage: gpac [options] FILTER_ARGS\n"
+	fprintf(stderr, "Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
+			"This is the command line utility of GPAC for setting up and running filter chains.\n"
+			"Filters are listed with their name and options are given using a list of colon-separated Name=Value:\n"
+			"\tValue can be omitted for booleans, defaulting to true.\n"
+			"\tName can be omitted for enumerations (eg :mode=pbo <=> :pbo).\n"
+			"\tSources may be specified direcly using src=URL, or forcing a dedicated demuxer using demux_name:src=URL.\n"
+			"\n"
+			"LINK directives may be specified. The syntax is an '@' character optionnaly followed by an integer (0 if omitted).\n"
+			"This indicates which previous (0-based) filters should be link to the next filter listed.\n"
+			"Only the last link directive occuring before a filter is used to setup links for that filter.\n"
+			"\tEX:, \"f1 f2 @1 f3\" inidcates to direct f1 outputs to f3\n"
+			"\tEX:, \"f1 f2 @1 @0 f3\" inidcates to direct f2 outputs to f3, @1 is ignored\n"
+			"If no link directives are given, the links will be dynamically solved to fullfill as many connections as possible.\n"
+			"For example, \"f1 f2 f3\" may have f1 linked to f2 and f3 if f2 and f3 accept f1 outputs\n"
+			"LINK directive is just a quick shortcut to set reserved argument FID=name, which sets the ID of the filter\n"
+			"and SID=name1[,name2...], which restricts the list of possible inputs path on a filter\n"
+			"\tEX: \"f1:FID=1 f2 f3:SID=1\" inidicates to direct f1 outputs to f3\n"
+			"\tEX: \"f1:FID=1 f2:FID=2 f3:SID=1 f4:SID=1,2\" indicates to direct f1 outputs to f3, and f1 and f2 outputs to f4\n"
+			"Source IDs are the names of the source filters allowed. The name can be further extended using:\n"
+			"\tname#PIDNAME: accepts only PIDs with name PIDNAME\n"
+			"\tname#PID=N: accepts only PIDs with ID N\n"
+			"\tname#TYPE: accepts only PIDs of matching media type. TYPE can be 'audio' 'video' 'scene' 'text' 'font'\n"
+			"\tname#TYPEN: accepts only Nth PID of matching type from source\n"
+			"\n"
+			"\n"
+			"\n"
+			"Global options are:\n"
 #ifdef GPAC_MEMORY_TRACKING
             "\t-mem-track:  enables memory tracker\n"
             "\t-mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
 			"\t-list           : lists all supported filters.\n"
 			"\t-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
-			"\t-info           : print info on each FILTER_ARGS.\n"
-			"\t-stats          : print stats after execution.\n"
+			"\t-info NAME      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
+			"                    Use * to print info on all filters (warning, big output!)\n"
+			"                    Use *:* to print info on all filters including meta-filters (warning, big big output!)\n"
+			"\t-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
+			"\t-graph          : print stats after  Graph can be viewed at runtime by typing 'g' in the prompt\n"
 	        "\t-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
 			"\t-no-block       : disables blocking mode of filters\n"
-	        "\t-sched=MODE     : sets scheduler mdoe. Possible modes are:\n"
+	        "\t-sched=MODE     : sets scheduler mode. Possible modes are:\n"
 	        "\t             free: uses lock-free queues (default)\n"
 	        "\t             lock: uses mutexes for queues when several threads\n"
 	        "\t             flock: uses mutexes for queues even when no thread (debug mode)\n"
@@ -142,6 +175,9 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		case 's':
 			gf_fs_print_stats(fsess);
 			break;
+		case 'g':
+			gf_fs_print_connections(fsess);
+			break;
 		default:
 			break;
 		}
@@ -152,12 +188,13 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	return GF_TRUE;
 }
 
-
 static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
 	int i;
-	u32 nb_filters=0;
+	s32 link_prev_filter = -1;
+	GF_List *loaded_filters=NULL;
+
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
@@ -218,12 +255,13 @@ static int gpac_main(int argc, char **argv)
 			list_filters = 2;
 		} else if (!strcmp(arg, "-stats")) {
 			dump_stats = GF_TRUE;
+		} else if (!strcmp(arg, "-graph")) {
+			dump_graph = GF_TRUE;
 		} else if (!strcmp(arg, "-info")) {
 			print_filter_info = GF_TRUE;
 		} else if (!strcmp(arg, "-no-block")) {
 			disable_blocking = GF_TRUE;
 		}
-
 
 		if (arg_val) {
 			arg_val--;
@@ -252,75 +290,49 @@ static int gpac_main(int argc, char **argv)
 
 
 	if (list_filters || print_filter_info) {
-		u32 count = gf_fs_filters_registry_count(session);
-		if (list_filters) fprintf(stderr, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
-		for (i=0; i<count; i++) {
-			const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
-			if (print_filter_info) {
-				u32 k;
-				//all good to go, load filters
-				for (k=1; k<argc; k++) {
-					char *arg = argv[k];
-					if (arg[0]=='-') continue;
-
-					if (!strcmp(arg, reg->name)) {
-						fprintf(stderr, "Name: %s\n", reg->name);
-						if (reg->description) fprintf(stderr, "Description: %s\n", reg->description);
-						if (reg->author) fprintf(stderr, "Author: %s\n", reg->author);
-						if (reg->args) {
-							u32 idx=0;
-							fprintf(stderr, "Arguments:\n");
-							while (1) {
-								const GF_FilterArgs *a = & reg->args[idx];
-								if (!a || !a->arg_name) break;
-								idx++;
-
-								fprintf(stderr, "\t%s (%s): %s.", a->arg_name, gf_props_get_type_name(a->arg_type)
-, a->arg_desc);
-								if (a->arg_default_val) {
-									fprintf(stderr, " Default %s.", a->arg_default_val);
-								} else {
-									fprintf(stderr, " No default.");
-								}
-								if (a->min_max_enum) {
-									fprintf(stderr, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
-								}
-								if (a->updatable) fprintf(stderr, " Updatable attribute.");
-								fprintf(stderr, "\n");
-							}
-						} else {
-							fprintf(stderr, "No arguments\n");
-						}
-					}
-					break;
-				}
-			} else {
-				fprintf(stderr, "%s: %s\n", reg->name, reg->description);
-			}
-		}
+		print_filters(argc, argv, session);
 		goto exit;
 	}
 
-
 	//all good to go, load filters
+	loaded_filters = gf_list_new();
 	for (i=1; i<argc; i++) {
 		GF_Filter *filter;
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
+
+		if (arg[0]=='@') {
+			link_prev_filter = 0;
+			if (strlen(arg)>1)
+				link_prev_filter = atoi(arg+1);
+
+			continue;
+		}
 
 		if (!strncmp(arg, "src=", 4) ) {
 			filter = gf_fs_load_source(session, arg+4, NULL, NULL, &e);
 		} else {
 			filter = gf_fs_load_filter(session, arg);
 		}
+		if (link_prev_filter>=0) {
+			GF_Filter *link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_prev_filter);
+			if (!link_from) {
+				fprintf(stderr, "Wrong filter index @%d\n", link_prev_filter);
+				e = GF_BAD_PARAM;
+				goto exit;
+			}
+			link_prev_filter = -1;
+			gf_filter_set_source(filter, link_from);
+		}
+
 		if (!filter) {
 			fprintf(stderr, "Failed to load filter %s\n", arg);
 			e = GF_NOT_SUPPORTED;
 			goto exit;
 		}
-		nb_filters++;
+		gf_list_add(loaded_filters, filter);
 	}
-	if (!nb_filters) {
+	if (!gf_list_count(loaded_filters)) {
 		gpac_usage();
 		e = GF_BAD_PARAM;
 		goto exit;
@@ -332,12 +344,15 @@ static int gpac_main(int argc, char **argv)
 
 	if (dump_stats)
 		gf_fs_print_stats(session);
+	if (dump_graph)
+		gf_fs_print_connections(session);
 
 exit:
 	if (e) {
 		gf_fs_run(session);
 	}
 	gf_fs_del(session);
+	if (loaded_filters) gf_list_del(loaded_filters);
 	gf_sys_close();
 	if (e) return 1;
 
@@ -352,5 +367,116 @@ exit:
 }
 
 GPAC_DEC_MAIN(gpac_main)
+
+
+static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
+{
+	u32 i;
+	for (i=0;i<nb_caps; i++) {
+		const char *szName;
+		const char *szVal;
+		char szDump[100];
+		const GF_FilterCapability *cap = &caps[i];
+		if (!cap->in_bundle && i+1==nb_caps) break;
+		if (!i) fprintf(stderr, "\tCap Bundle:\n");
+		else if (!cap->in_bundle) {
+			fprintf(stderr, "\tCap Bundle:\n");
+			continue;
+		}
+
+		szName = cap->name ? cap->name : gf_props_4cc_get_name(cap->code);
+		if (!szName) szName = gf_4cc_to_str(cap->code);
+		fprintf(stderr, "\t\t");
+		if (cap->exclude) fprintf(stderr, "Exclude ");
+		//dump some interesting predefined ones which are not mapped to types
+		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);
+		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
+		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE);
+
+		fprintf(stderr, "Type=%s, value=%s, priority=%d", szName,  szVal, cap->priority);
+		if (cap->explicit_only) fprintf(stderr, " explicit only cap");
+		fprintf(stderr, "\n");
+	}
+
+}
+static void print_filter(const GF_FilterRegister *reg)
+{
+	fprintf(stderr, "Name: %s\n", reg->name);
+	if (reg->description) fprintf(stderr, "Description: %s\n", reg->description);
+	if (reg->author) fprintf(stderr, "Author: %s\n", reg->author);
+	if (reg->comment) fprintf(stderr, "Comment: %s\n", reg->comment);
+
+	if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
+	else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
+
+	fprintf(stderr, "Flags:");
+	if (reg->explicit_only) fprintf(stderr, " ExplicitOnly");
+	if (reg->requires_main_thread) fprintf(stderr, "MainThread");
+	if (reg->probe_url) fprintf(stderr, " IsSource");
+	if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
+	fprintf(stderr, "\nPriority %d\n", reg->priority);
+
+	if (reg->args) {
+		u32 idx=0;
+		fprintf(stderr, "Options:\n");
+		while (1) {
+			const GF_FilterArgs *a = & reg->args[idx];
+			if (!a || !a->arg_name) break;
+			idx++;
+
+			fprintf(stderr, "\t%s (%s): %s.", a->arg_name, gf_props_get_type_name(a->arg_type)
+, a->arg_desc);
+			if (a->arg_default_val) {
+				fprintf(stderr, " Default %s.", a->arg_default_val);
+			} else {
+				fprintf(stderr, " No default.");
+			}
+			if (a->min_max_enum) {
+				fprintf(stderr, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
+			}
+			if (a->updatable) fprintf(stderr, " Updatable attribute.");
+			fprintf(stderr, "\n");
+		}
+	} else {
+		fprintf(stderr, "No options\n");
+	}
+
+	if (reg->nb_input_caps) {
+		fprintf(stderr, "Input Capabilities:\n");
+		dump_caps(reg->nb_input_caps, reg->input_caps);
+	}
+	if (reg->nb_output_caps) {
+		fprintf(stderr, "Output Capabilities:\n");
+		dump_caps(reg->nb_output_caps, reg->output_caps);
+	}
+	fprintf(stderr, "\n");
+}
+
+static void print_filters(int argc, char **argv, GF_FilterSession *session)
+{
+	u32 i, count = gf_fs_filters_registry_count(session);
+	if (list_filters) fprintf(stderr, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
+		if (print_filter_info) {
+			u32 k;
+			//all good to go, load filters
+			for (k=1; k<argc; k++) {
+				char *arg = argv[k];
+				if (arg[0]=='-') continue;
+
+				if (!strcmp(arg, reg->name) )
+					print_filter(reg);
+				else if (!strchr(reg->name, ':') && !strcmp(arg, "*"))
+					print_filter(reg);
+				else if (strchr(reg->name, ':') && !strcmp(arg, "*:*"))
+					print_filter(reg);
+				break;
+			}
+		} else {
+			fprintf(stderr, "%s: %s\n", reg->name, reg->description);
+		}
+	}
+}
 
 
