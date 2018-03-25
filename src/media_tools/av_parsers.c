@@ -2274,7 +2274,6 @@ GF_EXPORT
 s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
-	u32 ChromaArrayType = 0;
 	s32 mb_width, mb_height, sps_id = -1;
 	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl=0, cr=0, ct=0, cb=0, luma_bd, chroma_bd;
 	u8 separate_colour_plane_flag = 0;
@@ -2317,8 +2316,8 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	}
 
 	luma_bd = chroma_bd = 0;
-	chroma_format_idc = ChromaArrayType = 1;
 	sps = &avc->sps[sps_id];
+	chroma_format_idc = sps->ChromaArrayType = 1;
 	sps->state |= subseq_sps ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
 
 	/*High Profile and SVC*/
@@ -2336,7 +2335,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	case 118:
 	case 128:
 		chroma_format_idc = bs_get_ue(bs);
-		ChromaArrayType = chroma_format_idc;
+		sps->ChromaArrayType = chroma_format_idc;
 		if (chroma_format_idc == 3) {
 			separate_colour_plane_flag = gf_bs_read_int(bs, 1);
 			/*
@@ -2344,7 +2343,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 			\96	If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
 			\96	Otherwise (separate_colour_plane_flag is equal to 1), ChromaArrayType is set equal to 0.
 			*/
-			if (separate_colour_plane_flag) ChromaArrayType = 0;
+			if (separate_colour_plane_flag) sps->ChromaArrayType = 0;
 		}
 		luma_bd = bs_get_ue(bs);
 		chroma_bd = bs_get_ue(bs);
@@ -2419,7 +2418,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 			SubWidthC = 1, SubHeightC = 1;
 		}
 
-		if (ChromaArrayType == 0) {
+		if (sps->ChromaArrayType == 0) {
 			assert(SubWidthC==-1);
 			CropUnitX = 1;
 			CropUnitY = 2-sps->frame_mbs_only_flag;
@@ -2518,14 +2517,14 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 
 			/*inter_layer_deblocking_filter_control_present_flag=*/	gf_bs_read_int(bs, 1);
 			extended_spatial_scalability_idc = gf_bs_read_int(bs, 2);
-			if (ChromaArrayType == 1 || ChromaArrayType == 2) {
+			if (sps->ChromaArrayType == 1 || sps->ChromaArrayType == 2) {
 				/*chroma_phase_x_plus1_flag*/ gf_bs_read_int(bs, 1);
 			}
-			if( ChromaArrayType  ==  1 ) {
+			if (sps->ChromaArrayType == 1) {
 				/*chroma_phase_y_plus1*/ gf_bs_read_int(bs, 2);
 			}
 			if (extended_spatial_scalability_idc == 1) {
-				if( ChromaArrayType > 0 ) {
+				if (sps->ChromaArrayType > 0) {
 					/*seq_ref_layer_chroma_phase_x_plus1_flag*/gf_bs_read_int(bs, 1);
 					/*seq_ref_layer_chroma_phase_y_plus1*/gf_bs_read_int(bs, 2);
 				}
@@ -2631,14 +2630,35 @@ s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 	pps->entropy_coding_mode_flag = gf_bs_read_int(bs, 1);
 	pps->pic_order_present= gf_bs_read_int(bs, 1);
 	pps->slice_group_count= bs_get_ue(bs) + 1;
-	if (pps->slice_group_count > 1 ) /*pps->mb_slice_group_map_type = */bs_get_ue(bs);
+	if (pps->slice_group_count > 1) {
+		u32 iGroup;
+		pps->mb_slice_group_map_type = bs_get_ue(bs);
+		if (pps->mb_slice_group_map_type == 0) {
+			for (iGroup = 0; iGroup <= pps->slice_group_count - 1; iGroup++)
+				/*run_length_minus1[iGroup] = */ bs_get_ue(bs);
+		} else if (pps->mb_slice_group_map_type == 2) {
+				for (iGroup = 0; iGroup < pps->slice_group_count-1; iGroup++) {
+					/*top_left[iGroup] = */ bs_get_ue(bs);
+					/*bottom_right[iGroup] = */ bs_get_ue(bs);
+				}
+		} else if (pps->mb_slice_group_map_type == 3 || pps->mb_slice_group_map_type == 4 || pps->mb_slice_group_map_type == 5) {
+			/*slice_group_change_direction_flag =*/ gf_bs_read_int(bs, 1);
+			/*slice_group_change_rate_minus1 = */ bs_get_ue(bs);
+		} else if (pps->mb_slice_group_map_type == 6) {
+			pps->pic_size_in_map_units_minus1 = bs_get_ue(bs);
+			u32 i;
+			for (i = 0; i <= pps->pic_size_in_map_units_minus1; i++) {
+				/*slice_group_id[i] = */ gf_bs_read_int(bs, (u32)ceil(log(pps->slice_group_count)/log(2)));
+			}
+		}
+	}
 	/*pps->ref_count[0]= */bs_get_ue(bs) /*+ 1*/;
 	/*pps->ref_count[1]= */bs_get_ue(bs) /*+ 1*/;
 	/*
 	if ((pps->ref_count[0] > 32) || (pps->ref_count[1] > 32)) goto exit;
 	*/
 
-	/*pps->weighted_pred = */gf_bs_read_int(bs, 1);
+	pps->weighted_pred_flag = gf_bs_read_int(bs, 1);
 	/*pps->weighted_bipred_idc = */gf_bs_read_int(bs, 2);
 	/*pps->init_qp = */bs_get_se(bs) /*+ 26*/;
 	/*pps->init_qs= */bs_get_se(bs) /*+ 26*/;
@@ -2690,9 +2710,97 @@ static s32 SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHea
 	return 1;
 }
 
+static void ref_pic_list_modification(GF_BitStream *bs, u32 slice_type) {
+	if (slice_type % 5 != 2 && slice_type % 5 != 4) {
+		if (/*ref_pic_list_modification_flag_l0*/ gf_bs_read_int(bs, 1)) {
+			u32 modification_of_pic_nums_idc;
+			do {
+				modification_of_pic_nums_idc = bs_get_ue(bs);
+				if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
+					/*abs_diff_pic_num_minus1 =*/ bs_get_ue(bs);
+				} else if (modification_of_pic_nums_idc == 2) {
+					/*long_term_pic_num =*/ bs_get_ue(bs);
+				}
+			} while (modification_of_pic_nums_idc != 3);
+		}
+	}
+	if (slice_type % 5 == 1) {
+		if (/*ref_pic_list_modification_flag_l1*/ gf_bs_read_int(bs, 1)) {
+			u32 modification_of_pic_nums_idc;
+			do {
+				modification_of_pic_nums_idc = bs_get_ue(bs);
+				if (modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
+					/*abs_diff_pic_num_minus1 =*/ bs_get_ue(bs);
+				} else if (modification_of_pic_nums_idc == 2) {
+					/*long_term_pic_num =*/ bs_get_ue(bs);
+				}
+			} while (modification_of_pic_nums_idc != 3);
+		}
+	}
+}
+
+static void pred_weight_table(GF_BitStream *bs, u32 slice_type, u32 ChromaArrayType, u32 num_ref_idx_l0_active_minus1, u32 num_ref_idx_l1_active_minus1) {
+	u32 i, j;
+	/*luma_log2_weight_denom =*/ bs_get_ue(bs);
+	if (ChromaArrayType != 0) {
+		/*chroma_log2_weight_denom =*/ bs_get_ue(bs);
+	}
+	for (i = 0; i <= num_ref_idx_l0_active_minus1; i++) {
+		if (/*luma_weight_l0_flag*/ gf_bs_read_int(bs, 1)) {
+			/*luma_weight_l0[i] =*/ bs_get_se(bs);
+			/*luma_offset_l0[i] =*/ bs_get_se(bs);
+		}
+		if (ChromaArrayType != 0) {
+			if (/*chroma_weight_l0_flag*/ gf_bs_read_int(bs, 1))
+				for (j = 0; j < 2; j++) {
+					/*chroma_weight_l0[i][j] =*/ bs_get_se(bs);
+					/*chroma_offset_l0[i][j] =*/ bs_get_se(bs);
+				}
+		}
+	}
+	if (slice_type % 5 == 1) {
+		for (i = 0; i <= num_ref_idx_l1_active_minus1; i++) {
+			if (/*luma_weight_l1_flag*/ gf_bs_read_int(bs, 1)) {
+				/*luma_weight_l1[i] =*/ bs_get_se(bs);
+				/*luma_offset_l1[i] =*/ bs_get_se(bs);
+			}
+			if (ChromaArrayType != 0) {
+				if (/*chroma_weight_l1_flag*/ gf_bs_read_int(bs, 1)) {
+					for (j = 0; j < 2; j++) {
+						/*chroma_weight_l1[i][j] =*/ bs_get_se(bs);
+						/*chroma_offset_l1[i][j] =*/ bs_get_se(bs);
+					}
+				}
+			}
+		}
+	}
+}
+
+static void dec_ref_pic_marking(GF_BitStream *bs, Bool IdrPicFlag) {
+	if (IdrPicFlag) {
+		/*no_output_of_prior_pics_flag =*/ gf_bs_read_int(bs, 1);
+		/*long_term_reference_flag =*/ gf_bs_read_int(bs, 1);
+	} else {
+		if (/*adaptive_ref_pic_marking_mode_flag*/ gf_bs_read_int(bs, 1)) {
+			u32 memory_management_control_operation;
+			do {
+				memory_management_control_operation = bs_get_ue(bs);
+				if (memory_management_control_operation == 1 || memory_management_control_operation == 3)
+					/*difference_of_pic_nums_minus1 =*/ bs_get_ue(bs);
+				if (memory_management_control_operation == 2)
+					/*long_term_pic_num =*/ bs_get_ue(bs);
+				if (memory_management_control_operation == 3 || memory_management_control_operation == 6)
+					/*long_term_frame_idx =*/ bs_get_ue(bs);
+				if (memory_management_control_operation == 4)
+					/*max_long_term_frame_idx_plus1 =*/ bs_get_ue(bs);
+			} while (memory_management_control_operation != 0);
+		}
+	}
+}
+
 static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, AVCSliceInfo *si)
 {
-	s32 pps_id;
+	s32 pps_id, num_ref_idx_l0_active_minus1 = 0, num_ref_idx_l1_active_minus1 = 0;
 
 	/*s->current_picture.reference= h->nal_ref_idc != 0;*/
 	/*first_mb_in_slice = */bs_get_ue(bs);
@@ -2716,6 +2824,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 		if (si->field_pic_flag)
 			si->bottom_field_flag = gf_bs_read_int(bs, 1);
 	}
+
 	if ((si->nal_unit_type==GF_AVC_NALU_IDR_SLICE) || svc_idr_flag)
 		si->idr_pic_id = bs_get_ue(bs);
 
@@ -2729,9 +2838,65 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 		if ((si->pps->pic_order_present==1) && !si->field_pic_flag)
 			si->delta_poc[1] = bs_get_se(bs);
 	}
+
 	if (si->pps->redundant_pic_cnt_present) {
 		si->redundant_pic_cnt = bs_get_ue(bs);
 	}
+
+	if (si->slice_type == GF_AVC_TYPE_B) {
+		/*direct_spatial_mv_pred_flag = */gf_bs_read_int(bs, 1);
+	}
+
+	if (si->slice_type == GF_AVC_TYPE_P || si->slice_type == GF_AVC_TYPE_SP || si->slice_type == GF_AVC_TYPE_B) {
+		Bool num_ref_idx_active_override_flag = gf_bs_read_int(bs, 1);
+		if (num_ref_idx_active_override_flag) {
+			num_ref_idx_l0_active_minus1 = bs_get_ue(bs);
+			if (si->slice_type == GF_AVC_TYPE_B) {
+				num_ref_idx_l1_active_minus1 = bs_get_ue(bs);
+			}
+		}
+	}
+
+	if (si->nal_unit_type == 20 || si->nal_unit_type == 21) {
+		//ref_pic_list_mvc_modification(); /* specified in Annex H */
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] unimplemented ref_pic_list_mvc_modification() in slide header\n"));
+		assert(0);
+		return -1;
+	} else {
+		ref_pic_list_modification(bs, si->slice_type);
+	}
+
+	if ((si->pps->weighted_pred_flag && (si->slice_type == GF_AVC_TYPE_P || si->slice_type == GF_AVC_TYPE_SP)) || (si->pps->weighted_bipred_idc == 1 && si->slice_type == GF_AVC_TYPE_B)) {
+		pred_weight_table(bs, si->slice_type, si->sps->ChromaArrayType, num_ref_idx_l0_active_minus1, num_ref_idx_l1_active_minus1);
+	}
+
+	if (si->nal_ref_idc != 0) {
+		dec_ref_pic_marking(bs, avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE);
+	}
+
+	if (si->pps->entropy_coding_mode_flag && si->slice_type != GF_AVC_TYPE_I && si->slice_type != GF_AVC_TYPE_SI) {
+		/*cabac_init_idc = */bs_get_ue(bs);
+	}
+
+	/*slice_qp_delta = */bs_get_se(bs);
+	if (si->slice_type == GF_AVC_TYPE_SP || si->slice_type == GF_AVC_TYPE_SI) {
+		if (si->slice_type == GF_AVC_TYPE_SP) {
+			/*sp_for_switch_flag = */gf_bs_read_int(bs, 1);
+		}
+		/*slice_qs_delta = */bs_get_se(bs);
+	}
+
+	if (si->pps->deblocking_filter_control_present_flag) {
+		if (/*disable_deblocking_filter_idc*/ bs_get_ue(bs) != 1) {
+			/*slice_alpha_c0_offset_div2 =*/ bs_get_se(bs);
+			/*slice_beta_offset_div2 =*/ bs_get_se(bs);
+		}
+	}
+
+	if (si->pps->slice_group_count > 1 && si->pps->mb_slice_group_map_type >= 3 && si->pps->mb_slice_group_map_type <= 5) {
+		/*slice_group_change_cycle = */gf_bs_read_int(bs, (u32)ceil(log((si->pps->pic_size_in_map_units_minus1+1) / (si->pps->slice_group_change_rate_minus1 + 1) + 1)/log(2)));
+	}
+
 	return 0;
 }
 
@@ -4944,7 +5109,7 @@ static s32 gf_media_hevc_read_pps_bs(GF_BitStream *bs, HEVCState *hevc)
 		pps->loop_filter_across_tiles_enabled_flag = gf_bs_read_int(bs, 1);
 	}
 	pps->loop_filter_across_slices_enabled_flag = gf_bs_read_int(bs, 1);
-	if( /*deblocking_filter_control_present_flag = */gf_bs_read_int(bs, 1)  ) {
+	if (/*pps->deblocking_filter_control_present_flag*/ gf_bs_read_int(bs, 1)) {
 		pps->deblocking_filter_override_enabled_flag = gf_bs_read_int(bs, 1);
 		if (! /*pic_disable_deblocking_filter_flag= */gf_bs_read_int(bs, 1) ) {
 			/*beta_offset_div2 = */bs_get_se(bs);
