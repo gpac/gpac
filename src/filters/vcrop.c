@@ -599,6 +599,7 @@ GF_FilterRegister VCropRegister = {
 	.description = "Video crop fiter",
 	.private_size = sizeof(GF_VCropCtx),
 	.args = VCropArgs,
+	.explicit_only = GF_TRUE,
 	.configure_pid = vcrop_configure_pid,
 	INCAPS(VCropInputs),
 	OUTCAPS(VCropOutputs),
