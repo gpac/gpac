@@ -104,7 +104,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 	gf_filter_pid_check_caps(pid);
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OUTPATH);
 	if (p && p->value.string) {
 		fileout_open_close(ctx, p->value.string, NULL, 0);
 	} else {
@@ -149,7 +149,7 @@ static void fileout_finalize(GF_Filter *filter)
 static GF_Err fileout_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
-	const GF_PropertyValue *fname, *fext, *fnum;
+	const GF_PropertyValue *fname, *fext, *fnum, *p;
 	Bool start, end;
 	const char *pck_data;
 	u32 pck_size, nb_write;
@@ -172,11 +172,11 @@ static GF_Err fileout_process(GF_Filter *filter)
 		//file num increased per packet, open new file
 		fnum = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (fnum) {
-			fname = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILEPATH);
+			fname = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
 			fext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 			if (!fname) name = ctx->dst;
 		}
-		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_FILEPATH);
+		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
 		if (!fext) fext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
 
@@ -187,14 +187,57 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (ctx->file) {
-		nb_write = fwrite(pck_data, 1, pck_size, ctx->file);
-		if (nb_write!=pck_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+		GF_FilterHWFrame *hwf = gf_filter_pck_get_hw_frame(pck);
+		if (pck_data) {
+			nb_write = fwrite(pck_data, 1, pck_size, ctx->file);
+			if (nb_write!=pck_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+			}
+			ctx->nb_write += nb_write;
+		} else if (hwf) {
+			u32 w, h, stride, stride_uv, pf;
+			u32 nb_planes, uv_height;
+			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_WIDTH);
+			w = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_HEIGHT);
+			h = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_PIXFMT);
+			pf = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_STRIDE);
+			stride = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_STRIDE_UV);
+			stride_uv = p ? p->value.uint : 0;
+
+			if (gf_pixel_get_size_info(pf, w, h, NULL, &stride, &stride_uv, &nb_planes, &uv_height) == GF_TRUE) {
+				u32 i, bpp = gf_pixel_get_bytes_per_pixel(pf);
+				for (i=0; i<nb_planes; i++) {
+					u32 j, write_h, lsize;
+					const u8 *out_ptr;
+					u32 out_stride = i ? stride_uv : stride;
+					GF_Err e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Failed to fetch plane data from hardware frame, cannot write\n"));
+						break;
+					}
+					write_h = h;
+					if (i) write_h = uv_height;
+					lsize = bpp * (i ? stride : stride_uv);
+					for (j=0; j<write_h; j++) {
+						nb_write = fwrite(out_ptr, 1, lsize, ctx->file);
+						if (nb_write!=lsize) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
+						}
+						ctx->nb_write += nb_write;
+						out_ptr += out_stride;
+					}
+
+				}
+			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] No data associated with packet, cannot write\n"));
 		}
-		ctx->nb_write += nb_write;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] output file handle is not opened, discarding %d bytes\n", pck_size));
-
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
 	if (end) {

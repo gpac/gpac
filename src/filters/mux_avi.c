@@ -463,8 +463,7 @@ static GF_Err avimux_initialize(GF_Filter *filter)
 	avimux_open_close(ctx, ctx->dst, NULL, 0);
 
 	if (ctx->noraw) {
-		AVIMuxRegister.input_caps = AVIMuxInputsNoRAW;
-		AVIMuxRegister.nb_input_caps = sizeof(AVIMuxInputsNoRAW)/sizeof(GF_FilterCapability);
+		gf_filter_override_input_caps(filter, AVIMuxInputsNoRAW,  sizeof(AVIMuxInputsNoRAW)/sizeof(GF_FilterCapability) );
 	}
 	return GF_OK;
 }

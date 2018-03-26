@@ -760,10 +760,12 @@ enum
 	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
 	//(string) URL of source file on the local file system, if any
 	GF_PROP_PID_FILEPATH = GF_4CC('F','S','R','C'),
-	//(string) mime type of source file if known
+	//(string) mime type of file if known
 	GF_PROP_PID_MIME = GF_4CC('M','I','M','E'),
 	//(string) file extension of source file if known
 	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
+	//(string) path of output file on the local file system, if any
+	GF_PROP_PID_OUTPATH = GF_4CC('F','D','S','T'),
 	//(bool) indicates the file is completely cached
 	GF_PROP_PID_FILE_CACHED = GF_4CC('C','A','C','H'),
 	//(uint) download rate in bits per second
@@ -1068,6 +1070,8 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
 
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from);
+
+GF_Err gf_filter_override_input_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps );
 
 #ifdef __cplusplus
 }

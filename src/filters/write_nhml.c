@@ -169,10 +169,10 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		name = strrchr(fileName, '.');
 		if (name) {
 			name[0] = 0;
-			gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_FILEPATH, &PROP_STRING(ctx->name) );
+			gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(ctx->name) );
 		} else {
 			strcat(fileName, ".nhml");
-			gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_FILEPATH, &PROP_STRING(fileName) );
+			gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
 			name = strrchr(fileName, '.');
 		}
 
@@ -185,7 +185,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_MIME, &PROP_STRING(mime) );
 		name[0] = 0;
 		strcat(fileName, ".media");
-		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_FILEPATH, &PROP_STRING(fileName) );
+		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
 		if (ctx->media_file) gf_free(ctx->media_file);
 		ctx->media_file = gf_strdup(fileName);
 	}
@@ -195,7 +195,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_MIME, &PROP_STRING(mime) );
 		name[0] = 0;
 		strcat(fileName, ".info");
-		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_FILEPATH, &PROP_STRING(fileName) );
+		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
 		ctx->info_file = gf_strdup(fileName);
 	}
 

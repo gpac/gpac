@@ -664,30 +664,38 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	return GF_FALSE;
 }
 
-static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, u8 *priority, GF_Filter *dst_filter)
+static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, GF_Filter *dst_filter)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
 	u32 nb_subcaps=0;
 	Bool skip_explicit_load = GF_FALSE;
 	Bool all_caps_matched = GF_TRUE;
+	const GF_FilterCapability *in_caps;
+	u32 nb_in_caps;
 	if (!freg) {
 		assert(dst_filter);
 		freg = dst_filter->freg;
 		skip_explicit_load = GF_TRUE;
+	}
+	in_caps = freg->input_caps;
+	nb_in_caps = freg->nb_input_caps;
+	if (filter_inst && filter_inst->forced_caps) {
+		in_caps = filter_inst->forced_caps;
+		nb_in_caps = filter_inst->nb_forced_caps;
 	}
 
 	if (priority)
 		(*priority) = freg->priority;
 
 	//filters with no explicit input cap accept anything for now, this should be refined ...
-	if (!freg->input_caps)
+	if (!in_caps)
 		return GF_TRUE;
 
 	//check all input caps of dst filter
-	for (i=0; i<freg->nb_input_caps; i++) {
+	for (i=0; i<nb_in_caps; i++) {
 		const GF_PropertyValue *pid_cap=NULL;
-		const GF_FilterCapability *cap = &freg->input_caps[i];
+		const GF_FilterCapability *cap = &in_caps[i];
 
 		if (i && !cap->in_bundle) {
 			if (all_caps_matched) return GF_TRUE;
@@ -712,8 +720,8 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 			Bool prop_equal = GF_FALSE;
 
 			//this could be optimized by not checking several times the same cap
-			for (j=cur_bundle_start; j<freg->nb_input_caps; j++) {
-				const GF_FilterCapability *a_cap = &freg->input_caps[j];
+			for (j=cur_bundle_start; j<nb_in_caps; j++) {
+				const GF_FilterCapability *a_cap = &in_caps[j];
 
 				if ((j>cur_bundle_start) && !a_cap->in_bundle) {
 					break;
@@ -867,7 +875,7 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 {
 	u8 priority;
 	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
-	return filter_pid_caps_match(pid->pid, NULL, &priority, pid->filter);
+	return filter_pid_caps_match(pid->pid, NULL, NULL, &priority, pid->filter);
 }
 
 
@@ -1004,7 +1012,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			continue;
 
 		//no match of pid caps for this filter
-		freg_weight = filter_pid_caps_match(pid, freg, &priority, pid->filter->dst_filter) ? 1 : 0;
+		freg_weight = filter_pid_caps_match(pid, freg, NULL, &priority, pid->filter->dst_filter) ? 1 : 0;
 		if (!freg_weight) continue;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s matches PID %s caps from %s, checking filter chain\n", freg->name, pid->name, pid->filter->name));
 
@@ -1271,7 +1279,7 @@ restart:
 		}
 
 		//we have a match, check if caps are OK
-		if (!filter_pid_caps_match(pid, filter_dst->freg, NULL, pid->filter->dst_filter)) {
+		if (!filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, pid->filter->dst_filter)) {
 			Bool reassigned;
 			GF_Filter *new_f;
 			if (first_pass) continue;
@@ -1985,7 +1993,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		pid->nb_buffer_unit = nb_pck;
 	}
 
-	if (pck->info.duration && pck->pid_props->timescale) {
+	if (pck->info.duration && pck->info.data_block_end && pck->pid_props->timescale) {
 		s64 d = ((u64)pck->info.duration) * 1000000;
 		d /= pck->pid_props->timescale;
 		assert(d <= pidinst->buffer_duration);
