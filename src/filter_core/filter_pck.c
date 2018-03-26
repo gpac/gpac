@@ -189,6 +189,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	if (!data && !data_size) {
 		pck->data = reference->data;
 		pck->data_length = reference->data_length;
+		pck->hw_frame = reference->hw_frame;
 	}
 	return pck;
 }

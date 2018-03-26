@@ -60,7 +60,7 @@ typedef struct
 
 GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 cid, chan, sr, bps, w, h, stype;
+	u32 cid, chan, sr, w, h, stype, pf, sfmt;
 	const char *name;
 	char szExt[5];
 	const GF_PropertyValue *p;
@@ -88,6 +88,10 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	ctx->ipid = pid;
 
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, NULL);
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	stype = p ? p->value.uint : 0;
 
@@ -96,11 +100,14 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	chan = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
-	bps = p ? gf_audio_fmt_bit_depth(p->value.uint) : 16;
+	sfmt = p ? p->value.uint : GF_AUDIO_FMT_S16;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	w = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 	h = p ? p->value.uint : 0;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+	pf = p ? p->value.uint : 0;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p) {
@@ -113,7 +120,7 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (w && h) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - Size %dx%d\n", name, w, h));
 		} else if (sr && chan) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, bps));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, gf_audio_fmt_bit_depth(sfmt) ));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s\n", name));
 		}
@@ -284,6 +291,21 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("flac") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/flac") );
 		break;
+	case GF_CODECID_RAW:
+		ctx->dcfg = NULL;
+		ctx->dcfg_size = 0;
+		if (stype==GF_STREAM_VISUAL) {
+			strcpy(szExt, gf_4cc_to_str(pf));
+			strlwr(szExt);
+		} else if (stype==GF_STREAM_AUDIO) {
+			strcat(szExt, "pcm");
+		} else {
+			strcpy(szExt, gf_4cc_to_str(cid));
+		}
+		if (!strlen(szExt)) strcpy(szExt, "raw");
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
+		break;
 
 	default:
 		switch (stype) {
@@ -453,6 +475,7 @@ static const GF_FilterCapability GenDumpInputs[] =
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MVC),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
+	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{},
 
@@ -466,7 +489,22 @@ static const GF_FilterCapability GenDumpInputs[] =
 	{},
 
 	//for the rest, we include everything, only specifies excluded ones
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC_PS),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MVC),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
+	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
+
+//	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 
 	//WebVTT needs rewrite
 	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
@@ -532,8 +570,7 @@ static GF_Err gendump_initialize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->frame) {
-		GenDumpRegister.input_caps = FrameDumpInputs;
-		GenDumpRegister.nb_input_caps = sizeof(FrameDumpInputs) / sizeof(GF_FilterCapability);
+		return gf_filter_override_input_caps(filter, (const GF_FilterCapability *)FrameDumpInputs, sizeof(FrameDumpInputs) / sizeof(GF_FilterCapability));
 	}
 	return GF_OK;
 }

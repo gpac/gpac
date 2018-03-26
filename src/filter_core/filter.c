@@ -1411,4 +1411,15 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from)
 	return GF_OK;
 }
 
+GF_Err gf_filter_override_input_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps )
+{
+	if (!filter) return GF_BAD_PARAM;
+	if (filter->num_output_pids || filter->num_output_pids) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempts at setting input caps on filter %s during execution of filter, not supported\n", filter->name));
+		return GF_NOT_SUPPORTED;
+	}
+	filter->forced_caps = nb_caps ? caps : NULL;
+	filter->nb_forced_caps = nb_caps;
+	return GF_OK;
+}
 

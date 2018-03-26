@@ -429,6 +429,9 @@ struct __gf_filter
 
 	GF_PropertyMap *caps_negociate;
 	Bool is_pid_adaptation_filter;
+
+	const GF_FilterCapability *forced_caps;
+	u32 nb_forced_caps;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_FilterArgType arg_type, GF_Err *err);
