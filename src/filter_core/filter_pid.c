@@ -667,6 +667,7 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, u8 *priority, GF_Filter *dst_filter)
 {
 	u32 i=0;
+	u32 cur_bundle_start = 0;
 	u32 nb_subcaps=0;
 	Bool skip_explicit_load = GF_FALSE;
 	Bool all_caps_matched = GF_TRUE;
@@ -692,6 +693,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 			if (all_caps_matched) return GF_TRUE;
 			all_caps_matched = GF_TRUE;
 			nb_subcaps=0;
+			cur_bundle_start = i;
 			continue;
 		}
 		nb_subcaps++;
@@ -710,8 +712,12 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 			Bool prop_equal = GF_FALSE;
 
 			//this could be optimized by not checking several times the same cap
-			for (j=0; j<freg->nb_input_caps; j++) {
+			for (j=cur_bundle_start; j<freg->nb_input_caps; j++) {
 				const GF_FilterCapability *a_cap = &freg->input_caps[j];
+
+				if ((j>cur_bundle_start) && !a_cap->in_bundle) {
+					break;
+				}
 				if (cap->code) {
 					if (cap->code!=a_cap->code) continue;
 				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
@@ -762,6 +768,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_FilterRegister *dst)
 {
 	u32 i=0;
+	u32 cur_bundle_start = 0;
 	u32 nb_matched=0;
 	u32 nb_subcaps=0;
 	Bool all_caps_matched = src->nb_output_caps ? GF_TRUE : GF_FALSE;
@@ -771,12 +778,14 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 		u32 j, k;
 		Bool matched=GF_FALSE;
 		Bool exclude=GF_FALSE;
+		Bool prop_found=GF_FALSE;
 		const GF_FilterCapability *out_cap = &src->output_caps[i];
 
 		if (!out_cap->in_bundle) {
 			if (all_caps_matched) nb_matched++;
 			all_caps_matched = GF_TRUE;
 			nb_subcaps=0;
+			cur_bundle_start = i+1;
 			continue;
 		}
 		nb_subcaps++;
@@ -786,9 +795,9 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 
 
 		//check all output caps in this bundle with the same code/name, consider OK if one is matched
-		for (k=0; k<src->nb_output_caps; k++) {
+		for (k=cur_bundle_start; k<src->nb_output_caps; k++) {
 			const GF_FilterCapability *an_out_cap = &src->output_caps[k];
-			if (!out_cap->in_bundle) {
+			if (!an_out_cap->in_bundle) {
 				break;
 			}
 			if (out_cap->code && (out_cap->code!=an_out_cap->code) )
@@ -806,27 +815,31 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 				if (out_cap->name && (!in_cap->name || strcmp(out_cap->name, in_cap->name)))
 					continue;
 
-				//we found a property of that type and it is equal
+				//we found a property of that type , check if equal equal
 				prop_equal = gf_props_equal(&in_cap->val, &an_out_cap->val);
 				if (in_cap->exclude && !an_out_cap->exclude) {
-//					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("input cap is excluded, prop equal %d\n", prop_equal));
-					//prop type matched and prop is excluded: no match, don't look any further
+					//prop type matched, output includes it and input excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
 						exclude = GF_TRUE;
+						prop_found = GF_FALSE;
 						break;
 					}
-					prop_equal = !prop_equal;
+					//remember we found a prop of same type but excluded value, we will match unless we match an excluded
+					//value
+					prop_found = GF_TRUE;
 				}
 				else if (!in_cap->exclude && an_out_cap->exclude) {
-//					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap is excluded, prop equal %d\n", prop_equal));
-					//prop type matched and prop is excluded: no match, don't look any further
+					//prop type matched, input includes it and output excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
 						exclude = GF_TRUE;
+						prop_found = GF_FALSE;
 						break;
 					}
-					prop_equal = !prop_equal;
+					//remember we found a prop of same type but excluded value, we will match unless we match an excluded
+					//value
+					prop_found = GF_TRUE;
 				}
 
 				if (prop_equal) {
@@ -836,7 +849,7 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 			}
 			if (exclude) break;
 		}
-		if (!matched && !out_cap->exclude) {
+		if (!matched && !out_cap->exclude && !prop_found) {
 //			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap not matched\n"));
 			all_caps_matched = GF_FALSE;
 		} else {
