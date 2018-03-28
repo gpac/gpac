@@ -543,26 +543,20 @@ static void osvcdec_finalize(GF_Filter *filter)
 	if (ctx->frame_infos) gf_free(ctx->frame_infos);
 }
 
-static const GF_FilterCapability OSVCDecInputs[] =
+static const GF_FilterCapability OSVCDecCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AVC),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVC),
-};
-
-static const GF_FilterCapability OSVCDecOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister OSVCDecRegister = {
 	.name = "osvcdec",
 	.description = "OpenSVC decoder",
 	.private_size = sizeof(GF_OSVCDecCtx),
-	INCAPS(OSVCDecInputs),
-	OUTCAPS(OSVCDecOutputs),
+	SETCAPS(OSVCDecCaps),
 	.finalize = osvcdec_finalize,
 	.configure_pid = osvcdec_configure_pid,
 	.process = osvcdec_process,

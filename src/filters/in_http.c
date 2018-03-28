@@ -368,11 +368,17 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{}
 };
 
+static const GF_FilterCapability HTTPInCaps[] =
+{
+	CAP_UINT(GF_CAPS_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+};
+
 GF_FilterRegister HTTPInRegister = {
 	.name = "http",
 	.description = "HTTP Input",
 	.private_size = sizeof(GF_HTTPInCtx),
 	.args = HTTPInArgs,
+	SETCAPS(HTTPInCaps),
 	.initialize = httpin_initialize,
 	.finalize = httpin_finalize,
 	.process = httpin_process,

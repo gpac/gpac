@@ -778,18 +778,16 @@ static void ctxload_finalize(GF_Filter *filter)
 
 #endif //defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 
-static const GF_FilterCapability CTXLoadInputs[] =
+static const GF_FilterCapability CTXLoadCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-bt|application/x-xmt|model/vrml|x-model/x-vrml|model/x3d+vrml|model/x3d+xml|application/x-shockwave-flash|application/x-LASeR+xml"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-bt|application/x-xmt|model/vrml|x-model/x-vrml|model/x3d+vrml|model/x3d+xml|application/x-shockwave-flash|application/x-LASeR+xml"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz|xmt|xmt.gz|xmtz|wrl|wrl.gz|x3dv|x3dv.gz|x3dvz|x3d|x3d.gz|x3dz|swf|xsr"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz|xmt|xmt.gz|xmtz|wrl|wrl.gz|x3dv|x3dv.gz|x3dvz|x3d|x3d.gz|x3dz|swf|xsr"),
 	{},
-};
-
-static const GF_FilterCapability CTXLoadOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 
@@ -808,8 +806,7 @@ GF_FilterRegister CTXLoadRegister = {
 	.private_size = sizeof(CTXLoadPriv),
 	.requires_main_thread = GF_TRUE,
 	.args = CTXLoadArgs,
-	INCAPS(CTXLoadInputs),
-	OUTCAPS(CTXLoadOutputs),
+	SETCAPS(CTXLoadCaps),
 	.finalize = ctxload_finalize,
 	.process = ctxload_process,
 	.configure_pid = ctxload_configure_pid,

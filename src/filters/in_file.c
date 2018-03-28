@@ -360,12 +360,18 @@ static const GF_FilterArgs FileInArgs[] =
 	{}
 };
 
+static const GF_FilterCapability FileInCaps[] =
+{
+	CAP_UINT(GF_CAPS_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+};
+
 GF_FilterRegister FileInRegister = {
 	.name = "filein",
 	.description = "Generic File Input",
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,
+	SETCAPS(FileInCaps),
 	.finalize = filein_finalize,
 	.process = filein_process,
 	.process_event = filein_process_event,

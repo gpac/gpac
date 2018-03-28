@@ -581,17 +581,12 @@ static GF_FilterArgs VCropArgs[] =
 	{}
 };
 
-static const GF_FilterCapability VCropInputs[] =
+static const GF_FilterCapability VCropCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-};
-
-static const GF_FilterCapability VCropOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{}
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister VCropRegister = {
@@ -601,8 +596,7 @@ GF_FilterRegister VCropRegister = {
 	.args = VCropArgs,
 	.explicit_only = GF_TRUE,
 	.configure_pid = vcrop_configure_pid,
-	INCAPS(VCropInputs),
-	OUTCAPS(VCropOutputs),
+	SETCAPS(VCropCaps),
 	.process = vcrop_process,
 	.finalize = vcrop_finalize,
 };

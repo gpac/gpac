@@ -261,17 +261,12 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	return GF_OK;
 }
 
-static const GF_FilterCapability ResamplerInputs[] =
+static const GF_FilterCapability ResamplerCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-};
-
-
-static const GF_FilterCapability ResamplerOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_ResampleCtx, _n)
@@ -287,8 +282,7 @@ GF_FilterRegister ResamplerRegister = {
 	.initialize = resample_initialize,
 	.finalize = resample_finalize,
 	.args = ResamplerArgs,
-	INCAPS(ResamplerInputs),
-	OUTCAPS(ResamplerOutputs),
+	SETCAPS(ResamplerCaps),
 	.configure_pid = resample_configure_pid,
 	.process = resample_process,
 	.reconfigure_output = resample_reconfigure_output,

@@ -1573,10 +1573,10 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{}
 };
 
-static const GF_FilterCapability VideoOutInputs[] =
+static const GF_FilterCapability VideoOutCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW)
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
 
 
@@ -1586,7 +1586,7 @@ GF_FilterRegister VideoOutRegister = {
 	.private_size = sizeof(GF_VideoOutCtx),
 	.requires_main_thread = GF_TRUE,
 	.args = VideoOutArgs,
-	INCAPS(VideoOutInputs),
+	SETCAPS(VideoOutCaps),
 	.initialize = vout_initialize,
 	.finalize = vout_finalize,
 	.configure_pid = vout_configure_pid,

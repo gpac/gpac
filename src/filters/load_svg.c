@@ -400,22 +400,20 @@ void svgin_finalize(GF_Filter *filter)
 	if (svgin->loader.localPath) gf_free((char *)svgin->loader.localPath);
 }
 
-static const GF_FilterCapability SVGInInputs[] =
+static const GF_FilterCapability SVGInCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/svg+xml"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "image/svg+xml"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "svg|svgz|svg.gz"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "svg|svgz|svg.gz"),
 	{},
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVG),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SVG_GZ),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_DIMS),
-};
-
-static const GF_FilterCapability SVGInOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVG),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVG_GZ),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_DIMS),
 };
 
 
@@ -432,8 +430,7 @@ GF_FilterRegister SVGInRegister = {
 	.private_size = sizeof(SVGIn),
 	.requires_main_thread = GF_TRUE,
 	.args = SVGInArgs,
-	INCAPS(SVGInInputs),
-	OUTCAPS(SVGInOutputs),
+	SETCAPS(SVGInCaps),
 	.process = svgin_process,
 	.configure_pid = svgin_configure_pid,
 	.process_event = svgin_process_event,

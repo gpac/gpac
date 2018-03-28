@@ -271,20 +271,15 @@ static void vttmx_finalize(GF_Filter *filter)
 	if (ctx->parser) gf_webvtt_parser_del(ctx->parser);
 }
 
-static const GF_FilterCapability WebVTTMxInputs[] =
+static const GF_FilterCapability WebVTTMxCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
-
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "vtt"),
 };
 
-
-static const GF_FilterCapability WebVTTMxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{}
-};
 
 #define OFFS(_n)	#_n, offsetof(GF_WebVTTMxCtx, _n)
 static const GF_FilterArgs WebVTTMxArgs[] =
@@ -301,8 +296,7 @@ GF_FilterRegister WebVTTMxRegister = {
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,
 	.finalize = vttmx_finalize,
-	INCAPS(WebVTTMxInputs),
-	OUTCAPS(WebVTTMxOutputs),
+	SETCAPS(WebVTTMxCaps),
 	.configure_pid = vttmx_configure_pid,
 	.process = vttmx_process
 };

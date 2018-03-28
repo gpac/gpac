@@ -244,18 +244,14 @@ static Bool bifs_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	return GF_TRUE;
 }
 
-static const GF_FilterCapability BIFSDecInputs[] =
+static const GF_FilterCapability BIFSDecCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS_V2),
-};
-
-static const GF_FilterCapability BIFSDecOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_BIFS),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_BIFS_V2),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister BIFSDecRegister = {
@@ -263,8 +259,7 @@ GF_FilterRegister BIFSDecRegister = {
 	.description = "MPEG-4 BIFS Decoder",
 	.private_size = sizeof(GF_BIFSDecCtx),
 	.requires_main_thread = GF_TRUE,
-	INCAPS(BIFSDecInputs),
-	OUTCAPS(BIFSDecOutputs),
+	SETCAPS(BIFSDecCaps),
 	.finalize = bifs_dec_finalize,
 	.process = bifs_dec_process,
 	.configure_pid = bifs_dec_configure_pid,

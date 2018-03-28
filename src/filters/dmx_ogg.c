@@ -668,23 +668,19 @@ static void oggdmx_finalize(GF_Filter *filter)
 	ogg_sync_clear(&ctx->oy);
 }
 
-static const GF_FilterCapability OGGDmxInputs[] =
+static const GF_FilterCapability OGGDmxCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/ogg|audio/x-ogg|audio/x-vorbis+ogg|application/ogg|application/x-ogg|video/ogg|video/x-ogg|video/x-ogm+ogg"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/ogg|audio/x-ogg|audio/x-vorbis+ogg|application/ogg|application/x-ogg|video/ogg|video/x-ogg|video/x-ogm+ogg"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VORBIS),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_FLAC),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SPEEX),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_THEORA),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "oga|spx|ogg|ogv|oggm"),
-};
-
-
-static const GF_FilterCapability OGGDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_VORBIS),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_FLAC),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SPEEX),
-	{},
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_THEORA),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "oga|spx|ogg|ogv|oggm"),
 };
 
 
@@ -694,8 +690,7 @@ GF_FilterRegister OGGDmxRegister = {
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,
-	INCAPS(OGGDmxInputs),
-	OUTCAPS(OGGDmxOutputs),
+	SETCAPS(OGGDmxCaps),
 	.configure_pid = oggdmx_configure_pid,
 	.process = oggdmx_process,
 	.process_event = oggdmx_process_event

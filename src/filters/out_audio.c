@@ -403,10 +403,10 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{}
 };
 
-static const GF_FilterCapability AudioOutInputs[] =
+static const GF_FilterCapability AudioOutCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	//we accept all audio formats, but will ask for input reconfiguration if sound card does not support
 };
 
@@ -416,7 +416,7 @@ GF_FilterRegister AudioOutRegister = {
 	.description = "Audio Output",
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
-	INCAPS(AudioOutInputs),
+	SETCAPS(AudioOutCaps),
 	.initialize = aout_initialize,
 	.finalize = aout_finalize,
 	.configure_pid = aout_configure_pid,

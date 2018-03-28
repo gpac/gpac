@@ -381,19 +381,17 @@ void m2psdmx_finalize(GF_Filter *filter)
 	if (ctx->ps) mpeg2ps_close(ctx->ps);
 }
 
-static const GF_FilterCapability M2PSDmxInputs[] =
+static const GF_FilterCapability M2PSDmxCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "video/mpeg|audio/mpeg"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg|audio/mpeg"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mpg|mpeg|vob"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpg|mpeg|vob"),
 };
 
-
-static const GF_FilterCapability M2PSDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-};
 
 
 GF_FilterRegister M2PSDmxRegister = {
@@ -402,8 +400,7 @@ GF_FilterRegister M2PSDmxRegister = {
 	.private_size = sizeof(GF_M2PSDmxCtx),
 	.initialize = m2psdmx_initialize,
 	.finalize = m2psdmx_finalize,
-	INCAPS(M2PSDmxInputs),
-	OUTCAPS(M2PSDmxOutputs),
+	SETCAPS(M2PSDmxCaps),
 	.configure_pid = m2psdmx_configure_pid,
 	.process = m2psdmx_process,
 	.process_event = m2psdmx_process_event,

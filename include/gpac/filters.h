@@ -265,32 +265,45 @@ typedef struct
 } GF_FilterArgs;
 
 
-#define CAP_INC_SINT(_a, _b) { .code=_a, .val=PROP_SINT(_b), .in_bundle=1 }
-#define CAP_INC_UINT(_a, _b) { .code=_a, .val=PROP_UINT(_b), .in_bundle=1 }
-#define CAP_INC_LONGSINT(_a, _b) { .code=_a, .val=PROP_LONGSINT(_b), .in_bundle=1 }
-#define CAP_INC_LONGUINT(_a, _b) { .code=_a, .val=PROP_LONGUINT(_b), .in_bundle=1 }
-#define CAP_INC_BOOL(_a, _b) { .code=_a, .val=PROP_BOOL(_b), .in_bundle=1 }
-#define CAP_INC_FIXED(_a, _b) { .code=_a, .val=PROP_FIXED(_b), .in_bundle=1 }
-#define CAP_INC_FLOAT(_a, _b) { .code=_a, .val=PROP_FLOAT(_b), .in_bundle=1 }
-#define CAP_INC_FRAC_INT(_a, _b, _c) { .code=_a, .val=PROP_FRAC_INT(_b, _c), .in_bundle=1 }
-#define CAP_INC_FRAC(_a, _b) { .code=_a, .val=PROP_FRAC(_b), .in_bundle=1 }
-#define CAP_INC_DOUBLE(_a, _b) { .code=_a, .val=PROP_DOUBLE(_b), .in_bundle=1 }
-#define CAP_INC_NAME(_a, _b) { .code=_a, .val=PROP_NAME(_b), .in_bundle=1 }
-#define CAP_INC_STRING(_a, _b) { .code=_a, .val=PROP_STRING(_b), .in_bundle=1 }
+#define CAP_SINT(_f, _a, _b) { .code=_a, .val=PROP_SINT(_b), .flags=(_f) }
+#define CAP_UINT(_f, _a, _b) { .code=_a, .val=PROP_UINT(_b), .flags=(_f) }
+#define CAP_SUINT(_f, _a, _b) { .code=_a, .val=PROP_LONGSINT(_b), .flags=(_f) }
+#define CAP_LUINT(_f, _a, _b) { .code=_a, .val=PROP_LONGUINT(_b), .flags=(_f) }
+#define CAP_BOOL(_f, _a, _b) { .code=_a, .val=PROP_BOOL(_b), .flags=(_f) }
+#define CAP_FIXED(_f, _a, _b) { .code=_a, .val=PROP_FIXED(_b), .flags=(_f) }
+#define CAP_FLOAT(_f, _a, _b) { .code=_a, .val=PROP_FLOAT(_b), .flags=(_f) }
+#define CAP_FRAC_INT(_f, _a, _b, _c) { .code=_a, .val=PROP_FRAC_INT(_b, _c), .flags=(_f) }
+#define CAP_FRAC(_f, _a, _b) { .code=_a, .val=PROP_FRAC(_b), .flags=(_f) }
+#define CAP_DOUBLE(_f, _a, _b) { .code=_a, .val=PROP_DOUBLE(_b), .flags=(_f) }
+#define CAP_NAME(_f, _a, _b) { .code=_a, .val=PROP_NAME(_b), .flags=(_f) }
+#define CAP_STRING(_f, _a, _b) { .code=_a, .val=PROP_STRING(_b), .flags=(_f) }
 
-#define CAP_EXC_SINT(_a, _b) { .code=_a, .val=PROP_SINT(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_UINT(_a, _b) { .code=_a, .val=PROP_UINT(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_LONGSINT(_a, _b) { .code=_a, .val=PROP_LONGSINT(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_LONGUINT(_a, _b) { .code=_a, .val=PROP_LONGUINT(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_BOOL(_a, _b) { .code=_a, .val=PROP_BOOL(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_FIXED(_a, _b) { .code=_a, .val=PROP_FIXED(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_FLOAT(_a, _b) { .code=_a, .val=PROP_FLOAT(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_FRAC_INT(_a, _b, _c) { .code=_a, .val=PROP_FRAC_INT(_b, _c), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_FRAC(_a, _b) { .code=_a, .val=PROP_FRAC(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_DOUBLE(_a, _b) { .code=_a, .val=PROP_DOUBLE(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_NAME(_a, _b) { .code=_a, .val=PROP_NAME(_b), .exclude=1, .in_bundle=1 }
-#define CAP_EXC_STRING(_a, _b) { .code=_a, .val=PROP_STRING(_b), .exclude=1, .in_bundle=1 }
+enum
+{
+	//when not set, indicates the start of a new set of caps. Set by default by the generic GF_CAPS_*
+	GF_FILTER_CAPS_IN_BUNDLE = 1,
+	//! if set this is an input cap of the bundle
+	GF_FILTER_CAPS_INPUT = 1<<1,
+	//! if set this is an output cap of the bundle. A cap can be declared both as input and output
+	//for example stream type is usually the same on both inputs and outputs
+	GF_FILTER_CAPS_OUTPUT = 1<<2,
+	//! when set, the cap is valid if the value does not match. If an excluded cap is not found
+	//in the destination pid, it is assumed to match
+	GF_FILTER_CAPS_EXCLUDED = 1<<3,
+	//when set, the cap is validated only for filter loaded for this destination filter
+	GF_FILTER_CAPS_EXPLICIT = 1<<4,
+	//Only used for output caps, indicates that this cap applies to all bundles
+	//This avoids repeating caps common to all bundles by setting them only in the first
+	GF_FILTER_CAPS_STATIC = 1<<5,
+};
 
+#define GF_CAPS_INPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT)
+#define GF_CAPS_INPUT_EXCLUDED	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_EXCLUDED)
+#define GF_CAPS_INPUT_EXCPLICIT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_EXPLICIT)
+#define GF_CAPS_OUTPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT)
+#define GF_CAPS_OUTPUT_EXCLUDED	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT|GF_FILTER_CAPS_EXCLUDED)
+#define GF_CAPS_OUTPUT_STATIC	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT|GF_FILTER_CAPS_STATIC)
+#define GF_CAPS_INPUT_OUTPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_OUTPUT)
 
 typedef struct
 {
@@ -301,15 +314,11 @@ typedef struct
 	//name of the capability listed. the special value * is used to indicate that the capability is
 	//solved at run time (the filter must be loaded)
 	const char *name;
-	//when set to true the cap is valid if the value does not match. If an excluded cap is not found in the destination pid
-	//it is assumed to match
-	u8 exclude;
-	//when not set, indicates the start of a new set of caps. Set by default by the generic macros
-	u8 in_bundle;
+	//set of flags defined above
+	u32 flags;
+
 	//overrides the filter registry priority for this cap. Usually 0
 	u8 priority;
-	//when set, the pid cap is validated only for filter loaded for this destination filter
-	u8 explicit_only;
 } GF_FilterCapability;
 
 void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
@@ -324,8 +333,7 @@ typedef enum
 	GF_FPROBE_SUPPORTED
 } GF_FilterProbeScore;
 
-#define INCAPS( __struct ) .input_caps = __struct, .nb_input_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
-#define OUTCAPS( __struct ) .output_caps = __struct, .nb_output_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
+#define SETCAPS( __struct ) .caps = __struct, .nb_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
 
 typedef struct __gf_filter_register
 {
@@ -347,12 +355,9 @@ typedef struct __gf_filter_register
 	//indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1
 	u32 max_extra_pids;
 
-	//list of input capabilities
-	const GF_FilterCapability *input_caps;
-	u32 nb_input_caps;
-	//list of output capabilities
-	const GF_FilterCapability *output_caps;
-	u32 nb_output_caps;
+	//list of pid capabilities
+	const GF_FilterCapability *caps;
+	u32 nb_caps;
 
 	//optional - filter arguments if any
 	const GF_FilterArgs *args;
@@ -387,7 +392,8 @@ typedef struct __gf_filter_register
 	//Called whenever an output pid needs caps renegotiaition. If not set, a filter chain will be loaded to solve the cap negotiation
 	GF_Err (*reconfigure_output)(GF_Filter *filter, GF_FilterPid *pid);
 
-	//required for source filters - probe the given URL, returning a score
+	//required for source filters (filters having an "src" argument and for destination filters
+	// (filters having a "dst" argument) - probe the given URL, returning a score
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
 
 	//for filters having the same match of input caps for a PID, the filter with priority at the lowest value will be used
@@ -432,6 +438,8 @@ GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
 
 GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err);
+
+GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err);
 
 GF_User *gf_fs_get_user(GF_FilterSession *fsess);
 
@@ -1071,7 +1079,9 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_
 
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from);
 
-GF_Err gf_filter_override_input_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps );
+GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps );
+
+void gf_fs_filter_print_possible_connections(GF_FilterSession *session);
 
 #ifdef __cplusplus
 }

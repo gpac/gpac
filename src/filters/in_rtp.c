@@ -565,19 +565,16 @@ static void rtpin_finalize(GF_Filter *filter)
 }
 
 
-static const GF_FilterCapability RTPInInputs[] =
+static const GF_FilterCapability RTPInCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/sdp"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/sdp"),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "sdp"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "sdp"),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	{},
-};
-
-
-static const GF_FilterCapability RTPInOutputs[] =
-{
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{}
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_RTPIn, _n)
@@ -621,8 +618,7 @@ GF_FilterRegister RTPInRegister = {
 	.args = RTPInArgs,
 	.initialize = rtpin_initialize,
 	.finalize = rtpin_finalize,
-	INCAPS(RTPInInputs),
-	OUTCAPS(RTPInOutputs),
+	SETCAPS(RTPInCaps),
 	.configure_pid = rtpin_configure_pid,
 	.process = rtpin_process,
 	.process_event = rtpin_process_event,

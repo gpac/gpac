@@ -1100,11 +1100,11 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }
 
-GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter)
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
-	const GF_FilterArgs *src_arg=NULL;
+	const GF_FilterArgs *src_dst_arg=NULL;
 	u32 i, count, user_args_len;
 	GF_Err e;
 	const char *force_freg = NULL;
@@ -1163,16 +1163,17 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 
 		j=0;
 		while (freg->args) {
-			src_arg = &freg->args[j];
-			if (!src_arg || !src_arg->arg_name) {
-				src_arg=NULL;
+			src_dst_arg = &freg->args[j];
+			if (!src_dst_arg || !src_dst_arg->arg_name) {
+				src_dst_arg=NULL;
 				break;
 			}
-			if (!strcmp(src_arg->arg_name, "src")) break;
-			src_arg = NULL;
+			if (for_source && !strcmp(src_dst_arg->arg_name, "src")) break;
+			else if (!for_source && !strcmp(src_dst_arg->arg_name, "dst")) break;
+			src_dst_arg = NULL;
 			j++;
 		}
-		if (!src_arg)
+		if (!src_dst_arg)
 			continue;
 
 		s = freg->probe_url(sURL, mime_type);
@@ -1191,7 +1192,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 
 	user_args_len = user_args ? strlen(user_args) : 0;
 	args = gf_malloc(sizeof(char)*(5+strlen(sURL) + (user_args_len ? user_args_len + 1  :0) ) );
-	strcpy(args, "src=");
+	strcpy(args, for_source ? "src=" : "dst=");
 	strcat(args, sURL);
 	if (user_args_len) {
 		strcat(args, ":gpac:");
@@ -1216,7 +1217,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 		gf_free(args);
 	}
 
-	if (!e && filter && !filter->num_output_pids)
+	if (!e && filter && !filter->num_output_pids && for_source)
 		gf_filter_post_process_task(filter);
 
 	return filter;
@@ -1225,7 +1226,12 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 GF_EXPORT
 GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_internal(fsess, url, args, parent_url, err, NULL, NULL);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE);
+}
+
+GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
+{
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE);
 }
 
 
@@ -1296,6 +1302,48 @@ Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt)
 {
 	return gf_fs_forward_event(fsess, evt, 0, 0);
 }
+
+GF_EXPORT
+void gf_fs_filter_print_possible_connections(GF_FilterSession *session)
+{
+	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
+	u32 i, j, count = gf_list_count(session->registry);
+	for (i=0; i<count; i++) {
+		Bool first = GF_TRUE;
+		const GF_FilterRegister *src = gf_list_get(session->registry, i);
+		u32 src_bundle_count = gf_filter_caps_bundle_count(src);
+		if (!src_bundle_count) {
+			fprintf(stderr, "%s has no caps\n", src->name);
+			continue;
+		}
+
+		for (j=0; j<count; j++) {
+			u32 k, dst_bundle_idx, nb_connect;
+			const GF_FilterRegister *dst;
+			if (i==j) continue;
+			if (! gf_filter_has_out_caps(src)) continue;
+
+			dst = gf_list_get(session->registry, j);
+
+			nb_connect = 0;
+			for (k=0; k<src_bundle_count; k++) {
+				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, &dst_bundle_idx);
+			}
+			if (nb_connect) {
+				if (first) {
+					fprintf(stderr, "%s is source for:", src->name);
+					first = GF_FALSE;
+				}
+				fprintf(stderr, " %s", dst->name);
+			}
+		}
+		if (first)
+			fprintf(stderr, "%s is sink only", src->name);
+
+		fprintf(stderr, "\n");
+	}
+}
+
 
 GF_EXPORT
 void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps)

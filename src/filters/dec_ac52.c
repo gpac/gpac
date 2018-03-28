@@ -263,24 +263,19 @@ static GF_Err a52dec_process(GF_Filter *filter)
 
 
 
-static const GF_FilterCapability A52DecInputs[] =
+static const GF_FilterCapability A52DecCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AC3),
-};
-
-static const GF_FilterCapability A52DecOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC3),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister A52DecRegister = {
 	.name = "a52",
 	.description = "A52 decoder",
 	.private_size = sizeof(GF_A52DecCtx),
-	INCAPS(A52DecInputs),
-	OUTCAPS(A52DecOutputs),
+	SETCAPS(A52DecCaps),
 	.configure_pid = a52dec_configure_pid,
 	.process = a52dec_process,
 	.finalize = a52dec_finalize

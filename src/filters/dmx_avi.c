@@ -464,19 +464,15 @@ void avidmx_finalize(GF_Filter *filter)
 }
 
 
-static const GF_FilterCapability AVIDmxInputs[] =
+static const GF_FilterCapability AVIDmxCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "video/avi|video/x-avi"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/avi|video/x-avi"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "avi"),
-};
-
-
-static const GF_FilterCapability AVIDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "avi"),
 };
 
 
@@ -496,8 +492,7 @@ GF_FilterRegister AVIDmxRegister = {
 	.initialize = avidmx_initialize,
 	.finalize = avidmx_finalize,
 	.args = AVIDmxArgs,
-	INCAPS(AVIDmxInputs),
-	OUTCAPS(AVIDmxOutputs),
+	SETCAPS(AVIDmxCaps),
 	.configure_pid = avidmx_configure_pid,
 	.process = avidmx_process,
 	.process_event = avidmx_process_event,

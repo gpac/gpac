@@ -244,6 +244,7 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 	case GF_PROP_NAME:
 		if (!p1->value.string) return p2->value.string ? GF_FALSE : GF_TRUE;
 		if (!p2->value.string) return GF_FALSE;
+		if (!strcmp(p1->value.string, "*")) return GF_TRUE;
 		if (!strcmp(p2->value.string, "*")) return GF_TRUE;
 		if (strchr(p2->value.string, '|')) {
 			u32 len = strlen(p1->value.string);

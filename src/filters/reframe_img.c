@@ -235,29 +235,25 @@ GF_Err img_process(GF_Filter *filter)
 	return e;
 }
 
-static const GF_FilterCapability ReframeImgInputs[] =
+static const GF_FilterCapability ReframeImgCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "image/jpg|image/jp2|image/bmp|image/png|image/x-png+depth|image/x-png+depth+mask|image/x-png+stereo"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "image/jpg|image/jp2|image/bmp|image/png|image/x-png+depth|image/x-png+depth+mask|image/x-png+stereo"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_PNG),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_JPEG),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_J2K),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "jpg|jpeg|jp2|bmp|png|pngd|pngds|pngs"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "jpg|jpeg|jp2|bmp|png|pngd|pngds|pngs"),
 };
 
-
-static const GF_FilterCapability ReframeImgOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_PNG),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_JPEG),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_J2K),
-	{}
-};
 
 GF_FilterRegister ReframeImgRegister = {
 	.name = "img_reframe",
 	.description = "Image Reframer ",
 	.private_size = sizeof(GF_ReframeImgCtx),
-	INCAPS(ReframeImgInputs),
-	OUTCAPS(ReframeImgOutputs),
+	SETCAPS(ReframeImgCaps),
 	.configure_pid = img_configure_pid,
 	.process = img_process,
 };

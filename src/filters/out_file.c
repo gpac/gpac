@@ -31,7 +31,7 @@
 typedef struct
 {
 	//options
-	char *dst;
+	char *dst, *mime;
 	Bool append, dynext;
 
 	//only one output pid declared for now
@@ -101,6 +101,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (is_remove) {
 		ctx->pid = NULL;
 		fileout_open_close(ctx, NULL, NULL, 0);
+		return GF_OK;
 	}
 	gf_filter_pid_check_caps(pid);
 
@@ -122,6 +123,29 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
+
+	if (ctx->dst && !ctx->dynext) {
+		char *ext = strrchr(ctx->dst, '.');
+		if (!ext && !ctx->mime) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] No extension provided nor mime type for output file %s, cannot infer format\n", ctx->dst));
+			return GF_NOT_SUPPORTED;
+		}
+		if (ext) ext++;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+		//OK, good to go
+		if (p && !strcmp(p->value.string, ext)) {
+		}
+		//need reconfiguration
+		else {
+			if (ctx->mime)
+				gf_filter_pid_negociate_property(pid, GF_PROP_PID_MIME, &PROP_NAME(ctx->mime) );
+			if (ext)
+				gf_filter_pid_negociate_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext) );
+			return GF_OK;
+		}
+	}
+
 	return GF_OK;
 }
 
@@ -246,21 +270,32 @@ static GF_Err fileout_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
+{
+	if (strstr(url, "://")) {
+		if (!strnicmp(url, "file://", 7)) return GF_FPROBE_NOT_SUPPORTED;
+	}
+	return GF_FPROBE_MAYBE_SUPPORTED;
+}
 
 
 #define OFFS(_n)	#_n, offsetof(GF_FileOutCtx, _n)
 
 static const GF_FilterArgs FileOutArgs[] =
 {
-	{ OFFS(dst), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{}
 };
 
-static const GF_FilterCapability FileOutInputs[] =
+static const GF_FilterCapability FileOutCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_MIME, "*"),
+	{},
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_FILE_EXT, "*"),
 };
 
 
@@ -269,7 +304,8 @@ GF_FilterRegister FileOutRegister = {
 	.description = "Generic File Output",
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
-	INCAPS(FileOutInputs),
+	SETCAPS(FileOutCaps),
+	.probe_url = fileout_probe_url,
 	.initialize = fileout_initialize,
 	.finalize = fileout_finalize,
 	.configure_pid = fileout_configure_pid,

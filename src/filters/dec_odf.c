@@ -406,18 +406,14 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	return GF_TRUE;
 }
 
-static const GF_FilterCapability ODFDecInputs[] =
+static const GF_FilterCapability ODFDecCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V1),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V2),
-};
-
-static const GF_FilterCapability ODFDecOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_OD_V1),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_OD_V2),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister ODFDecRegister = {
@@ -425,8 +421,7 @@ GF_FilterRegister ODFDecRegister = {
 	.description = "MPEG-4 OD Decoder",
 	.private_size = sizeof(GF_ODFDecCtx),
 	.requires_main_thread = GF_TRUE,
-	INCAPS(ODFDecInputs),
-	OUTCAPS(ODFDecOutputs),
+	SETCAPS(ODFDecCaps),
 	.process = odf_dec_process,
 	.configure_pid = odf_dec_configure_pid,
 	.process_event = odf_dec_process_event,

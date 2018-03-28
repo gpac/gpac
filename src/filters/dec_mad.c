@@ -242,26 +242,21 @@ static GF_Err maddec_process(GF_Filter *filter)
 }
 
 
-static const GF_FilterCapability MADInputs[] =
+static const GF_FilterCapability MADCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
-};
-
-static const GF_FilterCapability MADOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister MADRegister = {
 	.name = "mad",
 	.description = "MAD decoder",
 	.private_size = sizeof(GF_MADCtx),
-	INCAPS(MADInputs),
-	OUTCAPS(MADOutputs),
+	SETCAPS(MADCaps),
 	.finalize = maddec_finalize,
 	.configure_pid = maddec_configure_pid,
 	.process = maddec_process,

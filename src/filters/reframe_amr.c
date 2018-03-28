@@ -493,22 +493,18 @@ static void amrdmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
-static const GF_FilterCapability AMRDmxInputs[] =
+static const GF_FilterCapability AMRDmxCaps[] =
 {
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/amr|audio/evrc|audio/smv"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AMR),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AMR_WB),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SMV),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_EVRC),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/amr|audio/evrc|audio/smv"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "amr|awb|evc|smv"),
-};
-
-static const GF_FilterCapability AMRDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AMR),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AMR_WB),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SMV),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EVRC),
-	{}
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "amr|awb|evc|smv"),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_AMRDmxCtx, _n)
@@ -525,8 +521,7 @@ GF_FilterRegister AMRDmxRegister = {
 	.private_size = sizeof(GF_AMRDmxCtx),
 	.args = AMRDmxArgs,
 	.finalize = amrdmx_finalize,
-	INCAPS(AMRDmxInputs),
-	OUTCAPS(AMRDmxOutputs),
+	SETCAPS(AMRDmxCaps),
 	.configure_pid = amrdmx_configure_pid,
 	.process = amrdmx_process,
 	.process_event = amrdmx_process_event

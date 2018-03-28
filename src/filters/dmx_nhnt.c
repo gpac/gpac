@@ -460,19 +460,16 @@ static const GF_FilterArgs GF_NHNTDmxArgs[] =
 };
 
 
-static const GF_FilterCapability NHNTDmxInputs[] =
+static const GF_FilterCapability NHNTDmxCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-nhnt"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-nhnt"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "nhnt"),
-};
-
-
-static const GF_FilterCapability NHNTDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "nhnt"),
 };
 
 
@@ -483,8 +480,7 @@ GF_FilterRegister NHNTDmxRegister = {
 	.args = GF_NHNTDmxArgs,
 	.initialize = nhntdmx_initialize,
 	.finalize = nhntdmx_finalize,
-	INCAPS(NHNTDmxInputs),
-	OUTCAPS(NHNTDmxOutputs),
+	SETCAPS(NHNTDmxCaps),
 	.configure_pid = nhntdmx_configure_pid,
 	.process = nhntdmx_process,
 	.process_event = nhntdmx_process_event

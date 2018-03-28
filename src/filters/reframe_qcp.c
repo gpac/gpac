@@ -651,22 +651,19 @@ static void qcpdmx_finalize(GF_Filter *filter)
 	if (ctx->buffer) gf_free(ctx->buffer);
 }
 
-static const GF_FilterCapability QCPDmxInputs[] =
+static const GF_FilterCapability QCPDmxCaps[] =
 {
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/qcp"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_QCELP),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SMV),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_EVRC),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/qcp"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "qcp"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "qcp"),
 };
 
-static const GF_FilterCapability QCPDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_QCELP),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SMV),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EVRC),
-	{}
-};
 
 #define OFFS(_n)	#_n, offsetof(GF_QCPDmxCtx, _n)
 static const GF_FilterArgs QCPDmxArgs[] =
@@ -682,8 +679,7 @@ GF_FilterRegister QCPDmxRegister = {
 	.private_size = sizeof(GF_QCPDmxCtx),
 	.args = QCPDmxArgs,
 	.finalize = qcpdmx_finalize,
-	INCAPS(QCPDmxInputs),
-	OUTCAPS(QCPDmxOutputs),
+	SETCAPS(QCPDmxCaps),
 	.configure_pid = qcpdmx_configure_pid,
 	.process = qcpdmx_process,
 	.process_event = qcpdmx_process_event

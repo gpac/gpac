@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / unit test filters
@@ -735,20 +735,14 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ NULL }
 };
 
-static const GF_FilterCapability UTFilterInputs[] =
+static const GF_FilterCapability UTFilterCaps[] =
 {
-	{ .name="cust", .val=PROP_NAME("UTSourceData") },
-	{ .name="cust", .val=PROP_NAME("UTFilterData") },
+	{ .name="cust", .val=PROP_NAME("UTSourceData"), .flags = GF_FILTER_CAPS_INPUT },
+	{ .name="cust", .val=PROP_NAME("UTFilterData"), .flags = GF_FILTER_CAPS_INPUT },
+	{.name="cust", .val=PROP_NAME("UTSourceData"), .flags = GF_FILTER_CAPS_OUTPUT },
+	{.name="cust", .val=PROP_NAME("UTFilterData"), .flags = GF_FILTER_CAPS_OUTPUT },
 	{}
 };
-
-static const GF_FilterCapability UTFilterOutputs[] =
-{
-	{.name="cust", .val=PROP_NAME("UTSourceData") },
-	{.name="cust", .val=PROP_NAME("UTFilterData") },
-	{}
-};
-
 
 static const GF_FilterCapability UTSinkInputs[] =
 {
@@ -758,13 +752,13 @@ static const GF_FilterCapability UTSinkInputs[] =
 
 static const GF_FilterCapability UTSink2Inputs[] =
 {
-	{ .name="cust", .val=PROP_NAME("UTFilterData") },
+	{ .name="cust", .val=PROP_NAME("UTFilterData"), .flags = GF_FILTER_CAPS_OUTPUT },
 	{}
 };
 
 static const GF_FilterCapability UTSourceOutputs[] =
 {
-	{.name="cust", .val=PROP_NAME("UTSourceData") },
+	{.name="cust", .val=PROP_NAME("UTSourceData"), .flags = GF_FILTER_CAPS_OUTPUT },
 	{}
 };
 
@@ -773,8 +767,8 @@ const GF_FilterRegister UTFilterRegister = {
 	.name = "UTFilter",
 	.description = "Unit Test Filter, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	INCAPS( UTFilterInputs),
-	OUTCAPS(UTFilterOutputs),
+	.explicit_only = 1,
+	SETCAPS( UTFilterCaps),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
@@ -788,7 +782,8 @@ const GF_FilterRegister UTSinkRegister = {
 	.name = "UTSink",
 	.description = "Unit Test Sink, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	INCAPS(UTSinkInputs),
+	.explicit_only = 1,
+	SETCAPS(UTSinkInputs),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
@@ -801,7 +796,8 @@ const GF_FilterRegister UTSink2Register = {
 	.name = "UTSink2",
 	.description = "Unit Test Sink, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	INCAPS(UTSink2Inputs),
+	.explicit_only = 1,
+	SETCAPS(UTSink2Inputs),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
@@ -814,7 +810,8 @@ const GF_FilterRegister UTSourceRegister = {
 	.name = "UTSource",
 	.description = "Unit Test Source, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	OUTCAPS(UTSourceOutputs),
+	.explicit_only = 1,
+	SETCAPS(UTSourceOutputs),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,

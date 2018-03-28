@@ -938,11 +938,20 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 }
 
 
-static const GF_FilterCapability M2TSDmxInputs[] =
+static const GF_FilterCapability M2TSDmxCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_M2TSDmxCtx, _n)
@@ -953,16 +962,6 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 	{}
 };
 
-static const GF_FilterCapability M2TSDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-};
-
 
 GF_FilterRegister M2TSDmxRegister = {
 	.name = "m2tsd",
@@ -971,8 +970,7 @@ GF_FilterRegister M2TSDmxRegister = {
 	.initialize = m2tsdmx_initialize,
 	.finalize = m2tsdmx_finalize,
 	.args = M2TSDmxArgs,
-	INCAPS(M2TSDmxInputs),
-	OUTCAPS(M2TSDmxOutputs),
+	SETCAPS(M2TSDmxCaps),
 	.configure_pid = m2tsdmx_configure_pid,
 	.process = m2tsdmx_process,
 	.process_event = m2tsdmx_process_event,

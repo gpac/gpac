@@ -280,16 +280,11 @@ static void nhntdump_finalize(GF_Filter *filter)
 	if (ctx->bs) gf_bs_del(ctx->bs);
 }
 
-static const GF_FilterCapability NHNTDumpInputs[] =
+static const GF_FilterCapability NHNTDumpCaps[] =
 {
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-};
-
-
-static const GF_FilterCapability NHNTDumpOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{}
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "nhnt"),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_NHNTDumpCtx, _n)
@@ -309,8 +304,7 @@ GF_FilterRegister NHNTDumpRegister = {
 	.explicit_only = 1,
 	.args = NHNTDumpArgs,
 	.finalize = nhntdump_finalize,
-	INCAPS(NHNTDumpInputs),
-	OUTCAPS(NHNTDumpOutputs),
+	SETCAPS(NHNTDumpCaps),
 	.configure_pid = nhntdump_configure_pid,
 	.process = nhntdump_process
 };

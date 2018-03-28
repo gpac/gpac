@@ -121,21 +121,17 @@ GF_Err m4vmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static const GF_FilterCapability M4VMxInputs[] =
+static const GF_FilterCapability M4VMxCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+
+	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 
-static const GF_FilterCapability M4VMxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
-	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	{}
-};
 
 #define OFFS(_n)	#_n, offsetof(GF_M4VMxCtx, _n)
 static const GF_FilterArgs M4VMxArgs[] =
@@ -150,8 +146,7 @@ GF_FilterRegister M4VMxRegister = {
 	.description = "ISOBMFF to MPEG-4 Visual writer",
 	.private_size = sizeof(GF_M4VMxCtx),
 	.args = M4VMxArgs,
-	INCAPS(M4VMxInputs),
-	OUTCAPS(M4VMxOutputs),
+	SETCAPS(M4VMxCaps),
 	.configure_pid = m4vmx_configure_pid,
 	.process = m4vmx_process
 };

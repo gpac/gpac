@@ -504,26 +504,22 @@ static void ac3dmx_finalize(GF_Filter *filter)
 }
 
 //TODO - eac3 needs more testing
-static const GF_FilterCapability AC3DmxInputs[] =
+static const GF_FilterCapability AC3DmxCaps[] =
 {
-//	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3|audio/x-eac3|audio/eac3"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+//	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3|audio/x-eac3|audio/eac3"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AC3),
 	{},
-//	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ac3|eac3"),
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ac3"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+//	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac3|eac3"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac3"),
 	{},
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AC3),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_EAC3),
-	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-};
-
-
-static const GF_FilterCapability AC3DmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_AC3),
-	//TODO check with E-AC3
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC3),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_EAC3),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_AC3DmxCtx, _n)
@@ -540,8 +536,7 @@ GF_FilterRegister AC3DmxRegister = {
 	.private_size = sizeof(GF_AC3DmxCtx),
 	.args = AC3DmxArgs,
 	.finalize = ac3dmx_finalize,
-	INCAPS(AC3DmxInputs),
-	OUTCAPS(AC3DmxOutputs),
+	SETCAPS(AC3DmxCaps),
 	.configure_pid = ac3dmx_configure_pid,
 	.process = ac3dmx_process,
 	.process_event = ac3dmx_process_event

@@ -1392,23 +1392,22 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 }
 
-static const GF_FilterCapability MP4MuxInputs[] =
+static const GF_FilterCapability MP4MuxCaps[] =
 {
 	//for now don't accep files as input, although we could store them as items
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	//we want framed media only
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//and any codecid
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	{},
 	//for scene and OD, we don't want raw codecid (filters modifying a scene graph we don't expose)
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{}
 };
 
@@ -1437,7 +1436,7 @@ GF_FilterRegister MP4MuxRegister = {
 	.args = MP4MuxArgs,
 	.initialize = mp4_mux_initialize,
 	.finalize = mp4_mux_finalize,
-	INCAPS(MP4MuxInputs),
+	SETCAPS(MP4MuxCaps),
 	.configure_pid = mp4_mux_configure_pid,
 	.process = mp4_mux_process,
 //	.process_event = mp4_mux_process_event

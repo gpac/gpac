@@ -1350,21 +1350,17 @@ static const GF_FilterArgs GF_NHMLDmxArgs[] =
 };
 
 
-static const GF_FilterCapability NHMLDmxInputs[] =
+static const GF_FilterCapability NHMLDmxCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-nhml|application/dims"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-nhml|application/dims"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
 };
-
-
-static const GF_FilterCapability NHMLDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-};
-
 
 GF_FilterRegister NHMLDmxRegister = {
 	.name = "nhmldmx",
@@ -1373,8 +1369,7 @@ GF_FilterRegister NHMLDmxRegister = {
 	.args = GF_NHMLDmxArgs,
 	.initialize = nhmldmx_initialize,
 	.finalize = nhmldmx_finalize,
-	INCAPS(NHMLDmxInputs),
-	OUTCAPS(NHMLDmxOutputs),
+	SETCAPS(NHMLDmxCaps),
 	.configure_pid = nhmldmx_configure_pid,
 	.process = nhmldmx_process,
 	.process_event = nhmldmx_process_event
