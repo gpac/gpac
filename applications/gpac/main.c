@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -40,6 +40,9 @@ static Bool print_filter_info = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
 
+//the default set of separators
+static char separator_set[5] = ":=#@";
+
 static void print_filters(int argc, char **argv, GF_FilterSession *session);
 
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
@@ -62,61 +65,98 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 	fflush(logs);
 }
 
+static void gpac_filter_help(void)
+{
+	fprintf(stderr,
+"Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
+"This is the command line utility of GPAC for setting up and running filter chains.\n"
+"See -h for available options.\n"
+"Help is given with default separator sets :=#@. See -s to change them.\n"
+"\n"
+"Filters are listed with their name and options are given using a list of colon-separated Name=Value: \n"
+"\tValue can be omitted for booleans, defaulting to true.\n"
+"\tName can be omitted for enumerations (eg :mode=pbo is equivalent to :pbo).\n"
+"\tSources may be specified direcly using src=URL, or forcing a dedicated input using input:src=URL.\n"
+"\n"
+"When string parameters are used (eg URLs), it is recommended to escape the string using the keword \"gpac\" \n"
+"\tEX: \"filter:ARG=http://foo/bar?yes:gpac:opt=VAL\" will properly extract the URL\n"
+"\tEX: \"filter:ARG=http://foo/bar?yes:opt=VAL\" will fail to extract it and keep :opt=VAL as part of the URL\n"
+"Note that the escape mechanism is not needed for local source files, for which file existence is probed during argument parsing\n"
+"\n"
+"Source and sinks filters do not need to be adressed by the filter name, spcifying src= or dst= instead is enough\n"
+"\tEX: \"src=file.mp4\" will find a filter (for example filein) able to load src, and is equivalent to filein:src=file.mp4\n"
+"\tEX: \"src=file.mp4 dst=dump.yuv\" will dump the video content of file.mp4 in dump.yuv\n"
+"\n"
+"There is a special option called gfreg which allows specifying the desired filter registry to use when handling URLs\n"
+"\tEX: \"src=file.mp4:gfreg=ffdmx\" will use ffdmx to handle the file - equivalent to ffdmx:src=file.mp4\n"
+"This is mostly used by applications loading filter chains from URL (eg media player)\n"
+"\n"
+"LINK directives may be specified. The syntax is an '@' character optionnaly followed by an integer (0 if omitted).\n"
+"This indicates which previous (0-based) filters should be link to the next filter listed.\n"
+"Only the last link directive occuring before a filter is used to setup links for that filter.\n"
+"\tEX: \"fA fB @1 fC\" indicates to direct fA outputs to fC\n"
+"\tEX: \"fA fB @1 @0 fC\" indicates to direct fB outputs to fC, @1 is ignored\n"
+"\n"
+"If no link directives are given, the links will be dynamically solved to fullfill as many connections as possible.\n"
+"For example, \"fA fB fC\" may have fA linked to fB and fC if fB and fC accept fA outputs\n"
+"\n"
+"LINK directive is just a quick shortcut to set reserved arguments:\n"
+"- FID=name, which sets the Filter ID\n"
+"- SID=name1[,name2...], which set the sourceIDs restricting the list of possible inputs for a filter.\n"
+"\n"
+"\tEX: \"fA fB @1 fC\" is equivalent to \"fA fB:FID=1 fC:SID=1\" \n"
+"\tEX: \"fA:FID=1 fB fC:SID=1\" indicates to direct fA outputs to fC\n"
+"\tEX: \"fA:FID=1 fB:FID=2 fC:SID=1 fD:SID=1,2\" indicates to direct fA outputs to fC, and fA and fB outputs to fD\n"
+"\n"
+"A filter with sourceID set cannot get input from filters with no IDs.\n"
+"The name can be further extended using (# may be changed using -s option):\n"
+"\tname#PIDNAME: accepts only PIDs with name PIDNAME\n"
+"\tname#PID=N: accepts only PIDs with ID N\n"
+"\tname#TYPE: accepts only PIDs of matching media type. TYPE can be 'audio' 'video' 'scene' 'text' 'font'\n"
+"\tname#TYPEN: accepts only Nth PID of matching type from source\n"
+"\n"
+"Note that these extensions also work with the LINK shortcut:\n"
+"\tEX: \"fA fB @1#video fC\" indicates to direct fA video outputs to fC\n"
+"\n"
+	);
+}
 
 static void gpac_usage(void)
 {
 	fprintf(stderr, "Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
 			"This is the command line utility of GPAC for setting up and running filter chains.\n"
-			"Filters are listed with their name and options are given using a list of colon-separated Name=Value:\n"
-			"\tValue can be omitted for booleans, defaulting to true.\n"
-			"\tName can be omitted for enumerations (eg :mode=pbo <=> :pbo).\n"
-			"\tSources may be specified direcly using src=URL, or forcing a dedicated demuxer using demux_name:src=URL.\n"
-			"\n"
-			"LINK directives may be specified. The syntax is an '@' character optionnaly followed by an integer (0 if omitted).\n"
-			"This indicates which previous (0-based) filters should be link to the next filter listed.\n"
-			"Only the last link directive occuring before a filter is used to setup links for that filter.\n"
-			"\tEX:, \"f1 f2 @1 f3\" inidcates to direct f1 outputs to f3\n"
-			"\tEX:, \"f1 f2 @1 @0 f3\" inidcates to direct f2 outputs to f3, @1 is ignored\n"
-			"If no link directives are given, the links will be dynamically solved to fullfill as many connections as possible.\n"
-			"For example, \"f1 f2 f3\" may have f1 linked to f2 and f3 if f2 and f3 accept f1 outputs\n"
-			"LINK directive is just a quick shortcut to set reserved argument FID=name, which sets the ID of the filter\n"
-			"and SID=name1[,name2...], which restricts the list of possible inputs path on a filter\n"
-			"\tEX: \"f1:FID=1 f2 f3:SID=1\" inidicates to direct f1 outputs to f3\n"
-			"\tEX: \"f1:FID=1 f2:FID=2 f3:SID=1 f4:SID=1,2\" indicates to direct f1 outputs to f3, and f1 and f2 outputs to f4\n"
-			"Source IDs are the names of the source filters allowed. The name can be further extended using:\n"
-			"\tname#PIDNAME: accepts only PIDs with name PIDNAME\n"
-			"\tname#PID=N: accepts only PIDs with ID N\n"
-			"\tname#TYPE: accepts only PIDs of matching media type. TYPE can be 'audio' 'video' 'scene' 'text' 'font'\n"
-			"\tname#TYPEN: accepts only Nth PID of matching type from source\n"
-			"\n"
-			"\n"
 			"\n"
 			"Global options are:\n"
 #ifdef GPAC_MEMORY_TRACKING
-            "\t-mem-track:  enables memory tracker\n"
-            "\t-mem-track-stack:  enables memory tracker with stack dumping\n"
+            "-mem-track:  enables memory tracker\n"
+            "-mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
-			"\t-list           : lists all supported filters.\n"
-			"\t-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
-			"\t-info NAME      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
+			"-s=CHARLIST      : sets the default character sets used to seperate various arguments, default is %s\n"
+			"                   The first char is used to seperate argument names\n"
+			"                   The second char, if present, is used to seperate names and values\n"
+			"                   The third char, if present, is used to seperate fragments for PID sources\n"
+			"                   The fourth char, if present, is used for LINK directives\n"
+			"-list           : lists all supported filters.\n"
+			"-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
+			"-info NAME[ NAME2]      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
 			"                    Use * to print info on all filters (warning, big output!)\n"
 			"                    Use *:* to print info on all filters including meta-filters (warning, big big output!)\n"
-			"\t-links          : prints possible connections between each supported filters and exits\n"
-			"\t-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
-			"\t-graph          : print stats after  Graph can be viewed at runtime by typing 'g' in the prompt\n"
-	        "\t-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
-			"\t-no-block       : disables blocking mode of filters\n"
-	        "\t-sched=MODE     : sets scheduler mode. Possible modes are:\n"
-	        "\t             free: uses lock-free queues (default)\n"
-	        "\t             lock: uses mutexes for queues when several threads\n"
-	        "\t             flock: uses mutexes for queues even when no thread (debug mode)\n"
-	        "\t             direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
+			"-links          : prints possible connections between each supported filters and exits\n"
+			"-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
+			"-graph          : print stats after  Graph can be viewed at runtime by typing 'g' in the prompt\n"
+	        "-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
+			"-no-block       : disables blocking mode of filters\n"
+	        "-sched=MODE     : sets scheduler mode. Possible modes are:\n"
+	        "                   free: uses lock-free queues (default)\n"
+	        "                   lock: uses mutexes for queues when several threads\n"
+	        "                   flock: uses mutexes for queues even when no thread (debug mode)\n"
+	        "                   direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
 			"\n"
-			"\t-ltf            : loads test filters for unit tests.\n"
-	        "\t-strict-error:  exit at first error\n"
-	        "\t-log-file=file: sets output log file. Also works with -lf\n"
-	        "\t-logs=log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-	        "\t                 levelX can be one of:\n"
+			"-ltf            : loads test filters for unit tests.\n"
+	        "-strict-error   :  exit at first error\n"
+	        "-log-file=file  : sets output log file. Also works with -lf\n"
+	        "-logs=log_args  : sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+	        "                   levelX can be one of:\n"
 	        "\t        \"quiet\"      : skip logs\n"
 	        "\t        \"error\"      : logs only error messages\n"
 	        "\t        \"warning\"    : logs error+warning messages\n"
@@ -153,14 +193,15 @@ static void gpac_usage(void)
 	        "\t        \"mutex\"      : mutex\n"
 	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
 	        "\n"
-	        "\t-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
-	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
+	        "-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
+	        "-log-utc or -lu        : logs UTC time in ms before each log line.\n"
+			"-h or -help   : shows command line options.\n"
+			"-doc          : shwos filter usage doc.\n"
 			"\n"
 	        "gpac - gpac command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "GPAC Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s\n",
-	        gpac_features()
+	        "Features: %s\n", separator_set, gpac_features()
 	);
 
 }
@@ -193,7 +234,9 @@ static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
 	int i;
+	Bool override_seps=GF_FALSE;
 	s32 link_prev_filter = -1;
+	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
 
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
@@ -213,6 +256,19 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
 			gpac_usage();
 			return 0;
+		} else if (!strcmp(arg, "-doc")) {
+			gpac_filter_help();
+			return 0;
+		} else if (!strncmp(arg, "-s=", 3)) {
+			u32 len;
+			arg = arg+3;
+			len = strlen(arg);
+			if (!len) continue;
+			override_seps = GF_TRUE;
+			if (len>=1) separator_set[0] = arg[0];
+			if (len>=2) separator_set[1] = arg[1];
+			if (len>=3) separator_set[2] = arg[2];
+			if (len>=4) separator_set[3] = arg[3];
 		}
 	}
 	gf_sys_init(mem_track);
@@ -290,6 +346,7 @@ static int gpac_main(int argc, char **argv)
 	if (!session) {
 		return 1;
 	}
+	if (override_seps) gf_fs_set_separators(session, separator_set);
 	if (load_test_filters) gf_fs_register_test_filters(session);
 
 
@@ -309,11 +366,17 @@ static int gpac_main(int argc, char **argv)
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
 
-		if (arg[0]=='@') {
+		if (arg[0]== separator_set[3] ) {
+			char *ext = strchr(arg, separator_set[2]);
+			if (ext) {
+				ext[0] = 0;
+				link_prev_filter_ext = ext+1;
+			}
 			link_prev_filter = 0;
 			if (strlen(arg)>1)
 				link_prev_filter = atoi(arg+1);
 
+			if (ext) ext[0] = separator_set[2];
 			continue;
 		}
 
@@ -332,7 +395,8 @@ static int gpac_main(int argc, char **argv)
 				goto exit;
 			}
 			link_prev_filter = -1;
-			gf_filter_set_source(filter, link_from);
+			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
+			link_prev_filter_ext = NULL;
 		}
 
 		if (!filter) {
@@ -476,11 +540,13 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 
 				if (!strcmp(arg, reg->name) )
 					print_filter(reg);
-				else if (!strchr(reg->name, ':') && !strcmp(arg, "*"))
+				else if (!strchr(reg->name, ':') && !strcmp(arg, "*")) {
 					print_filter(reg);
-				else if (strchr(reg->name, ':') && !strcmp(arg, "*:*"))
+					break;
+				} else if (strchr(reg->name, ':') && !strcmp(arg, "*:*")) {
 					print_filter(reg);
-				break;
+					break;
+				}
 			}
 		} else {
 			fprintf(stderr, "%s: %s\n", reg->name, reg->description);

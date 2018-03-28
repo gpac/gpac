@@ -566,25 +566,25 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 			last=GF_TRUE;
 		}
 
-		pid_name = strchr(source_ids, '#');
+		pid_name = strchr(source_ids, src_pid->filter->session->sep_frag);
 		if (pid_name > source_ids + len) pid_name = NULL;
 		sublen = pid_name ? pid_name - source_ids : len;
-		//skip #
+		//skip frag char
 		if (pid_name) pid_name++;
 
 		//match id
 		if (!strncmp(id, source_ids, sublen)) {
-			const GF_PropertyValue *name;
+			const GF_PropertyValue *prop;
 			if (!pid_name) return GF_TRUE;
 
 			//match pid name
 			if (!strcmp(src_pid->name, pid_name)) return GF_TRUE;
 
 			if (!strnicmp(pid_name, "PID=", 4)) {
-				name = gf_filter_pid_get_property(src_pid, GF_PROP_PID_ID);
-				if (name) {
+				prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_ID);
+				if (prop) {
 					u32 pid_id_target;
-					if ((sscanf(pid_name, "PID=%d", &pid_id_target) == 1) && (pid_id_target==name->value.uint)) {
+					if ((sscanf(pid_name, "PID=%d", &pid_id_target) == 1) && (pid_id_target==prop->value.uint)) {
 						return GF_TRUE;
 					}
 					*pid_excluded = GF_TRUE;
@@ -595,25 +595,33 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 				}
 			}
 			//special case for stream types filters
-			name = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
-			if (name) {
+			prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
+			if (prop) {
 				u32 matched=0;
 				u32 type=0;
-				if (!strnicmp(pid_name, "audio", 5) && (name->value.uint==GF_STREAM_AUDIO)) {
+				if (!strnicmp(pid_name, "audio", 5)) {
 					matched=5;
 					type=GF_STREAM_AUDIO;
-				} else if (!strnicmp(pid_name, "video", 5) && (name->value.uint==GF_STREAM_VISUAL)) {
+				} else if (!strnicmp(pid_name, "video", 5)) {
 					matched=5;
 					type=GF_STREAM_VISUAL;
-				} else if (!strnicmp(pid_name, "scene", 5) && (name->value.uint==GF_STREAM_SCENE)) {
+				} else if (!strnicmp(pid_name, "scene", 5)) {
 					matched=5;
 					type=GF_STREAM_SCENE;
-				} else if (!strnicmp(pid_name, "font", 4) && (name->value.uint==GF_STREAM_FONT)) {
+				} else if (!strnicmp(pid_name, "font", 4)) {
 					matched=4;
 					type=GF_STREAM_FONT;
-				} else if (!strnicmp(pid_name, "text", 4) && (name->value.uint==GF_STREAM_TEXT)) {
+				} else if (!strnicmp(pid_name, "text", 4)) {
 					matched=4;
 					type=GF_STREAM_TEXT;
+				}
+				if (matched && (type != prop->value.uint)) {
+					//special case: if we request a non-file stream but the pid is a file, we will need a demux to
+					//move from file to A/V/... streams, so we accept any #MEDIA from file streams
+					if (prop->value.uint == GF_STREAM_FILE) {
+						return GF_TRUE;
+					}
+					matched = 0;
 				}
 
 				if (matched) {
@@ -624,8 +632,8 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 					count_pid = src_pid->filter->num_output_pids;
 					for (k=0; k<count_pid; k++) {
 						GF_FilterPid *p = gf_list_get(src_pid->filter->output_pids, k);
-						name = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
-						if (name && name->value.uint==type) {
+						prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
+						if (prop && prop->value.uint==type) {
 							idx--;
 							if (!idx) {
 								if (p==src_pid) return GF_TRUE;
@@ -638,8 +646,8 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 			}
 
 			//TODO: match by PID type #audioX, #videoX
-			if (!name) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unsupported PID adressing #%s in filter %s\n", pid_name, src_pid->filter->name));
+			if (!prop) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unsupported PID adressing %c%s in filter %s\n", src_pid->filter->session->sep_frag, pid_name, src_pid->filter->name));
 			}
 		}
 
@@ -1478,6 +1486,8 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 		pid->caps_negociate = NULL;
 	}
 
+	//since we may have inserted filters in the middle (demuxers typically), get the last explicitely
+	//loaded ID in the chain
 	filter_id = gf_filter_last_id_in_chain(filter);
 
 restart:
@@ -1519,7 +1529,6 @@ restart:
 		}
 
 		//if we have sourceID info on the destination, check them
-		//since we may have inserted filters in the middle, ask for the last explicitely loaded ID in the chain
 		if (filter_id) {
 			if (filter_dst->source_ids) {
 				Bool pid_excluded=GF_FALSE;
@@ -1527,10 +1536,8 @@ restart:
 					if (pid_excluded) filter_found_but_pid_excluded = GF_TRUE;
 					continue;
 				}
-			} else {
-				//when a filter has an ID, we only allow connection to filters with source IDs
-				continue;
 			}
+			//if no source ID on the dst filter, this means the dst filter accepts any possible connections from out filter
 		}
 		//no filterID and dst expects only specific filters, continue
 		else if (filter_dst->source_ids) {

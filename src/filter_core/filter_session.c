@@ -198,7 +198,28 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;
 	fsess->decoder_pid_buffer_max_us = 1000000;
+
+	gf_fs_set_separators(fsess, NULL);
 	return fsess;
+}
+
+
+GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set)
+{
+	if (!session) return GF_BAD_PARAM;
+	if (separator_set && (strlen(separator_set)<3)) return GF_BAD_PARAM;
+
+	if (separator_set) {
+		session->sep_args = separator_set[0];
+		session->sep_name = separator_set[1];
+		session->sep_frag = separator_set[2];
+	} else {
+		session->sep_args = ':';
+		session->sep_name = '=';
+		session->sep_frag = '#';
+	}
+	return GF_OK;
+
 }
 
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)
@@ -219,7 +240,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	assert(fsess);
 
 	gf_fs_stop(fsess);
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session destroy\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroy begin\n"));
 
 	//temporary until we don't introduce fsess_stop
 	assert(fsess->run_status != GF_OK);
@@ -316,7 +337,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	if (fsess->evt_mx) gf_mx_del(fsess->evt_mx);
 	if (fsess->event_listeners) gf_list_del(fsess->event_listeners);
 	gf_free(fsess);
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session destroyed\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
 }
 
 GF_EXPORT
@@ -443,7 +464,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 
 	assert(fsess);
 	assert(name);
-	sep = strchr(name, ':');
+	sep = strchr(name, fsess->sep_args);
 	if (sep) {
 		args = sep+1;
 		len = sep - name;
@@ -933,7 +954,7 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 {
 	u32 i, count = fsess->threads ? gf_list_count(fsess->threads) : 0;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session stop\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session stop\n"));
 	if (count+1 == fsess->nb_threads_stopped) {
 		return GF_OK;
 	}
@@ -1135,19 +1156,26 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (gf_url_is_local(sURL))
 			gf_url_to_fs_path(sURL);
 	}
-	sep = strstr(sURL, "://");
-	if (sep) {
-		sep = strchr(sep+3, '/');
-		if (sep) sep = strstr(sep+1, ":gpac:");
+	//special case here, need to escape ://
+	if (fsess->sep_args==':') {
+		sep = strstr(sURL, "://");
+		if (sep) {
+			sep = strchr(sep+3, '/');
+			if (sep) sep = strstr(sep+1, ":gpac:");
+		} else {
+			sep = strchr(sURL, ':');
+			if (sep && !strnicmp(sep, ":\\", 2)) sep = strstr(sep+2, ":gpac:");
+		}
 	} else {
-		sep = strchr(sURL, ':');
-		if (sep && !strnicmp(sep, ":\\", 2)) sep = strstr(sep+2, ":gpac:");
+		sep = strchr(sURL, fsess->sep_args);
 	}
 	if (sep) {
+		char szForceReg[20];
 		sep[0] = 0;
-		force_freg = strstr(sep+1, "filter=");
+		sprintf(szForceReg, "gfreg%c", fsess->sep_name);
+		force_freg = strstr(sep+1, szForceReg);
 		if (force_freg)
-			force_freg += 7;
+			force_freg += 6;
 	}
 
 	//check all our registered filters
@@ -1188,14 +1216,21 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (filter) filter->finalized = GF_TRUE;
 		return NULL;
 	}
-	if (sep) sep[0] = ':';
+	if (sep) sep[0] = fsess->sep_args;
 
 	user_args_len = user_args ? strlen(user_args) : 0;
 	args = gf_malloc(sizeof(char)*(5+strlen(sURL) + (user_args_len ? user_args_len + 1  :0) ) );
-	strcpy(args, for_source ? "src=" : "dst=");
+
+	sprintf(args, "%s%c", for_source ? "src" : "dst", fsess->sep_name);
 	strcat(args, sURL);
 	if (user_args_len) {
-		strcat(args, ":gpac:");
+		if (fsess->sep_args==':') strcat(args, ":gpac:");
+		else {
+			char szSep[2];
+			szSep[0] = fsess->sep_args;
+			szSep[1] = 0;
+			strcat(args, szSep);
+		}
 		strcat(args, user_args);
 	}
 
