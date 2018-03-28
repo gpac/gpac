@@ -398,17 +398,13 @@ packed_frame :
 	return GF_OK;
 }
 
-static const GF_FilterCapability XVIDInputs[] =
+static const GF_FilterCapability XVIDCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-};
-
-static const GF_FilterCapability XVIDOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_XVIDCtx, _n)
@@ -430,8 +426,7 @@ GF_FilterRegister XVIDRegister = {
 	.description = "XVid decoder",
 	.private_size = sizeof(GF_XVIDCtx),
 	.args = XVIDArgs,
-	INCAPS(XVIDInputs),
-	OUTCAPS(XVIDOutputs),
+	SETCAPS(XVIDCaps),
 	.initialize = xviddec_initialize,
 	.finalize = xviddec_finalize,
 	.configure_pid = xviddec_configure_pid,

@@ -372,22 +372,21 @@ GF_Err compose_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+/*
 #define OFFS(_n)	#_n, offsetof(GF_CompositorFilter, _n)
 static const GF_FilterArgs CompositorFilterArgs[] =
 {
-	//example uint option using enum, result parsed ranges from 0(=v1) to 2(=v3)
-	{ NULL }
+	{}
 };
+*/
 
-static const GF_FilterCapability CompositorFilterInputs[] =
+static const GF_FilterCapability CompositorFilterCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	//we don't accept text streams for now, we only use scene streams for text
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE)
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 const GF_FilterRegister CompositorFilterRegister = {
@@ -395,8 +394,9 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.description = "Compositor Filter running the GPAC interactive media compositor",
 	.private_size = sizeof(GF_CompositorFilter),
 	.requires_main_thread = GF_TRUE,
+	.explicit_only = 1,
 	.max_extra_pids = (u32) -1,
-	INCAPS(CompositorFilterInputs),
+	SETCAPS(CompositorFilterCaps),
 //	.args = CompositorFilterArgs,
 	.initialize = compose_initialize,
 	.finalize = compose_finalize,

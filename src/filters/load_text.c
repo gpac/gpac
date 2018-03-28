@@ -2769,26 +2769,23 @@ void txtin_finalize(GF_Filter *filter)
 #endif
 }
 
-static const GF_FilterCapability TXTInInputs[] =
+static const GF_FilterCapability TXTInCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/srt|subtitle/srt|text/srt"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/sub|subtitle/sub|text/sub"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/ttxt|subtitle/ttxt|text/ttxt"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "x-subtitle/vtt|subtitle/vtt|text/vtt"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "x-quicktime/text|quicktime/text"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "subtitle/ttml|text/ttml|application/xml+ttml"),
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-shockwave-flash"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/srt|subtitle/srt|text/srt"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/sub|subtitle/sub|text/sub"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/ttxt|subtitle/ttxt|text/ttxt"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/vtt|subtitle/vtt|text/vtt"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-quicktime/text|quicktime/text"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "subtitle/ttml|text/ttml|application/xml+ttml"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-shockwave-flash"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml|swf"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml|swf"),
 	{},
 };
-
-static const GF_FilterCapability TXTInOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
-};
-
 
 #define OFFS(_n)	#_n, offsetof(GF_TXTIn, _n)
 
@@ -2815,8 +2812,7 @@ GF_FilterRegister TXTInRegister = {
 	.private_size = sizeof(GF_TXTIn),
 	.requires_main_thread = GF_TRUE,
 	.args = TXTInArgs,
-	INCAPS(TXTInInputs),
-	OUTCAPS(TXTInOutputs),
+	SETCAPS(TXTInCaps),
 	.process = txtin_process,
 	.configure_pid = txtin_configure_pid,
 	.process_event = txtin_process_event,

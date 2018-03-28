@@ -44,6 +44,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	char szName[200];
 	GF_Filter *filter;
 	GF_Err e;
+	u32 i;
 	assert(fsess);
 
 	GF_SAFEALLOC(filter, GF_Filter);
@@ -91,6 +92,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	}
 	if (filter && args) filter->orig_args = gf_strdup(args);
 
+	for (i=0; i<registry->nb_caps; i++) {
+		if (registry->caps[i].flags & GF_FILTER_CAPS_OUTPUT) {
+			filter->has_out_caps = GF_TRUE;
+			break;
+		}
+	}
 	return filter;
 }
 
@@ -706,12 +713,6 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 						pid->adapters_blacklist = NULL;
 					}
 				} else {
-					//move the pid caps to the new filter, they will be used for the pid_init task
-					new_f->caps_negociate = pid->caps_negociate;
-					pid->caps_negociate = NULL;
-					new_f->is_pid_adaptation_filter = GF_TRUE;
-					new_f->dst_filter = filter_dst;
-
 					safe_int_inc(&pid->filter->pid_connection_pending);
 					gf_filter_pid_post_connect_task(new_f, pid);
 				}
@@ -799,7 +800,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		return;
 	}
-	if (filter->removed) {
+	if (filter->removed || filter->finalized) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been removed, skiping process\n", filter->name));
 		return;
 	}
@@ -1275,7 +1276,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Swaping source filter for URL %s\n", src_url));
 
 	filter->finalized = GF_FALSE;
-	gf_fs_load_source_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->dst_filter);
+	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->dst_filter, GF_TRUE);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
 		return GF_TRUE;
@@ -1322,7 +1323,7 @@ void gf_filter_forward_clock(GF_Filter *filter)
 
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_internal(filter->session, url, NULL, parent_url, err, NULL, filter);
+	return gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE);
 }
 
 
@@ -1411,7 +1412,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from)
 	return GF_OK;
 }
 
-GF_Err gf_filter_override_input_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps )
+GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps )
 {
 	if (!filter) return GF_BAD_PARAM;
 	if (filter->num_output_pids || filter->num_output_pids) {

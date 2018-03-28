@@ -249,35 +249,42 @@ static const GF_FilterArgs InspectArgs[] =
 	{}
 };
 
+static const GF_FilterCapability InspectCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+};
 
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
 	.description = "Inspect packets on pids",
 	.private_size = sizeof(GF_InspectCtx),
+	.explicit_only = 1,
 	.max_extra_pids = (u32) -1,
 	.args = InspectArgs,
+	SETCAPS(InspectCaps),
 	.initialize = inspect_initialize,
 	.finalize = inspect_finalize,
 	.process = inspect_process,
 	.configure_pid = inspect_config_input,
 };
 
-static const GF_FilterCapability ProberInputs[] =
+static const GF_FilterCapability ProberCaps[] =
 {
 	//accept any stream but files, framed
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_NONE),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{},
 
 	//for scene and OD, we don't want raw codecid (filters modifying a scene graph we don't expose)
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{}
 };
 
@@ -286,10 +293,11 @@ const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
 	.description = "Inspect packets on demux pids (not file)",
 	.private_size = sizeof(GF_InspectCtx),
+	.explicit_only = 1,
 	.max_extra_pids = (u32) -1,
 	.args = InspectArgs,
 	.initialize = inspect_initialize,
-	INCAPS(ProberInputs),
+	SETCAPS(ProberCaps),
 	.finalize = inspect_finalize,
 	.process = inspect_process,
 	.configure_pid = inspect_config_input,

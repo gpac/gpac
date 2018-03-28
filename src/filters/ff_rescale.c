@@ -347,18 +347,14 @@ static GF_FilterArgs FFSWSArgs[] =
 	{}
 };
 
-static const GF_FilterCapability FFSWSInputs[] =
+static const GF_FilterCapability FFSWSCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
-static const GF_FilterCapability FFSWSOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{}
-};
 
 GF_FilterRegister FFSWSRegister = {
 	.name = "ffsws",
@@ -370,8 +366,7 @@ GF_FilterRegister FFSWSRegister = {
 	.private_size = sizeof(GF_FFSWScaleCtx),
 	.args = FFSWSArgs,
 	.configure_pid = ffsws_configure_pid,
-	INCAPS(FFSWSInputs),
-	OUTCAPS(FFSWSOutputs),
+	SETCAPS(FFSWSCaps),
 //	.initialize = ffsws_initialize,
 	.finalize = ffsws_finalize,
 	.process = ffsws_process,

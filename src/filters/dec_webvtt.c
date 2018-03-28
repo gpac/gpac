@@ -422,17 +422,13 @@ static const GF_FilterArgs VTTDecArgs[] =
 	{}
 };
 
-static const GF_FilterCapability VTTDecInputs[] =
+static const GF_FilterCapability VTTDecCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_WVTT),
-};
-
-static const GF_FilterCapability VTTDecOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_WVTT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister VTTDecRegister = {
@@ -441,8 +437,7 @@ GF_FilterRegister VTTDecRegister = {
 	.private_size = sizeof(GF_VTTDec),
 	.requires_main_thread = GF_TRUE,
 	.args = VTTDecArgs,
-	INCAPS(VTTDecInputs),
-	OUTCAPS(VTTDecOutputs),
+	SETCAPS(VTTDecCaps),
 	.initialize = vttd_initialize,
 	.finalize = vttd_finalize,
 	.process = vttd_process,

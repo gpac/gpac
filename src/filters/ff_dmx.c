@@ -527,11 +527,18 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 
 #define OFFS(_n)	#_n, offsetof(GF_FFDemuxCtx, _n)
 
+static const GF_FilterCapability FFDmxCaps[] =
+{
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+};
+
 
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.description = "FFMPEG demuxer "LIBAVFORMAT_IDENT,
 	.private_size = sizeof(GF_FFDemuxCtx),
+	SETCAPS(FFDmxCaps),
 	.initialize = ffdmx_initialize,
 	.finalize = ffdmx_finalize,
 	.process = ffdmx_process,
@@ -773,10 +780,18 @@ static GF_FilterProbeScore ffavin_probe_url(const char *url, const char *mime)
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
+static const GF_FilterCapability FFAVInCaps[] =
+{
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+};
+
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.description = "FFMPEG Audio Video Capture "LIBAVDEVICE_IDENT,
 	.private_size = sizeof(GF_FFDemuxCtx),
+	SETCAPS(FFAVInCaps),
 	.initialize = ffavin_initialize,
 	.finalize = ffdmx_finalize,
 	.process = ffdmx_process,

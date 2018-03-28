@@ -101,6 +101,7 @@ static void gpac_usage(void)
 			"\t-info NAME      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
 			"                    Use * to print info on all filters (warning, big output!)\n"
 			"                    Use *:* to print info on all filters including meta-filters (warning, big big output!)\n"
+			"\t-links          : prints possible connections between each supported filters and exits\n"
 			"\t-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
 			"\t-graph          : print stats after  Graph can be viewed at runtime by typing 'g' in the prompt\n"
 	        "\t-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
@@ -199,6 +200,7 @@ static int gpac_main(int argc, char **argv)
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
 	Bool disable_blocking = GF_FALSE;
+	Bool view_filter_conn = GF_FALSE;
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -261,6 +263,8 @@ static int gpac_main(int argc, char **argv)
 			print_filter_info = GF_TRUE;
 		} else if (!strcmp(arg, "-no-block")) {
 			disable_blocking = GF_TRUE;
+		} else if (!strcmp(arg, "-links")) {
+			view_filter_conn = GF_TRUE;
 		}
 
 		if (arg_val) {
@@ -293,6 +297,10 @@ static int gpac_main(int argc, char **argv)
 		print_filters(argc, argv, session);
 		goto exit;
 	}
+	if (view_filter_conn) {
+		gf_fs_filter_print_possible_connections(session);
+		goto exit;
+	}
 
 	//all good to go, load filters
 	loaded_filters = gf_list_new();
@@ -311,6 +319,8 @@ static int gpac_main(int argc, char **argv)
 
 		if (!strncmp(arg, "src=", 4) ) {
 			filter = gf_fs_load_source(session, arg+4, NULL, NULL, &e);
+		} else if (!strncmp(arg, "dst=", 4) ) {
+			filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
 		} else {
 			filter = gf_fs_load_filter(session, arg);
 		}
@@ -377,28 +387,32 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		const char *szVal;
 		char szDump[100];
 		const GF_FilterCapability *cap = &caps[i];
-		if (!cap->in_bundle && i+1==nb_caps) break;
-		if (!i) fprintf(stderr, "\tCap Bundle:\n");
-		else if (!cap->in_bundle) {
-			fprintf(stderr, "\tCap Bundle:\n");
+		if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) && i+1==nb_caps) break;
+		if (!i) fprintf(stderr, "Capabilities Bundle:\n");
+		else if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+			fprintf(stderr, "Capabilities Bundle:\n");
 			continue;
 		}
 
 		szName = cap->name ? cap->name : gf_props_4cc_get_name(cap->code);
 		if (!szName) szName = gf_4cc_to_str(cap->code);
-		fprintf(stderr, "\t\t");
-		if (cap->exclude) fprintf(stderr, "Exclude ");
+		fprintf(stderr, "\t Flags:");
+		if (cap->flags & GF_FILTER_CAPS_INPUT) fprintf(stderr, " Input");
+		if (cap->flags & GF_FILTER_CAPS_OUTPUT) fprintf(stderr, " Output");
+		if (cap->flags & GF_FILTER_CAPS_EXCLUDED) fprintf(stderr, " Exclude");
+		if (cap->flags & GF_FILTER_CAPS_EXPLICIT) fprintf(stderr, " ExplicitOnly");
+
 		//dump some interesting predefined ones which are not mapped to types
 		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);
 		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
 		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE);
 
-		fprintf(stderr, "Type=%s, value=%s, priority=%d", szName,  szVal, cap->priority);
-		if (cap->explicit_only) fprintf(stderr, " explicit only cap");
+		fprintf(stderr, " Type=%s, value=%s", szName,  szVal);
+		if (cap->priority) fprintf(stderr, ", priority=%d", cap->priority);
 		fprintf(stderr, "\n");
 	}
-
 }
+
 static void print_filter(const GF_FilterRegister *reg)
 {
 	fprintf(stderr, "Name: %s\n", reg->name);
@@ -441,13 +455,8 @@ static void print_filter(const GF_FilterRegister *reg)
 		fprintf(stderr, "No options\n");
 	}
 
-	if (reg->nb_input_caps) {
-		fprintf(stderr, "Input Capabilities:\n");
-		dump_caps(reg->nb_input_caps, reg->input_caps);
-	}
-	if (reg->nb_output_caps) {
-		fprintf(stderr, "Output Capabilities:\n");
-		dump_caps(reg->nb_output_caps, reg->output_caps);
+	if (reg->nb_caps) {
+		dump_caps(reg->nb_caps, reg->caps);
 	}
 	fprintf(stderr, "\n");
 }

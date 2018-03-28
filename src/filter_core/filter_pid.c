@@ -366,7 +366,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 		else if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
-			if (filter->freg->output_caps) {
+			if (filter->has_out_caps) {
 				Bool unload_filter = GF_TRUE;
 				//try to load another filter to handle that connection
 				//1-blacklist this filter
@@ -664,10 +664,11 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	return GF_FALSE;
 }
 
-static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, GF_Filter *dst_filter)
+static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
+	u32 cap_bundle_idx = 0;
 	u32 nb_subcaps=0;
 	Bool skip_explicit_load = GF_FALSE;
 	Bool all_caps_matched = GF_TRUE;
@@ -678,8 +679,8 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 		freg = dst_filter->freg;
 		skip_explicit_load = GF_TRUE;
 	}
-	in_caps = freg->input_caps;
-	nb_in_caps = freg->nb_input_caps;
+	in_caps = freg->caps;
+	nb_in_caps = freg->nb_caps;
 	if (filter_inst && filter_inst->forced_caps) {
 		in_caps = filter_inst->forced_caps;
 		nb_in_caps = filter_inst->nb_forced_caps;
@@ -687,6 +688,9 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 
 	if (priority)
 		(*priority) = freg->priority;
+
+	if (dst_bundle_idx)
+		(*dst_bundle_idx) = 0;
 
 	//filters with no explicit input cap accept anything for now, this should be refined ...
 	if (!in_caps)
@@ -697,13 +701,22 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 		const GF_PropertyValue *pid_cap=NULL;
 		const GF_FilterCapability *cap = &in_caps[i];
 
-		if (i && !cap->in_bundle) {
-			if (all_caps_matched) return GF_TRUE;
+		if (i && !(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+			if (all_caps_matched) {
+				if (dst_bundle_idx)
+					(*dst_bundle_idx) = cap_bundle_idx;
+				return GF_TRUE;
+			}
 			all_caps_matched = GF_TRUE;
 			nb_subcaps=0;
 			cur_bundle_start = i;
+			cap_bundle_idx++;
 			continue;
 		}
+
+		//not an input cap
+		if (! (cap->flags & GF_FILTER_CAPS_INPUT) ) continue;
+
 		nb_subcaps++;
 		//no match for this cap, go on until new one or end
 		if (!all_caps_matched) continue;
@@ -723,7 +736,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 			for (j=cur_bundle_start; j<nb_in_caps; j++) {
 				const GF_FilterCapability *a_cap = &in_caps[j];
 
-				if ((j>cur_bundle_start) && !a_cap->in_bundle) {
+				if ((j>cur_bundle_start) && ! (a_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
 					break;
 				}
 				if (cap->code) {
@@ -731,7 +744,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
 					continue;
 				}
-				if (!skip_explicit_load && a_cap->explicit_only) {
+				if (!skip_explicit_load && (a_cap->flags & GF_FILTER_CAPS_EXPLICIT) ) {
 					if (!dst_filter || (dst_filter != src_pid->filter->dst_filter)) {
 						prop_equal = GF_FALSE;
 						break;
@@ -745,7 +758,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 				if (!prop_equal) {
 					prop_equal = gf_props_equal(pid_cap, &a_cap->val);
 					//excluded cap: if value match, don't match this cap at all
-					if (cap->exclude) {
+					if (cap->flags & GF_FILTER_CAPS_EXCLUDED) {
 						if (prop_equal) {
 							prop_equal = GF_FALSE;
 							prop_excluded = GF_FALSE;
@@ -762,126 +775,298 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 				(*priority) = cap->priority;
 			}
 		}
-		else if (!cap->exclude) {
+		else if (!(cap->flags & GF_FILTER_CAPS_EXCLUDED) ) {
 			all_caps_matched=GF_FALSE;
 		}
 	}
 
-	if (nb_subcaps && all_caps_matched)
+	if (nb_subcaps && all_caps_matched) {
+		if (dst_bundle_idx)
+			(*dst_bundle_idx) = cap_bundle_idx;
 		return GF_TRUE;
+	}
 
 	return GF_FALSE;
 }
 
-static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_FilterRegister *dst)
+u32 gf_filter_caps_bundle_count(const GF_FilterRegister *freg)
+{
+	u32 i, nb_bundles = freg->nb_caps ? 1 : 0;
+	for (i=0; i<freg->nb_caps; i++) {
+		const GF_FilterCapability *cap = &freg->caps[i];
+		if (! (cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+			nb_bundles++;
+			continue;
+		}
+	}
+	return nb_bundles;
+}
+
+Bool gf_filter_has_out_caps(const GF_FilterRegister *freg)
+{
+	u32 i;
+	//check all input caps of dst filter, count bundles
+	for (i=0; i<freg->nb_caps; i++) {
+		const GF_FilterCapability *out_cap = &freg->caps[i];
+		if (out_cap->flags & GF_FILTER_CAPS_OUTPUT) {
+			return GF_TRUE;
+		}
+	}
+	return GF_FALSE;
+}
+
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, u32 *dst_bundle_idx)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
+	u32 cur_bundle_idx = 0;
 	u32 nb_matched=0;
-	u32 nb_subcaps=0;
-	Bool all_caps_matched = src->nb_output_caps ? GF_TRUE : GF_FALSE;
+	u32 nb_out_caps=0;
+	u32 nb_in_bundles=0;
+	u32 bundle_score = 0;
+	Bool *bundles_in_ok = NULL;
+	u32 *bundles_cap_found = NULL;
+	u32 *bundles_in_scores = NULL;
+	//initialize caps matched to true for first cap bundle
+	Bool all_caps_matched = GF_TRUE;
+
+	//check all input caps of dst filter, count bundles
+	if (! gf_filter_has_out_caps(src)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no output caps, cannot match filter %s inputs\n", src->name, dst->name));
+		return 0;
+	}
+
+	//check all input caps of dst filter, count bundles
+	nb_in_bundles = gf_filter_caps_bundle_count(dst);
+	if (!nb_in_bundles) {
+		if (dst->configure_pid) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no caps but pid configure possible, assuming possible connection\n", dst->name));
+			return 1;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no caps and no pid configure, no possible connection\n", dst->name));
+		return 0;
+	}
+	bundles_in_ok = gf_malloc(sizeof(Bool) * nb_in_bundles);
+	bundles_cap_found = gf_malloc(sizeof(u32) * nb_in_bundles);
+	bundles_in_scores = gf_malloc(sizeof(u32) * nb_in_bundles);
+	for (i=0; i<nb_in_bundles; i++) {
+		bundles_in_ok[i] = GF_TRUE;
+		bundles_cap_found[i] = 0;
+		bundles_in_scores[i] = 0;
+	}
+
 
 	//check all output caps of src filter
-	for (i=0; i<src->nb_output_caps; i++) {
+	for (i=0; i<src->nb_caps; i++) {
 		u32 j, k;
+		Bool already_tested = GF_FALSE;
 		Bool matched=GF_FALSE;
 		Bool exclude=GF_FALSE;
 		Bool prop_found=GF_FALSE;
-		const GF_FilterCapability *out_cap = &src->output_caps[i];
+		const GF_FilterCapability *out_cap = &src->caps[i];
 
-		if (!out_cap->in_bundle) {
-			if (all_caps_matched) nb_matched++;
+		if (!(out_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
 			all_caps_matched = GF_TRUE;
-			nb_subcaps=0;
 			cur_bundle_start = i+1;
+			cur_bundle_idx++;
+			if (src_bundle_idx < cur_bundle_idx)
+				break;
+
 			continue;
 		}
-		nb_subcaps++;
+
+		//not our selected output and not static cap
+		if ((src_bundle_idx != cur_bundle_idx) && ! (out_cap->flags & GF_FILTER_CAPS_STATIC) ) {
+			continue;
+		}
+
+		//not an output cap
+		if (!(out_cap->flags & GF_FILTER_CAPS_OUTPUT) ) continue;
+
 		//no match possible for this cap, wait until next cap start
 		if (!all_caps_matched) continue;
-//		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Checking output cap %s of filter %s in filter %s inputs\n", out_cap->code ? gf_props_4cc_get_name(out_cap->code) : out_cap->name, src->name, dst->name));
 
+		//check we didn't test a cap with same name/code before us
+		for (k=cur_bundle_start; k<i; k++) {
+			const GF_FilterCapability *an_out_cap = &src->caps[k];
+			if (! (an_out_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+				break;
+			}
+			if (! (an_out_cap->flags & GF_FILTER_CAPS_OUTPUT) ) {
+				continue;
+			}
+			if (out_cap->code && (out_cap->code==an_out_cap->code) ) {
+				already_tested = GF_TRUE;
+				break;
+			}
+			if (out_cap->name && an_out_cap->name && !strcmp(out_cap->name, an_out_cap->name)) {
+				already_tested = GF_TRUE;
+				break;
+			}
+		}
+		if (already_tested) {
+			continue;
+		}
+		nb_out_caps++;
+
+		//set cap as OK in all bundles
+		for (k=0; k<nb_in_bundles; k++) {
+			bundles_cap_found[k] = 0;
+		}
 
 		//check all output caps in this bundle with the same code/name, consider OK if one is matched
-		for (k=cur_bundle_start; k<src->nb_output_caps; k++) {
-			const GF_FilterCapability *an_out_cap = &src->output_caps[k];
-			if (!an_out_cap->in_bundle) {
+		for (k=cur_bundle_start; k<src->nb_caps; k++) {
+			u32 cur_dst_bundle=0;
+			Bool static_matched = GF_FALSE;
+			u32 nb_caps_tested = 0;
+			const GF_FilterCapability *an_out_cap = &src->caps[k];
+			if (! (an_out_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
 				break;
+			}
+			if (! (an_out_cap->flags & GF_FILTER_CAPS_OUTPUT) ) {
+				continue;
 			}
 			if (out_cap->code && (out_cap->code!=an_out_cap->code) )
 				continue;
 			if (out_cap->name && (!an_out_cap->name || strcmp(out_cap->name, an_out_cap->name)))
 				continue;
 
+			//not our selected output and not static cap
+			if ((src_bundle_idx != cur_bundle_idx) && ! (an_out_cap->flags & GF_FILTER_CAPS_STATIC) ) {
+				continue;
+			}
+
+			nb_matched = 0;
 			//check all input caps of dst filter, count ones that are matched
-			for (j=0; j<dst->nb_input_caps; j++) {
+			for (j=0; j<dst->nb_caps; j++) {
 				Bool prop_equal;
-				const GF_FilterCapability *in_cap = &dst->input_caps[j];
+				const GF_FilterCapability *in_cap = &dst->caps[j];
+
+				if (! (in_cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+					//we found a prop, excluded but with != value hence acceptable, default matching to true
+					if (!matched && prop_found) matched = GF_TRUE;
+					//not match, flag this bundle as not ok
+					if (matched) {
+						bundles_cap_found[cur_dst_bundle] ++;
+						nb_matched++;
+					}
+
+					matched = static_matched ? GF_TRUE : GF_FALSE;
+					exclude = GF_FALSE;
+					prop_found = GF_FALSE;
+					nb_caps_tested = 0;
+					cur_dst_bundle++;
+					continue;
+				}
+				//not an input cap
+				if (!(in_cap->flags & GF_FILTER_CAPS_INPUT) )
+					continue;
+				//prop was excluded, cannot match in bundle
+				if (exclude) continue;
+				//prop was matched, no need to check other caps in the current bundle
+				if (matched) continue;
 
 				if (out_cap->code && (out_cap->code!=in_cap->code) )
 					continue;
 				if (out_cap->name && (!in_cap->name || strcmp(out_cap->name, in_cap->name)))
 					continue;
 
+				nb_caps_tested++;
 				//we found a property of that type , check if equal equal
 				prop_equal = gf_props_equal(&in_cap->val, &an_out_cap->val);
-				if (in_cap->exclude && !an_out_cap->exclude) {
+				if ((in_cap->flags & GF_FILTER_CAPS_EXCLUDED) && !(an_out_cap->flags & GF_FILTER_CAPS_EXCLUDED) ) {
 					//prop type matched, output includes it and input excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
 						exclude = GF_TRUE;
 						prop_found = GF_FALSE;
-						break;
+					} else {
+						//remember we found a prop of same type but excluded value
+						// we will match unless we match an excluded value
+						prop_found = GF_TRUE;
 					}
-					//remember we found a prop of same type but excluded value, we will match unless we match an excluded
-					//value
-					prop_found = GF_TRUE;
-				}
-				else if (!in_cap->exclude && an_out_cap->exclude) {
+				} else if (!(in_cap->flags & GF_FILTER_CAPS_EXCLUDED) && (an_out_cap->flags&GF_FILTER_CAPS_EXCLUDED) ) {
 					//prop type matched, input includes it and output excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
 						exclude = GF_TRUE;
 						prop_found = GF_FALSE;
-						break;
+					} else {
+						//remember we found a prop of same type but excluded value
+						//we will match unless we match an excluded value
+						prop_found = GF_TRUE;
 					}
-					//remember we found a prop of same type but excluded value, we will match unless we match an excluded
-					//value
-					prop_found = GF_TRUE;
-				}
-
-				if (prop_equal) {
+				} else if (prop_equal) {
 					matched = GF_TRUE;
-					break;
+					if (an_out_cap->flags & GF_FILTER_CAPS_STATIC)
+						static_matched = GF_TRUE;
 				}
 			}
-			if (exclude) break;
+			if (nb_caps_tested) {
+				//we found a prop, excluded but with != value hence acceptable, default matching to true
+				if (!matched && prop_found) matched = GF_TRUE;
+				//not match, flag this bundle as not ok
+				if (matched) {
+					bundles_cap_found[cur_dst_bundle] ++;
+					nb_matched++;
+				}
+			} else if (!dst->nb_caps) {
+				bundles_cap_found[cur_dst_bundle] ++;
+				nb_matched++;
+			}
 		}
-		if (!matched && !out_cap->exclude && !prop_found) {
-//			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap not matched\n"));
+		//merge bundle cap
+		nb_matched=0;
+		for (k=0; k<nb_in_bundles; k++) {
+			if (!bundles_cap_found[k])
+				bundles_in_ok[k] = GF_FALSE;
+			else {
+				nb_matched += bundles_cap_found[k];
+				//we matched this property, keep score for the bundle
+				bundles_in_scores[k] ++;
+			}
+		}
+		//not matched and not excluded, skip until next bundle
+		if (!nb_matched && !(out_cap->flags & GF_FILTER_CAPS_EXCLUDED)) {
 			all_caps_matched = GF_FALSE;
-		} else {
-//			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("output cap matched\n"));
 		}
 	}
-	if (nb_subcaps && all_caps_matched) nb_matched++;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs %s filter %s inputs\n", src->name, nb_matched ? "matches" : "does not match", dst->name));
-
-	return nb_matched;
+	//get bundle with highest score
+	bundle_score = 0;
+	nb_matched = 0;
+	for (i=0; i<nb_in_bundles; i++) {
+		if (bundles_in_ok[i]) {
+			nb_matched++;
+			if (bundle_score < bundles_in_scores[i]) {
+				*dst_bundle_idx = i;
+				bundle_score = bundles_in_scores[i];
+			}
+		}
+	}
+	if (!bundle_score) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs cap bundle %d do not match filter %s inputs\n", src->name, src_bundle_idx, dst->name));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs cap bundle %d matches filter %s inputs caps bundle %d (%d total bundle matches, bundle matched %d/%d caps)\n", src->name, src_bundle_idx, dst->name, *dst_bundle_idx, nb_matched, bundle_score, nb_out_caps));
+	}
+	gf_free(bundles_in_ok);
+	gf_free(bundles_cap_found);
+	gf_free(bundles_in_scores);
+	return bundle_score;
 }
 
 Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 {
 	u8 priority;
 	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
-	return filter_pid_caps_match(pid->pid, NULL, NULL, &priority, pid->filter);
+	return filter_pid_caps_match(pid->pid, NULL, NULL, &priority, NULL, pid->filter);
 }
 
 
-static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *filter_reg, GF_List *black_list, GF_List *original_filter_chain, const GF_FilterRegister *dst_filter)
+static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *filter_reg, u32 src_bundle_idx, GF_List *black_list, GF_List *original_filter_chain, GF_List *filter_stack, GF_List *tested_filters, const GF_FilterRegister *dst_filter, u32 rlevel, u32 max_chain_len)
 {
 	u32 nb_matched = 0;
+	u32 bundle_idx=0;
 	const GF_FilterRegister *candidate = NULL;
 	//browse all our registered filters
 	u32 i, count=gf_list_count(fsess->registry);
@@ -889,9 +1074,12 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 	GF_List *current_filter_chain;
 
 	if (dst_filter) {
-		u32 path_weight = filter_caps_to_caps_match(filter_reg, (const GF_FilterRegister *) dst_filter);
+		u32 path_weight;
+
+		path_weight = gf_filter_caps_to_caps_match(filter_reg, src_bundle_idx, (const GF_FilterRegister *) dst_filter, &bundle_idx);
+
 		if (path_weight) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs matches destination filter %s input caps\n", filter_reg->name, dst_filter->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s outputs cap bundle %d matches destination filter %s input caps bundle %d\n", rlevel, filter_reg->name, src_bundle_idx,  dst_filter->name, bundle_idx));
 
 			path_weight *= (255 - dst_filter->priority);
 			gf_list_add(original_filter_chain, (void *) filter_reg);
@@ -899,20 +1087,35 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 		}
 	}
 
-	//create new temp chain, this filter being the root
+	if (max_chain_len && (rlevel+1>=max_chain_len) )
+		return 0;
+
+	//already being tested for this chain
+	if (gf_list_find(tested_filters, (void *) filter_reg)>=0)
+		return 0;
+
+	//create new temp chain, init with this filter as root
 	current_filter_chain = gf_list_new();
 	gf_list_add(current_filter_chain, (void *) filter_reg);
 
 	for (i=0; i<count; i++) {
 		u32 path_weight=0;
-		u32 sub_weight;
+		u32 sub_weight, orig_chain_len, cur_chain_len;
 		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 		if (freg==filter_reg) continue;
-		//filter shall be explicetly loaded
+		//filter shall be explicitly loaded
 		if (freg->explicit_only) continue;
+
+		//freg already being tested for another chain
+		if (gf_list_find(tested_filters, (void *) freg)>=0)
+			continue;
 
 		//freg already being tested for this chain
 		if (gf_list_find(original_filter_chain, (void *) freg)>=0)
+			continue;
+
+		//freg already in our chain, break loop
+		if (gf_list_find(filter_stack, (void *) freg)>=0)
 			continue;
 
 		//source filter, can't add pid
@@ -922,46 +1125,75 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 		if (gf_list_find(black_list, (void *) freg)>=0)
 			continue;
 
-		path_weight = filter_caps_to_caps_match(filter_reg, freg);
+		//no output caps, don't resolve
+		if (! gf_filter_has_out_caps(freg))
+			continue;
+
+		path_weight = gf_filter_caps_to_caps_match(filter_reg, src_bundle_idx, freg, &bundle_idx);
 		if (!path_weight) continue;
 
 		path_weight *= (255-freg->priority);
 
 		//we found our target filter
 		if (freg==dst_filter) {
-			gf_list_add(original_filter_chain, (void *) freg);
 			gf_list_del(current_filter_chain);
+			gf_list_add(original_filter_chain, (void *) filter_reg);
 			return path_weight;
 		}
 		//check this filter
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs matches filter %s input caps, checking filter chain\n", filter_reg->name, freg->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s outputs matches filter %s input caps bundle %d, checking filter chain - current:\n", rlevel, filter_reg->name, freg->name, bundle_idx));
+		{
+			u32 k;
+			for (k=0; k<gf_list_count(original_filter_chain); k++) {
+				const GF_FilterRegister *areg = gf_list_get(original_filter_chain, k);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("%s ", areg->name));
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
+		}
 
-		sub_weight = gf_filter_check_dst_caps(fsess, freg, black_list, current_filter_chain, dst_filter);
+
+		gf_list_add(filter_stack, (void *) freg);
+
+		//we pass the original filter chain with the new root inserted to break loops
+		sub_weight = gf_filter_check_dst_caps(fsess, freg, bundle_idx, black_list, current_filter_chain, filter_stack, tested_filters, dst_filter, rlevel+1, max_chain_len);
+
+		gf_list_rem_last(filter_stack);
+
 		if (!sub_weight) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs does not match filter %s input caps, skiping filter\n", freg->name, dst_filter ? dst_filter->name : "none"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s outputs does not match filter %s input caps, skiping filter\n", rlevel, freg->name, dst_filter ? dst_filter->name : "none"));
+			gf_list_add(tested_filters, (void *) freg);
 			continue;
 		}
 		path_weight += sub_weight;
 
-		if (path_weight>nb_matched) {
+		orig_chain_len = gf_list_count(original_filter_chain) - count_at_input;
+		cur_chain_len = gf_list_count(current_filter_chain);
+
+		if (!orig_chain_len || (orig_chain_len>cur_chain_len)
+			|| ((orig_chain_len==cur_chain_len) && (path_weight>nb_matched) )
+		) {
 			//remove all entries added in recursive gf_filter_check_dst_caps
 			while (gf_list_count(original_filter_chain)>count_at_input) {
 				gf_list_rem_last(original_filter_chain);
 			}
 			if (candidate) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has lower priority/pid matching (%d) than filter %s (%d), replacing it in filter chain\n", candidate->name, nb_matched, freg->name, path_weight));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s has lower priority/pid matching (%d) than filter %s (%d), replacing it in filter chain\n", rlevel, candidate->name, nb_matched, freg->name, path_weight));
 			}
 			nb_matched = path_weight;
 			candidate = freg;
 
 			//store our filter chain in original one
 			gf_list_transfer(original_filter_chain, current_filter_chain);
-			//and reinit current chain
+			//and reinit test chain
 			gf_list_add(current_filter_chain, (void *) filter_reg);
 
 		} else {
 			assert(candidate);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has lower priority/pid matching (%d) than filter %s (%d), ignoring\n", freg->name, path_weight, candidate->name, nb_matched));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s has lower priority/pid matching (%d) than filter %s (%d), ignoring\n", rlevel, freg->name, path_weight, candidate->name, nb_matched));
+
+			//and reinit current chain
+			gf_list_reset(current_filter_chain);
+			gf_list_add(current_filter_chain, (void *) filter_reg);
 		}
 	}
 	gf_list_del(current_filter_chain);
@@ -973,21 +1205,35 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	GF_Filter *chain_input = NULL;
 	GF_FilterSession *fsess = pid->filter->session;
 	GF_List *filter_chain = gf_list_new();
+	GF_List *filter_stack = gf_list_new();
+	GF_List *tested_filters = gf_list_new();
 	u32 max_weight=0;
 	u32 min_length=GF_INT_MAX;
+	u32 i, count;
 	const GF_FilterRegister *dst_filter = dst->freg;
 
 	if (filter_reassigned)
 		*filter_reassigned = GF_FALSE;
 
+restart:
+	gf_list_reset(filter_chain);
+	gf_list_reset(filter_stack);
+	gf_list_reset(tested_filters);
+	gf_list_add(filter_stack, (void *)pid->filter->freg);
+
+	max_weight=0;
+	min_length=GF_INT_MAX;
+
 	//browse all our registered filters
-	u32 i, count=gf_list_count(fsess->registry);
+	count=gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {
 		u32 freg_weight=0;
 		u32 path_weight=0;
 		u32 path_len=0;
 		u32 chain_len=0;
+		u32 cap_bundle_idx=0;
 		u8 priority=0;
+		u32 k, nb_filters;
 		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 
 		//source filter, can't add pid
@@ -1011,11 +1257,16 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		if (pid->adapters_blacklist && (gf_list_find(pid->adapters_blacklist, (void *) freg)>=0))
 			continue;
 
-		//no match of pid caps for this filter
-		freg_weight = filter_pid_caps_match(pid, freg, NULL, &priority, pid->filter->dst_filter) ? 1 : 0;
-		if (!freg_weight) continue;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s matches PID %s caps from %s, checking filter chain\n", freg->name, pid->name, pid->filter->name));
+		if (!gf_filter_has_out_caps(freg))
+			continue;
 
+		//no match of pid caps for this filter
+		freg_weight = filter_pid_caps_match(pid, freg, NULL, &priority, &cap_bundle_idx, pid->filter->dst_filter) ? 1 : 0;
+		if (!freg_weight) {
+			continue;
+		}
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s matches PID %s caps bundle %d from %s, checking filter chain\n", freg->name, pid->name, cap_bundle_idx, pid->filter->name));
 
 		freg_weight = (255 - priority);
 		//TODO: handle user-defined priorities
@@ -1023,7 +1274,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		//we have a target destination filter match, keep solving filter until done
 		path_len = gf_list_count(filter_chain);
 
-		path_weight = gf_filter_check_dst_caps(fsess, freg, pid->filter->blacklisted, filter_chain, dst_filter);
+		path_weight = gf_filter_check_dst_caps(fsess, freg, cap_bundle_idx, pid->filter->blacklisted, filter_chain, filter_stack, tested_filters, dst_filter, 0, min_length);
 
 		//not our candidate, remove all added entries
 		if (!path_weight) {
@@ -1031,19 +1282,20 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				gf_list_rem_last(filter_chain);
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Cannot find a valid filter chain from filter %s to filter %s, ignoring filter\n", freg->name, dst_filter->name));
+			//skip further attempts with this filter
+			gf_list_add(tested_filters, (void *) freg);
 			continue;
 		}
-
-#ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
-			u32 k, nb_filters = gf_list_count(filter_chain);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Possible filter chain from filter %s PID %s to filter %s:\n", pid->filter->name, pid->name, dst_filter->name));
-			for (k=path_len; k<nb_filters; k++) {
-				const GF_FilterRegister *freg = gf_list_get(filter_chain, k);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n", freg->name));
-			}
+		//we keep track of all filters in possible chain, whether we keep the chain or not
+		//this allows calls to gf_filter_check_dst_caps to abort when trying to test an already tested filter
+		//this might need refinements in case the filter was first tested in a longer chain ...
+		nb_filters = gf_list_count(filter_chain);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Possible filter chain from filter %s PID %s to filter %s:\n", pid->filter->name, pid->name, dst_filter->name));
+		for (k=path_len; k<nb_filters; k++) {
+			const GF_FilterRegister *areg = gf_list_get(filter_chain, k);
+			gf_list_add(tested_filters, (void *) areg);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n", areg->name));
 		}
-#endif
 		//
 		chain_len = gf_list_count(filter_chain) - path_len;
 
@@ -1069,6 +1321,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	count = gf_list_count(filter_chain);
 	if (count==0) {
 		Bool can_reassign = GF_TRUE;
+
 		//reassign only for source filters
 		if (pid->filter->num_input_pids) can_reassign = GF_FALSE;
 		//sticky filters cannot be unloaded
@@ -1090,14 +1343,14 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		if (filter_reassigned && can_reassign) {
 			if (! gf_filter_swap_source_registry(pid->filter) ) {
 				//no filter found for this pid !
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter chain found - NOT CONNECTED\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("No suitable filter chain found\n"));
 			}
 			*filter_reassigned = GF_TRUE;
 		} else if (!reconfigurable_only) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for pid %s from filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("No suitable filter found for pid %s from filter %s\n", pid->name, pid->filter->name));
 		}
 	} else if (reconfigurable_only && (count>1)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
 	} else {
 		const char *args = pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
@@ -1132,6 +1385,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 exit:
 	gf_list_del(filter_chain);
+	gf_list_del(filter_stack);
+	gf_list_del(tested_filters);
 	return chain_input;
 }
 
@@ -1184,6 +1439,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	u32 i, count;
 	Bool found_dest=GF_FALSE;
 	Bool first_pass=GF_TRUE;
+	GF_List *loaded_filters = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
 	Bool filter_found_but_pid_excluded = GF_FALSE;
@@ -1227,6 +1483,9 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 restart:
 
 	if (filter->session->filters_mx) gf_mx_p(filter->session->filters_mx);
+
+	if (!first_pass)
+		loaded_filters = gf_list_new();
 
 	//try to connect pid to all running filters
 	count = gf_list_count(filter->session->filters);
@@ -1279,13 +1538,32 @@ restart:
 		}
 
 		//we have a match, check if caps are OK
-		if (!filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, pid->filter->dst_filter)) {
+		if (!filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter)) {
 			Bool reassigned;
-			GF_Filter *new_f;
+			u32 j, nb_loaded;
+			GF_Filter *new_f, *reuse_f=NULL;
 			if (first_pass) continue;
 			if (pid->filter->dst_filter) {
 				if (filter_dst != pid->filter->dst_filter) continue;
 			}
+
+			nb_loaded = gf_list_count(loaded_filters);
+			for (j=0; j<nb_loaded; j++) {
+				u32 out_cap_idx=0, dst_in_cap=0;
+				reuse_f = gf_list_get(loaded_filters, j);
+				//check if we match caps with this loaded filter
+				if (filter_pid_caps_match(pid, reuse_f->freg, reuse_f, NULL, &out_cap_idx, pid->filter->dst_filter)) {
+					if (gf_filter_caps_to_caps_match(reuse_f->freg, out_cap_idx, filter_dst->freg, &dst_in_cap)) {
+						break;
+					}
+				}
+				reuse_f = NULL;
+			}
+			if (reuse_f) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Skip link from %s:%s to %s because already connected to filter %s which can handle the connection\n", pid->filter->name, pid->name, filter_dst->name, reuse_f->name));
+				continue;
+			}
+
 			new_f = gf_filter_pid_resolve_link(pid, filter_dst, &reassigned);
 			//try to load filters
 			if (! new_f) {
@@ -1298,6 +1576,7 @@ restart:
 				continue;
 			}
 			filter_dst = new_f;
+			gf_list_add(loaded_filters, new_f);
 		}
 		assert(pid->pid->filter->freg != filter_dst->freg);
 
@@ -1305,12 +1584,14 @@ restart:
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
 		found_dest = GF_TRUE;
-//		break;
 	}
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
+	if (loaded_filters) gf_list_del(loaded_filters);
+
 	//connection task posted, nothing left to do
 	if (found_dest) {
+		assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		return;
 	}
@@ -1328,6 +1609,7 @@ restart:
 		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter found for PID %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
 
 	}
+	assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
 	return;
 }

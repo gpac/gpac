@@ -50,6 +50,7 @@ typedef struct
 	Bool pck_out;
 
 	char *block;
+	u32 bsize;
 
 #ifndef GPAC_DISABLE_STREAMING
 	GF_RTPReorder *rtp_reorder;
@@ -136,7 +137,8 @@ static GF_Err udpin_initialize(GF_Filter *filter)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[UDPIn] opening %s\n", ctx->src));
 
-	ctx->block = gf_malloc(ctx->block_size +1);
+	ctx->bsize = 10000;
+	ctx->block = gf_malloc(ctx->bsize+1);
 	return GF_OK;
 }
 
@@ -219,9 +221,24 @@ static GF_Err udpin_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	e = gf_sk_receive(ctx->socket, ctx->block, ctx->block_size, 0, &nb_read);
+	e = gf_sk_receive(ctx->socket, ctx->block, ctx->bsize, 0, &nb_read);
 	if (!nb_read || e)
 		return GF_OK;
+
+	//should not happen since we start with 10k read buffer !
+	if (nb_read>=ctx->bsize) {
+		u32 offset = nb_read;
+		while (1) {
+			ctx->bsize *= 2;
+			ctx->block = gf_realloc(ctx->block, ctx->bsize+1);
+			e = gf_sk_receive(ctx->socket, ctx->block, ctx->bsize, offset, &nb_read);
+			if (e || !nb_read) break;
+			offset += nb_read;
+			if (offset < ctx->bsize) break;
+			//keep reallocating
+		}
+		nb_read = offset;
+	}
 	ctx->block[nb_read] = 0;
 
 	//first run, probe data
@@ -297,11 +314,20 @@ static const GF_FilterArgs UDPInArgs[] =
 	{}
 };
 
+static const GF_FilterCapability UDPInCaps[] =
+{
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+};
+
 GF_FilterRegister UDPInRegister = {
 	.name = "udpin",
 	.description = "UDP/RTP Input",
 	.private_size = sizeof(GF_UDPInCtx),
 	.args = UDPInArgs,
+	SETCAPS(UDPInCaps),
 	.initialize = udpin_initialize,
 	.finalize = udpin_finalize,
 	.process = udpin_process,

@@ -1017,21 +1017,17 @@ static void ohevcdec_finalize(GF_Filter *filter)
 	if (ctx->reaggregation_buffer) gf_free(ctx->reaggregation_buffer);
 }
 
-static const GF_FilterCapability OHEVCDecInputs[] =
+static const GF_FilterCapability OHEVCDecCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_HEVC),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_LHVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_LHVC),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 #ifdef  OPENHEVC_HAS_AVC_BASE
-	{ .code=GF_PROP_PID_CODECID, .val=PROP_UINT(GF_CODECID_AVC), .in_bundle=1, .priority=255 }
+	{ .code=GF_PROP_PID_CODECID, .val=PROP_UINT(GF_CODECID_AVC), .flags = GF_FILTER_CAPS_INPUT, .priority=255 }
 #endif
-};
-
-static const GF_FilterCapability OHEVCDecOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_OHEVCDecCtx, _n)
@@ -1051,8 +1047,7 @@ GF_FilterRegister OHEVCDecRegister = {
 	.name = "ohevc",
 	.description = "OpenHEVC decoder",
 	.private_size = sizeof(GF_OHEVCDecCtx),
-	INCAPS(OHEVCDecInputs),
-	OUTCAPS(OHEVCDecOutputs),
+	SETCAPS(OHEVCDecCaps),
 	.initialize = ohevcdec_initialize,
 	.finalize = ohevcdec_finalize,
 	.args = OHEVCDecArgs,

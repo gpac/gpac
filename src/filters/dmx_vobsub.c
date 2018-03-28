@@ -421,18 +421,15 @@ static const GF_FilterArgs GF_VOBSubDmxArgs[] =
 };
 
 
-static const GF_FilterCapability VOBSubDmxInputs[] =
+static const GF_FilterCapability VOBSubDmxCaps[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "text/vobsub"),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "text/vobsub"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SUBPIC),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "idx|sub"),
-};
-
-
-static const GF_FilterCapability VOBSubDmxOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_SUBPIC),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "idx|sub"),
 };
 
 
@@ -443,8 +440,7 @@ GF_FilterRegister VOBSubDmxRegister = {
 	.max_extra_pids = 1,
 	.args = GF_VOBSubDmxArgs,
 	.finalize = vobsubdmx_finalize,
-	INCAPS(VOBSubDmxInputs),
-	OUTCAPS(VOBSubDmxOutputs),
+	SETCAPS(VOBSubDmxCaps),
 	.configure_pid = vobsubdmx_configure_pid,
 	.process = vobsubdmx_process,
 	.process_event = vobsubdmx_process_event

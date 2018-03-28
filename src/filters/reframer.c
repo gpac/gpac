@@ -79,22 +79,18 @@ GF_Err reframer_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static const GF_FilterCapability ReframerInputs[] =
+static const GF_FilterCapability ReframerCaps[] =
 {
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_NONE),
-	{}
-};
-
-
-static const GF_FilterCapability ReframerOutputs[] =
-{
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	//we do accept everything, including raw streams 
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	//we don't accept files as input so don't output them
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	//we don't produce RAW streams - this will avoid loading the filter for compositor/other raw access
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{}
 };
+
 
 typedef struct
 {
@@ -115,8 +111,7 @@ GF_FilterRegister ReframerRegister = {
 	.args = ReframerArgs,
 	//reframer is explicit only, so we don't load the reframer during resolution process
 	.explicit_only = 1,
-	INCAPS(ReframerInputs),
-	OUTCAPS(ReframerOutputs),
+	SETCAPS(ReframerCaps),
 	.configure_pid = reframer_configure_pid,
 	.process = reframer_process,
 };

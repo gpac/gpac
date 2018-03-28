@@ -1195,18 +1195,6 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static const GF_FilterCapability DASHDmxInputs[] =
-{
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd"),
-	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
-	{},
-	//accept any stream but files, framed
-	{ .code=GF_PROP_PID_STREAM_TYPE, .val=PROP_UINT(GF_STREAM_FILE), .exclude=1, .in_bundle=1, .explicit_only=1 },
-	{ .code=GF_PROP_PID_UNFRAMED, .val=PROP_BOOL(GF_TRUE), .exclude=1, .in_bundle=1, .explicit_only=1 },
-};
-
-
 #define OFFS(_n)	#_n, offsetof(GF_DASHDmxCtx, _n)
 static const GF_FilterArgs DASHDmxArgs[] =
 {
@@ -1262,24 +1250,29 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{}
 };
 
-static const GF_FilterCapability DASHDmxOutputs[] =
+
+
+static const GF_FilterCapability DASHDmxCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_EXC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd"),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{},
-#if 0
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_BIFS_V2),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{},
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V1),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_OD_V2),
-	{},
-#endif
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_DVB_EIT),
+	//accept any stream but files, framed
+	{ .code=GF_PROP_PID_STREAM_TYPE, .val=PROP_UINT(GF_STREAM_FILE), .flags=(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_EXCLUDED|GF_FILTER_CAPS_EXPLICIT) },
+	{ .code=GF_PROP_PID_UNFRAMED, .val=PROP_BOOL(GF_TRUE), .flags=(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_EXCLUDED|GF_FILTER_CAPS_EXPLICIT) },
+
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 
@@ -1290,8 +1283,7 @@ GF_FilterRegister DASHDmxRegister = {
 	.initialize = dashdmx_initialize,
 	.finalize = dashdmx_finalize,
 	.args = DASHDmxArgs,
-	INCAPS(DASHDmxInputs),
-	OUTCAPS(DASHDmxOutputs),
+	SETCAPS(DASHDmxCaps),
 	.configure_pid = dashdmx_configure_pid,
 	.process = dashdmx_process,
 	.process_event = dashdmx_process_event,

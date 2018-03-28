@@ -136,26 +136,21 @@ static GF_Err imgdec_process(GF_Filter *filter)
 }
 
 
-static const GF_FilterCapability ImgDecInputs[] =
+static const GF_FilterCapability ImgDecCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_JPEG),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_PNG),
-};
-
-static const GF_FilterCapability ImgDecOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_JPEG),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_PNG),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister ImgDecRegister = {
 	.name = "imgdec",
 	.description = "PNG/JPG Decoder",
 	.private_size = sizeof(GF_IMGDecCtx),
-	INCAPS(ImgDecInputs),
-	OUTCAPS(ImgDecOutputs),
+	SETCAPS(ImgDecCaps),
 	.configure_pid = imgdec_configure_pid,
 	.process = imgdec_process,
 };

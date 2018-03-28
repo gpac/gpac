@@ -376,17 +376,13 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static const GF_FilterCapability J2KInputs[] =
+static const GF_FilterCapability J2KCaps[] =
 {
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_J2K),
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-};
-
-static const GF_FilterCapability J2KOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_J2K),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 GF_FilterRegister J2KRegister = {
@@ -397,8 +393,7 @@ GF_FilterRegister J2KRegister = {
 	.description = "OpenJPEG2000 decoder",
 #endif
 	.private_size = sizeof(GF_J2KCtx),
-	INCAPS(J2KInputs),
-	OUTCAPS(J2KOutputs),
+	SETCAPS(J2KCaps),
 	.configure_pid = j2kdec_configure_pid,
 	.process = j2kdec_process,
 };

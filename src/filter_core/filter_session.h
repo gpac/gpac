@@ -341,6 +341,8 @@ struct __gf_filter
 	//user data for the filter implementation
 	void *filter_udta;
 
+	Bool has_out_caps;
+	
 	//list of pids connected to this filter
 	GF_List *input_pids;
 	u32 num_input_pids;
@@ -442,7 +444,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter);
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source);
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 
@@ -587,6 +589,10 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
 
 Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
+
+u32 gf_filter_caps_bundle_count(const GF_FilterRegister *freg);
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, u32 *dst_bundle_idx);
+Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
 
 #endif //_GF_FILTER_SESSION_H_
 

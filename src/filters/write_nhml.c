@@ -844,16 +844,12 @@ static void nhmldump_finalize(GF_Filter *filter)
 	if (ctx->media_file) gf_free(ctx->media_file);
 }
 
-static const GF_FilterCapability NHMLDumpInputs[] =
+static const GF_FilterCapability NHMLDumpCaps[] =
 {
-	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
-};
-
-
-static const GF_FilterCapability NHMLDumpOutputs[] =
-{
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{}
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
+	{},
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_NHMLDumpCtx, _n)
@@ -880,8 +876,7 @@ GF_FilterRegister NHMLDumpRegister = {
 	.args = NHMLDumpArgs,
 	.initialize = nhmldump_initialize,
 	.finalize = nhmldump_finalize,
-	INCAPS(NHMLDumpInputs),
-	OUTCAPS(NHMLDumpOutputs),
+	SETCAPS(NHMLDumpCaps),
 	.configure_pid = nhmldump_configure_pid,
 	.process = nhmldump_process
 };
