@@ -429,6 +429,8 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
 {
 	u32 i=0;
+	char szEscape[7];
+	char szSrc[5];
 	Bool has_meta_args = GF_FALSE;
 	char *szArg=NULL;
 	u32 alloc_len=1024;
@@ -446,6 +448,9 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		}
 		memset(filter->filter_udta, 0, filter->freg->private_size);
 	}
+
+	sprintf(szEscape, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
+	sprintf(szSrc, "src%c", filter->session->sep_name);
 
 	//instantiate all others with defauts value
 	i=0;
@@ -485,42 +490,47 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		char *escaped = NULL;
 		Bool internal_url = GF_FALSE;
 		//look for our arg separator
-		char *sep = strchr(args, ':');
+		char *sep = strchr(args, filter->session->sep_args);
 
-		if (sep && !strncmp(sep, "://", 3)) {
-			//filter internal url schemes
-			if (!strncmp(args, "src=video://", 12)
-				|| !strncmp(args, "src=audio://", 12)
-				|| !strncmp(args, "src=av://", 9)
-				|| !strncmp(args, "src=gmem://", 11)
-				|| !strncmp(args, "src=gpac://", 11)
-			) {
-				internal_url = GF_TRUE;
-				sep = strchr(sep+3, ':');
+		if (filter->session->sep_args == ':') {
+			if (sep && !strncmp(sep, "://", 3)) {
+				//filter internal url schemes
+				if (!strncmp(args, szSrc, 4) &&
+					(!strncmp(args+4, "video://", 8)
+					|| !strncmp(args+4, "audio://", 8)
+					|| !strncmp(args+4, "av://", 5)
+					|| !strncmp(args+4, "gmem://", 7)
+					|| !strncmp(args+4, "gpac://", 7)
+					)
+				) {
+					internal_url = GF_TRUE;
+					sep = strchr(sep+3, ':');
 
-			} else {
-				//get root /
-				sep = strchr(sep+3, '/');
-				//get first : after root
-				if (sep) sep = strchr(sep+1, ':');
+				} else {
+					//get root /
+					sep = strchr(sep+3, '/');
+					//get first : after root
+					if (sep) sep = strchr(sep+1, ':');
+				}
+			}
+
+			//watchout for "C:\\"
+			while (sep && (sep[1]=='\\')) {
+				sep = strchr(sep+1, ':');
 			}
 		}
-
-		//watchout for "C:\\"
-		while (sep && (sep[1]=='\\')) {
-			sep = strchr(sep+1, ':');
-		}
 		if (sep) {
-			escaped = strstr(sep, ":gpac:");
+			escaped = strstr(sep, szEscape);
 			if (escaped) sep = escaped;
 		}
-		if (sep && !strncmp(args, "src=", 4) && !escaped && !internal_url) {
+
+		if (sep && !strncmp(args, szSrc, 4) && !escaped && !internal_url) {
 			Bool file_exists;
 			sep[0]=0;
 			file_exists = gf_file_exists(args+4);
-			sep[0]=':';
+			sep[0]= filter->session->sep_args;
 			if (!file_exists) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Non-escaped argument pattern \"%s\" in src %s, assuming arguments are part of source URL. Use src=PATH:gpac:ARGS to differentiate\n", sep, args));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Non-escaped argument pattern \"%s\" in src %s, assuming arguments are part of source URL. Use src=PATH:gpac:ARGS to differentiate, or change separators\n", sep, args));
 				sep = NULL;
 			}
 		}
@@ -535,7 +545,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		strncpy(szArg, args, len);
 		szArg[len]=0;
 
-		value = strchr(szArg, '=');
+		value = strchr(szArg, filter->session->sep_name);
 		if (value) {
 			value[0] = 0;
 			value++;
@@ -1393,8 +1403,9 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_
 	if (media_timestamp) *media_timestamp = filter->session->hint_timestamp;
 }
 
-GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from)
+GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext)
 {
+	char szID[1024];
 	if (!filter || !link_from) return GF_BAD_PARAM;
 	if (filter == link_from) return GF_BAD_PARAM;
 	if (filter->num_input_pids || link_from->num_input_pids) return GF_BAD_PARAM;
@@ -1404,11 +1415,15 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from)
 	if (filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
 
 	if (!link_from->id) {
-		char szFID[1024];
-		sprintf(szFID, "__gpac__%p__", link_from);
-		gf_filter_set_id(link_from, szFID);
+		sprintf(szID, "__gpac__%p__", link_from);
+		gf_filter_set_id(link_from, szID);
 	}
-	gf_filter_set_sources(filter, link_from->id);
+	if (link_ext) {
+		sprintf(szID, "%s%c%s", link_from->id, link_from->session->sep_frag, link_ext);
+		gf_filter_set_sources(filter, szID);
+	} else {
+		gf_filter_set_sources(filter, link_from->id);
+	}
 	return GF_OK;
 }
 

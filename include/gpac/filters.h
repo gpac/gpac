@@ -100,6 +100,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *ms, const char *name);
 GF_Err gf_fs_run(GF_FilterSession *ms);
 void gf_fs_print_stats(GF_FilterSession *ms);
 void gf_fs_print_connections(GF_FilterSession *fsess);
+GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set);
 
 u32 gf_fs_run_step(GF_FilterSession *fsess);
 
@@ -668,6 +669,7 @@ u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck);
 
 void gf_filter_pid_clear_eos(GF_FilterPid *pid);
 
+//for user defined registries
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
 
@@ -1077,7 +1079,7 @@ Bool gf_fs_is_last_task(GF_FilterSession *fsess);
 void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp);
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
 
-GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from);
+GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
 
 GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps );
 
