@@ -687,7 +687,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				read->is_partial_download = GF_TRUE;
 				read->wait_for_source = GF_TRUE;
 
-				//post a seek from 0 - TODO we could build a map of byte offsets
+				//post a seek from offset - TODO we could build a map of byte offsets
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = max_offset;
 				gf_filter_pid_send_event(read->pid, &fevt);
@@ -856,6 +856,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_BOOL(GF_CAPS_OUTPUT_STATIC,GF_PROP_PID_UNFRAMED, GF_FALSE),
 	{},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci"),

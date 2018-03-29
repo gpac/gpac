@@ -633,7 +633,7 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 	while (source_ids) {
 		u32 len, sublen;
 		Bool last=GF_FALSE;
-		char *sep = strchr(source_ids, ',');
+		char *sep = strchr(source_ids, src_pid->filter->session->sep_list);
 		char *pid_name;
 		if (sep) {
 			len = sep - source_ids;

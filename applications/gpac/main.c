@@ -41,7 +41,7 @@ static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
 
 //the default set of separators
-static char separator_set[5] = ":=#@";
+static char separator_set[6] = ":=#,@";
 
 static void print_filters(int argc, char **argv, GF_FilterSession *session);
 
@@ -71,7 +71,7 @@ static void gpac_filter_help(void)
 "Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
 "This is the command line utility of GPAC for setting up and running filter chains.\n"
 "See -h for available options.\n"
-"Help is given with default separator sets :=#@. See -s to change them.\n"
+"Help is given with default separator sets :=#,@. See -s to change them.\n"
 "\n"
 "Filters are listed with their name and options are given using a list of colon-separated Name=Value: \n"
 "\tValue can be omitted for booleans, defaulting to true.\n"
@@ -87,9 +87,9 @@ static void gpac_filter_help(void)
 "\tEX: \"src=file.mp4\" will find a filter (for example filein) able to load src, and is equivalent to filein:src=file.mp4\n"
 "\tEX: \"src=file.mp4 dst=dump.yuv\" will dump the video content of file.mp4 in dump.yuv\n"
 "\n"
-"There is a special option called gfreg which allows specifying the desired filter registry to use when handling URLs\n"
-"\tEX: \"src=file.mp4:gfreg=ffdmx\" will use ffdmx to handle the file - equivalent to ffdmx:src=file.mp4\n"
-"This is mostly used by applications loading filter chains from URL (eg media player)\n"
+"There is a special option called \"gfreg\" which allows specifying prefered filters to use when handling URLs\n"
+"\tEX: \"src=file.mp4:gfreg=ffdmx,ffdec\" will use ffdmx to handle the file and ffdec to decode\n"
+"This can be used to test a specific filter when alternate filter chains are possible.\n"
 "\n"
 "LINK directives may be specified. The syntax is an '@' character optionnaly followed by an integer (0 if omitted).\n"
 "This indicates which previous (0-based) filters should be link to the next filter listed.\n"
@@ -118,6 +118,12 @@ static void gpac_filter_help(void)
 "Note that these extensions also work with the LINK shortcut:\n"
 "\tEX: \"fA fB @1#video fC\" indicates to direct fA video outputs to fC\n"
 "\n"
+"The filter engine will resolve implicit or explicit (LINK) connections between filters\n"
+"and will allocate any filter chain required to connect the filters.\n"
+"In doing so, it loads new filters with arguments inherited from both the source and the destination.\n"
+"\tEX: \"src=file.mp4:OPT dst=file.aac dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the two destinations\n"
+"\tEX: \"src=file.mp4 dst=file.aac:OPT dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the file.aac destination\n"
+"\n"
 	);
 }
 
@@ -135,7 +141,8 @@ static void gpac_usage(void)
 			"                   The first char is used to seperate argument names\n"
 			"                   The second char, if present, is used to seperate names and values\n"
 			"                   The third char, if present, is used to seperate fragments for PID sources\n"
-			"                   The fourth char, if present, is used for LINK directives\n"
+			"                   The fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"
+			"                   The fifth char, if present, is used for LINK directives\n"
 			"-list           : lists all supported filters.\n"
 			"-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
 			"-info NAME[ NAME2]      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
@@ -195,6 +202,8 @@ static void gpac_usage(void)
 	        "\n"
 	        "-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
 	        "-log-utc or -lu        : logs UTC time in ms before each log line.\n"
+			"-quiet        : quiet mode\n"
+			"-noprog       : disables messages if any\n"
 			"-h or -help   : shows command line options.\n"
 			"-doc          : shwos filter usage doc.\n"
 			"\n"
@@ -230,6 +239,8 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	return GF_TRUE;
 }
 
+static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
+
 static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
@@ -238,7 +249,7 @@ static int gpac_main(int argc, char **argv)
 	s32 link_prev_filter = -1;
 	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
-
+	u32 quiet = 0;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
@@ -269,6 +280,11 @@ static int gpac_main(int argc, char **argv)
 			if (len>=2) separator_set[1] = arg[1];
 			if (len>=3) separator_set[2] = arg[2];
 			if (len>=4) separator_set[3] = arg[3];
+			if (len>=4) separator_set[4] = arg[4];
+		} else if (!strcmp(arg, "-noprog")) {
+			if (!quiet) quiet = 1;
+		} else if (!strcmp(arg, "-quiet")) {
+			quiet = 2;
 		}
 	}
 	gf_sys_init(mem_track);
@@ -329,8 +345,12 @@ static int gpac_main(int argc, char **argv)
 		}
 	}
 
-	if (!logs_set) {
+	if (quiet==2) {
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
+	} else if (!logs_set) {
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+		gf_log_set_tool_level(GF_LOG_AUTHOR, GF_LOG_INFO);
+		if (quiet) gf_set_progress_callback(NULL, progress_quiet);
 	}
 
 	if (gf_sys_get_rti(0, &rti, 0)) {
@@ -411,8 +431,8 @@ static int gpac_main(int argc, char **argv)
 		e = GF_BAD_PARAM;
 		goto exit;
 	}
-
-	fprintf(stderr, "Running session, press 'q' to abort\n");
+	if (quiet<2)
+		fprintf(stderr, "Running session, press 'q' to abort\n");
 	gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
 	gf_fs_run(session);
 

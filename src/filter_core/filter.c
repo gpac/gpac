@@ -249,6 +249,7 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID)
 void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
 	u32 old_len, len;
+	char szS[2];
 	assert(filter);
 	if (!sources_ID) {
 		if (filter->source_ids) gf_free(filter->source_ids);
@@ -263,7 +264,9 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 	len = old_len + strlen(sources_ID) + 2;
 	filter->source_ids = gf_realloc(filter->source_ids, len);
 	filter->source_ids[old_len] = 0;
-	strcat(filter->source_ids, ',');
+	szS[0] = filter->session->sep_list;
+	szS[1] = 0;
+	strcat(filter->source_ids, szS);
 	strcat(filter->source_ids, sources_ID);
 }
 

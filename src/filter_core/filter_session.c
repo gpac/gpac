@@ -213,10 +213,12 @@ GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set)
 		session->sep_args = separator_set[0];
 		session->sep_name = separator_set[1];
 		session->sep_frag = separator_set[2];
+		session->sep_list = separator_set[3];
 	} else {
 		session->sep_args = ':';
 		session->sep_name = '=';
 		session->sep_frag = '#';
+		session->sep_list = ',';
 	}
 	return GF_OK;
 

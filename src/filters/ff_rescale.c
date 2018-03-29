@@ -49,7 +49,7 @@ typedef struct
 
 	u32 dst_stride[5];
 	u32 src_stride[5];
-	u32 nb_planes, nb_src_planes, out_size, out_src_size, src_uv_height, dst_uv_height;
+	u32 nb_planes, nb_src_planes, out_size, out_src_size, src_uv_height, dst_uv_height, ow, oh;
 } GF_FFSWScaleCtx;
 
 static GF_Err ffsws_process(GF_Filter *filter)
@@ -63,7 +63,12 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	GF_FilterPacket *dst_pck;
 	GF_FilterHWFrame *hwframe;
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
+	GF_FilterPacket *pck;
+
+	if (!ctx->pfmt && !ctx->ow && !ctx->oh)
+		return GF_OK;
+
+	pck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
@@ -84,7 +89,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	data = gf_filter_pck_get_data(pck, &size);
 	hwframe = gf_filter_pck_get_hw_frame(pck);
 	//we may have biffer input (padding) but shall not have smaller
-	if (ctx->out_src_size > size) {
+	if (size && (ctx->out_src_size > size) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Mismatched in source size, expected %d got %d - stride issue ?\n", ctx->out_src_size, size));
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NOT_SUPPORTED;
@@ -127,20 +132,20 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	dst_planes[0] = output;
 	if (ctx->nb_planes==1) {
 	} else if (ctx->nb_planes==2) {
-		dst_planes[1] = output + ctx->dst_stride[0]*ctx->size.y;
+		dst_planes[1] = output + ctx->dst_stride[0] * ctx->oh;
 	} else if (ctx->nb_planes==3) {
-		dst_planes[1] = output + ctx->dst_stride[0]*ctx->size.y;
+		dst_planes[1] = output + ctx->dst_stride[0] * ctx->oh;
 		dst_planes[2] = dst_planes[1] + ctx->dst_stride[1]*ctx->dst_uv_height;
 	} else if (ctx->nb_planes==4) {
-		dst_planes[1] = output + ctx->dst_stride[0]*ctx->size.y;
+		dst_planes[1] = output + ctx->dst_stride[0] * ctx->oh;
 		dst_planes[2] = dst_planes[1] + ctx->dst_stride[1]*ctx->dst_uv_height;
 		dst_planes[3] = dst_planes[2] + ctx->dst_stride[2]*ctx->dst_uv_height;
 	}
 
 	//rescale the cropped frame
 	res = sws_scale(ctx->swscaler, (const u8**) src_planes, ctx->src_stride, 0, ctx->h, dst_planes, ctx->dst_stride);
-	if (res != ctx->size.y) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Error during scale, expected height %d got %d\n", ctx->size.y, res));
+	if (res != ctx->oh) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Error during scale, expected height %d got %d\n", ctx->oh, res));
 		gf_filter_pid_drop_packet(ctx->ipid);
 		gf_filter_pck_discard(dst_pck);
 		return GF_NOT_SUPPORTED;
@@ -193,6 +198,13 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!ctx->ipid) {
 		ctx->ipid = pid;
 	}
+
+	//if nothing is set we, consider we run as an adaptation filter, wait for caps to be set to declare output
+	if (!ctx->pfmt && !ctx->size.x && !ctx->size.y)
+		return GF_OK;
+
+
+
 	w = h = pfmt = stride = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	if (p) w = p->value.uint;
@@ -215,6 +227,8 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	ctx->passthrough = GF_FALSE;
 
+	ctx->ow = ctx->size.x ? ctx->size.x : w;
+	ctx->oh = ctx->size.y ? ctx->size.y : h;
 	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == pfmt) && (ctx->stride == stride)) {
 		//nothing to reconfigure
 	} else {
@@ -228,17 +242,18 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		memset(ctx->src_stride, 0, sizeof(ctx->src_stride));
 		if (ctx->stride) ctx->src_stride[0] = ctx->stride;
 
+
 		res = gf_pixel_get_size_info(pfmt, w, h, &ctx->out_src_size, &ctx->src_stride[0], &ctx->src_stride[1], &ctx->nb_src_planes, &ctx->src_uv_height);
 		if (!res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Failed to query source pixel format characteristics\n"));
 			return GF_NOT_SUPPORTED;
 		}
-		if (ctx->nb_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
-		if (ctx->nb_planes==4) ctx->src_stride[3] = ctx->src_stride[0];
+		if (ctx->nb_src_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
+		if (ctx->nb_src_planes==4) ctx->src_stride[3] = ctx->src_stride[0];
 
 		//get layout info for dest
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
-		res = gf_pixel_get_size_info(ctx->pfmt, ctx->size.x, ctx->size.y, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
+		res = gf_pixel_get_size_info(ctx->pfmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
 		if (!res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Failed to query output pixel format characteristics\n"));
 			return GF_NOT_SUPPORTED;
@@ -258,7 +273,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 		}
 		//create/get a swscale context
-		ctx->swscaler = sws_getCachedContext(ctx->swscaler, w, h, ff_src_pfmt, ctx->size.x, ctx->size.y, ff_dst_pfmt, mode, NULL, NULL, par_p);
+		ctx->swscaler = sws_getCachedContext(ctx->swscaler, w, h, ff_src_pfmt, ctx->ow, ctx->oh, ff_dst_pfmt, mode, NULL, NULL, par_p);
 
 		if (!ctx->swscaler) {
 			Bool in_ok = sws_isSupportedInput(ff_src_pfmt);
@@ -271,8 +286,8 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->s_pfmt = pfmt;
 	}
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->size.x));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->size.y));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->ow));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->oh));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->dst_stride[0]));
 	if (ctx->nb_planes>1)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(ctx->dst_stride[1]));
@@ -292,55 +307,27 @@ static void ffsws_finalize(GF_Filter *filter)
 
 static GF_Err ffsws_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 {
-/*
-	u32 sr, nb_ch, bps, afmt, ch_cfg;
 	const GF_PropertyValue *p;
-	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->opid != pid) return GF_BAD_PARAM;
 
-	sr = ctx->freq;
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_SAMPLE_RATE);
-	if (p) sr = p->value.uint;
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_WIDTH);
+	if (p) ctx->size.x = p->value.uint;
 
-	nb_ch = ctx->nb_ch;
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_NUM_CHANNELS);
-	if (p) nb_ch = p->value.uint;
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_HEIGHT);
+	if (p) ctx->size.y = p->value.uint;
 
-	afmt = ctx->afmt;
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_FORMAT);
-	if (p) afmt = p->value.uint;
-
-	ch_cfg = ctx->ch_cfg;
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_CHANNEL_LAYOUT);
-	if (p) ch_cfg = p->value.uint;
-
-	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (afmt==ctx->afmt) && (ch_cfg==ctx->ch_cfg)) return GF_OK;
-
-	ctx->afmt = afmt;
-	ctx->freq = sr;
-	ctx->nb_ch = nb_ch;
-	ctx->ch_cfg = ch_cfg;
-	bps = gf_audio_fmt_bit_depth(afmt);
-	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, bps, ctx->ch_cfg);
-	ctx->passthrough = GF_FALSE;
-
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.bps==bps))
-		ctx->passthrough = GF_TRUE;
-
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg));
-*/
-	return GF_OK;
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PIXFMT);
+	if (p) ctx->pfmt = p->value.uint;
+	return ffsws_configure_pid(filter, ctx->ipid, GF_FALSE);
 }
 
 
 #define OFFS(_n)	#_n, offsetof(GF_FFSWScaleCtx, _n)
 static GF_FilterArgs FFSWSArgs[] =
 {
-	{ OFFS(size), "size of output video", GF_PROP_VEC2I, NULL, NULL, GF_FALSE},
-	{ OFFS(pfmt), "pixel format for output video", GF_PROP_PIXFMT, "yuv420", NULL, GF_FALSE},
+	{ OFFS(size), "size of output video. When not set, input size is used", GF_PROP_VEC2I, NULL, NULL, GF_FALSE},
+	{ OFFS(pfmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
 	{ OFFS(mode), "scaling mode", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FALSE},
 	{ OFFS(p1), "scaling algo param1. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
 	{ OFFS(p2), "scaling algo param2. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
@@ -367,7 +354,6 @@ GF_FilterRegister FFSWSRegister = {
 	.args = FFSWSArgs,
 	.configure_pid = ffsws_configure_pid,
 	SETCAPS(FFSWSCaps),
-//	.initialize = ffsws_initialize,
 	.finalize = ffsws_finalize,
 	.process = ffsws_process,
 	.reconfigure_output = ffsws_reconfigure_output,
@@ -377,6 +363,6 @@ GF_FilterRegister FFSWSRegister = {
 
 const GF_FilterRegister *ffsws_register(GF_FilterSession *session)
 {
-	FFSWSArgs[2].min_max_enum = gf_pixfmt_all_names();
+	FFSWSArgs[1].min_max_enum = gf_pixfmt_all_names();
 	return &FFSWSRegister;
 }

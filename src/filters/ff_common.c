@@ -70,7 +70,7 @@ u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
 u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
 {
 	u32 i=0;
-	while (FF2GPAC_PixelFormats[i].ff_pf) {
+	while (FF2GPAC_PixelFormats[i].gpac_pf) {
 		if (FF2GPAC_PixelFormats[i].ff_pf == pfmt)
 			return FF2GPAC_PixelFormats[i].gpac_pf;
 		i++;

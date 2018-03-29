@@ -184,12 +184,14 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
 	FF_CHECK_PROP(height, height, GF_PROP_PID_HEIGHT)
 
-	stride_uv = uv_height = nb_planes = 0;
-	if (gf_pixel_get_size_info(pix_fmt, ffdec->width, ffdec->height, &outsize, &stride, &stride_uv, &nb_planes, &uv_height) != GF_OK) {
+	stride = stride_uv = uv_height = nb_planes = 0;
+	if (! gf_pixel_get_size_info(pix_fmt, ffdec->width, ffdec->height, &outsize, &stride, &stride_uv, &nb_planes, &uv_height) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] PID %s failed to query pixelformat size infon", gf_filter_pid_get_name(ffdec->in_pid) ));
 		return GF_NOT_SUPPORTED;
 	}
 
 	FF_CHECK_PROP_VAL(stride, stride, GF_PROP_PID_STRIDE)
+	FF_CHECK_PROP_VAL(stride_uv, stride_uv, GF_PROP_PID_STRIDE_UV)
 	if (ffdec->sar.num * ffdec->codec_ctx->sample_aspect_ratio.den != ffdec->sar.den * ffdec->codec_ctx->sample_aspect_ratio.num) {
 		ffdec->sar.num = ffdec->codec_ctx->sample_aspect_ratio.num;
 		ffdec->sar.den = ffdec->codec_ctx->sample_aspect_ratio.den;
