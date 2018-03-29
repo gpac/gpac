@@ -474,7 +474,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
 			GF_Err e;
-			filter = gf_filter_new(fsess, f_reg, args, GF_FILTER_ARG_LOCAL, &e);
+			filter = gf_filter_new(fsess, f_reg, args, NULL, GF_FILTER_ARG_LOCAL, &e);
 			if (!filter) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", name, gf_error_to_string(e) ));
 			}
@@ -991,6 +991,16 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 	return GF_OK;
 }
 
+static GFINLINE void print_filter_name(GF_Filter *f)
+{
+	fprintf(stderr, "%s", f->name);
+	if (f->id) fprintf(stderr, " ID %s", f->id);
+	fprintf(stderr, " (");
+	if (f->src_args) fprintf(stderr, "%s", f->src_args);
+	if (f->dst_args) fprintf(stderr, "%s", f->dst_args);
+	fprintf(stderr, ")");
+}
+
 GF_EXPORT
 void gf_fs_print_stats(GF_FilterSession *fsess)
 {
@@ -1007,7 +1017,9 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		ipids = f->num_input_pids;
 		opids = f->num_output_pids;
-		fprintf(stderr, "\tFilter %s: %d input pids %d output pids "LLU" tasks "LLU" us process time\n", f->name, ipids, opids, f->nb_tasks_done, f->time_process);
+		fprintf(stderr, "\tFilter ");
+		print_filter_name(f);
+		fprintf(stderr, " : %d input pids %d output pids "LLU" tasks "LLU" us process time\n", ipids, opids, f->nb_tasks_done, f->time_process);
 
 		if (ipids) {
 			fprintf(stderr, "\t\t"LLU" packets processed "LLU" bytes processed", f->nb_pck_processed, f->nb_bytes_processed);
@@ -1067,23 +1079,23 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 	fprintf(stderr, "Filter connections - %d filters\n", count);
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
-		fprintf(stderr, "\tFilter %s", f->name);
-		if (f->id) fprintf(stderr, " ID %s", f->id);
+		fprintf(stderr, "\tFilter ");
+		print_filter_name(f);
 		if (f->source_ids) fprintf(stderr, " sources %s", f->source_ids);
 		fprintf(stderr, " %d in %d out:\n", f->num_input_pids, f->num_output_pids);
 
 		for (j=0; j<f->num_input_pids; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(f->input_pids, j);
-			fprintf(stderr, "\t\t%s input from %s", pidi->pid->name, pidi->pid->filter->name);
-			if (pidi->pid->filter->id) fprintf(stderr, " ID %s", pidi->pid->filter->id);
+			fprintf(stderr, "\t\t%s input from ", pidi->pid->name);
+			print_filter_name(pidi->pid->filter);
 			fprintf(stderr, "\n");
 		}
 		for (j=0; j<f->num_output_pids; j++) {
 			GF_FilterPid *pid = gf_list_get(f->output_pids, j);
 			for (k=0; k<pid->num_destinations; k++) {
 				GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
-				fprintf(stderr, "\t\t%s output to %s", pid->name, pidi->filter->name);
-				if (pidi->filter->id) fprintf(stderr, " ID %s", pidi->filter->id);
+				fprintf(stderr, "\t\t%s output to ", pid->name);
+				print_filter_name(pidi->filter);
 				fprintf(stderr, "\n");
 			}
 		}
@@ -1177,7 +1189,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (force_freg)
 			force_freg += 6;
 	}
-
+restart:
 	//check all our registered filters
 	count = gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {
@@ -1211,6 +1223,11 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		}
 	}
 	if (!candidate_freg) {
+		if (force_freg) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("No source filter named %s found, retrying without forcing registry\n", force_freg));
+			force_freg = NULL;
+			goto restart;
+		}
 		gf_free(sURL);
 		if (err) *err = GF_NOT_SUPPORTED;
 		if (filter) filter->finalized = GF_TRUE;
@@ -1236,7 +1253,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 	e = GF_OK;
 	if (!filter) {
-		filter = gf_filter_new(fsess, candidate_freg, args, GF_FILTER_ARG_GLOBAL_SOURCE, err);
+		filter = gf_filter_new(fsess, candidate_freg, args, NULL, GF_FILTER_ARG_GLOBAL_SOURCE, err);
 	} else {
 		filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, GF_FILTER_ARG_GLOBAL_SOURCE);
@@ -1346,7 +1363,7 @@ void gf_fs_filter_print_possible_connections(GF_FilterSession *session)
 	for (i=0; i<count; i++) {
 		Bool first = GF_TRUE;
 		const GF_FilterRegister *src = gf_list_get(session->registry, i);
-		u32 src_bundle_count = gf_filter_caps_bundle_count(src);
+		u32 src_bundle_count = gf_filter_caps_bundle_count(src->caps, src->nb_caps);
 		if (!src_bundle_count) {
 			fprintf(stderr, "%s has no caps\n", src->name);
 			continue;
@@ -1362,7 +1379,7 @@ void gf_fs_filter_print_possible_connections(GF_FilterSession *session)
 
 			nb_connect = 0;
 			for (k=0; k<src_bundle_count; k++) {
-				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, &dst_bundle_idx);
+				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx);
 			}
 			if (nb_connect) {
 				if (first) {
