@@ -492,63 +492,15 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 {
 	u32 i;
 	char nhml[1024];
+	char pval[100];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
 	sprintf(nhml, "%s=\"", pname ? pname : gf_4cc_to_str(p4cc));
 	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+
+
+
 	switch (att->type) {
-	case GF_PROP_SINT:
-		sprintf(nhml, "%d", att->value.sint);
-		break;
-	case GF_PROP_UINT:
-		sprintf(nhml, "%u", att->value.uint);
-		break;
-	case GF_PROP_LSINT:
-		sprintf(nhml, ""LLD, att->value.longsint);
-		break;
-	case GF_PROP_LUINT:
-		sprintf(nhml, ""LLU, att->value.longuint);
-		break;
-	case GF_PROP_FRACTION:
-		sprintf(nhml, "%d/%u", att->value.frac.num, att->value.frac.den);
-		break;
-	case GF_PROP_BOOL:
-		sprintf(nhml, "%s", att->value.boolean ? "true" : "false");
-		break;
-	case GF_PROP_FLOAT:
-		sprintf(nhml, "%f", FIX2FLT(att->value.fnumber) );
-		break;
-	case GF_PROP_DOUBLE:
-		sprintf(nhml, "%g", att->value.number);
-		break;
-	case GF_PROP_PIXFMT:
-		sprintf(nhml, "%s", gf_pixfmt_name(att->value.uint));
-		break;
-	case GF_PROP_VEC2I:
-		sprintf(nhml, "%dx%d", att->value.vec2i.x, att->value.vec2i.y);
-		break;
-	case GF_PROP_VEC2:
-		sprintf(nhml, "%lgx%lg", att->value.vec2.x, att->value.vec2.y);
-		break;
-	case GF_PROP_VEC3I:
-		sprintf(nhml, "%dx%dx%d", att->value.vec3i.x, att->value.vec3i.y, att->value.vec3i.z);
-		break;
-	case GF_PROP_VEC3:
-		sprintf(nhml, "%lgx%lgx%lg", att->value.vec3.x, att->value.vec3.y, att->value.vec3.y);
-		break;
-	case GF_PROP_VEC4I:
-		sprintf(nhml, "%dx%dx%dx%d", att->value.vec4i.x, att->value.vec4i.y, att->value.vec4i.z, att->value.vec4i.w);
-		break;
-	case GF_PROP_VEC4:
-		sprintf(nhml, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
-		break;
-	case GF_PROP_NAME:
-		sprintf(nhml, "%s", att->value.string);
-		break;
-	case GF_PROP_STRING:
-	case GF_PROP_STRING_NO_COPY:
-		sprintf(nhml, "%s", att->value.string);
-		break;
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
 	case GF_PROP_DATA_NO_COPY:
@@ -560,11 +512,8 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 		}
 		nhml[0] = 0;
 		break;
-	case GF_PROP_POINTER:
-		sprintf(nhml, "%p", att->value.ptr);
-		break;
-	case GF_PROP_FORBIDEN:
-		sprintf(nhml, "FORBIDDEN");
+	default:
+		sprintf(nhml, "%s", gf_prop_dump_val(att, pval, GF_FALSE) );
 		break;
 	}
 	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
