@@ -1848,8 +1848,8 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 
 		src1 = pY;
 		dst = pYD;
-		_src2 = (pixel_format != GF_PIXEL_YV12) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YV12) ? pV : pU;
+		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
+		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
 
 		for (i = 0; i < src_wnd -> h; i++) {
 			memcpy(dst, src1, src_wnd -> w);
@@ -1882,8 +1882,8 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 		}
 		src1 = pY;
 		dst = pYD;
-		_src2 = (pixel_format != GF_PIXEL_YV12) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YV12) ? pV : pU;
+		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
+		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
 
 		for (i = 0; i < src_wnd -> h; i++) {
 			memcpy(dst, src1, src_wnd -> w);
@@ -1924,8 +1924,8 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 
 		}
 
-		_src2 = (pixel_format != GF_PIXEL_YV12) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YV12) ? pV : pU;
+		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
+		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
 		for (i = 0; i < src_wnd -> h; i++) {
 			u16 * src = (u16 * )(pY + i * src_stride);
 			u8 * dst = (u8 * )(pYD + i * pitch_y);
@@ -1974,8 +1974,8 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 
 		}
 
-		_src2 = (pixel_format != GF_PIXEL_YV12) ? pU : pV;
-		_src3 = (pixel_format != GF_PIXEL_YV12) ? pV : pU;
+		_src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
+		_src3 = (pixel_format != GF_PIXEL_YUV) ? pV : pU;
 		for (i = 0; i < src_wnd -> h; i++) {
 			u16 * src = (u16 * )(pY + i * src_stride);
 			u8 * dst = (u8 * ) pYD + i * pitch_y;
@@ -2103,7 +2103,7 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 				pV += src_stride;
 			}
 		}
-	} else if (src_pf==GF_PIXEL_YV12_10) {
+	} else if (src_pf==GF_PIXEL_YUV_10) {
 		u32 i, j;
 		for (i=0; i<src_wnd->h; i++) {
 			u16 *py = (u16 *) (pY + i*src_stride);
@@ -2137,9 +2137,9 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 		src = pY;
 		dst = pYD;
 
-		src2 = (pixel_format != GF_PIXEL_YV12) ? pU : pV;
+		src2 = (pixel_format != GF_PIXEL_YUV) ? pU : pV;
 		dst2 = pVD;
-		src3 = (pixel_format  != GF_PIXEL_YV12) ? pV : pU;
+		src3 = (pixel_format  != GF_PIXEL_YUV) ? pV : pU;
 		dst3 = pUD;
 		for (i=0; i<src_wnd->h; i++) {
 			memcpy(dst, src, src_wnd->w);
@@ -2240,7 +2240,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		format=SDL_PIXELFORMAT_ABGR8888;
 		set_blend=1;
 		break;
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_YV12;
 		format=SDL_PIXELFORMAT_IYUV;
@@ -2249,7 +2249,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_YUV422_10:
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		need_copy=1;
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_YV12;
@@ -2308,7 +2308,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		pY = pixels;
 		pU = pixels + h*pitch;
 		pV = pixels + 5*h*pitch/4;
-		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
+		copy_yuv(pY, pU, pV, GF_PIXEL_YUV, pitch, (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
 
 		SDL_UnlockTexture(*pool);
 	} else {
@@ -2373,7 +2373,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		/*copy pixels*/
 		SDL_LockYUVOverlay(ctx->yuv_overlay);
 
-		copy_yuv(ctx->yuv_overlay->pixels[0], ctx->yuv_overlay->pixels[1], ctx->yuv_overlay->pixels[2], GF_PIXEL_YV12, ctx->yuv_overlay->pitches[0],
+		copy_yuv(ctx->yuv_overlay->pixels[0], ctx->yuv_overlay->pixels[1], ctx->yuv_overlay->pixels[2], GF_PIXEL_YUV, ctx->yuv_overlay->pitches[0],
 		         (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format,
 		         video_src->width, video_src->height, src_wnd);
 

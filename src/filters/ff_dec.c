@@ -229,7 +229,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.linesize[0] = 4*ffdec->width;
 		pix_out = AV_PIX_FMT_RGBA;
 		break;
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
 		pict.data[2] =  (uint8_t *)out_buffer + 5 * ffdec->stride * ffdec->height / 4;
@@ -252,7 +252,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ffdec->stride;
 		pix_out = AV_PIX_FMT_YUV444P;
 		break;
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
 		pict.data[2] =  (uint8_t *)out_buffer + 5 * ffdec->stride * ffdec->height / 4;

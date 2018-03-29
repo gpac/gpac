@@ -246,6 +246,7 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID)
 	if (filter->id) gf_free(filter->id);
 	filter->id = ID ? gf_strdup(ID) : NULL;
 }
+
 void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
 	u32 old_len, len;
@@ -1431,6 +1432,7 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_
 	if (media_timestamp) *media_timestamp = filter->session->hint_timestamp;
 }
 
+GF_EXPORT
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext)
 {
 	char szID[1024];

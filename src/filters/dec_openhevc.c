@@ -473,7 +473,7 @@ static u32 ohevcdec_get_pixel_format( u32 luma_bpp, u8 chroma_format_idc)
 {
 	switch (chroma_format_idc) {
 	case 1:
-		return (luma_bpp==10) ? GF_PIXEL_YV12_10 : GF_PIXEL_YV12;
+		return (luma_bpp==10) ? GF_PIXEL_YUV_10 : GF_PIXEL_YUV;
 	case 2:
 		return (luma_bpp==10) ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
 	case 3:

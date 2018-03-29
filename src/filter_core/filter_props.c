@@ -692,6 +692,7 @@ struct _gf_prop_typedef {
 
 };
 
+GF_EXPORT
 const char *gf_props_4cc_get_name(u32 prop_4cc)
 {
 	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
@@ -716,6 +717,7 @@ Bool gf_props_4cc_check_props()
 	return res;
 }
 
+GF_EXPORT
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data)
 {
 	switch (att->type) {

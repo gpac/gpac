@@ -114,10 +114,10 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 {
 	if (txh->compositor->output_as_8bit) {
 
-		if (txh->pixelformat == GF_PIXEL_YV12_10) {
+		if (txh->pixelformat == GF_PIXEL_YUV_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
-			txh->pixelformat = GF_PIXEL_YV12;
+			txh->pixelformat = GF_PIXEL_YUV;
 			if(txh->hw_frame)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
 		}
@@ -238,7 +238,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 			txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &src_stride);
 		}
 
-		if (txh->pixelformat == GF_PIXEL_YV12) {
+		if (txh->pixelformat == GF_PIXEL_YUV) {
 
 			gf_color_write_yv12_10_to_yuv(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
 
@@ -562,8 +562,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->nb_comp = 4;
 		break;
 #endif
-	case GF_PIXEL_YV12:
-    case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV:
+    case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV444:		
@@ -670,7 +670,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->nb_comp = 1;
 		txh->tx_io->yuv_shader = 1;
 		switch (txh->pixelformat) {
-		case GF_PIXEL_YV12_10:
+		case GF_PIXEL_YUV_10:
 		case GF_PIXEL_NV12_10:
 		case GF_PIXEL_YUV422_10:
 		case GF_PIXEL_YUV444_10:
@@ -736,7 +736,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		}
 #endif
 
-		if (txh->tx_io->yuv_shader && ((txh->pixelformat==GF_PIXEL_YV12_10) || (txh->pixelformat==GF_PIXEL_NV12_10) || (txh->pixelformat==GF_PIXEL_YUV422_10) || (txh->pixelformat==GF_PIXEL_YUV444_10)) ) {
+		if (txh->tx_io->yuv_shader && ((txh->pixelformat==GF_PIXEL_YUV_10) || (txh->pixelformat==GF_PIXEL_NV12_10) || (txh->pixelformat==GF_PIXEL_YUV422_10) || (txh->pixelformat==GF_PIXEL_YUV444_10)) ) {
 			//will never happen on GLES for now since we don't have GLES2 support yet ...
 			//FIXME - allow 10bit support in GLES2
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
@@ -858,8 +858,8 @@ common:
 
 		txh->tx_io->flags |= TX_IS_FLIPPED;
 		return 1;
-	case GF_PIXEL_YV12:
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV444:		
@@ -920,8 +920,8 @@ common:
 	dst.video_buffer = txh->tx_io->conv_data;
 	switch (txh->pixelformat) {
 	case GF_PIXEL_YUYV:
-	case GF_PIXEL_YV12:
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV444:		
@@ -939,7 +939,7 @@ common:
 		break;
 	case GF_PIXEL_YUVD:
 		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
-			src.pixel_format = GF_PIXEL_YV12;
+			src.pixel_format = GF_PIXEL_YUV;
 			txh->tx_io->conv_format = GF_PIXEL_RGB_DEPTH;
 			dst.pixel_format = GF_PIXEL_RGB;
 			dst.pitch_y = 3*txh->width;
@@ -1232,8 +1232,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				if (!pV)
 					pV = (u8 *) pU + txh->height * stride_chroma;
 				break;
-			case GF_PIXEL_YV12_10:
-			case GF_PIXEL_YV12:
+			case GF_PIXEL_YUV_10:
+			case GF_PIXEL_YUV:
 				if (!stride_chroma)
 					stride_chroma = stride_luma/2;
 				if (!pV)
@@ -1255,7 +1255,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		
 			switch (txh->pixelformat) {
-			case GF_PIXEL_YV12_10:
+			case GF_PIXEL_YUV_10:
 			case GF_PIXEL_YUV422_10:
 			case GF_PIXEL_YUV444_10:
 			case GF_PIXEL_NV12_10:
@@ -1282,7 +1282,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				txh->tx_io->gl_format = fmt;
 				GL_CHECK_ERR
 			} 
-			else if (txh->pixelformat == GF_PIXEL_YV12_10 || txh->pixelformat == GF_PIXEL_YV12 ) {
+			else if (txh->pixelformat == GF_PIXEL_YUV_10 || txh->pixelformat == GF_PIXEL_YUV ) {
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pU, stride_chroma, w/2, h/2, txh->tx_io->u_pbo_id);
 				GL_CHECK_ERR
@@ -1313,7 +1313,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			}
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-			if (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ) {
+			if (txh->pixelformat==GF_PIXEL_YUV_10 || txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 				glPixelTransferi(GL_RED_SCALE, 1);
 			}

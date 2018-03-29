@@ -92,7 +92,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	video_src.pitch_y = ctx->aspect.fill_texture->stride;
 	video_src.pixel_format = ctx->aspect.fill_texture->pixelformat;
 #ifdef GF_SR_USE_DEPTH
-	if (ctx->aspect.fill_texture->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YV12;
+	if (ctx->aspect.fill_texture->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YUV;
 #endif
 	video_src.video_buffer = ctx->aspect.fill_texture->data;
 

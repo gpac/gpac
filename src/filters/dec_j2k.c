@@ -119,7 +119,7 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 	if (ctx->pixel_format) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT( (ctx->pixel_format == GF_PIXEL_YV12) ? ctx->width : ctx->width * ctx->nb_comp) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT( (ctx->pixel_format == GF_PIXEL_YUV) ? ctx->width : ctx->width * ctx->nb_comp) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pixel_format) );
 	}
 	return GF_OK;
@@ -231,7 +231,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		&& (image->comps[1].w==image->comps[2].w)
 		&& (image->comps[0].h==2*image->comps[1].h)
 		&& (image->comps[1].h==image->comps[2].h)) {
-		pf = GF_PIXEL_YV12;
+		pf = GF_PIXEL_YUV;
 		ctx->out_size = 3*ctx->width*ctx->height/2;
 	}
 	if (ctx->pixel_format!=pf) {

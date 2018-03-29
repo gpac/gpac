@@ -375,8 +375,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ffd)
 		if (codec->pix_fmt>0) {
 			u32 pfmt = 0;
 			switch (codec->pix_fmt) {
-			case AV_PIX_FMT_YUV420P: pfmt = GF_PIXEL_YV12; break;
-			case AV_PIX_FMT_YUV420P10LE: pfmt = GF_PIXEL_YV12_10; break;
+			case AV_PIX_FMT_YUV420P: pfmt = GF_PIXEL_YUV; break;
+			case AV_PIX_FMT_YUV420P10LE: pfmt = GF_PIXEL_YUV_10; break;
 			case AV_PIX_FMT_YUV422P: pfmt = GF_PIXEL_YUV422; break;
 			case AV_PIX_FMT_YUV422P10LE: pfmt = GF_PIXEL_YUV422_10; break;
 			case AV_PIX_FMT_YUV444P: pfmt = GF_PIXEL_YUV444; break;
