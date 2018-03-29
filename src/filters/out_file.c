@@ -40,6 +40,9 @@ typedef struct
 	FILE *file;
 	Bool is_std;
 	u32 nb_write;
+
+	GF_FilterCapability in_caps[2];
+	char szExt[5];
 } GF_FileOutCtx;
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx)
@@ -108,7 +111,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OUTPATH);
 	if (p && p->value.string) {
 		fileout_open_close(ctx, p->value.string, NULL, 0);
-	} else {
+	} else if (ctx->dynext) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PCK_FILENUM);
 		if (!p) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
@@ -116,41 +119,22 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				fileout_open_close(ctx, ctx->dst, p->value.string, 0);
 			}
 		}
+	} else {
+		fileout_open_close(ctx, ctx->dst, NULL, 0);
 	}
+	
 	if (!ctx->pid) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
-
-	if (ctx->dst && !ctx->dynext) {
-		char *ext = strrchr(ctx->dst, '.');
-		if (!ext && !ctx->mime) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] No extension provided nor mime type for output file %s, cannot infer format\n", ctx->dst));
-			return GF_NOT_SUPPORTED;
-		}
-		if (ext) ext++;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-		//OK, good to go
-		if (p && !strcmp(p->value.string, ext)) {
-		}
-		//need reconfiguration
-		else {
-			if (ctx->mime)
-				gf_filter_pid_negociate_property(pid, GF_PROP_PID_MIME, &PROP_NAME(ctx->mime) );
-			if (ext)
-				gf_filter_pid_negociate_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext) );
-			return GF_OK;
-		}
-	}
-
 	return GF_OK;
 }
 
 static GF_Err fileout_initialize(GF_Filter *filter)
 {
+	char *ext;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->dst) return GF_OK;
@@ -160,7 +144,30 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 	if (ctx->dynext) return GF_OK;
-	fileout_open_close(ctx, ctx->dst, NULL, 0);
+
+	ext = strrchr(ctx->dst, '.');
+	if (!ext) ext = "*";
+	if (!ext && !ctx->mime) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] No extension provided nor mime type for output file %s, cannot infer format\n", ctx->dst));
+		return GF_NOT_SUPPORTED;
+	}
+	//static cap, streamtype = file
+	ctx->in_caps[0].code = GF_PROP_PID_STREAM_TYPE;
+	ctx->in_caps[0].val = PROP_UINT(GF_STREAM_FILE);
+	ctx->in_caps[0].flags = GF_CAPS_INPUT_STATIC;
+
+	if (ctx->mime) {
+		ctx->in_caps[1].code = GF_PROP_PID_MIME;
+		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
+		ctx->in_caps[1].flags = GF_CAPS_INPUT;
+	} else {
+		strcpy(ctx->szExt, ext+1);
+		strlwr(ctx->szExt);
+		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
+		ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
+		ctx->in_caps[1].flags = GF_CAPS_INPUT;
+	}
+	gf_filter_override_caps(filter, ctx->in_caps, 2);
 	return GF_OK;
 }
 

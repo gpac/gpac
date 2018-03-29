@@ -217,10 +217,22 @@ u32 gf_pixfmt_parse(const char *pf_name);
 */
 const char *gf_pixfmt_name(u32 pfmt);
 
+/*! gets short name of pixel formats, as used for file extensions
+ \param pfmt  pixel format code
+ \return pixel format short name
+*/
+const char *gf_pixfmt_sname(u32 pfmt);
+
+
 /*! gets the list of all supported pixel format names
  \return list of supported pixel format names
 */
 const char *gf_pixfmt_all_names();
+
+/*! gets the list of all supported pixel format names
+ \return list of supported pixel format short names
+*/
+const char *gf_pixfmt_all_shortnames();
 
 /*! returns size and stride characteristics for the pixel format
  \param pixfmt  pixfmt format code

@@ -289,27 +289,43 @@ typedef struct
 {
 	u32 pixfmt;
 	const char *name; //as used in gpac
+	const char *sname; //short name, as used in gpac
 } GF_PixFmt;
 
 static const GF_PixFmt GF_PixelFormats[] =
 {
-	{GF_PIXEL_YV12, "yuv420"},
-	{GF_PIXEL_YV12_10, "yuv420_10"},
-	{GF_PIXEL_YUV422, "yuv422"},
-	{GF_PIXEL_YUV422_10, "yuv422_10"},
-	{GF_PIXEL_YUV444, "yuv444"},
-	{GF_PIXEL_YUV444_10, "yuv444_10"},
+	{GF_PIXEL_YV12, "yuv420", "yuv"},
+	{GF_PIXEL_YV12_10, "yuv420_10", "yuvl"},
+	{GF_PIXEL_YUV422, "yuv422", "yuv2"},
+	{GF_PIXEL_YUV422_10, "yuv422_10", "yp2l"},
+	{GF_PIXEL_YUV444, "yuv444", "yuv4"},
+	{GF_PIXEL_YUV444_10, "yuv444_10", "yp4l"},
+	{GF_PIXEL_UYVY, "uyvy"},
+	{GF_PIXEL_UYVY, "vyuy"},
+	{GF_PIXEL_YUYV, "yuyv"},
+	{GF_PIXEL_YUYV, "yvyu"},
+	{GF_PIXEL_NV12, "nv12"},
+	{GF_PIXEL_NV12_10, "nv1l"},
+	{GF_PIXEL_NV21_10, "nv2l"},
+	{GF_PIXEL_YUVA, "yuva"},
+	{GF_PIXEL_YUVD, "yuvd"},
+	{GF_PIXEL_GREYSCALE, "grey"},
+	{GF_PIXEL_ALPHAGREY, "gral"},
+	{GF_PIXEL_RGB_444, "rgb4"},
+	{GF_PIXEL_RGB_555, "rgb5"},
+	{GF_PIXEL_RGB_565, "rgb6"},
 	{GF_PIXEL_RGBA, "rgba"},
+	{GF_PIXEL_ARGB, "argb"},
 	{GF_PIXEL_RGB, "rgb"},
 	{GF_PIXEL_BGR, "bgr"},
-	{GF_PIXEL_UYVY, "uyvy"},
-	{GF_PIXEL_YUYV, "yuyv"},
-	{GF_PIXEL_NV12, "nv12"},
-	{GF_PIXEL_NV21, "nv21"},
 	{GF_PIXEL_XRGB, "xrgb"},
 	{GF_PIXEL_RGBX, "rgbx"},
 	{GF_PIXEL_XBGR, "xbgr"},
 	{GF_PIXEL_BGRX, "bgrx"},
+	{GF_PIXEL_RGBD, "rgbd"},
+	{GF_PIXEL_RGBDS, "rgbds"},
+	{GF_PIXEL_RGBS, "rgbs"},
+	{GF_PIXEL_RGBAS, "rgbas"},
 	{},
 };
 
@@ -328,9 +344,12 @@ u32 gf_pixfmt_enum(u32 *idx, const char **out_name)
 u32 gf_pixfmt_parse(const char *pf_name)
 {
 	u32 i=0;
-	if (!pf_name) return 0;
+	if (!pf_name || !strcmp(pf_name, "none")) return 0;
 	while (GF_PixelFormats[i].pixfmt) {
-		if (!strcmp(GF_PixelFormats[i].name, pf_name)) return GF_PixelFormats[i].pixfmt;
+		if (!strcmp(GF_PixelFormats[i].name, pf_name))
+			return GF_PixelFormats[i].pixfmt;
+		if (GF_PixelFormats[i].sname && !strcmp(GF_PixelFormats[i].sname, pf_name))
+			return GF_PixelFormats[i].pixfmt;
 		i++;
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s\n", pf_name));
@@ -345,6 +364,20 @@ const char *gf_pixfmt_name(u32 pfmt)
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
 	return "unknown";
+}
+const char *gf_pixfmt_sname(u32 pfmt)
+{
+	u32 i=0;
+	while (GF_PixelFormats[i].pixfmt) {
+		if (GF_PixelFormats[i].pixfmt==pfmt) {
+			if (GF_PixelFormats[i].sname)
+				return GF_PixelFormats[i].sname;
+			return GF_PixelFormats[i].name;
+		}
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
+	return "unknown";
 
 }
 
@@ -354,23 +387,48 @@ const char *gf_pixfmt_all_names()
 {
 	if (!szAllPixelFormats[0]) {
 		u32 i=0;
-		u32 tot_len=0;
+		u32 tot_len=4;
+		strcpy(szAllPixelFormats, "none");
 		while (GF_PixelFormats[i].pixfmt) {
 			u32 len = strlen(GF_PixelFormats[i].name);
-			if (len+tot_len+1>=5000) {
+			if (len+tot_len+2>=5000) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
 			}
-			if (i) {
-				strcat((char *)szAllPixelFormats, ",");
-				tot_len += 1;
-			}
+			strcat((char *)szAllPixelFormats, ",");
+			tot_len += 1;
 			strcat((char *)szAllPixelFormats, GF_PixelFormats[i].name);
 			tot_len += len;
 			i++;
 		}
 	}
 	return szAllPixelFormats;
+}
+
+static char szAllShortPixelFormats[5000] = {};
+
+const char *gf_pixfmt_all_shortnames()
+{
+	if (!szAllShortPixelFormats[0]) {
+		u32 i=0;
+		u32 tot_len=0;
+		while (GF_PixelFormats[i].pixfmt) {
+			const char * n = GF_PixelFormats[i].sname ? GF_PixelFormats[i].sname : GF_PixelFormats[i].name;
+			u32 len = strlen(n);
+			if (len+tot_len+1>=5000) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
+				break;
+			}
+			if (i) {
+				strcat((char *)szAllShortPixelFormats, "|");
+				tot_len += 1;
+			}
+			strcat((char *)szAllShortPixelFormats, n);
+			tot_len += len;
+			i++;
+		}
+	}
+	return szAllShortPixelFormats;
 }
 
 Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *out_size, u32 *out_stride, u32 *out_stride_uv, u32 *out_planes, u32 *out_plane_uv_height)
