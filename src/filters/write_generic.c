@@ -35,7 +35,7 @@ typedef struct
 	//opts
 	Bool exporter, rcfg, frame;
 	u32 sstart, send;
-	u32 pfmt;
+	u32 pfmt, afmt;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -55,7 +55,7 @@ typedef struct
 
 	GF_BitStream *bs;
 
-	u32 target_pfmt;
+	u32 target_pfmt, target_afmt;
 } GF_GenDumpCtx;
 
 
@@ -284,31 +284,54 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->dcfg = NULL;
 		ctx->dcfg_size = 0;
 		if (stype==GF_STREAM_VISUAL) {
-			strcpy(szExt, gf_pixfmt_sname(ctx->target_pfmt ? ctx->target_pfmt : pf));
+			strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt ? ctx->target_pfmt : pf));
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
 				strncpy(szExt, p->value.string, 10);
-				ctx->target_pfmt = gf_pixfmt_parse(szExt);
-				strcpy(szExt, gf_pixfmt_sname(ctx->target_pfmt));
-				//forcing color space regardless of extension
+				ctx->target_pfmt = gf_pixel_fmt_parse(szExt);
+				strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
+				//forcing pixel format regardless of extension
 				if (ctx->pfmt) {
-					if (pf!=ctx->pfmt) {
-						gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PIXFMT, &PROP_UINT(ctx->pfmt));
+					if (pf != ctx->pfmt) {
+						gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pfmt));
 						//make sure we reconfigure
 						ctx->codecid = 0;
 						pf = ctx->pfmt;
 					}
 				}
-				//use extension to derive color space
+				//use extension to derive pixel format
 				else if (pf != ctx->target_pfmt) {
-					gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PIXFMT, &PROP_UINT(ctx->target_pfmt));
-					strcpy(szExt, gf_pixfmt_sname(ctx->target_pfmt));
+					gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->target_pfmt));
+					strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
 					//make sure we reconfigure
 					ctx->codecid = 0;
 				}
 			}
 		} else if (stype==GF_STREAM_AUDIO) {
-			strcat(szExt, "pcm");
+			strcpy(szExt, gf_audio_fmt_sname(ctx->target_pfmt ? ctx->target_afmt : sfmt));
+			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
+			if (p) {
+				strncpy(szExt, p->value.string, 10);
+				ctx->target_afmt = gf_audio_fmt_parse(szExt);
+				strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
+				//forcing sample format regardless of extension
+				if (ctx->afmt) {
+					if (sfmt != ctx->afmt) {
+						gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
+						//make sure we reconfigure
+						ctx->codecid = 0;
+						sfmt = ctx->afmt;
+					}
+				}
+				//use extension to derive sample format
+				else if (sfmt != ctx->target_afmt) {
+					gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->target_afmt));
+					strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
+					//make sure we reconfigure
+					ctx->codecid = 0;
+				}
+			}
+
 		} else {
 			strcpy(szExt, gf_4cc_to_str(cid));
 		}
@@ -361,10 +384,10 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	name = gf_codecid_name(cid);
 	if (ctx->exporter) {
 		if (w && h) {
-			if (cid==GF_CODECID_RAW) name = gf_pixfmt_name(pf);
+			if (cid==GF_CODECID_RAW) name = gf_pixel_fmt_name(pf);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - Size %dx%d\n", name, w, h));
 		} else if (sr && chan) {
-			if (cid==GF_CODECID_RAW) name = gf_pixfmt_name(sfmt);
+			if (cid==GF_CODECID_RAW) name = gf_pixel_fmt_name(sfmt);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, gf_audio_fmt_bit_depth(sfmt) ));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s\n", name));
@@ -494,9 +517,16 @@ GF_Err gendump_process(GF_Filter *filter)
 
 static GF_FilterCapability GenDumpCaps[] =
 {
-	//raw color dump YUV and RGB - keep it as first for fiel extension assignment
+	//raw color dump YUV and RGB - keep it as first for field extension assignment
 	//cf below
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "gpac" ),
+	{},
+	//raw audio dump - keep it as second for field extension assignment
+	//cf below
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "gpac" ),
@@ -568,6 +598,7 @@ static GF_FilterArgs GenDumpArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(pfmt), "Pixel format for raw extract. If not set, derived from extension", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
+	{ OFFS(afmt), "Audio format for raw extract. If not set, derived from extension", GF_PROP_PCMFMT, "none", NULL, GF_FALSE},
 	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(sstart), "Start number of frame to dump", GF_PROP_UINT, "0", NULL, GF_FALSE},
@@ -615,8 +646,11 @@ const GF_FilterRegister *gendump_register(GF_FilterSession *session)
 {
 	//assign possible file ext
 	assert(!strcmp(GenDumpCaps[3].val.value.string, "gpac"));
-	GenDumpCaps[3].val.value.string = (char *) gf_pixfmt_all_shortnames();
-	GenDumpArgs[1].min_max_enum = gf_pixfmt_all_names();
+	assert(!strcmp(GenDumpCaps[8].val.value.string, "gpac"));
+	GenDumpCaps[3].val.value.string = (char *) gf_pixel_fmt_all_shortnames();
+	GenDumpCaps[8].val.value.string = (char *) gf_audio_fmt_all_shortnames();
+	GenDumpArgs[1].min_max_enum = gf_pixel_fmt_all_names();
+	GenDumpArgs[2].min_max_enum = gf_audio_fmt_all_names();
 
 	return &GenDumpRegister;
 }

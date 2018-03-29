@@ -203,36 +203,36 @@ typedef enum
  \param[out] out_name output name of the pixel format
  \return pixel format code
 */
-u32 gf_pixfmt_enum(u32 *idx, const char **out_name);
+u32 gf_pixel_fmt_enum(u32 *idx, const char **out_name);
 
 /*! enumerates GPAC pixel formats
  \param pf_name name of the pixel format
  \return pixel format code
 */
-u32 gf_pixfmt_parse(const char *pf_name);
+u32 gf_pixel_fmt_parse(const char *pf_name);
 
 /*! gets name of pixel formats
  \param pfmt  pixel format code
  \return pixel format name
 */
-const char *gf_pixfmt_name(u32 pfmt);
+const char *gf_pixel_fmt_name(u32 pfmt);
 
 /*! gets short name of pixel formats, as used for file extensions
  \param pfmt  pixel format code
  \return pixel format short name
 */
-const char *gf_pixfmt_sname(u32 pfmt);
+const char *gf_pixel_fmt_sname(u32 pfmt);
 
 
 /*! gets the list of all supported pixel format names
  \return list of supported pixel format names
 */
-const char *gf_pixfmt_all_names();
+const char *gf_pixel_fmt_all_names();
 
 /*! gets the list of all supported pixel format names
  \return list of supported pixel format short names
 */
-const char *gf_pixfmt_all_shortnames();
+const char *gf_pixel_fmt_all_shortnames();
 
 /*! returns size and stride characteristics for the pixel format
  \param pixfmt  pixfmt format code
@@ -593,11 +593,42 @@ enum
 	GF_AUDIO_FMT_S24P,
 };
 
+
+/*! enumerates GPAC audio formats
+ \param af_name name of the audio format
+ \return audio format code
+*/
+u32 gf_audio_fmt_parse(const char *af_name);
+
+/*! gets name of audio formats
+ \param afmt audio format code
+ \return audio format name
+*/
+const char *gf_audio_fmt_name(u32 afmt);
+
+/*! gets short name of audio formats, as used for file extensions
+ \param afmt audio format code
+ \return audio format short name
+*/
+const char *gf_audio_fmt_sname(u32 afmt);
+
+
+/*! gets the list of all supported audio format names
+ \return list of supported audio format names
+*/
+const char *gf_audio_fmt_all_names();
+
+/*! gets the list of all supported audio format names
+ \return list of supported audio format short names
+*/
+const char *gf_audio_fmt_all_shortnames();
+
 /*! returns number of bots per sample for the given format
- \param audio_fmt desired audio format
+ \param afmt desired audio format
  \return bit depth of format
 */
-u32 gf_audio_fmt_bit_depth(u32 audio_fmt);
+u32 gf_audio_fmt_bit_depth(u32 afmt);
+
 
 /*DIMS unit flags */
 /*!

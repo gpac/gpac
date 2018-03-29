@@ -174,7 +174,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_PIXFMT:
-		p.value.uint = gf_pixfmt_parse(value);
+		p.value.uint = gf_pixel_fmt_parse(value);
+		break;
+	case GF_PROP_PCMFMT:
+		p.value.uint = gf_audio_fmt_parse(value);
 		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
@@ -216,6 +219,7 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 	switch (p1->type) {
 	case GF_PROP_SINT: return (p1->value.sint==p2->value.sint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_PIXFMT:
+	case GF_PROP_PCMFMT:
 	case GF_PROP_UINT:
 	 	return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_LSINT: return (p1->value.longsint==p2->value.longsint) ? GF_TRUE : GF_FALSE;
@@ -591,6 +595,7 @@ const char *gf_props_get_type_name(u32 type)
 	case GF_PROP_VEC4I: return "vec4d int";
 	case GF_PROP_VEC4: return "vec4d float";
 	case GF_PROP_PIXFMT: return "pixel format";
+	case GF_PROP_PCMFMT: return "audio format";
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
 	return "Undefined";
@@ -764,7 +769,10 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool d
 		sprintf(dump, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
 		break;
 	case GF_PROP_PIXFMT:
-		sprintf(dump, "%s", gf_pixfmt_name(att->value.uint));
+		sprintf(dump, "%s", gf_pixel_fmt_name(att->value.uint));
+		break;
+	case GF_PROP_PCMFMT:
+		sprintf(dump, "%s", gf_audio_fmt_name(att->value.uint));
 		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:

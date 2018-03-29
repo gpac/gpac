@@ -1462,7 +1462,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_uyvy;
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Source pixel format %s not supported by gf_stretch_bits\n", gf_pixfmt_name(src->pixel_format) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Source pixel format %s not supported by gf_stretch_bits\n", gf_pixel_fmt_name(src->pixel_format) ));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -1505,7 +1505,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		copy_row = has_alpha ? merge_row_rgbx : copy_row_rgbx;
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Destination pixel format %s not supported by gf_stretch_bits\n", gf_pixfmt_name(dst->pixel_format) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Destination pixel format %s not supported by gf_stretch_bits\n", gf_pixel_fmt_name(dst->pixel_format) ));
 		return GF_NOT_SUPPORTED;
 	}
 	/*x_pitch 0 means linear framebuffer*/
