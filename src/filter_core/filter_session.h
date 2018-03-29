@@ -454,6 +454,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 
 void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst);
+void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst);
 
 void gf_filter_forward_clock(GF_Filter *filter);
 

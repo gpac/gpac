@@ -166,6 +166,7 @@ void gf_filter_del(GF_Filter *filter)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
 	assert(filter);
+	assert(!filter->detached_pid_inst);
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs) {
