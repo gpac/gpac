@@ -434,24 +434,24 @@ const char *gf_pixfmt_all_shortnames()
 Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *out_size, u32 *out_stride, u32 *out_stride_uv, u32 *out_planes, u32 *out_plane_uv_height)
 {
 	u32 stride=0, stride_uv=0, size=0, planes=0, uv_height=0;
-	Bool keep_stride = (!out_stride || (*out_stride==0)) ? GF_TRUE : GF_FALSE;
-	Bool keep_stride_uv = (!out_stride_uv || (*out_stride_uv==0)) ? GF_TRUE : GF_FALSE;
+	Bool no_in_stride = (!out_stride || (*out_stride==0)) ? GF_TRUE : GF_FALSE;
+	Bool no_in_stride_uv = (!out_stride_uv || (*out_stride_uv==0)) ? GF_TRUE : GF_FALSE;
 
 	switch (pixfmt) {
 	case GF_PIXEL_GREYSCALE:
-		stride = keep_stride ? width : *out_stride;
+		stride = no_in_stride ? width : *out_stride;
 		size = stride * height;
 		planes=1;
 		break;
 	case GF_PIXEL_ALPHAGREY:
-		stride = keep_stride ? 2*width : *out_stride;
+		stride = no_in_stride ? 2*width : *out_stride;
 		size = stride * height;
 		planes=1;
 		break;
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
-		stride = keep_stride ? 2*width : *out_stride;
+		stride = no_in_stride ? 2*width : *out_stride;
 		size = stride * height;
 		planes=1;
 		break;
@@ -464,94 +464,94 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
 	case GF_PIXEL_RGBAS:
-		stride = keep_stride ? 4*width : *out_stride;
+		stride = no_in_stride ? 4*width : *out_stride;
 		size = stride * height;
 		planes=1;
 		break;
 	case GF_PIXEL_RGB_DEPTH:
-		stride = keep_stride ? 3*width : *out_stride;
-		stride_uv = keep_stride_uv ? width : *out_stride_uv;
+		stride = no_in_stride ? 3*width : *out_stride;
+		stride_uv = no_in_stride_uv ? width : *out_stride_uv;
 		size = 4 * width * height;
 		planes=1;
 		break;
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
 	case GF_PIXEL_RGBS:
-		stride = keep_stride ? 3*width : *out_stride;
+		stride = no_in_stride ? 3*width : *out_stride;
 		size = stride * height;
 		planes=1;
 		break;
 	case GF_PIXEL_YUV:
-		stride = keep_stride ? width : *out_stride;
+		stride = no_in_stride ? width : *out_stride;
 		uv_height = height / 2;
 		size = 3*stride * height / 2;
-		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		planes=3;
 		break;
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVD:
-		stride = keep_stride ? width : *out_stride;
+		stride = no_in_stride ? width : *out_stride;
 		uv_height = height / 2;
 		size = 3*stride * height / 2 + width*height;
-		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		planes=4;
 		break;
 	case GF_PIXEL_YUV_10:
-		stride = keep_stride ? 2*width : *out_stride;
+		stride = no_in_stride ? 2*width : *out_stride;
 		size = 3*stride * height / 2;
 		uv_height = height / 2;
-		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		planes=3;
 		break;
 	case GF_PIXEL_YUV422:
-		stride = keep_stride ? width : *out_stride;
+		stride = no_in_stride ? width : *out_stride;
 		size = stride * height * 2;
 		uv_height = height;
-		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		planes=3;
 		break;
 	case GF_PIXEL_YUV422_10:
-		stride = keep_stride ? 2*width : *out_stride;
+		stride = no_in_stride ? 2*width : *out_stride;
 		size = stride * height * 2;
 		uv_height = height;
-		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		planes=3;
 		break;
 	case GF_PIXEL_YUV444:
-		stride = keep_stride ? width : *out_stride;
+		stride = no_in_stride ? width : *out_stride;
 		size = stride * height * 3;
 		uv_height = height;
-		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=3;
 		break;
 	case GF_PIXEL_YUV444_10:
-		stride = keep_stride ? 2*width : *out_stride;
+		stride = no_in_stride ? 2*width : *out_stride;
 		size = stride * height * 3;
 		uv_height = height;
-		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=3;
 		break;
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV21:
-		stride = keep_stride ? width : *out_stride;
-		size = 3 * stride * height * 2;
+		stride = no_in_stride ? width : *out_stride;
+		size = 3 * stride * height / 2;
 		uv_height = height/2;
-		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=2;
 		break;
 	case GF_PIXEL_NV12_10:
 	case GF_PIXEL_NV21_10:
-		stride = keep_stride ? 2*width : *out_stride;
-		size = 3 * stride * height * 2;
+		stride = no_in_stride ? 2*width : *out_stride;
+		size = 3 * stride * height / 2;
 		uv_height = height/2;
-		stride_uv = keep_stride_uv ? stride : *out_stride_uv;
+		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=2;
 		break;
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
-		stride = keep_stride ? 2*width : *out_stride;
+		stride = no_in_stride ? 2*width : *out_stride;
 		size = height * stride;
 		planes=1;
 		break;
