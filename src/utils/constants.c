@@ -257,6 +257,123 @@ const char *gf_stream_type_afx_name(u8 afx_code)
 	return "AFX Unknown";
 }
 
+
+typedef struct
+{
+	u32 sfmt;
+	const char *name; //as used in gpac
+	const char *sname; //short name, as used in gpac
+} GF_AudioFmt;
+
+static const GF_AudioFmt GF_AudioFormats[] =
+{
+	{GF_AUDIO_FMT_U8, "u8", "pc8"},
+	{GF_AUDIO_FMT_S16, "s16", "pcm"},
+	{GF_AUDIO_FMT_S32, "s24"},
+	{GF_AUDIO_FMT_S32, "s32"},
+	{GF_AUDIO_FMT_FLT, "flt"},
+	{GF_AUDIO_FMT_DBL, "dbl"},
+	{GF_AUDIO_FMT_U8P, "u8p", "pc8p"},
+	{GF_AUDIO_FMT_S16P, "s16p", "pcmp"},
+	{GF_AUDIO_FMT_S32P, "s24p"},
+	{GF_AUDIO_FMT_S32P, "s32p"},
+	{GF_AUDIO_FMT_FLTP, "fltp"},
+	{GF_AUDIO_FMT_DBLP, "dblp"}
+};
+
+
+u32 gf_audio_fmt_parse(const char *af_name)
+{
+	u32 i=0;
+	if (!af_name || !strcmp(af_name, "none")) return 0;
+	while (!i || GF_AudioFormats[i].sfmt) {
+		if (!strcmp(GF_AudioFormats[i].name, af_name))
+			return GF_AudioFormats[i].sfmt;
+		if (GF_AudioFormats[i].sname && !strcmp(GF_AudioFormats[i].sname, af_name))
+			return GF_AudioFormats[i].sfmt;
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %s\n", af_name));
+	return 0;
+}
+const char *gf_audio_fmt_name(u32 sfmt)
+{
+	u32 i=0;
+	while (!i || GF_AudioFormats[i].sfmt) {
+		if (GF_AudioFormats[i].sfmt==sfmt) return GF_AudioFormats[i].name;
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %d\n", sfmt ));
+	return "unknown";
+}
+const char *gf_audio_fmt_sname(u32 sfmt)
+{
+	u32 i=0;
+	while (!i || GF_AudioFormats[i].sfmt) {
+		if (GF_AudioFormats[i].sfmt==sfmt) {
+			if (GF_AudioFormats[i].sname)
+				return GF_AudioFormats[i].sname;
+			return GF_AudioFormats[i].name;
+		}
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %d\n", sfmt ));
+	return "unknown";
+}
+
+static char szAllAudioFormats[500] = {};
+
+const char *gf_audio_fmt_all_names()
+{
+	if (!szAllAudioFormats[0]) {
+		u32 i=0;
+		u32 tot_len=4;
+		strcpy(szAllAudioFormats, "none");
+		while (!i || GF_AudioFormats[i].sfmt) {
+			u32 len = strlen(GF_AudioFormats[i].name);
+			if (len+tot_len+2>=500) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all audio formats!!\n"));
+				break;
+			}
+			strcat((char *)szAllAudioFormats, ",");
+			tot_len += 1;
+			strcat((char *)szAllAudioFormats, GF_AudioFormats[i].name);
+			tot_len += len;
+			i++;
+		}
+	}
+	return szAllAudioFormats;
+}
+
+static char szAllShortAudioFormats[500] = {};
+
+const char *gf_audio_fmt_all_shortnames()
+{
+	if (!szAllShortAudioFormats[0]) {
+		u32 i=0;
+		u32 tot_len=0;
+		memset(szAllShortAudioFormats, 0, sizeof(char)*500);
+		while (!i || GF_AudioFormats[i].sfmt) {
+			const char * n = GF_AudioFormats[i].sname ? GF_AudioFormats[i].sname : GF_AudioFormats[i].name;
+			u32 len = strlen(n);
+			if (len+tot_len+1>=500) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all audio formats!!\n"));
+				break;
+			}
+			if (i) {
+				strcat((char *)szAllShortAudioFormats, "|");
+				tot_len += 1;
+				strcat((char *)szAllShortAudioFormats, n);
+			} else {
+				strcpy((char *)szAllShortAudioFormats, n);
+			}
+			tot_len += len;
+			i++;
+		}
+	}
+	return szAllShortAudioFormats;
+}
+
 u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
 {
 	switch (audio_fmt) {
@@ -329,7 +446,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{},
 };
 
-u32 gf_pixfmt_enum(u32 *idx, const char **out_name)
+u32 gf_pixel_fmt_enum(u32 *idx, const char **out_name)
 {
 	u32 pf, c=sizeof(GF_PixelFormats) / sizeof(GF_PixFmt);
 	if (!idx) return 0;
@@ -341,7 +458,7 @@ u32 gf_pixfmt_enum(u32 *idx, const char **out_name)
 	return pf;
 }
 
-u32 gf_pixfmt_parse(const char *pf_name)
+u32 gf_pixel_fmt_parse(const char *pf_name)
 {
 	u32 i=0;
 	if (!pf_name || !strcmp(pf_name, "none")) return 0;
@@ -355,7 +472,7 @@ u32 gf_pixfmt_parse(const char *pf_name)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s\n", pf_name));
 	return 0;
 }
-const char *gf_pixfmt_name(u32 pfmt)
+const char *gf_pixel_fmt_name(u32 pfmt)
 {
 	u32 i=0;
 	while (GF_PixelFormats[i].pixfmt) {
@@ -365,7 +482,7 @@ const char *gf_pixfmt_name(u32 pfmt)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
 	return "unknown";
 }
-const char *gf_pixfmt_sname(u32 pfmt)
+const char *gf_pixel_fmt_sname(u32 pfmt)
 {
 	u32 i=0;
 	while (GF_PixelFormats[i].pixfmt) {
@@ -383,7 +500,7 @@ const char *gf_pixfmt_sname(u32 pfmt)
 
 static char szAllPixelFormats[5000] = {};
 
-const char *gf_pixfmt_all_names()
+const char *gf_pixel_fmt_all_names()
 {
 	if (!szAllPixelFormats[0]) {
 		u32 i=0;
@@ -407,7 +524,7 @@ const char *gf_pixfmt_all_names()
 
 static char szAllShortPixelFormats[5000] = {};
 
-const char *gf_pixfmt_all_shortnames()
+const char *gf_pixel_fmt_all_shortnames()
 {
 	if (!szAllShortPixelFormats[0]) {
 		u32 i=0;
@@ -422,8 +539,10 @@ const char *gf_pixfmt_all_shortnames()
 			if (i) {
 				strcat((char *)szAllShortPixelFormats, "|");
 				tot_len += 1;
+				strcat((char *)szAllShortPixelFormats, n);
+			} else {
+				strcpy((char *)szAllShortPixelFormats, n);
 			}
-			strcat((char *)szAllShortPixelFormats, n);
 			tot_len += len;
 			i++;
 		}
@@ -556,7 +675,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		planes=1;
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get size info\n", gf_pixfmt_name(pixfmt) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get size info\n", gf_pixel_fmt_name(pixfmt) ));
 		return GF_FALSE;
 	}
 	if (out_size) *out_size = size;
@@ -618,9 +737,11 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YVYU:
 		return 1;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get bytes per pixel info\n", gf_pixfmt_name(pixfmt) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get bytes per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
 		break;
 	}
 	return 0;
 }
+
+
 

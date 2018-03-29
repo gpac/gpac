@@ -317,7 +317,7 @@ static GF_Err ffsws_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_HEIGHT);
 	if (p) ctx->size.y = p->value.uint;
 
-	p = gf_filter_pid_caps_query(pid, GF_PROP_PIXFMT);
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_PIXFMT);
 	if (p) ctx->pfmt = p->value.uint;
 	return ffsws_configure_pid(filter, ctx->ipid, GF_FALSE);
 }
@@ -363,6 +363,6 @@ GF_FilterRegister FFSWSRegister = {
 
 const GF_FilterRegister *ffsws_register(GF_FilterSession *session)
 {
-	FFSWSArgs[1].min_max_enum = gf_pixfmt_all_names();
+	FFSWSArgs[1].min_max_enum = gf_pixel_fmt_all_names();
 	return &FFSWSRegister;
 }

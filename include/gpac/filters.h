@@ -129,6 +129,7 @@ typedef enum
 	GF_PROP_VEC4I,
 	GF_PROP_VEC4,
 	GF_PROP_PIXFMT,
+	GF_PROP_PCMFMT,
 	//string property, memory is duplicated when setting the property and managed internally
 	GF_PROP_STRING,
 	//string property, memory is NOT duplicated when setting the property but is then managed (and free) internally

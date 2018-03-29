@@ -68,7 +68,7 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	ctx->ipid = pid;
 	if (!ctx->pfmt) {
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
-		if (p && p->value.string) ctx->pfmt = gf_pixfmt_parse(p->value.string);
+		if (p && p->value.string) ctx->pfmt = gf_pixel_fmt_parse(p->value.string);
 	}
 	if (!ctx->pfmt) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Missing pixel format, cannot parse\n"));
@@ -284,8 +284,8 @@ GF_FilterRegister RawVidReframeRegister = {
 
 const GF_FilterRegister *rawvidreframe_register(GF_FilterSession *session)
 {
-	RawVidReframeArgs[1].min_max_enum = gf_pixfmt_all_names();
-	RawVidReframeCaps[1].val.value.string = (char *) gf_pixfmt_all_shortnames();
+	RawVidReframeArgs[1].min_max_enum = gf_pixel_fmt_all_names();
+	RawVidReframeCaps[1].val.value.string = (char *) gf_pixel_fmt_all_shortnames();
 	return &RawVidReframeRegister;
 }
 

@@ -291,6 +291,7 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 		break;
 	case GF_PROP_UINT:
 	case GF_PROP_PIXFMT:
+	case GF_PROP_PCMFMT:
 		if (a->offset_in_private + sizeof(u32) <= filter->freg->private_size) {
 			*(u32 *)ptr = argv->value.uint;
 			res = GF_TRUE;
