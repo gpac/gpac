@@ -254,6 +254,15 @@ void gf_fs_del(GF_FilterSession *fsess)
 			u32 j;
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
 			filter->process_th_id = 0;
+			
+			if (filter->detached_pid_inst) {
+				while (gf_list_count(filter->detached_pid_inst)) {
+					GF_FilterPidInst *pidi = gf_list_pop_front(filter->detached_pid_inst);
+					gf_filter_pid_inst_del(pidi);
+				}
+				gf_list_del(filter->detached_pid_inst);
+				filter->detached_pid_inst = NULL;
+			}
 
 			if (filter->postponed_packets) {
 				while (gf_list_count(filter->postponed_packets)) {
