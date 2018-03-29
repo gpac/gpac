@@ -39,9 +39,10 @@ void gf_filterpacket_del(void *p)
 
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_FilterArgType arg_type, GF_Err *err)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err)
 {
 	char szName[200];
+	char *dst_striped = NULL;
 	GF_Filter *filter;
 	GF_Err e;
 	u32 i;
@@ -81,7 +82,27 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
 	filter->arg_type = arg_type;
-	e = gf_filter_new_finalize(filter, args, arg_type);
+	if (dst_args) {
+		char szDst[5];
+		sprintf(szDst, "dst%c", fsess->sep_name);
+		dst_striped = strstr(dst_args, szDst);
+		if (dst_striped) dst_striped = strchr(dst_striped+5, fsess->sep_args);
+	}
+
+	if (args && dst_striped) {
+		char *all_args;
+		u32 len = 2 + strlen(args) + strlen(dst_striped);
+		all_args = gf_malloc(sizeof(char)*len);
+		sprintf(all_args, "%s%c%s", args, fsess->sep_args, dst_striped);
+		e = gf_filter_new_finalize(filter, all_args, arg_type);
+		gf_free(all_args);
+	} else if (dst_striped) {
+		e = gf_filter_new_finalize(filter, dst_striped, arg_type);
+	} else {
+		e = gf_filter_new_finalize(filter, args, arg_type);
+	}
+	filter->dst_args = dst_args;
+
 	if (e) {
 		if (!filter->setup_notified) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),registry->name));
@@ -98,6 +119,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 			break;
 		}
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Created filter registry %s args %s\n", registry->name, args ? args : "none"));
 	return filter;
 }
 
@@ -680,7 +702,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 					is_ok = GF_TRUE;
 				}
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s cannot reconfigure output pids, loading filter chain for renegociation\n", filter->name));
+				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s cannot reconfigure output pids, loading filter chain for renegociation\n", filter->name));
 			}
 
 			if (!is_ok) {
@@ -695,7 +717,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 					//disconnect pid, but prevent filter from unloading
 					if (!filter_dst->sticky) filter_dst->sticky = 2;
 
-					gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
+					gf_fs_post_task(filter->session, gf_filter_pid_detach_task, pidi->filter, pid, "pidinst_detach", NULL);
 				}
 				//we are deconnected (unload of a previous adaptation filter)
 				else  {
@@ -723,6 +745,8 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 						pid->adapters_blacklist = NULL;
 					}
 				} else {
+					new_f->caps_negociate = pid->caps_negociate;
+					pid->caps_negociate = NULL;
 					safe_int_inc(&pid->filter->pid_connection_pending);
 					gf_filter_pid_post_connect_task(new_f, pid);
 				}
@@ -803,8 +827,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->freg->process);
 
 	filter->schedule_next_time = 0;
-	if (filter->pid_connection_pending) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has connection pending, requeuing process\n", filter->name));
+	if (filter->pid_connection_pending || filter->detached_pid_inst) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has %s pending, requeuing process\n", filter->name, filter->pid_connection_pending ? "connections" : "input pid reassignments"));
 		//do not cancel the process task since it might have been triggered by the filter itself,
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
@@ -961,9 +985,10 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, filter->arg_type, NULL);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (registry %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
 
 	return new_filter;
 }

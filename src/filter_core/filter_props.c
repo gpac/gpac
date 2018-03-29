@@ -370,6 +370,21 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 			}
 		}
 	}
+#if 1
+	{
+		u32 i, j, count;
+		for (i=0; i<HASH_TABLE_SIZE; i++) {
+			count = gf_list_count(map->hash_table[i]);
+			for (j=0; j<count; j++) {
+				GF_PropertyEntry *prop = gf_list_get(map->hash_table[i], j);
+				if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
+					assert(0);
+				}
+			}
+		}
+	}
+#endif
+
 }
 
 GF_List *gf_props_get_list(GF_PropertyMap *map)
@@ -448,8 +463,6 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
 		prop->prop.type = GF_PROP_DATA;
 		prop->alloc_size = value->value.data.size;
-	} else if (prop->prop.type != GF_PROP_CONST_DATA) {
-		prop->prop.value.data.size = 0;
 	}
 
 	return gf_list_add(map->hash_table[hash], prop);
@@ -466,17 +479,33 @@ GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, ch
 const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name)
 {
 	u32 i, count, hash;
+	const GF_PropertyValue *res=NULL;
 	hash = gf_props_hash_djb2(prop_4cc, name);
 	if (map->hash_table[hash] ) {
 		count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
 			GF_PropertyEntry *p = gf_list_get(map->hash_table[hash], i);
 
-			if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) )
-				return &p->prop;
+			if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
+				res = &p->prop;
+				break;
+			}
 		}
 	}
-	return NULL;
+#if 1
+	{
+		u32 i, j, count, nb_props=0;
+		for (i=0; i<HASH_TABLE_SIZE; i++) {
+			count = gf_list_count(map->hash_table[i]);
+			for (j=0; j<count; j++) {
+				GF_PropertyEntry *prop = gf_list_get(map->hash_table[i], j);
+				if (&prop->prop == res) nb_props++;
+			}
+		}
+		assert(nb_props<=1);
+	}
+#endif
+	return res;
 }
 
 GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props, gf_filter_prop_filter filter_prop, void *cbk)
