@@ -204,6 +204,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 }
 
 
+GF_EXPORT
 GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set)
 {
 	if (!session) return GF_BAD_PARAM;
@@ -1070,6 +1071,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks);
 }
 
+GF_EXPORT
 void gf_fs_print_connections(GF_FilterSession *fsess)
 {
 	u32 i, j, k, count;
@@ -1283,6 +1285,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const cha
 	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE);
 }
 
+GF_EXPORT
 GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
 	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE);

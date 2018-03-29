@@ -534,9 +534,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->uv_stride = ctx->stride;
 		ctx->is_yuv = GF_TRUE;
 		break;
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		ctx->bit_depth = 10;
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 		ctx->uv_w = ctx->width/2;
 		ctx->uv_h = ctx->height/2;
 		ctx->uv_stride = ctx->stride/2;

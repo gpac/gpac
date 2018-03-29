@@ -223,7 +223,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!w || !h || !pfmt) {
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		ctx->passthrough = GF_TRUE;
-		return GF_TRUE;
+		return GF_OK;
 	}
 	ctx->passthrough = GF_FALSE;
 

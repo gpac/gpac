@@ -857,7 +857,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			if (hw_caps & GF_VIDEO_HW_HAS_RGBA)
 				use_soft_stretch = GF_FALSE;
 			break;
-		case GF_PIXEL_YV12:
+		case GF_PIXEL_YUV:
 		case GF_PIXEL_YVYU:
 		case GF_PIXEL_YUYV:
 		case GF_PIXEL_YUVD:
@@ -865,7 +865,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_YUV444:
 		case GF_PIXEL_YUV444_10:
 		case GF_PIXEL_YUV422_10:
-		case GF_PIXEL_YV12_10:
+		case GF_PIXEL_YUV_10:
 		case GF_PIXEL_NV12:
 		case GF_PIXEL_NV12_10:
 		case GF_PIXEL_NV21:
@@ -926,7 +926,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	video_src.pitch_y = txh->stride;
 	video_src.pixel_format = txh->pixelformat;
 #ifdef GF_SR_USE_DEPTH
-	if (txh->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YV12;
+	if (txh->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YUV;
 #endif
 	video_src.video_buffer = txh->data;
 	if (txh->hw_frame) {
@@ -1116,7 +1116,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_RGB_565:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 	case GF_PIXEL_YVYU:
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_NV21:
@@ -1129,7 +1129,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_YUV422_10:
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		break;
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_RGBD:

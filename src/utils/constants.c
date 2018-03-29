@@ -294,8 +294,8 @@ typedef struct
 
 static const GF_PixFmt GF_PixelFormats[] =
 {
-	{GF_PIXEL_YV12, "yuv420", "yuv"},
-	{GF_PIXEL_YV12_10, "yuv420_10", "yuvl"},
+	{GF_PIXEL_YUV, "yuv420", "yuv"},
+	{GF_PIXEL_YUV_10, "yuv420_10", "yuvl"},
 	{GF_PIXEL_YUV422, "yuv422", "yuv2"},
 	{GF_PIXEL_YUV422_10, "yuv422_10", "yp2l"},
 	{GF_PIXEL_YUV444, "yuv444", "yuv4"},
@@ -481,7 +481,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		size = stride * height;
 		planes=1;
 		break;
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 		stride = keep_stride ? width : *out_stride;
 		uv_height = height / 2;
 		size = 3*stride * height / 2;
@@ -496,7 +496,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		stride_uv = keep_stride_uv ? stride/2 : *out_stride_uv;
 		planes=4;
 		break;
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		stride = keep_stride ? 2*width : *out_stride;
 		size = 3*stride * height / 2;
 		uv_height = height / 2;
@@ -592,11 +592,11 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_BGR:
 	case GF_PIXEL_RGBS:
 		return 3;
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVD:
 		return 1;
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		return 2;
 	case GF_PIXEL_YUV422:
 		return 1;

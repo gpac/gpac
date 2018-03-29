@@ -829,8 +829,8 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 	case GF_PIXEL_GREYSCALE:
 		_this->Bpp = 1;
 		break;
-	case GF_PIXEL_YV12:
-		_this->orig_format = GF_PIXEL_YV12;
+	case GF_PIXEL_YUV:
+		_this->orig_format = GF_PIXEL_YUV;
 		_this->orig_buf = (u8 *) pixels;
 		_this->orig_stride = stride;
 		_this->is_converted = GF_FALSE;
@@ -902,7 +902,7 @@ void evg_set_texture_active(EVGStencil *st)
 
 	/*perform YUV->RGB*/
 
-	if (_this->orig_format == GF_PIXEL_YV12) {
+	if (_this->orig_format == GF_PIXEL_YUV) {
 		_this->Bpp = 3;
 		_this->pixel_format = GF_PIXEL_RGB;
 	} else {

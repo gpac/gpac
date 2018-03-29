@@ -1411,7 +1411,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_RGBD:
 		load_line = load_line_rgbd;
 		break;
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 		yuv2rgb_init();
 		yuv_planar_type = 1;
 		break;
@@ -1424,7 +1424,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		yuv_planar_type = 5;
 		break;
 
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		yuv2rgb_init();
 		yuv_planar_type = 3;
 		break;

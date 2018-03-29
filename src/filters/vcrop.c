@@ -401,14 +401,14 @@ static Bool parse_crop_props(GF_VCropCtx *ctx, u32 src_w, u32 src_h, GF_PixelFor
 	//for YUV 420, adjust to multiple of 2 on both dim
 	ctx->packed_422 = GF_FALSE;
 	switch (pfmt) {
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV21_10:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV12_10:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVD:
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		if (ctx->src_x % 2) ROUND_IT(ctx->src_x);
 		if (ctx->src_y % 2) ROUND_IT(ctx->src_y);
 		if ((ctx->src_x + ctx->dst_width) % 2) ROUND_IT(ctx->dst_width);
@@ -482,7 +482,7 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!w || !h || !pfmt) {
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		ctx->passthrough = GF_TRUE;
-		return GF_TRUE;
+		return GF_OK;
 	}
 	ctx->passthrough = GF_FALSE;
 

@@ -284,7 +284,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
     dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	
 //	kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
-//	ctx->pix_fmt = GF_PIXEL_YV12;
+//	ctx->pix_fmt = GF_PIXEL_YUV;
 	
 	kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
 	ctx->pix_fmt = GF_PIXEL_NV12;
@@ -372,7 +372,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			default:
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-					ctx->pix_fmt = GF_PIXEL_YV12_10;
+					ctx->pix_fmt = GF_PIXEL_YUV_10;
 				}
 				break;
 			}
@@ -485,7 +485,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			default:
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-					ctx->pix_fmt = GF_PIXEL_YV12_10;
+					ctx->pix_fmt = GF_PIXEL_YUV_10;
 				}
 				break;
 			}
@@ -706,7 +706,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		ctx->out_size = ctx->width*ctx->height*3;
 		stride *= 3;
 	} else {
-		// (ctx->pix_fmt == GF_PIXEL_YV12)
+		// (ctx->pix_fmt == GF_PIXEL_YUV)
 		ctx->out_size = ctx->width*ctx->height*3/2;
 	}
 	if (ctx->luma_bit_depth>8) {
@@ -898,7 +898,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ctx->is_annex_b = GF_TRUE;
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
-			ctx->pix_fmt = GF_PIXEL_YV12;
+			ctx->pix_fmt = GF_PIXEL_YUV;
 			return GF_OK;
 		} else {
 			u32 i;
@@ -953,7 +953,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ctx->is_annex_b = GF_TRUE;
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
-			ctx->pix_fmt = GF_PIXEL_YV12;
+			ctx->pix_fmt = GF_PIXEL_YUV;
 			return GF_OK;
 		} else {
 			u32 i, j;
@@ -997,7 +997,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (!dsi || !dsi->value.data.ptr) {
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
-			ctx->pix_fmt = GF_PIXEL_YV12;
+			ctx->pix_fmt = GF_PIXEL_YUV;
 		} else {
 			return vtbdec_init_decoder(filter, ctx);
 		}
@@ -1254,7 +1254,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 					case GF_PIXEL_YUV444:
 						break;
 					case GF_PIXEL_YUV422:
-					case GF_PIXEL_YV12:
+					case GF_PIXEL_YUV:
 						w /= 2;
 						break;
 					}

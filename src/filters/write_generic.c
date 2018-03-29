@@ -107,7 +107,7 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 	pf = p ? p->value.uint : 0;
-	if (!pf) pf = GF_PIXEL_YV12;
+	if (!pf) pf = GF_PIXEL_YUV;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p) {
