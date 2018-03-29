@@ -532,6 +532,12 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	GF_FilterPid *pid = task->pid->pid;
 	GF_FilterPidInst *pidinst=NULL;
 
+	//we may have concurrent reset (due to play/stop/seek) and caps renegotiation
+	//wait for the pid to be reset before detaching
+	if (pid->filter->stream_reset_pending) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
 	assert(filter->sticky);
 	assert(filter->freg->configure_pid);
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));

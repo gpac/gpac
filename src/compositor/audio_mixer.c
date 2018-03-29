@@ -842,7 +842,7 @@ do_mix:
 		u32 k;
 		out_mix = am->output;
 		in = (MixerInput *)gf_list_get(am->sources, i);
-		if (!in->out_samples_to_write) continue;
+		if (!in->out_samples_written) continue;
 		/*only write what has been filled in the source buffer (may be less than output size)*/
 		if (am->bits_per_sample > in->src->bps) {
 			s32 mul = am->bits_per_sample - in->src->bps;

@@ -729,6 +729,8 @@ enum
 	GF_PROP_PID_CHANNEL_LAYOUT = GF_4CC('C','H','L','O'),
 	//(uint) audio format: u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp
 	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('A','F','M','T'),
+	//(uint) audio playback speed - only used for audio out caps reconfig
+	GF_PROP_PID_AUDIO_SPEED = GF_4CC('A','S','P','D'),
 	//(uint) frame width
 	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),
 	//(uint) frame height
@@ -895,7 +897,7 @@ typedef struct
 {
 	FILTER_EVENT_BASE
 
-	/*params for GF_NET_CHAN_PLAY only: ranges in sec - if range is <0, then it is ignored (eg [2, -1] with speed>0 means 2 +oo) */
+	/*params for : ranges in sec - if range is <0, it means end of file (eg [2, -1] with speed>0 means 2 +oo) */
 	Double start_range, end_range;
 	/*params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
 	Double speed;
@@ -925,6 +927,8 @@ typedef struct
 	const char *source_switch;
 	u8 previous_is_init_segment;
 	u8 skip_cache_expiration;
+	//!hint block size for source, might not be respected
+	u32 hint_block_size;
 } GF_FEVT_SourceSeek;
 
 /*GF_FEVT_SOURCE_SWITCH*/
