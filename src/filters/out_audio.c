@@ -36,6 +36,7 @@ typedef struct
 	u32 bnum, bdur, threaded, priority;
 	Bool clock;
 	GF_Fraction dur;
+	Double speed, start;
 
 	GF_FilterPid *pid;
 	u32 sr, afmt, nb_ch, ch_cfg, timescale;
@@ -48,7 +49,7 @@ typedef struct
 	u32 pck_offset;
 	u64 first_cts;
 	Bool aborted;
-
+	Bool speed_set;
 	GF_Filter *filter;
 } GF_AudioOutCtx;
 
@@ -69,10 +70,14 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		if (sr != 44100) sr = 44100;
 		if (nb_ch != 2) nb_ch = 2;
 	}
-	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt)) {
+	if (ctx->speed == FIX_ONE) ctx->speed_set = GF_TRUE;
+
+	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt) || !ctx->speed_set) {
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
+		ctx->speed_set = GF_TRUE;
 		ctx->needs_recfg = GF_FALSE;
 		//drop all packets until next reconfig
 		ctx->wait_recfg = GF_TRUE;
@@ -214,6 +219,23 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_send_event(pid, &evt);
 
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		evt.play.start_range = ctx->start;
+		if (ctx->start<0) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
+			if (p && p->value.frac.den) {
+				evt.play.start_range *= -100;
+				evt.play.start_range *= p->value.frac.num;
+				evt.play.start_range /= 100 * p->value.frac.den;
+			}
+		}
+		evt.play.speed = ctx->speed;
+		if (ctx->speed<0) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_REVERSE_PLAYBACK);
+			if (!p || !p->value.boolean) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support reverse playback,ignoring speed directive\n"));
+				evt.play.speed = ctx->speed = FIX_ONE;
+			}
+		}
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
@@ -399,6 +421,9 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(speed), "Sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
+
 
 	{}
 };

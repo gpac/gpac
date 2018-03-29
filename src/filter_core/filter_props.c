@@ -639,6 +639,8 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "number of audio channels", GF_PROP_UINT},
 	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format (u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp|s24|s24p)", GF_PROP_UINT},
+	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaubackSpeed", "audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE},
+
 	{ GF_PROP_PID_WIDTH, "Width", "Visual Width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visual Height (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_UINT},

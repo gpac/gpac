@@ -245,6 +245,13 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (ctx->end_pos>ctx->file_size) ctx->end_pos = ctx->file_size;
 			ctx->range.num = evt->seek.start_offset;
 			ctx->range.den = ctx->end_pos;
+			if (evt->seek.hint_block_size > ctx->block_size) {
+				ctx->block_size = evt->seek.hint_block_size;
+				ctx->block = gf_realloc(ctx->block, ctx->block_size);
+			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FileIn] Seek request outside of file %s range ("LLU" vs size "LLU")\n", ctx->src, evt->seek.start_offset, ctx->file_size));
+
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:

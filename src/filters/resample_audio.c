@@ -41,25 +41,41 @@ typedef struct
 	Bool passthrough;
 
 	const char *data;
-	u32 size;
+	u32 size, bytes_consumed;
+	Fixed speed;
+	GF_FilterPacket *in_pck;
 } GF_ResampleCtx;
 
 
 static char *resample_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 {
 	GF_ResampleCtx *ctx = (GF_ResampleCtx *) callback;
+	if (!ctx->data) {
+		*size = 0;
+		return NULL;
+	}
 	assert(ctx->data);
-	*size = ctx->size;
-	return (char*)ctx->data;
+	*size = ctx->size - ctx->bytes_consumed;
+	return (char*)ctx->data + ctx->bytes_consumed;
 }
 
 static void resample_release_frame(void *callback, u32 nb_bytes)
 {
 	GF_ResampleCtx *ctx = (GF_ResampleCtx *) callback;
-	assert(ctx->data);
-	assert(ctx->size==nb_bytes);
-//	ctx->size = 0;
-//	ctx->data = NULL;
+	ctx->bytes_consumed += nb_bytes;
+	assert(ctx->bytes_consumed<=ctx->size);
+	if (ctx->bytes_consumed==ctx->size) {
+		//trash packet and get a new one
+		gf_filter_pid_drop_packet(ctx->ipid);
+		ctx->data = NULL;
+		ctx->size = ctx->bytes_consumed = 0;
+		ctx->in_pck = gf_filter_pid_get_packet(ctx->ipid);
+		if (!ctx->in_pck) {
+			return;
+		}
+		ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
+		ctx->bytes_consumed = 0;
+	}
 }
 
 static Bool resample_get_config(struct _audiointerface *ai, Bool for_reconf)
@@ -72,7 +88,8 @@ static Bool resample_is_muted(void *callback)
 }
 static Fixed resample_get_speed(void *callback)
 {
-	return FIX_ONE;
+	GF_ResampleCtx *ctx = (GF_ResampleCtx *) callback;
+	return ctx->speed;
 }
 static Bool resample_get_channel_volume(void *callback, Fixed *vol)
 {
@@ -101,6 +118,7 @@ static void resample_finalize(GF_Filter *filter)
 {
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->mixer) gf_mixer_del(ctx->mixer);
+	if (ctx->in_pck && ctx->ipid) gf_filter_pid_drop_packet(ctx->ipid);
 }
 
 
@@ -114,6 +132,8 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			gf_mixer_remove_input(ctx->mixer, &ctx->input_ai);
 			gf_filter_pid_remove(ctx->opid);
 		}
+		if (ctx->in_pck) gf_filter_pid_drop_packet(ctx->ipid);
+		ctx->in_pck = NULL;
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -178,7 +198,7 @@ static GF_Err resample_process(GF_Filter *filter)
 {
 	char *output;
 	u32 osize, written;
-	GF_FilterPacket *pck, *dstpck;
+	GF_FilterPacket *dstpck;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 	u32 bps;
 	if (!ctx->ipid) return GF_OK;
@@ -186,33 +206,49 @@ static GF_Err resample_process(GF_Filter *filter)
 	bps = gf_audio_fmt_bit_depth(ctx->afmt);
 
 	while (1) {
-		pck = gf_filter_pid_get_packet(ctx->ipid);
-		if (!pck) {
-			if (gf_filter_pid_is_eos(ctx->ipid)) {
-				gf_filter_pid_set_eos(ctx->opid);
-				return GF_EOS;
+		if (!ctx->in_pck) {
+			ctx->in_pck = gf_filter_pid_get_packet(ctx->ipid);
+
+			if (!ctx->in_pck) {
+				if (gf_filter_pid_is_eos(ctx->ipid)) {
+					gf_filter_pid_set_eos(ctx->opid);
+					return GF_EOS;
+				}
+				return GF_OK;
 			}
-			return GF_OK;
+			ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
 		}
+
 		if (ctx->passthrough) {
-			gf_filter_pck_forward(pck, ctx->opid);
+			gf_filter_pck_forward(ctx->in_pck, ctx->opid);
 			gf_filter_pid_drop_packet(ctx->ipid);
+			ctx->in_pck = NULL;
 			continue;
 		}
-		ctx->data = gf_filter_pck_get_data(pck, &ctx->size);
 		osize = 8 * ctx->size / ctx->input_ai.chan / ctx->input_ai.bps;
 		osize *= ctx->nb_ch * bps / 8;
 
 		dstpck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
 		if (!dstpck) return GF_OK;
+		gf_filter_pck_merge_properties(ctx->in_pck, dstpck);
 
 		written = gf_mixer_get_output(ctx->mixer, output, osize, 0);
-		assert(written==osize);
-		gf_filter_pck_merge_properties(pck, dstpck);
+		if (ctx->speed != FIX_ONE) {
+			gf_filter_pck_truncate(dstpck, written);
+		} else {
+			assert(written==osize);
+		}
 		gf_filter_pck_send(dstpck);
-		ctx->data = NULL;
-		ctx->size = 0;
-		gf_filter_pid_drop_packet(ctx->ipid);
+
+		//still some bytes to use from packet, do not discard
+		if (ctx->bytes_consumed<ctx->size) {
+			continue;
+		}
+		//done with this packet
+		if (ctx->in_pck) {
+			ctx->in_pck = NULL;
+			gf_filter_pid_drop_packet(ctx->ipid);
+		}
 	}
 	return GF_OK;
 }
@@ -240,7 +276,15 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 	if (p) ch_cfg = p->value.uint;
 
-	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (afmt==ctx->afmt) && (ch_cfg==ctx->ch_cfg)) return GF_OK;
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_SPEED);
+	if (p) {
+		ctx->speed = FLT2FIX((Float) p->value.number);
+		if (ctx->speed<0) ctx->speed = -ctx->speed;
+	} else {
+		ctx->speed = FIX_ONE;
+	}
+
+	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (afmt==ctx->afmt) && (ch_cfg==ctx->ch_cfg) && (ctx->speed == FIX_ONE) ) return GF_OK;
 
 	ctx->afmt = afmt;
 	ctx->freq = sr;
@@ -260,13 +304,20 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, bps, ctx->ch_cfg);
 	ctx->passthrough = GF_FALSE;
 
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.bps==bps))
+	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.bps==bps) && (ctx->speed == FIX_ONE))
 		ctx->passthrough = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg));
+
+	if (ctx->speed > FIX_ONE) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, ctx->ipid);
+		evt.buffer_req.max_buffer_us = ctx->speed * 100000;
+		gf_filter_pid_send_event(ctx->ipid, &evt);
+	}
 
 	return GF_OK;
 }

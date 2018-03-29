@@ -451,7 +451,22 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
 		fevt.play.start_range = ctx->start;
+		if (ctx->start<0) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
+			if (p && p->value.frac.den) {
+				fevt.play.start_range *= -100;
+				fevt.play.start_range *= p->value.frac.num;
+				fevt.play.start_range /= 100 * p->value.frac.den;
+			}
+		}
 		fevt.play.speed = ctx->speed;
+		if (ctx->speed<0) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_REVERSE_PLAYBACK);
+			if (!p || !p->value.boolean) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support reverse playback,ignoring speed directive\n"));
+				fevt.play.speed = ctx->speed = FIX_ONE;
+			}
+		}
 		gf_filter_pid_send_event(pid, &fevt);
 
 		memset(&evt, 0, sizeof(GF_Event));
@@ -1576,7 +1591,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(mode), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FALSE},
-	{ OFFS(start), "Starts playback at the specified time. -1 for end of file", GF_PROP_DOUBLE, "0", NULL, GF_FALSE},
+	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
