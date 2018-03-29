@@ -1241,9 +1241,6 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
 		}
 
-		if (!strcmp(filter_reg->name, "ffdec") && !strcmp(freg->name, "write_gen"))
-			path_weight = path_weight;
-
 		gf_list_add(filter_stack, (void *) freg);
 
 		//we pass the original filter chain with the new root inserted to break loops
@@ -1341,7 +1338,6 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	concat_reg(pid->filter->session, prefRegistry, szForceReg, dst->src_args);
 	concat_reg(pid->filter->session, prefRegistry, szForceReg, dst->dst_args);
 
-restart:
 	gf_list_reset(filter_chain);
 	gf_list_reset(filter_stack);
 	gf_list_reset(tested_filters);

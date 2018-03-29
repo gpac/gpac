@@ -340,7 +340,7 @@ typedef struct
 	u32 back;
 	GF_PropVec2i size;
 	GF_PropVec2i pos;
-
+	Double start;
 
 	GF_FilterPid *pid;
 	u32 width, height, stride, pfmt, timescale;
@@ -450,6 +450,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_send_event(pid, &fevt);
 
 		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		fevt.play.start_range = ctx->start;
+		fevt.play.speed = ctx->speed;
 		gf_filter_pid_send_event(pid, &fevt);
 
 		memset(&evt, 0, sizeof(GF_Event));
@@ -1492,14 +1494,27 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 			ref_clock = cts;
 		} else {
-			s64 diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
-			if (ctx->timescale != 1000000)
-				diff -= (s64) ( (cts-ctx->first_cts+1) * 1000000  / ctx->timescale);
-			else
-				diff -= (s64) (cts-ctx->first_cts+1);
+			s64 diff;
+			if (ctx->speed>=0) {
+				diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
+
+				if (ctx->timescale != 1000000)
+					diff -= (s64) ( (cts-ctx->first_cts+1) * 1000000  / ctx->timescale);
+				else
+					diff -= (s64) (cts-ctx->first_cts+1);
+
+			} else {
+				diff = (s64) ((now - ctx->clock_at_first_cts) * -ctx->speed);
+
+				if (ctx->timescale != 1000000)
+					diff -= (s64) ( (ctx->first_cts - cts) * 1000000  / ctx->timescale);
+				else
+					diff -= (s64) (ctx->first_cts - cts);
+			}
 
 			if (diff<0) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" us too early, waiting\n", gf_sys_clock(), -diff));
+				if (diff<-1000000) diff = -1000000;
 				gf_filter_ask_rt_reschedule(filter, -diff);
 				//not ready yet
 				return GF_OK;
@@ -1561,6 +1576,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(mode), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FALSE},
+	{ OFFS(start), "Starts playback at the specified time. -1 for end of file", GF_PROP_DOUBLE, "0", NULL, GF_FALSE},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
