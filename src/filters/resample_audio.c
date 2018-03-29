@@ -246,6 +246,16 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	ctx->freq = sr;
 	ctx->nb_ch = nb_ch;
 	ctx->ch_cfg = ch_cfg;
+	switch (afmt) {
+	case GF_AUDIO_FMT_U8:
+	case GF_AUDIO_FMT_S16:
+	case GF_AUDIO_FMT_S32:
+	case GF_AUDIO_FMT_S24:
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioResampler] Audio format %s is not yet implemented, patch welcome\n", gf_audio_fmt_name(afmt)));
+		return GF_NOT_SUPPORTED;
+	}
 	bps = gf_audio_fmt_bit_depth(afmt);
 	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, bps, ctx->ch_cfg);
 	ctx->passthrough = GF_FALSE;
