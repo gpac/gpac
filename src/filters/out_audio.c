@@ -210,6 +210,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) return GF_OK;
 
 	if (!ctx->pid) {
+		u32 pmode = GF_PLAYBACK_MODE_NONE;
 		GF_FilterEvent evt;
 		//set buffer reqs to 100 ms - we don't "bufer" in the filter, but this will allow dispatching
 		//several input frames in the buffer (default being 1000 us max in buffers). Not doing so could cause
@@ -219,6 +220,11 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_send_event(pid, &evt);
 
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		evt.play.speed = 1.0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
+		if (p) pmode = p->value.uint;
+
 		evt.play.start_range = ctx->start;
 		if (ctx->start<0) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
@@ -228,13 +234,28 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 				evt.play.start_range /= 100 * p->value.frac.den;
 			}
 		}
-		evt.play.speed = ctx->speed;
-		if (ctx->speed<0) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_REVERSE_PLAYBACK);
-			if (!p || !p->value.boolean) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support reverse playback,ignoring speed directive\n"));
-				evt.play.speed = ctx->speed = FIX_ONE;
+		switch (pmode) {
+		case GF_PLAYBACK_MODE_NONE:
+			evt.play.start_range = 0;
+			if (ctx->start) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support seek, ignoring start directive\n"));
 			}
+			break;
+		case GF_PLAYBACK_MODE_SEEK:
+			if (ctx->speed != 1.0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support speed, ignoring speed directive\n"));
+			}
+			break;
+		case GF_PLAYBACK_MODE_FASTFORWARD:
+			if (ctx->speed<0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support negative speed, ignoring speed directive\n"));
+			} else {
+				evt.play.speed = ctx->speed;
+			}
+			break;
+		default:
+			evt.play.speed = ctx->speed;
+			break;
 		}
 		gf_filter_pid_send_event(pid, &evt);
 	}

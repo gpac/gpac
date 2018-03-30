@@ -443,6 +443,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
 
 	if (!ctx->pid) {
+		u32 pmode = GF_PLAYBACK_MODE_NONE;
 		GF_FilterEvent fevt;
 		//set a minimum buffer (although we don't buffer)
 		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, pid);
@@ -450,6 +451,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_send_event(pid, &fevt);
 
 		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		fevt.play.speed = 1.0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
+		if (p) pmode = p->value.uint;
+
 		fevt.play.start_range = ctx->start;
 		if (ctx->start<0) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
@@ -459,13 +465,28 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 				fevt.play.start_range /= 100 * p->value.frac.den;
 			}
 		}
-		fevt.play.speed = ctx->speed;
-		if (ctx->speed<0) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_REVERSE_PLAYBACK);
-			if (!p || !p->value.boolean) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support reverse playback,ignoring speed directive\n"));
-				fevt.play.speed = ctx->speed = FIX_ONE;
+		switch (pmode) {
+		case GF_PLAYBACK_MODE_NONE:
+			fevt.play.start_range = 0;
+			if (ctx->start) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support seek, ignoring start directive\n"));
 			}
+			break;
+		case GF_PLAYBACK_MODE_SEEK:
+			if (ctx->speed != 1.0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support speed, ignoring speed directive\n"));
+			}
+			break;
+		case GF_PLAYBACK_MODE_FASTFORWARD:
+			if (ctx->speed<0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support negative speed, ignoring speed directive\n"));
+			} else {
+				fevt.play.speed = ctx->speed;
+			}
+			break;
+		default:
+			fevt.play.speed = ctx->speed;
+			break;
 		}
 		gf_filter_pid_send_event(pid, &fevt);
 

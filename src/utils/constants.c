@@ -278,7 +278,8 @@ static const GF_AudioFmt GF_AudioFormats[] =
 	{GF_AUDIO_FMT_S32P, "s24p"},
 	{GF_AUDIO_FMT_S32P, "s32p"},
 	{GF_AUDIO_FMT_FLTP, "fltp"},
-	{GF_AUDIO_FMT_DBLP, "dblp"}
+	{GF_AUDIO_FMT_DBLP, "dblp"},
+	{}
 };
 
 
@@ -370,6 +371,7 @@ const char *gf_audio_fmt_all_shortnames()
 			tot_len += len;
 			i++;
 		}
+		szAllShortAudioFormats[tot_len] = 0;
 	}
 	return szAllShortAudioFormats;
 }
@@ -443,7 +445,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_RGBDS, "rgbds"},
 	{GF_PIXEL_RGBS, "rgbs"},
 	{GF_PIXEL_RGBAS, "rgbas"},
-	{},
+	{}
 };
 
 u32 gf_pixel_fmt_enum(u32 *idx, const char **out_name)

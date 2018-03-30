@@ -44,6 +44,7 @@ static u64 last_log_time=0;
 static char separator_set[6] = ":=#,@";
 
 static void print_filters(int argc, char **argv, GF_FilterSession *session);
+static void dump_all_props(void);
 
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
@@ -124,6 +125,19 @@ static void gpac_filter_help(void)
 "\tEX: \"src=file.mp4:OPT dst=file.aac dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the two destinations\n"
 "\tEX: \"src=file.mp4 dst=file.aac:OPT dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the file.aac destination\n"
 "\n"
+"Destination URLs can be templated using the same mechanism as MPEG-DASH:\n"
+"\t$KEYWORD$ is replaced in the template with the resolved value,\n"
+"\t$KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with N zeros if needed,\n"
+"\t$$ is an escape for $\n"
+"\n"
+"Supported KEYWORD (case insensitive):\n"
+"\tNumber or num: replaced by file number if defined, 0 otherwise\n"
+"\tPID: ID of the source pid\n"
+"\tURL: URL of source file\n"
+"\tFile: path on disk for source file\n"
+"\tp4cc=ABCD: uses pid property with 4CC ABCD\n"
+"\tpname=VAL: uses pid property with name VAL\n"
+"\n"
 	);
 }
 
@@ -143,6 +157,7 @@ static void gpac_usage(void)
 			"                   The third char, if present, is used to seperate fragments for PID sources\n"
 			"                   The fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"
 			"                   The fifth char, if present, is used for LINK directives\n"
+			"-props          : prints all built-in properties.\n"
 			"-list           : lists all supported filters.\n"
 			"-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
 			"-info NAME[ NAME2]      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
@@ -255,6 +270,7 @@ static int gpac_main(int argc, char **argv)
 	GF_FilterSession *session;
 	Bool disable_blocking = GF_FALSE;
 	Bool view_filter_conn = GF_FALSE;
+	Bool view_props = GF_FALSE;
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -337,6 +353,8 @@ static int gpac_main(int argc, char **argv)
 			disable_blocking = GF_TRUE;
 		} else if (!strcmp(arg, "-links")) {
 			view_filter_conn = GF_TRUE;
+		} else if (!strcmp(arg, "-props")) {
+			view_props = GF_TRUE;
 		}
 
 		if (arg_val) {
@@ -360,6 +378,11 @@ static int gpac_main(int argc, char **argv)
 			nb_threads = rti.nb_cores-1;
 			if (nb_threads<0) nb_threads=0;
 		}
+	}
+
+	if (view_props) {
+		dump_all_props();
+		return 0;
 	}
 
 	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters==2) || print_filter_info) ? GF_TRUE : GF_FALSE, disable_blocking);
@@ -571,6 +594,25 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 		} else {
 			fprintf(stderr, "%s: %s\n", reg->name, reg->description);
 		}
+	}
+}
+
+static void dump_all_props(void)
+{
+	u32 i=0;
+	u32 prop_4cc;
+	const char *name, *desc;
+	u8 ptype;
+	fprintf(stderr, "Built-in properties for PIDs and packets \"Name (type, 4CC): description\" :\n\n");
+	while (gf_props_get_description(i, &prop_4cc, &name, &desc, &ptype)) {
+		fprintf(stderr, "%s (%s, %s): %s", name, gf_props_get_type_name(ptype), gf_4cc_to_str(prop_4cc), desc);
+		if (ptype==GF_PROP_PIXFMT) {
+			fprintf(stderr, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
+		} else if (ptype==GF_PROP_PCMFMT) {
+			fprintf(stderr, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
+		}
+		fprintf(stderr, "\n");
+		i++;
 	}
 }
 

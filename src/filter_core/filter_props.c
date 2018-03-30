@@ -607,14 +607,14 @@ struct _gf_prop_typedef {
 	const char *name;
 	const char *description;
 	u8 prop_type;
-} GF_BuiltInProps [] = {
-
+} GF_BuiltInProps [] =
+{
 	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
 	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of PID - mandatory if MPEG-4 Systems used", GF_PROP_UINT},
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
-	{ GF_PROP_PID_NO_TIME_CTRL, "NoTimeControl", "Indicates time control is not possible on this pid", GF_PROP_BOOL},
+	{ GF_PROP_PID_PLAYBACK_MODE, "PlaybackMode", "playback mode supported by PID:\n\t0 is no time control\n\t1 is play/pause/seek,speed=1\n\t2 is play/pause/seek,speed>=0\n\t3 is play/pause/seek, reverse playback", GF_PROP_UINT},
 	{ GF_PROP_PID_SCALABLE, "Scalable", "Stream is a scalable stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_LANGUAGE, "Language", "Language name for this PID", GF_PROP_NAME},
 	{ GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service of this PID", GF_PROP_STRING},
@@ -627,8 +627,6 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_DURATION, "Duration", "indicates the PID duration", GF_PROP_FRACTION},
 	{ GF_PROP_PID_NB_FRAMES, "NumFrames", "indicates the number of frames in the stream", GF_PROP_UINT},
 	{ GF_PROP_PID_FRAME_SIZE, "ConstantFrameSize", "indicates size of the frame for constant frame size streams", GF_PROP_UINT},
-
-
 	{ GF_PROP_PID_TIMESHIFT, "TimeshiftDepth", "indicates the depth of the timeshift buffer", GF_PROP_FRACTION},
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level of the stream", GF_PROP_UINT},
@@ -638,14 +636,13 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "number of audio sample in one coded frame", GF_PROP_UINT},
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "number of audio channels", GF_PROP_UINT},
 	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
-	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format (u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp|s24|s24p)", GF_PROP_UINT},
-	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaubackSpeed", "audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE},
-
+	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format", GF_PROP_PCMFMT},
+	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaybackSpeed", "audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_WIDTH, "Width", "Visual Width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visual Height (video / text / graphics)", GF_PROP_UINT},
-	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_UINT},
+	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_PIXFMT},
 	{ GF_PROP_PID_STRIDE, "Stride", "image or Y/alpha plane stride", GF_PROP_UINT},
-	{ GF_PROP_PID_STRIDE_UV, "StrideUV", "U/V plane stride", GF_PROP_UINT},
+	{ GF_PROP_PID_STRIDE_UV, "StrideUV", "UV plane or U/V planes stride", GF_PROP_UINT},
 	{ GF_PROP_PID_BIT_DEPTH_Y, "BitDepthLuma", "Bit depth for luma components", GF_PROP_UINT},
 	{ GF_PROP_PID_BIT_DEPTH_UV, "BitDepthChroma", "Bit depth for chroma components", GF_PROP_UINT},
 	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
@@ -666,14 +663,13 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_FILE_EXT, "Extension", "File extension of source", GF_PROP_STRING},
 	{ GF_PROP_PID_FILE_CACHED, "Cached", "indicates the file is completely cached", GF_PROP_BOOL},
 	{ GF_PROP_PID_DOWN_RATE, "DownloadRate", "dowload rate of resource in bps", GF_PROP_UINT},
-	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "dowload size of resource in bps", GF_PROP_UINT},
+	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "size of resource in bytes", GF_PROP_UINT},
 	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "number of bytes downloaded", GF_PROP_UINT},
 	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "byte range of resource", GF_PROP_FRACTION},
 	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "display width of service", GF_PROP_UINT},
 	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "display height of service", GF_PROP_UINT},
 	{ GF_PROP_PID_UTC_TIME, "UTC", "UTC date and time of PID", GF_PROP_LUINT},
 	{ GF_PROP_PID_UTC_TIMESTAMP, "UTCTimestamp", "timestamp corresponding to UTC date and time of PID", GF_PROP_LUINT},
-	{ GF_PROP_PID_REVERSE_PLAYBACK, "ReversePlayback", "PID is capable of reverse playback", GF_PROP_BOOL},
 	{ GF_PROP_PID_AUDIO_VOLUME, "AudioVolume", "Volume of audio PID", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_PAN, "AudioPan", "Balance/Pan of audio PID", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_PRIORITY, "AudioPriority", "Audio thread priority", GF_PROP_UINT},
@@ -693,11 +689,21 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
 	{ GF_PROP_PID_AC3_CFG, "AC3Config", "24 bits of AC3 config as 3GPP", GF_PROP_DATA},
 	{ GF_PROP_PCK_SUBS, "SubSampleInfo", "binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]", GF_PROP_DATA},
-
 	{ GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - set as info, not property", GF_PROP_UINT},
-	{ GF_PROP_PCK_FILENUM, "FileNumber", "Index of file when dumping streams made of files", GF_PROP_UINT},
-
+	{ GF_PROP_PCK_FILENUM, "FileNumber", "Index of file when dumping to files", GF_PROP_UINT},
 };
+
+GF_EXPORT
+Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type)
+{
+	u32 nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	if (prop_idx>=nb_props) return GF_FALSE;
+	if (type) *type = GF_BuiltInProps[prop_idx].type;
+	if (name) *name = GF_BuiltInProps[prop_idx].name;
+	if (description) *description = GF_BuiltInProps[prop_idx].description;
+	if (prop_type) *prop_type = GF_BuiltInProps[prop_idx].prop_type;
+	return GF_TRUE;
+}
 
 GF_EXPORT
 const char *gf_props_4cc_get_name(u32 prop_4cc)

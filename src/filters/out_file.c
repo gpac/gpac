@@ -42,14 +42,16 @@ typedef struct
 	u32 nb_write;
 
 	GF_FilterCapability in_caps[2];
-	char szExt[5];
+	char szExt[10];
+	char szFileName[GF_MAX_PATH];
+
 } GF_FileOutCtx;
+
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx)
 {
-	Bool had_file = GF_FALSE;
+	char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 	if (ctx->file && !ctx->is_std) {
-		had_file = GF_TRUE;
 		gf_fclose(ctx->file);
 	}
 	ctx->file = NULL;
@@ -68,10 +70,10 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 			if (file_idx && (strstr(filename, "\%d") || strstr(filename, "\%0") ) ) {
 				sprintf(szName, filename, file_idx);
-				had_file = GF_FALSE;
+				ctx->nb_write = 0;
 			} else if (file_idx) {
 				sprintf(szName, "%s_%d", filename, file_idx);
-				had_file = GF_FALSE;
+				ctx->nb_write = 0;
 			} else {
 				strcpy(szName, filename);
 			}
@@ -79,27 +81,45 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 				strcat(szName, ".");
 				strcat(szName, ext);
 			}
-
-			ctx->file = gf_fopen(szName, ctx->append ? "a+" : "w");
 		} else {
-			ctx->file = gf_fopen(filename, ctx->append ? "a+" : "w");
+			strcpy(szName, filename);
 		}
-		if (had_file && !ctx->append && ctx->nb_write) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));
+		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx);
+		ctx->file = gf_fopen(szFinalName, ctx->append ? "a+" : "w");
 
+		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));
 		}
+		strcpy(ctx->szFileName, szFinalName);
 	}
 	ctx->nb_write = 0;
 	if (!ctx->file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] cannot open output file %s\n", filename));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] cannot open output file %s\n", ctx->szFileName));
 		return GF_IO_ERR;
 	}
 	return GF_OK;
 }
 
-static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static void fileout_setup_file(GF_FileOutCtx *ctx)
 {
 	const GF_PropertyValue *p;
+	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
+	if (p && p->value.string) {
+		fileout_open_close(ctx, p->value.string, NULL, 0);
+	} else if (ctx->dynext) {
+		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
+		if (!p) {
+			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
+			if (p && p->value.string) {
+				fileout_open_close(ctx, ctx->dst, p->value.string, 0);
+			}
+		}
+	} else {
+		fileout_open_close(ctx, ctx->dst, NULL, 0);
+	}
+}
+static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 	if (is_remove) {
 		ctx->pid = NULL;
@@ -108,27 +128,13 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 	gf_filter_pid_check_caps(pid);
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OUTPATH);
-	if (p && p->value.string) {
-		fileout_open_close(ctx, p->value.string, NULL, 0);
-	} else if (ctx->dynext) {
-		p = gf_filter_pid_get_property(pid, GF_PROP_PCK_FILENUM);
-		if (!p) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-			if (p && p->value.string) {
-				fileout_open_close(ctx, ctx->dst, p->value.string, 0);
-			}
-		}
-	} else {
-		fileout_open_close(ctx, ctx->dst, NULL, 0);
-	}
-	
 	if (!ctx->pid) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
+
 	return GF_OK;
 }
 
@@ -161,7 +167,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 		ctx->in_caps[1].flags = GF_CAPS_INPUT;
 	} else {
-		strcpy(ctx->szExt, ext+1);
+		strncpy(ctx->szExt, ext+1, 9);
 		strlwr(ctx->szExt);
 		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 		ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
@@ -213,6 +219,8 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 		if (name) {
 			fileout_open_close(ctx, name, fext ? fext->value.string : NULL, fnum ? fnum->value.uint : 0);
+		} else if (!ctx->file) {
+			fileout_setup_file(ctx);
 		}
 	}
 
