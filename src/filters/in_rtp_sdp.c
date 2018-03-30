@@ -171,7 +171,7 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 		dur.num = 1000 * (stream->range_end - stream->range_start);
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur) );
 	} else {
-		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NO_TIME_CTRL, &PROP_BOOL(GF_TRUE ) );
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE ) );
 	}
 	if (stream->mid)
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SCALABLE, &PROP_BOOL( GF_TRUE) );

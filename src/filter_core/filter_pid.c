@@ -3142,3 +3142,123 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 	}
 	return map ? gf_props_get_property(map, 0, prop_name) : NULL;
 }
+
+
+GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx)
+{
+	u32 k;
+	char szFormat[10], szTemplateVal[GF_MAX_PATH], szPropVal[100];
+	char *name = szTemplate;
+	k = 0;
+	while (name[0]) {
+		char *sep=NULL;
+		char *fsep=NULL;
+		const char *str_val = NULL;
+		s64 value = 0;
+		Bool has_val = GF_FALSE;
+		Bool is_file_str = GF_FALSE;
+		const GF_PropertyValue *prop_val = NULL;
+
+		if (k+1==GF_MAX_PATH) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Not enough memory to solve file template %s\n", szTemplate));
+			return GF_OUT_OF_MEM;
+		}
+		if (name[0] != '$') {
+			szFinalName[k] = name[0];
+			k++;
+			name++;
+			continue;
+		}
+		if (name[1]=='$') {
+			szFinalName[k] = '$';
+			name++;
+			k++;
+			continue;
+		}
+		sep = strchr(name+1, '$');
+		if (!sep) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] broken file template expecting $KEYWORD$, couln't find second '$'\n", szTemplate));
+			strcpy(szFinalName, szTemplate);
+			return GF_BAD_PARAM;
+		}
+		szFinalName[k] = 0;
+		name++;
+		sep[0]=0;
+		fsep = strchr(name, '%');
+		if (fsep) fsep[0] = 0;
+		if (!stricmp(name, "Number") || !stricmp(name, "num")) {
+			u32 len = (!stricmp(name, "num")) ? 3 : 6;
+			name += len;
+			value = file_idx;
+			has_val = GF_TRUE;
+		} else if (!stricmp(name, "URL")) {
+			prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
+			is_file_str = GF_TRUE;
+		} else if (!stricmp(name, "File")) {
+			prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+			is_file_str = GF_TRUE;
+		} else if (!stricmp(name, "PID")) {
+			prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+		} else if (!strnicmp(name, "p4cc=", 5)) {
+			u32 prop4CC;
+			if (strlen(name) != 9) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] wrong length in 4CC template, expecting 4cc=ABCD\n", name));
+				if (fsep) fsep[0] = '%';
+				if (sep) sep[0] = '$';
+				return GF_BAD_PARAM;
+			}
+			prop4CC = GF_4CC(name[5],name[6],name[7],name[8]);
+			prop_val = gf_filter_pid_get_property(pid, prop4CC);
+		} else if (!strnicmp(name, "pname=", 6)) {
+			prop_val = gf_filter_pid_get_property_str(pid, name+6);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] Unrecognized template %s\n", name));
+			if (fsep) fsep[0] = '%';
+			if (sep) sep[0] = '$';
+			return GF_BAD_PARAM;
+		}
+
+		if (prop_val) {
+			if ((prop_val->type==GF_PROP_UINT) || (prop_val->type==GF_PROP_SINT)) {
+				value = prop_val->value.uint;
+				has_val = GF_TRUE;
+			} else {
+				str_val = gf_prop_dump_val(prop_val, szPropVal, GF_FALSE);
+			}
+		}
+
+		if (has_val) {
+			if (fsep) {
+				strcpy(szFormat, "%");
+				strcat(szFormat, fsep+1);
+			} else {
+				strcpy(szFormat, "%d");
+			}
+			sprintf(szTemplateVal, szFormat, value);
+			str_val = szTemplateVal;
+		} else if (str_val) {
+			char *ext = strrchr(str_val, '.');
+			if (is_file_str && ext) {
+				u32 len = ext - str_val;
+				strncpy(szTemplateVal, str_val, ext - str_val);
+				szTemplateVal[len] = 0;
+			} else {
+				strcpy(szTemplateVal, str_val);
+			}
+		}
+		if (k + strlen(szTemplateVal) > GF_MAX_PATH) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Not enough memory to solve file template %s\n", szTemplate));
+			return GF_OUT_OF_MEM;
+		}
+
+		strcat(szFinalName, szTemplateVal);
+		k = strlen(szFinalName);
+
+		if (fsep) fsep[0] = '%';
+		if (!sep) break;
+		sep[0] = '$';
+		name = sep+1;
+	}
+	szFinalName[k] = 0;
+	return GF_OK;
+}

@@ -559,19 +559,20 @@ static void dashdmx_setup_buffer(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 }
 
 /*check in all groups if the service can support reverse playback (speed<0); return GF_OK only if service is supported in all groups*/
-static Bool dashdmx_dash_can_reverse_playback(GF_DASHDmxCtx *ctx)
+static u32 dashdmx_dash_playback_mode(GF_DASHDmxCtx *ctx)
 {
-	u32 i, count = gf_filter_get_ipid_count(ctx->filter);
-
+	u32 pmode, mode, i, count = gf_filter_get_ipid_count(ctx->filter);
+	mode = GF_PLAYBACK_MODE_REWIND;
 	for (i=0; i<count; i++) {
 		const GF_PropertyValue *p;
 		GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
 		if (ctx->mpd_pid == pid) continue;
 
-		p = gf_filter_pid_get_info(pid, GF_PROP_PID_REVERSE_PLAYBACK);
-		if (!p || !p->value.boolean) return GF_FALSE;
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_PLAYBACK_MODE);
+		pmode = p ? p->value.uint : GF_PLAYBACK_MODE_REWIND;
+		if (pmode < mode) mode = pmode;
 	}
-	return GF_TRUE;
+	return pmode;
 }
 
 
@@ -636,7 +637,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//initial configure
 	opid = gf_filter_pid_get_udta(pid);
 	if (opid == NULL) {
-		u32 dur;
+		u32 dur, mode;
 		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
 		assert(group);
 		//for now we declare every component from the input source
@@ -645,9 +646,9 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_udta(pid, opid);
 		group->nb_pids ++;
 
-		if (dashdmx_dash_can_reverse_playback(ctx) ) {
-			gf_filter_pid_set_info(opid, GF_PROP_PID_REVERSE_PLAYBACK, &PROP_BOOL(GF_TRUE));
-		}
+		mode = dashdmx_dash_playback_mode(ctx);
+		gf_filter_pid_set_info(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(mode));
+
 		if (ctx->max_res && gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH)) {
 			gf_filter_pid_set_info(opid, GF_PROP_SERVICE_WIDTH, &PROP_UINT(ctx->width));
 			gf_filter_pid_set_info(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));

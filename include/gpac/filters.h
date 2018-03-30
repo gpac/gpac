@@ -228,6 +228,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data);
 
+Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type);
+
 //helper macros to set properties
 #define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
 #define PROP_UINT(_val) (GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
@@ -679,6 +681,14 @@ void gf_filter_pid_set_clock_mode(GF_FilterPid *pid, Bool filter_in_charge);
 
 enum
 {
+	GF_PLAYBACK_MODE_NONE=0,
+	GF_PLAYBACK_MODE_SEEK,
+	GF_PLAYBACK_MODE_FASTFORWARD,
+	GF_PLAYBACK_MODE_REWIND
+};
+
+enum
+{
 	//(uint) PID ID
 	GF_PROP_PID_ID = GF_4CC('P','I','D','I'),
 	GF_PROP_PID_ESID = GF_4CC('E','S','I','D'),
@@ -686,10 +696,11 @@ enum
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),
 	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
-	GF_PROP_PID_NO_TIME_CTRL = GF_4CC('!','T','C','T'),
+	//(bool) playback mode (rewind, fast forward, seek) capability of the pid
+	GF_PROP_PID_PLAYBACK_MODE = GF_4CC('P','B','K','M'),
 	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers
 	GF_PROP_PID_SCALABLE = GF_4CC('S','C','A','L'),
-	GF_PROP_PID_LANGUAGE = GF_4CC('P','L','A','N'),
+	GF_PROP_PID_LANGUAGE = GF_4CC('L','A','N','G'),
 	GF_PROP_PID_SERVICE_NAME = GF_4CC('S','N','A','M'),
 	GF_PROP_PID_SERVICE_PROVIDER = GF_4CC('S','P','R','O'),
 	//(uint) media stream type, matching gpac stream types
@@ -801,10 +812,6 @@ enum
 	GF_PROP_PID_UTC_TIME = GF_4CC('U','T','C','D'),
 	//(longuint) timestamp corresponding to UTC date and time of PID
 	GF_PROP_PID_UTC_TIMESTAMP = GF_4CC('U','T','C','T'),
-
-	//(bool) reverse playback capability of the pid
-	GF_PROP_PID_REVERSE_PLAYBACK = GF_4CC('R','P','B','C'),
-
 	//(uint) (info) volume
 	GF_PROP_PID_AUDIO_VOLUME = GF_4CC('A','V','O','L'),
 	//(uint) (info) pan
@@ -1090,6 +1097,20 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps );
 
 void gf_fs_filter_print_possible_connections(GF_FilterSession *session);
+
+/*resolve file template using PID properties and file index. Templates follow the DASH mechanism:
+-  $KEYWORD$ or $KEYWORD%0nd$ are replaced in the template with the resolved value,
+- $$ is an escape for $
+
+Supported KEYWORD (case insensitive):
+- Number or num: replaced by \file_number (usually matches GF_PROP_PCK_FILENUM)
+- PID: ID of the source pid
+- URL: URL of source file
+- File: path on disk for source file
+- p4cc=ABCD: uses pid property with 4CC ABCD
+- pname=VAL: uses pid property with name VAL
+*/
+GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_number);
 
 #ifdef __cplusplus
 }

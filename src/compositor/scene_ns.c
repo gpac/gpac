@@ -324,8 +324,8 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 
 	gf_filter_pid_set_udta(pid, odm);
 
-	v = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_TIME_CTRL);
-	if (v && v->value.boolean) odm->flags |= GF_ODM_NO_TIME_CTRL;
+	v = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
+	if (!v || !v->value.uint) odm->flags |= GF_ODM_NO_TIME_CTRL;
 
 	if (the_mo) the_mo->OD_ID = odm->ID;
 	if (!scene->selected_service_id)

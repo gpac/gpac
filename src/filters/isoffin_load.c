@@ -351,6 +351,7 @@ void isor_declare_objects(ISOMReader *read)
 
 		//OK declare PID
 		pid = gf_filter_pid_new(read->filter);
+		gf_filter_pid_copy_properties(pid, read->pid);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esid));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(ocr_es_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(depends_on_id));
@@ -433,7 +434,7 @@ void isor_declare_objects(ISOMReader *read)
 
 		w = gf_isom_get_constant_sample_size(read->mov, i+1);
 
-		gf_filter_pid_set_info(pid, GF_PROP_PID_REVERSE_PLAYBACK, &PROP_BOOL(GF_TRUE) );
+		gf_filter_pid_set_info(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
 
 		if (codec_id == GF_CODECID_DIMS) {
 			GF_DIMSDescription dims;
