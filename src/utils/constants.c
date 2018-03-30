@@ -324,6 +324,7 @@ const char *gf_audio_fmt_sname(u32 sfmt)
 
 static char szAllAudioFormats[500] = {};
 
+GF_EXPORT
 const char *gf_audio_fmt_all_names()
 {
 	if (!szAllAudioFormats[0]) {
@@ -348,6 +349,7 @@ const char *gf_audio_fmt_all_names()
 
 static char szAllShortAudioFormats[500] = {};
 
+GF_EXPORT
 const char *gf_audio_fmt_all_shortnames()
 {
 	if (!szAllShortAudioFormats[0]) {
@@ -502,6 +504,7 @@ const char *gf_pixel_fmt_sname(u32 pfmt)
 
 static char szAllPixelFormats[5000] = {};
 
+GF_EXPORT
 const char *gf_pixel_fmt_all_names()
 {
 	if (!szAllPixelFormats[0]) {
@@ -526,6 +529,7 @@ const char *gf_pixel_fmt_all_names()
 
 static char szAllShortPixelFormats[5000] = {};
 
+GF_EXPORT
 const char *gf_pixel_fmt_all_shortnames()
 {
 	if (!szAllShortPixelFormats[0]) {
