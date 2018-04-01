@@ -336,17 +336,15 @@ static GF_FilterArgs FFSWSArgs[] =
 
 static const GF_FilterCapability FFSWSCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
 
 GF_FilterRegister FFSWSRegister = {
 	.name = "ffsws",
 	.description = "FFMPEG Software Rescale "LIBSWSCALE_IDENT,
-	.comment = "For bicubic, tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)\n"\
+	.comment = "For bicubic, to tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)\n"\
 				"For gauss p1 tunes the exponent and thus cutoff frequency\n"\
 				"For lanczos p1 tunes the width of the window function",
 

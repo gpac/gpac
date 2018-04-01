@@ -439,6 +439,8 @@ struct __gf_filter
 	u32 nb_forced_caps;
 	//valid when a pid inst is waiting for a reconnection, NULL otherwise
 	GF_List *detached_pid_inst;
+
+	s32 cap_idx_at_resolution;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -598,7 +600,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task);
 Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx);
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle);
 Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
 
 #endif //_GF_FILTER_SESSION_H_
