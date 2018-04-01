@@ -795,7 +795,7 @@ static const GF_FilterCapability CENCDecCaps[] =
 };
 
 GF_FilterRegister CENCDecRegister = {
-	.name = "decenc",
+	.name = "decrypt_cenc",
 	.description = "CENC and ISMA Decryptor",
 	.private_size = sizeof(GF_CENCDecCtx),
 	SETCAPS(CENCDecCaps),
