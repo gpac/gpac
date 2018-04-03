@@ -105,7 +105,7 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 	}
 
-	sprintf(n, "imgenc:libjpeg-%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
+	sprintf(n, "encjpg:%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
 	gf_filter_set_name(filter, n);
 
 	//TODO: for now we only allow YUV420p input, we should refine this to allow any YUV
@@ -120,14 +120,14 @@ static void jpgenc_output_message (j_common_ptr cinfo)
 	char buffer[JMSG_LENGTH_MAX];
 	/* Create the message */
 	(*cinfo->err->format_message) (cinfo, buffer);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEnc]: %s\n", buffer));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
 }
 static void jpgenc_nonfatal_error2(j_common_ptr cinfo, int lev)
 {
 	char buffer[JMSG_LENGTH_MAX];
 	/* Create the message */
 	(*cinfo->err->format_message) (cinfo, buffer);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEnc]: %s\n", buffer));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc]: %s\n", buffer));
 }
 
 static void jpgenc_fatal_error(j_common_ptr cinfo)
@@ -212,7 +212,7 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 	ctx->pub.output_message = jpgenc_output_message;
 	ctx->pub.emit_message = jpgenc_nonfatal_error2;
 	if (setjmp(ctx->jmpbuf)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEncode] : Failed to encode\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc] : Failed to encode\n"));
 		e = GF_NON_COMPLIANT_BITSTREAM;
 		goto exit;
 	}
@@ -264,19 +264,19 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 	} else {
 		e = hwframe->get_plane(hwframe, 0, (const u8 **)&pY, &stride);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEncode] Failed to fetch first plane in hardware frame\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc] Failed to fetch first plane in hardware frame\n"));
 			goto exit;
 		}
 		if (ctx->nb_planes>1) {
 			e = hwframe->get_plane(hwframe, 1, (const u8 **)&pU, &stride_uv);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEncode] Failed to fetch first plane in hardware frame\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc] Failed to fetch first plane in hardware frame\n"));
 				goto exit;
 			}
 			if (ctx->nb_planes>2) {
 				e = hwframe->get_plane(hwframe, 2, (const u8 **)&pV, &stride_uv);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEncode] Failed to fetch first plane in hardware frame\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPGEnc] Failed to fetch first plane in hardware frame\n"));
 					goto exit;
 				}
 			}
