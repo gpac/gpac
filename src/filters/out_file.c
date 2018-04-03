@@ -45,6 +45,7 @@ typedef struct
 	char szExt[10];
 	char szFileName[GF_MAX_PATH];
 
+	Bool patch_blocks;
 } GF_FileOutCtx;
 
 
@@ -120,6 +121,7 @@ static void fileout_setup_file(GF_FileOutCtx *ctx)
 }
 static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	const GF_PropertyValue *p;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 	if (is_remove) {
 		ctx->pid = NULL;
@@ -134,6 +136,9 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
+	if (p && p->value.boolean) ctx->patch_blocks = GF_TRUE;
 
 	return GF_OK;
 }
@@ -228,11 +233,28 @@ static GF_Err fileout_process(GF_Filter *filter)
 	if (ctx->file) {
 		GF_FilterHWFrame *hwf = gf_filter_pck_get_hw_frame(pck);
 		if (pck_data) {
-			nb_write = fwrite(pck_data, 1, pck_size, ctx->file);
-			if (nb_write!=pck_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+			if (ctx->patch_blocks && gf_filter_pck_get_seek_flag(pck)) {
+				u64 bo = gf_filter_pck_get_byte_offset(pck);
+				if (ctx->is_std) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[FileOut] Cannot patch file, output is stdout\n"));
+				} else if (bo==GF_FILTER_NO_BO) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[FileOut] Cannot patch file, wrong byte offset\n"));
+				} else {
+					u64 pos = gf_ftell(ctx->file);
+					gf_fseek(ctx->file, bo, SEEK_SET);
+					nb_write = fwrite(pck_data, 1, pck_size, ctx->file);
+					if (nb_write!=pck_size) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+					}
+					gf_fseek(ctx->file, pos, SEEK_SET);
+				}
+			} else {
+				nb_write = fwrite(pck_data, 1, pck_size, ctx->file);
+				if (nb_write!=pck_size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+				}
+				ctx->nb_write += nb_write;
 			}
-			ctx->nb_write += nb_write;
 		} else if (hwf) {
 			u32 w, h, stride, stride_uv, pf;
 			u32 nb_planes, uv_height;

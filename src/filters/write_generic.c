@@ -56,7 +56,9 @@ typedef struct
 
 	u32 target_pfmt, target_afmt;
 	Bool is_bmp;
+	u32 is_wav;
 	u32 w, h, stride;
+	u64 nb_bytes;
 } GF_GenDumpCtx;
 
 
@@ -322,8 +324,15 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
 				strncpy(szExt, p->value.string, 10);
-				ctx->target_afmt = gf_audio_fmt_parse(szExt);
-				strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
+				if (!strcmp(szExt, "wav")) {
+					ctx->is_wav = GF_TRUE;
+					//request PCMs16 ?
+//					ctx->target_afmt = GF_AUDIO_FMT_S16;
+					ctx->target_afmt = sfmt;
+				} else {
+					ctx->target_afmt = gf_audio_fmt_parse(szExt);
+					strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
+				}
 				//forcing sample format regardless of extension
 				if (ctx->afmt) {
 					if (sfmt != ctx->afmt) {
@@ -346,7 +355,10 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			strcpy(szExt, gf_4cc_to_str(cid));
 		}
 		if (ctx->is_bmp) strcpy(szExt, "bmp");
-		else if (!strlen(szExt)) strcpy(szExt, "raw");
+		else if (ctx->is_wav) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_BOOL(GF_TRUE) );
+			strcpy(szExt, "wav");
+		} else if (!strlen(szExt)) strcpy(szExt, "raw");
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
@@ -529,6 +541,61 @@ static GF_FilterPacket *gendump_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 da
 	return dst_pck;
 }
 
+static void gendump_write_wav_header(GF_GenDumpCtx *ctx)
+{
+	u32 size;
+	char *output;
+	GF_FilterPacket *dst_pck;
+	const GF_PropertyValue *p;
+	u32 nb_ch, sample_rate, afmt, bps;
+	const char chunkID[] = {'R', 'I', 'F', 'F'};
+	const char format[] = {'W', 'A', 'V', 'E'};
+	const char subchunk1ID[] = {'f', 'm', 't', ' '};
+	const char subchunk2ID[] = {'d', 'a', 't', 'a'};
+
+	if (ctx->is_wav!=1) return;
+	ctx->is_wav = 2;
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SAMPLE_RATE);
+	if (!p) return;
+	sample_rate = p->value.uint;
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NUM_CHANNELS);
+	if (!p) return;
+	nb_ch = p->value.uint;
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT);
+	if (!p) return;
+	afmt = p->value.uint;
+
+	bps = gf_audio_fmt_bit_depth(afmt);
+
+	size = 44;
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+
+	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
+	else gf_bs_reassign_buffer(ctx->bs, output, size);
+
+	gf_bs_write_data(ctx->bs, chunkID, 4);
+	gf_bs_write_u32_le(ctx->bs, ctx->nb_bytes + 36);
+	gf_bs_write_data(ctx->bs, format, 4);
+
+	gf_bs_write_data(ctx->bs, subchunk1ID, 4);
+	gf_bs_write_u32_le(ctx->bs, 16); //subchunk1 size
+	gf_bs_write_u16_le(ctx->bs, 1); //audio format
+	gf_bs_write_u16_le(ctx->bs, nb_ch);
+	gf_bs_write_u32_le(ctx->bs, sample_rate);
+	gf_bs_write_u32_le(ctx->bs, sample_rate * nb_ch * bps / 8); //byte rate
+	gf_bs_write_u16_le(ctx->bs, nb_ch * bps / 8); // block align
+	gf_bs_write_u16_le(ctx->bs, bps);
+
+	gf_bs_write_data(ctx->bs, subchunk2ID, 4);
+	gf_bs_write_u32_le(ctx->bs, ctx->nb_bytes);
+
+	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+	gf_filter_pck_set_byte_offset(dst_pck, 0);
+	gf_filter_pck_set_seek_flag(dst_pck, 1);
+	gf_filter_pck_send(dst_pck);
+}
+
 GF_Err gendump_process(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
@@ -541,6 +608,7 @@ GF_Err gendump_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			if (ctx->is_wav) gendump_write_wav_header(ctx);
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
@@ -578,6 +646,17 @@ GF_Err gendump_process(GF_Filter *filter)
 		dst_pck = gendump_write_j2k(ctx, data, pck_size);
 	} else if (ctx->is_bmp) {
 		dst_pck = gendump_write_bmp(ctx, data, pck_size);
+	} else if (ctx->is_wav && ctx->first) {
+		char * output;
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, 44, &output);
+		gf_filter_pck_merge_properties(pck, dst_pck);
+		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
+		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
+		gf_filter_pck_set_corrupted(dst_pck, GF_TRUE);
+		ctx->first = GF_FALSE;
+		gf_filter_pck_send(dst_pck);
+		ctx->nb_bytes += 44;
+		return GF_OK;
 	} else {
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, data, pck_size, pck);
 	}
@@ -594,6 +673,8 @@ GF_Err gendump_process(GF_Filter *filter)
 	}
 
 	gf_filter_pck_send(dst_pck);
+	gf_filter_pck_set_seek_flag(dst_pck, 0);
+	ctx->nb_bytes += pck_size;
 
 	if (ctx->exporter) {
 		u32 timescale = gf_filter_pck_get_timescale(pck);
@@ -631,6 +712,11 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "bmp"),
+	{},
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "wav"),
 	{},
 
 	//we accept unframed AVC (annex B format)

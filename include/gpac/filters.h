@@ -647,6 +647,9 @@ u32 gf_filter_pck_get_interlaced(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted);
 Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
 
+//for PIDs of stream type FILE with GF_PROP_PID_DISABLE_PROGRESSIVE set, the seek flag indicates
+//that the packet is a PATCH packet, replacing bytes located at gf_filter_pck_get_byte_offset in file
+//if the corrupted flag is set, this indicates the data will be replaced later on
 GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek);
 Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck);
 
@@ -801,6 +804,8 @@ enum
 	GF_PROP_PID_DOWN_BYTES = GF_4CC('D','L','B','D'),
 	//(fraction) byte range for the file
 	GF_PROP_PID_FILE_RANGE = GF_4CC('F','B','R','A'),
+	//(boolean) disables progressive sending of file
+	GF_PROP_PID_DISABLE_PROGRESSIVE = GF_4CC('N','P','R','G'),
 
 	//(uint) display width of service
 	GF_PROP_SERVICE_WIDTH = GF_4CC('D','W','D','T'),

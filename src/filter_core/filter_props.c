@@ -666,6 +666,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "size of resource in bytes", GF_PROP_UINT},
 	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "number of bytes downloaded", GF_PROP_UINT},
 	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "byte range of resource", GF_PROP_FRACTION},
+	{ GF_PROP_PID_DISABLE_PROGRESSIVE, "DisableProgressive", "indicates file cannot be progressivley uploaded because first blocks need patching upon closing", GF_PROP_BOOL},
 	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "display width of service", GF_PROP_UINT},
 	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "display height of service", GF_PROP_UINT},
 	{ GF_PROP_PID_UTC_TIME, "UTC", "UTC date and time of PID", GF_PROP_LUINT},
