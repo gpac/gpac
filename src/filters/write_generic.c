@@ -55,6 +55,8 @@ typedef struct
 	GF_BitStream *bs;
 
 	u32 target_pfmt, target_afmt;
+	Bool is_bmp;
+	u32 w, h, stride;
 } GF_GenDumpCtx;
 
 
@@ -100,9 +102,11 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
 	sfmt = p ? p->value.uint : GF_AUDIO_FMT_S16;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-	w = p ? p->value.uint : 0;
+	ctx->w = w = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-	h = p ? p->value.uint : 0;
+	ctx->h = h = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
+	ctx->stride = p ? p->value.uint : ctx->w;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 	pf = p ? p->value.uint : 0;
@@ -287,8 +291,15 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
 				strncpy(szExt, p->value.string, 10);
-				ctx->target_pfmt = gf_pixel_fmt_parse(szExt);
-				strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
+				if (!strcmp(szExt, "bmp")) {
+					ctx->is_bmp = GF_TRUE;
+					//request BGR
+					ctx->target_pfmt = GF_PIXEL_BGR;
+					ctx->split = GF_TRUE;
+				} else {
+					ctx->target_pfmt = gf_pixel_fmt_parse(szExt);
+					strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
+				}
 				//forcing pixel format regardless of extension
 				if (ctx->pfmt) {
 					if (pf != ctx->pfmt) {
@@ -334,7 +345,9 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		} else {
 			strcpy(szExt, gf_4cc_to_str(cid));
 		}
-		if (!strlen(szExt)) strcpy(szExt, "raw");
+		if (ctx->is_bmp) strcpy(szExt, "bmp");
+		else if (!strlen(szExt)) strcpy(szExt, "raw");
+
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
 		if (!ctx->codecid) return GF_OK;
@@ -440,6 +453,81 @@ static GF_FilterPacket *gendump_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 da
 	return dst_pck;
 }
 
+#ifdef WIN32
+#include <windows.h>
+#else
+typedef struct tagBITMAPFILEHEADER
+{
+	u16	bfType;
+	u32	bfSize;
+	u16	bfReserved1;
+	u16	bfReserved2;
+	u32 bfOffBits;
+} BITMAPFILEHEADER;
+
+typedef struct tagBITMAPINFOHEADER {
+	u32	biSize;
+	s32	biWidth;
+	s32	biHeight;
+	u16	biPlanes;
+	u16	biBitCount;
+	u32	biCompression;
+	u32	biSizeImage;
+	s32	biXPelsPerMeter;
+	s32	biYPelsPerMeter;
+	u32	biClrUsed;
+	u32	biClrImportant;
+} BITMAPINFOHEADER;
+
+#define BI_RGB        0L
+
+#endif
+
+static GF_FilterPacket *gendump_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 data_size)
+{
+	u32 size;
+	char *output;
+	BITMAPFILEHEADER fh;
+	BITMAPINFOHEADER fi;
+	GF_FilterPacket *dst_pck;
+	u32 i;
+	char *ptr;
+
+	size = ctx->w*ctx->h*3 + 54; //14 + 40 = size of BMP file header and BMP file info;
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+
+	memset(&fh, 0, sizeof(fh));
+	fh.bfType = 19778;
+	fh.bfOffBits = 54;
+
+	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
+	else gf_bs_reassign_buffer(ctx->bs, output, size);
+
+	gf_bs_write_data(ctx->bs, (const char *) &fh.bfType, 2);
+	gf_bs_write_data(ctx->bs, (const char *) &fh.bfSize, 4);
+	gf_bs_write_data(ctx->bs, (const char *) &fh.bfReserved1, 2);
+	gf_bs_write_data(ctx->bs, (const char *) &fh.bfReserved2, 2);
+	gf_bs_write_data(ctx->bs, (const char *) &fh.bfOffBits, 4);
+
+	memset(&fi, 0, sizeof(char)*40);
+	fi.biSize = 40;
+	fi.biWidth = ctx->w;
+	fi.biHeight = ctx->h;
+	fi.biPlanes = 1;
+	fi.biBitCount = 24;
+	fi.biCompression = BI_RGB;
+	fi.biSizeImage = ctx->w * ctx->h * 3;
+
+	memcpy(output+14, &fi, sizeof(char)*40);
+	//reverse lines
+	output += sizeof(char) * 54;
+	for (i=ctx->h; i>0; i--) {
+		ptr = data + (i-1)*ctx->stride;
+		memcpy(output, ptr, sizeof(char)*3*ctx->w);
+		output += 3*ctx->w;
+	}
+	return dst_pck;
+}
 
 GF_Err gendump_process(GF_Filter *filter)
 {
@@ -488,12 +576,14 @@ GF_Err gendump_process(GF_Filter *filter)
 
 	if (ctx->is_mj2k) {
 		dst_pck = gendump_write_j2k(ctx, data, pck_size);
+	} else if (ctx->is_bmp) {
+		dst_pck = gendump_write_bmp(ctx, data, pck_size);
 	} else {
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, data, pck_size, pck);
 	}
 	gf_filter_pck_merge_properties(pck, dst_pck);
-	//keep byte offset ?
-//	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
+	//don't keep byte offset
+	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 
 	if (split) {
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->sample_num) );
@@ -536,6 +626,11 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "gpac" ),
+	{},
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "bmp"),
 	{},
 
 	//we accept unframed AVC (annex B format)
