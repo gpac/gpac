@@ -212,6 +212,7 @@
 		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
 		9235E0531CFECD520051D8A1 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA661A152BB700372C59 /* CoreFoundation.framework */; };
 		9239B8D6207369E5005F7264 /* enc_jpg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9239B8D5207369E5005F7264 /* enc_jpg.c */; };
+		9239B8D82073AFEF005F7264 /* enc_png.c in Sources */ = {isa = PBXBuildFile; fileRef = 9239B8D72073AFEF005F7264 /* enc_png.c */; };
 		924E805D206D357A00AB580F /* reframe_rawvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 924E805C206D357A00AB580F /* reframe_rawvid.c */; };
 		924E805F206D427A00AB580F /* reframe_rawpcm.c in Sources */ = {isa = PBXBuildFile; fileRef = 924E805E206D427A00AB580F /* reframe_rawpcm.c */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
@@ -1064,6 +1065,7 @@
 		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		9239B8D5207369E5005F7264 /* enc_jpg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_jpg.c; path = filters/enc_jpg.c; sourceTree = "<group>"; };
+		9239B8D72073AFEF005F7264 /* enc_png.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_png.c; path = filters/enc_png.c; sourceTree = "<group>"; };
 		924E805C206D357A00AB580F /* reframe_rawvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_rawvid.c; path = filters/reframe_rawvid.c; sourceTree = "<group>"; };
 		924E805E206D427A00AB580F /* reframe_rawpcm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_rawpcm.c; path = filters/reframe_rawpcm.c; sourceTree = "<group>"; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
@@ -2490,6 +2492,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				9239B8D72073AFEF005F7264 /* enc_png.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -3187,6 +3190,7 @@
 				9201016F18D5A445003D1ACA /* loader_svg.c in Sources */,
 				9201017018D5A445003D1ACA /* loader_xmt.c in Sources */,
 				9201017118D5A445003D1ACA /* scene_dump.c in Sources */,
+				9239B8D82073AFEF005F7264 /* enc_png.c in Sources */,
 				9201017218D5A445003D1ACA /* scene_engine.c in Sources */,
 				928A7F812059372C00E02E89 /* out_video.c in Sources */,
 				9201017318D5A445003D1ACA /* scene_manager.c in Sources */,
