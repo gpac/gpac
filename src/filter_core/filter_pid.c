@@ -1601,7 +1601,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		} else if (!reconfigurable_only) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("No suitable filter found for pid %s from filter %s\n", pid->name, pid->filter->name));
 		}
-	} else if (reconfigurable_only && (count>1)) {
+	} else if (reconfigurable_only && (count>2)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
 	} else {
 		const char *dst_args = dst ? dst->src_args : NULL;
@@ -1671,7 +1671,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			//remember our target filter
 			if (prev_af) prev_af->dst_filter = af;
-			if (i+1==count) af->dst_filter = pid->filter->dst_filter ? pid->filter->dst_filter : dst;
+			if (i+2==count) af->dst_filter = pid->filter->dst_filter ? pid->filter->dst_filter : dst;
 			prev_af = af;
 
 			if (reconfigurable_only) af->is_pid_adaptation_filter = GF_TRUE;
@@ -3263,7 +3263,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 		u32 k;
 		GF_Filter *dst;
 		if (!pid->filter->dst_filter || (pid->filter->dst_filter->cap_idx_at_resolution<0) ) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s with no destination filter set\n", pid->pid->name, pid->filter->name));
 			return NULL;
 		}
 		dst = pid->filter->dst_filter;

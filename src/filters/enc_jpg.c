@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2018
  *					All rights reserved
  *
- *  This file is part of GPAC / libjpeg and libpng encoder filter
+ *  This file is part of GPAC / libjpeg encoder filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,6 @@
 typedef struct
 {
 	//opts
-	u32 codec;
 	u32 dctmode;
 	u32 quality;
 
@@ -44,7 +43,6 @@ typedef struct
 
 	GF_FilterPacket *dst_pck;
 	char *output;
-	Bool encode_png;
 
 	/*io manager*/
 	struct jpeg_destination_mgr dst;
@@ -52,12 +50,13 @@ typedef struct
 
 	struct jpeg_error_mgr pub;
 	jmp_buf jmpbuf;
-} GF_IMGEncCtx;
+} GF_JPGEncCtx;
 
-static GF_Err imgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	char n[100];
 	const GF_PropertyValue *prop;
-	GF_IMGEncCtx *ctx = (GF_IMGEncCtx *) gf_filter_get_udta(filter);
+	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) gf_filter_get_udta(filter);
 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
@@ -69,19 +68,13 @@ static GF_Err imgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+/*
 	//check if we have a cap set (dynamic resolution)
 	prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_CODECID);
-	if (prop && (prop->value.uint==GF_CODECID_PNG)) {
-		ctx->encode_png = GF_TRUE;
-	} else if (prop && (prop->value.uint==GF_CODECID_JPEG)) {
-		ctx->encode_png = GF_FALSE;
-	} else if (ctx->codec == 1) {
-		ctx->encode_png = GF_TRUE;
-	} else if (ctx->codec == 0) {
-		ctx->encode_png = GF_FALSE;
-	} else {
+	if (prop && (prop->value.uint!=GF_CODECID_JPEG)) {
 		return GF_NOT_SUPPORTED;
 	}
+*/
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	if (!prop) return GF_NOT_SUPPORTED;
@@ -107,16 +100,17 @@ static GF_Err imgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->encode_png ? GF_CODECID_PNG : GF_CODECID_JPEG ));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_JPEG ));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 	}
-	if (ctx->encode_png) {
-		gf_filter_set_name(filter, "imgenc:libpng");
-	} else {
-		char n[100];
-		sprintf(n, "imgenc:libjpeg-%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
-		gf_filter_set_name(filter, n);
+
+	sprintf(n, "imgenc:libjpeg-%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
+	gf_filter_set_name(filter, n);
+
+	//TODO: for now we only allow YUV420p input, we should refine this to allow any YUV
+	if (ctx->pixel_format != GF_PIXEL_YUV) {
+		gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV));
 	}
 	return GF_OK;
 }
@@ -138,7 +132,7 @@ static void jpgenc_nonfatal_error2(j_common_ptr cinfo, int lev)
 
 static void jpgenc_fatal_error(j_common_ptr cinfo)
 {
-	GF_IMGEncCtx *ctx = (GF_IMGEncCtx *) cinfo->client_data;
+	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
 	jpgenc_output_message(cinfo);
 	longjmp(ctx->jmpbuf, 1);
 }
@@ -147,7 +141,7 @@ static void jpgenc_fatal_error(j_common_ptr cinfo)
 #define ALLOC_STEP_SIZE 4096
 static void jpgenc_init_dest(j_compress_ptr cinfo)
 {
-	GF_IMGEncCtx *ctx = (GF_IMGEncCtx *) cinfo->client_data;
+	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
 	if (ctx->dst_pck)
 		return;
 
@@ -161,7 +155,7 @@ static boolean jpgenc_empty_output(j_compress_ptr cinfo)
 {
 	char *data;
 	u32 new_size;
-	GF_IMGEncCtx *ctx = (GF_IMGEncCtx *) cinfo->client_data;
+	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
 
 	if (!ctx->dst_pck)
 		return FALSE;
@@ -177,14 +171,15 @@ static boolean jpgenc_empty_output(j_compress_ptr cinfo)
 
 static void jpgenc_term_dest(j_compress_ptr cinfo)
 {
-	GF_IMGEncCtx *ctx = (GF_IMGEncCtx *) cinfo->client_data;
+	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
 
     ctx->dst_pck_size -= cinfo->dest->free_in_buffer;
 	gf_filter_pck_truncate(ctx->dst_pck, ctx->dst_pck_size);
 }
 
-static GF_Err imgenc_process_jpeg(GF_IMGEncCtx *ctx)
+static GF_Err jpgenc_process(GF_Filter *filter)
 {
+    GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) gf_filter_get_udta(filter);
 	GF_Err e = GF_OK;
 	struct jpeg_compress_struct cinfo;
 	GF_FilterPacket *pck;
@@ -261,14 +256,31 @@ static GF_Err imgenc_process_jpeg(GF_IMGEncCtx *ctx)
 
 	stride = ctx->stride;
 	stride_uv = ctx->stride_uv;
+	pY = pU = pV = 0;
 	if (in_data) {
 		pY = in_data;
 		pU = pY + ctx->stride * ctx->height;
 		pV = pU + ctx->stride_uv * ctx->height/2;
 	} else {
-		hwframe->get_plane(hwframe, 0, (const u8 **)&pY, &stride);
-		hwframe->get_plane(hwframe, 1, (const u8 **)&pU, &stride_uv);
-		hwframe->get_plane(hwframe, 2, (const u8 **)&pV, &stride_uv);
+		e = hwframe->get_plane(hwframe, 0, (const u8 **)&pY, &stride);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEncode] Failed to fetch first plane in hardware frame\n"));
+			goto exit;
+		}
+		if (ctx->nb_planes>1) {
+			e = hwframe->get_plane(hwframe, 1, (const u8 **)&pU, &stride_uv);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEncode] Failed to fetch first plane in hardware frame\n"));
+				goto exit;
+			}
+			if (ctx->nb_planes>2) {
+				e = hwframe->get_plane(hwframe, 2, (const u8 **)&pV, &stride_uv);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEGEncode] Failed to fetch first plane in hardware frame\n"));
+					goto exit;
+				}
+			}
+		}
 	}
 
 	for (j=0;j<ctx->height;j+=16) {
@@ -303,45 +315,38 @@ exit:
 	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
 }
-static GF_Err imgenc_process(GF_Filter *filter)
-{
-    GF_IMGEncCtx *ctx = (GF_IMGEncCtx *) gf_filter_get_udta(filter);
-	if (ctx->encode_png) return GF_NOT_SUPPORTED;
-	return imgenc_process_jpeg(ctx);
-}
-static const GF_FilterCapability ImgEncCaps[] =
+
+static const GF_FilterCapability JPGEncCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_JPEG),
-	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_PNG)
+	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_JPEG)
 };
 
-#define OFFS(_n)	#_n, offsetof(GF_IMGEncCtx, _n)
-static GF_FilterArgs ImgEncArgs[] =
+#define OFFS(_n)	#_n, offsetof(GF_JPGEncCtx, _n)
+static GF_FilterArgs JPGEncArgs[] =
 {
-	{ OFFS(codec), "DCT mode", GF_PROP_UINT, "jpeg", "jpeg|png", GF_FALSE},
 	{ OFFS(dctmode), "DCT mode", GF_PROP_UINT, "fast", "slow|fast|float", GF_FALSE},
 	{ OFFS(quality), "Quality, between 0 and 100", GF_PROP_UINT, "100", NULL, GF_FALSE},
 	{}
 };
 
-GF_FilterRegister ImgEncRegister = {
-	.name = "imgenc",
-	.description = "PNG/JPG Encoder",
-	.private_size = sizeof(GF_IMGEncCtx),
-	.args = ImgEncArgs,
-	SETCAPS(ImgEncCaps),
-	.configure_pid = imgenc_configure_pid,
-	.process = imgenc_process,
+GF_FilterRegister JPGEncRegister = {
+	.name = "encjpg",
+	.description = "JPG Encoder",
+	.private_size = sizeof(GF_JPGEncCtx),
+	.args = JPGEncArgs,
+	SETCAPS(JPGEncCaps),
+	.configure_pid = jpgenc_configure_pid,
+	.process = jpgenc_process,
 };
 
 #endif
 
-const GF_FilterRegister *imgenc_register(GF_FilterSession *session)
+const GF_FilterRegister *jpgenc_register(GF_FilterSession *session)
 {
 #ifdef GPAC_HAS_JPEG
-	return &ImgEncRegister;
+	return &JPGEncRegister;
 #else
 	return NULL;
 #endif
