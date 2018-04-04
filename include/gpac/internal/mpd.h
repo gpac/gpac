@@ -95,6 +95,9 @@ typedef struct
 	char *URL;
 	char *service_location;
 	GF_MPD_ByteRange *byte_range;
+
+	//GPAC internal: redirection for that URL
+	char *redirection;
 } GF_MPD_BaseURL;
 
 typedef struct
