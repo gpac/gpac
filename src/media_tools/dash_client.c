@@ -859,7 +859,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			//shift currently points to the next segment after the one used for clock bootstrap, use the right one
 			shift--;
 			//avoid querying too early the cache since segments do not usually arrive exactly on time ...
-			//TODO - make this configurable
 			availabilityStartTime += group->dash->atsc_ast_shift;
 		}
 
@@ -2003,7 +2002,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Representation #%d: Adding new segment %s\n", rep_idx+1, new_seg->media));
 					}
 				}
-
 				/*what else should we check ?*/
 
 				/*swap segment list content*/
@@ -2057,6 +2055,23 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			if (e) {
 				gf_mpd_del(new_mpd);
 				return e;
+			}
+
+			//move redirections in representations base URLs (we could do that on AS as well )
+			if (rep->base_URLs && new_rep->base_URLs) {
+				u32 k;
+				for (i=0; i<gf_list_count(new_rep->base_URLs); i++) {
+					GF_MPD_BaseURL *n_url = gf_list_get(new_rep->base_URLs, i);
+					if (!n_url->URL) continue;
+
+					for (k=0; k<gf_list_count(rep->base_URLs); k++) {
+						GF_MPD_BaseURL *o_url = gf_list_get(rep->base_URLs, k);
+						if (o_url->URL && !strcmp(o_url->URL, n_url->URL)) {
+							n_url->redirection = o_url->redirection;
+							o_url->redirection = NULL;
+						}
+					}
+				}
 			}
 
 			/*what else should we check ??*/
@@ -3606,6 +3621,30 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	if (nb_segment_read) {
 		dash_store_stats(dash, group, Bps, file_size, GF_FALSE);
 		dash_do_rate_adaptation(dash, group);
+	}
+
+	if (dash->atsc_clock_state) {
+		u32 i, j;
+		for (i=0; i<gf_list_count(group->adaptation_set->representations); i++) {
+			GF_MPD_Representation *a_rep = gf_list_get(group->adaptation_set->representations, i);
+			for (j=0; j<gf_list_count(a_rep->base_URLs); j++) {
+				GF_MPD_BaseURL *b_url = gf_list_get(a_rep->base_URLs, j);
+				char *nURL = gf_url_concatenate(dash->base_url, b_url->URL);
+				if (nURL) {
+					u32 len = strlen(nURL);
+					if (nURL[len] != '/') {
+						GF_Err e = gf_dash_download_resource(dash, &(group->segment_download), nURL, 0, 0, 1, group);
+						if (!e) {
+							const char *redirected_url = dash->dash_io->get_url(dash->dash_io, group->segment_download);
+							if (redirected_url && strcmp(redirected_url, nURL)) {
+								b_url->redirection = gf_strdup(redirected_url);
+							}
+						}
+					}
+					gf_free(nURL);
+				}
+			}
+		}
 	}
 
 	return GF_OK;
