@@ -355,6 +355,8 @@ static int gpac_main(int argc, char **argv)
 			view_filter_conn = GF_TRUE;
 		} else if (!strcmp(arg, "-props")) {
 			view_props = GF_TRUE;
+		} else if (strstr(arg, ":*") && list_filters) {
+			list_filters = 3;
 		}
 
 		if (arg_val) {
@@ -385,7 +387,7 @@ static int gpac_main(int argc, char **argv)
 		return 0;
 	}
 
-	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters==2) || print_filter_info) ? GF_TRUE : GF_FALSE, disable_blocking);
+	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_filter_info) ? GF_TRUE : GF_FALSE, disable_blocking);
 	if (!session) {
 		return 1;
 	}
@@ -570,6 +572,7 @@ static void print_filter(const GF_FilterRegister *reg)
 
 static void print_filters(int argc, char **argv, GF_FilterSession *session)
 {
+	Bool found = GF_FALSE;
 	u32 i, count = gf_fs_filters_registry_count(session);
 	if (list_filters) fprintf(stderr, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 	for (i=0; i<count; i++) {
@@ -581,20 +584,29 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 				char *arg = argv[k];
 				if (arg[0]=='-') continue;
 
-				if (!strcmp(arg, reg->name) )
+				if (!strcmp(arg, reg->name) ) {
 					print_filter(reg);
-				else if (!strchr(reg->name, ':') && !strcmp(arg, "*")) {
-					print_filter(reg);
-					break;
-				} else if (strchr(reg->name, ':') && !strcmp(arg, "*:*")) {
-					print_filter(reg);
-					break;
+					found = GF_TRUE;
+				} else {
+					char *sep = strchr(arg, ':');
+					if (!sep && !strcmp(arg, "*")) {
+						print_filter(reg);
+						found = GF_TRUE;
+						break;
+					} else if (sep && !strncmp(reg->name, arg, sep - arg) && !strcmp(sep, ":*") ) {
+						print_filter(reg);
+						found = GF_TRUE;
+						break;
+					}
 				}
 			}
 		} else {
 			fprintf(stderr, "%s: %s\n", reg->name, reg->description);
+			found = GF_TRUE;
+
 		}
 	}
+	if (!found) fprintf(stderr, "No such filter\n");
 }
 
 static void dump_all_props(void)
