@@ -5110,6 +5110,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group, GF_Err e, GF_MPD_Representation *rep, char *new_base_seg_url, char *key_url, Bool has_dep_following)
 {
 	u32 clock_time = gf_sys_clock();
+	Bool will_retry = GF_FALSE;
 
 	if (!dash->min_wait_ms_before_next_request || (dash->min_timeout_between_404 < dash->min_wait_ms_before_next_request))
 		dash->min_wait_ms_before_next_request = dash->min_timeout_between_404;
@@ -5138,6 +5139,8 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		if (!group->loop_detected) {
 			group->time_at_first_failure = clock_time;
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
+
+			will_retry = GF_TRUE;
 		}
 	}
 	//if multiple baseURL, try switching the base
@@ -5149,6 +5152,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	}
 	//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost - we add 100ms safety
 	else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure <= group->current_downloaded_segment_duration + dash->segment_lost_after_ms )) {
+		will_retry = GF_TRUE;
 	} else {
 		if ((group->dash->atsc_clock_state==2) && (e==GF_URL_ERROR)) {
 			const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-atsc-loop");
@@ -5195,14 +5199,17 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			}
 		}
 	}
-	if (rep->dependency_id) {
-		segment_cache_entry *cache_entry = &base_group->cached[base_group->nb_cached_segments];
-		cache_entry->has_dep_following = 0;
-	}
+	//if retry, do not reset dependency status
+	if (!will_retry) {
+		if (rep->dependency_id) {
+			segment_cache_entry *cache_entry = &base_group->cached[base_group->nb_cached_segments];
+			cache_entry->has_dep_following = 0;
+		}
 
-	if (group->base_rep_index_plus_one) {
-		group->active_rep_index = group->base_rep_index_plus_one - 1;
-		group->has_pending_enhancement = GF_FALSE;
+		if (group->base_rep_index_plus_one) {
+			group->active_rep_index = group->base_rep_index_plus_one - 1;
+			group->has_pending_enhancement = GF_FALSE;
+		}
 	}
 
 	if (new_base_seg_url) gf_free(new_base_seg_url);
