@@ -229,6 +229,7 @@ void PrintUsage()
 	        "\t        \"module\"     : GPAC modules debugging\n"
 	        "\t        \"mutex\"      : mutex\n"
 	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
+	        "\tThe special value \"ncl\" disables color logs.\n"
 	        "\n"
 	        "\t-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
 	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
