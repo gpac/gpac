@@ -863,7 +863,7 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 
 	avcodec_free_context(&ctx);
 
-	ffmpeg_expand_registry(session, &FFDecodeRegister, 1);
+	ffmpeg_expand_registry(session, &FFDecodeRegister, FF_REG_TYPE_DECODE);
 
 	return &FFDecodeRegister;
 }

@@ -45,7 +45,14 @@
 void ffmpeg_initialize();
 void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin);
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
-void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type);
+
+enum{
+	FF_REG_TYPE_DEMUX=0,
+	FF_REG_TYPE_DECODE,
+	FF_REG_TYPE_DEV_IN,
+	FF_REG_TYPE_ENCODE,
+};
+void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 reg_type);
 
 u32 ffmpeg_pixfmt_from_gpac(u32 pfmt);
 u32 ffmpeg_pixfmt_to_gpac(u32 pfmt);

@@ -338,15 +338,19 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 	AVCodec *codec = NULL;
 
 	const char *fname = "";
-	if (type==0) fname = "ffdmx";
-	else if (type==1) {
+	if (type==FF_REG_TYPE_DEMUX) fname = "ffdmx";
+	else if (type==FF_REG_TYPE_DECODE) {
 		fname = "ffdec";
 		flags=AV_OPT_FLAG_DECODING_PARAM;
 	}
-	else if (type==2) {
+	else if (type==FF_REG_TYPE_DEV_IN) {
 		fname = "ffavin";
 		avdevice_register_all();
 		flags=AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_AUDIO_PARAM|AV_OPT_FLAG_DECODING_PARAM;
+	}
+	else if (type==FF_REG_TYPE_ENCODE) {
+		fname = "ffenc";
+		flags=AV_OPT_FLAG_ENCODING_PARAM;
 	}
 	else return;
 
@@ -378,6 +382,12 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 			subname = fmt->name;
 			description = fmt->long_name;
     		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
+		} else if (type==3) {
+			codec = av_codec_next(codec);
+			if (!codec) break;
+			av_class = codec->priv_class;
+			subname = codec->name;
+			description = codec->long_name;
 		} else {
 			break;
 		}
