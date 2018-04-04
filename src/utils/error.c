@@ -185,8 +185,17 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 		/*look for log level*/
 		sep_level = strchr(val, '@');
 		if (!sep_level) {
-			fprintf(stderr, "Unrecognized log format %s - expecting logTool@logLevel\n", val);
-			return GF_BAD_PARAM;
+			if (!strcmp(val, "ncl")) {
+				void default_log_callback_no_col(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
+
+				gf_log_set_callback(NULL, default_log_callback_no_col);
+				if (!val[3]) break;
+				val += 4;
+				continue;
+			} else {
+				fprintf(stderr, "Unrecognized log format %s - expecting logTool@logLevel\n", val);
+				return GF_BAD_PARAM;
+			}
 		}
 
 		if (!strnicmp(sep_level+1, "error", 5)) {
@@ -337,6 +346,11 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 	assert(log_tool<GF_LOG_TOOL_MAX);
 	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
 	return GF_FALSE;
+}
+
+void default_log_callback_no_col(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
+{
+	vfprintf(stderr, fmt, vlist);
 }
 
 #define RED    "\x1b[31m"
