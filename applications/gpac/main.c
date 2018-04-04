@@ -141,6 +141,53 @@ static void gpac_filter_help(void)
 	);
 }
 
+static void gf_log_usage(void)
+{
+	fprintf(stderr, "You can independently log different tools involved in a session by using -logs=log_args option.\n"
+			"log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+	        "levelX can be one of:\n"
+	        "\t        \"quiet\"      : skip logs\n"
+	        "\t        \"error\"      : logs only error messages\n"
+	        "\t        \"warning\"    : logs error+warning messages\n"
+	        "\t        \"info\"       : logs error+warning+info messages\n"
+	        "\t        \"debug\"      : logs all messages\n"
+	        "toolX can be one of:\n"
+	        "\t        \"core\"       : libgpac core\n"
+	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
+	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
+	        "\t        \"network\"    : network data exept RTP trafic\n"
+	        "\t        \"rtp\"        : rtp trafic\n"
+	        "\t        \"author\"     : authoring tools (hint, import, export)\n"
+	        "\t        \"sync\"       : terminal sync layer\n"
+	        "\t        \"codec\"      : terminal codec messages\n"
+	        "\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"
+	        "\t        \"media\"      : terminal media object management\n"
+	        "\t        \"scene\"      : scene graph and scene manager\n"
+	        "\t        \"script\"     : scripting engine messages\n"
+	        "\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
+	        "\t        \"smil\"       : SMIL timing engine\n"
+	        "\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
+	        "\t        \"mmio\"       : Audio/Video HW I/O management\n"
+	        "\t        \"rti\"        : various run-time stats\n"
+	        "\t        \"cache\"      : HTTP cache subsystem\n"
+	        "\t        \"audio\"      : Audio renderer and mixers\n"
+#ifdef GPAC_MEMORY_TRACKING
+	        "\t        \"mem\"        : GPAC memory tracker\n"
+#endif
+#ifndef GPAC_DISABLE_DASH_CLIENT
+	        "\t        \"dash\"       : HTTP streaming logs\n"
+#endif
+	        "\t        \"module\"     : GPAC modules debugging\n"
+	        "\t        \"filter\"     : filters debugging\n"
+	        "\t        \"sched\"      : filter session scheduler debugging\n"
+	        "\t        \"mutex\"      : mutex\n"
+	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
+	        "A special keyword ncl can be set to disable color logs.\n"
+	        "\tEX: -logs all@info:dash@debug:ncl moves all log to info level, dash to debug level and disable color logs.\n"
+	        "\n"
+	);
+}
+
 static void gpac_usage(void)
 {
 	fprintf(stderr, "Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
@@ -177,44 +224,7 @@ static void gpac_usage(void)
 			"-ltf            : loads test filters for unit tests.\n"
 	        "-strict-error   :  exit at first error\n"
 	        "-log-file=file  : sets output log file. Also works with -lf\n"
-	        "-logs=log_args  : sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-	        "                   levelX can be one of:\n"
-	        "\t        \"quiet\"      : skip logs\n"
-	        "\t        \"error\"      : logs only error messages\n"
-	        "\t        \"warning\"    : logs error+warning messages\n"
-	        "\t        \"info\"       : logs error+warning+info messages\n"
-	        "\t        \"debug\"      : logs all messages\n"
-	        "\t                 toolX can be one of:\n"
-	        "\t        \"core\"       : libgpac core\n"
-	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
-	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
-	        "\t        \"network\"    : network data exept RTP trafic\n"
-	        "\t        \"rtp\"        : rtp trafic\n"
-	        "\t        \"author\"     : authoring tools (hint, import, export)\n"
-	        "\t        \"sync\"       : terminal sync layer\n"
-	        "\t        \"codec\"      : terminal codec messages\n"
-	        "\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"
-	        "\t        \"media\"      : terminal media object management\n"
-	        "\t        \"scene\"      : scene graph and scene manager\n"
-	        "\t        \"script\"     : scripting engine messages\n"
-	        "\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
-	        "\t        \"smil\"       : SMIL timing engine\n"
-	        "\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
-	        "\t        \"mmio\"       : Audio/Video HW I/O management\n"
-	        "\t        \"rti\"        : various run-time stats\n"
-	        "\t        \"cache\"      : HTTP cache subsystem\n"
-	        "\t        \"audio\"      : Audio renderer and mixers\n"
-#ifdef GPAC_MEMORY_TRACKING
-	        "\t        \"mem\"        : GPAC memory tracker\n"
-#endif
-#ifndef GPAC_DISABLE_DASH_CLIENT
-	        "\t        \"dash\"       : HTTP streaming logs\n"
-#endif
-	        "\t        \"module\"     : GPAC modules debugging\n"
-	        "\t        \"filter\"     : GPAC modules debugging\n"
-	        "\t        \"mutex\"      : mutex\n"
-	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
-	        "\n"
+	        "-logs=log_args  : sets log tools and levels, see -hlog\n"
 	        "-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
 	        "-log-utc or -lu        : logs UTC time in ms before each log line.\n"
 			"-quiet        : quiet mode\n"
@@ -282,6 +292,9 @@ static int gpac_main(int argc, char **argv)
 #endif
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
 			gpac_usage();
+			return 0;
+		} else if (!strcmp(arg, "-hlog") ) {
+			gf_log_usage();
 			return 0;
 		} else if (!strcmp(arg, "-doc")) {
 			gpac_filter_help();
