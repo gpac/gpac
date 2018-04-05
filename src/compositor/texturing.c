@@ -234,7 +234,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	//if first frame use 20ms as upload time
 	push_time = txh->nb_frames ? txh->upload_time/txh->nb_frames : 20;
 	
-	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->hw_frame);
+	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->hw_frame, NULL);
 
 	if (txh->stream->config_changed) {
 		needs_reload = 1;

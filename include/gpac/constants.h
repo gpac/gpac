@@ -629,6 +629,11 @@ const char *gf_audio_fmt_all_shortnames();
 */
 u32 gf_audio_fmt_bit_depth(u32 afmt);
 
+/*! Check if a given audio format is planar
+ \param afmt desired audio format
+ \return GF_TRUE if the format is planar, false otherwise
+*/
+Bool gf_audio_fmt_is_planar(u32 afmt);
 
 /*DIMS unit flags */
 /*!

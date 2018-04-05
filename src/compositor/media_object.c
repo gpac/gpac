@@ -247,7 +247,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 	}
 
 	if (sample_rate) *sample_rate = mo->sample_rate;
-	if (bits_per_sample) *bits_per_sample = mo->bits_per_sample;
+	if (bits_per_sample) *bits_per_sample = mo->afmt;
 	if (num_channels) *num_channels = mo->num_channels;
 	if (channel_config) *channel_config = mo->channel_config;
 	if (forced_layout) *forced_layout = GF_FALSE;
@@ -272,6 +272,8 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 	const GF_PropertyValue *v;
 	if (!mo->odm || !mo->odm->pid) return;
 
+	mo->planar_audio = GF_FALSE;
+
 	if (mo->odm->type==GF_STREAM_VISUAL) {
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_WIDTH);
 		if (v) mo->width = v->value.uint;
@@ -293,10 +295,12 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		if (v) mo->num_channels = v->value.uint;
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (v) mo->channel_config = v->value.uint;
+		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_AUDIO_FORMAT);
+		if (v) mo->afmt = v->value.uint;
+		else mo->afmt = GF_AUDIO_FMT_S16;
 
-		mo->bits_per_sample = 16;
-
-		mo->bytes_per_sec = mo->bits_per_sample * mo->num_channels * mo->sample_rate / 8;
+		mo->bytes_per_sec = gf_audio_fmt_bit_depth(mo->afmt) * mo->num_channels * mo->sample_rate / 8;
+		mo->planar_audio = gf_audio_fmt_is_planar(mo->afmt);
 	} else if (mo->odm->type==GF_STREAM_OD) {
 		//nothing to do
 	} else if (mo->odm->type==GF_STREAM_OCR) {
@@ -309,7 +313,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_FilterHWFrame **outFrame)
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_FilterHWFrame **outFrame, u32 *planar_size)
 {
 
 	u32 force_decode_mode = 0;
@@ -336,6 +340,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (mo->nb_fetch) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: CU already fetched, returning\n", mo->odm->ID));
 		mo->nb_fetch ++;
+		if (planar_size) *planar_size = mo->framesize / mo->num_channels;
 		return mo->frame;
 	}
 
@@ -554,7 +559,14 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	mo->frame = (char *) gf_filter_pck_get_data(mo->pck, &mo->size);
 	mo->framesize = mo->size - mo->RenderedLength;
-	mo->frame += mo->RenderedLength;
+
+	//planar mode, RenderedLength correspond to all channels, so move frame pointer
+	//to first sample non consumed = RenderedLength/nb_channels
+	if (mo->planar_audio) {
+		mo->frame += mo->RenderedLength / mo->num_channels;
+	} else {
+		mo->frame += mo->RenderedLength;
+	}
 	mo->hw_frame = gf_filter_pck_get_hw_frame(mo->pck);
 //	mo->media_frame = CU->frame;
 
@@ -634,6 +646,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 	if (outFrame) *outFrame = mo->hw_frame;
+	if (planar_size) *planar_size = mo->framesize / mo->num_channels;
 
 //	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 

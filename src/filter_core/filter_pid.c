@@ -771,7 +771,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 	}
 	in_caps = freg->caps;
 	nb_in_caps = freg->nb_caps;
-	if (filter_inst && filter_inst->forced_caps) {
+	if (filter_inst && filter_inst->forced_caps && (filter_inst->freg==freg)) {
 		in_caps = filter_inst->forced_caps;
 		nb_in_caps = filter_inst->nb_forced_caps;
 	}
@@ -826,6 +826,9 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 			for (j=0; j<nb_in_caps; j++) {
 				const GF_FilterCapability *a_cap = &in_caps[j];
 
+				if ((j>cur_bundle_start) && ! (a_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+					break;
+				}
 				//not an input cap
 				if (! (a_cap->flags & GF_FILTER_CAPS_INPUT) ) continue;
 				//not a static and not in bundle
@@ -834,9 +837,6 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 						continue;
 				}
 
-				if ((j>cur_bundle_start) && ! (a_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
-					break;
-				}
 				if (cap->code) {
 					if (cap->code!=a_cap->code) continue;
 				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
@@ -1845,7 +1845,18 @@ restart:
 			GF_Filter *new_f, *reuse_f=NULL;
 			//we had a destination set during link resolve, and we don't match that filter, consider the link resolution wrong
 			if (pid->filter->dst_filter && (filter_dst == pid->filter->dst_filter)) {
+				GF_Filter *old_dst = pid->filter->dst_filter;
 				pid->filter->dst_filter = NULL;
+				//nobody using this filter, destroy
+				if (old_dst->dynamic_filter
+					&& !old_dst->has_pending_pids
+					&& !old_dst->num_input_pids
+					&& !old_dst->pid_connection_pending
+				) {
+					assert(!old_dst->finalized);
+					old_dst->finalized = GF_TRUE;
+					gf_fs_post_task(old_dst->session, gf_filter_remove_task, old_dst, NULL, "filter_destroy", NULL);
+				}
 			}
 			if (first_pass) continue;
 

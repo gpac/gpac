@@ -238,14 +238,14 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	const GF_PropertyValue *p;
-	u32 sr, bps, nb_ch, cfg, afmt;
+	u32 sr, o_fmt, nb_ch, cfg, afmt;
 	Bool needs_reconfigure = GF_FALSE;
 	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
 
 	if (ctx->compositor->vout == pid) return GF_NOT_SUPPORTED;
 	if (ctx->compositor->audio_renderer->aout != pid) return GF_NOT_SUPPORTED;
 
-	gf_mixer_get_config(ctx->compositor->audio_renderer->mixer, &sr, &nb_ch, &bps, &cfg);
+	gf_mixer_get_config(ctx->compositor->audio_renderer->mixer, &sr, &nb_ch, &o_fmt, &cfg);
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p && (p->value.uint != sr)) {
 		sr = p->value.uint;
@@ -257,25 +257,16 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 		needs_reconfigure = GF_TRUE;
 	}
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_AUDIO_FORMAT);
-	afmt = GF_AUDIO_FMT_S16;
-	if (bps==8) afmt = GF_AUDIO_FMT_U8;
-	else if (bps==24) afmt = GF_AUDIO_FMT_S24;
-	else if (bps==32) afmt = GF_AUDIO_FMT_S32;
+	if (p) afmt = p->value.uint;
+	else afmt = GF_AUDIO_FMT_S16;
 
-	if (p && (p->value.uint != afmt)) {
-		if (afmt==GF_AUDIO_FMT_S16) bps=16;
-		else if (afmt==GF_AUDIO_FMT_U8) bps=8;
-		else if (afmt==GF_AUDIO_FMT_S24) bps=24;
-		else if (afmt==GF_AUDIO_FMT_S32) bps=32;
-		//internal mixer doesn't support other audio formats
-		else return GF_NOT_SUPPORTED;
-
+	if (o_fmt != afmt) {
 		needs_reconfigure = GF_TRUE;
 	}
 	if (!needs_reconfigure) return GF_OK;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Audio output caps negotiated to %d Hz %d channels %d bps\n", sr, nb_ch, bps));
-	gf_mixer_set_config(ctx->compositor->audio_renderer->mixer, sr, nb_ch, bps, 0);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Audio output caps negotiated to %d Hz %d channels %s \n", sr, nb_ch, gf_audio_fmt_name(afmt) ));
+	gf_mixer_set_config(ctx->compositor->audio_renderer->mixer, sr, nb_ch, afmt, 0);
 	ctx->compositor->audio_renderer->need_reconfig = GF_TRUE;
 	return GF_OK;
 }

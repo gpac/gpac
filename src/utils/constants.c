@@ -283,6 +283,7 @@ static const GF_AudioFmt GF_AudioFormats[] =
 };
 
 
+GF_EXPORT
 u32 gf_audio_fmt_parse(const char *af_name)
 {
 	u32 i=0;
@@ -297,6 +298,8 @@ u32 gf_audio_fmt_parse(const char *af_name)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %s\n", af_name));
 	return 0;
 }
+
+GF_EXPORT
 const char *gf_audio_fmt_name(u32 sfmt)
 {
 	u32 i=0;
@@ -307,6 +310,7 @@ const char *gf_audio_fmt_name(u32 sfmt)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %d\n", sfmt ));
 	return "unknown";
 }
+GF_EXPORT
 const char *gf_audio_fmt_sname(u32 sfmt)
 {
 	u32 i=0;
@@ -378,6 +382,7 @@ const char *gf_audio_fmt_all_shortnames()
 	return szAllShortAudioFormats;
 }
 
+GF_EXPORT
 u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
 {
 	switch (audio_fmt) {
@@ -405,6 +410,22 @@ u32 gf_audio_fmt_bit_depth(u32 audio_fmt)
 	return 0;
 }
 
+GF_EXPORT
+Bool gf_audio_fmt_is_planar(u32 audio_fmt)
+{
+	switch (audio_fmt) {
+	case GF_AUDIO_FMT_U8P:
+	case GF_AUDIO_FMT_S16P:
+	case GF_AUDIO_FMT_S32P:
+	case GF_AUDIO_FMT_FLTP:
+	case GF_AUDIO_FMT_DBLP:
+	case GF_AUDIO_FMT_S24P:
+		return GF_TRUE;
+	default:
+		break;
+	}
+	return GF_FALSE;
+}
 
 typedef struct
 {
@@ -450,6 +471,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{}
 };
 
+GF_EXPORT
 u32 gf_pixel_fmt_enum(u32 *idx, const char **out_name)
 {
 	u32 pf, c=sizeof(GF_PixelFormats) / sizeof(GF_PixFmt);
@@ -462,6 +484,7 @@ u32 gf_pixel_fmt_enum(u32 *idx, const char **out_name)
 	return pf;
 }
 
+GF_EXPORT
 u32 gf_pixel_fmt_parse(const char *pf_name)
 {
 	u32 i=0;
@@ -476,6 +499,7 @@ u32 gf_pixel_fmt_parse(const char *pf_name)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s\n", pf_name));
 	return 0;
 }
+GF_EXPORT
 const char *gf_pixel_fmt_name(u32 pfmt)
 {
 	u32 i=0;
@@ -486,6 +510,7 @@ const char *gf_pixel_fmt_name(u32 pfmt)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
 	return "unknown";
 }
+GF_EXPORT
 const char *gf_pixel_fmt_sname(u32 pfmt)
 {
 	u32 i=0;
@@ -556,6 +581,7 @@ const char *gf_pixel_fmt_all_shortnames()
 	return szAllShortPixelFormats;
 }
 
+GF_EXPORT
 Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *out_size, u32 *out_stride, u32 *out_stride_uv, u32 *out_planes, u32 *out_plane_uv_height)
 {
 	u32 stride=0, stride_uv=0, size=0, planes=0, uv_height=0;
@@ -692,6 +718,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	return GF_TRUE;
 }
 
+GF_EXPORT
 u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 {
 	switch (pixfmt) {

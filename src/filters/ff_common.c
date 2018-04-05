@@ -125,6 +125,65 @@ u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt)
 	return 0;
 }
 
+typedef struct
+{
+	u32 ff_ch_mask;
+	u32 gpac_ch_mask;
+} GF_FF_LAYOUTREG;
+
+static const GF_FF_LAYOUTREG FF2GPAC_ChannelLayout[] =
+{
+	{AV_CH_FRONT_LEFT, GF_AUDIO_CH_FRONT_LEFT},
+	{AV_CH_FRONT_RIGHT, GF_AUDIO_CH_FRONT_RIGHT},
+	{AV_CH_FRONT_CENTER, GF_AUDIO_CH_FRONT_CENTER},
+	{AV_CH_LOW_FREQUENCY, GF_AUDIO_CH_LFE},
+	{AV_CH_BACK_LEFT, GF_AUDIO_CH_BACK_LEFT},
+	{AV_CH_BACK_RIGHT, GF_AUDIO_CH_BACK_RIGHT},
+	{AV_CH_FRONT_LEFT_OF_CENTER, GF_AUDIO_CH_LEFT_CENTER},
+	{AV_CH_FRONT_RIGHT_OF_CENTER, GF_AUDIO_CH_RIGHT_CENTER},
+	{AV_CH_BACK_CENTER, GF_AUDIO_CH_BACK_CENTER},
+	{AV_CH_SIDE_LEFT, GF_AUDIO_CH_SIDE_LEFT},
+	{AV_CH_SIDE_RIGHT, GF_AUDIO_CH_SIDE_RIGHT},
+	{AV_CH_TOP_CENTER, GF_AUDIO_CH_TOP_CENTER},
+	{AV_CH_TOP_FRONT_LEFT, GF_AUDIO_CH_TOP_FRONT_LEFT},
+	{AV_CH_TOP_FRONT_CENTER, GF_AUDIO_CH_TOP_FRONT_CENTER},
+	{AV_CH_TOP_FRONT_RIGHT, GF_AUDIO_CH_TOP_FRONT_RIGHT},
+	{AV_CH_TOP_BACK_LEFT, GF_AUDIO_CH_TOP_BACK_LEFT},
+	{AV_CH_TOP_BACK_CENTER, GF_AUDIO_CH_TOP_BACK_CENTER},
+	{AV_CH_TOP_BACK_RIGHT, GF_AUDIO_CH_TOP_BACK_RIGHT},
+
+/*	{AV_CH_STEREO_LEFT, },
+	{AV_CH_STEREO_RIGHT, },
+	{AV_CH_WIDE_LEFT, },
+	{AV_CH_WIDE_RIGHT, },
+	{AV_CH_SURROUND_DIRECT_LEFT, },
+	{AV_CH_SURROUND_DIRECT_RIGHT, },
+	{AV_CH_LOW_FREQUENCY_2, },
+*/
+
+};
+
+u32 ffmpeg_channel_layout_from_gpac(u32 gpac_ch_layout)
+{
+	u32 i, nb_layout = sizeof(FF2GPAC_ChannelLayout) / sizeof(GF_FF_LAYOUTREG);
+	u32 res = 0;
+	for (i=0; i<nb_layout; i++) {
+		if (FF2GPAC_ChannelLayout[i].gpac_ch_mask & gpac_ch_layout)
+			res |= FF2GPAC_ChannelLayout[i].ff_ch_mask;
+	}
+	return res;
+}
+u32 ffmpeg_channel_layout_to_gpac(u32 ff_ch_layout)
+{
+	u32 i, nb_layout = sizeof(FF2GPAC_ChannelLayout) / sizeof(GF_FF_LAYOUTREG);
+	u32 res = 0;
+	for (i=0; i<nb_layout; i++) {
+		if (FF2GPAC_ChannelLayout[i].ff_ch_mask & ff_ch_layout)
+			res |= FF2GPAC_ChannelLayout[i].gpac_ch_mask;
+	}
+	return res;
+}
+
 
 typedef struct
 {

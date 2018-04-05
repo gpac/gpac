@@ -2498,7 +2498,7 @@ void PrintAVInfo(Bool final)
 			}
 		}
 		if (audio_odm) {
-			fprintf(stderr, "%s SR %d num channels %d bpp %d duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, a_odi.bits_per_sample, a_odi.duration);
+			fprintf(stderr, "%s SR %d num channels %s %d duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, gf_audio_fmt_name(a_odi.afmt), a_odi.duration);
 			if (final) {
 				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
 				if (!dec_run_time) dec_run_time = 1;

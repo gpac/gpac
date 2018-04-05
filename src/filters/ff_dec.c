@@ -66,7 +66,7 @@ typedef struct _gf_ffdec_ctx
 	//for now we don't share the data
 	AVFrame *frame;
 	//audio state
-	u32 channels, sample_rate, sample_fmt, channel_layout;
+	u32 channels, sample_rate, sample_fmt, channel_layout, bytes_per_sample;
 	u32 frame_start;
 	u32 nb_samples_already_in_frame;
 
@@ -308,7 +308,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 {
 	AVPacket pkt;
 	s32 gotpic;
-	s32 len, in_size;
+	s32 len, in_size, i;
 	u32 output_size;
 	Bool is_eos=GF_FALSE;
 	char *data;
@@ -375,62 +375,24 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	FF_CHECK_PROP(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
 	FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 
-	output_size = frame->nb_samples*ctx->channels*2;//always in s16 fmt
+	output_size = frame->nb_samples*ctx->channels*ctx->bytes_per_sample;
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, output_size, &data);
 
-	//TODO: cleanup, we should not convert sample format in the decoder but through filters !
-	if (frame->format==AV_SAMPLE_FMT_FLTP) {
-		s32 i, j;
-		s16 *output = (s16 *) data;
-		for (j=0; j<ctx->channels; j++) {
-			Float* inputChannel = (Float*)frame->extended_data[j];
-			for (i=0 ; i<frame->nb_samples ; i++) {
-				Float sample = inputChannel[i];
-				if (sample<-1.0f) sample=-1.0f;
-				else if (sample>1.0f) sample=1.0f;
-
-				output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX );
-			}
+	switch (frame->format) {
+	case AV_SAMPLE_FMT_U8P:
+	case AV_SAMPLE_FMT_S16P:
+	case AV_SAMPLE_FMT_S32P:
+	case AV_SAMPLE_FMT_FLTP:
+	case AV_SAMPLE_FMT_DBLP:
+		for (i=0; i<ctx->channels; i++) {
+			char *inputChannel = frame->extended_data[i];
+			memcpy(data, inputChannel, ctx->bytes_per_sample * frame->nb_samples);
+			data += ctx->bytes_per_sample * frame->nb_samples;
 		}
-	} else if (frame->format==AV_SAMPLE_FMT_S16P) {
-		s32 i, j;
-		s16 *output = (s16 *) data;
-		for (j=0; j<ctx->channels; j++) {
-			s16* inputChannel = (s16*)frame->extended_data[j];
-			for (i=0 ; i<frame->nb_samples ; i++) {
-				Float sample = inputChannel[i];
-				output[i*ctx->channels + j] = (int16_t) (sample );
-			}
-		}
-	} else if (frame->format==AV_SAMPLE_FMT_U8) {
-		u32 i, size = frame->nb_samples * ctx->channels;
-		s16 *output = (s16 *) data;
-		s8 *input = (s8 *) frame->data[0];
-		for (i=0; i<size; i++) {
-			output [i] = input[i] * 128;
-		}
-	} else if (frame->format==AV_SAMPLE_FMT_S32) {
-		u32 i, shift, size = frame->nb_samples * ctx->channels;
-		s16 *output = (s16 *) data;
-		s32 *input = (s32*) frame->data[0];
-		shift = 1<<31;
-		for (i=0; i<size; i++) {
-			output [i] = input[i] * shift;
-		}
-	} else if (frame->format==AV_SAMPLE_FMT_FLT) {
-		u32 i, size = frame->nb_samples * ctx->channels;
-		s16 *output = (s16 *) data;
-		Float *input = (Float *) frame->data[0];
-		for (i=0; i<size; i++) {
-			Float sample = input[i];
-			if (sample<-1.0f) sample=-1.0f;
-			else if (sample>1.0f) sample=1.0f;
-			output [i] = (int16_t) (sample * GF_SHORT_MAX);
-		}
-	} else if (frame->format==AV_SAMPLE_FMT_S16) {
-		memcpy(data, frame->data[0], sizeof(char) * frame->nb_samples * ctx->channels*2);
-	} else if (frame->nb_samples) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Raw Audio format %[FFDec] not supported\n", frame->format ));
+		break;
+	default:
+		memcpy(data, ctx->frame->data[0], ctx->bytes_per_sample * frame->nb_samples * ctx->channels);
+		break;
 	}
 
 	if (frame->pkt_pts != AV_NOPTS_VALUE) {
@@ -713,17 +675,20 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffdec_process_audio;
-		//for now we convert everything to s16, to be updated later on
-		ctx->sample_fmt = GF_AUDIO_FMT_S16;
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+		ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->sample_fmt) );
+		ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
 
 		//override PID props with what decoder gives us
 		if (ctx->decoder->channels) {
 			FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 		}
-		//TODO - we might want to align with FFMPEG for the layout of our channels, only the first channels are for now
 		if (ctx->decoder->channel_layout) {
-			FF_CHECK_PROP(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
+			u32 ch_lay = ffmpeg_channel_layout_to_gpac(ctx->decoder->channel_layout);
+			if (ctx->channel_layout != ch_lay) {
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_lay ) );
+				ctx->channel_layout = ch_lay;
+			}
 		}
 		if (ctx->decoder->sample_rate) {
 			FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)

@@ -126,7 +126,7 @@ typedef struct
 	/*object type - match streamType (cf constants.h)*/
 	u32 od_type;
 	/*audio properties*/
-	u32 sample_rate, bits_per_sample, num_channels;
+	u32 sample_rate, afmt, num_channels;
 	/*video properties (w & h also used for scene codecs)*/
 	u32 width, height, pixelFormat, par;
 

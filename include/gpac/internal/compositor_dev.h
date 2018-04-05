@@ -1065,7 +1065,7 @@ typedef struct _audiointerface
 {
 	/*fetch audio data for a given audio delay (~soundcard drift) - if delay is 0 sync should not be performed
 	(eg intermediate mix) */
-	char *(*FetchFrame) (void *callback, u32 *size, u32 audio_delay_ms);
+	char *(*FetchFrame) (void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms);
 	/*release a number of bytes in the indicated frame (ts)*/
 	void (*ReleaseFrame) (void *callback, u32 nb_bytes);
 	/*get media speed*/
@@ -1081,7 +1081,7 @@ typedef struct _audiointerface
 	You may return 0 to force parent user invalidation*/
 	Bool (*GetConfig)(struct _audiointerface *ai, Bool for_reconf);
 	/*updated cfg, or 0 otherwise*/
-	u32 chan, bps, samplerate, ch_cfg;
+	u32 chan, afmt, samplerate, ch_cfg;
 	Bool forced_layout;
 	//updated at each frame, used if frame fetch returns NULL
 	Bool is_buffering;
@@ -1105,9 +1105,9 @@ NOTE: this is called at each gf_mixer_get_output by the mixer. To call externall
 reconfiguration only*/
 Bool gf_mixer_reconfig(GF_AudioMixer *am);
 /*retrieves mixer cfg*/
-void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outBPS, u32 *outChCfg);
+void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT, u32 *outChCfg);
 /*called by audio renderer in case the hardware used a different setup than requested*/
-void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u32 ch_cfg);
+void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u32 ch_cfg);
 Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce);
 u32 gf_mixer_get_src_count(GF_AudioMixer *am);
 void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
@@ -2222,7 +2222,8 @@ struct _mediaobj
 	/*currently valid properties of the object*/
 	u32 width, height, stride, pixel_ar, pixelformat;
 	Bool is_flipped;
-	u32 sample_rate, num_channels, bits_per_sample, channel_config, bytes_per_sec;
+	u32 sample_rate, num_channels, afmt, channel_config, bytes_per_sec;
+	Bool planar_audio;
 	u32 srd_x, srd_y, srd_w, srd_h, srd_full_w, srd_full_h;
 
 	u32 quality_degradation_hint;
