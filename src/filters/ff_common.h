@@ -64,3 +64,6 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id);
 void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx);
 void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx);
 
+u32 ffmpeg_channel_layout_from_gpac(u32 gpac_ch_layout);
+u32 ffmpeg_channel_layout_to_gpac(u32 ff_ch_layout);
+

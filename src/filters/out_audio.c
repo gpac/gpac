@@ -81,6 +81,10 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		ctx->needs_recfg = GF_FALSE;
 		//drop all packets until next reconfig
 		ctx->wait_recfg = GF_TRUE;
+		ctx->sr = sr;
+		ctx->nb_ch = nb_ch;
+		ctx->afmt = afmt;
+		ctx->ch_cfg = ch_cfg;
 	} else if (e==GF_OK) {
 		ctx->needs_recfg = GF_FALSE;
 		ctx->wait_recfg = GF_FALSE;
@@ -207,8 +211,11 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 	if (p) ch_cfg = p->value.uint;
 
-	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) return GF_OK;
-
+	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {
+		ctx->needs_recfg = GF_FALSE;
+		ctx->wait_recfg = GF_FALSE;
+		return GF_OK;
+	}
 	if (!ctx->pid) {
 		u32 pmode = GF_PLAYBACK_MODE_NONE;
 		GF_FilterEvent evt;

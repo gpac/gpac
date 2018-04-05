@@ -42,10 +42,10 @@ void gf_ar_rcfg_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 {
 	const char *opt;
-	u32 freq, nb_bits, nb_chan, ch_cfg;
+	u32 freq, a_fmt, nb_chan, ch_cfg;
 	u32 bsize;
 
-	freq = nb_bits = nb_chan = ch_cfg = 0;
+	freq = a_fmt = nb_chan = ch_cfg = 0;
 	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceFrequency");
 	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceFrequency", "0");
 	else freq = atoi(opt);
@@ -58,15 +58,18 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		if (!strnicmp(opt, "0x", 2)) sscanf(opt+2, "%x", &ch_cfg);
 		else sscanf(opt, "%x", &ch_cfg);
     }
-	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceBPS");
-	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceBPS", "0");
-	else nb_bits = atoi(opt);
+	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceFMT");
+	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceFMT", "0");
+	else {
+		a_fmt = gf_audio_fmt_parse(opt);
+		if (!a_fmt) a_fmt = GF_AUDIO_FMT_S16;
+	}
 
 	opt = gf_cfg_get_key(ar->user->config, "Audio", "BufferSize");
 	bsize = opt ? atoi(opt) : 1024;
 
-	if (!freq || !nb_bits || !nb_chan || !ch_cfg) {
-		gf_mixer_get_config(ar->mixer, &freq, &nb_chan, &nb_bits, &ch_cfg);
+	if (!freq || !a_fmt || !nb_chan || !ch_cfg) {
+		gf_mixer_get_config(ar->mixer, &freq, &nb_chan, &a_fmt, &ch_cfg);
 
 		/*user disabled multichannel audio*/
 		if (ar->disable_multichannel && (nb_chan>2) ) nb_chan = 2;
@@ -75,40 +78,25 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	}
 
 
-	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, ch_cfg);
+	gf_mixer_set_config(ar->mixer, freq, nb_chan, a_fmt, ch_cfg);
 
 	if (ar->samplerate) {
 		ar->time_at_last_config_sr = ar->current_time_sr * freq / ar->samplerate;
 	}
 	ar->samplerate = freq;
-	ar->bytes_per_samp = nb_chan * nb_bits / 8;
+	ar->bytes_per_samp = nb_chan * gf_audio_fmt_bit_depth(a_fmt) / 8;
 	ar->bytes_per_second = freq * ar->bytes_per_samp;
 	ar->max_bytes_out = ar->bytes_per_second * ar->total_duration / 1000;
 	while (ar->max_bytes_out % (2*ar->bytes_per_samp) ) ar->max_bytes_out++;
 	ar->buffer_size = ar->bytes_per_samp * bsize;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure audio to %d Hz %d channels %d bps\n", freq, nb_chan, nb_bits));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure audio to %d Hz %d channels %s\n", freq, nb_chan, gf_audio_fmt_name(a_fmt) ));
 
 	if (ar->aout) {
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(freq) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_TIMESCALE, &PROP_UINT(freq) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chan) );
-		switch (nb_bits) {
-		case 8:
-			gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_U8) );
-			break;
-		case 16:
-			gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
-			break;
-		case 24:
-			gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S24) );
-			break;
-		case 32:
-			gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S32) );
-			break;
-		default:
-			break;
-		}
+		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(a_fmt) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg) );
 		gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
 		gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
@@ -118,7 +106,6 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 
 	ar->time_at_last_config = ar->current_time;
 	ar->bytes_requested = 0;
-	ar->bytes_per_second = freq * nb_chan * nb_bits / 8;
 	if (ar->aout) {
 		GF_FilterPacket *pck;
 		//issue a dummy packet to tag the point at which we reconfigured

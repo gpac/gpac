@@ -72,7 +72,7 @@ typedef struct _audiooutput
 	possible sampleRate able to handle NbChannels and NbBitsPerSample - if it doesn't handle the NbChannels
 	the internal mixer will do it
 	*/
-	GF_Err (*QueryOutputSampleRate)(struct _audiooutput *aout, u32 *io_desired_samplerate, u32 *io_NbChannels, u32 *io_nbBitsPerSample);
+	GF_Err (*QueryOutputSampleRate)(struct _audiooutput *aout, u32 *io_desired_samplerate, u32 *io_NbChannels, u32 *io_AudioFormat);
 
 	/*set output config - if audio is not running, driver must start it
 	*SampleRate, *NbChannels, *audioFormat:

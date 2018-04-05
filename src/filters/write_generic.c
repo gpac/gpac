@@ -48,6 +48,7 @@ typedef struct
 
 	const char *dcfg;
 	u32 dcfg_size;
+	Bool cfg_sent;
 
 	GF_Fraction duration;
 	Bool first;
@@ -629,7 +630,7 @@ GF_Err gendump_process(GF_Filter *filter)
 
 	if (ctx->frame) {
 		split = GF_TRUE;
-	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k) {
+	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && !ctx->cfg_sent) {
 		dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
@@ -639,7 +640,10 @@ GF_Err gendump_process(GF_Filter *filter)
 			ctx->dcfg_size = 0;
 			ctx->dcfg = NULL;
 		}
+		ctx->cfg_sent = GF_TRUE;
+		return GF_OK;
 	}
+	ctx->cfg_sent = GF_FALSE;
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	if (ctx->is_mj2k) {

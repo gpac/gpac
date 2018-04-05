@@ -1770,7 +1770,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, &info->par, &info->pixelFormat, NULL);
 			break;
 		case GF_STREAM_AUDIO:
-			gf_mo_get_audio_info(odm->mo, &info->sample_rate, &info->bits_per_sample, &info->num_channels, NULL, NULL);
+			gf_mo_get_audio_info(odm->mo, &info->sample_rate, &info->afmt, &info->num_channels, NULL, NULL);
 			info->clock_drift = 0;
 			break;
 		case GF_STREAM_TEXT:

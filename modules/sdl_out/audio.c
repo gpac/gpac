@@ -133,15 +133,19 @@ static GF_Err SDLAud_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChann
 	want_format.freq = *SampleRate;
 	switch (*audioFormat) {
 	case GF_AUDIO_FMT_U8:
+	case GF_AUDIO_FMT_U8P:
 		want_format.format = AUDIO_U8;
 		break;
 	case GF_AUDIO_FMT_S16:
+	case GF_AUDIO_FMT_S16P:
 		want_format.format = AUDIO_S16;
 		break;
 	case GF_AUDIO_FMT_S32:
+	case GF_AUDIO_FMT_S32P:
 		want_format.format = AUDIO_S32;
 		break;
 	case GF_AUDIO_FMT_FLT:
+	case GF_AUDIO_FMT_FLTP:
 		want_format.format = AUDIO_F32;
 		break;
 	default:

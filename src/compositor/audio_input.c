@@ -35,7 +35,7 @@ since the drift may be high on TS for example, where PTS-PCR>500ms is quite comm
 #define MIN_DRIFT_ADJUST	75
 
 
-static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
+static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_size, u32 audio_delay_ms)
 {
 	char *frame;
 	u32 obj_time, ts;
@@ -49,7 +49,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	done = ai->stream_finished;
 	ai->input_ifce.is_buffering = GF_FALSE;
 
-	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->non_rt_output ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, 0, &ai->stream_finished, &ts, size, NULL, NULL, NULL);
+	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->non_rt_output ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, 0, &ai->stream_finished, &ts, size, NULL, NULL, NULL, planar_size);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (done != ai->stream_finished) {
 		gf_sc_invalidate(ai->compositor, NULL);
@@ -121,7 +121,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = GF_FALSE;
-			return gf_audio_input_fetch_frame(callback, size, audio_delay_ms);
+			return gf_audio_input_fetch_frame(callback, size, audio_delay_ms, planar_size);
 		}
 		resync_delay = gf_mo_get_clock_drift(ai->stream) - drift;
 		if (resync_delay < 0) resync_delay = -resync_delay;
@@ -181,12 +181,12 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	/*watchout for object reuse*/
 	if (aifc->samplerate &&  !ai->stream->config_changed) return GF_TRUE;
 
-	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->bps , &aifc->chan, &aifc->ch_cfg, &aifc->forced_layout);
+	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->afmt , &aifc->chan, &aifc->ch_cfg, &aifc->forced_layout);
 
 	if (!for_recf)
 		return aifc->samplerate ? GF_TRUE : GF_FALSE;
 
-	if (aifc->samplerate * aifc->chan * aifc->bps && ((aifc->chan<=2) || aifc->ch_cfg))  {
+	if (aifc->samplerate * aifc->chan && aifc->afmt && ((aifc->chan<=2) || aifc->ch_cfg))  {
 		ai->stream->config_changed = GF_FALSE;
 		return GF_TRUE;
 	}

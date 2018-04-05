@@ -127,7 +127,7 @@ typedef enum
 /*fetch media data
 
 */
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_FilterHWFrame **outFrame);
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_FilterHWFrame **outFrame, u32 *planar_size);
 
 /*release given amount of media data - nb_bytes is used for audio  - drop_mode can take the following values:
 -1: do not drop
@@ -155,7 +155,7 @@ void gf_mo_get_nb_views(GF_MediaObject *mo, int * nb_views);
 
 void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers);
 
-Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config, Bool *forced_layout);
+Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *afmt, u32 *num_channels, u32 *channel_config, Bool *forced_layout);
 
 Fixed gf_mo_get_current_speed(GF_MediaObject *mo);
 
