@@ -87,6 +87,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		sprintf(szDst, "dst%c", fsess->sep_name);
 		dst_striped = strstr(dst_args, szDst);
 		if (dst_striped) dst_striped = strchr(dst_striped+5, fsess->sep_args);
+		if (dst_striped) dst_striped ++;
 	}
 
 	if (args && dst_striped) {
@@ -622,7 +623,9 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				break;
 			}
 		}
-		if (!found) {
+		if (!strlen(szArg)) {
+			found = GF_TRUE;
+		} else if (!found) {
 			if (!strcmp("FID", szArg)) {
 				if (arg_type != GF_FILTER_ARG_GLOBAL)
 					gf_filter_set_id(filter, value);

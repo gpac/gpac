@@ -220,7 +220,8 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
-	if (!w || !h || !pfmt) {
+	//ctx->pfmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
+	if (!w || !h || !pfmt || !ctx->pfmt) {
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
@@ -233,6 +234,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		//nothing to reconfigure
 	} else {
 		u32 nb_par = 0;
+		nb_par = 0;
 		Bool res;
 		u32 mode = get_sws_mode(ctx->mode, &nb_par);
 		u32 ff_src_pfmt = ffmpeg_pixfmt_from_gpac(pfmt);

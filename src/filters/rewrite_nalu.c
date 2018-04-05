@@ -158,11 +158,15 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (!p) return GF_NOT_SUPPORTED;
 	codecid = p->value.uint;
 
+	//it may happen we don't have anything yet ...
 	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!dcd) {
+		crc = -1;
+	} else {
+		crc = gf_crc_32(dcd->value.data.ptr, dcd->value.data.size);
+	}
 	dcd_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 
-	crc = gf_crc_32(dcd->value.data.ptr, dcd->value.data.size);
 	crc_enh = dcd_enh ? gf_crc_32(dcd_enh->value.data.ptr, dcd_enh->value.data.size) : 0;
 	if ((ctx->crc == crc) && (ctx->crc_enh == crc_enh)) return GF_OK;
 	ctx->crc = crc;
@@ -176,10 +180,14 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_copy_properties(ctx->opid, pid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 	}
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+
 	ctx->ipid = pid;
+	if (!dcd)
+		return GF_OK;
 
 	return nalumx_make_inband_header(ctx, dcd->value.data.ptr, dcd->value.data.size, dcd_enh ? dcd_enh->value.data.ptr : NULL, dcd_enh ? dcd_enh->value.data.size : 0);
 }

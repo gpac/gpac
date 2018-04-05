@@ -82,6 +82,52 @@ u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
 
 typedef struct
 {
+	u32 ff_sf;
+	u32 gpac_sf;
+} GF_FF_AFREG;
+
+static const GF_FF_AFREG FF2GPAC_AudioFormats[] =
+{
+	{AV_SAMPLE_FMT_U8, GF_AUDIO_FMT_U8},
+	{AV_SAMPLE_FMT_S16, GF_AUDIO_FMT_S16},
+	{AV_SAMPLE_FMT_S32, GF_AUDIO_FMT_S32},
+	{AV_SAMPLE_FMT_FLT, GF_AUDIO_FMT_FLT},
+	{AV_SAMPLE_FMT_DBL, GF_AUDIO_FMT_DBL},
+	{AV_SAMPLE_FMT_U8P, GF_AUDIO_FMT_U8P},
+	{AV_SAMPLE_FMT_S16P, GF_AUDIO_FMT_S16P},
+	{AV_SAMPLE_FMT_S32P, GF_AUDIO_FMT_S32P},
+	{AV_SAMPLE_FMT_FLTP, GF_AUDIO_FMT_FLTP},
+	{AV_SAMPLE_FMT_DBLP, GF_AUDIO_FMT_DBLP},
+	{},
+};
+
+u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
+{
+	u32 i=0;
+	while (FF2GPAC_AudioFormats[i].gpac_sf) {
+		if (FF2GPAC_AudioFormats[i].gpac_sf == sfmt)
+			return FF2GPAC_AudioFormats[i].ff_sf;
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
+	return 0;
+}
+
+u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt)
+{
+	u32 i=0;
+	while (FF2GPAC_AudioFormats[i].gpac_sf) {
+		if (FF2GPAC_AudioFormats[i].ff_sf == sfmt)
+			return FF2GPAC_AudioFormats[i].gpac_sf;
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped FFMPEG audio format %d, patch welcome\n", sfmt ));
+	return 0;
+}
+
+
+typedef struct
+{
 	u32 ff_codec_id;
 	u32 gpac_codec_id;
 } GF_FF_CIDREG;
@@ -435,5 +481,53 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 	}
 }
 
+
+void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx)
+{
+	AVDictionaryEntry *de=NULL;
+
+	while (1) {
+		u32 idx=0;
+		de = av_dict_get(options, "", de, AV_DICT_IGNORE_SUFFIX);
+		if (!de) break;
+
+		while (ctx->av_class->option) {
+			const struct AVOption *opt = &ctx->av_class->option[idx];
+			if (!opt || !opt->name) break;
+			if (opt->name && !strcmp(opt->name, de->key) && (!stricmp(de->value, "true") || !stricmp(de->value, "yes") || !stricmp(de->value, "1") )) {
+				if (opt->unit && !strcmp(opt->unit, "flags"))
+					ctx->flags |= (int) opt->default_val.i64;
+				else if (opt->unit && !strcmp(opt->unit, "flags2"))
+					ctx->flags2 |= (int) opt->default_val.i64;
+				break;
+			}
+			idx++;
+		}
+	}
+}
+
+void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
+{
+	AVDictionaryEntry *de=NULL;
+
+	while (1) {
+		u32 idx=0;
+		de = av_dict_get(options, "", de, AV_DICT_IGNORE_SUFFIX);
+		if (!de) break;
+
+		while (ctx->av_class->option) {
+			const struct AVOption *opt = &ctx->av_class->option[idx];
+			if (!opt || !opt->name) break;
+			if (opt->name && !strcmp(opt->name, de->key)) {
+				if (opt->unit && !strcmp(opt->unit, "fflags"))
+					ctx->flags |= (int) opt->default_val.i64;
+				else if (opt->unit && !strcmp(opt->unit, "avioflags"))
+					ctx->avio_flags |= (int) opt->default_val.i64;
+				break;
+			}
+			idx++;
+		}
+	}
+}
 
 
