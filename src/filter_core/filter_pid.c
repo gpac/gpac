@@ -471,7 +471,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 			//postponed packets dispatched by source while setting up PID, flush through process()
 			//pending packets (not yet consumed but in PID buffer), start processing
-			if (pid->filter->postponed_packets || pid->filter->pending_packets) {
+			if (pid->filter->postponed_packets || pid->filter->pending_packets || pid->filter->nb_caps_renegociate) {
 				gf_filter_post_process_task(pid->filter);
 			}
 		}

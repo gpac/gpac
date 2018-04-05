@@ -56,6 +56,11 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 
 u32 ffmpeg_pixfmt_from_gpac(u32 pfmt);
 u32 ffmpeg_pixfmt_to_gpac(u32 pfmt);
+u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt);
+u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt);
 u32 ffmpeg_codecid_from_gpac(u32 codec_id);
 u32 ffmpeg_codecid_to_gpac(u32 codec_id);
+
+void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx);
+void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx);
 

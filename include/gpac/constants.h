@@ -568,7 +568,7 @@ enum
 enum
 {
 	/*! sample = unsigned byte, interleaved channels*/
-	GF_AUDIO_FMT_U8 = 0,
+	GF_AUDIO_FMT_U8 = 1,
 	/*! sample = signed short, interleaved channels*/
 	GF_AUDIO_FMT_S16,
 	/*! sample = signed integer, interleaved channels*/

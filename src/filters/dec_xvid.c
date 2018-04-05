@@ -431,6 +431,9 @@ GF_FilterRegister XVIDRegister = {
 	.finalize = xviddec_finalize,
 	.configure_pid = xviddec_configure_pid,
 	.process = xviddec_process,
+	//use low priorty, below ffmpeg one, so that hardware decs/other native impl in gpac can take over if needed
+	//don't use lowest one since we use this for scalable codecs
+	.priority = 100
 };
 
 #endif

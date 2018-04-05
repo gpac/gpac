@@ -638,6 +638,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format", GF_PROP_PCMFMT},
 	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaybackSpeed", "audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE},
+	{ GF_PROP_PID_AUDIO_SKIP, "AudioSkip", "number of audio samples to skip to recover initial source timing. Negative value imply holding (delaying) the stream", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_WIDTH, "Width", "Visual Width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visual Height (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_PIXFMT},
