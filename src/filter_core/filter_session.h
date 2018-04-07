@@ -441,6 +441,8 @@ struct __gf_filter
 	GF_List *detached_pid_inst;
 
 	s32 cap_idx_at_resolution;
+
+	Bool reconfigure_outputs;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -510,7 +512,8 @@ struct __gf_filter_pid_inst
 	volatile u32 nb_eos_signaled;
 
 	Bool is_decoder_input;
-
+	GF_PropertyMap *reconfig_pid_props;
+	
 	//clock handling by the consumer: the clock values are not automatically dispatched to the output pids and are kept
 	//available as regular packets in the input pid
 	Bool handles_clock_references;
@@ -571,9 +574,11 @@ struct __gf_filter_pid
 	u32 playback_speed_scaler;
 
 	Bool initial_play_done;
+	Bool is_playing;
 	void *udta;
 
 	GF_PropertyMap *caps_negociate;
+	GF_FilterPidInst *caps_negociate_pidi;
 	GF_List *adapters_blacklist;
 	GF_Filter *caps_dst_filter;
 };
@@ -602,6 +607,9 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
 u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle);
 Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
+
+void gf_filter_check_output_reconfig(GF_Filter *filter);
+Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid);
 
 #endif //_GF_FILTER_SESSION_H_
 

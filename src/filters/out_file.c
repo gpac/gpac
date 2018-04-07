@@ -31,6 +31,7 @@
 typedef struct
 {
 	//options
+	Double start, speed;
 	char *dst, *mime;
 	Bool append, dynext;
 
@@ -132,7 +133,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (!ctx->pid) {
 		GF_FilterEvent evt;
-		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		gf_filter_init_play_event(pid, &evt, ctx->start, ctx->speed, "FileOut");
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
@@ -323,6 +324,8 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
+	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{}
 };
 
@@ -337,8 +340,8 @@ static const GF_FilterCapability FileOutCaps[] =
 
 
 GF_FilterRegister FileOutRegister = {
-	.name = "fileout",
-	.description = "Generic File Output",
+	.name = "fout",
+	.description = "Generic file output",
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
 	SETCAPS(FileOutCaps),

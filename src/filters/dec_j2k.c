@@ -386,7 +386,7 @@ static const GF_FilterCapability J2KCaps[] =
 };
 
 GF_FilterRegister J2KRegister = {
-	.name = "j2k",
+	.name = "j2kdec",
 #ifdef OPENJPEG_VERSION
 	.description = "OpenJPEG2000 decoder v"OPENJPEG_VERSION,
 #else

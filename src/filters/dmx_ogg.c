@@ -685,8 +685,8 @@ static const GF_FilterCapability OGGDmxCaps[] =
 
 
 GF_FilterRegister OGGDmxRegister = {
-	.name = "ogg",
-	.description = "OGG Demux",
+	.name = "oggdmx",
+	.description = "OGG demuxer",
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,

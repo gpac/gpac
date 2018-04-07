@@ -121,7 +121,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_s
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = GF_FALSE;
-			return gf_audio_input_fetch_frame(callback, size, audio_delay_ms, planar_size);
+			return gf_audio_input_fetch_frame(callback, size, planar_size, audio_delay_ms);
 		}
 		resync_delay = gf_mo_get_clock_drift(ai->stream) - drift;
 		if (resync_delay < 0) resync_delay = -resync_delay;

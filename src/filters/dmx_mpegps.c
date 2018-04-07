@@ -396,7 +396,7 @@ static const GF_FilterCapability M2PSDmxCaps[] =
 
 GF_FilterRegister M2PSDmxRegister = {
 	.name = "m2psdmx",
-	.description = "MPEG Program Stream Demux",
+	.description = "MPEG Program Stream demuxer",
 	.private_size = sizeof(GF_M2PSDmxCtx),
 	.initialize = m2psdmx_initialize,
 	.finalize = m2psdmx_finalize,

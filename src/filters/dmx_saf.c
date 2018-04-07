@@ -442,7 +442,7 @@ static const GF_FilterCapability SAFDmxCaps[] =
 
 GF_FilterRegister SAFDmxRegister = {
 	.name = "safdmx",
-	.description = "SAF Demux",
+	.description = "SAF demuxer",
 	.private_size = sizeof(GF_SAFDmxCtx),
 	.initialize = safdmx_initialize,
 	.finalize = safdmx_finalize,

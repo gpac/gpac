@@ -801,8 +801,8 @@ static const GF_FilterArgs CTXLoadArgs[] =
 };
 
 GF_FilterRegister CTXLoadRegister = {
-	.name = "ctx_load",
-	.description = "Textual scene playback for BT/XMT/X3D",
+	.name = "btplay",
+	.description = "Textual BT/XMT/X3D loader for playback",
 	.private_size = sizeof(CTXLoadPriv),
 	.requires_main_thread = GF_TRUE,
 	.args = CTXLoadArgs,

@@ -435,7 +435,7 @@ static const GF_FilterCapability VOBSubDmxCaps[] =
 
 GF_FilterRegister VOBSubDmxRegister = {
 	.name = "vobsubdmx",
-	.description = "VobSub Demux",
+	.description = "VobSub demuxer",
 	.private_size = sizeof(GF_VOBSubDmxCtx),
 	.max_extra_pids = 1,
 	.args = GF_VOBSubDmxArgs,

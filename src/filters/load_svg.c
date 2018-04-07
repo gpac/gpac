@@ -425,8 +425,8 @@ static const GF_FilterArgs SVGInArgs[] =
 	{}
 };
 GF_FilterRegister SVGInRegister = {
-	.name = "svg_in",
-	.description = "SVG playback",
+	.name = "svgplay",
+	.description = "SVG loader for playback",
 	.private_size = sizeof(SVGIn),
 	.requires_main_thread = GF_TRUE,
 	.args = SVGInArgs,

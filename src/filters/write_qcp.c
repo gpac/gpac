@@ -331,8 +331,8 @@ static const GF_FilterArgs QCPMxArgs[] =
 
 
 GF_FilterRegister QCPMxRegister = {
-	.name = "write_qcp",
-	.description = "QCP Mux",
+	.name = "writeqcp",
+	.description = "QCP file writer",
 	.private_size = sizeof(GF_QCPMxCtx),
 	.args = QCPMxArgs,
 	SETCAPS(QCPMxCaps),

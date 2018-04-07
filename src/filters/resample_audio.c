@@ -338,7 +338,7 @@ static const GF_FilterArgs ResamplerArgs[] =
 
 GF_FilterRegister ResamplerRegister = {
 	.name = "resample",
-	.description = "Audio resampling filter",
+	.description = "Audio resampling",
 	.private_size = sizeof(GF_ResampleCtx),
 	.initialize = resample_initialize,
 	.finalize = resample_finalize,

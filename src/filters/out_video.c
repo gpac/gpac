@@ -443,58 +443,25 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
 
 	if (!ctx->pid) {
-		u32 pmode = GF_PLAYBACK_MODE_NONE;
 		GF_FilterEvent fevt;
 		//set a minimum buffer (although we don't buffer)
 		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, pid);
 		fevt.buffer_req.max_buffer_us = 100000;
 		gf_filter_pid_send_event(pid, &fevt);
 
-		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
-		fevt.play.speed = 1.0;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
-		if (p) pmode = p->value.uint;
-
-		fevt.play.start_range = ctx->start;
-		if (ctx->start<0) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-			if (p && p->value.frac.den) {
-				fevt.play.start_range *= -100;
-				fevt.play.start_range *= p->value.frac.num;
-				fevt.play.start_range /= 100 * p->value.frac.den;
-			}
-		}
-		switch (pmode) {
-		case GF_PLAYBACK_MODE_NONE:
-			fevt.play.start_range = 0;
-			if (ctx->start) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support seek, ignoring start directive\n"));
-			}
-			break;
-		case GF_PLAYBACK_MODE_SEEK:
-			if (ctx->speed != 1.0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support speed, ignoring speed directive\n"));
-			}
-			break;
-		case GF_PLAYBACK_MODE_FASTFORWARD:
-			if (ctx->speed<0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support negative speed, ignoring speed directive\n"));
-			} else {
-				fevt.play.speed = ctx->speed;
-			}
-			break;
-		default:
-			fevt.play.speed = ctx->speed;
-			break;
-		}
+		gf_filter_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(pid, &fevt);
 
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_SET_CAPTION;
 		evt.caption.caption = gf_filter_pid_original_args	(pid);
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+
+		ctx->pid = pid;
 	}
+
+	//pid not yet ready
+	if (!pfmt || !w || !h) return GF_OK;
 
 	if ((ctx->width!=w) || (ctx->height != h) ) {
 		memset(&evt, 0, sizeof(GF_Event));
@@ -536,8 +503,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
 
-
-	ctx->pid = pid;
 	ctx->timescale = timescale;
 	ctx->width = w;
 	ctx->height = h;
@@ -1634,7 +1599,7 @@ static const GF_FilterCapability VideoOutCaps[] =
 
 GF_FilterRegister VideoOutRegister = {
 	.name = "vout",
-	.description = "Video Output",
+	.description = "Video graphics card output",
 	.private_size = sizeof(GF_VideoOutCtx),
 	.requires_main_thread = GF_TRUE,
 	.args = VideoOutArgs,

@@ -324,7 +324,7 @@ static const GF_FilterCapability UDPInCaps[] =
 
 GF_FilterRegister UDPInRegister = {
 	.name = "udpin",
-	.description = "UDP/RTP Input",
+	.description = "UDP/RTP input",
 	.private_size = sizeof(GF_UDPInCtx),
 	.args = UDPInArgs,
 	SETCAPS(UDPInCaps),

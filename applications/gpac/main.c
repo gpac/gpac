@@ -42,9 +42,12 @@ static u64 last_log_time=0;
 
 //the default set of separators
 static char separator_set[6] = ":=#,@";
+#define SEP_LINK	4
+#define SEP_FRAG	2
 
 static void print_filters(int argc, char **argv, GF_FilterSession *session);
 static void dump_all_props(void);
+static void dump_all_codec(GF_FilterSession *session);
 
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
@@ -77,20 +80,32 @@ static void gpac_filter_help(void)
 "Filters are listed with their name and options are given using a list of colon-separated Name=Value: \n"
 "\tValue can be omitted for booleans, defaulting to true.\n"
 "\tName can be omitted for enumerations (eg :mode=pbo is equivalent to :pbo).\n"
-"\tSources may be specified direcly using src=URL, or forcing a dedicated input using input:src=URL.\n"
+"\tSources may be specified direcly using src=URL, or forcing a dedicated input using fName:src=URL.\n"
+"\tSinks may be specified direcly using dst=URL, or forcing a dedicated input using fName:dst=URL.\n"
 "\n"
 "When string parameters are used (eg URLs), it is recommended to escape the string using the keword \"gpac\" \n"
 "\tEX: \"filter:ARG=http://foo/bar?yes:gpac:opt=VAL\" will properly extract the URL\n"
 "\tEX: \"filter:ARG=http://foo/bar?yes:opt=VAL\" will fail to extract it and keep :opt=VAL as part of the URL\n"
 "Note that the escape mechanism is not needed for local source files, for which file existence is probed during argument parsing\n"
 "\n"
-"Source and sinks filters do not need to be adressed by the filter name, spcifying src= or dst= instead is enough\n"
+"Source and sinks filters do not need to be adressed by the filter name, specifying src= or dst= instead is enough\n"
 "\tEX: \"src=file.mp4\" will find a filter (for example filein) able to load src, and is equivalent to filein:src=file.mp4\n"
 "\tEX: \"src=file.mp4 dst=dump.yuv\" will dump the video content of file.mp4 in dump.yuv\n"
 "\n"
 "There is a special option called \"gfreg\" which allows specifying prefered filters to use when handling URLs\n"
 "\tEX: \"src=file.mp4:gfreg=ffdmx,ffdec\" will use ffdmx to handle the file and ffdec to decode\n"
 "This can be used to test a specific filter when alternate filter chains are possible.\n"
+"\n"
+"There is a special shorcut filter name for encoders, enc, allowing to match a filter providing the desired encoding.\n"
+"The parameters for enc are:\n"
+"\tc=NAME identifes the desired codec. NAME can be the gpac codec name or the encoder instance for ffmpeg/others\n"
+"\tb=VAL or rate=VAL or bitrate=VAL indicates the bitrate in bits per second (UINT)\n"
+"\tg=VAL or gop=VAL indicates the GOP size in frames (UINT)\n"
+"\tpfmt=VAL indicates the target pixel format of the source, if supported by codec (UINT)\n"
+"\tall_intra=BOOL indicates all frames should be intra frames, if supported by codec (UINT)\n"
+
+"Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).\n"
+"\tEX: \"src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50 dst=raw.264 creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds\n"
 "\n"
 "LINK directives may be specified. The syntax is an '@' character optionnaly followed by an integer (0 if omitted).\n"
 "This indicates which previous (0-based) filters should be link to the next filter listed.\n"
@@ -137,6 +152,12 @@ static void gpac_filter_help(void)
 "\tFile: path on disk for source file\n"
 "\tp4cc=ABCD: uses pid property with 4CC ABCD\n"
 "\tpname=VAL: uses pid property with name VAL\n"
+"\tOTHER: locates property 4CC for the given name\n"
+"\n"
+"Templating can be usefull when encoding several qualities in one pass:\n"
+"\tEX: src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264\n"
+"This will create a croped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k\n"
+"outputs will be dump_0x0x320x180.264 for the croped version and dump_0x0x640x360.264 for the non-croped one\n"
 "\n"
 	);
 }
@@ -280,7 +301,7 @@ static int gpac_main(int argc, char **argv)
 	GF_FilterSession *session;
 	Bool disable_blocking = GF_FALSE;
 	Bool view_filter_conn = GF_FALSE;
-	Bool view_props = GF_FALSE;
+	Bool dump_codecs = GF_FALSE;
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -298,6 +319,11 @@ static int gpac_main(int argc, char **argv)
 			return 0;
 		} else if (!strcmp(arg, "-doc")) {
 			gpac_filter_help();
+			return 0;
+		} else if (!strcmp(arg, "-codecs")) {
+			dump_codecs = GF_TRUE;
+		} else if (!strcmp(arg, "-props")) {
+			dump_all_props();
 			return 0;
 		} else if (!strncmp(arg, "-s=", 3)) {
 			u32 len;
@@ -366,8 +392,6 @@ static int gpac_main(int argc, char **argv)
 			disable_blocking = GF_TRUE;
 		} else if (!strcmp(arg, "-links")) {
 			view_filter_conn = GF_TRUE;
-		} else if (!strcmp(arg, "-props")) {
-			view_props = GF_TRUE;
 		} else if (strstr(arg, ":*") && list_filters) {
 			list_filters = 3;
 		}
@@ -395,12 +419,7 @@ static int gpac_main(int argc, char **argv)
 		}
 	}
 
-	if (view_props) {
-		dump_all_props();
-		return 0;
-	}
-
-	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_filter_info) ? GF_TRUE : GF_FALSE, disable_blocking);
+	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_filter_info || dump_codecs) ? GF_TRUE : GF_FALSE, disable_blocking);
 	if (!session) {
 		return 1;
 	}
@@ -416,6 +435,10 @@ static int gpac_main(int argc, char **argv)
 		gf_fs_filter_print_possible_connections(session);
 		goto exit;
 	}
+	if (dump_codecs) {
+		dump_all_codec(session);
+		return 0;
+	}
 
 	//all good to go, load filters
 	loaded_filters = gf_list_new();
@@ -424,8 +447,8 @@ static int gpac_main(int argc, char **argv)
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
 
-		if (arg[0]== separator_set[3] ) {
-			char *ext = strchr(arg, separator_set[2]);
+		if (arg[0]== separator_set[SEP_LINK] ) {
+			char *ext = strchr(arg, separator_set[SEP_FRAG]);
 			if (ext) {
 				ext[0] = 0;
 				link_prev_filter_ext = ext+1;
@@ -434,7 +457,7 @@ static int gpac_main(int argc, char **argv)
 			if (strlen(arg)>1)
 				link_prev_filter = atoi(arg+1);
 
-			if (ext) ext[0] = separator_set[2];
+			if (ext) ext[0] = separator_set[SEP_FRAG];
 			continue;
 		}
 
@@ -641,4 +664,34 @@ static void dump_all_props(void)
 	}
 }
 
+static void dump_all_codec(GF_FilterSession *session)
+{
+	GF_PropertyValue rawp, cp;
+	u32 cidx=0;
+	u32 count = gf_fs_filters_registry_count(session);
+	fprintf(stderr, "Codec names (I: Filter Input support, O: Filter Output support) : ");
+	rawp.type = cp.type = GF_PROP_UINT;
+	rawp.value.uint = GF_CODECID_RAW;
+	while (1) {
+		u32 i;
+		const char *lname;
+		const char *sname;
+		Bool enc_found = GF_FALSE;
+		Bool dec_found = GF_FALSE;
+		cp.value.uint = gf_codecid_enum(cidx, &sname, &lname);
+		cidx++;
+		if (cp.value.uint == GF_CODECID_NONE) break;
+		if (cp.value.uint == GF_CODECID_RAW) continue;
+		if (!sname) break;
+
+		for (i=0; i<count; i++) {
+			const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
+			if ( gf_fs_check_registry_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &cp)) enc_found = GF_TRUE;
+			if ( gf_fs_check_registry_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp)) dec_found = GF_TRUE;
+		}
+
+		fprintf(stderr, "%s (%c%c): %s\n", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-', lname);
+	}
+	fprintf(stderr, "\n");
+}
 

@@ -817,8 +817,8 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 
 
 GF_FilterRegister NHMLDumpRegister = {
-	.name = "write_nhml",
-	.description = "NHNT stream output",
+	.name = "writenhml",
+	.description = "NHNT file writer",
 	.private_size = sizeof(GF_NHMLDumpCtx),
 	//NHML output is explicit only, so we don't load the filter during resolution process
 	.explicit_only = 1,

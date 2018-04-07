@@ -1044,7 +1044,7 @@ static const GF_FilterArgs OHEVCDecArgs[] =
 };
 
 GF_FilterRegister OHEVCDecRegister = {
-	.name = "ohevc",
+	.name = "ohevcdec",
 	.description = "OpenHEVC decoder",
 	.private_size = sizeof(GF_OHEVCDecCtx),
 	SETCAPS(OHEVCDecCaps),

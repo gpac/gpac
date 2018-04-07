@@ -702,8 +702,8 @@ static const GF_FilterArgs ADTSDmxArgs[] =
 
 
 GF_FilterRegister ADTSDmxRegister = {
-	.name = "reframe_adts",
-	.description = "ADTS Demux",
+	.name = "rfadts",
+	.description = "ADTS reframer",
 	.private_size = sizeof(GF_ADTSDmxCtx),
 	.args = ADTSDmxArgs,
 	.finalize = adts_dmx_finalize,

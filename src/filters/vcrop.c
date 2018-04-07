@@ -49,7 +49,6 @@ typedef struct
 
 	Bool use_reference;
 	u32 dst_width, dst_height;
-	u32 src_width, src_height;
 	s32 src_x, src_y;
 	Bool packed_422;
 
@@ -443,6 +442,7 @@ static Bool parse_crop_props(GF_VCropCtx *ctx, u32 src_w, u32 src_h, GF_PixelFor
 
 static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	GF_PropVec2i vec;
 	const GF_PropertyValue *p;
 	u32 w, h, stride, pfmt;
 	GF_Fraction sar;
@@ -548,6 +548,13 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(ctx->dst_stride[1]));
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar) );
+	vec.x = ctx->src_x;
+	vec.y = ctx->src_y;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CROP_POS, &PROP_VEC2I(vec) );
+	vec.x = ctx->w;
+	vec.y = ctx->h;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I(vec) );
+
 	return GF_OK;
 }
 
@@ -591,7 +598,7 @@ static const GF_FilterCapability VCropCaps[] =
 
 GF_FilterRegister VCropRegister = {
 	.name = "vcrop",
-	.description = "Video crop fiter",
+	.description = "Video croping fiter",
 	.private_size = sizeof(GF_VCropCtx),
 	.args = VCropArgs,
 	.explicit_only = GF_TRUE,

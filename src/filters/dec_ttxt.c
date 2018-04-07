@@ -1306,8 +1306,8 @@ static const GF_FilterCapability TTXTDecCaps[] =
 };
 
 GF_FilterRegister TTXTDecRegister = {
-	.name = "ttxt_dec",
-	.description = "TTXT/TX3G Decoder",
+	.name = "ttxtdec",
+	.description = "TTXT/TX3G decoder",
 	.private_size = sizeof(GF_TTXTDec),
 	.requires_main_thread = GF_TRUE,
 	.args = TTXTDecArgs,

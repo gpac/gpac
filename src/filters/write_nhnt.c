@@ -297,8 +297,8 @@ static const GF_FilterArgs NHNTDumpArgs[] =
 
 
 GF_FilterRegister NHNTDumpRegister = {
-	.name = "write_nhnt",
-	.description = "NHNT stream output",
+	.name = "writenhnt",
+	.description = "NHNT file writer",
 	.private_size = sizeof(GF_NHNTDumpCtx),
 	//NHNT output is explicit only, so we don't load the filter during resolution process
 	.explicit_only = 1,

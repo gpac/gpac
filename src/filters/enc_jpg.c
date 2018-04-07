@@ -332,8 +332,8 @@ static GF_FilterArgs JPGEncArgs[] =
 };
 
 GF_FilterRegister JPGEncRegister = {
-	.name = "encjpg",
-	.description = "JPG Encoder",
+	.name = "jpgenc",
+	.description = "JPG encoder",
 	.private_size = sizeof(GF_JPGEncCtx),
 	.args = JPGEncArgs,
 	SETCAPS(JPGEncCaps),
