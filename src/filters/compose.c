@@ -382,7 +382,7 @@ static const GF_FilterCapability CompositorFilterCaps[] =
 
 const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
-	.description = "Compositor Filter running the GPAC interactive media compositor",
+	.description = "GPAC interactive media compositor",
 	.private_size = sizeof(GF_CompositorFilter),
 	.requires_main_thread = GF_TRUE,
 	.explicit_only = 1,

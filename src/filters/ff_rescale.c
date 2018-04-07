@@ -221,17 +221,26 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
 	//ctx->pfmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
-	if (!w || !h || !pfmt || !ctx->pfmt) {
+	if (!w || !h || !pfmt) {
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
 	}
+	if (!ctx->pfmt)
+		ctx->pfmt = pfmt;
+
 	ctx->passthrough = GF_FALSE;
 
 	ctx->ow = ctx->size.x ? ctx->size.x : w;
 	ctx->oh = ctx->size.y ? ctx->size.y : h;
 	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == pfmt) && (ctx->stride == stride)) {
 		//nothing to reconfigure
+	}
+	//passthrough mode
+	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == pfmt)) {
+		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
+		gf_pixel_get_size_info(ctx->pfmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
+		ctx->passthrough = GF_TRUE;
 	} else {
 		u32 nb_par = 0;
 		nb_par = 0;
@@ -286,6 +295,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->w = w;
 		ctx->h = h;
 		ctx->s_pfmt = pfmt;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Setup rescaler from %dx%d fmt %s to %dx%d fmt %s\n", w, h, gf_pixel_fmt_name(pfmt), ctx->size.x, ctx->size.y, gf_pixel_fmt_name(ctx->pfmt)));
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->ow));
@@ -345,7 +355,7 @@ static const GF_FilterCapability FFSWSCaps[] =
 
 GF_FilterRegister FFSWSRegister = {
 	.name = "ffsws",
-	.description = "FFMPEG Software Rescale "LIBSWSCALE_IDENT,
+	.description = "FFMPEG video rescaler "LIBSWSCALE_IDENT,
 	.comment = "For bicubic, to tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)\n"\
 				"For gauss p1 tunes the exponent and thus cutoff frequency\n"\
 				"For lanczos p1 tunes the width of the window function",

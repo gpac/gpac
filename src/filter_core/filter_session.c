@@ -465,6 +465,109 @@ void *gf_fs_task_get_udta(GF_FSTask *task)
 	return task->udta;
 }
 
+GF_EXPORT
+Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output)
+{
+	u32 j;
+	u32 has_raw_in = 0;
+	u32 has_cid_match = 0;
+	u32 exclude_cid_out = 0;
+	u32 has_exclude_cid_out = 0;
+	for (j=0; j<f_reg->nb_caps; j++) {
+		const GF_FilterCapability *cap = &f_reg->caps[j];
+		if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+			//CID not excluded, raw in present and CID explicit match or not included in excluded set
+			if (!exclude_cid_out && has_raw_in && (has_cid_match || has_exclude_cid_out) ) {
+				return GF_TRUE;
+			}
+
+			if (has_raw_in != 2) has_raw_in = 0;
+			if (has_cid_match != 2) has_cid_match = 0;
+			if (exclude_cid_out != 2) exclude_cid_out = 0;
+			if (has_exclude_cid_out != 2) has_exclude_cid_out = 0;
+
+			continue;
+		}
+
+		if ( (cap->flags & GF_FILTER_CAPS_INPUT) && (cap->code == incode) ) {
+			if (! (cap->flags & GF_FILTER_CAPS_EXCLUDED) && gf_props_equal(&cap->val, cap_input) ) {
+				has_raw_in = (cap->flags & GF_CAPS_INPUT_STATIC) ? 2 : 1;
+			}
+		}
+		if ( (cap->flags & GF_FILTER_CAPS_OUTPUT) && (cap->code == outcode) ) {
+			if (! (cap->flags & GF_FILTER_CAPS_EXCLUDED)) {
+				if (gf_props_equal(&cap->val, cap_output) ) {
+					has_cid_match = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
+				}
+			} else {
+				if (gf_props_equal(&cap->val, cap_output) ) {
+					exclude_cid_out = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
+				} else {
+					has_exclude_cid_out = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
+				}
+			}
+		}
+	}
+	//CID not excluded, raw in present and CID explicit match or not included in excluded set
+	if (!exclude_cid_out && has_raw_in && (has_cid_match || has_exclude_cid_out) ) {
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
+{
+	GF_Err e;
+	char szCodec[3];
+	char *cid, *sep;
+	const GF_FilterRegister *candidate = NULL;
+	u32 codecid=0;
+	GF_Filter *filter;
+	u32 i, count;
+	GF_PropertyValue cap_in, cap_out;
+	szCodec[0] = 'c';
+	szCodec[1] = fsess->sep_name;
+	szCodec[2] = 0;
+
+	cid = strstr(args, szCodec);
+	if (!cid) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing codec identifier in \"enc\" definition: %s\n", args));
+		return NULL;
+	}
+	sep = strchr(cid, fsess->sep_args);
+	if (sep) sep[0] = 0;
+
+	codecid = gf_codec_parse(cid+3);
+	if (codecid==GF_CODECID_NONE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized codec identifier in \"enc\" definition: %s\n", cid));
+		if (sep) sep[0] = fsess->sep_args;
+		return NULL;
+	}
+	if (sep) sep[0] = fsess->sep_args;
+
+	cap_in.type = GF_PROP_UINT;
+	cap_in.value.uint = GF_CODECID_RAW;
+	cap_out.type = GF_PROP_UINT;
+	cap_in.value.uint = codecid;
+
+	count = gf_list_count(fsess->registry);
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
+
+		if ( gf_fs_check_registry_cap(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out)) {
+			if (!candidate || (candidate->priority>f_reg->priority))
+				candidate = f_reg;
+		}
+	}
+	if (!candidate) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot find any filter providing encoding for %s\n", cid));
+		return NULL;
+	}
+	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_LOCAL, &e);
+	if (!filter) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", candidate->name, gf_error_to_string(e) ));
+	}
+	return filter;
+}
 
 GF_EXPORT
 GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
@@ -481,6 +584,11 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		args = sep+1;
 		len = sep - name;
 	} else len = strlen(name);
+
+	if (!strncmp(name, "enc", len)) {
+		return gf_fs_load_encoder(fsess, args);
+	}
+
 
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);

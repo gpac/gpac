@@ -508,8 +508,8 @@ static const GF_FilterArgs MP3DmxArgs[] =
 
 
 GF_FilterRegister MP3DmxRegister = {
-	.name = "reframe_mp3",
-	.description = "MPEG-1/2 Audio Demux",
+	.name = "rfmp3",
+	.description = "MPEG-1/2 audio reframer",
 	.private_size = sizeof(GF_MP3DmxCtx),
 	.args = MP3DmxArgs,
 	.finalize = mp3_dmx_finalize,

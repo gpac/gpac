@@ -219,6 +219,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 	gf_filter_pck_merge_properties(reference, pck);
 	pck->data = reference->data;
 	pck->data_length = reference->data_length;
+	pck->hw_frame = reference->hw_frame;
 
 	return gf_filter_pck_send(pck);
 }

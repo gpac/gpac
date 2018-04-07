@@ -509,6 +509,7 @@
 		92F8D47D1F71642E00616F7C /* filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4761F71642E00616F7C /* filter.c */; };
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
 		92F930831A5ADB870072A85C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930811A5ADB870072A85C /* os_file.c */; };
+		92FA79432076687100AE005F /* rewind.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA79422076687100AE005F /* rewind.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -1364,6 +1365,7 @@
 		92F8D4761F71642E00616F7C /* filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter.c; path = filter_core/filter.c; sourceTree = "<group>"; };
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930811A5ADB870072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
+		92FA79422076687100AE005F /* rewind.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewind.c; path = filters/rewind.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2560,6 +2562,7 @@
 				924E805E206D427A00AB580F /* reframe_rawpcm.c */,
 				924E805C206D357A00AB580F /* reframe_rawvid.c */,
 				92E2498F2057B973002CC029 /* resample_audio.c */,
+				92FA79422076687100AE005F /* rewind.c */,
 				9257307D2056948D009DB328 /* rewrite_adts.c */,
 				925730812056A610009DB328 /* rewrite_mp4v.c */,
 				9257307E2056948D009DB328 /* rewrite_nalu.c */,
@@ -3095,6 +3098,7 @@
 				9201013718D5A445003D1ACA /* des.c in Sources */,
 				9201013818D5A445003D1ACA /* ecb.c in Sources */,
 				9201013918D5A445003D1ACA /* g_crypt.c in Sources */,
+				92FA79432076687100AE005F /* rewind.c in Sources */,
 				9201013A18D5A445003D1ACA /* ncfb.c in Sources */,
 				92BB85661F7BFB63009BC9C8 /* ff_dec.c in Sources */,
 				9201013B18D5A445003D1ACA /* nofb.c in Sources */,

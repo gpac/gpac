@@ -291,7 +291,7 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 
 
 GF_FilterRegister WebVTTMxRegister = {
-	.name = "write_vtt",
+	.name = "writevtt",
 	.description = "WebVTT Mux",
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,

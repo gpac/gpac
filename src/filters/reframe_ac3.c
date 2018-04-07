@@ -532,8 +532,8 @@ static const GF_FilterArgs AC3DmxArgs[] =
 
 
 GF_FilterRegister AC3DmxRegister = {
-	.name = "reframe_ac3",
-	.description = "AC3 Demux",
+	.name = "rfac3",
+	.description = "AC3 reframer",
 	.private_size = sizeof(GF_AC3DmxCtx),
 	.args = AC3DmxArgs,
 	.finalize = ac3dmx_finalize,

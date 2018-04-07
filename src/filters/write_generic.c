@@ -946,7 +946,7 @@ void gendump_finalize(GF_Filter *filter)
 }
 
 GF_FilterRegister GenDumpRegister = {
-	.name = "write_gen",
+	.name = "writegen",
 	.description = "Generic single stream to file converter, used when extracting/converting PIDs",
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,

@@ -598,8 +598,8 @@ static const GF_FilterArgs H263DmxArgs[] =
 
 
 GF_FilterRegister H263DmxRegister = {
-	.name = "reframe_h263",
-	.description = "H263 Demux",
+	.name = "rfh263",
+	.description = "H263 reframer",
 	.private_size = sizeof(GF_H263DmxCtx),
 	.args = H263DmxArgs,
 	.finalize = h263dmx_finalize,

@@ -2807,8 +2807,8 @@ static const GF_FilterArgs TXTInArgs[] =
 };
 
 GF_FilterRegister TXTInRegister = {
-	.name = "txtload",
-	.description = "Timed text loader for SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG",
+	.name = "txtplay",
+	.description = "Timed text  SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG loader for playback",
 	.private_size = sizeof(GF_TXTIn),
 	.requires_main_thread = GF_TRUE,
 	.args = TXTInArgs,

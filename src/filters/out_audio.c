@@ -217,7 +217,6 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 	if (!ctx->pid) {
-		u32 pmode = GF_PLAYBACK_MODE_NONE;
 		GF_FilterEvent evt;
 		//set buffer reqs to 100 ms - we don't "bufer" in the filter, but this will allow dispatching
 		//several input frames in the buffer (default being 1000 us max in buffers). Not doing so could cause
@@ -226,44 +225,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		evt.buffer_req.max_buffer_us = 100000;
 		gf_filter_pid_send_event(pid, &evt);
 
-		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-		evt.play.speed = 1.0;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
-		if (p) pmode = p->value.uint;
-
-		evt.play.start_range = ctx->start;
-		if (ctx->start<0) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-			if (p && p->value.frac.den) {
-				evt.play.start_range *= -100;
-				evt.play.start_range *= p->value.frac.num;
-				evt.play.start_range /= 100 * p->value.frac.den;
-			}
-		}
-		switch (pmode) {
-		case GF_PLAYBACK_MODE_NONE:
-			evt.play.start_range = 0;
-			if (ctx->start) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support seek, ignoring start directive\n"));
-			}
-			break;
-		case GF_PLAYBACK_MODE_SEEK:
-			if (ctx->speed != 1.0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support speed, ignoring speed directive\n"));
-			}
-			break;
-		case GF_PLAYBACK_MODE_FASTFORWARD:
-			if (ctx->speed<0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VideoOut] Media PID does not support negative speed, ignoring speed directive\n"));
-			} else {
-				evt.play.speed = ctx->speed;
-			}
-			break;
-		default:
-			evt.play.speed = ctx->speed;
-			break;
-		}
+		gf_filter_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
@@ -451,8 +413,6 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(speed), "Sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
-
-
 	{}
 };
 
@@ -466,7 +426,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
-	.description = "Audio Output",
+	.description = "Audio soundcard output",
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 	SETCAPS(AudioOutCaps),

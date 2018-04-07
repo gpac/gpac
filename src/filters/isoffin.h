@@ -117,7 +117,7 @@ typedef struct
 	Bool do_dts_shift_test;
 	/*for edit lists*/
 	u32 edit_sync_frame;
-	u64 sample_time, start, end;
+	u64 sample_time, last_rap_sample_time, start, end;
 	Double speed;
 
 	u32 time_scale;

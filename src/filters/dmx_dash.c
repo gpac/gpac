@@ -1278,8 +1278,8 @@ static const GF_FilterCapability DASHDmxCaps[] =
 
 
 GF_FilterRegister DASHDmxRegister = {
-	.name = "dash",
-	.description = "MPEG-DASH & HLS Demux",
+	.name = "dashin",
+	.description = "MPEG-DASH & HLS access engine",
 	.private_size = sizeof(GF_DASHDmxCtx),
 	.initialize = dashdmx_initialize,
 	.finalize = dashdmx_finalize,

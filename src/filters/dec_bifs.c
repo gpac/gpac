@@ -255,8 +255,8 @@ static const GF_FilterCapability BIFSDecCaps[] =
 };
 
 GF_FilterRegister BIFSDecRegister = {
-	.name = "bifs_dec",
-	.description = "MPEG-4 BIFS Decoder",
+	.name = "bifsdec",
+	.description = "MPEG-4 BIFS decoder",
 	.private_size = sizeof(GF_BIFSDecCtx),
 	.requires_main_thread = GF_TRUE,
 	SETCAPS(BIFSDecCaps),

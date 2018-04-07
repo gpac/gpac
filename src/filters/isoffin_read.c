@@ -864,7 +864,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
-	.description = "ISOFF Demuxer",
+	.description = "ISOBMFF demuxer",
 	.private_size = sizeof(ISOMReader),
 	.args = ISOFFInArgs,
 	.initialize = isoffin_initialize,

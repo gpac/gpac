@@ -172,8 +172,15 @@ static GF_Err maddec_process(GF_Filter *filter)
 	mad_stream_buffer(&ctx->stream, ctx->buffer, ctx->len);
 
 	if (mad_frame_decode(&ctx->frame, &ctx->stream) == -1) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NON_COMPLIANT_BITSTREAM;
+		//try resynchro
+		memcpy(ctx->buffer, data, in_size);
+		ctx->len = in_size;
+		mad_stream_buffer(&ctx->stream, ctx->buffer, ctx->len);
+
+		if (mad_frame_decode(&ctx->frame, &ctx->stream) == -1) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 	}
 
 	mad_synth_frame(&ctx->synth, &ctx->frame);
@@ -253,7 +260,7 @@ static const GF_FilterCapability MADCaps[] =
 };
 
 GF_FilterRegister MADRegister = {
-	.name = "mad",
+	.name = "maddec",
 	.description = "MAD decoder",
 	.private_size = sizeof(GF_MADCtx),
 	SETCAPS(MADCaps),

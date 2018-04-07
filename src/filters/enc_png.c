@@ -322,8 +322,8 @@ static GF_FilterArgs PNGEncArgs[] =
 };
 
 GF_FilterRegister PNGEncRegister = {
-	.name = "encpng",
-	.description = "PNG Encoder",
+	.name = "pngenc",
+	.description = "PNG encoder",
 	.private_size = sizeof(GF_PNGEncCtx),
 	.args = PNGEncArgs,
 	.finalize = pngenc_finalize,

@@ -450,6 +450,14 @@ enum
 */
 const char *gf_codecid_name(u32 codecid);
 
+/*! Enumerates supported codec format
+ \param idx 0-based index, to incremented at each call
+ \param short_name pointer for codec name
+ \param long_name pointer for codec description
+ \return codec ID
+*/
+u32 gf_codecid_enum(u32 idx, const char **short_name, const char **long_name);
+
 /*! Gets a textual description for the given MPEG-4 stream type and object type
  \param stream_type stream type of the stream
  \param oti ObjectTypeIndication of the stream
@@ -468,6 +476,12 @@ u32 gf_codecid_type(u32 codecid);
  \return ObjectTypeIndication if defined, 0 otherwise
 */
 u8 gf_codecid_oti(u32 codecid);
+
+/*! Gets the codecid given the associated short name
+ \param cname target codec short name
+ \return codecid codec ID
+*/
+u32 gf_codec_parse(const char *cname);
 
 /*!
  * \brief AFX Object Code

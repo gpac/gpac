@@ -63,7 +63,7 @@ u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
 			return FF2GPAC_PixelFormats[i].ff_pf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
 	return 0;
 }
 
@@ -75,7 +75,7 @@ u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
 			return FF2GPAC_PixelFormats[i].gpac_pf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped FFMPEG pixel format %d, patch welcome\n", pfmt ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %d, patch welcome\n", pfmt ));
 	return 0;
 }
 
@@ -109,7 +109,7 @@ u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].ff_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
 	return 0;
 }
 
@@ -121,7 +121,7 @@ u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].gpac_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped FFMPEG audio format %d, patch welcome\n", sfmt ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG audio format %d, patch welcome\n", sfmt ));
 	return 0;
 }
 
@@ -271,7 +271,7 @@ u32 ffmpeg_codecid_from_gpac(u32 codec_id)
 			return FF2GPAC_CodecIDs[i].ff_codec_id;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped GPAC codec ID %s\n", codec_id ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC codec ID %s\n", codec_id ));
 	return 0;
 }
 
@@ -283,7 +283,7 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 			return FF2GPAC_CodecIDs[i].gpac_codec_id;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unmapped FFMPEG codec ID %d\n", codec_id ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG codec ID %d\n", codec_id ));
 	return 0;
 }
 
@@ -304,6 +304,9 @@ void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 		while (gf_list_count(all_filters)) {
 			i=0;
 			GF_FilterRegister *f = gf_list_pop_back(all_filters);
+			if (f->caps)
+				gf_free((void *)f->caps);
+
 			gf_free((char*) f->name);
 
 			while (f->args) {
@@ -429,9 +432,20 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		}
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFMPEG] Unhandled option type %d\n", opt->type));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type %d\n", opt->type));
 	}
 	return arg;
+}
+
+static u32 ff_streamtype(u32 st)
+{
+	switch (st) {
+	case AVMEDIA_TYPE_AUDIO: return GF_STREAM_AUDIO;
+	case AVMEDIA_TYPE_VIDEO: return GF_STREAM_VISUAL;
+	case AVMEDIA_TYPE_DATA: return GF_STREAM_METADATA;
+	case AVMEDIA_TYPE_SUBTITLE: return GF_STREAM_TEXT;
+	}
+	return GF_STREAM_UNKNOWN;
 }
 
 void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
@@ -468,26 +482,26 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 		const char *description = NULL;
 		char szDef[100];
 		GF_FilterRegister *freg;
-		if (type==0) {
+		if (type==FF_REG_TYPE_DEMUX) {
 			fmt = av_iformat_next(fmt);
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
 			description = fmt->long_name;
-		} else if (type==1) {
+		} else if (type==FF_REG_TYPE_DECODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
 			av_class = codec->priv_class;
 			subname = codec->name;
 			description = codec->long_name;
-		} else if (type==2) {
+		} else if (type==FF_REG_TYPE_DEV_IN) {
 			fmt = av_input_video_device_next(fmt);
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
 			description = fmt->long_name;
     		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
-		} else if (type==3) {
+		} else if (type==FF_REG_TYPE_ENCODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
 			av_class = codec->priv_class;
@@ -501,12 +515,64 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 		if (!freg) continue;
 		memcpy(freg, orig_reg, sizeof(GF_FilterRegister));
 		freg->args = NULL;
+		freg->caps = NULL;
+		freg->nb_caps = 0;
 
 		gf_list_add(all_filters, freg);
 
 		sprintf(szDef, "%s:%s", fname, subname);
 		freg->name = gf_strdup(szDef);
 		freg->description = description;
+
+		 if ((type==FF_REG_TYPE_ENCODE) || (type==FF_REG_TYPE_DECODE)) {
+		 	GF_FilterCapability *caps;
+		 	u32 cid = ffmpeg_codecid_to_gpac(codec->id);
+		 	freg->nb_caps = 3;
+
+		 	caps = gf_malloc(sizeof(GF_FilterCapability)*3);
+		 	caps[0].code = GF_PROP_PID_STREAM_TYPE;
+		 	caps[0].val.type = GF_PROP_UINT;
+		 	caps[0].val.value.uint = ff_streamtype(codec->type);
+		 	caps[0].flags = GF_CAPS_INPUT_OUTPUT;
+
+		 	caps[1].code = GF_PROP_PID_CODECID;
+		 	caps[1].val.type = GF_PROP_UINT;
+		 	caps[1].val.value.uint = (type==FF_REG_TYPE_DECODE) ? cid : GF_CODECID_RAW;
+		 	caps[1].flags = GF_CAPS_INPUT;
+
+		 	caps[2].code = GF_PROP_PID_CODECID;
+		 	caps[2].val.type = GF_PROP_UINT;
+		 	caps[2].val.value.uint = (type==FF_REG_TYPE_DECODE) ? GF_CODECID_RAW : cid;
+		 	caps[2].flags = GF_CAPS_OUTPUT;
+
+		 	freg->caps =  caps;
+		}
+		else if ((type==FF_REG_TYPE_DEMUX) && (fmt->mime_type || fmt->extensions) ){
+		 	GF_FilterCapability *caps;
+		 	freg->nb_caps = (fmt->mime_type && fmt->extensions) ? 4 : 2;
+
+		 	caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+		 	memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
+		 	caps[0].code = GF_PROP_PID_STREAM_TYPE;
+		 	caps[0].val.type = GF_PROP_UINT;
+		 	caps[0].val.value.uint = GF_STREAM_FILE;
+		 	caps[0].flags = GF_CAPS_INPUT_STATIC;
+
+		 	caps[1].code = fmt->extensions ? GF_PROP_PID_FILE_EXT : GF_PROP_PID_MIME;
+		 	caps[1].val.type = GF_PROP_NAME;
+		 	caps[1].val.value.string = (char *) ( fmt->extensions ? fmt->extensions : fmt->mime_type );
+		 	caps[1].flags = GF_CAPS_INPUT;
+
+			if (fmt->mime_type && fmt->extensions) {
+				caps[2].flags = 0;
+				caps[3].code = GF_PROP_PID_MIME;
+				caps[3].val.type = GF_PROP_NAME;
+				caps[3].val.value.string = (char *) fmt->mime_type;
+				caps[3].flags = GF_CAPS_INPUT;
+			}
+			//TODO map codec IDs if known ?
+		 	freg->caps =  caps;
+		}
 
 		idx=0;
 		i=0;

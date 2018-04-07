@@ -229,6 +229,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data);
 
 Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type);
+u32 gf_props_get_id(const char *name);
 
 //helper macros to set properties
 #define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
@@ -247,6 +248,12 @@ Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const 
 #define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data.ptr = _val, .value.data.size=_len}
 #define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA_NO_COPY, .value.data.ptr = _val, .value.data.size =_len}
 #define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data.ptr = _val, .value.data.size = _len}
+#define PROP_VEC2(_val) (GF_PropertyValue){.type=GF_PROP_VEC2, .value.vec2 = _val}
+#define PROP_VEC2I(_val) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i = _val}
+#define PROP_VEC3(_val) (GF_PropertyValue){.type=GF_PROP_VEC3, .value.vec3 = _val}
+#define PROP_VEC3I(_val) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i = _val}
+#define PROP_VEC4(_val) (GF_PropertyValue){.type=GF_PROP_VEC4, .value.vec4 = _val}
+#define PROP_VEC4I(_val) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i = _val}
 
 #define PROP_POINTER(_val) (GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
 
@@ -776,6 +783,9 @@ enum
 	GF_PROP_PID_TRANS_X = GF_4CC('V','T','R','X'),
 	//(uint) frame height
 	GF_PROP_PID_TRANS_Y = GF_4CC('V','T','R','Y'),
+	//(uint) frame source window
+	GF_PROP_PID_CROP_POS = GF_4CC('V','C','X','Y'),
+	GF_PROP_PID_ORIG_SIZE = GF_4CC('V','O','W','H'),
 
 	//(uint) average bitrate
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
@@ -1117,6 +1127,11 @@ Supported KEYWORD (case insensitive):
 - pname=VAL: uses pid property with name VAL
 */
 GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_number);
+
+//helper function
+void gf_filter_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name);
+
+Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output);
 
 #ifdef __cplusplus
 }
