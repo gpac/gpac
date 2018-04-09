@@ -55,6 +55,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	}
 	filter->freg = registry;
 	filter->session = fsess;
+	filter->max_extra_pids = registry->max_extra_pids;
 
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
@@ -1617,4 +1618,9 @@ void gf_filter_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double st
 		evt->play.speed = speed;
 		break;
 	}
+}
+
+void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids)
+{
+	if (filter) filter->max_extra_pids = max_extra_pids;
 }

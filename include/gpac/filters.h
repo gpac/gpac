@@ -446,6 +446,8 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 
 void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
 
+void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
+
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
 

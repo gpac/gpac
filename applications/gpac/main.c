@@ -669,7 +669,7 @@ static void dump_all_codec(GF_FilterSession *session)
 	GF_PropertyValue rawp, cp;
 	u32 cidx=0;
 	u32 count = gf_fs_filters_registry_count(session);
-	fprintf(stderr, "Codec names (I: Filter Input support, O: Filter Output support) : ");
+	fprintf(stderr, "Codec names (I: Filter Input support, O: Filter Output support):\n");
 	rawp.type = cp.type = GF_PROP_UINT;
 	rawp.value.uint = GF_CODECID_RAW;
 	while (1) {

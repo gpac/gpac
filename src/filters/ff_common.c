@@ -271,7 +271,7 @@ u32 ffmpeg_codecid_from_gpac(u32 codec_id)
 			return FF2GPAC_CodecIDs[i].ff_codec_id;
 		i++;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC codec ID %s\n", codec_id ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC codec %s\n", gf_codecid_name(codec_id) ));
 	return 0;
 }
 
@@ -283,7 +283,7 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 			return FF2GPAC_CodecIDs[i].gpac_codec_id;
 		i++;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG codec ID %d\n", codec_id ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG codec ID %s\n", avcodec_get_name(codec_id) ));
 	return 0;
 }
 

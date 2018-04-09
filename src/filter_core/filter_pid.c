@@ -488,7 +488,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s connecting to %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 
 	//filter will require a new instance, clone it
-	if (filter->num_input_pids && (filter->freg->max_extra_pids <= filter->num_input_pids - 1)) {
+	if (filter->num_input_pids && (filter->max_extra_pids <= filter->num_input_pids - 1)) {
 		//TODO: copy over args from current filter
 		GF_Filter *new_filter = gf_filter_clone(filter);
 		if (new_filter) {
@@ -1789,7 +1789,7 @@ restart:
 		if (filter_dst->finalized || filter_dst->removed) continue;
 
 		//if destination is connected and accepts only one input, don't connect to it, don't clone
-		if (!filter_dst->freg->max_extra_pids && filter_dst->num_input_pids) continue;
+		if (!filter_dst->max_extra_pids && filter_dst->num_input_pids) continue;
 
 		if (gf_list_find(pid->filter->blacklisted, (void *) filter_dst->freg)>=0) continue;
 
