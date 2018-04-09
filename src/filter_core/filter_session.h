@@ -319,6 +319,9 @@ struct __gf_filter
 	//parent media session
 	GF_FilterSession *session;
 
+	//indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1
+	u32 max_extra_pids;
+
 	void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e);
 	void *on_setup_error_udta;
 	GF_Filter *on_setup_error_filter;
