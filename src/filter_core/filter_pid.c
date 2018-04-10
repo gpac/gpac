@@ -1772,6 +1772,8 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	//since we may have inserted filters in the middle (demuxers typically), get the last explicitely
 	//loaded ID in the chain
 	filter_id = gf_filter_last_id_in_chain(filter);
+	if (!filter_id && filter->cloned_from)
+		filter_id = gf_filter_last_id_in_chain(filter->cloned_from);
 
 restart:
 
@@ -1798,7 +1800,14 @@ restart:
 			continue;
 		}
 		//we try to load a filter chain, so don't test against filters loaded for another chain
-		if (filter_dst->dynamic_filter && (filter_dst != pid->filter->dst_filter)) continue;
+		if (filter_dst->dynamic_filter && (filter_dst != pid->filter->dst_filter)) {
+			//dst was explicitely set and does not match
+			if (pid->filter->dst_filter) continue;
+			//dst was not set, we may try to connect to this filter if it allows several input
+			//this is typically the case for muxers instantiated dynamically
+			if (!filter_dst->max_extra_pids) continue;
+		}
+
 
 		//dynamic filters only connect to their destination, unless explicit connections through sources
 		//we could remove this but this highly complicates PID resolution
