@@ -94,7 +94,7 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT,
 } GF_FilterSchedulerType;
 
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, GF_User *user, Bool load_meta_filters, Bool disable_blocking);
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, GF_User *user, Bool load_meta_filters, Bool disable_blocking, const char *blacklist);
 void gf_fs_del(GF_FilterSession *ms);
 GF_Filter *gf_fs_load_filter(GF_FilterSession *ms, const char *name);
 GF_Err gf_fs_run(GF_FilterSession *ms);

@@ -58,6 +58,15 @@ void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing process function - ignoring\n", freg->name));
 		return;
 	}
+	if (fsess->blacklist) {
+		char *fname = strstr(fsess->blacklist, freg->name);
+		if (fname) {
+			u32 len = strlen(freg->name);
+			if (!fname[len] || (fname[len] == ',')) {
+				return;
+			}
+		}
+	}
 	gf_list_add(fsess->registry, (void *) freg);
 }
 
@@ -73,7 +82,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 }
 
 GF_EXPORT
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, Bool load_meta_filters, Bool disable_blocking)
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, Bool load_meta_filters, Bool disable_blocking, const char *blacklist)
 {
 	u32 i;
 	GF_FilterSession *fsess, *a_sess;
@@ -186,9 +195,10 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	}
 
 	fsess->registry = gf_list_new();
-
+	fsess->blacklist = blacklist;
 	a_sess = load_meta_filters ? fsess : NULL;
 	gf_fs_reg_all(fsess, a_sess);
+	fsess->blacklist = NULL;
 
 	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
@@ -222,7 +232,6 @@ GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set)
 		session->sep_list = ',';
 	}
 	return GF_OK;
-
 }
 
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)

@@ -293,6 +293,7 @@ struct __gf_media_session
 	Double hint_timestamp;
 
 	char sep_args, sep_name, sep_frag, sep_list;
+	const char *blacklist;
 };
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);

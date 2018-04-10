@@ -241,6 +241,7 @@ static void gpac_usage(void)
 	        "                   lock: uses mutexes for queues when several threads\n"
 	        "                   flock: uses mutexes for queues even when no thread (debug mode)\n"
 	        "                   direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
+			"-bl=NAMES        : blacklist the filters in NAMES (comma-seperated list)\n"
 			"\n"
 			"-ltf            : loads test filters for unit tests.\n"
 	        "-strict-error   :  exit at first error\n"
@@ -302,6 +303,7 @@ static int gpac_main(int argc, char **argv)
 	Bool disable_blocking = GF_FALSE;
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
+	const char *blacklist = NULL;
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -394,6 +396,8 @@ static int gpac_main(int argc, char **argv)
 			view_filter_conn = GF_TRUE;
 		} else if (strstr(arg, ":*") && list_filters) {
 			list_filters = 3;
+		} else if (!strncmp(arg, "-bl", 3)) {
+			blacklist = arg_val;
 		}
 
 		if (arg_val) {
@@ -419,13 +423,12 @@ static int gpac_main(int argc, char **argv)
 		}
 	}
 
-	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_filter_info || dump_codecs) ? GF_TRUE : GF_FALSE, disable_blocking);
+	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_filter_info || dump_codecs) ? GF_TRUE : GF_FALSE, disable_blocking, blacklist);
 	if (!session) {
 		return 1;
 	}
 	if (override_seps) gf_fs_set_separators(session, separator_set);
 	if (load_test_filters) gf_fs_register_test_filters(session);
-
 
 	if (list_filters || print_filter_info) {
 		print_filters(argc, argv, session);
