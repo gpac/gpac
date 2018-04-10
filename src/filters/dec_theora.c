@@ -32,13 +32,6 @@
 
 #include <theora/theora.h>
 
-typedef struct{
-	u64 cts;
-	u32 duration;
-	u8 sap_type;
-	u8 seek_flag;
-} TheoraFrameInfo;
-
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;
@@ -49,9 +42,8 @@ typedef struct
 
 	u32 cfg_crc;
 
-	TheoraFrameInfo *frame_infos;
-	u32 frame_infos_alloc, frame_infos_size;
-
+	GF_List *src_packets;
+	u64 next_cts;
 	Bool has_reconfigured;
 } GF_TheoraDecCtx;
 
@@ -125,24 +117,16 @@ static GF_Err theoradec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	return GF_OK;
 }
 
-static void theoradec_drop_frame(GF_TheoraDecCtx *ctx)
-{
-	if (ctx->frame_infos_size) {
-		ctx->frame_infos_size--;
-		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(TheoraFrameInfo)*ctx->frame_infos_size);
-	}
-}
-
 static GF_Err theoradec_process(GF_Filter *filter)
 {
 	ogg_packet op;
 	yuv_buffer yuv;
-	u32 i;
+	u32 i, count;
 	char *buffer;
 	char *pYO, *pUO, *pVO;
 	unsigned char *pYD, *pUD, *pVD;
 	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck, *dst_pck, *src_pck, *pck_ref;
 	Bool is_seek;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -158,41 +142,38 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		op.packet = (char *) gf_filter_pck_get_data(pck, &psize);
 		op.bytes = psize;
 
-		if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
-			ctx->frame_infos_alloc += 10;
-			ctx->frame_infos = gf_realloc(ctx->frame_infos, sizeof(TheoraFrameInfo)*ctx->frame_infos_alloc);
-		}
-		for (i=0; i<ctx->frame_infos_size; i++) {
-			if (ctx->frame_infos[i].cts > cts) {
-				memmove(&ctx->frame_infos[i+1], &ctx->frame_infos[i], sizeof(TheoraFrameInfo) * (ctx->frame_infos_size-i));
-				ctx->frame_infos[i].cts = cts;
-				ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck);
-				ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck);
-				ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck);
+
+		//append in cts order since we get output frames in cts order
+		pck_ref = pck;
+		gf_filter_pck_ref_props(&pck_ref);
+		count = gf_list_count(ctx->src_packets);
+		src_pck = NULL;
+		for (i=0; i<count; i++) {
+			u64 acts;
+			src_pck = gf_list_get(ctx->src_packets, i);
+			acts = gf_filter_pck_get_cts(src_pck);
+			if (acts==cts) {
+				gf_filter_pck_unref(pck_ref);
 				break;
 			}
+			if (acts>cts) {
+				gf_list_insert(ctx->src_packets, pck_ref, i);
+				break;
+			}
+			src_pck = NULL;
 		}
-		if (i==ctx->frame_infos_size) {
-			ctx->frame_infos[i].cts = cts;
-			ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck);
-			ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck);
-			ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck);
-		}
-		ctx->frame_infos_size++;
+		if (!src_pck)
+			gf_list_add(ctx->src_packets, pck_ref);
+
+
 	} else {
 		op.packet = NULL;
 		op.bytes = 0;
 	}
 
-	is_seek = ctx->frame_infos[0].seek_flag;
-
 	if (theora_decode_packetin(&ctx->td, &op)<0) {
-		theoradec_drop_frame(ctx);
-		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
-	if (is_seek) {
-		theoradec_drop_frame(ctx);
+		src_pck = gf_list_pop_front(ctx->src_packets);
+		gf_filter_pck_unref(src_pck);
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -235,11 +216,17 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		pVO += yuv.uv_stride;
 	}
 
-	gf_filter_pck_set_cts(dst_pck, ctx->frame_infos[0].cts);
-	gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
-	gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
-
-	theoradec_drop_frame(ctx);
+	src_pck = gf_list_pop_front(ctx->src_packets);
+	if (src_pck) {
+		gf_filter_pck_merge_properties(src_pck, dst_pck);
+		is_seek = gf_filter_pck_get_seek_flag(src_pck);
+		ctx->next_cts = gf_filter_pck_get_cts(src_pck);
+		ctx->next_cts += gf_filter_pck_get_duration(src_pck);
+		gf_filter_pck_unref(src_pck);
+	} else {
+		is_seek = 0;
+		gf_filter_pck_set_cts(dst_pck, ctx->next_cts);
+	}
 
 	if (!pck || !is_seek )
 		gf_filter_pck_send(dst_pck);
@@ -250,7 +237,12 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-
+static GF_Err theoradec_initialize(GF_Filter *filter)
+{
+	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
+	ctx->src_packets = gf_list_new();
+	return GF_OK;
+}
 static void theoradec_finalize(GF_Filter *filter)
 {
 	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
@@ -258,7 +250,12 @@ static void theoradec_finalize(GF_Filter *filter)
 	theora_clear(&ctx->td);
 	theora_info_clear(&ctx->ti);
 	theora_comment_clear(&ctx->tc);
-	if (ctx->frame_infos) gf_free(ctx->frame_infos);
+
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
+	gf_list_del(ctx->src_packets);
 }
 
 static const GF_FilterCapability TheoraDecCaps[] =
@@ -275,6 +272,7 @@ GF_FilterRegister TheoraDecRegister = {
 	.description = "OGG/Theora decoder",
 	.private_size = sizeof(GF_TheoraDecCtx),
 	SETCAPS(TheoraDecCaps),
+	.initialize = theoradec_initialize,
 	.finalize = theoradec_finalize,
 	.configure_pid = theoradec_configure_pid,
 	.process = theoradec_process,

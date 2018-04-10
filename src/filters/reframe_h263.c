@@ -62,6 +62,8 @@ typedef struct
 	Bool is_file, file_loaded;
 	Bool initial_play_done;
 
+	GF_FilterPacket *src_pck;
+
 	H263Idx *indexes;
 	u32 index_alloc_size, index_size;
 } GF_H263DmxCtx;
@@ -349,6 +351,8 @@ GF_Err h263dmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+			ctx->src_pck = NULL;
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -383,6 +387,9 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		u64 cts = gf_filter_pck_get_cts(pck);
 		if (cts != GF_FILTER_NO_TS)
 			ctx->cts = cts;
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
 	}
 
 	if (ctx->resume_from) {
@@ -416,6 +423,8 @@ GF_Err h263dmx_process(GF_Filter *filter)
 			//no start code in stored buffer
 			if (current<0) {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);
+				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
+
 				memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 				gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -446,6 +455,8 @@ GF_Err h263dmx_process(GF_Filter *filter)
 			assert(!first_frame_found);
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
+			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
+
 			if (ctx->bytes_in_header) {
 				if (byte_offset != GF_FILTER_NO_BO) {
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - ctx->bytes_in_header);
@@ -522,6 +533,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		}
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 		if (ctx->bytes_in_header && current) {
 			memcpy(pck_data, ctx->hdr_store+current, ctx->bytes_in_header);
 			size -= ctx->bytes_in_header;

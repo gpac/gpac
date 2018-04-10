@@ -215,6 +215,8 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 	size = (ctx->vd.pcm_current - ctx->vd.pcm_returned) * 2 * ctx->vi.channels;
 	if (size) dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &buffer);
 
+	if (pck && dst_pck) gf_filter_pck_merge_properties(pck, dst_pck);
+
 	/*trust vorbis max block info*/
 	total_samples = 0;
 	total_bytes = 0;

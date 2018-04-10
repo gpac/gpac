@@ -74,12 +74,15 @@ typedef struct _gf_ffdec_ctx
 	u32 width, height, pixel_fmt, stride, stride_uv;
 	GF_Fraction sar;
 	struct SwsContext *sws_ctx;
+
+	GF_List *src_packets;
 } GF_FFDecodeCtx;
 
 static GF_Err ffdec_initialize(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 	ctx->initialized = GF_TRUE;
+	ctx->src_packets = gf_list_new();
 	return GF_OK;
 }
 
@@ -89,6 +92,12 @@ static void ffdec_finalize(GF_Filter *filter)
 	if (ctx->options) av_dict_free(&ctx->options);
 	if (ctx->frame) av_frame_free(&ctx->frame);
 	if (ctx->sws_ctx) sws_freeContext(ctx->sws_ctx);
+
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
+	gf_list_del(ctx->src_packets);
 
 	if (ctx->owns_context && ctx->decoder) {
 		if (ctx->decoder->extradata) gf_free(ctx->decoder->extradata);
@@ -108,9 +117,10 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
 	GF_FilterSAPType sap_type = GF_FILTER_SAP_NONE;
-	u32 pck_duration = 0;
+	u32 i, count;
 	u32 size=0, pix_fmt, outsize, pix_out, stride, stride_uv, uv_height, nb_planes;
 	char *out_buffer;
+	GF_FilterPacket *pck_src;
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
@@ -125,10 +135,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	if (pck) data = gf_filter_pck_get_data(pck, &size);
 
 	if (!is_eos) {
-		u64 flags;
-		seek_flag = gf_filter_pck_get_seek_flag(pck);
-		//copy over SAP and duration in dts - alternatively we could ref_inc the packet and pass its adress here
-		flags = gf_filter_pck_get_sap(pck);
+		pck_src = pck;
+		gf_filter_pck_ref_props(&pck_src);
+		if (pck_src) gf_list_add(ctx->src_packets, pck_src);
 
 		//seems ffmpeg is not properly handling the decoding after a flush, we close and reopen the codec
 		if (ctx->flush_done) {
@@ -138,13 +147,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			ctx->flush_done = GF_FALSE;
 		}
 
-		flags <<= 16;
-		flags |= seek_flag;
-		flags <<= 32;
-		flags |= gf_filter_pck_get_duration(pck);
-		pkt.dts = flags;
+		pkt.pts = gf_filter_pck_get_dts(pck);
 		pkt.pts = gf_filter_pck_get_cts(pck);
-
 		pkt.duration = gf_filter_pck_get_duration(pck);
 		if (gf_filter_pck_get_sap(pck)>0)
 			pkt.flags = AV_PKT_FLAG_KEY;
@@ -201,21 +205,40 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	memset(&pict, 0, sizeof(pict));
 
+
+	pck_src = NULL;
+	count = gf_list_count(ctx->src_packets);
+	for (i=0; i<count; i++) {
+		pck_src = gf_list_get(ctx->src_packets, i);
+		if (gf_filter_pck_get_cts(pck_src) == frame->pkt_pts) break;
+		pck_src = NULL;
+	}
+
 	//copy over SAP and duration indication
 	seek_flag = GF_FALSE;
 	sap_type = GF_FILTER_SAP_NONE;
-	if (frame->pkt_dts) {
-		u32 flags = frame->pkt_dts>>32;
-		seek_flag = flags & 0xFFFF;
-		sap_type = ((flags>>16) & 0xFFFF) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE;
-		pck_duration = (frame->pkt_dts & 0xFFFFFFFFUL);
+
+	if (pck_src) {
+		seek_flag = gf_filter_pck_get_seek_flag(pck_src);
 	}
 	//this was a seek frame, do not dispatch
-	if (seek_flag)
+	if (seek_flag) {
+		if (pck_src) {
+			gf_list_del_item(ctx->src_packets, pck_src);
+			gf_filter_pck_unref(pck_src);
+		}
 		return GF_OK;
+	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, outsize, &out_buffer);
+
+	if (pck_src) {
+		if (dst_pck) gf_filter_pck_merge_properties(pck_src, dst_pck);
+		gf_list_del_item(ctx->src_packets, pck_src);
+		gf_filter_pck_unref(pck_src);
+	}
 	if (!dst_pck) return GF_OUT_OF_MEM;
+
 
 	//TODO: cleanup, we should not convert pixel format in the decoder but through filters !
 	switch (ctx->pixel_fmt) {
@@ -290,11 +313,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		sws_scale(ctx->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
 	}
 
-	gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
-	//copy over SAP and duration indication
-	gf_filter_pck_set_duration(dst_pck, pck_duration);
 	gf_filter_pck_set_sap(dst_pck, sap_type);
-
 
 	if (frame->interlaced_frame)
 		gf_filter_pck_set_interlaced(dst_pck, frame->top_field_first ? 2 : 1);
@@ -313,7 +332,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	Bool is_eos=GF_FALSE;
 	char *data;
 	AVFrame *frame;
-	GF_FilterPacket *dst_pck;
+	GF_FilterPacket *dst_pck, *src_pck;
 
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
@@ -325,18 +344,17 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	if (pck) pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
 	if (!is_eos) {
-		u64 dts;
-		pkt.pts = gf_filter_pck_get_cts(pck);
+		src_pck = pck;
+		gf_filter_pck_ref_props(&src_pck);
+		if (src_pck) gf_list_add(ctx->src_packets, src_pck);
+
 		if (!pkt.data) {
 			gf_filter_pid_drop_packet(ctx->in_pid);
 			return GF_OK;
 		}
 
-		//copy over SAP and duration in dts
-		dts = gf_filter_pck_get_sap(pck);
-		dts <<= 32;
-		dts |= gf_filter_pck_get_duration(pck);
-		pkt.dts = dts;
+		pkt.pts = gf_filter_pck_get_cts(pck);
+		pkt.dts = gf_filter_pck_get_dts(pck);
 
 		pkt.size = in_size;
 		if (ctx->frame_start > pkt.size) ctx->frame_start = 0;
@@ -395,6 +413,18 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		break;
 	}
 
+	//we don't follow the same approach as in video, we assume the codec works with one in one out
+	//and use the first entry in src packets to match in order to copy the properties
+	//a nicer approach would be to count delay frames (number of frames used to initialize)
+	//and backmerge properties from the last packet in to the last-nb_init_frames
+	src_pck = gf_list_get(ctx->src_packets, 0);
+
+	if (src_pck) {
+		gf_filter_pck_merge_properties(src_pck, dst_pck);
+		gf_list_rem(ctx->src_packets, 0);
+		gf_filter_pck_unref(src_pck);
+	}
+
 	if (frame->pkt_pts != AV_NOPTS_VALUE) {
 		u64 pts = frame->pkt_pts;
 		u32 timescale = gf_filter_pck_get_timescale(pck);
@@ -405,13 +435,10 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		}
 		gf_filter_pck_set_cts(dst_pck, pts);
 	}
-
-	//copy over SAP and duration indication
-	if (frame->pkt_dts) {
-		u32 sap = frame->pkt_dts>>32;
-		gf_filter_pck_set_duration(dst_pck, frame->pkt_dts & 0xFFFFFFFFUL);
-		gf_filter_pck_set_sap(dst_pck, sap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+	if (frame->pkt_dts != AV_NOPTS_VALUE) {
+		gf_filter_pck_set_dts(dst_pck, frame->pkt_dts);
 	}
+
 
 	gf_filter_pck_send(dst_pck);
 

@@ -160,10 +160,7 @@ typedef struct
 	Bool locked;
 	CVPixelBufferRef frame;
 	GF_VTBDecCtx *ctx;
-	u64 cts, dts;
-	u32 sap;
-	u32 duration;
-	u32 timescale;
+	GF_FilterPacket *pck_src;
 	//openGL mode
 #ifdef VTB_GL_TEXTURE
 	GF_CVGLTextureREF y, u, v;
@@ -176,7 +173,8 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 {
 	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *)opaque;
 	GF_VTBHWFrame *frame;
-	u32 i, count;
+	u32 i, count, timescale;
+	u64 cts, dts;
 	assert(ctx->cur_pck);
 
 	if (status != kCVReturnSuccess) {
@@ -204,33 +202,41 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 
 	frame->hw_frame.user_data = frame;
 	frame->frame = CVPixelBufferRetain(image);
-	frame->cts = gf_filter_pck_get_cts(ctx->cur_pck);
-	frame->dts = gf_filter_pck_get_dts(ctx->cur_pck);
-	frame->sap = gf_filter_pck_get_sap(ctx->cur_pck);
-	frame->duration = gf_filter_pck_get_duration(ctx->cur_pck);
-	frame->timescale = gf_filter_pck_get_timescale(ctx->cur_pck);
+	frame->pck_src = ctx->cur_pck;
+	gf_filter_pck_ref_props(&frame->pck_src);
+
 	frame->ctx = ctx;
+	cts = gf_filter_pck_get_cts(frame->pck_src);
+	dts = gf_filter_pck_get_dts(frame->pck_src);
+	timescale = gf_filter_pck_get_timescale(frame->pck_src);
+
 	if (!ctx->last_timescale_out)
-		ctx->last_timescale_out = frame->timescale;
+		ctx->last_timescale_out = gf_filter_pck_get_timescale(frame->pck_src);
 
 	count = gf_list_count(ctx->frames);
 	for (i=0; i<count; i++) {
 		GF_VTBHWFrame *aframe = gf_list_get(ctx->frames, i);
 		Bool insert = GF_FALSE;
+		u64 acts, adts, atimescale;
 		s64 diff;
-		if (aframe->dts>frame->dts) {
+
+		acts = gf_filter_pck_get_cts(aframe->pck_src);
+		adts = gf_filter_pck_get_dts(aframe->pck_src);
+		atimescale = gf_filter_pck_get_timescale(aframe->pck_src);
+
+		if (adts > dts) {
 			ctx->reorder_probe=0;
 			ctx->reorder_detected=GF_FALSE;
 			break;
 		}
-		if ((frame->timescale == aframe->timescale) && (ctx->last_timescale_out == frame->timescale)) {
-			diff = (s64) aframe->cts - (s64) frame->cts;
-			if ((diff>0) && (frame->cts > ctx->last_cts_out) ) {
+		if ((timescale == atimescale) && (ctx->last_timescale_out == timescale)) {
+			diff = (s64) acts - (s64) cts;
+			if ((diff>0) && (cts > ctx->last_cts_out) ) {
 				insert = GF_TRUE;
 			}
 		} else {
-			diff = (s64) (aframe->cts * frame->timescale) - (s64) (frame->cts * aframe->timescale);
-			if ((diff>0) && (ctx->last_timescale_out * frame->cts > frame->timescale * ctx->last_cts_out) ) {
+			diff = (s64) (acts * timescale) - (s64) (cts * atimescale);
+			if ((diff>0) && (ctx->last_timescale_out * cts > timescale * ctx->last_cts_out) ) {
 				insert = GF_TRUE;
 			}
 		}
@@ -1282,11 +1288,11 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			}
 		}
 
-		gf_filter_pck_set_cts(dst_pck, vtbframe->cts);
-		gf_filter_pck_set_sap(dst_pck, vtbframe->sap);
-		ctx->last_cts_out = vtbframe->cts;
-		ctx->last_timescale_out = vtbframe->timescale;
-
+		gf_filter_pck_merge_properties(vtbframe->pck_src, dst_pck);
+		ctx->last_cts_out = gf_filter_pck_get_cts(vtbframe->pck_src);
+		ctx->last_timescale_out = gf_filter_pck_get_timescale(vtbframe->pck_src);
+		gf_filter_pck_unref(vtbframe->pck_src);
+		vtbframe->pck_src = NULL;
 		gf_filter_pck_send(dst_pck);
 	}
     CVPixelBufferUnlockBaseAddress(vtbframe->frame, kCVPixelBufferLock_ReadOnly);
@@ -1647,10 +1653,12 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	ctx->decoded_frames_pending++;
 
 	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &vtb_frame->hw_frame, vtbframe_release);
-	gf_filter_pck_set_cts(dst_pck, vtb_frame->cts);
-	gf_filter_pck_set_sap(dst_pck, vtb_frame->sap);
-	ctx->last_cts_out = vtb_frame->cts;
-	ctx->last_timescale_out = vtb_frame->timescale;
+
+	gf_filter_pck_merge_properties(vtb_frame->pck_src, dst_pck);
+	ctx->last_cts_out = gf_filter_pck_get_cts(vtb_frame->pck_src);
+	ctx->last_timescale_out = gf_filter_pck_get_timescale(vtb_frame->pck_src);
+	gf_filter_pck_unref(vtb_frame->pck_src);
+	vtb_frame->pck_src = NULL;
 
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;

@@ -86,12 +86,15 @@ typedef struct _gf_ffenc_ctx
 	//shift of TS - ffmpeg may give pkt-> PTS < frame->PTS to indicate discard samples
 	//we convert back to frame PTS but signal discard samples at the PID level
 	s32 ts_shift;
+
+	GF_List *src_packets;
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_initialize(GF_Filter *filter)
 {
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
 	ctx->initialized = GF_TRUE;
+	ctx->src_packets = gf_list_new();
 	return GF_OK;
 }
 
@@ -102,6 +105,12 @@ static void ffenc_finalize(GF_Filter *filter)
 	if (ctx->frame) av_frame_free(&ctx->frame);
 	if (ctx->enc_buffer) gf_free(ctx->enc_buffer);
 	if (ctx->audio_buffer) gf_free(ctx->audio_buffer);
+
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
+	gf_list_del(ctx->src_packets);
 
 	if (ctx->encoder) {
 		avcodec_close(ctx->encoder);
@@ -114,10 +123,10 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	AVPacket pkt;
 	s32 gotpck;
 	const char *data = NULL;
-	u32 size=0;
+	u32 size=0, i, count;
 	s32 res;
 	char *output;
-	GF_FilterPacket *dst_pck;
+	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!pck) {
@@ -189,6 +198,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			ctx->cts_first_frame_plus_one = 1 + ctx->frame->pts;
 		}
 		res = avcodec_encode_video2(ctx->encoder, &pkt, ctx->frame, &gotpck);
+
+		//keep ref to ource properties
+		gf_filter_pck_ref_props(&pck);
+		gf_list_add(ctx->src_packets, pck);
+
 		gf_filter_pid_drop_packet(ctx->in_pid);
 	} else {
 		res = avcodec_encode_video2(ctx->encoder, &pkt, NULL, &gotpck);
@@ -215,23 +229,39 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_MEDIA_SKIP, &PROP_SINT((s32) shift) );
 		}
 	}
+
+	src_pck = NULL;
+	count = gf_list_count(ctx->src_packets);
+	for (i=0; i<count; i++) {
+		src_pck = gf_list_get(ctx->src_packets, i);
+		if (gf_filter_pck_get_cts(src_pck) == pkt.pts) break;
+		src_pck = NULL;
+	}
+
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, pkt.size, &output);
 	memcpy(output, pkt.data, pkt.size);
 
+	if (src_pck) {
+		gf_filter_pck_merge_properties(src_pck, dst_pck);
+		gf_list_del_item(ctx->src_packets, src_pck);
+		gf_filter_pck_unref(src_pck);
+	} else {
+		if (pkt.duration) {
+			gf_filter_pck_set_duration(dst_pck, pkt.duration);
+		} else {
+			gf_filter_pck_set_duration(dst_pck, ctx->frame->pkt_duration);
+		}
+	}
+
 	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
 	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
+
 	//this is not 100% correct since we don't have any clue if this is SAP1/2/3/4 ...
 	//since we send the output to our reframers we should be fine
 	if (pkt.flags & AV_PKT_FLAG_KEY)
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
-
-	if (pkt.duration) {
-		gf_filter_pck_set_duration(dst_pck, pkt.duration);
-	} else {
-		gf_filter_pck_set_duration(dst_pck, ctx->frame->pkt_duration);
-	}
 
 	gf_filter_pck_send(dst_pck);
 
@@ -249,10 +279,10 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	AVPacket pkt;
 	s32 gotpck;
 	const char *data = NULL;
-	u32 size=0, nb_copy=0;
+	u32 size=0, nb_copy=0, i, count;
 	s32 res;
 	char *output;
-	GF_FilterPacket *dst_pck;
+	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!pck) {
@@ -271,6 +301,10 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (!ctx->bytes_in_audio_buffer) {
 			ctx->first_byte_cts = gf_filter_pck_get_cts(pck);
 		}
+
+		src_pck = pck;
+		gf_filter_pck_ref_props(&src_pck);
+		gf_list_add(ctx->src_packets, src_pck);
 
 		if (ctx->encoder->frame_size && (size + ctx->bytes_in_audio_buffer <  ctx->bytes_per_sample * ctx->encoder->frame_size)) {
 
@@ -362,6 +396,32 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 	}
 
+	//try to locate first source packet with cts greater than this packet cts and use it as source for properties
+	//this is not optimal because we dont produce N for N because of different window coding sizes
+	src_pck = NULL;
+	count = gf_list_count(ctx->src_packets);
+	for (i=0; i<count; i++) {
+		u64 acts;
+		u32 adur;
+		src_pck = gf_list_get(ctx->src_packets, i);
+		acts = gf_filter_pck_get_cts(src_pck);
+		adur = gf_filter_pck_get_duration(src_pck);
+		if (acts + adur <= pkt.pts + ctx->ts_shift) {
+			gf_list_rem(ctx->src_packets, i);
+			gf_filter_pck_unref(src_pck);
+			i--;
+			count--;
+		}
+		if (acts >= pkt.pts) {
+			break;
+		}
+		src_pck = NULL;
+	}
+	if (src_pck) {
+		gf_filter_pck_merge_properties(src_pck, dst_pck);
+		gf_list_del_item(ctx->src_packets, src_pck);
+		gf_filter_pck_unref(src_pck);
+	}
 	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
 	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
 	//this is not 100% correct since we don't have any clue if this is SAP1/4 (roll info missing)

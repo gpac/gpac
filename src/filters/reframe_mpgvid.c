@@ -78,6 +78,8 @@ typedef struct
 	Bool input_is_au_start, input_is_au_end;
 	Bool recompute_cts;
 
+	GF_FilterPacket *src_pck;
+
 	MPGVidIdx *indexes;
 	u32 index_alloc_size, index_size;
 } GF_MPGVidDmxCtx;
@@ -452,6 +454,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+			ctx->src_pck = NULL;
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -483,6 +487,9 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, &ctx->input_is_au_end);
 		//this will force CTS recomput of each frame
 		if (ctx->recompute_cts) ctx->input_is_au_start = GF_FALSE;
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
 	}
 
 	//we stored some data to find the complete vosh, aggregate this packet with current one
@@ -564,6 +571,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			//no start code in stored buffer
 			if (current<0) {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);
+				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 
@@ -612,6 +620,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				}
 
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				memcpy(pck_data, start, size);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 
@@ -647,6 +656,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (current>0) {
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
+			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
 			//bytes were partly in store, partly in packet
 			if (bytes_from_store) {
@@ -868,6 +878,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		ctx->nb_frames++;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 		//bytes come from both our store and the data packet
 		if (bytes_from_store) {
 			memcpy(pck_data, ctx->hdr_store+current, bytes_from_store);

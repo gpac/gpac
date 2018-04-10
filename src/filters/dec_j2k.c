@@ -363,13 +363,10 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	opj_image_destroy(image);
 	image = NULL;
 
-
-	gf_filter_pck_set_cts(pck_dst, gf_filter_pck_get_cts(pck) );
-	gf_filter_pck_set_duration(pck_dst, gf_filter_pck_get_duration(pck) );
-
 	if (gf_filter_pck_get_seek_flag(pck)) {
 		gf_filter_pck_discard(pck_dst);
 	} else {
+		gf_filter_pck_merge_properties(pck, pck_dst);
 		gf_filter_pck_send(pck_dst);
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);

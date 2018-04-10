@@ -141,6 +141,7 @@ typedef struct __gf_filter_pck_info
 	s16 roll;
 	u64 byte_offset;
 
+	Bool props_ref_only;
 } GF_FilterPckInfo;
 
 struct __gf_filter_pck

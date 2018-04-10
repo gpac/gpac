@@ -65,6 +65,8 @@ typedef struct
 	Bool is_eac3;
 	Bool (*ac3_parser_bs)(GF_BitStream*, GF_AC3Header*, Bool);
 
+	GF_FilterPacket *src_pck;
+
 	AC3Idx *indexes;
 	u32 index_alloc_size, index_size;
 } GF_AC3DmxCtx;
@@ -311,6 +313,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
 			assert(ctx->remaining == 0);
+			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+			ctx->src_pck = NULL;
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -334,6 +338,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
 			memcpy(output, data, to_send);
+			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
@@ -370,6 +375,10 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		u64 cts = gf_filter_pck_get_cts(pck);
 		if (cts != GF_FILTER_NO_TS)
 			ctx->cts = cts;
+
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
 	}
 
 	while (remain) {
@@ -402,7 +411,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 			}
 			break;
 		}
-		sync_pos =  gf_bs_get_position(ctx->bs);
+		sync_pos = gf_bs_get_position(ctx->bs);
 		if (sync_pos) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AC3Dmx] %d bytes unrecovered before sync word\n", sync_pos));
 		}
@@ -457,6 +466,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		}
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			if (alread_sync) {
 				memcpy(output, ctx->header, 6);
