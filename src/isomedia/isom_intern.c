@@ -34,7 +34,7 @@
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected, Bool progressive_mode);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, Bool is_first_merge);
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge);
 
 GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 {
@@ -43,6 +43,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	u64 MaxDur;
 	GF_TrackFragmentBox *traf;
 	GF_TrackBox *trak;
+	u64 base_data_offset;
 
 	MaxDur = 0;
 
@@ -58,6 +59,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 //		return GF_ISOM_INVALID_FILE;
 	}
 
+	base_data_offset = mov->current_top_box_start;
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(moof->TrackList, &i))) {
 		if (!traf->tfhd) {
@@ -82,7 +84,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			return GF_ISOM_INVALID_FILE;
 		}
 
-		e = MergeTrack(trak, traf, mov->current_top_box_start, !trak->first_traf_merged);
+		e = MergeTrack(trak, traf, mov->current_top_box_start, &base_data_offset, !trak->first_traf_merged);
 		if (e) return e;
 
 		trak->present_in_scalable_segment = 1;
