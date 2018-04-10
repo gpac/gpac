@@ -3432,9 +3432,13 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			}
 		} else {
 			prop_4cc = gf_props_get_id(name);
+			//not matching, try with name
 			if (!prop_4cc) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] Unrecognized template %s\n", name));
-				is_ok = GF_FALSE;
+				prop_val = gf_filter_pid_get_property_str(pid, name);
+				if (!prop_val) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] Unrecognized template %s\n", name));
+					is_ok = GF_FALSE;
+				}
 			} else {
 				prop_val = gf_filter_pid_get_property(pid, prop_4cc);
 				if (!prop_val) {
