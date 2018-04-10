@@ -64,10 +64,13 @@ typedef struct _gf_ffenc_ctx
 	char *enc_buffer;
 	u32 enc_buffer_size;
 
+	Bool init_cts_setup;
+
 	//video state
 	u32 width, height, stride, stride_uv, nb_planes, uv_height;
 	//ffmpeg one
 	u32 pixel_fmt;
+	u64 cts_first_frame_plus_one;
 
 	//audio state
 	u32 channels, sample_rate, channel_layout, bytes_per_sample;
@@ -79,7 +82,7 @@ typedef struct _gf_ffenc_ctx
 	u32 audio_buffer_size, bytes_in_audio_buffer;
 	//cts of first byte in frame
 	u64 first_byte_cts;
-	Bool init_cts_setup;
+
 	//shift of TS - ffmpeg may give pkt-> PTS < frame->PTS to indicate discard samples
 	//we convert back to frame PTS but signal discard samples at the PID level
 	s32 ts_shift;
@@ -181,6 +184,10 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			ctx->frame->top_field_first = (ilaced==2) ? 1 : 0;
 		}
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts = gf_filter_pck_get_cts(pck);
+		ctx->frame->pkt_duration = gf_filter_pck_get_duration(pck);
+		if (!ctx->cts_first_frame_plus_one) {
+			ctx->cts_first_frame_plus_one = 1 + ctx->frame->pts;
+		}
 		res = avcodec_encode_video2(ctx->encoder, &pkt, ctx->frame, &gotpck);
 		gf_filter_pid_drop_packet(ctx->in_pid);
 	} else {
@@ -198,11 +205,21 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (!gotpck) {
 		return GF_OK;
 	}
+	if (ctx->init_cts_setup) {
+		ctx->init_cts_setup = GF_FALSE;
+		if (ctx->frame->pts != pkt.pts) {
+			ctx->ts_shift = (s32) ( (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.dts );
+		}
+		if (ctx->ts_shift) {
+			s64 shift = ctx->ts_shift;
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_MEDIA_SKIP, &PROP_SINT((s32) shift) );
+		}
+	}
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, pkt.size, &output);
 	memcpy(output, pkt.data, pkt.size);
 
-	gf_filter_pck_set_cts(dst_pck, pkt.pts);
-	gf_filter_pck_set_dts(dst_pck, pkt.dts);
+	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
+	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
 	//this is not 100% correct since we don't have any clue if this is SAP1/2/3/4 ...
 	//since we send the output to our reframers we should be fine
 	if (pkt.flags & AV_PKT_FLAG_KEY)
@@ -210,7 +227,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
-	gf_filter_pck_set_duration(dst_pck, pkt.duration);
+	if (pkt.duration) {
+		gf_filter_pck_set_duration(dst_pck, pkt.duration);
+	} else {
+		gf_filter_pck_set_duration(dst_pck, ctx->frame->pkt_duration);
+	}
 
 	gf_filter_pck_send(dst_pck);
 
@@ -337,9 +358,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 		if (ctx->ts_shift) {
 			s64 shift = ctx->ts_shift;
-			shift *= ctx->sample_rate;
-			shift /= ctx->timescale;
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_SKIP, &PROP_UINT((s32) shift) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_MEDIA_SKIP, &PROP_SINT((s32) shift) );
 		}
 	}
 
@@ -558,7 +577,7 @@ static GF_Err ffenc_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 		if (prop) {
 			ctx->encoder->sample_aspect_ratio.num = prop->value.frac.num;
-			ctx->encoder->sample_aspect_ratio.den = prop->value.frac.den;
+			ctx->timescale = ctx->encoder->sample_aspect_ratio.den = prop->value.frac.den;
 		} else {
 			ctx->encoder->sample_aspect_ratio.num = 1;
 			ctx->encoder->sample_aspect_ratio.den = 1;
@@ -567,7 +586,7 @@ static GF_Err ffenc_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		if (prop) {
 			ctx->encoder->time_base.num = 1;
-			ctx->encoder->time_base.den = prop->value.uint;
+			ctx->timescale = ctx->encoder->time_base.den = prop->value.uint;
 		}
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (prop) {
@@ -597,6 +616,7 @@ static GF_Err ffenc_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_pixel_get_size_info(pfmt, ctx->width, ctx->height, NULL, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
 
 		ctx->encoder->pix_fmt = ctx->pixel_fmt;
+		ctx->init_cts_setup = GF_TRUE;
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffenc_process_audio;
 

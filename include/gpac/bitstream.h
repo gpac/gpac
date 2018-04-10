@@ -111,6 +111,17 @@ void gf_bs_del(GF_BitStream *bs);
  */
 GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
 
+/*!
+ *	\brief bitstream constructor from callback output
+ *
+ * Creates a bitstream from in write mode suing output callback.
+ * \param on_block_out callback function used to write blocks.
+ * \param usr_data user data for callback.
+ * \param block_size internal buffer size used while dispatching bytes. If 0, defaults to 40k.
+ *	\return new bitstream object
+ */
+GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size);
+
 
 /*!
  *	\brief gets bitstream write cache size

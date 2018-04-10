@@ -29,10 +29,25 @@
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values)
 {
 	GF_PropertyValue p;
+	char *unit_sep=NULL;
+	char unit_char = 0;
+	s32 unit = 0;
 	memset(&p, 0, sizeof(GF_PropertyValue));
 	p.value.data.size=0;
 	p.type=type;
 	if (!name) name="";
+
+	unit_sep = NULL;
+	if (value) {
+		u32 len = strlen(value);
+		unit_sep = strrchr("kKgGmM", value[len-1]);
+		if (unit_sep) {
+			unit_char = unit_sep[0];
+			if ((unit_char=='k') || (unit_char=='K')) unit = 1000;
+			else if ((unit_char=='m') || (unit_char=='M')) unit = 1000000;
+			if ((unit_char=='G') || (unit_char=='g')) unit = 1000000;
+		}
+	}
 
 	switch (p.type) {
 	case GF_PROP_BOOL:
@@ -51,6 +66,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		else if (!value || (sscanf(value, "%d", &p.value.sint)!=1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for int arg %s - using 0\n", value, name));
 			p.value.sint = 0;
+		} else if (unit) {
+			p.value.sint *= unit;
 		}
 		break;
 	case GF_PROP_UINT:
@@ -75,9 +92,13 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		} else if (!strnicmp(value, "0x", 2)) {
 			if (sscanf(value, "0x%x", &p.value.uint)!=1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			} else if (unit) {
+				p.value.uint *= unit;
 			}
 		} else if (sscanf(value, "%d", &p.value.uint)!=1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+		} else if (unit) {
+			p.value.uint *= unit;
 		}
 		break;
 	case GF_PROP_LSINT:
@@ -86,6 +107,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		else if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
+		} else if (unit) {
+			p.value.longsint *= unit;
 		}
 		break;
 	case GF_PROP_LUINT:
@@ -93,6 +116,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		else if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
+		} else if (unit) {
+			p.value.longuint *= unit;
 		}
 		break;
 	case GF_PROP_FRACTION:
@@ -123,8 +148,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			Float f;
 			if (sscanf(value, "%f", &f) != 1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for float arg %s - using 0\n", value, name));
-			p.value.fnumber = 0;
+				p.value.fnumber = 0;
 			} else {
+				if (unit) f *= unit;
 				p.value.fnumber = FLT2FIX(f);
 			}
 		}
@@ -135,6 +161,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		else if (!value || (sscanf(value, "%lg", &p.value.number) != 1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for double arg %s - using 0\n", value, name));
 			p.value.number = 0;
+		} else if (unit) {
+			p.value.number *= unit;
 		}
 		break;
 	case GF_PROP_VEC2I:
@@ -203,6 +231,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		p.type=GF_PROP_FORBIDEN;
 		break;
 	}
+//	if (unit_sep) unit_sep[0] = unit_char;
+
 	return p;
 }
 
@@ -638,7 +668,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format", GF_PROP_PCMFMT},
 	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaybackSpeed", "audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE},
-	{ GF_PROP_PID_AUDIO_SKIP, "AudioSkip", "number of audio samples to skip to recover initial source timing. Negative value imply holding (delaying) the stream", GF_PROP_DOUBLE},
+	{ GF_PROP_PID_MEDIA_SKIP, "MediaSkip", "time to skip at begining of stream to recover initial source timing. Negative value imply holding (delaying) the stream", GF_PROP_SINT},
 	{ GF_PROP_PID_WIDTH, "Width", "Visual Width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visual Height (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_PIXFMT},

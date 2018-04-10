@@ -72,8 +72,8 @@ enum
 	GF_ISOM_OPEN_READ_DUMP = 0,
 	/*Opens a file in READ ONLY mode*/
 	GF_ISOM_OPEN_READ,
-	/*Opens a file in WRITE ONLY mode. Media Data is captured on the fly. In this mode,
-	the editing functions are disabled.*/
+	/*Opens a file in WRITE ONLY mode. Media Data is captured on the fly and storage mode is always flat (moov at end).
+	// In this mode, the editing functions are disabled.*/
 	GF_ISOM_OPEN_WRITE,
 	/*Opens an existing file in EDIT mode*/
 	GF_ISOM_OPEN_EDIT,
@@ -1645,6 +1645,9 @@ GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *
 
 GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum);
 GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof);
+
+GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number, s16 roll_distance);
+GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 num_leading_samples);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 

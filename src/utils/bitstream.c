@@ -64,6 +64,11 @@ struct __tag_bitstream
 
 	Bool remove_emul_prevention_byte;
 	u32 nb_zeros;
+
+	GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size);
+	void *usr_data;
+	u64 bytes_out;
+
 };
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 BufferSize)
@@ -185,6 +190,33 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	return tmp;
 }
 
+GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size)
+{
+	GF_BitStream *tmp;
+
+	if (!on_block_out) return NULL;
+
+	tmp = (GF_BitStream *)gf_malloc(sizeof(GF_BitStream));
+	if (!tmp) return NULL;
+	memset(tmp, 0, sizeof(GF_BitStream));
+
+	tmp->position = 0;
+	tmp->current = 0;
+	tmp->stream = NULL;
+	tmp->nbBits = 0;
+	tmp->size = block_size ? block_size : 10*BS_MEM_BLOCK_ALLOC_SIZE;
+	tmp->original = (char *) gf_malloc(sizeof(char) * ((u32) tmp->size));
+	if (! tmp->original) {
+		gf_free(tmp);
+		return NULL;
+	}
+	tmp->bsmode = GF_BITSTREAM_WRITE_DYN;
+	tmp->on_block_out = on_block_out;
+	tmp->usr_data = usr_data;
+
+	return tmp;
+}
+
 static void bs_flush_cache(GF_BitStream *bs)
 {
 	if (bs->buffer_written) {
@@ -222,6 +254,9 @@ GF_EXPORT
 void gf_bs_del(GF_BitStream *bs)
 {
 	if (!bs) return;
+	if (bs->on_block_out && bs->position>bs->bytes_out) {
+		bs->on_block_out(bs->usr_data, bs->original, bs->position - bs->bytes_out);
+	}
 	/*if we are in dynamic mode (alloc done by the bitstream), free the buffer if still present*/
 	if ((bs->bsmode == GF_BITSTREAM_WRITE_DYN) && bs->original) gf_free(bs->original);
 	if (bs->buffer_io)
@@ -526,6 +561,18 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 	}
 	/*we are in MEM mode*/
 	if ( (bs->bsmode == GF_BITSTREAM_WRITE) || (bs->bsmode == GF_BITSTREAM_WRITE_DYN) ) {
+		if (bs->on_block_out) {
+			assert(bs->position >= bs->bytes_out);
+			if (bs->position - bs->bytes_out == bs->size) {
+				bs->on_block_out(bs->usr_data, bs->original, bs->position - bs->bytes_out);
+				bs->bytes_out = bs->position;
+			}
+			if (bs->original)
+				bs->original[bs->position - bs->bytes_out] = val;
+			bs->position++;
+			assert(bs->position >= bs->bytes_out);
+			return;
+		}
 		if (bs->position == bs->size) {
 			/*no more space...*/
 			if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
@@ -733,6 +780,21 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 			bs->position += nbBytes;
 			return nbBytes;
 		case GF_BITSTREAM_WRITE_DYN:
+			if (bs->on_block_out) {
+				assert(bs->position >= bs->bytes_out);
+
+				if (bs->position - bs->bytes_out + nbBytes <= bs->size) {
+					memcpy(bs->original + bs->position - bs->bytes_out, data, nbBytes);
+					bs->position += nbBytes;
+				} else {
+					bs->on_block_out(bs->usr_data, bs->original, bs->position - bs->bytes_out);
+					bs->on_block_out(bs->usr_data, (char *) data, nbBytes);
+					bs->position += nbBytes;
+					bs->bytes_out = bs->position;
+				}
+				assert(bs->position >= bs->bytes_out);
+				return nbBytes;
+			}
 			/*need to gf_realloc ...*/
 			if (bs->position+nbBytes > bs->size) {
 				u32 new_size = (u32) (bs->size*2);
@@ -987,6 +1049,9 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 GF_EXPORT
 GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 {
+	if (bs->on_block_out) {
+		return GF_BAD_PARAM;
+	}
 	/*warning: we allow offset = bs->size for WRITE buffers*/
 	if (offset > bs->size) return GF_BAD_PARAM;
 

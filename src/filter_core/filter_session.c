@@ -547,7 +547,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	cap_in.type = GF_PROP_UINT;
 	cap_in.value.uint = GF_CODECID_RAW;
 	cap_out.type = GF_PROP_UINT;
-	cap_in.value.uint = codecid;
+	cap_out.value.uint = codecid;
 
 	count = gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {

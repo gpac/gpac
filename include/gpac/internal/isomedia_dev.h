@@ -3267,6 +3267,12 @@ struct __tag_isom {
 	s32 es_id_default_sync;
 
 	Bool is_smooth;
+
+	GF_Err (*on_block_out)(void *usr_data, char *block, u32 block_size);
+	void *on_block_out_usr_data;
+	u32 on_block_out_block_size;
+	//in block disptach mode we don't have the full file, keep the position
+	u64 fragmented_file_pos;
 };
 
 /*time function*/
@@ -3285,6 +3291,9 @@ u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, u32 trackID);
 GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir);
 /*close and delete a movie*/
 void gf_isom_delete_movie(GF_ISOFile *mov);
+
+GF_Err gf_isom_set_write_callback(GF_ISOFile *mov, GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size);
+
 /*StreamDescription reconstruction Functions*/
 GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outESD);
 GF_Err GetESDForTime(GF_MovieBox *moov, u32 trackID, u64 CTS, GF_ESD **outESD);
