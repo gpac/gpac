@@ -339,11 +339,12 @@ static GF_Err filein_process(GF_Filter *filter)
 		return GF_OK;
 
 	gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
-	ctx->file_pos += nb_read;
-	if (ctx->file_pos == ctx->file_size)
+
+	if (ctx->file_pos + nb_read == ctx->file_size)
 		ctx->is_end = GF_TRUE;
 	gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+	ctx->file_pos += nb_read;
 
 	ctx->pck_out = GF_TRUE;
 	gf_filter_pck_send(pck);
