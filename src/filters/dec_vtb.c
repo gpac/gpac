@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / VideoToolBox decoder filter
@@ -210,6 +210,8 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	frame->duration = gf_filter_pck_get_duration(ctx->cur_pck);
 	frame->timescale = gf_filter_pck_get_timescale(ctx->cur_pck);
 	frame->ctx = ctx;
+	if (!ctx->last_timescale_out)
+		ctx->last_timescale_out = frame->timescale;
 
 	count = gf_list_count(ctx->frames);
 	for (i=0; i<count; i++) {
@@ -223,11 +225,11 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 		}
 		if ((frame->timescale == aframe->timescale) && (ctx->last_timescale_out == frame->timescale)) {
 			diff = (s64) aframe->cts - (s64) frame->cts;
-			if ((diff>0) && (frame->cts > frame->timescale) ) {
+			if ((diff>0) && (frame->cts > ctx->last_cts_out) ) {
 				insert = GF_TRUE;
 			}
 		} else {
-			diff = - (s64) (frame->cts * aframe->timescale);
+			diff = (s64) (aframe->cts * frame->timescale) - (s64) (frame->cts * aframe->timescale);
 			if ((diff>0) && (ctx->last_timescale_out * frame->cts > frame->timescale * ctx->last_cts_out) ) {
 				insert = GF_TRUE;
 			}
