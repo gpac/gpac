@@ -234,7 +234,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 	if (pck) {
 		ctx->last_cts = gf_filter_pck_get_cts(pck);
 		ctx->timescale = gf_filter_pck_get_timescale(pck);
-		gf_filter_pck_set_sap(dst_pck, gf_filter_pck_get_sap(pck));
+		gf_filter_pck_merge_properties(pck, dst_pck);
 
 		gf_filter_pid_drop_packet(ctx->ipid);
 	}

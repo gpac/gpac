@@ -52,13 +52,6 @@
 
 static Bool xvid_is_init = GF_FALSE;
 
-typedef struct{
-	u64 cts;
-	u32 duration;
-	u8 sap_type;
-	u8 seek_flag;
-} XVidFrameInfo;
-
 typedef struct
 {
 	Bool deblock_y;
@@ -80,8 +73,8 @@ typedef struct
 	Float FPS;
 	u32 offset;
 
-	XVidFrameInfo *frame_infos;
-	u32 frame_infos_alloc, frame_infos_size;
+	GF_List *src_packets;
+	u64 next_cts;
 
 } GF_XVIDCtx;
 
@@ -128,7 +121,7 @@ static GF_Err xviddec_initialize(GF_Filter *filter)
 	if (ctx->dering_y) ctx->base_filters |= XVID_DERINGY | XVID_DEBLOCKY;
 	if (ctx->dering_uv) ctx->base_filters |= XVID_DERINGUV | XVID_DEBLOCKUV;
 #endif
-
+	ctx->src_packets = gf_list_new();
 	return GF_OK;
 }
 
@@ -232,16 +225,13 @@ static void xviddec_finalize(GF_Filter *filter)
 {
 	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
-	if (ctx->frame_infos) gf_free(ctx->frame_infos);
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
+	gf_list_del(ctx->src_packets);
 }
 
-static void xviddec_drop_frameinfo(GF_XVIDCtx *ctx)
-{
-	if (ctx->frame_infos_size) {
-		ctx->frame_infos_size--;
-		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(XVidFrameInfo)*ctx->frame_infos_size);
-	}
-}
 static GF_Err xviddec_process(GF_Filter *filter)
 {
 #ifdef XVID_USE_OLD_API
@@ -250,44 +240,45 @@ static GF_Err xviddec_process(GF_Filter *filter)
 	xvid_dec_frame_t frame;
 #endif
 	char *buffer;
+	u32 i, count;
 	Bool is_seek;
 #if 0
 	s32 postproc;
 #endif
 	s32 res;
 	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck, *pck_ref, *src_pck, *dst_pck;
 
 	if (!ctx->codec) return GF_SERVICE_ERROR;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	memset(&frame, 0, sizeof(frame));
 	if (pck) {
-		u32 i;
 		u64 cts = gf_filter_pck_get_cts(pck);;
 		frame.bitstream = (char *) gf_filter_pck_get_data(pck, &frame.length);
 
-		if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
-			ctx->frame_infos_alloc += 10;
-			ctx->frame_infos = gf_realloc(ctx->frame_infos, sizeof(XVidFrameInfo)*ctx->frame_infos_alloc);
-		}
-		for (i=0; i<ctx->frame_infos_size; i++) {
-			if (ctx->frame_infos[i].cts > cts) {
-				memmove(&ctx->frame_infos[i+1], &ctx->frame_infos[i], sizeof(XVidFrameInfo) * (ctx->frame_infos_size-i));
-				ctx->frame_infos[i].cts = cts;
-				ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck);
-				ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck);
-				ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck);
+		//append in cts order since we get output frames in cts order
+		pck_ref = pck;
+		gf_filter_pck_ref_props(&pck_ref);
+		count = gf_list_count(ctx->src_packets);
+		src_pck = NULL;
+		for (i=0; i<count; i++) {
+			u64 acts;
+			src_pck = gf_list_get(ctx->src_packets, i);
+			acts = gf_filter_pck_get_cts(src_pck);
+			if (acts==cts) {
+				gf_filter_pck_unref(pck_ref);
 				break;
 			}
+			if (acts>cts) {
+				gf_list_insert(ctx->src_packets, pck_ref, i);
+				break;
+			}
+			src_pck = NULL;
 		}
-		if (i==ctx->frame_infos_size) {
-			ctx->frame_infos[i].cts = cts;
-			ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck);
-			ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck);
-			ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck);
-		}
-		ctx->frame_infos_size++;
+		if (!src_pck)
+			gf_list_add(ctx->src_packets, pck_ref);
+
 
 	} else {
 		frame.bitstream = NULL;
@@ -353,12 +344,13 @@ packed_frame :
 		buffer[2] = 'i';
 		buffer[3] = 'd';
 	}
+	src_pck = gf_list_pop_front(ctx->src_packets);
 
 	res = xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
 	if (res < 0) {
 		gf_filter_pck_discard(dst_pck);
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-		xviddec_drop_frameinfo(ctx);
+		if (src_pck) gf_filter_pck_unref(src_pck);
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -371,21 +363,26 @@ packed_frame :
 		if ((buffer[0] == 'v') && (buffer[1] == 'o') && (buffer[2] == 'i') && (buffer[3] =='d')) {
 			gf_filter_pck_discard(dst_pck);
 			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+			if (src_pck) gf_filter_pck_unref(src_pck);
 			return GF_OK;
 		}
 	}
 
-	gf_filter_pck_set_cts(dst_pck, ctx->frame_infos[0].cts);
-	gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
-	gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
-	is_seek = ctx->frame_infos[0].seek_flag;
+	if (src_pck) {
+		gf_filter_pck_merge_properties(src_pck, dst_pck);
+		is_seek = gf_filter_pck_get_seek_flag(src_pck);
+		ctx->next_cts = gf_filter_pck_get_cts(src_pck);
+		ctx->next_cts += gf_filter_pck_get_duration(src_pck);
+		gf_filter_pck_unref(src_pck);
+	} else {
+		is_seek = 0;
+		gf_filter_pck_set_cts(dst_pck, ctx->next_cts);
+	}
 
 	if (!pck || !is_seek )
 		gf_filter_pck_send(dst_pck);
 	else
 		gf_filter_pck_discard(dst_pck);
-
-	xviddec_drop_frameinfo(ctx);
 
 	if (res + 6 < frame.length) {
 		frame.bitstream += res;

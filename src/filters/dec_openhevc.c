@@ -48,12 +48,6 @@ typedef struct
 	u32 dep_id;
 } GF_HEVCStream;
 
-typedef struct{
-	u64 cts;
-	u32 duration;
-	u8 sap_type;
-	u8 seek_flag;
-} OHEVCDecFrameInfo;
 
 typedef struct
 {
@@ -71,9 +65,6 @@ typedef struct
 	GF_HEVCStream streams[HEVC_MAX_STREAMS];
 	u32 nb_streams;
 	Bool is_multiview;
-
-	OHEVCDecFrameInfo *frame_infos;
-	u32 frame_infos_alloc, frame_infos_size;
 
 	u32 width, stride, height, out_size, luma_bpp, chroma_bpp;
 	GF_Fraction sar;
@@ -109,6 +100,8 @@ typedef struct
 
 	char *reaggregation_buffer;
 	u32 reaggregation_alloc_size, reaggregation_size;
+
+	GF_List *src_packets;
 } GF_OHEVCDecCtx;
 
 static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid, const GF_PropertyValue *dsi)
@@ -562,17 +555,10 @@ GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **o
 	return GF_OK;
 }
 
-static void ohevcdec_drop_frameinfo(GF_OHEVCDecCtx *ctx)
-{
-	if (ctx->frame_infos_size) {
-		ctx->frame_infos_size--;
-		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(OHEVCDecFrameInfo)*ctx->frame_infos_size);
-	}
-}
-
 static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 {
-	GF_FilterPacket *dst_pck;
+	GF_FilterPacket *dst_pck, *src_pck;
+	u32 i, count;
 
 	ctx->hw_frame.user_data = ctx;
 	ctx->hw_frame.get_plane = ohevcframe_get_plane;
@@ -581,12 +567,21 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	oh_output_update(ctx->codec, 1, &ctx->frame_ptr);
 
 	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &ctx->hw_frame, ohevcframe_release);
-	gf_filter_pck_set_cts(dst_pck, ctx->frame_ptr.frame_par.pts);
-	if (ctx->frame_infos_size) {
-		gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
-		gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
-		ohevcdec_drop_frameinfo(ctx);
+
+	src_pck = NULL;
+	count = gf_list_count(ctx->src_packets);
+	for (i=0;i<count; i++) {
+		src_pck = gf_list_get(ctx->src_packets, i);
+		if (gf_filter_pck_get_cts(src_pck) == ctx->frame_ptr.frame_par.pts) {
+			gf_filter_pck_merge_properties(src_pck, dst_pck);
+			gf_list_rem(ctx->src_packets, i);
+			gf_filter_pck_unref(src_pck);
+			break;
+		}
+		src_pck = NULL;
 	}
+	if (!src_pck)
+		gf_filter_pck_set_cts(dst_pck, ctx->frame_ptr.frame_par.pts);
 
 	ctx->frame_out = GF_TRUE;
 	gf_filter_pck_send(dst_pck);
@@ -594,9 +589,9 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 }
 static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 {
-	GF_FilterPacket *pck;
+	GF_FilterPacket *pck, *src_pck;
 	char *data;
-	u32 a_w, a_h, a_stride, bit_depth;
+	u32 a_w, a_h, a_stride, bit_depth, i, count;
 	u64 cts;
 	OHFrame_cpy openHevcFrame_FL, openHevcFrame_SL;
 	int chromat_format;
@@ -615,12 +610,17 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	chromat_format = openHevcFrame_FL.frame_par.chromat_format;
 	cts = (u32) openHevcFrame_FL.frame_par.pts;
 
-	while (cts && ctx->frame_infos_size && (cts != ctx->frame_infos[0].cts) ) {
-		ohevcdec_drop_frameinfo(ctx);
+	src_pck = NULL;
+	count = gf_list_count(ctx->src_packets);
+	for (i=0;i<count; i++) {
+		src_pck = gf_list_get(ctx->src_packets, i);
+		if (gf_filter_pck_get_cts(src_pck) == cts) break;
+		src_pck = NULL;
 	}
 
-	if (ctx->frame_infos_size && ctx->frame_infos[0].seek_flag) {
-		ohevcdec_drop_frameinfo(ctx);
+	if (src_pck && gf_filter_pck_get_seek_flag(src_pck)) {
+		gf_list_del_item(ctx->src_packets, src_pck);
+		gf_filter_pck_unref(src_pck);
 		return GF_OK;
 	}
 
@@ -682,13 +682,14 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 		if (!ctx->packed_pck) {
 			ctx->packed_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &ctx->packed_data);
-			gf_filter_pck_set_cts(ctx->packed_pck, cts);
-			if (ctx->frame_infos_size) {
-				gf_filter_pck_set_duration(ctx->packed_pck, ctx->frame_infos[0].duration*4);
-				gf_filter_pck_set_sap(ctx->packed_pck, ctx->frame_infos[0].sap_type);
-			}
+			if (src_pck) gf_filter_pck_merge_properties(src_pck, ctx->packed_pck);
+			else gf_filter_pck_set_cts(ctx->packed_pck, cts);
 		}
-		ohevcdec_drop_frameinfo(ctx);
+		if (src_pck) {
+			gf_list_del_item(ctx->src_packets, src_pck);
+			gf_filter_pck_unref(src_pck);
+		}
+
 		pY = (u8*) (ctx->packed_data + idx_h + idx_w );
 
 		if (chromat_format == OH_YUV422) {
@@ -797,11 +798,12 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		}
 
 		if (oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL)) {
-			gf_filter_pck_set_cts(pck, cts);
-			if (ctx->frame_infos_size) {
-				gf_filter_pck_set_duration(pck, ctx->frame_infos[0].duration);
-				gf_filter_pck_set_sap(pck, ctx->frame_infos[0].sap_type);
-				ohevcdec_drop_frameinfo(ctx);
+			if (src_pck) {
+				gf_filter_pck_merge_properties(src_pck, pck);
+				gf_list_del_item(ctx->src_packets, src_pck);
+				gf_filter_pck_unref(src_pck);
+			} else {
+				gf_filter_pck_set_cts(pck, cts);
 			}
 			gf_filter_pck_send(pck);
 		} else
@@ -815,10 +817,11 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	s32 got_pic;
 	u64 min_dts = GF_FILTER_NO_TS;
 	u64 min_cts = GF_FILTER_NO_TS;
-	u32 i, idx, nb_eos=0;
+	u32 idx, nb_eos=0;
 	u32 data_size;
 	char *data;
 	Bool has_pic = GF_FALSE;
+	GF_FilterPacket *pck_ref = NULL;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
 
 	if (ctx->frame_out) return GF_EOS;
@@ -827,8 +830,6 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		oh_start(ctx->codec);
 		ctx->decoder_started=1;
 	}
-
-	GF_FilterPacket *pck_ref = NULL;
 
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
@@ -878,38 +879,9 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 	if (min_cts == GF_FILTER_NO_TS) return GF_OK;
 
-
-	if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
-		ctx->frame_infos_alloc += 10;
-		ctx->frame_infos = gf_realloc(ctx->frame_infos, sizeof(OHEVCDecFrameInfo)*ctx->frame_infos_alloc);
-	}
-	//queue CTS
-	if (!ctx->frame_infos_size || (ctx->frame_infos[ctx->frame_infos_size-1].cts != min_cts)) {
-		for (i=0; i<ctx->frame_infos_size; i++) {
-			//this is likel continuing decoding if we didn't get a frame in time from the enhancement layer
-			if (ctx->frame_infos[i].cts == min_cts)
-				break;
-
-			if (ctx->frame_infos[i].cts > min_cts) {
-				memmove(&ctx->frame_infos[i+1], &ctx->frame_infos[i], sizeof(OHEVCDecFrameInfo) * (ctx->frame_infos_size-i));
-				ctx->frame_infos[i].cts = min_cts;
-				ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck_ref);
-				ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck_ref);
-				ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck_ref);
-				break;
-			}
-		}
-	} else {
-		i = ctx->frame_infos_size;
-	}
-
-	if (i==ctx->frame_infos_size) {
-		ctx->frame_infos[i].cts = min_cts;
-		ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck_ref);
-		ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck_ref);
-		ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck_ref);
-	}
-	ctx->frame_infos_size++;
+	//queue reference to source packet props
+	gf_filter_pck_ref_props(&pck_ref);
+	gf_list_add(ctx->src_packets, pck_ref);
 
 	ctx->dec_frames++;
 	got_pic = 0;
@@ -1006,15 +978,21 @@ static GF_Err ohevcdec_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenHEVCDec] Initializing with %d threads\n", ctx->nb_threads));
 		}
 	}
+	ctx->src_packets = gf_list_new();
 	return GF_OK;
 }
 
 static void ohevcdec_finalize(GF_Filter *filter)
 {
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *) gf_filter_get_udta(filter);
-	if (ctx->frame_infos) gf_free(ctx->frame_infos);
 	if (ctx->codec) oh_close(ctx->codec);
 	if (ctx->reaggregation_buffer) gf_free(ctx->reaggregation_buffer);
+
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
+	gf_list_del(ctx->src_packets);
 }
 
 static const GF_FilterCapability OHEVCDecCaps[] =
@@ -1023,11 +1001,12 @@ static const GF_FilterCapability OHEVCDecCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_LHVC),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 #ifdef  OPENHEVC_HAS_AVC_BASE
-	{ .code=GF_PROP_PID_CODECID, .val=PROP_UINT(GF_CODECID_AVC), .flags = GF_FILTER_CAPS_INPUT, .priority=255 }
+	CAP_UINT_PRIORITY(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC, 255),
 #endif
+
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_OHEVCDecCtx, _n)

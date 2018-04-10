@@ -49,13 +49,6 @@ typedef struct
 	u32 dep_id;
 } GF_SVCStream;
 
-typedef struct{
-	u64 cts;
-	u32 duration;
-	u8 sap_type;
-	u8 seek_flag;
-} OSVCDecFrameInfo;
-
 typedef struct
 {
 	GF_FilterPid *opid;
@@ -74,10 +67,8 @@ typedef struct
 	int TemporalId;
 	int TemporalCom;
 
-	OSVCDecFrameInfo *frame_infos;
-	u32 frame_infos_alloc, frame_infos_size;
 	int layers[4];
-
+	GF_List *src_packets;
 } GF_OSVCDecCtx;
 
 static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -291,27 +282,19 @@ static Bool osvcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	return GF_FALSE;
 }
 
-static void osvcdec_drop_frameinfo(GF_OSVCDecCtx *ctx)
-{
-	if (ctx->frame_infos_size) {
-		ctx->frame_infos_size--;
-		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(OSVCDecFrameInfo)*ctx->frame_infos_size);
-	}
-}
-
 static GF_Err osvcdec_process(GF_Filter *filter)
 {
 	s32 got_pic;
 	u64 min_dts = GF_FILTER_NO_TS;
 	u64 min_cts = GF_FILTER_NO_TS;
 	OPENSVCFRAME pic;
-	u32 i, idx, nalu_size, sc_size, nb_eos=0;
+	u32 i, count, idx, nalu_size, sc_size, nb_eos=0;
 	u8 *ptr;
 	u32 data_size;
 	char *data;
 	Bool has_pic = GF_FALSE;
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
-	GF_FilterPacket *dst_pck, *pck_ref = NULL;
+	GF_FilterPacket *dst_pck, *src_pck, *pck_ref = NULL;
 
 	for (idx=0; idx<ctx->active_streams; idx++) {
 		u64 dts, cts;
@@ -350,37 +333,26 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	}
 	if (min_cts == GF_FILTER_NO_TS) return GF_OK;
 
-	if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
-		ctx->frame_infos_alloc += 10;
-		ctx->frame_infos = gf_realloc(ctx->frame_infos, sizeof(OSVCDecFrameInfo)*ctx->frame_infos_alloc);
-	}
-	//queue CTS
-	if (!ctx->frame_infos_size || (ctx->frame_infos[ctx->frame_infos_size-1].cts != min_cts)) {
-		for (i=0; i<ctx->frame_infos_size; i++) {
-			//this is likel continuing decoding if we didn't get a frame in time from the enhancement layer
-			if (ctx->frame_infos[i].cts == min_cts)
-				break;
-
-			if (ctx->frame_infos[i].cts > min_cts) {
-				memmove(&ctx->frame_infos[i+1], &ctx->frame_infos[i], sizeof(OSVCDecFrameInfo) * (ctx->frame_infos_size-i));
-				ctx->frame_infos[i].cts = min_cts;
-				ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck_ref);
-				ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck_ref);
-				ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck_ref);
-				break;
-			}
+	//append in cts order since we get output frames in cts order
+	gf_filter_pck_ref_props(&pck_ref);
+	count = gf_list_count(ctx->src_packets);
+	src_pck = NULL;
+	for (i=0; i<count; i++) {
+		u64 acts;
+		src_pck = gf_list_get(ctx->src_packets, i);
+		acts = gf_filter_pck_get_cts(src_pck);
+		if (acts==min_cts) {
+			gf_filter_pck_unref(pck_ref);
+			break;
 		}
-	} else {
-		i = ctx->frame_infos_size;
+		if (acts>min_cts) {
+			gf_list_insert(ctx->src_packets, pck_ref, i);
+			break;
+		}
+		src_pck = NULL;
 	}
-
-	if (i==ctx->frame_infos_size) {
-		ctx->frame_infos[i].cts = min_cts;
-		ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck_ref);
-		ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck_ref);
-		ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck_ref);
-	}
-	ctx->frame_infos_size++;
+	if (!src_pck)
+		gf_list_add(ctx->src_packets, pck_ref);
 
 	pic.Width = pic.Height = 0;
 	for (idx=0; idx<ctx->nb_streams; idx++) {
@@ -515,8 +487,10 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV) );
 	}
 
-	if (ctx->frame_infos[0].seek_flag) {
-		osvcdec_drop_frameinfo(ctx);
+	src_pck = gf_list_pop_front(ctx->src_packets);
+
+	if (src_pck && gf_filter_pck_get_seek_flag(src_pck)) {
+		gf_filter_pck_unref(src_pck);
 		return GF_OK;
 	}
 
@@ -525,14 +499,20 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	memcpy(data + ctx->stride * ctx->height, pic.pU[0], ctx->stride*ctx->height/4);
 	memcpy(data + 5*ctx->stride * ctx->height/4, pic.pV[0], ctx->stride*ctx->height/4);
 
-	gf_filter_pck_set_cts(dst_pck, ctx->frame_infos[0].cts);
-	gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
-	gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
+	if (src_pck) {
+		gf_filter_pck_merge_properties(src_pck, dst_pck);
+		gf_filter_pck_unref(src_pck);
+	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] decoded out frame PTS "LLU"\n", ctx->frame_infos[0].cts) );
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] decoded out frame PTS "LLU"\n", gf_filter_pck_get_cts(dst_pck) ));
 	gf_filter_pck_send(dst_pck);
+	return GF_OK;
+}
 
-	osvcdec_drop_frameinfo(ctx);
+static GF_Err osvcdec_initialize(GF_Filter *filter)
+{
+	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
+	ctx->src_packets = gf_list_new();
 	return GF_OK;
 }
 
@@ -540,7 +520,11 @@ static void osvcdec_finalize(GF_Filter *filter)
 {
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
 	if (ctx->codec) SVCDecoder_close(ctx->codec);
-	if (ctx->frame_infos) gf_free(ctx->frame_infos);
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
+	gf_list_del(ctx->src_packets);
 }
 
 static const GF_FilterCapability OSVCDecCaps[] =
@@ -557,6 +541,7 @@ GF_FilterRegister OSVCDecRegister = {
 	.description = "OpenSVC decoder",
 	.private_size = sizeof(GF_OSVCDecCtx),
 	SETCAPS(OSVCDecCaps),
+	.initialize = osvcdec_initialize,
 	.finalize = osvcdec_finalize,
 	.configure_pid = osvcdec_configure_pid,
 	.process = osvcdec_process,

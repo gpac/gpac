@@ -96,6 +96,8 @@ typedef struct
 	//framing flag of input packet when input pid has timing (eg is not a file)
 	Bool input_is_au_start;
 
+	GF_FilterPacket *src_pck;
+
 	//total delay in frames between decode and presentation
 	s32 max_total_delay;
 	//max size codable with our nal_length setting
@@ -1363,6 +1365,8 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool *au_s
 
 	if (*au_start) {
 		ctx->first_pck_in_au = dst_pck;
+		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
+
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
 		//we reuse the timing of the input packet for the first nal of the first frame starting in this packet
 		if (ctx->input_is_au_start) {
@@ -1725,6 +1729,8 @@ GF_Err naludmx_process(GF_Filter *filter)
 				naludmx_finalize_au_flags(ctx);
 			}
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+			ctx->src_pck = NULL;
 			if (!ctx->opid) return GF_EOS;
 
 			if (ctx->is_hevc) {
@@ -1766,6 +1772,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 			}
 		}
 		ctx->pck_duration = gf_filter_pck_get_duration(pck);
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
 		//store framing flags. If input_is_au_start, the first NAL of the first frame begining in this packet will
 		//use the DTS/CTS of the inout packet, otherwise we will use our internal POC recompute
 		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, NULL);

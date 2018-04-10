@@ -288,6 +288,7 @@ typedef struct
 #define CAP_DOUBLE(_f, _a, _b) { .code=_a, .val=PROP_DOUBLE(_b), .flags=(_f) }
 #define CAP_NAME(_f, _a, _b) { .code=_a, .val=PROP_NAME(_b), .flags=(_f) }
 #define CAP_STRING(_f, _a, _b) { .code=_a, .val=PROP_STRING(_b), .flags=(_f) }
+#define CAP_UINT_PRIORITY(_f, _a, _b, _p) { .code=_a, .val=PROP_UINT(_b), .flags=(_f), .priority=_p}
 
 enum
 {
@@ -579,6 +580,11 @@ void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char 
 //keeps a reference to the given packet
 GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
 void gf_filter_pck_unref(GF_FilterPacket *pck);
+
+//creates a reference to the packet properties, but not to the data
+//this is mostly usefull for encoders/decoders/filters with delay, where the input packet needs to
+//be released before getting the corresponding output (frame reordering & co)
+GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck);
 
 //packet allocators. the packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) nd all other flags set to 0 (including SAP type)
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data);
