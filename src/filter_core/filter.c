@@ -587,11 +587,16 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		i=0;
 		while (filter->filter_udta && filter->freg->args) {
 			Bool is_my_arg = GF_FALSE;
+			Bool reverse_bool = GF_FALSE;
 			const GF_FilterArgs *a = &filter->freg->args[i];
 			i++;
 			if (!a || !a->arg_name) break;
 
 			if (!strcmp(a->arg_name, szArg)) is_my_arg = GF_TRUE;
+			else if ( (szArg[0]==filter->session->sep_neg) && !strcmp(a->arg_name, szArg+1)) {
+				is_my_arg = GF_TRUE;
+				reverse_bool = GF_TRUE;
+			}
 			//little optim here, if no value check for enums
 			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') ) {
 				char *found = strstr(a->min_max_enum, szArg);
@@ -609,6 +614,9 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				found=GF_TRUE;
 
 				argv = gf_filter_parse_prop_solve_env_var(filter, a->meta_arg ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
+
+				if (reverse_bool && (argv.type==GF_PROP_BOOL))
+					argv.value.boolean = !argv.value.boolean;
 
 				if (argv.type != GF_PROP_FORBIDEN) {
 					if (a->offset_in_private>=0) {
