@@ -203,8 +203,8 @@ typedef struct
 	union {
 		u64 longuint;
 		s64 longsint;
-		u32 sint;
-		s32 uint;
+		s32 sint;
+		u32 uint;
 		Bool boolean;
 		GF_Fraction frac;
 		Fixed fnumber;
@@ -753,8 +753,8 @@ enum
 	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('A','F','M','T'),
 	//(uint) audio playback speed - only used for audio out caps reconfig
 	GF_PROP_PID_AUDIO_SPEED = GF_4CC('A','S','P','D'),
-	//(uint) audio skip
-	GF_PROP_PID_AUDIO_SKIP = GF_4CC('A','S','K','P'),
+	//(sint) media skip or delay
+	GF_PROP_PID_MEDIA_SKIP = GF_4CC('M','S','K','P'),
 	//(uint) frame width
 	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),
 	//(uint) frame height

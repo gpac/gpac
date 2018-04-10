@@ -149,6 +149,11 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 		//write movie
 		e = WriteToFile(movie);
 		if (e) return e;
+
+		if (movie->on_block_out) {
+			gf_bs_seek(movie->editFileMap->bs, 0);
+			gf_bs_truncate(movie->editFileMap->bs);
+		}
 	}
 
 	//make sure we do have all we need. If not this is not an error, just consider
@@ -381,16 +386,20 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, u32 TrackID, u32 Code, u32
 	//this is only allowed in write mode
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 
-	traf = GetTraf(movie, TrackID);
-	if (!traf) return GF_BAD_PARAM;
 	switch (Code) {
 	case GF_ISOM_TRAF_EMPTY:
+		traf = GetTraf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
 		traf->tfhd->EmptyDuration = Param;
 		break;
 	case GF_ISOM_TRAF_RANDOM_ACCESS:
+		traf = GetTraf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
 		traf->tfhd->IFrameSwitching = Param;
 		break;
 	case GF_ISOM_TRAF_DATA_CACHE:
+		traf = GetTraf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
 		//don't cache only one sample ...
 		traf->DataCache = Param > 1 ? Param : 0;
 		break;
@@ -758,7 +767,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	char *buffer;
 	GF_TrackFragmentBox *traf;
 	GF_TrackFragmentRunBox *trun;
-	GF_BitStream *bs;
+	GF_BitStream *bs, *bs_orig;
 	if (!movie->moof) return GF_OK;
 
 	bs = movie->editFileMap->bs;
@@ -889,6 +898,9 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 			/*offset increases by moof size*/
 			traf->tfhd->base_data_offset += movie->moof->size;
 			traf->tfhd->base_data_offset += data_offset_diff;
+			if (movie->on_block_out) {
+				traf->tfhd->base_data_offset += movie->fragmented_file_pos;
+			}
 		}
 	}
 #ifndef USE_BASE_DATA_OFFSET
@@ -902,6 +914,10 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	}
 #endif
 
+	bs_orig = bs;
+	if (movie->on_block_out) {
+		bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+	}
 
 	if (movie->moof->ntp) {
 		gf_bs_write_u32(bs, 8*4);
@@ -933,6 +949,14 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	}
 
 	if (moof_size) *moof_size = (u32) movie->moof->size;
+
+	if (bs != bs_orig) {
+		u64 size = gf_bs_get_position(bs);
+		gf_bs_del(bs);
+		movie->fragmented_file_pos += size;
+		gf_bs_seek(bs_orig, 0);
+		gf_bs_truncate(bs_orig);
+	}
 
 	if (!movie->use_segments) {
 		gf_isom_box_del((GF_Box *) movie->moof);
@@ -1706,6 +1730,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 
 	/*remember segment offset*/
 	movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
+
 	/*prepare MDAT*/
 	gf_bs_write_u32(movie->editFileMap->bs, 0);
 	gf_bs_write_u32(movie->editFileMap->bs, GF_ISOM_BOX_TYPE_MDAT);

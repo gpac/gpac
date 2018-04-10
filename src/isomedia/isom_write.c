@@ -4888,18 +4888,38 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 }
 
 /*for now not exported*/
-static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 trafID, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
 {
 	GF_Err e;
-	GF_TrackBox *trak;
+	GF_TrackBox *trak=NULL;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_TrackFragmentBox *traf=NULL;
+#endif
+	if (track) {
+		e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+		if (e) return e;
 
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
+		trak = gf_isom_get_track_from_file(movie, track);
+		if (!trak) return GF_BAD_PARAM;
+	} else {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+		GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, u32 TrackID);
+		if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) )
+			return GF_BAD_PARAM;
 
-	trak = gf_isom_get_track_from_file(movie, track);
-	if (!trak) return GF_BAD_PARAM;
+		traf = GetTraf(movie, trafID);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 
-	return gf_isom_set_sample_group_info_ex(trak->Media->information->sampleTable, NULL, sample_number, grouping_type, grouping_type_parameter, udta, sg_create_entry, sg_compare_entry);
+	}
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	return gf_isom_set_sample_group_info_ex(trak ? trak->Media->information->sampleTable : NULL, traf, sample_number, grouping_type, grouping_type_parameter, udta, sg_create_entry, sg_compare_entry);
+#else
+	return gf_isom_set_sample_group_info_ex(trak->Media->information->sampleTable, sample_number, grouping_type, grouping_type_parameter, udta, sg_create_entry, sg_compare_entry);
+#endif
+
 }
 
 
@@ -5056,7 +5076,12 @@ Bool sg_rap_compare_entry(void *udta, void *entry)
 
 GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, u32 num_leading_samples)
 {
-	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
+	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
+}
+
+GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 num_leading_samples)
+{
+	return gf_isom_set_sample_group_info(movie, 0, trackID, 0, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
 }
 
 
@@ -5080,7 +5105,12 @@ Bool sg_roll_compare_entry(void *udta, void *entry)
 
 GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance)
 {
-	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
+	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
+}
+
+GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number, s16 roll_distance)
+{
+	return gf_isom_set_sample_group_info(movie, 0, trackID, sample_number, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
 }
 
 void *sg_encryption_create_entry(void *udta)
@@ -5224,8 +5254,7 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 
 /*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 IV_size, bin128 KeyID,
-									u8 crypt_byte_block, u8 skip_byte_block, u8 constant_IV_size, bin128 constant_IV)
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 IV_size, bin128 KeyID, u8 crypt_byte_block, u8 skip_byte_block, u8 constant_IV_size, bin128 constant_IV)
 {
 	char *udta;
 	u32 size;
@@ -5245,7 +5274,7 @@ GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 	gf_bs_get_content(bs, &udta, &size);
 	gf_bs_del(bs);
 
-	e = gf_isom_set_sample_group_info(movie, track, sample_number, GF_ISOM_SAMPLE_GROUP_SEIG, 0, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
+	e = gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_SEIG, 0, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
 	gf_free(udta);
 	return e;
 }

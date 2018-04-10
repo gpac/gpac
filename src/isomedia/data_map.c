@@ -147,6 +147,12 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 			return GF_IO_ERR;
 		}
 		return GF_OK;
+	} else if (!strcmp(location, "_gpac_isobmff_redirect")) {
+		*outDataMap = gf_isom_fdm_new(location, mode);
+		if (! (*outDataMap)) {
+			return GF_IO_ERR;
+		}
+		return GF_OK;
 	}
 
 	extern_file = !gf_url_is_local(location);
@@ -422,35 +428,47 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		break;
 	///we open the file in READ/WRITE mode, in case
 	case GF_ISOM_DATA_MAP_WRITE:
-		if (!strcmp(sPath, "std")) {
-			tmp->stream = stdout;
-			tmp->is_stdout = 1;
-		}
+		if (!strcmp(sPath, "_gpac_isobmff_redirect")) {
+			tmp->stream = NULL;
+			tmp->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		} else {
+			if (!strcmp(sPath, "std")) {
+				tmp->stream = stdout;
+				tmp->is_stdout = 1;
+			}
 
-		if (!tmp->stream) tmp->stream = gf_fopen(sPath, "w+b");
-		if (!tmp->stream) tmp->stream = gf_fopen(sPath, "wb");
+			if (!tmp->stream) tmp->stream = gf_fopen(sPath, "w+b");
+			if (!tmp->stream) tmp->stream = gf_fopen(sPath, "wb");
+		}
 		bs_mode = GF_BITSTREAM_WRITE;
 		break;
 	///we open the file in CAT mode, in case
 	case GF_ISOM_DATA_MAP_CAT:
-		if (!strcmp(sPath, "std")) {
-			tmp->stream = stdout;
-			tmp->is_stdout = 1;
-		}
+		if (!strcmp(sPath, "_gpac_isobmff_redirect")) {
+			tmp->stream = NULL;
+			tmp->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		} else {
+			if (!strcmp(sPath, "std")) {
+				tmp->stream = stdout;
+				tmp->is_stdout = 1;
+			}
 
-		if (!tmp->stream) tmp->stream = gf_fopen(sPath, "a+b");
-		if (tmp->stream) gf_fseek(tmp->stream, 0, SEEK_END);
+			if (!tmp->stream) tmp->stream = gf_fopen(sPath, "a+b");
+			if (tmp->stream) gf_fseek(tmp->stream, 0, SEEK_END);
+		}
 		bs_mode = GF_BITSTREAM_WRITE;
 		break;
 	default:
 		gf_free(tmp);
 		return NULL;
 	}
-	if (!tmp->stream) {
+	if (!tmp->stream && !tmp->bs) {
 		gf_free(tmp);
 		return NULL;
 	}
-	tmp->bs = gf_bs_from_file(tmp->stream, bs_mode);
+	if (!tmp->bs)
+		tmp->bs = gf_bs_from_file(tmp->stream, bs_mode);
+
 	if (!tmp->bs) {
 		gf_fclose(tmp->stream);
 		gf_free(tmp);

@@ -614,7 +614,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 
 
 //write the file track by track, with moov box before or after the mdat
-GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
+static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool non_seakable)
 {
 	GF_Err e;
 	u32 i;
@@ -630,7 +630,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 	if (e) goto exit;
 
 	if (!moovFirst) {
-		if (movie->openMode == GF_ISOM_OPEN_WRITE) {
+		if ((movie->openMode == GF_ISOM_OPEN_WRITE) && !non_seakable) {
 			begin = 0;
 			totSize = gf_isom_datamap_get_offset(movie->editFileMap);
 			/*start boxes have not been written yet, do it*/
@@ -707,13 +707,34 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 					if (e) goto exit;
 					continue;
 				}
-				//to avoid computing the size each time write always 4 + 4 + 8 bytes before
-				begin = gf_bs_get_position(bs);
-				gf_bs_write_u64(bs, 0);
-				gf_bs_write_u64(bs, 0);
-				e = DoWrite(mw, writers, bs, 0, gf_bs_get_position(bs));
-				if (e) goto exit;
-				totSize = gf_bs_get_position(bs) - begin;
+				if (non_seakable) {
+					begin = gf_bs_get_position(bs);
+					//do a sim pass to get the true mdat size
+					e = DoWrite(mw, writers, bs, 1, begin);
+					if (e) goto exit;
+
+					if (movie->mdat->dataSize > 0xFFFFFFFF) {
+						gf_bs_write_u32(bs, 1);
+					} else {
+						gf_bs_write_u32(bs, (u32) movie->mdat->dataSize + 8);
+					}
+					gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
+					if (movie->mdat->dataSize > 0xFFFFFFFF) gf_bs_write_u64(bs, movie->mdat->dataSize + 8 + 8);
+					//reset writers and write samples
+					ResetWriters(writers);
+					e = DoWrite(mw, writers, bs, 0, gf_bs_get_position(bs));
+					if (e) goto exit;
+					movie->mdat->size = movie->mdat->dataSize;
+					totSize = 0;
+				} else {
+					//to avoid computing the size each time write always 4 + 4 + 8 bytes before
+					begin = gf_bs_get_position(bs);
+					gf_bs_write_u64(bs, 0);
+					gf_bs_write_u64(bs, 0);
+					e = DoWrite(mw, writers, bs, 0, gf_bs_get_position(bs));
+					if (e) goto exit;
+					totSize = gf_bs_get_position(bs) - begin;
+				}
 				break;
 			default:
 				e = gf_isom_box_size(a);
@@ -756,8 +777,8 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 			gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
 			if (totSize > 0xFFFFFFFF) gf_bs_write_u64(bs, totSize);
 			e = gf_bs_seek(bs, offset);
+			movie->mdat->size = totSize;
 		}
-		movie->mdat->size = totSize;
 		goto exit;
 	}
 
@@ -1298,18 +1319,38 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
-		e = WriteFlat(&mw, 0, movie->editFileMap->bs);
+		if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
+			if (!movie->on_block_out) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
+				return GF_BAD_PARAM;
+			}
+			bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+			e = WriteFlat(&mw, 0, bs, GF_TRUE);
+			movie->fragmented_file_pos = gf_bs_get_position(bs);
+			gf_bs_del(bs);
+		} else {
+			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_FALSE);
+		}
 	} else {
 		u32 buffer_size = movie->editFileMap ? gf_bs_get_output_buffering(movie->editFileMap->bs) : 0;
-		Bool is_stdout = 0;
-		if (!strcmp(movie->finalName, "std"))
-			is_stdout = 1;
+		Bool is_stdout = GF_FALSE;
+		if (!strcmp(movie->finalName, "_gpac_isobmff_redirect")) {
+			if (!movie->on_block_out) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
+				return GF_BAD_PARAM;
+			}
+			bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+			is_stdout = GF_TRUE;
+		} else {
+			if (!strcmp(movie->finalName, "std"))
+				is_stdout = GF_TRUE;
 
-		//OK, we need a new bitstream
-		stream = is_stdout ? stdout : gf_fopen(movie->finalName, "w+b");
-		if (!stream)
-			return GF_IO_ERR;
-		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
+			//OK, we need a new bitstream
+			stream = is_stdout ? stdout : gf_fopen(movie->finalName, "w+b");
+			if (!stream)
+				return GF_IO_ERR;
+			bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
+		}
 		if (!bs) {
 			if (!is_stdout)
 				gf_fclose(stream);
@@ -1334,10 +1375,10 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 			e = WriteInterleaved(&mw, bs, 1);
 			break;
 		case GF_ISOM_STORE_STREAMABLE:
-			e = WriteFlat(&mw, 1, bs);
+			e = WriteFlat(&mw, 1, bs, is_stdout);
 			break;
 		default:
-			e = WriteFlat(&mw, 0, bs);
+			e = WriteFlat(&mw, 0, bs, is_stdout);
 			break;
 		}
 

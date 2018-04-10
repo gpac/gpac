@@ -66,6 +66,7 @@ typedef struct
 	GF_BitStream *bs_w;
 	//current CTS/DTS of the stream, may be overriden by input packet if not file (eg TS PES)
 	u64 cts, dts, prev_dts;
+	u32 pck_duration;
 	//basic config stored here: with, height CRC of base and enh layer decoder config, sample aspect ratio
 	//when changing, a new pid config will be emitted
 	u32 width, height;
@@ -248,6 +249,14 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (ctx->hevc_state) gf_free(ctx->hevc_state);
 		if (!ctx->avc_state) GF_SAFEALLOC(ctx->avc_state, AVCState);
 	}
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		ctx->first_slice_in_au = GF_TRUE;
+	}
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+
 	return GF_OK;
 }
 
@@ -1367,7 +1376,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool *au_s
 		//we use the carrousel flag temporarly to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(dst_pck, ctx->timescale ? 0 : 1);
 
-		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
+		gf_filter_pck_set_duration(dst_pck, ctx->pck_duration ? ctx->pck_duration : ctx->fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 
 		naludmx_update_time(ctx);
@@ -1756,6 +1765,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 					ctx->fps.den = diff;
 			}
 		}
+		ctx->pck_duration = gf_filter_pck_get_duration(pck);
 		//store framing flags. If input_is_au_start, the first NAL of the first frame begining in this packet will
 		//use the DTS/CTS of the inout packet, otherwise we will use our internal POC recompute
 		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, NULL);
