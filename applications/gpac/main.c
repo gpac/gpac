@@ -41,8 +41,8 @@ static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
 
 //the default set of separators
-static char separator_set[6] = ":=#,@";
-#define SEP_LINK	4
+static char separator_set[7] = ":=#,!@";
+#define SEP_LINK	5
 #define SEP_FRAG	2
 
 static void print_filters(int argc, char **argv, GF_FilterSession *session);
@@ -78,7 +78,8 @@ static void gpac_filter_help(void)
 "Help is given with default separator sets :=#,@. See -s to change them.\n"
 "\n"
 "Filters are listed with their name and options are given using a list of colon-separated Name=Value: \n"
-"\tValue can be omitted for booleans, defaulting to true.\n"
+"\tValue can be omitted for booleans, defaulting to true (eg :noedit). Using '!'before the name negates\n"
+"the result (eg :!moof_first)\n"
 "\tName can be omitted for enumerations (eg :mode=pbo is equivalent to :pbo).\n"
 "\n"
 "When string parameters are used (eg URLs), it is recommended to escape the string using the keword \"gpac\" \n"
@@ -144,10 +145,11 @@ static void gpac_filter_help(void)
 "\tEX: src=file.mp4 @ reframer dst=dump.mp4\n"
 "This will link src pid (type file) to dst (type file) because dst has no sourceID and therefore will\n"
 "accept input from src. Since the pid is connected, the filter engine will not try to solve\n"
-"a link between src and reframer\n"
+"a link between src and reframer. The result is a direct copy of the source file, reframer being unused\n"
 "\tEX: src=file.mp4 reframer @ dst=dump.mp4\n"
 "This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and\n"
-"src pid will be linked reframer (no source ID), loading a demuxer to solve the link\n"
+"src pid will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is\n"
+"a complete remux of the source file\n"
 "\n"
 "Destination URLs can be templated using the same mechanism as MPEG-DASH:\n"
 "\t$KEYWORD$ is replaced in the template with the resolved value,\n"
@@ -233,14 +235,16 @@ static void gpac_usage(void)
 			"                   The second char, if present, is used to seperate names and values\n"
 			"                   The third char, if present, is used to seperate fragments for PID sources\n"
 			"                   The fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"
-			"                   The fifth char, if present, is used for LINK directives\n"
+			"                   The fifth char, if present, is used for boolean negation\n"
+			"                   The sixth char, if present, is used for LINK directives (cf -doc)\n"
 			"-props          : prints all built-in properties.\n"
+			"-codecs         : prints all codec short names and description.\n"
 			"-list           : lists all supported filters.\n"
 			"-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
 			"-info NAME[ NAME2]      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
 			"                    Use * to print info on all filters (warning, big output!)\n"
 			"                    Use *:* to print info on all filters including meta-filters (warning, big big output!)\n"
-			"-links          : prints possible connections between each supported filters and exits\n"
+			"-links          : prints possible connections between each supported filters\n"
 			"-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
 			"-graph          : print stats after  Graph can be viewed at runtime by typing 'g' in the prompt\n"
 	        "-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
@@ -260,10 +264,11 @@ static void gpac_usage(void)
 	        "-log-utc or -lu        : logs UTC time in ms before each log line.\n"
 			"-quiet        : quiet mode\n"
 			"-noprog       : disables messages if any\n"
-			"-h or -help   : shows command line options.\n"
-			"-doc          : shwos filter usage doc.\n"
+			"-hlog         : prints names of available log tools\n"
+			"-h or -help   : prints command line options.\n"
+			"-doc          : prints filter usage doc.\n"
 			"\n"
-	        "gpac - gpac command line filter engine - version "GPAC_FULL_VERSION"\n"
+	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "GPAC Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n", separator_set, gpac_features()
@@ -346,7 +351,8 @@ static int gpac_main(int argc, char **argv)
 			if (len>=2) separator_set[1] = arg[1];
 			if (len>=3) separator_set[2] = arg[2];
 			if (len>=4) separator_set[3] = arg[3];
-			if (len>=4) separator_set[4] = arg[4];
+			if (len>=5) separator_set[4] = arg[4];
+			if (len>=6) separator_set[5] = arg[5];
 		} else if (!strcmp(arg, "-noprog")) {
 			if (!quiet) quiet = 1;
 		} else if (!strcmp(arg, "-quiet")) {
