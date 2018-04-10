@@ -777,7 +777,7 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	npck = gf_fq_pop( pid->filter->pcks_shared_reservoir);
 	if (!npck) {
 		GF_SAFEALLOC(npck, GF_FilterPacket);
-		if (!npck) return NULL;
+		if (!npck) return GF_OUT_OF_MEM;
 	}
 	npck->pck = npck;
 	npck->data = NULL;
