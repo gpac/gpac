@@ -193,9 +193,8 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 		pck->data = reference->data;
 		pck->data_length = reference->data_length;
 		pck->hw_frame = reference->hw_frame;
-
-		safe_int_inc(&reference->pid->nb_shared_packets_out);
 	}
+	safe_int_inc(&reference->pid->nb_shared_packets_out);
 	return pck;
 }
 
@@ -370,7 +369,8 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 		gf_filter_pck_merge_properties(pcki->pck, final);
 
-		if (pcki->pck->pid_props) {
+		//copy the first pid_props non null
+		if (pcki->pck->pid_props && !final->pid_props) {
 			final->pid_props = pcki->pck->pid_props;
 			safe_int_inc(&final->pid_props->reference_count);
 		}
@@ -462,7 +462,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	if (!pck->info.clock_type)
 		gf_filter_forward_clock(pck->pid->filter);
 
-	pid->has_seen_eos = pck->info.eos;
+	pid->has_seen_eos = (pck->info.eos_type==1) ? GF_TRUE : GF_FALSE;
 
 	//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
 	pck->info.pid_props_changed = GF_FALSE;
@@ -606,7 +606,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		inst->pid_props_change_done = 0;
 		inst->pid_info_change_done = 0;
 
-		if (inst->pck->info.eos) {
+		if (inst->pck->info.eos_type==1)  {
 			safe_int_inc(&inst->pid->nb_eos_signaled);
 		}
 
@@ -684,6 +684,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 					inst->pck->reference_count = 0;
 					inst->pck->reference = NULL;
 					inst->pck->destructor = NULL;
+					inst->pck->hw_frame = NULL;
 					if (pck->props) {
 						GF_Err e;
 						inst->pck->props = gf_props_new(pck->pid->filter);
@@ -732,7 +733,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			}
 
 			safe_int_inc(&dst->filter->pending_packets);
-
+//
 			gf_fq_add(dst->packets, inst);
 			post_task = GF_TRUE;
 		}

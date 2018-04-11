@@ -100,10 +100,15 @@ GF_Err img_process(GF_Filter *filter)
 	BITMAPINFOHEADER fi;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) return GF_EOS;
-
+	if (!pck) {
+		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+	}
 	data = (char *) gf_filter_pck_get_data(pck, &size);
-
+	assert(!ctx->opid);
+	
 	if (!ctx->opid) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 dsi_size;
@@ -150,10 +155,16 @@ GF_Err img_process(GF_Filter *filter)
 				codecid = GF_CODECID_RAW;
 			}
 		}
-		if (!codecid) return GF_NOT_SUPPORTED;
+		if (!codecid) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_NOT_SUPPORTED;
+		}
 
 		ctx->opid = gf_filter_pid_new(filter);
-		if (!ctx->opid) return GF_SERVICE_ERROR;
+		if (!ctx->opid) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_SERVICE_ERROR;
+		}
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codecid));

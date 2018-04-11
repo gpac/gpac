@@ -662,7 +662,7 @@ GF_Err gendump_process(GF_Filter *filter)
 		ctx->nb_bytes += 44;
 		return GF_OK;
 	} else {
-		dst_pck = gf_filter_pck_new_ref(ctx->opid, data, pck_size, pck);
+		dst_pck = gf_filter_pck_new_ref(ctx->opid, NULL, 0, pck);
 	}
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//don't keep byte offset
