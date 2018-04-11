@@ -1396,7 +1396,10 @@ restart:
 	if (filter) {
 		if (filter->src_args) gf_free(filter->src_args);
 		filter->src_args = args;
+		//for link resolution
 		filter->dst_filter = dst_filter;
+		//to remember our connection target
+		filter->target_filter = dst_filter;
 	} else {
 		gf_free(args);
 	}

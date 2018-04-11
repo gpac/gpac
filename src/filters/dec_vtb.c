@@ -168,6 +168,7 @@ typedef struct
 } GF_VTBHWFrame;
 
 static void vtbdec_delete_decoder(GF_VTBDecCtx *ctx);
+static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx);
 
 static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus status, VTDecodeInfoFlags flags, CVImageBufferRef image, CMTime pts, CMTime duration)
 {
@@ -771,17 +772,17 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 	if (hevc_nal_type) {
 		if (hevc_nal_type==GF_HEVC_NALU_SEQ_PARAM) {
 			dest = ctx->SPSs;
-			ps_id = gf_media_hevc_read_sps(data, size, &ctx->hevc);
+			ps_id = gf_media_hevc_read_sps_bs(ctx->ps_bs, &ctx->hevc);
 			if (ps_id<0) return;
 		}
 		else if (hevc_nal_type==GF_HEVC_NALU_PIC_PARAM) {
 			dest = ctx->PPSs;
-			ps_id = gf_media_hevc_read_pps(data, size, &ctx->hevc);
+			ps_id = gf_media_hevc_read_pps_bs(ctx->ps_bs, &ctx->hevc);
 			if (ps_id<0) return;
 		}
 		else if (hevc_nal_type==GF_HEVC_NALU_VID_PARAM) {
 			dest = ctx->VPSs;
-			ps_id = gf_media_hevc_read_vps(data, size, &ctx->hevc);
+			ps_id = gf_media_hevc_read_vps_bs(ctx->ps_bs, &ctx->hevc);
 			if (ps_id<0) return;
 		}
 
@@ -789,10 +790,10 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 		dest = is_sps ? ctx->SPSs : ctx->PPSs;
 
 		if (is_sps) {
-			ps_id = gf_media_avc_read_sps(data, size, &ctx->avc, 0, NULL);
+			ps_id = gf_media_avc_read_sps_bs(ctx->ps_bs, &ctx->avc, 0, NULL);
 			if (ps_id<0) return;
 		} else {
-			ps_id = gf_media_avc_read_pps(data, size, &ctx->avc);
+			ps_id = gf_media_avc_read_pps_bs(ctx->ps_bs, &ctx->avc);
 			if (ps_id<0) return;
 		}
 	}
@@ -854,6 +855,17 @@ static u32 vtbdec_purge_param_sets(GF_VTBDecCtx *ctx, Bool is_sps, s32 idx)
 	return crc_res;
 }
 
+static void vtbdec_del_param_list(GF_List *list)
+{
+	while (gf_list_count(list)) {
+		GF_AVCConfigSlot *slc = gf_list_get(list, 0);
+		gf_free(slc->data);
+		gf_free(slc);
+		gf_list_rem(list, 0);
+	}
+	gf_list_del(list);
+}
+
 static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p, *dsi;
@@ -880,11 +892,15 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
 	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
+
 	//need a reset !
 	if (ctx->vtb_session) {
-		vtbdec_delete_decoder(ctx);
+		//flush all pending frames and mark reconfigure as pending
+		ctx->reconfig_needed = GF_TRUE;
+		while (gf_list_count(ctx->frames)) {
+			vtbdec_flush_frame(filter, ctx);
+		}
 	}
-
 	ctx->ipid = pid;
 	ctx->cfg_crc = dsi_crc;
 	ctx->codecid = codecid;
@@ -892,17 +908,18 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
-
-		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 
 	//check AVC config
 	if (codecid==GF_CODECID_AVC) {
-		if (!ctx->SPSs)
-			ctx->SPSs = gf_list_new();
-		if (!ctx->PPSs)
-			ctx->PPSs = gf_list_new();
+
+		if (ctx->SPSs) vtbdec_del_param_list(ctx->SPSs);
+		ctx->SPSs = gf_list_new();
+		if (ctx->PPSs) vtbdec_del_param_list(ctx->PPSs);
+		ctx->PPSs = gf_list_new();
+
 		ctx->is_avc = GF_TRUE;
 		ctx->check_h264_isma = GF_TRUE;
 
@@ -945,7 +962,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 
 			ctx->nalu_size_length = cfg->nal_unit_size;
-			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
+			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && !ctx->reconfig_needed ) {
 				e = vtbdec_init_decoder(filter, ctx);
 			} else {
 				e = GF_OK;
@@ -957,8 +974,11 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//check HEVC config
 	if (codecid==GF_CODECID_HEVC) {
+		if (ctx->SPSs) vtbdec_del_param_list(ctx->SPSs);
 		ctx->SPSs = gf_list_new();
+		if (ctx->SPSs) vtbdec_del_param_list(ctx->PPSs);
 		ctx->PPSs = gf_list_new();
+		if (ctx->SPSs) vtbdec_del_param_list(ctx->VPSs);
 		ctx->VPSs = gf_list_new();
 		ctx->is_hevc = GF_TRUE;
 
@@ -998,7 +1018,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (slc) ctx->active_vps = slc->id;
 
 			ctx->nalu_size_length = cfg->nal_unit_size;
-			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)  && gf_list_count(ctx->VPSs) ) {
+			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)  && gf_list_count(ctx->VPSs)  && !ctx->reconfig_needed) {
 				e = vtbdec_init_decoder(filter, ctx);
 			} else {
 				e = GF_OK;
@@ -1006,6 +1026,11 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_odf_hevc_cfg_del(cfg);
 			return e;
 		}
+	}
+
+	if (ctx->vtb_session) {
+		assert(ctx->reconfig_needed);
+		return GF_OK;
 	}
 
 	//check VOSH config
@@ -1022,16 +1047,6 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return vtbdec_init_decoder(filter, ctx);
 }
 
-static void vtbdec_del_param_list(GF_List *list)
-{
-	while (gf_list_count(list)) {
-		GF_AVCConfigSlot *slc = gf_list_get(list, 0);
-		gf_free(slc->data);
-		gf_free(slc);
-		gf_list_rem(list, 0);
-	}
-	gf_list_del(list);
-}
 
 static void vtbdec_delete_decoder(GF_VTBDecCtx *ctx)
 {
@@ -1308,7 +1323,6 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	u32 in_data_size;
 	char *in_buffer;
 	u32 in_buffer_size, frames_count;
-
 	GF_Err e;
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;

@@ -372,7 +372,8 @@ struct __gf_filter
 	Bool has_pending_pids;
 	GF_FilterQueue *pending_pids;
 
-	volatile u32 pid_connection_pending;
+	volatile u32 in_pid_connection_pending;
+	volatile u32 out_pid_connection_pending;
 	volatile u32 pending_packets;
 
 	volatile u32 stream_reset_pending;
@@ -386,8 +387,10 @@ struct __gf_filter
 	//pointer to the original filter being cloned - only used for graph setup, reset after
 	GF_Filter *cloned_from;
 
-	//pointer to the target filter to connect to - only used for graph setup, reset after
+	//pointer to the destination filter to connect to next in the chain - only used for graph setup, reset after
 	GF_Filter *dst_filter;
+	//pointer to the target filter to connect to
+	GF_Filter *target_filter;
 
 	//statistics
 	//number of tasks executed by this filter
@@ -550,6 +553,9 @@ struct __gf_filter_pid
 	volatile u32 discard_input_packets;
 	volatile u32 init_task_pending;
 	volatile Bool props_changed_since_connect;
+	//number of shared packets (shared, hw frames or reference) still out there
+	volatile u32 nb_shared_packets_out;
+
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
 	u32 nb_reaggregation_pending;

@@ -56,6 +56,8 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 	gf_fq_del(pidinst->packets, (gf_destruct_fun) pcki_del);
 	gf_mx_del(pidinst->pck_mx);
 	gf_list_del(pidinst->pck_reassembly);
+	if (pidinst->props && safe_int_dec(&pidinst->props->reference_count) == 0)
+		gf_props_del(pidinst->props);
 	gf_free(pidinst);
 }
 
@@ -145,7 +147,7 @@ static void gf_filter_pid_inst_check_dependencies(GF_FilterPidInst *pidi)
 			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, a_pidi->filter, a_pid, "pidinst_disconnect", NULL);
 
 			//reconnect this pid instance to the new decoder
-			safe_int_inc(&pid->filter->pid_connection_pending);
+			safe_int_inc(&pid->filter->out_pid_connection_pending);
 			gf_filter_pid_post_connect_task(pidi->filter, a_pid);
 
 		}
@@ -224,6 +226,12 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		return;
 	}
+	//we still have packets out there!
+	if (pidinst->pid->nb_shared_packets_out) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
+
 	//WARNING at this point pidinst->filter may be destroyed
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s destruction\n",  filter->name, pid->name));
 	gf_list_del_item(pid->destinations, pidinst);
@@ -415,8 +423,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				}
 				if (!filter->session->last_connect_error) filter->session->last_connect_error = e;
 				if (ctype==GF_PID_CONF_CONNECT) {
-					assert(pid->filter->pid_connection_pending);
-					safe_int_dec(&pid->filter->pid_connection_pending);
+					assert(pid->filter->out_pid_connection_pending);
+					safe_int_dec(&pid->filter->out_pid_connection_pending);
 				}
 				//3- post a re-init on this pid
 				gf_filter_pid_post_init_task(pid->filter, pid);
@@ -466,8 +474,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 
 	if (ctype==GF_PID_CONF_CONNECT) {
-		assert(pid->filter->pid_connection_pending);
-		if ( (safe_int_dec(&pid->filter->pid_connection_pending)==0) ) {
+		assert(pid->filter->out_pid_connection_pending);
+		if ( (safe_int_dec(&pid->filter->out_pid_connection_pending)==0) ) {
 
 			//postponed packets dispatched by source while setting up PID, flush through process()
 			//pending packets (not yet consumed but in PID buffer), start processing
@@ -495,6 +503,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			filter = new_filter;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
+			safe_int_dec(&filter->in_pid_connection_pending);
 			return;
 		}
 	}
@@ -502,6 +511,8 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	//once connected, any set_property before the first packet dispatch will have to trigger a reconfigure
 	task->pid->pid->request_property_map = GF_TRUE;
 
+	//filter may now be the clone, decrement on original filter
+	safe_int_dec(&task->filter->in_pid_connection_pending);
 
 	gf_fs_cleanup_filters(fsess);
 
@@ -1433,6 +1444,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	if (filter_reassigned)
 		*filter_reassigned = GF_FALSE;
 
+	if (!dst) return NULL;
 
 	sprintf(szForceReg, "gfreg%c", pid->filter->session->sep_name);
 	force_freg = NULL;
@@ -1589,7 +1601,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		//sticky filters cannot be unloaded
 		else if (pid->filter->sticky) can_reassign = GF_FALSE;
 		//if we don't have pending PIDs to setup from the source
-		else if (pid->filter->pid_connection_pending) can_reassign = GF_FALSE;
+		else if (pid->filter->out_pid_connection_pending) can_reassign = GF_FALSE;
 		//if we don't have pending PIDs to setup from the source
 		else if (pid->filter->num_output_pids) {
 			u32 k;
@@ -1614,10 +1626,12 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	} else if (reconfigurable_only && (count>2)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
 	} else {
-		const char *dst_args = dst ? dst->src_args : NULL;
+		const char *dst_args = NULL;
 		const char *args = pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
 		GF_Filter *prev_af;
+
+		dst_args = dst->src_args ? dst->src_args : dst->orig_args;
 
 		while (a_pid) {
 			GF_FilterPidInst *pidi;
@@ -1681,7 +1695,11 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			//remember our target filter
 			if (prev_af) prev_af->dst_filter = af;
-			if (i+2==count) af->dst_filter = pid->filter->dst_filter ? pid->filter->dst_filter : dst;
+			if (i+2==count) af->dst_filter = dst;
+
+			//also remember our original target in case we got the link wrong
+			af->target_filter = pid->filter->target_filter;
+
 			prev_af = af;
 
 			if (reconfigurable_only) af->is_pid_adaptation_filter = GF_TRUE;
@@ -1790,8 +1808,13 @@ restart:
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
 
-		//if destination is connected and accepts only one input, don't connect to it, don't clone
-		if (!filter_dst->max_extra_pids && filter_dst->num_input_pids) continue;
+		//if destination  accepts only one input, don't connect to it, don't clone
+		if (!filter_dst->max_extra_pids) {
+			//connected, don't connect/clone
+			if (filter_dst->num_input_pids) continue;
+			//connection pending, don't connect/clone
+			if (filter_dst->in_pid_connection_pending) continue;
+		}
 
 		if (gf_list_find(pid->filter->blacklisted, (void *) filter_dst->freg)>=0) continue;
 
@@ -1807,7 +1830,10 @@ restart:
 			//this is typically the case for muxers instantiated dynamically
 			if (!filter_dst->max_extra_pids) continue;
 		}
-
+		//pid->filter->dst_filter NULL and pid->filter->target_filter is not: we had a wrong resolved chain to target
+		//so only attempt to reling the chain if dst_filter is the expected target
+		if (!pid->filter->dst_filter && pid->filter->target_filter && (filter_dst != pid->filter->target_filter))
+			continue;
 
 		//dynamic filters only connect to their destination, unless explicit connections through sources
 		//we could remove this but this highly complicates PID resolution
@@ -1856,7 +1882,7 @@ restart:
 				if (old_dst->dynamic_filter
 					&& !old_dst->has_pending_pids
 					&& !old_dst->num_input_pids
-					&& !old_dst->pid_connection_pending
+					&& !old_dst->out_pid_connection_pending
 				) {
 					assert(!old_dst->finalized);
 					old_dst->finalized = GF_TRUE;
@@ -1896,8 +1922,10 @@ restart:
 					while (new_dst->dst_filter && new_dst->dynamic_filter) {
 						GF_Filter *f = new_dst;
 						new_dst = new_dst->dst_filter;
-						f->finalized = GF_TRUE;
-						gf_fs_post_task(f->session, gf_filter_remove_task, f, NULL, "filter_destroy", NULL);
+						if (!f->num_input_pids && !f->num_output_pids && !f->in_pid_connection_pending) {
+							f->finalized = GF_TRUE;
+							gf_fs_post_task(f->session, gf_filter_remove_task, f, NULL, "filter_destroy", NULL);
+						}
 					}
 					
 					pid->filter->dst_filter = NULL;
@@ -1921,7 +1949,7 @@ restart:
 		}
 		assert(pid->pid->filter->freg != filter_dst->freg);
 
-		safe_int_inc(&pid->filter->pid_connection_pending);
+		safe_int_inc(&pid->filter->out_pid_connection_pending);
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
 		found_dest = GF_TRUE;
@@ -1960,10 +1988,12 @@ restart:
 
 void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 {
+	assert(pid->pid);
 	assert(pid->filter != filter);
 	assert(pid->filter->freg != filter->freg);
 	assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
+	safe_int_inc(&filter->in_pid_connection_pending);
 	gf_fs_post_task(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_init", NULL);
 }
 
@@ -2028,11 +2058,15 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 	gf_list_del(pid->destinations);
 
 	while (gf_list_count(pid->properties)) {
-		gf_props_del( gf_list_pop_back(pid->properties) );
+		GF_PropertyMap *prop = gf_list_pop_back(pid->properties);
+		if (safe_int_dec(&prop->reference_count)==0) {
+			gf_props_del(prop);
+		}
 	}
 	gf_list_del(pid->properties);
 
-	if (pid->caps_negociate)
+	//this one is NOT reference counted
+	if(pid->caps_negociate && (safe_int_dec(&pid->caps_negociate->reference_count)==0) )
 		gf_props_del(pid->caps_negociate);
 
 	if (pid->adapters_blacklist)
@@ -2460,11 +2494,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		pcki->pid_info_change_done = 1;
 		GF_FEVT_INIT(evt, GF_FEVT_INFO_UPDATE, pid);
 
-		//commented out for now, due to audio thread pulling packets out of the pid but not in the compositor:process, which
-		//could be called for video at the same time... FIXME
-#ifdef FILTER_FIXME
 		FSESS_CHECK_THREAD(pidinst->filter)
-#endif
 		pidinst->filter->freg->process_event(pidinst->filter, &evt);
 	}
 	pidinst->last_pck_fetch_time = gf_sys_clock_high_res();
