@@ -87,8 +87,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		char szDst[5];
 		sprintf(szDst, "dst%c", fsess->sep_name);
 		dst_striped = strstr(dst_args, szDst);
-		if (dst_striped) dst_striped = strchr(dst_striped+5, fsess->sep_args);
-		if (dst_striped) dst_striped ++;
+		if (dst_striped) {
+			dst_striped = strchr(dst_striped+5, fsess->sep_args);
+			if (dst_striped) dst_striped ++;
+		} else {
+			dst_striped = (char *)dst_args;
+		}
 	}
 
 	if (args && dst_striped) {
@@ -744,7 +748,7 @@ static void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filte
 		new_f->caps_negociate = pid->caps_negociate;
 		safe_int_inc(&new_f->caps_negociate->reference_count);
 
-		safe_int_inc(&pid->filter->pid_connection_pending);
+		safe_int_inc(&pid->filter->out_pid_connection_pending);
 		gf_filter_pid_post_connect_task(new_f, pid);
 	}
 }
@@ -943,8 +947,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->freg->process);
 
 	filter->schedule_next_time = 0;
-	if (filter->pid_connection_pending || filter->detached_pid_inst) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has %s pending, requeuing process\n", filter->name, filter->pid_connection_pending ? "connections" : "input pid reassignments"));
+	if (filter->out_pid_connection_pending || filter->detached_pid_inst) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has %s pending, requeuing process\n", filter->name, filter->out_pid_connection_pending ? "connections" : "input pid reassignments"));
 		//do not cancel the process task since it might have been triggered by the filter itself,
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
@@ -1046,7 +1050,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 void gf_filter_process_inline(GF_Filter *filter)
 {
 	GF_Err e;
-	if (filter->pid_connection_pending || filter->removed || filter->stream_reset_pending) {
+	if (filter->out_pid_connection_pending || filter->removed || filter->stream_reset_pending) {
 		return;
 	}
 	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
@@ -1245,6 +1249,11 @@ void gf_filter_remove_task(GF_FSTask *task)
 	s32 res;
 	GF_Filter *f = task->filter;
 	u32 count = gf_fq_count(f->tasks);
+
+	if (f->out_pid_connection_pending) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
 
 	assert(f->finalized);
 	if (task->in_main_task_list_only) count++;

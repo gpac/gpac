@@ -33,6 +33,7 @@ static void gf_filter_pck_reset_props(GF_FilterPacket *pck, GF_FilterPid *pid)
 	pck->info.data_block_start = pck->info.data_block_end = GF_TRUE;
 	pck->pid = pid;
 	pck->src_filter = pid->filter;
+	assert(!pck->info.props_ref_only);
 }
 
 GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst, gf_filter_prop_filter filter_prop, void *cbk)
@@ -47,6 +48,7 @@ GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_Filter
 	pck_dst=pck_dst->pck;
 
 	pck_dst->info = pck_src->info;
+	pck_dst->info.props_ref_only = GF_FALSE;
 
 	if (!pck_src->props) {
 		return GF_OK;
@@ -93,7 +95,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		else if (closest->alloc_size < cur->alloc_size) closest = cur;
 	}
 	//stop allocating after a while - TODO we for sur can design a better algo...
-	max_reservoir_size = pid->num_destinations ? 50 : 1;
+	max_reservoir_size = pid->num_destinations ? 10 : 1;
 	if (!pck && (count>=max_reservoir_size)) {
 		assert(closest);
 		closest->alloc_size = data_size;
@@ -171,6 +173,7 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u
 	pck->destructor = destruct;
 
 	gf_filter_pck_reset_props(pck, pid);
+	safe_int_inc(&pid->nb_shared_packets_out);
 
 	assert(pck->pid);
 	return pck;
@@ -190,6 +193,8 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 		pck->data = reference->data;
 		pck->data_length = reference->data_length;
 		pck->hw_frame = reference->hw_frame;
+
+		safe_int_inc(&reference->pid->nb_shared_packets_out);
 	}
 	return pck;
 }
@@ -215,6 +220,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 	pck->reference = reference;
 	assert(reference->reference_count);
 	safe_int_inc(&reference->reference_count);
+	safe_int_inc(&reference->pid->nb_shared_packets_out);
 
 	gf_filter_pck_merge_properties(reference, pck);
 	pck->data = reference->data;
@@ -256,10 +262,18 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 			gf_props_del(props);
 		}
 	}
+	if (pck->filter_owns_mem) {
+		assert(pck->pid->nb_shared_packets_out);
+		safe_int_dec(&pck->pid->nb_shared_packets_out);
+	}
+
 	pck->data_length = 0;
 	pck->pid = NULL;
 
 	if (pck->reference) {
+		assert(pck->reference->pid->nb_shared_packets_out);
+		safe_int_dec(&pck->reference->pid->nb_shared_packets_out);
+		
 		assert(pck->reference->reference_count);
 		if (safe_int_dec(&pck->reference->reference_count) == 0) {
 			gf_filter_packet_destroy(pck->reference);
@@ -269,7 +283,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	if (is_filter_destroyed) {
 		if (!pck->filter_owns_mem && pck->data) gf_free(pck->data);
 		gf_free(pck);
-	} else if (pck->filter_owns_mem) {
+	} else if (pck->filter_owns_mem || pck->info.props_ref_only) {
 		gf_fq_add(pid->filter->pcks_shared_reservoir, pck);
 	} else {
 		gf_fq_add(pid->filter->pcks_alloc_reservoir, pck);
@@ -477,7 +491,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 	}
 
-	if (pid->filter->pid_connection_pending || pid->filter->has_pending_pids) {
+	if (pid->filter->out_pid_connection_pending || pid->filter->has_pending_pids) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s connection pending, queuing packet\n", pck->pid->filter->name, pck->pid->name));
 		if (!pid->filter->postponed_packets) pid->filter->postponed_packets = gf_list_new();
 		gf_list_add(pid->filter->postponed_packets, pck);

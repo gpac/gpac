@@ -41,6 +41,7 @@
 		ctx->_name = _val;	\
 	} \
 
+static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
 
 
 typedef struct _gf_ffdec_ctx
@@ -52,6 +53,8 @@ typedef struct _gf_ffdec_ctx
 	AVCodecContext *decoder;
 	//decode options
 	AVDictionary *options;
+
+	Bool reconfig_pending;
 
 	GF_FilterPid *in_pid, *out_pid;
 	//media type
@@ -124,17 +127,20 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
-	if (!pck) {
+	if (ctx->reconfig_pending) {
+		pck = NULL;
+	} else if (!pck) {
 		is_eos = gf_filter_pid_is_eos(ctx->in_pid);
 		if (!is_eos) return GF_OK;
 	}
+
 	frame = ctx->frame;
 
 	av_init_packet(&pkt);
 
-	if (pck) data = gf_filter_pck_get_data(pck, &size);
+	if (pck) {
+		data = gf_filter_pck_get_data(pck, &size);
 
-	if (!is_eos) {
 		pck_src = pck;
 		gf_filter_pck_ref_props(&pck_src);
 		if (pck_src) gf_list_add(ctx->src_packets, pck_src);
@@ -169,6 +175,22 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			ctx->flush_done = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
+		}
+		if (ctx->reconfig_pending) {
+			if (ctx->decoder->extradata) gf_free(ctx->decoder->extradata);
+			ctx->decoder->extradata = NULL;
+			avcodec_close(ctx->decoder);
+			ctx->decoder = NULL;
+			ctx->reconfig_pending = GF_FALSE;
+			//these properties are checked after decode, when we reconfigure we copy props from input to output
+			//so we need to make sure we retrigger pid config even if these did not change
+			ctx->pixel_fmt = 0;
+			ctx->width = 0;
+			ctx->height = 0;
+			ctx->stride = 0;
+			ctx->stride_uv = 0;
+			ctx->sar.num = ctx->sar.den = 0;
+			return ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
 		}
 	}
 
@@ -333,17 +355,19 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	char *data;
 	AVFrame *frame;
 	GF_FilterPacket *dst_pck, *src_pck;
-
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
-	if (!pck) {
+	if (ctx->reconfig_pending) {
+		pck = NULL;
+	} else if (!pck) {
 		is_eos = gf_filter_pid_is_eos(ctx->in_pid);
 		if (!is_eos) return GF_OK;
 	}
+
 	av_init_packet(&pkt);
 	if (pck) pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
-	if (!is_eos) {
+	if (!pck) {
 		src_pck = pck;
 		gf_filter_pck_ref_props(&src_pck);
 		if (src_pck) gf_list_add(ctx->src_packets, src_pck);
@@ -385,6 +409,20 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		if (is_eos) {
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
+		}
+		if (ctx->reconfig_pending) {
+			if (ctx->decoder->extradata) gf_free(ctx->decoder->extradata);
+			ctx->decoder->extradata = NULL;
+			avcodec_close(ctx->decoder);
+			ctx->decoder = NULL;
+			ctx->reconfig_pending = GF_FALSE;
+			//these properties are checked after decode, when we reconfigure we copy props from input to output
+			//so we need to make sure we retrigger pid config even if these did not change
+			ctx->sample_fmt = 0;
+			ctx->sample_rate = 0;
+			ctx->channels = 0;
+			ctx->channel_layout = 0;
+			return ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
 		}
 		return GF_OK;
 	}
@@ -538,7 +576,7 @@ static GF_Err ffdec_process(GF_Filter *filter)
 	return ctx->process(filter, ctx);
 }
 
-static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
 	u32 type=0, gpac_codecid=0;
@@ -608,26 +646,22 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		AVCodec *codec=NULL;
 		u32 codec_id;
 		if (ctx->decoder) {
-			u32 cfg_crc=0;
 			u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid);
+			//same codec, same config, don't reinit
+			if (ctx->decoder->codec->id == codec_id) {
+				u32 cfg_crc=0;
+				prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+				if (prop && prop->value.data.ptr && prop->value.data.size) {
+					cfg_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
+				}
+				if (cfg_crc == ctx->extra_data_crc) return GF_OK;
+			}
 
-			//TODO: flush decoder to dispatch internally pending frames and create a new decoder
-			if (ctx->decoder->codec->id != codec_id) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Cannot switch codec type on the fly, not yet supported !\n" ));
-				return GF_NOT_SUPPORTED;
-			}
-			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-			if (prop && prop->value.data.ptr && prop->value.data.size) {
-				cfg_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
-			}
-			if (cfg_crc == ctx->extra_data_crc) return GF_OK;
-
-			if (ctx->decoder) {
-				if (ctx->decoder->extradata) gf_free(ctx->decoder->extradata);
-				ctx->decoder->extradata = NULL;
-				avcodec_close(ctx->decoder);
-				ctx->decoder = NULL;
-			}
+			//we could further optimize by detecting we have the same codecid and injecting the extradata
+			//but this is not 100% reliable, and will require parsing AVC/HEVC config
+			//since this seems to work properly with decoder close/open, we keep it as is
+			ctx->reconfig_pending = GF_TRUE;
+			return GF_OK;
 		}
 
 		codec_id = ffmpeg_codecid_from_gpac(gpac_codecid);
@@ -686,6 +720,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			}
 			FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 		}
+
 		if (ctx->decoder->width) {
 			FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
 		}
@@ -789,7 +824,7 @@ GF_FilterRegister FFDecodeRegister = {
 	SETCAPS(FFDecodeCaps),
 	.initialize = ffdec_initialize,
 	.finalize = ffdec_finalize,
-	.configure_pid = ffdec_config_input,
+	.configure_pid = ffdec_configure_pid,
 	.process = ffdec_process,
 	.update_arg = ffdec_update_arg,
 	//use middle priorty, so that hardware decs/other native impl in gpac can take over if needed
