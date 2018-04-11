@@ -354,7 +354,8 @@ void isor_declare_objects(ISOMReader *read)
 		gf_filter_pid_copy_properties(pid, read->pid);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esid));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(ocr_es_id));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(depends_on_id));
+		if (depends_on_id && (depends_on_id != esid))
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(depends_on_id));
 
 		//MPEG-4 systems present
 		if (use_iod)
@@ -495,11 +496,13 @@ void isor_declare_objects(ISOMReader *read)
 	}
 	/*declare image items*/
 	count = gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0);
-	for (i=0; count && i<1; i++) {
+	for (i=0; i<count; i++) {
 		GF_ImageItemProperties props;
 		GF_FilterPid *pid;
 		GF_ESD *esd;
-		u32 item_id = gf_isom_get_meta_primary_item_id(read->mov, GF_TRUE, 0);
+		u32 item_id;
+		gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, i+1, &item_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
 		if (!item_id) continue;
 
 		gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props);
@@ -510,7 +513,9 @@ void isor_declare_objects(ISOMReader *read)
 
 		//OK declare PID
 		pid = gf_filter_pid_new(read->filter);
+		gf_filter_pid_copy_properties(pid, read->pid);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
 		//TODO: no support for LHEVC images
 		//gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
 

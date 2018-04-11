@@ -710,6 +710,7 @@ enum
 	//(uint) PID ID
 	GF_PROP_PID_ID = GF_4CC('P','I','D','I'),
 	GF_PROP_PID_ESID = GF_4CC('E','S','I','D'),
+	GF_PROP_PID_ITEM_ID = GF_4CC('I','T','I','D'),
 	//(uint) ID of originating service
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),

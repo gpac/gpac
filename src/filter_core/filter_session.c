@@ -1270,7 +1270,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
 	const GF_FilterArgs *src_dst_arg=NULL;
-	u32 i, count, user_args_len;
+	u32 i, count, user_args_len, arg_type;
 	GF_Err e;
 	const char *force_freg = NULL;
 	char *sURL, *mime_type, *args, *sep;
@@ -1384,11 +1384,12 @@ restart:
 	}
 
 	e = GF_OK;
+	arg_type = for_source ? GF_FILTER_ARG_GLOBAL_SOURCE : GF_FILTER_ARG_GLOBAL_SINK;
 	if (!filter) {
-		filter = gf_filter_new(fsess, candidate_freg, args, NULL, GF_FILTER_ARG_GLOBAL_SOURCE, err);
+		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err);
 	} else {
 		filter->freg = candidate_freg;
-		e = gf_filter_new_finalize(filter, args, GF_FILTER_ARG_GLOBAL_SOURCE);
+		e = gf_filter_new_finalize(filter, args, arg_type);
 		if (err) *err = e;
 	}
 
