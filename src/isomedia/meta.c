@@ -307,9 +307,14 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		GF_HEVCConfigurationBox *hvcc = NULL;
 		GF_AVCConfigurationBox *avcc = NULL;
 		if (! meta->item_props) return GF_NON_COMPLIANT_BITSTREAM;
-		if (! meta->item_props->property_container) return GF_NON_COMPLIANT_BITSTREAM;
-		if (! meta->item_props->property_association) return GF_NON_COMPLIANT_BITSTREAM;
-
+		if (! meta->item_props->property_container) {
+			if (item_bs) gf_bs_del(item_bs);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (! meta->item_props->property_association) {
+			if (item_bs) gf_bs_del(item_bs);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		count = gf_list_count(meta->item_props->property_association->entries);
 		for (i=0; i<count; i++) {
 			GF_ItemPropertyAssociationEntry *e = gf_list_get(meta->item_props->property_association->entries, i);
@@ -319,7 +324,10 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 				u32 *idx = gf_list_get(e->property_index, j);
 				if (! (*idx) ) continue;
 				hvcc = gf_list_get(meta->item_props->property_container->other_boxes, (*idx) - 1);
-				if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (!hvcc) {
+					if (item_bs) gf_bs_del(item_bs);
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
 				if (hvcc->type == GF_ISOM_BOX_TYPE_HVCC) break;
 				if (hvcc->type == GF_ISOM_BOX_TYPE_AVCC) {
 					avcc = (GF_AVCConfigurationBox *) hvcc;
