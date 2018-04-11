@@ -711,7 +711,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (type==GF_STREAM_VISUAL) {
 		u32 pix_fmt;
 		ctx->process = ffdec_process_video;
-
+		//for some streams, we don't have w/h/pixfmt after opening the decoder
+		//to make sure we are not confusing potential filters expecting them, init to default values
 		if (ctx->decoder->pix_fmt>=0) {
 			pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
 			if (!pix_fmt) {
@@ -719,13 +720,22 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				pix_fmt = GF_PIXEL_RGB;
 			}
 			FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
+		} else {
+			ctx->pixel_fmt = GF_PIXEL_YUV;
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT( ctx->pixel_fmt) );
 		}
 
 		if (ctx->decoder->width) {
 			FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
+		} else {
+			ctx->width = 320;
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT( ctx->width) );
 		}
 		if (ctx->decoder->height) {
 			FF_CHECK_PROP(height, height, GF_PROP_PID_HEIGHT)
+		} else {
+			ctx->width = 240;
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT( ctx->height) );
 		}
 		if (ctx->decoder->sample_aspect_ratio.num && ctx->decoder->sample_aspect_ratio.den) {
 			ctx->sar.num = ctx->decoder->sample_aspect_ratio.num;

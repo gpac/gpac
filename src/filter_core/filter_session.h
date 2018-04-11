@@ -133,7 +133,7 @@ typedef struct __gf_filter_pck_info
 	u8 sap_type;
 	u8 interlaced;
 	u8 corrupted;
-	u8 eos;
+	u8 eos_type; //0: nothing, 1: eos, 2: pid remove
 	u8 clock_type;
 	u8 seek_flag;
 	u8 duration_set;
@@ -550,6 +550,7 @@ struct __gf_filter_pid
 	Bool pid_info_changed;
 	Bool destroyed;
 	Bool not_connected_ok;
+	Bool removed;
 	volatile u32 discard_input_packets;
 	volatile u32 init_task_pending;
 	volatile Bool props_changed_since_connect;

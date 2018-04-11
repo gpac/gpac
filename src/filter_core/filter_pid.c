@@ -214,6 +214,10 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	}
 }
 
+#define TASK_REQUEUE(_t) \
+	_t->requeue_request = GF_TRUE; \
+	_t->schedule_next_time = gf_sys_clock_high_res() + 50; \
+
 void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 {
 	u64 dur;
@@ -223,12 +227,12 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 	//reset in process
 	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
-		task->requeue_request = GF_TRUE;
+		TASK_REQUEUE(task)
 		return;
 	}
 	//we still have packets out there!
 	if (pidinst->pid->nb_shared_packets_out) {
-		task->requeue_request = GF_TRUE;
+		TASK_REQUEUE(task)
 		return;
 	}
 
@@ -550,7 +554,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	//we may have concurrent reset (due to play/stop/seek) and caps renegotiation
 	//wait for the pid to be reset before detaching
 	if (pid->filter->stream_reset_pending) {
-		task->requeue_request = GF_TRUE;
+		TASK_REQUEUE(task)
 		return;
 	}
 	assert(filter->sticky);
@@ -2399,13 +2403,17 @@ u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 	}
 }
 
-static Bool gf_filter_pid_filter_internal_packet(GF_FilterPid *pid, GF_FilterPacketInstance *pcki)
+static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_FilterPacketInstance *pcki)
 {
 	Bool is_internal = GF_FALSE;
-	if (pcki->pck->info.eos) {
+	if (pcki->pck->info.eos_type==1) {
 		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pid->pid->name, pid->filter->name, pcki->pid->pid->has_seen_eos));
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pidi->pid->name, pidi->filter->name, pcki->pid->pid->has_seen_eos));
 		safe_int_dec(&pcki->pid->nb_eos_signaled);
+		is_internal = GF_TRUE;
+	} else if (pcki->pck->info.eos_type==2) {
+		gf_fs_post_task(pidi->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pidi->pid, "pidinst_disconnect", NULL);
+
 		is_internal = GF_TRUE;
 	}
 	if (pcki->pck->info.clock_type) {
@@ -2432,7 +2440,7 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPid *pid, GF_FilterPac
 		is_internal = GF_TRUE;
 	}
 
-	if (is_internal) gf_filter_pid_drop_packet(pid);
+	if (is_internal) gf_filter_pid_drop_packet((GF_FilterPid *)pidi);
 	return is_internal;
 }
 
@@ -2453,7 +2461,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	}
 	assert(pcki->pck);
 
-	if (gf_filter_pid_filter_internal_packet(pid, pcki))  {
+	if (gf_filter_pid_filter_internal_packet(pidinst, pcki))  {
 		return gf_filter_pid_get_packet(pid);
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
@@ -2519,7 +2527,7 @@ Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 	}
 	assert(pcki->pck);
 
-	if (gf_filter_pid_filter_internal_packet(pid, pcki))  {
+	if (gf_filter_pid_filter_internal_packet(pidinst, pcki))  {
 		return gf_filter_pid_get_first_packet_cts(pid, cts);
 	}
 
@@ -2546,7 +2554,7 @@ Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 	}
 	assert(pcki->pck);
 
-	if (pcki->pck->info.eos || pcki->pck->info.clock_type) {
+	if (pcki->pck->info.eos_type || pcki->pck->info.clock_type) {
 		return GF_TRUE;
 	}
 	if (pidinst->requires_full_data_block && !pcki->pck->info.data_block_end)
@@ -2559,7 +2567,7 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 {
 	u64 now = gf_sys_clock_high_res();
 	u64 dec_time = now - pidi->last_pck_fetch_time;
-	if (pck->info.eos) return;
+	if (pck->info.eos_type) return;
 	if (pidi->pid->filter->removed) return;
 	
 	pidi->filter->nb_pck_processed++;
@@ -2720,7 +2728,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	//peek next for eos
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidi->packets);
 	if (pcki)
-		gf_filter_pid_filter_internal_packet(pid, pcki);
+		gf_filter_pid_filter_internal_packet(pidi, pcki);
 
 	return ((GF_FilterPidInst *)pid)->is_end_of_stream;
 }
@@ -2738,7 +2746,7 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	//we create a fake packet for eos signaling
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-	pck->pck->info.eos = 1;
+	pck->pck->info.eos_type = 1;
 	pid->pid->has_seen_eos = GF_TRUE;
 	gf_filter_pck_send(pck);
 }
@@ -2913,12 +2921,12 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 	//if stream reset task is posted, wait for it before processing this event
 	if (f->stream_reset_pending) {
-		task->requeue_request = GF_TRUE;
+		TASK_REQUEUE(task)
 		return;
 	}
 	//if some pids are still detached, wait for the connection before processing this event
 	if (f->detached_pid_inst) {
-		task->requeue_request = GF_TRUE;
+		TASK_REQUEUE(task)
 		return;
 	}
 
@@ -3065,7 +3073,7 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 	GF_Filter *f = task->filter;
 
 	if (f->stream_reset_pending) {
-		task->requeue_request = GF_TRUE;
+		TASK_REQUEUE(task)
 		return;
 	}
 
@@ -3124,13 +3132,17 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	}
 
 
-	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
+	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type == GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 		u32 i, count = pid->pid->num_destinations;
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
-			//flag pid instance to discard all packets
-			pidi->discard_packets = GF_TRUE;
-			safe_int_inc(& pidi->pid->discard_input_packets );
+			if (evt->base.type == GF_FEVT_PLAY) {
+				pidi->is_end_of_stream = GF_FALSE;
+			} else {
+				//flag pid instance to discard all packets
+				pidi->discard_packets = GF_TRUE;
+				safe_int_inc(& pidi->pid->discard_input_packets );
+			}
 		}
 	}
 
@@ -3218,19 +3230,25 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 
 void gf_filter_pid_remove(GF_FilterPid *pid)
 {
-	u32 j, count;
+	GF_FilterPacket *pck;
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Removing PID input filter (%s:%s) not allowed\n", pid->filter->name, pid->pid->name));
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s removed output PID %s\n", pid->filter->name, pid->pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s removed request output PID %s\n", pid->filter->name, pid->pid->name));
+
 	if (pid->filter->removed) {
 		return;
 	}
-	count = pid->num_destinations;
-	for (j=0; j<count; j++) {
-		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
-		gf_fs_post_task(pid->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
+	if (pid->removed) {
+		return;
 	}
+	pid->removed = GF_TRUE;
+
+	//we create a fake packet for eos signaling
+	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+	pck->pck->info.eos_type = 2;
+	gf_filter_pck_send(pck);
 }
 
 void gf_filter_pid_try_pull(GF_FilterPid *pid)
