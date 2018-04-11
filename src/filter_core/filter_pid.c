@@ -501,7 +501,6 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 
 	//filter will require a new instance, clone it
 	if (filter->num_input_pids && (filter->max_extra_pids <= filter->num_input_pids - 1)) {
-		//TODO: copy over args from current filter
 		GF_Filter *new_filter = gf_filter_clone(filter);
 		if (new_filter) {
 			filter = new_filter;
@@ -675,26 +674,89 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 
 		//match id
 		if (!strncmp(id, source_ids, sublen)) {
+			char *psep;
+			u32 comp_type=0;
 			const GF_PropertyValue *prop;
 			if (!pid_name) return GF_TRUE;
 
 			//match pid name
 			if (!strcmp(src_pid->name, pid_name)) return GF_TRUE;
 
-			if (!strnicmp(pid_name, "PID=", 4)) {
-				prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_ID);
-				if (prop) {
-					u32 pid_id_target;
-					if ((sscanf(pid_name, "PID=%d", &pid_id_target) == 1) && (pid_id_target==prop->value.uint)) {
-						return GF_TRUE;
-					}
-					*pid_excluded = GF_TRUE;
-					return GF_FALSE;
-				} else {
-					//if the PID is unnamed ignore the #PID= directive, wait for further connections
-					return GF_TRUE;
+			//generic property adressing code(or builtin name)=val
+			psep = strchr(pid_name, src_pid->filter->session->sep_name);
+			if (!psep) {
+				psep = strchr(pid_name, '-');
+				if (psep) comp_type = 1;
+				else {
+					psep = strchr(pid_name, '+');
+					if (psep) comp_type = 2;
 				}
 			}
+			if (psep) {
+				Bool is_equal = GF_FALSE;
+				GF_PropertyValue prop_val;
+				u32 p4cc = 0;
+				char c=psep[0];
+				psep[0] = 0;
+				prop=NULL;
+				p4cc = gf_props_get_id(pid_name);
+				if (!p4cc && (strlen(pid_name)==4))
+					p4cc = GF_4CC(pid_name[0], pid_name[1], pid_name[2], pid_name[3]);
+
+				psep[0] = c;
+				if (p4cc) {
+					prop = gf_filter_pid_get_property(src_pid, p4cc);
+
+					if (prop) {
+						prop_val = gf_props_parse_value(prop->type, pid_name, psep+1, NULL);
+						if (!comp_type) {
+							is_equal = gf_props_equal(prop, &prop_val);
+						} else {
+							switch (prop_val.type) {
+							case GF_PROP_SINT:
+								if (prop->value.sint<prop_val.value.sint) is_equal = GF_TRUE;
+								if (comp_type==2) is_equal = !is_equal;
+								break;
+							case GF_PROP_UINT:
+								if (prop->value.uint<prop_val.value.uint) is_equal = GF_TRUE;
+								if (comp_type==2) is_equal = !is_equal;
+								break;
+							case GF_PROP_LSINT:
+								if (prop->value.longsint<prop_val.value.longsint) is_equal = GF_TRUE;
+								if (comp_type==2) is_equal = !is_equal;
+								break;
+							case GF_PROP_LUINT:
+								if (prop->value.longuint<prop_val.value.longuint) is_equal = GF_TRUE;
+								if (comp_type==2) is_equal = !is_equal;
+								break;
+							case GF_PROP_FLOAT:
+								if (prop->value.fnumber<prop_val.value.fnumber) is_equal = GF_TRUE;
+								if (comp_type==2) is_equal = !is_equal;
+								break;
+							case GF_PROP_DOUBLE:
+								if (prop->value.number<prop_val.value.number) is_equal = GF_TRUE;
+								if (comp_type==2) is_equal = !is_equal;
+								break;
+							case GF_PROP_FRACTION:
+								if (prop->value.frac.num * prop_val.value.frac.den < prop->value.frac.den * prop_val.value.frac.num) is_equal = GF_TRUE;
+								if (comp_type==2) is_equal = !is_equal;
+								break;
+							default:
+								GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
+								is_equal = GF_TRUE;
+								break;
+							}
+						}
+						gf_props_reset_single(&prop_val);
+						if (!is_equal) *pid_excluded = GF_TRUE;
+					} else {
+						//if the property is not found, we accept the connection
+						is_equal = GF_TRUE;
+					}
+					return is_equal;
+				}
+			}
+
 			//special case for stream types filters
 			prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
 			if (prop) {
@@ -746,7 +808,6 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 				}
 			}
 
-			//TODO: match by PID type #audioX, #videoX
 			if (!prop) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unsupported PID adressing %c%s in filter %s\n", src_pid->filter->session->sep_frag, pid_name, src_pid->filter->name));
 			}
@@ -1812,12 +1873,15 @@ restart:
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
 
-		//if destination  accepts only one input, don't connect to it, don't clone
-		if (!filter_dst->max_extra_pids) {
-			//connected, don't connect/clone
-			if (filter_dst->num_input_pids) continue;
-			//connection pending, don't connect/clone
-			if (filter_dst->in_pid_connection_pending) continue;
+		//if destination accepts only one input, and connected or connection pending
+		if (!filter_dst->max_extra_pids && (filter_dst->num_input_pids || filter_dst->in_pid_connection_pending) ) {
+			//not explicitly clonable, don't connect to it
+			if (!filter_dst->clonable)
+				continue;
+
+			//explicitly clonable but caps don't match, don't connect to it
+			if (!filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1))
+				continue;
 		}
 
 		if (gf_list_find(pid->filter->blacklisted, (void *) filter_dst->freg)>=0) continue;
@@ -3540,11 +3604,21 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			sprintf(szTemplateVal, szFormat, value);
 			str_val = szTemplateVal;
 		} else if (str_val) {
-			char *ext = strrchr(str_val, '.');
-			if (is_file_str && ext) {
-				u32 len = ext - str_val;
-				strncpy(szTemplateVal, str_val, ext - str_val);
-				szTemplateVal[len] = 0;
+			if (is_file_str) {
+				char *ext;
+				char *sname = strrchr(str_val, '/');
+				if (!sname) sname = strrchr(str_val, '\\');
+				if (!sname) sname = (char *) str_val;
+				else sname++;
+				ext = strrchr(str_val, '.');
+
+				if (ext) {
+					u32 len = ext - sname;
+					strncpy(szTemplateVal, sname, ext - sname);
+					szTemplateVal[len] = 0;
+				} else {
+					strcpy(szTemplateVal, sname);
+				}
 			} else {
 				strcpy(szTemplateVal, str_val);
 			}

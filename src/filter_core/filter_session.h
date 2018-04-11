@@ -85,6 +85,7 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 Bool gf_props_4cc_check_props();
+void gf_props_reset_single(GF_PropertyValue *p);
 
 
 typedef struct __gf_filter_queue GF_FilterQueue;
@@ -304,6 +305,7 @@ typedef enum
 	GF_FILTER_ARG_LOCAL = 0,
 	GF_FILTER_ARG_GLOBAL,
 	GF_FILTER_ARG_GLOBAL_SOURCE,
+	GF_FILTER_ARG_GLOBAL_SINK,
 } GF_FilterArgType;
 
 struct __gf_filter
@@ -427,6 +429,8 @@ struct __gf_filter
 	Bool dynamic_filter;
 	//sticky filters won't unload if all inputs are deconnected. Usefull for sink filters
 	Bool sticky;
+	//explicitly loaded filters are usually not cloned, except if this flag is set
+	Bool clonable;
 	//one of the output PID needs reconfiguration
 	volatile u32 nb_caps_renegociate;
 

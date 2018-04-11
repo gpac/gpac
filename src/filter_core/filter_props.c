@@ -342,6 +342,16 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 	return map;
 }
 
+void gf_props_reset_single(GF_PropertyValue *p)
+{
+	if (p->type==GF_PROP_STRING) {
+		gf_free(p->value.string);
+		p->value.string = NULL;
+	}
+	else if (p->type==GF_PROP_DATA) {
+		gf_free(p->value.data.ptr);
+	}
+}
 void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 {
 	assert(it->reference_count);
@@ -642,6 +652,7 @@ struct _gf_prop_typedef {
 {
 	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
 	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of PID - mandatory if MPEG-4 Systems used", GF_PROP_UINT},
+	{ GF_PROP_PID_ITEM_ID, "ItemID", "ID of image item in HEIF, same value as ID", GF_PROP_UINT},
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},

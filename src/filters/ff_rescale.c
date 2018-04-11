@@ -120,9 +120,9 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		}
 	} else if (hwframe && hwframe->get_plane) {
 		u32 i=0;
-		for (i=0; i<4; i++) {
-		if (hwframe->get_plane(hwframe, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
-			break;
+		for (i=0; i<ctx->nb_src_planes; i++) {
+			if (hwframe->get_plane(hwframe, i, (const u8 **) &src_planes[i], &ctx->src_stride[i])!=GF_OK)
+				break;
 		}
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] No data associated with packet, not supported\n"));

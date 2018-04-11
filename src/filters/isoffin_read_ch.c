@@ -197,7 +197,7 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 	}
 	ch->sample_time = 0;
 	ch->last_state = GF_OK;
-	ch->sample = gf_isom_sample_new();
+	ch->static_sample = ch->sample = gf_isom_sample_new();
 	ch->sample->IsRAP = RAP;
 	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
 	ch->current_slh.au_duration = 1000;

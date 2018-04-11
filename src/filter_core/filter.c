@@ -648,6 +648,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				if (arg_type==GF_FILTER_ARG_LOCAL)
 					gf_filter_set_sources(filter, value);
 				found = GF_TRUE;
+			} else if (!strcmp("clone", szArg)) {
+				if (arg_type==GF_FILTER_ARG_GLOBAL_SINK)
+					filter->clonable=GF_TRUE;
+				found = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
 				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL);
