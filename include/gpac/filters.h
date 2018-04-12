@@ -881,6 +881,8 @@ enum
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
 
+u32 gf_props_4cc_get_type(u32 prop_4cc);
+void gf_props_reset_single(GF_PropertyValue *p);
 
 //PID messaging: PIDs may receive commands and may emit messages using this system
 //event may flow
