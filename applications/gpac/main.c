@@ -405,8 +405,10 @@ static int gpac_main(int argc, char **argv)
 			logs_set = GF_TRUE;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 			log_time_start = 1;
+			gf_log_set_callback(logfile, on_gpac_log);
 		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
 			log_utc_time = 1;
+			gf_log_set_callback(logfile, on_gpac_log);
 		} else if (arg_val && !strcmp(arg, "-threads")) {
 			nb_threads = atoi(arg_val);
 		} else if (arg_val && !strcmp(arg, "-sched")) {
