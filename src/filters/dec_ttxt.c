@@ -1218,8 +1218,8 @@ static GF_Err ttd_process(GF_Filter *filter)
 	obj_time = gf_clock_time(ctx->odm->ck);
 	if (cts * 1000 > obj_time * timescale) {
 		u32 wait_ms = (u32) (cts * 1000 / timescale - obj_time);
-		if (!ctx->scene->compositor->ms_until_next_frame || (wait_ms < ctx->scene->compositor->ms_until_next_frame))
-			ctx->scene->compositor->ms_until_next_frame = wait_ms;
+		if (!ctx->scene->compositor->ms_until_next_frame || ((s32) wait_ms < ctx->scene->compositor->ms_until_next_frame))
+			ctx->scene->compositor->ms_until_next_frame = (s32) wait_ms;
 
 		return GF_OK;
 	}
@@ -1294,7 +1294,7 @@ static const GF_FilterArgs TTXTDecArgs[] =
 	{ OFFS(outline), "Draw text outline", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(width), "Default width when standalone rendering", GF_PROP_UINT, "400", NULL, GF_FALSE},
 	{ OFFS(height), "Default height when standalone rendering", GF_PROP_UINT, "200", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability TTXTDecCaps[] =

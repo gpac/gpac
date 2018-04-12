@@ -265,6 +265,10 @@ static char* gf_sanetize_single_quoted_string(const char *src) {
 extern char **environ;
 #endif
 
+#if defined(WIN32)
+#include <io.h>
+#endif
+
 GF_EXPORT
 Bool gf_file_exists(const char *fileName)
 {

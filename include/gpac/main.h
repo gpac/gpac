@@ -44,6 +44,7 @@ extern "C" {
  */
 
 #include <gpac/setup.h>
+#include <gpac/utf.h>
 
 
 

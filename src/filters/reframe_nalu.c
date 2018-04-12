@@ -378,7 +378,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(NALUIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = start_code_pos;
-			ctx->indexes[ctx->index_size].duration = duration;
+			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
 			ctx->index_size ++;
 			cur_dur = 0;
@@ -413,7 +413,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	if (avc_state) gf_free(avc_state);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
-		ctx->duration.num = duration;
+		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->fps.num;
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -1109,7 +1109,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->dts = ctx->indexes[i-1].duration * ctx->fps.num;
+					ctx->cts = ctx->dts = (u64) (ctx->indexes[i-1].duration * ctx->fps.num);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -1768,9 +1768,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 			else if (ctx->prev_dts != ts) {
 				u64 diff = ts;
 				diff -= ctx->prev_dts;
-				if (!ctx->fps.den) ctx->fps.den = diff;
+				if (!ctx->fps.den) ctx->fps.den = (u32) diff;
 				else if (ctx->fps.den > diff)
-					ctx->fps.den = diff;
+					ctx->fps.den = (u32) diff;
 			}
 		}
 		ctx->pck_duration = gf_filter_pck_get_duration(pck);
@@ -1933,7 +1933,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 					ctx->bytes_in_header = 3;
 				}
 				if (!ctx->next_nal_end_skip) {
-					e = naludmx_realloc_last_pck(ctx, size, &pck_data);
+					e = naludmx_realloc_last_pck(ctx, (u32) size, &pck_data);
 					if (e==GF_OK)
 						memcpy(pck_data, start, size);
 				}
@@ -1966,14 +1966,14 @@ GF_Err naludmx_process(GF_Filter *filter)
 			}
 			//bytes were partly in store, partly in packet
 			if (bytes_from_store) {
-				if (bytes_from_store>=current) {
+				if (bytes_from_store>=(u32) current) {
 					//we still have that many bytes from the store to dispatch
 //					bytes_from_store -= current;
 				} else {
 					//we are done, the nal header and start code is completely in the new packet
 					u32 shift = current - bytes_from_store;
 //					bytes_from_store = 0;
-					assert(remain >= shift);
+					assert(remain >= (s32) shift);
 					start += shift;
 					remain -= shift;
 					nal_sc_in_store = 0;
@@ -2082,7 +2082,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			break;
 		}
 		if (!nal_hdr_in_store) {
-			hdr_avail = size;
+			hdr_avail = (u32) size;
 		}
 
 		if (ctx->is_hevc) {
@@ -2103,7 +2103,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		}
 
 		if (skip_nal) {
-			assert(remain >= sc_size+next);
+			assert(remain >= (s32)sc_size+next);
 			if (next<0) {
 				u8 b3, b2, b1;
 				b3 = start[remain-3];
@@ -2119,14 +2119,14 @@ GF_Err naludmx_process(GF_Filter *filter)
 			}
 			assert(remain >= next);
 			start = pck_start + next;
-			remain = pck_size - (start - (u8*)data);
+			remain = pck_size - (u32) (start - (u8*)data);
 			continue;
 		}
 		ctx->next_nal_end_skip = GF_FALSE;
 
 		naludmx_check_pid(filter, ctx);
 		if (!ctx->opid) {
-			assert(remain >= sc_size+next);
+			assert(remain >= (s32) sc_size+next);
 			start += sc_size+next;
 			remain -= sc_size+next;
 			continue;
@@ -2137,11 +2137,11 @@ GF_Err naludmx_process(GF_Filter *filter)
 
 
 		if (!ctx->is_playing) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ( (char *)start -  (char *)data);
 			return GF_OK;
 		}
 		if (ctx->in_seek) {
-			u64 nb_frames_at_seek = ctx->start_range * ctx->fps.num;
+			u64 nb_frames_at_seek = (u64) (ctx->start_range * ctx->fps.num);
 			if (ctx->cts + ctx->fps.den >= nb_frames_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + ctx->dts_inc) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
@@ -2150,7 +2150,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 
 		if (nal_parse_result<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing NAL Unit type %d - skipping\n", ctx->log_name,  nal_type));
-			assert(remain >= sc_size+next);
+			assert(remain >= (s32) sc_size+next);
 			start += sc_size+next;
 			remain -= sc_size+next;
 			continue;
@@ -2233,7 +2233,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 					}
 					memcpy(ctx->svc_prefix_buffer, start+sc_size, ctx->svc_prefix_buffer_size);
 
-					assert( remain >= sc_size+next );
+					assert( remain >= (s32) sc_size+next );
 					start += sc_size+next;
 					remain -= sc_size+next;
 					continue;
@@ -2324,7 +2324,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			/*if #pics, compute smallest POC increase*/
 			if (slice_poc != ctx->last_poc) {
 				u32 pdiff = abs(slice_poc - ctx->last_poc);
-				if (!ctx->poc_diff || (ctx->poc_diff > pdiff ) ) {
+				if (!ctx->poc_diff || (ctx->poc_diff > (s32) pdiff ) ) {
 					ctx->poc_diff = pdiff;
 				} else if (first_in_au) {
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
@@ -2419,7 +2419,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		}
 
 		//nalu size field, always on 4 bytes at parser level
-		/*dst_pck = */naludmx_start_nalu(ctx, size, &au_start, &pck_data);
+		/*dst_pck = */naludmx_start_nalu(ctx, (u32) size, &au_start, &pck_data);
 		pck_data += ctx->nal_length;
 
 		//bytes come from both our store and the data packet
@@ -2434,7 +2434,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->subsamples) {
-			naludmx_add_subsample(ctx, size, avc_svc_subs_priority, avc_svc_subs_reserved);
+			naludmx_add_subsample(ctx, (u32) size, avc_svc_subs_priority, avc_svc_subs_reserved);
 		}
 
 		if (! full_nal) {
@@ -2446,13 +2446,13 @@ GF_Err naludmx_process(GF_Filter *filter)
 
 		assert(remain >= size);
 		start = pck_start + size;
-		remain = pck_size - (start - (u8*)data);
+		remain = pck_size - (u32) (start - (u8*)data);
 
 
 		//don't demux too much of input, abort when we would block. This avoid dispatching
 		//a huge number of frames in a single call
 		if (remain && gf_filter_pid_would_block(ctx->opid)) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ((char *)start -  (char *)data);
 			return GF_OK;
 		}
 	}
@@ -2507,8 +2507,7 @@ static void naludmx_del_param_list(GF_List *ps)
 static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 {
 	u32 i, count;
-	u32 nb_frames = ctx->dts;
-	nb_frames /= ctx->fps.den;
+	u32 nb_frames = (u32) (ctx->dts / ctx->fps.den);
 
 	if (ctx->nb_si || ctx->nb_sp) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Import results: %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
@@ -2585,10 +2584,10 @@ static const GF_FilterCapability NALUDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "264|h264|26L|h26L|h26l|avc|svc|mvc|hevc|hvc|265|h265|shvc|lvhc|mhvc"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVC),
@@ -2611,7 +2610,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(nal_length), "Sets number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FALSE},
 	{ OFFS(subsamples), "Import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

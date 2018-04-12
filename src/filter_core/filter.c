@@ -97,7 +97,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	if (args && dst_striped) {
 		char *all_args;
-		u32 len = 2 + strlen(args) + strlen(dst_striped);
+		u32 len = 2 + (u32) strlen(args) + (u32) strlen(dst_striped);
 		all_args = gf_malloc(sizeof(char)*len);
 		sprintf(all_args, "%s%c%s", args, fsess->sep_args, dst_striped);
 		e = gf_filter_new_finalize(filter, all_args, arg_type);
@@ -268,8 +268,8 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 		filter->source_ids = gf_strdup(sources_ID);
 		return;
 	}
-	old_len = strlen(filter->source_ids);
-	len = old_len + strlen(sources_ID) + 2;
+	old_len = (u32) strlen(filter->source_ids);
+	len = old_len + (u32) strlen(sources_ID) + 2;
 	filter->source_ids = gf_realloc(filter->source_ids, len);
 	filter->source_ids[old_len] = 0;
 	szS[0] = filter->session->sep_list;
@@ -280,7 +280,11 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 
 void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
 {
+#ifdef WIN32
+	void *ptr = (void *) (((char*) filter->filter_udta) + a->offset_in_private);
+#else
 	void *ptr = filter->filter_udta + a->offset_in_private;
+#endif
 	Bool res = GF_FALSE;
 
 	switch (argv->type) {
@@ -331,6 +335,12 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 	case GF_PROP_FRACTION:
 		if (a->offset_in_private + sizeof(GF_Fraction) <= filter->freg->private_size) {
 			*(GF_Fraction *)ptr = argv->value.frac;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_FRACTION64:
+		if (a->offset_in_private + sizeof(GF_Fraction64) <= filter->freg->private_size) {
+			*(GF_Fraction64 *)ptr = argv->value.lfrac;
 			res = GF_TRUE;
 		}
 		break;
@@ -569,8 +579,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			}
 		}
 
-		if (sep) len = sep-args;
-		else len = strlen(args);
+		if (sep) len = (u32) (sep-args);
+		else len = (u32) strlen(args);
 
 		if (len>=alloc_len) {
 			alloc_len = len+1;
@@ -1427,8 +1437,13 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 		//found it, get the url
 		if (src_arg->offset_in_private<0) continue;
 
+#ifdef WIN32
+		src_url = *(char **)( ((char *)filter->filter_udta) + src_arg->offset_in_private);
+		*(char **)(((char *)filter->filter_udta) + src_arg->offset_in_private) = NULL;
+#else
 		src_url = *(char **) (filter->filter_udta + src_arg->offset_in_private);
-		 *(char **) (filter->filter_udta + src_arg->offset_in_private) = NULL;
+		*(char **)(filter->filter_udta + src_arg->offset_in_private) = NULL;
+#endif
 		 break;
 	}
 
@@ -1453,7 +1468,8 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 void gf_filter_forward_clock(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
-	u64 i, clock_val;
+	u32 i;
+	u64 clock_val;
 	if (!filter->next_clock_dispatch_type) return;
 	if (!filter->num_output_pids) return;
 	
@@ -1499,11 +1515,11 @@ void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_
 	for (i=0; i<filter->num_output_pids; i++) {
 		u32 j;
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		if (buf_max < pid->user_max_buffer_time) buf_max = pid->user_max_buffer_time;
-		if (buf_max < pid->max_buffer_time) buf_max = pid->max_buffer_time;
+		if (buf_max < pid->user_max_buffer_time) buf_max = (u32) pid->user_max_buffer_time;
+		if (buf_max < pid->max_buffer_time) buf_max = (u32) pid->max_buffer_time;
 
 		if (buf_play_max < pid->user_max_playout_time) buf_play_max = pid->user_max_playout_time;
-		if (buf_play_max < pid->max_buffer_time) buf_play_max = pid->max_buffer_time;
+		if (buf_play_max < pid->max_buffer_time) buf_play_max = (u32) pid->max_buffer_time;
 
 		for (j=0; j<pid->num_destinations; j++) {
 			u32 mb, pb;

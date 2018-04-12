@@ -185,7 +185,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(QCPIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
-			ctx->indexes[ctx->index_size].duration = duration;
+			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->sample_rate;
 			ctx->index_size ++;
 			cur_dur = 0;
@@ -195,7 +195,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->sample_rate != duration * ctx->duration.den)) {
-		ctx->duration.num = duration;
+		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->sample_rate;
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -230,7 +230,7 @@ static Bool qcpdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->indexes[i-1].duration * ctx->sample_rate;
+					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->sample_rate);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -303,7 +303,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
-	if (p && p->value.uint != riff_size+8) {
+	if (p && p->value.longuint != riff_size+8) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[QCPDmx] Broken file:  RIFF-Size %d got %d\n", p->value.uint - 8, riff_size));
 	}
 	/*fmt*/
@@ -565,7 +565,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 		//we are in the data chunk
 		if (!ctx->is_playing) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ( (char *)start -  (char *)data);
 			return GF_OK;
 		}
 
@@ -596,7 +596,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->in_seek) {
-			u64 nb_samples_at_seek = ctx->start_range * ctx->sample_rate;
+			u64 nb_samples_at_seek = (u64) (ctx->start_range * ctx->sample_rate);
 			if (ctx->cts + ctx->block_size >= nb_samples_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + ctx->block_size ) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
@@ -634,7 +634,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		//don't demux too much of input, abort when we would block. This avoid dispatching
 		//a huge number of frames in a single call
 		if (gf_filter_pid_would_block(ctx->opid)) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ((char *)start -  (char *)data);
 			return GF_OK;
 		}
 	}
@@ -660,7 +660,7 @@ static const GF_FilterCapability QCPDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SMV),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_EVRC),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "qcp"),
 };
@@ -670,7 +670,7 @@ static const GF_FilterCapability QCPDmxCaps[] =
 static const GF_FilterArgs QCPDmxArgs[] =
 {
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

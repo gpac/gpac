@@ -23,11 +23,11 @@
  *
  */
 
+#include "ff_common.h"
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
 #include <gpac/isomedia.h>
-#include "ff_common.h"
 
 
 typedef struct _gf_ffenc_ctx
@@ -249,7 +249,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (pkt.duration) {
 			gf_filter_pck_set_duration(dst_pck, pkt.duration);
 		} else {
-			gf_filter_pck_set_duration(dst_pck, ctx->frame->pkt_duration);
+			gf_filter_pck_set_duration(dst_pck, (u32) ctx->frame->pkt_duration);
 		}
 	}
 
@@ -406,13 +406,13 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		src_pck = gf_list_get(ctx->src_packets, i);
 		acts = gf_filter_pck_get_cts(src_pck);
 		adur = gf_filter_pck_get_duration(src_pck);
-		if (acts + adur <= pkt.pts + ctx->ts_shift) {
+		if (acts + adur <= (u64) ( pkt.pts + ctx->ts_shift) ) {
 			gf_list_rem(ctx->src_packets, i);
 			gf_filter_pck_unref(src_pck);
 			i--;
 			count--;
 		}
-		if (acts >= pkt.pts) {
+		if ((s64) acts >= pkt.pts) {
 			break;
 		}
 		src_pck = NULL;
@@ -661,7 +661,9 @@ static GF_Err ffenc_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			if (ctx->codecid==GF_CODECID_AVC) {
 				av_dict_set(&ctx->options, "x264opts", "no-mbtree:sliced-threads:sync-lookahead=0", 0);
 			}
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 			ctx->encoder->flags |= AV_CODEC_FLAG_LOW_DELAY;
+#endif
 		}
 		//we don't use out of band headers, since x264 in ffmpeg (and likely other) do not output in MP4 format but
 		//in annexB (extradata only contains SPS/PPS/etc in annexB)
@@ -806,7 +808,7 @@ static const GF_FilterCapability FFEncodeCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	//our video encoding dumps in unframe mode for now, we reframe properly
 	//using our filters
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
@@ -831,7 +833,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
 	{ OFFS(all_intra), "only produces intra frames", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
-	{}
+	{0}
 };
 
 const int FFENC_STATIC_ARGS = (sizeof (FFEncodeArgs) / sizeof (GF_FilterArgs)) - 1;
@@ -873,7 +875,7 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 	args = gf_malloc(sizeof(GF_FilterArgs)*i);
 	memset(args, 0, sizeof(GF_FilterArgs)*i);
 	FFEncodeRegister.args = args;
-	for (i=0; i<FFENC_STATIC_ARGS; i++)
+	for (i=0; (s32) i<FFENC_STATIC_ARGS; i++)
 		args[i] = FFEncodeArgs[i];
 
 	idx=0;
@@ -887,7 +889,11 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 		idx++;
 	}
 
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 	avcodec_free_context(&ctx);
+#else
+	av_free(ctx);
+#endif
 
 	ffmpeg_expand_registry(session, &FFEncodeRegister, FF_REG_TYPE_ENCODE);
 

@@ -2239,7 +2239,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		if (compositor->vout) {
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->output_width) );
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->output_height) );
-			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_FPS, &PROP_FRAC_INT(compositor->frame_rate*1000, 1000) );
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_FPS, &PROP_FRAC_INT((u32) (compositor->frame_rate*1000), 1000) );
 		}
 	}
 }

@@ -326,7 +326,7 @@ static const GF_FilterCapability QCPMxCaps[] =
 static const GF_FilterArgs QCPMxArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

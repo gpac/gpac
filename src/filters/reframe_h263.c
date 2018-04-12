@@ -165,7 +165,7 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(H263Idx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
-			ctx->indexes[ctx->index_size].duration = duration;
+			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
 			ctx->index_size ++;
 			cur_dur = 0;
@@ -177,7 +177,7 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
-		ctx->duration.num = duration;
+		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->fps.num;
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -232,7 +232,7 @@ static Bool h263dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->indexes[i-1].duration * ctx->fps.num;
+					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->fps.num);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -501,12 +501,12 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		h263dmx_check_pid(filter, ctx, w, h);
 
 		if (!ctx->is_playing) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ( (char *)start -  (char *)data );
 			return GF_OK;
 		}
 
 		if (ctx->in_seek) {
-			u64 nb_frames_at_seek = ctx->start_range * ctx->fps.num;
+			u64 nb_frames_at_seek = (u64) (ctx->start_range * ctx->fps.num);
 			if (ctx->cts + ctx->fps.den >= nb_frames_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + ctx->dts_inc) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
@@ -567,7 +567,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		//don't demux too much of input, abort when we would block. This avoid dispatching
 		//a huge number of frames in a single call
 		if (gf_filter_pid_would_block(ctx->opid)) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ( (char *)start -  (char *)data);
 			return GF_OK;
 		}
 	}
@@ -591,10 +591,10 @@ static const GF_FilterCapability H263DmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_S263),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_H263),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "263|h263"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_S263),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_H263),
@@ -606,7 +606,7 @@ static const GF_FilterArgs H263DmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "15000/1000", NULL, GF_FALSE},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

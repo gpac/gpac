@@ -231,17 +231,16 @@ static const GF_FilterCapability RewinderCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_RewindCtx, _n)
 static const GF_FilterArgs RewinderArgs[] =
 {
 	{ OFFS(rbuffer), "size of video rewind buffer in frames. If more frames than this, flush is performed", GF_PROP_UINT, "100", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 GF_FilterRegister RewinderRegister = {

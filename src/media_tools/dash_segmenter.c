@@ -1238,7 +1238,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		mpd_timescale = tf->TimeScale;
 
 		if ( (max_track_duration.num / max_track_duration.den) < gf_isom_get_track_duration(input, i+1)) {
-			max_track_duration.num = gf_isom_get_track_duration(input, i+1);
+			max_track_duration.num = (s32) gf_isom_get_track_duration(input, i+1);
 			max_track_duration.den = 1;
 		}
 

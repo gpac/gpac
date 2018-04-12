@@ -262,7 +262,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (ctx->extract) {
-			u32 pos = gf_bs_get_position(ctx->bs_r);
+			u32 pos = (u32) gf_bs_get_position(ctx->bs_r);
 			skip_nal = nalumx_is_nal_skip(ctx, data, pos);
 		}
 		if (!skip_nal)
@@ -302,7 +302,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		pos = gf_bs_get_position(ctx->bs_r);
+		pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 		if (ctx->extract) {
 			skip_nal = nalumx_is_nal_skip(ctx, data, pos);
@@ -352,7 +352,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 {
 	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(extract), "Extracts full, base or layer only", GF_PROP_UINT, "all", "all|base|layer", GF_FALSE},
-	{}
+	{0}
 };
 
 

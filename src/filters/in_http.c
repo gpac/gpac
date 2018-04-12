@@ -58,7 +58,7 @@ typedef struct
 
 	char *block;
 	Bool pck_out, is_end;
-	u32 nb_read, file_size;
+	u64 nb_read, file_size;
 	FILE *cached;
 
 	Bool do_reconfigure;
@@ -225,10 +225,11 @@ static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 static GF_Err httpin_process(GF_Filter *filter)
 {
 	Bool is_start;
-	u32 nb_read=0, total_size;
+	u32 nb_read=0;
 	GF_FilterPacket *pck;
 	GF_Err e=GF_OK;
-	u32 bytes_done, bytes_per_sec;
+	u32 bytes_per_sec;
+	u64 bytes_done, total_size;
 	GF_NetIOStatus net_status;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
@@ -252,7 +253,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	//we read from cache file
 	if (ctx->cached) {
-		u32 to_read = ctx->file_size - ctx->nb_read;
+		u32 to_read = (u32) (ctx->file_size - ctx->nb_read);
 		if (to_read>ctx->block_size) to_read = ctx->block_size;
 
 		if (ctx->full_file_only) {
@@ -267,7 +268,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->pid);
 			return GF_EOS;
 		}
-		nb_read = fread(ctx->block, 1, to_read, ctx->cached);
+		nb_read = (u32) fread(ctx->block, 1, to_read, ctx->cached);
 
 	}
 	//we read from network
@@ -292,7 +293,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			if ((e==GF_EOS) && cached && strnicmp(cached, "gmem://", 7)) {
 				ctx->cached = gf_fopen(cached, "rb");
 				if (ctx->cached) {
-					nb_read = fread(ctx->block, 1, ctx->block_size, ctx->cached);
+					nb_read = (u32) fread(ctx->block, 1, ctx->block_size, ctx->cached);
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[HTTPIn] Failed to open cached file %s\n", cached));
 				}
@@ -321,8 +322,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT(bytes_done) );
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(ctx->file_size) );
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bytes_done) );
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
 	}
 
 	ctx->nb_read += nb_read;
@@ -365,7 +366,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FALSE},
 	{ OFFS(cache), "Sets cache mode: disk, disk without discarding, memory or none", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FALSE},
 	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION, "0-0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability HTTPInCaps[] =

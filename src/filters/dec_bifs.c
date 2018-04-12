@@ -185,8 +185,8 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 		obj_time = gf_clock_time(odm->ck);
 		if (ts_offset * 1000 > obj_time) {
 			u32 wait_ms = (u32) (ts_offset * 1000 - obj_time);
-			if (!scene->compositor->ms_until_next_frame || (wait_ms<scene->compositor->ms_until_next_frame))
-				scene->compositor->ms_until_next_frame = wait_ms;
+			if (!scene->compositor->ms_until_next_frame || ((s32) wait_ms < scene->compositor->ms_until_next_frame))
+				scene->compositor->ms_until_next_frame = (s32) wait_ms;
 
 			continue;
 		}

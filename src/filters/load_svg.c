@@ -406,10 +406,10 @@ static const GF_FilterCapability SVGInCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "image/svg+xml"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "svg|svgz|svg.gz"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVG),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVG_GZ),
@@ -422,7 +422,7 @@ static const GF_FilterCapability SVGInCaps[] =
 static const GF_FilterArgs SVGInArgs[] =
 {
 	{ OFFS(sax_dur), "SAX loading duration, 0 disables SAX parsing", GF_PROP_UINT, "0", NULL, GF_TRUE},
-	{}
+	{0}
 };
 GF_FilterRegister SVGInRegister = {
 	.name = "svgplay",

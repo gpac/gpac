@@ -155,7 +155,7 @@ static GF_Err rtpin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!src)
 		return GF_NOT_SUPPORTED;
 
-	crc = gf_crc_32(src, strlen(src) );
+	crc = gf_crc_32(src, (u32) strlen(src) );
 
 	if (!ctx->ipid) {
 		ctx->ipid = pid;
@@ -253,7 +253,7 @@ static void rtpin_send_data_base64(GF_RTPInStream *stream)
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &pck_data);
 	memcpy(pck_data, stream->buffer, size);
-	gf_filter_pck_set_cts(pck, (stream->current_start * stream->ts_res));
+	gf_filter_pck_set_cts(pck, (u64) (stream->current_start * stream->ts_res));
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	gf_filter_pck_send(pck);
 
@@ -570,11 +570,10 @@ static const GF_FilterCapability RTPInCaps[] =
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/sdp"),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "sdp"),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	{},
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_RTPIn, _n)
@@ -594,20 +593,16 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(bandwidth), "sets bandwidth param for RTSP requests", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(default_port), "Sets default RTSP port", GF_PROP_UINT, "554", "0-65535", GF_FALSE},
 	{ OFFS(satip_port), "Sets default port for SATIP", GF_PROP_UINT, "1400", "0-65535", GF_FALSE},
-
 	{ OFFS(interleave), "Sets RTP over RTSP; critcial uses interleave only for MPEG-4 systems streams", GF_PROP_BOOL, "no", "no|yes|critical", GF_FALSE},
 	{ OFFS(udp_timeout), "Default timeout before considering UDP is down", GF_PROP_UINT, "10000", NULL, GF_FALSE},
 	{ OFFS(rtsp_timeout), "Default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, GF_FALSE},
 	{ OFFS(rtcp_timeout), "Default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FALSE},
-
 	{ OFFS(first_packet_drop), "Sets number of first RTP packet to drop - 0 if no drop", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(frequency_drop), "Drop 1 out of N packet - 0 disable droping", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(user_agent), "User agent string", GF_PROP_STRING, "GPAC " GPAC_VERSION " RTSP Client", NULL, GF_FALSE},
 	{ OFFS(languages), "User agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_LANGUAGES", NULL, GF_FALSE},
 	{ OFFS(stats), "Updates statistics to the user every given MS, 0 disables reporting", GF_PROP_UINT, "500", NULL, GF_FALSE},
-
-
-	{}
+	{0}
 };
 
 

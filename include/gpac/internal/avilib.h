@@ -289,6 +289,8 @@ typedef struct
 #ifndef WAVE_FORMAT_PCM
 #define WAVE_FORMAT_PCM                 (0x0001)
 #endif
+#endif
+
 #define WAVE_FORMAT_ADPCM               (0x0002)
 #define WAVE_FORMAT_IBM_CVSD            (0x0005)
 #define WAVE_FORMAT_ALAW                (0x0006)
@@ -303,7 +305,6 @@ typedef struct
 #define IBM_FORMAT_MULAW                (0x0101)
 #define IBM_FORMAT_ALAW                 (0x0102)
 #define IBM_FORMAT_ADPCM                (0x0103)
-#endif
 
 avi_t* AVI_open_output_file(char * filename);
 void AVI_set_video(avi_t *AVI, int width, int height, double fps, char *compressor);

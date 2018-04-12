@@ -132,7 +132,7 @@ CodecIDReg CodecRegistry [] = {
 GF_EXPORT
 u32 gf_codec_parse(const char *cname)
 {
-	u32 len = strlen(cname);
+	u32 len = (u32) strlen(cname);
 	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
 	for (i=0; i<count; i++) {
 		char *sep;
@@ -301,7 +301,7 @@ static const GF_AudioFmt GF_AudioFormats[] =
 	{GF_AUDIO_FMT_S32P, "s32p"},
 	{GF_AUDIO_FMT_FLTP, "fltp"},
 	{GF_AUDIO_FMT_DBLP, "dblp"},
-	{}
+	{0}
 };
 
 
@@ -348,7 +348,7 @@ const char *gf_audio_fmt_sname(u32 sfmt)
 	return "unknown";
 }
 
-static char szAllAudioFormats[500] = {};
+static char szAllAudioFormats[500] = {0};
 
 GF_EXPORT
 const char *gf_audio_fmt_all_names()
@@ -358,7 +358,7 @@ const char *gf_audio_fmt_all_names()
 		u32 tot_len=4;
 		strcpy(szAllAudioFormats, "none");
 		while (!i || GF_AudioFormats[i].sfmt) {
-			u32 len = strlen(GF_AudioFormats[i].name);
+			u32 len = (u32) strlen(GF_AudioFormats[i].name);
 			if (len+tot_len+2>=500) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all audio formats!!\n"));
 				break;
@@ -373,7 +373,7 @@ const char *gf_audio_fmt_all_names()
 	return szAllAudioFormats;
 }
 
-static char szAllShortAudioFormats[500] = {};
+static char szAllShortAudioFormats[500] = {0};
 
 GF_EXPORT
 const char *gf_audio_fmt_all_shortnames()
@@ -384,7 +384,7 @@ const char *gf_audio_fmt_all_shortnames()
 		memset(szAllShortAudioFormats, 0, sizeof(char)*500);
 		while (!i || GF_AudioFormats[i].sfmt) {
 			const char * n = GF_AudioFormats[i].sname ? GF_AudioFormats[i].sname : GF_AudioFormats[i].name;
-			u32 len = strlen(n);
+			u32 len = (u32) strlen(n);
 			if (len+tot_len+1>=500) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all audio formats!!\n"));
 				break;
@@ -490,7 +490,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_RGBDS, "rgbds"},
 	{GF_PIXEL_RGBS, "rgbs"},
 	{GF_PIXEL_RGBAS, "rgbas"},
-	{}
+	{0}
 };
 
 GF_EXPORT
@@ -549,7 +549,7 @@ const char *gf_pixel_fmt_sname(u32 pfmt)
 
 }
 
-static char szAllPixelFormats[5000] = {};
+static char szAllPixelFormats[5000] = {0};
 
 GF_EXPORT
 const char *gf_pixel_fmt_all_names()
@@ -559,7 +559,7 @@ const char *gf_pixel_fmt_all_names()
 		u32 tot_len=4;
 		strcpy(szAllPixelFormats, "none");
 		while (GF_PixelFormats[i].pixfmt) {
-			u32 len = strlen(GF_PixelFormats[i].name);
+			u32 len = (u32) strlen(GF_PixelFormats[i].name);
 			if (len+tot_len+2>=5000) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
@@ -574,7 +574,7 @@ const char *gf_pixel_fmt_all_names()
 	return szAllPixelFormats;
 }
 
-static char szAllShortPixelFormats[5000] = {};
+static char szAllShortPixelFormats[5000] = {0};
 
 GF_EXPORT
 const char *gf_pixel_fmt_all_shortnames()
@@ -584,7 +584,7 @@ const char *gf_pixel_fmt_all_shortnames()
 		u32 tot_len=0;
 		while (GF_PixelFormats[i].pixfmt) {
 			const char * n = GF_PixelFormats[i].sname ? GF_PixelFormats[i].sname : GF_PixelFormats[i].name;
-			u32 len = strlen(n);
+			u32 len = (u32) strlen(n);
 			if (len+tot_len+1>=5000) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
 				break;

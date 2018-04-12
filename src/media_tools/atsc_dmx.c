@@ -958,7 +958,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 	GF_XMLNode *rs, *ls, *srcf, *efdt, *node, *root;
 	u32 i, j, k, crc;
 
-	crc = gf_crc_32(content, strlen(content) );
+	crc = gf_crc_32(content, (u32) strlen(content) );
 	if (!s->stsid_crc) {
 		s->stsid_crc = crc;
 	} else if (s->stsid_crc != crc) {

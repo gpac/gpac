@@ -69,7 +69,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	}
 	if (!src)  return GF_SERVICE_ERROR;
 
-	read->src_crc = gf_crc_32(src, strlen(src));
+	read->src_crc = gf_crc_32(src, (u32) strlen(src));
 
 	strcpy(szURL, src);
 	tmp = strrchr(szURL, '.');
@@ -108,8 +108,8 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	read->start_range = read->end_range = 0;
 	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_RANGE);
 	if (prop) {
-		read->start_range = prop->value.frac.num;
-		read->end_range = prop->value.frac.den;
+		read->start_range = prop->value.lfrac.num;
+		read->end_range = prop->value.lfrac.den;
 	}
 
 	e = gf_isom_open_progressive(szURL, read->start_range, read->end_range, &read->mov, &read->missing_bytes);
@@ -321,13 +321,13 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (read->pid) {
 		const char *next_url = prop->value.string;
 		u64 sr, er;
-		u32 crc = gf_crc_32(next_url, strlen(next_url) );
+		u32 crc = gf_crc_32(next_url, (u32) strlen(next_url) );
 
 		sr = er = 0;
 		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_RANGE);
 		if (prop) {
-			sr = prop->value.frac.num;
-			er = prop->value.frac.den;
+			sr = prop->value.lfrac.num;
+			er = prop->value.lfrac.den;
 		}
 
 		if ((read->src_crc == crc) && (read->start_range==sr) && (read->end_range==er))
@@ -668,8 +668,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				u64 time;
 				ch = gf_list_get(read->channels, i);
 				mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
-				time = com->play.start_range;
-				time *= ch->time_scale;
+				time = (u64) (com->play.start_range * ch->time_scale);
 
 				/*take care of seeking out of the track range*/
 				if (!read->frag_type && (ch->duration < time)) {
@@ -846,7 +845,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(alltracks), "loads all tracks (except hint) event when not supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability ISOFFInCaps[] =
@@ -858,7 +857,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC,GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci"),
 };
