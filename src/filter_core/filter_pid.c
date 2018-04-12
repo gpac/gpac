@@ -625,8 +625,8 @@ void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *
 {
 	if (max_slots) *max_slots = pid->pid->max_buffer_unit;
 	if (nb_pck) *nb_pck = pid->pid->nb_buffer_unit;
-	if (max_duration) *max_duration = pid->pid->max_buffer_time;
-	if (duration) *duration = pid->pid->buffer_duration;
+	if (max_duration) *max_duration = (u32) pid->pid->max_buffer_time;
+	if (duration) *duration = (u32) pid->pid->buffer_duration;
 }
 
 void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta)
@@ -660,15 +660,15 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 		char *sep = strchr(source_ids, src_pid->filter->session->sep_list);
 		char *pid_name;
 		if (sep) {
-			len = sep - source_ids;
+			len = (u32) (sep - source_ids);
 		} else {
-			len = strlen(source_ids);
+			len = (u32) strlen(source_ids);
 			last=GF_TRUE;
 		}
 
 		pid_name = strchr(source_ids, src_pid->filter->session->sep_frag);
 		if (pid_name > source_ids + len) pid_name = NULL;
-		sublen = pid_name ? pid_name - source_ids : len;
+		sublen = pid_name ? (u32) (pid_name - source_ids) : len;
 		//skip frag char
 		if (pid_name) pid_name++;
 
@@ -739,7 +739,11 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 								break;
 							case GF_PROP_FRACTION:
 								if (prop->value.frac.num * prop_val.value.frac.den < prop->value.frac.den * prop_val.value.frac.num) is_equal = GF_TRUE;
-								if (comp_type==2) is_equal = !is_equal;
+								if (comp_type == 2) is_equal = !is_equal;
+								break;
+							case GF_PROP_FRACTION64:
+								if (prop->value.lfrac.num * prop_val.value.lfrac.den < prop->value.lfrac.den * prop_val.value.lfrac.num) is_equal = GF_TRUE;
+								if (comp_type == 2) is_equal = !is_equal;
 								break;
 							default:
 								GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
@@ -881,12 +885,12 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 			nb_subcaps=0;
 			cur_bundle_start = i;
 			cap_bundle_idx++;
-			if ((for_bundle_idx>=0) && (cap_bundle_idx>for_bundle_idx)) {
+			if ((for_bundle_idx>=0) && (cap_bundle_idx > (u32) for_bundle_idx)) {
 				break;
 			}
 			continue;
 		}
-		if ((for_bundle_idx>=0) && (cap_bundle_idx<for_bundle_idx)) {
+		if ((for_bundle_idx>=0) && (cap_bundle_idx < (u32) for_bundle_idx)) {
 			all_caps_matched = 0;
 			continue;
 		}
@@ -1148,7 +1152,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					prop_found = GF_FALSE;
 					nb_caps_tested = 0;
 					cur_dst_bundle++;
-					if ((for_dst_bundle>=0) && (cur_dst_bundle>for_dst_bundle))
+					if ((for_dst_bundle>=0) && (cur_dst_bundle > (u32) for_dst_bundle))
 						break;
 
 					continue;
@@ -1157,7 +1161,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				if (!(in_cap->flags & GF_FILTER_CAPS_INPUT) )
 					continue;
 
-				if ((for_dst_bundle>=0) && (cur_dst_bundle<for_dst_bundle) && !(in_cap->flags & GF_FILTER_CAPS_STATIC))
+				if ((for_dst_bundle>=0) && (cur_dst_bundle < (u32)for_dst_bundle) && !(in_cap->flags & GF_FILTER_CAPS_STATIC))
 					continue;
 
 				//prop was excluded, cannot match in bundle
@@ -1439,7 +1443,7 @@ static void concat_reg(GF_FilterSession *sess, char prefRegistry[1001], const ch
 	if (!forced_reg) return;
 	forced_reg += 6;
 	sep = strchr(forced_reg, sess->sep_args);
-	len = sep ? sep-forced_reg : strlen(forced_reg);
+	len = sep ? (u32) (sep-forced_reg) : (u32) strlen(forced_reg);
 	if (len+2+strlen(prefRegistry)>1000) {
 		return;
 	}
@@ -2729,15 +2733,15 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	}
 
 	if (!nb_pck) {
-		safe_int_sub(&pidinst->buffer_duration, pidinst->buffer_duration);
+		safe_int64_sub(&pidinst->buffer_duration, pidinst->buffer_duration);
 	} else if (pck->info.duration && pck->info.data_block_start && pck->pid_props->timescale) {
 		s64 d = ((u64)pck->info.duration) * 1000000;
 		d /= pck->pid_props->timescale;
 		assert(d <= pidinst->buffer_duration);
-		safe_int_sub(&pidinst->buffer_duration, d);
+		safe_int64_sub(&pidinst->buffer_duration, d);
 	}
 
-	if (!pid->buffer_duration || (pidinst->buffer_duration < pid->buffer_duration)) {
+	if (!pid->buffer_duration || (pidinst->buffer_duration < (s64) pid->buffer_duration)) {
 		//todo needs Compare&Swap
 		pid->buffer_duration = pidinst->buffer_duration;
 	}
@@ -3278,8 +3282,8 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 	stats->first_process_time = pidi->first_frame_time;
 	stats->last_process_time = pidi->last_pck_fetch_time;
 	stats->max_bitrate = pidi->max_bit_rate;
-	stats->max_process_time = pidi->max_process_time;
-	stats->max_sap_process_time = pidi->max_sap_process_time;
+	stats->max_process_time = (u32) pidi->max_process_time;
+	stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
 	stats->min_frame_dur = pidi->pid->min_pck_duration;
 	stats->nb_processed = pidi->nb_processed;
 	stats->nb_saps = pidi->nb_sap_processed;
@@ -3613,7 +3617,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				ext = strrchr(str_val, '.');
 
 				if (ext) {
-					u32 len = ext - sname;
+					u32 len = (u32) (ext - sname);
 					strncpy(szTemplateVal, sname, ext - sname);
 					szTemplateVal[len] = 0;
 				} else {
@@ -3629,7 +3633,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		}
 
 		strcat(szFinalName, szTemplateVal);
-		k = strlen(szFinalName);
+		k = (u32) strlen(szFinalName);
 
 		if (fsep) fsep[0] = '%';
 		if (!sep) break;

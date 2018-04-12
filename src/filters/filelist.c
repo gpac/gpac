@@ -125,7 +125,7 @@ void filelist_update_pid_props(GF_FileListCtx *ctx, GF_FilterPid *pid)
 		while (com[end] && !strchr(FILELIST_SEP_SET, com[end])) {
 			end++;
 		}
-		next = com[end];
+		next = com + end;
 		c = com[end];
 		com[end]=0;
 
@@ -319,7 +319,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			ctx->file_list_idx --;
 		} else {
 			ctx->file_list_idx ++;
-			if (ctx->file_list_idx>=gf_list_count(ctx->file_list)) {
+			if (ctx->file_list_idx >= (s32) gf_list_count(ctx->file_list)) {
 				if (!ctx->loop) return GF_FALSE;
 				ctx->file_list_idx = 0;
 			}
@@ -354,7 +354,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			strcpy(ctx->szCom, szURL);
 			continue;
 		}
-		crc = gf_crc_32(szURL, strlen(szURL) );
+		crc = gf_crc_32(szURL, (u32) strlen(szURL) );
 		if (!ctx->last_url_crc) {
 			ctx->last_url_crc = crc;
 			break;
@@ -376,7 +376,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	}
 	gf_fclose(f);
 
-	len = strlen(szURL);
+	len = (u32) strlen(szURL);
 	while (len && strchr("\r\n", szURL[len-1])) {
 		szURL[len-1] = 0;
 		len--;
@@ -535,7 +535,7 @@ GF_Err filelist_process(GF_Filter *filter)
 				ts = dur;
 				ts *= iopid->o_timescale;
 				ts /= iopid->timescale;
-				gf_filter_pck_set_duration(dst_pck, ts);
+				gf_filter_pck_set_duration(dst_pck, (u32) ts);
 			}
 			dts += dur;
 			cts += dur;
@@ -695,7 +695,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, GF_FALSE},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(timescale), "forces output timescal on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

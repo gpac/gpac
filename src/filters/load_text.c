@@ -343,7 +343,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 						end = 1000 * eframe * ctx->fps.num / ctx->fps.den;
 					else
 						end = 1000 * eframe / 25;
-					if (end>dur.num) dur.num = end;
+					if (end>dur.num) dur.num = (s32) end;
 				}
 			} else {
 				u32 eh, em, es, ems;
@@ -358,7 +358,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 					}
 				}
 				end = (3600*eh + 60*em + es)*1000 + ems;
-				if (end>dur.num) dur.num = end;
+				if (end>dur.num) dur.num = (s32) end;
 			}
 		}
 		gf_fseek(ctx->src, pos, SEEK_SET);
@@ -395,11 +395,11 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 					} else {
 						ts = (u32) (atof(att->value) * 1000);
 					}
-					if (ts > dur.num) dur.num = ts;
+					if (ts > dur.num) dur.num = (s32) ts;
 				} else {
 					if (strcmp(att->name, "duration")) continue;
 					duration = atoi(att->value);
-					dur.num += (1000 * duration) / ctx->txml_timescale;
+					dur.num += (s32) ( (1000 * duration) / ctx->txml_timescale);
 				}
 			}
 		}
@@ -443,7 +443,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 					}
 				}
 			}
-			if (ts_end>dur.num) dur.num = ts_end;
+			if (ts_end>dur.num) dur.num = (s32) ts_end;
 		}
 		if (dur.num) {
 			dur.den = 1000;
@@ -464,7 +464,7 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	if (!ctx->src) return GF_URL_ERROR;
 
 	gf_fseek(ctx->src, 0, SEEK_END);
-	file_size = gf_ftell(ctx->src);
+	file_size = (u32) gf_ftell(ctx->src);
 	gf_fseek(ctx->src, 0, SEEK_SET);
 
 	ctx->unicode_type = gf_text_get_utf_type(ctx->src);
@@ -482,7 +482,7 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_ISOM_SUBTYPE_TX3G) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
 	if (!ID) ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
@@ -539,7 +539,7 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	u32 size;
 
 	if (ctx->seek_state==2) {
-		Double end = ts+duration;
+		Double end = (Double) (ts+duration);
 		end /= 1000;
 		if (end < ctx->start_range) return;
 		ctx->seek_state = 0;
@@ -599,12 +599,12 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			if (txt_line) {
 				if (ctx->prev_end && (ctx->start != ctx->prev_end) && (ctx->state<=2)) {
 					GF_TextSample * empty_samp = gf_isom_new_text_sample();
-					txtin_process_send_text_sample(ctx, empty_samp, ctx->prev_end, (ctx->start - ctx->prev_end), GF_TRUE );
+					txtin_process_send_text_sample(ctx, empty_samp, ctx->prev_end, (u32) (ctx->start - ctx->prev_end), GF_TRUE );
 					gf_isom_delete_text_sample(empty_samp);
 				}
 
 				if (ctx->state<=2) {
-					txtin_process_send_text_sample(ctx, ctx->samp,  ctx->start, (ctx->end -  ctx->start), GF_TRUE);
+					txtin_process_send_text_sample(ctx, ctx->samp,  ctx->start, (u32) (ctx->end -  ctx->start), GF_TRUE);
 					ctx->prev_end = ctx->end;
 				}
 				txt_line = 0;
@@ -613,7 +613,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 				ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
 				gf_isom_text_reset(ctx->samp);
 
-				gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT( gf_ftell(ctx->src )) );
+				gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 			}
 			ctx->state = 0;
 			if (!sOK) break;
@@ -650,7 +650,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			ctx->end = (3600*eh + 60*em + es)*1000 + ems;
 			/*make stream start at 0 by inserting a fake AU*/
 			if (ctx->first_samp && (ctx->start > 0)) {
-				txtin_process_send_text_sample(ctx, ctx->samp, 0, ctx->start, GF_TRUE);
+				txtin_process_send_text_sample(ctx, ctx->samp, 0, (u32) ctx->start, GF_TRUE);
 			}
 			ctx->style.style_flags = 0;
 			ctx->state = 2;
@@ -891,7 +891,7 @@ static void gf_webvtt_import_header(void *user, const char *config)
 {
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
 	if (!ctx->hdr_parsed) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (1+strlen(config)) ) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (u32) (1+strlen(config)) ) );
 		ctx->hdr_parsed = GF_TRUE;
 		gf_webvtt_parser_suspend(ctx->vttparser);
 	}
@@ -907,7 +907,7 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 	end = gf_webvtt_sample_get_end(samp);
 
 	if (ctx->seek_state==2) {
-		Double tsend = end;
+		Double tsend = (Double) end;
 		tsend /= 1000;
 		if (tsend<ctx->start_range) return;
 		ctx->seek_state = 0;
@@ -925,7 +925,7 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 
 
 		if (end && (end>=start) ) {
-			gf_filter_pck_set_duration(pck, (u64) (ctx->timescale * (end-start) / 1000) );
+			gf_filter_pck_set_duration(pck, (u32) (ctx->timescale * (end-start) / 1000) );
 		}
 		gf_filter_pck_send(pck);
 
@@ -933,7 +933,7 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 	}
 	gf_webvtt_sample_del(samp);
 
-	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT( gf_ftell(ctx->src )) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 
 	if (gf_filter_pid_would_block(ctx->opid))
 		gf_webvtt_parser_suspend(ctx->vttparser);
@@ -951,7 +951,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	if (!ctx->src) return GF_URL_ERROR;
 
 	gf_fseek(ctx->src, 0, SEEK_END);
-	file_size = gf_ftell(ctx->src);
+	file_size = (u32) gf_ftell(ctx->src);
 	gf_fseek(ctx->src, 0, SEEK_SET);
 
 	ctx->unicode_type = gf_text_get_utf_type(ctx->src);
@@ -972,7 +972,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_ISOM_SUBTYPE_WVTT) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
 	w = ctx->width;
 	h = ctx->height;
@@ -1214,7 +1214,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_ISOM_SUBTYPE_STPP) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
 	if (!ID) ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
@@ -1405,7 +1405,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - ctx->end, ctx->last_sample_duration, ctx->end));
 
 			if (ctx->seek_state==2) {
-				Double end = ts_end;
+				Double end = (Double) ts_end;
 				end /= ctx->timescale;
 				if (end<ctx->start_range) skip_pck = GF_TRUE;
 				else ctx->seek_state = 0;
@@ -1438,7 +1438,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] last_sample_duration="LLU", last_sample_end="LLU"\n", ctx->last_sample_duration, ctx->end));
 
-	gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT(ctx->last_sample_duration) );
+	gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT((u32) ctx->last_sample_duration) );
 
 	return GF_EOS;
 
@@ -1457,7 +1457,7 @@ static GF_Err swf_svg_add_iso_sample(void *user, const char *data, u32 length, u
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
 
 	if (ctx->seek_state==2) {
-		Double ts = timestamp;
+		Double ts = (Double) timestamp;
 		ts/=1000;
 		if (ts<ctx->start_range) return GF_OK;
 		ctx->seek_state = 0;
@@ -1482,7 +1482,7 @@ static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, B
 
 	if (isHeader) {
 		if (!ctx->hdr_parsed) {
-			gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_DATA((char *)data, ( strlen(data)+1 ) )  );
+			gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_DATA((char *)data, (u32) ( strlen(data)+1 ) )  );
 			ctx->hdr_parsed = GF_TRUE;
 		}
 	} else if (!ctx->seek_state) {
@@ -1648,7 +1648,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (ctx->start && ctx->first_samp) {
 			samp = gf_isom_new_text_sample();
-			txtin_process_send_text_sample(ctx, samp, 0, (u64) (ts_scale*ctx->start), GF_TRUE);
+			txtin_process_send_text_sample(ctx, samp, 0, (u32) (ts_scale*ctx->start), GF_TRUE);
 			ctx->first_samp = GF_FALSE;
 			gf_isom_delete_text_sample(samp);
 		}
@@ -1664,18 +1664,18 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (ctx->prev_end) {
 			samp = gf_isom_new_text_sample();
-			txtin_process_send_text_sample(ctx, samp, (ts_scale*(s64)ctx->prev_end), ts_scale*(ctx->prev_end - ctx->start), GF_TRUE);
+			txtin_process_send_text_sample(ctx, samp, (u64) (ts_scale*(s64)ctx->prev_end), (u32) (ts_scale*(ctx->prev_end - ctx->start)), GF_TRUE);
 			gf_isom_delete_text_sample(samp);
 		}
 
 		samp = gf_isom_new_text_sample();
 		gf_isom_text_add_text(samp, szText, (u32) strlen(szText) );
-		txtin_process_send_text_sample(ctx, samp, (ts_scale*(s64)ctx->start), ts_scale*(ctx->end - ctx->start), GF_TRUE);
+		txtin_process_send_text_sample(ctx, samp, (u64) (ts_scale*(s64)ctx->start), (u32) (ts_scale*(ctx->end - ctx->start)), GF_TRUE);
 		gf_isom_delete_text_sample(samp);
 
 		ctx->prev_end = ctx->end;
 
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT( gf_ftell(ctx->src )) );
+		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 
 		if (gf_filter_pid_would_block(ctx->opid))
 			return GF_OK;
@@ -1683,7 +1683,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 	/*final flush*/
 	if (ctx->end && !ctx->noflush) {
 		samp = gf_isom_new_text_sample();
-		txtin_process_send_text_sample(ctx, samp, (ts_scale*(s64)ctx->end), 0, GF_TRUE);
+		txtin_process_send_text_sample(ctx, samp, (u64) (ts_scale*(s64)ctx->end), 0, GF_TRUE);
 		gf_isom_delete_text_sample(samp);
 	}
 
@@ -1785,7 +1785,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_ISOM_SUBTYPE_TX3G) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
 	if (!ID) ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
@@ -2132,7 +2132,7 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		//doing this here is problematic if the loader is sent a new ttxt file, we would have a cue termination sample
 		//we therefore share that info through pid, and let the final user (muxer& co) decide what to do
 		gf_filter_pid_set_info_str( ctx->opid, "ttxt:rem_last", &PROP_BOOL(GF_TRUE) );
-		gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT(ctx->last_sample_duration) );
+		gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT((u32) ctx->last_sample_duration) );
 	}
 
 	return GF_EOS;
@@ -2236,7 +2236,7 @@ static GF_Err txtin_texml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_ISOM_SUBTYPE_TX3G) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
 
 	if (!ID) ID = 1;
@@ -2588,7 +2588,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 			if (!same_box) gf_isom_text_set_box(samp, td.default_pos.top, td.default_pos.left, td.default_pos.bottom, td.default_pos.right);
 //			if (!same_style) gf_isom_text_add_style(samp, &td.default_style);
 
-			txtin_process_send_text_sample(ctx, samp, (ctx->start*ctx->timescale)/ctx->txml_timescale, (duration*ctx->timescale)/ctx->txml_timescale, isRAP);
+			txtin_process_send_text_sample(ctx, samp, (ctx->start*ctx->timescale)/ctx->txml_timescale, (u32) (duration*ctx->timescale)/ctx->txml_timescale, isRAP);
 			ctx->start += duration;
 			gf_isom_delete_text_sample(samp);
 
@@ -2781,10 +2781,9 @@ static const GF_FilterCapability TXTInCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-shockwave-flash"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml|swf"),
-	{},
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_TXTIn, _n)
@@ -2803,7 +2802,7 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(y), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FALSE},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 GF_FilterRegister TXTInRegister = {

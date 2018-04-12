@@ -52,7 +52,7 @@ static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 	{AV_PIX_FMT_RGB0, GF_PIXEL_RGBX},
 	{AV_PIX_FMT_0BGR, GF_PIXEL_XBGR},
 	{AV_PIX_FMT_BGR0, GF_PIXEL_BGRX},
-	{},
+	{0},
 };
 
 u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
@@ -98,7 +98,7 @@ static const GF_FF_AFREG FF2GPAC_AudioFormats[] =
 	{AV_SAMPLE_FMT_S32P, GF_AUDIO_FMT_S32P},
 	{AV_SAMPLE_FMT_FLTP, GF_AUDIO_FMT_FLTP},
 	{AV_SAMPLE_FMT_DBLP, GF_AUDIO_FMT_DBLP},
-	{},
+	{0},
 };
 
 u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
@@ -256,11 +256,13 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_PCM_S24LE_PLANAR, GF_CODECID_RAW},
 	{AV_CODEC_ID_PCM_S32LE_PLANAR, GF_CODECID_RAW},
 	{AV_CODEC_ID_PCM_S16BE_PLANAR, GF_CODECID_RAW},
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 	{AV_CODEC_ID_PCM_S64LE, GF_CODECID_RAW},
 	{AV_CODEC_ID_PCM_S64BE, GF_CODECID_RAW},
 	{AV_CODEC_ID_PCM_F16LE, GF_CODECID_RAW},
 	{AV_CODEC_ID_PCM_F24LE, GF_CODECID_RAW},
-	{}
+#endif
+	{0}
 };
 
 u32 ffmpeg_codecid_from_gpac(u32 codec_id)
@@ -353,6 +355,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		sprintf(szDef, LLD"-"LLD, (s64) opt->min, (s64) opt->max);
 		arg.min_max_enum = gf_strdup(szDef);
 		break;
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 	case AV_OPT_TYPE_UINT64:
 //	case AV_OPT_TYPE_UINT:
 		arg.arg_type = GF_PROP_LUINT;
@@ -365,6 +368,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.arg_type = GF_PROP_BOOL;
 		arg.arg_default_val = gf_strdup(opt->default_val.i64 ? "true" : "false");
 		break;
+#endif
 	case AV_OPT_TYPE_FLOAT:
 		arg.arg_type = GF_PROP_FLOAT;
 		sprintf(szDef, "%g", opt->default_val.dbl);
@@ -419,7 +423,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 			const char *n = av_get_pix_fmt_name(i);
 			if (!n) continue;
 
-			len = strlen(n)+ (i ? 2 : 1);
+			len = (u32) strlen(n)+ (i ? 2 : 1);
 			if (len+all_len>def_size) {
 				def_size+=1000;
 				enum_val = gf_realloc(enum_val, sizeof(char)*def_size);
@@ -495,12 +499,14 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 			subname = codec->name;
 			description = codec->long_name;
 		} else if (type==FF_REG_TYPE_DEV_IN) {
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 			fmt = av_input_video_device_next(fmt);
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
 			description = fmt->long_name;
     		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
+#endif
 		} else if (type==FF_REG_TYPE_ENCODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
@@ -547,10 +553,19 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 
 		 	freg->caps =  caps;
 		}
-		else if ((type==FF_REG_TYPE_DEMUX) && (fmt->mime_type || fmt->extensions) ){
+		else if ((type==FF_REG_TYPE_DEMUX)
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			&& (fmt->mime_type || fmt->extensions)
+#else
+			&& fmt->extensions
+#endif
+			){
 		 	GF_FilterCapability *caps;
-		 	freg->nb_caps = (fmt->mime_type && fmt->extensions) ? 4 : 2;
-
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			freg->nb_caps = (fmt->mime_type && fmt->extensions) ? 4 : 2;
+#else
+			freg->nb_caps = 2;
+#endif
 		 	caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
 		 	memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 		 	caps[0].code = GF_PROP_PID_STREAM_TYPE;
@@ -560,9 +575,14 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 
 		 	caps[1].code = fmt->extensions ? GF_PROP_PID_FILE_EXT : GF_PROP_PID_MIME;
 		 	caps[1].val.type = GF_PROP_NAME;
-		 	caps[1].val.value.string = (char *) ( fmt->extensions ? fmt->extensions : fmt->mime_type );
-		 	caps[1].flags = GF_CAPS_INPUT;
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			caps[1].val.value.string = (char *) ( fmt->extensions ? fmt->extensions : fmt->mime_type );
+#else
+			caps[1].val.value.string = (char *) fmt->extensions;
+#endif
+			caps[1].flags = GF_CAPS_INPUT;
 
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 			if (fmt->mime_type && fmt->extensions) {
 				caps[2].flags = 0;
 				caps[3].code = GF_PROP_PID_MIME;
@@ -570,6 +590,7 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 				caps[3].val.value.string = (char *) fmt->mime_type;
 				caps[3].flags = GF_CAPS_INPUT;
 			}
+#endif
 			//TODO map codec IDs if known ?
 		 	freg->caps =  caps;
 		}
@@ -613,7 +634,7 @@ void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx)
 
 	while (1) {
 		u32 idx=0;
-		de = av_dict_get(options, "", de, AV_DICT_IGNORE_SUFFIX);
+		de = av_dict_get((AVDictionary *)options, "", (const AVDictionaryEntry *) de, AV_DICT_IGNORE_SUFFIX);
 		if (!de) break;
 
 		while (ctx->av_class->option) {
@@ -637,7 +658,7 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
 
 	while (1) {
 		u32 idx=0;
-		de = av_dict_get(options, "", de, AV_DICT_IGNORE_SUFFIX);
+		de = av_dict_get((AVDictionary *)options, "", de, AV_DICT_IGNORE_SUFFIX);
 		if (!de) break;
 
 		while (ctx->av_class->option) {

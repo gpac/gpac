@@ -23,11 +23,11 @@
  *
  */
 
+#include "ff_common.h"
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
 #include <gpac/network.h>
-#include "ff_common.h"
 
 enum
 {
@@ -126,7 +126,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	}
 
 	assert(ctx->pkt.stream_index>=0);
-	assert(ctx->pkt.stream_index<ctx->demuxer->nb_streams);
+	assert(ctx->pkt.stream_index < (s32) ctx->demuxer->nb_streams);
 
 	if (ctx->pkt.pts == AV_NOPTS_VALUE) {
 		if (ctx->pkt.dts == AV_NOPTS_VALUE) {
@@ -327,7 +327,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 		}
 
 		if (!ctx->raw_data && (stream->duration>=0))
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(stream->duration, stream->time_base.den) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((u32) stream->duration, stream->time_base.den) );
 
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, &PROP_FRAC_INT( stream->sample_aspect_ratio.num, stream->sample_aspect_ratio.den ) );
@@ -369,8 +369,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT( codec->width ) );
 		if (codec->height)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT( codec->height ) );
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 		if (codec->framerate.num && codec->framerate.den)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec->framerate.num, codec->framerate.den ) );
+#endif
 
 		if (codec->pix_fmt>0) {
 			u32 pfmt = 0;
@@ -496,7 +498,7 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
 		if (!ctx->nb_playing && !ctx->raw_data) {
-			int res = av_seek_frame(ctx->demuxer, -1, (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
+			int res = av_seek_frame(ctx->demuxer, -1, (s64) (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
 			if (res<0) {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ctx->fname, ctx->src, com->play.start_range, av_err2str(res) ));
 			}
@@ -561,7 +563,7 @@ static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
-	{}
+	{0}
 };
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
@@ -645,11 +647,17 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		dev_fmt = av_find_input_format(default_fmt);
 		if (dev_fmt == NULL) {
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Cannot find the input format %s\n", ctx->fname, ctx->fmt));
-		} else if (dev_fmt->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) {
+		}
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+		else if (dev_fmt->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) {
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s]] %s is not a video input device\n", ctx->fname, ctx->fmt));
 			dev_fmt = NULL;
 		}
+#else
+		dev_fmt = NULL;
+#endif
 	}
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 	if (!dev_fmt) {
 		while (1) {
 			dev_fmt = av_input_video_device_next(dev_fmt);
@@ -662,6 +670,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 			break;
 		}
 	}
+#endif
 
 	dev_name = ctx->dev;
 
@@ -727,7 +736,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 
 	//check we have the stream we want
 	has_a = has_v = GF_FALSE;
-	for (i = 0; i < ctx->demuxer->nb_streams; i++) {
+	for (i = 0; (u32) i < ctx->demuxer->nb_streams; i++) {
 		switch(ctx->demuxer->streams[i]->codec->codec_type) {
 		case AVMEDIA_TYPE_AUDIO:
 			has_a = GF_TRUE;
@@ -819,7 +828,7 @@ static const GF_FilterArgs FFAVInArgs[] =
 
 
 	{ "*", -1, "Any possible args defined for AVInputFormat and AVFormatContext", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
-	{}
+	{0}
 };
 
 
@@ -846,7 +855,7 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 	FFAVInRegister.registry_free = ffavin_regfree;
 	args = gf_malloc(sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
 	memset(args, 0, sizeof(GF_FilterArgs)*(FFAVIN_STATIC_ARGS+1));
-	for (i=0; i<FFAVIN_STATIC_ARGS; i++)
+	for (i=0; (s32) i<FFAVIN_STATIC_ARGS; i++)
 		args[i] = FFAVInArgs[i];
 
 	FFAVInRegister.args = args;

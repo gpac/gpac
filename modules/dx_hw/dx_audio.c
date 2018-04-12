@@ -135,7 +135,7 @@ static void DS_Shutdown(GF_AudioOutput *dr)
 }
 
 /*we assume what was asked is what we got*/
-static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
 {
 	u32 i;
 	HRESULT hr;
@@ -148,9 +148,20 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	DSCONTEXT();
 
 	DS_ReleaseBuffer(dr);
-
+	//only support for PCM 8/16/24/32 packet mode
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+	case GF_AUDIO_FMT_S16:
+	case GF_AUDIO_FMT_S24:
+	case GF_AUDIO_FMT_S32:
+		break;
+	default:
+		//otherwise force PCM16
+		*audioFormat = GF_AUDIO_FMT_S16;
+		break;
+	}
 	ctx->format.nChannels = *NbChannels;
-	ctx->format.wBitsPerSample = *nbBitsPerSample;
+	ctx->format.wBitsPerSample = gf_audio_fmt_bit_depth( *audioFormat);
 	ctx->format.nSamplesPerSec = *SampleRate;
 	ctx->format.cbSize = sizeof (WAVEFORMATEX);
 	ctx->format.wFormatTag = WAVE_FORMAT_PCM;
@@ -185,7 +196,7 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 		format_ex.Format = ctx->format;
 		format_ex.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE);
 		format_ex.SubFormat = GPAC_KSDATAFORMAT_SUBTYPE_PCM;
-		format_ex.Samples.wValidBitsPerSample = *nbBitsPerSample;
+		format_ex.Samples.wValidBitsPerSample = gf_audio_fmt_bit_depth(*audioFormat);
 		//our channel config is exactly the same as ksmedia
 		format_ex.dwChannelMask = channel_cfg;
 /*		if (channel_cfg & GF_AUDIO_CH_FRONT_LEFT) format_ex.dwChannelMask |= SPEAKER_FRONT_LEFT;
@@ -215,7 +226,7 @@ retry:
 			if (ctx->format.nChannels>2) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[DirectSound] failed to configure output for %d channels (error %08x) - falling back to stereo\n", *NbChannels, hr));
 				*NbChannels = 2;
-				return DS_ConfigureOutput(dr, SampleRate, NbChannels, nbBitsPerSample, 0);
+				return DS_Configure(dr, SampleRate, NbChannels, audioFormat, 0);
 			}
 			return GF_IO_ERR;
 		}
@@ -461,7 +472,7 @@ void *NewAudioOutput()
 
 	driv->Setup = DS_Setup;
 	driv->Shutdown = DS_Shutdown;
-	driv->ConfigureOutput = DS_ConfigureOutput;
+	driv->Configure = DS_Configure;
 	driv->SetVolume = DS_SetVolume;
 	driv->SetPan = DS_SetPan;
 	driv->Play = DS_Play;

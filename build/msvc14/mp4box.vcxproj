@@ -551,8 +551,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="libgpac.vcxproj">
-      <Project>{233014d5-f6e5-419d-8757-fa9ce7337088}</Project>
+    <ProjectReference Include="libgpac_dll.vcxproj">
+      <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -930,7 +930,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
 		udesc.codec_tag = m_subtype;
 		if (!comp_name) comp_name = "Unknown";
-		len = strlen(comp_name);
+		len = (u32) strlen(comp_name);
 		if (len>32) len = 32;
 		udesc.compressor_name[0] = len;
 		memcpy(udesc.compressor_name+1, comp_name, len);
@@ -1229,10 +1229,10 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, duration);
 
 	if (ctx->dur.num) {
-		u32 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
+		u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 
 		if (ctx->importer) {
-			gf_set_progress("Import", mdur * ctx->dur.den, tkw->timescale * ctx->dur.num);
+			gf_set_progress("Import", mdur * ctx->dur.den, ((u64)tkw->timescale) * ctx->dur.num);
 		}
 
 		if (mdur * ctx->dur.den > tkw->timescale * ctx->dur.num) {
@@ -1252,7 +1252,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 
 		p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_SIZE);
 		if ((data_offset != GF_FILTER_NO_BO) && p) {
-			gf_set_progress("Import", data_offset, p->value.uint);
+			gf_set_progress("Import", data_offset, p->value.longuint);
 		} else {
 			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 			if (p) {
@@ -1421,13 +1421,13 @@ GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				break;
 			}
 			cts = gf_filter_pck_get_cts(pck);
-			if (cts >= ((s64) (ctx->adjusted_next_frag_start * tkw->timescale)) + tkw->ts_delay) {
+			if (cts >= ((u64) (ctx->adjusted_next_frag_start * tkw->timescale)) + tkw->ts_delay) {
 				u32 sap = gf_filter_pck_get_sap(pck);
 				if ((ctx->mode==MP4MX_MODE_FRAG) || (sap && sap<GF_FILTER_SAP_3)) {
 					tkw->fragment_done = GF_TRUE;
 					nb_done ++;
 					if (ctx->mode==MP4MX_MODE_SFRAG) {
-						ctx->adjusted_next_frag_start = (cts - tkw->ts_delay);
+						ctx->adjusted_next_frag_start = (Double) (cts - tkw->ts_delay);
 						ctx->adjusted_next_frag_start /= tkw->timescale;
 					}
 					break;
@@ -1665,7 +1665,7 @@ static void mp4_mux_done(GF_MP4MuxCtx *ctx)
 		//keep the old importer behaviour: use ctts v0
 		if (tkw->min_neg_ctts<0) {
 			gf_isom_set_cts_packing(ctx->file, tkw->track_num, GF_TRUE);
-			gf_isom_shift_cts_offset(ctx->file, tkw->track_num, tkw->min_neg_ctts);
+			gf_isom_shift_cts_offset(ctx->file, tkw->track_num, (s32) tkw->min_neg_ctts);
 			gf_isom_set_cts_packing(ctx->file, tkw->track_num, GF_FALSE);
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
 
@@ -1823,13 +1823,12 @@ static const GF_FilterCapability MP4MuxCaps[] =
 	//and any codecid
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci"),
-	{},
+	{0},
 	//for scene and OD, we don't want raw codecid (filters modifying a scene graph we don't expose)
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{}
 };
 
 
@@ -1852,9 +1851,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(moof_first), "geenrates fragments starting with moof then mdat", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(abs_offset), "uses absolute file offset in fragments rather than offsets from moof", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(fsap), "splits truns in video fragments at SAPs to reduce file size", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-
 	{ OFFS(file), "pointer to a write/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

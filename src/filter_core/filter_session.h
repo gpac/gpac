@@ -31,6 +31,34 @@
 #include <gpac/filters.h>
 #include <gpac/user.h>
 
+
+ //atomic ref_count++ / ref_count--
+#if defined(WIN32) || defined(_WIN32_WCE)
+#include <Windows.h>
+#include <WinBase.h>
+
+#define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
+#define safe_int_dec(__v) InterlockedDecrement((int *) (__v))
+
+#define safe_int_add(__v, inc_val) InterlockedAdd((int *) (__v), inc_val)
+#define safe_int_sub(__v, dec_val) InterlockedAdd((int *) (__v), -dec_val)
+
+#define safe_int64_add(__v, inc_val) InterlockedAdd64((LONG64 *) (__v), inc_val)
+#define safe_int64_sub(__v, dec_val) InterlockedAdd64((LONG64 *) (__v), -dec_val)
+
+#else
+
+#define safe_int_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
+#define safe_int_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
+
+#define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
+#define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
+
+#define safe_int64_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
+#define safe_int64_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
+#endif
+
+
 #define GF_FILTER_SPEED_SCALER	1000
 
 #define PID_IS_INPUT(__pid) ((__pid->pid==__pid) ? GF_FALSE : GF_TRUE)
@@ -506,7 +534,7 @@ struct __gf_filter_pid_inst
 	Bool discard_packets;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
-	volatile u64 buffer_duration;
+	volatile s64 buffer_duration;
 
 	void *udta;
 

@@ -288,7 +288,7 @@ static GF_Err decenc_setup_oma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme
 	ctx->is_oma = GF_TRUE;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_PREVIEW_RANGE);
-	if (prop) ctx->preview_range = prop->value.longuint;
+	if (prop) ctx->preview_range = (u32) prop->value.longuint;
 
 	/*TODO: call DRM agent, fetch keys*/
 	if (!kms_uri) return GF_NON_COMPLIANT_BITSTREAM;

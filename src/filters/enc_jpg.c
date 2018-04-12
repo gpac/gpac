@@ -25,9 +25,12 @@
 
 #include <gpac/filters.h>
 #include <gpac/constants.h>
-#include <gpac/avparse.h>
 
 #ifdef GPAC_HAS_JPEG
+
+#ifdef WIN32
+#define HAVE_UNSIGNED_CHAR
+#endif
 
 #include <jpeglib.h>
 #include <setjmp.h>
@@ -106,7 +109,12 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 
+#ifdef JPEG_LIB_VERSION_MAJOR
 	sprintf(n, "encjpg:%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
+#else
+	sprintf(n, "encjpg:%d", JPEG_LIB_VERSION);
+#endif
+	
 	gf_filter_set_name(filter, n);
 
 	//TODO: for now we only allow YUV420p input, we should refine this to allow any YUV
@@ -174,7 +182,7 @@ static void jpgenc_term_dest(j_compress_ptr cinfo)
 {
 	GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) cinfo->client_data;
 
-    ctx->dst_pck_size -= cinfo->dest->free_in_buffer;
+    ctx->dst_pck_size -= (u32) cinfo->dest->free_in_buffer;
 	gf_filter_pck_truncate(ctx->dst_pck, ctx->dst_pck_size);
 }
 
@@ -187,7 +195,7 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 	char *in_data;
 	GF_FilterHWFrame *hwframe = NULL;
 	u32 size, stride, stride_uv;
-    int i, j;
+    u32 i, j;
     u8 *pY, *pU, *pV;
     JSAMPROW y[16],cb[16],cr[16];
     JSAMPARRAY block[3];
@@ -247,7 +255,9 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 	cinfo.comp_info[1].v_samp_factor = 1;
 	cinfo.comp_info[2].h_samp_factor = 1;
 	cinfo.comp_info[2].v_samp_factor = 1;
+#ifdef JPEG_LIB_VERSION_MAJOR
 	cinfo.do_fancy_downsampling = FALSE;
+#endif
 	jpeg_set_colorspace(&cinfo, JCS_YCbCr);
 	jpeg_set_quality(&cinfo, MIN(100, ctx->quality), TRUE);
 
@@ -284,7 +294,7 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 		}
 	}
 
-	for (j=0;j<ctx->height;j+=16) {
+	for (j=0; j<ctx->height; j+=16) {
 		for (i=0;i<16;i++) {
 			y[i] = pY + stride*(i+j);
 			if (i%2 == 0) {
@@ -329,7 +339,7 @@ static GF_FilterArgs JPGEncArgs[] =
 {
 	{ OFFS(dctmode), "DCT mode", GF_PROP_UINT, "fast", "slow|fast|float", GF_FALSE},
 	{ OFFS(quality), "Quality, between 0 and 100", GF_PROP_UINT, "100", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 GF_FilterRegister JPGEncRegister = {

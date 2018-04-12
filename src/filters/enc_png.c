@@ -174,7 +174,7 @@ static GF_Err pngenc_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	GF_PNGEncCtx *ctx = (GF_PNGEncCtx *) gf_filter_get_udta(filter);
 	png_color_8 sig_bit;
-	png_int_32 k;
+	u32 k;
 	GF_Err e = GF_OK;
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -333,17 +333,10 @@ static const GF_FilterCapability PNGEncCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_PNG)
 };
 
-#define OFFS(_n)	#_n, offsetof(GF_PNGEncCtx, _n)
-static GF_FilterArgs PNGEncArgs[] =
-{
-	{}
-};
-
 GF_FilterRegister PNGEncRegister = {
 	.name = "pngenc",
 	.description = "PNG encoder",
 	.private_size = sizeof(GF_PNGEncCtx),
-	.args = PNGEncArgs,
 	.finalize = pngenc_finalize,
 	SETCAPS(PNGEncCaps),
 	.configure_pid = pngenc_configure_pid,

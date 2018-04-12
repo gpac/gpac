@@ -203,11 +203,11 @@ GF_Err gdip_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, 
 		pFormat = PixelFormat16bppRGB565;
 		if (pitch_x != 2) return GF_NOT_SUPPORTED;
 		break;
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		pFormat = PixelFormat24bppRGB;
 		if (pitch_x != 3) return GF_NOT_SUPPORTED;
 		break;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		pFormat = PixelFormat32bppRGB;
 		if (pitch_x != 4) return GF_NOT_SUPPORTED;
 		break;

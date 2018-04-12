@@ -748,12 +748,12 @@ Bool gf_sema_wait(GF_Semaphore *sm)
 {
 	if (!sm) return GF_FALSE;
 #ifdef WIN32
-	switch ( )WaitForSingleObject(sm->hSemaphore, INFINITE) ) {
+	switch (WaitForSingleObject(sm->hSemaphore, INFINITE) ) {
 	case WAIT_FAILED:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore %s: %d\n", sm->SemName, GetLastError() ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait: %d\n", GetLastError() ));
 		return GF_FALSE;
 	case WAIT_ABANDONED:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore %s: owner thread exit\n", sm->SemName));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait: owner thread exit\n"));
 		return GF_FALSE;
 	default:
 		break;
@@ -772,7 +772,7 @@ GF_EXPORT
 Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 {
 #ifdef WIN32
-	if (!sm) return;
+	if (!sm) return GF_FALSE;
 	if (WaitForSingleObject(sm->hSemaphore, TimeOut) == WAIT_TIMEOUT) return GF_FALSE;
 	return GF_TRUE;
 #else

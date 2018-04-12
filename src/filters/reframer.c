@@ -89,7 +89,6 @@ static const GF_FilterCapability ReframerCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	//we don't produce RAW streams - this will avoid loading the filter for compositor/other raw access
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{}
 };
 
 
@@ -102,7 +101,7 @@ typedef struct
 static const GF_FilterArgs ReframerArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 GF_FilterRegister ReframerRegister = {

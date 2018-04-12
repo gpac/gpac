@@ -39,7 +39,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 
 	unit_sep = NULL;
 	if (value) {
-		u32 len = strlen(value);
+		u32 len = (u32) strlen(value);
 		unit_sep = strrchr("kKgGmM", value[len-1]);
 		if (unit_sep) {
 			unit_char = unit_sep[0];
@@ -133,6 +133,25 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 						p.value.frac.num = 0;
 						p.value.frac.den = 1;
+					}
+				}
+			}
+		}
+		break;
+	case GF_PROP_FRACTION64:
+		if (!value) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
+			p.value.frac.num = 0;
+			p.value.frac.den = 1;
+		}
+		else {
+			if (sscanf(value, LLD"/"LLU, &p.value.lfrac.num, &p.value.lfrac.den) != 2) {
+				if (sscanf(value, LLD"-"LLU, &p.value.lfrac.num, &p.value.lfrac.den) != 2) {
+					p.value.lfrac.den = 1;
+					if (sscanf(value, LLD, &p.value.lfrac.num) != 1) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
+						p.value.lfrac.num = 0;
+						p.value.lfrac.den = 1;
 					}
 				}
 			}
@@ -256,7 +275,9 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 	case GF_PROP_LUINT: return (p1->value.longuint==p2->value.longuint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_BOOL: return (p1->value.boolean==p2->value.boolean) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_FRACTION:
-		return ( (s64) p1->value.frac.num * (s64) p2->value.frac.den == (s64) p2->value.frac.num * (s64) p1->value.frac.den) ? GF_TRUE : GF_FALSE;
+		return ((s64)p1->value.frac.num * (s64)p2->value.frac.den == (s64)p2->value.frac.num * (s64)p1->value.frac.den) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_FRACTION64:
+		return ((s64)p1->value.lfrac.num * (s64)p2->value.lfrac.den == (s64)p2->value.lfrac.num * (s64)p1->value.lfrac.den) ? GF_TRUE : GF_FALSE;
 
 	case GF_PROP_FLOAT: return (p1->value.fnumber==p2->value.fnumber) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_DOUBLE: return (p1->value.number==p2->value.number) ? GF_TRUE : GF_FALSE;
@@ -281,7 +302,7 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		if (!strcmp(p1->value.string, "*")) return GF_TRUE;
 		if (!strcmp(p2->value.string, "*")) return GF_TRUE;
 		if (strchr(p2->value.string, '|')) {
-			u32 len = strlen(p1->value.string);
+			u32 len = (u32) strlen(p1->value.string);
 			char *cur = p2->value.string;
 			while (cur) {
 				if (!strncmp(p1->value.string, cur, len) && (cur[len]=='|' || !cur[len]))
@@ -621,6 +642,7 @@ const char *gf_props_get_type_name(u32 type)
 	case GF_PROP_LSINT: return "long int";
 	case GF_PROP_LUINT: return "unsigned long int";
 	case GF_PROP_FRACTION: return "fraction";
+	case GF_PROP_FRACTION64: return "64-bit fraction";
 	case GF_PROP_BOOL: return "boolean";
 	case GF_PROP_FLOAT: return "float";
 	case GF_PROP_DOUBLE: return "number";
@@ -708,9 +730,9 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_FILE_EXT, "Extension", "File extension of source", GF_PROP_STRING},
 	{ GF_PROP_PID_FILE_CACHED, "Cached", "indicates the file is completely cached", GF_PROP_BOOL},
 	{ GF_PROP_PID_DOWN_RATE, "DownloadRate", "dowload rate of resource in bps", GF_PROP_UINT},
-	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "size of resource in bytes", GF_PROP_UINT},
-	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "number of bytes downloaded", GF_PROP_UINT},
-	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "byte range of resource", GF_PROP_FRACTION},
+	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "size of resource in bytes", GF_PROP_LUINT},
+	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "number of bytes downloaded", GF_PROP_LUINT},
+	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "byte range of resource", GF_PROP_FRACTION64},
 	{ GF_PROP_PID_DISABLE_PROGRESSIVE, "DisableProgressive", "indicates file cannot be progressivley uploaded because first blocks need patching upon closing", GF_PROP_BOOL},
 	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "display width of service", GF_PROP_UINT},
 	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "display height of service", GF_PROP_UINT},
@@ -814,6 +836,9 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool d
 		break;
 	case GF_PROP_FRACTION:
 		sprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
+		break;
+	case GF_PROP_FRACTION64:
+		sprintf(dump, LLD"/"LLU, att->value.lfrac.num, att->value.lfrac.den);
 		break;
 	case GF_PROP_BOOL:
 		sprintf(dump, "%s", att->value.boolean ? "true" : "false");

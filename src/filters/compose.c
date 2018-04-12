@@ -344,7 +344,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 	gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->compositor->output_width) );
 	gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->compositor->output_height) );
 
-	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ctx->compositor->frame_rate*1000, 1000) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT((s32)(ctx->compositor->frame_rate*1000), 1000) );
 
 	//declare audio output pid
 	if (! (ctx->compositor->user->init_flags & GF_TERM_NO_AUDIO) && ctx->compositor->audio_renderer) {

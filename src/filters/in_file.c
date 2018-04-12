@@ -33,7 +33,7 @@ typedef struct
 	//options
 	char *src;
 	u32 block_size;
-	GF_Fraction range;
+	GF_Fraction64 range;
 
 	//only one output pid declared
 	GF_FilterPid *pid;
@@ -315,14 +315,14 @@ static GF_Err filein_process(GF_Filter *filter)
 	}
 
 	if (ctx->end_pos > ctx->file_pos)
-		to_read = ctx->end_pos - ctx->file_pos;
+		to_read = (u32) (ctx->end_pos - ctx->file_pos);
 	else
-		to_read = ctx->file_size - ctx->file_pos;
+		to_read = (u32) (ctx->file_size - ctx->file_pos);
 
 	if (to_read > ctx->block_size)
 		to_read = ctx->block_size;
 
-	nb_read = fread(ctx->block, 1, to_read, ctx->file);
+	nb_read = (u32) fread(ctx->block, 1, to_read, ctx->file);
 
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
@@ -332,7 +332,7 @@ static GF_Err filein_process(GF_Filter *filter)
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
 		if (ctx->range.num || ctx->range.den)
-			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_RANGE, &PROP_FRAC(ctx->range) );
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_RANGE, &PROP_FRAC64(ctx->range) );
 	}
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
 	if (!pck)
@@ -365,7 +365,7 @@ static const GF_FilterArgs FileInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FALSE},
 	{ OFFS(range), "byte range", GF_PROP_FRACTION, "0-0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability FileInCaps[] =

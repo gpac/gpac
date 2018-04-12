@@ -366,15 +366,15 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		const char *opt;
 
 		opt = gf_cfg_get_key(scene->compositor->user->config, "Network", "BufferLength");
-		if (opt) odm->buffer_playout_us = (u32) 1000*atof(opt);
+		if (opt) odm->buffer_playout_us = (u32) (1000*atof(opt));
 		else odm->buffer_playout_us = 3000000;
 
 		opt = gf_cfg_get_key(scene->compositor->user->config, "Network", "RebufferLength");
-		if (opt) odm->buffer_min_us = (u32) 1000*atof(opt);
+		if (opt) odm->buffer_min_us = (u32) (1000*atof(opt));
 		else odm->buffer_min_us = 0;
 
 		opt = gf_cfg_get_key(scene->compositor->user->config, "Network", "BufferMaxOccupancy");
-		if (opt) odm->buffer_max_us = (u32) 1000*atof(opt);
+		if (opt) odm->buffer_max_us = (u32) (1000*atof(opt));
 		else odm->buffer_max_us = odm->buffer_playout_us;
 
 		//check the same on the pid
@@ -534,7 +534,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	GF_Clock *ck;
 	GF_List *ck_namespace;
 	s8 flag;
-	u16 clockID;
+	u32 clockID;
 	GF_Scene *scene;
 	Bool clock_inherited = GF_TRUE;
 	const GF_PropertyValue *prop;
@@ -609,7 +609,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (odm->type == GF_STREAM_OCR) clockID = odm->ID;
 	if (!clockID) {
 		if (odm->ID == GF_MEDIA_EXTERNAL_ID) {
-			clockID = (u32) odm->scene_ns;
+			clockID = (u32) ((u64) odm->scene_ns);
 		} else {
 			clockID = odm->ID;
 		}
@@ -1394,7 +1394,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (!odm->ck->clock_init && ck_type) {
 		clock_reference *= 1000;
 		clock_reference /= timescale;
-		gf_clock_set_time(odm->ck, clock_reference);
+		gf_clock_set_time(odm->ck, (u32) clock_reference);
 		if (odm->parentscene)
 			odm->parentscene->root_od->media_start_time = 0;
 	}
@@ -1411,7 +1411,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (time==GF_FILTER_NO_TS) time = gf_filter_pck_get_dts(pck);
 			time *= 1000;
 			time /= timescale;
-			gf_clock_set_time(odm->ck, time);
+			gf_clock_set_time(odm->ck, (u32) time);
 			if (odm->parentscene)
 				odm->parentscene->root_od->media_start_time = 0;
 
@@ -1454,7 +1454,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 
 			//if explicit clock discontinuity, mark clock
 			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
-				odm->ck->ocr_discontinuity_time = 1+clock_reference;
+				odm->ck->ocr_discontinuity_time = (u32) (1+clock_reference);
 		}
 		pck_time = gf_filter_pck_get_cts(pck);
 		timescale = gf_filter_pck_get_timescale(pck);
@@ -1462,8 +1462,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			pck_time *= 1000;
 			pck_time /= timescale;
 			pck_time += 1;
-			diff = clock_time;
-			diff -= pck_time;
+			diff = (u32) ((u64) clock_time - pck_time);
 			diff_to = odm->ck->ocr_discontinuity_time ? 500 : 8000;
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("Clock %d (ODM %d) pck time %d - clock ref "LLU" clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
@@ -1491,7 +1490,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 					an_odm->prev_clock_at_discontinuity_plus_one = 1 + clock_time;
 				}
 				odm->ck->clock_init = GF_FALSE;
-				gf_clock_set_time(odm->ck, odm->ck->ocr_discontinuity_time ? odm->ck->ocr_discontinuity_time - 1 : clock_reference);
+				gf_clock_set_time(odm->ck, odm->ck->ocr_discontinuity_time ? odm->ck->ocr_discontinuity_time - 1 : (u32) clock_reference);
 				odm->ck->ocr_discontinuity_time = 0;
 			}
 		}
@@ -1499,7 +1498,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		clock_reference *= 1000;
 		clock_reference /= timescale;
 		if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
-			odm->ck->ocr_discontinuity_time = 1 + clock_reference;
+			odm->ck->ocr_discontinuity_time = (u32) (1 + clock_reference);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("Clock %d (ODM %d) received "LLU" type %d clock time %d no pending packets\n", odm->ck->clock_id, odm->ID, clock_reference, ck_type, gf_clock_time(odm->ck)));
 	}
@@ -1528,8 +1527,8 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 
 	buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
 	if (buf_val > odm->buffer_playout_us) buf_val = odm->buffer_playout_us;
-	val = (buf_val * 100) / odm->buffer_playout_us;
-	if (*min_buffer > val) *min_buffer = val;
+	val = (u32) ((buf_val * 100) / odm->buffer_playout_us);
+	if (*min_buffer > val) (*min_buffer) = val;
 
 	if (*min_time > (u32) buf_val / 1000)
 		*min_time = (u32) buf_val / 1000;
@@ -1539,8 +1538,8 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 
 		buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
 		if (buf_val > odm->buffer_playout_us) buf_val = odm->buffer_playout_us;
-		val = (buf_val * 100) / odm->buffer_playout_us;
-		if (*min_buffer > val) *min_buffer = val;
+		val = (u32) ((buf_val * 100) / odm->buffer_playout_us);
+		if (*min_buffer > val) (*min_buffer) = val;
 
 		if (*min_time > (u32) buf_val / 1000)
 			*min_time = (u32) buf_val / 1000;
@@ -1651,9 +1650,9 @@ static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info)
 	info->nb_dec_frames = stats.nb_processed;
 	info->max_dec_time = stats.max_process_time;
 	info->total_dec_time = stats.total_process_time;
-	info->first_frame_time = stats.first_process_time;
-	info->last_frame_time = stats.last_process_time;
-	info->au_duration = stats.min_frame_dur;
+	info->first_frame_time = (u32) stats.first_process_time;
+	info->last_frame_time = (u32) stats.last_process_time;
+	info->au_duration = (u32) stats.min_frame_dur;
 	info->nb_iraps = stats.nb_saps;
 	info->irap_max_dec_time = stats.max_sap_process_time;
 	info->irap_total_dec_time = stats.total_sap_process_time;
@@ -1729,7 +1728,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			info->max_buffer = 0;
 
 			if (pid)
-				info->buffer = gf_filter_pid_query_buffer_duration(pid, GF_FALSE) / 1000;
+				info->buffer = (u32) gf_filter_pid_query_buffer_duration(pid, GF_FALSE) / 1000;
 			info->max_buffer = odm->buffer_max_us / 1000;
 			info->min_buffer = odm->buffer_min_us / 1000;
 
@@ -1805,11 +1804,11 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	if (!p) return;
 	media_time = p->value.number;
 
-	shift = timestamp;
+	shift = (Double) timestamp;
 	shift /= timescale;
 	shift -= ((Double)odm->ck->init_timestamp)/1000;
 	media_time += shift;
-	odm->ck->media_time_at_init = (media_time * 1000);
+	odm->ck->media_time_at_init = (u32) (media_time * 1000);
 	odm->ck->has_media_time_shift = GF_TRUE;
 }
 

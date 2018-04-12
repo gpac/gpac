@@ -195,7 +195,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 
 
 /*we assume what was asked is what we got*/
-static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
 {
 	u32 i, retry;
 	HRESULT	hr;
@@ -215,11 +215,24 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	if (*NbChannels>2) *NbChannels=2;
 #endif
 
+	//only support for PCM 8/16/24/32 packet mode
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+	case GF_AUDIO_FMT_S16:
+	case GF_AUDIO_FMT_S24:
+	case GF_AUDIO_FMT_S32:
+		break;
+	default:
+		//otherwise force PCM16
+		*audioFormat = GF_AUDIO_FMT_S16;
+		break;
+	}
+
 	memset (&ctx->fmt, 0, sizeof(ctx->fmt));
 	ctx->fmt.cbSize = sizeof(WAVEFORMATEX);
 	ctx->fmt.wFormatTag = WAVE_FORMAT_PCM;
 	ctx->fmt.nChannels = *NbChannels;
-	ctx->fmt.wBitsPerSample = *nbBitsPerSample;
+	ctx->fmt.wBitsPerSample = gf_audio_fmt_bit_depth(*audioFormat);
 	ctx->fmt.nSamplesPerSec = *SampleRate;
 	ctx->fmt.nBlockAlign = ctx->fmt.wBitsPerSample * ctx->fmt.nChannels / 8;
 	ctx->fmt.nAvgBytesPerSec = *SampleRate * ctx->fmt.nBlockAlign;
@@ -444,7 +457,7 @@ void *NewWAVRender()
 	driv->SelfThreaded = GF_FALSE;
 	driv->Setup = WAV_Setup;
 	driv->Shutdown = WAV_Shutdown;
-	driv->ConfigureOutput = WAV_ConfigureOutput;
+	driv->Configure= WAV_Configure;
 	driv->GetAudioDelay = WAV_GetAudioDelay;
 	driv->GetTotalBufferTime = WAV_GetTotalBufferTime;
 	driv->SetVolume = WAV_SetVolume;

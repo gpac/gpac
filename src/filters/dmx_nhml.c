@@ -888,17 +888,17 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			else if (!stricmp(att->name, "isRAP") ) ctx->has_sap = GF_TRUE;
 		}
 		last_dts = ctx->duration.num;
-		if (dts) ctx->duration.num = dts + cts_offset;
+		if (dts) ctx->duration.num = (u32) (dts + cts_offset);
 		if (sample_duration) {
 			last_dts = 0;
-			ctx->duration.num += sample_duration;
+			ctx->duration.num += (u32) sample_duration;
 		} else if (ctx->dts_inc) {
 			last_dts = 0;
 			ctx->duration.num += ctx->dts_inc;
 		}
 	}
 	if (last_dts) {
-		ctx->duration.num += (ctx->duration.num - last_dts);
+		ctx->duration.num += (u32) (ctx->duration.num - last_dts);
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration) );
 
@@ -1171,7 +1171,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				gf_filter_pck_set_dts(pck, dts);
 				gf_filter_pck_set_cts(pck, dts+cts_offset);
 				if (sample_duration || ctx->dts_inc)
-					gf_filter_pck_set_duration(pck, sample_duration ? sample_duration : ctx->dts_inc);
+					gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
 
 				if (byte_offset != GF_FILTER_NO_BO)
 					gf_filter_pck_set_byte_offset(pck, byte_offset);
@@ -1232,7 +1232,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 								gf_filter_pck_set_dts(pck, dts);
 								gf_filter_pck_set_cts(pck, dts+cts_offset);
 								if (sample_duration || ctx->dts_inc)
-									gf_filter_pck_set_duration(pck, sample_duration ? sample_duration : ctx->dts_inc);
+									gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
 
 								if (ctx->in_seek) {
 									if (dts+cts_offset >= ctx->start_range * ctx->timescale)
@@ -1254,7 +1254,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						gf_bs_write_u8(ctx->bs_w, 0); //discardable
 
 						if (!nb_subsamples) {
-							u32 subs_size = gf_bs_get_position(ctx->bs_w);
+							u32 subs_size = (u32) gf_bs_get_position(ctx->bs_w);
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA(ctx->samp_buffer, subs_size) );
 						}
 
@@ -1346,7 +1346,7 @@ static const GF_FilterArgs GF_NHMLDmxArgs[] =
 {
 	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 
@@ -1357,7 +1357,7 @@ static const GF_FilterCapability NHMLDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
 };

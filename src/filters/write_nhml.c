@@ -212,7 +212,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		else p = gf_filter_pid_get_property_str(ctx->ipid, _pname); \
 		if (p) { \
 			sprintf(nhml, "%s=\"%s\" ", _name, gf_4cc_to_str(p->value.uint)); \
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml)); \
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml)); \
 		}
 
 #define NHML_PRINT_UINT(_code, _pname, _name) \
@@ -220,7 +220,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		else p = gf_filter_pid_get_property_str(ctx->ipid, _pname); \
 		if (p) { \
 			sprintf(nhml, "%s=\"%d\" ", _name, p->value.uint); \
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml)); \
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml)); \
 		}
 
 #define NHML_PRINT_STRING(_code, _pname, _name) \
@@ -228,7 +228,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		else p = gf_filter_pid_get_property_str(ctx->ipid, _pname); \
 		if (p) { \
 			sprintf(nhml, "%s=\"%s\" ", _name, p->value.string); \
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml)); \
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml)); \
 		}
 
 
@@ -248,11 +248,11 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		sprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	}
 
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 	/*write header*/
 	sprintf(nhml, "<%s version=\"1.0\" ", ctx->szRootName);
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 
 	NHML_PRINT_UINT(GF_PROP_PID_ID, NULL, "trackID")
@@ -261,12 +261,12 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_IN_IOD);
 	if (p && p->value.boolean) {
 		sprintf(nhml, "inRootOD=\"yes\" ");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 
 	if (ctx->oti<GF_CODECID_LAST_MPEG4_MAPPING) {
 		sprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", ctx->streamtype, ctx->oti);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32)strlen(nhml));
 	} else {
 		NHML_PRINT_4CC(0, "media_type", "mediaType")
 		NHML_PRINT_4CC(0, "media_subtype", "mediaSubType")
@@ -274,16 +274,16 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 
 	if (ctx->w && ctx->h) {
 		sprintf(nhml, "width=\"%d\" height=\"%d\" ", ctx->w, ctx->h);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 	else if (ctx->sr && ctx->chan) {
 		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT);
 		sprintf(nhml, "bitsPerSample=\"%d\" ", gf_audio_fmt_bit_depth(p->value.uint));
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 
 	NHML_PRINT_4CC(0, "codec_vendor", "codecVendor")
@@ -314,7 +314,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	if (ctx->codecid == GF_CODECID_DIMS) {
 		if (gf_filter_pid_get_property_str(ctx->ipid, "meta:xmlns")==NULL) {
 			sprintf(nhml, "xmlns=\"http://www.3gpp.org/richmedia\" ");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 
 		NHML_PRINT_UINT(0, "dims:profile", "profile")
@@ -324,17 +324,17 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		p = gf_filter_pid_get_property_str(ctx->ipid, "dims:fullRequestHost");
 		if (p) {
 			sprintf(nhml, "useFullRequestHost=\"%s\" ", p->value.boolean ? "yes" : "no");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		p = gf_filter_pid_get_property_str(ctx->ipid, "dims:streamType");
 		if (p) {
 			sprintf(nhml, "stream_type=\"%s\" ", p->value.boolean ? "primary" : "secondary");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		p = gf_filter_pid_get_property_str(ctx->ipid, "dims:redundant");
 		if (p) {
 			sprintf(nhml, "contains_redundant=\"%s\" ", (p->value.uint==1) ? "main" : ((p->value.uint==1) ? "redundant" : "main+redundant") );
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		NHML_PRINT_UINT(0, "dims:scriptTypes", "scriptTypes")
 	}
@@ -342,7 +342,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	//send DCD
 	if (ctx->opid_info) {
 		sprintf(nhml, "specificInfoFile=\"%s\" ", ctx->info_file);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		dst_pck = gf_filter_pck_new_shared(ctx->opid_info, ctx->dcfg, ctx->dcfg_size, NULL);
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
@@ -351,10 +351,10 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 
 	if (ctx->opid_mdia) {
 		sprintf(nhml, "baseMediaFile=\"%s\" ", ctx->media_file);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 	sprintf(nhml, ">\n");
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
@@ -398,35 +398,35 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 
 
 		sprintf(nhml, "<DIMSUnit time=\""LLU"\"", cts);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		/*DIMS flags*/
 		if (flags & GF_DIMS_UNIT_S) {
 			sprintf(nhml, " is-Scene=\"yes\"");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		if (flags & GF_DIMS_UNIT_M) {
 			sprintf(nhml, " is-RAP=\"yes\"");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		if (flags & GF_DIMS_UNIT_I) {
 			sprintf(nhml, " is-redundant=\"yes\"");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		if (flags & GF_DIMS_UNIT_D) {
 			sprintf(nhml, " redundant-exit=\"yes\"");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		if (flags & GF_DIMS_UNIT_P) {
 			sprintf(nhml, " priority=\"high\"");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		if (flags & GF_DIMS_UNIT_C) {
 			sprintf(nhml, " compressed=\"yes\"");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		sprintf(nhml, ">");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		if (ctx->uncompress && (flags & GF_DIMS_UNIT_C)) {
 #ifndef GPAC_DISABLE_ZLIB
 			char svg_data[2049];
@@ -447,7 +447,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 					err = inflate(&d_stream, Z_NO_FLUSH);
 					if (err < Z_OK) break;
 					svg_data[d_stream.total_out - done] = 0;
-					gf_bs_write_data(ctx->bs_w, svg_data, strlen(svg_data));
+					gf_bs_write_data(ctx->bs_w, svg_data, (u32) strlen(svg_data));
 
 					if (err== Z_STREAM_END) break;
 					done = (u32) d_stream.total_out;
@@ -468,7 +468,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 			gf_bs_write_data(ctx->bs_w, data+pos+3, size-1);
 		}
 		sprintf(nhml, "</DIMSUnit>\n");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		data[pos+2+size] = prev;
 		gf_bs_skip_bytes(ctx->bs_r, size-1);
@@ -496,7 +496,7 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
 	sprintf(nhml, "%s=\"", pname ? pname : gf_4cc_to_str(p4cc));
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 
 
@@ -505,10 +505,10 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 	case GF_PROP_CONST_DATA:
 	case GF_PROP_DATA_NO_COPY:
 		sprintf(nhml, "0x");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		for (i=0; i<att->value.data.size; i++) {
 			sprintf(nhml, "%02X", (unsigned char) att->value.data.ptr[i]);
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		nhml[0] = 0;
 		break;
@@ -516,9 +516,9 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 		sprintf(nhml, "%s", gf_prop_dump_val(att, pval, GF_FALSE) );
 		break;
 	}
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	sprintf(nhml, "\"");
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 }
 
 static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *pck)
@@ -536,27 +536,27 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	if (cts==GF_FILTER_NO_TS) cts = dts;
 
 	sprintf(nhml, "<NHNTSample DTS=\""LLU"\" dataLength=\"%d\" ", dts, data_size);
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	if (ctx->full || (cts != dts) ) {
 		sprintf(nhml, "CTSOffset=\"%d\" ", (s32) ((s64)cts - (s64)dts));
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 	if (sap==GF_FILTER_SAP_1) {
 		sprintf(nhml, "isRAP=\"yes\" ");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	} else if (sap==GF_FILTER_SAP_REDUNDANT) {
 		sprintf(nhml, "isSyncShadow=\"yes\" ");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	} else if (sap) {
 		sprintf(nhml, "SAPType=\"%d\" ", sap);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	} else if (ctx->full) {
 		sprintf(nhml, "isRAP=\"no\" ");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		if (sap==GF_FILTER_SAP_4) {
 			s32 roll = gf_filter_pck_get_roll_info(pck);
 			sprintf(nhml, "SAPType=\"4\" roll=\"%d\" ", roll);
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 	}
 
@@ -564,22 +564,22 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 		u64 bo;
 		u32 duration, idx;
 		sprintf(nhml, "mediaOffset=\""LLU"\" ", ctx->mdia_pos);
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		bo = gf_filter_pck_get_byte_offset(pck);
 		if (bo!=GF_FILTER_NO_BO) {
 			sprintf(nhml, "sourceByteOffset=\""LLU"\" ", bo);
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		duration = gf_filter_pck_get_duration(pck);
 		if (duration) {
 			sprintf(nhml, "duration=\"%d\" ", duration);
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		idx = gf_filter_pck_get_carousel_version(pck);
 		if (idx) {
 			sprintf(nhml, "carouselVersion=\"%d\" ", idx);
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 		idx = 0;
 		while (1) {
@@ -596,24 +596,24 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 		if (ctx->chksum==1) {
 			u32 crc = gf_crc_32(data, data_size);
 			sprintf(nhml, "crc=\"%08X\" ", crc);
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		} else {
 			u32 j;
 			u8 hash[GF_SHA1_DIGEST_SIZE];
 			gf_sha1_csum(data, data_size, hash);
 			sprintf(nhml, "sha1=\"");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 			for (j=0; j<20; j++) {
 				sprintf(nhml, "%02X", hash[j]);
-				gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+				gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 			}
 			sprintf(nhml, "\" ");
-			gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 	}
 
 	sprintf(nhml, ">\n");
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 	if (p) {
@@ -639,12 +639,12 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 			if (ctx->is_stpp && ctx->nhmlonly) {
 				if (first_subs) {
 					sprintf(nhml, "<NHNTSubSample>\n");
-					gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+					gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 					gf_bs_write_data(ctx->bs_w, data, s_size);
 
 					sprintf(nhml, "</NHNTSubSample>\n");
-					gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+					gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 				} else {
 					u32 d_size;
 					if (ctx->b64_buffer_size<2*s_size) {
@@ -654,26 +654,26 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 					d_size = gf_base64_encode(data + offset_in_sample, s_size, ctx->b64_buffer, ctx->b64_buffer_size);
 					ctx->b64_buffer[d_size] = 0;
 					sprintf(nhml, "<NHNTSubSample data=\"data:application/octet-string;base64,");
-					gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+					gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 					gf_bs_write_data(ctx->bs_w, ctx->b64_buffer, d_size);
 					sprintf(nhml, "\">\n");
-					gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+					gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 				}
 			} else {
 				sprintf(nhml, "<NHNTSubSample size=\"%d\" flags=\"%d\" reserved=\"%d\" priority=\"%d\" discard=\"%d\" />\n", s_size, s_flags, s_res, s_prio, s_discard);
-				gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+				gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 			}
 			first_subs = GF_FALSE;
 		}
 	} else if (ctx->is_stpp && ctx->nhmlonly) {
 		sprintf(nhml, "<NHNTSubSample><![CDATA[\n");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		gf_bs_write_data(ctx->bs_w, data, data_size);
 		sprintf(nhml, "]]></NHNTSubSample>\n");
-		gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 	sprintf(nhml, "</NHNTSample>\n");
-	gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
@@ -719,7 +719,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 				GF_FilterPacket *dst_pck;
 				gf_bs_reassign_buffer(ctx->bs_w, ctx->nhml_buffer, ctx->nhml_buffer_size);
 				sprintf(nhml, "</%s>\n", ctx->szRootName);
-				gf_bs_write_data(ctx->bs_w, nhml, strlen(nhml));
+				gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 				gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
@@ -797,7 +797,7 @@ static const GF_FilterCapability NHMLDumpCaps[] =
 {
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
-	{},
+	{0},
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -811,8 +811,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 	{ OFFS(full), "Full NHML dump", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(chksum), "Insert frame checksum", GF_PROP_UINT, "none", "none|crc|sha1", GF_FALSE},
 	{ OFFS(filep), "dumps directly to FILE (used by MP4Box)", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
-
-	{}
+	{0}
 };
 
 

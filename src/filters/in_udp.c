@@ -311,7 +311,7 @@ static const GF_FilterArgs UDPInArgs[] =
 	{ OFFS(reorder_pck), "number of packets delay for RTP reordering", GF_PROP_UINT, "100", NULL, GF_FALSE},
 	{ OFFS(reorder_delay), "number of ms delay for RTP reordering", GF_PROP_UINT, "10", NULL, GF_FALSE},
 #endif
-	{}
+	{0}
 };
 
 static const GF_FilterCapability UDPInCaps[] =
