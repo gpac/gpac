@@ -51,7 +51,10 @@ extern "C" {
 enum
 {
 	GF_BITSTREAM_READ = 0,
-	GF_BITSTREAM_WRITE
+	GF_BITSTREAM_WRITE,
+	/*allows reallocating the buffer passed in WRITE mode*/
+	GF_BITSTREAM_WRITE_DYN
+
 };
 
 typedef struct __tag_bitstream GF_BitStream;

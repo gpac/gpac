@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -189,22 +189,34 @@ static void init_reader(ISOMChannel *ch)
 	ch->owner->no_order_check = ch->speed < 0 ? GF_TRUE : GF_FALSE;
 }
 
+void isor_reader_load_next_item(ISOMReader *read, ISOMChannel *ch, u32 item_idx)
+{
+
+}
 void isor_reader_get_sample_from_item(ISOMChannel *ch)
 {
 	if (ch->current_slh.AU_sequenceNumber) {
-		ch->last_state = GF_EOS;
-		return;
+		if (!ch->owner->itt || !isor_declare_item_properties(ch->owner, ch, 1+ch->current_slh.AU_sequenceNumber)) {
+			ch->last_state = GF_EOS;
+			return;
+		}
 	}
 	ch->sample_time = 0;
 	ch->last_state = GF_OK;
-	ch->static_sample = ch->sample = gf_isom_sample_new();
+	if (!ch->static_sample) {
+		ch->static_sample = gf_isom_sample_new();
+	}
+
+	ch->sample = ch->static_sample;
 	ch->sample->IsRAP = RAP;
 	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
 	ch->current_slh.au_duration = 1000;
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 	ch->current_slh.compositionTimeStampFlag = 1;
-	ch->current_slh.decodingTimeStampFlag = 1;
-	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, NULL, GF_FALSE);
+	ch->current_slh.decodingTimeStampFlag = 0;
+	ch->current_slh.compositionTimeStamp = 1000 * ch->current_slh.AU_sequenceNumber;
+	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
+
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 }
 

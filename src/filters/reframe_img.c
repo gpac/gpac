@@ -165,6 +165,7 @@ GF_Err img_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_SERVICE_ERROR;
 		}
+		//we don't have inout reconfig for now
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codecid));

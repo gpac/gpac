@@ -181,6 +181,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 	}
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );

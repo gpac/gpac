@@ -741,6 +741,7 @@ static GF_Err ffenc_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_set_name(filter, szCodecName);
 		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
 	}
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->out_pid, ctx->in_pid);
 	if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffenc_process_audio;

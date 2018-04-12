@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -780,6 +780,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		ISOMChannel *ch;
 		ch = gf_list_get(read->channels, i);
 		if (ch->play_state != 1) continue;
+		if (ch->last_state == GF_EOS) continue;
 		is_active = GF_TRUE;
 
 		while (! gf_filter_pid_would_block(ch->pid) ) {
@@ -845,6 +846,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(alltracks), "loads all tracks (except hint) event when not supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{}
 };
 

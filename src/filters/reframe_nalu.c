@@ -255,6 +255,7 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->opid = gf_filter_pid_new(filter);
 		ctx->first_slice_in_au = GF_TRUE;
 	}
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
@@ -1027,13 +1028,14 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 
 		naludmx_check_dur(filter, ctx);
 		ctx->first_slice_in_au = GF_TRUE;
 	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 
 	if ((ctx->crc_cfg == crc_cfg) && (ctx->crc_cfg_enh == crc_cfg_enh)
 		&& (ctx->width==w) && (ctx->height==h)

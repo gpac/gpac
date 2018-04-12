@@ -193,8 +193,8 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_copy_properties(ctx->opid, pid);
 	}
+
 	if (!ctx->ipid) {
 		ctx->ipid = pid;
 	}
@@ -218,11 +218,11 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (p) sar = p->value.frac;
 	else sar.den = sar.num = 1;
 
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
 	//ctx->pfmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
 	if (!w || !h || !pfmt) {
-		gf_filter_pid_copy_properties(ctx->opid, pid);
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
 	}
@@ -237,7 +237,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		//nothing to reconfigure
 	}
 	//passthrough mode
-	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == pfmt)) {
+	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == pfmt) && (pfmt==ctx->pfmt) ) {
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
 		gf_pixel_get_size_info(ctx->pfmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
 		ctx->passthrough = GF_TRUE;

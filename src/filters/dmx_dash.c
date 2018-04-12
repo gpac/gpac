@@ -673,6 +673,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_clock_mode(opid, GF_TRUE);
 	}
 
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(opid, pid);
 
 	return GF_OK;

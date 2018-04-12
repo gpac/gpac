@@ -111,10 +111,10 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
-
-		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );

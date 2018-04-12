@@ -510,6 +510,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 	}
+
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 

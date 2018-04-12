@@ -670,39 +670,41 @@ static GF_Err decenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!opid) {
 		opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, opid);
-
-		gf_filter_pid_copy_properties(opid, pid);
-
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
-		if (prop) scheme_version = prop->value.uint;
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_URI);
-		if (prop) scheme_uri = prop->value.string;
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_KMS_URI);
-		if (prop) kms_uri = prop->value.string;
-
-		switch (scheme_type) {
-		case GF_ISOM_ISMA_SCHEME:
-			e = decenc_setup_isma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
-			break;
-		case GF_ISOM_ODRM_SCHEME:
-			e = decenc_setup_oma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
-			break;
-		case GF_ISOM_CENC_SCHEME:
-		case GF_ISOM_CBC_SCHEME:
-		case GF_ISOM_CENS_SCHEME:
-		case GF_ISOM_CBCS_SCHEME:
-			e = decenc_setup_cenc(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
-			break;
-		default:
-			e = GF_SERVICE_ERROR;
-			break;
-		}
 	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(opid, pid);
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
+	if (prop) scheme_version = prop->value.uint;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_URI);
+	if (prop) scheme_uri = prop->value.string;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_KMS_URI);
+	if (prop) kms_uri = prop->value.string;
+
+	switch (scheme_type) {
+	case GF_ISOM_ISMA_SCHEME:
+		e = decenc_setup_isma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
+		break;
+	case GF_ISOM_ODRM_SCHEME:
+		e = decenc_setup_oma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
+		break;
+	case GF_ISOM_CENC_SCHEME:
+	case GF_ISOM_CBC_SCHEME:
+	case GF_ISOM_CENS_SCHEME:
+	case GF_ISOM_CBCS_SCHEME:
+		e = decenc_setup_cenc(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
+		break;
+	default:
+		e = GF_SERVICE_ERROR;
+		break;
+	}
+
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 	if (prop) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(prop->value.uint) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, NULL);
 	}
+	//remove all cenc properties on output
 	gf_filter_pid_set_property(opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, NULL);
 	gf_filter_pid_set_property(opid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, NULL);
 	gf_filter_pid_set_property(opid, GF_PROP_PID_PROTECTION_SCHEME_URI, NULL);

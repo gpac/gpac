@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -43,9 +43,9 @@
 
 typedef struct
 {
-	//arguments
+	//options
 	char *src;
-	Bool alltracks, noedit;
+	Bool alltracks, noedit, itt;
 
 
 	//internal
@@ -152,6 +152,8 @@ void isor_declare_objects(ISOMReader *read);
 
 void isor_reader_get_sample_from_item(ISOMChannel *ch);
 void isor_set_crypt_config(ISOMChannel *ch);
+
+Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_idx);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

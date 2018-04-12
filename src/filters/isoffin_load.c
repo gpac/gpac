@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -72,6 +72,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 		}
 	}
 }
+
 
 
 void isor_declare_objects(ISOMReader *read)
@@ -497,45 +498,10 @@ void isor_declare_objects(ISOMReader *read)
 	/*declare image items*/
 	count = gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0);
 	for (i=0; i<count; i++) {
-		GF_ImageItemProperties props;
-		GF_FilterPid *pid;
-		GF_ESD *esd;
-		u32 item_id;
-		gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, i+1, &item_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		if (! isor_declare_item_properties(read, NULL, i+1))
+			continue;
 
-		if (!item_id) continue;
-
-		gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props);
-		if (props.hidden) continue;
-
-		esd = gf_media_map_item_esd(read->mov, item_id);
-		if (!esd) continue;
-
-		//OK declare PID
-		pid = gf_filter_pid_new(read->filter);
-		gf_filter_pid_copy_properties(pid, read->pid);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
-		//TODO: no support for LHEVC images
-		//gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
-
-		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
-		if (esd->decoderConfig->decoderSpecificInfo) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
-
-			esd->decoderConfig->decoderSpecificInfo->data=NULL;
-			esd->decoderConfig->decoderSpecificInfo->dataLength=0;
-		}
-
-		if (props.width && props.height) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(props.width));
-			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(props.height));
-		}
-
-		/*ch = */isor_create_channel(read, pid, 0, item_id);
-		gf_odf_desc_del((GF_Descriptor *)esd);
+		if (read->itt) break;
 	}
 
 #ifdef FILTER_FIXME
@@ -592,6 +558,56 @@ void isor_declare_objects(ISOMReader *read)
 	}
 #endif
 
+}
+
+Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_idx)
+{
+	GF_ImageItemProperties props;
+	GF_FilterPid *pid;
+	GF_ESD *esd;
+	u32 item_id;
+	gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, item_idx, &item_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+	if (!item_id) return GF_FALSE;
+
+	gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props);
+	if (props.hidden) return GF_FALSE;
+
+	esd = gf_media_map_item_esd(read->mov, item_id);
+	if (!esd) return GF_FALSE;
+
+	//OK declare PID
+	if (!ch)
+		pid = gf_filter_pid_new(read->filter);
+	else
+		pid = ch->pid;
+
+	gf_filter_pid_copy_properties(pid, read->pid);
+	gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
+	//TODO: no support for LHEVC images
+	//gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
+
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
+	if (esd->decoderConfig->decoderSpecificInfo) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
+
+		esd->decoderConfig->decoderSpecificInfo->data=NULL;
+		esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+	}
+
+	if (props.width && props.height) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(props.width));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(props.height));
+	}
+	gf_odf_desc_del((GF_Descriptor *)esd);
+
+	if (!ch) {
+		/*ch = */isor_create_channel(read, pid, 0, item_id);
+	}
+	return GF_TRUE;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
