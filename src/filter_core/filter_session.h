@@ -85,7 +85,6 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 Bool gf_props_4cc_check_props();
-void gf_props_reset_single(GF_PropertyValue *p);
 
 
 typedef struct __gf_filter_queue GF_FilterQueue;

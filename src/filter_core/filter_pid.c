@@ -2721,20 +2721,6 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	nb_pck=gf_fq_count(pidinst->packets);
 
-#ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
-		if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
-		} else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
-		} else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
-		}
-	}
-#endif
-
 	gf_filter_pidinst_update_stats(pidinst, pck);
 
 	if (nb_pck<pid->nb_buffer_unit) {
@@ -2755,6 +2741,20 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		//todo needs Compare&Swap
 		pid->buffer_duration = pidinst->buffer_duration;
 	}
+
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
+		if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+		} else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+		} else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+		}
+	}
+#endif
 
 	gf_filter_pid_check_unblock(pid);
 

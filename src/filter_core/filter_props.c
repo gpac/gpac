@@ -771,6 +771,16 @@ const char *gf_props_4cc_get_name(u32 prop_4cc)
 	return NULL;
 }
 
+GF_EXPORT
+u32 gf_props_4cc_get_type(u32 prop_4cc)
+{
+	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	for (i=0; i<nb_props; i++) {
+		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].prop_type;
+	}
+	return GF_PROP_FORBIDEN;
+}
+
 Bool gf_props_4cc_check_props()
 {
 	Bool res = GF_TRUE;
