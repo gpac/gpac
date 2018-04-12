@@ -413,7 +413,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_Event evt;
 	int rgb_mode=0;
 	const GF_PropertyValue *p;
-	u32 w, h, pfmt, stride, timescale;
+	u32 w, h, pfmt, stride, timescale, dw, dh;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -463,15 +463,25 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//pid not yet ready
 	if (!pfmt || !w || !h) return GF_OK;
 
-	if ((ctx->width!=w) || (ctx->height != h) ) {
+	dw = w;
+	dh = h;
+	if (ctx->size.x==0) ctx->size.x = w;
+	if (ctx->size.y==0) ctx->size.y = h;
+	if ((ctx->size.x>0) && (ctx->size.y>0)) {
+		dw = ctx->size.x;
+		dh = ctx->size.y;
+	}
+	//in 2D mode we need to send a setup event to resize backbuffer to the video source size
+	if (ctx->mode>=MODE_2D) {
+		dw = w;
+		dh = h;
+	}
+
+	if ((dw != ctx->display_width) || (dh != ctx->display_height) ) {
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.width = w;
-		evt.setup.height = h;
-		if ((ctx->size.x>0) && (ctx->size.y>0)) {
-			evt.setup.width = ctx->size.x;
-			evt.setup.height = ctx->size.y;
-		}
+		evt.setup.width = dw;
+		evt.setup.height = dh;
 
 #ifndef GPAC_DISABLE_3D
 		if (ctx->mode<MODE_2D) {
@@ -1583,7 +1593,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FALSE},
-	{ OFFS(size), "Default init size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
+	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
 	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
 	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
