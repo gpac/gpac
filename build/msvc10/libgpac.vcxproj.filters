@@ -49,6 +49,12 @@
     <Filter Include="include\modules">
       <UniqueIdentifier>{d451e478-a766-4a33-a371-db9e1292017f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="filter_core">
+      <UniqueIdentifier>{e0d29c23-f961-46c4-a4d5-c7939a0d43b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="filters">
+      <UniqueIdentifier>{36bd8e9d-a6d6-4212-8659-33f6692fccaf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\win32\inttypes.h">
@@ -191,15 +197,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\media_tools\mpeg2_ps.h">
       <Filter>media_tools</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\terminal\input_sensor.h">
-      <Filter>terminal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\terminal\media_control.h">
-      <Filter>terminal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\terminal\media_memory.h">
-      <Filter>terminal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\utils\module_wrap.h">
       <Filter>utils</Filter>
@@ -397,6 +394,18 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\atsc.h" />
+    <ClInclude Include="..\..\src\filter_core\filter_session.h">
+      <Filter>filter_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\ff_common.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\in_rtp.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\isoffin.h">
+      <Filter>filters</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -1026,54 +1035,6 @@
     <ClCompile Include="..\..\src\scenegraph\xml_ns.c">
       <Filter>scenegraph</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\terminal\channel.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\clock.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\decoder.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\input_sensor.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\media_control.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\media_manager.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\media_memory.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\media_object.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\media_sensor.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\mpeg4_inline.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\network_service.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\object_browser.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\object_manager.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\scene.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\svg_external.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\term_node_init.c">
-      <Filter>terminal</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\terminal\terminal.c">
       <Filter>terminal</Filter>
     </ClCompile>
@@ -1105,9 +1066,6 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\list.c">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\utils\map.c">
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\math.c">
@@ -1176,5 +1134,307 @@
     <ClCompile Include="..\..\src\media_tools\atsc_dmx.c">
       <Filter>media_tools</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\compositor\clock.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\media_object.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\mpeg4_inline.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\mpeg4_inputsensor.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\mpeg4_mediacontrol.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\mpeg4_mediasensor.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\object_manager.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\scene.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\scene_node_init.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\scene_ns.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\compositor\svg_external.c">
+      <Filter>compositor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\constants.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_pck.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_pid.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_props.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_queue.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_register.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_session.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\compose.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_ac52.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_bifs.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_faad.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_img.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_j2k.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_laser.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_mad.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_odf.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_openhevc.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_opensvc.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_theora.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_ttxt.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_vorbis.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_vtb.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_webvtt.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_xvid.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\decrypt_cenc_isma.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_avi.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_dash.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_m2ts.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_mpegps.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_nhml.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_nhnt.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_ogg.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_saf.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_vobsub.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\enc_jpg.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\enc_png.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_common.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_dec.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_dmx.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_enc.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_rescale.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\filelist.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_dvb4linux.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_file.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_http.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_rtp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_rtp_rtsp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_rtp_sdp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_rtp_signaling.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_rtp_stream.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_udp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\inspect.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\isoffin_load.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\isoffin_read.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\isoffin_read_ch.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\load_bt_xmt.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\load_svg.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\load_text.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\mux_avi.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\mux_isom.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_audio.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_file.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_video.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_ac3.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_adts.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_amr.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_h263.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_img.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_mp3.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_mpgvid.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_nalu.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_qcp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_rawpcm.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_rawvid.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframer.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\resample_audio.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewind.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewrite_adts.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewrite_mp4v.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewrite_nalu.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\unit_test_filter.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\vcrop.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\write_generic.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\write_nhml.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\write_nhnt.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\write_qcp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\write_vtt.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\filters\dec_vtb_glctx.m">
+      <Filter>filters</Filter>
+    </None>
   </ItemGroup>
 </Project>
