@@ -377,7 +377,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
  *\param bytes_per_sec the average data rate in bytes per seconds
  *\param net_status the session status
  */
-GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status);
+GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u64 *total_size, u64 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status);
 
 /*!
  *\brief get start time

@@ -203,7 +203,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
-			ctx->indexes[ctx->index_size].duration = duration;
+			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
 			ctx->index_size ++;
 			cur_dur = 0;
@@ -213,7 +213,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
-		ctx->duration.num = duration;
+		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->fps.num;
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -354,7 +354,7 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->indexes[i-1].duration * ctx->fps.num;
+					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->fps.num);
 					file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -481,9 +481,9 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			else if (ctx->prev_dts != ts) {
 				u64 diff = ts;
 				diff -= ctx->prev_dts;
-				if (!ctx->fps.den) ctx->fps.den = diff;
+				if (!ctx->fps.den) ctx->fps.den = (u32) diff;
 				else if (ctx->fps.den > diff)
-					ctx->fps.den = diff;
+					ctx->fps.den = (u32) diff;
 			}
 		}
 		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, &ctx->input_is_au_end);
@@ -522,7 +522,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			start = data = ctx->hdr_store + ctx->resume_from;
 			remain = pck_size = ctx->hdr_store_size - ctx->resume_from;
 		} else {
-			assert(remain >= ctx->resume_from);
+			assert(remain >= (s32) ctx->resume_from);
 			start += ctx->resume_from;
 			remain -= ctx->resume_from;
 		}
@@ -621,7 +621,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					ctx->bytes_in_header = 3;
 				}
 
-				dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+				dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				memcpy(pck_data, start, size);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
@@ -665,7 +665,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				if (byte_offset != GF_FILTER_NO_BO) {
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - bytes_from_store);
 				}
-				assert(bytes_from_store>=current);
+				assert(bytes_from_store>=(u32) current);
 				bytes_from_store -= current;
 				memcpy(pck_data, ctx->hdr_store, current);
 			} else {
@@ -705,11 +705,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				if (e==GF_EOS) {
 					if (vosh_start<0) vosh_start = 0;
 					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
-						ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size - vosh_start;
+						ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);
 						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
 					}
 					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, sizeof(char)*(pck_size - vosh_start) );
-					ctx->hdr_store_size += pck_size - vosh_start;
+					ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					gf_filter_pid_drop_packet(ctx->ipid);
 					return GF_OK;
 				} else if (e != GF_OK) {
@@ -744,22 +744,22 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				if (e==GF_EOS) {
 					if (vosh_start<0) vosh_start = 0;
 					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
-						ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size - vosh_start;
+						ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);
 						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
 					}
 					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, sizeof(char)*(pck_size - vosh_start) );
-					ctx->hdr_store_size += pck_size - vosh_start;
+					ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					gf_filter_pid_drop_packet(ctx->ipid);
 					return GF_OK;
 				} else if (e != GF_OK) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
 				} else {
-					u32 size = gf_m4v_get_object_start(ctx->vparser);
+					u32 size = (u32) gf_m4v_get_object_start(ctx->vparser);
 					vosh_end = start - (u8 *)data + size;
 					vosh_end -= vosh_start;
-					mpgviddmx_check_pid(filter, ctx, vosh_end, data+vosh_start);
+					mpgviddmx_check_pid(filter, ctx,(u32)  vosh_end, data+vosh_start);
 					skip_pck = GF_TRUE;
-					assert(remain>=size);
+					assert(remain>=(s32) size);
 					start += size;
 					remain -= size;
 				}
@@ -793,14 +793,14 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		if (!ctx->is_playing) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ((char *)start -  (char *)data);
 			return GF_OK;
 		}
 		//at this point, we no longer reaggregate packets
 		ctx->hdr_store_size = 0;
 
 		if (ctx->in_seek) {
-			u64 nb_frames_at_seek = ctx->start_range * ctx->fps.num;
+			u64 nb_frames_at_seek = (u64) (ctx->start_range * ctx->fps.num);
 			if (ctx->cts + ctx->fps.den >= nb_frames_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + ctx->dts_inc) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
@@ -845,7 +845,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				ctx->is_packed = GF_TRUE;
 				assert(remain>=size);
 				start += size;
-				remain -= size;
+				remain -= (s32) size;
 				continue;
 			}
 			/*policy is to import at variable frame rate, skip*/
@@ -854,7 +854,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				mpgviddmx_update_time(ctx);
 				assert(remain>=size);
 				start += size;
-				remain -= size;
+				remain -= (s32) size;
 				continue;
 			}
 			/*policy is to keep non coded frame (constant frame rate), add*/
@@ -879,7 +879,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 		ctx->nb_frames++;
 
-		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
 		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 		//bytes come from both our store and the data packet
 		if (bytes_from_store) {
@@ -927,13 +927,13 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 		assert(remain>=size);
 		start += size;
-		remain -= size;
+		remain -= (s32) size;
 
 
 		//don't demux too much of input, abort when we would block. This avoid dispatching
 		//a huge number of frames in a single call
 		if (!ctx->timescale && gf_filter_pid_would_block(ctx->opid)) {
-			ctx->resume_from = (char *)start -  (char *)data;
+			ctx->resume_from = (u32) ((char *)start -  (char *)data);
 			return GF_OK;
 		}
 	}
@@ -985,10 +985,10 @@ static const GF_FilterCapability MPGVidDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG1),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SIMPLE),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "cmp|m1v|m2v"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG1),
@@ -1009,7 +1009,7 @@ static const GF_FilterArgs MPGVidDmxArgs[] =
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(vfr), "set variable frame rate import", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

@@ -68,7 +68,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 	GF_Fraction dur;
 
 	dur.den = 1000;
-	dur.num = mpeg2ps_get_max_time_msec(ctx->ps);
+	dur.num = (s32) mpeg2ps_get_max_time_msec(ctx->ps);
 
 	ctx->first_dts = mpeg2ps_get_first_cts(ctx->ps);
 
@@ -287,7 +287,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 	count = gf_list_count(ctx->streams);
 
 	if (ctx->in_seek) {
-		u64 seek_to = 1000*ctx->start_range;
+		u64 seek_to = (u64) (1000*ctx->start_range);
 		for (i=0; i<count;i++) {
 			M2PSStream *st = gf_list_get(ctx->streams, i);
 			if (!st->in_use) continue;
@@ -387,7 +387,7 @@ static const GF_FilterCapability M2PSDmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg|audio/mpeg"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpg|mpeg|vob"),
 };

@@ -315,7 +315,7 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (ctx->speed > FIX_ONE) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, ctx->ipid);
-		evt.buffer_req.max_buffer_us = ctx->speed * 100000;
+		evt.buffer_req.max_buffer_us = FIX2INT( ctx->speed * 100000 );
 		gf_filter_pid_send_event(ctx->ipid, &evt);
 	}
 
@@ -333,7 +333,7 @@ static const GF_FilterCapability ResamplerCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_ResampleCtx, _n)
 static const GF_FilterArgs ResamplerArgs[] =
 {
-	{}
+	{0}
 };
 
 GF_FilterRegister ResamplerRegister = {

@@ -65,7 +65,7 @@ static void inspect_finalize(GF_Filter *filter)
 			if (concat) {
 				gf_fseek(pctx->tmp, 0, SEEK_SET);
 				while (!feof(pctx->tmp)) {
-					u32 read = fread(szLine, 1, 1024, pctx->tmp);
+					u32 read = (u32) fread(szLine, 1, 1024, pctx->tmp);
 					fwrite(szLine, 1, read, ctx->dump);
 				}
 			}
@@ -246,7 +246,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(pid_only), "Only dumps PID state change, not packets", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dump_data), "Enables full data dump - heavy !", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability InspectCaps[] =
@@ -277,7 +277,7 @@ static const GF_FilterCapability ProberCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	{},
+	{0},
 
 	//for scene and OD, we don't want raw codecid (filters modifying a scene graph we don't expose)
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -285,7 +285,7 @@ static const GF_FilterCapability ProberCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{}
+	{0}
 };
 
 

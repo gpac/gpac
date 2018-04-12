@@ -40,6 +40,8 @@
 
 #define INITGUID
 
+
+
 /*
 #include <windows.h>
 */

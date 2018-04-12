@@ -112,7 +112,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 		ctx->total_frames = p->value.longuint;
 		ctx->total_frames /= ctx->frame_size;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(nb_frames, ctx->samplerate));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((u32) nb_frames, ctx->samplerate));
 	}
 
 	return GF_OK;
@@ -132,11 +132,11 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 		}
 		ctx->done = GF_FALSE;
 		if (evt->play.start_range>=0) {
-			ctx->cts = evt->play.start_range * ctx->samplerate;
+			ctx->cts = (u64) (evt->play.start_range * ctx->samplerate);
 		} else {
 			ctx->cts = (ctx->total_frames-1) * ctx->framelen;
 		}
-		nb_frames = ctx->cts / ctx->framelen;
+		nb_frames = (u32) (ctx->cts / ctx->framelen);
 
 		ctx->filepos = nb_frames * ctx->frame_size;
 		ctx->reverse_play =  (evt->play.speed<0) ? GF_TRUE : GF_FALSE;
@@ -271,10 +271,9 @@ static GF_FilterCapability PCMReframeCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "pcm"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-pcm"),
-	{},
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_PCMReframeCtx, _n)
@@ -284,7 +283,7 @@ static GF_FilterArgs PCMReframeArgs[] =
 	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "s16", NULL, GF_FALSE},
 	{ OFFS(channels), "Number of audio channels", GF_PROP_UINT, "2", NULL, GF_FALSE},
 	{ OFFS(framelen), "Number of audio samples to put in one audio frame", GF_PROP_UINT, "1024", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

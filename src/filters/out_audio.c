@@ -413,7 +413,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(speed), "Sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability AudioOutCaps[] =

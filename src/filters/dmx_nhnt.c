@@ -144,7 +144,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 		}
 		if (!ctx->first_dts)
 			ctx->first_dts = 1 + dts;
-		prev_dur = dts - dts_prev;
+		prev_dur = (u32) (dts - dts_prev);
 		dur.num += prev_dur;
 		dts_prev = dts;
 
@@ -412,7 +412,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			ctx->first_dts = 1 + dts;
 
 		if (ctx->in_seek) {
-			Double now = dts - (ctx->first_dts-1);
+			Double now = (Double) (dts - (ctx->first_dts-1) );
 			now /= ctx->timescale;
 			if (now >= ctx->start_range) ctx->in_seek = GF_FALSE;
 		}
@@ -456,7 +456,7 @@ static const GF_FilterArgs GF_NHNTDmxArgs[] =
 {
 	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 
@@ -467,7 +467,7 @@ static const GF_FilterCapability NHNTDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "nhnt"),
 };

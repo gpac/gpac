@@ -1807,17 +1807,17 @@ s64 mpeg2ps_get_audio_pos(mpeg2ps_t *ps, u32 streamno)
  */
 static void mpeg2ps_binary_seek (mpeg2ps_t *ps,
 				 mpeg2ps_stream_t *sptr,
-				 uint64_t search_dts,
-				 uint64_t start_dts,
-				 off_t start_loc,
-				 uint64_t end_dts,
-				 off_t end_loc)
+				 u64 search_dts,
+				 u64 start_dts,
+				 u64 start_loc,
+				 u64 end_dts,
+				u64 end_loc)
 {
   u64 dts_perc;
-  off_t loc;
+  u64 loc;
   u16 pes_len;
   Bool have_ts = GF_FALSE;
-  off_t found_loc;
+  u64 found_loc;
   u64 found_dts;
 
   while (1) {

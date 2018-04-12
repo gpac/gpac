@@ -349,17 +349,17 @@ u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession ses
 }
 u32 dashdmx_io_get_total_size(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
-	u32 size=0;
+	u64 size=0;
 //	GF_DownloadSession *sess = (GF_DownloadSession *)session;
 	gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, &size, NULL, NULL, NULL);
-	return size;
+	return (u32) size;
 }
 u32 dashdmx_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
-	u32 size=0;
+	u64 size=0;
 //	GF_DownloadSession *sess = (GF_DownloadSession *)session;
 	gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, &size, NULL, NULL);
-	return size;
+	return (u32) size;
 }
 
 GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt, s32 group_idx, GF_Err error_code)
@@ -550,7 +550,7 @@ static void dashdmx_setup_buffer(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	if (ctx->use_bmin) {
 		u64 mpd_buffer_ms = gf_dash_get_min_buffer_time(ctx->dash);
 		if (mpd_buffer_ms > buffer_ms)
-			buffer_ms = mpd_buffer_ms;
+			buffer_ms = (u32) mpd_buffer_ms;
 	}
 	if (buffer_ms) {
 		gf_dash_set_user_buffer(ctx->dash, buffer_ms);
@@ -654,7 +654,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_set_info(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
 		}
 
-		dur = (1000*gf_dash_get_duration(ctx->dash) );
+		dur = (u32) (1000*gf_dash_get_duration(ctx->dash) );
 		if (dur>0)
 			gf_filter_pid_set_info(opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(dur, 1000) );
 
@@ -1098,7 +1098,8 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 {
-	u32 bytes_per_sec=0, file_size=0, bytes_done=0;
+	u32 bytes_per_sec = 0;
+	u64 file_size = 0, bytes_done = 0;
 	const GF_PropertyValue *p;
 	if (group->stats_uploaded) return;
 
@@ -1106,12 +1107,12 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	if (p) bytes_per_sec = p->value.uint / 8;
 
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_SIZE);
-	if (p) file_size = p->value.uint;
+	if (p) file_size = p->value.longuint;
 
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_BYTES);
-	if (p) bytes_done = p->value.uint;
+	if (p) bytes_done = p->value.longuint;
 
-	gf_dash_group_store_stats(ctx->dash, group->idx, bytes_per_sec, file_size, bytes_done);
+	gf_dash_group_store_stats(ctx->dash, group->idx, bytes_per_sec, (u32) file_size, (u32) bytes_done);
 
 	//we allow file abort, check the download
 	if (ctx->abort)
@@ -1249,7 +1250,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(aggressive), "If enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FALSE},
 	{ OFFS(debug_as), "Plays only the adaptation set indicated by its index in the MPD; if negative, all sets are used", GF_PROP_UINT, "-1", NULL, GF_FALSE},
 	{ OFFS(speed), "Enables adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 
@@ -1261,17 +1262,16 @@ static const GF_FilterCapability DASHDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	//accept any stream but files, framed
-	{ .code=GF_PROP_PID_STREAM_TYPE, .val=PROP_UINT(GF_STREAM_FILE), .flags=(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_EXCLUDED|GF_FILTER_CAPS_EXPLICIT) },
-	{ .code=GF_PROP_PID_UNFRAMED, .val=PROP_BOOL(GF_TRUE), .flags=(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_EXCLUDED|GF_FILTER_CAPS_EXPLICIT) },
-
+	{ .code=GF_PROP_PID_STREAM_TYPE, .val.type=GF_PROP_UINT, .val.value.uint=GF_STREAM_FILE, .flags=(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_EXCLUDED|GF_FILTER_CAPS_EXPLICIT) },
+	{ .code=GF_PROP_PID_UNFRAMED, .val.type=GF_PROP_BOOL, .val.value.boolean=GF_TRUE, .flags=(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_EXCLUDED|GF_FILTER_CAPS_EXPLICIT) },
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),

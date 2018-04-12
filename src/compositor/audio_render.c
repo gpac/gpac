@@ -325,7 +325,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 			ar->start_time = gf_sys_clock_high_res();
 		}
 		if (!ar->nb_audio_objects && !ar->non_rt_output) {
-			ar->current_time = (gf_sys_clock_high_res() - ar->start_time)/1000;
+			ar->current_time = (u32) ( (gf_sys_clock_high_res() - ar->start_time)/1000);
 			return;
 		}
 	}

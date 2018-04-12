@@ -151,7 +151,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AC3Idx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs);
-			ctx->indexes[ctx->index_size].duration = duration;
+			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= sr;
 			ctx->index_size ++;
 			cur_dur = 0;
@@ -163,7 +163,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * sr != duration * ctx->duration.den)) {
-		ctx->duration.num = duration;
+		ctx->duration.num = (s32) duration;
 		ctx->duration.den = sr;
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -246,7 +246,7 @@ static Bool ac3dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->indexes[i-1].duration * ctx->sample_rate;
+					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->sample_rate);
 					ctx->file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -412,7 +412,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 			}
 			break;
 		}
-		sync_pos = gf_bs_get_position(ctx->bs);
+		sync_pos = (u32) gf_bs_get_position(ctx->bs);
 		if (sync_pos) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AC3Dmx] %d bytes unrecovered before sync word\n", sync_pos));
 		}
@@ -459,7 +459,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->in_seek) {
-			u64 nb_samples_at_seek = ctx->start_range * ctx->sample_rate;
+			u64 nb_samples_at_seek = (u64) (ctx->start_range * ctx->sample_rate);
 			if (ctx->cts + AC3_FRAME_SIZE >= nb_samples_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + AC3_FRAME_SIZE) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
@@ -523,11 +523,11 @@ static const GF_FilterCapability AC3DmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AC3),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC ,GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 //	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac3|eac3"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac3"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC3),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_EAC3),
@@ -538,7 +538,7 @@ static const GF_FilterCapability AC3DmxCaps[] =
 static const GF_FilterArgs AC3DmxArgs[] =
 {
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

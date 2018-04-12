@@ -34,6 +34,10 @@
 
 #ifndef GPAC_DISABLE_3D
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 #define GL_GLEXT_PROTOTYPES
 
 #if defined (CONFIG_DARWIN_GL)
@@ -87,7 +91,6 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
 
-
 #ifdef WIN32
 GLDECL(GLuint, glCreateProgram, (void) )
 GLDECL(void, glDeleteProgram, (GLuint ) )
@@ -115,6 +118,7 @@ GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
 GLDECL(void *, glUnmapBuffer, (GLenum) )
 #endif
 
+
 #define GL_TEXTURE_RECTANGLE_EXT 0x84F5
 
 #define GL_INFO_LOG_LENGTH 0x8B84
@@ -131,7 +135,9 @@ GLDECL(void *, glUnmapBuffer, (GLenum) )
 
 #define TEXTURE_TYPE GL_TEXTURE_2D
 
-#ifdef WIN32
+//already loaded in compositor - we should cleanup all this
+#if 0
+//#ifdef WIN32
 GLDECL_STATIC(glActiveTexture);
 GLDECL_STATIC(glClientActiveTexture);
 GLDECL_STATIC(glCreateProgram);
@@ -756,7 +762,12 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		glUseProgram(0);
 
 #ifdef WIN32
-		if (glMapBuffer==NULL) ctx->pbo = GF_FALSE;
+		if (glMapBuffer == NULL) {
+			if (ctx->mode == MODE_GL_PBO) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] GL PixelBufferObject extensions not found, fallback to regular GL\n"));
+				ctx->mode = MODE_GL;
+			}
+		}
 #endif
 
 		ctx->first_tx_load = GF_TRUE;
@@ -940,7 +951,8 @@ static GF_Err vout_initialize(GF_Filter *filter)
 
 #ifndef GPAC_DISABLE_3D
 
-#ifdef WIN32
+//#ifdef WIN32
+#if 0
 	GET_GLFUN(glActiveTexture);
 	GET_GLFUN(glClientActiveTexture);
 	GET_GLFUN(glCreateProgram);
@@ -977,7 +989,7 @@ static void vout_finalize(GF_Filter *filter)
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->nb_frames==1) {
-		gf_sleep(ctx->hold*1000);
+		gf_sleep((u32) (ctx->hold*1000));
 	}
 
 #ifndef GPAC_DISABLE_3D
@@ -1033,15 +1045,15 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = ctx->display_height * ctx->width / ctx->height;
-			ctx->dh = ctx->display_height;
-			ctx->oh = 0;
-			ctx->ow = (ctx->display_width - ctx->dw ) / 2;
+			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+			ctx->dh = (Float) ctx->display_height;
+			ctx->oh = (Float) 0;
+			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = ctx->display_width * ctx->height / ctx->width;
-			ctx->dw = ctx->display_width;
-			ctx->ow = 0;
-			ctx->oh = (ctx->display_height - ctx->dh ) / 2;
+			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dw = (Float) ctx->display_width;
+			ctx->ow = (Float) 0;
+			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
 		}
 		ctx->display_changed = GF_FALSE;
 	}
@@ -1392,15 +1404,15 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = ctx->display_height * ctx->width / ctx->height;
-			ctx->dh = ctx->display_height;
-			ctx->oh = 0;
-			ctx->ow = (ctx->display_width - ctx->dw ) / 2;
+			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+			ctx->dh = (Float) ctx->display_height;
+			ctx->oh = (Float) 0;
+			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = ctx->display_width * ctx->height / ctx->width;
-			ctx->dw = ctx->display_width;
-			ctx->ow = 0;
-			ctx->oh = (ctx->display_height - ctx->dh ) / 2;
+			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dw = (Float) ctx->display_width;
+			ctx->ow = (Float) 0;
+			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
 		}
 		ctx->display_changed = GF_FALSE;
 	}
@@ -1472,7 +1484,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		gf_filter_get_clock_hint(filter, &clock_us, &media_ts);
 		if (clock_us) {
 			//ref frame TS in video stream timescale
-			s64 ref_ts = media_ts * ctx->timescale;
+			s64 ref_ts = (s64) (media_ts * ctx->timescale);
 			//compute time ellapsed since last clock ref in timescale
 			s64 diff = now;
 			diff -= (s64) clock_us;
@@ -1483,7 +1495,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
-			if (cts > ref_ts) {
+			if ((s64) cts > ref_ts) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms greater than reference clock "LLU" ms, waiting\n", gf_sys_clock(), cts*1000/ctx->timescale, ref_ts*1000/ctx->timescale));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
@@ -1526,7 +1538,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			if (diff<0) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" us too early, waiting\n", gf_sys_clock(), -diff));
 				if (diff<-1000000) diff = -1000000;
-				gf_filter_ask_rt_reschedule(filter, -diff);
+				gf_filter_ask_rt_reschedule(filter, (u32) (-diff));
 				//not ready yet
 				return GF_OK;
 			}
@@ -1596,8 +1608,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
 	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
 	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-
-	{}
+	{0}
 };
 
 static const GF_FilterCapability VideoOutCaps[] =

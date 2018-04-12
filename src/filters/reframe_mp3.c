@@ -132,7 +132,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MP3Idx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos - 4;
-			ctx->indexes[ctx->index_size].duration = duration;
+			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= prev_sr;
 			ctx->index_size ++;
 			cur_dur = 0;
@@ -144,7 +144,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * prev_sr != duration * ctx->duration.den)) {
-		ctx->duration.num = duration;
+		ctx->duration.num = (s32) duration;
 		ctx->duration.den = prev_sr ;
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -218,7 +218,7 @@ static Bool mp3_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->indexes[i-1].duration * ctx->sr;
+					ctx->cts = (u64) (ctx->indexes[i-1].duration * ctx->sr);
 					ctx->file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -424,7 +424,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->in_seek) {
-			u64 nb_samples_at_seek = ctx->start_range * ctx->sr;
+			u64 nb_samples_at_seek = (u64) (ctx->start_range * ctx->sr);
 			if (ctx->cts + nb_samp >= nb_samples_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + nb_samp ) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
@@ -488,15 +488,14 @@ static const GF_FilterCapability MP3DmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mp3"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
-	{}
 };
 
 
@@ -505,7 +504,7 @@ static const GF_FilterCapability MP3DmxCaps[] =
 static const GF_FilterArgs MP3DmxArgs[] =
 {
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

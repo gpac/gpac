@@ -119,6 +119,7 @@
 typedef ret (GLAPICAST proc_ ## funname)args;	\
 extern proc_ ## funname funname;	\
  
+
 #define GLDECL_STATIC(funname) proc_ ## funname funname = NULL
 
 #if defined GPAC_USE_TINYGL

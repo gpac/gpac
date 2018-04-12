@@ -345,6 +345,11 @@ typedef struct {
 	u32 den;
 } GF_Fraction;
 
+typedef struct {
+	s64 num;
+	u64 den;
+} GF_Fraction64;
+
 /*GPAC memory tracking*/
 #if defined(GPAC_MEMORY_TRACKING)
 

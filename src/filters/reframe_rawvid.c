@@ -113,7 +113,7 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		nb_frames /= ctx->frame_size;
 		ctx->total_frames = nb_frames;
 		nb_frames *= ctx->fps.den;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(nb_frames, ctx->fps.num));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((u32) nb_frames, ctx->fps.num));
 	}
 
 	return GF_OK;
@@ -133,12 +133,12 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 		}
 		ctx->done = GF_FALSE;
 		if (evt->play.start_range>=0) {
-			nb_frames = evt->play.start_range * ctx->fps.num;
+			nb_frames = (u32) (evt->play.start_range * ctx->fps.num);
 		} else {
-			nb_frames = ctx->cts / ctx->fps.den;
+			nb_frames = (u32) (ctx->cts / ctx->fps.den);
 		}
 		if (nb_frames>ctx->total_frames)
-			nb_frames = ctx->total_frames-1;
+			nb_frames = (u32) ctx->total_frames-1;
 
 		ctx->cts = nb_frames * ctx->fps.den;
 		ctx->filepos = nb_frames * ctx->frame_size;
@@ -263,10 +263,9 @@ static GF_FilterCapability RawVidReframeCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "yuv"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-yuv"),
-	{},
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_RawVidReframeCtx, _n)
@@ -275,7 +274,7 @@ static GF_FilterArgs RawVidReframeArgs[] =
 	{ OFFS(size), "video resolution", GF_PROP_VEC2I, "0x0", NULL, GF_FALSE},
 	{ OFFS(pfmt), "pixel format", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
 	{ OFFS(fps), "Video frames per second", GF_PROP_FRACTION, "25/1", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

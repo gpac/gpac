@@ -403,7 +403,7 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 	Float bps;
 	if (!stream->rtp_ch) return;
 
-	gf_filter_pid_set_info_str(stream->opid, "nets:loss", &PROP_UINT( gf_rtp_get_loss(stream->rtp_ch) ) );
+	gf_filter_pid_set_info_str(stream->opid, "nets:loss", &PROP_FLOAT( gf_rtp_get_loss(stream->rtp_ch) ) );
 	if (stream->rtsp && (stream->flags & RTP_INTERLEAVED)) {
 		gf_filter_pid_set_info_str(stream->opid, "nets:interleaved", &PROP_UINT( gf_rtsp_get_session_port(stream->rtsp->session) ) );
 		gf_filter_pid_set_info_str(stream->opid, "nets:rtpid", &PROP_UINT( gf_rtp_get_low_interleave_id(stream->rtp_ch) ) );

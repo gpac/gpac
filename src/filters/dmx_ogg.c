@@ -308,10 +308,10 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	if (ctx->global_rate && ctx->is_file && !ctx->file_loaded) {
 		if (!ctx->file_size) {
 			const GF_PropertyValue *p = gf_filter_pid_get_info(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
-			if (p) ctx->file_size = p->value.uint;
+			if (p) ctx->file_size = p->value.longuint;
 		}
 		if (ctx->file_size) {
-			ctx->duration.num = 8 * ctx->file_size;
+			ctx->duration.num = (u32) (8 * ctx->file_size);
 			ctx->duration.den = ctx->global_rate;
 		}
 	}
@@ -465,10 +465,10 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	if (has_stream) {
 		ogg_stream_clear(&the_os);
 		if (recompute_ts) {
-			dur.num = recompute_ts;
+			dur.num = (u32) recompute_ts;
 			dur.den = the_info.sample_rate;
 		} else {
-			dur.num = oggdmx_granule_to_time(&the_info, max_gran);
+			dur.num = (u32) oggdmx_granule_to_time(&the_info, max_gran);
 			if (the_info.sample_rate) dur.den = the_info.sample_rate;
 			else dur.den = the_info.frame_rate.den;
 		}
@@ -508,7 +508,7 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->start_range = evt->play.start_range;
 		ctx->file_pos = 0;
 		if (ctx->duration.num) {
-			ctx->file_pos = ctx->file_size * ctx->start_range;
+			ctx->file_pos = (u32) (ctx->file_size * ctx->start_range);
 			ctx->file_pos *= ctx->duration.den;
 			ctx->file_pos /= ctx->duration.num;
 			if (ctx->file_pos>ctx->file_size) return GF_TRUE;
@@ -524,9 +524,9 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		i=0;
 		while ((st = gf_list_enum(ctx->streams, &i)) ) {
 			if (st->info.sample_rate) {
-				st->recomputed_ts = ctx->start_range * st->info.sample_rate;
+				st->recomputed_ts = (u32) (ctx->start_range * st->info.sample_rate);
 			} else {
-				st->recomputed_ts = ctx->start_range * st->info.frame_rate.den;
+				st->recomputed_ts = (u32) (ctx->start_range * st->info.frame_rate.den);
 			}
 		}
 
@@ -678,7 +678,7 @@ static const GF_FilterCapability OGGDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SPEEX),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_THEORA),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "oga|spx|ogg|ogv|oggm"),
 };

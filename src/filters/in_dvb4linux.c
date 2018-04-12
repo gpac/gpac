@@ -28,8 +28,11 @@
 #include <gpac/constants.h>
 #include <gpac/network.h>
 
+#ifndef WIN32
 #define GPAC_HAS_LINUX_DVB
 #define GPAC_SIM_LINUX_DVB
+#endif
+
 
 #ifdef GPAC_HAS_LINUX_DVB
 

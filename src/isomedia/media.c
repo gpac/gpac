@@ -241,7 +241,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd->decoderConfig->streamType = GF_STREAM_TEXT;
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_WEBVTT;
 		if (vtte->config) {
-			esd->decoderConfig->decoderSpecificInfo->dataLength = strlen(vtte->config->string);
+			esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) strlen(vtte->config->string);
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		}

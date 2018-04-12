@@ -44,25 +44,6 @@ extern "C" {
 #define GF_FILTER_NO_BO 0xFFFFFFFFFFFFFFFFUL
 #define GF_FILTER_NO_TS 0xFFFFFFFFFFFFFFFFUL
 
-//atomic ref_count++ / ref_count--
-#if defined(WIN32) || defined(_WIN32_WCE)
-
-#define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
-#define safe_int_dec(__v) InterlockedDecrement((int *) (__v))
-
-#define safe_int_add(__v, inc_val) InterlockedAdd((int *) (__v), inc_val)
-#define safe_int_sub(__v, dec_val) InterlockedAdd((int *) (__v), -dec_val)
-
-#else
-
-#define safe_int_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
-#define safe_int_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
-
-#define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
-#define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
-
-#endif
-
 typedef struct __gf_media_session GF_FilterSession;
 
 typedef struct __gf_filter GF_Filter;
@@ -120,6 +101,7 @@ typedef enum
 	GF_PROP_LUINT,
 	GF_PROP_BOOL,
 	GF_PROP_FRACTION,
+	GF_PROP_FRACTION64,
 	GF_PROP_FLOAT,
 	GF_PROP_DOUBLE,
 	GF_PROP_VEC2I,
@@ -196,7 +178,6 @@ typedef struct
 	Double w;
 } GF_PropVec4;
 
-
 typedef struct
 {
 	GF_PropType type;
@@ -207,6 +188,7 @@ typedef struct
 		u32 uint;
 		Bool boolean;
 		GF_Fraction frac;
+		GF_Fraction64 lfrac;
 		Fixed fnumber;
 		Double number;
 		GF_PropVec2i vec2i;
@@ -241,6 +223,7 @@ u32 gf_props_get_id(const char *name);
 #define PROP_FLOAT(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
 #define PROP_FRAC_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
 #define PROP_FRAC(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac = _val}
+#define PROP_FRAC64(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.lfrac = _val}
 #define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = (char *) _val}
 #define PROP_STRING_NO_COPY(_val) (GF_PropertyValue){.type=GF_PROP_STRING_NO_COPY, .value.string = _val}
@@ -276,19 +259,19 @@ typedef struct
 } GF_FilterArgs;
 
 
-#define CAP_SINT(_f, _a, _b) { .code=_a, .val=PROP_SINT(_b), .flags=(_f) }
-#define CAP_UINT(_f, _a, _b) { .code=_a, .val=PROP_UINT(_b), .flags=(_f) }
-#define CAP_SUINT(_f, _a, _b) { .code=_a, .val=PROP_LONGSINT(_b), .flags=(_f) }
-#define CAP_LUINT(_f, _a, _b) { .code=_a, .val=PROP_LONGUINT(_b), .flags=(_f) }
-#define CAP_BOOL(_f, _a, _b) { .code=_a, .val=PROP_BOOL(_b), .flags=(_f) }
-#define CAP_FIXED(_f, _a, _b) { .code=_a, .val=PROP_FIXED(_b), .flags=(_f) }
-#define CAP_FLOAT(_f, _a, _b) { .code=_a, .val=PROP_FLOAT(_b), .flags=(_f) }
-#define CAP_FRAC_INT(_f, _a, _b, _c) { .code=_a, .val=PROP_FRAC_INT(_b, _c), .flags=(_f) }
-#define CAP_FRAC(_f, _a, _b) { .code=_a, .val=PROP_FRAC(_b), .flags=(_f) }
-#define CAP_DOUBLE(_f, _a, _b) { .code=_a, .val=PROP_DOUBLE(_b), .flags=(_f) }
-#define CAP_NAME(_f, _a, _b) { .code=_a, .val=PROP_NAME(_b), .flags=(_f) }
-#define CAP_STRING(_f, _a, _b) { .code=_a, .val=PROP_STRING(_b), .flags=(_f) }
-#define CAP_UINT_PRIORITY(_f, _a, _b, _p) { .code=_a, .val=PROP_UINT(_b), .flags=(_f), .priority=_p}
+#define CAP_SINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_SINT, .value.sint = _b}, .flags=(_f) }
+#define CAP_UINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f) }
+#define CAP_LSINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_LSINT, .value.longsint = _b}, .flags=(_f) }
+#define CAP_LUINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_LUINT, .value.longuint = _b}, .flags=(_f) }
+#define CAP_BOOL(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_BOOL, .value.boolean = _b}, .flags=(_f) }
+#define CAP_FIXED(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FLOAT, .value.fnumber = _b}, .flags=(_f) }
+#define CAP_FLOAT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_b)}, .flags=(_f) }
+#define CAP_FRAC_INT(_f, _a, _b, _c) { .code=_a, .val={.type=GF_PROP_FRACTION, .value.frac.num = _b, .value.frac.den = _c}, .flags=(_f) }
+#define CAP_FRAC(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FRACTION, .value.frac = _b}, .flags=(_f) }
+#define CAP_DOUBLE(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_DOUBLE, .value.number = _b}, .flags=(_f) }
+#define CAP_NAME(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_NAME, .value.string = _b}, .flags=(_f) }
+#define CAP_STRING(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_STRING, .value.string = _b}, .flags=(_f) }
+#define CAP_UINT_PRIORITY(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f), .priority=_p}
 
 enum
 {

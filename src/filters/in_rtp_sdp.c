@@ -168,7 +168,7 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 	if (stream->rtpin->session && (stream->flags & RTP_HAS_RANGE)) {
 		GF_Fraction dur;
 		dur.den = 1000;
-		dur.num = 1000 * (stream->range_end - stream->range_start);
+		dur.num = (s32) (1000 * (stream->range_end - stream->range_start));
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur) );
 	} else {
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE ) );

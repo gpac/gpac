@@ -23,12 +23,12 @@
  *
  */
 
+#include "ff_common.h"
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
 #include <gpac/network.h>
 #include <libswscale/swscale.h>
-#include "ff_common.h"
 
 typedef struct
 {
@@ -343,7 +343,7 @@ static GF_FilterArgs FFSWSArgs[] =
 	{ OFFS(mode), "scaling mode", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FALSE},
 	{ OFFS(p1), "scaling algo param1. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
 	{ OFFS(p2), "scaling algo param2. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability FFSWSCaps[] =

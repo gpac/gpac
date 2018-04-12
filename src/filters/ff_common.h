@@ -23,6 +23,7 @@
  *
  */
 
+#define JPEGLIB_H
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>

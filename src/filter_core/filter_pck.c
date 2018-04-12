@@ -311,7 +311,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		if (pcki->pck->info.duration && pcki->pck->pid_props->timescale) {
 			s64 duration = ((u64)pcki->pck->info.duration) * 1000000;
 			duration /= pcki->pck->pid_props->timescale;
-			safe_int_add(&dst->buffer_duration, duration);
+			safe_int64_add(&dst->buffer_duration, duration);
 		}
 		pcki->pck->info.data_block_start = pcki->pck->info.data_block_end = GF_TRUE;
  		gf_fq_add(dst->packets, pcki);
@@ -394,7 +394,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 			if (info.duration && pck->pid_props && pck->pid_props->timescale) {
 				s64 duration = ((u64) info.duration) * 1000000;
 				duration /= pck->pid_props->timescale;
-				safe_int_add(&dst->buffer_duration, duration);
+				safe_int64_add(&dst->buffer_duration, duration);
 			}
 			//not continous set of bytes reaggregated
 			if (byte_offset == GF_FILTER_NO_BO) final->info.byte_offset = GF_FILTER_NO_BO;
@@ -553,11 +553,12 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 		}
 		if (!pck->info.duration && pid->min_pck_duration)
-			pck->info.duration = duration;
+			pck->info.duration = (u32) duration;
 
 		//may happen if we don't have DTS, only CTS signaled and B-frames
 		if ((s32) pck->info.duration < 0) {
-			pck->info.duration = duration = 0;
+			pck->info.duration = 0;
+			duration = 0;
 		}
 
 #ifndef GPAC_DISABLE_LOG
@@ -652,7 +653,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 					if (pck->info.duration && timescale) {
 						duration = ((u64)pck->info.duration) * 1000000;
 						duration /= timescale;
-						safe_int_add(&dst->buffer_duration, duration);
+						safe_int64_add(&dst->buffer_duration, duration);
 					}
 					inst->pck->info.data_block_start = GF_TRUE;
 
@@ -729,7 +730,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			if (duration && timescale) {
 				duration *= 1000000;
 				duration /= timescale;
-				safe_int_add(&dst->buffer_duration, duration);
+				safe_int64_add(&dst->buffer_duration, duration);
 			}
 
 			safe_int_inc(&dst->filter->pending_packets);
@@ -740,7 +741,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		if (post_task) {
 			u32 nb_pck = gf_fq_count(dst->packets);
 			if (max_nb_pck < nb_pck) max_nb_pck = nb_pck;
-			if (max_buf_dur<dst->buffer_duration) max_buf_dur = dst->buffer_duration;
+			if (max_buf_dur<dst->buffer_duration) max_buf_dur = (u32) dst->buffer_duration;
 
 			if (!dst->filter->skip_process_trigger_on_tasks)
 				gf_filter_post_process_task(dst->filter);

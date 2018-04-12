@@ -470,7 +470,7 @@ static const GF_FilterCapability AVIDmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/avi|video/x-avi"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "avi"),
 };
@@ -481,7 +481,7 @@ static const GF_FilterArgs AVIDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate, default is AVI one", GF_PROP_FRACTION, "1/0", NULL, GF_FALSE},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 
