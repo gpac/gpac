@@ -68,17 +68,8 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	} else {
 		if (ctx->dynext) {
 			Bool has_ext = (strchr(filename, '.')==NULL) ? GF_FALSE : GF_TRUE;
-			char szName[GF_MAX_PATH];
 
-			if (file_idx && (strstr(filename, "\%d") || strstr(filename, "\%0") ) ) {
-				sprintf(szName, filename, file_idx);
-				ctx->nb_write = 0;
-			} else if (file_idx) {
-				sprintf(szName, "%s_%d", filename, file_idx);
-				ctx->nb_write = 0;
-			} else {
-				strcpy(szName, filename);
-			}
+			strcpy(szName, filename);
 			if (!has_ext && ext) {
 				strcat(szName, ".");
 				strcat(szName, ext);
@@ -243,14 +234,14 @@ static GF_Err fileout_process(GF_Filter *filter)
 				} else {
 					u64 pos = gf_ftell(ctx->file);
 					gf_fseek(ctx->file, bo, SEEK_SET);
-					nb_write = fwrite(pck_data, 1, pck_size, ctx->file);
+					nb_write = (u32) fwrite(pck_data, 1, pck_size, ctx->file);
 					if (nb_write!=pck_size) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 					}
 					gf_fseek(ctx->file, pos, SEEK_SET);
 				}
 			} else {
-				nb_write = fwrite(pck_data, 1, pck_size, ctx->file);
+				nb_write = (u32) fwrite(pck_data, 1, pck_size, ctx->file);
 				if (nb_write!=pck_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 				}
@@ -285,7 +276,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 					if (i) write_h = uv_height;
 					lsize = bpp * (i ? stride : stride_uv);
 					for (j=0; j<write_h; j++) {
-						nb_write = fwrite(out_ptr, 1, lsize, ctx->file);
+						nb_write = (u32) fwrite(out_ptr, 1, lsize, ctx->file);
 						if (nb_write!=lsize) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
 						}
@@ -326,14 +317,14 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability FileOutCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_MIME, "*"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_FILE_EXT, "*"),
 };

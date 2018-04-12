@@ -68,18 +68,18 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 		pFormat = PixelFormat16bppRGB565;
 		BPP = 2;
 		break;
-	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGB:
 		pFormat = PixelFormat24bppRGB;
 		BPP = 3;
 		/*one day I'll hope to understand how color management works with GDIplus bitmaps...*/
 		isBGR = 1;
 //		copy = 1;
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		pFormat = PixelFormat24bppRGB;
 		BPP = 3;
 		break;
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		pFormat = PixelFormat32bppRGB;
 		BPP = 4;
 		break;
@@ -93,11 +93,9 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 		copy = GF_TRUE;
 		_sten->orig_buf = (unsigned char *) pixels;
 		break;
-	case GF_PIXEL_YV12:
-	case GF_PIXEL_IYUV:
-	case GF_PIXEL_I420:
+	case GF_PIXEL_YUV:
 		if ( (width*3)%4) return GF_NOT_SUPPORTED;
-		_sten->orig_format = GF_PIXEL_YV12;
+		_sten->orig_format = GF_PIXEL_YUV;
 		is_yuv = GF_TRUE;
 		break;
 	case GF_PIXEL_YUVA:
@@ -157,8 +155,8 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 					col = COL_565(val);
 					break;
 				/*scan0 uses bgr...*/
-				case GF_PIXEL_BGR_24:
-				case GF_PIXEL_RGB_24:
+				case GF_PIXEL_BGR:
+				case GF_PIXEL_RGB:
 					r = *ptr++;
 					g = *ptr++;
 					b = *ptr++;
@@ -169,13 +167,13 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 					}
 					break;
 				/*NOTE: we assume little-endian only for GDIplus platforms, so BGRA/BGRX*/
-				case GF_PIXEL_RGB_32:
+				case GF_PIXEL_RGBX:
 				case GF_PIXEL_ARGB:
 					b = *ptr++;
 					g = *ptr++;
 					r = *ptr++;
 					a = *ptr++;
-					if (pixelFormat==GF_PIXEL_RGB_32) a = 0xFF;
+					if (pixelFormat==GF_PIXEL_RGBX) a = 0xFF;
 					col = GF_COL_ARGB(a, r, g, b);
 					break;
 				case GF_PIXEL_RGBA:
@@ -361,9 +359,9 @@ void gdip_convert_texture(struct _stencil *sten)
 	u32 BPP, format;
 	GF_VideoSurface src, dst;
 
-	if (sten->orig_format == GF_PIXEL_YV12) {
+	if (sten->orig_format == GF_PIXEL_YUV) {
 		BPP = 3;
-		dst.pixel_format = GF_PIXEL_BGR_24;
+		dst.pixel_format = GF_PIXEL_BGR;
 		format = PixelFormat24bppRGB;
 	} else {
 		BPP = 4;

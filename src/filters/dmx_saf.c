@@ -51,7 +51,7 @@ typedef struct
 
 	u32 saf_type;
 
-	u32 start_range, end_range;
+	Double start_range, end_range;
 	u32 nb_playing;
 	Bool is_file, file_loaded;
 	GF_Fraction duration;
@@ -279,7 +279,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 		if (ts_res && (au_type==4)) {
 			Double ts = cts;
 			ts /= ts_res;
-			if (ts * 1000 > dur.num) dur.num = ts * 1000;
+			if (ts * 1000 > dur.num) dur.num = (u32) (ts * 1000);
 		}
 		gf_bs_skip_bytes(bs, au_size);
 	}
@@ -339,7 +339,7 @@ static Bool safdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->start_range = evt->play.start_range;
 		ctx->file_pos = 0;
 		if (ctx->duration.num) {
-			ctx->file_pos = ctx->file_size * ctx->start_range;
+			ctx->file_pos = (u64) (ctx->file_size * ctx->start_range);
 			ctx->file_pos *= ctx->duration.den;
 			ctx->file_pos /= ctx->duration.num;
 			if (ctx->file_pos>ctx->file_size) return GF_TRUE;
@@ -435,7 +435,7 @@ static const GF_FilterCapability SAFDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "saf|lsr"),
 };

@@ -40,7 +40,6 @@
 #  define kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder CFSTR("RequireHardwareAcceleratedVideoDecoder")
 #endif
 
-#include <gpac/filters.h>
 #include <gpac/maths.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
@@ -1785,6 +1784,11 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	.process = vtbdec_process,
 	.process_event = vtbdec_process_event,
 };
+
+#else
+#undef _GF_MATH_H_
+#include <gpac/maths.h>
+#include <gpac/filters.h>
 
 #endif // !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )
 

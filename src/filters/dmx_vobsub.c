@@ -100,7 +100,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	if (ctx->idx_pid==pid) {
 		GF_Err e;
 		char sURL[GF_MAX_PATH], *ext;
-		crc = gf_crc_32(p->value.string, strlen(p->value.string));
+		crc = gf_crc_32(p->value.string, (u32) strlen(p->value.string));
 		if (ctx->idx_file_crc == crc) return GF_OK;
 		ctx->idx_file_crc = crc;
 
@@ -201,7 +201,7 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 		for (i=0; i<ctx->vobsub->num_langs; i++) {
 			vobsub_pos *pos = (vobsub_pos*)gf_list_last(ctx->vobsub->langs[i].subpos);
 			if (ctx->duration.num < pos->start*90)
-				ctx->duration.num = pos->start*90;
+				ctx->duration.num = (u32) (pos->start*90);
 		}
 		ctx->duration.den = 90000;
 
@@ -288,7 +288,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 			memcpy(packet, null_subpic, sizeof(null_subpic));
 			gf_filter_pck_set_cts(dst_pck, 0);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-			gf_filter_pck_set_duration(dst_pck, pos->start * 90);
+			gf_filter_pck_set_duration(dst_pck, (u32) (pos->start * 90) );
 			gf_filter_pck_send(dst_pck);
 		}
 
@@ -417,7 +417,7 @@ void vobsubdmx_finalize(GF_Filter *filter)
 static const GF_FilterArgs GF_VOBSubDmxArgs[] =
 {
 	{ OFFS(blankframe), "force inserting a blank frame if first subpic is not at 0", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 
@@ -427,7 +427,7 @@ static const GF_FilterCapability VOBSubDmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "text/vobsub"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_SUBPIC),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "idx|sub"),
 };

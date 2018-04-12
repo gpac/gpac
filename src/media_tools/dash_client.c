@@ -5195,7 +5195,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	group->retry_after_utc = dash->min_timeout_between_404 + gf_net_get_utc();
 
 	//failure on last segment: likely due to rounding in dash segement duration, assueme no error
-	if (group->period->duration && (group->download_segment_index + 1 >= group->nb_segments_in_rep) ) {
+	if (group->period->duration && (group->download_segment_index + 1 >= (s32) group->nb_segments_in_rep) ) {
 		group->done = 1;
 	} else if (group->maybe_end_of_stream) {
 		if (group->maybe_end_of_stream==2) {

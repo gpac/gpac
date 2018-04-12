@@ -209,7 +209,7 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(ADTSIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs) - hdr.hdr_size;
-			ctx->indexes[ctx->index_size].duration = duration;
+			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= GF_M4ASampleRates[sr_idx];
 			ctx->index_size ++;
 			cur_dur = 0;
@@ -221,7 +221,7 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * GF_M4ASampleRates[sr_idx] != duration * ctx->duration.den)) {
-		ctx->duration.num = duration;
+		ctx->duration.num = (s32) duration;
 		ctx->duration.den = GF_M4ASampleRates[sr_idx];
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
@@ -394,7 +394,7 @@ static Bool adts_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->indexes[i-1].duration * GF_M4ASampleRates[ctx->sr_idx];
+					ctx->cts = (u64) (ctx->indexes[i-1].duration * GF_M4ASampleRates[ctx->sr_idx]);
 					ctx->file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -539,7 +539,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			sync = start;
 		} else {
 			sync = memchr(start, 0xFF, remain);
-			sync_pos = sync ? sync - start : remain;
+			sync_pos = (u32) (sync ? sync - start : remain);
 
 			//couldn't find sync byte in this packet
 			if (!sync) {
@@ -621,7 +621,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->in_seek) {
-			u64 nb_samples_at_seek = ctx->start_range * GF_M4ASampleRates[ctx->sr_idx];
+			u64 nb_samples_at_seek = (u64) (ctx->start_range * GF_M4ASampleRates[ctx->sr_idx]);
 			if (ctx->cts + ctx->dts_inc >= nb_samples_at_seek) {
 				//u32 samples_to_discard = (ctx->cts + ctx->dts_inc) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
@@ -678,10 +678,10 @@ static const GF_FilterCapability ADTSDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "aac"),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
@@ -705,7 +705,7 @@ static const GF_FilterArgs ADTSDmxArgs[] =
 				"\timp: backward-compatible PS signaling (audio signaled as AAC-LC)"\
 				"\texp: explicit PS signaling (audio signaled as AAC-PS)"\
 				, GF_PROP_UINT, "no", "no|imp|exp", GF_FALSE},
-	{}
+	{0}
 };
 
 

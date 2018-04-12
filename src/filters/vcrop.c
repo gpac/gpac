@@ -583,8 +583,7 @@ static GF_FilterArgs VCropArgs[] =
 	{ OFFS(wnd), "Size of output to crop, indicated as TxLxWxH. If % is indicated after a number, the value is in percent of the source width (for L and W) or height (for T and H). An absolute offset (+x, -x) can be added after percent", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(copy), "Always copy the source pixels. By default the filter will try to forward crop frames by adjusting offsets and strides of the source if possible (window contained in frame)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(round), "Rounds dimension to be a multiple of 2. all_up,all_down activate rounding on formats that do not require it (RGB, YUV444)", GF_PROP_UINT, "up", "up|down|all_up|all_down", GF_FALSE},
-
-	{}
+	{0}
 };
 
 static const GF_FilterCapability VCropCaps[] =

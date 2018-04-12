@@ -122,7 +122,7 @@ static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 	pck_dur *= ctx->file_size;
 	pck_dur /= ctx->ts->prefix_present ? 192 : 188;
 	if ((u32) ctx->duration.num != (u32) pck_dur) {
-		ctx->duration.num = pck_dur;
+		ctx->duration.num = (s32) pck_dur;
 		ctx->duration.den = 1000;
 		changed = GF_TRUE;
 	}
@@ -690,7 +690,7 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->ts->on_event = m2tsdmx_on_event_duration_probe;
 		while (!feof(stream)) {
 			char buf[1880];
-			u32 nb_read = fread(buf, 1, 1880, stream);
+			u32 nb_read = (u32) fread(buf, 1, 1880, stream);
 			gf_m2ts_process_data(ctx->ts, buf, nb_read);
 			if (ctx->duration.num || (nb_read!=1880)) break;
 		}
@@ -814,7 +814,7 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 
 		if (ctx->is_file && ctx->duration.num) {
-			file_pos = ctx->file_size * com->play.start_range;
+			file_pos = (u64) (ctx->file_size * com->play.start_range);
 			file_pos *= ctx->duration.den;
 			file_pos /= ctx->duration.num;
 			if (file_pos > ctx->file_size) return GF_TRUE;
@@ -948,7 +948,7 @@ static const GF_FilterCapability M2TSDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
@@ -959,7 +959,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 {
 	{ OFFS(temi_url), "force TEMI URL", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

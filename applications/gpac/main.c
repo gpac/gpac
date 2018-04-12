@@ -365,7 +365,7 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strncmp(arg, "-s=", 3)) {
 			u32 len;
 			arg = arg+3;
-			len = strlen(arg);
+			len = (u32) strlen(arg);
 			if (!len) continue;
 			override_seps = GF_TRUE;
 			if (len>=1) separator_set[0] = arg[0];

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -24,6 +24,18 @@
  */
 
 #include "filter_session.h"
+
+#ifdef WIN32
+
+#ifndef __GCC__
+#ifdef GPAC_64_BITS
+#define __sync_bool_compare_and_swap(a,b,c) InterlockedCompareExchange64((__int64*)a,(__int64)b,(__int64)c)
+#else
+#define __sync_bool_compare_and_swap(a,b,c) InterlockedCompareExchange(a,b,c)
+#endif
+#endif
+#endif
+
 
 typedef struct __lf_item
 {

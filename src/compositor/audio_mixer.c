@@ -299,22 +299,22 @@ s32 input_sample_s24p(u8 *data, u32 sample_offset, u32 channel, u32 planar_strid
 s32 input_sample_flt(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Float *src = (Float *)data;
-	return (src[sample_offset + channel] * GF_INT_MAX);
+	return (s32) (src[sample_offset + channel] * GF_INT_MAX);
 }
 s32 input_sample_fltp(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Float *src = (Float *)data;
-	return (src[sample_offset + planar_stride*channel] * GF_INT_MAX);
+	return (s32) (src[sample_offset + planar_stride*channel] * GF_INT_MAX);
 }
 s32 input_sample_dbl(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Double *src = (Double *)data;
-	return (src[sample_offset + channel] * GF_INT_MAX);
+	return (s32) (src[sample_offset + channel] * GF_INT_MAX);
 }
 s32 input_sample_dblp(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Double *src = (Double *)data;
-	return (src[sample_offset + planar_stride * channel] * GF_INT_MAX);
+	return (s32) (src[sample_offset + planar_stride * channel] * GF_INT_MAX);
 }
 s32 input_sample_s16(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
 {

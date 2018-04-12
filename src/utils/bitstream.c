@@ -254,7 +254,7 @@ void gf_bs_del(GF_BitStream *bs)
 {
 	if (!bs) return;
 	if (bs->on_block_out && bs->position>bs->bytes_out) {
-		bs->on_block_out(bs->usr_data, bs->original, bs->position - bs->bytes_out);
+		bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out) );
 	}
 	/*if we are in dynamic mode (alloc done by the bitstream), free the buffer if still present*/
 	if ((bs->bsmode == GF_BITSTREAM_WRITE_DYN) && bs->original) gf_free(bs->original);
@@ -563,7 +563,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 		if (bs->on_block_out) {
 			assert(bs->position >= bs->bytes_out);
 			if (bs->position - bs->bytes_out == bs->size) {
-				bs->on_block_out(bs->usr_data, bs->original, bs->position - bs->bytes_out);
+				bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out));
 				bs->bytes_out = bs->position;
 			}
 			if (bs->original)
@@ -786,7 +786,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 					memcpy(bs->original + bs->position - bs->bytes_out, data, nbBytes);
 					bs->position += nbBytes;
 				} else {
-					bs->on_block_out(bs->usr_data, bs->original, bs->position - bs->bytes_out);
+					bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out) );
 					bs->on_block_out(bs->usr_data, (char *) data, nbBytes);
 					bs->position += nbBytes;
 					bs->bytes_out = bs->position;

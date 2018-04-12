@@ -112,7 +112,7 @@ void vttmx_timestamp_dump(GF_WebVTTMxCtx *ctx, GF_WebVTTTimestamp *ts, Bool dump
 		sprintf(szTS, "%02u:", ts->hour);
 	}
 	sprintf(szTS, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
-	gf_bs_write_data(ctx->bs_w, szTS, strlen(szTS) );
+	gf_bs_write_data(ctx->bs_w, szTS, (u32) strlen(szTS) );
 }
 
 static void vttmx_write_cue(void *udta, GF_WebVTTCue *cue)
@@ -120,10 +120,10 @@ static void vttmx_write_cue(void *udta, GF_WebVTTCue *cue)
 	GF_WebVTTMxCtx *ctx = (GF_WebVTTMxCtx *)udta;
 	if (!cue) return;
 	if (cue->pre_text) {
-		gf_bs_write_data(ctx->bs_w, cue->pre_text, strlen(cue->pre_text));
+		gf_bs_write_data(ctx->bs_w, cue->pre_text, (u32) strlen(cue->pre_text));
 		gf_bs_write_data(ctx->bs_w, "\n\n", 2);
 	}
-	if (cue->id) gf_bs_write_data(ctx->bs_w, cue->id, strlen(cue->id) );
+	if (cue->id) gf_bs_write_data(ctx->bs_w, cue->id, (u32) strlen(cue->id) );
 	if (cue->start.hour || cue->end.hour) {
 		vttmx_timestamp_dump(ctx, &cue->start, GF_TRUE);
 		gf_bs_write_data(ctx->bs_w, " --> ", 5);
@@ -135,15 +135,15 @@ static void vttmx_write_cue(void *udta, GF_WebVTTCue *cue)
 	}
 	if (cue->settings) {
 		gf_bs_write_data(ctx->bs_w, " ", 1);
-		gf_bs_write_data(ctx->bs_w, cue->settings, strlen(cue->settings));
+		gf_bs_write_data(ctx->bs_w, cue->settings, (u32) strlen(cue->settings));
 	}
 	gf_bs_write_data(ctx->bs_w, "\n", 1);
 	if (cue->text)
-		gf_bs_write_data(ctx->bs_w, cue->text, strlen(cue->text));
+		gf_bs_write_data(ctx->bs_w, cue->text, (u32) strlen(cue->text));
 	gf_bs_write_data(ctx->bs_w, "\n\n", 2);
 
 	if (cue->post_text) {
-		gf_bs_write_data(ctx->bs_w, cue->post_text, strlen(cue->post_text));
+		gf_bs_write_data(ctx->bs_w, cue->post_text, (u32) strlen(cue->post_text));
 		gf_bs_write_data(ctx->bs_w, "\n\n", 2);
 	}
 }
@@ -202,7 +202,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	if (ctx->first && ctx->dcd) {
-		size = strlen(ctx->dcd)+2;
+		size = (u32) strlen(ctx->dcd)+2;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 		memcpy(output, ctx->dcd, size-2);
 		output[size-2] = '\n';
@@ -286,7 +286,7 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(merge), "merges VTT cue if needed", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 

@@ -741,10 +741,10 @@ void gf_scene_buffering_info(GF_Scene *scene)
 
 	if (!max_buffer || !cur_buffer || (max_buffer <= cur_buffer)) {
 		if (!max_buffer) max_buffer=max_buff_val;
-		evt.progress.done = evt.progress.total = max_buffer / 1000;
+		evt.progress.done = evt.progress.total = (u32) (max_buffer / 1000);
 	} else {
-		evt.progress.done = cur_buffer / 1000;
-		evt.progress.total = max_buffer / 1000;
+		evt.progress.done = (u32) (cur_buffer / 1000);
+		evt.progress.total = (u32) (max_buffer / 1000);
 	}
 	gf_sc_send_event(scene->compositor, &evt);
 }
@@ -1385,8 +1385,8 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 			GF_FEVT_INIT(evt, GF_FEVT_MOUSE, odm->pid);
 
 			evt.user_event.event.type = ((M_TouchSensor *)n)->isActive ? GF_EVENT_MOUSEDOWN : GF_EVENT_MOUSEUP;
-			evt.user_event.event.mouse.x = tx_coord.x * odm->mo->width;
-			evt.user_event.event.mouse.y = tx_coord.y * odm->mo->height;
+			evt.user_event.event.mouse.x = FIX2INT( tx_coord.x * odm->mo->width);
+			evt.user_event.event.mouse.y = FIX2INT( tx_coord.y * odm->mo->height);
 
 			gf_filter_pid_send_event(odm->pid, &evt);
 
@@ -2742,8 +2742,8 @@ restart:
 			gf_node_register(tr, n1);
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, tr);
 
-			((M_Transform2D *)tr)->translation.x = -width/2 + tw/2 + x*tw;
-			((M_Transform2D *)tr)->translation.y = height/2 - th/2 - y*th;
+			((M_Transform2D *)tr)->translation.x = INT2FIX( -width/2 + tw/2 + x*tw);
+			((M_Transform2D *)tr)->translation.y = INT2FIX( height/2 - th/2 - y*th);
 
 			x++;
 			if (x==nb_cols) {

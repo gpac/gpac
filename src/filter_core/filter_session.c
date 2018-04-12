@@ -61,7 +61,7 @@ void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister 
 	if (fsess->blacklist) {
 		char *fname = strstr(fsess->blacklist, freg->name);
 		if (fname) {
-			u32 len = strlen(freg->name);
+			u32 len = (u32) strlen(freg->name);
 			if (!fname[len] || (fname[len] == ',')) {
 				return;
 			}
@@ -593,8 +593,8 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	sep = strchr(name, fsess->sep_args);
 	if (sep) {
 		args = sep+1;
-		len = sep - name;
-	} else len = strlen(name);
+		len = (u32) (sep - name);
+	} else len = (u32) strlen(name);
 
 	if (!strncmp(name, "enc", len)) {
 		return gf_fs_load_encoder(fsess, args);
@@ -748,7 +748,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					gf_fq_add(fsess->tasks, task);
 					if (next) {
 						s64 ndiff;
-						if (next->schedule_next_time <= now) {
+						if (next->schedule_next_time <= (u64) now) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task time ready for execution\n", thid, task->log_name));
 
 							if (do_use_sema) {
@@ -768,7 +768,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 					if (diff) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, seleeping for %d ms\n", thid, task->log_name, diff));
-						gf_sleep(diff);
+						gf_sleep((u32) diff);
 					} else {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, rerun\n", thid, task->log_name, diff));
 					}
@@ -825,7 +825,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 								diff=5;
 						}
 
-						gf_sleep(diff);
+						gf_sleep((u32) diff);
 						active_start = gf_sys_clock_high_res();
 					}
 					if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
@@ -1367,7 +1367,7 @@ restart:
 	}
 	if (sep) sep[0] = fsess->sep_args;
 
-	user_args_len = user_args ? strlen(user_args) : 0;
+	user_args_len = user_args ? (u32) strlen(user_args) : 0;
 	args = gf_malloc(sizeof(char)*(5+strlen(sURL) + (user_args_len ? user_args_len + 1  :0) ) );
 
 	sprintf(args, "%s%c", for_source ? "src" : "dst", fsess->sep_name);

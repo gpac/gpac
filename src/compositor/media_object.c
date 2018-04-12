@@ -617,7 +617,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, ntp_diff));
 		}
 
-		mo->timestamp = pck_ts;
+		mo->timestamp = (u32) pck_ts;
 		/*signal EOS after rendering last frame, not while rendering it*/
 		*eos = GF_FALSE;
 

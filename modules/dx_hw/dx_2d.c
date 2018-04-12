@@ -29,28 +29,42 @@
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 #define DDBACK		DDSurface *pBack = (DDSurface *) gf_list_get(dd->surfaces, 0);
 
+enum
+{
+	GF_PIXEL_IYUV = GF_4CC('I', 'Y', 'U', 'V'),
+	GF_PIXEL_I420 = GF_4CC('I', '4', '2', '0'),
+	/*!YUV packed format*/
+	GF_PIXEL_UYNV = GF_4CC('U', 'Y', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_YUNV = GF_4CC('Y', 'U', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_V422 = GF_4CC('V', '4', '2', '2'),
+
+	GF_PIXEL_YV12 = GF_4CC('Y', 'V', '1', '2'),
+	GF_PIXEL_Y422 = GF_4CC('Y', '4', '2', '2'),
+	GF_PIXEL_YUY2 = GF_4CC('Y', 'U', 'Y', '2'),
+};
 
 
 
 static Bool pixelformat_yuv(u32 pixel_format)
 {
 	switch (pixel_format) {
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
-	case GF_PIXEL_Y422:
 	case GF_PIXEL_UYNV:
 	case GF_PIXEL_YUNV:
 	case GF_PIXEL_V422:
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
-	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -61,7 +75,7 @@ static Bool pixelformat_yuv(u32 pixel_format)
 static u32 get_win_4CC(u32 pixel_format)
 {
 	switch (pixel_format) {
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 		return mmioFOURCC('Y', 'U', 'Y', '2');
 	case GF_PIXEL_YVYU:
 		return mmioFOURCC('Y', 'V', 'Y', 'U');
@@ -69,7 +83,7 @@ static u32 get_win_4CC(u32 pixel_format)
 		return mmioFOURCC('U', 'Y', 'V', 'Y');
 	case GF_PIXEL_VYUY:
 		return mmioFOURCC('V', 'Y', 'U', 'Y');
-	case GF_PIXEL_Y422:
+	case GF_PIXEL_YUV422:
 		return mmioFOURCC('Y', '4', '2', '2');
 	case GF_PIXEL_UYNV:
 		return mmioFOURCC('U', 'Y', 'N', 'V');
@@ -77,13 +91,13 @@ static u32 get_win_4CC(u32 pixel_format)
 		return mmioFOURCC('Y', 'U', 'N', 'V');
 	case GF_PIXEL_V422:
 		return mmioFOURCC('V', '4', '2', '2');
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 		return mmioFOURCC('Y', 'V', '1', '2');
 	case GF_PIXEL_IYUV:
 		return mmioFOURCC('I', 'Y', 'U', 'V');
 	case GF_PIXEL_I420:
 		return mmioFOURCC('I', '4', '2', '0');
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		return mmioFOURCC('P', '0', '1', '0');
 	case GF_PIXEL_YUV444:
 		return mmioFOURCC('Y', '4', '4', '4');
@@ -91,8 +105,6 @@ static u32 get_win_4CC(u32 pixel_format)
 		return mmioFOURCC('Y', '4', '1', '0');
 	case GF_PIXEL_YUV422_10:
 		return mmioFOURCC('Y', '2', '1', '0');
-	case GF_PIXEL_YUV422:
-		return mmioFOURCC('Y', '4', '4', '2');
 	default:
 		return 0;
 	}
@@ -279,16 +291,16 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 		break;
 	case 24:
 		if ((pixelFmt.dwRBitMask == 0x0000FF) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0xFF0000))
-			dd->pixelFormat = GF_PIXEL_BGR_24;
+			dd->pixelFormat = GF_PIXEL_BGR;
 		else if ((pixelFmt.dwRBitMask == 0xFF0000) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0x0000FF))
-			dd->pixelFormat = GF_PIXEL_RGB_24;
+			dd->pixelFormat = GF_PIXEL_RGB;
 		dd->video_bpp = 24;
 		break;
 	case 32:
 		if ((pixelFmt.dwRBitMask == 0x0000FF) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0xFF0000)) {
-			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGR_32;
+			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGRX;
 		} else if ((pixelFmt.dwRBitMask == 0xFF0000) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0x0000FF)) {
-			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGB_32;
+			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGBX;
 		}
 		dd->video_bpp = 32;
 		break;
@@ -563,7 +575,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	}
 	/*get RGB or YUV pool surface*/
 	//if (video_src->pixel_format==GF_PIXEL_YUVD) return GF_NOT_SUPPORTED;
-	if (video_src->pixel_format==GF_PIXEL_YUVD) video_src->pixel_format=GF_PIXEL_YV12;
+	if (video_src->pixel_format==GF_PIXEL_YUVD) video_src->pixel_format = GF_PIXEL_YUV;
 	pool = DD_GetSurface(dr, w, h, video_src->pixel_format, GF_FALSE);
 	if (!pool)
 		return GF_IO_ERR;
@@ -642,16 +654,15 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 }
 
 
-
 static GFINLINE u32 is_yuv_supported(u32 win_4cc)
 {
-	if (win_4cc==get_win_4CC(GF_PIXEL_YV12)) return GF_PIXEL_YV12;
+	if (win_4cc==get_win_4CC(GF_PIXEL_YV12)) return GF_PIXEL_YUV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_I420)) return GF_PIXEL_I420;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_IYUV)) return GF_PIXEL_IYUV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_UYVY)) return GF_PIXEL_UYVY;
-	else if (win_4cc==get_win_4CC(GF_PIXEL_Y422)) return GF_PIXEL_Y422;
+	else if (win_4cc==get_win_4CC(GF_PIXEL_Y422)) return GF_PIXEL_YUV422;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_UYNV)) return GF_PIXEL_UYNV;
-	else if (win_4cc==get_win_4CC(GF_PIXEL_YUY2)) return GF_PIXEL_YUY2;
+	else if (win_4cc==get_win_4CC(GF_PIXEL_YUY2)) return GF_PIXEL_YUYV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_YUNV)) return GF_PIXEL_YUNV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_V422)) return GF_PIXEL_V422;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_YVYU)) return GF_PIXEL_YVYU;
@@ -661,9 +672,14 @@ static GFINLINE u32 is_yuv_supported(u32 win_4cc)
 static GFINLINE Bool is_yuv_planar(u32 format)
 {
 	switch  (format) {
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_IYUV:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUV444_10:
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -754,7 +770,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 					goto rem_fmt;
 			}
 			now = gf_sys_clock() - now;
-			if (formats[i]== GF_PIXEL_YV12)
+			if (formats[i]== GF_PIXEL_YUV)
 				force_yv12 = GF_TRUE;
 
 			if (!checkPacked) {
@@ -797,7 +813,7 @@ rem_fmt:
 			dr->yuv_pixel_format = best_packed;
 		}
 		if (force_yv12)
-			dr->yuv_pixel_format = GF_PIXEL_YV12;
+			dr->yuv_pixel_format = GF_PIXEL_YUV;
 
 		/*store our options*/
 		sprintf(szOpt, "%c%c%c%c", (dr->yuv_pixel_format>>24) & 0xFF, (dr->yuv_pixel_format>>16) & 0xFF, (dr->yuv_pixel_format>>8) & 0xFF, (dr->yuv_pixel_format) & 0xFF);

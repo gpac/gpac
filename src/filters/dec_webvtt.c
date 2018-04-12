@@ -367,8 +367,8 @@ static GF_Err vttd_process(GF_Filter *filter)
 	obj_time = gf_clock_time(ctx->odm->ck);
 	if (cts * 1000 > obj_time * timescale) {
 		u32 wait_ms = (u32) (cts * 1000 / timescale - obj_time);
-		if (!ctx->scene->compositor->ms_until_next_frame || (wait_ms < ctx->scene->compositor->ms_until_next_frame))
-			ctx->scene->compositor->ms_until_next_frame = wait_ms;
+		if (!ctx->scene->compositor->ms_until_next_frame || ((s32) wait_ms < ctx->scene->compositor->ms_until_next_frame))
+			ctx->scene->compositor->ms_until_next_frame = (s32) wait_ms;
 
 		return GF_OK;
 	}
@@ -421,7 +421,7 @@ void vttd_finalize(GF_Filter *filter)
 static const GF_FilterArgs VTTDecArgs[] =
 {
 	{ OFFS(script), "Location of WebVTT SVG JS renderer", GF_PROP_STRING, "$GPAC_SHARED/webvtt-renderer.js", NULL, GF_FALSE},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability VTTDecCaps[] =

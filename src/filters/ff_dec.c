@@ -23,17 +23,18 @@
  *
  */
 
+#include "ff_common.h"
+
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
 #include <gpac/isomedia.h>
-#include "ff_common.h"
 
 #include <libswscale/swscale.h>
 
 #define FF_CHECK_PROP(_name, _ffname, _type)	if (ctx->_name != ctx->decoder->_ffname) { \
-		gf_filter_pid_set_property(ctx->out_pid, _type, &PROP_UINT( ctx->decoder->_ffname ) );	\
-		ctx->_name = ctx->decoder->_ffname;	\
+		gf_filter_pid_set_property(ctx->out_pid, _type, &PROP_UINT( (u32) ctx->decoder->_ffname ) );	\
+		ctx->_name = (u32) ctx->decoder->_ffname;	\
 	} \
 
 #define FF_CHECK_PROP_VAL(_name, _val, _type)	if (ctx->_name != _val) { \
@@ -381,7 +382,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		pkt.dts = gf_filter_pck_get_dts(pck);
 
 		pkt.size = in_size;
-		if (ctx->frame_start > pkt.size) ctx->frame_start = 0;
+		if ((s32) ctx->frame_start > pkt.size) ctx->frame_start = 0;
 		//seek to last byte consumed by the previous decode4()
 		else if (ctx->frame_start) {
 			pkt.data += ctx->frame_start;
@@ -440,7 +441,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	case AV_SAMPLE_FMT_S32P:
 	case AV_SAMPLE_FMT_FLTP:
 	case AV_SAMPLE_FMT_DBLP:
-		for (i=0; i<ctx->channels; i++) {
+		for (i=0; (u32) i< ctx->channels; i++) {
 			char *inputChannel = frame->extended_data[i];
 			memcpy(data, inputChannel, ctx->bytes_per_sample * frame->nb_samples);
 			data += ctx->bytes_per_sample * frame->nb_samples;
@@ -482,7 +483,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	ctx->frame_start += len;
 	//done with this input packet
-	if (in_size <= ctx->frame_start) {
+	if (in_size <= (s32) ctx->frame_start) {
 		frame->nb_samples = 0;
 		ctx->frame_start = 0;
 		ctx->nb_samples_already_in_frame = 0;
@@ -756,7 +757,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 		}
 		if (ctx->decoder->channel_layout) {
-			u32 ch_lay = ffmpeg_channel_layout_to_gpac(ctx->decoder->channel_layout);
+			u32 ch_lay = ffmpeg_channel_layout_to_gpac((u32) ctx->decoder->channel_layout);
 			if (ctx->channel_layout != ch_lay) {
 				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_lay ) );
 				ctx->channel_layout = ch_lay;
@@ -808,13 +809,13 @@ static const GF_FilterCapability FFDecodeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{},
+	{0},
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 
 #ifdef FF_SUB_SUPPORT
-	{},
+	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_ISOM_SUBTYPE_TX3G),
@@ -847,7 +848,7 @@ GF_FilterRegister FFDecodeRegister = {
 static const GF_FilterArgs FFDecodeArgs[] =
 {
 	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
-	{}
+	{0}
 };
 
 void ffdec_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
@@ -900,7 +901,11 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 	}
 	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on codec type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
 
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 	avcodec_free_context(&dec_ctx);
+#else
+	av_free(dec_ctx);
+#endif
 
 	ffmpeg_expand_registry(session, &FFDecodeRegister, FF_REG_TYPE_DECODE);
 

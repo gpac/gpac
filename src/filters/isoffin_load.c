@@ -410,7 +410,7 @@ void isor_declare_objects(ISOMReader *read)
 		if (!ch->duration) {
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
-		gf_filter_pid_set_info(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(ch->duration, read->time_scale));
+		gf_filter_pid_set_info(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) ch->duration, read->time_scale));
 		gf_filter_pid_set_info(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT( gf_isom_get_sample_count(read->mov, ch->track)));
 
 		track_dur = (Double) (s64) ch->duration;
@@ -432,7 +432,7 @@ void isor_declare_objects(ISOMReader *read)
 
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, i+1) ) );
 
-		if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, strlen(stxtcfg) ));
+		if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
 
 		w = gf_isom_get_constant_sample_size(read->mov, i+1);
 
