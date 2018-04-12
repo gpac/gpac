@@ -780,7 +780,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		ISOMChannel *ch;
 		ch = gf_list_get(read->channels, i);
 		if (ch->play_state != 1) continue;
-		if (ch->last_state == GF_EOS) continue;
 		is_active = GF_TRUE;
 
 		while (! gf_filter_pid_would_block(ch->pid) ) {
