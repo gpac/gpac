@@ -459,8 +459,10 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_copy_properties(ctx->opid, pid);
 	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+
 	if (!ctx->ipid) {
 		ctx->ipid = pid;
 	}
@@ -477,10 +479,7 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (p) sar = p->value.frac;
 	else sar.den = sar.num = 1;
 
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-
 	if (!w || !h || !pfmt) {
-		gf_filter_pid_copy_properties(ctx->opid, pid);
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
 	}

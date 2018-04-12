@@ -45,6 +45,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, opid);
 	}
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(opid, pid);
 	return GF_OK;
 }

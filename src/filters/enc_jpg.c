@@ -99,11 +99,12 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_JPEG ));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_JPEG ));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 
 	sprintf(n, "encjpg:%d.%d", JPEG_LIB_VERSION_MAJOR, JPEG_LIB_VERSION_MINOR);
 	gf_filter_set_name(filter, n);

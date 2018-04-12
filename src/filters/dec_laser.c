@@ -94,6 +94,7 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	out_pid = gf_filter_pid_new(filter);
 	ctx->nb_streams++;
 
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(out_pid, pid);
 	gf_filter_pid_set_property(out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_udta(pid, out_pid);

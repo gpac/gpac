@@ -39,6 +39,7 @@ typedef struct
 
 	GF_FilterPid *ipid, *opid;
 	u32 width, height, pixel_format, stride, stride_uv, nb_planes, uv_height;
+	u32 nb_alloc_rows;
 
 	u32 max_size, pos, alloc_size;
 	u32 png_type;
@@ -87,11 +88,12 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_PNG ));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_PNG ));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 
 	gf_filter_set_name(filter, "encpng:"PNG_LIBPNG_VER_STRING );
 
@@ -117,7 +119,10 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
 		break;
 	}
-	ctx->row_pointers = gf_realloc(ctx->row_pointers, sizeof(png_bytep) * ctx->height);
+	if (ctx->height > ctx->nb_alloc_rows) {
+		ctx->nb_alloc_rows = ctx->height;
+		ctx->row_pointers = gf_realloc(ctx->row_pointers, sizeof(png_bytep) * ctx->height);
+	}
 	return GF_OK;
 }
 
@@ -134,7 +139,7 @@ static void pngenc_write(png_structp png, png_bytep data, png_size_t size)
 	GF_PNGEncCtx *ctx = (GF_PNGEncCtx *)png_get_io_ptr(png);
 	if (!ctx->dst_pck) {
 		while (ctx->alloc_size<size) ctx->alloc_size+=PNG_BLOCK_SIZE;
-		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &ctx->output);
+		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->alloc_size, &ctx->output);
 	} else if (ctx->pos + size > ctx->alloc_size) {
 		char *data;
 		u32 new_size;
@@ -228,12 +233,25 @@ static GF_Err pngenc_process(GF_Filter *filter)
 
 	png_set_IHDR(png_ptr, info_ptr, ctx->width, ctx->height, 8, ctx->png_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-	/* otherwise, if we are dealing with a color image then */
-	sig_bit.red = 8;
-	sig_bit.green = 8;
-	sig_bit.blue = 8;
-	sig_bit.gray = 8;
-	sig_bit.alpha = 8;
+	memset(&sig_bit, 0, sizeof(sig_bit));
+	switch (ctx->png_type) {
+	case PNG_COLOR_TYPE_GRAY:
+		sig_bit.gray = 8;
+		break;
+	case PNG_COLOR_TYPE_GRAY_ALPHA:
+		sig_bit.gray = 8;
+		sig_bit.alpha = 8;
+		break;
+	case PNG_COLOR_TYPE_RGB_ALPHA:
+		sig_bit.alpha = 8;
+	case PNG_COLOR_TYPE_RGB:
+		sig_bit.red = 8;
+		sig_bit.green = 8;
+		sig_bit.blue = 8;
+		break;
+	default:
+		break;
+	}
 	png_set_sBIT(png_ptr, info_ptr, &sig_bit);
 
 	//todo add support for tags

@@ -31,10 +31,8 @@
 /*private types*/
 enum
 {
-	GF_BITSTREAM_FILE_READ = GF_BITSTREAM_WRITE + 1,
+	GF_BITSTREAM_FILE_READ = GF_BITSTREAM_WRITE_DYN + 1,
 	GF_BITSTREAM_FILE_WRITE,
-	/*private mode if we own the buffer*/
-	GF_BITSTREAM_WRITE_DYN
 };
 
 struct __tag_bitstream
@@ -136,6 +134,7 @@ GF_BitStream *gf_bs_new(const char *buffer, u64 BufferSize, u32 mode)
 		tmp->current = 0;
 		break;
 	case GF_BITSTREAM_WRITE:
+	case GF_BITSTREAM_WRITE_DYN:
 		tmp->nbBits = 0;
 		if (! buffer) {
 			/*if BufferSize is specified, use it. This is typically used when AvgSize of

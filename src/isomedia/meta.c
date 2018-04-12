@@ -191,8 +191,7 @@ u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return 0;
 }
 
-GF_EXPORT
-GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name, char **out_data, u32 *out_size, const char **out_mime, Bool use_annex_b)
+static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name, char **out_data, u32 *out_size, u32 *out_alloc_size, const char **out_mime, Bool use_annex_b)
 {
 	GF_BitStream *item_bs;
 	char szPath[1024];
@@ -290,7 +289,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 
 
 	if (out_data) {
-		item_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		item_bs = gf_bs_new(*out_data, *out_size, GF_BITSTREAM_WRITE_DYN);
 	} else if (dump_file_name) {
 		strcpy(szPath, dump_file_name);
 		resource = gf_fopen(szPath, "wb");
@@ -396,7 +395,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		}
 	}
 	if (out_data) {
-		gf_bs_get_content(item_bs, out_data, out_size);
+		gf_bs_get_content_no_truncate(item_bs, out_data, out_size, out_alloc_size);
 	}
 	if (resource) {
 		gf_fclose(resource);
@@ -408,13 +407,13 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 GF_EXPORT
 GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name)
 {
-	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, dump_file_name, NULL, NULL, NULL, GF_TRUE);
+	return gf_isom_extract_meta_item_intern(file, root_meta, track_num, item_id, dump_file_name, NULL, NULL, NULL, NULL, GF_TRUE);
 }
 
 GF_EXPORT
-GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **out_mime, Bool use_annex_b)
+GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, u32 *out_alloc_size, const char **out_mime, Bool use_annex_b)
 {
-	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, NULL, out_data, out_size, out_mime, use_annex_b);
+	return gf_isom_extract_meta_item_intern(file, root_meta, track_num, item_id, NULL, out_data, out_size, out_alloc_size, out_mime, use_annex_b);
 }
 
 GF_EXPORT

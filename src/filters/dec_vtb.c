@@ -909,6 +909,8 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	}
+
+	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 
