@@ -88,7 +88,7 @@ static GF_Err decenc_get_gpac_kms(GF_CENCDecCtx *ctx, GF_FilterPid *pid, const c
 	else if (!strnicmp(kms_url, "file://", 7)) kms_url += 7;
 
 	/*try local*/
-	t = (strstr(kms_url, "://") == NULL) ? gf_fopen(kms_url, "r") : NULL;
+	t = (strstr(kms_url, "://") == NULL) ? gf_fopen(kms_url, "rb") : NULL;
 	if (t) {
 		gf_fclose(t);
 		return gf_ismacryp_gpac_get_info(id, (char *)kms_url, ctx->key, ctx->salt);

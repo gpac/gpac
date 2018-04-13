@@ -583,7 +583,7 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 	}
 	sep[0]='/';
 
-	out = gf_fopen(szPath, "w");
+	out = gf_fopen(szPath, "wb");
 	if (!out) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create file %s\n", s->service_id, szPath ));
 		return GF_IO_ERR;
@@ -887,7 +887,7 @@ static GF_Err gf_atsc3_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 		FILE *out;
 		char szPath[GF_MAX_PATH];
 		sprintf(szPath, "%s/%s", s->output_dir, content_location);
-		out = gf_fopen(szPath, "w");
+		out = gf_fopen(szPath, "wb");
 		if (!out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create MPD file %s\n", s->service_id, szPath ));
 			return GF_IO_ERR;

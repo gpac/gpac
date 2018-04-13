@@ -101,7 +101,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	}
 	ctx->is_file = GF_TRUE;
 
-	stream = gf_fopen(p->value.string, "r");
+	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
 	ctx->index_size = 0;

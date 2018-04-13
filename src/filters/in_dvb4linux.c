@@ -103,7 +103,7 @@ static GF_Err dvblin_tune(GF_DVBLinuxCtx *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[DVB4Lin] Missing channels config file\n"));
 		return GF_BAD_PARAM;
 	}
-	chanfile = gf_fopen(ctx->chcfg, "r");
+	chanfile = gf_fopen(ctx->chcfg, "rb");
 	if (!chanfile) return GF_BAD_PARAM;
 
 	chan_name = (char *) ctx->src+6; // 6 = strlen("dvb://")
@@ -255,7 +255,7 @@ static u32 gf_dvblin_get_freq_from_url(GF_DVBLinuxCtx *ctx, const char *url)
 
 	channel_name = (char *)url+6;
 
-	chcfgig_file = gf_fopen(ctx->chcfg, "r");
+	chcfgig_file = gf_fopen(ctx->chcfg, "rb");
 	if (!chcfgig_file) return GF_BAD_PARAM;
 
 	freq = 0;

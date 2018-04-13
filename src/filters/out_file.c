@@ -78,7 +78,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 			strcpy(szName, filename);
 		}
 		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx);
-		ctx->file = gf_fopen(szFinalName, ctx->append ? "a+" : "w");
+		ctx->file = gf_fopen(szFinalName, ctx->append ? "a+b" : "wb");
 
 		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));

@@ -671,7 +671,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		streamType = 0;
 	}
 
-	ctx->mdia = gf_fopen(ctx->szMedia, "r");
+	ctx->mdia = gf_fopen(ctx->szMedia, "rb");
 
 	specInfoSize = 0;
 	if (!streamType && !mtype && !codec_tag) {

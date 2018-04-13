@@ -193,7 +193,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 	gf_fclose(sdp_out);
 	if (out_sdp_buffer) {
 		u64 size;
-		sdp_out = gf_fopen(filename, "r");
+		sdp_out = gf_fopen(filename, "rt");
 		gf_fseek(sdp_out, 0, SEEK_END);
 		size = gf_ftell(sdp_out);
 		gf_fseek(sdp_out, 0, SEEK_SET);

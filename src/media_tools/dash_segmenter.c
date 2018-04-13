@@ -1067,7 +1067,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 		sprintf(SegmentName, "virtual_rep_%d_segment.m4s", dash_input->idx_representations);
 		virtual_url = gf_url_concatenate(output_file, SegmentName);
-		vseg = gf_fopen(virtual_url, "w");
+		vseg = gf_fopen(virtual_url, "wb");
 		bs = gf_bs_from_file(vseg, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, 20);
 		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_STYP);

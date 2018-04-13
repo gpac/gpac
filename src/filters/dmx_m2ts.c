@@ -683,7 +683,7 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (p && p->value.string && !ctx->duration.num) {
-		FILE *stream = gf_fopen(p->value.string, "r");
+		FILE *stream = gf_fopen(p->value.string, "rb");
 		ctx->ipid = pid;
 		ctx->is_file = GF_TRUE;
 		ctx->ts->seek_mode = GF_TRUE;
