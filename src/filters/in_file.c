@@ -156,7 +156,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	else if (!strnicmp(ctx->src, "file:", 5)) src += 5;
 
 	if (!ctx->file)
-		ctx->file = gf_fopen(src, "r");
+		ctx->file = gf_fopen(src, "rb");
 
 	if (!ctx->file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] Failed to open %s\n", src));
@@ -342,6 +342,13 @@ static GF_Err filein_process(GF_Filter *filter)
 
 	if (ctx->file_pos + nb_read == ctx->file_size)
 		ctx->is_end = GF_TRUE;
+	else if (nb_read < to_read) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
+		if (feof(ctx->file)) {
+			ctx->is_end = GF_TRUE;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] IO error EOF found after reading %d bytes but file %s size is %d\n", ctx->file_pos+nb_read, ctx->src, ctx->file_size));
+		}
+	}
 	gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	ctx->file_pos += nb_read;

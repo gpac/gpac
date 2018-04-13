@@ -175,7 +175,7 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 		return GF_EOS;
 	}
 
-	file = gf_fopen(p->value.string, "r");
+	file = gf_fopen(p->value.string, "rb");
 	if (!file) {
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
 		return GF_EOS;

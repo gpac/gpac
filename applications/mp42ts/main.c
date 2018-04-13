@@ -2287,7 +2287,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 		sprintf(manifest_name, "%s", manifest);
 	}
 
-	manifest_fp = gf_fopen(tmp_manifest, "w");
+	manifest_fp = gf_fopen(tmp_manifest, "wt");
 	if (!manifest_fp) {
 		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
 		return GF_BAD_PARAM;

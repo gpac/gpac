@@ -252,7 +252,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	}
 
 	/* Create an idx file */
-	fidx = gf_fopen(szName, "w");
+	fidx = gf_fopen(szName, "wb");
 	if (!fidx) {
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}

@@ -372,7 +372,7 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	strcpy(szPath, getenv("HOME"));
 	strcat(szPath , "/.kms_data");
 	got_it = 0;
-	kms = gf_fopen(szPath, "r");
+	kms = gf_fopen(szPath, "rt");
 	while (kms && !feof(kms)) {
 		if (!fgets(szPath, 1024, kms)) break;
 		szPath[strlen(szPath) - 1] = 0;

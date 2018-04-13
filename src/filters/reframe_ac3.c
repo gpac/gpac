@@ -127,7 +127,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	}
 	ctx->is_file = GF_TRUE;
 
-	stream = gf_fopen(p->value.string, "r");
+	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
 	ctx->index_size = 0;
