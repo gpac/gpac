@@ -167,7 +167,9 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	if (fsess->use_locks)
 		fsess->props_mx = gf_mx_new("FilterSessionProps");
 
+#if GF_PROPS_HASHTABLE_SIZE
 	fsess->prop_maps_list_reservoir = gf_fq_new(fsess->props_mx);
+#endif
 	fsess->prop_maps_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_data_alloc_reservoir = gf_fq_new(fsess->props_mx);
@@ -334,8 +336,10 @@ void gf_fs_del(GF_FilterSession *fsess)
 		gf_list_del(fsess->threads);
 	}
 
-	gf_fq_del(fsess->prop_maps_reservoir, gf_void_del);
+	gf_fq_del(fsess->prop_maps_reservoir, gf_propmap_del);
+#if GF_PROPS_HASHTABLE_SIZE
 	gf_fq_del(fsess->prop_maps_list_reservoir, (gf_destruct_fun) gf_list_del);
+#endif
 	gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
 	gf_fq_del(fsess->prop_maps_entry_data_alloc_reservoir, gf_propalloc_del);
 
