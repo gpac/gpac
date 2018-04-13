@@ -27,8 +27,20 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+typedef struct
+{
+	Bool exporter;
+	char *sap;
+	Bool filter_sap1;
+	Bool filter_sap2;
+	Bool filter_sap3;
+	Bool filter_sap4;
+	Bool filter_sap_none;
+} GF_ReframerCtx;
+
 GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
 
 	if (is_remove) {
@@ -47,6 +59,16 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(opid, pid);
+
+	ctx->filter_sap1 = ctx->filter_sap2 = ctx->filter_sap3 = ctx->filter_sap4 = ctx->filter_sap_none = GF_FALSE;
+	if (ctx->sap) {
+		if (strchr(ctx->sap, '1')) ctx->filter_sap1 = GF_TRUE;
+		if (strchr(ctx->sap, '2')) ctx->filter_sap2 = GF_TRUE;
+		if (strchr(ctx->sap, '3')) ctx->filter_sap3 = GF_TRUE;
+		if (strchr(ctx->sap, '4')) ctx->filter_sap4 = GF_TRUE;
+		if (strchr(ctx->sap, '0')) ctx->filter_sap_none = GF_TRUE;
+	}
+
 	return GF_OK;
 }
 
@@ -54,6 +76,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 GF_Err reframer_process(GF_Filter *filter)
 {
+	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
 	u32 i, nb_eos, count = gf_filter_get_ipid_count(filter);
 
 	nb_eos = 0;
@@ -64,6 +87,7 @@ GF_Err reframer_process(GF_Filter *filter)
 		assert(opid);
 
 		while (1) {
+			Bool forward = GF_TRUE;
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) {
 				if (gf_filter_pid_is_eos(ipid)) {
@@ -72,7 +96,29 @@ GF_Err reframer_process(GF_Filter *filter)
 				}
 				break;
 			}
-			gf_filter_pck_forward(pck, opid);
+			if (ctx->sap) {
+				u32 sap = gf_filter_pck_get_sap(pck);
+				switch (sap) {
+				case GF_FILTER_SAP_1:
+				 	if (!ctx->filter_sap1) forward = GF_FALSE;
+				 	break;
+				case GF_FILTER_SAP_2:
+				 	if (!ctx->filter_sap2) forward = GF_FALSE;
+				 	break;
+				case GF_FILTER_SAP_3:
+				 	if (!ctx->filter_sap3) forward = GF_FALSE;
+				 	break;
+				case GF_FILTER_SAP_4:
+				 	if (!ctx->filter_sap4) forward = GF_FALSE;
+				 	break;
+				default:
+				 	if (!ctx->filter_sap_none) forward = GF_FALSE;
+					break;
+				}
+			}
+			if (forward)
+				gf_filter_pck_forward(pck, opid);
+
 			gf_filter_pid_drop_packet(ipid);
 		}
 	}
@@ -92,21 +138,19 @@ static const GF_FilterCapability ReframerCaps[] =
 };
 
 
-typedef struct
-{
-	Bool exporter;
-} GF_ReframerCtx;
-
 #define OFFS(_n)	#_n, offsetof(GF_ReframerCtx, _n)
 static const GF_FilterArgs ReframerArgs[] =
 {
+	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(sap), "Drops non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding ...", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{0}
 };
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
-	.description = "Passthrough filter forcing reframers instatiation for file to file operations",
+	.description = "Passthrough filter ensuring reframing",
+	.comment = "This filter forces input pids to be properly frames (1 packet = 1 Access Unit). It is mostly used for file to file operations. It can also be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video",
 	.private_size = sizeof(GF_ReframerCtx),
 	.args = ReframerArgs,
 	//reframer is explicit only, so we don't load the reframer during resolution process
