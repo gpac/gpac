@@ -222,6 +222,13 @@ u32 gf_term_get_clock(GF_Terminal *term);
 /*get internal compositor*/
 struct __tag_compositor *gf_term_get_compositor(GF_Terminal *term);;
 
+/*connect output filter chain */
+GF_Err gf_term_connect_output_filter(GF_Terminal *term, const char *filter_desc);
+
+/*forwards all clocks of the given amount of time. Can only be used when terminal is in paused mode
+this is mainly designed for movie dumping in MP4Client*/
+GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
+
 /*! @} */
 
 #ifdef __cplusplus

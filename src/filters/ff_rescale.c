@@ -24,11 +24,10 @@
  */
 
 #include "ff_common.h"
-#include <gpac/filters.h>
-#include <gpac/list.h>
-#include <gpac/constants.h>
-#include <gpac/network.h>
-#include <libswscale/swscale.h>
+
+#include <gpac/setup.h>
+
+#ifdef GPAC_HAS_FFMPEG
 
 typedef struct
 {
@@ -369,10 +368,15 @@ GF_FilterRegister FFSWSRegister = {
 	.reconfigure_output = ffsws_reconfigure_output,
 };
 
-
+#endif
 
 const GF_FilterRegister *ffsws_register(GF_FilterSession *session)
 {
+#ifdef GPAC_HAS_FFMPEG
 	FFSWSArgs[1].min_max_enum = gf_pixel_fmt_all_names();
 	return &FFSWSRegister;
+#else
+	return NULL;
+#endif
 }
+

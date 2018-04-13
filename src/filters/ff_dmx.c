@@ -23,10 +23,13 @@
  *
  */
 
+#include <gpac/setup.h>
+
+#ifdef GPAC_HAS_FFMPEG
+
 #include "ff_common.h"
-#include <gpac/filters.h>
-#include <gpac/list.h>
-#include <gpac/constants.h>
+
+//for NTP clock
 #include <gpac/network.h>
 
 enum
@@ -864,3 +867,17 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 
 	return &FFAVInRegister;
 }
+
+#else
+
+#include <gpac/filters.h>
+*ffdmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+const GF_FilterRegister *ffavin_register(GF_FilterSession *session) 
+{
+	return NULL;
+}
+#endif

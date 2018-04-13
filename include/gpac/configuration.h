@@ -40,8 +40,20 @@
 #define GPAC_HAS_SSL
 
 #define GPAC_HAS_SPIDERMONKEY
+//codecs  
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
+#define GPAC_HAS_LIBA52
+#define GPAC_HAS_FAAD
+//deactivated for now, issue with our win build, link fails
+//#define GPAC_HAS_JP2
+#define GPAC_HAS_MAD
+#define GPAC_HAS_OPENHEVC
+#define GPAC_HAS_OPENSVC
+#define GPAC_HAS_THEORA
+#define GPAC_HAS_VORBIS
+#define GPAC_HAS_XVID
+#define GPAC_HAS_FFMPEG
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 

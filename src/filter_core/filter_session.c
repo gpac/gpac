@@ -120,9 +120,9 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->tasks_reservoir = gf_fq_new(fsess->tasks_mx);
 
 	if (nb_threads || (sched_type==GF_FS_SCHEDULER_LOCK_FORCE) ) {
-		fsess->semaphore_main = fsess->semaphore_other = gf_sema_new(GF_UINT_MAX, 0);
+		fsess->semaphore_main = fsess->semaphore_other = gf_sema_new(GF_INT_MAX, 0);
 		if (nb_threads>0)
-			fsess->semaphore_other = gf_sema_new(GF_UINT_MAX, 0);
+			fsess->semaphore_other = gf_sema_new(GF_INT_MAX, 0);
 
 		//force testing of mutex queues
 		//fsess->use_locks = GF_TRUE;

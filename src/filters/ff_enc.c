@@ -23,11 +23,11 @@
  *
  */
 
+#include <gpac/setup.h>
+
+#ifdef GPAC_HAS_FFMPEG
+
 #include "ff_common.h"
-#include <gpac/filters.h>
-#include <gpac/list.h>
-#include <gpac/constants.h>
-#include <gpac/isomedia.h>
 
 
 typedef struct _gf_ffenc_ctx
@@ -901,4 +901,12 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 }
 
 
+#else
+#include <gpac/filters.h>
+const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+#endif //GPAC_HAS_FFMPEG
 

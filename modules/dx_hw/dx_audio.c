@@ -348,6 +348,7 @@ void DS_WriteAudio(GF_AudioOutput *dr)
 	u32 retry;
 	DWORD in_play, cur_play;
 	DSCONTEXT();
+	if (!ctx->pOutput) return;
 
 	/*wait for end of current play buffer*/
 	if (ctx->pOutput->lpVtbl->GetCurrentPosition(ctx->pOutput, &in_play, NULL) != DS_OK ) {

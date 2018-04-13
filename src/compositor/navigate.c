@@ -26,7 +26,6 @@
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 #include <gpac/options.h>
-#include <gpac/terminal.h>
 
 
 #ifndef GPAC_DISABLE_3D

@@ -383,14 +383,14 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 
 		maxDqIdInAU = GetDqIdMax((unsigned char *) data, data_size, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
-		if (ctx->MaxDqId <= maxDqIdInAU) {
-			ctx->MaxDqId = maxDqIdInAU;
+		if (ctx->MaxDqId <= (s32) maxDqIdInAU) {
+			ctx->MaxDqId = (s32) maxDqIdInAU;
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenSVC] decode from stream %s - DTS "LLU" PTS "LLU" size %d - max DQID %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), dts, cts, data_size, maxDqIdInAU) );
 
 
 		//we are asked to use a lower quality
-		if ((ctx->LimitDqId>=0) && (ctx->LimitDqId < maxDqIdInAU))
+		if ((ctx->LimitDqId>=0) && (ctx->LimitDqId < (s32) maxDqIdInAU))
 			maxDqIdInAU = ctx->LimitDqId;
 
 		/*decode only current layer*/

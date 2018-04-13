@@ -385,7 +385,7 @@ packed_frame :
 		gf_filter_pck_discard(dst_pck);
 
 	if (res + 6 < frame.length) {
-		frame.bitstream += res;
+		frame.bitstream = ((char *)frame.bitstream) + res;
 		frame.length -= res;
 		goto packed_frame;
 	}
@@ -415,7 +415,7 @@ static const GF_FilterArgs XVIDArgs[] =
 	{ OFFS(dering_y), "enable Y deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(dering_uv), "enable UV deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 #endif
-	{}
+	{0}
 };
 
 GF_FilterRegister XVIDRegister = {

@@ -38,7 +38,6 @@
 # endif
 #endif
 
-
 #include <openjpeg.h>
 #include <gpac/isomedia.h>
 
