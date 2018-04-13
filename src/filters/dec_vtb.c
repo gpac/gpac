@@ -43,6 +43,7 @@
 #include <gpac/maths.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
+#include <gpac/filters.h>
 
 #include "../../src/compositor/gl_inc.h"
 
