@@ -82,11 +82,19 @@ typedef struct
 
 } GF_PropertyEntry;
 
-#define HASH_TABLE_SIZE 30
+#ifndef GF_PROPS_HASHTABLE_SIZE
+#define GF_PROPS_HASHTABLE_SIZE 0
+#endif
+
+void gf_propmap_del(void *pmap);
 
 typedef struct
 {
-	GF_List *hash_table[HASH_TABLE_SIZE];
+#if GF_PROPS_HASHTABLE_SIZE
+	GF_List *hash_table[GF_PROPS_HASHTABLE_SIZE];
+#else
+	GF_List *properties;
+#endif
 	volatile u32 reference_count;
 	GF_FilterSession *session;
 	//current timescale, cached for duration/buffer compute
@@ -105,7 +113,11 @@ GF_List *gf_props_get_list(GF_PropertyMap *map);
 
 const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name);
 
+#if GF_PROPS_HASHTABLE_SIZE
 u32 gf_props_hash_djb2(u32 p4cc, const char *str);
+#else
+#define gf_props_hash_djb2(_a, _b) 0
+#endif
 
 GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props, gf_filter_prop_filter filter_prop, void *cbk);
 
@@ -267,12 +279,14 @@ struct __gf_media_session
 
 	//reservoir for property maps for PID and packets properties
 	GF_FilterQueue *prop_maps_reservoir;
-	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties
-	GF_FilterQueue *prop_maps_list_reservoir;
 	//reservoir for property entries  - properties may be inherited between packets
 	GF_FilterQueue *prop_maps_entry_reservoir;
 	//reservoir for property entries with allocated data buffers - properties may be inherited between packets
 	GF_FilterQueue *prop_maps_entry_data_alloc_reservoir;
+#if GF_PROPS_HASHTABLE_SIZE
+	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties
+	GF_FilterQueue *prop_maps_list_reservoir;
+#endif
 
 	GF_Mutex *props_mx;
 

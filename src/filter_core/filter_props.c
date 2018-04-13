@@ -330,6 +330,7 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 	return GF_FALSE;
 }
 
+#if GF_PROPS_HASHTABLE_SIZE
 GFINLINE u32 gf_props_hash_djb2(u32 p4cc, const char *str)
 {
 	u32 hash = 5381;
@@ -345,8 +346,9 @@ GFINLINE u32 gf_props_hash_djb2(u32 p4cc, const char *str)
 			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
 	}
-	return (hash % HASH_TABLE_SIZE);
+	return (hash % GF_PROPS_HASHTABLE_SIZE);
 }
+#endif
 
 GF_PropertyMap * gf_props_new(GF_Filter *filter)
 {
@@ -358,6 +360,10 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 		GF_SAFEALLOC(map, GF_PropertyMap);
 		map->session = filter->session;
 	}
+#if GF_PROPS_HASHTABLE_SIZE
+#else
+	map->properties = gf_list_new();
+#endif
 	assert(!map->reference_count);
 	map->reference_count = 1;
 	return map;
@@ -397,10 +403,22 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 	}
 }
 
+void gf_propmap_del(void *pmap)
+{
+#if GF_PROPS_HASHTABLE_SIZE
+	gf_free(pamp);
+#else
+	GF_PropertyMap *map = pmap;
+	gf_list_del(map->properties);
+	gf_free(map);
+#endif
+
+}
 void gf_props_reset(GF_PropertyMap *prop)
 {
+#if GF_PROPS_HASHTABLE_SIZE
 	u32 i;
-	for (i=0; i<HASH_TABLE_SIZE; i++) {
+	for (i=0; i<GF_PROPS_HASHTABLE_SIZE; i++) {
 		if (prop->hash_table[i]) {
 			GF_List *l = prop->hash_table[i];
 			while (gf_list_count(l)) {
@@ -410,6 +428,11 @@ void gf_props_reset(GF_PropertyMap *prop)
 			gf_fq_add(prop->session->prop_maps_list_reservoir, l);
 		}
 	}
+#else
+	while (gf_list_count(prop->properties)) {
+		gf_props_del_property(prop, (GF_PropertyEntry *) gf_list_pop_back(prop->properties) );
+	}
+#endif
 }
 
 void gf_props_del(GF_PropertyMap *prop)
@@ -425,6 +448,7 @@ void gf_props_del(GF_PropertyMap *prop)
 //purge existing property of same name
 void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name)
 {
+#if GF_PROPS_HASHTABLE_SIZE
 	if (map->hash_table[hash]) {
 		u32 i, count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
@@ -436,23 +460,21 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 			}
 		}
 	}
-#if 1
-	{
-		u32 i, j, count;
-		for (i=0; i<HASH_TABLE_SIZE; i++) {
-			count = gf_list_count(map->hash_table[i]);
-			for (j=0; j<count; j++) {
-				GF_PropertyEntry *prop = gf_list_get(map->hash_table[i], j);
-				if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
-					assert(0);
-				}
-			}
+#else
+	u32 i, count = gf_list_count(map->properties);
+	for (i=0; i<count; i++) {
+		GF_PropertyEntry *prop = gf_list_get(map->properties, i);
+		if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
+			gf_list_rem(map->properties, i);
+			gf_props_del_property(map, prop);
+			break;
 		}
 	}
 #endif
 
 }
 
+#if GF_PROPS_HASHTABLE_SIZE
 GF_List *gf_props_get_list(GF_PropertyMap *map)
 {
 	GF_List *l;
@@ -462,11 +484,13 @@ GF_List *gf_props_get_list(GF_PropertyMap *map)
 	if (!l) l = gf_list_new();
 	return l;
 }
+#endif
 
 GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
 {
 	GF_PropertyEntry *prop;
 	char *src_ptr;
+	u32 i, count;
 
 	if ((value->type == GF_PROP_DATA) || (value->type == GF_PROP_DATA_NO_COPY)) {
 		if (!value->value.data.ptr) {
@@ -474,11 +498,12 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 			return GF_BAD_PARAM;
 		}
 	}
+#if GF_PROPS_HASHTABLE_SIZE
 	if (! map->hash_table[hash] ) {
 		map->hash_table[hash] = gf_props_get_list(map);
 		if (!map->hash_table[hash]) return GF_OUT_OF_MEM;
 	} else {
-		u32 i, count = gf_list_count(map->hash_table[hash]);
+		count = gf_list_count(map->hash_table[hash]);
 		if (count) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries before insertion:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, gf_list_count(map->hash_table[hash]) ));
 			for (i=0; i<count; i++) {
@@ -488,6 +513,17 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 			}
 		}
 	}
+#else
+	count = gf_list_count(map->properties);
+	if (count) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries before insertion:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, gf_list_count(map->properties) ));
+		for (i=0; i<count; i++) {
+			GF_PropertyEntry *prop_c = gf_list_get(map->properties, i);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
+			assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
+		}
+	}
+#endif
 	if ((value->type == GF_PROP_DATA) && value->value.data.ptr) {
 		prop = gf_fq_pop(map->session->prop_maps_entry_data_alloc_reservoir);
 	} else {
@@ -531,7 +567,12 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		prop->alloc_size = value->value.data.size;
 	}
 
+#if GF_PROPS_HASHTABLE_SIZE
 	return gf_list_add(map->hash_table[hash], prop);
+#else
+	return gf_list_add(map->properties, prop);
+#endif
+
 }
 
 GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
@@ -547,6 +588,7 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 	u32 i, count, hash;
 	const GF_PropertyValue *res=NULL;
 	hash = gf_props_hash_djb2(prop_4cc, name);
+#if GF_PROPS_HASHTABLE_SIZE
 	if (map->hash_table[hash] ) {
 		count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
@@ -558,17 +600,15 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 			}
 		}
 	}
-#if 1
-	{
-		u32 i, j, count, nb_props=0;
-		for (i=0; i<HASH_TABLE_SIZE; i++) {
-			count = gf_list_count(map->hash_table[i]);
-			for (j=0; j<count; j++) {
-				GF_PropertyEntry *prop = gf_list_get(map->hash_table[i], j);
-				if (&prop->prop == res) nb_props++;
-			}
+#else
+	count = gf_list_count(map->properties);
+	for (i=0; i<count; i++) {
+		GF_PropertyEntry *p = gf_list_get(map->properties, i);
+
+		if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
+			res = &p->prop;
+			break;
 		}
-		assert(nb_props<=1);
 	}
 #endif
 	return res;
@@ -577,42 +617,63 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props, gf_filter_prop_filter filter_prop, void *cbk)
 {
 	GF_Err e;
-	u32 i, count, idx;
+	u32 i, count;
+#if GF_PROPS_HASHTABLE_SIZE
+	u32 idx;
+#endif
+	GF_List *list;
 	dst_props->timescale = src_props->timescale;
-	for (idx=0; idx<HASH_TABLE_SIZE; idx++) {
-		if (src_props->hash_table[idx]) {
-			count = gf_list_count(src_props->hash_table[idx] );
 
+#if GF_PROPS_HASHTABLE_SIZE
+	for (idx=0; idx<GF_PROPS_HASHTABLE_SIZE; idx++) {
+		if (src_props->hash_table[idx]) {
+			list = src_props->hash_table[idx];
+#else
+			list = src_props->properties;
+#endif
+			count = gf_list_count(list);
 			for (i=0; i<count; i++) {
-				GF_PropertyEntry *prop = gf_list_get(src_props->hash_table[idx], i);
+				GF_PropertyEntry *prop = gf_list_get(list, i);
 				assert(prop->reference_count);
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
 
+#if GF_PROPS_HASHTABLE_SIZE
 					if (!dst_props->hash_table[idx]) {
 						dst_props->hash_table[idx] = gf_props_get_list(dst_props);
 						if (!dst_props->hash_table[idx]) return GF_OUT_OF_MEM;
 					}
 					e = gf_list_add(dst_props->hash_table[idx], prop);
 					if (e) return e;
+#else
+					e = gf_list_add(dst_props->properties, prop);
+					if (e) return e;
+#endif
 				}
 			}
+#if GF_PROPS_HASHTABLE_SIZE
 		}
 	}
+#endif
 	return GF_OK;
 }
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name)
 {
-	u32 i, count, idx;
+#if GF_PROPS_HASHTABLE_SIZE
+	u32 i, count;
+#endif
+	u32 idx;
+	
+	const GF_PropertyEntry *pe;
 	if (!io_idx) return NULL;
 
 	idx = *io_idx;
-	if (idx== 0xFFFFFFFF) return NULL;
+	if (idx == 0xFFFFFFFF) return NULL;
 
-	for (i=0; i<HASH_TABLE_SIZE; i++) {
+#if GF_PROPS_HASHTABLE_SIZE
+	for (i=0; i<GF_PROPS_HASHTABLE_SIZE; i++) {
 		if (props->hash_table[i]) {
-			const GF_PropertyEntry *pe;
 			count = gf_list_count(props->hash_table[i]);
 			if (idx >= count) {
 				idx -= count;
@@ -631,6 +692,21 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 	}
 	*io_idx = 0xFFFFFFFF;
 	return NULL;
+#else
+	if (idx >= gf_list_count(props->properties)) {
+		*io_idx = 0xFFFFFFFF;
+		return NULL;
+	}
+	pe = gf_list_get(props->properties, idx);
+	if (!pe) {
+		*io_idx = 0xFFFFFFFF;
+		return NULL;
+	}
+	if (prop_4cc) *prop_4cc = pe->p4cc;
+	if (prop_name) *prop_name = pe->pname;
+	*io_idx = (*io_idx) + 1;
+	return &pe->prop;
+#endif
 }
 
 GF_EXPORT
