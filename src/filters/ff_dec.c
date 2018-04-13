@@ -92,7 +92,7 @@ static GF_Err ffdec_initialize(GF_Filter *filter)
 static void ffdec_finalize(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
-	return;
+
 	if (ctx->options) av_dict_free(&ctx->options);
 	if (ctx->frame) av_frame_free(&ctx->frame);
 	if (ctx->sws_ctx) sws_freeContext(ctx->sws_ctx);
