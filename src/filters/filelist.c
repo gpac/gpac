@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2018
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter

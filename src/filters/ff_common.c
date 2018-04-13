@@ -23,7 +23,23 @@
  *
  */
 
+#include <gpac/setup.h>
+
+#ifdef GPAC_HAS_FFMPEG
+
 #include "ff_common.h"
+
+
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "avutil")
+#  pragma comment(lib, "avformat")
+#  pragma comment(lib, "avcodec")
+#  pragma comment(lib, "avdevice")
+#  pragma comment(lib, "swscale")
+# endif
+#endif
+
 
 static Bool ffmpeg_init = GF_FALSE;
 
@@ -677,3 +693,4 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
 }
 
 
+#endif

@@ -662,8 +662,10 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't allocate semaphore\n"));
 		return NULL;
 	}
+	MaxCount = MIN(MaxCount, GF_INT_MAX);
+
 #if defined(WIN32)
-	tmp->hSemaphore = CreateSemaphore(NULL, InitCount, MaxCount, NULL);
+	tmp->hSemaphore = CreateSemaphore(NULL, InitCount, MIN(MaxCount, GF_INT_MAX), NULL);
 	if (!tmp->hSemaphore) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't create semaphore\n"));
 		gf_free(tmp);

@@ -68,7 +68,7 @@
 typedef ret (GLAPICAST proc_ ## funname)args;	\
 extern proc_ ## funname funname;	\
 
-#define GLDECL_STATIC(funname) proc_ ## funname funname = NULL
+#define GLDECL_STATIC(funname) static proc_ ## funname funname = NULL
 
 #if defined GPAC_USE_TINYGL
 //no extensions with TinyGL
@@ -135,9 +135,7 @@ GLDECL(void *, glUnmapBuffer, (GLenum) )
 
 #define TEXTURE_TYPE GL_TEXTURE_2D
 
-//already loaded in compositor - we should cleanup all this
-#if 0
-//#ifdef WIN32
+#ifdef WIN32
 GLDECL_STATIC(glActiveTexture);
 GLDECL_STATIC(glClientActiveTexture);
 GLDECL_STATIC(glCreateProgram);
@@ -163,6 +161,39 @@ GLDECL_STATIC(glBufferSubData);
 GLDECL_STATIC(glMapBuffer);
 GLDECL_STATIC(glUnmapBuffer);
 #endif
+
+#if !defined(GPAC_DISABLE_3D) && defined(WIN32)
+
+static void vout_load_gl()
+{
+	if (glActiveTexture) return;
+	GET_GLFUN(glActiveTexture);
+	GET_GLFUN(glClientActiveTexture);
+	GET_GLFUN(glCreateProgram);
+	GET_GLFUN(glDeleteProgram);
+	GET_GLFUN(glLinkProgram);
+	GET_GLFUN(glUseProgram);
+	GET_GLFUN(glCreateShader);
+	GET_GLFUN(glDeleteShader);
+	GET_GLFUN(glShaderSource);
+	GET_GLFUN(glCompileShader);
+	GET_GLFUN(glAttachShader);
+	GET_GLFUN(glDetachShader);
+	GET_GLFUN(glGetShaderiv);
+	GET_GLFUN(glGetInfoLogARB);
+	GET_GLFUN(glGetUniformLocation);
+	GET_GLFUN(glUniform1f);
+	GET_GLFUN(glUniform1i);
+	GET_GLFUN(glGenBuffers);
+	GET_GLFUN(glDeleteBuffers);
+	GET_GLFUN(glBindBuffer);
+	GET_GLFUN(glBufferData);
+	GET_GLFUN(glBufferSubData);
+	GET_GLFUN(glMapBuffer);
+	GET_GLFUN(glUnmapBuffer);
+}
+#endif
+
 
 
 static char *glsl_yuv_shader = "#version 120\n"\
@@ -484,6 +515,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 
 	if ((dw != ctx->display_width) || (dh != ctx->display_height) ) {
+
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.width = dw;
@@ -492,6 +524,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #ifndef GPAC_DISABLE_3D
 		if (ctx->mode<MODE_2D) {
 			evt.setup.opengl_mode = 1;
+			//always double buffer
+			evt.setup.back_buffer = 1;
 		} else
 #endif
 		{
@@ -502,13 +536,30 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->display_width = evt.setup.width;
 		ctx->display_height = evt.setup.height;
 		ctx->display_changed = GF_TRUE;
+
+#if !defined(GPAC_DISABLE_3D) && defined(WIN32)
+		vout_load_gl();
+		if ((ctx->mode<MODE_2D) && (glCompileShader == NULL)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load openGL, fallback to 2D rastzer\n"));
+			evt.setup.opengl_mode = 0;
+			evt.setup.back_buffer = 1;
+			ctx->mode = MODE_2D;
+			ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+		}
+#endif
+
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_SIZE;
+		evt.size.width = dw;
+		evt.size.height = dh;
+		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	} else if ((ctx->size.x>0) && (ctx->size.y>0)) {
 		ctx->display_width = ctx->size.x;
 		ctx->display_height = ctx->size.y;
 		ctx->display_changed = GF_TRUE;
 	}
 	if (ctx->fullscreen) {
-		u32 nw=0, nh=0;
+		u32 nw=ctx->display_width, nh=ctx->display_height;
 		ctx->video_out->SetFullScreen(ctx->video_out, GF_TRUE, &nw, &nh);
 	} else if ((ctx->pos.x!=-1) && (ctx->pos.y!=-1)) {
 		memset(&evt, 0, sizeof(GF_Event));
@@ -675,7 +726,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		Float hw, hh;
 
 		ctx->memory_format = GL_UNSIGNED_BYTE;
-
 		ctx->glsl_program = glCreateProgram();
 		ctx->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 		vout_compile_shader(ctx->vertex_shader, "vertex", default_glsl_vertex);
@@ -948,39 +998,6 @@ static GF_Err vout_initialize(GF_Filter *filter)
 			ctx->mode = MODE_2D;
 		}
 	}
-
-#ifndef GPAC_DISABLE_3D
-
-//#ifdef WIN32
-#if 0
-	GET_GLFUN(glActiveTexture);
-	GET_GLFUN(glClientActiveTexture);
-	GET_GLFUN(glCreateProgram);
-	GET_GLFUN(glDeleteProgram);
-	GET_GLFUN(glLinkProgram);
-	GET_GLFUN(glUseProgram);
-	GET_GLFUN(glCreateShader);
-	GET_GLFUN(glDeleteShader);
-	GET_GLFUN(glShaderSource);
-	GET_GLFUN(glCompileShader);
-	GET_GLFUN(glAttachShader);
-	GET_GLFUN(glDetachShader);
-	GET_GLFUN(glGetShaderiv);
-	GET_GLFUN(glGetInfoLogARB);
-	GET_GLFUN(glGetUniformLocation);
-	GET_GLFUN(glUniform1f);
-	GET_GLFUN(glUniform1i);
-	GET_GLFUN(glGenBuffers);
-	GET_GLFUN(glDeleteBuffers);
-	GET_GLFUN(glBindBuffer);
-	GET_GLFUN(glBufferData);
-	GET_GLFUN(glBufferSubData);
-	GET_GLFUN(glMapBuffer);
-	GET_GLFUN(glUnmapBuffer);
-#endif
-
-#endif
-
 	return GF_OK;
 }
 
@@ -1347,7 +1364,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	u32 size;
 	GF_Err e;
 	GF_VideoSurface src_surf;
-	GF_Window dst_wnd;
+	GF_Window dst_wnd, src_wnd;
 
 	memset(&src_surf, 0, sizeof(GF_VideoSurface));
 	src_surf.width = ctx->width;
@@ -1423,8 +1440,12 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	dst_wnd.h = (u32) ctx->dh;
 	e = GF_EOS;
 
+	src_wnd.x = src_wnd.y = 0;
+	src_wnd.w = ctx->width;
+	src_wnd.h = ctx->height;
+
 	if ((ctx->mode!=MODE_2D_SOFT) && ctx->video_out->Blit) {
-		e = ctx->video_out->Blit(ctx->video_out, &src_surf, NULL, &dst_wnd, 0);
+		e = ctx->video_out->Blit(ctx->video_out, &src_surf, &src_wnd, &dst_wnd, 0);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error bliting surface %s - retrying in software mode\n", gf_error_to_string(e) ));
 		}
@@ -1446,8 +1467,16 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 	}
 
-	if (e==GF_OK)
-		ctx->video_out->Flush(ctx->video_out, NULL);
+	if (e == GF_OK) {
+		dst_wnd.x = 0;
+		dst_wnd.y = 0;
+		dst_wnd.w = ctx->display_width;
+		dst_wnd.h = ctx->display_height;
+		e = ctx->video_out->Flush(ctx->video_out, &dst_wnd);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error flushing vido output %s%s\n", gf_error_to_string(e)));
+		}
+	}
 
 	return;
 }

@@ -32,7 +32,11 @@
 
 #if defined(_WIN32_WCE) || defined(_WIN64) || defined(__SYMBIAN32__)
 #ifndef FPM_DEFAULT
+#ifdef GPAC_64_BITS
+#define FPM_64BIT
+#else
 #define FPM_DEFAULT
+#endif
 #endif
 #endif
 
@@ -220,7 +224,7 @@ static GF_Err maddec_process(GF_Filter *filter)
 	if (ctx->timescale != ctx->sample_rate) {
 		u64 dur = num * ctx->timescale;
 		dur /= ctx->sample_rate;
-		gf_filter_pck_set_duration(dst_pck, dur);
+		gf_filter_pck_set_duration(dst_pck, (u32) dur);
 		ctx->last_cts += dur;
 	} else {
 		gf_filter_pck_set_duration(dst_pck, num);
