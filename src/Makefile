@@ -221,6 +221,42 @@ FILTERS_CFLAGS+=$(ffmpeg_cflags)
 EXTRALIBS+=$(ffmpeg_lflags)
 endif
 
+ifneq ($(CONFIG_FAAD),no)
+EXTRALIBS+=-lfaad
+endif
+
+ifneq ($(CONFIG_MAD),no)
+EXTRALIBS+=-lmad
+endif
+
+ifneq ($(CONFIG_XVID),no)
+EXTRALIBS+=-lxvidcore
+endif
+
+ifneq ($(CONFIG_A52),no)
+EXTRALIBS+=-la52
+endif
+
+ifneq ($(CONFIG_VORBIS),no)
+EXTRALIBS+=-lvorbis
+endif
+
+ifneq ($(CONFIG_THEORA),no)
+EXTRALIBS+=-ltheora
+endif
+
+ifneq ($(CONFIG_JP2),no)
+EXTRALIBS+=-lopenjpeg
+endif
+
+ifeq ($(CONFIG_OPENHEVC),yes)
+EXTRALIBS+=-lopenhevc
+endif
+
+ifeq ($(CONFIG_OPENSVC),yes)
+EXTRALIBS+=-lopensvc
+endif
+
 ifeq ($(CONFIG_VTB),yes)
 EXTRALIBS+=$(vtb_ldflags)
 endif

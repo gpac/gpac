@@ -3115,12 +3115,30 @@ fi
 
 
 echo "CONFIG_JP2=$has_openjpeg" >> config.mak
+if test "$has_openjpeg" != "no" ; then
+    echo "#define GPAC_HAS_JP2" >> $TMPH
+fi
 echo "CONFIG_FAAD=$has_faad" >> config.mak
+if test "$has_faad" != "no" ; then
+    echo "#define GPAC_HAS_FAAD" >> $TMPH
+fi
 echo "CONFIG_MAD=$has_mad" >> config.mak
+if test "$has_mad" != "no" ; then
+    echo "#define GPAC_HAS_MAD" >> $TMPH
+fi
 echo "CONFIG_XVID=$has_xvid" >> config.mak
+if test "$has_xvid" != "no" ; then
+    echo "#define GPAC_HAS_XVID" >> $TMPH
+fi
 echo "CONFIG_OGG=$has_ogg" >> config.mak
 echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
+if test "$has_vorbis" != "no" ; then
+    echo "#define GPAC_HAS_VORBIS" >> $TMPH
+fi
 echo "CONFIG_THEORA=$has_theora" >> config.mak
+if test "$has_theora" != "no" ; then
+    echo "#define GPAC_HAS_THEORA" >> $TMPH
+fi
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
 if test "$has_ffmpeg" = "no"; then
 echo "DISABLE_DASHCAST=yes" >> config.mak
@@ -3129,6 +3147,7 @@ else
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
     echo "CONFIG_LIBAVRESAMPLE=$has_libavresample" >> config.mak
+    echo "#define GPAC_HAS_FFMPEG" >> $TMPH
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 
@@ -3136,6 +3155,9 @@ echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak
 echo "CONFIG_A52=$has_a52" >> config.mak
+if test "$has_a52" != "no" ; then
+    echo "#define GPAC_HAS_LIBA52" >> $TMPH
+fi
 echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
 echo "CONFIG_FREENECT=$has_freenect" >> config.mak
 if test "$has_freenect" != "no"
@@ -3266,12 +3288,14 @@ echo "CONFIG_OPENSVC=$has_opensvc" >> config.mak
 if test "$has_opensvc" = "yes" ; then
     echo "OSVC_CFLAGS=$osvc_cflags" >> config.mak
     echo "OSVC_LDFLAGS=$osvc_ldflags" >> config.mak
+    echo "#define GPAC_HAS_OPENSVC" >> $TMPH
 fi
 
 echo "CONFIG_OPENHEVC=$has_openhevc" >> config.mak
 if test "$has_openhevc" = "yes" ; then
     echo "OHEVC_CFLAGS=$ohevc_cflags" >> config.mak
     echo "OHEVC_LDFLAGS=$ohevc_ldflags" >> config.mak
+    echo "#define GPAC_HAS_OPENHEVC" >> $TMPH
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak

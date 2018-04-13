@@ -111,7 +111,6 @@ void filelist_update_pid_props(GF_FileListCtx *ctx, GF_FilterPid *pid)
 {
 	char *com = ctx->szCom;
 	while (com[0]) {
-		char *next;
 		char c;
 		u32 end=0;
 		//strip whitespace and comma
@@ -125,7 +124,6 @@ void filelist_update_pid_props(GF_FileListCtx *ctx, GF_FilterPid *pid)
 		while (com[end] && !strchr(FILELIST_SEP_SET, com[end])) {
 			end++;
 		}
-		next = com + end;
 		c = com[end];
 		com[end]=0;
 

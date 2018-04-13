@@ -65,9 +65,9 @@
 #define CFG_FILE_NAME	"GPAC.cfg"
 
 #if defined(GPAC_CONFIG_WIN32)
-#define TEST_MODULE		"gm_dummy_in.dll"
+#define TEST_MODULE		"gm_soft_raster.dll"
 #else
-#define TEST_MODULE		"gm_dummy_in.so"
+#define TEST_MODULE		"gm_soft_raster.so"
 #endif
 
 #endif

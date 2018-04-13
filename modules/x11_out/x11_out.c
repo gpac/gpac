@@ -32,6 +32,23 @@
 #include <X11/Xatom.h>
 #include <errno.h>
 
+enum
+{
+	GF_PIXEL_IYUV = GF_4CC('I', 'Y', 'U', 'V'),
+	GF_PIXEL_I420 = GF_4CC('I', '4', '2', '0'),
+	/*!YUV packed format*/
+	GF_PIXEL_UYNV = GF_4CC('U', 'Y', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_YUNV = GF_4CC('Y', 'U', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_V422 = GF_4CC('V', '4', '2', '2'),
+
+	GF_PIXEL_YV12 = GF_4CC('Y', 'V', '1', '2'),
+	GF_PIXEL_Y422 = GF_4CC('Y', '4', '2', '2'),
+	GF_PIXEL_YUY2 = GF_4CC('Y', 'U', 'Y', '2'),
+};
+
+
 void X11_SetupWindow (GF_VideoOutput * vout);
 
 #ifdef GPAC_HAS_OPENGL
@@ -1409,7 +1426,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		xWindow->pixel_format = GF_PIXEL_RGB_565;
 		break;
 	case 24:
-		xWindow->pixel_format = GF_PIXEL_RGB_32;
+		xWindow->pixel_format = GF_PIXEL_RGB;
 		break;
 	default:
 		xWindow->pixel_format = GF_PIXEL_GREYSCALE;
