@@ -657,7 +657,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 			dev_fmt = NULL;
 		}
 #else
-		dev_fmt = NULL;
+		//not supported for old FFMPE versions
 #endif
 	}
 #if LIBAVCODEC_VERSION_MAJOR >= 58
@@ -674,6 +674,10 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		}
 	}
 #endif
+	if (!dev_fmt) {
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] No input format specified\n", ctx->fname, ctx->fmt));
+		return GF_BAD_PARAM;
+	}
 
 	dev_name = ctx->dev;
 
