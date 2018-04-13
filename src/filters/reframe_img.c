@@ -31,6 +31,11 @@
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
 #else
+
+#ifdef GPAC_CONFIG_LINUX
+#include <arpa/inet.h>
+#endif
+
 typedef struct tagBITMAPFILEHEADER
 {
 	u16	bfType;

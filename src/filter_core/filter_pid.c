@@ -1507,7 +1507,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	u32 min_length=GF_INT_MAX;
 	u32 i, count;
 	const GF_FilterRegister *dst_filter = dst->freg;
-	char *force_freg, prefRegistry[1001];
+	char prefRegistry[1001];
 	char szForceReg[20];
 
 	if (filter_reassigned)
@@ -1516,7 +1516,6 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	if (!dst) return NULL;
 
 	sprintf(szForceReg, "gfreg%c", pid->filter->session->sep_name);
-	force_freg = NULL;
 	prefRegistry[0]=0;
 	//look for reg given in
 	concat_reg(pid->filter->session, prefRegistry, szForceReg, pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args);

@@ -80,7 +80,7 @@ static void ALSA_Shutdown(GF_AudioOutput*dr)
 	ctx->wav_buf = NULL;
 }
 
-static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err ALSA_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
 {
 	snd_pcm_hw_params_t *hw_params = NULL;
 	int err;
@@ -122,12 +122,20 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 	/*set output format*/
 	ctx->nb_ch = (int) (*NbChannels);
 	ctx->block_align = ctx->nb_ch;
-	if ((*nbBitsPerSample) == 16) {
+
+	//only support for PCM 8/16/24/32 packet mode
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+		err = snd_pcm_hw_params_set_format(ctx->playback_handle, hw_params, SND_PCM_FORMAT_U8);
+		break;
+	default:
+		*audioFormat = GF_AUDIO_FMT_S16;
+	case GF_AUDIO_FMT_S16:
 		ctx->block_align *= 2;
 		err = snd_pcm_hw_params_set_format(ctx->playback_handle, hw_params, SND_PCM_FORMAT_S16_LE);
-	} else {
-		err = snd_pcm_hw_params_set_format(ctx->playback_handle, hw_params, SND_PCM_FORMAT_U8);
+		break;
 	}
+
 	if (err < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot set sample format: %s\n", snd_strerror (err)) );
 		goto err_exit;
@@ -327,7 +335,7 @@ void *NewALSAOutput()
 	driv->SelfThreaded = 0;
 	driv->Setup = ALSA_Setup;
 	driv->Shutdown = ALSA_Shutdown;
-	driv->ConfigureOutput = ALSA_ConfigureOutput;
+	driv->Configure = ALSA_Configure;
 	driv->GetAudioDelay = ALSA_GetAudioDelay;
 	driv->SetVolume = ALSA_SetVolume;
 	driv->SetPan = ALSA_SetPan;

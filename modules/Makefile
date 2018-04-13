@@ -73,16 +73,10 @@ PLUGDIRS+=wav_out
 ifeq ($(CONFIG_DIRECTX),yes)
 PLUGDIRS+=dx_hw
 endif
-ifeq ($(HAS_OPENGL),yes)
-PLUGDIRS+=nvdec
-endif
 endif
 
 #other linux
 ifeq ($(CONFIG_LINUX),yes)
-ifeq ($(HAS_OPENGL),yes)
-PLUGDIRS+=nvdec
-endif
 endif
 
 #all modules below are not (yet) included in static build

@@ -330,8 +330,8 @@ Jack_Shutdown (GF_AudioOutput * dr)
 #define JACK_PORT_NAME_MAX_SZ 128
 
 static GF_Err
-Jack_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
-                      u32 * nbBitsPerSample, u32 channel_cfg)
+Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
+                      u32 *audioFormat, u32 channel_cfg)
 {
 	u32 channels;
 	u32 i;
@@ -339,18 +339,31 @@ Jack_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
 	JackContext *ctx = (JackContext *) dr->opaque;
 	if (!ctx)
 		return GF_BAD_PARAM;
-	ctx->bytesPerSample = *nbBitsPerSample / 8;
+
+	//only support for PCM 8/16/24/32 packet mode
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+		ctx->bytesPerSample = 1;
+		break;
+	default:
+		//otherwise force PCM16
+		*audioFormat = GF_AUDIO_FMT_S16;
+	case GF_AUDIO_FMT_S16:
+		ctx->bytesPerSample = 2;
+		break;
+	}
+
 	if (ctx->bytesPerSample > 2 || ctx->bytesPerSample < 1)
 	{
 		GF_LOG (GF_LOG_ERROR, GF_LOG_MMIO,
-		        ("[Jack] Jack-ConfigureOutput : unable to use %d bits/sample.\n"));
+		        ("[Jack] Jack-ConfigureOutput : unable to use audio format %s.\n", gf_audio_fmt_name(*audioFormat) ));
 		return GF_BAD_PARAM;
 	}
 	ctx->numChannels = *NbChannels;
 	*SampleRate = jack_get_sample_rate (ctx->jack);
 	GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO,
-	        ("[Jack] Jack_ConfigureOutput channels=%d, srate=%d bits/sample=%d\n",
-	         *NbChannels, *SampleRate, *nbBitsPerSample));
+	        ("[Jack] Jack_ConfigureOutput channels=%d, srate=%d audio format %s\n",
+	         *NbChannels, *SampleRate, gf_audio_fmt_name(*audioFormat) ));
 	if (ctx->jackPorts == NULL)
 		ctx->jackPorts = gf_calloc (ctx->numChannels, sizeof (jack_port_t *));
 	if (ctx->jackPorts == NULL)
@@ -501,7 +514,7 @@ NewJackOutput ()
 	driv->SelfThreaded = 1;
 	driv->Setup = Jack_Setup;
 	driv->Shutdown = Jack_Shutdown;
-	driv->ConfigureOutput = Jack_ConfigureOutput;
+	driv->Configure = Jack_Configure;
 	driv->GetAudioDelay = Jack_GetAudioDelay;
 	driv->SetVolume = Jack_SetVolume;
 	driv->SetPan = Jack_SetPan;

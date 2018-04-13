@@ -29,8 +29,8 @@
 #include <gpac/network.h>
 
 #ifndef WIN32
-#define GPAC_HAS_LINUX_DVB
-#define GPAC_SIM_LINUX_DVB
+//#define GPAC_HAS_LINUX_DVB
+//#define GPAC_SIM_LINUX_DVB
 #endif
 
 
@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef GPAC_SIM_LINUX_DVB
 #include <linux/dvb/dmx.h>
@@ -336,10 +337,7 @@ void dvblin_finalize(GF_Filter *filter)
 
 GF_FilterProbeScore dvblin_probe_url(const char *url, const char *mime_type)
 {
-	if (!strnicmp(url, "udp://", 6)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "tcp://", 6)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "mpegts-udp://", 13)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "mpegts-tcp://", 13)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "dvb://", 6)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 

@@ -237,7 +237,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 	if (!ctx->raw_pck_out)
 		av_free_packet(&ctx->pkt);
-	return GF_OK;
+	return e;
 }
 
 

@@ -67,14 +67,14 @@ typedef struct
 	Bool use_systems_memory;
 
 
+	Bool disable_vsync;
+
 #if SDL_VERSION_ATLEAST(2,0,0)
 	char szCaption[100];
 	Bool enable_defer_mode;
 	Bool needs_clear;
 	Bool needs_bb_flush;
 	Bool needs_bb_grab;
-
-	Bool disable_vsync;
 
 	SDL_GLContext gl_context;
 	SDL_Renderer *renderer;
