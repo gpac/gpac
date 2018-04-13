@@ -875,7 +875,8 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 #else
 
 #include <gpac/filters.h>
-*ffdmx_register(GF_FilterSession *session)
+
+const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
 	return NULL;
 }
