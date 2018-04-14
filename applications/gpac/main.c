@@ -485,6 +485,7 @@ static int gpac_main(int argc, char **argv)
 	loaded_filters = gf_list_new();
 	for (i=1; i<argc; i++) {
 		GF_Filter *filter;
+		Bool is_simple=GF_FALSE;
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
 
@@ -508,6 +509,7 @@ static int gpac_main(int argc, char **argv)
 			filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
 		} else {
 			filter = gf_fs_load_filter(session, arg);
+			is_simple=GF_TRUE;
 		}
 		if (link_prev_filter>=0) {
 			GF_Filter *link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_prev_filter);
@@ -522,7 +524,7 @@ static int gpac_main(int argc, char **argv)
 		}
 
 		if (!filter) {
-			fprintf(stderr, "Failed to load filter %s\n", arg);
+			fprintf(stderr, "Failed to load filter%s %s\n", is_simple ? "" : " for",  arg);
 			e = GF_NOT_SUPPORTED;
 			goto exit;
 		}

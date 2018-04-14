@@ -65,27 +65,7 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-	if (!prop) return GF_NOT_SUPPORTED;
-	ctx->width = prop->value.uint;
-
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-	if (!prop) return GF_NOT_SUPPORTED;
-	ctx->height = prop->value.uint;
-
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
-	if (!prop) return GF_NOT_SUPPORTED;
-	ctx->pixel_format = prop->value.uint;
-
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
-	if (prop) ctx->stride = prop->value.uint;
-
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE_UV);
-	if (prop) ctx->stride_uv = prop->value.uint;
-
 	ctx->ipid = pid;
-	gf_pixel_get_size_info(ctx->pixel_format, ctx->width, ctx->height, NULL, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
-
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 	}
@@ -94,8 +74,30 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_PNG ));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 
 	gf_filter_set_name(filter, "encpng:"PNG_LIBPNG_VER_STRING );
+	//not yeat ready
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (!prop) return GF_OK;
+	ctx->width = prop->value.uint;
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	if (!prop) return GF_OK;
+	ctx->height = prop->value.uint;
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+	if (!prop) return GF_OK;
+	ctx->pixel_format = prop->value.uint;
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
+	if (prop) ctx->stride = prop->value.uint;
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE_UV);
+	if (prop) ctx->stride_uv = prop->value.uint;
+
+	gf_pixel_get_size_info(ctx->pixel_format, ctx->width, ctx->height, NULL, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
 
 	switch (ctx->pixel_format) {
 	case GF_PIXEL_GREYSCALE:
@@ -252,6 +254,11 @@ static GF_Err pngenc_process(GF_Filter *filter)
 	default:
 		break;
 	}
+		sig_bit.gray = 8;
+		sig_bit.alpha = 8;
+		sig_bit.red = 8;
+		sig_bit.green = 8;
+		sig_bit.blue = 8;
 	png_set_sBIT(png_ptr, info_ptr, &sig_bit);
 
 	//todo add support for tags

@@ -359,11 +359,11 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 	if (!map) {
 		GF_SAFEALLOC(map, GF_PropertyMap);
 		map->session = filter->session;
-	}
 #if GF_PROPS_HASHTABLE_SIZE
 #else
-	map->properties = gf_list_new();
+		map->properties = gf_list_new();
 #endif
+	}
 	assert(!map->reference_count);
 	map->reference_count = 1;
 	return map;
@@ -511,16 +511,6 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
 				assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
 			}
-		}
-	}
-#else
-	count = gf_list_count(map->properties);
-	if (count) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries before insertion:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, gf_list_count(map->properties) ));
-		for (i=0; i<count; i++) {
-			GF_PropertyEntry *prop_c = gf_list_get(map->properties, i);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
-			assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
 		}
 	}
 #endif
