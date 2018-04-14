@@ -72,7 +72,7 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 static void gpac_filter_help(void)
 {
 	fprintf(stderr,
-"Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
+"Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
 "This is the command line utility of GPAC for setting up and running filter chains.\n"
 "See -h for available options.\n"
 "Help is given with default separator sets :=#,@. See -s to change them.\n"
@@ -87,8 +87,11 @@ static void gpac_filter_help(void)
 "\tEX: \"filter:ARG=http://foo/bar?yes:opt=VAL\" will fail to extract it and keep :opt=VAL as part of the URL\n"
 "Note that the escape mechanism is not needed for local source files, for which file existence is probed during argument parsing\n"
 "\n"
-"Source and sinks filters do not need to be adressed by the filter name, specifying src= or dst= instead is enough\n"
-"\tEX: \"src=file.mp4\" will find a filter (for example filein) able to load src, and is equivalent to filein:src=file.mp4\n"
+"Source and sinks filters do not need to be adressed by the filter name, specifying src= or dst= instead is enough.\n"
+"You can also use the syntax -src URL or -i URL for sources and -dst URL or -o URL for destination\n"
+"This allows prompt completion in shells\n"
+"\tEX: \"src=file.mp4\", or \"-src file.mp4\" will find a filter (for example filein) able to load src\n"
+"The same result can be achieved by using \"filein:src=file.mp4\"\n"
 "\tEX: \"src=file.mp4 dst=dump.yuv\" will dump the video content of file.mp4 in dump.yuv\n"
 "\tSpecific source or sink filters may also be specified using filterName:src=URL or filterName:dst=URL.\n"
 "\n"
@@ -484,11 +487,24 @@ static int gpac_main(int argc, char **argv)
 	//all good to go, load filters
 	loaded_filters = gf_list_new();
 	for (i=1; i<argc; i++) {
-		GF_Filter *filter;
+		GF_Filter *filter=NULL;
 		Bool is_simple=GF_FALSE;
+		Bool f_loaded = GF_FALSE;
 		char *arg = argv[i];
-		if (arg[0]=='-') continue;
 
+		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") ) {
+			filter = gf_fs_load_source(session, argv[i+1], NULL, NULL, &e);
+			i++;
+			f_loaded = GF_TRUE;
+		} else if (!strcmp(arg, "-dst") || !strcmp(arg, "-o") ) {
+			filter = gf_fs_load_destination(session, argv[i+1], NULL, NULL, &e);
+			i++;
+			f_loaded = GF_TRUE;
+		}
+		//appart from the above src/dst, other args starting with - are not filters
+		else if (arg[0]=='-') {
+			continue;
+		}
 		if (arg[0]== separator_set[SEP_LINK] ) {
 			char *ext = strchr(arg, separator_set[SEP_FRAG]);
 			if (ext) {
@@ -503,14 +519,23 @@ static int gpac_main(int argc, char **argv)
 			continue;
 		}
 
-		if (!strncmp(arg, "src=", 4) ) {
-			filter = gf_fs_load_source(session, arg+4, NULL, NULL, &e);
-		} else if (!strncmp(arg, "dst=", 4) ) {
-			filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
-		} else {
-			filter = gf_fs_load_filter(session, arg);
-			is_simple=GF_TRUE;
+		if (!f_loaded) {
+			if (!strncmp(arg, "src=", 4) ) {
+				filter = gf_fs_load_source(session, arg+4, NULL, NULL, &e);
+			} else if (!strncmp(arg, "dst=", 4) ) {
+				filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
+			} else {
+				filter = gf_fs_load_filter(session, arg);
+				is_simple=GF_TRUE;
+			}
 		}
+
+		if (!filter) {
+			fprintf(stderr, "Failed to load filter%s %s\n", is_simple ? "" : " for",  arg);
+			e = GF_NOT_SUPPORTED;
+			goto exit;
+		}
+
 		if (link_prev_filter>=0) {
 			GF_Filter *link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_prev_filter);
 			if (!link_from) {
@@ -523,11 +548,6 @@ static int gpac_main(int argc, char **argv)
 			link_prev_filter_ext = NULL;
 		}
 
-		if (!filter) {
-			fprintf(stderr, "Failed to load filter%s %s\n", is_simple ? "" : " for",  arg);
-			e = GF_NOT_SUPPORTED;
-			goto exit;
-		}
 		gf_list_add(loaded_filters, filter);
 	}
 	if (!gf_list_count(loaded_filters)) {
