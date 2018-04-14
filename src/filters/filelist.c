@@ -133,7 +133,7 @@ void filelist_update_pid_props(GF_FileListCtx *ctx, GF_FilterPid *pid)
 		else {
 			char *sep = strchr(com, '=');
 			if (!sep) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] bad command format in playlist: %s, expecting '='\n", com));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] %s doesn't look like a command syntax A=b, skipping\n", com));
 			} else {
 				u32 p4cc=0;
 				u32 prop_type=0;
