@@ -636,6 +636,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		Bool notified;
 		Bool requeue = GF_FALSE;
 		u64 active_start, task_time;
+		u32 consecutive_filter_tasks;
 		GF_FSTask *task=NULL;
 #ifdef CHECK_TASK_LIST_INTEGRITY
 		GF_Filter *prev_current_filter = NULL;
@@ -645,6 +646,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", thid, use_main_sema ? "main" : "secondary"));
 			//wait for something to be done
 			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
+			consecutive_filter_tasks = 0;
 		}
 
 		active_start = gf_sys_clock_high_res();
@@ -885,6 +887,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (current_filter) {
 			current_filter->nb_tasks_done++;
 			current_filter->time_process += task_time;
+			consecutive_filter_tasks++;
 			gf_mx_p(current_filter->tasks_mx);
 
 			//drop task from filter task list if this was not a requeued task
@@ -892,9 +895,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_fq_pop(current_filter->tasks);
 
 			//no more pending tasks for this filter
-			if ((gf_fq_count(current_filter->tasks) == 0) || (requeue && current_filter->stream_reset_pending) ) {
-//				assert (gf_fq_count(current_filter->tasks) == 0);
-
+			if ((gf_fq_count(current_filter->tasks) == 0)
+				//or requeue request and stream reset pending (we must exit the filter task loop for the task to pe processed)
+				|| (requeue && current_filter->stream_reset_pending)
+				//or requeue request and we have been running on that filter for more than 10 times, abort
+				|| (requeue && (consecutive_filter_tasks>10))
+			) {
 				current_filter->in_process = GF_FALSE;
 				if (current_filter->stream_reset_pending)
 					current_filter->in_process = GF_FALSE;

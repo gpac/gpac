@@ -487,6 +487,7 @@ struct __gf_filter
 
 	GF_PropertyMap *caps_negociate;
 	Bool is_pid_adaptation_filter;
+	GF_FilterPidInst *swap_pidinst;
 
 	const GF_FilterCapability *forced_caps;
 	u32 nb_forced_caps;
@@ -549,6 +550,8 @@ struct __gf_filter_pid_inst
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile s64 buffer_duration;
+
+	volatile s32 detach_pending;
 
 	void *udta;
 

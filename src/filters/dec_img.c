@@ -78,7 +78,13 @@ static GF_Err imgdec_process(GF_Filter *filter)
 	GF_IMGDecCtx *ctx = (GF_IMGDecCtx *) gf_filter_get_udta(filter);
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) return GF_EOS;
+	if (!pck) {
+			if (gf_filter_pid_is_eos(ctx->ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
 	data = (char *) gf_filter_pck_get_data(pck, &size);
 
 	if ((ctx->codecid == GF_CODECID_JPEG) || (ctx->codecid == GF_CODECID_PNG)) {

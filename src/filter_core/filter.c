@@ -63,7 +63,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	}
 	//for now we always use a lock on the filter task lists
 	//TODO: this is our only lock in lock-free mode, we need to find a way to avoid this lock
-	//maybe using permanent filter task?
 	snprintf(szName, 200, "Filter%sTasks", filter->freg->name);
 	filter->tasks_mx = gf_mx_new(szName);
 
@@ -737,7 +736,7 @@ void gf_filter_check_output_reconfig(GF_Filter *filter)
 	}
 }
 
-static void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, Bool was_pid_inst)
+static void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *pidi)
 {
 	GF_Filter *new_f;
 	GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
@@ -758,13 +757,25 @@ static void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filte
 			gf_list_del(pid->adapters_blacklist);
 			pid->adapters_blacklist = NULL;
 		}
-	} else {
-		new_f->caps_negociate = pid->caps_negociate;
-		safe_int_inc(&new_f->caps_negociate->reference_count);
-
-		safe_int_inc(&pid->filter->out_pid_connection_pending);
-		gf_filter_pid_post_connect_task(new_f, pid);
+		return;
 	}
+	//detach pid instance from its source pid
+	if (pidi) {
+		//signal as detached, this will prevent any further packet access
+		safe_int_inc(&pidi->detach_pending);
+		//signal a stream reset is pending to prevent filter entering endless loop
+		safe_int_inc(&pidi->filter->stream_reset_pending);
+
+		//keep track of the pidinst being detached in the new filter
+		new_f->swap_pidinst = pidi;
+	}
+
+	new_f->caps_negociate = pid->caps_negociate;
+	safe_int_inc(&new_f->caps_negociate->reference_count);
+
+	//mark this filter has having pid connection pending to prevent packet dispatch until the connection is done
+	safe_int_inc(&pid->filter->out_pid_connection_pending);
+	gf_filter_pid_post_connect_task(new_f, pid);
 }
 
 Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
@@ -868,19 +879,16 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 						} else {
 							//disconnect pid, but prevent filter from unloading
 							if (!filter_dst->sticky) filter_dst->sticky = 2;
-
-							gf_fs_post_task(filter->session, gf_filter_pid_detach_task, pidi->filter, pid, "pidinst_detach", NULL);
-
-							gf_filter_renegociate_output_dst(pid, filter, filter_dst, GF_TRUE);
+							gf_filter_renegociate_output_dst(pid, filter, filter_dst, pidi);
 						}
 					}
 				}
 				//we are deconnected (unload of a previous adaptation filter)
-				else  {
+				else {
 					filter_dst = pid->caps_dst_filter;
 					assert(pid->num_destinations==0);
 					pid->caps_dst_filter = NULL;
-					gf_filter_renegociate_output_dst(pid, filter, filter_dst, GF_FALSE);
+					gf_filter_renegociate_output_dst(pid, filter, filter_dst, NULL);
 				}
 			}
 			if (safe_int_dec(&pid->caps_negociate->reference_count)==0) {
