@@ -151,7 +151,9 @@ typedef struct
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	AVCState avc;
+#ifndef GPAC_DISABLE_HEVC
 	HEVCState hevc;
+#endif
 	Bool slice_header_clear;
 	Bool is_avc;
 #endif
