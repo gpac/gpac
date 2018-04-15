@@ -1335,10 +1335,17 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		if (trak) samp_count += trak->sample_count_at_seg_start;
 #endif
 
-		e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, samp_count, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", samp_count, gf_error_to_string(e) ));
-			return e;
+		if (trak) {
+			e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, samp_count, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", samp_count, gf_error_to_string(e) ));
+				return e;
+			}
+		}
+		//no init movie setup (segment dump/inspaction, assume default encrypted and 16 bytes IV
+		else {
+			is_encrypted = GF_TRUE;
+			sai->IV_size = 16;
 		}
 
 		if (is_encrypted) {

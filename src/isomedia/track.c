@@ -411,7 +411,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, Bool is_first_merge)
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
 {
 	u32 i, j, chunk_size;
 	u64 base_offset, data_offset;
@@ -439,8 +439,15 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	def_size = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_SIZE) ? traf->tfhd->def_sample_size : traf->trex->def_sample_size;
 	def_flags = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) ? traf->tfhd->def_sample_flags : traf->trex->def_sample_flags;
 
-	//locate base offset
-	base_offset = (traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) ? traf->tfhd->base_data_offset : moof_offset;
+	//locate base offset, by default use moof (dash-like)
+	base_offset = moof_offset;
+	//explicit base offset, use it
+	if (traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET)
+		base_offset = traf->tfhd->base_data_offset;
+	//no moof offset and no explicit offset, the offset is the end of the last written chunk of
+	//the previous traf. For the first traf, *cumulated_offset is actually moof offset
+	else if (!(traf->tfhd->flags & GF_ISOM_MOOF_BASE_OFFSET))
+		base_offset = *cumulated_offset;
 
 	chunk_size = 0;
 	prev_trun_data_offset = 0;
@@ -485,19 +492,22 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			//add chunk on first sample
 			if (!j) {
 				data_offset = base_offset;
-				//aggregated offset if base-data-offset-present is not set AND if default-base-is-moof is not set
-				if (!(traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) && !(traf->tfhd->flags & GF_ISOM_MOOF_BASE_OFFSET) )
-					data_offset += chunk_size;
-
+				//we have an explicit data offset for this trun
 				if (trun->flags & GF_ISOM_TRUN_DATA_OFFSET) {
 					data_offset += trun->data_offset;
 					/*reset chunk size since data is now relative to this trun*/
 					chunk_size = 0;
 					/*remember this data offset for following trun*/
 					prev_trun_data_offset = trun->data_offset;
-				} else {
+				}
+				//we had an explicit data offset for the previous trun, use it + chunk size
+				else if (prev_trun_data_offset) {
 					/*data offset is previous chunk size plus previous offset of the trun*/
-					data_offset += prev_trun_data_offset;
+					data_offset += prev_trun_data_offset + chunk_size;
+				}
+				//no explicit data offset, continuous data after last data in previous chunk
+				else {
+					data_offset += chunk_size;
 				}
 				stbl_AppendChunk(trak->Media->information->sampleTable, data_offset);
 				//then sampleToChunk
@@ -525,6 +535,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 		}
 	}
+	//in any case, update the cumulated offset
+	//this will handle hypothetical files mixing MOOF offset and implicit non-moof offset
+	*cumulated_offset = data_offset + chunk_size;
+
 	/*merge sample groups*/
 	if (traf->sampleGroups) {
 		GF_List *groups;
@@ -661,6 +675,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 					break;
 				}
 			}
+			if (!senc && trak->sample_encryption)
+				senc = trak->sample_encryption;
+				
 			if (!senc) {
 				if (traf->sample_encryption->is_piff) {
 					senc = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
@@ -669,8 +686,6 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				}
 
 				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
-
-				assert(trak->sample_encryption == NULL);
 
 				trak->sample_encryption = senc;
 				gf_isom_box_add_default((GF_Box *)trak, (GF_Box *)senc);

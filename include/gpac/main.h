@@ -36,7 +36,7 @@ extern "C" {
  */
 	
 /*!
-/*! \addtogroup cst_grp Constants
+ * \addtogroup cst_grp Constants
  *	\brief main() macro for windows systems to handle UTF input.
  *
  *	@{

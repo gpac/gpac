@@ -793,6 +793,7 @@ void gf_mpd_base_url_free(void *_item)
 	GF_MPD_BaseURL *base_url = (GF_MPD_BaseURL *)_item;
 	if (base_url->service_location) gf_free(base_url->service_location);
 	if (base_url->URL) gf_free(base_url->URL);
+	if (base_url->redirection) gf_free(base_url->redirection);
 	gf_free(base_url);
 }
 
@@ -2491,7 +2492,7 @@ static char *gf_mpd_get_base_url(GF_List *baseURLs, char *url, u32 *base_url_ind
 
 	url_child = gf_list_get(baseURLs, idx);
 	if (url_child) {
-		char *t_url = gf_url_get_absolute_path(url_child->URL, url);
+		char *t_url = gf_url_get_absolute_path(url_child->redirection ? url_child->redirection : url_child->URL, url);
 		gf_free(url);
 		url = t_url;
 	}
