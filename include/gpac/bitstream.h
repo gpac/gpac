@@ -546,10 +546,7 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs);
  *Returns the size of the associated buffer/file.
  *\param dst the target bitstream
  *\param src the source bitstream.
-<<<<<<< HEAD
  *\param keep_src If not set, the source bitstream is empty after calling the function
-=======
->>>>>>> master
  *\return error if any
  */
 GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src);
