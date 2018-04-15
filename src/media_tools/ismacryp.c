@@ -922,6 +922,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 {
 	u32 clear_bytes = 0;
 	if (tci->slice_header_clear) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		u32 nal_start = gf_bs_get_position(plaintext_bs);
 		if (tci->is_avc) {
 			u32 ntype = gf_bs_read_u8(plaintext_bs);
@@ -944,6 +945,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 				break;
 			}
 		} else {
+#if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
 			u32 nal_start = gf_bs_get_position(plaintext_bs);
 			tci->hevc.full_slice_header_parse = GF_TRUE;
@@ -955,6 +957,13 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			}
 		}
 		gf_bs_seek(plaintext_bs, nal_start);
+#endif
+
+#else
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] AV parsers disabled, cannot get slice header size. Assuming 8 bytes is enough, but resulting file will not be compliant\n"));
+		clear_bytes = 8;
+#endif //GPAC_DISABLE_AV_PARSERS
+
 	} else {
 		clear_bytes = bytes_in_nalhr;
 	}
@@ -1196,6 +1205,7 @@ exit:
 	return e;
 }
 
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 static void hevc_parse_ps(GF_HEVCConfig *hevccfg, HEVCState *hevc, u32 nal_type)
 {
 	u32 i, j;
@@ -1209,6 +1219,7 @@ static void hevc_parse_ps(GF_HEVCConfig *hevccfg, HEVCState *hevc, u32 nal_type)
 		}
 	}
 }
+#endif
 
 /*encrypts track - logs, progress: info callbacks, NULL for default*/
 GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
@@ -1266,6 +1277,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 			tci->is_avc = GF_TRUE;
 
+#if !defined(GPAC_DISABLE_HEVC)
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, i);
 				gf_media_avc_read_sps(slc->data, slc->size, &tci->avc, 0, NULL);
@@ -1274,6 +1286,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->pictureParameterSets, i);
 				gf_media_avc_read_pps(slc->data, slc->size, &tci->avc);
 			}
+#endif
 			if (avccfg) gf_odf_avc_cfg_del(avccfg);
 			if (svccfg) gf_odf_avc_cfg_del(svccfg);
 			is_nalu_video = GF_TRUE;
@@ -1283,9 +1296,11 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			if (hevccfg)
 				nalu_size_length = hevccfg->nal_unit_size;
 
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 			hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_VID_PARAM);
 			hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_SEQ_PARAM);
 			hevc_parse_ps(hevccfg, &tci->hevc, GF_HEVC_NALU_PIC_PARAM);
+#endif
 			//mandatory for HEVC
 			tci->slice_header_clear = GF_TRUE;
 			tci->is_avc = GF_FALSE;
