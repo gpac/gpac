@@ -700,6 +700,9 @@ void isor_send_cenc_config(ISOMChannel *ch)
 	gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, NULL);
 
 	com.drm_cfg.PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+	//no pssh, skip event
+	if (!com.drm_cfg.PSSH_count) return;
+
 	com.drm_cfg.PSSHs = gf_malloc(sizeof(GF_NetComDRMConfigPSSH)*(com.drm_cfg.PSSH_count) );
 
 	/*fill PSSH in the structure. We will free it in CENC_Setup*/

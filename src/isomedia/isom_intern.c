@@ -400,6 +400,15 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 							if (e) return e;
 						}
 					}
+				} else {
+					for (k=0; k<gf_list_count(mov->moof->TrackList); k++) {
+						GF_TrackFragmentBox *traf = gf_list_get(mov->moof->TrackList, k);
+						if (traf->sample_encryption) {
+							e = senc_Parse(mov->movieFileMap->bs, NULL, traf, traf->sample_encryption);
+							if (e) return e;
+						}
+					}
+
 				}
 			} else if (mov->openMode==GF_ISOM_OPEN_CAT_FRAGMENTS) {
 				mov->NextMoofNumber = mov->moof->mfhd->sequence_number+1;

@@ -1415,6 +1415,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			evt.sai = hdr.sai;
 			evt.saiz = hdr.saiz;
 			evt.IV_size = hdr.IV_size;
+			evt.crypt_byte_block = hdr.crypt_byte_block;
+			evt.skip_byte_block = hdr.skip_byte_block;
+			if (!evt.IV_size) {
+				evt.constant_IV_size = hdr.constant_IV_size;
+				memmove(evt.constant_IV, hdr.constant_IV, hdr.constant_IV_size);
+			}
 		}
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 
