@@ -386,7 +386,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 {
 	GF_ISOFile *mov = ch->owner->mov;
 	u32 track = ch->track;
-	u32 scheme_type, scheme_version;
+	u32 scheme_type, scheme_version, PSSH_count=0;
 	const char *kms_uri, *scheme_uri;
 
 	if (!ch->is_encrypted) return;
@@ -406,7 +406,12 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		ch->is_cenc = GF_TRUE;
 
 		gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &scheme_type, &scheme_version, NULL);
+
+		PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+		//if no PSSH declared, don't update the properties
+		if (!PSSH_count) return;
 	}
+
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
 	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
@@ -415,7 +420,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	if (ch->is_cenc) {
 		char *psshd;
 		GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		u32 i, s, PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+		u32 i, s;
 
 		gf_bs_write_u32(pssh_bs, PSSH_count);
 

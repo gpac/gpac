@@ -123,6 +123,7 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MOOF:
 	case GF_ISOM_BOX_TYPE_STYP:
+	case GF_ISOM_BOX_TYPE_SIDX:
 		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
@@ -2826,6 +2827,15 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			gf_isom_box_array_del(stbl->sampleGroups);
 			stbl->sampleGroups = NULL;
 
+			if (trak->sample_encryption) {
+				gf_list_del_item(trak->other_boxes, trak->sample_encryption);
+				if (trak->Media->information->sampleTable->other_boxes) {
+					gf_list_del_item(trak->Media->information->sampleTable->other_boxes, trak->sample_encryption);
+				}
+				gf_isom_box_del((GF_Box*)trak->sample_encryption);
+				trak->sample_encryption = NULL;
+			}
+
 			j = stbl->nb_sgpd_in_stbl;
 			while ((a = (GF_Box *)gf_list_enum(stbl->sampleGroupsDescription, &j))) {
 				gf_isom_box_del(a);
@@ -4045,7 +4055,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 		return GF_BAD_PARAM;
 #endif
 
-	if (trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
+	if (trak && trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
 		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, &edit);
 	} else {
 		//this is dump mode of fragments, we haven't merged tables yet :(

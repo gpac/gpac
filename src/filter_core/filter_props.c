@@ -490,8 +490,9 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 {
 	GF_PropertyEntry *prop;
 	char *src_ptr;
+#if GF_PROPS_HASHTABLE_SIZE
 	u32 i, count;
-
+#endif
 	if ((value->type == GF_PROP_DATA) || (value->type == GF_PROP_DATA_NO_COPY)) {
 		if (!value->value.data.ptr) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt at defining data property %s with NULL pointer, not allowed\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name ));

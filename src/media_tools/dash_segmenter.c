@@ -358,8 +358,14 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		strcat(segment_name, "init");
 
 	if (!is_init && !is_template && !is_init_template && !is_index && !has_number) {
-		sprintf(tmp, "%d", segment_number);
-		strcat(segment_name, tmp);
+		if (use_segment_timeline) {
+			sprintf(tmp, LLU, start_time);
+			strcat(segment_name, tmp);
+		}
+		else {
+			sprintf(tmp, "%d", segment_number);
+			strcat(segment_name, tmp);
+		}
 	}
 	if (seg_ext) {
 		strcat(segment_name, ".");
@@ -404,12 +410,12 @@ const char *gf_dasher_strip_output_dir(const char *mpd_url, const char *path)
 	return res;
 }
 
-GF_Err gf_dasher_store_segment_info(GF_DASHSegmenter *dasher, const char *representationID, const char *SegmentName, u64 segStartTime, u64 segEndTime)
+GF_Err gf_dasher_store_segment_info(GF_DASHSegmenter *dasher, const char *representationID, const char *SegmentName, u64 segStartTime, u64 segEndTime, u64 scale)
 {
 	char szKey[512];
 	if (!dasher->dash_ctx) return GF_OK;
 
-	sprintf(szKey, ""LLU"-"LLU"@%s", segStartTime, segEndTime-segStartTime, representationID);
+	sprintf(szKey, ""LLU"-"LLU"-"LLU"@%s", segStartTime, segEndTime-segStartTime, scale, representationID);
 	return gf_cfg_set_key(dasher->dash_ctx, "SegmentsStartTimes", SegmentName, szKey);
 }
 
@@ -709,6 +715,7 @@ static void gf_dash_append_segment_timeline(GF_BitStream *mpd_timeline_bs, u64 s
 {
 	char szMPDTempLine[2048];
 	u64 segment_dur = segment_end - segment_start;
+
 	if (*previous_segment_duration == segment_dur) {
 		*segment_timeline_repeat_count = *segment_timeline_repeat_count + 1;
 		return;
@@ -736,6 +743,7 @@ static void gf_dash_append_segment_timeline(GF_BitStream *mpd_timeline_bs, u64 s
 static void gf_dash_load_segment_timeline(GF_DASHSegmenter *dasher, GF_BitStream *mpd_timeline_bs, const char *representationID, u64 *previous_segment_duration , Bool *first_segment_in_timeline,u32 *segment_timeline_repeat_count)
 {
 	u32 i, count;
+	u64 scale;
 	char szRepID[100];
 
 	*first_segment_in_timeline = GF_TRUE;
@@ -750,7 +758,7 @@ static void gf_dash_load_segment_timeline(GF_DASHSegmenter *dasher, GF_BitStream
 		if (!fileName)
 			break;
 
-		sscanf(MPDTime, ""LLU"-"LLU"@%s", &start, &dur, szRepID);
+		sscanf(MPDTime, ""LLU"-"LLU"-"LLU"@%s", &start, &dur, &scale, szRepID);
 		if (strcmp(representationID, szRepID)) continue;
 
 		gf_dash_append_segment_timeline(mpd_timeline_bs, start, start+dur, previous_segment_duration, first_segment_in_timeline, segment_timeline_repeat_count);
@@ -1170,31 +1178,34 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			TrackNum = gf_isom_get_track_by_id(output, gf_isom_get_track_id(input, i+1));
 		}
 
-		/*set extraction mode whether setup or not*/
-		vidtype = gf_isom_get_avc_svc_type(input, i+1, 1);
-		if (vidtype==GF_ISOM_AVCTYPE_AVC_ONLY) {
-			/*for AVC we concatenate SPS/PPS unless SVC base*/
-			if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
-				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
-		}
-		else if (vidtype > GF_ISOM_AVCTYPE_AVC_ONLY) {
-			/*for SVC we don't want any rewrite of extractors, and we don't concatenate SPS/PPS*/
-			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
-		}
+		//if encrypted, do not touch the media
+		if (!gf_isom_is_media_encrypted(input, i+1, 1)) {
+			/*set extraction mode whether setup or not*/
+			vidtype = gf_isom_get_avc_svc_type(input, i+1, 1);
+			if (vidtype==GF_ISOM_AVCTYPE_AVC_ONLY) {
+				/*for AVC we concatenate SPS/PPS unless SVC base*/
+				if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
+					gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+			}
+			else if (vidtype > GF_ISOM_AVCTYPE_AVC_ONLY) {
+				/*for SVC we don't want any rewrite of extractors, and we don't concatenate SPS/PPS*/
+				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
+			}
 
-		vidtype = gf_isom_get_hevc_lhvc_type(input, i+1, 1);
-		if (vidtype == GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+			vidtype = gf_isom_get_hevc_lhvc_type(input, i+1, 1);
+			if (vidtype == GF_ISOM_HEVCTYPE_HEVC_ONLY) {
 
-			u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;	//because of tile tracks
+				u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;	//because of tile tracks
 
-			/*concatenate SPS/PPS unless LHVC base*/
-			if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
-				mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
+				/*concatenate SPS/PPS unless LHVC base*/
+				if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
+					mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 
-			gf_isom_set_nalu_extract_mode(input, i+1, mode);
-		}
-		else if (vidtype > GF_ISOM_HEVCTYPE_HEVC_ONLY) {
-			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
+				gf_isom_set_nalu_extract_mode(input, i+1, mode);
+			}
+			else if (vidtype > GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
+			}
 		}
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
@@ -1624,7 +1635,10 @@ restart_fragmentation_pass:
 			} else {
 				start_range = gf_isom_get_file_size(output);
 				if (seg_rad_name) {
-					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switching, SegmentName, output_file, dash_input->representationID, dash_input->baseURL ? dash_input->baseURL[0] : NULL, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, period_duration + (u64)segment_start_time*mpd_timescale/dasher->dash_scale, bandwidth, cur_seg, dasher->use_segment_timeline);
+					u64 s_start = (u64)( (period_duration + (u64)segment_start_time) * mpd_timescale );
+					s_start /= dasher->dash_scale;
+
+					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switching, SegmentName, output_file, dash_input->representationID, dash_input->baseURL ? dash_input->baseURL[0] : NULL, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, s_start, bandwidth, cur_seg, dasher->use_segment_timeline);
 					e = gf_isom_start_segment(output, SegmentName, dasher->fragments_in_memory);
 
 					/*we are in bitstream switching mode, delete init segment*/
@@ -2196,20 +2210,25 @@ restart_fragmentation_pass:
 					}
 				}
 
-				s_start = (u64) ( ((Double)period_duration + segment_start_time) * mpd_timescale );
-				s_end = (u64) ( ((Double)period_duration + segment_start_time + SegmentDuration + (Double) tick_adjust)*mpd_timescale);
+				s_start = (u64)( (period_duration + (u64)segment_start_time) * mpd_timescale );
+				s_end = (u64)( (period_duration + (u64)(segment_start_time + SegmentDuration) + tick_adjust)*mpd_timescale );
 				s_start /= dasher->dash_scale;
 				s_end /= dasher->dash_scale;
+
 				//adjust
-				gf_dash_append_segment_timeline(mpd_timeline_bs, s_start, s_end, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
 				period_duration += tick_adjust;
+
+				gf_dash_append_segment_timeline(mpd_timeline_bs, s_start, s_end, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
+				gf_dasher_store_segment_info(dasher, dash_input->representationID, SegmentName, s_start, s_end, mpd_timescale);
+			}
+			else {
+				gf_dasher_store_segment_info(dasher, dash_input->representationID, SegmentName, period_duration + (u64)segment_start_time, (u64)(period_duration + segment_start_time + SegmentDuration), dasher->dash_scale);
 			}
 			if (dasher->max_segment_duration * dasher->dash_scale < SegmentDuration) {
 				dasher->max_segment_duration = (Double) SegmentDuration;
 				dasher->max_segment_duration /= dasher->dash_scale;
 			}
 
-			gf_dasher_store_segment_info(dasher, dash_input->representationID, SegmentName, period_duration + (u64)segment_start_time, (u64)(period_duration + segment_start_time + SegmentDuration));
 
 			segment_start_time += SegmentDuration;
 			nb_segments++;
@@ -2590,7 +2609,7 @@ restart_fragmentation_pass:
 				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, bandwidth, 0, dasher->use_segment_timeline);
 			}
 
-			fprintf(dasher->mpd, "    <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName,mpd_timescale, startNumber);
+;			fprintf(dasher->mpd, "    <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName,mpd_timescale, startNumber);
 			if (!dasher->use_segment_timeline) {
 				fprintf(dasher->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale + 0.5));
 			}
@@ -4553,7 +4572,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					dur = ref->subsegment_duration;
 					dur /= 90000;
 
-					gf_dasher_store_segment_info(dasher, dash_input->representationID, SegName, (u64) (current_time*dasher->dash_scale), (u64) ((current_time+dur)*dasher->dash_scale));
+					gf_dasher_store_segment_info(dasher, dash_input->representationID, SegName, (u64) (current_time*dasher->dash_scale), (u64) ((current_time+dur)*dasher->dash_scale), dasher->dash_scale);
 
 					current_time += dur;
 
@@ -5552,7 +5571,7 @@ static Bool gf_dasher_cleanup(GF_DASHSegmenter *dasher)
 	if (dasher->time_shift_depth >= 0) {
 		for (i=0; i<gf_cfg_get_key_count(dasher->dash_ctx, "SegmentsStartTimes"); i++) {
 			Double seg_time;
-			u64 start, dur;
+			u64 start, dur, scale;
 			char szRepID[100];
 			char szSecName[200];
 			u32 j;
@@ -5561,9 +5580,10 @@ static Bool gf_dasher_cleanup(GF_DASHSegmenter *dasher)
 			if (!fileName)
 				break;
 
-			sscanf(opt, ""LLU"-"LLU"@%s", &start, &dur, szRepID);
+			sscanf(opt, ""LLU"-"LLU"-"LLU"@%s", &start, &dur, &scale, szRepID);
 			seg_time = (Double) start;
-			seg_time /= dasher->dash_scale;
+			seg_time /= scale;
+
 			if (dasher->ast_offset_ms > 0)
 				seg_time += ((Double) dasher->ast_offset_ms) / 1000;
 
