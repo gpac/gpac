@@ -1006,7 +1006,7 @@ u32 gf_file_handles_count();
 /*!	@} */
 
 /*!
- *\addtogroup hash_grp RawData Misc
+ *\addtogroup hash_grp Hash and Compression
  *\ingroup utils_grp
  *\brief Data integrity and parsing
  *

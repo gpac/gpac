@@ -459,7 +459,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 	assert(!ctx->pid || (ctx->pid==pid));
-	gf_filter_pid_check_caps(pid);
+	if (!gf_filter_pid_check_caps(pid))
+		return GF_NOT_SUPPORTED;
 
 	w = h = pfmt = timescale = stride = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);

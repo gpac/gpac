@@ -887,7 +887,7 @@ GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_boun
 /*!
  Enable/Disable split on closest mode.
  *	\param dasher the DASH segmenter object
- *	\param split_on_bound if true, video streams are segmented as close to the segment boundary as possible
+ *	\param split_on_closest if true, video streams are segmented as close to the segment boundary as possible
  *	\return error code if any
 */
 GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest);
