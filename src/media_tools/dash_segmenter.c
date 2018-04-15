@@ -1177,31 +1177,34 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			TrackNum = gf_isom_get_track_by_id(output, gf_isom_get_track_id(input, i+1));
 		}
 
-		/*set extraction mode whether setup or not*/
-		vidtype = gf_isom_get_avc_svc_type(input, i+1, 1);
-		if (vidtype==GF_ISOM_AVCTYPE_AVC_ONLY) {
-			/*for AVC we concatenate SPS/PPS unless SVC base*/
-			if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
-				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
-		}
-		else if (vidtype > GF_ISOM_AVCTYPE_AVC_ONLY) {
-			/*for SVC we don't want any rewrite of extractors, and we don't concatenate SPS/PPS*/
-			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
-		}
+		//if encrypted, do not touch the media
+		if (!gf_isom_is_media_encrypted(input, i+1, 1)) {
+			/*set extraction mode whether setup or not*/
+			vidtype = gf_isom_get_avc_svc_type(input, i+1, 1);
+			if (vidtype==GF_ISOM_AVCTYPE_AVC_ONLY) {
+				/*for AVC we concatenate SPS/PPS unless SVC base*/
+				if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
+					gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+			}
+			else if (vidtype > GF_ISOM_AVCTYPE_AVC_ONLY) {
+				/*for SVC we don't want any rewrite of extractors, and we don't concatenate SPS/PPS*/
+				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
+			}
 
-		vidtype = gf_isom_get_hevc_lhvc_type(input, i+1, 1);
-		if (vidtype == GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+			vidtype = gf_isom_get_hevc_lhvc_type(input, i+1, 1);
+			if (vidtype == GF_ISOM_HEVCTYPE_HEVC_ONLY) {
 
-			u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;	//because of tile tracks
+				u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;	//because of tile tracks
 
-			/*concatenate SPS/PPS unless LHVC base*/
-			if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
-				mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
+				/*concatenate SPS/PPS unless LHVC base*/
+				if (!dash_input->trackNum && dasher->inband_param_set && !dash_input->disable_inband_param_set)
+					mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 
-			gf_isom_set_nalu_extract_mode(input, i+1, mode);
-		}
-		else if (vidtype > GF_ISOM_HEVCTYPE_HEVC_ONLY) {
-			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
+				gf_isom_set_nalu_extract_mode(input, i+1, mode);
+			}
+			else if (vidtype > GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
+			}
 		}
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
