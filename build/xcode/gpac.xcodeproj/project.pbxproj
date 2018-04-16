@@ -7,11 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2839E2C21A1636A7002D73E1 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
-		2839E2C31A163700002D73E1 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA641A15240800372C59 /* AVFoundation.framework */; };
-		2839E2C51A163712002D73E1 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2C41A163711002D73E1 /* CoreMedia.framework */; };
-		2839E2CB1A16375C002D73E1 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2CA1A16375C002D73E1 /* QTKit.framework */; };
-		2839E2CD1A163E1E002D73E1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2CC1A163E1E002D73E1 /* Foundation.framework */; };
 		28C5AA801A16277200372C59 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA741A15FF0000372C59 /* Carbon.framework */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
@@ -550,15 +545,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		2839E2861A1635F7002D73E1 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
 		927AACFB1E44EEDC008C8E69 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -598,7 +584,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		2839E2881A1635F7002D73E1 /* DashCast */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DashCast; sourceTree = BUILT_PRODUCTS_DIR; };
 		2839E2C41A163711002D73E1 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		2839E2C61A16371B002D73E1 /* CoreMediaIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMediaIO.framework; path = System/Library/Frameworks/CoreMediaIO.framework; sourceTree = SDKROOT; };
 		2839E2C81A16373B002D73E1 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = System/Library/Frameworks/QuickTime.framework; sourceTree = SDKROOT; };
@@ -1371,18 +1356,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		2839E2851A1635F7002D73E1 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				2839E2CD1A163E1E002D73E1 /* Foundation.framework in Frameworks */,
-				2839E2CB1A16375C002D73E1 /* QTKit.framework in Frameworks */,
-				2839E2C51A163712002D73E1 /* CoreMedia.framework in Frameworks */,
-				2839E2C31A163700002D73E1 /* AVFoundation.framework in Frameworks */,
-				2839E2C21A1636A7002D73E1 /* libgpac.dylib in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		9201F93418D5A38A003D1ACA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1655,7 +1628,6 @@
 		9201F93818D5A38A003D1ACA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2839E2881A1635F7002D73E1 /* DashCast */,
 				92BE509018D6325E00AA59D8 /* MP4Box */,
 				92BE50B318D6D53000AA59D8 /* MP42TS */,
 				92BE50C718D6D60100AA59D8 /* MP4Client */,
@@ -2754,23 +2726,6 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		2839E2871A1635F7002D73E1 /* DashCast */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 2839E28E1A1635F7002D73E1 /* Build configuration list for PBXNativeTarget "DashCast" */;
-			buildPhases = (
-				2839E2841A1635F7002D73E1 /* Sources */,
-				2839E2851A1635F7002D73E1 /* Frameworks */,
-				2839E2861A1635F7002D73E1 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = DashCast;
-			productName = DashCast;
-			productReference = 2839E2881A1635F7002D73E1 /* DashCast */;
-			productType = "com.apple.product-type.tool";
-		};
 		9201F93618D5A38A003D1ACA /* libgpac */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9201F93B18D5A38A003D1ACA /* Build configuration list for PBXNativeTarget "libgpac" */;
@@ -2927,7 +2882,6 @@
 				92BE508F18D6325E00AA59D8 /* MP4Box */,
 				92BE50B218D6D53000AA59D8 /* MP42TS */,
 				92BE50C618D6D60100AA59D8 /* MP4Client */,
-				2839E2871A1635F7002D73E1 /* DashCast */,
 				92AAF0D218D6DB2D00E2FF12 /* sdl_out */,
 				92AAF16418D6F40400E2FF12 /* ft_font */,
 				927AACFC1E44EEDC008C8E69 /* gpac */,
@@ -2952,13 +2906,6 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		2839E2841A1635F7002D73E1 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		9201F93318D5A38A003D1ACA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -3391,138 +3338,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		2839E28F1A1635F7002D73E1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-					DC_AUDIO_RESAMPLER,
-				);
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/local/lib,
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.9;
-				OTHER_LDFLAGS = (
-					"-lz",
-					"-lavcodec",
-					"-lavformat",
-					"-lavutil",
-					"-lswscale",
-					"-lbz2",
-					"-lswresample",
-					"-lx264",
-					"-lx265",
-					"-lavdevice",
-					"-lavfilter",
-					"-lavresample",
-					"-lpostproc",
-					"-liconv",
-					"-weak_framework",
-					VideoDecodeAcceleration,
-					"-weak_framework",
-					CoreFoundation,
-					"-weak_framework",
-					QuartzCore,
-					"-weak_framework",
-					CoreGraphics,
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		2839E2901A1635F7002D73E1 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
-					GPAC_CONFIG_DARWIN,
-					DC_AUDIO_RESAMPLER,
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/local/lib,
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.9;
-				OTHER_LDFLAGS = (
-					"-lz",
-					"-lavcodec",
-					"-lavformat",
-					"-lavutil",
-					"-lswscale",
-					"-lbz2",
-					"-lswresample",
-					"-lx264",
-					"-lx265",
-					"-lavdevice",
-					"-lavfilter",
-					"-lavresample",
-					"-lpostproc",
-					"-liconv",
-					"-weak_framework",
-					VideoDecodeAcceleration,
-					"-weak_framework",
-					CoreFoundation,
-					"-weak_framework",
-					QuartzCore,
-					"-weak_framework",
-					CoreGraphics,
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
 		9201F92E18D5A359003D1ACA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -4223,15 +4038,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2839E28E1A1635F7002D73E1 /* Build configuration list for PBXNativeTarget "DashCast" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				2839E28F1A1635F7002D73E1 /* Debug */,
-				2839E2901A1635F7002D73E1 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		9201F92C18D5A359003D1ACA /* Build configuration list for PBXProject "gpac" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
