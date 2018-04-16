@@ -1165,14 +1165,15 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			entry->bytes_encrypted_data = (nal_size - clear_bytes >= 16) ? nal_size - clear_bytes : 0  ;
 			gf_list_add(subsamples, entry);
 		} else {
+			u32 clear_trailing;
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
-			u32 clear_offset = samp->dataLength % 16;
+			clear_trailing = samp->dataLength % 16;
 			if (samp->dataLength >= 16) {
-				gf_crypt_encrypt(mc, buffer, samp->dataLength - clear_offset);
-				gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength - clear_offset);
+				gf_crypt_encrypt(mc, buffer, samp->dataLength - clear_trailing);
+				gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength - clear_trailing);
 			}
-			if (clear_offset) {
-				gf_bs_write_data(cyphertext_bs, buffer+samp->dataLength - clear_offset, clear_offset);
+			if (clear_trailing) {
+				gf_bs_write_data(cyphertext_bs, buffer+samp->dataLength - clear_trailing, clear_trailing);
 			}
 		}
 	}
