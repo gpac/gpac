@@ -1171,9 +1171,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
 		return e;
 	}
-	gf_fs_run(fsess);
+	e = gf_fs_run(fsess);
 	gf_fs_del(fsess);
-	return GF_OK;
+	return (e<GF_OK) ? e : GF_OK;
 }
 
 GF_EXPORT

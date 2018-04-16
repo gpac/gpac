@@ -57,6 +57,7 @@ typedef struct
 
 	/*input file*/
 	GF_ISOFile *mov;
+	Bool extern_mov;
 	u32 time_scale;
 	u32 nb_playing;
 	//source data is completely available

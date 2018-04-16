@@ -352,7 +352,9 @@ void isor_declare_objects(ISOMReader *read)
 
 		//OK declare PID
 		pid = gf_filter_pid_new(read->filter);
-		gf_filter_pid_copy_properties(pid, read->pid);
+		if (read->pid)
+			gf_filter_pid_copy_properties(pid, read->pid);
+
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esid));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(ocr_es_id));
 		if (depends_on_id && (depends_on_id != esid))
@@ -582,7 +584,9 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	else
 		pid = ch->pid;
 
-	gf_filter_pid_copy_properties(pid, read->pid);
+	if (read->pid)
+		gf_filter_pid_copy_properties(pid, read->pid);
+
 	gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
 	gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
 	//TODO: no support for LHEVC images

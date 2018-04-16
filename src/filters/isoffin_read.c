@@ -358,7 +358,14 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 		read->input_loaded = GF_TRUE;
 		return isoffin_setup(filter, read);
 	}
-
+	else if (read->mov) {
+		read->extern_mov = GF_TRUE;
+		read->input_loaded = GF_TRUE;
+		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
+		read->time_scale = gf_isom_get_timescale(read->mov);
+		isor_declare_objects(read);
+		gf_filter_post_process_task(filter);
+	}
 	return GF_OK;
 }
 
@@ -377,7 +384,7 @@ static void isoffin_finalize(GF_Filter *filter)
 	}
 	gf_list_del(read->channels);
 
-	if (read->mov) gf_isom_close(read->mov);
+	if (!read->extern_mov && read->mov) gf_isom_close(read->mov);
 	read->mov = NULL;
 }
 
@@ -751,6 +758,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			in_is_eos = GF_TRUE;
 			read->input_loaded = GF_TRUE;
 		}
+	} else if (read->extern_mov) {
+		in_is_eos = GF_TRUE;
 	}
 	if (read->moov_not_loaded) {
 		read->moov_not_loaded = GF_FALSE;
@@ -850,6 +859,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(alltracks), "loads all tracks (except hint) event when not supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
 	{0}
 };
 
