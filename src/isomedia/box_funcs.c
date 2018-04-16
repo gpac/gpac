@@ -88,7 +88,7 @@ static GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
 {
 	u32 type, uuid_type, hdr_size;
-	u64 size, start, end;
+	u64 size, start, payload_start, end;
 	char uuid[16];
 	GF_Err e;
 	GF_Box *newBox;
@@ -181,6 +181,9 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	}
 
 	if (!newBox->type) newBox->type = type;
+	payload_start = gf_bs_get_position(bs);
+
+retry_unknwon_box:
 
 	end = gf_bs_available(bs);
 	if (size - hdr_size > end ) {
@@ -206,6 +209,14 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
+
+		if (parent_type==GF_ISOM_BOX_TYPE_STSD) {
+			newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_UNKNOWN);
+			((GF_UnknownBox *)newBox)->original_4cc = type;
+			newBox->size = size;
+			gf_bs_seek(bs, payload_start);
+			goto retry_unknwon_box;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" failed (%s) - skipping\n", gf_4cc_to_str(type), gf_error_to_string(e)));
 
 		//we don't try to reparse known boxes that have been failing (too dangerous)
@@ -1191,7 +1202,9 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType)
 	GF_Box *a;
 	s32 idx = get_box_reg_idx(boxType, parentType);
 	if (idx==0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s\n", gf_4cc_to_str(boxType) ));
+		if (boxType != GF_ISOM_BOX_TYPE_UNKNOWN) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s\n", gf_4cc_to_str(boxType) ));
+		}
 		a = unkn_New(boxType);
 		if (a) a->registry = &box_registry[idx];
 		return a;
@@ -1247,6 +1260,8 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 			if (parent->type == GF_ISOM_BOX_TYPE_UNKNOWN)
 				parent_code = gf_4cc_to_str( ((GF_UnknownBox*)parent)->original_4cc );
 			if (strstr(a->registry->parents_4cc, parent_code) != NULL) {
+				parent_OK = GF_TRUE;
+			} else if (!strcmp(a->registry->parents_4cc, "*")) {
 				parent_OK = GF_TRUE;
 			} else {
 				//parent must be a sample entry
