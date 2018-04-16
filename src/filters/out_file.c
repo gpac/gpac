@@ -32,7 +32,7 @@ typedef struct
 {
 	//options
 	Double start, speed;
-	char *dst, *mime;
+	char *dst, *mime, *fext;
 	Bool append, dynext;
 
 	//only one output pid declared for now
@@ -148,8 +148,12 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	}
 	if (ctx->dynext) return GF_OK;
 
-	ext = strrchr(ctx->dst, '.');
-	if (!ext) ext = "*";
+	if (ctx->fext) ext = ctx->fext;
+	else {
+		ext = strrchr(ctx->dst, '.');
+		if (!ext) ext = "*";
+	}
+
 	if (!ext && !ctx->mime) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] No extension provided nor mime type for output file %s, cannot infer format\n", ctx->dst));
 		return GF_NOT_SUPPORTED;
@@ -317,6 +321,8 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(fext), "Sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+
 	{0}
 };
 
