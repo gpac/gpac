@@ -254,7 +254,7 @@ EXTRALIBS+=-lopenhevc
 endif
 
 ifeq ($(CONFIG_OPENSVC),yes)
-EXTRALIBS+=-lopensvc
+EXTRALIBS+=-lOpenSVCDec
 endif
 
 ifeq ($(CONFIG_VTB),yes)
