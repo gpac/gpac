@@ -870,6 +870,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		assert( task->run_task );
 		task_time = gf_sys_clock_high_res();
 
+		task->is_filter_process = GF_FALSE;
 		task->requeue_request = GF_FALSE;
 		task->run_task(task);
 		requeue = task->requeue_request;
@@ -906,6 +907,16 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					current_filter->in_process = GF_FALSE;
 
 				if (requeue) {
+					//filter process task are pushed back the queue of filter tasks
+					if (task->is_filter_process) {
+						GF_FSTask *a_task = gf_fq_pop(current_filter->tasks);
+						//if requeue
+						if (a_task) {
+							a_task->notified = task->notified;
+							gf_fq_add(current_filter->tasks, task);
+							task = a_task;
+						}
+					}
 					current_filter->process_th_id = 0;
 				} else {
 					//don't reset the flag if not requeued to make sure no other task posted from

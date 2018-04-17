@@ -150,7 +150,7 @@ GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_
 	return pck;
 }
 
-GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct)
+GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct, Bool intern_pck)
 {
 	GF_FilterPacket *pck;
 
@@ -169,16 +169,23 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u
 	pck->pck = pck;
 	pck->data = (char *) data;
 	pck->data_length = data_size;
-	pck->filter_owns_mem = GF_TRUE;
 	pck->destructor = destruct;
-
+	pck->filter_owns_mem = GF_TRUE;
+	if (!intern_pck) {
+		safe_int_inc(&pid->nb_shared_packets_out);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pid->filter->name, pid->name, pid->nb_shared_packets_out));
+	}
 	gf_filter_pck_reset_props(pck, pid);
-	safe_int_inc(&pid->nb_shared_packets_out);
 
 	assert(pck->pid);
 	return pck;
 }
 
+GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct)
+{
+	return gf_filter_pck_new_shared_internal(pid, data, data_size, destruct, GF_FALSE);
+
+}
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 data_size, GF_FilterPacket *reference)
 {
 	GF_FilterPacket *pck;
@@ -261,9 +268,10 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 			gf_props_del(props);
 		}
 	}
-	if (pck->filter_owns_mem) {
+	if (pck->filter_owns_mem && !pck->info.eos_type) {
 		assert(pck->pid->nb_shared_packets_out);
 		safe_int_dec(&pck->pid->nb_shared_packets_out);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pck->pid->filter->name, pck->pid->name, pck->pid->nb_shared_packets_out));
 	}
 
 	pck->data_length = 0;
@@ -273,6 +281,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		assert(pck->reference->pid->nb_shared_packets_out);
 		safe_int_dec(&pck->reference->pid->nb_shared_packets_out);
 		
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pck->reference->pid->filter->name, pck->reference->pid->name, pck->reference->pid->nb_shared_packets_out));
 		assert(pck->reference->reference_count);
 		if (safe_int_dec(&pck->reference->reference_count) == 0) {
 			gf_filter_packet_destroy(pck->reference);
