@@ -582,6 +582,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			return GF_OK;
 		}
 		ctx->init_mpeg12 = GF_FALSE;
+		ctx->reconfig_needed = GF_FALSE;
         break;
 		
 	case GF_CODECID_MPEG1:
@@ -591,6 +592,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			return GF_OK;
 		}
 		ctx->init_mpeg12 = GF_FALSE;
+		ctx->reconfig_needed = GF_FALSE;
 		break;
     case GF_CODECID_MPEG4_PART2 :
 	{
@@ -605,7 +607,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			vosh = p->value.data.ptr;
 			vosh_size = p->value.data.size;
 		}
-		
+		ctx->reconfig_needed = GF_FALSE;
+
 		if (vosh) {
 			GF_M4VDecSpecInfo vcfg;
 			GF_BitStream *bs;
@@ -647,6 +650,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	case GF_CODECID_H263:
 	case GF_CODECID_S263:
 		ctx->reorder_probe = 0;
+		ctx->reconfig_needed = GF_FALSE;
 		if (w && h) {
 			ctx->width = w;
 			ctx->height = h;
@@ -656,6 +660,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		break;
 		
 	default :
+		ctx->reconfig_needed = GF_FALSE;
 		return GF_NOT_SUPPORTED;
     }
 
@@ -879,9 +884,12 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
-	if (! gf_filter_pid_check_caps(pid))
+	if (! gf_filter_pid_check_caps(pid)) {
+		while (gf_list_count(ctx->frames)) {
+			vtbdec_flush_frame(filter, ctx);
+		}
 		return GF_NOT_SUPPORTED;
-
+	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTBDec] Missing codecid, cannot initialize\n"));
@@ -913,6 +921,9 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+
+	ctx->nalu_size_length = 0;
+	ctx->is_annex_b = GF_FALSE;
 
 	//check AVC config
 	if (codecid==GF_CODECID_AVC) {
@@ -1405,26 +1416,6 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		e = vtbdec_parse_nal_units(filter, ctx, in_buffer, in_buffer_size, &in_data, &in_data_size);
 		if (e) return e;
 
-		if (ctx->reconfig_needed) {
-			//flush alll pending frames
-			while (gf_list_count(ctx->frames)) {
-				vtbdec_flush_frame(filter, ctx);
-			}
-			//waiting for last frame to be discarded - this needs checking with the new arch (compositor might not release the last frame)
-			if (ctx->no_copy && ctx->decoded_frames_pending) {
-				return GF_OK;
-			}
-			if (ctx->fmt_desc) {
-				CFRelease(ctx->fmt_desc);
-				ctx->fmt_desc = NULL;
-			}
-			if (ctx->vtb_session) {
-				VTDecompressionSessionInvalidate(ctx->vtb_session);
-				ctx->vtb_session=NULL;
-			}
-			vtbdec_init_decoder(filter, ctx);
-		}
-
 	} else if (ctx->vosh_size) {
 		in_data = in_buffer + ctx->vosh_size;
 		in_data_size = in_buffer_size - ctx->vosh_size;
@@ -1433,7 +1424,26 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		in_data = in_buffer;
 		in_data_size = in_buffer_size;
 	}
-	
+
+	if (ctx->reconfig_needed) {
+		//flush all pending frames
+		while (gf_list_count(ctx->frames)) {
+			vtbdec_flush_frame(filter, ctx);
+		}
+		//waiting for last frame to be discarded - this needs checking with the new arch (compositor might not release the last frame)
+		if (ctx->no_copy && ctx->decoded_frames_pending) {
+			return GF_OK;
+		}
+		if (ctx->fmt_desc) {
+			CFRelease(ctx->fmt_desc);
+			ctx->fmt_desc = NULL;
+		}
+		if (ctx->vtb_session) {
+			VTDecompressionSessionInvalidate(ctx->vtb_session);
+			ctx->vtb_session=NULL;
+		}
+		vtbdec_init_decoder(filter, ctx);
+	}
 	if (!ctx->vtb_session) {
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;

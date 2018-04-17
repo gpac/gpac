@@ -1,4 +1,4 @@
-/*
+	/*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
@@ -230,6 +230,11 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		TASK_REQUEUE(task)
 		return;
 	}
+	//reset PID instance buffers before checking number of output shared packets
+	//otherwise we may block because some of the shared packets are in the
+	//pid instance buffer (not consumed)
+	gf_filter_pid_inst_reset(pidinst);
+
 	//we still have packets out there!
 	if (pidinst->pid->nb_shared_packets_out) {
 		TASK_REQUEUE(task)
@@ -276,25 +281,40 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 {
+	GF_PropertyMap *prev_dst_props;
 	GF_FilterPacketInstance *pcki;
+	u32 nb_pck_transfer=0;
 	GF_FilterPidInst *src = filter->swap_pidinst;
-	//we are in detach state, the pack queue of the old PID is never read
-	assert(src->detach_pending);
-	//we are in pending stete, the origin of the old PID is never dispatching
-	assert(dst->pid->filter->out_pid_connection_pending);
 
-	//we can therefore swap the packet queues safely and other important info
+	if (filter->swap_needs_init) {
+		//we are in detach state, the pack queue of the old PID is never read
+		assert(src->detach_pending);
+		//we are in pending stete, the origin of the old PID is never dispatching
+		assert(dst->pid->filter->out_pid_connection_pending);
+		//we can therefore swap the packet queues safely and other important info
+	}
+	//otherwise we actually swap the pid instance on the same PID
+	else {
+		gf_list_del_item(dst->pid->destinations, src);
+		if (gf_list_find(dst->pid->destinations, dst)<0)
+			gf_list_add(dst->pid->destinations, dst);
+		if (gf_list_find(dst->filter->input_pids, dst)<0) {
+			gf_list_add(dst->filter->input_pids, dst);
+			dst->filter->num_input_pids = gf_list_count(dst->filter->input_pids);
+		}
+	}
+	assert(!dst->buffer_duration);
 
 	while (1) {
 		pcki = gf_fq_pop(src->packets);
 		if (!pcki) break;
-		safe_int_sub(&src->buffer_duration, pcki->pck->info.duration );
+		assert(src->filter->pending_packets);
 		safe_int_dec(&src->filter->pending_packets);
 
-		safe_int_add(&dst->buffer_duration, pcki->pck->info.duration );
 		pcki->pid = dst;
 		gf_fq_add(dst->packets, pcki);
 		safe_int_inc(&dst->filter->pending_packets);
+		nb_pck_transfer++;
 	}
 	if (src->requires_full_data_block && gf_list_count(src->pck_reassembly)) {
 		dst->requires_full_data_block = src->requires_full_data_block;
@@ -309,18 +329,44 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	}
 	dst->is_end_of_stream = src->is_end_of_stream;
 	dst->nb_eos_signaled = src->nb_eos_signaled;
+	dst->buffer_duration = src->buffer_duration;
 
-	assert(!dst->props);
+	//switch previous src property map to this new pid (this avoids rewriting props of already dispatched packets)
+	//it may happen that we already have props on dest, due to configure of the pid
+	//use the old props as new ones and merge the previous props of dst in the new props
+	prev_dst_props = dst->props;
 	dst->props = src->props;
 	src->props = NULL;
+	if (prev_dst_props) {
+		gf_props_merge_property(dst->props, prev_dst_props, NULL, NULL);
+		if (safe_int_dec(&prev_dst_props->reference_count)==0) {
+			gf_props_del(prev_dst_props);
+		}
+	}
 
-	//exit out special handling of the pid since we are ready to detach
-	assert(src->filter->stream_reset_pending);
-	safe_int_dec(&src->filter->stream_reset_pending);
+	if (nb_pck_transfer && !dst->filter->process_task_queued) {
+		gf_filter_post_process_task(dst->filter);	
+	}
 
-	//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
-	gf_fs_post_task(filter->session, gf_filter_pid_detach_task, src->filter, src->pid, "pidinst_detach", filter);
+	if (filter->swap_needs_init) {
+		//exit out special handling of the pid since we are ready to detach
+		assert(src->filter->stream_reset_pending);
+		safe_int_dec(&src->filter->stream_reset_pending);
 
+		//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
+		gf_fs_post_task(filter->session, gf_filter_pid_detach_task, src->filter, src->pid, "pidinst_detach", filter);
+	} else {
+		GF_Filter *src_filter = src->filter;
+		assert(!src->filter->sticky);
+		assert(src->filter->num_input_pids==1);
+
+		gf_filter_pid_inst_del(src);
+
+		filter->swap_pidinst = NULL;
+		assert(!src_filter->finalized);
+		src_filter->finalized = GF_TRUE;
+		gf_fs_post_task(src_filter->session, gf_filter_remove_task, src_filter, NULL, "filter_destroy", NULL);
+	}
 }
 
 
@@ -352,7 +398,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				assert(!pidinst->props);
 
 				//and treat as new pid inst
-				new_pid_inst=GF_TRUE;
+				if (ctype == GF_PID_CONF_CONNECT) {
+					new_pid_inst=GF_TRUE;
+				}
 				break;
 			}
 			pidinst=NULL;
@@ -362,18 +410,20 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			filter->detached_pid_inst = NULL;
 		}
 	}
-	count = pid->num_destinations;
-	for (i=0; i<count; i++) {
-		pidinst = gf_list_get(pid->destinations, i);
-		if (pidinst->filter==filter) {
-			break;
+	if (!pidinst) {
+		count = pid->num_destinations;
+		for (i=0; i<count; i++) {
+			pidinst = gf_list_get(pid->destinations, i);
+			if (pidinst->filter==filter) {
+				break;
+			}
+			pidinst=NULL;
 		}
-		pidinst=NULL;
 	}
 
 	//first connection of this PID to this filter
 	if (!pidinst) {
-		if (ctype>=GF_PID_CONF_REMOVE) {
+		if (ctype != GF_PID_CONF_CONNECT) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to disconnect PID %s not found in filter %s inputs\n",  pid->name, filter->name));
 			return GF_SERVICE_ERROR;
 		}
@@ -394,6 +444,13 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		//while processing the configure (they would be dispatched on the source filter, not the dest one being
 		//processed here)
 		gf_filter_pid_update_caps(pid);
+	}
+
+	//we are swaping a PID instance (dyn insert of a filter), do it before reconnecting
+	//in order to have properties in place
+	//TODO: handle error case, we might need to re-switch the pid inst!
+	if (filter->swap_pidinst) {
+		gf_filter_pid_inst_swap(filter, pidinst);
 	}
 
 	//commented out for now, due to audio thread pulling packets out of the pid but not in the compositor:process, which
@@ -424,6 +481,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		if (new_pid_inst) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Connected filter %s PID %s to filter %s\n", pid->filter->name,  pid->name, filter->name));
 		}
+	}
+	//failure on reconfigure, try reloading a filter chain
+	else if (ctype==GF_PID_CONF_RECONFIG) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
+		gf_filter_relink_dst(pidinst);
 	} else {
 		//error,  remove from input
 		gf_list_del_item(filter->input_pids, pidinst);
@@ -501,10 +563,6 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			return e;
 	}
 
-	//we are swaping a PID instance (dyn insert of a filter), do it before posting the output PID init tasks
-	if (filter->swap_pidinst) {
-		gf_filter_pid_inst_swap(filter, pidinst);
-	}
 	//flush all pending pid init requests following the call to init
 	if (filter->has_pending_pids) {
 		filter->has_pending_pids = GF_FALSE;
@@ -615,7 +673,6 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		return;
 	}
 
-	assert(filter->sticky);
 	assert(filter->freg->configure_pid);
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 
@@ -633,9 +690,9 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not found in filter %s inputs\n",  pid->name, filter->name));
 
 		assert(!new_chain_input->swap_pidinst);
+		new_chain_input->swap_needs_init = GF_FALSE;
 		return;
 	}
-	assert(pidinst == new_chain_input->swap_pidinst);
 
 	//detach props
 	if (pidinst->props && (safe_int_dec(& pidinst->props->reference_count) == 0) ) {
@@ -659,7 +716,10 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	gf_list_add(filter->detached_pid_inst, pidinst);
 
 	//we are done, reset filter swap instance so that connection can take place
-	new_chain_input->swap_pidinst = NULL;
+	if (new_chain_input->swap_needs_init) {
+		new_chain_input->swap_pidinst = NULL;
+		new_chain_input->swap_needs_init = GF_FALSE;
+	}
 }
 
 
@@ -905,7 +965,7 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	return GF_FALSE;
 }
 
-static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
+Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
@@ -1563,7 +1623,7 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 \param reconfigurable_only indicates the chain should be loaded for reconfigurable filters
 \return the first filter in the matching chain, or NULL if no match
 */
-static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, Bool reconfigurable_only)
+static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, Bool reconfigurable_only, u32 *min_chain_len)
 {
 	GF_Filter *chain_input = NULL;
 	GF_FilterSession *fsess = pid->filter->session;
@@ -1728,7 +1788,9 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		if (force_registry) break;
 	}
 	count = gf_list_count(filter_chain);
-	if (count==0) {
+	if (min_chain_len) {
+		*min_chain_len = count;
+	} else if (count==0) {
 		Bool can_reassign = GF_TRUE;
 
 		//reassign only for source filters
@@ -1856,14 +1918,21 @@ exit:
 	return chain_input;
 }
 
-static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned)
+GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned)
 {
-	return gf_filter_pid_resolve_link_internal(pid, dst, filter_reassigned, GF_FALSE);
+	return gf_filter_pid_resolve_link_internal(pid, dst, filter_reassigned, GF_FALSE, NULL);
 }
 
 GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst)
 {
-	return gf_filter_pid_resolve_link_internal(pid, dst, NULL, GF_TRUE);
+	return gf_filter_pid_resolve_link_internal(pid, dst, NULL, GF_TRUE, NULL);
+}
+
+u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
+{
+	u32 chain_len=0;
+	gf_filter_pid_resolve_link_internal(pid, dst, NULL, GF_FALSE, &chain_len);
+	return chain_len;
 }
 
 static const char *gf_filter_last_id_in_chain(GF_Filter *filter)
@@ -1917,11 +1986,12 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	}
 	pid->props_changed_since_connect = GF_FALSE;
 
+	//swap pid is pending on the possible destination filter
+	if (filter->swap_pidinst) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
 	if (filter->caps_negociate) {
-		if (filter->swap_pidinst) {
-			task->requeue_request = GF_TRUE;
-			return;
-		}
 		if (! gf_filter_reconf_output(filter, pid))
 			return;
 	}
@@ -2632,6 +2702,11 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		}
 		if (!skip_props) {
 			assert(pidinst->filter->freg->configure_pid);
+			//reset the blacklist whenever reconfiguring, since we may need to reload a new filter chain
+			//in which a previously blacklisted filter (failing (re)configure for previous state) could
+			//now work, eg moving from formatA to formatB then back to formatA
+			gf_list_reset(pidinst->filter->blacklisted);
+
 			e = gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_PID_CONF_RECONFIG);
 			if (e != GF_OK) return NULL;
 			if (pidinst->pid->caps_negociate)
@@ -2810,8 +2885,13 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	} else if (pck->info.duration && pck->info.data_block_start && pck->pid_props->timescale) {
 		s64 d = ((u64)pck->info.duration) * 1000000;
 		d /= pck->pid_props->timescale;
+		if (d > pidinst->buffer_duration) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Corrupted buffer level in PID instance %s (%s -> %s), droping packet duration "LLD" us greater than buffer duration "LLU" us\n", pid->name, pid->filter->name, pidinst->filter ? pidinst->filter->name : "disconnected", d, pidinst->buffer_duration));
+			d = pidinst->buffer_duration;
+		}
 		assert(d <= pidinst->buffer_duration);
 		safe_int64_sub(&pidinst->buffer_duration, d);
+		assert(pidinst->buffer_duration != 39000);
 	}
 
 	if (!pid->buffer_duration || (pidinst->buffer_duration < (s64) pid->buffer_duration)) {
@@ -2885,7 +2965,7 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("EOS signaled on PID %s in filter %s\n", pid->name, pid->filter->name));
 	//we create a fake packet for eos signaling
-	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	pck->pck->info.eos_type = 1;
 	pid->pid->has_seen_eos = GF_TRUE;
@@ -3386,8 +3466,9 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	pid->removed = GF_TRUE;
 
 	//we create a fake packet for eos signaling
-	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+	safe_int_dec(&pid->nb_shared_packets_out);
 	pck->pck->info.eos_type = 2;
 	gf_filter_pck_send(pck);
 }

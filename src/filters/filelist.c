@@ -168,7 +168,6 @@ void filelist_update_pid_props(GF_FileListCtx *ctx, GF_FilterPid *pid)
 
 GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_FilterEvent evt;
 	FileListPid *iopid;
 	const GF_PropertyValue *p;
 	u32 i, count;
@@ -188,9 +187,6 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		//we want the complete file
 		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
-		//fire a play event from 0 on the source
-		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-		gf_filter_send_event(filter, &evt);
 		//we will declare pids later
 
 		//from now on we only accept the above caps
@@ -220,11 +216,11 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (!iopid) {
 		GF_SAFEALLOC(iopid, FileListPid);
 		iopid->ipid = pid;
-		iopid->timescale = iopid->o_timescale = gf_filter_pid_get_timescale(pid);
-		if (!iopid->timescale) iopid->timescale = iopid->o_timescale = 1000;
-
 		if (ctx->timescale) iopid->o_timescale = ctx->timescale;
-
+		else {
+			iopid->o_timescale = gf_filter_pid_get_timescale(pid);
+			if (!iopid->o_timescale) iopid->o_timescale = 1000;
+		}
 		gf_list_add(ctx->io_pids, iopid);
 	}
 	if (!iopid->opid) {
@@ -244,6 +240,8 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
 	iopid->single_frame = (p && (p->value.uint==1)) ? GF_TRUE : GF_FALSE ;
+	iopid->timescale = gf_filter_pid_get_timescale(pid);
+	if (!iopid->timescale) iopid->timescale = 1000;
 
 	filelist_update_pid_props(ctx, iopid->opid);
 	//if we reattached the input, we must send a play request
@@ -402,6 +400,7 @@ GF_Err filelist_process(GF_Filter *filter)
 		pck = gf_filter_pid_get_packet(ctx->file_pid);
 		if (!pck) return GF_OK;
 		gf_filter_pck_get_framing(pck, &start, &end);
+		gf_filter_pid_drop_packet(ctx->file_pid);
 		if (end) {
 			FILE *f=NULL;
 			p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_FILEPATH);
@@ -411,14 +410,12 @@ GF_Err filelist_process(GF_Filter *filter)
 			}
 			if (!f) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
-				gf_filter_pid_drop_packet(ctx->file_pid);
 				return GF_SERVICE_ERROR;
 			} else {
 				gf_fclose(f);
 				ctx->load_next = GF_TRUE;
 			}
 		}
-		gf_filter_pid_drop_packet(ctx->file_pid);
 	}
 
 	count = gf_list_count(ctx->io_pids);
@@ -550,6 +547,8 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (ctx->stop>ctx->start) {
 				if ( (ctx->stop-ctx->start) * iopid->timescale <= (iopid->max_dts - iopid->first_dts_plus_one + 1)) {
 					iopid->is_eos = GF_TRUE;
+					nb_done++;
+					break;
 				}
 			}
 		}

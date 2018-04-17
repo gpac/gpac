@@ -226,6 +226,7 @@ struct __gf_fs_task
 	//set for tasks that have been requeued (i.e. no longer present in filter task list)
 	Bool in_main_task_list_only;
 	Bool requeue_request;
+	Bool is_filter_process;
 
 	u64 schedule_next_time;
 
@@ -488,6 +489,7 @@ struct __gf_filter
 	GF_PropertyMap *caps_negociate;
 	Bool is_pid_adaptation_filter;
 	GF_FilterPidInst *swap_pidinst;
+	Bool swap_needs_init;
 
 	const GF_FilterCapability *forced_caps;
 	u32 nb_forced_caps;
@@ -670,6 +672,20 @@ Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
 
 void gf_filter_check_output_reconfig(GF_Filter *filter);
 Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid);
+
+void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *pidi, Bool reconfig_only);
+
+GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned);
+GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
+u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
+
+Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
+
+void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
+
+void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections);
+
+GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct, Bool intern_pck);
 
 #endif //_GF_FILTER_SESSION_H_
 
