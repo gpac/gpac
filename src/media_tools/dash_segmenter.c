@@ -1897,7 +1897,8 @@ restart_fragmentation_pass:
 						tf->min_cts_in_segment = sample->DTS + sample->CTS_Offset;
 
 					e = gf_isom_fragment_add_sai(output, input, tf->TrackID, tf->SampleNum + 1);
-					if (e) goto err_exit;
+					if (e)
+						goto err_exit;
 
 					/*copy subsample information*/
 					e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1, dasher->samplegroups_in_traf);

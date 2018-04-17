@@ -1220,16 +1220,21 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 	if (IV_size && gf_isom_cenc_has_saiz_saio_track(stbl)) {
 		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, IV_size, sai, out_buffer, outSize);
 	}
+	//senc is not loaded by default, do it now
+	if (!gf_list_count(senc->samp_aux_info)) {
+		GF_Err e = senc_Parse(the_file->movieFileMap->bs, trak, NULL, senc);
+		if (e) return e;
+	}
 
 	a_sai = NULL;
 	switch (type) {
 	case GF_ISOM_BOX_UUID_PSEC:
 		if (senc)
-			a_sai = (GF_CENCSampleAuxInfo *)gf_list_get(((GF_SampleEncryptionBox *)senc)->samp_aux_info, sampleNumber-1);
+			a_sai = (GF_CENCSampleAuxInfo *)gf_list_get(senc->samp_aux_info, sampleNumber-1);
 		break;
 	case GF_ISOM_BOX_TYPE_SENC:
 		if (senc)
-			a_sai = (GF_CENCSampleAuxInfo *)gf_list_get(((GF_SampleEncryptionBox *)senc)->samp_aux_info, sampleNumber-1);
+			a_sai = (GF_CENCSampleAuxInfo *)gf_list_get(senc->samp_aux_info, sampleNumber-1);
 		break;
 	}
 	if (!a_sai)
