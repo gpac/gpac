@@ -1798,3 +1798,9 @@ void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids)
 {
 	if (filter) filter->max_extra_pids = max_extra_pids;
 }
+
+Bool gf_filter_block_enabled(GF_Filter *filter)
+{
+	if (!filter) return GF_FALSE;
+	return filter->session->disable_blocking ? GF_FALSE : GF_TRUE;
+}

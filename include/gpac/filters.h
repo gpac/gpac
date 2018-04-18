@@ -431,6 +431,7 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
 
 void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
+Bool gf_filter_block_enabled(GF_Filter *filter);
 
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
@@ -815,6 +816,9 @@ enum
 	//(uint) display  height of service
 	GF_PROP_SERVICE_HEIGHT = GF_4CC('D','H','G','T'),
 
+	//(uint) repeat rate in ms
+	GF_PROP_PID_CAROUSEL_RATE = GF_4CC('C','A','R','A'),
+
 	//thses two may need refinements when handling clock discontinuities
 	//(longuint) UTC date and time of PID
 	GF_PROP_PID_UTC_TIME = GF_4CC('U','T','C','D'),
@@ -860,6 +864,8 @@ enum
 	GF_PROP_PID_MAX_NALU_SIZE = GF_4CC('N','A','L','S'),
 	//(uint)
 	GF_PROP_PCK_FILENUM = GF_4CC('F','N','U','M'),
+	//(uint)
+	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
@@ -1013,6 +1019,10 @@ typedef struct
 	//the buffer is only activated on pids connected to decoders
 	u32 max_buffer_us;
 	u32 max_playout_us;
+	//for muxers: if set, only the pid target of the event will have the buffer req set
+	//otherwise, the buffer requirement event is passed down the chain until
+	//a raw media PID is found or a decoder is found
+	Bool pid_only;
 } GF_FEVT_BufferRequirement;
 
 union __gf_filter_event

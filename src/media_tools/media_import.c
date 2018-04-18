@@ -1240,7 +1240,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		GF_Filter *isobmff_mux;
 
 		//mux args
-		sprintf(szArgs, "mp4mx:file=%p:importer", importer->dest);
+		sprintf(szArgs, "mxisom:file=%p:importer", importer->dest);
 		if (importer->flags & GF_IMPORT_FORCE_MPEG4) strcat(szArgs, ":m4sys:mpeg4");
 		if (importer->flags & GF_IMPORT_USE_DATAREF) strcat(szArgs, ":dref");
 		if (importer->flags & GF_IMPORT_NO_EDIT_LIST) strcat(szArgs, ":noedit");

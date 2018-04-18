@@ -83,7 +83,7 @@ static GFINLINE void usage()
 	        "name=STR               program name, as used in DVB service description table\n"
 	        "provider=STR           provider name, as used in DVB service description table\n"
 	        "disc                   the first packet of each stream will have the discontinuity marker set\n"
-	        "pmt=N                  stes version number of the PMT\n"
+	        "pmt=N                  sets version number of the PMT\n"
 
 	        "\n"
 	        "-prog filename        same as -src filename\n"
@@ -580,8 +580,6 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	if (0!=(duration=gf_isom_get_media_duration(mp4, track_num)))
 		avg_rate /= duration;
 
-	if (gf_isom_has_time_offset(mp4, track_num)) ifce->caps |= GF_ESI_SIGNAL_DTS;
-
 	ifce->bit_rate = (u32) avg_rate;
 	ifce->duration = (Double) (s64) gf_isom_get_media_duration(mp4, track_num);
 	ifce->duration /= ifce->timescale;
@@ -957,9 +955,6 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 		rtp->use_carousel = GF_TRUE;
 		rtp->au_sn=0;
 	}
-
-	/*DTS signaling is only supported for MPEG-4 visual*/
-	if (rtp->depacketizer->sl_map.DTSDeltaLength) ifce->caps |= GF_ESI_SIGNAL_DTS;
 
 	gf_rtp_depacketizer_reset(rtp->depacketizer, GF_TRUE);
 	e = gf_rtp_initialize(rtp->rtp_ch, 0x100000ul, GF_FALSE, 0, 10, 200, NULL);
@@ -2617,7 +2612,7 @@ int main(int argc, char **argv)
 
 			if (sources[i].streams[j].stream_type==GF_STREAM_SCENE) force_pes_mode = bifs_use_pes ? 1 : 0;
 
-			stream = gf_m2ts_program_stream_add(program, &sources[i].streams[j], cur_pid+j+1, (sources[i].pcr_idx==j) ? 1 : 0, force_pes_mode);
+			stream = gf_m2ts_program_stream_add(program, &sources[i].streams[j], cur_pid+j+1, (sources[i].pcr_idx==j) ? 1 : 0, force_pes_mode, GF_TRUE);
 			if (split_rap && (sources[i].streams[j].stream_type==GF_STREAM_VISUAL)) stream->start_pes_at_rap = 1;
 		}
 

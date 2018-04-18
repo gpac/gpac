@@ -1023,7 +1023,138 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
 
 #ifndef GPAC_DISABLE_MPEG2TS_MUX
 
-#include <gpac/esi.h>
+/*!
+ *	\addtogroup esi_grp ES Interface
+ *	\ingroup media_grp
+ *	\brief Basic stream interface API used by MPEG-2 TS muxer.
+ *
+ *This section documents the draft ES interface used by the MPEG-2 TS muxer.
+ *	@{
+ */
+
+/* ESI input control commands*/
+enum
+{
+	/*forces a data flush from interface to dest (caller) - used for non-threaded interfaces
+		corresponding parameter: unused
+	*/
+	GF_ESI_INPUT_DATA_FLUSH,
+	/*pulls a COMPLETE AU from the stream
+		corresponding parameter: pointer to a GF_ESIPacket to fill. The input data_len in the packet is used to indicate any padding in bytes
+	*/
+	GF_ESI_INPUT_DATA_PULL,
+	/*releases the currently pulled AU from the stream - AU cannot be pulled after that, unless seek happens
+		corresponding parameter: unused
+	*/
+	GF_ESI_INPUT_DATA_RELEASE,
+
+	/*destroys any allocated resource by the stream interface*/
+	GF_ESI_INPUT_DESTROY,
+};
+
+/* ESI output control commands*/
+enum
+{
+	/*forces a data flush from interface to dest (caller) - used for non-threaded interfaces
+		corresponding parameter: GF_ESIPacket
+	*/
+	GF_ESI_OUTPUT_DATA_DISPATCH
+};
+
+/*
+	data packet flags
+*/
+enum
+{
+	GF_ESI_DATA_AU_START	=	1,
+	GF_ESI_DATA_AU_END		=	1<<1,
+	GF_ESI_DATA_AU_RAP		=	1<<2,
+	GF_ESI_DATA_HAS_CTS		=	1<<3,
+	GF_ESI_DATA_HAS_DTS		=	1<<4,
+	GF_ESI_DATA_REPEAT		=	1<<5,
+};
+
+typedef struct __data_packet_ifce
+{
+	u32 flags;
+	char *data;
+	u32 data_len;
+	/*DTS, CTS/PTS and duration expressed in media timescale*/
+	u64 dts, cts;
+	u32 duration;
+	u32 pck_sn;
+	/*MPEG-4 stuff*/
+	u32 au_sn;
+	/*for packets using ISMACrypt/OMA/3GPP based crypto*/
+	u32 isma_bso;
+
+	char *mpeg2_af_descriptors;
+	u32 mpeg2_af_descriptors_size;
+} GF_ESIPacket;
+
+struct __esi_video_info
+{
+	u32 width, height, par;
+	Double FPS;
+};
+struct __esi_audio_info
+{
+	u32 sample_rate, nb_channels;
+};
+
+enum
+{
+	/*data can be pulled from this stream*/
+	GF_ESI_AU_PULL_CAP	=	1,
+	/*no more data to expect from this stream*/
+	GF_ESI_STREAM_IS_OVER	=	1<<2,
+	/*stream is not signaled through MPEG-4 Systems (OD stream) */
+	GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS =	1<<3,
+};
+
+typedef struct __elementary_stream_ifce
+{
+	/*misc caps of the stream*/
+	u32 caps;
+	/*matches PID for MPEG2, ES_ID for MPEG-4*/
+	u32 stream_id;
+	/*MPEG-4 ST/OTIs*/
+	u8 stream_type;
+	u32 object_type_indication;
+	/*stream 4CC for non-mpeg codecs, 0 otherwise (stream is identified through StreamType/ObjectType)*/
+	u32 fourcc;
+	/*packed 3-char language code (4CC with last byte ' ')*/
+	u32 lang;
+	/*media timescale*/
+	u32 timescale;
+	/*duration in ms - 0 if unknown*/
+	Double duration;
+	/*average bit rate in bit/sec - 0 if unknown*/
+	u32 bit_rate;
+	/*repeat rate in ms for carrouseling - 0 if no repeat*/
+	u32 repeat_rate;
+
+	char *decoder_config;
+	u32 decoder_config_size;
+
+	/* MPEG-4 SL Config if any*/
+	GF_SLConfig *sl_config;
+
+	/*input ES control from caller*/
+	GF_Err (*input_ctrl)(struct __elementary_stream_ifce *_self, u32 ctrl_type, void *param);
+	/*input user data of interface - usually set by interface owner*/
+	void *input_udta;
+
+	/*output ES control of destination*/
+	GF_Err (*output_ctrl)(struct __elementary_stream_ifce *_self, u32 ctrl_type, void *param);
+	/*output user data of interface - usually set during interface setup*/
+	void *output_udta;
+
+	u32 depends_on_stream;
+
+} GF_ESInterface;
+
+/*! @} */
 
 /*
 	MPEG-2 TS Multiplexer
@@ -1140,6 +1271,7 @@ typedef struct __m2ts_mux_stream {
 	GF_M2TS_Packet *pck_first, *pck_last;
 	/*packet reassembler (PES packets are most of the time full frames)*/
 	GF_M2TS_Packet *pck_reassembler;
+	//mutex if enabled
 	GF_Mutex *mx;
 	/*avg bitrate compute*/
 	u64 last_br_time;
@@ -1216,7 +1348,7 @@ enum
 typedef enum
 {
 	/*only audio AUs are packed in a single PES, video and systems are not (recommended default)*/
-	GF_M2TS_PACK_AUDIO_ONLY,
+	GF_M2TS_PACK_AUDIO_ONLY=0,
 	/*never pack AUs in a single PES*/
 	GF_M2TS_PACK_NONE,
 	/*always try to pack AUs in a single PES*/
@@ -1277,6 +1409,9 @@ struct __m2ts_mux {
 	Bool flush_pes_at_rap;
 	/*cf enum above*/
 	u32 force_pat_pmt_state;
+
+
+	GF_BitStream *pck_bs;
 };
 
 
@@ -1299,10 +1434,14 @@ void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
 //sets max interval between two PCR. Default/max interval is 100 ms
 void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms);
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling, u32 pmt_version, Bool initial_disc);
-GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr, Bool force_pes_mode);
+GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr, Bool force_pes_mode, Bool needs_mutex);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);
 
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_number);
+u32 gf_m2ts_mux_program_count(GF_M2TS_Mux *muxer);
+u32 gf_m2ts_mux_program_get_stream_count(GF_M2TS_Mux_Program *prog);
+u32 gf_m2ts_mux_program_get_pmt_pid(GF_M2TS_Mux_Program *prog);
+u32 gf_m2ts_mux_program_get_pcr_pid(GF_M2TS_Mux_Program *prog);
 
 const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next);
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);

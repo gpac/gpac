@@ -160,6 +160,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	u32 i, count;
 	const GF_PropertyValue *p;
 
+	pid->raw_media = GF_FALSE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) codecid = p->value.uint;
 
@@ -1460,6 +1461,9 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 		//filter shall be explicitly loaded
 		if (freg->explicit_only) continue;
 
+		if (!strcmp(freg->name, "ufnalu"))
+			path_weight = 0;
+
 		//freg already being tested for another chain
 		if (gf_list_find(tested_filters, (void *) freg)>=0)
 			continue;
@@ -1708,6 +1712,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s output caps bundle %d match from %s input caps bundle %d checking filter chain\n", freg->name, cap_bundle_idx, dst_filter->name, bundle_idx));
 
+		if (!strcmp(freg->name, "mxts"))
+			path_len = 0;
 		//TODO: handle user-defined priorities
 
 		//we have a target destination filter match, keep solving filter until done
@@ -3161,7 +3167,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			gf_free(evt);
 			return;
 		}
-		if (evt->base.on_pid->nb_decoder_inputs || evt->base.on_pid->raw_media) {
+		if (evt->base.on_pid->nb_decoder_inputs || evt->base.on_pid->raw_media || evt->buffer_req.pid_only) {
 			evt->base.on_pid->max_buffer_time = evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
 			//update blocking state

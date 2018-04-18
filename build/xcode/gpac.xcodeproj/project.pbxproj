@@ -212,6 +212,7 @@
 		924E805F206D427A00AB580F /* reframe_rawpcm.c in Sources */ = {isa = PBXBuildFile; fileRef = 924E805E206D427A00AB580F /* reframe_rawpcm.c */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
 		9251CA8A1E9D3E960089DDC6 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA881E9D3E2B0089DDC6 /* main.c */; };
+		9256B38B208662FC00088537 /* mux_ts.c in Sources */ = {isa = PBXBuildFile; fileRef = 9256B38A208662FB00088537 /* mux_ts.c */; };
 		9257307F2056948D009DB328 /* rewrite_adts.c in Sources */ = {isa = PBXBuildFile; fileRef = 9257307D2056948D009DB328 /* rewrite_adts.c */; };
 		925730802056948D009DB328 /* rewrite_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 9257307E2056948D009DB328 /* rewrite_nalu.c */; };
 		925730822056A610009DB328 /* rewrite_mp4v.c in Sources */ = {isa = PBXBuildFile; fileRef = 925730812056A610009DB328 /* rewrite_mp4v.c */; };
@@ -1058,6 +1059,7 @@
 		924E805E206D427A00AB580F /* reframe_rawpcm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_rawpcm.c; path = filters/reframe_rawpcm.c; sourceTree = "<group>"; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		9251CA881E9D3E2B0089DDC6 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp4client/main.c; sourceTree = "<group>"; };
+		9256B38A208662FB00088537 /* mux_ts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_ts.c; path = filters/mux_ts.c; sourceTree = "<group>"; };
 		9257307D2056948D009DB328 /* rewrite_adts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_adts.c; path = filters/rewrite_adts.c; sourceTree = "<group>"; };
 		9257307E2056948D009DB328 /* rewrite_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_nalu.c; path = filters/rewrite_nalu.c; sourceTree = "<group>"; };
 		925730812056A610009DB328 /* rewrite_mp4v.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_mp4v.c; path = filters/rewrite_mp4v.c; sourceTree = "<group>"; };
@@ -2521,6 +2523,7 @@
 				92BB85591F7BFB61009BC9C8 /* load_svg.c */,
 				922E29812051940C00C8DCBB /* mux_avi.c */,
 				9290F5101FAB4C2C0038C30D /* mux_isom.c */,
+				9256B38A208662FB00088537 /* mux_ts.c */,
 				922E29822051940C00C8DCBB /* out_audio.c */,
 				9289D9F41FDEFFCD00C24F83 /* out_file.c */,
 				928A7F802059372C00E02E89 /* out_video.c */,
@@ -2961,6 +2964,7 @@
 				92BB856E1F7BFB63009BC9C8 /* compose.c in Sources */,
 				92BB85811F7C3C4B009BC9C8 /* reframe_ac3.c in Sources */,
 				92F8D4771F71642E00616F7C /* filter_pck.c in Sources */,
+				9256B38B208662FC00088537 /* mux_ts.c in Sources */,
 				9288E8641FB1BF07005460C5 /* reframe_mpgvid.c in Sources */,
 				92B9A5991F8660D700A24FE4 /* mpeg4_audio.c in Sources */,
 				92B9A5111F8660B500A24FE4 /* terminal.c in Sources */,

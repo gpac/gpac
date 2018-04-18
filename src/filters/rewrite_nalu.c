@@ -31,7 +31,7 @@
 typedef struct
 {
 	//opts
-	Bool rcfg;
+	Bool rcfg, skip_delim;
 	u32 extract;
 
 	//only one input pid declared
@@ -194,17 +194,23 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 }
 
 
-static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, char *data, u32 pos)
+static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, char *data, u32 pos, Bool *has_nal_delim, u32 *out_temporal_id, u32 *out_layer_id, u8 *avc_hdr)
 {
 	Bool is_layer = GF_FALSE;
 	if (ctx->is_hevc) {
 		u8 nal_type = (data[pos] & 0x7E) >> 1;
-//		u8 temporal_id = data[pos+1] & 0x7;
+		u8 temporal_id = data[pos+1] & 0x7;
 		u8 layer_id = data[pos] & 1;
 		layer_id <<= 5;
 		layer_id |= (data[pos+1]>>3) & 0x1F;
+		if (temporal_id > *out_temporal_id) *out_temporal_id = temporal_id;
+		if (! (*out_layer_id) ) *out_layer_id = 1+layer_id;
+
 		switch (nal_type) {
 		case GF_HEVC_NALU_VID_PARAM:
+			break;
+		case GF_HEVC_NALU_ACCESS_UNIT:
+			*has_nal_delim = GF_TRUE;
 			break;
 		default:
 			if (layer_id) is_layer = GF_TRUE;
@@ -222,7 +228,12 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, char *data, u32 pos)
 		case GF_AVC_NALU_PIC_PARAM:
 			is_layer = GF_TRUE;
 			break;
+		case GF_AVC_NALU_ACCESS_UNIT:
+			*has_nal_delim = GF_TRUE;
+			break;
 		default:
+			if (! (*avc_hdr))
+				(*avc_hdr) = data[pos];
 			break;
 		}
 	}
@@ -236,8 +247,11 @@ GF_Err nalumx_process(GF_Filter *filter)
 	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	char *data, *output;
-	u32 pck_size, size;
+	u32 pck_size, size, sap, temporal_id, layer_id;
+	u8 avc_hdr;
 	Bool insert_dsi = GF_FALSE;
+	Bool has_nal_delim = GF_FALSE;
+
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
@@ -253,17 +267,22 @@ GF_Err nalumx_process(GF_Filter *filter)
 	else gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
 
 	size = 0;
+	temporal_id = layer_id = 0;
+	avc_hdr = 0;
 
 	while (gf_bs_available((ctx->bs_r))) {
 		Bool skip_nal = GF_FALSE;
+		u32 pos;
 		u32 nal_size = gf_bs_read_int(ctx->bs_r, 8*ctx->nal_hdr_size);
 		if (nal_size > gf_bs_available(ctx->bs_r) ) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		if (ctx->extract) {
-			u32 pos = (u32) gf_bs_get_position(ctx->bs_r);
-			skip_nal = nalumx_is_nal_skip(ctx, data, pos);
+		pos = (u32) gf_bs_get_position(ctx->bs_r);
+		//even if not filtering, parse to check for AU delim
+		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &has_nal_delim, &layer_id, &temporal_id, &avc_hdr);
+		if (!ctx->extract) {
+			skip_nal = GF_FALSE;
 		}
 		if (!skip_nal)
 			size += nal_size + 4;
@@ -272,9 +291,16 @@ GF_Err nalumx_process(GF_Filter *filter)
 	}
 	gf_bs_seek(ctx->bs_r, 0);
 
-	//TODO check if we need to insert NALU delim
+	if (ctx->skip_delim)
+		has_nal_delim = GF_TRUE;
 
-	if ((gf_filter_pck_get_sap(pck) <= GF_FILTER_SAP_3) && ctx->dsi) {
+	//we need to insert NALU delim
+	if (!has_nal_delim) {
+		size += ctx->is_hevc ? 3 : 2;
+		size += 4;
+	}
+	sap = gf_filter_pck_get_sap(pck);
+	if (sap && (sap <= GF_FILTER_SAP_3) && ctx->dsi) {
 		insert_dsi = GF_TRUE;
 		size += ctx->dsi_size;
 	}
@@ -284,6 +310,24 @@ GF_Err nalumx_process(GF_Filter *filter)
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, output, size);
 
+	if (!has_nal_delim) {
+		gf_bs_write_u32(ctx->bs_w, 1);
+		if (ctx->is_hevc) {
+			assert(layer_id);
+#ifndef GPAC_DISABLE_HEVC
+			gf_bs_write_int(ctx->bs_w, 0, 1);
+			gf_bs_write_int(ctx->bs_w, GF_HEVC_NALU_ACCESS_UNIT, 6);
+			gf_bs_write_int(ctx->bs_w, layer_id-1, 6); //we should pick the layerID of the following nalus ...
+			gf_bs_write_int(ctx->bs_w, temporal_id+1, 3);
+			/*pic-type - by default we signal all slice types possible*/
+			gf_bs_write_int(ctx->bs_w, 2, 3);
+			gf_bs_write_int(ctx->bs_w, 0, 5);
+#endif
+		} else {
+			gf_bs_write_int(ctx->bs_w, (avc_hdr & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
+			gf_bs_write_int(ctx->bs_w, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
+		}
+	}
 	if (insert_dsi) {
 		gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
 
@@ -305,7 +349,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 		if (ctx->extract) {
-			skip_nal = nalumx_is_nal_skip(ctx, data, pos);
+			skip_nal = nalumx_is_nal_skip(ctx, data, pos, &has_nal_delim, &layer_id, &temporal_id, &avc_hdr);
 		}
 		if (!skip_nal) {
 			gf_bs_write_u32(ctx->bs_w, 1);
@@ -352,6 +396,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 {
 	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(extract), "Extracts full, base or layer only", GF_PROP_UINT, "all", "all|base|layer", GF_FALSE},
+	{ OFFS(skip_delim), "Skip AU NAL Delimiter insertion", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{0}
 };
 
