@@ -1857,7 +1857,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 
 
 GF_FilterRegister MP4MuxRegister = {
-	.name = "mp4mx",
+	.name = "mxisom",
 	.description = "ISOBMFF muxer",
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,

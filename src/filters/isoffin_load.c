@@ -98,7 +98,7 @@ void isor_declare_objects(ISOMReader *read)
     */
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
-		u32 w, h, sr, nb_ch, streamtype, codec_id, depends_on_id, esid, avg_rate;
+		u32 w, h, sr, nb_ch, streamtype, codec_id, depends_on_id, esid, avg_rate, sample_count, max_size;
 		GF_ESD *an_esd;
 		const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
 		GF_Language *lang_desc = NULL;
@@ -413,12 +413,18 @@ void isor_declare_objects(ISOMReader *read)
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
 		gf_filter_pid_set_info(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) ch->duration, read->time_scale));
-		gf_filter_pid_set_info(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT( gf_isom_get_sample_count(read->mov, ch->track)));
+		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
+		gf_filter_pid_set_info(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
 
 		track_dur = (Double) (s64) ch->duration;
 		track_dur /= read->time_scale;
-		//move channel diuration in media timescale
+		//move channel duration in media timescale
 		ch->duration = (u32) (track_dur * ch->time_scale);
+		if (ch->duration) {
+			u32 avg_rate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
+			avg_rate /= track_dur;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT(avg_rate));
+		}
 
 		gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
 		gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
@@ -429,16 +435,31 @@ void isor_declare_objects(ISOMReader *read)
 		if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(namespace) );
 		if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING(schemaloc) );
 
-		if (w)
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
+		w = gf_isom_get_sample_duration(read->mov, ch->track, 1);
+		h = gf_isom_get_sample_duration(read->mov, ch->track, 2);
+		if (w && h && (w==h)) {
+			w *= sr;
+			w /= ch->time_scale;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(w));
+		}
 
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, i+1) ) );
 
 		if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
 
 		w = gf_isom_get_constant_sample_size(read->mov, i+1);
+		if (w)
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
 
 		gf_filter_pid_set_info(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
+
+		max_size = 0;
+		for (j=0; j<sample_count; j++) {
+			u32 s = gf_isom_get_sample_size(read->mov, ch->track, j+1);
+			if (s > max_size) max_size = s;
+		}
+		gf_filter_pid_set_info(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
+
 
 		if (codec_id == GF_CODECID_DIMS) {
 			GF_DIMSDescription dims;

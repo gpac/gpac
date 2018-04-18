@@ -27,7 +27,6 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 
-#include <gpac/esi.h>
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
 #include <gpac/isomedia.h>

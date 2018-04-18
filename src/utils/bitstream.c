@@ -773,8 +773,10 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 	if (BS_IsAlign(bs)) {
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_WRITE:
-			if (bs->position+nbBytes > bs->size)
+			if (bs->position+nbBytes > bs->size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overwrite bitstream by %d bytes\n", bs->position + nbBytes - bs->size));
 				return 0;
+			}
 			memcpy(bs->original + bs->position, data, nbBytes);
 			bs->position += nbBytes;
 			return nbBytes;
