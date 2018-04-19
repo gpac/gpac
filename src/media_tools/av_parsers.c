@@ -2843,15 +2843,15 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 		si->redundant_pic_cnt = bs_get_ue(bs);
 	}
 
-	if (si->slice_type == GF_AVC_TYPE_B) {
+	if (si->slice_type % 5 == GF_AVC_TYPE_B) {
 		/*direct_spatial_mv_pred_flag = */gf_bs_read_int(bs, 1);
 	}
 
-	if (si->slice_type == GF_AVC_TYPE_P || si->slice_type == GF_AVC_TYPE_SP || si->slice_type == GF_AVC_TYPE_B) {
+	if (si->slice_type % 5 == GF_AVC_TYPE_P || si->slice_type % 5 == GF_AVC_TYPE_SP || si->slice_type % 5 == GF_AVC_TYPE_B) {
 		Bool num_ref_idx_active_override_flag = gf_bs_read_int(bs, 1);
 		if (num_ref_idx_active_override_flag) {
 			num_ref_idx_l0_active_minus1 = bs_get_ue(bs);
-			if (si->slice_type == GF_AVC_TYPE_B) {
+			if (si->slice_type % 5 == GF_AVC_TYPE_B) {
 				num_ref_idx_l1_active_minus1 = bs_get_ue(bs);
 			}
 		}
@@ -2866,7 +2866,8 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 		ref_pic_list_modification(bs, si->slice_type);
 	}
 
-	if ((si->pps->weighted_pred_flag && (si->slice_type == GF_AVC_TYPE_P || si->slice_type == GF_AVC_TYPE_SP)) || (si->pps->weighted_bipred_idc == 1 && si->slice_type == GF_AVC_TYPE_B)) {
+	if ((si->pps->weighted_pred_flag && (si->slice_type % 5 == GF_AVC_TYPE_P || si->slice_type % 5 == GF_AVC_TYPE_SP))
+		|| (si->pps->weighted_bipred_idc == 1 && si->slice_type % 5 == GF_AVC_TYPE_B)) {
 		pred_weight_table(bs, si->slice_type, si->sps->ChromaArrayType, num_ref_idx_l0_active_minus1, num_ref_idx_l1_active_minus1);
 	}
 
@@ -2874,13 +2875,13 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 		dec_ref_pic_marking(bs, avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE);
 	}
 
-	if (si->pps->entropy_coding_mode_flag && si->slice_type != GF_AVC_TYPE_I && si->slice_type != GF_AVC_TYPE_SI) {
+	if (si->pps->entropy_coding_mode_flag && si->slice_type % 5 != GF_AVC_TYPE_I && si->slice_type % 5 != GF_AVC_TYPE_SI) {
 		/*cabac_init_idc = */bs_get_ue(bs);
 	}
 
 	/*slice_qp_delta = */bs_get_se(bs);
-	if (si->slice_type == GF_AVC_TYPE_SP || si->slice_type == GF_AVC_TYPE_SI) {
-		if (si->slice_type == GF_AVC_TYPE_SP) {
+	if (si->slice_type % 5 == GF_AVC_TYPE_SP || si->slice_type % 5 == GF_AVC_TYPE_SI) {
+		if (si->slice_type % 5 == GF_AVC_TYPE_SP) {
 			/*sp_for_switch_flag = */gf_bs_read_int(bs, 1);
 		}
 		/*slice_qs_delta = */bs_get_se(bs);
@@ -3745,7 +3746,7 @@ parse_weights:
 		}
 	}
 
-	if (si->slice_type==GF_HEVC_SLICE_TYPE_B) {
+	if (si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 		if (!first_pass) return;
 		first_pass=GF_FALSE;
 		num_ref_idx = num_ref_idx_l1_active;

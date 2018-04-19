@@ -5057,7 +5057,7 @@ restart_import:
 		case GF_AVC_NALU_DP_B_SLICE:
 		case GF_AVC_NALU_DP_C_SLICE:
 		case GF_AVC_NALU_IDR_SLICE:
-			if (! skip_nal) {
+			if (!skip_nal) {
 				copy_size = nal_size;
 				switch (avc.s_info.slice_type) {
 				case GF_AVC_TYPE_P:
@@ -5508,7 +5508,7 @@ restart_import:
 
 		for (i=0; i<cur_samp; i++) {
 			u64 cts;
-			/*not using descIdx and data_offset will only fecth DTS, CTS and RAP which is all we need*/
+			/*not using descIdx and data_offset will only fetch DTS, CTS and RAP which is all we need*/
 			GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, i+1, NULL, NULL);
 			/*poc re-init (RAP and POC to 0, otherwise that's SEI recovery), update base DTS*/
 			if (samp->IsRAP /*&& !samp->CTS_Offset*/)
