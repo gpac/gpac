@@ -421,9 +421,9 @@ void isor_declare_objects(ISOMReader *read)
 		//move channel duration in media timescale
 		ch->duration = (u32) (track_dur * ch->time_scale);
 		if (ch->duration) {
-			u32 avg_rate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
-			avg_rate /= track_dur;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT(avg_rate));
+			u64 avg_rate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
+			avg_rate = (u64) (avg_rate / track_dur);
+			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avg_rate));
 		}
 
 		gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));

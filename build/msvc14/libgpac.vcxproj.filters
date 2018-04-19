@@ -1421,5 +1421,13 @@
     <ClCompile Include="..\..\src\filters\write_vtt.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\mux_ts.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\filters\dec_vtb_glctx.m">
+      <Filter>filters</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -923,7 +923,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 	u32 clear_bytes = 0;
 	if (tci->slice_header_clear) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-		u32 nal_start = gf_bs_get_position(plaintext_bs);
+		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (tci->is_avc) {
 			u32 ntype;
 			gf_media_avc_parse_nalu(plaintext_bs, &tci->avc);
@@ -937,7 +937,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			case GF_AVC_NALU_SLICE_AUX:
 			case GF_AVC_NALU_SVC_SLICE:
 				gf_bs_align(plaintext_bs);
-				clear_bytes = gf_bs_get_position(plaintext_bs) - nal_start;
+				clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
 				break;
 			default:
 				clear_bytes = nal_size;
@@ -946,7 +946,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 		} else {
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
-			u32 nal_start = gf_bs_get_position(plaintext_bs);
+			u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 			tci->hevc.full_slice_header_parse = GF_TRUE;
 			gf_media_hevc_parse_nalu (samp_data + nal_start, nal_size, &tci->hevc, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
