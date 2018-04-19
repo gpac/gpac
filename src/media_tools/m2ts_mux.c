@@ -2545,6 +2545,27 @@ void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 }
 
 GF_EXPORT
+void gf_m2ts_program_stream_remove(GF_M2TS_Mux_Stream *stream)
+{
+	GF_M2TS_Mux_Program *program = stream->program;
+	GF_M2TS_Mux_Stream *a_stream = program->streams;
+	if (a_stream==stream) {
+		program->streams = stream->next;
+	} else {
+		while (a_stream) {
+			if (a_stream->next == stream) {
+				a_stream->next = stream->next;
+				break;
+			}
+			a_stream = a_stream->next;
+		}
+	}
+	stream->next = NULL;
+	gf_m2ts_mux_stream_del(stream);
+	program->pmt->table_needs_update = GF_TRUE;
+}
+
+GF_EXPORT
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux)
 {
 	while (mux->programs) {
