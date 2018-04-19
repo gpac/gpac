@@ -323,6 +323,15 @@ GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, co
  */
 GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name);
 
+/*
+*\brief Creates an attribute with the given name and value.
+*
+*\param name the attribute name
+*\param value the value
+*\return The created attribute ;
+*/
+GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value);
+
 /*! Adds the node to the end of the list of children of this node.
  *
  *\param node the GF_XMLNode node
