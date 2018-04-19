@@ -194,8 +194,19 @@ static void gpac_filter_help(void)
 "\tEX: src=img.heif dst=dump_$ItemID$.jpg:clone\n"
 "In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.\n"
 "\n"
+"It is possible to define properties on output pids that will be declared by a filter. This allows tagging parts of the\n"
+"graph with different properties than pther parts (for example ServiceID)\n"
+"The syntax uses the fragment separator to identify properties: #Name=Value\n"
+"This sets output PIDs property (4cc, built-in name or any name) to the given value.\n"\
+"If a non built-in property is used, the value will be delared as string.\n"
+"WARNING: Properties are not filtered and override the source props, be carefull not to break the session by overriding core\n"
+"properties such as width/height/samplerate/... !\n"
+"\tEX: -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
+"This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and 1 for PIDs from v2.mp4\n"
 	);
 }
+
+
 
 static void gf_log_usage(void)
 {

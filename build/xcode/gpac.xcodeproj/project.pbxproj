@@ -384,7 +384,6 @@
 		92BBFCB81A7122AD006A7735 /* download.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC551A7122AD006A7735 /* download.h */; };
 		92BBFCB91A7122AD006A7735 /* dsmcc.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC561A7122AD006A7735 /* dsmcc.h */; };
 		92BBFCBA1A7122AD006A7735 /* dvb_mpe.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC571A7122AD006A7735 /* dvb_mpe.h */; };
-		92BBFCBB1A7122AD006A7735 /* esi.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC581A7122AD006A7735 /* esi.h */; };
 		92BBFCBC1A7122AD006A7735 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC591A7122AD006A7735 /* events_constants.h */; };
 		92BBFCBD1A7122AD006A7735 /* events.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC5A1A7122AD006A7735 /* events.h */; };
 		92BBFCBE1A7122AD006A7735 /* filestreamer.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC5B1A7122AD006A7735 /* filestreamer.h */; };
@@ -1234,7 +1233,6 @@
 		92BBFC551A7122AD006A7735 /* download.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = download.h; path = ../include/gpac/download.h; sourceTree = "<group>"; };
 		92BBFC561A7122AD006A7735 /* dsmcc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dsmcc.h; path = ../include/gpac/dsmcc.h; sourceTree = "<group>"; };
 		92BBFC571A7122AD006A7735 /* dvb_mpe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dvb_mpe.h; path = ../include/gpac/dvb_mpe.h; sourceTree = "<group>"; };
-		92BBFC581A7122AD006A7735 /* esi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = esi.h; path = ../include/gpac/esi.h; sourceTree = "<group>"; };
 		92BBFC591A7122AD006A7735 /* events_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = events_constants.h; path = ../include/gpac/events_constants.h; sourceTree = "<group>"; };
 		92BBFC5A1A7122AD006A7735 /* events.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = events.h; path = ../include/gpac/events.h; sourceTree = "<group>"; };
 		92BBFC5B1A7122AD006A7735 /* filestreamer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filestreamer.h; path = ../include/gpac/filestreamer.h; sourceTree = "<group>"; };
@@ -2281,7 +2279,6 @@
 				92BBFC551A7122AD006A7735 /* download.h */,
 				92BBFC561A7122AD006A7735 /* dsmcc.h */,
 				92BBFC571A7122AD006A7735 /* dvb_mpe.h */,
-				92BBFC581A7122AD006A7735 /* esi.h */,
 				92BBFC591A7122AD006A7735 /* events_constants.h */,
 				92BBFC5A1A7122AD006A7735 /* events.h */,
 				92BBFC5B1A7122AD006A7735 /* filestreamer.h */,
@@ -2605,7 +2602,6 @@
 				92BBFD021A7122AD006A7735 /* terminal.h in Headers */,
 				92BBFCD81A7122AD006A7735 /* vobsub.h in Headers */,
 				92BBFCB31A7122AD006A7735 /* config_file.h in Headers */,
-				92BBFCBB1A7122AD006A7735 /* esi.h in Headers */,
 				92BBFCC61A7122AD006A7735 /* compositor_dev.h in Headers */,
 				92BBFCF21A7122AD006A7735 /* nodes_x3d.h in Headers */,
 				92BBFCF11A7122AD006A7735 /* nodes_svg.h in Headers */,

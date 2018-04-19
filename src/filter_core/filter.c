@@ -594,6 +594,11 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			value++;
 		}
 
+		if (szArg[0] == filter->session->sep_frag) {
+			 	filter->user_pid_props = GF_TRUE;
+			goto skip_arg;
+		}
+
 		if ((arg_type == GF_FILTER_ARG_GLOBAL) && !strcmp(szArg, "src"))
 			goto skip_arg;
 

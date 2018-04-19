@@ -293,14 +293,16 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->opid = gf_filter_pid_new(filter);
 	}
 	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, pid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mp4") );
-
+	if (ctx->opid) {
+		gf_filter_pid_copy_properties(ctx->opid, pid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mp4") );
+	}
+	
 	//new pid ?
 	tkw = gf_filter_pid_get_udta(pid);
 	if (!tkw) {
@@ -1526,6 +1528,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use fragmented output on already opened ISOBMF file\n"));
 			return GF_BAD_PARAM;
 		}
+		ctx->owns_mov = GF_FALSE;
 	} else {
 		u32 open_mode = GF_ISOM_OPEN_WRITE;
 		ctx->owns_mov = GF_TRUE;
