@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
- *  This file is part of GPAC / MPEG2-TS sub-project
+ *  This file is part of GPAC / MPEG2-TS multiplexer sub-project
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -2246,6 +2246,10 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			gf_m2ts_stream_set_default_slconfig(stream);
 			break;
 		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
+			stream->force_single_au = GF_TRUE;
+			stream->mpeg2_stream_id = 0xFA;
 			break;
 		}
 		break;
@@ -2263,12 +2267,20 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		case GF_CODECID_AAC_MPEG2_MP:
 		case GF_CODECID_AAC_MPEG2_LCP:
 		case GF_CODECID_AAC_MPEG2_SSRP:
-			stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
-			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
+			if (ifce->caps & GF_ESI_AAC_USE_LATM)
+				stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
+			else
+				stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
+
 			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
 			break;
 		case GF_CODECID_AC3:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
+			stream->force_single_au = GF_TRUE;
 			break;
 		}
 		/*just pick first valid stream_id in audio range*/
@@ -2304,6 +2316,12 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
 		gf_m2ts_stream_add_metadata_pointer_descriptor(stream->program);
 		gf_m2ts_stream_add_metadata_descriptor(stream);
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+		stream->mpeg2_stream_id = 0xBD;
+		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
+		break;
 	}
 
 	if (! (ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
@@ -2501,6 +2519,11 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 
 void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 {
+	Bool del_sys = GF_FALSE;
+	if (prog->iod) {
+		del_sys = GF_TRUE;
+		gf_odf_desc_del(prog->iod);
+	}
 	while (prog->streams) {
 		GF_M2TS_Mux_Stream *st = prog->streams->next;
 		gf_m2ts_mux_stream_del(prog->streams);
