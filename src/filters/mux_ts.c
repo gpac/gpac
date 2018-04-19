@@ -34,7 +34,7 @@ typedef struct
 	u32 pmt_id, pmt_rate, pcr_offset, pmt_version, sdt_rate, breq, mpeg4;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes, temi_delay, temi_offset;
 	GF_M2TS_PackMode pes_pack;
-	Bool flush_rap, rt, pcr_only, disc, temi_ntp;
+	Bool flush_rap, rt, pcr_only, disc, temi_ntp, latm;
 	s64 pcr_init;
 	char *name, *provider, *temi;
 	u32 log_freq;
@@ -357,8 +357,11 @@ void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
 			esd->decoderConfig->streamType = stream->ifce->stream_type;
 			esd->ESID = stream->ifce->stream_id;
 			esd->dependsOnESID = stream->ifce->depends_on_stream;
-			esd->decoderConfig->decoderSpecificInfo->data = stream->ifce->decoder_config;
-			esd->decoderConfig->decoderSpecificInfo->dataLength = stream->ifce->decoder_config_size;
+			if (stream->ifce->decoder_config_size) {
+				esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*stream->ifce->decoder_config_size);
+				memcpy(esd->decoderConfig->decoderSpecificInfo->data, stream->ifce->decoder_config, stream->ifce->decoder_config_size);
+				esd->decoderConfig->decoderSpecificInfo->dataLength = stream->ifce->decoder_config_size;
+			}
 			tsmux_get_sl_config(ctx, stream->ifce->timescale, esd->slConfig);
 			gf_list_add( ((GF_ObjectDescriptor *)prog->iod)->ESDescriptors, esd);
 		}
@@ -426,6 +429,16 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	}
 
 	tspid->esi.caps = 0;
+	switch (tspid->esi.stream_type) {
+	case GF_STREAM_AUDIO:
+		if (ctx->latm) tspid->esi.caps |= GF_ESI_AAC_USE_LATM;
+	case GF_STREAM_VISUAL:
+		if (ctx->mpeg4==2) {
+			tspid->esi.caps |= GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS;
+		}
+		break;
+	}
+
 	tspid->esi.input_ctrl = tsmux_esi_ctrl;
 	tspid->esi.input_udta = tspid;
 }
@@ -773,6 +786,7 @@ static void tsmux_finalize(GF_Filter *filter)
 	while (gf_list_count(ctx->pids)) {
 		M2Pid *tspid = gf_list_pop_back(ctx->pids);
 		if (tspid->temi_url) gf_free(tspid->temi_url);
+		if (tspid->esi.sl_config) gf_free(tspid->esi.sl_config);
 		gf_free(tspid);
 	}
 	gf_list_del(ctx->pids);
@@ -793,12 +807,9 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_SVC),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
-	//for AAC we want ADTS
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
-
+	//for m4vp2 we want DSI reinsertion
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	//for AAC we use the AAC->ADTS or AAC->LATM of the mux
 	//static output cap file extension
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "ts|m2ts"),
 	{},
@@ -813,10 +824,7 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_SVC),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	//no RAW support for now
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
@@ -857,6 +865,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(temi_offset), "sets offset in ms  to add to TEMI timecodes", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(temi_ntp), "inserts NTP timestamp in TEMI timeline descriptor", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(log_freq), "delay between logs for realtime mux", GF_PROP_UINT, "500", NULL, GF_FALSE},
+	{ OFFS(latm), "uses LATM AAC encapsulation instead of regular ADTS", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
 	{0}
 };
