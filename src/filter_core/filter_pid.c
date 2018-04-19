@@ -1075,7 +1075,7 @@ Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg,
 				if (!prop_equal) {
 					prop_equal = gf_props_equal(pid_cap, &a_cap->val);
 					//excluded cap: if value match, don't match this cap at all
-					if (cap->flags & GF_FILTER_CAPS_EXCLUDED) {
+					if (a_cap->flags & GF_FILTER_CAPS_EXCLUDED) {
 						if (prop_equal) {
 							prop_equal = GF_FALSE;
 							prop_excluded = GF_FALSE;
@@ -1461,9 +1461,6 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 		//filter shall be explicitly loaded
 		if (freg->explicit_only) continue;
 
-		if (!strcmp(freg->name, "ufnalu"))
-			path_weight = 0;
-
 		//freg already being tested for another chain
 		if (gf_list_find(tested_filters, (void *) freg)>=0)
 			continue;
@@ -1671,6 +1668,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		u32 chain_len=0;
 		u32 cap_bundle_idx=0;
 		u32 bundle_idx=0;
+		Bool tested = GF_FALSE;
 		u32 k, nb_filters, nb_in_caps;
 		Bool force_registry = GF_FALSE;
 		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
@@ -1703,35 +1701,36 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		nb_in_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
 		for (k=0; k<nb_in_caps; k++) {
 			path_weight = gf_filter_caps_to_caps_match(freg, k, (const GF_FilterRegister *) dst_filter, dst, &bundle_idx, -1);
+			if (!path_weight) continue;
+
+			//remember it
+			cap_bundle_idx = k;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s output caps bundle %d match from %s input caps bundle %d checking filter chain\n", freg->name, cap_bundle_idx, dst_filter->name, bundle_idx));
+
+			//we have a target destination filter match, keep solving filter until done
+			path_len = gf_list_count(filter_chain);
+
+			//min_length/2 because the filter chain contain for each filter the registry and the cap
+			path_weight = gf_filter_check_dst_caps(fsess, freg, cap_bundle_idx, pid->filter->blacklisted, filter_chain, filter_stack, tested_filters, dst, 0, min_length/2, pid);
+
+			tested = GF_TRUE;
+
 			if (path_weight) break;
-		}
-		//no caps matched
-		if (!path_weight) continue;
-		//remember it
-		cap_bundle_idx = k;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s output caps bundle %d match from %s input caps bundle %d checking filter chain\n", freg->name, cap_bundle_idx, dst_filter->name, bundle_idx));
-
-		if (!strcmp(freg->name, "mxts"))
-			path_len = 0;
-		//TODO: handle user-defined priorities
-
-		//we have a target destination filter match, keep solving filter until done
-		path_len = gf_list_count(filter_chain);
-
-		//min_length/2 because the filter chain contain for each filter the registry and the cap
-		path_weight = gf_filter_check_dst_caps(fsess, freg, cap_bundle_idx, pid->filter->blacklisted, filter_chain, filter_stack, tested_filters, dst, 0, min_length/2, pid);
-
-		//not our candidate, remove all added entries
-		if (!path_weight) {
 			while (gf_list_count(filter_chain) > path_len) {
 				gf_list_rem_last(filter_chain);
 			}
+		}
+		//not our candidate, remove all added entries
+		if (!path_weight) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Cannot find a valid filter chain from filter %s to filter %s, ignoring filter\n", freg->name, dst_filter->name));
 			//skip further attempts with this filter
-			gf_list_add(tested_filters, (void *) freg);
+			if (tested)
+				gf_list_add(tested_filters, (void *) freg);
 			continue;
 		}
+
 		//we keep track of all filters in possible chain, whether we keep the chain or not
 		//this allows calls to gf_filter_check_dst_caps to abort when trying to test an already tested filter
 		//this might need refinements in case the filter was first tested in a longer chain ...
@@ -1893,6 +1892,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			//the other filters shouldn't need any specific init
 			af->dynamic_filter = GF_TRUE;
+			af->user_pid_props = GF_FALSE;
 			//remember our target cap on that filter
 			af->cap_idx_at_resolution = cap_idx;
 
@@ -2244,6 +2244,78 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 	return GF_OK;
 }
 
+static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
+{
+	char *args;
+	if (!filter->src_args) return;
+	args = filter->src_args;
+	//parse each arg
+	while (args) {
+		u32 p4cc=0;
+		u32 prop_type=GF_PROP_FORBIDEN;
+		char *eq;
+		char *value, *name;
+		//look for our arg separator
+		char *sep = strchr(args, filter->session->sep_args);
+
+		if (filter->session->sep_args == ':') {
+			if (sep && !strncmp(sep, "://", 3)) {
+				//get root /
+				sep = strchr(sep+3, '/');
+				//get first : after root
+				if (sep) sep = strchr(sep+1, ':');
+			}
+			//watchout for "C:\\"
+			while (sep && (sep[1]=='\\')) {
+				sep = strchr(sep+1, ':');
+			}
+		}
+		if (sep) sep[0]=0;
+
+		if (args[0] != filter->session->sep_frag)
+			goto skip_arg;
+
+		eq = strchr(args, filter->session->sep_name);
+		if (!eq)
+			goto skip_arg;
+
+		eq[0]=0;
+		value = eq+1;
+		name = args+1;
+
+		if (strlen(name)==4) p4cc = GF_4CC(name[0], name[1], name[2], name[3]);
+		else p4cc = gf_props_get_id(name);
+		if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
+
+		if (prop_type != GF_PROP_FORBIDEN) {
+			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL);
+			if (prop_type==GF_PROP_NAME) {
+				p.type = GF_PROP_STRING;
+				gf_filter_pid_set_property(pid, p4cc, &p);
+				p.type = GF_PROP_NAME;
+			} else {
+				gf_filter_pid_set_property(pid, p4cc, &p);
+			}
+			gf_props_reset_single(&p);
+		} else {
+			GF_PropertyValue p;
+			memset(&p, 0, sizeof(GF_PropertyValue));
+			p.type = GF_PROP_STRING;
+			p.value.string = sep+1;
+			gf_filter_pid_set_property_dyn(pid, name, &p);
+		}
+		eq[0] = filter->session->sep_name;
+
+skip_arg:
+		if (sep) {
+			sep[0]=0;
+			args=sep+1;
+		} else {
+			break;
+		}
+	}
+}
+
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 {
 	char szName[30];
@@ -2261,6 +2333,9 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	
 	sprintf(szName, "PID%d", filter->num_output_pids);
 	pid->name = gf_strdup(szName);
+
+	if (filter->user_pid_props)
+		gf_filter_pid_set_args(filter, pid);
 
 	filter->has_pending_pids = GF_TRUE;
 	gf_fq_add(filter->pending_pids, pid);

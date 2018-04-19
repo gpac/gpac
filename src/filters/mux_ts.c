@@ -31,10 +31,10 @@
 typedef struct
 {
 	//filter args
-	u32 pmt_id, pmt_rate, pcr_offset, pmt_version, sdt_rate, breq;
+	u32 pmt_id, pmt_rate, pcr_offset, pmt_version, sdt_rate, breq, mpeg4;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes, temi_delay, temi_offset;
 	GF_M2TS_PackMode pes_pack;
-	Bool flush_rap, rt, pcr_only, mpeg4, disc, temi_ntp;
+	Bool flush_rap, rt, pcr_only, disc, temi_ntp;
 	s64 pcr_init;
 	char *name, *provider, *temi;
 	u32 log_freq;
@@ -51,6 +51,8 @@ typedef struct
 	u64 nb_pck;
 	Bool init_buffering;
 	u32 last_log_time;
+	Bool pmt_update_pending;
+
 } GF_TSMuxCtx;
 
 typedef struct
@@ -74,6 +76,8 @@ typedef struct
 
 	u32 last_temi_url;
 	char af_data[188];
+
+	Bool rewrite_odf;
 } M2Pid;
 
 static u32 tsmux_format_af_descriptor(char *af_data, u32 timeline_id, u64 timecode, u32 timescale, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
@@ -158,6 +162,71 @@ static u32 tsmux_format_af_descriptor(char *af_data, u32 timeline_id, u64 timeco
 	return res;
 }
 
+
+GF_SLConfig *tsmux_get_sl_config(GF_TSMuxCtx *ctx, u32 timescale, GF_SLConfig *slc)
+{
+	if (!slc) slc = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+	slc->predefined = 0;
+	slc->useAccessUnitStartFlag = 1;
+	slc->useAccessUnitEndFlag = 1;
+	slc->useRandomAccessPointFlag = 1;
+	slc->useTimestampsFlag = 1;
+	slc->timestampLength = 33;
+	slc->timestampResolution = timescale;
+
+	/*test mode in which time stamps are 90khz and not coded but copied over from PES header*/
+	if (ctx->bifs_pes==2) {
+		slc->timestampLength = 0;
+		slc->timestampResolution = 90000;
+	}
+	return slc;
+}
+
+static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
+{
+	u32 com_count, com_index, od_count, esd_index, od_index;
+	GF_ODCom *com;
+	GF_ODUpdate *odU;
+	GF_ESDUpdate *esdU;
+	GF_ESD *esd;
+	GF_ODCodec *od_codec = gf_odf_codec_new();
+
+	gf_odf_codec_set_au(od_codec, es_pck->data, es_pck->data_len);
+	gf_odf_codec_decode(od_codec);
+	com_count = gf_list_count(od_codec->CommandList);
+	for (com_index = 0; com_index < com_count; com_index++) {
+		com = (GF_ODCom *)gf_list_get(od_codec->CommandList, com_index);
+		switch (com->tag) {
+		case GF_ODF_OD_UPDATE_TAG:
+			odU = (GF_ODUpdate*)com;
+			od_count = gf_list_count(odU->objectDescriptors);
+			for (od_index=0; od_index<od_count; od_index++) {
+				GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, od_index);
+				esd_index = 0;
+				while ( (esd = gf_list_enum(od->ESDescriptors, &esd_index)) ) {
+					assert(esd->slConfig);
+					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
+				}
+			}
+			break;
+		case GF_ODF_ESD_UPDATE_TAG:
+			esdU = (GF_ESDUpdate*)com;
+			esd_index = 0;
+			while ( (esd = gf_list_enum(esdU->ESDescriptors, &esd_index)) ) {
+					assert(esd->slConfig);
+					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
+			}
+			break;
+		}
+	}
+	gf_odf_codec_encode(od_codec, 1);
+	es_pck->data = NULL;
+	es_pck->data_len = 0;
+	gf_odf_codec_get_au(od_codec, &es_pck->data, &es_pck->data_len);
+	gf_odf_codec_del(od_codec);
+
+}
+
 static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	u32 cversion;
@@ -172,6 +241,9 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		//current pck
 		GF_FilterPacket *pck;
 		pck = gf_filter_pid_get_packet(tspid->ipid);
+		//if PMT update is pending after this packet fetch (reconfigure), don't send the packet
+		if (tspid->ctx->pmt_update_pending) return GF_OK;
+
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tspid->ipid)) {
 				if (tspid->ctx->rt
@@ -244,7 +316,9 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		es_pck.data = (char *) gf_filter_pck_get_data(pck, &es_pck.data_len);
 		es_pck.duration = gf_filter_pck_get_duration(pck);
 
-
+		if (tspid->rewrite_odf) {
+			tsmux_rewrite_odf(tspid->ctx, &es_pck);
+		}
 
 		tspid->nb_pck++;
 		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &es_pck);
@@ -252,6 +326,11 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		//data is copied by muxer for now, should need rewrite to avoid un-needed allocations
 		gf_filter_pid_drop_packet(tspid->ipid);
+
+		if (tspid->rewrite_odf) {
+			gf_free(es_pck.data);
+		}
+
 	}
 	return GF_OK;
 
@@ -262,7 +341,33 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	}
 }
 
-static void tsmux_setup_esi(GF_TSMuxCtx *ctx, M2Pid *tspid, u32 stream_type)
+
+void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
+{
+	GF_M2TS_Mux_Stream *stream = prog->streams;
+
+	if (prog->iod) gf_odf_desc_del(prog->iod);
+	prog->iod = gf_odf_desc_new(GF_ODF_IOD_TAG);
+	while (stream) {
+		M2Pid *tspid = (M2Pid *)stream->ifce->input_udta;
+		const GF_PropertyValue *p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_IN_IOD);
+		if (p && p->value.boolean) {
+			GF_ESD *esd = gf_odf_desc_esd_new(0);
+			esd->decoderConfig->objectTypeIndication = stream->ifce->object_type_indication;
+			esd->decoderConfig->streamType = stream->ifce->stream_type;
+			esd->ESID = stream->ifce->stream_id;
+			esd->dependsOnESID = stream->ifce->depends_on_stream;
+			esd->decoderConfig->decoderSpecificInfo->data = stream->ifce->decoder_config;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = stream->ifce->decoder_config_size;
+			tsmux_get_sl_config(ctx, stream->ifce->timescale, esd->slConfig);
+			gf_list_add( ((GF_ObjectDescriptor *)prog->iod)->ESDescriptors, esd);
+		}
+		stream->ifce->sl_config = tsmux_get_sl_config(ctx, stream->ifce->timescale, stream->ifce->sl_config);
+		stream = stream->next;
+	}
+}
+
+static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *tspid, u32 stream_type)
 {
 	const GF_PropertyValue *p;
 
@@ -312,43 +417,62 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, M2Pid *tspid, u32 stream_type)
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_CAROUSEL_RATE);
 	if (p) tspid->esi.repeat_rate = p->value.uint;
 
-	//TODO
-	tspid->esi.sl_config = NULL;
+	tspid->rewrite_odf = GF_FALSE;
+	if (tspid->esi.stream_type==GF_STREAM_OD) {
+		tspid->rewrite_odf = GF_TRUE;
+		update_m4sys_info(ctx, prog);
+	} else if (prog->iod) {
+		update_m4sys_info(ctx, prog);
+	}
 
 	tspid->esi.caps = 0;
 	tspid->esi.input_ctrl = tsmux_esi_ctrl;
 	tspid->esi.input_udta = tspid;
 }
 
-static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
+static void tsmux_setup_temi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Stream *stream, M2Pid *tspid)
 {
+	GF_M2TS_Mux_Stream *a_stream;
+	u32 service_id=0;
+	u32 st_idx=0;
 	char *turl = ctx->temi;
 	if (!turl) return;
-	s32 idx = gf_list_find(ctx->pids, tspid);
+	u32 idx = 0;
 	u32 temi_id=0;
 	assert(idx>=0);
 
+	//find our stream index
+	a_stream = stream->program->streams;
+	while (a_stream) {
+		if (stream==a_stream) break;
+		st_idx++;
+		a_stream = a_stream->next;
+	}
+
 	while (turl) {
-		char *sep = strchr(turl, ',');
+		char *sep;
+		if (turl[0]=='#') {
+			sscanf(turl, "#%d#", &service_id);
+			turl = strchr(turl+1, '#');
+			assert(turl);
+			turl += 1;
+			idx = 0;
+		}
+
+		sep = strchr(turl, ',');
 		if (sep) sep[0] = 0;
 
-		if (idx) {
-			idx--;
-			temi_id++;
-			if (!sep) break;
-			sep[0] = ',';
-			turl = sep+1;
-			continue;
+		if (strlen(turl) && (idx==st_idx) && (!service_id || (service_id==stream->program->number) ))  {
+			tspid->temi_id = atoi(turl);
+			if (!tspid->temi_id) {
+				tspid->temi_url = gf_strdup(turl);
+				tspid->temi_id = temi_id+1;
+			}
 		}
-		//that's us
-		tspid->temi_id = atoi(turl);
-		if (!tspid->temi_id) {
-			tspid->temi_url = gf_strdup(turl);
-			tspid->temi_id = temi_id+1;
-		}
-
-		if (sep) sep[0] = ',';
-		break;
+		idx++;
+		if (!sep) break;
+		sep[0] = ',';
+		turl = sep+1;
 	}
 }
 
@@ -357,6 +481,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	u32 service_id, codec_id, streamtype;
 	const GF_PropertyValue *p;
 	M2Pid *tspid=NULL;
+	char *sname, *pname;
 	GF_M2TS_Mux_Program *prog;
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
 	if (is_remove) {
@@ -375,6 +500,13 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	service_id = p ? p->value.uint : ctx->sid;
+
+	sname = ctx->name;
+	pname = ctx->provider;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
+	if (p) sname = p->value.string;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
+	if (p) pname = p->value.string;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -411,6 +543,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!prog) {
 		u32 pcr_offset=0;
 		u32 pmt_id = ctx->pmt_id;
+
 		if (!pmt_id) pmt_id = 100;
 		if ( gf_m2ts_mux_program_count(ctx->mux)) {
 			pmt_id += 100;
@@ -431,6 +564,8 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 
 		prog = gf_m2ts_mux_program_add(ctx->mux, service_id, pmt_id, ctx->pmt_rate, pcr_offset, ctx->mpeg4, ctx->pmt_version, ctx->disc);
+
+		if (sname) gf_m2ts_mux_program_set_name(prog, sname, pname);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
@@ -460,12 +595,14 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			//if no video track we will update the PCR at the first packets
 		}
 
-		tsmux_setup_esi(ctx, tspid, streamtype);
-		tsmux_setup_temi(ctx, tspid);
+		tsmux_setup_esi(ctx, prog, tspid, streamtype);
 		mstream = gf_m2ts_program_stream_add(prog, &tspid->esi, pes_pid, is_pcr, force_pes, GF_FALSE);
+		tsmux_setup_temi(ctx, mstream, tspid);
 	} else {
 		tspid->codec_id = codec_id;
-		tsmux_setup_esi(ctx, tspid, streamtype);
+		tsmux_setup_esi(ctx, prog, tspid, streamtype);
+		prog->pmt->table_needs_update = GF_TRUE;
+		ctx->pmt_update_pending = GF_TRUE;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MEDIA_SKIP);
 	if (p) tspid->cts_dts_shift = p->value.sint;
@@ -504,7 +641,7 @@ static Bool tsmux_init_buffering(GF_Filter *filter, GF_TSMuxCtx *ctx)
 		u32 buf;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		gf_filter_pid_get_buffer_occupancy(pid, NULL, NULL, NULL, &buf);
-		if ((buf < mbuf) && !gf_filter_pid_is_eos(pid))
+		if ((buf < mbuf) && !gf_filter_pid_has_seen_eos(pid))
 			return GF_FALSE;
 	}
 	ctx->init_buffering = GF_FALSE;
@@ -586,6 +723,9 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				gf_filter_ask_rt_reschedule(filter, sleep_for);
 		}
 	}
+	//PMT update management is still under progress...
+	ctx->pmt_update_pending = 0;
+
 	return GF_OK;
 }
 
@@ -661,8 +801,8 @@ static const GF_FilterCapability TSMuxCaps[] =
 
 	//static output cap file extension
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "ts|m2ts"),
-
 	{},
+	
 	//for now don't accept files as input, although we could store them as items, to refine
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	//these caps are framed
@@ -686,12 +826,15 @@ static const GF_FilterCapability TSMuxCaps[] =
 static const GF_FilterArgs TSMuxArgs[] =
 {
 	{ OFFS(breq), "buffer requirements in ms for input pids", GF_PROP_UINT, "100", NULL, GF_FALSE},
-	{ OFFS(pmt_id), "defines the ID of the first PMT to use in the mux - see filter help", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(pmt_id), "defines the ID of the first PMT to use in the mux.", GF_PROP_UINT, "100", NULL, GF_FALSE},
 	{ OFFS(rate), "target rate in bps of the multiplex. If not set, variable rate is used", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(pmt_rate), "interval between PMT in ms", GF_PROP_UINT, "200", NULL, GF_FALSE},
 	{ OFFS(pat_rate), "interval between PAT in ms", GF_PROP_UINT, "200", NULL, GF_FALSE},
 	{ OFFS(pcr_offset), "offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media", GF_PROP_UINT, "-1", NULL, GF_FALSE},
-	{ OFFS(mpeg4), "forces usage of MPEG-4 signaling (IOD and SL Config)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(mpeg4), "forces usage of MPEG-4 signaling (IOD and SL Config).\n"\
+				"none disables 4on2. full sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
+				"scene sends only scene streams as 4on2 but uses regular PES without SL for audio and video\n"\
+				, GF_PROP_UINT, "none", "none|full|scene", GF_FALSE},
 	{ OFFS(pmt_version), "sets version number of the PMT", GF_PROP_UINT, "200", NULL, GF_FALSE},
 	{ OFFS(disc), "sets the discontinuity marker for the first packet of each stream", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(repeat_rate), "interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined", GF_PROP_UINT, "0", NULL, GF_FALSE},
@@ -722,7 +865,18 @@ static const GF_FilterArgs TSMuxArgs[] =
 GF_FilterRegister TSMuxRegister = {
 	.name = "mxts",
 	.description = "MPEG-2 Transport Stream muxer",
-	.comment = "The PID for media streams is the PID of the PMT plus the stream index",
+	.comment = "GPAC TS multiplexer selects PID for media streams using the PID of the PMT plus the stream index.\n"\
+		"sid option is overriden by input PID property ServiceID if present\n"\
+		"name option is overriden by input PID property ServiceName\n"\
+		"provider option is overriden by input PID property ServiceProvider\n"\
+		"\n"\
+		"The temi option allows specifying a list of URLs or timeline IDs to insert in the program.\n"
+		"Only a single TEMI timeline can be specified per PID.\n"
+		"The syntax is\n"\
+		"temi=\"url,4\": inserts a temi URL+timecode to the first stream of all progrrams and an external temi to the second stream of all programs\n"\
+		"temi=\"#20#,4#10#URL\": inserts a temi URL+timecode to the first stream of program with ServiceID 10 and an external temi to the second stream of program with ServiceID 20\n"\
+		"temi=\"#20#4#10#,,URL\": inserts a temi URL+timecode to the third stream of program with ServiceID 10 and an external temi to the first stream of program with ServiceID 20\n"\
+	,
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,
 	.initialize = tsmux_initialize,

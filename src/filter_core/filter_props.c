@@ -834,7 +834,9 @@ struct _gf_prop_typedef {
 GF_EXPORT
 u32 gf_props_get_id(const char *name)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	u32 i, nb_props;
+	if (!name) return 0;
+	nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
 	for (i=0; i<nb_props; i++) {
 		if (!strcmp(GF_BuiltInProps[i].name, name)) return GF_BuiltInProps[i].type;
 	}

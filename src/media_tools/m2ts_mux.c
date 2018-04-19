@@ -1032,6 +1032,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		if (stream->curr_pck.data_len) {
 			/*discard packet data if we use SL over PES*/
 			if (stream->discard_data) gf_free(stream->curr_pck.data);
+			if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
 			/*release data*/
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
 		}
@@ -1100,8 +1101,11 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		} else {
 			/*PES has been sent, discard internal buffer*/
 			if (stream->discard_data) gf_free(stream->curr_pck.data);
+			if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
 			stream->curr_pck.data = NULL;
 			stream->curr_pck.data_len = 0;
+			stream->curr_pck.mpeg2_af_descriptors = NULL;
+			stream->curr_pck.mpeg2_af_descriptors_size = 0;
 			stream->pck_offset = 0;
 			/*don't send until PCR is initialized*/
 			return 0;
@@ -1131,6 +1135,9 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			gf_free(stream->curr_pck.data);
 			stream->curr_pck.data = NULL;
 			stream->curr_pck.data_len = 0;
+			gf_free(stream->curr_pck.mpeg2_af_descriptors);
+			stream->curr_pck.mpeg2_af_descriptors = NULL;
+			stream->curr_pck.mpeg2_af_descriptors_size = 0;
 		}
 		break;
 	case GF_M2TS_SYSTEMS_MPEG4_PES:
@@ -1853,6 +1860,9 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		if (stream->discard_data) gf_free(stream->curr_pck.data);
 		stream->curr_pck.data = NULL;
 		stream->curr_pck.data_len = 0;
+		if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+		stream->curr_pck.mpeg2_af_descriptors = NULL;
+		stream->curr_pck.mpeg2_af_descriptors_size = 0;
 		stream->pck_offset = 0;
 
 //#ifndef GPAC_DISABLE_LOG
@@ -1905,6 +1915,9 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 					if (stream->discard_data) gf_free(stream->curr_pck.data);
 					stream->curr_pck.data = NULL;
 					stream->curr_pck.data_len = 0;
+					if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+					stream->curr_pck.mpeg2_af_descriptors = NULL;
+					stream->curr_pck.mpeg2_af_descriptors_size = 0;
 					stream->pck_offset = 0;
 				}
 				if (!remain) break;
@@ -2472,6 +2485,7 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 		gf_free(curr_pck);
 	}
 	if (st->curr_pck.data) gf_free(st->curr_pck.data);
+	if (st->curr_pck.mpeg2_af_descriptors) gf_free(st->curr_pck.mpeg2_af_descriptors);
 	if (st->mx) gf_mx_del(st->mx);
 	if (st->loop_descriptors) {
 		while (gf_list_count(st->loop_descriptors) ) {

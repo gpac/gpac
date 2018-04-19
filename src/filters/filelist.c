@@ -106,66 +106,6 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 	iopid->first_dts_plus_one = 0;
 }
 
-#define FILELIST_SEP_SET	"# \n\r\t,"
-void filelist_update_pid_props(GF_FileListCtx *ctx, GF_FilterPid *pid)
-{
-	char *com = ctx->szCom;
-	while (com[0]) {
-		char c;
-		u32 end=0;
-		//strip whitespace and comma
-		while (com[end] && strchr(FILELIST_SEP_SET, com[end])) {
-			end++;
-		}
-		if (!com[end]) break;
-		com += end;
-		//locate next whitespace/comma
-		end=0;
-		while (com[end] && !strchr(FILELIST_SEP_SET, com[end])) {
-			end++;
-		}
-		c = com[end];
-		com[end]=0;
-
-		if (!strncmp(com, "repeat=", 7)) {}
-		else if (!strncmp(com, "stop=", 5)) {}
-		else if (!strncmp(com, "start=", 6)) {}
-		else {
-			char *sep = strchr(com, '=');
-			if (!sep) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] %s doesn't look like a command syntax A=b, skipping\n", com));
-			} else {
-				u32 p4cc=0;
-				u32 prop_type=0;
-				sep[0] = 0;
-				p4cc = gf_props_get_id(com);
-				if (!p4cc && (strlen(com)==4) ) p4cc = GF_4CC(com[0], com[1], com[2], com[3]);
-				if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
-
-				if (prop_type != GF_PROP_FORBIDEN) {
-					GF_PropertyValue p = gf_props_parse_value(prop_type, com, sep+1, NULL);
-					if (prop_type==GF_PROP_NAME) {
-						p.type = GF_PROP_STRING;
-						gf_filter_pid_set_property(pid, p4cc, &p);
-						p.type = GF_PROP_NAME;
-					} else {
-						gf_filter_pid_set_property(pid, p4cc, &p);
-					}
-					gf_props_reset_single(&p);
-				} else {
-					GF_PropertyValue p;
-					memset(&p, 0, sizeof(GF_PropertyValue));
-					p.type = GF_PROP_STRING;
-					p.value.string = sep+1;
-					gf_filter_pid_set_property_dyn(pid, com, &p);
-				}
-			}
-		}
-		com[end]=c;
-		com += end;
-	}
-}
-
 GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	FileListPid *iopid;
@@ -243,7 +183,6 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	iopid->timescale = gf_filter_pid_get_timescale(pid);
 	if (!iopid->timescale) iopid->timescale = 1000;
 
-	filelist_update_pid_props(ctx, iopid->opid);
 	//if we reattached the input, we must send a play request
 	if (reassign) {
 		filelist_start_ipid(ctx, iopid);
@@ -724,12 +663,9 @@ GF_FilterRegister FileListRegister = {
 		"\t\t!! This may not work with some files/formats not supporting seeking\n"
 		"\tstop=T: stops source playback after T seconds (double format only)\n"\
 		"\t\tThis works on any source (implemented independetly from seek support)\n"
-		"\tName=Val: sets output PIDs property (4cc, built-in name or any name) to the given value.\n"\
-		"\t\tIf a non built-in property is used, the value will be delared as string\n"
-		"\t\t!! Properties are not filtered and override the source props, be carefull not to break\n"
-		"\t\tthe session by overriding core properties such as width/height/samplerate/... !!\n"
-		"\t\tAdded properties are valid only for the current source, and are reseted at next source\n"
 		"\n"\
+		"The source lines follow the usual source syntax, see main help\n"\
+		"\t\tAdditionnal pid properties can be added per source, but are valid only for the current source, and reset at next source\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n"\
 	,

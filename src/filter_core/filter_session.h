@@ -499,6 +499,8 @@ struct __gf_filter
 	s32 cap_idx_at_resolution;
 
 	Bool reconfigure_outputs;
+
+	Bool user_pid_props;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
