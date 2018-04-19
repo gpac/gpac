@@ -547,6 +547,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	/*turn off depth buffer in 2D*/
 	visual_3d_enable_depth_buffer(tr_state->visual, tr_state->camera->is_3D);
 
+	tr_state->camera->proj_vp = tr_state->camera->vp;
+
 	if ((tr_state->visual->autostereo_type==GF_3D_STEREO_SIDE) || (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET)) {
 		GF_Rect orig_vp = tr_state->camera->vp;
 		Fixed vp_width = orig_vp.width;
@@ -604,6 +606,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		/*setup projection*/
 		visual_3d_setup_projection(tr_state, layer_type);
 
+		tr_state->camera->proj_vp = tr_state->camera->vp;
 		tr_state->camera->vp = orig_vp;
 		tr_state->camera->width = old_w;
 		tr_state->camera->height = old_h;
@@ -632,6 +635,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		/*setup projection*/
 		visual_3d_setup_projection(tr_state, layer_type);
 
+		tr_state->camera->proj_vp = tr_state->camera->vp;
 		tr_state->camera->vp = orig_vp;
 	} else {
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
@@ -2075,6 +2079,7 @@ void visual_3d_set_texture_matrix(GF_VisualManager *visual, GF_Matrix *mx)
 	visual->has_tx_matrix = mx ? 1 : 0;
 	if (mx) gf_mx_copy(visual->tx_matrix, *mx);
 }
+
 
 void visual_3d_has_inactive_light(GF_VisualManager *visual)
 {

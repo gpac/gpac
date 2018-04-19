@@ -125,6 +125,7 @@ if [ "$1" = "snow-leopard" ]; then
 pck_name="gpac-$full_version-$1.pkg"
 fi
 mv gpac.pkg $pck_name
+chmod 755 $pck_name
 
 echo "$pck_name ready"
 rm -rf tmpdmg

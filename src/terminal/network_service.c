@@ -1102,6 +1102,8 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	serv->fn_command = term_on_command;
 	serv->fn_data_packet = term_on_data_packet;
 	serv->fn_add_media = term_on_media_add;
+
+	if (owner && owner->OD && owner->OD->RedirectOnly) serv->serviceID = owner->OD->ServiceID;
 	return serv;
 }
 
@@ -1501,3 +1503,12 @@ GF_Err gf_term_service_cache_close(GF_ClientService *ns, Bool no_save)
 	ns->cache = NULL;
 	return e;
 }
+
+
+GF_EXPORT
+GF_DownloadManager *gf_term_service_get_dm(GF_ClientService *ns)
+{
+	if (!ns->term) return NULL;
+	return ns->term->downloader;
+}
+

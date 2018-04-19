@@ -957,7 +957,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	}
 
 	/*we ignore OCRs for the moment*/
-	if (hdr.OCRflag==1) {
+	if (hdr.OCRflag) {
 		if (!ch->IsClockInit) {
 			/*channel is the OCR, re-initialize the clock with the proper OCR*/
 			if (gf_es_owns_clock(ch)) {
@@ -992,8 +992,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 			}
 		} else 	if (hdr.OCRflag==2) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u clock disctontinuity was signaled\n", ch->esd->ESID, gf_clock_real_time(ch->clock) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u clock discontinuity was signaled\n", ch->esd->ESID, gf_clock_real_time(ch->clock) ));
 			gf_clock_discontinuity(ch->clock, ch->odm->parentscene, (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE);
+			gf_es_buffer_on(ch);
 
 			//and re-init timing
 			gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
@@ -1414,6 +1415,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			evt.sai = hdr.sai;
 			evt.saiz = hdr.saiz;
 			evt.IV_size = hdr.IV_size;
+			evt.crypt_byte_block = hdr.crypt_byte_block;
+			evt.skip_byte_block = hdr.skip_byte_block;
+			if (!evt.IV_size) {
+				evt.constant_IV_size = hdr.constant_IV_size;
+				memmove(evt.constant_IV, hdr.constant_IV, hdr.constant_IV_size);
+			}
 		}
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 

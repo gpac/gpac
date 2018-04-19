@@ -46,8 +46,11 @@ extension.open_local_file = function () {
                 var f = history[history.length - i - 1];
                 var names = f.url.split('/');
                 if (names.length == 0) names = f.url.split('\\');
-
-                o.name = names.pop();
+                if (names.length == 0) {
+                     o.name = names.pop();
+                } else {
+                    o.name = f.url;
+                }
                 o.directory = false;
                 o.path = f.url;
                 var delim = f.url.slice(-1);

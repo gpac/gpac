@@ -282,6 +282,7 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 		GF_SampleGroupBox *sg = gf_list_get(stbl->sampleGroups, i);
 		switch (sg->grouping_type) {
 		case GF_ISOM_SAMPLE_GROUP_RAP:
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
 			is_rap_group = 1;
 			break;
 		case GF_ISOM_SAMPLE_GROUP_ROLL:

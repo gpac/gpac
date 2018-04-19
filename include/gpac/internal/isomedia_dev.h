@@ -403,9 +403,9 @@ enum
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
-	GF_ISOM_BOX_TYPE_GNRM	= GF_4CC( 'g', 'n', 'r', 'm' ),
-	GF_ISOM_BOX_TYPE_GNRV	= GF_4CC( 'g', 'n', 'r', 'v' ),
-	GF_ISOM_BOX_TYPE_GNRA	= GF_4CC( 'g', 'n', 'r', 'a' ),
+	GF_ISOM_BOX_TYPE_GNRM	= GF_4CC( 'G', 'N', 'R', 'M' ),
+	GF_ISOM_BOX_TYPE_GNRV	= GF_4CC( 'G', 'N', 'R', 'V' ),
+	GF_ISOM_BOX_TYPE_GNRA	= GF_4CC( 'G', 'N', 'R', 'A' ),
 	/*storage of AU fragments (for MPEG-4 visual resync marker (video packets), located in stbl.*/
 	GF_ISOM_BOX_TYPE_STSF	=  GF_4CC( 'S', 'T', 'S', 'F' ),
 	/*base constructor of all hint formats (currently only RTP uses it)*/
@@ -2631,6 +2631,11 @@ typedef struct
 	u8 SAP_type;
 } GF_SAPEntry;
 
+/*SAPEntry - 'sync' type*/
+typedef struct
+{
+	u8 NALU_type;
+} GF_SYNCEntry;
 
 /*Operating Points Information - 'oinf' type*/
 typedef struct

@@ -1251,16 +1251,16 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	}
 }
 
-static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
+static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *name, const char *def_name)
 {
 	GF_Proto *proto;
 	GF_Node *node;
-	char *name = "urn:inet:gpac:builtin:VRGeometry";
+	if (!name) name = "urn:inet:gpac:builtin:VRGeometry";
 
-	proto = gf_sg_find_proto(sg, 0, name);
+	proto = gf_sg_find_proto(sg, 0, (char *) name);
 	if (!proto) {
 		MFURL *url;
-		proto = gf_sg_proto_new(sg, 0, name, GF_FALSE);
+		proto = gf_sg_proto_new(sg, 0,  (char *) name, GF_FALSE);
 		url = gf_sg_proto_get_extern_url(proto);
 		if (url)
 			url->vals = gf_malloc(sizeof(SFURL));
@@ -1308,7 +1308,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		GF_Node *app = n2;
 
 		if (scene->vr_type) {
-			n2 = load_vr_proto_node(scene->graph, name_geo);
+			n2 = load_vr_proto_node(scene->graph, NULL, name_geo);
 		} else {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
 		}
@@ -1336,7 +1336,7 @@ just once when receiving the first OD AU (ressources are NOT destroyed when seek
 to update the OD ressources, we still take care of it*/
 void gf_scene_regenerate(GF_Scene *scene)
 {
-	GF_Node *n1, *n2;
+	GF_Node *n1, *n2, *root;
 	GF_Event evt;
 	M_AudioClip *ac;
 	M_MovieTexture *mt;
@@ -1361,6 +1361,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
+		root = n1;
 
 		if (! scene->root_od->parentscene) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Background2D, "DYN_BACK");
@@ -1455,6 +1456,12 @@ void gf_scene_regenerate(GF_Scene *scene)
 			addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "ADDON_SCENE");
 			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
 			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
+		}
+		//VR mode, add VR headup
+		else {
+			GF_Node *vrhud = load_vr_proto_node(scene->graph, "urn:inet:gpac:builtin:VRHUD", NULL);
+			gf_node_list_add_child( &((GF_ParentNode *)root)->children, (GF_Node*)vrhud);
+			gf_node_register(vrhud, root);
 		}
 
 
@@ -1727,6 +1734,30 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 
 	gf_sc_lock(scene->root_od->term->compositor, 1);
 	if (scene->selected_service_id != service_id) {
+		u32 i;
+		GF_ObjectManager *odm, *remote_odm = NULL;
+		//delete all objects with given service ID
+		i=0;
+		while ((odm = gf_list_enum(scene->resources, &i))) {
+			if (odm->OD->ServiceID!=scene->selected_service_id) continue;
+			if (odm->OD->URLString) {
+				remote_odm = odm;
+				assert(remote_odm->net_service->nb_odm_users);
+				remote_odm->net_service->nb_odm_users--;
+				remote_odm->net_service = scene->root_od->net_service;
+				remote_odm->net_service->nb_odm_users++;
+			}
+			//delete all objects from this service
+			else if (remote_odm) {
+				gf_term_lock_media_queue(scene->root_od->term, 1);
+				if (odm->net_service==remote_odm->net_service) odm->net_service->owner = odm;
+				odm->action_type = GF_ODM_ACTION_DELETE;
+				gf_list_add(scene->root_od->term->media_queue, odm);
+				gf_term_lock_media_queue(scene->root_od->term, 0);
+			}
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Switching %s from service %d to service %d (media time %g)\n", scene->root_od->net_service->url, scene->selected_service_id, service_id, (Double)scene->root_od->media_start_time/1000.0));
+
 		scene->selected_service_id = service_id;
 		scene->audio_url.OD_ID = 0;
 		scene->visual_url.OD_ID = 0;
@@ -1738,7 +1769,20 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 			scene->root_od->media_start_time = gf_clock_media_time(scene->dyn_ck);
 			scene->dyn_ck = NULL;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Switching %s from service %d to service %d (media time %g)\n", scene->root_od->net_service->url, scene->selected_service_id, service_id, (Double)scene->root_od->media_start_time/1000.0));
+		if (remote_odm) {
+			i=0;
+			while ((odm = gf_list_enum(scene->resources, &i))) {
+				if (odm->OD->ServiceID!=scene->selected_service_id) continue;
+				if (odm->OD->RedirectOnly) {
+					//gf_odm_setup_object will increment the number of odms in net service (it's supposed to
+					//be called only upon startup, but we reuse the function). Since we are already registered
+					//with the service, decrement before calling
+					odm->net_service->nb_odm_users--;
+					gf_odm_setup_object(odm, odm->net_service);
+				}
+				break;
+			}
+		}
 		gf_scene_regenerate(scene);
 	}
 	gf_sc_lock(scene->root_od->term->compositor, 0);

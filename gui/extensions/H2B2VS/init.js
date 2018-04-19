@@ -1,6 +1,6 @@
 
 my_ext = {
-    whoami: "GPAC-GUI-Extension",
+    whoami: "GPAC-GUI-Extension-DISABLED",
     name: "",
     icon: "H2B2VS.png",
     author: "JeanLF",
@@ -13,4 +13,3 @@ my_ext = {
     version_major: 1,
     version_minor: 0
 };
-

@@ -6284,8 +6284,12 @@ restart_import:
 			if (hevc.pps[idx].state == 2) {
 				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					assert(ppss);
-					ppss->array_completeness = 0;
+					if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					} else if (!ppss) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[HEVC Import] Redefinition of PPS with id %d on a different layer but using out-of-band parameter set storage, resulting file might be broken\n", idx));
+					} else {
+						ppss->array_completeness = 0;
+					}
 				}
 			}
 
@@ -6316,7 +6320,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample)
+				if (!is_empty_sample && !layer_id)
 					flush_sample = GF_TRUE;
 			}
 
@@ -6349,7 +6353,8 @@ restart_import:
 			}
 			if (nal_size) {
 				//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
-				if (!layer_id || !layer_ids[layer_id - 1]) flush_sample = GF_TRUE;
+				if (!layer_id || !layer_ids[layer_id - 1])
+					flush_sample = GF_TRUE;
 			}
 			break;
 
@@ -6464,6 +6469,7 @@ restart_import:
 					}
 				}
 				gf_bs_write_data(fbs, samp->data, samp->dataLength);
+				gf_free(samp->data);
 				gf_bs_get_content(fbs, &samp->data, &samp->dataLength);
 				gf_bs_del(fbs);
 			}
