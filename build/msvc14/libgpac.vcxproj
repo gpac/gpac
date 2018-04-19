@@ -291,6 +291,7 @@
     <ClCompile Include="..\..\src\filters\load_text.c" />
     <ClCompile Include="..\..\src\filters\mux_avi.c" />
     <ClCompile Include="..\..\src\filters\mux_isom.c" />
+    <ClCompile Include="..\..\src\filters\mux_ts.c" />
     <ClCompile Include="..\..\src\filters\out_audio.c" />
     <ClCompile Include="..\..\src\filters\out_file.c" />
     <ClCompile Include="..\..\src\filters\out_video.c" />
@@ -491,6 +492,9 @@
     <ClCompile Include="..\..\src\utils\url.c" />
     <ClCompile Include="..\..\src\utils\utf.c" />
     <ClCompile Include="..\..\src\utils\xml_parser.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\filters\dec_vtb_glctx.m" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{233014D5-F6E5-419D-8757-FA9CE7337088}</ProjectGuid>

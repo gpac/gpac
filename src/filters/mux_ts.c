@@ -749,7 +749,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			sleep_for = 1000;
 #endif
 			if (sleep_for)
-				gf_filter_ask_rt_reschedule(filter, sleep_for);
+				gf_filter_ask_rt_reschedule(filter, (u32) sleep_for);
 		}
 	}
 	//PMT update management is still under progress...
@@ -828,7 +828,7 @@ static const GF_FilterCapability TSMuxCaps[] =
 	//static output cap file extension
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "ts|m2ts"),
-	{},
+	{0},
 	
 	//for now don't accept files as input, although we could store them as items, to refine
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -882,7 +882,6 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(temi_ntp), "inserts NTP timestamp in TEMI timeline descriptor", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(log_freq), "delay between logs for realtime mux", GF_PROP_UINT, "500", NULL, GF_FALSE},
 	{ OFFS(latm), "uses LATM AAC encapsulation instead of regular ADTS", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-
 	{0}
 };
 
