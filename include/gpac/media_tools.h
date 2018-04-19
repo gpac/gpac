@@ -666,7 +666,7 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher);
  *	\param sourceInfo MPD source info
  *	\return error code if any
 */
-GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo);
+GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo, const char *lang);
 
 /*!
  Sets MPD Location. This is useful to distrubute a dynamic MPD by mail or any non-HTTP mean
@@ -891,6 +891,14 @@ GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_boun
  *	\return error code if any
 */
 GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest);
+
+/*!
+ Sets m3u8 file name - if not set, no m3u8 output
+ *	\param dasher the DASH segmenter object
+ *	\param m3u8_name name of master m3u8 playlist to generate
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name);
 
 /*!
  Adds a media input to the DASHer
@@ -1233,7 +1241,6 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
  \param ts_inc output timestamp increment value
 */
 void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *ts_inc);
-
 
 #ifdef __cplusplus
 }

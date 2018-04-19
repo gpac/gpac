@@ -1801,7 +1801,7 @@ GF_SceneDumpFormat dump_mode;
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, dump_nal_crc;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file,*dash_mpd_m3u_name;
 u32 track_dump_type, dump_isom;
 u32 trackID;
 Double min_buffer = 1.5;
@@ -3202,6 +3202,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] -dash-strict is deprecated, will behave like -dash\n"));
 			i++;
 		}
+               else if (!stricmp(arg, "-m3u8-from-mpd")) {
+                       CHECK_NEXT_ARG
+                       dash_mpd_m3u_name = argv[i + 1];
+                       i++;
+               }
 		else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
 			dash_subduration = atof(argv[i + 1]) / 1000;
@@ -3466,6 +3471,7 @@ int mp4boxMain(int argc, char **argv)
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
 	seg_name = dash_ctx_file = NULL;
+       dash_mpd_m3u_name = NULL;
 	initial_moof_sn = 0;
 	initial_tfdt = 0;
 
@@ -4024,7 +4030,7 @@ int mp4boxMain(int argc, char **argv)
 			return mp4box_cleanup(1);
 			return GF_OUT_OF_MEM;
 		}
-		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source);
+		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source, NULL);
 		if (e) {
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
@@ -4070,6 +4076,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
+		if (!e) e = gf_dasher_set_m3u8info(dasher, dash_mpd_m3u_name);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);

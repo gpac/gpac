@@ -170,6 +170,13 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec);
 void gf_net_get_ntp(u32 *sec, u32 *frac);
 
 /*!
+*\brief gets NTP time in milliseconds
+*
+\return NTP time in milliseconds
+*/
+u64 gf_net_get_ntp_ms();
+
+/*!
  *\brief offsets NTP time by a given amount of seconds
  *
  *Offsets NTP time of the system by a given amount of seconds in the future or the past (default value is 0).
