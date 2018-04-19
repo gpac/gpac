@@ -59,6 +59,8 @@ typedef struct
 {
 	GF_ESInterface esi;
 	GF_FilterPid *ipid;
+	GF_M2TS_Mux_Stream *mstream;
+
 	u32 sid;
 	u32 codec_id;
 	u32 pmt_pid;
@@ -443,7 +445,7 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	tspid->esi.input_udta = tspid;
 }
 
-static void tsmux_setup_temi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Stream *stream, M2Pid *tspid)
+static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 {
 	GF_M2TS_Mux_Stream *a_stream;
 	u32 service_id=0;
@@ -455,9 +457,9 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Stream *stream, M2Pid
 	assert(idx>=0);
 
 	//find our stream index
-	a_stream = stream->program->streams;
+	a_stream = tspid->mstream->program->streams;
 	while (a_stream) {
-		if (stream==a_stream) break;
+		if (tspid->mstream == a_stream) break;
 		st_idx++;
 		a_stream = a_stream->next;
 	}
@@ -475,7 +477,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Stream *stream, M2Pid
 		sep = strchr(turl, ',');
 		if (sep) sep[0] = 0;
 
-		if (strlen(turl) && (idx==st_idx) && (!service_id || (service_id==stream->program->number) ))  {
+		if (strlen(turl) && (idx==st_idx) && (!service_id || (service_id == tspid->mstream->program->number) ))  {
 			tspid->temi_id = atoi(turl);
 			if (!tspid->temi_id) {
 				tspid->temi_url = gf_strdup(turl);
@@ -489,6 +491,13 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Stream *stream, M2Pid
 	}
 }
 
+static void tsmux_del_stream(M2Pid *tspid)
+{
+	if (tspid->temi_url) gf_free(tspid->temi_url);
+	if (tspid->esi.sl_config) gf_free(tspid->esi.sl_config);
+	gf_free(tspid);
+}
+
 static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 service_id, codec_id, streamtype;
@@ -497,8 +506,16 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	char *sname, *pname;
 	GF_M2TS_Mux_Program *prog;
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
-	if (is_remove) {
 
+	if (is_remove) {
+		tspid = gf_filter_pid_get_udta(pid);
+		if (!tspid) return GF_OK;
+		//remove stream - this will update PMT as well
+		gf_m2ts_program_stream_remove(tspid->mstream);
+		//destroy or object
+		gf_list_del_item(ctx->pids, tspid);
+		tsmux_del_stream(tspid);
+		return GF_OK;
 	}
 
 	if (!gf_filter_pid_check_caps(pid))
@@ -590,7 +607,6 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		Bool is_pcr=GF_FALSE;
 		Bool force_pes=GF_FALSE;
 		u32 pes_pid;
-		GF_M2TS_Mux_Stream *mstream;
 		assert(!tspid->esi.stream_type);
 		tspid->codec_id = codec_id;
 		tspid->esi.stream_type = streamtype;
@@ -609,8 +625,8 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 
 		tsmux_setup_esi(ctx, prog, tspid, streamtype);
-		mstream = gf_m2ts_program_stream_add(prog, &tspid->esi, pes_pid, is_pcr, force_pes, GF_FALSE);
-		tsmux_setup_temi(ctx, mstream, tspid);
+		tspid->mstream = gf_m2ts_program_stream_add(prog, &tspid->esi, pes_pid, is_pcr, force_pes, GF_FALSE);
+		tsmux_setup_temi(ctx, tspid);
 	} else {
 		tspid->codec_id = codec_id;
 		tsmux_setup_esi(ctx, prog, tspid, streamtype);
@@ -785,9 +801,7 @@ static void tsmux_finalize(GF_Filter *filter)
 
 	while (gf_list_count(ctx->pids)) {
 		M2Pid *tspid = gf_list_pop_back(ctx->pids);
-		if (tspid->temi_url) gf_free(tspid->temi_url);
-		if (tspid->esi.sl_config) gf_free(tspid->esi.sl_config);
-		gf_free(tspid);
+		tsmux_del_stream(tspid);
 	}
 	gf_list_del(ctx->pids);
 	gf_m2ts_mux_del(ctx->mux);

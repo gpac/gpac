@@ -1438,6 +1438,8 @@ void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms);
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling, u32 pmt_version, Bool initial_disc);
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr, Bool force_pes_mode, Bool needs_mutex);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);
+//removes stream from program, triggering PMT update as well
+void gf_m2ts_program_stream_remove(GF_M2TS_Mux_Stream *stream);
 
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_number);
 u32 gf_m2ts_mux_program_count(GF_M2TS_Mux *muxer);
