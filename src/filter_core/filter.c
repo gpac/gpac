@@ -842,7 +842,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	}
 
 	//try to load filters to reconnect output pid
-	if (filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
+	if (!reconfig_only && filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
 		GF_FilterPidInst *dst_pidi;
 		new_f = pid->filter;
 		assert(pid->num_destinations==1);
@@ -1678,7 +1678,7 @@ void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_
 
 void gf_filter_make_sticky(GF_Filter *filter)
 {
-	if (filter) filter->sticky = GF_TRUE;
+	if (filter) filter->sticky = 1;
 }
 
 //recursievely go up the filter chain and count queued events
