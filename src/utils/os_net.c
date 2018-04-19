@@ -149,8 +149,6 @@ typedef s32 SOCKET;
 #endif
 
 
-#define SOCK_MICROSEC_WAIT	500
-
 #ifdef GPAC_HAS_IPV6
 static u32 ipv6_check_state = 0;
 #endif
@@ -186,6 +184,8 @@ struct __tag_socket
 	struct sockaddr_in dest_addr;
 #endif
 	u32 dest_addr_len;
+
+	u32 usec_wait;
 };
 
 
@@ -366,6 +366,7 @@ GF_Socket *gf_sk_new(u32 SocketType)
 	tmp->dest_addr_len = sizeof(struct sockaddr);
 #endif
 
+	tmp->usec_wait = 500;
 #ifdef WIN32
 	wsa_init ++;
 #endif
@@ -375,6 +376,7 @@ GF_Socket *gf_sk_new(u32 SocketType)
 GF_EXPORT
 GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 {
+	u32 nsize=0, psize;
 	s32 res;
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
@@ -388,6 +390,16 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Socket] Set socket %s buffer size to %d\n", SendBuffer ? "send" : "receive", NewSize));
 	}
+	psize = sizeof(u32);
+	if (SendBuffer) {
+		res = getsockopt(sock->socket, SOL_SOCKET, SO_SNDBUF, (char *) &nsize, &psize );
+	} else {
+		res = getsockopt(sock->socket, SOL_SOCKET, SO_RCVBUF, (char *) &nsize, &psize );
+	}
+	if ((res>=0) && (nsize=!NewSize)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Asked to set socket %s buffer size to %d but system used %d\n", SendBuffer ? "send" : "receive", NewSize, nsize));
+	}
+
 	return GF_OK;
 }
 
@@ -474,6 +486,12 @@ void gf_sk_reset(GF_Socket *sock)
 s32 gf_sk_get_handle(GF_Socket *sock)
 {
 	return (s32) sock->socket;
+}
+
+void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait)
+{
+	if (!sock) return;
+	sock->usec_wait = (usec_wait>=1000000) ? 500 : usec_wait;
 }
 
 
@@ -850,7 +868,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO CHECK IF THIS IS CORRECT
 	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
@@ -941,7 +959,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	Bool is_ipv6 = GF_FALSE;
 	u32 type;
 #endif
-	unsigned long local_add_id;
+	u32 local_add_id;
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
 
@@ -1085,7 +1103,8 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 		memset(&local_address, 0, sizeof(struct sockaddr_in ));
 		local_address.sin_family = AF_INET;
-		local_address.sin_addr.s_addr = (u32) local_add_id;
+//		local_address.sin_addr.s_addr = local_add_id;
+		local_address.sin_addr.s_addr = htonl(INADDR_ANY);
 		local_address.sin_port = htons( MultiPortNumber);
 
 		ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
@@ -1098,14 +1117,14 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		}
 		/*setup local interface*/
 		if (local_interface_ip) {
-			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add_id, sizeof(local_add_id));
+			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (void *) &local_add_id, sizeof(local_add_id));
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
 	}
 
 	/*now join the multicast*/
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
-	M_req.imr_interface.s_addr = (u32) local_add_id;
+	M_req.imr_interface.s_addr = local_add_id;
 
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) {
@@ -1140,32 +1159,63 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	return GF_OK;
 }
 
-
-//fetch nb bytes on a socket and fill the buffer from startFrom
-//length is the allocated size of the receiving buffer
-//BytesRead is the number of bytes read from the network
-GF_EXPORT
-GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
+#include <gpac/list.h>
+struct __tag_sock_group
 {
-	s32 res;
-#ifndef __SYMBIAN32__
+	GF_List *sockets;
+	fd_set group;
+};
+
+GF_SockGroup *gf_sk_group_new()
+{
+	GF_SockGroup *tmp;
+	GF_SAFEALLOC(tmp, GF_SockGroup);
+	tmp->sockets = gf_list_new();
+	FD_ZERO(&tmp->group);
+	return tmp;
+}
+
+void gf_sk_group_del(GF_SockGroup *sg)
+{
+	gf_list_del(sg->sockets);
+	gf_free(sg);
+}
+
+void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
+{
+	if (sg && sk) {
+		gf_list_add(sg->sockets, sk);
+	}
+}
+void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
+{
+	if (sg && sk) {
+		gf_list_del_item(sg->sockets, sk);
+	}
+}
+
+GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
+{
 	s32 ready;
+	u32 i=0;
 	struct timeval timeout;
-	fd_set Group;
-#endif
+	u32 max_fd=0;
+	GF_Socket *sock;
 
-	*BytesRead = 0;
-	if (!sock->socket) return GF_BAD_PARAM;
-	if (startFrom >= length) return GF_IO_ERR;
+	FD_ZERO(&sg->group);
+	while ((sock = gf_list_enum(sg->sockets, &i))) {
+		FD_SET(sock->socket, &sg->group);
+		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
+	}
+	if (usec_wait>=1000000) {
+		timeout.tv_sec = usec_wait/1000000;
+		timeout.tv_usec = usec_wait - (timeout.tv_sec*1000000);
+	} else {
+		timeout.tv_sec = 0;
+		timeout.tv_usec = usec_wait;
+	}
+	ready = select((int) max_fd+1, &sg->group, NULL, NULL, &timeout);
 
-#ifndef __SYMBIAN32__
-	//can we read?
-	FD_ZERO(&Group);
-	FD_SET(sock->socket, &Group);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
-
-	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EBADF:
@@ -1182,9 +1232,65 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
-	if (!ready || !FD_ISSET(sock->socket, &Group)) {
+	if (!ready) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] nothing to be read - ready %d\n", ready));
 		return GF_IP_NETWORK_EMPTY;
+	}
+	return GF_OK;
+}
+
+Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk)
+{
+	if (sg && sk && FD_ISSET(sk->socket, &sg->group)) return GF_TRUE;
+	return GF_FALSE;
+}
+
+
+//fetch nb bytes on a socket and fill the buffer from startFrom
+//length is the allocated size of the receiving buffer
+//BytesRead is the number of bytes read from the network
+GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead, Bool do_select)
+{
+	s32 res;
+#ifndef __SYMBIAN32__
+	s32 ready;
+	struct timeval timeout;
+	fd_set Group;
+#endif
+
+	*BytesRead = 0;
+	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (startFrom >= length) return GF_IO_ERR;
+
+#ifndef __SYMBIAN32__
+	if (do_select) {
+		//can we read?
+		timeout.tv_sec = 0;
+		timeout.tv_usec = sock->usec_wait;
+		FD_ZERO(&Group);
+		FD_SET(sock->socket, &Group);
+		ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
+
+		if (ready == SOCKET_ERROR) {
+			switch (LASTSOCKERROR) {
+			case EBADF:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select, BAD descriptor\n"));
+				return GF_IP_CONNECTION_CLOSED;
+			case EAGAIN:
+				return GF_IP_SOCK_WOULD_BLOCK;
+			case EINTR:
+				/* Interrupted system call, not really important... */
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] network is lost\n"));
+				return GF_IP_NETWORK_EMPTY;
+			default:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
+				return GF_IP_NETWORK_FAILURE;
+			}
+		}
+		if (!ready || !FD_ISSET(sock->socket, &Group)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] nothing to be read - ready %d\n", ready));
+			return GF_IP_NETWORK_EMPTY;
+		}
 	}
 #endif
 	if (sock->flags & GF_SOCK_HAS_PEER)
@@ -1224,6 +1330,17 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
+{
+	return gf_sk_receive_internal(sock, buffer, length, startFrom, BytesRead, GF_TRUE);
+}
+
+GF_EXPORT
+GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
+{
+	return gf_sk_receive_internal(sock, buffer, length, startFrom, BytesRead, GF_FALSE);
+}
 
 GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 {
@@ -1253,7 +1370,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
@@ -1400,7 +1517,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
@@ -1466,9 +1583,6 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	return GF_OK;
 }
 
-
-
-
 GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead, u32 Second )
 {
 	s32 res;
@@ -1486,7 +1600,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = Second;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
@@ -1536,7 +1650,7 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
 	timeout.tv_sec = Second;
-	timeout.tv_usec = SOCK_MICROSEC_WAIT;
+	timeout.tv_usec = sock->usec_wait;
 
 	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);

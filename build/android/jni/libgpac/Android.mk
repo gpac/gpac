@@ -91,6 +91,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/compositor/svg_text.c \
 	../../../../src/compositor/hc_flash_shape.c \
 	../../../../src/compositor/svg_filters.c \
+	../../../../src/media_tools/atsc_dmx.c \
 	../../../../src/media_tools/avilib.c \
 	../../../../src/media_tools/filestreamer.c \
 	../../../../src/media_tools/isom_tools.c \

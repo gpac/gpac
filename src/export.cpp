@@ -1789,6 +1789,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_object_subscene_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_select_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_select_service) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_find_service) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_toggle_addons) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_object_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_download_info) )
@@ -2072,6 +2073,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_start_date) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_cached_inputs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_loop_inputs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_on_bound) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_on_closest) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
@@ -2175,6 +2178,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_visible_rect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_utc_drift_estimate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_algo) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_atsc_ast_shift) )
 
 #endif
 
@@ -2197,3 +2201,25 @@
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_tune_in) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_set_callback) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_process) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_object_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_remove_object_by_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_remove_first_object) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_find_service) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_purge_objects) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_first_packet_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_last_packet_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_nb_packets) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_recv_bytes) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_set_service_udta) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_get_service_udta) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_add_cache_entry) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_force_headers) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_service_get_dm) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_localcache_provider) )

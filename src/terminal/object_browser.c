@@ -125,6 +125,21 @@ void gf_term_select_service(GF_Terminal *term, GF_ObjectManager *odm, u32 servic
 #endif
 }
 
+GF_EXPORT
+Bool gf_term_find_service(GF_Terminal *term, GF_ObjectManager *odm, u32 service_id)
+{
+	u32 i;
+	GF_ObjectManager *anodm;
+	if (!term || !odm || !odm->subscene) return GF_FALSE;
+	if (!gf_term_check_odm(term, odm)) return GF_FALSE;
+
+	i=0;
+	while ((anodm = gf_list_enum(odm->subscene->resources, &i))) {
+		if (anodm->OD && (anodm->OD->ServiceID==service_id)) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 
 /*select given object when stream selection is available*/
 GF_EXPORT

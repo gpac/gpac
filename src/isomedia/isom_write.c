@@ -2813,7 +2813,11 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	stbl_temp->CompositionToDecode = stbl->CompositionToDecode;
 
 	senc = trak->sample_encryption;
-	trak->sample_encryption = NULL;
+	if (senc) {
+		assert(trak->other_boxes);
+		gf_list_del_item(trak->other_boxes, senc);
+		trak->sample_encryption = NULL;
+	}
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
@@ -2826,8 +2830,10 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	gf_bs_del(bs);
 	gf_free(data);
 	trak->Media->information->sampleTable = stbl;
-	trak->sample_encryption = senc;
-
+	if (senc) {
+		trak->sample_encryption = senc;
+		gf_list_add(trak->other_boxes, senc);
+	}
 	stbl_temp->SampleDescription = NULL;
 	stbl_temp->sampleGroupsDescription = NULL;
 	stbl_temp->CompositionToDecode = NULL;
@@ -5145,6 +5151,15 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
 			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples_known);
 			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples);
+			gf_bs_del(bs);
+			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_rap_create_entry, sg_rap_compare_entry);
+		}
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
+		{
+			char udta[1];
+			bs = gf_bs_new(udta, 1*sizeof(char), GF_BITSTREAM_WRITE);
+			gf_bs_write_int(bs, 0, 2);
+			gf_bs_write_int(bs, ((GF_SYNCEntry *)entry)->NALU_type, 6);
 			gf_bs_del(bs);
 			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_rap_create_entry, sg_rap_compare_entry);
 		}

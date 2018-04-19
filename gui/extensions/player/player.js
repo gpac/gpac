@@ -1068,6 +1068,7 @@ extension = {
 
         this.controler.show();
         gw_hide_dock();
+
     },
 
     create_event_filter: function (__anobj) {
@@ -1619,6 +1620,8 @@ extension = {
 
 				wnd.make_item = function (text, i) {
 					wnd.add_menu_item(text, function () {
+        			    this.extension.stats_resources = [];
+        			    this.extension.nb_objs_at_last_scan = 0;
 						this.extension.root_odm.select_service(this.extension.services[i].service_id);
 					});
 				}
@@ -1643,6 +1646,7 @@ extension = {
 		if (root_odm && this.dynamic_scene) {
 			for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
 				var m = root_odm.get_resource(res_i);
+				if (!m) continue;
 				if (root_odm.selected_service != m.service_id) continue;
 				if (m.get_srd() != null) continue;
 				
@@ -1711,6 +1715,7 @@ extension = {
         for (var res_i = 0; res_i < root.nb_resources; res_i++) {
             var m = root.get_resource(res_i);
             if (!m) continue;
+            if (m.disabled) continue;
             if (m.service_id && (m.service_id != selected_service)) continue;
 
 			m.dependent_group_id=0;

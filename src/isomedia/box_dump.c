@@ -4317,6 +4317,9 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 				fprintf(trace, " num_leading_samples=\"%d\"", ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples);
 			fprintf(trace, "/>\n");
 			break;
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
+			fprintf(trace, "<SyncSampleGroupEntry NAL_unit_type=\"%d\"/>\n", ((GF_SYNCEntry*)entry)->NALU_type);
+			break;
 		case GF_ISOM_SAMPLE_GROUP_SEIG:
 			fprintf(trace, "<CENCSampleEncryptionGroupEntry IsEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ((GF_CENCSampleEncryptionGroupEntry*)entry)->IsProtected, ((GF_CENCSampleEncryptionGroupEntry*)entry)->Per_Sample_IV_size);
 			dump_data_hex(trace, (char *)((GF_CENCSampleEncryptionGroupEntry*)entry)->KID, 16);
@@ -4361,6 +4364,9 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			break;
 		case GF_ISOM_SAMPLE_GROUP_RAP:
 			fprintf(trace, "<VisualRandomAccessEntry num_leading_samples_known=\"yes|no\" num_leading_samples=\"\" />\n");
+			break;
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
+			fprintf(trace, "<SyncSampleGroupEntry NAL_unit_type=\"\" />\n");
 			break;
 		case GF_ISOM_SAMPLE_GROUP_SEIG:
 			fprintf(trace, "<CENCSampleEncryptionGroupEntry IsEncrypted=\"\" IV_size=\"\" KID=\"\" constant_IV_size=\"\"  constant_IV=\"\"/>\n");
@@ -4497,7 +4503,7 @@ GF_Err tenc_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->Per_Sample_IV_Size);
 	else {
 		fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->constant_IV_size);
-		dump_data_hex(trace, (char *) ptr->KID, 16);
+		dump_data_hex(trace, (char *) ptr->constant_IV, ptr->constant_IV_size);
 		fprintf(trace, "\"  KID=\"");
 	}
 	dump_data_hex(trace, (char *) ptr->KID, 16);
@@ -4598,7 +4604,7 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 		if (cenc_sample) {
-			fprintf(trace, "<SampleEncryptionEntry sampleCount=\"%d\" IV_size=\"%u\" IV=\"", i+1, cenc_sample->IV_size);
+			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\" IV=\"", i+1, cenc_sample->IV_size);
 			dump_data_hex(trace, (char *) cenc_sample->IV, 16);
 			fprintf(trace, "\"");
 			if (ptr->flags & 0x2) {
