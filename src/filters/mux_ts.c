@@ -824,7 +824,9 @@ static const GF_FilterCapability TSMuxCaps[] =
 	//for m4vp2 we want DSI reinsertion
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	//for AAC we use the AAC->ADTS or AAC->LATM of the mux
+
 	//static output cap file extension
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "ts|m2ts"),
 	{},
 	
