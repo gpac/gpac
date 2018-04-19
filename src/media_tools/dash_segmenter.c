@@ -6148,6 +6148,7 @@ GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name)
        return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_bound)
 {
 	if (!dasher) return GF_BAD_PARAM;
