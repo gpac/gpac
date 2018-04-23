@@ -1146,6 +1146,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_begin = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+										ts_begin = (h*3600 + m*60+s)*1000+f*40;
 									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 										ts_begin = (h*3600 + m*60+s)*1000;
 									}
@@ -1156,6 +1158,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_end = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+										ts_begin = (h*3600 + m*60+s)*1000+f*40;
 									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 										ts_end = (h*3600 + m*60+s)*1000;
 									}
@@ -1189,6 +1193,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_begin = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+												ts_begin = (h*3600 + m*60+s)*1000+f*40;
 											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 												ts_begin = (h*3600 + m*60+s)*1000;
 											}
@@ -1199,6 +1205,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_end = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+												ts_begin = (h*3600 + m*60+s)*1000+f*40;
 											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 												ts_end = (h*3600 + m*60+s)*1000;
 											}
