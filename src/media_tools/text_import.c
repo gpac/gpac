@@ -1250,7 +1250,10 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								samp = gf_isom_new_xml_subtitle_sample();
 								/*each sample consists of a full valid XML file*/
 								e = gf_isom_xml_subtitle_sample_add_text(samp, str, len);
-								if (e) goto exit;
+								if (e) {
+									GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML] ISOM - sample add text: %s", gf_error_to_string(e)));
+									goto exit;
+								}
 								gf_free(samp_text);
 								samp_text = NULL;
 
@@ -1267,7 +1270,10 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - last_sample_end, last_sample_duration, last_sample_end));
 
 								e = gf_isom_add_sample(import->dest, track, desc_idx, s);
-								if (e) goto exit;
+								if (e) {
+									GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML] ISOM - Add Sample: %s", gf_error_to_string(e)));
+									goto exit;
+								}
 								gf_isom_sample_del(&s);
 								nb_samples++;
 
