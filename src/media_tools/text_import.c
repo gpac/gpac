@@ -1341,6 +1341,7 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 		if (e == GF_OK) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Note: TTML import - EBU-TTD detected\n"));
 		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Parsing TTML file with error: %s\n", gf_error_to_string(e)));
 			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Unsupported TTML file - only EBU-TTD is supported (root shall be \"tt\", got \"%s\")\n", root->name));
 			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Importing as generic TTML\n"));
 			e = GF_OK;
