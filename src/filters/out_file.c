@@ -57,7 +57,8 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		gf_fclose(ctx->file);
 	}
 	ctx->file = NULL;
-	if (!filename) return GF_OK;
+	if (!filename)
+		return GF_OK;
 
 	if (!strcmp(filename, "std")) ctx->is_std = GF_TRUE;
 	else if (!strcmp(filename, "stdout")) ctx->is_std = GF_TRUE;
@@ -214,6 +215,8 @@ static GF_Err fileout_process(GF_Filter *filter)
 			fext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 			if (!fname) name = ctx->dst;
 		}
+		//filename change at packet start, open new file
+		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
 		if (!fext) fext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;

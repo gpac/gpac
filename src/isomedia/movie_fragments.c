@@ -758,7 +758,7 @@ static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 	return cts;
 }
 
-GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_diff, u32 *moof_size)
+static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_diff, u32 *moof_size, Bool reassign_bs)
 {
 	GF_Err e;
 	u64 moof_start, pos;
@@ -915,7 +915,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 #endif
 
 	bs_orig = bs;
-	if (movie->on_block_out) {
+	if (reassign_bs && movie->on_block_out) {
 		bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
 	}
 
@@ -995,6 +995,12 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	/*for now we only store one ref per subsegment and don't support daisy-chaining*/
 	movie->root_sidx->nb_refs = nb_segs;
 
+	//dynamic mode
+	if (!nb_segs) {
+		movie->dyn_root_sidx = GF_TRUE;
+		return GF_OK;
+	}
+
 	movie->root_sidx->refs = (GF_SIDXReference*)gf_malloc(sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
 	memset(movie->root_sidx->refs, 0, sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
 
@@ -1046,7 +1052,7 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 GF_EXPORT
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 {
-	GF_BitStream *temp_bs = NULL;
+	GF_BitStream *temp_bs = NULL, *orig_bs;
 	GF_Err e;
 
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
@@ -1054,7 +1060,7 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 
 	/*flush our fragment (store in mem)*/
 	if (movie->moof) {
-		e = StoreFragment(movie, GF_TRUE, 0, NULL);
+		e = StoreFragment(movie, GF_TRUE, 0, NULL, GF_FALSE);
 		if (e) return e;
 	}
 
@@ -1065,10 +1071,14 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 
 	gf_bs_seek(movie->editFileMap->bs, movie->segment_start);
 	gf_bs_truncate(movie->editFileMap->bs);
+	orig_bs = movie->editFileMap->bs;
+	if (movie->on_block_out) {
+		movie->editFileMap->bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+	}
 
 	/*write styp to file if needed*/
 	e = gf_isom_write_styp(movie, last_segment);
-	if (e) return e;
+	if (e) goto exit;
 
 	/*write all pending fragments to file*/
 	while (gf_list_count(movie->moof_list)) {
@@ -1081,8 +1091,8 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 		offset_diff = (s32) (gf_bs_get_position(movie->editFileMap->bs) - movie->moof->fragment_offset);
 		movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
 
-		e = StoreFragment(movie, GF_FALSE, offset_diff, &moof_size);
-		if (e) return e;
+		e = StoreFragment(movie, GF_FALSE, offset_diff, &moof_size, GF_FALSE);
+		if (e) goto exit;
 
 		gf_isom_box_del((GF_Box *) movie->moof);
 		movie->moof = NULL;
@@ -1111,7 +1121,15 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 		movie->segment_bs = movie->editFileMap->bs;
 		movie->editFileMap->bs = temp_bs;
 	}
-	return GF_OK;
+
+	if (orig_bs != movie->editFileMap->bs) {
+		gf_bs_del(movie->editFileMap->bs);
+		movie->editFileMap->bs = orig_bs;
+		//we are dispatching through callbacks, the movie segment start is always 0
+		movie->segment_start = 0;
+	}
+exit:
+	return e;
 }
 
 typedef struct
@@ -1158,6 +1176,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
 	GF_List *daisy_sidx = NULL;
+	GF_BitStream *orig_bs;
 	u64 sidx_start, sidx_end;
 	Bool first_frag_in_subseg;
 	Bool no_sidx = GF_FALSE;
@@ -1188,7 +1207,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 
 	/*store fragment*/
 	if (movie->moof) {
-		e = StoreFragment(movie, GF_TRUE, 0, NULL);
+		e = StoreFragment(movie, GF_TRUE, 0, NULL, GF_FALSE);
 		if (e) return e;
 	}
 	/*restore final bitstream*/
@@ -1239,8 +1258,14 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		no_sidx = GF_TRUE;
 	}
 
+	orig_bs = movie->editFileMap->bs;
+	if (movie->on_block_out) {
+		movie->editFileMap->bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+		if (referenceTrackID) gf_bs_prevent_dispatch(movie->editFileMap->bs, GF_TRUE);
+	}
+
 	e = gf_isom_write_styp(movie, last_segment);
-	if (e) return e;
+	if (e) goto exit;
 
 	frags_per_subseg = 0;
 	subseg_per_sidx = 0;
@@ -1338,9 +1363,9 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			sidx_start = gf_bs_get_position(movie->editFileMap->bs);
 
 			e = gf_isom_box_size((GF_Box *) sidx);
-			if (e) return e;
+			if (e) goto exit;
 			e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
-			if (e) return e;
+			if (e) goto exit;
 
 			sidx_end = gf_bs_get_position(movie->editFileMap->bs);
 
@@ -1412,9 +1437,9 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 
 			/*write it*/
 			e = gf_isom_box_size((GF_Box *) sidx);
-			if (e) return e;
+			if (e) goto exit;
 			e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
-			if (e) return e;
+			if (e) goto exit;
 
 			local_sidx_end = gf_bs_get_position(movie->editFileMap->bs);
 
@@ -1424,7 +1449,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			if (daisy_sidx) {
 				SIDXEntry *entry;
 				GF_SAFEALLOC(entry, SIDXEntry);
-				if (!entry) return GF_OUT_OF_MEM;
+				if (!entry) {
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
 				entry->sidx = sidx;
 				entry->start_offset = local_sidx_start;
 				gf_list_add(daisy_sidx, entry);
@@ -1435,7 +1463,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
 
 		if (!e) {
-			e = StoreFragment(movie, GF_FALSE, offset_diff, &moof_size);
+			e = StoreFragment(movie, GF_FALSE, offset_diff, &moof_size, GF_FALSE);
 
 
 			if (sidx) {
@@ -1453,6 +1481,11 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 					first_frag_in_subseg = GF_FALSE;
 				}
 
+				if (sidx->nb_refs<=cur_index) {
+					sidx->nb_refs = cur_index+1;
+					sidx->refs = gf_realloc(sidx->refs, sizeof(GF_SIDXReference)*sidx->nb_refs);
+					memset(&sidx->refs[cur_index], 0, sizeof(GF_SIDXReference));
+				}
 
 				/*we refer to next moof*/
 				sidx->refs[cur_index].reference_type = GF_FALSE;
@@ -1540,7 +1573,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	}
 
 	if (movie->root_sidx) {
-		if (last_segment) {
+		if (last_segment && !movie->dyn_root_sidx) {
 			assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
 			sidx_rewrite(movie->root_sidx, movie->editFileMap->bs, movie->root_sidx_offset);
@@ -1548,7 +1581,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			movie->root_sidx = NULL;
 		}
 		compute_seg_size(movie, out_seg_size);
-		return GF_OK;
+		goto exit;
 	}
 
 	if (sidx) {
@@ -1615,7 +1648,57 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	}
 	compute_seg_size(movie, out_seg_size);
 
+exit:
+	if (orig_bs != movie->editFileMap->bs) {
+		gf_bs_del(movie->editFileMap->bs);
+		movie->editFileMap->bs = orig_bs;
+	}
 	return e;
+}
+
+GF_EXPORT
+GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
+{
+	GF_BitStream *bs;
+	GF_Err e;
+	//and only at setup
+	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
+
+	bs = movie->editFileMap->bs;
+	if (! movie->on_block_out) return GF_BAD_PARAM;
+	if (! movie->root_sidx) return GF_BAD_PARAM;
+
+	bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+	gf_bs_prevent_dispatch(bs, GF_TRUE);
+	
+	assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
+
+	e = gf_isom_box_size((GF_Box*)movie->root_sidx);
+	if (sidx_max_size && (movie->root_sidx->size>sidx_max_size) ) {
+		u32 orig_seg_count = movie->root_sidx->nb_refs;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] SIDX size %d is larger than allocated SIDX block %d, merging final segments\n", movie->root_sidx->size, sidx_max_size));
+		while (movie->root_sidx->nb_refs>2) {
+			movie->root_sidx->refs[movie->root_sidx->nb_refs-2].subsegment_duration += movie->root_sidx->refs[movie->root_sidx->nb_refs-1].subsegment_duration;
+			movie->root_sidx->refs[movie->root_sidx->nb_refs-2].reference_size += movie->root_sidx->refs[movie->root_sidx->nb_refs-1].reference_size;
+			movie->root_sidx->nb_refs--;
+			e = gf_isom_box_size((GF_Box*)movie->root_sidx);
+			if (movie->root_sidx->size<sidx_max_size) break;
+		}
+		if (movie->root_sidx->size > sidx_max_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso fragment] SIDX size %d is larger than allocated SIDX block and no more segments to merge\n", movie->root_sidx->size, sidx_max_size));
+			return GF_IO_ERR;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Merged %d segments in SIDX to fit allocated block, remaining segments %d\n", orig_seg_count - movie->root_sidx->nb_refs, movie->root_sidx->nb_refs));
+		}
+	}
+	if (!e) e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
+
+	gf_isom_box_del((GF_Box*) movie->root_sidx);
+	movie->root_sidx = NULL;
+
+	gf_bs_del(bs);
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -1624,7 +1707,7 @@ GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 	if (movie->use_segments) {
 		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, GF_FALSE, GF_FALSE, 1, 0, NULL, NULL, NULL);
 	} else {
-		return StoreFragment(movie, GF_FALSE, 0, NULL);
+		return StoreFragment(movie, GF_FALSE, 0, NULL, GF_TRUE);
 	}
 }
 
@@ -1654,6 +1737,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 		/*if movieFileMap is not null, we are concatenating segments to the original movie, force a copy*/
 		if (movie->movieFileMap)
 			movie->append_segment = GF_TRUE;
+		movie->styp_written = GF_TRUE;
 	}
 
 	/*create a memory bitstream for all file IO until final flush*/
@@ -1715,7 +1799,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 
 	//store existing fragment
 	if (movie->moof) {
-		e = StoreFragment(movie, movie->use_segments ? GF_TRUE : GF_FALSE, 0, NULL);
+		e = StoreFragment(movie, movie->use_segments ? GF_TRUE : GF_FALSE, 0, NULL, movie->use_segments ? GF_TRUE : GF_FALSE);
 		if (e) return e;
 	}
 

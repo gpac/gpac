@@ -446,6 +446,7 @@ GF_Err gf_fs_get_last_connect_error(GF_FilterSession *fsess);
 GF_Err gf_fs_get_last_process_error(GF_FilterSession *fsess);
 
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err);
+GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err);
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
@@ -760,7 +761,7 @@ enum
 	GF_PROP_PID_BIT_DEPTH_Y = GF_4CC('Y','B','P','S'),
 	//(uint) bit depth of UV samples
 	GF_PROP_PID_BIT_DEPTH_UV = GF_4CC('C','B','P','S'),
-	//(rational) video FPS
+	//(fraction) video FPS
 	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
 	//(fraction) sample (ie pixel) aspect ratio
 	GF_PROP_PID_SAR = GF_4CC('P','S','A','R'),
@@ -865,7 +866,22 @@ enum
 	//(uint)
 	GF_PROP_PCK_FILENUM = GF_4CC('F','N','U','M'),
 	//(uint)
+	GF_PROP_PCK_FILENAME = GF_4CC('F','N','A','M'),
+	//(uint)
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
+
+	//DASH-like properties
+	//(string)
+	GF_PROP_PERIOD_ID = GF_4CC('P','E','I','D'),
+	//(string)
+	GF_PROP_REPRESENTATION_ID = GF_4CC('D','R','I','D'),
+	//(string)
+	GF_PROP_MUX_SRC = GF_4CC('M','S','R','C'),
+	//(uint)
+	GF_PROP_DASH_VOD = GF_4CC('D','V','O','D'),
+	//(double)
+	GF_PROP_DASH_DUR = GF_4CC('D','D','U','R'),
+
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
@@ -890,6 +906,7 @@ typedef enum
 	GF_FEVT_RESUME,	//no associated event structure
 	GF_FEVT_SOURCE_SEEK,
 	GF_FEVT_SOURCE_SWITCH,
+	GF_FEVT_SEGMENT_SIZE,
 	GF_FEVT_ATTACH_SCENE,
 	GF_FEVT_RESET_SCENE,
 	GF_FEVT_QUALITY_SWITCH,
@@ -941,7 +958,7 @@ typedef struct
 	u8 forced_dash_segment_switch;
 } GF_FEVT_Play;
 
-/*GF_FEVT_SOURCE_SEEK and GF_FEVT_SOURCE_SWITCH*/
+/*GF_FEVT_SOURCE_SEEK*/
 typedef struct
 {
 	FILTER_EVENT_BASE
@@ -966,6 +983,19 @@ typedef struct
 	u64 switch_start_offset;
 	u64 switch_end_offset;
 } GF_FEVT_SourceSwitch;
+
+/*GF_FEVT_SEGMENT_SIZE*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	const char *seg_url;
+	//global sidx is signaled using is_init=1 and range in idx range
+	Bool is_init;
+	u64 media_range_start;
+	u64 media_range_end;
+	u64 idx_range_start;
+	u64 idx_range_end;
+} GF_FEVT_SegmentSize;
 
 /*GF_FEVT_ATTACH_SCENE and GF_FEVT_RESET_SCENE*/
 typedef struct
@@ -1035,6 +1065,7 @@ union __gf_filter_event
 	GF_FEVT_QualitySwitch quality_switch;
 	GF_FEVT_VisibililityHint visibility_hint;
 	GF_FEVT_BufferRequirement buffer_req;
+	GF_FEVT_SegmentSize seg_size;
 };
 
 
@@ -1123,7 +1154,7 @@ void gf_fs_filter_print_possible_connections(GF_FilterSession *session);
 - $$ is an escape for $
 
 Supported KEYWORD (case insensitive):
-- Number or num: replaced by \file_number (usually matches GF_PROP_PCK_FILENUM)
+- num: replaced by \file_number (usually matches GF_PROP_PCK_FILENUM)
 - PID: ID of the source pid
 - URL: URL of source file
 - File: path on disk for source file
@@ -1136,6 +1167,20 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 void gf_filter_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name);
 
 Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output);
+
+typedef enum
+{
+	GF_FS_SEP_ARGS=0,
+	GF_FS_SEP_NAME,
+	GF_FS_SEP_FRAG,
+	GF_FS_SEP_LIST,
+	GF_FS_SEP_NEG,
+} GF_FilterSessionSepType;
+
+/*0: args separator, 1: value separator, 2: fragment, 3: list, 4: negator*/
+u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type);
+
+const char *gf_filter_get_dst_args(GF_Filter *filter);
 
 #ifdef __cplusplus
 }

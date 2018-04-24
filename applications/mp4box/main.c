@@ -1847,7 +1847,7 @@ Bool single_segment = GF_FALSE;
 Bool single_file = GF_FALSE;
 Bool segment_timeline = GF_FALSE;
 u32 segment_marker = GF_FALSE;
-GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
+GF_DashProfile dash_profile = GF_DASH_PROFILE_AUTO;
 const char *dash_profile_extension = NULL;
 Bool use_url_template = GF_FALSE;
 Bool seg_at_rap = GF_FALSE;
@@ -4006,7 +4006,7 @@ int mp4boxMain(int argc, char **argv)
 			dash_ctx = gf_cfg_force_new(NULL, dash_ctx_file);
 		}
 
-		if (dash_profile==GF_DASH_PROFILE_UNKNOWN)
+		if (dash_profile==GF_DASH_PROFILE_AUTO)
 			dash_profile = dash_mode ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_FULL;
 
 		if (!dash_mode) {

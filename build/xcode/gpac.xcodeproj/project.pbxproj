@@ -506,6 +506,7 @@
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
 		92F930831A5ADB870072A85C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930811A5ADB870072A85C /* os_file.c */; };
 		92FA79432076687100AE005F /* rewind.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA79422076687100AE005F /* rewind.c */; };
+		92FE596D2088E52900CF0C5A /* dasher.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FE596C2088E52900CF0C5A /* dasher.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -1353,6 +1354,7 @@
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930811A5ADB870072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		92FA79422076687100AE005F /* rewind.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewind.c; path = filters/rewind.c; sourceTree = "<group>"; };
+		92FE596C2088E52900CF0C5A /* dasher.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dasher.c; path = filters/dasher.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2470,6 +2472,7 @@
 			isa = PBXGroup;
 			children = (
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
+				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
 				92BB85551F7BFB60009BC9C8 /* dec_faad.c */,
@@ -3003,6 +3006,7 @@
 				9201011818D5A444003D1ACA /* box_code_base.c in Sources */,
 				92B9A58A1F8660D700A24FE4 /* visual_manager_3d_gl.c in Sources */,
 				92EE76411FD0315D008926F5 /* load_text.c in Sources */,
+				92FE596D2088E52900CF0C5A /* dasher.c in Sources */,
 				9201011918D5A444003D1ACA /* box_code_drm.c in Sources */,
 				9201011A18D5A444003D1ACA /* box_code_meta.c in Sources */,
 				9201011B18D5A444003D1ACA /* box_dump.c in Sources */,

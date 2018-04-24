@@ -39,10 +39,32 @@ void gf_filterpacket_del(void *p)
 
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
+static const char *gf_filter_get_dst_args_stripped(GF_FilterSession *fsess, const char *dst_args)
+{
+	char *dst_striped = NULL;
+	if (dst_args) {
+		char szDst[5];
+		sprintf(szDst, "dst%c", fsess->sep_name);
+		dst_striped = strstr(dst_args, szDst);
+		if (dst_striped) {
+			dst_striped = strchr(dst_striped+5, fsess->sep_args);
+			if (dst_striped) dst_striped ++;
+		} else {
+			dst_striped = (char *)dst_args;
+		}
+	}
+	return dst_striped;
+}
+
+const char *gf_filter_get_dst_args(GF_Filter *filter)
+{
+	return gf_filter_get_dst_args_stripped(filter->session, filter->dst_args);
+}
+
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err)
 {
 	char szName[200];
-	char *dst_striped = NULL;
+	const char *dst_striped = NULL;
 	GF_Filter *filter;
 	GF_Err e;
 	u32 i;
@@ -82,17 +104,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
 	filter->arg_type = arg_type;
-	if (dst_args) {
-		char szDst[5];
-		sprintf(szDst, "dst%c", fsess->sep_name);
-		dst_striped = strstr(dst_args, szDst);
-		if (dst_striped) {
-			dst_striped = strchr(dst_striped+5, fsess->sep_args);
-			if (dst_striped) dst_striped ++;
-		} else {
-			dst_striped = (char *)dst_args;
-		}
-	}
+	dst_striped = gf_filter_get_dst_args_stripped(fsess, dst_args);
 
 	if (args && dst_striped) {
 		char *all_args;
@@ -245,12 +257,18 @@ void gf_filter_set_name(GF_Filter *filter, const char *name)
 	if (filter->name) gf_free(filter->name);
 	filter->name = gf_strdup(name ? name : filter->freg->name);
 }
+
 void gf_filter_set_id(GF_Filter *filter, const char *ID)
 {
 	assert(filter);
 
 	if (filter->id) gf_free(filter->id);
 	filter->id = ID ? gf_strdup(ID) : NULL;
+}
+const char *gf_filter_sft_id(GF_Filter *filter)
+{
+	assert(filter);
+	return filter->id;
 }
 
 void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
@@ -1648,6 +1666,11 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 	return gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE);
 }
 
+GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
+{
+	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE);
+}
+
 
 void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf)
 {
@@ -1721,7 +1744,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	char szID[1024];
 	if (!filter || !link_from) return GF_BAD_PARAM;
 	if (filter == link_from) return GF_BAD_PARAM;
-	if (filter->num_input_pids || link_from->num_input_pids) return GF_BAD_PARAM;
+	if (filter->num_input_pids) return GF_BAD_PARAM;
 	//link from may have input pids declared but pending if source filter
 	if (filter->num_output_pids) return GF_BAD_PARAM;
 	//don't allow loops

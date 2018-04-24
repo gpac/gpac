@@ -87,6 +87,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	u32 i;
 	GF_FilterSession *fsess, *a_sess;
 
+	//safety check: all built-in properties shall have unique 4CCs
 	if ( ! gf_props_4cc_check_props())
 		return NULL;
 
@@ -1567,6 +1568,18 @@ void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps)
 	}
 }
 
+GF_EXPORT
+u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type)
+{
+	switch (sep_type) {
+	case GF_FS_SEP_ARGS: return filter->session->sep_args;
+	case GF_FS_SEP_NAME: return filter->session->sep_name;
+	case GF_FS_SEP_FRAG: return filter->session->sep_frag;
+	case GF_FS_SEP_LIST: return filter->session->sep_list;
+	case GF_FS_SEP_NEG: return filter->session->sep_neg;
+	default: return 0;
+	}
+}
 
 GF_EXPORT
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)

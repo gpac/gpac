@@ -486,6 +486,12 @@ u32 gf_codecid_type(u32 codecid);
 */
 u8 gf_codecid_oti(u32 codecid);
 
+/*! Gets the associated 4CC used by isomedia or RFC6381
+ \param codecid target codec ID
+ \return RFC 4CC of codec, 0 if not mapped/known
+*/
+u32 gf_codecid_4cc_type(u32 codecid);
+
 /*! Gets the codecid given the associated short name
  \param cname target codec short name
  \return codecid codec ID

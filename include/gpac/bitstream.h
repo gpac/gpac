@@ -125,6 +125,13 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
  */
 GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size);
 
+/*!
+ * Prevents byte dispatching in callback mode. This is used when seek operations are used.
+ *	\param bs the target bitstream
+ *	\param prevent_dispatch activates temporary internal storage if set
+ */
+void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch);
+
 
 /*!
  *	\brief gets bitstream write cache size

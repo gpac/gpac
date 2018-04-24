@@ -190,7 +190,10 @@ typedef struct
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
 
+	//playback related
 	u32 consecutive_xlink_count;
+	//generation related, we store the segment template here
+	char *dasher_segment_name;
 } GF_MPD_SegmentList;
 
 typedef struct
@@ -270,6 +273,8 @@ typedef struct
 	u32 enhancement_rep_index_plus_one;
 
 	Bool broadcast_flag;
+
+	void *udta;
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {
@@ -421,12 +426,15 @@ void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
 void gf_mpd_segment_url_list_free(GF_List *list);
 void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root);
+void gf_mpd_url_free(void *_item);
 
 GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
 
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
 GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name, GF_MPD_Period *period);
+
+GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out);
 
 void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out);
 GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
