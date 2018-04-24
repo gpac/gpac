@@ -966,6 +966,7 @@ void gf_mpd_segment_list_free(void *_item)
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
 	if (ptr->segment_timeline) gf_mpd_segment_timeline_free(ptr->segment_timeline);
 	gf_mpd_del_list(ptr->segment_URLs, gf_mpd_segment_url_free, 0);
+	if (ptr->dasher_segment_name) gf_free(ptr->dasher_segment_name);
 	gf_free(ptr);
 }
 
@@ -2180,7 +2181,7 @@ void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent)
 	fprintf(out, ">\n");
 	
 	sprintf(tmp_indent, "%s ",indent);
-	
+
 	if (s->initialization_segment) gf_mpd_print_url(out, s->initialization_segment, "Initialization", tmp_indent);
 	if (s->representation_index) gf_mpd_print_url(out, s->representation_index, "RepresentationIndex", indent);
 
@@ -2723,7 +2724,7 @@ static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *
 
 
 
-static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
+GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 {
 	u32 i;
 	GF_MPD_ProgramInfo *info;
@@ -2769,7 +2770,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 
 	if (mpd->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)mpd);
 
-	//fprintf(out, ">\n");
+	fprintf(out, ">\n");
 
 	if (mpd->children) {
 		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)mpd);

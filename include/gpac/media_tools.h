@@ -559,17 +559,20 @@ typedef struct
 /*!
  * DASH profile constants
  *	\hideinitializer
+ * Matches profile enum of dasher module: auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand
  */
 typedef enum
 {
-	/*! Full dash (no profile)*/
-	GF_DASH_PROFILE_FULL = 0,
+	/*! auto profile, internal use only*/
+	GF_DASH_PROFILE_AUTO = 0,
 	/*! Live dash profile for: live for ISOFF, SIMPLE for M2TS */
 	GF_DASH_PROFILE_LIVE,
 	/*! onDemand profile*/
  	GF_DASH_PROFILE_ONDEMAND,
 	/*! main profile*/
 	GF_DASH_PROFILE_MAIN,
+	/*! Full dash (no profile)*/
+	GF_DASH_PROFILE_FULL,
 
 	/*! industry profile HbbTV 1.5 ISOBMFF Live */
 	GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE,
@@ -577,9 +580,6 @@ typedef enum
 	GF_DASH_PROFILE_AVC264_LIVE,
 	/*! industry profile DASH-IF ISOBMFF onDemand */
 	GF_DASH_PROFILE_AVC264_ONDEMAND,
-
-	/*! Unknown profile, internal use only*/
-	GF_DASH_PROFILE_UNKNOWN
 } GF_DashProfile;
 
 

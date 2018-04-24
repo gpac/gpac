@@ -3750,7 +3750,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		sep[0]=0;
 		fsep = strchr(name, '%');
 		if (fsep) fsep[0] = 0;
-		if (!stricmp(name, "Number") || !stricmp(name, "num")) {
+		if (!stricmp(name, "num")) {
 			u32 len = (!stricmp(name, "num")) ? 3 : 6;
 			name += len;
 			value = file_idx;
@@ -3782,19 +3782,38 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				is_ok = GF_FALSE;
 			}
 		} else {
-			prop_4cc = gf_props_get_id(name);
-			//not matching, try with name
-			if (!prop_4cc) {
-				prop_val = gf_filter_pid_get_property_str(pid, name);
-				if (!prop_val) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] Unrecognized template %s\n", name));
-					is_ok = GF_FALSE;
+			char *next_eq = strchr(name, '=');
+			char *next_sep = strchr(name, '$');
+			if (next_eq - name < next_sep - name) {
+				prop_4cc = gf_props_get_id(name);
+				//not matching, try with name
+				if (!prop_4cc) {
+					prop_val = gf_filter_pid_get_property_str(pid, name);
+					if (!prop_val) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] Unrecognized template %s\n", name));
+						is_ok = GF_FALSE;
+					}
+				} else {
+					prop_val = gf_filter_pid_get_property(pid, prop_4cc);
+					if (!prop_val) {
+						is_ok = GF_FALSE;
+					}
 				}
 			} else {
-				prop_val = gf_filter_pid_get_property(pid, prop_4cc);
-				if (!prop_val) {
-					is_ok = GF_FALSE;
+				u32 i, len = next_sep ? 1+(next_sep - name) : strlen(name);
+				szFinalName[k]='$';
+				k++;
+				for (i=0; i<len; i++) {
+					szFinalName[k] = name[0];
+					k++;
+					name++;
 				}
+				szFinalName[k]='$';
+				k++;
+				if (!sep) break;
+				sep[0] = '$';
+				name = sep+1;
+				continue;
 			}
 		}
 

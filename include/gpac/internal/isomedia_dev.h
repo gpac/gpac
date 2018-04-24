@@ -3250,6 +3250,7 @@ struct __tag_isom {
 	GF_SegmentIndexBox *root_sidx;
 	u64 root_sidx_offset;
 	u32 root_sidx_index;
+	Bool dyn_root_sidx;
 
 	Bool is_index_segment;
 
@@ -3423,6 +3424,8 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 #endif
 
 Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
+
+GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
