@@ -887,6 +887,10 @@ enum
 	GF_PROP_DASH_MODE = GF_4CC('D','M','O','D'),
 	//(double)
 	GF_PROP_DASH_DUR = GF_4CC('D','D','U','R'),
+	//(pointer)
+	GF_PROP_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
+	//(uint)
+	GF_PROP_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
 
 };
 
