@@ -123,7 +123,6 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
-Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 Bool gf_props_4cc_check_props();
 
 
@@ -173,7 +172,7 @@ typedef struct __gf_filter_pck_info
 	u8 sap_type;
 	u8 interlaced;
 	u8 corrupted;
-	u8 eos_type; //0: nothing, 1: eos, 2: pid remove
+	u8 internal_command; //0: nothing (regular packet), 1: eos, 2: pid remove
 	u8 clock_type;
 	u8 seek_flag;
 	u8 duration_set;
@@ -550,8 +549,11 @@ struct __gf_filter_pid_inst
 	Bool requires_full_data_block;
 	Bool last_block_ended;
 	Bool first_block_started;
-
+	//set during play/stop/reset phases
 	Bool discard_packets;
+
+	//set by filter
+	Bool discard_inputs;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile s64 buffer_duration;

@@ -117,7 +117,7 @@ typedef struct
 	Bool chain_sidx;
 	u32 moof_sn;
 	GF_Fraction64 tfdt;
-	Bool no_def, straf, pssh_moof, sgpd_traf, cache;
+	Bool no_def, straf, pssh_moof, sgpd_traf, cache, noinit;
 	
 	//internal
 	u64 first_cts_min;
@@ -1530,7 +1530,14 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		ctx->adjusted_next_frag_start = ctx->next_frag_start;
 		ctx->fragment_started = GF_FALSE;
 
-		mp4_mux_flush_frag(ctx, 1, 0, 0);
+		if (ctx->noinit) {
+			if (ctx->dst_pck) gf_filter_pck_discard(ctx->dst_pck);
+			ctx->dst_pck = NULL;
+			ctx->current_size = ctx->current_offset = 0;
+			ctx->first_pck_sent = GF_FALSE;
+		} else {
+			mp4_mux_flush_frag(ctx, 1, 0, 0);
+		}
 		assert(!ctx->dst_pck);
 
 		gf_isom_set_next_moof_number(ctx->file, ctx->moof_sn);
@@ -2266,6 +2273,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(sgpd_traf), "stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(cache), "Enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(block_size), "block size used to flush files in onDemand mode when cache is used", GF_PROP_UINT, "50000", NULL, GF_FALSE},
+	{ OFFS(noinit), "does not send initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{0}
 };
 

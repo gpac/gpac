@@ -268,7 +268,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 			gf_props_del(props);
 		}
 	}
-	if (pck->filter_owns_mem && !pck->info.eos_type) {
+	if (pck->filter_owns_mem && !pck->info.internal_command) {
 		assert(pck->pid->nb_shared_packets_out);
 		safe_int_dec(&pck->pid->nb_shared_packets_out);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pck->pid->filter->name, pck->pid->name, pck->pid->nb_shared_packets_out));
@@ -471,7 +471,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	if (!pck->info.clock_type)
 		gf_filter_forward_clock(pck->pid->filter);
 
-	pid->has_seen_eos = (pck->info.eos_type==1) ? GF_TRUE : GF_FALSE;
+	pid->has_seen_eos = (pck->info.internal_command==1) ? GF_TRUE : GF_FALSE;
 
 	//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
 	pck->info.pid_props_changed = GF_FALSE;
@@ -518,10 +518,12 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	pck->src_filter = NULL;
 
 	assert(pck->pid);
-	pid->nb_pck_sent++;
-	if (pck->data_length) {
-		pid->filter->nb_pck_sent++;
-		pid->filter->nb_bytes_sent += pck->data_length;
+	if (!pck->info.internal_command) {
+		pid->nb_pck_sent++;
+		if (pck->data_length) {
+			pid->filter->nb_pck_sent++;
+			pid->filter->nb_bytes_sent += pck->data_length;
+		}
 	}
 
 	if ((GF_FilterClockType) pck->info.clock_type == GF_FILTER_CLOCK_PCR_DISC) {
@@ -606,6 +608,28 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
 		if (!dst->filter->freg->process) continue;
 
+		if (dst->discard_inputs) {
+			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
+			if (pck->info.pid_props_changed && (dst->props != pck->pid_props)) {
+				//unassign old property list and set the new one
+				if (safe_int_dec(& dst->props->reference_count) == 0) {
+					gf_list_del_item(dst->pid->properties, dst->props);
+					gf_props_del(dst->props);
+				}
+				dst->props = pck->pid_props;
+				safe_int_inc( & dst->props->reference_count);
+
+				assert(dst->filter->freg->configure_pid);
+				//reset the blacklist whenever reconfiguring, since we may need to reload a new filter chain
+				//in which a previously blacklisted filter (failing (re)configure for previous state) could
+				//now work, eg moving from formatA to formatB then back to formatA
+				gf_list_reset(dst->filter->blacklisted);
+				//and post a reconfigure task
+				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task, dst->filter, dst->pid, "pidinst_reconfigure", NULL);
+			}
+			continue;
+		}
+
 		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
 		if (!inst) {
 			GF_SAFEALLOC(inst, GF_FilterPacketInstance);
@@ -616,7 +640,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		inst->pid_props_change_done = 0;
 		inst->pid_info_change_done = 0;
 
-		if (inst->pck->info.eos_type==1)  {
+		if (inst->pck->info.internal_command==1)  {
 			safe_int_inc(&inst->pid->nb_eos_signaled);
 		}
 

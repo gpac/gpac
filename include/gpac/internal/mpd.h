@@ -340,6 +340,9 @@ typedef struct
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
 	GF_List *other_descriptors;
+
+	//used by dasher
+	void *udta;
 } GF_MPD_AdaptationSet;
 
 
@@ -526,6 +529,7 @@ void gf_mpd_base_url_free(void *_item);
 void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent);
 
 GF_MPD_Representation *gf_mpd_representation_new();
+void gf_mpd_representation_free(void *_item);
 
 GF_MPD_SegmentTimeline *gf_mpd_segmentimeline_new();
 
