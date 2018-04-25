@@ -846,6 +846,7 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 {
 	u32 i, count;
 	Bool use_inband = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE;
+	Bool use_multi = (ctx->bs_switch==DASHER_BS_SWITCH_MULTI) ? GF_TRUE : GF_FALSE;
 	GF_MPD_Representation *base_rep = gf_list_get(set->representations, 0);
 	GF_DashStream *base_ds;
 
@@ -869,7 +870,7 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 		//same codec ID
 		if (ds->codec_id == base_ds->codec_id) {
 			//we will use inband params, so bs switching is OK
-			if (use_inband) continue;
+			if (use_inband || use_multi) continue;
 			//we consider we can switch in non-inband only if we have same CRC for the decoder config
 			if (base_ds->dsi_crc == ds->dsi_crc) continue;
 			//not the same config, no BS switching
@@ -1061,7 +1062,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		for (j=i+1; j<count; j++) {
 			GF_DashStream *a_ds;
-			rep = gf_list_get(set->representations, i);
+			rep = gf_list_get(set->representations, j);
 			a_ds = rep->playback.udta;
 			if (a_ds->pid_id) continue;
 			if (a_ds->stream_type == ds->stream_type) a_ds->pid_id = ds->pid_id;
