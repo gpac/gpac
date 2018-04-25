@@ -648,6 +648,8 @@ struct __gf_filter_pid
 	GF_FilterPidInst *caps_negociate_pidi;
 	GF_List *adapters_blacklist;
 	GF_Filter *caps_dst_filter;
+
+	u32 forced_cap;
 };
 
 
@@ -684,7 +686,7 @@ GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *f
 GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
 u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 
-Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
 
 void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
 

@@ -832,10 +832,10 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PCK_FILENAME, "FileName", "Name of output file when dumping / dashing. Must be set on first packet belonging to new file", GF_PROP_STRING},
 	{ GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - set as info, not property", GF_PROP_UINT},
 
-	{ GF_PROP_PERIOD_ID, "PeriodID", "ID of DASH period", GF_PROP_STRING},
-	{ GF_PROP_REPRESENTATION_ID, "RepresentationID", "ID of DASH representation", GF_PROP_STRING},
+	{ GF_PROP_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING},
+	{ GF_PROP_REPRESENTATION_ID, "Representation", "ID of DASH representation", GF_PROP_STRING},
 	{ GF_PROP_MUX_SRC, "MuxSrc", "Identifies mux source(s)", GF_PROP_STRING},
-	{ GF_PROP_DASH_VOD, "DashMode", "Indicates DASH mode to muxer, if any. false is regular DASH, 1 is VoD, no props is no dash", GF_PROP_BOOL},
+	{ GF_PROP_DASH_MODE, "DashMode", "Indicates DASH mode to muxer, if any. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT},
 	{ GF_PROP_DASH_DUR, "DashDur", "Indicates DASH target segment duration in seconds to muxer, if any.", GF_PROP_DOUBLE},
 };
 

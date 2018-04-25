@@ -157,6 +157,7 @@ typedef struct _dash_stream
 
 	char *init_seg, *seg_template;
 	u32 nb_sap_3, nb_sap_4;
+	u32 pid_id;
 
 	//seg urls not yet handled (waiting for size/index callbacks)
 	GF_List *seg_urls;
@@ -953,9 +954,15 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	sprintf(szSRC, "dasher_%p", base_ds->dst_filter);
 	ds->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_copy_properties(ds->opid, ds->ipid);
+
+	//force PID ID
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_ID, &PROP_UINT(ds->pid_id) );
 	gf_filter_pid_set_info(ds->opid, GF_PROP_MUX_SRC, &PROP_STRING(szSRC) );
-	gf_filter_pid_set_info(ds->opid, GF_PROP_DASH_VOD, &PROP_BOOL(ctx->single_segment ? GF_TRUE : GF_FALSE) );
+	gf_filter_pid_set_info(ds->opid, GF_PROP_DASH_MODE, &PROP_UINT(ctx->single_segment ? 2 : 1) );
 	gf_filter_pid_set_info(ds->opid, GF_PROP_DASH_DUR, &PROP_DOUBLE(ctx->dur) );
+
+	gf_filter_pid_force_cap(ds->opid, GF_PROP_DASH_MODE);
+
 }
 
 static Bool dasher_template_use_source_url(GF_DasherCtx *ctx)
@@ -1039,6 +1046,25 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				single_template = GF_FALSE;
 				break;
 			}
+		}
+	}
+
+	//assign PID IDs - we assume only one component of a given media type per adaptation set
+	//and assign the same PID ID for each component of the same type
+	//we could refine this using roles, but most HAS solutions don't use roles at the mulitplexed level
+	for (i=0; i<count; i++) {
+		u32 j;
+		rep = gf_list_get(set->representations, i);
+		ds = rep->playback.udta;
+		if (ds->pid_id) continue;
+		ds->pid_id = gf_list_find(ctx->pids, ds) + 1;
+
+		for (j=i+1; j<count; j++) {
+			GF_DashStream *a_ds;
+			rep = gf_list_get(set->representations, i);
+			a_ds = rep->playback.udta;
+			if (a_ds->pid_id) continue;
+			if (a_ds->stream_type == ds->stream_type) a_ds->pid_id = ds->pid_id;
 		}
 	}
 
@@ -1304,6 +1330,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		ds->split_set_names = GF_FALSE;
 		ds->nb_sap_3 = 0;
 		ds->nb_sap_4 = 0;
+		ds->pid_id = 0;
 
 		//remove output pids
 		if (ds->opid) {
@@ -1404,6 +1431,11 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				char szCodecs[1024];
 				a_ds->share_rep = ds;
 				ds->nb_comp++;
+
+				if (ctx->bs_switch==DASHER_BS_SWITCH_MULTI) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Bitstream Swicthing mode \"multi\" is not supported with multiplexed representations, disabling bitstream switching\n"));
+					ctx->bs_switch = DASHER_BS_SWITCH_OFF;
+				}
 				strcpy(szCodecs, ds->rep->codecs);
 				strcat(szCodecs, ",");
 				strcat(szCodecs, a_ds->rep->codecs);
@@ -1769,11 +1801,11 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_FilterPacket *pck)
 {
 	char szSegmentName[GF_MAX_PATH];
-	//only signal on one stream for muxed representations
-	if (ds->share_rep) return;
+	GF_DashStream *base_ds = ds->share_rep ? ds->share_rep : ds;
 
-	gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ds->seg_number ) );
+	gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_UINT(base_ds->seg_number ) );
 
+	//only signal file name & insert timelines on one stream for muxed representations
 	if (ds->share_rep) return;
 
 	if (ctx->single_file) {
@@ -2302,11 +2334,39 @@ GF_FilterRegister DasherRegister = {
 	.name = "dasher",
 	.description = "MPEG-DASH / HLS / Smooth segmenter",
 	.comment = "GPAC DASH segmenter\n"\
-			"The template string may be used in any of the mode, to set the segment names\n"\
-			"The dasher looks for specific properties on each input pid:\n"\
-			"\tRepresentationID: assigns representation ID to input pid. If not set, the default behaviour is to have each media compenent in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"\
-			"\tPeriodID: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period\n"
-			"\tPID properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup the manifest and can be overriden on input PIDs using the general PID property settings (cf global help).\n",
+			"The segmenter uses the template string to derive output file names, regardless of the DASH mode (even when templates are not used)\n"\
+			"\tEX: template=Great_$File$_$Width$_$Number$ on 640x360 foo.mp4 source will resolve in Great_foo_640_$Number$ for the DASH template\n"\
+			"\tEX: template=Great_$File$_$Width$ on 640x360 foo.mp4 source will resolve in Great_foo_640.mp4 for onDemand case\n"\
+			"The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
+			"\n"\
+			"To assign PIDs into periods and adaptation sets, the dasher looks for these properties on each input pid:\n"\
+			"\tRepresentation: assigns representation ID to input pid. If not set, the default behaviour is to have each media compenent in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"\
+			"\tPeriod: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period\n"
+			"\tPID properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup the manifest and can be overriden on input PIDs using the general PID property settings (cf global help).\n"\
+			"\tEX: \"src=test.mp4:#Bitrate=1M dst=test.mpd\" will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate\n"\
+			"\tEX: \"src=muxav.mp4 dst=test.mpd\" will create unmuxed DASH segments\n"\
+			"\tEX: \"src=muxav.mp4:#Representation=1 dst=test.mpd\" will create muxed DASH segments\n"\
+			"\tEX: \"src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\" will put src m1.mp4 in first period, m2.mp4 in second period\n"\
+			"\n"\
+			"The dasher will create filter chains for the segmenter based on the destination URL path, and will reassign PID IDs\n"\
+			"so that each media component (video, audio, ...) in an adaptation set has the same ID\n"\
+			"\n"\
+			"Note to developpers: output muxers allowing segmented output must obey the following:\n"\
+			"* add a \"DashMode\" capability to their input caps (value of the cap is ignored, only its presence is required)\n"\
+			"* inspect packet properties, \"FileNumber\" giving the signal of a new DASH segment, \"FileName\" giving the optional file name (if not present, ouput shall be a single file)\n"\
+			"* for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"\
+			"* for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"\
+			"* the following filter options are passed to muxers, which should declare them as arguments:\n"\
+			"\t\tnoinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)\n"\
+			"\t\tfrag: indicates muxer shall used fragmented format (used for ISOBMFF mostly)\n"\
+			"\t\tsubs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user\n"\
+			"\t\txps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"\
+			"\t\tno_frags_def: indicates fragment defaults should be set in each segment rather than in init segment\n"\
+			"\n"\
+			"The dasher will add the following properties to the output PIDs:\n"\
+			"* DashMode: identifies VoD or regular DASH mode used by dasher\n"\
+			"* DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"\
+			,
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,
 	.initialize = dasher_initialize,
