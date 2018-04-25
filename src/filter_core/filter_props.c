@@ -837,6 +837,8 @@ struct _gf_prop_typedef {
 	{ GF_PROP_MUX_SRC, "MuxSrc", "Identifies mux source(s)", GF_PROP_STRING},
 	{ GF_PROP_DASH_MODE, "DashMode", "Indicates DASH mode to muxer, if any. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT},
 	{ GF_PROP_DASH_DUR, "DashDur", "Indicates DASH target segment duration in seconds to muxer, if any.", GF_PROP_DOUBLE},
+	{ GF_PROP_DASH_MULTI_PID, "__no_def_name__", "Pointer to the GF_List of input pits for multi-stsd entries segments.", GF_PROP_POINTER},
+	{ GF_PROP_DASH_MULTI_PID_IDX, "__no_def_name__", "1-based index of PID in the multi PID list", GF_PROP_UINT},
 };
 
 GF_EXPORT

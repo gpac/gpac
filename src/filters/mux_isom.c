@@ -326,6 +326,14 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	u32 amr_mode_set = 0;
 	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
 	GF_Fraction fps, sar;
+	GF_List *multi_pid_stsd = NULL;
+	u32 multi_pid_idx = 0;
+	GF_FilterPid *orig_pid = NULL;
+	u32 codec_id;
+	u32 frames_per_sample_backup=0;
+	Bool is_nalu_backup = GF_FALSE;
+	u32 multi_pid_final_stsd_idx = 0;
+
 	const char *lang_name = NULL;
 	const char *comp_name = NULL;
 	const char *imp_name = NULL;
@@ -438,8 +446,6 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 
-
-
 	if (needs_track) {
 		u32 tkid=0;
 		u32 mtype=0;
@@ -496,12 +502,33 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	}
 
+	codec_id = tkw->codecid;
+	p = gf_filter_pid_get_property(pid, GF_PROP_DASH_MULTI_PID);
+	if (p) {
+		multi_pid_stsd = p->value.ptr;
+
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_DASH_MULTI_PID_IDX);
+		assert(p);
+		multi_pid_final_stsd_idx = p->value.uint;
+
+		//should never be the case
+		ctx->xps_inband = 0;
+		ctx->dref = GF_FALSE;
+		orig_pid = pid;
+		goto multipid_stsd_setup;
+	}
+
+
+	//WARNING !! from this point on until the goto multipid_stsd_setup, use pid and not tkw->ipid
+	//so that we setup the sample entry properly for each PIDs
+sample_entry_setup:
+
 	use_m4sys = ctx->m4sys;
 	use_gen_sample_entry = GF_TRUE;
 	use_dref = ctx->dref;
 
 	//get our subtype
-	switch (tkw->codecid) {
+	switch (codec_id) {
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:
 		m_subtype = GF_ISOM_SUBTYPE_MP3;
@@ -608,7 +635,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	case GF_CODECID_SVC:
 		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_AVC3_H264 : GF_ISOM_SUBTYPE_AVC_H264;
 		use_avc = GF_TRUE;
-		comp_name = (tkw->codecid == GF_CODECID_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
+		comp_name = (codec_id == GF_CODECID_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
 		use_gen_sample_entry = GF_FALSE;
 		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
 		break;
@@ -616,7 +643,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	case GF_CODECID_LHVC:
 		m_subtype = (ctx->xps_inband==1) ? GF_ISOM_SUBTYPE_HEV1  : GF_ISOM_SUBTYPE_HVC1;
 		use_hevc = GF_TRUE;
-		comp_name = (tkw->codecid == GF_CODECID_LHVC) ? "L-HEVC" : "HEVC";
+		comp_name = (codec_id == GF_CODECID_LHVC) ? "L-HEVC" : "HEVC";
 		use_gen_sample_entry = GF_FALSE;
 		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
 		break;
@@ -633,7 +660,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		use_gen_sample_entry = GF_FALSE;
 		break;
 	case 0:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] muxing codecID %d not yet implemented - patch welcome\n", tkw->codecid));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] muxing codecID %d not yet implemented - patch welcome\n", codec_id));
 		return GF_NOT_SUPPORTED;
 
 	case GF_ISOM_SUBTYPE_TX3G:
@@ -655,7 +682,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		break;
 
 	default:
-		m_subtype = tkw->codecid;
+		m_subtype = codec_id;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
 		tkw->skip_bitrate_update = GF_TRUE;
@@ -674,7 +701,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (p) meta_auxmimes = p->value.string;
 		break;
 	}
-	if (!comp_name) comp_name = gf_codecid_name(tkw->codecid);
+	if (!comp_name) comp_name = gf_codecid_name(codec_id);
 	if (!comp_name) comp_name = gf_4cc_to_str(m_subtype);
 
 	if (!needs_sample_entry) return GF_OK;
@@ -705,7 +732,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		else if (use_hevc && dsi) {
 			if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
-			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (tkw->codecid == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (codec_id == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 
 			if (enh_dsi) {
 				if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
@@ -738,7 +765,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (p) fps = p->value.frac;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 	if (p) sar = p->value.frac;
-	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ZORDER);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ZORDER);
 	if (p) z_order = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
@@ -760,11 +787,12 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (!use_dref) src_url = NULL;
 
+
 	//nope, create sample entry
 	if (use_m4sys) {
 		GF_ESD *esd = gf_odf_desc_esd_new(2);
 		esd->decoderConfig->streamType = override_stype ? override_stype : tkw->stream_type;
-		esd->decoderConfig->objectTypeIndication = gf_codecid_oti(tkw->codecid);
+		esd->decoderConfig->objectTypeIndication = gf_codecid_oti(codec_id);
 		esd->slConfig->timestampResolution = tkw->timescale;
 		if (dsi && !skip_dsi) {
 			esd->decoderConfig->decoderSpecificInfo->data = dsi->value.data.ptr;
@@ -779,7 +807,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_odf_desc_del((GF_Descriptor *) esd);
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-4 Systems sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-4 Systems sample description for stream type %d OTI %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
 			return e;
 		}
 
@@ -832,7 +860,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			tkw->avcc = NULL;
 		}
 
-		gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_VISUAL, 0x7F);
+		//gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_VISUAL, 0x7F);
 		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, 1);
 		tkw->is_nalu = GF_TRUE;
 
@@ -845,7 +873,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
-		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (tkw->codecid == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (codec_id == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 
 		e = gf_isom_hevc_config_new(ctx->file, tkw->track_num, tkw->hvcc, NULL, NULL, &tkw->stsd_idx);
 
@@ -868,7 +896,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx);
 				}
 			}
-		} else if (tkw->codecid == GF_CODECID_LHVC) {
+		} else if (codec_id == GF_CODECID_LHVC) {
 			gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_LEHVC_ONLY);
 		}
 		if (e) {
@@ -908,7 +936,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		e = gf_isom_3gp_config_new(ctx->file, tkw->track_num, &gpp_cfg, (char *) src_url, NULL, &tkw->stsd_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new 3GPP audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new 3GPP audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
@@ -924,7 +952,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_AC3Config ac3cfg;
 		memset(&ac3cfg, 0, sizeof(GF_AC3Config));
 
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_AC3_CFG);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AC3_CFG);
 		if (p) {
 			GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
 			ac3cfg.nb_streams = 1;
@@ -938,7 +966,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		e = gf_isom_ac3_config_new(ctx->file, tkw->track_num, &ac3cfg, (char *)src_url, NULL, &tkw->stsd_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
@@ -1025,7 +1053,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		e = gf_isom_new_generic_sample_description(ctx->file, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new sample description for stream type %d codecid %d: %s\n", tkw->stream_type, tkw->codecid, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
@@ -1033,9 +1061,41 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		assert(0);
 	}
 
+
+multipid_stsd_setup:
+	if (multi_pid_stsd) {
+		if (multi_pid_idx<gf_list_count(multi_pid_stsd)) {
+
+			if (multi_pid_final_stsd_idx == multi_pid_idx) {
+				frames_per_sample_backup = tkw->nb_frames_per_sample;
+				is_nalu_backup = tkw->is_nalu;
+			}
+			pid = gf_list_get(multi_pid_stsd, multi_pid_idx);
+			multi_pid_idx ++;
+			//reload codecID, decoder config and enhancement decoder config
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+			if (p) codec_id = p->value.uint;
+			dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+			enh_dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+			//force stsd idx to be 0 to avoid removing the stsd
+			tkw->stsd_idx = 0;
+			goto sample_entry_setup;
+		}
+		tkw->stsd_idx = multi_pid_final_stsd_idx;
+		//restore input pid
+		pid = orig_pid;
+		codec_id = tkw->codecid;
+
+		tkw->is_nalu = is_nalu_backup;
+		tkw->nb_frames_per_sample = frames_per_sample_backup;
+	}
+
+
 	//final opt: we couldn't detect before if the same stsd was possible, now that we have create a new one, check again
 	reuse_stsd = 0;
-	count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
+	//don't try to reuse STSDs in multi STSD setup for DASH
+	if (multi_pid_stsd) count = 0;
+	else count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
 	for (i=0; i<count; i++) {
 		if (i+1 == tkw->stsd_idx) continue;
 
@@ -1491,6 +1551,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			mp4_mux_set_hevc_groups(ctx, tkw);
 
+			//use 1 for the default sample description index. If no multi stsd, this is always the case
+			//otherwise we need to the stsd idx in the traf headers
 			if (! ctx->no_def) {
 				e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, def_pck_dur, 0, (u8) def_is_rap, 0, 0);
 			} else {
