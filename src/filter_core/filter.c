@@ -112,9 +112,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		all_args = gf_malloc(sizeof(char)*len);
 		sprintf(all_args, "%s%c%s", args, fsess->sep_args, dst_striped);
 		e = gf_filter_new_finalize(filter, all_args, arg_type);
-		gf_free(all_args);
+		filter->orig_args = all_args;
+		args = NULL;
 	} else if (dst_striped) {
 		e = gf_filter_new_finalize(filter, dst_striped, arg_type);
+		filter->orig_args = gf_strdup(dst_striped);
+		args = NULL;
 	} else {
 		e = gf_filter_new_finalize(filter, args, arg_type);
 	}
@@ -589,6 +592,14 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			Bool file_exists;
 			sep[0]=0;
 			file_exists = gf_file_exists(args+4);
+			if (!file_exists) {
+				char *fsep = strchr(args+4, filter->session->sep_frag);
+				if (fsep) {
+					fsep[0] = 0;
+					file_exists = gf_file_exists(args+4);
+					fsep[0] = filter->session->sep_frag;
+				}
+			}
 			sep[0]= filter->session->sep_args;
 			if (!file_exists) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Non-escaped argument pattern \"%s\" in src %s, assuming arguments are part of source URL. Use src=PATH:gpac:ARGS to differentiate, or change separators\n", sep, args));

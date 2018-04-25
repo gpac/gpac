@@ -763,6 +763,8 @@ enum
 	GF_PROP_PID_BIT_DEPTH_UV = GF_4CC('C','B','P','S'),
 	//(fraction) video FPS
 	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
+	//(boolean) video is interlaced
+	GF_PROP_PID_INTERLACED = GF_4CC('V','I','L','C'),
 	//(fraction) sample (ie pixel) aspect ratio
 	GF_PROP_PID_SAR = GF_4CC('P','S','A','R'),
 	//(fraction) picture aspect ratio
@@ -888,6 +890,8 @@ const char *gf_props_4cc_get_name(u32 prop_4cc);
 
 u32 gf_props_4cc_get_type(u32 prop_4cc);
 void gf_props_reset_single(GF_PropertyValue *p);
+
+Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 
 //PID messaging: PIDs may receive commands and may emit messages using this system
 //event may flow
@@ -1181,6 +1185,13 @@ typedef enum
 u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type);
 
 const char *gf_filter_get_dst_args(GF_Filter *filter);
+
+//setdiscard mode on or off. When discard is on, all nput packets for this PID are no longer dispatched
+//this only affect the current PID, not the source filter(s) for that pid
+//PID reconfigurations are still forwarded to the filter, so that a filter may decide to re-enable regular mode
+//this is typically needed for filters that stop consuming data for a while (dash periods for example) but may resume
+//consumption later on (stream moving from period 1 to period 2 for example)
+GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on);
 
 #ifdef __cplusplus
 }

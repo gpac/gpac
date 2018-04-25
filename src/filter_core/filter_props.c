@@ -778,6 +778,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_BIT_DEPTH_Y, "BitDepthLuma", "Bit depth for luma components", GF_PROP_UINT},
 	{ GF_PROP_PID_BIT_DEPTH_UV, "BitDepthChroma", "Bit depth for chroma components", GF_PROP_UINT},
 	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
+	{ GF_PROP_PID_INTERLACED, "Interlaced", "Video interlaced flag", GF_PROP_BOOL},
 	{ GF_PROP_PID_SAR, "SAR", "Sample (ie pixel) aspect ratio", GF_PROP_FRACTION},
 	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION},
 	{ GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Max Visual Width (video / text / graphics) of all enhancement layers", GF_PROP_UINT},

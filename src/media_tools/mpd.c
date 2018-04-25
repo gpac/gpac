@@ -2192,7 +2192,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 {
 	u32 i;
 	GF_MPD_SegmentTimelineEntry *se;
-	fprintf(out, "%s <SegmentTimeline>\n", indent);
+	fprintf(out, "%s<SegmentTimeline>\n", indent);
 
 	i = 0;
 	while ( (se = gf_list_enum(tl->entries, &i))) {
@@ -2202,7 +2202,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 		if (se->repeat_count) fprintf(out, " r=\"%d\"", se->repeat_count);
 		fprintf(out, "/>\n");
 	}
-	fprintf(out, "%s </SegmentTimeline>\n", indent);
+	fprintf(out, "%s</SegmentTimeline>\n", indent);
 }
 
 GF_MPD_SegmentTimeline *gf_mpd_segmentimeline_new(void)
@@ -2248,8 +2248,6 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 	sprintf(tmp_indent, "%s ",indent);
 	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, tmp_indent, GF_FALSE);
 	
-	sprintf(tmp_indent, "%s  ",indent);
-
 	if (s->segment_URLs) {
 		u32 i;
 		GF_MPD_SegmentURL *url;
@@ -2333,6 +2331,18 @@ static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_n
 		} else {
 			fprintf(out, "/>\n");
 		}
+	}
+}
+
+static void gf_mpd_print_content_component(FILE *out, GF_List *content_component , char *indent)
+{
+	u32 i=0;
+	GF_MPD_ContentComponent *cc;
+	while ((cc = gf_list_enum(content_component, &i))) {
+		fprintf(out, "%s<ContentComponent id=\"%d\" contentType=\"%s\"", indent, cc->id, cc->type);
+		if (cc->lang)
+			fprintf(out, " lang=\"%s\"", cc->lang);
+		fprintf(out, "/>\n");
 	}
 }
 
@@ -2489,8 +2499,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	gf_mpd_print_descriptors(out, as->role, "Role", "   ");
 	gf_mpd_print_descriptors(out, as->rating, "Rating", "   ");
 	gf_mpd_print_descriptors(out, as->viewpoint, "Viewpoint", "   ");
-
-//			e = gf_mpd_parse_content_component(set->content_component, child);
+	gf_mpd_print_content_component(out, as->content_component, "   ");
 
 	if (as->segment_base) {
 		gf_mpd_print_segment_base(out, as->segment_base, "   ");

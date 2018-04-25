@@ -569,6 +569,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter->has_pending_pids = GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
 			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
+
 			gf_filter_pid_post_init_task(filter, pid);
 		}
 	}
@@ -1829,7 +1830,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
 	} else {
 		const char *dst_args = NULL;
-		const char *args = pid->filter->src_args;
+		const char *args = pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
 		GF_Filter *prev_af;
 
@@ -1892,9 +1893,15 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			//the other filters shouldn't need any specific init
 			af->dynamic_filter = GF_TRUE;
-			af->user_pid_props = GF_FALSE;
+//			af->user_pid_props = GF_FALSE;
 			//remember our target cap on that filter
 			af->cap_idx_at_resolution = cap_idx;
+			//copy source IDs for all filters in the chain
+			//we cannot figure out the destination sourceID when initializing PID connection tasks
+			//by walking up the filter chain because PIDs connection might be pending
+			//(upper chain not yet fully connected)
+			if (dst->source_ids)
+				af->source_ids = gf_strdup(dst->source_ids);
 
 			//remember our target filter
 			if (prev_af) prev_af->dst_filter = af;
@@ -2215,40 +2222,11 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	gf_fs_post_task(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_init", NULL);
 }
 
-void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
-{
-	if (pid->init_task_pending) return;
-	safe_int_inc(&pid->init_task_pending);
-	gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
-}
-
-void gf_filter_reconnect_output(GF_Filter *filter)
-{
-	u32 i;
-	for (i=0; i<filter->num_output_pids; i++) {
-		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		gf_filter_pid_post_init_task(filter, pid);
-	}
-}
-
-
-GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks)
-{
-	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
-
-	if (PID_IS_OUTPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set framing info on an output pid in filter %s\n", pid->filter->name));
-		return GF_BAD_PARAM;
-	}
-	pidinst->requires_full_data_block = requires_full_blocks;
-	return GF_OK;
-}
-
 static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 {
 	char *args;
-	if (!filter->src_args) return;
-	args = filter->src_args;
+	if (!filter->src_args && !filter->orig_args) return;
+	args = filter->orig_args ? filter->orig_args : filter->src_args;
 	//parse each arg
 	while (args) {
 		u32 p4cc=0;
@@ -2316,6 +2294,39 @@ skip_arg:
 	}
 }
 
+void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
+{
+	if (filter->user_pid_props)
+		gf_filter_pid_set_args(filter, pid);
+
+	if (pid->init_task_pending) return;
+
+	safe_int_inc(&pid->init_task_pending);
+	gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
+}
+
+void gf_filter_reconnect_output(GF_Filter *filter)
+{
+	u32 i;
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		gf_filter_pid_post_init_task(filter, pid);
+	}
+}
+
+
+GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks)
+{
+	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set framing info on an output pid in filter %s\n", pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	pidinst->requires_full_data_block = requires_full_blocks;
+	return GF_OK;
+}
+
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 {
 	char szName[30];
@@ -2333,9 +2344,6 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	
 	sprintf(szName, "PID%d", filter->num_output_pids);
 	pid->name = gf_strdup(szName);
-
-	if (filter->user_pid_props)
-		gf_filter_pid_set_args(filter, pid);
 
 	filter->has_pending_pids = GF_TRUE;
 	gf_fq_add(filter->pending_pids, pid);
@@ -2695,12 +2703,12 @@ u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_FilterPacketInstance *pcki)
 {
 	Bool is_internal = GF_FALSE;
-	if (pcki->pck->info.eos_type==1) {
+	if (pcki->pck->info.internal_command==1) {
 		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pidi->pid->name, pidi->filter->name, pcki->pid->pid->has_seen_eos));
 		safe_int_dec(&pcki->pid->nb_eos_signaled);
 		is_internal = GF_TRUE;
-	} else if (pcki->pck->info.eos_type==2) {
+	} else if (pcki->pck->info.internal_command==2) {
 		gf_fs_post_task(pidi->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pidi->pid, "pidinst_disconnect", NULL);
 
 		is_internal = GF_TRUE;
@@ -2851,7 +2859,7 @@ Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 	}
 	assert(pcki->pck);
 
-	if (pcki->pck->info.eos_type || pcki->pck->info.clock_type) {
+	if (pcki->pck->info.internal_command || pcki->pck->info.clock_type) {
 		return GF_TRUE;
 	}
 	if (pidinst->requires_full_data_block && !pcki->pck->info.data_block_end)
@@ -2864,9 +2872,9 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 {
 	u64 now = gf_sys_clock_high_res();
 	u64 dec_time = now - pidi->last_pck_fetch_time;
-	if (pck->info.eos_type) return;
+	if (pck->info.internal_command) return;
 	if (pidi->pid->filter->removed) return;
-	
+
 	pidi->filter->nb_pck_processed++;
 	pidi->filter->nb_bytes_processed += pck->data_length;
 
@@ -3048,7 +3056,7 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	//we create a fake packet for eos signaling
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-	pck->pck->info.eos_type = 1;
+	pck->pck->info.internal_command = 1;
 	pid->pid->has_seen_eos = GF_TRUE;
 	gf_filter_pck_send(pck);
 }
@@ -3550,7 +3558,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	safe_int_dec(&pid->nb_shared_packets_out);
-	pck->pck->info.eos_type = 2;
+	pck->pck->info.internal_command = 2;
 	gf_filter_pck_send(pck);
 }
 
@@ -3897,3 +3905,21 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 	szFinalName[k] = 0;
 	return GF_OK;
 }
+
+
+GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *) pid;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt at discarding packets on output PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (discard_on) {
+		while (gf_filter_pid_get_packet(pid)) {
+			gf_filter_pid_drop_packet(pid);
+		}
+	}
+	pidi->discard_inputs = discard_on;
+	return GF_OK;
+}
+

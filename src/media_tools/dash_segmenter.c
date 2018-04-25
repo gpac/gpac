@@ -256,6 +256,11 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		needs_init = GF_FALSE;
 		is_init = GF_TRUE;
 	}
+	if (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT) {
+		seg_type = GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE;
+		is_init_template = GF_TRUE;
+		needs_init = GF_FALSE;
+	}
 
 	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$")))
 		needs_init = GF_FALSE;
