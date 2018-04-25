@@ -429,10 +429,10 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (p) src_url = p->value.string;
 
 
-	p = gf_filter_pid_get_info(pid, GF_PROP_DASH_VOD);
+	p = gf_filter_pid_get_info(pid, GF_PROP_DASH_MODE);
 	if (p) {
 		ctx->dash_mode = MP4MX_DASH_ON;
-		if (p->value.boolean) {
+		if (p->value.uint==2) {
 			e = mp4mx_setup_dash_vod(ctx, tkw);
 			if (e) return e;
 		}
@@ -1671,9 +1671,12 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					}
 					//start of current segment, remember segment number and name
 					ctx->dash_seg_num = p->value.uint;
-					if (ctx->seg_name) gf_free(ctx->seg_name);
+					//get file name prop if any - only send on one pid for muxed content
 					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-					ctx->seg_name = p ? gf_strdup(p->value.string) : NULL;
+					if (p && p->value.string) {
+						if (ctx->seg_name) gf_free(ctx->seg_name);
+						ctx->seg_name = gf_strdup(p->value.string);
+					}
 				}
 
 				dts = gf_filter_pck_get_dts(pck);
@@ -1747,6 +1750,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			gf_isom_close_segment(ctx->file, (ctx->subs_sidx >= 0) ? ctx->subs_sidx : 0, (ctx->subs_sidx>=0) ? ctx->ref_tkw->track_id : 0, ctx->ref_tkw->first_dts_in_seg, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - next fragment start time %g\n", ctx->dash_seg_num, ctx->next_frag_start ));
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
 				mp4_mux_flush_frag(ctx, 0, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
@@ -1756,6 +1760,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		else if (!ctx->dash_mode || (!ctx->subs_sidx && (ctx->dash_mode<MP4MX_DASH_VOD) )) {
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
 			mp4_mux_flush_frag(ctx, 0, 0, 0);
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ctx->next_frag_start ));
 		}
 
 		if (ctx->flush_seg) {
@@ -1887,8 +1893,9 @@ static GF_Err mp4_mux_on_data(void *cbk, char *data, u32 block_size)
 		memcpy(output, data, block_size);
 		gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, GF_FALSE);
 	}
+	//set packet prop as string since we may discard the seg_name  packet before this packet is processed
 	if (!ctx->first_pck_sent && ctx->seg_name) {
-		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENAME, &PROP_NAME(ctx->seg_name) );
+		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->seg_name) );
 	}
 	ctx->first_pck_sent = GF_TRUE;
 	ctx->current_size += block_size;
@@ -2230,6 +2237,7 @@ static const GF_FilterCapability MP4MuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	//we want framed media only
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_STATIC_OPT, 	GF_PROP_DASH_MODE, 0),
 	//and any codecid
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci"),
@@ -2288,7 +2296,6 @@ GF_FilterRegister MP4MuxRegister = {
 	SETCAPS(MP4MuxCaps),
 	.configure_pid = mp4_mux_configure_pid,
 	.process = mp4_mux_process,
-//	.process_event = mp4_mux_process_event
 };
 
 

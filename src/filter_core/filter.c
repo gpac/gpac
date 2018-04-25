@@ -843,7 +843,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *pidinst)
 
 		an_inpid = gf_list_get(cur_filter->input_pids, 0);
 		
-		if (filter_pid_caps_match(an_inpid->pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
+		if (gf_filter_pid_caps_match(an_inpid->pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
 			link_from_pid = an_inpid->pid;
 			break;
 		}
@@ -871,7 +871,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	}
 
 	//try to load filters to reconnect output pid
-	if (!reconfig_only && filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
+	if (!reconfig_only && gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
 		GF_FilterPidInst *dst_pidi;
 		new_f = pid->filter;
 		assert(pid->num_destinations==1);
@@ -1843,3 +1843,4 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 	if (!filter) return GF_FALSE;
 	return filter->session->disable_blocking ? GF_FALSE : GF_TRUE;
 }
+

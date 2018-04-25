@@ -290,10 +290,14 @@ enum
 	//Only used for output caps, indicates that this cap applies to all bundles
 	//This avoids repeating caps common to all bundles by setting them only in the first
 	GF_FILTER_CAPS_STATIC = 1<<5,
+	//Only used for input caps, indicates that this cap is optionnal in the input pid
+	GF_FILTER_CAPS_OPTIONAL = 1<<6,
 };
 
 #define GF_CAPS_INPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT)
+#define GF_CAPS_INPUT_OPT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_OPTIONAL)
 #define GF_CAPS_INPUT_STATIC	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_STATIC)
+#define GF_CAPS_INPUT_STATIC_OPT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_STATIC|GF_FILTER_CAPS_OPTIONAL)
 #define GF_CAPS_INPUT_EXCLUDED	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_EXCLUDED)
 #define GF_CAPS_INPUT_EXCPLICIT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_EXPLICIT)
 #define GF_CAPS_OUTPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT)
@@ -880,7 +884,7 @@ enum
 	//(string)
 	GF_PROP_MUX_SRC = GF_4CC('M','S','R','C'),
 	//(uint)
-	GF_PROP_DASH_VOD = GF_4CC('D','V','O','D'),
+	GF_PROP_DASH_MODE = GF_4CC('D','M','O','D'),
 	//(double)
 	GF_PROP_DASH_DUR = GF_4CC('D','D','U','R'),
 
@@ -1192,6 +1196,9 @@ const char *gf_filter_get_dst_args(GF_Filter *filter);
 //this is typically needed for filters that stop consuming data for a while (dash periods for example) but may resume
 //consumption later on (stream moving from period 1 to period 2 for example)
 GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on);
+
+
+GF_Err gf_filter_pid_force_cap(GF_FilterPid *pid, u32 cap4cc);
 
 #ifdef __cplusplus
 }

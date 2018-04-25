@@ -967,7 +967,7 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	return GF_FALSE;
 }
 
-Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
@@ -975,6 +975,7 @@ Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg,
 	u32 nb_subcaps=0;
 	Bool skip_explicit_load = GF_FALSE;
 	Bool all_caps_matched = GF_TRUE;
+	Bool forced_cap_found = src_pid->forced_cap ? GF_FALSE : GF_TRUE;
 	const GF_FilterCapability *in_caps;
 	u32 nb_in_caps;
 	if (!freg) {
@@ -1005,7 +1006,7 @@ Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg,
 		const GF_FilterCapability *cap = &in_caps[i];
 
 		if (i && !(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
-			if (all_caps_matched) {
+			if (all_caps_matched && forced_cap_found) {
 				if (dst_bundle_idx)
 					(*dst_bundle_idx) = cap_bundle_idx;
 				return GF_TRUE;
@@ -1032,9 +1033,18 @@ Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg,
 		if (!all_caps_matched) continue;
 
 		if (cap->code) {
+			if (!forced_cap_found && (cap->code==src_pid->forced_cap))
+				forced_cap_found = GF_TRUE;
+
 			pid_cap = gf_filter_pid_get_property(src_pid, cap->code);
 		}
+
+		//optional cap
+		if (cap->flags & GF_FILTER_CAPS_OPTIONAL) continue;
+
+		//try by name
 		if (!pid_cap && cap->name) pid_cap = gf_filter_pid_get_property_str(src_pid, cap->name);
+
 
 		//we found a property of that type and it is equal
 		if (pid_cap) {
@@ -1051,6 +1061,8 @@ Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg,
 				}
 				//not an input cap
 				if (! (a_cap->flags & GF_FILTER_CAPS_INPUT) ) continue;
+				//optional cap
+				if (a_cap->flags & GF_FILTER_CAPS_OPTIONAL) continue;
 				//not a static and not in bundle
 				if (! (a_cap->flags & GF_FILTER_CAPS_STATIC)) {
 					if (j<cur_bundle_start)
@@ -1098,13 +1110,27 @@ Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg,
 		}
 	}
 
-	if (nb_subcaps && all_caps_matched) {
+	if (nb_subcaps && all_caps_matched && forced_cap_found) {
 		if (dst_bundle_idx)
 			(*dst_bundle_idx) = cap_bundle_idx;
 		return GF_TRUE;
 	}
 
 	return GF_FALSE;
+}
+
+GF_Err gf_filter_pid_force_cap(GF_FilterPid *pid, u32 cap4cc)
+{
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot force PID cap on input PID\n"));
+		return GF_BAD_PARAM;
+	}
+	if (pid->num_destinations) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Cannot force PID cap on already connected pid\n"));
+		return GF_BAD_PARAM;
+	}
+	pid->forced_cap = cap4cc;
+	return GF_OK;
 }
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps)
@@ -1290,6 +1316,10 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				if (!(in_cap->flags & GF_FILTER_CAPS_INPUT) )
 					continue;
 
+				//optionnal cap, ignore
+				if (in_cap->flags & GF_FILTER_CAPS_OPTIONAL)
+					continue;
+
 				if ((for_dst_bundle>=0) && (cur_dst_bundle < (u32)for_dst_bundle) && !(in_cap->flags & GF_FILTER_CAPS_STATIC))
 					continue;
 
@@ -1391,7 +1421,7 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 {
 	u8 priority;
 	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
-	return filter_pid_caps_match(pid->pid, NULL, NULL, &priority, NULL, pid->filter, -1);
+	return gf_filter_pid_caps_match(pid->pid, NULL, NULL, &priority, NULL, pid->filter, -1);
 }
 
 
@@ -1431,7 +1461,7 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 	GF_List *current_filter_chain;
 
 	//no match of pid caps for this filter
-	if (filter_pid_caps_match(pid, filter_reg, dst, &priority, &bundle_idx, pid->filter->dst_filter, filter_reg_bundle_idx) ) {
+	if (gf_filter_pid_caps_match(pid, filter_reg, dst, &priority, &bundle_idx, pid->filter->dst_filter, filter_reg_bundle_idx) ) {
 		//add filter
 		gf_list_add(original_filter_chain, (void *) filter_reg);
 		//and indicate its matching cap bundle
@@ -2037,7 +2067,7 @@ restart:
 				continue;
 
 			//explicitly clonable but caps don't match, don't connect to it
-			if (!filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1))
+			if (!gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1))
 				continue;
 		}
 
@@ -2083,7 +2113,7 @@ restart:
 			if (filter_dst->source_ids) {
 				Bool pid_excluded=GF_FALSE;
 				if (!filter_source_id_match(pid, filter_id, filter_dst->source_ids, &pid_excluded)) {
-					if (pid_excluded) filter_found_but_pid_excluded = GF_TRUE;
+					if (pid_excluded && first_pass) filter_found_but_pid_excluded = GF_TRUE;
 					continue;
 				}
 			}
@@ -2095,7 +2125,7 @@ restart:
 		}
 
 		//we have a match, check if caps are OK
-		if (!filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1)) {
+		if (!gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1)) {
 			Bool reassigned=GF_FALSE;
 			u32 j, nb_loaded;
 			GF_Filter *new_f, *reuse_f=NULL;
@@ -2115,6 +2145,7 @@ restart:
 				}
 			}
 			if (first_pass) continue;
+			filter_found_but_pid_excluded = GF_FALSE;
 
 			nb_loaded = gf_list_count(loaded_filters);
 			for (j=0; j<nb_loaded; j++) {
@@ -2122,7 +2153,7 @@ restart:
 				reuse_f = gf_list_get(loaded_filters, j);
 				//check if we match caps with this loaded filter, in which case assume we can use that filter for connections
 				//THIS MIGHT NEED REFINEMENT
-				if (filter_pid_caps_match(pid, reuse_f->freg, reuse_f, NULL, &out_cap_idx, pid->filter->dst_filter, -1)) {
+				if (gf_filter_pid_caps_match(pid, reuse_f->freg, reuse_f, NULL, &out_cap_idx, pid->filter->dst_filter, -1)) {
 					break;
 				}
 				reuse_f = NULL;
@@ -2279,7 +2310,7 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 			GF_PropertyValue p;
 			memset(&p, 0, sizeof(GF_PropertyValue));
 			p.type = GF_PROP_STRING;
-			p.value.string = sep+1;
+			p.value.string = eq+1;
 			gf_filter_pid_set_property_dyn(pid, name, &p);
 		}
 		eq[0] = filter->session->sep_name;
@@ -3676,6 +3707,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 			if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) return NULL;
 
 			if (!(cap->flags & GF_FILTER_CAPS_INPUT)) continue;
+			if (cap->flags & GF_FILTER_CAPS_OPTIONAL) continue;
 			if (cap->code == prop_4cc) return &cap->val;
 		}
 		return NULL;
