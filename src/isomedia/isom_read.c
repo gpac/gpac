@@ -3760,11 +3760,11 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 				continue;
 			}
 			/*we found our sample*/
-			group_desc_index = 1 + sg->sample_entries[j].group_description_index;
+			group_desc_index = sg->sample_entries[j].group_description_index;
 			break;
 		}
 		/*no sampleGroup info associated*/
-		if (group_desc_index <= 1) continue;
+		if (!group_desc_index) continue;
 
 		sgdesc = NULL;
 		for (j=0; j<gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription); j++) {
@@ -3784,7 +3784,8 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 			if (has_roll) *has_roll = GF_TRUE;
 			if (roll_distance) {
 				GF_RollRecoveryEntry *roll_entry = (GF_RollRecoveryEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
-				if (roll_entry) *roll_distance = roll_entry->roll_distance;
+				if (roll_entry)
+					*roll_distance = roll_entry->roll_distance;
 			}
 			break;
 		}

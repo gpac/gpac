@@ -1489,6 +1489,7 @@ typedef struct
 	u32 currentEntryIndex;
 
 	Bool no_sync_found;
+	Bool skip_sample_groups;
 } GF_SampleTableBox;
 
 typedef struct __tag_media_info_box
@@ -3258,6 +3259,8 @@ struct __tag_isom {
 	/* 0: no moof found yet, 1: 1 moof found, 2: next moof found */
 	Bool single_moof_mode;
 	u32 single_moof_state;
+
+	Bool sample_groups_in_traf;
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
