@@ -514,6 +514,9 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				gf_isom_load_extra_boxes(ctx->file, p->value.data.ptr, p->value.data.size, (ctx->mudta==2) ? GF_TRUE : GF_FALSE);
 			}
 		}
+
+		if (ctx->sgpd_traf)
+			gf_isom_set_sample_group_in_traf(ctx->file);
 	}
 
 	codec_id = tkw->codecid;
@@ -1990,10 +1993,6 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 
 	if (ctx->pssh_moof) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] PSSH in moof not yet supported\n"));
-		return GF_NOT_SUPPORTED;
-	}
-	if (ctx->sgpd_traf) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Sample groups in moof not yet supported\n"));
 		return GF_NOT_SUPPORTED;
 	}
 

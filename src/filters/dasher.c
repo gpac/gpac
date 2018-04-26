@@ -2004,15 +2004,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			sap_type = gf_filter_pck_get_sap(pck);
 
-			if (sap_type==3) ds->nb_sap_3 ++;
-			else if (sap_type>3) ds->nb_sap_4 ++;
-
-			/*check requested profiles can be generated, or adjust them*/
-			if ((ctx->profile != GF_DASH_PROFILE_FULL) && (ds->nb_sap_4 || (ds->nb_sap_3 > 1)) ) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
-				ctx->profile = GF_DASH_PROFILE_FULL;
-			}
-
 			cts = gf_filter_pck_get_cts(pck);
 			if (!ds->rep_init) {
 				if (!sap_type) {
@@ -2060,8 +2051,21 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (ctx->no_sap) {
 					seg_over = GF_TRUE;
 				}
-				//no sap, segment is over
+				// sap, segment is over
 				else if (sap_type) {
+
+					if (sap_type==3)
+						ds->nb_sap_3 ++;
+					else if (sap_type>3)
+						ds->nb_sap_4 ++;
+
+					/*check requested profiles can be generated, or adjust them*/
+					if ((ctx->profile != GF_DASH_PROFILE_FULL) && (ds->nb_sap_4 || (ds->nb_sap_3 > 1)) ) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
+						ctx->profile = GF_DASH_PROFILE_FULL;
+						ds->set->starts_with_sap = sap_type;
+					}
+
 					seg_over = GF_TRUE;
 					if (ds == base_ds) {
 						base_ds->adjusted_next_seg_start = cts;

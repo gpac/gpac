@@ -818,6 +818,13 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				else
 					gf_filter_pck_set_sap(pck, (GF_FilterSAPType) ch->sample->IsRAP);
 
+				if (ch->sap_3)
+					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_3);
+				else if (ch->sap_4) {
+					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
+					gf_filter_pck_set_roll_info(pck, ch->roll);
+				}
+
 				sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
 				gf_filter_pck_set_duration(pck, sample_dur);
 				gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);

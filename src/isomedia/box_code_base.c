@@ -5186,7 +5186,7 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_array_write(s, ptr->sub_samples, bs);
 		if (e) return e;
 	}
-	if (ptr->sampleGroupsDescription) {
+	if (ptr->sampleGroupsDescription && !ptr->skip_sample_groups) {
 		e = gf_isom_box_array_write(s, ptr->sampleGroupsDescription, bs);
 		if (e) return e;
 	}
@@ -5299,7 +5299,7 @@ GF_Err stbl_Size(GF_Box *s)
 		e = gf_isom_box_array_size(s, ptr->sampleGroups);
 		if (e) return e;
 	}
-	if (ptr->sampleGroupsDescription) {
+	if (ptr->sampleGroupsDescription && !ptr->skip_sample_groups) {
 		e = gf_isom_box_array_size(s, ptr->sampleGroupsDescription);
 		if (e) return e;
 	}

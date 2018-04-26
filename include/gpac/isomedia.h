@@ -2697,6 +2697,7 @@ u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);
 /*Sets the number of the next moof to be produced*/
 void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value);
 
+GF_Err gf_isom_set_sample_group_in_traf(GF_ISOFile *file);
 
 /*returns 'rap ' and 'roll' group info for the given sample*/
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance);

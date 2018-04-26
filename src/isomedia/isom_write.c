@@ -5983,6 +5983,23 @@ GF_Err gf_isom_set_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDesc
 	if (ve->lhvc_config) ve->lhvc_config->config->nal_unit_size = nalu_size_length;
 	return GF_OK;
 }
+
+GF_Err gf_isom_set_sample_group_in_traf(GF_ISOFile *file)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *entry;
+	GF_MPEGVisualSampleEntryBox *ve;
+	GF_SampleDescriptionBox *stsd;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	file->sample_groups_in_traf = GF_TRUE;
+	return GF_OK;
+}
+
+
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 

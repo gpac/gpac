@@ -429,6 +429,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 	ch->current_slh.au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
 
+	ch->sap_3 = GF_FALSE;
+	ch->sap_4 = GF_FALSE;
+	ch->roll = 0;
+	if (ch->sample) {
+		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4, &ch->roll);
+	}
+
 	//update timestamp when single edit
 	if (ch->sample && ch->dts_offset) {
 		if (ch->do_dts_shift_test) {
