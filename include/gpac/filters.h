@@ -128,6 +128,8 @@ typedef enum
 	GF_PROP_CONST_DATA,
 	//user-managed pointer
 	GF_PROP_POINTER,
+	//string list: memory is ALWAYS duplicated
+	GF_PROP_STRING_LIST,
 } GF_PropType;
 
 typedef struct
@@ -202,13 +204,15 @@ typedef struct
 		//alloc/freed by filter if type is GF_PROP_STRING, otherwise const char *
 		char *string;
 		void *ptr;
+		GF_List *string_list;
 	} value;
 } GF_PropertyValue;
 
 const char *gf_props_get_type_name(u32 type);
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values);
 
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data);
+#define GF_PROP_DUMP_ARG_SIZE	1000
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
 Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type);
 u32 gf_props_get_id(const char *name);
@@ -458,6 +462,7 @@ GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
 u32 gf_filter_get_opid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx);
 
+//by default copy properties if only one input pid
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 void gf_filter_pid_remove(GF_FilterPid *pid);
 
@@ -898,6 +903,18 @@ enum
 	GF_PROP_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
 	//(uint)
 	GF_PROP_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
+	//(stringlist)
+	GF_PROP_PID_ROLE = GF_4CC('R','O','L','E'),
+	//(stringlist)
+	GF_PROP_PID_PERIOD_DESC = GF_4CC('P','D','E','S'),
+	//(stringlist)
+	GF_PROP_PID_AS_COND_DESC = GF_4CC('A','C','D','S'),
+	//(stringlist)
+	GF_PROP_PID_AS_ANY_DESC = GF_4CC('A','A','D','S'),
+	//(stringlist)
+	GF_PROP_PID_REP_DESC = GF_4CC('R','D','E','S'),
+	//(stringlist)
+	GF_PROP_PID_BASE_URL = GF_4CC('B','U','R','L'),
 
 };
 

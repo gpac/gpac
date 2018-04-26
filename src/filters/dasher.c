@@ -60,7 +60,8 @@ typedef struct
 	char *ext;
 	char *profX;
 	s32 asto;
-	char *title, *source, *info, *cprt, *lang, *location, *base;
+	char *title, *source, *info, *cprt, *lang;
+	GF_List *location, *base;
 	Bool for_test, check_dur, skip_seg;
 
 	//not yet exposed
@@ -96,23 +97,18 @@ typedef struct _dash_stream
 	u32 sr, nb_ch;
 	const char *lang;
 	Bool interlaced;
+	const GF_PropertyValue *p_role;
+	const GF_PropertyValue *p_period_desc;
+	const GF_PropertyValue *p_as_desc;
+	const GF_PropertyValue *p_as_any_desc;
+	const GF_PropertyValue *p_rep_desc;
+	const GF_PropertyValue *p_base_url;
 
 	//TODO: get the values for all below
 	u32 ch_layout, nb_surround, nb_lfe;
-	u32 nb_roles;
-	char **roles;
-	u32 nb_rep_descs;
-	char **rep_descs;
-	u32 nb_as_descs;
-	char **as_descs;
-	u32 nb_as_c_descs;
-	char **as_c_descs;
-	u32 nb_p_descs;
-	char **p_descs;
+
 	GF_PropVec4i srd;
 	u32 view_id;
-	u32 nb_baseURL;
-	char **baseURL;
 	//end of TODO
 
 	u32 bitrate;
@@ -316,6 +312,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p) ds->interlaced = p->value.boolean;
 	else ds->interlaced = GF_FALSE;
 
+	ds->p_role = gf_filter_pid_get_property(pid, GF_PROP_PID_ROLE);
+	ds->p_period_desc = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_DESC);
+	ds->p_as_desc = gf_filter_pid_get_property(pid, GF_PROP_PID_AS_COND_DESC);
+	ds->p_as_any_desc = gf_filter_pid_get_property(pid, GF_PROP_PID_AS_ANY_DESC);
+	ds->p_rep_desc = gf_filter_pid_get_property(pid, GF_PROP_PID_REP_DESC);
+	ds->p_base_url = gf_filter_pid_get_property(pid, GF_PROP_PID_BASE_URL);
+
 	if (!period_switch) return GF_OK;
 	if (period_switch) {
 		gf_list_del_item(ctx->current_period->streams, ds);
@@ -404,6 +407,7 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 }
 static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 {
+	u32 i, count;
 	ctx->mpd = gf_mpd_new();
 	ctx->mpd->xml_namespace = "urn:mpeg:dash:schema:mpd:2011";
 	ctx->mpd->base_URLs = gf_list_new();
@@ -437,16 +441,18 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 		if (ctx->source) info->source = gf_strdup(ctx->source);
 		if (ctx->lang) info->lang = gf_strdup(ctx->lang);
 	}
-	if (ctx->location) {
-		if (!ctx->mpd->locations) ctx->mpd->locations = gf_list_new();
-		gf_list_add(ctx->mpd->locations, gf_strdup(ctx->location));
+	count = ctx->location ? gf_list_count(ctx->location) : 0;
+	for (i=0; i<count; i++) {
+		char *l = gf_list_get(ctx->location, i);
+		gf_list_add(ctx->mpd->locations, gf_strdup(l));
 	}
-	if (ctx->base) {
+	count = ctx->base ? gf_list_count(ctx->base) : 0;
+	for (i=0; i<count; i++) {
 		GF_MPD_BaseURL *base;
-		if (!ctx->mpd->base_URLs) ctx->mpd->base_URLs = gf_list_new();
+		char *b = gf_list_get(ctx->base, i);
 		GF_SAFEALLOC(base, GF_MPD_BaseURL);
-		base->URL = gf_strdup(ctx->base);
-		gf_list_add(ctx->mpd->locations, gf_strdup(ctx->location));
+		base->URL = gf_strdup(b);
+		gf_list_add(ctx->mpd->base_URLs, base);
 	}
 	return dasher_update_mpd(ctx);
 }
@@ -717,33 +723,24 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 static Bool dasher_same_roles(GF_DashStream *ds1, GF_DashStream *ds2)
 {
-	if (ds1->roles && ds2->roles) {
-		if (ds1->nb_roles != ds2->nb_roles)
-			return GF_FALSE;
-		else {
-			u32 r1, r2;
-			for (r1=0; r1<ds1->nb_roles; r1++) {
-				Bool found = GF_FALSE;
-				for (r2=0; r2<ds2->nb_roles; r2++) {
-					if (!strcmp(ds1->roles[r1], ds2->roles[r2])) {
-						found = GF_TRUE;
-						break;
-					}
-				}
-				if (!found) return GF_FALSE;
-			}
-			return GF_TRUE;
-		}
+	GF_List *list;
+	if (ds1->p_role && ds2->p_role) {
+		if (gf_props_equal(ds1->p_role, ds2->p_role)) return GF_TRUE;
 	}
-	if (!ds1->roles && !ds2->roles)
+	if (!ds1->p_role && !ds2->p_role)
 		return GF_TRUE;
 
+	//special case, if one is set and the other is not, compare with "main" role
+	list = ds2->p_role ?  ds2->p_role->value.string_list : ds1->p_role->value.string_list;
+	if (gf_list_count(list)==1) {
+		char *s = gf_list_get(list, 0);
+		if (!strcmp(s, "main")) return GF_TRUE;
+	}
 	return GF_FALSE;
 }
 
 static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_DashStream *ds_test)
 {
-	u32 i;
 	//muxed representations
 	if (ds_test->share_rep == ds) return GF_TRUE;
 	//otherwise we have to be of same type
@@ -754,13 +751,8 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 
 	/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 	   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
-	if (ds->nb_as_descs != ds_test->nb_as_descs)
+	if (! gf_props_equal(ds->p_as_desc, ds_test->p_as_desc))
 		return GF_FALSE;
-	for (i=0; i<ds->nb_as_descs; i++) {
-		if (strcmp(ds->as_descs[i], ds_test->as_descs[i])) {
-			return GF_FALSE;
-		}
-	}
 
 	if (ds->srd.x != ds_test->srd.x) return GF_FALSE;
 	if (ds->srd.y != ds_test->srd.y) return GF_FALSE;
@@ -807,18 +799,25 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	return GF_TRUE;
 }
 
-static void dasher_add_descriptors(GF_List **p_dst_list, u32 nb_descs, char **descs)
+static void dasher_add_descriptors(GF_List **p_dst_list, const GF_PropertyValue *desc_val)
 {
-	u32 j;
+	u32 j, count;
 	GF_List *dst_list;
-	if (nb_descs && ! (*p_dst_list)) *p_dst_list = gf_list_new();
+	if (!desc_val) return;
+	if (desc_val->type != GF_PROP_STRING_LIST) return;
+	count = gf_list_count(desc_val->value.string_list);
+	if (!count) return;
+	if ( ! (*p_dst_list)) *p_dst_list = gf_list_new();
 	dst_list = *p_dst_list;
-	for (j=0; j<nb_descs; j++) {
-		if (strchr(descs[j], '<') != NULL) {
+	for (j=0; j<count; j++) {
+		char *desc = gf_list_get(desc_val->value.string_list, j);
+		if (desc[0] == '<') {
 			GF_MPD_other_descriptors *d;
 			GF_SAFEALLOC(d, GF_MPD_other_descriptors);
-			d->xml_desc = gf_strdup(descs[j]);
+			d->xml_desc = gf_strdup(desc);
 			gf_list_add(dst_list, d);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid descriptor %s, expecting '<' as first character\n", desc));
 		}
 	}
 }
@@ -826,6 +825,7 @@ static void dasher_add_descriptors(GF_List **p_dst_list, u32 nb_descs, char **de
 static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, count;
+	Bool role_set = GF_FALSE;
 	//by default setup alignment
 	if (ctx->single_segment) set->subsegment_alignment = ctx->no_seg_align ? GF_FALSE : GF_TRUE;
 	else set->segment_alignment = ctx->no_seg_align ? GF_FALSE : GF_TRUE;
@@ -844,8 +844,32 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		if (set->max_framerate * ds->fps.den < ds->fps.num) set->max_framerate = (u32) (ds->fps.num / ds->fps.den);
 */
 
+		/*set role*/
+		if (ds->p_role) {
+			u32 j, count;
+			role_set = GF_TRUE;
+			count = gf_list_count(ds->p_role->value.string_list);
+			for (j=0; j<count; j++) {
+				char *role = gf_list_get(ds->p_role->value.string_list, j);
+				GF_MPD_Descriptor *desc;
+				char *uri;
+				if (!strcmp(role, "caption") || !strcmp(role, "subtitle") || !strcmp(role, "main")
+			        || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")
+			        || !strcmp(role, "dub") || !strcmp(role, "description") || !strcmp(role, "sign")
+					 || !strcmp(role, "metadata") || !strcmp(role, "enhanced-audio- intelligibility")
+				) {
+					uri = "urn:mpeg:dash:role:2011";
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Unrecognized role %s - using GPAC urn for schemaID\n", role));
+					uri = "urn:gpac:dash:role:2013";
+				}
+				desc = gf_mpd_descriptor_new(NULL, uri, role);
+				gf_list_add(set->role, desc);
+			}
+		}
 	}
 }
+
 static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, j, count;
@@ -1042,7 +1066,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	Bool single_template = GF_TRUE;
 	GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
 	GF_DashStream *ds = rep->playback.udta;
-	u32 i, j, count;
+	u32 i, j, count, nb_base;
 	GF_List *multi_pids = NULL;
 	u32 set_timescale = 0;
 	Bool init_template_done=GF_FALSE;
@@ -1109,6 +1133,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	}
 
 	for (i=0; i<count; i++) {
+		GF_Err e;
 		u32 init_template_mode = GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE;
 		rep = gf_list_get(set->representations, i);
 		ds = rep->playback.udta;
@@ -1155,7 +1180,13 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		else ds->mpd_timescale = set_timescale;
 
 		//resolve segment template
-		gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0);
+		e = gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0);
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot resolve template name, cannot derive output segment names, disabling rep %s\n", ds->src_url));
+			ds->done = GF_TRUE;
+			continue;
+
+		}
 		if (single_template && ds->split_set_names) {
 			char szStrName[20];
 			sprintf(szStrName, "_set%d", 1 + gf_list_find(ctx->current_period->period->adaptation_sets, set)  );
@@ -1174,10 +1205,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		ds->seg_template = gf_strdup(szSegmentName);
 
 		/* baseURLs */
-		for (j=0; j<ds->nb_baseURL; j++) {
+		nb_base = ds->p_base_url ? gf_list_count(ds->p_base_url->value.string_list) : 0;
+		for (j=0; j<nb_base; j++) {
 			GF_MPD_BaseURL *base_url;
+			char *url = gf_list_get(ds->p_base_url->value.string_list, j);
 			GF_SAFEALLOC(base_url, GF_MPD_BaseURL);
-			base_url->URL = gf_strdup(ds->baseURL[j]);
+			base_url->URL = gf_strdup(url);
 			gf_list_add(rep->base_URLs, base_url);
 		}
 
@@ -1468,9 +1501,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 
 		//add period descriptors
-		dasher_add_descriptors(&ctx->current_period->period->other_descriptors, ds->nb_p_descs, ds->p_descs);
+		dasher_add_descriptors(&ctx->current_period->period->other_descriptors, ds->p_period_desc);
 		//add representation descriptors
-		dasher_add_descriptors(&ds->rep->other_descriptors, ds->nb_rep_descs, ds->rep_descs);
+		dasher_add_descriptors(&ds->rep->other_descriptors, ds->p_rep_desc);
 
 		if (ds->share_rep) continue;
 
@@ -1534,9 +1567,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->nb_rep++;
 
 			//add non-conditional adaptation set descriptors
-			dasher_add_descriptors(&ds->set->other_descriptors, ds->nb_as_c_descs, ds->as_c_descs);
+			dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_any_desc);
 			//new AS, add conditionnal adaptation set descriptors
-			dasher_add_descriptors(&ds->set->other_descriptors, ds->nb_as_descs, ds->as_descs);
+			dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_desc);
 		}
 		for (j=i+1; j<count; j++) {
 			GF_DashStream *a_ds;
@@ -1547,7 +1580,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				gf_list_add(ds->set->representations, a_ds->rep);
 				ds->nb_rep++;
 				//add non-conditional adaptation set descriptors
-				dasher_add_descriptors(&ds->set->other_descriptors, a_ds->nb_as_c_descs, a_ds->as_c_descs);
+				dasher_add_descriptors(&ds->set->other_descriptors, a_ds->p_as_any_desc);
 			}
 		}
 	}
@@ -1588,7 +1621,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (!ds->owns_set) continue;
 		//check bitstream switching
 		dasher_check_bitstream_swicthing(ctx, ds->set);
-		//check bitstream switching
+		//setup AS defaults, roles and co
 		dasher_setup_set_defaults(ctx, ds->set);
 		//setup sources, templates & co
 		dasher_setup_sources(filter, ctx, ds->set);
@@ -2061,7 +2094,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 					/*check requested profiles can be generated, or adjust them*/
 					if ((ctx->profile != GF_DASH_PROFILE_FULL) && (ds->nb_sap_4 || (ds->nb_sap_3 > 1)) ) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
 						ctx->profile = GF_DASH_PROFILE_FULL;
 						ds->set->starts_with_sap = sap_type;
 					}
@@ -2240,7 +2273,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	case GF_DASH_PROFILE_AVC264_LIVE:
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
 		if (ctx->cp == GF_DASH_CPMODE_REPRESENTATION) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element.\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element.\n"));
 			return GF_BAD_PARAM;
 		}
 	default:
@@ -2257,7 +2290,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
 		ctx->check_main_role = GF_TRUE;
 		ctx->bs_switch = DASHER_BS_SWITCH_MULTI;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] HBBTV1.5 profile not yet ported to filter architecture.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] HBBTV1.5 profile not yet ported to filter architecture.\n"));
 		//FALLTHROUGH
 	case GF_DASH_PROFILE_AVC264_LIVE:
 		ctx->no_sap = ctx->no_seg_align = GF_FALSE;
@@ -2309,7 +2342,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		//one could have inband params working even in non time-aligned setup
 #if 0
 		if (ctx->bs_switch != DASHER_BS_SWITCH_OFF) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segments are not time-aligned in each representation of each period\n\tdisabling bitstream switching\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Segments are not time-aligned in each representation of each period\n\tdisabling bitstream switching\n"));
 			ctx->bs_switch = DASHER_BS_SWITCH_OFF;
 		}
 #endif
@@ -2431,8 +2464,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(info), "sets MPD info url", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(cprt), "adds copyright string to MPD", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(lang), "sets lang of MPD Info", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(location), "sets MPD location to given URL", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(base), "sets base URL of MPD", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(location), "sets MPD locations to given URL", GF_PROP_STRING_LIST, NULL, NULL, GF_FALSE},
+	{ OFFS(base), "sets base URLs of MPD", GF_PROP_STRING_LIST, NULL, NULL, GF_FALSE},
 	{0}
 };
 

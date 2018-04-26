@@ -244,6 +244,40 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for pointer arg %s - using 0\n", value, name));
 		}
 		break;
+	case GF_PROP_STRING_LIST:
+	{
+		Bool is_xml = GF_FALSE;
+		p.value.string_list = gf_list_new();
+		char *v = (char *) value;
+		if (v[0]=='<') is_xml = GF_TRUE;
+		while (v) {
+			u32 len=0;
+			char *nv;
+			char *sep = strchr(v, ',');
+			if (sep) {
+				char *xml_end = strchr(v, '>');
+				len = sep - v;
+				if (xml_end) {
+					u32 xml_len = xml_end - v;
+					if (xml_len > len) {
+						sep = strchr(xml_end, ',');
+						if (sep)
+							len = sep - v;
+					}
+				}
+			}
+			if (!sep)
+			 	len = strlen(v);
+
+			nv = gf_malloc(sizeof(char)*(len+1));
+			strncpy(nv, v, sizeof(char)*len);
+			nv[len] = 0;
+			gf_list_add(p.value.string_list, nv);
+			if (!sep) break;
+			v = sep+1;
+		}
+	}
+		break;
 	case GF_PROP_FORBIDEN:
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Forbidden property type %d for arg %s - ignoring\n", type, name));
@@ -321,6 +355,24 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		if (p1->value.data.size != p2->value.data.size) return GF_FALSE;
 		return !memcmp(p1->value.data.ptr, p2->value.data.ptr, p1->value.data.size) ? GF_TRUE : GF_FALSE;
 
+	case GF_PROP_STRING_LIST:
+	{
+		u32 c1, c2, i, j;
+		c1 = gf_list_count(p1->value.string_list);
+		c2 = gf_list_count(p2->value.string_list);
+		if (c1 != c2) return GF_FALSE;
+		for (i=0; i<c1; i++) {
+			u32 found = 0;
+			char *s1 = gf_list_get(p1->value.string_list, i);
+			for (j=0; j<c2; j++) {
+				char *s2 = gf_list_get(p2->value.string_list, j);
+				if (s1 && s2 && !strcmp(s1, s2)) found++;
+			}
+			if (found!=1) return GF_FALSE;
+		}
+		return GF_TRUE;
+	}
+
 	//user-managed pointer
 	case GF_PROP_POINTER: return (p1->value.ptr==p2->value.ptr) ? GF_TRUE : GF_FALSE;
 	default:
@@ -392,6 +444,16 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 		else if (it->prop.type==GF_PROP_DATA) {
 			assert(it->alloc_size);
 			//DATA props are collected at session level for future reuse
+		}
+		//string list are destroyed
+		else if (it->prop.type==GF_PROP_STRING_LIST) {
+			GF_List *l = it->prop.value.string_list;
+			it->prop.value.string_list = NULL;
+			while (gf_list_count(l)) {
+				char *s = gf_list_pop_back(l);
+				gf_free(s);
+			}
+			gf_list_del(l);
 		}
 		it->prop.value.data.size = 0;
 		if (it->alloc_size) {
@@ -726,6 +788,7 @@ const char *gf_props_get_type_name(u32 type)
 	case GF_PROP_VEC4: return "vec4d float";
 	case GF_PROP_PIXFMT: return "pixel format";
 	case GF_PROP_PCMFMT: return "audio format";
+	case GF_PROP_STRING_LIST: return "string list";
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
 	return "Undefined";
@@ -834,8 +897,6 @@ struct _gf_prop_typedef {
 
 	{ GF_PROP_PID_ISOM_TRACK_TEMPLATE, "TrackTemplate", "ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},
 	{ GF_PROP_PID_ISOM_UDTA, "MovieUserData", "ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},
-
-
 	{ GF_PROP_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING},
 	{ GF_PROP_REPRESENTATION_ID, "Representation", "ID of DASH representation", GF_PROP_STRING},
 	{ GF_PROP_MUX_SRC, "MuxSrc", "Identifies mux source(s)", GF_PROP_STRING},
@@ -843,6 +904,13 @@ struct _gf_prop_typedef {
 	{ GF_PROP_DASH_DUR, "DashDur", "Indicates DASH target segment duration in seconds to muxer, if any.", GF_PROP_DOUBLE},
 	{ GF_PROP_DASH_MULTI_PID, "__no_def_name__", "Pointer to the GF_List of input pits for multi-stsd entries segments.", GF_PROP_POINTER},
 	{ GF_PROP_DASH_MULTI_PID_IDX, "__no_def_name__", "1-based index of PID in the multi PID list", GF_PROP_UINT},
+	{ GF_PROP_PID_ROLE, "Role", "list of roles for this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_PERIOD_DESC, "PDesc", "list of descriptors for the DASH period containing this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_AS_COND_DESC, "ASDesc", "list of conditionnal descriptors for the DASH AdaptationSet containing this PID. If a pid with the same property type but different value is found, the PIDs will be in different AdaptationSets", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_AS_ANY_DESC, "ASCDesc", "list of common descriptors for the DASH AdaptationSet containing this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_REP_DESC, "RDesc", "list of descriptors for the DASH Representation containing this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_BASE_URL, "BUrl", "list of base URLs for this PID", GF_PROP_STRING_LIST},
+
 };
 
 GF_EXPORT
@@ -905,7 +973,7 @@ Bool gf_props_4cc_check_props()
 }
 
 GF_EXPORT
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data)
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
 {
 	switch (att->type) {
 	case GF_PROP_SINT:
@@ -980,6 +1048,26 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool d
 	case GF_PROP_POINTER:
 		sprintf(dump, "%p", att->value.ptr);
 		break;
+	case GF_PROP_STRING_LIST:
+	{
+		u32 i, count = gf_list_count(att->value.string_list);
+		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
+		for (i=0; i<count; i++) {
+			char *s = gf_list_get(att->value.string_list, i);
+			if (!i) {
+				strncpy(dump, s, len);
+			} else {
+				strcat(dump, ",");
+				strncat(dump, s, len-1);
+			}
+			len = GF_PROP_DUMP_ARG_SIZE - 1 - strlen(dump);
+			if (len<=1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("String list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
+				return dump;
+			}
+		}
+		return dump;
+	}
 	case GF_PROP_FORBIDEN:
 		sprintf(dump, "forbiden");
 		break;
