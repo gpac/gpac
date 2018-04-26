@@ -183,7 +183,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	if (!newBox->type) newBox->type = type;
 	payload_start = gf_bs_get_position(bs);
 
-retry_unknwon_box:
+retry_unknown_box:
 
 	end = gf_bs_available(bs);
 	if (size - hdr_size > end ) {
@@ -215,7 +215,7 @@ retry_unknwon_box:
 			((GF_UnknownBox *)newBox)->original_4cc = type;
 			newBox->size = size;
 			gf_bs_seek(bs, payload_start);
-			goto retry_unknwon_box;
+			goto retry_unknown_box;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" failed (%s) - skipping\n", gf_4cc_to_str(type), gf_error_to_string(e)));
 

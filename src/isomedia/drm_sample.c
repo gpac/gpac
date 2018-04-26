@@ -438,6 +438,14 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	case GF_ISOM_BOX_TYPE_STPP:
 		sea->type = GF_ISOM_BOX_TYPE_ENCT;
 		break;
+	case GF_ISOM_BOX_TYPE_ENCA:
+	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_ENCT:
+	case GF_ISOM_BOX_TYPE_ENCM:
+	case GF_ISOM_BOX_TYPE_ENCF:
+	case GF_ISOM_BOX_TYPE_ENCS:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] cannot set protection entry: file is already encrypted.\n"));
+		return GF_BAD_PARAM;
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -771,7 +779,23 @@ GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber)
 		gf_list_del(stbl->other_boxes);
 		stbl->other_boxes = NULL;
 	}
-
+	if (trak->sample_encryption) {
+		gf_isom_box_del((GF_Box *)trak->sample_encryption);
+		trak->sample_encryption = NULL;
+	}
+	for (i = 0; i < gf_list_count(trak->other_boxes); i++) {
+		GF_Box *a = (GF_Box *)gf_list_get(trak->other_boxes, i);
+		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
+			gf_isom_box_del(a);
+			gf_list_rem(trak->other_boxes, i);
+			i--;
+		}
+		else if (a->type == GF_ISOM_BOX_TYPE_SENC) {
+			gf_isom_box_del(a);
+			gf_list_rem(trak->other_boxes, i);
+			i--;
+		}
+	}
 	return GF_OK;
 }
 
