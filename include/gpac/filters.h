@@ -876,7 +876,14 @@ enum
 	//(uint)
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 
-	//DASH-like properties
+	//ISOBMFF specific properties
+	//(data)
+	GF_PROP_PID_ISOM_TRACK_TEMPLATE = GF_4CC('I','T','K','T'),
+	//(data)
+	GF_PROP_PID_ISOM_UDTA = GF_4CC('I','M','U','D'),
+
+
+	//DASH/HAS specific properties
 	//(string)
 	GF_PROP_PERIOD_ID = GF_4CC('P','E','I','D'),
 	//(string)

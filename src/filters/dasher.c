@@ -61,7 +61,7 @@ typedef struct
 	char *profX;
 	s32 asto;
 	char *title, *source, *info, *cprt, *lang, *location, *base;
-	Bool for_test, check_dur;
+	Bool for_test, check_dur, skip_seg;
 
 	//not yet exposed
 	Bool mpeg2;
@@ -1761,6 +1761,8 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (ds->segment_started) {
 		Double seg_duration = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 		seg_duration /= base_ds->timescale;
+		assert(seg_duration);
+
 		if (!base_ds->done && !ctx->stl && ctx->tpl) {
 
 			if (seg_duration< ctx->dur/2) {
@@ -1820,25 +1822,38 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		}
 
 		if (!ds->done) {
-			ds->seg_number = base_ds->seg_number;
-			ds->seg_done = GF_FALSE;
-			ds->segment_started = GF_FALSE;
 			ds->first_cts_in_next_seg = ds->first_cts_in_seg = ds->est_first_cts_in_next_seg = 0;
 		}
 
-		if (ds->share_rep) continue;
+		if (ds->share_rep) {
+			if (!ds->done) {
+				ds->segment_started = GF_FALSE;
+				ds->seg_done = GF_FALSE;
+			}
+			continue;
+		}
 		base_ds = ds;
 
-		if (base_ds->done) ds_done = base_ds;
-		else if ( (base_ds->nb_comp_done==base_ds->nb_comp) && !base_ds->force_rep_end) ds_not_done = base_ds;
+		if (base_ds->done)
+			ds_done = base_ds;
+		else if (base_ds->nb_comp_done==base_ds->nb_comp) ds_not_done = base_ds;
 
-		base_ds->nb_comp_done = 0;
-		base_ds->next_seg_start += ctx->dur*base_ds->timescale;
-		while (base_ds->next_seg_start <= base_ds->adjusted_next_seg_start) {
+		if (!base_ds->done && base_ds->seg_done) {
+			base_ds->seg_done = GF_FALSE;
+			base_ds->nb_comp_done = 0;
+
+			assert(base_ds->segment_started);
+			base_ds->segment_started = GF_FALSE;
+
 			base_ds->next_seg_start += ctx->dur*base_ds->timescale;
+			while (base_ds->next_seg_start <= base_ds->adjusted_next_seg_start) {
+				base_ds->next_seg_start += ctx->dur*base_ds->timescale;
+				if (ctx->skip_seg)
+					base_ds->seg_number++;
+			}
+			base_ds->adjusted_next_seg_start = base_ds->next_seg_start;
+			base_ds->seg_number++;
 		}
-		base_ds->adjusted_next_seg_start = base_ds->next_seg_start;
-		base_ds->seg_number++;
 	}
 
 	//some reps are done, other not, force a max time on all AS in the period
@@ -1849,7 +1864,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			if (ds->done) {
 				if (ds->set->udta == set_ds)
 					set_ds->nb_rep_done++;
-			} else if (ctx->check_dur) {
+			} else if (ctx->check_dur && !ds->force_rep_end) {
 				ds->force_rep_end = ds_done->first_cts_in_next_seg * ds->timescale / ds_done->timescale;
 			}
 		}
@@ -1897,7 +1912,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 
 	//get final segment template - output file name is NULL, we already have solved this
-	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, NULL, ds->rep_id, NULL, ds->seg_template, NULL, ds->seg_start_time, ds->rep->bandwidth, ds->seg_number, ctx->stl);
+	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, NULL, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
 
 	if (ds->rep->segment_list) {
 		GF_MPD_SegmentURL *seg_url;
@@ -2406,6 +2421,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(buf), "DASH min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)", GF_PROP_SINT, "-100", NULL, GF_FALSE},
 	{ OFFS(timescale), "sets timescales for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale", GF_PROP_SINT, "0", NULL, GF_FALSE},
 	{ OFFS(check_dur), "checks duration of sources in period, trying to have roughly equal duration", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(skip_seg), "increments segment number whenever an empty segment would be produced - NOT DASH COMPLIANT", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(title), "sets MPD title", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(source), "sets MPD Source", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(info), "sets MPD info url", GF_PROP_STRING, NULL, NULL, GF_FALSE},
