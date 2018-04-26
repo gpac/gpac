@@ -832,6 +832,10 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PCK_FILENAME, "FileName", "Name of output file when dumping / dashing. Must be set on first packet belonging to new file", GF_PROP_STRING},
 	{ GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - set as info, not property", GF_PROP_UINT},
 
+	{ GF_PROP_PID_ISOM_TRACK_TEMPLATE, "TrackTemplate", "ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},
+	{ GF_PROP_PID_ISOM_UDTA, "MovieUserData", "ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},
+
+
 	{ GF_PROP_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING},
 	{ GF_PROP_REPRESENTATION_ID, "Representation", "ID of DASH representation", GF_PROP_STRING},
 	{ GF_PROP_MUX_SRC, "MuxSrc", "Identifies mux source(s)", GF_PROP_STRING},

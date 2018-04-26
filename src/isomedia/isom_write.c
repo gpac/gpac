@@ -501,10 +501,41 @@ u32 gf_isom_get_last_created_track_id(GF_ISOFile *movie)
 }
 
 
+GF_EXPORT
+GF_Err gf_isom_load_extra_boxes(GF_ISOFile *movie, char *moov_boxes, u32 moov_boxes_size, Bool udta_only)
+{
+	GF_BitStream *bs;
+
+	GF_Err e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	gf_isom_insert_moov(movie);
+
+	bs = gf_bs_new(moov_boxes, moov_boxes_size, GF_BITSTREAM_READ);
+
+	//we may have terminators in some QT files (4 bytes set to 0 ...)
+	while (gf_bs_available(bs) >= 8) {
+		GF_Box *a_box;
+		e = gf_isom_box_parse_ex((GF_Box**)&a_box, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
+		if (e || !a_box) goto exit;
+		if (a_box->type == GF_ISOM_BOX_TYPE_UDTA) {
+			if (movie->moov->udta) gf_isom_box_del((GF_Box*)movie->moov->udta);
+			movie->moov->udta = (GF_UserDataBox*) a_box;
+		} else if (!udta_only) {
+			if (!movie->moov->other_boxes) movie->moov->other_boxes = gf_list_new();
+			gf_list_add(movie->moov->other_boxes, a_box);
+		} else {
+			gf_isom_box_del(a_box);
+		}
+	}
+exit:
+	gf_bs_del(bs);
+	return e;
+}
+
 //creates a new Track. If trackID = 0, the trackID is chosen by the API
 //returns the track number or 0 if error
 GF_EXPORT
-u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale)
+u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale, char *tk_box, u32 tk_box_size, Bool udta_only)
 {
 	GF_Err e;
 	u64 now;
@@ -512,6 +543,7 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 	GF_TrackBox *trak;
 	GF_TrackHeaderBox *tkhd;
 	GF_MediaBox *mdia;
+	GF_UserDataBox *udta = NULL;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) {
@@ -559,57 +591,103 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 			return 0;
 		}
 	}
-
-	//OK, now create a track...
-	trak = (GF_TrackBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRAK);
-	if (!trak) {
-		gf_isom_set_last_error(movie, GF_OUT_OF_MEM);
-		return 0;
-	}
-	tkhd = (GF_TrackHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TKHD);
-	if (!tkhd) {
-		gf_isom_set_last_error(movie, GF_OUT_OF_MEM);
-		gf_isom_box_del((GF_Box *)trak);
-		return 0;
-	}
 	now = gf_isom_get_mp4time();
-	tkhd->creationTime = now;
-	if (!movie->keep_utc)
+
+	if (tk_box) {
+		GF_BitStream *bs = gf_bs_new(tk_box, tk_box_size, GF_BITSTREAM_READ);
+		e = gf_isom_box_parse_ex((GF_Box**)&trak, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
+		gf_bs_del(bs);
+		if (e) trak = NULL;
+		else if (udta_only) {
+			udta = trak->udta;
+			trak->udta = NULL;
+			gf_isom_box_del((GF_Box*)trak);
+		} else {
+			Bool tpl_ok = GF_TRUE;
+			if (!trak->Header || !trak->Media || !trak->Media->handler || !trak->Media->mediaHeader || !trak->Media->information) tpl_ok = GF_FALSE;
+
+			else {
+				e = NewMedia(&trak->Media, MediaType, TimeScale);
+				if (e) tpl_ok = GF_FALSE;
+			}
+			if (!tpl_ok) {
+				udta = trak->udta;
+				trak->udta = NULL;
+				gf_isom_box_del((GF_Box*)trak);
+			}
+		}
+	}
+	if (!trak) {
+		//OK, now create a track...
+		trak = (GF_TrackBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRAK);
+		if (!trak) {
+			gf_isom_set_last_error(movie, GF_OUT_OF_MEM);
+			return 0;
+		}
+		tkhd = (GF_TrackHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TKHD);
+		if (!tkhd) {
+			gf_isom_set_last_error(movie, GF_OUT_OF_MEM);
+			gf_isom_box_del((GF_Box *)trak);
+			return 0;
+		}
+
+		//OK, set up the media trak
+		e = NewMedia(&mdia, MediaType, TimeScale);
+		if (e) {
+			gf_isom_box_del((GF_Box *)mdia);
+			gf_isom_box_del((GF_Box *)trak);
+			gf_isom_box_del((GF_Box *)tkhd);
+			return 0;
+		}
+		//OK, add this media to our track
+		mdia->mediaTrack = trak;
+
+		e = trak_AddBox((GF_Box*)trak, (GF_Box *) tkhd);
+		if (e) goto err_exit;
+		e = trak_AddBox((GF_Box*)trak, (GF_Box *) mdia);
+		if (e) goto err_exit;
+		movie->last_created_track_id = tkhd->trackID = trakID;
+
+		tkhd->creationTime = now;
+		mdia->mediaHeader->creationTime = now;
+
+	} else {
+		tkhd = trak->Header;
+		mdia = trak->Media;
+		mdia->mediaTrack = trak;
+		mdia->mediaHeader->timeScale = TimeScale;
+		if (mdia->handler->handlerType != MediaType) {
+			mdia->handler->handlerType = MediaType;
+			tkhd->width = 0;
+			tkhd->height = 0;
+			tkhd->volume = 0;
+		} else {
+			MediaType = 0;
+		}
+		trak->Header->duration = 0;
+		mdia->mediaHeader->duration = 0;
+	}
+	if (MediaType) {
+		//some default properties for Audio, Visual or private tracks
+		switch (MediaType) {
+		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_SCENE:
+		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
+			/*320-240 pix in 16.16*/
+			tkhd->width = 0x01400000;
+			tkhd->height = 0x00F00000;
+			break;
+		case GF_ISOM_MEDIA_AUDIO:
+			tkhd->volume = 0x0100;
+			break;
+		}
+	}
+
+	if (!movie->keep_utc) {
 		tkhd->modificationTime = now;
-	//OK, set up the media trak
-	e = NewMedia(&mdia, MediaType, TimeScale);
-	if (e) {
-		gf_isom_box_del((GF_Box *)mdia);
-		gf_isom_box_del((GF_Box *)trak);
-		gf_isom_box_del((GF_Box *)tkhd);
-		return 0;
+	 	mdia->mediaHeader->modificationTime = now;
 	}
-	//OK, add this media to our track
-	mdia->mediaTrack = trak;
-
-	e = trak_AddBox((GF_Box*)trak, (GF_Box *) tkhd);
-	if (e) goto err_exit;
-	e = trak_AddBox((GF_Box*)trak, (GF_Box *) mdia);
-	if (e) goto err_exit;
-	movie->last_created_track_id = tkhd->trackID = trakID;
-
-	//some default properties for Audio, Visual or private tracks
-	switch (MediaType) {
-	case GF_ISOM_MEDIA_VISUAL:
-	case GF_ISOM_MEDIA_SCENE:
-	case GF_ISOM_MEDIA_TEXT:
-	case GF_ISOM_MEDIA_SUBT:
-		/*320-240 pix in 16.16*/
-		tkhd->width = 0x01400000;
-		tkhd->height = 0x00F00000;
-		break;
-	case GF_ISOM_MEDIA_AUDIO:
-		tkhd->volume = 0x0100;
-		break;
-	}
-
-	mdia->mediaHeader->creationTime = mdia->mediaHeader->modificationTime = now;
-	trak->Header->creationTime = trak->Header->modificationTime = now;
 
 	//OK, add our trak
 	e = moov_AddBox((GF_Box*)movie->moov, (GF_Box *)trak);
@@ -617,6 +695,8 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 	//set the new ID available
 	if (trakID+1> movie->moov->mvhd->nextTrackID)
 		movie->moov->mvhd->nextTrackID = trakID+1;
+
+	trak->udta = udta;
 
 	//and return our track number
 	return gf_isom_get_track_by_id(movie, trakID);
@@ -626,6 +706,12 @@ err_exit:
 	if (trak) gf_isom_box_del((GF_Box *)trak);
 	if (mdia) gf_isom_box_del((GF_Box *)mdia);
 	return 0;
+}
+
+GF_EXPORT
+u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale)
+{
+	return gf_isom_new_track_from_template(movie, trakID, MediaType, TimeScale, NULL, 0, GF_FALSE);
 }
 
 GF_EXPORT
@@ -2803,6 +2889,98 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 	}
 
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_size)
+{
+	GF_BitStream *bs;
+	GF_Err e;
+	GF_Box *b;
+	u32 i;
+
+	*output = NULL;
+	*output_size = 0;
+	if (!file || !file->moov || (!file->moov->udta && !file->moov->other_boxes)) return GF_OK;
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	e = gf_isom_box_size( (GF_Box *) file->moov->udta);
+	if (e) goto exit;
+	e = gf_isom_box_write((GF_Box *) file->moov->udta, bs);
+	if (e) goto exit;
+	i=0;
+	while ((b = gf_list_enum(file->moov->other_boxes, &i))) {
+		e = gf_isom_box_size( (GF_Box *) b);
+		if (e) goto exit;
+		e = gf_isom_box_write((GF_Box *) b, bs);
+		if (e) goto exit;
+	}
+
+	gf_bs_get_content(bs, output, output_size);
+
+exit:
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size)
+{
+	GF_TrackBox *trak;
+	GF_BitStream *bs;
+	GF_DataReferenceBox *dref;
+	GF_SampleTableBox *stbl, *stbl_temp;
+	GF_SampleEncryptionBox *senc;
+
+	*output = NULL;
+	*output_size = 0;
+	/*get orig sample desc and clone it*/
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+	//don't serialize dref
+	dref = trak->Media->information->dataInformation->dref;
+	trak->Media->information->dataInformation->dref = NULL;
+
+	//don't serialize stbl
+	stbl = trak->Media->information->sampleTable;
+	stbl_temp = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
+	/*do not clone sampleDescription table but create an emty one*/
+	stbl_temp->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
+
+	/*clone sampleGroups description tables if any*/
+	stbl_temp->sampleGroupsDescription = stbl->sampleGroupsDescription;
+	trak->Media->information->sampleTable = stbl_temp;
+	/*clone CompositionToDecode table, we may remove it later*/
+	stbl_temp->CompositionToDecode = stbl->CompositionToDecode;
+
+	//don't serialize senc
+	senc = trak->sample_encryption;
+	if (senc) {
+		assert(trak->other_boxes);
+		gf_list_del_item(trak->other_boxes, senc);
+		trak->sample_encryption = NULL;
+	}
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	gf_isom_box_size( (GF_Box *) trak);
+	gf_isom_box_write((GF_Box *) trak, bs);
+	gf_bs_get_content(bs, output, output_size);
+	gf_bs_del(bs);
+
+	//restore our pointers
+	trak->Media->information->dataInformation->dref = dref;
+	trak->Media->information->sampleTable = stbl;
+	if (senc) {
+		trak->sample_encryption = senc;
+		gf_list_add(trak->other_boxes, senc);
+	}
+	stbl_temp->sampleGroupsDescription = NULL;
+	stbl_temp->CompositionToDecode = NULL;
+	gf_isom_box_del((GF_Box *)stbl_temp);
+	return GF_OK;
+
 }
 
 

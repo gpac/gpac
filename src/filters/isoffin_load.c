@@ -86,6 +86,7 @@ void isor_declare_objects(ISOMReader *read)
 	Bool highest_stream;
 	Bool single_media_found = GF_FALSE;
 	Bool use_iod = GF_FALSE;
+	GF_Err e;
 	GF_Descriptor *od = gf_isom_get_root_od(read->mov);
 	if (od && gf_list_count(((GF_ObjectDescriptor*)od)->ESDescriptors)) {
 		use_iod = GF_TRUE;
@@ -101,6 +102,8 @@ void isor_declare_objects(ISOMReader *read)
 		u32 w, h, sr, nb_ch, streamtype, codec_id, depends_on_id, esid, avg_rate, sample_count, max_size;
 		GF_ESD *an_esd;
 		const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
+		char *tk_template;
+		u32 tk_template_size;
 		GF_Language *lang_desc = NULL;
 		Bool external_base=GF_FALSE;
 		Bool has_scalable_layers = GF_FALSE;
@@ -460,6 +463,22 @@ void isor_declare_objects(ISOMReader *read)
 		}
 		gf_filter_pid_set_info(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
 
+#if !defined(GPAC_DISABLE_ISOM_WRITE)
+		e = gf_isom_get_track_template(read->mov, ch->track, &tk_template, &tk_template_size);
+		if (e == GF_OK) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE, &PROP_DATA_NO_COPY(tk_template, tk_template_size) );
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Failed to serialize track box: %s\n", gf_error_to_string(e) ));
+		}
+
+		e = gf_isom_get_raw_user_data(read->mov, &tk_template, &tk_template_size);
+		if (e==GF_OK) {
+			if (tk_template_size)
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_UDTA, &PROP_DATA_NO_COPY(tk_template, tk_template_size) );
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Failed to serialize moov UDTA box: %s\n", gf_error_to_string(e) ));
+		}
+#endif
 
 		if (codec_id == GF_CODECID_DIMS) {
 			GF_DIMSDescription dims;

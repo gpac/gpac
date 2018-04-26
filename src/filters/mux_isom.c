@@ -109,7 +109,7 @@ typedef struct
 	Bool importer, noedit, pack_nal, for_test, moof_first, abs_offset, fsap;
 	u32 xps_inband;
 	u32 block_size;
-	u32 mode;
+	u32 mode, tktpl, mudta;
 	s32 subs_sidx;
 	Double cdur;
 	u32 timescale;
@@ -474,9 +474,18 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (p) tkid = p->value.uint;
 		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->codecid);
 
-		tkw->track_num = gf_isom_new_track(ctx->file, tkid, mtype, tkw->timescale);
-		if (!tkw->track_num) {
-			tkw->track_num = gf_isom_new_track(ctx->file, 0, mtype, tkw->timescale);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE);
+		if (ctx->tktpl && p && p->value.data.ptr) {
+			Bool udta_only = (ctx->tktpl==2) ? GF_TRUE : GF_FALSE;
+			tkw->track_num = gf_isom_new_track_from_template(ctx->file, tkid, mtype, tkw->timescale, p->value.data.ptr, p->value.data.size, udta_only);
+			if (!tkw->track_num) {
+				tkw->track_num = gf_isom_new_track_from_template(ctx->file, 0, mtype, tkw->timescale, p->value.data.ptr, p->value.data.size, udta_only);
+			}
+		} else {
+			tkw->track_num = gf_isom_new_track(ctx->file, tkid, mtype, tkw->timescale);
+			if (!tkw->track_num) {
+				tkw->track_num = gf_isom_new_track(ctx->file, 0, mtype, tkw->timescale);
+			}
 		}
 		if (!tkw->track_num) {
 			e = gf_isom_last_error(ctx->file);
@@ -499,7 +508,12 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 		}
 
-
+		if (ctx->mudta && gf_isom_get_track_count(ctx->file)==1) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_UDTA);
+			if (ctx->tktpl && p && p->value.data.ptr) {
+				gf_isom_load_extra_boxes(ctx->file, p->value.data.ptr, p->value.data.size, (ctx->mudta==2) ? GF_TRUE : GF_FALSE);
+			}
+		}
 	}
 
 	codec_id = tkw->codecid;
@@ -2344,6 +2358,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(cache), "Enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(block_size), "block size used to flush files in onDemand mode when cache is used", GF_PROP_UINT, "50000", NULL, GF_FALSE},
 	{ OFFS(noinit), "does not send initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(tktpl), "use track box from input if any as a template to create new track. no disables template, yes clones the track (except edits and decoder config), udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FALSE},
+	{ OFFS(mudta), "use udta and other moov extension boxes from input if any. no disables import, yes clones all extension boxes, udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FALSE},
 	{0}
 };
 
