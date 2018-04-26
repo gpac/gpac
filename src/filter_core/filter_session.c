@@ -62,7 +62,7 @@ void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister 
 		char *fname = strstr(fsess->blacklist, freg->name);
 		if (fname) {
 			u32 len = (u32) strlen(freg->name);
-			if (!fname[len] || (fname[len] == ',')) {
+			if (!fname[len] || (fname[len] == fsess->sep_list)) {
 				return;
 			}
 		}
@@ -1325,7 +1325,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 	sep = strchr(sURL, fsess->sep_args);
 	//special case here, need to escape ://
-	if ((fsess->sep_args==':') && !strnicmp(sep, "://", 3))  {
+	if (sep && (fsess->sep_args==':') && !strnicmp(sep, "://", 3))  {
 		sep = strstr(sURL, "://");
 		if (sep) {
 			sep = strchr(sep+3, '/');

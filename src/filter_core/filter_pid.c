@@ -837,7 +837,7 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 					prop = gf_filter_pid_get_property(src_pid, p4cc);
 
 					if (prop) {
-						prop_val = gf_props_parse_value(prop->type, pid_name, psep+1, NULL);
+						prop_val = gf_props_parse_value(prop->type, pid_name, psep+1, NULL, src_pid->filter->session->sep_list);
 						if (!comp_type) {
 							is_equal = gf_props_equal(prop, &prop_val);
 						} else {
@@ -1978,6 +1978,107 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
 	return chain_len;
 }
 
+static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
+{
+	char *args;
+	if (!filter->src_args && !filter->orig_args) return;
+	args = filter->orig_args ? filter->orig_args : filter->src_args;
+	//parse each arg
+	while (args) {
+		u32 p4cc=0;
+		u32 prop_type=GF_PROP_FORBIDEN;
+		char *eq;
+		char *value, *name;
+		//look for our arg separator
+		char *sep = strchr(args, filter->session->sep_args);
+
+		if (filter->session->sep_args == ':') {
+			while (sep && !strncmp(sep, "://", 3)) {
+				//get root /
+				sep = strchr(sep+3, '/');
+				//get first : after root
+				if (sep) sep = strchr(sep+1, ':');
+			}
+
+			//watchout for "C:\\"
+			while (sep && (sep[1]=='\\')) {
+				sep = strchr(sep+1, ':');
+			}
+		}
+
+		if (sep) {
+			char *xml_start = strchr(args, '<');
+			u32 len = (u32) (sep-args);
+			if (xml_start) {
+				u32 xlen = (u32) (xml_start-args);
+				if ((xlen < len) && (args[len-1] != '>')) {
+					while (1) {
+						sep = strchr(sep+1, filter->session->sep_args);
+						if (!sep) {
+							break;
+						}
+						len = (u32) (sep-args);
+						if (args[len-1] == '>')
+							break;
+					}
+				}
+
+			}
+		}
+
+		if (sep) sep[0]=0;
+
+		if (args[0] != filter->session->sep_frag)
+			goto skip_arg;
+
+		eq = strchr(args, filter->session->sep_name);
+		if (!eq)
+			goto skip_arg;
+
+		eq[0]=0;
+		value = eq+1;
+		name = args+1;
+
+		if (strlen(name)==4) {
+			p4cc = GF_4CC(name[0], name[1], name[2], name[3]);
+			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
+		}
+		if (prop_type==GF_PROP_FORBIDEN) {
+			p4cc = gf_props_get_id(name);
+			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
+		}
+
+		if (prop_type != GF_PROP_FORBIDEN) {
+			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL, pid->filter->session->sep_list);
+			if (prop_type==GF_PROP_NAME) {
+				p.type = GF_PROP_STRING;
+				gf_filter_pid_set_property(pid, p4cc, &p);
+				p.type = GF_PROP_NAME;
+			} else {
+				gf_filter_pid_set_property(pid, p4cc, &p);
+			}
+			if (prop_type==GF_PROP_STRING_LIST) {
+				p.value.string_list = NULL;
+			}
+			gf_props_reset_single(&p);
+		} else {
+			GF_PropertyValue p;
+			memset(&p, 0, sizeof(GF_PropertyValue));
+			p.type = GF_PROP_STRING;
+			p.value.string = eq+1;
+			gf_filter_pid_set_property_dyn(pid, name, &p);
+		}
+		eq[0] = filter->session->sep_name;
+
+skip_arg:
+		if (sep) {
+			sep[0]=0;
+			args=sep+1;
+		} else {
+			break;
+		}
+	}
+}
 static const char *gf_filter_last_id_in_chain(GF_Filter *filter)
 {
 	u32 i;
@@ -2038,6 +2139,10 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 		if (! gf_filter_reconf_output(filter, pid))
 			return;
 	}
+
+	if (filter->user_pid_props)
+		gf_filter_pid_set_args(filter, pid);
+
 
 	//since we may have inserted filters in the middle (demuxers typically), get the last explicitely
 	//loaded ID in the chain
@@ -2253,113 +2358,9 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	gf_fs_post_task(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_init", NULL);
 }
 
-static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
-{
-	char *args;
-	if (!filter->src_args && !filter->orig_args) return;
-	args = filter->orig_args ? filter->orig_args : filter->src_args;
-	//parse each arg
-	while (args) {
-		u32 p4cc=0;
-		u32 prop_type=GF_PROP_FORBIDEN;
-		char *eq;
-		char *value, *name;
-		//look for our arg separator
-		char *sep = strchr(args, filter->session->sep_args);
-
-		if (filter->session->sep_args == ':') {
-			while (sep && !strncmp(sep, "://", 3)) {
-				//get root /
-				sep = strchr(sep+3, '/');
-				//get first : after root
-				if (sep) sep = strchr(sep+1, ':');
-			}
-			
-			//watchout for "C:\\"
-			while (sep && (sep[1]=='\\')) {
-				sep = strchr(sep+1, ':');
-			}
-		}
-
-		if (sep) {
-			char *xml_start = strchr(args, '<');
-			u32 len = (u32) (sep-args);
-			if (xml_start) {
-				u32 xlen = (u32) (xml_start-args);
-				if ((xlen < len) && (args[len-1] != '>')) {
-					while (1) {
-						sep = strchr(sep+1, filter->session->sep_args);
-						if (!sep) {
-							break;
-						}
-						len = (u32) (sep-args);
-						if (args[len-1] == '>')
-							break;
-					}
-				}
-
-			}
-		}
-
-		if (sep) sep[0]=0;
-
-		if (args[0] != filter->session->sep_frag)
-			goto skip_arg;
-
-		eq = strchr(args, filter->session->sep_name);
-		if (!eq)
-			goto skip_arg;
-
-		eq[0]=0;
-		value = eq+1;
-		name = args+1;
-
-		if (strlen(name)==4) {
-			p4cc = GF_4CC(name[0], name[1], name[2], name[3]);
-			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
-		}
-		if (prop_type==GF_PROP_FORBIDEN) {
-			p4cc = gf_props_get_id(name);
-			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
-		}
-
-		if (prop_type != GF_PROP_FORBIDEN) {
-			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL);
-			if (prop_type==GF_PROP_NAME) {
-				p.type = GF_PROP_STRING;
-				gf_filter_pid_set_property(pid, p4cc, &p);
-				p.type = GF_PROP_NAME;
-			} else {
-				gf_filter_pid_set_property(pid, p4cc, &p);
-			}
-			if (prop_type==GF_PROP_STRING_LIST) {
-				p.value.string_list = NULL;
-			}
-			gf_props_reset_single(&p);
-		} else {
-			GF_PropertyValue p;
-			memset(&p, 0, sizeof(GF_PropertyValue));
-			p.type = GF_PROP_STRING;
-			p.value.string = eq+1;
-			gf_filter_pid_set_property_dyn(pid, name, &p);
-		}
-		eq[0] = filter->session->sep_name;
-
-skip_arg:
-		if (sep) {
-			sep[0]=0;
-			args=sep+1;
-		} else {
-			break;
-		}
-	}
-}
 
 void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
 {
-	if (filter->user_pid_props)
-		gf_filter_pid_set_args(filter, pid);
-
 	if (pid->init_task_pending) return;
 
 	safe_int_inc(&pid->init_task_pending);

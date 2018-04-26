@@ -26,7 +26,7 @@
 #include "filter_session.h"
 #include <gpac/constants.h>
 
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values)
+GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
 	char *unit_sep=NULL;
@@ -250,17 +250,18 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		p.value.string_list = gf_list_new();
 		char *v = (char *) value;
 		if (v[0]=='<') is_xml = GF_TRUE;
+		if (!list_sep_char) list_sep_char = ',';
 		while (v) {
 			u32 len=0;
 			char *nv;
-			char *sep = strchr(v, ',');
+			char *sep = strchr(v, list_sep_char);
 			if (sep) {
 				char *xml_end = strchr(v, '>');
 				len = sep - v;
 				if (xml_end) {
 					u32 xml_len = xml_end - v;
 					if (xml_len > len) {
-						sep = strchr(xml_end, ',');
+						sep = strchr(xml_end, list_sep_char);
 						if (sep)
 							len = sep - v;
 					}
