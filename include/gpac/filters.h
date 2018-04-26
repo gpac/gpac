@@ -209,7 +209,7 @@ typedef struct
 } GF_PropertyValue;
 
 const char *gf_props_get_type_name(u32 type);
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values);
+GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
 
 #define GF_PROP_DUMP_ARG_SIZE	1000
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);

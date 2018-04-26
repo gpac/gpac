@@ -2482,12 +2482,17 @@ GF_FilterRegister DasherRegister = {
 			"To assign PIDs into periods and adaptation sets, the dasher looks for these properties on each input pid:\n"\
 			"\tRepresentation: assigns representation ID to input pid. If not set, the default behaviour is to have each media compenent in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"\
 			"\tPeriod: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period\n"
-			"\tPID properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup the manifest and can be overriden on input PIDs using the general PID property settings (cf global help).\n"\
+			"\tPID properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Role, PDesc, ASDesc, ASCDesc, RDesc, BUrl. These properties are used to setup the manifest and can be overriden on input PIDs using the general PID property settings (cf global help).\n"\
 			"\tEX: \"src=test.mp4:#Bitrate=1M dst=test.mpd\" will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate\n"\
 			"\tEX: \"src=muxav.mp4 dst=test.mpd\" will create unmuxed DASH segments\n"\
 			"\tEX: \"src=muxav.mp4:#Representation=1 dst=test.mpd\" will create muxed DASH segments\n"\
 			"\tEX: \"src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\" will put src m1.mp4 in first period, m2.mp4 in second period\n"\
-			"\n"\
+			"\tEX: \"src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd\" will assign a base URL to src m1.mp4\n"\
+			"\tEX: \"src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\" will assign the specified XML descriptor to the adaptation set.\n"\
+			"\t\tNote that most XML descriptor injector can be used to inject most DASH descriptors not natively handled by the dasher\n"\
+			"\t\tThe dasher handles the XML descriptor as a string and does not attempt to validate it.\n"\
+			"\t\tDescriptors, as well as some dasher filter arguments, are string lists (comma-separated), so that multiple descriptors can be added:\n"\
+			"\tEX: \"src=m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> dst=test.mpd\" will insert two descriptors in the representation(s) of m1.mp4\n"\
 			"The dasher will create filter chains for the segmenter based on the destination URL path, and will reassign PID IDs\n"\
 			"so that each media component (video, audio, ...) in an adaptation set has the same ID\n"\
 			"\n"\

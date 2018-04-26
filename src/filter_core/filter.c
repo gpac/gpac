@@ -446,7 +446,7 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 	char szPath[GF_MAX_PATH];
 	GF_PropertyValue argv;
 
-	if (!value) return gf_props_parse_value(type, name, NULL, enum_values);
+	if (!value) return gf_props_parse_value(type, name, NULL, enum_values, filter->session->sep_list);
 
 
 	if (!strnicmp(value, "$GPAC_SHARED", 12)) {
@@ -460,7 +460,7 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 	else if (!strnicmp(value, "$GPAC_LANGUAGES", 15)) {
 		value = "English";
 	}
-	argv = gf_props_parse_value(type, name, value, enum_values);
+	argv = gf_props_parse_value(type, name, value, enum_values, filter->session->sep_list);
 	return argv;
 }
 
@@ -731,7 +731,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				found = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
-				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL);
+				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
 				FSESS_CHECK_THREAD(filter)
 				filter->freg->update_arg(filter, szArg, &argv);
 				if (argv.value.string) gf_free(argv.value.string);

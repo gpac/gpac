@@ -53,7 +53,7 @@ typedef struct
 {
 	//opts
 	Bool loop, revert;
-	char *in;
+	GF_List *in;
 	GF_Fraction dur;
 	u32 timescale;
 
@@ -554,17 +554,19 @@ Bool filelist_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo
 
 GF_Err filelist_initialize(GF_Filter *filter)
 {
-	char *sep_dir, *sep, c=0, *dir, *pattern, *list;
+	u32 i, count;
+	char *sep_dir, c=0, *dir, *pattern;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 	ctx->io_pids = gf_list_new();
 
-	if (!ctx->in) return GF_OK;
+	if (!ctx->in || !gf_list_count(ctx->in)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
+		return GF_OK;
+	}
 	ctx->file_list = gf_list_new();
-
-	list = ctx->in;
-	while (list) {
-		sep = strrchr(list, ',');
-		if (sep) sep[0] = 0;
+	count = gf_list_count(ctx->in);
+	for (i=0; i<count; i++) {
+		char *list = gf_list_get(ctx->in, i);
 
 		if (strchr(list, '*') ) {
 			sep_dir = strrchr(list, '/');
@@ -573,13 +575,12 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				c = sep_dir[0];
 				sep_dir[0] = 0;
 				dir = list;
-				pattern =  sep_dir+1;
+				pattern = sep_dir+1;
 			} else {
 				dir = ".";
 				pattern = list;
 			}
 			gf_enum_directory(dir, GF_FALSE, filelist_enum, ctx, pattern);
-			if (sep_dir) sep_dir[0] = c;
 		} else {
 			if (gf_file_exists(list)) {
 				gf_list_add(ctx->file_list, gf_strdup(list));
@@ -587,10 +588,8 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] File %s not found, ignoring\n", list));
 			}
 		}
-		if (!sep) break;
-		sep[0] = ',';
-		list = sep+1;
 	}
+
 	if (!gf_list_count(ctx->file_list)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->in));
 		return GF_BAD_PARAM;
@@ -627,7 +626,7 @@ void filelist_finalize(GF_Filter *filter)
 static const GF_FilterArgs GF_FileListArgs[] =
 {
 	{ OFFS(loop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, GF_FALSE},
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, GF_FALSE},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(timescale), "forces output timescal on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FALSE},

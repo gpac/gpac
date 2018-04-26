@@ -557,134 +557,134 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		Bool old_strict;
 		char szFmt[40];
 		s64 val;
-		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "true", NULL);
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "true", NULL, 0);
 		if (p.value.boolean != GF_TRUE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
 		}
-		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "yes", NULL);
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "yes", NULL, 0);
 		if (p.value.boolean != GF_TRUE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
 		}
-		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "no", NULL);
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "no", NULL, 0);
 		if (p.value.boolean != GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
 		}
-		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "false", NULL);
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "false", NULL, 0);
 		if (p.value.boolean != GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
 		}
-		p = gf_props_parse_value(GF_PROP_SINT, "prop", "-1", NULL);
+		p = gf_props_parse_value(GF_PROP_SINT, "prop", "-1", NULL, 0);
 		if (p.value.sint != -1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing sint value"));
 		}
-		p = gf_props_parse_value(GF_PROP_UINT, "prop", "1", NULL);
+		p = gf_props_parse_value(GF_PROP_UINT, "prop", "1", NULL, 0);
 		if (p.value.uint != 1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing uint value"));
 		}
 		val = 0xFFFFFFFF;
 		val *= 2;
 		sprintf(szFmt, ""LLD, -val);
-		p = gf_props_parse_value(GF_PROP_LSINT, "prop", szFmt, NULL);
+		p = gf_props_parse_value(GF_PROP_LSINT, "prop", szFmt, NULL, 0);
 		if (p.value.longsint != -val) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longsint value"));
 		}
 		sprintf(szFmt, ""LLU, val);
-		p = gf_props_parse_value(GF_PROP_LUINT, "prop", szFmt, NULL);
+		p = gf_props_parse_value(GF_PROP_LUINT, "prop", szFmt, NULL, 0);
 		if (p.value.longuint != val) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longuint value"));
 		}
-		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "1.0", NULL);
+		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "1.0", NULL, 0);
 		if (p.value.fnumber != FIX_ONE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing float value"));
 		}
-		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "1.0", NULL);
+		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "1.0", NULL, 0);
 		if (p.value.number != 1.0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing double value"));
 		}
-		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000/1", NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000/1", NULL, 0);
 		if ((p.value.frac.den != 1) || (p.value.frac.num != 1000)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
 		}
-		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000", NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000", NULL, 0);
 		if ((p.value.frac.den != 1) || (p.value.frac.num != 1000)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
 		}
-		p = gf_props_parse_value(GF_PROP_STRING, "prop", "test", NULL);
+		p = gf_props_parse_value(GF_PROP_STRING, "prop", "test", NULL, 0);
 		if (!p.value.string || strcmp(p.value.string, "test")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
 		}
 		sprintf(szFmt, "%p:%d", stack, (u32) sizeof(stack));
-		p = gf_props_parse_value(GF_PROP_DATA, "prop", szFmt, NULL);
+		p = gf_props_parse_value(GF_PROP_DATA, "prop", szFmt, NULL, 0);
 		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
 		}
-		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", szFmt, NULL);
+		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", szFmt, NULL, 0);
 		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
 		}
 		sprintf(szFmt, "%p", stack);
-		p = gf_props_parse_value(GF_PROP_POINTER, "prop", szFmt, NULL);
+		p = gf_props_parse_value(GF_PROP_POINTER, "prop", szFmt, NULL, 0);
 		if (p.value.ptr != stack) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
 		}
 
 		old_strict = gf_log_set_strict_error(GF_FALSE);
 
-		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_SINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_SINT, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_UINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_UINT, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_LSINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_LSINT, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_LUINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_LUINT, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_STRING, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_STRING, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_DATA, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_DATA, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_POINTER, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_POINTER, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_BOOL, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_SINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_SINT, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_UINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_UINT, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_LSINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_LSINT, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_LUINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_LUINT, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_STRING, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_STRING, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_DATA, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_DATA, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_POINTER, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_POINTER, "prop", NULL, NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_UINT, "prop", "test", "foo|bar");
+		p = gf_props_parse_value(GF_PROP_UINT, "prop", "test", "foo|bar", 0);
 		if (p.type) {}
-		p = gf_props_parse_value(100, "prop", "test", NULL);
+		p = gf_props_parse_value(100, "prop", "test", NULL, 0);
 		if (p.type) {}
 
 		gf_log_set_strict_error(old_strict);
