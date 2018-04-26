@@ -492,7 +492,7 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 {
 	u32 i;
 	char nhml[1024];
-	char pval[100];
+	char pval[GF_PROP_DUMP_ARG_SIZE];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
 	sprintf(nhml, "%s=\"", pname ? pname : gf_4cc_to_str(p4cc));

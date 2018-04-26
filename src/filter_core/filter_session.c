@@ -1322,8 +1322,10 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (gf_url_is_local(sURL))
 			gf_url_to_fs_path(sURL);
 	}
+
+	sep = strchr(sURL, fsess->sep_args);
 	//special case here, need to escape ://
-	if (fsess->sep_args==':') {
+	if ((fsess->sep_args==':') && !strnicmp(sep, "://", 3))  {
 		sep = strstr(sURL, "://");
 		if (sep) {
 			sep = strchr(sep+3, '/');
@@ -1332,8 +1334,6 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			sep = strchr(sURL, ':');
 			if (sep && !strnicmp(sep, ":\\", 2)) sep = strstr(sep+2, ":gpac:");
 		}
-	} else {
-		sep = strchr(sURL, fsess->sep_args);
 	}
 	if (sep) {
 		char szForceReg[20];

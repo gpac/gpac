@@ -4605,7 +4605,7 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 
 		if (cenc_sample) {
 			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\" IV=\"", i+1, cenc_sample->IV_size);
-			dump_data_hex(trace, (char *) cenc_sample->IV, 16);
+			dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
 			fprintf(trace, "\"");
 			if (ptr->flags & 0x2) {
 				fprintf(trace, " SubsampleCount=\"%d\"", cenc_sample->subsample_count);

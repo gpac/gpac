@@ -80,7 +80,7 @@ static void inspect_finalize(GF_Filter *filter)
 
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att)
 {
-	char szDump[100];
+	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
 	fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));

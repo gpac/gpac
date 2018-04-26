@@ -875,7 +875,7 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 								if (comp_type == 2) is_equal = !is_equal;
 								break;
 							default:
-								GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
+								GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal=true\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
 								is_equal = GF_TRUE;
 								break;
 							}
@@ -2268,17 +2268,39 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 		char *sep = strchr(args, filter->session->sep_args);
 
 		if (filter->session->sep_args == ':') {
-			if (sep && !strncmp(sep, "://", 3)) {
+			while (sep && !strncmp(sep, "://", 3)) {
 				//get root /
 				sep = strchr(sep+3, '/');
 				//get first : after root
 				if (sep) sep = strchr(sep+1, ':');
 			}
+			
 			//watchout for "C:\\"
 			while (sep && (sep[1]=='\\')) {
 				sep = strchr(sep+1, ':');
 			}
 		}
+
+		if (sep) {
+			char *xml_start = strchr(args, '<');
+			u32 len = (u32) (sep-args);
+			if (xml_start) {
+				u32 xlen = (u32) (xml_start-args);
+				if ((xlen < len) && (args[len-1] != '>')) {
+					while (1) {
+						sep = strchr(sep+1, filter->session->sep_args);
+						if (!sep) {
+							break;
+						}
+						len = (u32) (sep-args);
+						if (args[len-1] == '>')
+							break;
+					}
+				}
+
+			}
+		}
+
 		if (sep) sep[0]=0;
 
 		if (args[0] != filter->session->sep_frag)
@@ -2292,9 +2314,14 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 		value = eq+1;
 		name = args+1;
 
-		if (strlen(name)==4) p4cc = GF_4CC(name[0], name[1], name[2], name[3]);
-		else p4cc = gf_props_get_id(name);
-		if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
+		if (strlen(name)==4) {
+			p4cc = GF_4CC(name[0], name[1], name[2], name[3]);
+			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
+		}
+		if (prop_type==GF_PROP_FORBIDEN) {
+			p4cc = gf_props_get_id(name);
+			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
+		}
 
 		if (prop_type != GF_PROP_FORBIDEN) {
 			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL);
@@ -2304,6 +2331,9 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 				p.type = GF_PROP_NAME;
 			} else {
 				gf_filter_pid_set_property(pid, p4cc, &p);
+			}
+			if (prop_type==GF_PROP_STRING_LIST) {
+				p.value.string_list = NULL;
 			}
 			gf_props_reset_single(&p);
 		} else {
@@ -2378,6 +2408,12 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 
 	filter->has_pending_pids = GF_TRUE;
 	gf_fq_add(filter->pending_pids, pid);
+
+	//by default copy properties if only one input pid
+	if (filter->num_input_pids==1) {
+		GF_FilterPid *pidi = gf_list_get(filter->input_pids, 0);
+		gf_filter_pid_copy_properties(pid, pidi);
+	}
 	return pid;
 }
 
@@ -3748,7 +3784,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx)
 {
 	u32 k;
-	char szFormat[10], szTemplateVal[GF_MAX_PATH], szPropVal[100];
+	char szFormat[10], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
 	char *name = szTemplate;
 	k = 0;
 	while (name[0]) {
@@ -3800,6 +3836,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			is_file_str = GF_TRUE;
 		} else if (!stricmp(name, "File")) {
 			prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+			if (!prop_val) prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 			is_file_str = GF_TRUE;
 		} else if (!stricmp(name, "PID")) {
 			prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
@@ -3875,6 +3912,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				is_ok=GF_TRUE;
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
+				return GF_BAD_PARAM;
 			}
 		}
 
@@ -3891,7 +3929,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				str_val = gf_prop_dump_val(prop_val, szPropVal, GF_FALSE);
 			}
 		}
-
+		szTemplateVal[0]=0;
 		if (has_val) {
 			if (fsep) {
 				strcpy(szFormat, "%");
@@ -3920,6 +3958,9 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			} else {
 				strcpy(szTemplateVal, str_val);
 			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
+			return GF_BAD_PARAM;
 		}
 		if (k + strlen(szTemplateVal) > GF_MAX_PATH) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] Not enough memory to solve file template %s\n", szTemplate));

@@ -604,7 +604,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 	for (i=0;i<nb_caps; i++) {
 		const char *szName;
 		const char *szVal;
-		char szDump[100];
+		char szDump[GF_PROP_DUMP_ARG_SIZE];
 		const GF_FilterCapability *cap = &caps[i];
 		if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) && i+1==nb_caps) break;
 		if (!i) fprintf(stderr, "Capabilities Bundle:\n");

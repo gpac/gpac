@@ -416,6 +416,21 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 			res = GF_TRUE;
 		}
 		break;
+	case GF_PROP_STRING_LIST:
+		if (a->offset_in_private + sizeof(void *) <= filter->freg->private_size) {
+			GF_List *l = *(GF_List **)ptr;
+			if (l) {
+				while (gf_list_count(l)) {
+					char *s = gf_list_pop_back(l);
+					gf_free(s);
+				}
+				gf_list_del(l);
+			}
+			//we don't clone since we don't free the string at the caller site
+			*(GF_List **)ptr = argv->value.string_list;
+			res = GF_TRUE;
+		}
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property type %s not supported for filter argument\n", gf_props_get_type_name(argv->type) ));
 		return;
@@ -557,7 +572,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		char *sep = strchr(args, filter->session->sep_args);
 
 		if (filter->session->sep_args == ':') {
-			if (sep && !strncmp(sep, "://", 3)) {
+			while (sep && !strncmp(sep, "://", 3)) {
 				//filter internal url schemes
 				if (!strncmp(args, szSrc, 4) &&
 					(!strncmp(args+4, "video://", 8)
@@ -607,7 +622,26 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			}
 		}
 
-		if (sep) len = (u32) (sep-args);
+		//escape some XML inputs
+		if (sep) {
+			char *xml_start = strchr(args, '<');
+			len = (u32) (sep-args);
+			if (xml_start) {
+				u32 xlen = (u32) (xml_start-args);
+				if ((xlen < len) && (args[len-1] != '>')) {
+					while (1) {
+						sep = strchr(sep+1, filter->session->sep_args);
+						if (!sep) {
+							len = (u32) strlen(args);
+							break;
+						}
+						len = (u32) (sep-args);
+						if (args[len-1] != '>') break;
+					}
+				}
+
+			}
+		}
 		else len = (u32) strlen(args);
 
 		if (len>=alloc_len) {
@@ -624,7 +658,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		}
 
 		if (szArg[0] == filter->session->sep_frag) {
-			 	filter->user_pid_props = GF_TRUE;
+			filter->user_pid_props = GF_TRUE;
 			goto skip_arg;
 		}
 

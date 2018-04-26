@@ -424,6 +424,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 
 		if (codec->bit_rate)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT( codec->bit_rate ) );
+
+		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(ctx->demuxer->filename));
 	}
 
 	if (!nb_t && !nb_a && !nb_v)

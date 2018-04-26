@@ -2488,7 +2488,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	
 	i=0;
 	while ( (Asld = (GF_MPD_other_descriptors*) gf_list_enum(as->other_descriptors, &i))) {
-		fprintf(out, "  %s\n",Asld->xml_desc);
+		fprintf(out, "   %s\n",Asld->xml_desc);
 	}
 
 	gf_mpd_print_common_children(out, (GF_MPD_CommonAttributes*)as, "   ");
