@@ -1182,9 +1182,17 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 			fprintf(stderr, "\n");
 		}
 		if (opids) {
-			fprintf(stderr, "\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent);
-			if (f->time_process) {
-				fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8/f->time_process);
+			if (f->nb_hw_pck_sent) {
+				fprintf(stderr, "\t\t"LLU" hardware frames sent", f->nb_hw_pck_sent);
+				if (f->time_process) {
+					fprintf(stderr, " (%g pck/sec)", (Double) f->nb_hw_pck_sent*1000000/f->time_process);
+				}
+
+			} else if (f->nb_pck_sent) {
+				fprintf(stderr, "\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent);
+				if (f->time_process) {
+					fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8/f->time_process);
+				}
 			}
 			fprintf(stderr, "\n");
 		}

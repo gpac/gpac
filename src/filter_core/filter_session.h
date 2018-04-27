@@ -444,6 +444,9 @@ struct __gf_filter
 	u64 nb_bytes_processed;
 	//number of packets sent by this filter
 	u64 nb_pck_sent;
+	//number of hardware frames packets sent by this filter
+	u64 nb_hw_pck_sent;
+
 	//number of bytes sent by this filter
 	u64 nb_bytes_sent;
 	//number of microseconds this filter was active
