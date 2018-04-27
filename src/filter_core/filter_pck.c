@@ -525,6 +525,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		if (pck->data_length) {
 			pid->filter->nb_pck_sent++;
 			pid->filter->nb_bytes_sent += pck->data_length;
+		} else if (pck->hw_frame) {
+			pid->filter->nb_hw_pck_sent++;
 		}
 	}
 
