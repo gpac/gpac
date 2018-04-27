@@ -3998,3 +3998,65 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 	return GF_OK;
 }
 
+static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *dst_args)
+{
+	char *dst, *sep;
+	char szKey[6];
+	if (!dst_args) return NULL;
+
+	sprintf(szKey, "dst%c", sess->sep_name);
+	dst = strstr(dst_args, szKey);
+	if (!dst) return NULL;
+
+	sep = strchr(dst, sess->sep_args);
+	if (sep && (sess->sep_args==':') && !strncmp(sep, "://", 3)) {
+		sep = strchr(sep+3, '/');
+		if (sep) sep = strchr(sep+1, ':');
+		else dst = NULL;
+	}
+	if (dst && sep) {
+		u32 len;
+		dst += 4;
+		len = sep - dst;
+		char *res = gf_malloc(sizeof(char)* (len+1));
+		memcpy(res, dst, sizeof(char)* len);
+		res[len]=0;
+		return res;
+	}
+	return NULL;
+}
+
+char *gf_filter_pid_get_destination(GF_FilterPid *pid)
+{
+	const char *dst_args;
+	char *res;
+	u32 i, j;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query destination on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+
+	dst_args = pid->filter->dst_args;
+	if (!dst_args) dst_args = pid->filter->src_args;
+	res = gf_filter_pid_get_dst_string(pid->filter->session, dst_args);
+	if (res) return res;
+
+	//if not set this means we have explicetly loaded the filter
+	for (i=0; i<pid->num_destinations; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+
+		dst_args = pidi->filter->dst_args;
+		if (!dst_args) dst_args = pidi->filter->src_args;
+		res = gf_filter_pid_get_dst_string(pid->filter->session, dst_args);
+		if (res) return res;
+
+		for (j=0; j<pidi->filter->num_output_pids; j++) {
+			GF_FilterPid *a_pid = gf_list_get(pidi->filter->output_pids, j);
+			char *dst = gf_filter_pid_get_destination(a_pid);
+			if (dst) return dst;
+		}
+	}
+	return NULL;
+}
+
+

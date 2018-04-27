@@ -88,6 +88,8 @@ typedef struct
 	Bool is_eos;
 	u32 nb_seg_url_pending;
 	Bool on_demand_done;
+
+	char *out_path;
 } GF_DasherCtx;
 
 
@@ -1007,9 +1009,16 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	GF_DashStream *ds = rep->playback.udta;
 	if (ds->muxed_base) return;
 
+	strcpy(szDST, szInitURL);
+	if (ctx->out_path) {
+		char *rel = gf_url_concatenate(ctx->out_path, szInitURL);
+		if (rel) {
+			strcpy(szDST, rel);
+			gf_free(rel);
+		}
+	}
 
 	dst_args = gf_filter_get_dst_args(filter);
-	strcpy(szDST, szInitURL);
 	if (dst_args) {
 		char szKey[20];
 		sprintf(szSRC, "%c", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
@@ -1279,7 +1288,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot resolve template name, cannot derive output segment names, disabling rep %s\n", ds->src_url));
 			ds->done = GF_TRUE;
 			continue;
-
 		}
 		if (single_template && ds->split_set_names) {
 			char szStrName[20];
@@ -1510,6 +1518,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
 
+	if (!ctx->out_path) {
+		ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
+	}
 	if (ctx->current_period->period) {
 		//update duration
 		dasher_update_period_duration(ctx);
@@ -2139,11 +2150,20 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			cts -= ds->first_cts;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] First CTS "LLU" in segment %d drifting by %g (more than half a second duration) from segment time, consider reencoding or using segment timeline\n", cts, ds->seg_number,  drift));
 		}
-
 	}
 
 	//get final segment template - output file name is NULL, we already have solved this
 	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, NULL, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
+
+
+	if (ctx->out_path) {
+		char *rel = gf_url_concatenate(ctx->out_path, szSegmentName);
+		if (rel) {
+			strcpy(szSegmentName, rel);
+			gf_free(rel);
+		}
+	}
+
 
 	if (ds->rep->segment_list) {
 		GF_MPD_SegmentURL *seg_url;
@@ -2594,6 +2614,7 @@ static void dasher_finalize(GF_Filter *filter)
 	gf_free(ctx->current_period);
 	gf_list_del(ctx->next_period->streams);
 	gf_free(ctx->next_period);
+	if (ctx->out_path) gf_free(ctx->out_path);
 }
 
 static const GF_FilterCapability DasherCaps[] =
