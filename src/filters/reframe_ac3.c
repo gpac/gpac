@@ -220,7 +220,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 	gf_bs_get_content(bs, &data, &size);
 	gf_bs_del(bs);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AC3_CFG, & PROP_DATA_NO_COPY(data, size) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(data, size) );
 }
 
 static Bool ac3dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

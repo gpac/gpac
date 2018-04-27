@@ -606,7 +606,9 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		if (sep && !strncmp(args, szSrc, 4) && !escaped && !internal_url) {
 			Bool file_exists;
 			sep[0]=0;
-			file_exists = gf_file_exists(args+4);
+			if (!strcmp(args+4, "null")) file_exists = GF_TRUE;
+			else file_exists = gf_file_exists(args+4);
+
 			if (!file_exists) {
 				char *fsep = strchr(args+4, filter->session->sep_frag);
 				if (fsep) {

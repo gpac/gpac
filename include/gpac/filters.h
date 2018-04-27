@@ -868,8 +868,6 @@ enum
 	GF_PROP_PID_PCK_CENC_PATTERN = GF_4CC('C','P','T','R'),
 	//(uint)
 	GF_PROP_PID_AMR_MODE_SET = GF_4CC('A','M','S','T'),
-	//(data)
-	GF_PROP_PID_AC3_CFG = GF_4CC('A','C','3','C'),
 	//(data) binary blob containing N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
 	GF_PROP_PCK_SUBS = GF_4CC('S','U','B','S'),
 	//(uint)
@@ -890,19 +888,23 @@ enum
 
 	//DASH/HAS specific properties
 	//(string)
-	GF_PROP_PERIOD_ID = GF_4CC('P','E','I','D'),
-	//(string)
-	GF_PROP_REPRESENTATION_ID = GF_4CC('D','R','I','D'),
-	//(string)
-	GF_PROP_MUX_SRC = GF_4CC('M','S','R','C'),
-	//(uint)
-	GF_PROP_DASH_MODE = GF_4CC('D','M','O','D'),
+	GF_PROP_PID_PERIOD_ID = GF_4CC('P','E','I','D'),
 	//(double)
-	GF_PROP_DASH_DUR = GF_4CC('D','D','U','R'),
-	//(pointer)
-	GF_PROP_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
+	GF_PROP_PID_PERIOD_START = GF_4CC('P','E','S','T'),
+	//(double)
+	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
+	//(string)
+	GF_PROP_PID_REP_ID = GF_4CC('D','R','I','D'),
+	//(string)
+	GF_PROP_PID_MUX_SRC = GF_4CC('M','S','R','C'),
 	//(uint)
-	GF_PROP_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
+	GF_PROP_PID_DASH_MODE = GF_4CC('D','M','O','D'),
+	//(double)
+	GF_PROP_PID_DASH_DUR = GF_4CC('D','D','U','R'),
+	//(pointer)
+	GF_PROP_PID_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
+	//(uint)
+	GF_PROP_PID_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
 	//(stringlist)
 	GF_PROP_PID_ROLE = GF_4CC('R','O','L','E'),
 	//(stringlist)
@@ -915,6 +917,12 @@ enum
 	GF_PROP_PID_REP_DESC = GF_4CC('R','D','E','S'),
 	//(stringlist)
 	GF_PROP_PID_BASE_URL = GF_4CC('B','U','R','L'),
+	//(string)
+	GF_PROP_PID_TEMPLATE = GF_4CC('D','T','P','L'),
+	//(uint)
+	GF_PROP_PID_START_NUMBER = GF_4CC('D','R','S','N'),
+	//(string)
+	GF_PROP_PID_XLINK = GF_4CC('X','L','N','K'),
 
 };
 

@@ -100,7 +100,7 @@ enum
 
 	GF_STREAM_ENCRYPTED		= 0xE0,
 	/*stream carries files, each file being a complete AU*/
-	GF_STREAM_FILE		= 0xE1
+	GF_STREAM_FILE		= 0xE1,
 
 	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
 };

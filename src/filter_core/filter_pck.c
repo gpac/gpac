@@ -475,15 +475,17 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 
 	//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
 	pck->info.pid_props_changed = GF_FALSE;
-	if (!pid->request_property_map && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
+	if (!pid->request_property_map && !pck->info.internal_command && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
 		pck->info.pid_props_changed = GF_TRUE;
 	}
 	//any new pid_set_property after this packet will trigger a new property map
 	pck->info.pid_info_changed = GF_FALSE;
-	pid->request_property_map = GF_TRUE;
-	pid->props_changed_since_connect = GF_FALSE;
+	if (! pck->info.internal_command) {
+		pid->request_property_map = GF_TRUE;
+		pid->props_changed_since_connect = GF_FALSE;
+	}
 	if (pid->pid_info_changed) {
 		pck->info.pid_info_changed = GF_TRUE;
 		pid->pid_info_changed = GF_FALSE;

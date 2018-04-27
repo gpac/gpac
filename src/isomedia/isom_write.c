@@ -653,6 +653,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 
 	} else {
 		tkhd = trak->Header;
+		tkhd->trackID = trakID;
 		mdia = trak->Media;
 		mdia->mediaTrack = trak;
 		mdia->mediaHeader->timeScale = TimeScale;
