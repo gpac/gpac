@@ -1236,6 +1236,9 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on);
 
 GF_Err gf_filter_pid_force_cap(GF_FilterPid *pid, u32 cap4cc);
 
+//query first destination of PID if any - memory shall be freed by caller
+char *gf_filter_pid_get_destination(GF_FilterPid *pid);
+
 #ifdef __cplusplus
 }
 #endif
