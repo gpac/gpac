@@ -42,6 +42,7 @@ typedef struct
 	u64 file_size;
 	u64 file_pos, end_pos;
 	Bool is_end, pck_out;
+	Bool is_null;
 	Bool full_file_only;
 	Bool do_reconfigure;
 	char *block;
@@ -138,6 +139,14 @@ static GF_Err filein_initialize(GF_Filter *filter)
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 
+	if (!strcmp(ctx->src, "null")) {
+		ctx->pid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
+		gf_filter_pid_set_eos(ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return GF_OK;
+	}
+
 	if (strnicmp(ctx->src, "file:/", 6) && strstr(ctx->src, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
@@ -206,6 +215,8 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 	Bool res;
 	if (!strnicmp(url, "file://", 7)) src += 7;
 	else if (!strnicmp(url, "file:", 5)) src += 5;
+
+	if (!strcmp(url, "null")) return GF_FPROBE_SUPPORTED;
 
 	//strip any fragment identifer
 	frag_par = strchr(url, '#');

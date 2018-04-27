@@ -161,7 +161,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
 	if (tkw) {
 		const GF_PropertyValue *p;
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_DASH_DUR);
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_DUR);
 		if (p) {
 			ctx->dash_dur = p->value.number;
 		}
@@ -437,7 +437,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (p) src_url = p->value.string;
 
 
-	p = gf_filter_pid_get_info(pid, GF_PROP_DASH_MODE);
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DASH_MODE);
 	if (p) {
 		ctx->dash_mode = MP4MX_DASH_ON;
 		if (p->value.uint==2) {
@@ -520,11 +520,11 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 	codec_id = tkw->codecid;
-	p = gf_filter_pid_get_property(pid, GF_PROP_DASH_MULTI_PID);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_PID);
 	if (p) {
 		multi_pid_stsd = p->value.ptr;
 
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_DASH_MULTI_PID_IDX);
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_MULTI_PID_IDX);
 		assert(p);
 		multi_pid_final_stsd_idx = p->value.uint;
 
@@ -969,9 +969,8 @@ sample_entry_setup:
 		GF_AC3Config ac3cfg;
 		memset(&ac3cfg, 0, sizeof(GF_AC3Config));
 
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AC3_CFG);
-		if (p) {
-			GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+		if (dsi) {
+			GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
 			ac3cfg.nb_streams = 1;
 			ac3cfg.streams[0].fscod = gf_bs_read_int(bs, 2);
 			ac3cfg.streams[0].bsid = gf_bs_read_int(bs, 5);
@@ -1465,6 +1464,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 	GF_Err e = GF_OK;
 	u32 nb_eos, nb_done, i, count = gf_list_count(ctx->tracks);
+
+	if (!ctx->file)
+		return GF_EOS;
 
 	if (ctx->flush_size) {
 		GF_FilterPacket *pck;
@@ -2312,7 +2314,7 @@ static const GF_FilterCapability MP4MuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	//we want framed media only
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT_STATIC_OPT, 	GF_PROP_DASH_MODE, 0),
+	CAP_UINT(GF_CAPS_INPUT_STATIC_OPT, 	GF_PROP_PID_DASH_MODE, 0),
 	//and any codecid
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci"),

@@ -537,6 +537,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 					unload_filter = GF_FALSE;
 				}
+				filter->num_input_pids = 0;
+				
 				if (!filter->session->last_connect_error) filter->session->last_connect_error = e;
 				if (ctype==GF_PID_CONF_CONNECT) {
 					assert(pid->filter->out_pid_connection_pending);
@@ -2397,7 +2399,6 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	pid->filter = filter;
 	pid->destinations = gf_list_new();
 	pid->properties = gf_list_new();
-	pid->request_property_map = GF_TRUE;
 	if (!filter->output_pids) filter->output_pids = gf_list_new();
 	gf_list_add(filter->output_pids, pid);
 	filter->num_output_pids = gf_list_count(filter->output_pids);
@@ -2457,7 +2458,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 	GF_PropertyMap *map;
 
 	pid->props_changed_since_connect = GF_TRUE;
-	if (!pid->request_property_map) {
+	if (old_map && !pid->request_property_map) {
 		return old_map;
 	}
 	pid->request_property_map = GF_FALSE;
