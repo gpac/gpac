@@ -187,6 +187,7 @@ typedef struct _dash_stream
 	u64 first_cts_in_next_seg;
 	//used for last segment computation of segmentTimeline
 	u64 est_first_cts_in_next_seg;
+	u64 last_cts;
 } GF_DashStream;
 
 
@@ -2214,10 +2215,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 				break;
 			}
 
-			//mux rep, wait for indexing one to be over
-			if ((base_ds != ds) && !base_ds->seg_done)
-				break;
-
 			if (!pck) {
 				if (gf_filter_pid_is_eos(ds->ipid)) {
 					gf_filter_pid_set_eos(ds->opid);
@@ -2267,6 +2264,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (e) return e;
 			}
 			cts -= ds->first_cts;
+
+			//mux rep, wait for a CTS more than our base if base not yet over
+			if ((base_ds != ds) && !base_ds->seg_done && (cts * base_ds->timescale > base_ds->last_cts * ds->timescale ) )
+				break;
+
 
 			//forcing max time
 			if (base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) ) {
@@ -2324,6 +2326,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (ncts>base_ds->max_period_dur)
 				base_ds->max_period_dur = ncts;
 
+			ds->last_cts = cts;
 
 			if (!ds->segment_started) {
 				GF_FilterPacket *dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
