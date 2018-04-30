@@ -99,7 +99,11 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				else tkc->trackID = atoi(att->value);
 			}
 			else if (!stricmp(att->name, "key")) {
-				gf_bin128_parse(att->value, tkc->key);
+				GF_Err e = gf_bin128_parse(att->value, tkc->key);
+                if (e != GF_OK) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value in CrypTrack\n"));
+                    return;
+                }
 			}
 			else if (!stricmp(att->name, "salt")) {
 				u32 len, j;
@@ -270,10 +274,18 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			att = (GF_XMLAttribute *) &attributes[i];
 
 			if (!stricmp(att->name, "KID")) {
-				gf_bin128_parse(att->value, tkc->KIDs[tkc->KID_count]);
+				GF_Err e = gf_bin128_parse(att->value, tkc->KIDs[tkc->KID_count]);
+                if (e != GF_OK) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse KID\n"));
+                    return;
+                }
 			}
 			else if (!stricmp(att->name, "value")) {
-				gf_bin128_parse(att->value, tkc->keys[tkc->KID_count]);
+				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->KID_count]);
+                if (e != GF_OK) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value\n"));
+                    return;
+                }
 			}
 		}
 		tkc->KID_count++;
@@ -2198,10 +2210,18 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 				else if (!strcmp(att->value, "clear"))
 					cypherMode = 2;
 			} else if (!strcmp(att->name, "cypherKey")) {
-				gf_bin128_parse(att->value, cypherKey);
+				GF_Err e = gf_bin128_parse(att->value, cypherKey);
+                if (e != GF_OK) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherKey\n"));
+                    return e;
+                }
 				has_key = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherIV")) {
-				gf_bin128_parse(att->value, cypherIV);
+				GF_Err e = gf_bin128_parse(att->value, cypherIV);
+                if (e != GF_OK) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherIV\n"));
+                    return e;
+                }
 				has_IV = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherOffset")) {
 				cypherOffset = atoi(att->value);
