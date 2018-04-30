@@ -402,8 +402,13 @@ static void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_byte_range(att->value);
 		//else if (!strcmp(att->name, "hls:keyMethod")) seg->key_url = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "hls:keyURL")) seg->key_url = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "hls:keyIV")) gf_bin128_parse(att->value, seg->key_iv);
-
+        else if (!strcmp(att->name, "hls:keyIV")) {
+            GF_Err e = gf_bin128_parse(att->value, seg->key_iv);
+            if (e != GF_OK) {
+                GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Cannot parse hls:keyIV\n"));
+                return;
+            }
+        }
 	}
 }
 
