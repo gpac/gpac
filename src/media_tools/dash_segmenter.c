@@ -106,7 +106,8 @@ struct __gf_dash_segmenter
 	Bool no_fragments_defaults;
 	Bool pssh_moof;
 	Bool samplegroups_in_traf;
-	Bool single_traf_per_moof;
+    Bool single_traf_per_moof;
+	Bool tfdt_per_traf;
 	Double mpd_live_duration;
 	Bool insert_utc;
 	Bool real_time;
@@ -1734,6 +1735,11 @@ restart_fragmentation_pass:
 			if (!simulation_pass && dasher->single_traf_per_moof && (i>0) ) {
 				e = gf_isom_start_fragment(output, GF_TRUE);
 				if (e) goto err_exit;
+                if (dasher->tfdt_per_traf) {
+                    tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
+                    if (tf->done) continue;
+                    gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->start_tfdt);
+                }
 			}
 
 			//ok write samples
@@ -5930,13 +5936,14 @@ GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_s
 }
 
 GF_EXPORT
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof)
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->no_fragments_defaults = no_fragments_defaults;
 	dasher->pssh_moof = pssh_moof;
 	dasher->samplegroups_in_traf = samplegroups_in_traf;
 	dasher->single_traf_per_moof = single_traf_per_moof;
+    dasher->tfdt_per_traf = tfdt_per_traf;
 	return GF_OK;
 }
 
