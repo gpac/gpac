@@ -160,6 +160,7 @@ void gf_text_get_video_size(GF_MediaImporter *import, u32 *width, u32 *height)
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
 		switch (gf_isom_get_media_type(dest, i+1)) {
 		case GF_ISOM_MEDIA_SCENE:
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_VISUAL:
 			gf_isom_get_visual_info(dest, i+1, 1, &w, &h);
 			if (w > f_w) f_w = w;

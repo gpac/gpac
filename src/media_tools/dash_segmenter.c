@@ -865,7 +865,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
 	u32 sample_duration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, nb_samp, nb_done;
-	u32 nb_video, nb_audio, nb_text, nb_scene, mpd_timescale;
+	u32 nb_video, nb_auxv, nb_audio, nb_text, nb_scene, mpd_timescale;
 	u8 defaultPadding;
 	u16 defaultDegradationPriority;
 	GF_Err e;
@@ -1130,7 +1130,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	langCode = NULL;
 
 
-	mpd_timescale = nb_video = nb_audio = nb_text = nb_scene = 0;
+	mpd_timescale = nb_video = nb_auxv = nb_audio = nb_text = nb_scene = 0;
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
 		u32 _w, _h, _nb_ch, vidtype;
@@ -1209,6 +1209,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		}
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
+        else if (mtype == GF_ISOM_MEDIA_AUXV) nb_auxv++;
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) nb_audio++;
 		else if (mtype == GF_ISOM_MEDIA_TEXT || mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT) nb_text++;
 		else if (mtype == GF_ISOM_MEDIA_SCENE) nb_scene++;
@@ -1374,6 +1375,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		case GF_ISOM_MEDIA_MPEG_SUBT:
 			gf_isom_get_media_language(input, i+1, &langCode);
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_DIMS:
 			e = gf_isom_get_visual_info(input, i+1, 1, &_w, &_h);
@@ -1415,7 +1417,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			break;
 		}
 
-		if (mtype==GF_ISOM_MEDIA_VISUAL) {
+		if (mtype==GF_ISOM_MEDIA_VISUAL||mtype==GF_ISOM_MEDIA_AUXV) {
 			/*get duration of 2nd sample*/
 			u32 sample_dur = gf_isom_get_sample_duration(input, i+1, 2);
 			gf_isom_get_pixel_aspect_ratio(input, i+1, 1, &sar_w, &sar_h);
@@ -2530,7 +2532,7 @@ restart_fragmentation_pass:
 	if ( strlen(dash_input->representationID) ) fprintf(dasher->mpd, "id=\"%s\"", dash_input->representationID);
 	else fprintf(dasher->mpd, "id=\"%p\"", output);
 
-	fprintf(dasher->mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", (!nb_audio && !nb_video) ? "application" : (!nb_video ? "audio" : "video"), szCodecs);
+	fprintf(dasher->mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", (!nb_audio && !nb_video && !nb_auxv) ? "application" : (!nb_video && !nb_auxv ? "audio" : "video"), szCodecs);
 	if (width && height) {
 		fprintf(dasher->mpd, " width=\"%u\" height=\"%u\"", width, height);
 
@@ -2834,7 +2836,7 @@ static GF_Err dasher_isom_get_components_info(GF_DashSegInput *input, GF_DASHSeg
 		input->components[input->nb_components].media_type = mtype;
 		gf_isom_get_media_language(in, i+1, &input->components[input->nb_components].lang);
 
-		if (mtype == GF_ISOM_MEDIA_VISUAL) {
+        if (mtype == GF_ISOM_MEDIA_VISUAL || mtype==GF_ISOM_MEDIA_AUXV) {
 			gf_isom_get_visual_info(in, i+1, 1, &input->components[input->nb_components].width, &input->components[input->nb_components].height);
 
 			input->components[input->nb_components].fps_num = gf_isom_get_media_timescale(in, i+1);
@@ -3001,7 +3003,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				break;
 			}
 
-			if ((mtype!=GF_ISOM_MEDIA_VISUAL) && (mtype!=GF_ISOM_MEDIA_HINT)) {
+			if ((mtype!=GF_ISOM_MEDIA_VISUAL) && (mtype!=GF_ISOM_MEDIA_AUXV) && (mtype!=GF_ISOM_MEDIA_HINT)) {
 				char *lang1, *lang2;
 				lang1 = lang2 = NULL;
 				gf_isom_get_media_language(set_file, j+1, &lang1);
@@ -3015,7 +3017,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				if (lang1) gf_free(lang1);
 				if (lang2) gf_free(lang2);
 			}
-			if (mtype==GF_ISOM_MEDIA_VISUAL) {
+			if (mtype==GF_ISOM_MEDIA_VISUAL || mtype==GF_ISOM_MEDIA_AUXV) {
 				u32 w1, h1, w2, h2, sap_type;
 				Bool rap, roll;
 				s32 roll_dist;
@@ -3505,7 +3507,7 @@ static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb
 				break;
 			}
 			/*make sure we use the same aspect ratio*/
-			if (src_tk->type==GF_ISOM_MEDIA_VISUAL) {
+			if (src_tk->type==GF_ISOM_MEDIA_VISUAL || src_tk->type==GF_ISOM_MEDIA_AUXV) {
 				if (src_tk->video_info.width * probe_tk->video_info.height != src_tk->video_info.height * probe_tk->video_info.width) {
 					valid_in_adaptation_set = GF_FALSE;
 					break;
@@ -4744,9 +4746,13 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 					id = atoi(uri_frag+4);
 				else if (!stricmp(uri_frag+1, "audio") || !stricmp(uri_frag+1, "video")) {
 					Bool check_video = !stricmp(uri_frag+1, "video") ? GF_TRUE : GF_FALSE;
+                    Bool check_auxv = !stricmp(uri_frag+1, "auxv") ? GF_TRUE : GF_FALSE;
 					u32 i;
 					for (i=0; i<nb_track; i++) {
 						switch (gf_isom_get_media_type(file, i+1)) {
+                        case GF_ISOM_MEDIA_AUXV:
+                            if (check_auxv) id = gf_isom_get_track_id(file, i+1);
+                            break;
 						case GF_ISOM_MEDIA_VISUAL:
 							if (check_video) id = gf_isom_get_track_id(file, i+1);
 							break;
@@ -4771,7 +4777,8 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		max_nb_deps = 0;
 		for (j = 0; j < nb_track; j++) {
 			//check scalability
-			if (gf_isom_get_media_type(file, j+1)==GF_ISOM_MEDIA_VISUAL) {
+            u32 mtype = gf_isom_get_media_type(file, j+1);
+			if (mtype==GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) {
 				u32 c1 = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_BASE);
 				u32 c2 = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_TBAS);
 				if (c2) has_tiling = GF_TRUE;
@@ -4891,7 +4898,8 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 			di->trackNum = 0;
 			for (k = 0; k < nb_track; k++) {
 				//check scalability
-				if (gf_isom_get_media_type(file, k+1)==GF_ISOM_MEDIA_VISUAL) {
+                u32  =gf_isom_get_media_type(file, k+1);
+				if (mtype==GF_ISOM_MEDIA_VISUAL||mtype==GF_ISOM_MEDIA_AUXV) {
 					if (gf_isom_get_reference_count(file, k+1, GF_ISOM_REF_SABT)) {
 						di->trackNum = k+1;
 						break;
@@ -5326,6 +5334,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 				case GF_ISOM_MEDIA_TEXT:
 					fprintf(mpd, "contentType=\"text\" ");
 					break;
+                case GF_ISOM_MEDIA_AUXV:
 				case GF_ISOM_MEDIA_VISUAL:
 					fprintf(mpd, "contentType=\"video\" ");
 					break;
