@@ -1022,6 +1022,12 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 				media_prio = 2;
 			}
 			break;
+        case GF_ISOM_MEDIA_AUXV:
+            if (single_av) {
+                media_group = 2;
+                media_prio = 3;
+            }
+            break;
 		case GF_ISOM_MEDIA_AUDIO:
 			if (single_av) {
 				media_group = 2;
@@ -1180,6 +1186,7 @@ void remove_systems_tracks(GF_ISOFile *file)
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		switch (gf_isom_get_media_type(file, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
@@ -4859,6 +4866,7 @@ int mp4boxMain(int argc, char **argv)
 				u32 mType = gf_isom_get_media_type(file, i+1);
 				switch (mType) {
 				case GF_ISOM_MEDIA_VISUAL:
+                case GF_ISOM_MEDIA_AUXV:
 					major_brand = GF_ISOM_BRAND_M4V;
 					gf_isom_set_ipod_compatible(file, i+1);
 #if 0

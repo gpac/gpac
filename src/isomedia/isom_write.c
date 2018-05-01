@@ -592,6 +592,7 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 	//some default properties for Audio, Visual or private tracks
 	switch (MediaType) {
 	case GF_ISOM_MEDIA_VISUAL:
+    case GF_ISOM_MEDIA_AUXV:
 	case GF_ISOM_MEDIA_SCENE:
 	case GF_ISOM_MEDIA_TEXT:
 	case GF_ISOM_MEDIA_SUBT:
@@ -2944,6 +2945,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	GF_Box *entry;
 	GF_Err e;
 	u32 dataRefIndex;
+    u32 mtype;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -2986,7 +2988,8 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 
 	/*also clone track w/h info*/
-	if (gf_isom_get_media_type(the_file, trackNumber) == GF_ISOM_MEDIA_VISUAL) {
+    mtype = gf_isom_get_media_type(the_file, trackNumber);
+	if (mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) {
 		gf_isom_set_visual_info(the_file, trackNumber, (*outDescriptionIndex), ((GF_VisualSampleEntryBox*)entry)->Width, ((GF_VisualSampleEntryBox*)entry)->Height);
 	}
 	return e;
@@ -3019,7 +3022,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_VISUAL) {
+	if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_VISUAL ||
+        trak->Media->handler->handlerType==GF_ISOM_MEDIA_AUXV) {
 		GF_GenericVisualSampleEntryBox *entry;
 		//create a new entry
 		entry = (GF_GenericVisualSampleEntryBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);

@@ -6849,7 +6849,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 
 		/*only process visual or audio*/
 		switch (trak->Media->handler->handlerType) {
-		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUXV:
 		{
 			GF_GenericVisualSampleEntryBox *genv;
 			/*remove entry*/

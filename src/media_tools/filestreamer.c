@@ -159,6 +159,8 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		u32 w, h;
 		u32 dsi_len = 0;
 		GF_DecoderConfig *dcd;
+        u32 mtype;
+        
 		//use inspect mode so that we don't aggregate xPS from the base in the enhancement ESD
 		gf_isom_set_nalu_extract_mode(streamer->isom, track->track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
 		dcd = gf_isom_get_decoder_config(streamer->isom, track->track_num, 1);
@@ -168,7 +170,8 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 			dsi_len = dcd->decoderSpecificInfo->dataLength;
 		}
 		w = h = 0;
-		if (gf_isom_get_media_type(streamer->isom, track->track_num) == GF_ISOM_MEDIA_VISUAL) {
+        mtype = gf_isom_get_media_type(streamer->isom, track->track_num);
+		if (mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) {
 			gf_isom_get_visual_info(streamer->isom, track->track_num, 1, &w, &h);
 		}
 
@@ -474,6 +477,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		switch (TrackMediaType) {
 		case GF_ISOM_MEDIA_TEXT:
 			break;
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_SUBT:
