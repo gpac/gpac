@@ -421,6 +421,7 @@ void PrintDASHUsage()
 	        " -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
 	        " -no-frags-default    disables default flags in fragments\n"
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
+            " -tfdt-traf           uses a tfdt per track fragment (when -single-traf is used)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 	        " -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
 	        " -cp-location=MODE    sets ContentProtection element location. Possible values for mode are:\n"
@@ -1894,7 +1895,7 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, dump_nal_crc;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 u32 track_dump_type, dump_isom;
 u32 trackID;
@@ -3431,6 +3432,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-single-traf")) {
 			single_traf_per_moof = 1;
 		}
+        else if (!stricmp(arg, "-tfdt-traf")) {
+            tfdt_per_traf = 1;
+        }
 		else if (!stricmp(arg, "-mpd-title")) {
 			CHECK_NEXT_ARG dash_title = argv[i + 1];
 			i++;
@@ -3548,6 +3552,7 @@ int mp4boxMain(int argc, char **argv)
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = GF_FALSE,
+    tfdt_per_traf = GF_FALSE,
 	dump_nal_crc = GF_FALSE,
 	dump_isom = 0;
 	/*align cat is the new default behaviour for -cat*/
@@ -4153,7 +4158,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
 		if (!e) e = gf_dasher_enable_memory_fragmenting(dasher, memory_frags);
 		if (!e) e = gf_dasher_set_initial_isobmf(dasher, initial_moof_sn, initial_tfdt);
-		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
+		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, tfdt_per_traf);
 		if (!e) e = gf_dasher_enable_utc_ref(dasher, insert_utc);
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
