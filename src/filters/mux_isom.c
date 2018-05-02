@@ -1758,6 +1758,14 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 						if (ctx->seg_name) gf_free(ctx->seg_name);
 						ctx->seg_name = gf_strdup(p->value.string);
 					}
+					//store PRFT only for reference track at segment start
+					if (tkw==ctx->ref_tkw) {
+						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
+						if (p) {
+							gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, p->value.longuint, cts);
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MuxIsom] Segment %s, storing NTP TS "LLU" for CTS "LLU" at "LLU" us, at UTC "LLU"\n", ctx->seg_name ? ctx->seg_name : "singlefile", p->value.longuint, cts, gf_sys_clock_high_res(), gf_net_get_utc()));
+						}
+					}
 				}
 
 				dts = gf_filter_pck_get_dts(pck);

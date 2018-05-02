@@ -56,6 +56,7 @@ static Bool gf_mpd_valid_child(GF_MPD *mpd, GF_XMLNode *child)
 	if (child->type != GF_XML_NODE_TYPE) return 0;
 	if (!mpd->xml_namespace && !child->ns) return 1;
 	if (mpd->xml_namespace && child->ns && !strcmp(mpd->xml_namespace, child->ns)) return 1;
+	if (child->ns && !strcmp(child->ns, "gpac")) return 1;
 	return 0;
 }
 
@@ -641,6 +642,34 @@ GF_MPD_Representation *gf_mpd_representation_new()
 	return rep;
 }
 
+static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XMLNode *root)
+{
+	u32 i;
+	GF_DASH_SegmenterContext *dasher;
+	GF_XMLAttribute *att;
+	GF_SAFEALLOC(dasher, GF_DASH_SegmenterContext);
+
+	i = 0;
+	while ( (att = gf_list_enum(root->attributes, &i)) ) {
+		if (!strcmp(att->name, "done")) dasher->done = gf_mpd_parse_bool(att->value);
+		else if (!strcmp(att->name, "init")) dasher->init_seg = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "template")) dasher->template_seg = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "url")) dasher->src_url = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "periodID")) dasher->period_id = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "segNumber")) dasher->seg_number = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "lastPacketIdx")) dasher->last_pck_idx = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "pidID")) dasher->pid_id = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "muxedCompID")) dasher->muxed_comp_id = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "periodStart")) dasher->period_start = gf_mpd_parse_double(att->value);
+		else if (!strcmp(att->name, "periodDuration")) dasher->period_duration = gf_mpd_parse_double(att->value);
+		else if (!strcmp(att->name, "ownsSet")) dasher->owns_set = gf_mpd_parse_bool(att->value);
+		else if (!strcmp(att->name, "multiPIDInit")) dasher->multi_pids = gf_mpd_parse_bool(att->value);
+		else if (!strcmp(att->name, "dashDuration")) dasher->dash_dur = gf_mpd_parse_double(att->value);
+		else if (!strcmp(att->name, "nextSegmentStart")) dasher->next_seg_start = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "firstCTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
+	}
+	return dasher;
+}
 static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
 {
 	u32 i;
@@ -684,6 +713,10 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 						e = gf_mpd_parse_subrepresentation(rep->sub_representations, child);
 						if (e) return e;
 			*/
+		}
+		else if (!strcmp(child->name, "dasher")) {
+			assert(!rep->dasher_ctx);
+			rep->dasher_ctx = gf_mpd_parse_dasher_context(mpd, child);
 		}
 		else{
 			/*We'll be assuming here that any unrecognized element is a representation level
@@ -1087,6 +1120,16 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
 	if (ptr->other_descriptors)gf_mpd_del_list(ptr->other_descriptors, gf_mpd_other_descriptor_free, 0);
+
+	if (ptr->dasher_ctx) {
+		gf_free(ptr->dasher_ctx->init_seg);
+		if (ptr->dasher_ctx->period_id)
+			gf_free(ptr->dasher_ctx->period_id);
+		gf_free(ptr->dasher_ctx->src_url);
+		gf_free(ptr->dasher_ctx->template_seg);
+		gf_free(ptr->dasher_ctx);
+	}
+
 	gf_free(ptr);
 }
 
@@ -2294,6 +2337,8 @@ static void gf_mpd_extensible_print_attr(FILE *out, GF_MPD_ExtensibleVirtual *it
 		u32 j=0;
 		GF_XMLAttribute *att;
 		while ((att = (GF_XMLAttribute *)gf_list_enum(item->attributes, &j))) {
+			if (!strcmp(att->name, "xmlns")) continue;
+			else if (!strcmp(att->name, "xmlns:gpac")) continue;
 			fprintf(out, " %s=\"%s\"", att->name, att->value);
 		}
 	}
@@ -2399,7 +2444,34 @@ static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, 
 	return 0;
 }
 
-static void gf_mpd_print_representation(GF_MPD_Representation const * const rep, FILE *out)
+static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *dasher, char *indent)
+{
+	fprintf(out, "%s<gpac:dasher ", indent);
+	fprintf(out, "done=\"%s\" ", dasher->done ? "true" : "false");
+	fprintf(out, "init=\"%s\" ", dasher->init_seg);
+	fprintf(out, "template=\"%s\" ", dasher->template_seg);
+	fprintf(out, "segNumber=\"%d\" ", dasher->seg_number);
+	fprintf(out, "url=\"%s\" ", dasher->src_url);
+	fprintf(out, "lastPacketIdx=\""LLU"\" ", dasher->last_pck_idx);
+	fprintf(out, "pidID=\"%d\" ", dasher->pid_id);
+	fprintf(out, "muxedCompID=\"%d\" ", dasher->muxed_comp_id);
+	if (dasher->period_id)
+		fprintf(out, "periodID=\"%s\" ", dasher->period_id);
+
+	if (dasher->period_duration)
+		fprintf(out, "periodDuration=\"%g\" ", dasher->period_duration);
+	if (dasher->period_start)
+		fprintf(out, "periodStart=\"%g\" ", dasher->period_start);
+
+	fprintf(out, "multiPIDInit=\"%s\" ", dasher->multi_pids ? "true" : "false");
+	fprintf(out, "dashDuration=\"%g\" ", dasher->dash_dur);
+	fprintf(out, "nextSegmentStart=\""LLU"\" ", dasher->next_seg_start);
+	fprintf(out, "firstCTS=\""LLU"\" ", dasher->first_cts);
+
+	fprintf(out, "ownsSet=\"%s\"/>\n", dasher->owns_set ? "true" : "false");
+}
+
+static void gf_mpd_print_representation(GF_MPD_Representation const * const rep, FILE *out, Bool write_context)
 {
 	Bool can_close = GF_FALSE;
 	u32 i;
@@ -2421,7 +2493,11 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 
 
 	fprintf(out, ">\n");
-	
+
+	if (write_context && rep->dasher_ctx) {
+		gf_mpd_print_dasher_context(out, rep->dasher_ctx, "    ");
+	}
+
 	if (rep->other_descriptors){
 		i=0;
 		while ( (rsld = (GF_MPD_other_descriptors*) gf_list_enum(rep->other_descriptors, &i))) {
@@ -2450,7 +2526,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	fprintf(out, "   </Representation>\n");
 }
 
-static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, FILE *out)
+static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, FILE *out, Bool write_context)
 {
 	u32 i;
 	GF_MPD_Representation *rep;
@@ -2514,14 +2590,14 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 
 	i=0;
 	while ((rep = (GF_MPD_Representation *)gf_list_enum(as->representations, &i))) {
-		gf_mpd_print_representation(rep, out);
+		gf_mpd_print_representation(rep, out, write_context);
 	}
 	fprintf(out, "  </AdaptationSet>\n");
 
 
 }
 
-void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out)
+void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context)
 {
 	GF_MPD_AdaptationSet *as;
 	GF_MPD_other_descriptors *pld;
@@ -2563,7 +2639,7 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-		gf_mpd_print_adaptation_set(as, out);
+		gf_mpd_print_adaptation_set(as, out, write_context);
 	}
 	fprintf(out, " </Period>\n");
 
@@ -2746,6 +2822,10 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	mpd_write_generation_comment(mpd, out);
 	fprintf(out, "<MPD xmlns=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"));
 
+	if (mpd->write_context) {
+	 	fprintf(out, " xmlns:gpac=\"urn:gpac:dash:dasher:2018\"" );
+	}
+
 	if (mpd->ID)
 		fprintf(out, " id=\"%s\"", mpd->ID);
 
@@ -2821,7 +2901,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 
 	i=0;
 	while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
-		gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
+		gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out, mpd->write_context);
 	}
 
 	fprintf(out, "</MPD>");
