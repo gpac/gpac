@@ -892,6 +892,8 @@ static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc
 	} else {
 		gf_props_remove_property(pck->props, hash, prop_4cc, prop_name ? prop_name : dyn_name);
 	}
+	if (!value) return GF_OK;
+	
 	return gf_props_insert_property(pck->props, hash, prop_4cc, prop_name, dyn_name, value);
 }
 

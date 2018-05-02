@@ -277,6 +277,27 @@ typedef struct
 	void *udta;
 } GF_DASH_RepresentationPlayback;
 
+
+typedef struct
+{
+	char *period_id;
+	Double period_start;
+	Double period_duration;
+	Bool done;
+	u64 last_pck_idx;
+	u32 seg_number;
+	char *src_url;
+	char *init_seg;
+	char *template_seg;
+	u32 pid_id, muxed_comp_id;
+	Bool owns_set;
+	Bool multi_pids;
+	Bool removed;
+	Double dash_dur;
+	u64 next_seg_start;
+	u64 first_cts;
+} GF_DASH_SegmenterContext;
+
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 
@@ -297,6 +318,9 @@ typedef struct {
 	GF_DASH_RepresentationPlayback playback;
 	u32 m3u8_media_seq_min, m3u8_media_seq_max;
 	GF_List *other_descriptors;
+
+
+	GF_DASH_SegmenterContext *dasher_ctx;
 } GF_MPD_Representation;
 
 
@@ -414,7 +438,7 @@ typedef struct {
 	const char *xml_namespace; /*won't be freed by GPAC*/
 	
 	Bool force_test_mode;
-	
+	Bool write_context;
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
@@ -439,7 +463,7 @@ GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name, G
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out);
 
-void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out);
+void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context);
 GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
 
 GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *uri, const char *value);
