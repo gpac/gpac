@@ -279,7 +279,7 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	audio_stream->codec->sample_fmt = audio_codec_ctx->codec->sample_fmts[0];
 
 //	if (audio_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
-//		audio_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+//		audio_output_file->codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
 	//video_stream->codec = video_output_file->codec_ctx;
 
