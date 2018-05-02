@@ -53,7 +53,7 @@
 static uint8_t * ffmpeg_realloc_buffer(uint8_t * oldBuffer, u32 size) {
 	uint8_t * buffer;
 	/* Size of buffer must be larger, see avcodec_decode_video2 documentation */
-	u32 allocatedSz = sizeof( char ) * (FF_INPUT_BUFFER_PADDING_SIZE + size);
+	u32 allocatedSz = sizeof( char ) * (AV_INPUT_BUFFER_PADDING_SIZE + size);
 	if (oldBuffer)
 		gf_free(oldBuffer);
 	buffer = (uint8_t*)gf_malloc( allocatedSz );
@@ -581,7 +581,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = 1;
 		return GF_OK;
 	case GF_CODEC_PADDING_BYTES:
-		capability->cap.valueInt = FF_INPUT_BUFFER_PADDING_SIZE;
+		capability->cap.valueInt = AV_INPUT_BUFFER_PADDING_SIZE;
 		return GF_OK;
 	case GF_CODEC_REORDER:
 		capability->cap.valueInt = 1;
@@ -673,7 +673,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		break;
 
 	case GF_CODEC_PADDING_BYTES:
-		capability->cap.valueInt = FF_INPUT_BUFFER_PADDING_SIZE;
+		capability->cap.valueInt = AV_INPUT_BUFFER_PADDING_SIZE;
 		break;
 	default:
 		capability->cap.valueInt = 0;
