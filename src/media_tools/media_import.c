@@ -9250,7 +9250,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		        (buf[0x17] & 0xf0) != 0x20			   ||
 		        (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
 		{
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (1)", filename);
 			continue;
 		}
 
@@ -9277,12 +9277,12 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		}
 
 		if (i != psize || left > 0) {
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (2)", filename);
 			continue;
 		}
 
 		if (vobsub_get_subpic_duration(packet, psize, dsize, &duration) != GF_OK) {
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (3)", filename);
 			continue;
 		}
 
