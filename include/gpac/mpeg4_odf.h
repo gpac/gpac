@@ -1002,9 +1002,7 @@ typedef struct
 /*! AV1 config record - not a real MPEG-4 descriptor*/
 typedef struct
 {
-	Bool has_enhancement_layers;
-	Bool has_temporal_layers;
-	u8 OBULengthSizeMinusOne;//Romain:   => "Only the value 0, 1, 3 are allowed."
+	u8 initial_presentation_delay_minus_one;
 	u8 numOBUs;
 	GF_List *OBUs_array; /*GF_AV1_OBUArray*/
 } GF_AV1Config;
