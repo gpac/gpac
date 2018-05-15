@@ -498,6 +498,8 @@ typedef enum {
 	OBU_FRAME_HEADER = 3,
 	OBU_TILE_GROUP = 4,
 	OBU_METADATA = 5,
+	OBU_FRAME = 6,
+	OBU_REDUNDANT_FRAME_HEADER = 7,
 	OBU_PADDING = 15,
 } ObuType;
 
@@ -511,11 +513,13 @@ typedef enum {
 
 typedef struct
 {
+	u16 OperatingPointIdc;
 	u16 width, height;
 } AV1State;
 
-GF_Err gf_media_aom_parse_ivf(GF_BitStream *bs, AV1State *state, u32 *frame_size);
-GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u32 *obu_size, ObuType *obu_type, AV1State *state);
+GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
+GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
+GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_type, AV1State *state);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

@@ -1538,7 +1538,7 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	return e;
 }
 
-GF_EXPORT //Romain: export?
+GF_EXPORT
 //Romain: move this fct elsewhere: aom_ext.c?
 GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
