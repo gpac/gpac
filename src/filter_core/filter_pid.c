@@ -1028,7 +1028,12 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 		}
 
 		//not an input cap
-		if (! (cap->flags & GF_FILTER_CAPS_INPUT) ) continue;
+		if (! (cap->flags & GF_FILTER_CAPS_INPUT) ) {
+			if (!skip_explicit_load && (cap->flags & GF_FILTER_CAPS_EXPLICIT) ) {
+				all_caps_matched = 0;
+			}
+			continue;
+		}
 
 		nb_subcaps++;
 		//no match for this cap, go on until new one or end

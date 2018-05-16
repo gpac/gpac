@@ -59,7 +59,7 @@ typedef struct
 {
 	u32 bs_switch, profile, cp, subs_per_sidx, ntp;
 	s32 buf, timescale;
-	Bool forcep, dynamic, single_file, single_segment, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx;
+	Bool forcep, dynamic, single_file, single_segment, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split;
 	Double dur;
 	char *avcp;
 	char *hvcp;
@@ -209,6 +209,9 @@ typedef struct _dash_stream
 	u64 cumulated_dur;
 	u32 nb_pck;
 	u32 seek_to_pck;
+
+	Bool splitable;
+	u32 split_dur_next;
 } GF_DashStream;
 
 
@@ -357,6 +360,15 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_DUR);
 		if (p) ds->dash_dur = p->value.number;
 
+		ds->splitable = GF_FALSE;
+		switch (ds->stream_type) {
+		case GF_STREAM_TEXT:
+		case GF_STREAM_METADATA:
+		case GF_STREAM_OD:
+		case GF_STREAM_SCENE:
+			ds->splitable = ctx->split;
+			break;
+		}
 	} else {
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
@@ -2617,10 +2629,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 		//flush as mush as possible
 		while (1) {
-			u32 sap_type, dur;
-			u64 cts, ncts;
+			u32 sap_type, dur, split_dur;
+			u64 cts, ncts, split_dur_next;
 			Bool seg_over = GF_FALSE;
+			Bool is_split = GF_FALSE;
 			GF_FilterPacket *pck;
+			GF_FilterPacket *dst;
 
 			assert(ds->period == ctx->current_period);
 			pck = gf_filter_pid_get_packet(ds->ipid);
@@ -2687,10 +2701,33 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			cts -= ds->first_cts;
 
+			dur = gf_filter_pck_get_duration(pck);
+			split_dur = 0;
+			split_dur_next = 0;
+
+			//adjust duration and cts
+			if (ds->split_dur_next) {
+				cts += ds->split_dur_next;
+				assert(dur > ds->split_dur_next);
+				dur -= ds->split_dur_next;
+				split_dur_next = ds->split_dur_next;
+				ds->split_dur_next = 0;
+				is_split = GF_TRUE;
+			}
+
+			if (ds->splitable && !ds->split_dur_next) {
+				//adding this sampl would exceed the segment duration
+				if ( (cts + dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
+					//this sample starts in the current segment - split it
+					if (cts * base_ds->timescale < base_ds->adjusted_next_seg_start * ds->timescale ) {
+						split_dur = (u32) (base_ds->adjusted_next_seg_start * ds->timescale / base_ds->timescale - ds->last_cts);
+					}
+				}
+			}
+
 			//mux rep, wait for a CTS more than our base if base not yet over
 			if ((base_ds != ds) && !base_ds->seg_done && (cts * base_ds->timescale > base_ds->last_cts * ds->timescale ) )
 				break;
-
 
 			//forcing max time
 			if (base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) ) {
@@ -2727,19 +2764,20 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 				}
 			}
-			if (seg_over) {
+			//if dur=0 (some text streams), don't flush segment
+			if (seg_over && dur) {
 				assert(!ds->seg_done);
 				ds->seg_done = GF_TRUE;
 				ds->first_cts_in_next_seg = cts;
 				base_ds->nb_comp_done ++;
+				if (split_dur_next)
+					ds->split_dur_next = split_dur_next;
+
 				if (base_ds->nb_comp_done == base_ds->nb_comp) {
 					dasher_flush_segment(ctx, base_ds);
 				}
 				break;
 			}
-
-			dur = gf_filter_pck_get_duration(pck);
-			ds->cumulated_dur += dur;
 
 			ncts = cts + dur;
 			if (ncts>ds->est_first_cts_in_next_seg)
@@ -2753,39 +2791,59 @@ static GF_Err dasher_process(GF_Filter *filter)
 			ds->last_cts = cts;
 			ds->nb_pck ++;
 			
-
+			//create new ref to input
+			dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
+			//merge all props
+			gf_filter_pck_merge_properties(pck, dst);
 			if (!ds->segment_started) {
-				GF_FilterPacket *dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
-				gf_filter_pck_merge_properties(pck, dst);
 				ds->first_cts_in_seg = cts;
-
 				dasher_mark_segment_start(ctx, ds, dst);
-
-				if (ds->force_timescale) {
-					dasher_update_pck_times(ds, dst);
-				}
-				gf_filter_pck_send(dst);
-
 				ds->segment_started = GF_TRUE;
-			} else if (ds->force_timescale) {
-				GF_FilterPacket *dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
-				gf_filter_pck_merge_properties(pck, dst);
-				dasher_update_pck_times(ds, dst);
-
-				if (ctx->ntp != DASHER_NTP_KEEP)
-					gf_filter_pck_set_property(dst, GF_PROP_PCK_SENDER_NTP, NULL);
-
-				gf_filter_pck_send(dst);
-			} else if (ctx->ntp != DASHER_NTP_KEEP) {
-				GF_FilterPacket *dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
-				gf_filter_pck_merge_properties(pck, dst);
-				gf_filter_pck_set_property(dst, GF_PROP_PCK_SENDER_NTP, NULL);
-				gf_filter_pck_send(dst);
-			} else {
-				//forward packet
-				gf_filter_pck_forward(pck, ds->opid);
 			}
-			gf_filter_pid_drop_packet(ds->ipid);
+			//if split, adjust duration
+			if (split_dur) {
+				gf_filter_pck_set_duration(dst, split_dur);
+				assert( dur > split_dur);
+				ds->split_dur_next = split_dur;
+				dur = split_dur;
+			}
+			//prev packet was split
+			else if (is_split) {
+				u64 diff;
+				u64 ts = gf_filter_pck_get_cts(pck);
+				assert (ts != GF_FILTER_NO_TS);
+				cts += ds->first_cts;
+				assert(cts >= ts);
+				diff = cts - ts;
+
+				gf_filter_pck_set_cts(dst, cts);
+
+				ts = gf_filter_pck_get_dts(pck);
+				if (ts != GF_FILTER_NO_TS)
+					gf_filter_pck_set_dts(dst, ts + diff);
+
+
+				gf_filter_pck_set_sap(dst, GF_FILTER_SAP_REDUNDANT);
+				gf_filter_pck_set_duration(dst, dur);
+			}
+
+			//remove NTP
+			if (ctx->ntp != DASHER_NTP_KEEP)
+				gf_filter_pck_set_property(dst, GF_PROP_PCK_SENDER_NTP, NULL);
+
+			//change packet times
+			if (ds->force_timescale) {
+				dasher_update_pck_times(ds, dst);
+			}
+
+			ds->cumulated_dur += dur;
+
+			//send packet
+			gf_filter_pck_send(dst);
+
+			//drop packet if not spliting
+			if (!ds->split_dur_next)
+				gf_filter_pid_drop_packet(ds->ipid);
 		}
 	}
 	nb_init=0;
@@ -3100,6 +3158,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(subdur), "specifies maximum duration of the input file to be segmentated. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.", GF_PROP_DOUBLE, "0", NULL, GF_FALSE},
 	{ OFFS(ast), "for live mode, sets start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(state), "path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(split), "enables cloning samples for text/metadata/scene description streams, marking further clones as redundant", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{0}
 };
 
