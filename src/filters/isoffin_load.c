@@ -215,11 +215,12 @@ void isor_declare_objects(ISOMReader *read)
 
 			gf_odf_desc_del((GF_Descriptor *)an_esd);
 		} else {
+			Bool load_default = GF_FALSE;
 			lang_desc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 			gf_isom_get_media_language(read->mov, i+1, &lang_desc->full_lang_code);
 
-//			codec_id = m_subtype;
 			if (!streamtype) streamtype = gf_codecid_type(m_subtype);
+			codec_id = 0;
 
 			switch (m_subtype) {
 			case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -281,10 +282,32 @@ void isor_declare_objects(ISOMReader *read)
 			case GF_ISOM_SUBTYPE_3GP_DIMS:
 				codec_id = GF_CODECID_DIMS;
 				break;
+			case GF_ISOM_SUBTYPE_TEXT:
+			case GF_ISOM_SUBTYPE_TX3G:
+			{
+				GF_TextSampleDescriptor *txtcfg = NULL;
+				codec_id = GF_CODECID_TX3G;
+				e = gf_isom_get_text_description(read->mov, i+1, 1, &txtcfg);
+				if (e) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d unable to fetch TX3G config\n", i+1));
+				}
+				if (txtcfg) {
+					gf_odf_tx3g_write(txtcfg, &dsi, &dsi_size);
+					gf_odf_desc_del((GF_Descriptor *) txtcfg);
+				}
+			}
+				break;
 			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", i+1, gf_4cc_to_str(m_subtype) ));
+				load_default = GF_TRUE;
+				break;
+			}
+			
+			if (load_default) {
+				if (!codec_id) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", i+1, gf_4cc_to_str(m_subtype) ));
 
-				codec_id = m_subtype;
+					codec_id = m_subtype;
+				}
 				udesc = gf_isom_get_generic_sample_description(read->mov, i+1, 1);
 				if (udesc) {
 					dsi = udesc->extension_buf;
@@ -292,10 +315,7 @@ void isor_declare_objects(ISOMReader *read)
 					udesc->extension_buf = NULL;
 					udesc->extension_buf_size = 0;
 				}
-				break;
 			}
-
-
 		}
 		if (!streamtype || !codec_id) {
 			if (udesc) gf_free(udesc);

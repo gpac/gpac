@@ -106,6 +106,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_META_XML, 0, GF_STREAM_METADATA, "Metadata XML Stream", "mxml", "metx"},
 	{GF_CODECID_SUBS_TEXT, 0, GF_STREAM_TEXT, "Subtitle text Stream", "subs", "sbtt"},
 	{GF_CODECID_SUBS_XML, 0, GF_STREAM_TEXT, "Subtitle XML Stream", "subx", "stpp"},
+	{GF_CODECID_TX3G, 0, GF_STREAM_TEXT, "Subtitle/text 3GPP/Apple Stream", "tx3g", "tx3g"},
 	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theora", NULL},
 	{GF_CODECID_VORBIS, 0, GF_STREAM_AUDIO, "Vorbis Audio", "vorbis", NULL},
 	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", NULL},

@@ -1022,6 +1022,10 @@ sample_entry_setup:
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		txtc = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!txtc) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to parse TX3G config\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 
 		if (!txtc->default_pos.right) txtc->default_pos.right = width + txtc->default_pos.left;
 		if (!txtc->default_pos.bottom) txtc->default_pos.bottom = height + txtc->default_pos.top;
