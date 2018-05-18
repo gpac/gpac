@@ -234,8 +234,8 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			}
 		}
 
-		if ((info->crypt_type == GF_CRYPT_CBC1_CRYPT_TYPE) && (tkc->IV_size == 8)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using AES-128 CBC: IV_size should be 16\n"));
+		if ((tkc->IV_size != 0) && (tkc->IV_size != 8) && (tkc->IV_size != 16)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] wrong IV size %d for AES-128, using 16\n", (u32) tkc->IV_size));
 			tkc->IV_size = 16;
 		}
 
