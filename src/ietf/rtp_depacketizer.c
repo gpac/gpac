@@ -1468,18 +1468,22 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		}
 		a_tx3g = tx3g;
 		gf_bs_write_u8(bs, nb_desc);
+		nb_desc = 1;
 		while (1) {
 			char *next_tx3g, szOut[1000];
-			u32 len;
-			strcpy(a_tx3g, tx3g);
+			u32 len, s_len;
 			next_tx3g = strchr(a_tx3g, ',');
-			if (next_tx3g) next_tx3g[0] = 0;
-			len = gf_base64_decode(a_tx3g, (u32) strlen(a_tx3g), szOut, 1000);
+			if (next_tx3g) s_len = next_tx3g - a_tx3g - 1;
+			else s_len = strlen(a_tx3g);
+
+			len = gf_base64_decode(a_tx3g, s_len, szOut, 1000);
+			nb_desc++;
 			gf_bs_write_data(bs, szOut, len);
-			tx3g = strchr(tx3g, ',');
-			if (!tx3g) break;
-			tx3g += 1;
-			while (tx3g[0] == ' ') tx3g += 1;
+			if (!next_tx3g) break;
+			a_tx3g = strchr(a_tx3g, ',');
+			if (!a_tx3g) break;
+			a_tx3g += 1;
+			while (a_tx3g[0] == ' ') a_tx3g += 1;
 		}
 
 		/*write video cfg*/
