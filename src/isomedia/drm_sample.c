@@ -562,7 +562,7 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
 
-	if (trak->sample_encryption) return GF_TRUE;
+//	if (trak->sample_encryption) return GF_TRUE;
 
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
@@ -572,7 +572,7 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 	if (!sinf) return GF_FALSE;
 
 	/*non-encrypted or non-CENC*/
-	if (!sinf->info || !sinf->info->tenc)
+	if (!sinf->info || !sinf->info->tenc || !sinf->scheme_type)
 		return GF_FALSE;
 
 	//TODO: validate the fields in tenc for each scheme type
@@ -779,10 +779,6 @@ GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber)
 		gf_list_del(stbl->other_boxes);
 		stbl->other_boxes = NULL;
 	}
-	if (trak->sample_encryption) {
-		gf_isom_box_del((GF_Box *)trak->sample_encryption);
-		trak->sample_encryption = NULL;
-	}
 	for (i = 0; i < gf_list_count(trak->other_boxes); i++) {
 		GF_Box *a = (GF_Box *)gf_list_get(trak->other_boxes, i);
 		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
@@ -920,7 +916,8 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	u32  i;
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIZ);
-		senc->cenc_saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
+		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
+		senc->cenc_saiz->aux_info_type = 0;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
 		if (stbl)
 			stbl_AddBox((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz);
@@ -931,7 +928,8 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
 		senc->cenc_saio->version = 1;
-		senc->cenc_saio->aux_info_type = GF_ISOM_CENC_SCHEME;
+		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
+		senc->cenc_saio->aux_info_type = 0;
 		senc->cenc_saio->aux_info_type_parameter = 0;
 		senc->cenc_saio->entry_count = 1;
 		if (stbl)
@@ -1058,7 +1056,7 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 	gf_free(samp);
 }
 
-Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
+Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 scheme_type)
 {
 	u32 i, c1, c2;
 	GF_List *sai_sizes, *sai_offsets;
@@ -1085,13 +1083,19 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 	c2 = gf_list_count(sai_offsets);
 	for (i = 0; i < c1; i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(sai_sizes, i);
+		u32 saiz_aux_info_type = saiz->aux_info_type;
+		if (!saiz_aux_info_type) saiz_aux_info_type = scheme_type;
 
-		if (!saiz->aux_info_type && (c1==1) && (c2==1)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saiz box without flags nor cenc type, assuming cenc\n"));
-			saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
+		if (!saiz_aux_info_type && (c1==1) && (c2==1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saiz box without flags nor aux info type and no default scheme, ignoring\n"));
+			continue;
 		}
 
-		if (saiz->aux_info_type == GF_ISOM_CENC_SCHEME) {
+		switch (saiz_aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
 			has_saiz = GF_TRUE;
 			break;
 		}
@@ -1099,28 +1103,34 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 
 	for (i = 0; i < c2; i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(sai_offsets, i);
-		if (!saio->aux_info_type && (c1==1) && (c2==1)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saio box without flags nor cenc type, assuming cenc\n"));
-			saio->aux_info_type = GF_ISOM_CENC_SCHEME;
+		u32 saio_aux_info_type = saio->aux_info_type;
+		if (!saio_aux_info_type) saio_aux_info_type = scheme_type;
+
+		if (!saio_aux_info_type && (c1==1) && (c2==1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saio box without flags nor aux info type and no default scheme, ignoring\n"));
+			continue;
 		}
-		if (saio->aux_info_type == GF_ISOM_CENC_SCHEME) {
+		switch (saio_aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
 			has_saio = GF_TRUE;
 			break;
 		}
 	}
-
 	return (has_saiz && has_saio);
 }
 
-Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl)
+Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl, u32 scheme_type)
 {
-	return gf_isom_cenc_has_saiz_saio_full(stbl, NULL);
+	return gf_isom_cenc_has_saiz_saio_full(stbl, NULL, scheme_type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf)
+Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type)
 {
-	return gf_isom_cenc_has_saiz_saio_full(NULL, traf);
+	return gf_isom_cenc_has_saiz_saio_full(NULL, traf, scheme_type);
 }
 #endif
 
@@ -1193,7 +1203,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	u32 type;
 	GF_CENCSampleAuxInfo *a_sai;
 	u8 IV_size;
-	u32 is_Protected;
+	u32 is_Protected, scheme_type;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -1225,7 +1235,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 		gf_isom_cenc_samp_aux_info_del(*sai);
 		*sai = NULL;
 	}
-
+	gf_isom_get_cenc_info(the_file, trackNumber, 1, NULL, &scheme_type, NULL, NULL);
 	gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sampleNumber, &is_Protected, &IV_size, NULL, NULL, NULL, NULL, NULL);
 	if (!is_Protected) {
 		GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
@@ -1233,7 +1243,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-	if (IV_size && gf_isom_cenc_has_saiz_saio_track(stbl)) {
+	if (IV_size && gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
 		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, IV_size, sai);
 	}
 	//senc is not loaded by default, do it now
