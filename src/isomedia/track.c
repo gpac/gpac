@@ -415,7 +415,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
 {
-	u32 i, j, chunk_size;
+	u32 i, j, chunk_size, track_num;
 	u64 base_offset, data_offset;
 	u32 def_duration, DescIndex, def_size, def_flags;
 	u32 duration, size, flags, cts_offset, prev_trun_data_offset;
@@ -657,11 +657,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	}
 
 	/*content is encrypted*/
-	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)
+	track_num = gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID);
+	if (gf_isom_is_cenc_media(trak->moov->mov, track_num, 1)
 		|| traf->sample_encryption) {
 		/*Merge sample auxiliary encryption information*/
 		GF_SampleEncryptionBox *senc = NULL;
 		GF_List *sais = NULL;
+		u32 scheme_type;
+		gf_isom_get_cenc_info(trak->moov->mov, track_num, 1, NULL, &scheme_type, NULL, NULL);
 
 		if (traf->sample_encryption) {
 			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
@@ -690,13 +693,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
 
 				trak->sample_encryption = senc;
+				gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
 			}
 
 			sais = traf->sample_encryption->samp_aux_info;
 		}
 
 		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-		if (gf_isom_cenc_has_saiz_saio_traf(traf)) {
+		if (gf_isom_cenc_has_saiz_saio_traf(traf, scheme_type)) {
 			u32 size, nb_saio;
 			u64 offset;
 			GF_Err e;

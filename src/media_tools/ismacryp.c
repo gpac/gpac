@@ -227,6 +227,11 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			else if (!stricmp(att->name, "encryptSliceHeader")) {
 				tkc->allow_encrypted_slice_header = !strcmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
 			}
+			else if (!stricmp(att->name, "blockAlign")) {
+				if (!strcmp(att->value, "disable")) tkc->block_align = 1;
+				if (!strcmp(att->value, "always")) tkc->block_align = 2;
+				else tkc->block_align = 0;
+			}
 		}
 
 		if ((info->crypt_type == GF_CRYPT_CBC1_CRYPT_TYPE) && (tkc->IV_size == 8)) {
@@ -243,10 +248,9 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 
 		if ((info->crypt_type == GF_CRYPT_CENS_CRYPT_TYPE) || (info->crypt_type == GF_CRYPT_CBCS_CRYPT_TYPE)) {
 			if (!tkc->crypt_byte_block || !tkc->skip_byte_block) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 2 crypt + 8 skip\n"));
-
-				tkc->crypt_byte_block = 2;
-				tkc->skip_byte_block = 8;
+				tkc->crypt_byte_block = 1;
+				tkc->skip_byte_block = 9;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using %d crypt + %d skip\n", tkc->crypt_byte_block, tkc->skip_byte_block));
 			}
 		}
 
@@ -949,8 +953,10 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			case GF_AVC_NALU_IDR_SLICE:
 			case GF_AVC_NALU_SLICE_AUX:
 			case GF_AVC_NALU_SVC_SLICE:
+				//skip bits till alignment
 				gf_bs_align(plaintext_bs);
-				clear_bytes = gf_bs_get_position(plaintext_bs) - nal_start;
+				//position is now on the last byte read after align, so we need +1 to get next byte after end of slice
+				clear_bytes = 1 + gf_bs_get_position(plaintext_bs) - nal_start;
 				break;
 			default:
 				clear_bytes = nal_size;
@@ -983,10 +989,12 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 }
 
 static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
-										 u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block) {
+										 u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block)
+{
 	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
+	GF_CENCSubSampleEntry *prev_entry=NULL;
 	char *buffer;
-	u32 max_size, size;
+	u32 max_size, nalu_size;
 	GF_Err e = GF_OK;
 	GF_List *subsamples;
 
@@ -1006,36 +1014,50 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	while (gf_bs_available(plaintext_bs)) {
 		if (is_nalu_video) {
 			u32 clear_bytes = 0;
-			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
-			size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
-			if (0 == size) {
+			nalu_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
+			if (nalu_size == 0) {
 				continue;
 			}
-			if (size>max_size) {
-				buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
-				max_size = size;
+			if (nalu_size > max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*nalu_size);
+				max_size = nalu_size;
 			}
 
-	 		clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, size, bytes_in_nalhr);
-			//cens, adjust so that encrypted bytes are a multiple of 16 bytes
-			if ((size > clear_bytes) && crypt_byte_block && skip_byte_block) {
-				u32 ret = (size - clear_bytes) % 16;
-				clear_bytes += ret;
+	 		clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nalu_size, bytes_in_nalhr);
+			// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
+			if (nalu_size > clear_bytes) {
+				u32 ret = (nalu_size - clear_bytes) % 16;
+				//for CENC (should),
+				if (tci->cenc_scheme_type == GF_CRYPT_CENC_CRYPT_TYPE) {
+				 	//do it if not disabled by user
+					if (tci->block_align != 1) {
+						//always align even if sample is not encrypted in the end
+						if (tci->block_align==2) {
+							clear_bytes += ret;
+						}
+						//or if we don't end up with sample in the clear
+						else if (nalu_size > clear_bytes + ret) {
+							clear_bytes += ret;
+						}
+					}
+				} else {
+					clear_bytes += ret;
+				}
 			}
 
 			/*read clear data and transfer to output*/
 			gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
-			gf_bs_write_int(cyphertext_bs, size, 8*nalu_size_length);
+			gf_bs_write_int(cyphertext_bs, nalu_size, 8*nalu_size_length);
 			gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
 
 			//read data to encrypt
-			if (size > clear_bytes) {
-				gf_bs_read_data(plaintext_bs, buffer, size-clear_bytes);
+			if (nalu_size > clear_bytes) {
+				gf_bs_read_data(plaintext_bs, buffer, nalu_size - clear_bytes);
 
 				//pattern encryption
 				if (crypt_byte_block && skip_byte_block) {
 					u32 pos = 0;
-					u32 res = size - clear_bytes;
+					u32 res = nalu_size - clear_bytes;
 					while (res) {
 						gf_crypt_encrypt(mc, buffer+pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
 						if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
@@ -1046,15 +1068,22 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						}
 					}
 				} else {
-					gf_crypt_encrypt(mc, buffer, size - clear_bytes);
+					gf_crypt_encrypt(mc, buffer, nalu_size - clear_bytes);
 				}
 
 				/*write encrypted data to bitstream*/
-				gf_bs_write_data(cyphertext_bs, buffer, size - clear_bytes);
+				gf_bs_write_data(cyphertext_bs, buffer, nalu_size - clear_bytes);
 			}
-			entry->bytes_clear_data = nalu_size_length + clear_bytes;
-			entry->bytes_encrypted_data = size - clear_bytes;
-			gf_list_add(subsamples, entry);
+			//prev entry is not a VCL, append this NAL
+			if (prev_entry && !prev_entry->bytes_encrypted_data) {
+				prev_entry->bytes_clear_data += nalu_size_length + clear_bytes;
+				prev_entry->bytes_encrypted_data += nalu_size - clear_bytes;
+			} else {
+				prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+				prev_entry->bytes_clear_data = nalu_size_length + clear_bytes;
+				prev_entry->bytes_encrypted_data = nalu_size - clear_bytes;
+				gf_list_add(subsamples, prev_entry);
+			}
 		} else {
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
 			gf_crypt_encrypt(mc, buffer, samp->dataLength);
@@ -1094,6 +1123,7 @@ exit:
 static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block) {
 	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
+	GF_CENCSubSampleEntry *prev_entry = NULL;
 	char *buffer;
 	u32 max_size, nal_size;
 	GF_Err e = GF_OK;
@@ -1117,7 +1147,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		if (is_nalu_video) {
 			u32 clear_bytes = 0;
 			u32 clear_bytes_at_end = 0;
-			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+
 			nal_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
 			if (nal_size+1 > max_size) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*(nal_size+1));
@@ -1128,12 +1158,13 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 			clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nal_size, bytes_in_nalhr);
 
-			//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
-			//in cbcs, we don't and leave the last block unencrypted
+			//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
 			if (tci->cenc_scheme_type == GF_CRYPT_CBCS_CRYPT_TYPE) {
 				u32 ret = (nal_size-clear_bytes) % 16;
 				clear_bytes_at_end = ret;
-			} else {
+			}
+			//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
+			else {
 				u32 ret = (nal_size-clear_bytes) % 16;
 				clear_bytes += ret;
 				clear_bytes_at_end = 0;
@@ -1146,37 +1177,44 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				//read the bytes to be encrypted
 				gf_bs_read_data(plaintext_bs, buffer, nal_size - clear_bytes);
 
-				if (nal_size - bytes_in_nalhr >= 16) {
-					//in cbcs scheme: start each Subsample with a Constant IV,
-					if (!IV_size)
-						gf_crypt_set_state(mc, IV, 16);
-					//pattern encryption
-					if (crypt_byte_block && skip_byte_block) {
-						u32 pos = 0;
-						u32 res = nal_size - clear_bytes - clear_bytes_at_end;
-						assert((res % 16) == 0);
+				//in cbcs scheme: start each Subsample with a Constant IV,
+				if (!IV_size)
+					gf_crypt_set_state(mc, IV, 16);
+				//pattern encryption
+				if (crypt_byte_block && skip_byte_block) {
+					u32 pos = 0;
+					u32 res = nal_size - clear_bytes - clear_bytes_at_end;
+					assert((res % 16) == 0);
 
-						while (res) {
-							gf_crypt_encrypt(mc, buffer + pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
-							if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
-								pos += 16 * (crypt_byte_block + skip_byte_block);
-								res -= 16 * (crypt_byte_block + skip_byte_block);
-							} else {
-								res = 0;
-							}
+					while (res) {
+						gf_crypt_encrypt(mc, buffer + pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
+						if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
+							pos += 16 * (crypt_byte_block + skip_byte_block);
+							res -= 16 * (crypt_byte_block + skip_byte_block);
+						} else {
+							res = 0;
 						}
-					} else {
-						gf_crypt_encrypt(mc, buffer, nal_size - clear_bytes - clear_bytes_at_end);
 					}
-					//write the cyphered data, including the non encrypted bytes at the end of the block
-					gf_bs_write_data(cyphertext_bs, buffer, nal_size - clear_bytes);
+				} else {
+					gf_crypt_encrypt(mc, buffer, nal_size - clear_bytes - clear_bytes_at_end);
 				}
+				//write the cyphered data, including the non encrypted bytes at the end of the block
+				gf_bs_write_data(cyphertext_bs, buffer, nal_size - clear_bytes);
 			}
 
-			entry->bytes_clear_data = nalu_size_length + clear_bytes;
-			//note that we write encrypted data to cover the complete byte range after the slice header, but the last incomplete block might be unencrypted as per the spec
-			entry->bytes_encrypted_data = (nal_size - clear_bytes >= 16) ? nal_size - clear_bytes : 0  ;
-			gf_list_add(subsamples, entry);
+			//note that we write encrypted data to cover the complete byte range after the slice header
+			//but the last incomplete block might be unencrypted, but is still signaled in bytes_encrypted, as per the spec
+
+			//prev entry is not a VCL, append this NAL
+			if (prev_entry && !prev_entry->bytes_encrypted_data) {
+				prev_entry->bytes_clear_data += nalu_size_length + clear_bytes;
+				prev_entry->bytes_encrypted_data += nal_size - clear_bytes;
+			} else {
+				prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+				prev_entry->bytes_clear_data = nalu_size_length + clear_bytes;
+				prev_entry->bytes_encrypted_data = nal_size - clear_bytes;
+				gf_list_add(subsamples, prev_entry);
+			}
 		} else {
 			u32 clear_trailing;
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
@@ -1242,16 +1280,16 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	GF_ISOSample *samp;
 	GF_Crypt *mc;
 	Bool all_rap = GF_FALSE;
-	u32 i, count, di, track, len, nb_samp_encrypted, nalu_size_length, idx, bytes_in_nalhr;
+	u32 i, count, di, track, saiz_len, nb_samp_encrypted, nalu_size_length, idx, bytes_in_nalhr;
 	GF_ESD *esd;
 	Bool has_crypted_samp;
 	Bool is_nalu_video = GF_FALSE;
-	char *buf;
+	char *saiz_buf;
 	GF_BitStream *bs;
 
 	nalu_size_length = 0;
 	mc = NULL;
-	buf = NULL;
+	saiz_buf = NULL;
 	bs = NULL;
 	bytes_in_nalhr = 0;
 
@@ -1375,7 +1413,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i = 0; i < count; i++) {
-		len=0;
+		saiz_len=0;
 		samp = gf_isom_get_sample(mp4, track, i+1, &di);
 		if (!samp)
 		{
@@ -1390,7 +1428,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
 				if (e)
 					goto exit;
-				buf = NULL;
+				saiz_buf = NULL;
 
 				//already done: memset(tmp, 0, 16);
 				memset(NULL_IV, 0, 16);
@@ -1407,7 +1445,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
 				if (e)
 					goto exit;
-				buf = NULL;
+				saiz_buf = NULL;
 
 				memset(NULL_IV, 0, 16);
 				e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, NULL_IV, 0, 0, 0, NULL);
@@ -1423,7 +1461,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
 				if (e)
 					goto exit;
-				buf = NULL;
+				saiz_buf = NULL;
 
 				memset(NULL_IV, 0, 16);
 				e = gf_isom_set_sample_cenc_group(mp4, track, i + 1, 0, 0, NULL_IV, 0, 0, 0, NULL);
@@ -1490,25 +1528,25 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		if (e) goto exit;
 
 		if (tci->ctr_mode)
-			gf_cenc_encrypt_sample_ctr(mc, tci, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &buf, &len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			gf_cenc_encrypt_sample_ctr(mc, tci, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
 		else {
 			//in cbcs scheme, Per_Sample_IV_size is 0; use constant IV
 			if (tci->IV_size) {
 				int IV_size = 16;
 				gf_crypt_get_state(mc, IV, &IV_size);
 			}
-			gf_cenc_encrypt_sample_cbc(mc, tci, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &buf, &len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			gf_cenc_encrypt_sample_cbc(mc, tci, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
 		}
 
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
 		samp = NULL;
 
-		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, tci->IV_size, buf, len);
+		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, tci->IV_size, saiz_buf, saiz_len);
 		if (e)
 			goto exit;
-		gf_free(buf);
-		buf = NULL;
+		gf_free(saiz_buf);
+		saiz_buf = NULL;
 
 		nb_samp_encrypted++;
 		gf_set_progress("CENC Encrypt", i+1, count);
@@ -1519,7 +1557,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 exit:
 	if (samp) gf_isom_sample_del(&samp);
 	if (mc) gf_crypt_close(mc);
-	if (buf) gf_free(buf);
+	if (saiz_buf) gf_free(saiz_buf);
 	if (bs) gf_bs_del(bs);
 	return e;
 }
