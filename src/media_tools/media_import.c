@@ -5570,6 +5570,8 @@ restart_import:
 
 		if (min_cts_offset > 0) {
 			gf_isom_shift_cts_offset(import->dest, track, (s32)min_cts_offset);
+			max_cts -= min_cts_offset;
+			min_cts -= min_cts_offset;
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, GF_FALSE);
