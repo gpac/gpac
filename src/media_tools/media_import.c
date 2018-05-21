@@ -3754,7 +3754,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			if (strlen(szMediaTemp)) {
 				f = gf_fopen(szMediaTemp, "rb");
 				if (!f) {
-					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
+					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, szMediaTemp);
 					goto exit;
 				}
 				close = GF_TRUE;
