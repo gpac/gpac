@@ -859,7 +859,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	Width = Height = 0;
 	gf_isom_sdp_clean_track(tkHint->file, tkHint->TrackNum);
     mtype = gf_isom_get_media_type(tkHint->file, tkHint->TrackNum);
-    if (mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV)
+    if (gf_isom_is_video_subtype(mtype))
 		gf_isom_get_visual_info(tkHint->file, tkHint->TrackNum, 1, &Width, &Height);
 
 	gf_rtp_builder_get_payload_name(tkHint->rtp_p, payloadName, mediaName);

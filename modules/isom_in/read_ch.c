@@ -683,6 +683,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		switch (mtype) {
 		case GF_ISOM_MEDIA_VISUAL:
         case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			//code is here as a reminder, but by default we use inband param set extraction so no need for it
 #if 0
 			if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {

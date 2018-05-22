@@ -105,6 +105,7 @@ void isor_declare_objects(ISOMReader *read)
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
         case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_SUBPIC:
@@ -144,7 +145,7 @@ void isor_declare_objects(ISOMReader *read)
 			}
 		}
 
-		if ((mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) && !highest_stream)
+		if (gf_isom_is_video_subtype(mtype) && !highest_stream)
 			continue;
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (esd) {
@@ -256,7 +257,7 @@ void isor_declare_objects(ISOMReader *read)
                     u32 mtype = gf_isom_get_media_type(read->mov, i+1);
 					if (!gf_isom_is_track_enabled(read->mov, i+1))
 						continue;
-					if (mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) {
+					if (gf_isom_is_video_subtype(mtype) ) {
 						isom_contains_video = GF_TRUE;
 						break;
 					}

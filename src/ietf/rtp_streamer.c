@@ -535,6 +535,7 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_VISUAL:
         case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			gf_isom_get_track_layout_info(file, i+1, &w, &h, &tx, &ty, &l);
 			if (w>m_w) m_w = w;
 			if (h>m_h) m_h = h;

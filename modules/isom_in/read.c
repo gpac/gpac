@@ -587,7 +587,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
 			u32 type = gf_isom_get_media_type(read->mov, i+1);
 			if (
-			    ((type==GF_ISOM_MEDIA_VISUAL||type==GF_ISOM_MEDIA_AUXV) && (expect_type==GF_MEDIA_OBJECT_VIDEO))
+			    (gf_isom_is_video_subtype(type) && (expect_type==GF_MEDIA_OBJECT_VIDEO))
 			    || ((type==GF_ISOM_MEDIA_AUDIO) && (expect_type==GF_MEDIA_OBJECT_AUDIO)) ) {
 				trackID = gf_isom_get_track_id(read->mov, i+1);
 				break;
@@ -807,8 +807,9 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		case GF_ISOM_MEDIA_SCENE:
 			ch->streamType = GF_STREAM_SCENE;
 			break;
-        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			gf_isom_get_reference(ch->owner->mov, ch->track, GF_ISOM_REF_BASE, 1, &ch->base_track);
 			//use base track only if avc/svc or hevc/lhvc. If avc+lhvc we need different rules
 			if (gf_isom_get_avc_svc_type(ch->owner->mov, ch->base_track, 1) == GF_ISOM_AVCTYPE_AVC_ONLY) {
