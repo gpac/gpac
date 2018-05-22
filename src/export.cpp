@@ -859,6 +859,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_oinf_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_video_subtype) )
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )

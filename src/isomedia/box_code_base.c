@@ -3893,15 +3893,19 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 			/*HACK for QT files: get the esds box from the track*/
 		{
 			GF_UnknownBox *wave = (GF_UnknownBox *)a;
- 			if (wave->original_4cc == GF_ISOM_BOX_TYPE_WAVE) {
-                for (int i =0; i < gf_list_count(wave->other_boxes); i++) {
+			//wave subboxes may have been properly parsed
+ 			if ((wave->original_4cc == GF_ISOM_BOX_TYPE_WAVE) && gf_list_count(wave->other_boxes)) {
+ 				u32 i;
+                for (i =0; i<gf_list_count(wave->other_boxes); i++) {
                     GF_Box *inner_box = (GF_Box *)gf_list_get(wave->other_boxes, i);
                     if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
                         ptr->esd = (GF_ESDBox *)inner_box;
                     }
                 }
                 return gf_isom_box_add_default(s, a);
-            } else if (wave->data != NULL) {
+            }
+            //unknown fomat, look for 'es' (esds) and try to parse box
+            else if (wave->data != NULL) {
                 u32 offset = 0;
                 while ((wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
                     offset++;
@@ -6851,6 +6855,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		switch (trak->Media->handler->handlerType) {
         case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUXV:
+		case GF_ISOM_MEDIA_PICT:
 		{
 			GF_GenericVisualSampleEntryBox *genv;
 			/*remove entry*/

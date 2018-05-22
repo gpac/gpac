@@ -171,7 +171,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		}
 		w = h = 0;
         mtype = gf_isom_get_media_type(streamer->isom, track->track_num);
-		if (mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) {
+		if (gf_isom_is_video_subtype(mtype)) {
 			gf_isom_get_visual_info(streamer->isom, track->track_num, 1, &w, &h);
 		}
 
@@ -477,8 +477,9 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		switch (TrackMediaType) {
 		case GF_ISOM_MEDIA_TEXT:
 			break;
-        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_OD:

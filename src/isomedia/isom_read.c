@@ -238,7 +238,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	trak->Media->mediaHeader->timeScale = timescale;
 
 	trak->Media->handler = (GF_HandlerBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
-    // TODO Should the following be modified to care for GF_ISOM_MEDIA_AUXV
+    //we assume by default vide for handler type (only used for smooth streaming)
 	trak->Media->handler->handlerType = width ? GF_ISOM_MEDIA_VISUAL : GF_ISOM_MEDIA_AUDIO;
 
 	trak->Media->information = (GF_MediaInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MINF);
@@ -3247,8 +3247,8 @@ void gf_isom_set_default_sync_track(GF_ISOFile *movie, u32 trackNumber)
 GF_EXPORT
 Bool gf_isom_is_single_av(GF_ISOFile *file)
 {
-	u32 count, i, nb_any, nb_a, nb_v, nb_auxv, nb_scene, nb_od, nb_text;
-	nb_auxv = nb_a = nb_v = nb_any = nb_scene = nb_od = nb_text = 0;
+	u32 count, i, nb_any, nb_a, nb_v, nb_auxv, nb_pict, nb_scene, nb_od, nb_text;
+	nb_auxv = nb_pict = nb_a = nb_v = nb_any = nb_scene = nb_od = nb_text = 0;
 
 	if (!file->moov) return GF_FALSE;
 	count = gf_isom_get_track_count(file);
@@ -3275,6 +3275,11 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
             if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
             else nb_auxv++;
             break;
+        case GF_ISOM_MEDIA_PICT:
+            /*discard file with images*/
+            if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
+            else nb_pict++;
+            break;
 		case GF_ISOM_MEDIA_VISUAL:
 			/*discard file with images*/
 			if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
@@ -3286,7 +3291,7 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 		}
 	}
 	if (nb_any) return GF_FALSE;
-	if ((nb_scene<=1) && (nb_od<=1) && (nb_a<=1) && (nb_v<=1) && (nb_text<=1) ) return GF_TRUE;
+	if ((nb_scene<=1) && (nb_od<=1) && (nb_a<=1) && (nb_v+nb_pict+nb_auxv<=1) && (nb_text<=1) ) return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -3299,9 +3304,9 @@ Bool gf_isom_is_JPEG2000(GF_ISOFile *mov)
 GF_EXPORT
 u32 gf_isom_guess_specification(GF_ISOFile *file)
 {
-	u32 count, i, nb_any, nb_m4s, nb_a, nb_v, nb_auxv,nb_scene, nb_od, nb_mp3, nb_aac, nb_m4v, nb_avc, nb_amr, nb_h263, nb_qcelp, nb_evrc, nb_smv, nb_text;
+	u32 count, i, nb_any, nb_m4s, nb_a, nb_v, nb_auxv,nb_scene, nb_od, nb_mp3, nb_aac, nb_m4v, nb_avc, nb_amr, nb_h263, nb_qcelp, nb_evrc, nb_smv, nb_text, nb_pict;
 
-	nb_m4s = nb_a = nb_v = nb_auxv = nb_any = nb_scene = nb_od = nb_mp3 = nb_aac = nb_m4v = nb_avc = nb_amr = nb_h263 = nb_qcelp = nb_evrc = nb_smv = nb_text = 0;
+	nb_m4s = nb_a = nb_v = nb_auxv = nb_any = nb_scene = nb_od = nb_mp3 = nb_aac = nb_m4v = nb_avc = nb_amr = nb_h263 = nb_qcelp = nb_evrc = nb_smv = nb_text = nb_pict = 0;
 
 	if (file->is_jp2) {
 		if (file->moov) return GF_ISOM_BRAND_MJP2;
@@ -3327,7 +3332,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_m4s++;
 		}
 		else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) nb_text++;
-		else if ((mtype==GF_ISOM_MEDIA_AUDIO) || (mtype==GF_ISOM_MEDIA_VISUAL) || (mtype==GF_ISOM_MEDIA_AUXV)) {
+		else if ((mtype==GF_ISOM_MEDIA_AUDIO) || gf_isom_is_video_subtype(mtype) ) {
 			switch (mstype) {
 			case GF_ISOM_SUBTYPE_3GP_AMR:
 			case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -3398,10 +3403,11 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 				}
 				gf_odf_desc_del((GF_Descriptor *)dcd);
 			}
-			break;
+				break;
 			default:
 				if (mtype==GF_ISOM_MEDIA_VISUAL) nb_v++;
-                    if (mtype==GF_ISOM_MEDIA_AUXV) nb_auxv++;
+				else if (mtype==GF_ISOM_MEDIA_AUXV) nb_auxv++;
+				else if (mtype==GF_ISOM_MEDIA_PICT) nb_pict++;
 				else nb_a++;
 				break;
 			}
@@ -4240,6 +4246,19 @@ Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPoints
 	*ptr = (GF_OperatingPointsInformation *) gf_isom_get_sample_group_info_entry(file, trak, GF_ISOM_SAMPLE_GROUP_OINF, 1, &def_index, NULL);
 
 	return *ptr ? GF_TRUE : GF_FALSE;
+}
+
+GF_EXPORT
+Bool gf_isom_is_video_subtype(u32 mtype)
+{
+	switch (mtype) {
+	case GF_ISOM_MEDIA_VISUAL:
+	case GF_ISOM_MEDIA_AUXV:
+	case GF_ISOM_MEDIA_PICT:
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
