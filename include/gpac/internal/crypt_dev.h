@@ -32,95 +32,42 @@ extern "C" {
 
 #include <gpac/crypt.h>
 
+/*private - do not use*/
+struct _gf_crypt_context
+{
+	GF_CRYPTO_ALGO algo;
+	GF_CRYPTO_MODE mode;
+	u32 mode_version;
 
-	/*the smallest version of the lib: only AES-128-CTR and AES-CBC supported*/
-#define GPAC_CRYPT_ISMA_ONLY
+	/* Internal context for openSSL or tiny AES*/
+	void *context;
+	/* holds the key passed */
+	u8 in_keyword[128];
 
+	/*modes access*/
+	GF_Err(*_init_crypt) (GF_Crypt *ctx, void*, const void*);
+	void(*_deinit_crypt) (GF_Crypt *ctx);
+	void(*_end_crypt) (GF_Crypt *ctx);
+	void(*_set_key)(GF_Crypt *ctx);
+	GF_Err(*_crypt) (GF_Crypt *ctx, u8 *buffer, u32 size);
+	GF_Err(*_decrypt) (GF_Crypt*, u8 *buffer, u32 size);
+	GF_Err(*_set_state) (GF_Crypt*, const u8 *IV, u32 IV_size);
+	GF_Err(*_get_state) (GF_Crypt*, u8 *IV, u32 *IV_size);
 
-	typedef void(*mcryptfunc)(void*, void*);
-	typedef GF_Err(*mcrypt_setkeystream)(void *, const void *, int, const void *, int);
-	typedef GF_Err(*mcrypt_setkeyblock) (void *, const void *, int);
-	typedef GF_Err(*mcrypt_docrypt) (void *, const void *, int);
+	/*all below are static vars for mode and algo - sizes are in bytes*/
+	u32 algo_block_size;
+	u32 key_size;
+	u32 algo_IV_size;
 
-	/*private - do not use*/
-	typedef struct _tag_crypt_stream
-	{
-		GF_CRYPTO_ALGO algo;
-		GF_CRYPTO_MODE mode;
-		u32 mode_version;
+	u32 mode_size;
+	Bool is_block_algo, is_block_algo_mode, is_block_mode, has_IV;
+};
 
-		/* Internam context*/
-		void *context;
-		/* holds the key */
-		void *keyword_given;
-
-		/*modes access*/
-		GF_Err(*_init_crypt) (GF_Crypt*, void*, const void*);
-		void(*_deinit_crypt) (GF_Crypt*);
-		void(*_end_crypt) (GF_Crypt*);
-		void(*_set_key)(GF_Crypt*);
-		GF_Err(*_crypt) (GF_Crypt*, void*, int);
-		GF_Err(*_decrypt) (GF_Crypt*, void*, int);
-		GF_Err(*_set_state) (GF_Crypt*, void*, int);
-		GF_Err(*_get_state) (GF_Crypt*, void*, int*);
-
-		/*all below are static vars for mode and algo - sizes are in bytes*/
-		u32 algo_block_size;
-		u32 key_size;
-		u32 algo_IV_size;
-
-		u32 mode_size;
-		Bool is_block_algo, is_block_algo_mode, is_block_mode, has_IV;
-	} GF_CryptStream;
-
-
-#define rotl32(x,n)   (((x) << ((u32)(n))) | ((x) >> (32 - (u32)(n))))
-#define rotr32(x,n)   (((x) >> ((u32)(n))) | ((x) << (32 - (u32)(n))))
-#define rotl16(x,n)   (((x) << ((u16)(n))) | ((x) >> (16 - (u16)(n))))
-#define rotr16(x,n)   (((x) >> ((u16)(n))) | ((x) << (16 - (u16)(n))))
-
-	/* Use hardware rotations.. when available */
-#ifdef swap32
-# define byteswap32(x) swap32(x)
+#ifdef GPAC_HAS_SSL
+GF_Err gf_crypt_open_open_openssl(GF_Crypt* td, GF_CRYPTO_MODE mode);
 #else
-# ifdef swap_32
-#  define byteswap32(x) swap_32(x)
-# else
-#  ifdef bswap_32
-#   define byteswap32(x) bswap_32(x)
-#  else
-#   define byteswap32(x)	((rotl32(x, 8) & 0x00ff00ff) | (rotr32(x, 8) & 0xff00ff00))
-#  endif
-# endif
+GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode);
 #endif
-
-#ifdef swap16
-# define byteswap16(x) swap16(x)
-#else
-# ifdef swap_16
-#  define byteswap16(x) swap_16(x)
-# else
-#  ifdef bswap_16
-#   define byteswap16(x) bswap_16(x)
-#  else
-#   define byteswap16(x)	((rotl16(x, 8) & 0x00ff) | (rotr16(x, 8) & 0xff00))
-#  endif
-# endif
-#endif
-
-	GFINLINE static
-		void memxor(unsigned char *o1, unsigned char *o2, int length)
-	{
-		int i;
-
-		for (i = 0; i < length; i++) {
-			o1[i] ^= o2[i];
-		}
-		return;
-	}
-
-
-#define Bzero(x, y) memset(x, 0, y)
 
 
 #ifdef __cplusplus

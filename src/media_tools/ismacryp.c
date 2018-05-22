@@ -898,12 +898,12 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
 	char next_IV[17];
 	int size = 17;
 
-	gf_crypt_get_state(mc, &next_IV, &size);
+	gf_crypt_get_state(mc, (u8 *) next_IV, &size);
 	/*
 		NOTE 1: the next_IV returned by get_state has 17 bytes, the first byte being the current counter position in the following 16 bytes.
 		If this index is 0, this means that we are at the begining of a new block and we can use it as IV for next sample,
 		otherwise we must discard unsued bytes in the counter (next sample shall begin with counter at 0)
-		if less than 16 blocks were cyphered, we must force inscreasing the next IV for next sample, not doing so would produce the same IV for the next bytes cyphered,
+		if less than 16 blocks were cyphered, we must force increasing the next IV for next sample, not doing so would produce the same IV for the next bytes cyphered,
 		which is forbidden by CENC (unique IV per sample). In GPAC, we ALWAYS force counter increase
 
 		NOTE 2: in case where IV_size is 8, because the cypher block is treated as 16 bytes while processing,
@@ -2304,16 +2304,14 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 		gf_bs_read_data(bs, data, len);
 
 		if (has_key && has_IV && (cypherOffset >= 0) && (cypherMode != 2)) {
-			/*TODO*/
-			GF_Crypt *mc;
-			mc = gf_crypt_open(GF_AES_128, GF_CTR);
-			if (!mc) {
+			GF_Crypt *gc = gf_crypt_open(GF_AES_128, GF_CTR);
+			if (!gc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
 				return GF_IO_ERR;
 			}
-			e = gf_crypt_init(mc, cypherKey, cypherIV);
-			gf_crypt_encrypt(mc, data+cypherOffset, len-cypherOffset);
-			gf_crypt_close(mc);
+			e = gf_crypt_init(gc, cypherKey, cypherIV);
+			gf_crypt_encrypt(gc, data+cypherOffset, len-cypherOffset);
+			gf_crypt_close(gc);
 		}
 		if (!e) e = gf_cenc_set_pssh(mp4, systemID, version, KID_count, KIDs, data, len);
 		if (specInfo) gf_free(specInfo);
