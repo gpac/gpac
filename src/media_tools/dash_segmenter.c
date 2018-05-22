@@ -1853,7 +1853,7 @@ restart_fragmentation_pass:
 					}
 				}
 
-				assert((s32) sample_duration > 0);
+				assert(!next || ((s32) sample_duration > 0));
 
 				if (tf->is_ref_track) {
 					if (segments_start_with_sap && first_sample_in_segment) {

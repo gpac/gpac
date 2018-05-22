@@ -1814,6 +1814,9 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (!odm->codec && odm->subscene) {
 		M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
 
+		if (!dscene)
+			return;
+
 		if (odm->addon && odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {
 			return;
 		}
@@ -2162,7 +2165,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		if (! scene->srd_type) {
 			GF_Node *node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
 			if (node && (((M_Sphere *)node)->radius == FIX_ONE)) {
-				u32 radius = MAX(width, height) / 2;
+				u32 radius = MAX(width, height)/4;
 
 				((M_Sphere *)node)->radius = - INT2FIX(radius);
 				gf_node_changed(node, NULL);

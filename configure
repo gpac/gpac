@@ -1125,8 +1125,8 @@ if docc $CFLAGS_DIR $ft_cflags $ft_lflags $LDFLAGS ; then
 fi
 if test "$cross_prefix" = "" ; then
     if test "$has_ft" = "no" ; then
-        ft_cflags="`freetype-config --cflags 2>>$logs`"
-        ft_lflags="`freetype-config --libs 2>>$logs`"
+        ft_cflags="`pkg-config --cflags freetype2 2>>$logs`"
+        ft_lflags="`pkg-config --libs freetype2 2>>$logs`"
         if docc $ft_cflags $ft_lflags $LDFLAGS ; then
             has_ft="system"
         fi

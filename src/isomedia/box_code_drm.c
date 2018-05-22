@@ -1344,12 +1344,17 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		}
 		//no init movie setup (segment dump/inspaction, assume default encrypted and 16 bytes IV
 		else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] no moov found, cannot get cenc default info, assuming isEncrypted, IV size 16\n" ));
 			is_encrypted = GF_TRUE;
 			sai->IV_size = 16;
 		}
+		//while this would technically be correct, senc mandates that sample_count = all samples in traf/track
+		//regardless of their encryption state
+		//if (is_encrypted)
+		{
+			if (sai->IV_size)
+				gf_bs_read_data(bs, (char *)sai->IV, sai->IV_size);
 
-		if (is_encrypted) {
-			gf_bs_read_data(bs, (char *)sai->IV, sai->IV_size);
 			if (senc->flags & 0x00000002) {
 				sai->subsample_count = gf_bs_read_u16(bs);
 				sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
@@ -1386,6 +1391,7 @@ GF_Err senc_Read(GF_Box *s, GF_BitStream *bs)
 GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
+	u32 i, j;
 	u32 sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) s;
 	e = gf_isom_box_write_header(s, bs);
@@ -1397,16 +1403,17 @@ GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 	sample_count = gf_list_count(ptr->samp_aux_info);
 	gf_bs_write_u32(bs, sample_count);
 	if (sample_count) {
-		u32 i, j;
 
 		e = store_senc_info(ptr, bs);
 		if (e) return e;
 
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+
 			//for cbcs scheme, IV_size is 0, constant IV shall be used. It is written in tenc box rather than in sai
 			if (sai->IV_size)
 				gf_bs_write_data(bs, (char *)sai->IV, sai->IV_size);
+
 			if (ptr->flags & 0x00000002) {
 				gf_bs_write_u16(bs, sai->subsample_count);
 				for (j = 0; j < sai->subsample_count; j++) {
@@ -1432,8 +1439,9 @@ GF_Err senc_Size(GF_Box *s)
 	if (sample_count) {
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
-			//if (! sai->IV_size) continue;
+
 			ptr->size += sai->IV_size;
+
 			if (ptr->flags & 0x00000002)
 				ptr->size += 2 + 6*sai->subsample_count;
 		}

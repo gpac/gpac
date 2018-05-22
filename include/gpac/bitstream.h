@@ -405,6 +405,15 @@ u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 count);
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
 
 /*!
+ *	\brief bitstream alignment checking
+ *
+ *	Checks if bitstream position is aligned to a byte boundary.
+ *	\param bs the target bitstream
+ *	\return GF_TRUE if aligned with regard to the read/write mode, GF_FALSE otherwise
+ */
+Bool gf_bs_is_align(GF_BitStream *bs);
+
+/*!
  *	\brief bitstream alignment
  *
  *	Aligns bitstream to next byte boundary. In write mode, this will write 0 bit values until alignment.
