@@ -92,8 +92,8 @@ for encryption/decryption.
 After calling this function you can use the descriptor for encryption or decryption (not both).
 */
 GF_Err gf_crypt_init(GF_Crypt *gfc, void *key, const void *iv);
-/*changes key and IV*/
-GF_Err gf_crypt_set_key(GF_Crypt *gfc, void *key, u32 keysize, const void *iv);
+/*changes key*/
+GF_Err gf_crypt_set_key(GF_Crypt *gfc, void *key);
 
 /*
 main encryption function.
