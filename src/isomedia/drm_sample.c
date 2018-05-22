@@ -1135,7 +1135,7 @@ Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type)
 #endif
 
 
-static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u8 IV_size, GF_CENCSampleAuxInfo **sai)
+static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u32 scheme_type, u8 IV_size, GF_CENCSampleAuxInfo **sai)
 {
 	GF_BitStream *bs;
 	u32  prev_sai_size, size, i, j, nb_saio;
@@ -1148,24 +1148,45 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 
 	for (i = 0; i < gf_list_count(mdia->information->sampleTable->sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(mdia->information->sampleTable->sai_offsets, i);
-		if (saio->aux_info_type == GF_ISOM_CENC_SCHEME) {
-			if (saio->entry_count == 1)
-				offset = saio->version ? saio->offsets_large[0] : saio->offsets[0];
-			else
-				offset = saio->version ? saio->offsets_large[sampleNumber-1]: saio->offsets[sampleNumber-1];
-			nb_saio = saio->entry_count;
+		u32 aux_info_type = saio->aux_info_type;
+		if (!aux_info_type) aux_info_type = scheme_type;
+
+		switch (aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
 			break;
+		default:
+			continue;
 		}
+
+		if (saio->entry_count == 1)
+			offset = saio->version ? saio->offsets_large[0] : saio->offsets[0];
+		else
+			offset = saio->version ? saio->offsets_large[sampleNumber-1]: saio->offsets[sampleNumber-1];
+		nb_saio = saio->entry_count;
+		break;
 	}
 
 	for (i = 0; i < gf_list_count(mdia->information->sampleTable->sai_sizes); i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(mdia->information->sampleTable->sai_sizes, i);
-		if (saiz->aux_info_type == GF_ISOM_CENC_SCHEME) {
-			for (j = 0; j < sampleNumber-1; j++)
-				prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
-			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[sampleNumber-1];
+		u32 aux_info_type = saiz->aux_info_type;
+		if (!aux_info_type) aux_info_type = scheme_type;
+
+		switch (aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
 			break;
+		default:
+			continue;
 		}
+		for (j = 0; j < sampleNumber-1; j++)
+			prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+		size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[sampleNumber-1];
+		break;
 	}
 
 	offset += (nb_saio == 1) ? prev_sai_size : 0;
@@ -1244,7 +1265,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
 	if (IV_size && gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
-		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, IV_size, sai);
+		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, scheme_type, IV_size, sai);
 	}
 	//senc is not loaded by default, do it now
 	if (!gf_list_count(senc->samp_aux_info)) {
