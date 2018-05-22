@@ -78,7 +78,8 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		}
 #endif
 	} else {
-		if (gf_isom_get_media_type(file, track)==GF_ISOM_MEDIA_VISUAL) {
+        u32 mtype = gf_isom_get_media_type(file, track);
+		if (mtype==GF_ISOM_MEDIA_VISUAL||mtype==GF_ISOM_MEDIA_AUXV) {
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_BAD_PARAM;
@@ -290,6 +291,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 		mType = gf_isom_get_media_type(mp4file, i+1);
 		switch (mType) {
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_VISUAL:
 			image_track = 0;
 			if (esd && ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_PNG)) )
@@ -584,6 +586,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		mType = gf_isom_get_media_type(mp4file, i+1);
 		stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
 		switch (mType) {
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_VISUAL:
 			/*remove image tracks if wanted*/
 			if (gf_isom_get_sample_count(mp4file, i+1)<=1) {
@@ -938,7 +941,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	}
 
 	type = gf_isom_get_media_type(mp4, track);
-	if ((type != GF_ISOM_MEDIA_AUDIO) && (type != GF_ISOM_MEDIA_VISUAL)) return NULL;
+	if ((type != GF_ISOM_MEDIA_AUDIO) && (type != GF_ISOM_MEDIA_VISUAL) && (type != GF_ISOM_MEDIA_AUXV)) return NULL;
 
 	esd = gf_odf_desc_esd_new(0);
 	esd->OCRESID = esd->ESID = gf_isom_get_track_id(mp4, track);
@@ -3380,7 +3383,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		//setup some default
 		for (i=0; i<count; i++) {
 			tf = (GF_TrackFragmenter *)gf_list_get(fragmenters, i);
-			if (tf->MediaType == GF_ISOM_MEDIA_VISUAL) {
+			if (tf->MediaType == GF_ISOM_MEDIA_VISUAL || tf->MediaType == GF_ISOM_MEDIA_AUXV) {
 				e = gf_isom_set_fragment_option(output, tf->TrackID, GF_ISOM_TRAF_RANDOM_ACCESS, 1);
 				if (e) goto err_exit;
 			}

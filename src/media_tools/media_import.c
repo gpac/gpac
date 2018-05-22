@@ -2039,7 +2039,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			import->tk_info[i].track_num = gf_isom_get_track_id(import->orig, i+1);
 			import->tk_info[i].type = gf_isom_get_media_type(import->orig, i+1);
 			import->tk_info[i].flags = GF_IMPORT_USE_DATAREF;
-			if (import->tk_info[i].type == GF_ISOM_MEDIA_VISUAL) {
+			if (import->tk_info[i].type == GF_ISOM_MEDIA_VISUAL||import->tk_info[i].type == GF_ISOM_MEDIA_AUXV) {
 				gf_isom_get_visual_info(import->orig, i+1, 1, &import->tk_info[i].video_info.width, &import->tk_info[i].video_info.height);
 			} else if (import->tk_info[i].type == GF_ISOM_MEDIA_AUDIO) {
 				gf_isom_get_audio_info(import->orig, i+1, 1, &import->tk_info[i].audio_info.sample_rate, &import->tk_info[i].audio_info.nb_channels, NULL);
@@ -2082,7 +2082,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		iod = NULL;
 	}
 	mtype = gf_isom_get_media_type(import->orig, track_in);
-	if (mtype==GF_ISOM_MEDIA_VISUAL) {
+	if (mtype==GF_ISOM_MEDIA_VISUAL||mtype==GF_ISOM_MEDIA_AUXV) {
 		u8 PL = iod ? iod->visual_profileAndLevel : 0xFE;
 		w = h = 0;
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
@@ -2168,6 +2168,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	case GF_ISOM_MEDIA_VISUAL:
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Video (size %d x %d)", orig_name, trackID, w, h);
 		break;
+    case GF_ISOM_MEDIA_AUXV:
+        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Auxiliary Video (size %d x %d)", orig_name, trackID, w, h);
+        break;
 	case GF_ISOM_MEDIA_AUDIO:
 	{
 		if (ps) {
@@ -9589,7 +9592,8 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
 			GF_ISOSample *samp;
 			u32 ts, inc;
-			if (gf_isom_get_media_type(import->dest, i+1) != GF_ISOM_MEDIA_VISUAL) continue;
+            u32 mtype = gf_isom_get_media_type(import->dest, i+1);
+			if (mtype != GF_ISOM_MEDIA_VISUAL && mtype != GF_ISOM_MEDIA_AUXV) continue;
 			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
 			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);
 			inc = (u32) samp->DTS;

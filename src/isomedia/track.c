@@ -354,6 +354,7 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 {
 	switch (HandlerType) {
 	case GF_ISOM_MEDIA_VISUAL:
+    case GF_ISOM_MEDIA_AUXV:
 	case GF_ISOM_MEDIA_AUDIO:
 	case GF_ISOM_MEDIA_SUBPIC:
 	case GF_ISOM_MEDIA_OD:
@@ -875,6 +876,10 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
 		str = "GPAC ISO Video Handler";
 		break;
+    case GF_ISOM_MEDIA_AUXV:
+        mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
+        str = "GPAC ISO Auxiliary Video Handler";
+        break;
 	case GF_ISOM_MEDIA_AUDIO:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_SMHD);
 		str = "GPAC ISO Audio Handler";
@@ -1155,6 +1160,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 
 		//OK, check the handler and create the entry
 		switch (trak->Media->handler->handlerType) {
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_VISUAL:
 			if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MVC)) {
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);

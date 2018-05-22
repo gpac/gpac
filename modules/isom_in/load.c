@@ -96,12 +96,15 @@ void isor_declare_objects(ISOMReader *read)
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
 		u32 m_subtype;
+        u32 mtype;
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
-		switch (gf_isom_get_media_type(read->mov, i+1)) {
+        mtype = gf_isom_get_media_type(read->mov, i+1);
+		switch (mtype) {
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_SUBPIC:
@@ -141,7 +144,7 @@ void isor_declare_objects(ISOMReader *read)
 			}
 		}
 
-		if ((gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) && !highest_stream)
+		if ((mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) && !highest_stream)
 			continue;
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (esd) {
@@ -250,9 +253,10 @@ void isor_declare_objects(ISOMReader *read)
 
 				/*don't display cover art when video is present*/
 				for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
+                    u32 mtype = gf_isom_get_media_type(read->mov, i+1);
 					if (!gf_isom_is_track_enabled(read->mov, i+1))
 						continue;
-					if (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) {
+					if (mtype == GF_ISOM_MEDIA_VISUAL || mtype == GF_ISOM_MEDIA_AUXV) {
 						isom_contains_video = GF_TRUE;
 						break;
 					}

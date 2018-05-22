@@ -2065,7 +2065,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 	print_udta(file, trackNum);
 
-	if (mtype==GF_ISOM_MEDIA_VISUAL) {
+	if (mtype==GF_ISOM_MEDIA_VISUAL || mtype==GF_ISOM_MEDIA_AUXV) {
 		s32 tx, ty;
 		u32 w, h;
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
@@ -2664,8 +2664,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
-			if (mtype==GF_ISOM_MEDIA_VISUAL) {
-				fprintf(stderr, "Visual Track - Compressor \"%s\" - Resolution %d x %d\n", udesc->compressor_name, udesc->width, udesc->height);
+			if (mtype==GF_ISOM_MEDIA_VISUAL||mtype==GF_ISOM_MEDIA_AUXV) {
+                fprintf(stderr, "%s Track - Compressor \"%s\" - Resolution %d x %d\n",
+                        (mtype == GF_ISOM_MEDIA_VISUAL?"Visual":"Auxiliary Video"),
+                        udesc->compressor_name, udesc->width, udesc->height);
 			} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
 				fprintf(stderr, "Audio Track - Sample Rate %d - %d channel(s)\n", udesc->samplerate, udesc->nb_channels);
 			} else {
