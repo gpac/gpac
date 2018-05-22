@@ -467,7 +467,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			gf_bs_del(bs);
 			gf_crypt_set_state(priv->crypt, IV, 17);
 		}
-		e = gf_crypt_set_key(priv->crypt, priv->key, 16, IV);
+		e = gf_crypt_set_key(priv->crypt, priv->key);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", priv->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
 			e = GF_IO_ERR;

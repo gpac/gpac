@@ -88,6 +88,8 @@ GF_Err gf_crypt_decrypt_tinyaes_cbc(GF_Crypt* td, u8 *ciphertext, u32 len)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 	if (len<AES_BLOCKLEN) return GF_OK;
+	while (len % AES_BLOCKLEN)
+		len--;
 	AES_CBC_decrypt_buffer(ctx, ciphertext, len);
 	return GF_OK;
 }

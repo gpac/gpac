@@ -1514,7 +1514,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			if (tci->keyRoll) {
 				idx = (nb_samp_encrypted / tci->keyRoll) % tci->KID_count;
 				memcpy(tci->key, tci->keys[idx], 16);
-				e = gf_crypt_set_key(mc, tci->key, 16, IV);
+				e = gf_crypt_set_key(mc, tci->key);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", tci->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
 					gf_crypt_close(mc);
@@ -1667,6 +1667,14 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			prev_sample_encrypted = GF_TRUE;
 		}
 		else {
+			e = gf_crypt_set_key(mc, tci->key);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", tci->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
+				gf_crypt_close(mc);
+				mc = NULL;
+				e = GF_IO_ERR;
+				goto exit;
+			}
 			if (sai->IV_size) {
 				if (tci->ctr_mode) {
 					GF_BitStream *bs;
@@ -1688,14 +1696,6 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				if (tci->constant_IV_size == 8)
 					memset(IV+8, 0, sizeof(char)*8);
 				gf_crypt_set_state(mc, IV, GF_AES_128_KEYSIZE);
-			}
-			e = gf_crypt_set_key(mc, tci->key, 16, IV);
-			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", tci->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
-				gf_crypt_close(mc);
-				mc = NULL;
-				e = GF_IO_ERR;
-				goto exit;
 			}
 		}
 

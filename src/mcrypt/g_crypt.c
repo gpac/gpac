@@ -59,12 +59,11 @@ void gf_crypt_close(GF_Crypt *td)
 }
 
 GF_EXPORT
-GF_Err gf_crypt_set_key(GF_Crypt *td, void *key, u32 keysize, const void *IV)
+GF_Err gf_crypt_set_key(GF_Crypt *td, void *key)
 {
 	memset(td->in_keyword, 0, 128 * sizeof(char));
-	memcpy(td->in_keyword, key, keysize * sizeof(char));
+	memcpy(td->in_keyword, key, 16 * sizeof(char));
 	td->_set_key(td);
-	td->_set_state(td, IV, keysize);
 	return GF_OK;
 }
 
@@ -95,7 +94,7 @@ GF_Err gf_crypt_init(GF_Crypt *td, void *key, const void *IV)
 	e = td->_init_crypt(td, key, IV);
 	if (e != GF_OK) gf_crypt_close(td);
 
-	e = gf_crypt_set_key(td, td->in_keyword, key_size, IV);
+	e = gf_crypt_set_key(td, td->in_keyword);
 	if (e != GF_OK) gf_crypt_close(td);
 	return e;
 }
@@ -111,5 +110,6 @@ GF_EXPORT
 GF_Err gf_crypt_decrypt(GF_Crypt *td, void *ciphertext, u32 len)
 {
 	if (!td) return GF_BAD_PARAM;
+	if (!len) return GF_OK;
 	return td->_decrypt(td, ciphertext, len);
 }
