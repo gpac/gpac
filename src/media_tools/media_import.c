@@ -2021,6 +2021,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
+	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
 	s32 trans_x, trans_y;
 	s16 layer;
@@ -2223,6 +2224,21 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			}
 		}
 	}
+	switch (mstype) {
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_SVC_H264:
+	case GF_ISOM_SUBTYPE_MVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
+	case GF_ISOM_SUBTYPE_HEV1:
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_LHE1:
+	case GF_ISOM_SUBTYPE_LHV1:
+	case GF_ISOM_SUBTYPE_HVT1:
+		is_nalu_video = GF_TRUE;
+		break;
+	}
 
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
 
@@ -2305,10 +2321,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				gf_isom_cenc_samp_aux_info_del(sai);
 				gf_bs_get_content(bs, &buffer, &len);
 				gf_bs_del(bs);
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video);
 				gf_free(buffer);
 			} else {
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, samp->dataLength, is_nalu_video);
 			}
 			if (e) goto exit;
 

@@ -1215,6 +1215,8 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				prev_entry->bytes_encrypted_data = nal_size - clear_bytes;
 				gf_list_add(subsamples, prev_entry);
 			}
+			assert((s32)prev_entry->bytes_encrypted_data >= 0);
+			assert(prev_entry->bytes_encrypted_data < samp->dataLength);
 		} else {
 			u32 clear_trailing;
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
@@ -1425,7 +1427,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		case GF_CRYPT_SELENC_RAP:
 			if (!samp->IsRAP && !all_rap) {
 				bin128 NULL_IV;
-				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
+				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, samp->dataLength, is_nalu_video);
 				if (e)
 					goto exit;
 				saiz_buf = NULL;
@@ -1442,7 +1444,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		case GF_CRYPT_SELENC_NON_RAP:
 			if (samp->IsRAP || all_rap) {
 				bin128 NULL_IV;
-				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
+				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, samp->dataLength, is_nalu_video);
 				if (e)
 					goto exit;
 				saiz_buf = NULL;
@@ -1458,7 +1460,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		case GF_CRYPT_SELENC_CLEAR:
 			{
 				bin128 NULL_IV;
-				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
+				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, samp->dataLength, is_nalu_video);
 				if (e)
 					goto exit;
 				saiz_buf = NULL;
@@ -1542,7 +1544,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		gf_isom_sample_del(&samp);
 		samp = NULL;
 
-		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, tci->IV_size, saiz_buf, saiz_len);
+		e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, tci->IV_size, saiz_buf, saiz_len, is_nalu_video);
 		if (e)
 			goto exit;
 		gf_free(saiz_buf);
