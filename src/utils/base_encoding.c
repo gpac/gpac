@@ -235,10 +235,16 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 	z_stream d_stream;
 	GF_Err e = GF_OK;
 	int err;
+	Bool owns_buffer=GF_TRUE;
 	u32 size = 4096;
 
-	*uncompressed_data = (char*)gf_malloc(sizeof(char)*4096);
-	if (!*uncompressed_data) return GF_OUT_OF_MEM;
+	if (! *uncompressed_data) {
+		*uncompressed_data = (char*)gf_malloc(sizeof(char)*4096);
+		if (!*uncompressed_data) return GF_OUT_OF_MEM;
+	} else {
+		owns_buffer = GF_FALSE;
+		size = *out_size;
+	}
 
 	d_stream.zalloc = (alloc_func)0;
 	d_stream.zfree = (free_func)0;
@@ -246,9 +252,11 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 	d_stream.next_in  = (Bytef*)data;
 	d_stream.avail_in = data_len;
 	d_stream.next_out = (Bytef*) *uncompressed_data;
-	d_stream.avail_out = 4096;
+	d_stream.avail_out = size;
 
-	err = inflateInit(&d_stream);
+//	err = inflateInit(&d_stream);
+	err = inflateInit2(&d_stream, 16+MAX_WBITS);
+
 	if (err == Z_OK) {
 		while (d_stream.total_in < data_len) {
 			err = inflate(&d_stream, Z_NO_FLUSH);
@@ -269,12 +277,20 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 		return e;
 	}
 	if (e!=GF_OK) {
-		gf_free(*uncompressed_data);
-		*uncompressed_data = NULL;
+		if (owns_buffer) {
+			gf_free(*uncompressed_data);
+			*uncompressed_data = NULL;
+		}
 	}
 	return e;
 }
-
+#else
+GF_EXPORT
+GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+{
+	*out_size = 0;
+	return GF_NOT_SUPPORTED;
+}
 #endif /*GPAC_DISABLE_ZLIB*/
 
 #endif /* GPAC_DISABLE_CORE_TOOLS*/

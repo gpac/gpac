@@ -802,7 +802,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 #endif
 
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
+void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bool skip_offset)
 {
 	u32 i, j, k, count;
 	Bool has_error;
@@ -827,7 +827,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
 		fprintf(dump, "#dumping track ID %d timing:\n", gf_isom_get_track_id(file, i + 1));
-		fprintf(dump, "Num\tDTS\tCTS\tSize\tRAP\tOffset\tisLeading\tDependsOn\tDependedOn\tRedundant\tRAP-SampleGroup\tRoll-SampleGroup\tRoll-Distance\n");
+		fprintf(dump, "Num\tDTS\tCTS\tSize\tRAP%s\tisLeading\tDependsOn\tDependedOn\tRedundant\tRAP-SampleGroup\tRoll-SampleGroup\tRoll-Distance\n", skip_offset ? "" : "\tOffset");
 		count = gf_isom_get_sample_count(file, i+1);
 
 		for (j=0; j<count; j++) {
@@ -845,7 +845,13 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
 			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &has_roll, &roll_distance);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
-			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d\t"LLD"\t%d\t%d\t%d\t%d\t%d\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP, offset, isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
+			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP);
+
+			if (!skip_offset)
+				fprintf(dump, "\t"LLD, offset);
+
+			fprintf(dump, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d", isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
+
 			if (cts<dts) {
 				if (has_cts_offset==2) {
 					if (cts_dts_shift && (cts+cts_dts_shift<dts)) {
@@ -944,7 +950,7 @@ static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 	fprintf(dump, "\"");
 }
 
-static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size)
+static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
 {
 	s32 res;
 	u8 type;
@@ -955,10 +961,14 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	s32 idx;
 	GF_BitStream *bs;
 
+
 	if (!ptr_size) {
 		fprintf(dump, "error=\"invalid nal size 0\"");
 		return;
 	}
+
+	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(ptr, ptr_size) );
+
 	if (hevc) {
 #ifndef GPAC_DISABLE_HEVC
 		res = gf_media_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
@@ -1245,7 +1255,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 }
 #endif
 
-void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
+void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
 	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
 	s32 countRef;
@@ -1297,7 +1307,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", i+1, slc->size);\
-			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);\
+			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
@@ -1420,7 +1430,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);
+				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
 #endif
 				fprintf(dump, "/>\n");
 			}
@@ -1449,7 +1459,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 
-void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name)
+void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc)
 {
 	FILE *dump;
 	if (inName) {
@@ -1464,7 +1474,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	} else {
 		dump = stdout;
 	}
-	dump_isom_nal_ex(file, trackID, dump);
+	dump_isom_nal_ex(file, trackID, dump, dump_crc);
 
 	if (inName) gf_fclose(dump);
 }
@@ -1673,7 +1683,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 				fmt_handled = GF_TRUE;
 			}
 			else if (gf_isom_get_avc_svc_type(the_file, i+1, 1) || gf_isom_get_hevc_lhvc_type(the_file, i+1, 1)) {
-				dump_isom_nal_ex(the_file, trackID, dump);
+				dump_isom_nal_ex(the_file, trackID, dump, GF_FALSE);
 				fmt_handled = GF_TRUE;
 			} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT) ) {
 
@@ -2055,7 +2065,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 	print_udta(file, trackNum);
 
-	if (mtype==GF_ISOM_MEDIA_VISUAL) {
+	if (gf_isom_is_video_subtype(mtype) ) {
 		s32 tx, ty;
 		u32 w, h;
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
@@ -2654,8 +2664,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
-			if (mtype==GF_ISOM_MEDIA_VISUAL) {
-				fprintf(stderr, "Visual Track - Compressor \"%s\" - Resolution %d x %d\n", udesc->compressor_name, udesc->width, udesc->height);
+			if (gf_isom_is_video_subtype(mtype) ) {
+                fprintf(stderr, "%s Track - Compressor \"%s\" - Resolution %d x %d\n",
+                        (mtype == GF_ISOM_MEDIA_VISUAL?"Visual":"Auxiliary Video"),
+                        udesc->compressor_name, udesc->width, udesc->height);
 			} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
 				fprintf(stderr, "Audio Track - Sample Rate %d - %d channel(s)\n", udesc->samplerate, udesc->nb_channels);
 			} else {

@@ -402,8 +402,13 @@ static void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_byte_range(att->value);
 		//else if (!strcmp(att->name, "hls:keyMethod")) seg->key_url = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "hls:keyURL")) seg->key_url = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "hls:keyIV")) gf_bin128_parse(att->value, seg->key_iv);
-
+        else if (!strcmp(att->name, "hls:keyIV")) {
+            GF_Err e = gf_bin128_parse(att->value, seg->key_iv);
+            if (e != GF_OK) {
+                GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Cannot parse hls:keyIV\n"));
+                return;
+            }
+        }
 	}
 }
 
@@ -793,6 +798,7 @@ void gf_mpd_base_url_free(void *_item)
 	GF_MPD_BaseURL *base_url = (GF_MPD_BaseURL *)_item;
 	if (base_url->service_location) gf_free(base_url->service_location);
 	if (base_url->URL) gf_free(base_url->URL);
+	if (base_url->redirection) gf_free(base_url->redirection);
 	gf_free(base_url);
 }
 
@@ -1478,6 +1484,8 @@ try_next_segment:
 				for (k=0; k<import.nb_tracks; k++) {
 					switch (import.tk_info[k].type) {
 					case GF_ISOM_MEDIA_VISUAL:
+                    case GF_ISOM_MEDIA_AUXV:
+                    case GF_ISOM_MEDIA_PICT:
 						width = import.tk_info[k].video_info.width;
 						height = import.tk_info[k].video_info.height;
 						break;
@@ -2492,7 +2500,7 @@ static char *gf_mpd_get_base_url(GF_List *baseURLs, char *url, u32 *base_url_ind
 
 	url_child = gf_list_get(baseURLs, idx);
 	if (url_child) {
-		char *t_url = gf_url_get_absolute_path(url_child->URL, url);
+		char *t_url = gf_url_get_absolute_path(url_child->redirection ? url_child->redirection : url_child->URL, url);
 		gf_free(url);
 		url = t_url;
 	}
@@ -2533,6 +2541,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		switch (resolve_type) {
 		case GF_MPD_RESOLVE_URL_MEDIA:
 		case GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE:
+		case GF_MPD_RESOLVE_URL_MEDIA_NOSTART:
 			if (!url)
 				return GF_NON_COMPLIANT_BITSTREAM;
 			*out_url = url;
@@ -2631,6 +2640,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_MEDIA:
 		case GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE:
+		case GF_MPD_RESOLVE_URL_MEDIA_NOSTART:
 			if (!url) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Media URL is not set in segment list\n"));
 				return GF_SERVICE_ERROR;
@@ -2736,6 +2746,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		break;
 	case GF_MPD_RESOLVE_URL_MEDIA:
 	case GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE:
+	case GF_MPD_RESOLVE_URL_MEDIA_NOSTART:
 		url_to_solve = media_url;
 		break;
 	case GF_MPD_RESOLVE_URL_INDEX:
@@ -2798,6 +2809,9 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		else if (!strcmp(first_sep+1, "Number")) {
 			if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE) {
 				strcat(solved_template, "$Number$");
+			} else if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_NOSTART) {
+				sprintf(szFormat, szPrintFormat, item_index);
+				strcat(solved_template, szFormat);
 			} else {
 				sprintf(szFormat, szPrintFormat, start_number + item_index);
 				strcat(solved_template, szFormat);

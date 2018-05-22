@@ -374,6 +374,8 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 		builder->bytesInPacket = 0;
 	}
+	//we only deal with static SIDX
+	descIndex += GF_RTP_TX3G_SIDX_OFFSET;
 
 	/*first TTU in packet*/
 	if (!builder->bytesInPacket) {

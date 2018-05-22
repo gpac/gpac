@@ -283,7 +283,7 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		cfg_type = GF_ISOM_BOX_TYPE_DSMV;
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
-		if (trak->Media->handler->handlerType!=GF_ISOM_MEDIA_VISUAL) return GF_BAD_PARAM;
+		if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType)) return GF_BAD_PARAM;
 		cfg_type = GF_ISOM_BOX_TYPE_D263;
 		break;
 	case 0:

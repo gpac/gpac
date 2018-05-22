@@ -36,7 +36,8 @@
 Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
-	if (mdia->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_FALSE;
+	if (!gf_isom_is_video_subtype(mdia->handler->handlerType))
+		return GF_FALSE;
 	switch (_entry->type) {
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
@@ -402,9 +403,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 //	Bool check_cra_bla = (mdia->information->sampleTable->SyncSample && mdia->information->sampleTable->SyncSample->nb_entries>1) ? 0 : 1;
 	Bool check_cra_bla = GF_TRUE;
 	Bool insert_nalu_delim = GF_TRUE;
+	Bool force_sei_inspect = GF_FALSE;
 	GF_Err e = GF_OK;
 	GF_ISOSample *ref_samp;
-	GF_BitStream *src_bs, *ref_bs, *dst_bs, *ps_bs;
+	GF_BitStream *src_bs, *ref_bs, *dst_bs, *ps_bs, *sei_suffix_bs;
 	u32 nal_size, max_size, nal_unit_size_field, extractor_mode;
 	Bool rewrite_ps, rewrite_start_codes, insert_vdrd_code;
 	s8 nal_type;
@@ -414,7 +416,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
 	GF_TrackReferenceTypeBox *scal = NULL;
 
-	src_bs = ref_bs = dst_bs = ps_bs = NULL;
+	src_bs = ref_bs = dst_bs = ps_bs = sei_suffix_bs = NULL;
 	ref_samp = NULL;
 	buffer = NULL;
 
@@ -464,6 +466,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 		sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
 		if ((s32) sabt_ref > 0) {
+			force_sei_inspect = GF_TRUE;
 			for (i=0; i<sabt_ref; i++) {
 				GF_ISOSample *tile_samp;
 				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
@@ -524,7 +527,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 
 	/*otherwise do nothing*/
-	else if (!rewrite_ps && !rewrite_start_codes && !scal) {
+	else if (!rewrite_ps && !rewrite_start_codes && !scal && !force_sei_inspect) {
 		return GF_OK;
 	}
 
@@ -633,7 +636,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 
 	/*little optimization if we are not asked to rewrite extractors or start codes: copy over the sample*/
-	if (!scal && !rewrite_start_codes && !rewrite_ps) {
+	if (!scal && !rewrite_start_codes && !rewrite_ps && !force_sei_inspect) {
 		if (ps_bs)
 		{
 			gf_bs_transfer(dst_bs, ps_bs);
@@ -670,6 +673,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 
 		if (is_hevc) {
+			GF_BitStream *write_to_bs = dst_bs;
 			if (ps_bs) {
 				gf_bs_transfer(dst_bs, ps_bs);
 				gf_bs_del(ps_bs);
@@ -731,13 +735,19 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					goto exit;
 				}
 				gf_bs_read_data(src_bs, buffer, nal_size-2);
-				if (rewrite_start_codes)
-					gf_bs_write_u32(dst_bs, 1);
-				else
-					gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
 
-				gf_bs_write_u16(dst_bs, nal_hdr);
-				gf_bs_write_data(dst_bs, buffer, nal_size-2);
+				if (nal_type==GF_HEVC_NALU_SEI_SUFFIX) {
+					if (!sei_suffix_bs) sei_suffix_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					write_to_bs = sei_suffix_bs;
+				}
+
+				if (rewrite_start_codes)
+					gf_bs_write_u32(write_to_bs, 1);
+				else
+					gf_bs_write_int(write_to_bs, nal_size, 8*nal_unit_size_field);
+
+				gf_bs_write_u16(write_to_bs, nal_hdr);
+				gf_bs_write_data(write_to_bs, buffer, nal_size-2);
 			}
 #endif
 
@@ -782,6 +792,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 	}
 
+	if (sei_suffix_bs) {
+		gf_bs_transfer(dst_bs, sei_suffix_bs);
+		gf_bs_del(sei_suffix_bs);
+	}
 	/*done*/
 	gf_free(sample->data);
 	sample->data = NULL;
@@ -1546,11 +1560,8 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(cfg->param_array, i);
 
 		/*we want to force hev1*/
-		if (operand_type==GF_ISOM_HVCC_SET_INBAND)
+		if (operand_type==GF_ISOM_HVCC_SET_INBAND) {
 			ar->array_completeness = 0;
-
-		if (!ar->array_completeness) {
-			array_incomplete = 1;
 
 			while (gf_list_count(ar->nalus)) {
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, 0);
@@ -1562,8 +1573,9 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 			gf_free(ar);
 			gf_list_rem(cfg->param_array, i);
 			i--;
-
 		}
+		if (!ar->array_completeness) 
+			array_incomplete = 1;
 	}
 	return array_incomplete;
 }
@@ -1834,7 +1846,9 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_AVCTYPE_NONE;
-	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_ISOM_AVCTYPE_NONE;
+	if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType))
+		return GF_ISOM_AVCTYPE_NONE;
+
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return GF_ISOM_AVCTYPE_NONE;
 
@@ -1875,7 +1889,8 @@ u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_HEVCTYPE_NONE;
-	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_ISOM_HEVCTYPE_NONE;
+	if (!gf_isom_is_video_subtype(trak->Media->handler->handlerType))
+		return GF_ISOM_HEVCTYPE_NONE;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return GF_ISOM_AVCTYPE_NONE;
 	type = entry->type;
@@ -2402,6 +2417,8 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		op->output_layer_set_idx = gf_bs_read_u16(bs);
 		op->max_temporal_id = gf_bs_read_u8(bs);
 		op->layer_count = gf_bs_read_u8(bs);
+		if (op->layer_count > ARRAY_LENGTH(op->layers_info))
+			return GF_NON_COMPLIANT_BITSTREAM;
 		for (j = 0; j < op->layer_count; j++) {
 			op->layers_info[j].ptl_idx = gf_bs_read_u8(bs);
 			op->layers_info[j].layer_id = gf_bs_read_int(bs, 6);

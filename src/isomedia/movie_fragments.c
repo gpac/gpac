@@ -628,6 +628,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 
 		switch (sg->grouping_type) {
 		case GF_ISOM_SAMPLE_GROUP_RAP:
+		case GF_ISOM_SAMPLE_GROUP_SYNC:
 			rap_type = GF_TRUE;
 			break;
 		case GF_ISOM_SAMPLE_GROUP_ROLL:
@@ -1619,7 +1620,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 	/*update segment file*/
 	if (SegName || !gf_isom_get_filename(movie)) {
 		if (movie->editFileMap) gf_isom_datamap_del(movie->editFileMap);
-		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, & movie->editFileMap);
+		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, &movie->editFileMap);
 		movie->segment_start = 0;
 		movie->styp_written = GF_FALSE;
 		if (e) return e;
@@ -1932,12 +1933,8 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		gf_list_add(senc->samp_aux_info, sai);
 		if (sai->subsample_count) senc->flags = 0x00000002;
 
-		//not encrypted, saiz is 0
-		if (!IsEncrypted) {
-			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 0);
-		}
 		//no subsample (not NAL-based data), saiz is IV size only
-		else if (! sai->subsample_count) {
+		if (! sai->subsample_count) {
 			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
 		}
 		// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample

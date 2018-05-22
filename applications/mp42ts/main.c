@@ -67,7 +67,7 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 static GFINLINE void usage()
 {
 	fprintf(stderr, "GPAC version " GPAC_FULL_VERSION "\n"
-	        "GPAC Copyright (c) Telecom ParisTech 2000-2014\n"
+	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n\n", gpac_features());
 	fprintf(stderr, "mp42ts <inputs> <destinations> [options]\n"
@@ -2681,7 +2681,7 @@ int main(int argc, char **argv)
 		nb_pck_in_pack=0;
 		while ((ts_pck = gf_m2ts_mux_process(muxer, &status, &usec_till_next)) != NULL) {
 
-			if (ts_pack_buffer ) {
+			if (ts_pack_buffer) {
 				memcpy(ts_pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);
 				nb_pck_in_pack++;
 

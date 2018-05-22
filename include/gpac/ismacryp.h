@@ -47,6 +47,11 @@ extern "C" {
 
 #include <gpac/isomedia.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+//FIXME - we should move AVC and HEVC parsing to gpac/avparse.h
+#include <gpac/internal/media_dev.h>
+#endif
+
 /*loads key and salt from a LOCAL gpac-DRM file (cf MP4Box doc)*/
 GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char *salt);
 
@@ -137,9 +142,23 @@ typedef struct
 	//true if using AES-CTR mode, false if using AES-CBC mode
 	Bool ctr_mode;
 	u32 cenc_scheme_type;
+	//for avc1 ctr CENC edition 1
+	Bool allow_encrypted_slice_header;
+	//force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples
+	u32 block_align;
+
 
 	char metadata[5000];
 	u32 metadata_len;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+	AVCState avc;
+#ifndef GPAC_DISABLE_HEVC
+	HEVCState hevc;
+#endif
+	Bool slice_header_clear;
+	Bool is_avc;
+#endif
 
 } GF_TrackCryptInfo;
 
