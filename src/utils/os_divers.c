@@ -1966,7 +1966,7 @@ u64 gf_net_get_utc()
 
 
 GF_EXPORT
-GF_Err gf_bin128_parse(char *string, bin128 value)
+GF_Err gf_bin128_parse(const char *string, bin128 value)
 {
 	u32 len;
 	u32	i=0;
@@ -1989,7 +1989,7 @@ GF_Err gf_bin128_parse(char *string, bin128 value)
 		}
 	}
 	if (i != 16) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[CORE] 128bit blob is not 16-bytes long: %s\n", string));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CORE] 128bit blob is not 16-bytes long: %s\n", string));
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;

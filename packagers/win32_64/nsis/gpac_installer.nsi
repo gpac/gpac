@@ -422,6 +422,11 @@ Section "FreeType" SecFT
   File "${GPAC_BIN}\gm_ft_font.dll"
 SectionEnd
 
+Section "ATSC" SecATSC
+  SectionIn 1
+  File "${GPAC_BIN}\gm_atsc_in.dll"
+SectionEnd
+
 Section "Windows MME Audio" SecWAVE
   SectionIn 1
   File "${GPAC_BIN}\gm_wav_out.dll"
@@ -440,7 +445,7 @@ SectionEnd
 
 Section "OpenHEVC Decoder" SecOHEVC
   SectionIn 1
-  File "${GPAC_BIN}\libLibOpenHevcWrapper.dll"
+  File "${GPAC_BIN}\openhevc-1.dll"
   File "${GPAC_BIN}\gm_openhevc_dec.dll"
 SectionEnd
 
@@ -590,6 +595,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGDIP} "GDIPlus-based rasterizer"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecG2DS} "GPAC software rasterizer"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFT} "FreeType font parsing"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecATSC} "ATSC3 support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecXIPH} "Support for XIPP OGG, Vorbis and Theora media"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"

@@ -371,6 +371,7 @@
 		921FEBA51CF881DE00B437C2 /* sensors_def.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA21CF881DE00B437C2 /* sensors_def.h */; };
 		921FEBA61CF881DE00B437C2 /* sensors.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA31CF881DE00B437C2 /* sensors.h */; };
 		921FEBA71CF881DE00B437C2 /* sensors.m in Sources */ = {isa = PBXBuildFile; fileRef = 921FEBA41CF881DE00B437C2 /* sensors.m */; };
+		9225CCA520343CDE00250C87 /* atsc_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225CCA420343CDD00250C87 /* atsc_in.c */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -455,6 +456,7 @@
 		92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
 		92C7F19A1AA8B48E00BA5B4C /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 92C7F1991AA8B48E00BA5B4C /* gui */; };
 		92D127FE1BBADC7F00DA003B /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 92D127FD1BBADC7F00DA003B /* shaders */; };
+		92D3C62C2031ECE600BA1735 /* atsc_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D3C62B2031ECE600BA1735 /* atsc_dmx.c */; };
 		92DF5CA61BA6C6F80058A7BA /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 92DF5CA51BA6C6F80058A7BA /* iff.c */; };
 		92E8C78B1A0CD57A00E0436D /* timedtext_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826116F254F50002629E /* timedtext_dec.c */; };
 		92E8C78C1A0CD57A00E0436D /* timedtext_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826216F254F50002629E /* timedtext_in.c */; };
@@ -933,6 +935,7 @@
 		921FEBA21CF881DE00B437C2 /* sensors_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors_def.h; path = ../../applications/osmo4_ios/sensors_def.h; sourceTree = "<group>"; };
 		921FEBA31CF881DE00B437C2 /* sensors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors.h; path = ../../applications/osmo4_ios/sensors.h; sourceTree = "<group>"; };
 		921FEBA41CF881DE00B437C2 /* sensors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = sensors.m; path = ../../applications/osmo4_ios/sensors.m; sourceTree = "<group>"; };
+		9225CCA420343CDD00250C87 /* atsc_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = atsc_in.c; path = ../../modules/atsc_in/atsc_in.c; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
 		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
@@ -1036,6 +1039,7 @@
 		92B69EB61A091CFC004E74AA /* webvtt-renderer.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "webvtt-renderer.js"; sourceTree = "<group>"; };
 		92C7F1991AA8B48E00BA5B4C /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../gui; sourceTree = "<group>"; };
 		92D127FD1BBADC7F00DA003B /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../shaders; sourceTree = "<group>"; };
+		92D3C62B2031ECE600BA1735 /* atsc_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = atsc_dmx.c; sourceTree = "<group>"; };
 		92DF5CA51BA6C6F80058A7BA /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		92F8D46D1F713E5F00616F7C /* netctrl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = netctrl.c; path = ../../modules/netctrl/netctrl.c; sourceTree = "<group>"; };
 		92F930841A5ADC1A0072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
@@ -1152,6 +1156,7 @@
 				71A19B1412796AC700ACFF58 /* osmo4iOS */,
 				7184780712785F7B00917298 /* Frameworks */,
 				71CCF1321277037A00339E12 /* Products */,
+				92D3C62A2031ECD600BA1735 /* Recovered References */,
 			);
 			name = CustomTemplate;
 			sourceTree = "<group>";
@@ -1528,6 +1533,7 @@
 		71CCF1CD1277045100339E12 /* media_tools */ = {
 			isa = PBXGroup;
 			children = (
+				92D3C62B2031ECE600BA1735 /* atsc_dmx.c */,
 				97E29F6817D1138B00904FBF /* webvtt.c */,
 				970FBA7B16F9F0720052216D /* html5_media.c */,
 				970FBA7C16F9F0720052216D /* html5_mse.c */,
@@ -1835,6 +1841,7 @@
 		929A929516EF8A7500B7C64F /* modules */ = {
 			isa = PBXGroup;
 			children = (
+				9225CCA420343CDD00250C87 /* atsc_in.c */,
 				9214AD321D0181A5009D3CFD /* ac3_in.c */,
 				9214AD301D018197009D3CFD /* aac_in.c */,
 				9212E8021CCA82300036F310 /* amr_in.c */,
@@ -2005,6 +2012,15 @@
 				92B69DFE1A091CFC004E74AA /* world.svg */,
 			);
 			path = icons;
+			sourceTree = "<group>";
+		};
+		92D3C62A2031ECD600BA1735 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				285DBB48170F17D700AF2B9B /* ffmpeg_in.h */,
+				71A199071278765600ACFF58 /* aac_in.c */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		92FA488A1D05DADC0072C8A4 /* vtb_decoder */ = {
@@ -2482,7 +2498,9 @@
 				71CCF2E81277045100339E12 /* descriptors.c in Sources */,
 				71CCF2E91277045100339E12 /* ipmpx_code.c in Sources */,
 				71CCF2EA1277045100339E12 /* ipmpx_dump.c in Sources */,
+				92D3C62C2031ECE600BA1735 /* atsc_dmx.c in Sources */,
 				71CCF2EB1277045100339E12 /* ipmpx_parse.c in Sources */,
+				9225CCA520343CDE00250C87 /* atsc_in.c in Sources */,
 				71CCF2EC1277045100339E12 /* oci_codec.c in Sources */,
 				71CCF2ED1277045100339E12 /* odf_code.c in Sources */,
 				71CCF2EE1277045100339E12 /* odf_codec.c in Sources */,

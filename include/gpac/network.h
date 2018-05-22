@@ -209,9 +209,16 @@ enum
  *\brief abstracted socket object
  *
  *The abstracted socket object allows you to build client and server applications very simply
- *with support for unicast and multicast (no IPv6 yet)
+ *with support for unicast and multicast
 */
 typedef struct __tag_socket GF_Socket;
+
+/*!
+ *\brief abstracted socket group object
+ *
+ *The abstracted socket group object allows querying multiple sockets in a group
+*/
+typedef struct __tag_sock_group GF_SockGroup;
 
 /*!Buffer size to pass for IP address retrieval*/
 #define GF_MAX_IP_NAME_LEN	516
@@ -304,8 +311,10 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length);
  *\param length the allocated size of the reception buffer
  *\param start_from the offset in the reception buffer where to start writing
  *\param read the actual number of bytes received
+ *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
  */
 GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 start_from, u32 *read);
+
 /*!
  *\brief socket listening
  *
@@ -433,6 +442,62 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 start_f
  *\return the socket handle
  */
 s32 gf_sk_get_handle(GF_Socket *sock);
+
+/*!
+ *Sets the socket wait time in microseconds. Default wait time is 500 microseconds. Any value >= 1000000 will reset to default.
+ *\param sock the socket object
+ *\param usec_wait wait time in microseconds
+ */
+void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait);
+
+/*!
+ *Creates a new socket group
+ *\return socket group object
+ */
+GF_SockGroup *gf_sk_group_new();
+/*!
+ *Deletes a socket group
+ *\param sg socket group object
+ */
+void gf_sk_group_del(GF_SockGroup *sg);
+/*!
+ *Registers a socket to a socket group
+ *\param sg socket group object
+ *\param sk socket object to register
+ */
+void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk);
+/*!
+ *Unregisters a socket from a socket group
+ *\param sg socket group object
+ *\param sk socket object to unregister
+ */
+void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk);
+
+/*!
+ *Performs a select (wait) on the socket group
+ *\param sg socket group object
+ *\param wait_usec microseconds to wait (can be larger than one second)
+ *\return error if any
+ */
+GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 wait_usec);
+/*!
+ *Checks if given socket is selected and can be read. This shall be called after gf_sk_group_select
+ *\param sg socket group object
+ *\param sk socket object to check
+ *\return GF_TRUE if socket is ready to read, 0 otherwise
+ */
+Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk);
+
+/*!
+ *Fetches data on a socket without performing any select (wait), to be used with socket group on sockets that are set in the selected socket group
+ *\param sock the socket object
+ *\param buffer the reception buffer where data is written
+ *\param length the allocated size of the reception buffer
+ *\param start_from the offset in the reception buffer where to start writing
+ *\param read the actual number of bytes received
+ *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
+ */
+GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 start_from, u32 *read);
 
 
 /*!

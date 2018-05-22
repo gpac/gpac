@@ -241,6 +241,16 @@ next_segment:
 				flags = 0;
 				if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
 				if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
+				else {
+					//whenever we load a base segment, reset all sample count info
+					gf_isom_reset_sample_count(read->mov);
+					for (i=0; i<count; i++) {
+						ISOMChannel *ch = gf_list_get(read->channels, i);
+						if (ch) ch->sample_num = 0;
+					}
+				}
+
+
 				e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, flags);
 
 				if (param.url_query.current_download  && (e==GF_ISOM_INCOMPLETE_FILE)) {
@@ -672,6 +682,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		u32 mtype = gf_isom_get_media_type(ch->owner->mov, ch->track);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			//code is here as a reminder, but by default we use inband param set extraction so no need for it
 #if 0
 			if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {
@@ -939,6 +951,10 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		read->nb_force_flush = 0;
 		if (read->has_pending_segments) {
 			read->has_pending_segments--;
+		}
+		if (param.url_query.discontinuity_type==2) {
+			gf_isom_reset_fragment_info(read->mov, 0);
+			read->clock_discontinuity = 1;
 		}
 
 		if (e==GF_EOS) {

@@ -2021,6 +2021,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
+	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
 	s32 trans_x, trans_y;
 	s16 layer;
@@ -2038,7 +2039,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			import->tk_info[i].track_num = gf_isom_get_track_id(import->orig, i+1);
 			import->tk_info[i].type = gf_isom_get_media_type(import->orig, i+1);
 			import->tk_info[i].flags = GF_IMPORT_USE_DATAREF;
-			if (import->tk_info[i].type == GF_ISOM_MEDIA_VISUAL) {
+			if (gf_isom_is_video_subtype(import->tk_info[i].type) ) {
 				gf_isom_get_visual_info(import->orig, i+1, 1, &import->tk_info[i].video_info.width, &import->tk_info[i].video_info.height);
 			} else if (import->tk_info[i].type == GF_ISOM_MEDIA_AUDIO) {
 				gf_isom_get_audio_info(import->orig, i+1, 1, &import->tk_info[i].audio_info.sample_rate, &import->tk_info[i].audio_info.nb_channels, NULL);
@@ -2081,18 +2082,24 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		iod = NULL;
 	}
 	mtype = gf_isom_get_media_type(import->orig, track_in);
-	if (mtype==GF_ISOM_MEDIA_VISUAL) {
+	if (gf_isom_is_video_subtype(mtype)) {
 		u8 PL = iod ? iod->visual_profileAndLevel : 0xFE;
 		w = h = 0;
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
-			GF_M4VDecSpecInfo dsi;
-			gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-			w = dsi.width;
-			h = dsi.height;
-			PL = dsi.VideoPL;
+		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) ) {
+			if (!origin_esd->decoderConfig->decoderSpecificInfo) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] File %s has invalid track #%d: decoderSpecificInfo is missing.\n", orig_name, trackID));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] extracting track (with -raw %d) and reimporting might fix it.\n", trackID));
+			}
+			else {
+				GF_M4VDecSpecInfo dsi;
+				gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+				w = dsi.width;
+				h = dsi.height;
+				PL = dsi.VideoPL;
+			}
 		}
 #endif
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, PL);
@@ -2161,6 +2168,12 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	case GF_ISOM_MEDIA_VISUAL:
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Video (size %d x %d)", orig_name, trackID, w, h);
 		break;
+    case GF_ISOM_MEDIA_AUXV:
+        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Auxiliary Video (size %d x %d)", orig_name, trackID, w, h);
+        break;
+    case GF_ISOM_MEDIA_PICT:
+        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Picture sequence (size %d x %d)", orig_name, trackID, w, h);
+        break;
 	case GF_ISOM_MEDIA_AUDIO:
 	{
 		if (ps) {
@@ -2216,6 +2229,21 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				break;
 			}
 		}
+	}
+	switch (mstype) {
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_SVC_H264:
+	case GF_ISOM_SUBTYPE_MVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
+	case GF_ISOM_SUBTYPE_HEV1:
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_LHE1:
+	case GF_ISOM_SUBTYPE_LHV1:
+	case GF_ISOM_SUBTYPE_HVT1:
+		is_nalu_video = GF_TRUE;
+		break;
 	}
 
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
@@ -2299,10 +2327,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				gf_isom_cenc_samp_aux_info_del(sai);
 				gf_bs_get_content(bs, &buffer, &len);
 				gf_bs_del(bs);
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video);
 				gf_free(buffer);
 			} else {
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, samp->dataLength, is_nalu_video);
 			}
 			if (e) goto exit;
 
@@ -3590,7 +3618,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	samp->IsRAP = RAP;
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
-		u32 j, dims_flags;
+		u32 j, dims_flags, sap_type;
 		Bool append, compress, has_subbs;
 		char *base_data = NULL;
 		if (node->type) continue;
@@ -3607,6 +3635,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		append = GF_FALSE;
 		compress = do_compress;
 		sample_duration = 0;
+		sap_type = 0;
 
 		j=0;
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
@@ -3624,6 +3653,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				samp->IsRAP = (!stricmp(att->value, "yes")) ? RAP : RAP_NO;
 			}
 			else if (!stricmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? RAP_REDUNDANT : RAP_NO;
+			else if (!stricmp(att->name, "SAPType") && !samp->IsRAP) sap_type = atoi(att->value);
 			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
 			else if (!stricmp(att->name, "mediaFile")) {
@@ -3746,7 +3776,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			if (strlen(szMediaTemp)) {
 				f = gf_fopen(szMediaTemp, "rb");
 				if (!f) {
-					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
+					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, szMediaTemp);
 					goto exit;
 				}
 				close = GF_TRUE;
@@ -3879,7 +3909,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				}
 			}
 		}
-
+		if (sap_type==SAP_TYPE_3) {
+			gf_isom_set_sample_rap_group(import->dest, track, gf_isom_get_sample_count(import->dest, track), 0);
+		}
 		samp->IsRAP = RAP_NO;
 		samp->CTS_Offset = 0;
 		if (sample_duration)
@@ -5047,7 +5079,7 @@ restart_import:
 		case GF_AVC_NALU_DP_B_SLICE:
 		case GF_AVC_NALU_DP_C_SLICE:
 		case GF_AVC_NALU_IDR_SLICE:
-			if (! skip_nal) {
+			if (!skip_nal) {
 				copy_size = nal_size;
 				switch (avc.s_info.slice_type) {
 				case GF_AVC_TYPE_P:
@@ -5498,7 +5530,7 @@ restart_import:
 
 		for (i=0; i<cur_samp; i++) {
 			u64 cts;
-			/*not using descIdx and data_offset will only fecth DTS, CTS and RAP which is all we need*/
+			/*not using descIdx and data_offset will only fetch DTS, CTS and RAP which is all we need*/
 			GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, i+1, NULL, NULL);
 			/*poc re-init (RAP and POC to 0, otherwise that's SEI recovery), update base DTS*/
 			if (samp->IsRAP /*&& !samp->CTS_Offset*/)
@@ -5560,6 +5592,8 @@ restart_import:
 
 		if (min_cts_offset > 0) {
 			gf_isom_shift_cts_offset(import->dest, track, (s32)min_cts_offset);
+			max_cts -= min_cts_offset;
+			min_cts -= min_cts_offset;
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, GF_FALSE);
@@ -6274,8 +6308,12 @@ restart_import:
 			if (hevc.pps[idx].state == 2) {
 				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					assert(ppss);
-					ppss->array_completeness = 0;
+					if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					} else if (!ppss) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[HEVC Import] Redefinition of PPS with id %d on a different layer but using out-of-band parameter set storage, resulting file might be broken\n", idx));
+					} else {
+						ppss->array_completeness = 0;
+					}
 				}
 			}
 
@@ -6306,7 +6344,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample)
+				if (!is_empty_sample && !layer_id)
 					flush_sample = GF_TRUE;
 			}
 
@@ -6339,7 +6377,8 @@ restart_import:
 			}
 			if (nal_size) {
 				//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
-				if (!layer_id || !layer_ids[layer_id - 1]) flush_sample = GF_TRUE;
+				if (!layer_id || !layer_ids[layer_id - 1])
+					flush_sample = GF_TRUE;
 			}
 			break;
 
@@ -6454,6 +6493,7 @@ restart_import:
 					}
 				}
 				gf_bs_write_data(fbs, samp->data, samp->dataLength);
+				gf_free(samp->data);
 				gf_bs_get_content(fbs, &samp->data, &samp->dataLength);
 				gf_bs_del(fbs);
 			}
@@ -9234,7 +9274,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		        (buf[0x17] & 0xf0) != 0x20			   ||
 		        (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
 		{
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (1)", filename);
 			continue;
 		}
 
@@ -9261,12 +9301,12 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		}
 
 		if (i != psize || left > 0) {
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (2)", filename);
 			continue;
 		}
 
 		if (vobsub_get_subpic_duration(packet, psize, dsize, &duration) != GF_OK) {
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (3)", filename);
 			continue;
 		}
 
@@ -9555,7 +9595,8 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
 			GF_ISOSample *samp;
 			u32 ts, inc;
-			if (gf_isom_get_media_type(import->dest, i+1) != GF_ISOM_MEDIA_VISUAL) continue;
+            u32 mtype = gf_isom_get_media_type(import->dest, i+1);
+			if (!gf_isom_is_video_subtype(mtype)) continue;
 			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
 			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);
 			inc = (u32) samp->DTS;

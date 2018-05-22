@@ -112,7 +112,7 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 	} else {
 		p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
 		p->opaque_size = (u32) p->size;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("%s colour profile not supported \n", gf_4cc_to_str(p->colour_type) ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] %s colour profile not supported, not parsing\n", gf_4cc_to_str(p->colour_type) ));
 		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
 	}
 	return GF_OK;

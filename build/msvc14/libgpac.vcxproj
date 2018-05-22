@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\gpac\ait.h" />
+    <ClInclude Include="..\..\include\gpac\atsc.h" />
     <ClInclude Include="..\..\include\gpac\avparse.h" />
     <ClInclude Include="..\..\include\gpac\base_coding.h" />
     <ClInclude Include="..\..\include\gpac\bifs.h" />
@@ -275,6 +276,7 @@
     <ClCompile Include="..\..\src\mcrypt\g_crypt.c" />
     <ClCompile Include="..\..\src\mcrypt\g_crypt_openssl.c" />
     <ClCompile Include="..\..\src\media_tools\ait.c" />
+    <ClCompile Include="..\..\src\media_tools\atsc_dmx.c" />
     <ClCompile Include="..\..\src\media_tools\avilib.c" />
     <ClCompile Include="..\..\src\media_tools\av_parsers.c" />
     <ClCompile Include="..\..\src\media_tools\dash_client.c" />

@@ -251,8 +251,6 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 					break;
 				}
 			}
-		} else {
-			assert(ns->nb_odm_users);
 		}
 		odm->net_service = NULL;
 		if (!ns->nb_odm_users) gf_term_close_service(odm->term, ns);
@@ -369,6 +367,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 		/*if desc is NULL for a media, the media will be declared later by the service (gf_term_media_add)*/
 		if (od_type != GF_MEDIA_OBJECT_SCENE) {
+			if (odm->ambi_ch_id) odm->net_service->serviceID = odm->ambi_ch_id;
+			odm->ambi_ch_id = 0;
 			return;
 		}
 		/*create empty service descriptor, this will automatically create a dynamic scene*/
@@ -710,15 +710,32 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	assert(odm->OD);
 	if (odm->OD->URLString) {
 		GF_ClientService *parent = odm->net_service;
-		char *url = odm->OD->URLString;
+		char *url;
 		char *parent_url = NULL;
-		odm->OD->URLString = NULL;
+		//remote OD not in our service, don't resolve
+		if (odm->OD->ServiceID && odm->parentscene->selected_service_id && (odm->parentscene->selected_service_id!=odm->OD->ServiceID)) {
+			assert(gf_list_find(odm->parentscene->resources, odm) >= 0);
+			odm->net_service->nb_odm_users++;
+			gf_term_lock_net(odm->term, GF_FALSE);
+			return;
+		}
+
 		/*store original OD ID */
 		if (!odm->media_current_time) odm->media_current_time = odm->OD->objectDescriptorID;
+		/*store original serviceID */
+		odm->ambi_ch_id = odm->OD->ServiceID;
 
-		gf_odf_desc_del((GF_Descriptor *)odm->OD);
-		odm->OD = NULL;
-		odm->net_service = NULL;
+		if (odm->OD->RedirectOnly) {
+			url = gf_strdup(odm->OD->URLString);
+			odm->net_service->nb_odm_users++;
+		} else {
+			url = odm->OD->URLString;
+			odm->OD->URLString = NULL;
+
+			gf_odf_desc_del((GF_Descriptor *)odm->OD);
+			odm->OD = NULL;
+			odm->net_service = NULL;
+		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Object redirection to %s (MO %08x)\n", url, odm->mo));
 
 		/*if object is a scene, create the inline before connecting the object.
@@ -745,6 +762,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->OD->objectDescriptorID = odm->media_current_time;
 		odm->media_current_time = 0;
 		odm->flags |= GF_ODM_REMOTE_OD;
+		//restore serviceID
+		odm->OD->ServiceID = odm->ambi_ch_id;
+		odm->ambi_ch_id = 0;
+	} else if (!odm->OD->ServiceID) {
+		odm->OD->ServiceID = odm->net_service->serviceID;
 	}
 
 	/*HACK - temp storage of sync ref*/

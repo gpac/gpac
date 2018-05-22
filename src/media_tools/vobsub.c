@@ -485,7 +485,7 @@ GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *durati
 	stop_stm  = 0;
 	nxt_dcsq  = dsize;
 
-	do {
+	if (psize) do {
 		i = nxt_dcsq;
 		dcsq_stm = (data[i+0] << 8) | data[i+1];
 		nxt_dcsq = (data[i+2] << 8) | data[i+3];

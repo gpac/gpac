@@ -850,7 +850,7 @@ static void gf_glQueryUniforms(GF_SHADERID progObj)
 
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORMS, &numUniforms);
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformLen);
-	uniformName = malloc(sizeof(char) * maxUniformLen);
+	uniformName = gf_malloc(sizeof(char) * maxUniformLen);
 	for(index = 0; index < numUniforms; index++) {
 		GLint size;
 		GLenum type;
@@ -897,6 +897,7 @@ static void gf_glQueryUniforms(GF_SHADERID progObj)
 			break;
 		}
 	}
+	gf_free(uniformName);
 }
 
 static void gf_glQueryAttributes(GF_SHADERID progObj)
@@ -909,7 +910,7 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 	printf("Listing Attribs... \n");
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTES, &numAttributes);
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeLen);
-	attributeName = malloc(sizeof(char) * maxAttributeLen);
+	attributeName = gf_malloc(sizeof(char) * maxAttributeLen);
 	for(index = 0; index < numAttributes; index++) {
 		GLint size;
 		GLenum type;
@@ -956,6 +957,7 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 			break;
 		}
 	}
+	gf_free(attributeName);
 }
 #endif
 
@@ -1570,8 +1572,11 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 
 void visual_3d_enable_depth_buffer(GF_VisualManager *visual, Bool on)
 {
-	if (on) glEnable(GL_DEPTH_TEST);
-	else glDisable(GL_DEPTH_TEST);
+	if (on) {
+		glEnable(GL_DEPTH_TEST);
+	} else {
+		glDisable(GL_DEPTH_TEST);
+	}
 }
 
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp)
@@ -2698,7 +2703,11 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		        && (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
 		        && (mesh->flags & MESH_IS_SOLID)) {
 			glEnable(GL_CULL_FACE);
-			glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+			if (tr_state->reverse_backface) {
+				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CCW : GL_CW);
+			} else {
+				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+			}
 		} else {
 			glDisable(GL_CULL_FACE);
 		}

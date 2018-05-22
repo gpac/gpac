@@ -31,26 +31,26 @@ if [ -d tmpdmg ]
 then
 rm -fr tmpdmg
 fi
-mkdir -p tmpdmg/Osmo4.app
-rsync -r --exclude=.git $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
+mkdir -p tmpdmg/GPAC.app
+rsync -r --exclude=.git $source_path/packagers/osx/GPAC.app/ ./tmpdmg/GPAC.app/
 ln -s /Applications ./tmpdmg/Applications
 cp $source_path/README.md ./tmpdmg
 cp $source_path/COPYING ./tmpdmg
 
-mkdir -p tmpdmg/Osmo4.app/Contents/MacOS/modules
-mkdir -p tmpdmg/Osmo4.app/Contents/MacOS/lib
+mkdir -p tmpdmg/GPAC.app/Contents/MacOS/modules
+mkdir -p tmpdmg/GPAC.app/Contents/MacOS/lib
 
-cp bin/gcc/gm* tmpdmg/Osmo4.app/Contents/MacOS/modules
-cp bin/gcc/libgpac.dylib tmpdmg/Osmo4.app/Contents/MacOS/lib
-cp bin/gcc/MP4Client tmpdmg/Osmo4.app/Contents/MacOS/Osmo4
-cp bin/gcc/MP4Box tmpdmg/Osmo4.app/Contents/MacOS/MP4Box
-cp bin/gcc/MP42TS tmpdmg/Osmo4.app/Contents/MacOS/MP42TS
+cp bin/gcc/gm* tmpdmg/GPAC.app/Contents/MacOS/modules
+cp bin/gcc/libgpac.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
+cp bin/gcc/MP4Client tmpdmg/GPAC.app/Contents/MacOS/Osmo4
+cp bin/gcc/MP4Box tmpdmg/GPAC.app/Contents/MacOS/MP4Box
+cp bin/gcc/MP42TS tmpdmg/GPAC.app/Contents/MacOS/MP42TS
 if [ -f bin/gcc/DashCast ]
 then
-cp bin/gcc/DashCast tmpdmg/Osmo4.app/Contents/MacOS/DashCast
+cp bin/gcc/DashCast tmpdmg/GPAC.app/Contents/MacOS/DashCast
 fi
 
-cd tmpdmg/Osmo4.app/Contents/MacOS/
+cd tmpdmg/GPAC.app/Contents/MacOS/
 
 #check all external deps, and copy them
 echo rewriting DYLIB dependencies
@@ -81,8 +81,8 @@ fi
 cd ../../../..
 
 echo Copying GUI
-rsync -r --exclude=.git $source_path/gui ./tmpdmg/Osmo4.app/Contents/MacOS/
-rsync -r --exclude=.git $source_path/shaders ./tmpdmg/Osmo4.app/Contents/MacOS/
+rsync -r --exclude=.git $source_path/gui ./tmpdmg/GPAC.app/Contents/MacOS/
+rsync -r --exclude=.git $source_path/shaders ./tmpdmg/GPAC.app/Contents/MacOS/
 
 echo Building DMG
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`
@@ -104,28 +104,31 @@ else
    	$rev = $(date +%Y%m%d)
 fi
 
-sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' tmpdmg/Osmo4.app/Contents/Info.plist > tmpdmg/Osmo4.app/Contents/Info.plist.new && sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' tmpdmg/Osmo4.app/Contents/Info.plist.new > tmpdmg/Osmo4.app/Contents/Info.plist && rm tmpdmg/Osmo4.app/Contents/Info.plist.new
+sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' tmpdmg/GPAC.app/Contents/Info.plist > tmpdmg/GPAC.app/Contents/Info.plist.new && sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' tmpdmg/GPAC.app/Contents/Info.plist.new > tmpdmg/GPAC.app/Contents/Info.plist && rm tmpdmg/GPAC.app/Contents/Info.plist.new
 
-#create dmg
-hdiutil create ./gpac.dmg -volname "GPAC for OSX"  -srcfolder tmpdmg -ov
-rm -rf ./tmpdmg
+#GPAC.app now ready, build pkg
+echo "Building PKG"
+find ./tmpdmg/ -name '*.DS_Store' -type f -delete
+chmod -R 755 ./tmpdmg/
+xattr -rc ./tmpdmg/
 
-#add SLA
-echo "Adding licence"
-hdiutil convert -format UDCO -o gpac_sla.dmg gpac.dmg
-rm gpac.dmg
-hdiutil unflatten gpac_sla.dmg
-Rez /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/Headers/*.r $source_path/build/osxdmg/SLA.r -a -o gpac_sla.dmg
-hdiutil flatten gpac_sla.dmg
-hdiutil internet-enable -yes gpac_sla.dmg
+pkgbuild --install-location /Applications --component ./tmpdmg/GPAC.app --scripts ./packagers/osx/scripts --ownership preserve ./tmppkg.pkg
+cat ./packagers/osx/res/preamble.txt > ./packagers/osx/res/full_license.txt
+cat ./COPYING >> ./packagers/osx/res/full_license.txt
 
-pck_name="gpac-$full_version.dmg"
+productbuild --distribution packagers/osx/distribution.xml --resources ./packagers/osx/res --package-path ./tmppkg.pkg gpac.pkg
+
+rm ./packagers/osx/res/full_license.txt
+
+pck_name="gpac-$full_version.pkg"
 if [ "$1" = "snow-leopard" ]; then
-pck_name="gpac-$full_version-$1.dmg"
+pck_name="gpac-$full_version-$1.pkg"
 fi
+mv gpac.pkg $pck_name
+chmod 755 $pck_name
 
 echo "$pck_name ready"
-chmod o+rx gpac_sla.dmg
-chmod g+rx gpac_sla.dmg
-mv gpac_sla.dmg $pck_name
+rm -rf tmpdmg
+rm -rf tmppkg.pkg
+
 

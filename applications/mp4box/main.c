@@ -120,8 +120,8 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name);
 void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name);
-void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name);
+void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bool skip_offset);
+void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_isom_ismacryp(GF_ISOFile *file, char *inName, Bool is_final_name);
@@ -148,6 +148,8 @@ void PrintLiveUsage();
 #if !defined(GPAC_DISABLE_STREAMING)
 u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *outName);
 #endif
+
+u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs, u32 stats_rate, u32 debug_tsi);
 
 int mp4boxTerminal(int argc, char **argv);
 
@@ -196,7 +198,7 @@ u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
 void PrintVersion()
 {
 	fprintf(stderr, "MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
-	        "GPAC Copyright (c) Telecom ParisTech 2000-2012\n"
+	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n", gpac_features());
 }
@@ -311,8 +313,7 @@ void PrintDASHUsage()
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
 	        "	                            using the -frag switch.\n"
 	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
-	        " -dash-strict dur     enables DASH-ing of the file(s) with a segment duration of DUR ms (old behaviour)\n"
-	        "                       Note: the duration will be the closest to \'dur\', and will remain constant\n"
+	        " -dash-strict dur     [DEPRECATED, will behave like -dash]\n"
 	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionally writing live context to F\n"
 	        "                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
 	        " -ddbg-live[=F] dur   same as -dash-live without time regulation for debug purposes.\n"
@@ -402,6 +403,8 @@ void PrintDASHUsage()
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
 	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
+	        " -bound               enables video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)\n"
+	        " -closest             enables video segmentation closest to the segment boundary (before or after)\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -418,6 +421,7 @@ void PrintDASHUsage()
 	        " -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
 	        " -no-frags-default    disables default flags in fragments\n"
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
+            " -tfdt-traf           uses a tfdt per track fragment (when -single-traf is used)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 	        " -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
 	        " -cp-location=MODE    sets ContentProtection element location. Possible values for mode are:\n"
@@ -761,8 +765,10 @@ void PrintDumpUsage()
 	        " -diso                dumps IsoMedia file boxes in XML output\n"
 	        " -dxml                dumps IsoMedia file boxes and known track samples in XML output\n"
 	        " -drtp                rtp hint samples structure to XML output\n"
-	        " -dts                 prints sample timing to text output\n"
+	        " -dts                 prints sample timing, size and position in file to text output\n"
+	        " -dtsx                same as -dst but does not print offset\n"
 	        " -dnal trackID        prints NAL sample info of given track\n"
+	        " -dnalc trackID       prints NAL sample info of given track, adding CRC for each nal\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
 	        " -dcr                 ISMACryp samples structure to XML output\n"
 	        " -dump-cover          Extracts cover art\n"
@@ -856,6 +862,25 @@ void PrintSWFUsage()
 	       );
 }
 
+void PrintATSCUsage()
+{
+	fprintf(stderr,
+	        "ATSC3 reader Options\n"
+	        "\n"
+	        "MP4Box can read ATSC3 sessions from network. \n"
+	        "\n"
+	        " -atsc 			enables ATSC3 reader\n"
+	        " -ifce IP			IP adress of network interface to use\n"
+	        " -dir PATH			local filesystem path to which the files are written. If not set, nothing is written to disk.\n"
+	        " -service ID:		ID of the service to grab. If not set or -1, all services are dumped. If 0, no services are dumped. If -2, the first service found is used.\n"
+	        " -nb-segs N:		sets max segments to keep on disk per stream. -1 (default) keeps all.\n"
+	        " -atsc-stats N:	prints stats every N seconds. If 0 (default) stats disabled.\n"
+	        "\n"
+	        "On OSX with VM packet replay you will need to force mcast routing, eg:\n"
+	        "route add -net 239.255.1.4/32 -interface vboxnet0\n"
+	        "\n"
+	       );
+}
 void PrintUsage()
 {
 	fprintf (stderr, "MP4Box [option] input [option]\n"
@@ -872,6 +897,7 @@ void PrintUsage()
 	         " -h format            supported formats help\n"
 	         " -h rtp               file streamer help\n"
 	         " -h live              BIFS streamer help\n"
+	         " -h atsc              ATSC3 reader help\n"
 	         " -h all               all options are printed\n"
 	         "\n"
 	         " -nodes               lists supported MPEG4 nodes\n"
@@ -997,6 +1023,18 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 				media_prio = 2;
 			}
 			break;
+        case GF_ISOM_MEDIA_AUXV:
+            if (single_av) {
+                media_group = 2;
+                media_prio = 3;
+            }
+            break;
+        case GF_ISOM_MEDIA_PICT:
+            if (single_av) {
+                media_group = 2;
+                media_prio = 4;
+            }
+            break;
 		case GF_ISOM_MEDIA_AUDIO:
 			if (single_av) {
 				media_group = 2;
@@ -1155,6 +1193,8 @@ void remove_systems_tracks(GF_ISOFile *file)
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		switch (gf_isom_get_media_type(file, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
@@ -1300,7 +1340,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		strcpy(szSlot, opts);
 		next = strchr(szSlot, ':');
 		/*use ':' as separator, but beware DOS paths...*/
-		if (next && next[1]=='\\') next = strchr(szSlot+2, ':');
+		if (next && next[1]=='\\') next = strchr(next+2, ':');
 		if (next) next[0] = 0;
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
@@ -1828,9 +1868,9 @@ static GF_Err hash_file(char *name, u32 dump_std)
 Bool log_sys_clock = GF_FALSE;
 Bool log_utc_time = GF_FALSE;
 
-static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
+static void on_mp4box_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
-	FILE *logs = cbk;
+	FILE *logs = cbk ? cbk : stderr;
 
 	if (log_sys_clock) {
 		fprintf(logs, "At "LLD" ", gf_sys_clock_high_res() );
@@ -1863,16 +1903,16 @@ s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+u32 i, j, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
-u32 track_dump_type, dump_isom;
+u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
 Double min_buffer = 1.5;
 s32 ast_offset_ms = 0;
@@ -1925,6 +1965,12 @@ Bool frag_at_rap = GF_FALSE;
 Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
+Bool grab_atsc = GF_FALSE;
+s32 atsc_max_segs = -1;
+u32 atsc_stats_rate = 0;
+u32 atsc_debug_tsi = 0;
+const char *atsc_output_dir = NULL;
+s32 atsc_service = -1;
 u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
@@ -1936,13 +1982,16 @@ const char *dash_source = NULL;
 const char *dash_more_info = NULL;
 #if !defined(GPAC_DISABLE_STREAMING)
 const char *grab_m2ts = NULL;
-const char *grab_ifce = NULL;
 #endif
+const char *grab_ifce = NULL;
+
 FILE *logfile = NULL;
 static u32 run_for=0;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 static Bool no_cache=GF_FALSE;
 static Bool no_loop=GF_FALSE;
+static Bool split_on_bound=GF_FALSE;
+static Bool split_on_closest=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -2773,6 +2822,7 @@ else if (!stricmp(arg, "-h")) {
 	else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
 	else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
 	else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
+	else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	else if (!strcmp(argv[i + 1], "rtp")) PrintStreamerUsage();
 	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
@@ -2789,6 +2839,7 @@ else if (!stricmp(arg, "-h")) {
 		PrintEncryptUsage();
 		PrintMetaUsage();
 		PrintSWFUsage();
+		PrintATSCUsage();
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		PrintStreamerUsage();
 		PrintLiveUsage();
@@ -2852,7 +2903,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			PrintUsage();
 			return 1;
 		}
-		else if (!stricmp(arg, "-version")) {
+		else if (!stricmp(arg, "-version") || !stricmp(arg, "-v")) {
 			PrintVersion();
 			return 1;
 		}
@@ -2870,7 +2921,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 			logfile = gf_fopen(argv[i + 1], "wt");
-			gf_log_set_callback(logfile, on_gpac_log);
+			gf_log_set_callback(logfile, on_mp4box_log);
 			i++;
 		}
 		else if (!strcmp(arg, "-lc") || !strcmp(arg, "-log-clock")) {
@@ -2898,13 +2949,40 @@ Bool mp4box_parse_args(int argc, char **argv)
 			grab_m2ts = argv[i + 1];
 			i++;
 		}
+#endif
 		else if (!stricmp(arg, "-ifce")) {
 			CHECK_NEXT_ARG
 			grab_ifce = argv[i + 1];
 			i++;
 		}
-
-#endif
+		else if (!stricmp(arg, "-atsc")) {
+			grab_atsc = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-dir")) {
+			CHECK_NEXT_ARG
+			atsc_output_dir = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-service")) {
+			CHECK_NEXT_ARG
+			atsc_service = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-nb-segs")) {
+			CHECK_NEXT_ARG
+			atsc_max_segs = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-atsc-stats")) {
+			CHECK_NEXT_ARG
+			atsc_stats_rate = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-tsi")) {
+			CHECK_NEXT_ARG
+			atsc_debug_tsi = atoi(argv[i + 1]);
+			i++;
+		}
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
@@ -3073,9 +3151,18 @@ Bool mp4box_parse_args(int argc, char **argv)
 				}
 			}
 		}
+		else if (!stricmp(arg, "-dtsx")) {
+			dump_timestamps = 2;
+		}
 		else if (!stricmp(arg, "-dnal")) {
 			CHECK_NEXT_ARG
 			dump_nal = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-dnalc")) {
+			CHECK_NEXT_ARG
+			dump_nal = atoi(argv[i + 1]);
+			dump_nal_crc = GF_TRUE;
 			i++;
 		}
 		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
@@ -3224,7 +3311,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i + 1]);
 				return 2;
 			}
-			dash_duration_strict = GF_TRUE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] -dash-strict is deprecated, will behave like -dash\n"));
 			i++;
 		}
 		else if (!stricmp(arg, "-subdur")) {
@@ -3266,6 +3353,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-no-loop")) {
 			no_loop = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-bound")) {
+			split_on_bound = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-closest")) {
+			split_on_closest = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
@@ -3357,6 +3450,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-single-traf")) {
 			single_traf_per_moof = 1;
 		}
+        else if (!stricmp(arg, "-tfdt-traf")) {
+            tfdt_per_traf = 1;
+        }
 		else if (!stricmp(arg, "-mpd-title")) {
 			CHECK_NEXT_ARG dash_title = argv[i + 1];
 			i++;
@@ -3461,7 +3557,6 @@ int mp4boxMain(int argc, char **argv)
 	split_start = -1.0;
 	interleaving_time = 0;
 	dash_duration = dash_subduration = 0.0;
-	dash_duration_strict = GF_FALSE;
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
@@ -3472,10 +3567,12 @@ int mp4boxMain(int argc, char **argv)
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = GF_FALSE,
-	dump_isom = 0;
+    tfdt_per_traf = GF_FALSE,
+	dump_nal_crc = GF_FALSE,
+	dump_isom = dump_timestamps = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = GF_TRUE;
 	subsegs_per_sidx = 0;
@@ -3532,8 +3629,19 @@ int mp4boxMain(int argc, char **argv)
 		return mp4box_cleanup(i - 1);
 	}
 
+	if (!logfile && (log_sys_clock || log_utc_time) )
+		gf_log_set_callback(NULL, on_mp4box_log);
+
 	if (!inName && dump_std)
 		inName = "std";
+
+	if (grab_atsc) {
+		if (!gf_logs) {
+			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+			gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
+		}
+		return grab_atsc3_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
+	}
 
 	if (!inName) {
 		PrintUsage();
@@ -4059,7 +4167,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
 		if (!e) e = gf_dasher_enable_single_file(dasher, single_file);
 		if (!e) e = gf_dasher_set_switch_mode(dasher, bitstream_switching_mode);
-		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, dash_duration_strict, interleaving_time);
+		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time);
 		if (!e) e = gf_dasher_enable_rap_splitting(dasher, seg_at_rap, frag_at_rap);
 		if (!e) e = gf_dasher_set_segment_marker(dasher, segment_marker);
 		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
@@ -4068,7 +4176,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
 		if (!e) e = gf_dasher_enable_memory_fragmenting(dasher, memory_frags);
 		if (!e) e = gf_dasher_set_initial_isobmf(dasher, initial_moof_sn, initial_tfdt);
-		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
+		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, tfdt_per_traf);
 		if (!e) e = gf_dasher_enable_utc_ref(dasher, insert_utc);
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
@@ -4076,6 +4184,8 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
+		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
+		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
@@ -4419,8 +4529,8 @@ int mp4boxMain(int argc, char **argv)
 
 #endif
 
-	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
-	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_timestamps==2) ? GF_TRUE : GF_FALSE);
+	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_crc);
 
 	if (do_hash) {
 		e = hash_file(inName, dump_std);
@@ -4767,6 +4877,8 @@ int mp4boxMain(int argc, char **argv)
 				u32 mType = gf_isom_get_media_type(file, i+1);
 				switch (mType) {
 				case GF_ISOM_MEDIA_VISUAL:
+                case GF_ISOM_MEDIA_AUXV:
+                case GF_ISOM_MEDIA_PICT:
 					major_brand = GF_ISOM_BRAND_M4V;
 					gf_isom_set_ipod_compatible(file, i+1);
 #if 0
@@ -4842,9 +4954,8 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(outfile, outName);
 	}
 
-
-	for (i=0; i<nb_track_act; i++) {
-		TrackAction *tka = &tracks[i];
+	for (j=0; j<nb_track_act; j++) {
+		TrackAction *tka = &tracks[j];
 		u32 track = tka->trackID ? gf_isom_get_track_by_id(file, tka->trackID) : 0;
 		u32 timescale = gf_isom_get_timescale(file);
 		switch (tka->act_type) {
@@ -5043,18 +5154,21 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				char *d, *ext;
-				FILE *t = gf_fopen(val, "rb");
-				gf_fseek(t, 0, SEEK_END);
-				tlen = (u32) gf_ftell(t);
-				gf_fseek(t, 0, SEEK_SET);
-				d = gf_malloc(sizeof(char) * tlen);
-				tlen = (u32) fread(d, sizeof(char), tlen, t);
-				gf_fclose(t);
+				d=NULL;
+				if (val) {
+					FILE *t = gf_fopen(val, "rb");
+					gf_fseek(t, 0, SEEK_END);
+					tlen = (u32)gf_ftell(t);
+					gf_fseek(t, 0, SEEK_SET);
+					d = gf_malloc(sizeof(char) * tlen);
+					tlen = (u32)fread(d, sizeof(char), tlen, t);
+					gf_fclose(t);
 
-				ext = strrchr(val, '.');
-				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
+					ext = strrchr(val, '.');
+					if (!stricmp(ext, ".png")) tlen |= 0x80000000;
+				}
 				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
-				gf_free(d);
+				if (d) gf_free(d);
 			}
 			break;
 			case GF_ISOM_ITUNE_TEMPO:
@@ -5077,20 +5191,22 @@ int mp4boxMain(int argc, char **argv)
 				u32 n, t;
 				char _t[8];
 				n = t = 0;
-				memset(_t, 0, sizeof(char)*8);
-				tlen = (itag==GF_ISOM_ITUNE_DISK) ? 6 : 8;
-				if (sscanf(val, "%u/%u", &n, &t) == 2) {
-					_t[3]=n;
-					_t[2]=n>>8;
-					_t[5]=t;
-					_t[4]=t>>8;
+				if (val) {
+					memset(_t, 0, sizeof(char) * 8);
+					tlen = (itag == GF_ISOM_ITUNE_DISK) ? 6 : 8;
+					if (sscanf(val, "%u/%u", &n, &t) == 2) {
+						_t[3] = n;
+						_t[2] = n >> 8;
+						_t[5] = t;
+						_t[4] = t >> 8;
+					}
+					else if (sscanf(val, "%u", &n) == 1) {
+						_t[3] = n;
+						_t[2] = n >> 8;
+					}
+					else tlen = 0;
 				}
-				else if (sscanf(val, "%u", &n) == 1) {
-					_t[3]=n;
-					_t[2]=n>>8;
-				}
-				else tlen = 0;
-				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
+				if (!val || tlen) gf_isom_apple_set_tag(file, itag, val ? _t : NULL, tlen);
 			}
 			break;
 			case GF_ISOM_ITUNE_GAPLESS:
