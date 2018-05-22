@@ -149,6 +149,9 @@ void convert_file_info(char *inName, u32 trackID)
 		case GF_ISOM_MEDIA_VISUAL:
 			fprintf(stderr, "Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
 			break;
+        case GF_ISOM_MEDIA_AUXV:
+            fprintf(stderr, "Auxiliary Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+            break;
 		case GF_ISOM_MEDIA_AUDIO:
 			fprintf(stderr, "Audio (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
 			break;
@@ -188,7 +191,7 @@ void convert_file_info(char *inName, u32 trackID)
 		fprintf(stderr, "\n");
 		if (!trackID) continue;
 
-		if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL)
+		if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL || import.tk_info[i].type==GF_ISOM_MEDIA_AUXV)
 		        && import.tk_info[i].video_info.width
 		        && import.tk_info[i].video_info.height
 		   ) {
@@ -248,7 +251,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
+	Bool do_audio, do_video, do_auxv, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
@@ -561,7 +564,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	}
 
 	/*select switches for av containers import*/
-	do_audio = do_video = 0;
+	do_audio = do_video = do_auxv = 0;
 	track_id = prog_id = 0;
 	do_all = 1;
 	ext = strrchr(szName, '#');
@@ -578,6 +581,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		ext++;
 		if (!strnicmp(ext, "audio", 5)) do_audio = 1;
 		else if (!strnicmp(ext, "video", 5)) do_video = 1;
+        else if (!strnicmp(ext, "auxv", 4)) do_auxv = 1;
 		else if (!strnicmp(ext, "trackID=", 8)) track_id = atoi(&ext[8]);
 		else if (!strnicmp(ext, "PID=", 4)) track_id = atoi(&ext[4]);
 		else if (!strnicmp(ext, "program=", 8)) {
@@ -595,7 +599,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else track_id = atoi(ext);
 	}
-	if (do_audio || do_video || track_id) do_all = 0;
+	if (do_audio || do_video || do_auxv || track_id) do_all = 0;
 
 	if (track_layout || is_chap) {
 		u32 w, h, sw, sh, fw, fh, i;
@@ -605,6 +609,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			switch (gf_isom_get_media_type(dest, i+1)) {
 			case GF_ISOM_MEDIA_SCENE:
 			case GF_ISOM_MEDIA_VISUAL:
+            case GF_ISOM_MEDIA_AUXV:
 				if (!chap_ref && gf_isom_is_track_enabled(dest, i+1) ) chap_ref = i+1;
 
 				gf_isom_get_visual_info(dest, i+1, 1, &sw, &sh);
@@ -773,6 +778,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				do_video = 0;
 				e = gf_media_import(&import);
 			}
+            else if (do_auxv && (import.tk_info[i].type==GF_ISOM_MEDIA_AUXV)) {
+                do_auxv = 0;
+                e = gf_media_import(&import);
+            }
 			else continue;
 			if (e) goto exit;
 
@@ -798,7 +807,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					}
 				}
 			}
-			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=-1) && (par_d>=-1)) {
+			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL||import.tk_info[i].type==GF_ISOM_MEDIA_AUXV)
+                && (par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
 			if (rap_only) {
@@ -923,6 +933,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		if (track_id) fprintf(stderr, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stderr, "WARNING: Video track not found\n");
+        else if (do_auxv) fprintf(stderr, "WARNING: Auxiliary Video track not found\n");
 		else if (do_audio) fprintf(stderr, "WARNING: Audio track not found\n");
 	}
 
@@ -1103,6 +1114,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		case GF_ISOM_MEDIA_AUDIO:
 			break;
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
 			if (gf_isom_get_sample_count(mp4, i+1)>1) {
 				break;
 			}
@@ -1857,6 +1869,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_MPEG_SUBT:
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_OCI:
@@ -1914,6 +1927,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			use_ts_dur = 0;
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_OCI:
 		case GF_ISOM_MEDIA_IPMP:
@@ -1945,7 +1959,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			for (j=0; j<gf_isom_get_track_count(dest); j++) {
 				if (mtype != gf_isom_get_media_type(dest, j+1)) continue;
 				if (gf_isom_is_same_sample_description(orig, i+1, 0, dest, j+1, 0)) {
-					if (mtype==GF_ISOM_MEDIA_VISUAL) {
+					if (mtype==GF_ISOM_MEDIA_VISUAL || mtype==GF_ISOM_MEDIA_AUXV) {
 						u32 w, h, ow, oh;
 						gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
 						gf_isom_get_visual_info(dest, j+1, 1, &w, &h);
@@ -1995,7 +2009,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				dst_tk = 0;
 			}
 			/*we force the same visual resolution*/
-			else if (mtype==GF_ISOM_MEDIA_VISUAL) {
+			else if (mtype==GF_ISOM_MEDIA_VISUAL || mtype==GF_ISOM_MEDIA_AUXV) {
 				u32 w, h, ow, oh;
 				gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
 				gf_isom_get_visual_info(dest, dst_tk, 1, &w, &h);

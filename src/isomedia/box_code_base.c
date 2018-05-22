@@ -3894,26 +3894,31 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		{
 			GF_UnknownBox *wave = (GF_UnknownBox *)a;
  			if (wave->original_4cc == GF_ISOM_BOX_TYPE_WAVE) {
-				u32 offset = 0;
-				while ((wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
-					offset++;
-					if (offset == wave->dataSize) break;
-				}
-				if (offset < wave->dataSize) {
-					GF_Box *a;
-					GF_Err e;
-					GF_BitStream *bs = gf_bs_new(wave->data + offset, wave->dataSize - offset, GF_BITSTREAM_READ);
-					e = gf_isom_box_parse(&a, bs);
-					gf_bs_del(bs);
-					if (e) return e;
-					ptr->esd = (GF_ESDBox *)a;
-					gf_isom_box_add_for_dump_mode((GF_Box *)ptr, a);
+                for (int i =0; i < gf_list_count(wave->other_boxes); i++) {
+                    GF_Box *inner_box = (GF_Box *)gf_list_get(wave->other_boxes, i);
+                    if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
+                        ptr->esd = (GF_ESDBox *)inner_box;
+                    }
+                }
+                return gf_isom_box_add_default(s, a);
+            } else if (wave->data != NULL) {
+                u32 offset = 0;
+                while ((wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
+                    offset++;
+                    if (offset == wave->dataSize) break;
+                }
+                if (offset < wave->dataSize) {
+                    GF_Box *a;
+                    GF_Err e;
+                    GF_BitStream *bs = gf_bs_new(wave->data + offset, wave->dataSize - offset, GF_BITSTREAM_READ);
+                    e = gf_isom_box_parse(&a, bs);
+                    gf_bs_del(bs);
+                    if (e) return e;
+                    ptr->esd = (GF_ESDBox *)a;
+                    gf_isom_box_add_for_dump_mode((GF_Box *)ptr, a);
 
-				}
-			}
-			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot process box %s\n!", gf_4cc_to_str(wave->original_4cc)));
-				
+                }
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot process box %s!\n", gf_4cc_to_str(wave->original_4cc)));
 				return gf_isom_box_add_default(s, a);
 			}
 			gf_isom_box_del(a);
@@ -6844,7 +6849,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 
 		/*only process visual or audio*/
 		switch (trak->Media->handler->handlerType) {
-		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUXV:
 		{
 			GF_GenericVisualSampleEntryBox *genv;
 			/*remove entry*/
