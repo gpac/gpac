@@ -163,20 +163,7 @@
 		9201013018D5A444003D1ACA /* lsr_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201000F18D5A444003D1ACA /* lsr_dec.c */; };
 		9201013118D5A444003D1ACA /* lsr_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001018D5A444003D1ACA /* lsr_enc.c */; };
 		9201013218D5A445003D1ACA /* lsr_tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001118D5A444003D1ACA /* lsr_tables.c */; };
-		9201013418D5A445003D1ACA /* cbc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001418D5A444003D1ACA /* cbc.c */; };
-		9201013518D5A445003D1ACA /* cfb.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001518D5A444003D1ACA /* cfb.c */; };
-		9201013618D5A445003D1ACA /* ctr.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001618D5A444003D1ACA /* ctr.c */; };
-		9201013718D5A445003D1ACA /* des.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001718D5A444003D1ACA /* des.c */; };
-		9201013818D5A445003D1ACA /* ecb.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001818D5A444003D1ACA /* ecb.c */; };
 		9201013918D5A445003D1ACA /* g_crypt.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001918D5A444003D1ACA /* g_crypt.c */; };
-		9201013A18D5A445003D1ACA /* ncfb.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001A18D5A444003D1ACA /* ncfb.c */; };
-		9201013B18D5A445003D1ACA /* nofb.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001B18D5A444003D1ACA /* nofb.c */; };
-		9201013C18D5A445003D1ACA /* ofb.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001C18D5A444003D1ACA /* ofb.c */; };
-		9201013D18D5A445003D1ACA /* rijndael-128.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001D18D5A444003D1ACA /* rijndael-128.c */; };
-		9201013E18D5A445003D1ACA /* rijndael-192.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001E18D5A444003D1ACA /* rijndael-192.c */; };
-		9201013F18D5A445003D1ACA /* rijndael-256.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201001F18D5A444003D1ACA /* rijndael-256.c */; };
-		9201014018D5A445003D1ACA /* stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002018D5A444003D1ACA /* stream.c */; };
-		9201014118D5A445003D1ACA /* tripledes.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002118D5A444003D1ACA /* tripledes.c */; };
 		9201014218D5A445003D1ACA /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002318D5A444003D1ACA /* ait.c */; };
 		9201014318D5A445003D1ACA /* av_parsers.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002418D5A444003D1ACA /* av_parsers.c */; };
 		9201014418D5A445003D1ACA /* avilib.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002518D5A444003D1ACA /* avilib.c */; };
@@ -318,6 +305,10 @@
 		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
 		9235E0531CFECD520051D8A1 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA661A152BB700372C59 /* CoreFoundation.framework */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
+		9273F70C20B4443200DADC67 /* g_crypt_openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = 9273F70B20B4443100DADC67 /* g_crypt_openssl.c */; };
+		9273F70F20B44AC800DADC67 /* tiny_aes.c in Sources */ = {isa = PBXBuildFile; fileRef = 9273F70D20B44AC800DADC67 /* tiny_aes.c */; };
+		9273F71020B44AC800DADC67 /* tiny_aes.h in Headers */ = {isa = PBXBuildFile; fileRef = 9273F70E20B44AC800DADC67 /* tiny_aes.h */; };
+		9273F71220B44B8000DADC67 /* g_crypt_tinyaes.c in Sources */ = {isa = PBXBuildFile; fileRef = 9273F71120B44B7F00DADC67 /* g_crypt_tinyaes.c */; };
 		92A7E9592003BA8F000C22DE /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
 		92A7E95A2003BA9B000C22DE /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2C41A163711002D73E1 /* CoreMedia.framework */; };
 		92A7E95B2003BAA3000C22DE /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E04F1CFECD370051D8A1 /* CoreVideo.framework */; };
@@ -699,20 +690,7 @@
 		9201000F18D5A444003D1ACA /* lsr_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lsr_dec.c; sourceTree = "<group>"; };
 		9201001018D5A444003D1ACA /* lsr_enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lsr_enc.c; sourceTree = "<group>"; };
 		9201001118D5A444003D1ACA /* lsr_tables.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lsr_tables.c; sourceTree = "<group>"; };
-		9201001418D5A444003D1ACA /* cbc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cbc.c; sourceTree = "<group>"; };
-		9201001518D5A444003D1ACA /* cfb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cfb.c; sourceTree = "<group>"; };
-		9201001618D5A444003D1ACA /* ctr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ctr.c; sourceTree = "<group>"; };
-		9201001718D5A444003D1ACA /* des.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = des.c; sourceTree = "<group>"; };
-		9201001818D5A444003D1ACA /* ecb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ecb.c; sourceTree = "<group>"; };
 		9201001918D5A444003D1ACA /* g_crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = g_crypt.c; sourceTree = "<group>"; };
-		9201001A18D5A444003D1ACA /* ncfb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ncfb.c; sourceTree = "<group>"; };
-		9201001B18D5A444003D1ACA /* nofb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = nofb.c; sourceTree = "<group>"; };
-		9201001C18D5A444003D1ACA /* ofb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ofb.c; sourceTree = "<group>"; };
-		9201001D18D5A444003D1ACA /* rijndael-128.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "rijndael-128.c"; sourceTree = "<group>"; };
-		9201001E18D5A444003D1ACA /* rijndael-192.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "rijndael-192.c"; sourceTree = "<group>"; };
-		9201001F18D5A444003D1ACA /* rijndael-256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "rijndael-256.c"; sourceTree = "<group>"; };
-		9201002018D5A444003D1ACA /* stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stream.c; sourceTree = "<group>"; };
-		9201002118D5A444003D1ACA /* tripledes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tripledes.c; sourceTree = "<group>"; };
 		9201002318D5A444003D1ACA /* ait.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ait.c; sourceTree = "<group>"; };
 		9201002418D5A444003D1ACA /* av_parsers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = av_parsers.c; sourceTree = "<group>"; };
 		9201002518D5A444003D1ACA /* avilib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = avilib.c; sourceTree = "<group>"; };
@@ -1218,6 +1196,10 @@
 		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
+		9273F70B20B4443100DADC67 /* g_crypt_openssl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = g_crypt_openssl.c; sourceTree = "<group>"; };
+		9273F70D20B44AC800DADC67 /* tiny_aes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tiny_aes.c; sourceTree = "<group>"; };
+		9273F70E20B44AC800DADC67 /* tiny_aes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tiny_aes.h; sourceTree = "<group>"; };
+		9273F71120B44B7F00DADC67 /* g_crypt_tinyaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = g_crypt_tinyaes.c; sourceTree = "<group>"; };
 		92A7E95C2003BAAA000C22DE /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		92A7E95E2003BACB000C22DE /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		92A7E9602003BAE8000C22DE /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
@@ -1607,20 +1589,11 @@
 		9201001318D5A444003D1ACA /* mcrypt */ = {
 			isa = PBXGroup;
 			children = (
-				9201001418D5A444003D1ACA /* cbc.c */,
-				9201001518D5A444003D1ACA /* cfb.c */,
-				9201001618D5A444003D1ACA /* ctr.c */,
-				9201001718D5A444003D1ACA /* des.c */,
-				9201001818D5A444003D1ACA /* ecb.c */,
+				9273F70B20B4443100DADC67 /* g_crypt_openssl.c */,
+				9273F71120B44B7F00DADC67 /* g_crypt_tinyaes.c */,
 				9201001918D5A444003D1ACA /* g_crypt.c */,
-				9201001A18D5A444003D1ACA /* ncfb.c */,
-				9201001B18D5A444003D1ACA /* nofb.c */,
-				9201001C18D5A444003D1ACA /* ofb.c */,
-				9201001D18D5A444003D1ACA /* rijndael-128.c */,
-				9201001E18D5A444003D1ACA /* rijndael-192.c */,
-				9201001F18D5A444003D1ACA /* rijndael-256.c */,
-				9201002018D5A444003D1ACA /* stream.c */,
-				9201002118D5A444003D1ACA /* tripledes.c */,
+				9273F70D20B44AC800DADC67 /* tiny_aes.c */,
+				9273F70E20B44AC800DADC67 /* tiny_aes.h */,
 			);
 			path = mcrypt;
 			sourceTree = "<group>";
@@ -3066,6 +3039,7 @@
 				92BBFCFD1A7122AD006A7735 /* scenegraph.h in Headers */,
 				92BBFCBA1A7122AD006A7735 /* dvb_mpe.h in Headers */,
 				92BBFCE21A7122AD006A7735 /* module.h in Headers */,
+				9273F71020B44AC800DADC67 /* tiny_aes.h in Headers */,
 				9201019B18D5A445003D1ACA /* media_memory.h in Headers */,
 				92BBFCCC1A7122AD006A7735 /* m3u8.h in Headers */,
 				92BBFCC71A7122AD006A7735 /* crypt_dev.h in Headers */,
@@ -3523,6 +3497,7 @@
 				920100BB18D5A444003D1ACA /* quantize.c in Sources */,
 				920100BD18D5A444003D1ACA /* script_dec.c in Sources */,
 				920100BE18D5A444003D1ACA /* script_enc.c in Sources */,
+				9273F70C20B4443200DADC67 /* g_crypt_openssl.c in Sources */,
 				920100BF18D5A444003D1ACA /* unquantize.c in Sources */,
 				920100C018D5A444003D1ACA /* audio_input.c in Sources */,
 				920100C118D5A444003D1ACA /* audio_mixer.c in Sources */,
@@ -3623,26 +3598,14 @@
 				9201012A18D5A444003D1ACA /* sample_descs.c in Sources */,
 				9201012B18D5A444003D1ACA /* stbl_read.c in Sources */,
 				9201012C18D5A444003D1ACA /* stbl_write.c in Sources */,
+				9273F70F20B44AC800DADC67 /* tiny_aes.c in Sources */,
 				9201012D18D5A444003D1ACA /* track.c in Sources */,
 				9201012E18D5A444003D1ACA /* ttml.c in Sources */,
 				9201012F18D5A444003D1ACA /* tx3g.c in Sources */,
 				9201013018D5A444003D1ACA /* lsr_dec.c in Sources */,
 				9201013118D5A444003D1ACA /* lsr_enc.c in Sources */,
 				9201013218D5A445003D1ACA /* lsr_tables.c in Sources */,
-				9201013418D5A445003D1ACA /* cbc.c in Sources */,
-				9201013518D5A445003D1ACA /* cfb.c in Sources */,
-				9201013618D5A445003D1ACA /* ctr.c in Sources */,
-				9201013718D5A445003D1ACA /* des.c in Sources */,
-				9201013818D5A445003D1ACA /* ecb.c in Sources */,
 				9201013918D5A445003D1ACA /* g_crypt.c in Sources */,
-				9201013A18D5A445003D1ACA /* ncfb.c in Sources */,
-				9201013B18D5A445003D1ACA /* nofb.c in Sources */,
-				9201013C18D5A445003D1ACA /* ofb.c in Sources */,
-				9201013D18D5A445003D1ACA /* rijndael-128.c in Sources */,
-				9201013E18D5A445003D1ACA /* rijndael-192.c in Sources */,
-				9201013F18D5A445003D1ACA /* rijndael-256.c in Sources */,
-				9201014018D5A445003D1ACA /* stream.c in Sources */,
-				9201014118D5A445003D1ACA /* tripledes.c in Sources */,
 				9201014218D5A445003D1ACA /* ait.c in Sources */,
 				9201014318D5A445003D1ACA /* av_parsers.c in Sources */,
 				9201014418D5A445003D1ACA /* avilib.c in Sources */,
@@ -3689,6 +3652,7 @@
 				9201016D18D5A445003D1ACA /* loader_isom.c in Sources */,
 				9201016E18D5A445003D1ACA /* loader_qt.c in Sources */,
 				9201016F18D5A445003D1ACA /* loader_svg.c in Sources */,
+				9273F71220B44B8000DADC67 /* g_crypt_tinyaes.c in Sources */,
 				9201017018D5A445003D1ACA /* loader_xmt.c in Sources */,
 				9201017118D5A445003D1ACA /* scene_dump.c in Sources */,
 				9201017218D5A445003D1ACA /* scene_engine.c in Sources */,

@@ -26,18 +26,25 @@
 /* The GPAC crypto lib is a simplified version of libmcrypt. */
 
 #include <gpac/internal/crypt_dev.h>
-#include "g_crypt_openssl.h"
 
 GF_EXPORT
 GF_Crypt *gf_crypt_open(GF_CRYPTO_ALGO algorithm, GF_CRYPTO_MODE mode)
 {
 	GF_Crypt *td;
+	GF_Err e;
 
 	GF_SAFEALLOC(td, GF_Crypt);
 	if (td == NULL) return NULL;
 
-	if (GF_OK != open_openssl(td, mode)) {
+#ifdef GPAC_HAS_SSL
+	e = gf_crypt_open_open_openssl(td, mode);
+#else
+	e = gf_crypt_open_open_tinyaes(td, mode);
+#endif
+
+	if (e != GF_OK) {
 		gf_free(td);
+		return NULL;
 	}
 	return td;
 }
@@ -45,9 +52,7 @@ GF_Crypt *gf_crypt_open(GF_CRYPTO_ALGO algorithm, GF_CRYPTO_MODE mode)
 GF_EXPORT
 void gf_crypt_close(GF_Crypt *td)
 {
-	if (!td || !td->keyword_given) return;
-	gf_free(td->keyword_given);
-	td->keyword_given = NULL;
+	if (!td) return;
 	td->_deinit_crypt(td);
 	gf_free(td->context);
 	gf_free(td);
@@ -56,19 +61,21 @@ void gf_crypt_close(GF_Crypt *td)
 GF_EXPORT
 GF_Err gf_crypt_set_key(GF_Crypt *td, void *key, u32 keysize, const void *IV)
 {
-	memcpy(td->keyword_given, key, keysize * sizeof(char));
+	memset(td->in_keyword, 0, 128 * sizeof(char));
+	memcpy(td->in_keyword, key, keysize * sizeof(char));
 	td->_set_key(td);
+	td->_set_state(td, IV, keysize);
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_crypt_set_state(GF_Crypt *td, const void *iv, int size)
+GF_Err gf_crypt_set_state(GF_Crypt *td, const void *iv, u32 size)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_set_state(td, (void *)iv, size);
 }
 
-GF_Err gf_crypt_get_state(GF_Crypt *td, void *iv, int *size)
+GF_Err gf_crypt_get_state(GF_Crypt *td, void *iv, u32 *size)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_get_state(td, iv, size);
@@ -79,34 +86,29 @@ GF_EXPORT
 GF_Err gf_crypt_init(GF_Crypt *td, void *key, const void *IV)
 {
 	GF_Err e;
-	u32  ok = 0;
 	u32 key_size;
 
 	key_size = td->key_size;
 
-	td->keyword_given = gf_malloc(sizeof(char)*key_size);
-	if (td->keyword_given == NULL) return GF_OUT_OF_MEM;
-
-	memcpy(td->keyword_given, key, td->key_size);
+	memcpy(td->in_keyword, key, td->key_size);
 
 	e = td->_init_crypt(td, key, IV);
 	if (e != GF_OK) gf_crypt_close(td);
 
-	e = gf_crypt_set_key(td, td->keyword_given, key_size, IV);
-
+	e = gf_crypt_set_key(td, td->in_keyword, key_size, IV);
 	if (e != GF_OK) gf_crypt_close(td);
 	return e;
 }
 
 GF_EXPORT
-GF_Err gf_crypt_encrypt(GF_Crypt *td, void *plaintext, int len)
+GF_Err gf_crypt_encrypt(GF_Crypt *td, void *plaintext, u32 len)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_crypt(td, plaintext, len);
 }
 
 GF_EXPORT
-GF_Err gf_crypt_decrypt(GF_Crypt *td, void *ciphertext, int len)
+GF_Err gf_crypt_decrypt(GF_Crypt *td, void *ciphertext, u32 len)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_decrypt(td, ciphertext, len);
