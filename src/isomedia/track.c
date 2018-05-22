@@ -702,6 +702,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
 		if (gf_isom_cenc_has_saiz_saio_traf(traf, scheme_type)) {
 			u32 size, nb_saio;
+			u32 aux_info_type;
 			u64 offset;
 			GF_Err e;
 			Bool is_encrypted;
@@ -712,8 +713,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 			for (i = 0; i < gf_list_count(traf->sai_offsets); i++) {
 				saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(traf->sai_offsets, i);
+				aux_info_type = saio->aux_info_type;
+				if (!aux_info_type) aux_info_type = scheme_type;
+
 				/*if we have only 1 sai_offsets, assume that its type is cenc*/
-				if ((saio->aux_info_type == GF_ISOM_CENC_SCHEME) || (gf_list_count(traf->sai_offsets) == 1)) {
+				if ((aux_info_type == GF_ISOM_CENC_SCHEME) || (aux_info_type == GF_ISOM_CBC_SCHEME) ||
+					(aux_info_type == GF_ISOM_CENS_SCHEME) || (aux_info_type == GF_ISOM_CBCS_SCHEME) ||
+					(gf_list_count(traf->sai_offsets) == 1)) {
 					offset = (saio->version ? saio->offsets_large[0] : saio->offsets[0]) + moof_offset;
 					nb_saio = saio->entry_count;
 					break;
@@ -721,8 +727,12 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 			for (i = 0; i < gf_list_count(traf->sai_sizes); i++) {
 				saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(traf->sai_sizes, i);
+				aux_info_type = saiz->aux_info_type;
+				if (!aux_info_type) aux_info_type = scheme_type;
 				/*if we have only 1 sai_sizes, assume that its type is cenc*/
-				if ((saiz->aux_info_type == GF_ISOM_CENC_SCHEME)  || (gf_list_count(traf->sai_sizes) == 1)) {
+				if ((aux_info_type == GF_ISOM_CENC_SCHEME) || (aux_info_type == GF_ISOM_CBC_SCHEME) ||
+					(aux_info_type == GF_ISOM_CENS_SCHEME) || (aux_info_type == GF_ISOM_CBCS_SCHEME) ||
+					(gf_list_count(traf->sai_sizes) == 1)) {
 					break;
 				}
 			}

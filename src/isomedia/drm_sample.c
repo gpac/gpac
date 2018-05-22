@@ -1001,7 +1001,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len)
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len, Bool use_subsamples)
 {
 	u32 i;
 	GF_SampleEncryptionBox *senc;
@@ -1021,22 +1021,47 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 		return GF_NOT_SUPPORTED;
 	}
 
-
 	sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 	if (!sai) return GF_OUT_OF_MEM;
+
 	memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
-	if (len) {
+	if (len && buf) {
 		GF_BitStream *bs = gf_bs_new(buf, len, GF_BITSTREAM_READ);
 		sai->IV_size = IV_size;
 		gf_bs_read_data(bs, (char *)sai->IV, IV_size);
-		sai->subsample_count = gf_bs_read_u16(bs);
-		if (sai->subsample_count) senc->flags = 0x00000002;
-		sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-		for (i = 0; i < sai->subsample_count; i++) {
-			sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
-			sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
+		if (use_subsamples) {
+			sai->subsample_count = gf_bs_read_u16(bs);
+			if (sai->subsample_count) senc->flags = 0x00000002;
+			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			for (i = 0; i < sai->subsample_count; i++) {
+				sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
+				sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
+			}
 		}
 		gf_bs_del(bs);
+	} else if (len) {
+		u32 olen = len;
+		sai->IV_size = IV_size;
+		if (use_subsamples) {
+			sai->subsample_count = 1;
+			if (sai->subsample_count) senc->flags = 0x00000002;
+			while (olen>0xFFFF) {
+				olen -= 0xFFFF;
+				sai->subsample_count ++;
+			}
+			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			olen = len;
+			for (i = 0; i < sai->subsample_count; i++) {
+				if (olen<0xFFFF) {
+					sai->subsamples[i].bytes_clear_data = olen;
+				} else {
+					sai->subsamples[i].bytes_clear_data = 0xFFFF;
+					olen -= 0xFFFF;
+				}
+				sai->subsamples[i].bytes_encrypted_data = 0;
+			}
+		}
+		len = IV_size + 2 + 6*sai->subsample_count;
 	}
 
 	gf_list_add(senc->samp_aux_info, sai);
@@ -1258,13 +1283,9 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 	gf_isom_get_cenc_info(the_file, trackNumber, 1, NULL, &scheme_type, NULL, NULL);
 	gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sampleNumber, &is_Protected, &IV_size, NULL, NULL, NULL, NULL, NULL);
-	if (!is_Protected) {
-		GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
-		return GF_OK;
-	}
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-	if (IV_size && gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
+	if (gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
 		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, scheme_type, IV_size, sai);
 	}
 	//senc is not loaded by default, do it now
