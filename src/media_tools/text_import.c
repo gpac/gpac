@@ -1133,7 +1133,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 						} else if (e_opt == GF_OK) {
 							GF_XMLNode *p_node;
 							GF_XMLAttribute *p_att;
-							u32 p_idx = 0, h, m, s, ms;
+							u32 p_idx = 0, h, m, s, f, ms;
 							s64 ts_begin = -1, ts_end = -1;
 
 							//sample is either in the <p> ...
@@ -1147,6 +1147,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_begin = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+										ts_begin = (h*3600 + m*60+s)*1000+f*40;
 									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 										ts_begin = (h*3600 + m*60+s)*1000;
 									}
@@ -1157,6 +1159,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_end = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+										ts_end = (h*3600 + m*60+s)*1000+f*40;
 									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 										ts_end = (h*3600 + m*60+s)*1000;
 									}
@@ -1190,6 +1194,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_begin = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+												ts_begin = (h*3600 + m*60+s)*1000+f*40;
 											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 												ts_begin = (h*3600 + m*60+s)*1000;
 											}
@@ -1200,6 +1206,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_end = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+												ts_end = (h*3600 + m*60+s)*1000+f*40;
 											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 												ts_end = (h*3600 + m*60+s)*1000;
 											}
@@ -1243,7 +1251,10 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								samp = gf_isom_new_xml_subtitle_sample();
 								/*each sample consists of a full valid XML file*/
 								e = gf_isom_xml_subtitle_sample_add_text(samp, str, len);
-								if (e) goto exit;
+								if (e) {
+									GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML] ISOM - sample add text: %s", gf_error_to_string(e)));
+									goto exit;
+								}
 								gf_free(samp_text);
 								samp_text = NULL;
 
@@ -1260,7 +1271,10 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - last_sample_end, last_sample_duration, last_sample_end));
 
 								e = gf_isom_add_sample(import->dest, track, desc_idx, s);
-								if (e) goto exit;
+								if (e) {
+									GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML] ISOM - Add Sample: %s", gf_error_to_string(e)));
+									goto exit;
+								}
 								gf_isom_sample_del(&s);
 								nb_samples++;
 
@@ -1328,6 +1342,7 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 		if (e == GF_OK) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Note: TTML import - EBU-TTD detected\n"));
 		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Parsing TTML file with error: %s\n", gf_error_to_string(e)));
 			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Unsupported TTML file - only EBU-TTD is supported (root shall be \"tt\", got \"%s\")\n", root->name));
 			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Importing as generic TTML\n"));
 			e = GF_OK;

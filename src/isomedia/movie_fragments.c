@@ -1933,12 +1933,8 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		gf_list_add(senc->samp_aux_info, sai);
 		if (sai->subsample_count) senc->flags = 0x00000002;
 
-		//not encrypted, saiz is 0
-		if (!IsEncrypted) {
-			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 0);
-		}
 		//no subsample (not NAL-based data), saiz is IV size only
-		else if (! sai->subsample_count) {
+		if (! sai->subsample_count) {
 			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
 		}
 		// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample

@@ -10025,12 +10025,17 @@ GF_Err saio_Size(GF_Box *s)
 	if (ptr->flags & 1) ptr->size += 8;
 	ptr->size += 4;
 	//a little optim here: in cenc, the saio always points to a single data block, only one entry is needed
-	if (ptr->aux_info_type == GF_ISOM_CENC_SCHEME) {
+	switch (ptr->aux_info_type) {
+	case GF_ISOM_CENC_SCHEME:
+	case GF_ISOM_CBC_SCHEME:
+	case GF_ISOM_CENS_SCHEME:
+	case GF_ISOM_CBCS_SCHEME:
 		if (ptr->offsets_large) gf_free(ptr->offsets_large);
 		if (ptr->offsets) gf_free(ptr->offsets);
 		ptr->offsets_large = NULL;
 		ptr->offsets = NULL;
 		ptr->entry_count = 1;
+		break;
 	}
 
 	ptr->size += ((ptr->version==1) ? 8 : 4) * ptr->entry_count;

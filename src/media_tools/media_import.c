@@ -2021,6 +2021,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
+	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
 	s32 trans_x, trans_y;
 	s16 layer;
@@ -2226,6 +2227,21 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			}
 		}
 	}
+	switch (mstype) {
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_SVC_H264:
+	case GF_ISOM_SUBTYPE_MVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
+	case GF_ISOM_SUBTYPE_HEV1:
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_LHE1:
+	case GF_ISOM_SUBTYPE_LHV1:
+	case GF_ISOM_SUBTYPE_HVT1:
+		is_nalu_video = GF_TRUE;
+		break;
+	}
 
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
 
@@ -2308,10 +2324,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				gf_isom_cenc_samp_aux_info_del(sai);
 				gf_bs_get_content(bs, &buffer, &len);
 				gf_bs_del(bs);
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video);
 				gf_free(buffer);
 			} else {
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, samp->dataLength, is_nalu_video);
 			}
 			if (e) goto exit;
 
@@ -3757,7 +3773,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			if (strlen(szMediaTemp)) {
 				f = gf_fopen(szMediaTemp, "rb");
 				if (!f) {
-					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
+					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, szMediaTemp);
 					goto exit;
 				}
 				close = GF_TRUE;
@@ -5573,6 +5589,8 @@ restart_import:
 
 		if (min_cts_offset > 0) {
 			gf_isom_shift_cts_offset(import->dest, track, (s32)min_cts_offset);
+			max_cts -= min_cts_offset;
+			min_cts -= min_cts_offset;
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, GF_FALSE);
@@ -9253,7 +9271,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		        (buf[0x17] & 0xf0) != 0x20			   ||
 		        (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
 		{
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (1)", filename);
 			continue;
 		}
 
@@ -9280,12 +9298,12 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		}
 
 		if (i != psize || left > 0) {
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (2)", filename);
 			continue;
 		}
 
 		if (vobsub_get_subpic_duration(packet, psize, dsize, &duration) != GF_OK) {
-			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			gf_import_message(import, GF_CORRUPTED_DATA, "[VobSub] Corrupted data found in file %s (3)", filename);
 			continue;
 		}
 
