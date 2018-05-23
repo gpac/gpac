@@ -7,14 +7,14 @@ $MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -add $MEDIA_DIR/auxiliar
 crypto_test()
 {
 
-cryptfile="$TEMP_DIR/$1-crypted.mp4"
-decryptfile="$TEMP_DIR/$1-decrypted.mp4"
-
 test_begin "encryption-$1"
 
 if [ $test_skip  = 1 ] ; then
  return
 fi
+
+cryptfile="$TEMP_DIR/$1-crypted.mp4"
+decryptfile="$TEMP_DIR/$1-decrypted.mp4"
 
 do_test "$MP4BOX -crypt $2 -out $cryptfile $mp4file" "Encrypt"
 do_hash_test $cryptfile "crypt"
@@ -30,6 +30,16 @@ if [ $rv != 0 ] ; then
 result="Hash is not the same between source content and decrypted content"
 fi
 
+#do dash test
+do_test "$MP4BOX -dash 4000 -profile live -out $TEMP_DIR/test.mpd $cryptfile" "DASH"
+
+dashfile="$TEMP_DIR/$1-crypted_dashinit.mp4"
+do_hash_test $dashfile "crypt-dash-init"
+
+dashfile="$TEMP_DIR/$1-crypted_dash1.m4s"
+do_hash_test $dashfile "crypt-dash-seg"
+
+#playback test of files for which we can retrieve the key
 if [ $1 != "adobe" ] ; then
 do_playback_test "$cryptfile" "play"
 fi
@@ -38,27 +48,13 @@ test_end
 
 }
 
-#test adobe
-crypto_test "adobe" $MEDIA_DIR/encryption/drm_adobe.xml &
+for drm in $MEDIA_DIR/encryption/*.xml ; do
 
-#test isma
-crypto_test "isma" $MEDIA_DIR/encryption/drm_isma.xml &
+name=$(basename $drm)
+name=${name%%.*}
 
-#test cenc CTR
-crypto_test "cenc-ctr" $MEDIA_DIR/encryption/drm_ctr.xml &
+crypto_test "$name" $drm
 
-#test cenc CBC
-crypto_test "cenc-cbc" $MEDIA_DIR/encryption/drm_cbc.xml &
+done
 
-#test cenc CENS
-crypto_test "cenc-cens" $MEDIA_DIR/encryption/drm_cens.xml &
-
-#test cenc CBCS
-crypto_test "cenc-cbcs" $MEDIA_DIR/encryption/drm_cbcs.xml &
-
-#test cenc CBCS constant
-crypto_test "cenc-cbcs-const" $MEDIA_DIR/encryption/drm_cbcs_const.xml &
-
-
-wait
 rm -f $mp4file 2> /dev/null
