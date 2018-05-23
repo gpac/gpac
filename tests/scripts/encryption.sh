@@ -35,11 +35,9 @@ do_test "$MP4BOX -dash 4000 -profile live -out $TEMP_DIR/test.mpd $cryptfile" "D
 
 dashfile="$TEMP_DIR/$1-crypted_dashinit.mp4"
 do_hash_test $dashfile "crypt-dash-init"
-echo "init seg is $dashfile"
 
 dashfile="$TEMP_DIR/$1-crypted_dash1.m4s"
 do_hash_test $dashfile "crypt-dash-seg"
-echo "first seg is $dashfile"
 
 #playback test of files for which we can retrieve the key
 if [ $1 != "adobe" ] ; then
