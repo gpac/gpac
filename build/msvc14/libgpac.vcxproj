@@ -146,7 +146,6 @@
     <ClInclude Include="..\..\src\compositor\visual_manager.h" />
     <ClInclude Include="..\..\src\compositor\visual_manager_2d.h" />
     <ClInclude Include="..\..\src\compositor\visual_manager_3d.h" />
-    <ClInclude Include="..\..\src\mcrypt\g_crypt_openssl.h" />
     <ClInclude Include="..\..\src\media_tools\mpeg2_ps.h" />
     <ClInclude Include="..\..\src\terminal\input_sensor.h" />
     <ClInclude Include="..\..\src\terminal\media_control.h" />
@@ -273,8 +272,10 @@
     <ClCompile Include="..\..\src\laser\lsr_dec.c" />
     <ClCompile Include="..\..\src\laser\lsr_enc.c" />
     <ClCompile Include="..\..\src\laser\lsr_tables.c" />
-    <ClCompile Include="..\..\src\mcrypt\g_crypt.c" />
-    <ClCompile Include="..\..\src\mcrypt\g_crypt_openssl.c" />
+    <ClCompile Include="..\..\src\crypto\g_crypt.c" />
+    <ClCompile Include="..\..\src\crypto\g_crypt_openssl.c" />
+    <ClCompile Include="..\..\src\crypto\g_crypt_tinyaes.c" />
+    <ClCompile Include="..\..\src\crypto\tiny_aes.c" />
     <ClCompile Include="..\..\src\media_tools\ait.c" />
     <ClCompile Include="..\..\src\media_tools\atsc_dmx.c" />
     <ClCompile Include="..\..\src\media_tools\avilib.c" />

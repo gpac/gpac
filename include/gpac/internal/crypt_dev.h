@@ -35,32 +35,21 @@ extern "C" {
 /*private - do not use*/
 struct _gf_crypt_context
 {
-	GF_CRYPTO_ALGO algo;
-	GF_CRYPTO_MODE mode;
-	u32 mode_version;
+	GF_CRYPTO_ALGO algo; //single value for now
+	GF_CRYPTO_MODE mode; //CBC or CTR
 
 	/* Internal context for openSSL or tiny AES*/
 	void *context;
-	/* holds the key passed */
-	u8 in_keyword[128];
 
-	/*modes access*/
+	//ptr to encryption function
 	GF_Err(*_init_crypt) (GF_Crypt *ctx, void*, const void*);
 	void(*_deinit_crypt) (GF_Crypt *ctx);
 	void(*_end_crypt) (GF_Crypt *ctx);
-	void(*_set_key)(GF_Crypt *ctx);
+	void(*_set_key)(GF_Crypt *ctx, void*);
 	GF_Err(*_crypt) (GF_Crypt *ctx, u8 *buffer, u32 size);
 	GF_Err(*_decrypt) (GF_Crypt*, u8 *buffer, u32 size);
 	GF_Err(*_set_state) (GF_Crypt*, const u8 *IV, u32 IV_size);
 	GF_Err(*_get_state) (GF_Crypt*, u8 *IV, u32 *IV_size);
-
-	/*all below are static vars for mode and algo - sizes are in bytes*/
-	u32 algo_block_size;
-	u32 key_size;
-	u32 algo_IV_size;
-
-	u32 mode_size;
-	Bool is_block_algo, is_block_algo_mode, is_block_mode, has_IV;
 };
 
 #ifdef GPAC_HAS_SSL

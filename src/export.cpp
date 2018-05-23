@@ -1375,8 +1375,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_export_nhml) )
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 
-/*mcrypt exports*/
-#ifndef GPAC_DISABLE_MCRYPT
+/*crypto exports*/
+#ifndef GPAC_DISABLE_CRYPTO
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_open) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_close) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_init) )
@@ -1384,7 +1384,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_encrypt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_state) )
-#endif GPAC_DISABLE_MCRYPT
+#endif GPAC_DISABLE_CRYPTO
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum_hexa) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_file) )

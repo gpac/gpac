@@ -435,7 +435,7 @@ static GFINLINE void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
 	gf_bs_write_data(bs, salt, 8);
 	gf_bs_write_u64(bs, (s64) count);
 	gf_bs_del(bs);
-	gf_crypt_set_state(mc, IV, GF_AES_128_KEYSIZE+1);
+	gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE+1);
 
 	/*decrypt remain bytes*/
 	if (remain) {
@@ -898,7 +898,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
 	char next_IV[17];
 	int size = 17;
 
-	gf_crypt_get_state(mc, (u8 *) next_IV, &size);
+	gf_crypt_get_IV(mc, (u8 *) next_IV, &size);
 	/*
 		NOTE 1: the next_IV returned by get_state has 17 bytes, the first byte being the current counter position in the following 16 bytes.
 		If this index is 0, this means that we are at the begining of a new block and we can use it as IV for next sample,
@@ -927,7 +927,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
 		next_IV[0] = 0;
 	}
 
-	gf_crypt_set_state(mc, next_IV, size);
+	gf_crypt_set_IV(mc, next_IV, size);
 
 	memset(IV, 0, 16*sizeof(char));
 	memcpy(IV, next_IV+1, 16*sizeof(char));
@@ -939,7 +939,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 	u32 clear_bytes = 0;
 	if (tci->slice_header_clear) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-		u32 nal_start = gf_bs_get_position(plaintext_bs);
+		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (tci->is_avc) {
 			u32 ntype = gf_bs_read_u8(plaintext_bs);
 
@@ -956,7 +956,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 				//skip bits till alignment
 				gf_bs_align(plaintext_bs);
 				//position is now on the last byte read after align, so we need +1 to get next byte after end of slice
-				clear_bytes = 1 + gf_bs_get_position(plaintext_bs) - nal_start;
+				clear_bytes = 1 + (u32) gf_bs_get_position(plaintext_bs) - nal_start;
 				break;
 			default:
 				clear_bytes = nal_size;
@@ -1179,7 +1179,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				//in cbcs scheme: start each Subsample with a Constant IV,
 				if (!IV_size)
-					gf_crypt_set_state(mc, IV, 16);
+					gf_crypt_set_IV(mc, IV, 16);
 				//pattern encryption
 				if (crypt_byte_block && skip_byte_block) {
 					u32 pos = 0;
@@ -1535,7 +1535,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			//in cbcs scheme, Per_Sample_IV_size is 0; use constant IV
 			if (tci->IV_size) {
 				int IV_size = 16;
-				gf_crypt_get_state(mc, IV, &IV_size);
+				gf_crypt_get_IV(mc, IV, &IV_size);
 			}
 			gf_cenc_encrypt_sample_cbc(mc, tci, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
 		}
@@ -1684,18 +1684,18 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 					if (sai->IV_size == 8)
 						gf_bs_write_u64(bs, 0);
 					gf_bs_del(bs);
-					gf_crypt_set_state(mc, IV, GF_AES_128_KEYSIZE+1);
+					gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE+1);
 				}
 				else {
 					memmove(IV, sai->IV, 16);
-					gf_crypt_set_state(mc, IV, GF_AES_128_KEYSIZE);
+					gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE);
 				}
 			} else {
 				//cbcs scheme mode, use constant IV
 				memmove(IV, tci->constant_IV, tci->constant_IV_size);
 				if (tci->constant_IV_size == 8)
 					memset(IV+8, 0, sizeof(char)*8);
-				gf_crypt_set_state(mc, IV, GF_AES_128_KEYSIZE);
+				gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE);
 			}
 		}
 
@@ -1709,7 +1709,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 					memmove(IV, tci->constant_IV, tci->constant_IV_size);
 					if (tci->constant_IV_size == 8)
 						memset(IV+8, 0, sizeof(char)*8);
-					gf_crypt_set_state(mc, IV, GF_AES_128_KEYSIZE);
+					gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE);
 				}
 
 				/*read clear data and write it to pleintext bitstream*/
@@ -1824,7 +1824,7 @@ GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 	Bool has_crypted_samp;
 	char *buf;
 	GF_BitStream *bs;
-	int IV_size;
+	u32 IV_size;
 
 	samp = NULL;
 	mc = NULL;
@@ -1903,7 +1903,7 @@ GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 			}
 			else {
 				IV_size = 16;
-				e = gf_crypt_get_state(mc, IV, &IV_size);
+				e = gf_crypt_get_IV(mc, IV, &IV_size);
 			}
 
 			padding_bytes = 16 - len % 16;
@@ -2004,7 +2004,7 @@ GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 				prev_sample_decrypted = GF_TRUE;
 			}
 			else {
-				e = gf_crypt_set_state(mc, IV, GF_AES_128_KEYSIZE);
+				e = gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot set state AES-128 CBC (%s)\n", gf_error_to_string(e)) );
 					gf_crypt_close(mc);

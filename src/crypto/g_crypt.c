@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre
-*			Copyright (c) Telecom ParisTech 2000-2012
+*			Copyright (c) Telecom ParisTech 2000-2018
 *					All rights reserved
 *
 *  This file is part of GPAC / crypto lib sub-project
@@ -22,8 +22,6 @@
 *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 */
-
-/* The GPAC crypto lib is a simplified version of libmcrypt. */
 
 #include <gpac/internal/crypt_dev.h>
 
@@ -61,20 +59,18 @@ void gf_crypt_close(GF_Crypt *td)
 GF_EXPORT
 GF_Err gf_crypt_set_key(GF_Crypt *td, void *key)
 {
-	memset(td->in_keyword, 0, 128 * sizeof(char));
-	memcpy(td->in_keyword, key, 16 * sizeof(char));
-	td->_set_key(td);
+	td->_set_key(td, key);
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_crypt_set_state(GF_Crypt *td, const void *iv, u32 size)
+GF_Err gf_crypt_set_IV(GF_Crypt *td, const void *iv, u32 size)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_set_state(td, (void *)iv, size);
 }
 
-GF_Err gf_crypt_get_state(GF_Crypt *td, void *iv, u32 *size)
+GF_Err gf_crypt_get_IV(GF_Crypt *td, void *iv, u32 *size)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_get_state(td, iv, size);
@@ -85,17 +81,11 @@ GF_EXPORT
 GF_Err gf_crypt_init(GF_Crypt *td, void *key, const void *IV)
 {
 	GF_Err e;
-	u32 key_size;
-
-	key_size = td->key_size;
-
-	memcpy(td->in_keyword, key, td->key_size);
 
 	e = td->_init_crypt(td, key, IV);
 	if (e != GF_OK) gf_crypt_close(td);
-
-	e = gf_crypt_set_key(td, td->in_keyword);
-	if (e != GF_OK) gf_crypt_close(td);
+	//need for openssl we have 2 passes init
+	td->_set_key(td, key);
 	return e;
 }
 

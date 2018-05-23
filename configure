@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script 
-#     (c) 2003-2012 Telecom ParisTech 
+#     (c) 2003-2018 Telecom ParisTech 
 #     Authors: Jean Le Feuvre, Romain Bouqueau
 #
 #set -v
@@ -147,7 +147,7 @@ disable_loader_xmt="no"
 disable_od_dump="no"
 disable_od_parse="no"
 disable_isom_dump="no"
-disable_mcrypt="no"
+disable_crypto="no"
 disable_mpd="no"
 disable_dash="no"
 disable_isoff="no"
@@ -295,7 +295,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-loader-xmt     disable scene loading from ISO File Format
   --disable-od-dump        disable OD dump
   --disable-isom-dump      disable ISOM dump
-  --disable-mcrypt         disable mcrypt
+  --disable-crypt          disable crypto tools
   --disable-isoff          disable ISO File Format
   --disable-isoff-write    disable ISO File Format edit/write
   --disable-isoff-hint     disable ISO File Format hinting
@@ -1991,9 +1991,9 @@ for opt do
             ;;
         --enable-pulseaudio) has_pulseaudio="yes"
             ;;
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_vtt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_vtt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes"
             ;;
-        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no"
+        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no"
             ;;
         --disable-3d) disable_3d="yes"
             ;;
@@ -2109,9 +2109,9 @@ for opt do
             ;;
         --enable-isom-dump) disable_isom_dump="no"
             ;;
-        --disable-mcrypt) disable_mcrypt="yes"
+        --disable-crypto) disable_crypto="yes"
             ;;
-        --enable-mcrypt) disable_mcrypt="no"
+        --enable-crypto) disable_crypto="no"
             ;;
         --disable-isoff) disable_isoff="yes"
             ;;
@@ -2719,9 +2719,9 @@ if test "$disable_isom_dump" = "yes" ; then
     echo "ISOM dump disabled"
     echo "#define GPAC_DISABLE_ISOM_DUMP" >> $TMPH
 fi
-if test "$disable_mcrypt" = "yes" ; then
-    echo "MCrypt disabled"
-    echo "#define GPAC_DISABLE_MCRYPT" >> $TMPH
+if test "$disable_crypto" = "yes" ; then
+    echo "Crypto tools disabled"
+    echo "#define GPAC_DISABLE_CRYPTO" >> $TMPH
 fi
 if test "$disable_isoff" = "yes" ; then
     echo "ISO File Format disabled"
@@ -3143,7 +3143,7 @@ echo "DISABLE_SCENE_STATS=$disable_scene_stats" >> config.mak
 echo "DISABLE_SCENE_DUMP=$disable_scene_dump" >> config.mak
 echo "DISABLE_SCENE_ENCODE=$disable_scene_encode" >> config.mak
 echo "DISABLE_SCENEGRAPH=$disable_scenegraph" >> config.mak
-echo "DISABLE_MCRYPT=$disable_mcrypt" >> config.mak
+echo "DISABLE_CRYPTO=$disable_crypto" >> config.mak
 echo "DISABLE_DVBX=$disable_dvbx" >> config.mak
 echo "DISABLE_AVILIB=$disable_avi" >> config.mak
 echo "DISABLE_M2PS=$disable_m2ps" >> config.mak
@@ -3339,7 +3339,7 @@ echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
-    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
+    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/crypto src/media_tools src/scene_manager src/compositor src/laser" 
 
     APP_DIRS="applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx applications/mp42ts applications/dashcast"
 

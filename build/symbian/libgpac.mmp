@@ -172,22 +172,12 @@ SOURCE svg_properties.c
 SOURCE xbl_process.c
 SOURCE xml_ns.c
 
-//mcrypt
-SOURCEPATH ..\..\src\mcrypt
-SOURCE cbc.c
-SOURCE cfb.c
-SOURCE ctr.c
-SOURCE des.c
-SOURCE ecb.c
+//crypto
+SOURCEPATH ..\..\src\crypto
 SOURCE g_crypt.c
-SOURCE ncfb.c
-SOURCE nofb.c
-SOURCE ofb.c
-SOURCE rijndael-128.c
-SOURCE rijndael-192.c
-SOURCE rijndael-256.c
-SOURCE stream.c
-SOURCE tripledes.c
+SOURCE g_crypt_openssl.c
+SOURCE g_crypt_tinyaes.c
+SOURCE tiny_aes.c
 
 //media tools
 SOURCEPATH ..\..\src\media_tools
