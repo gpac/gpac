@@ -612,7 +612,7 @@ test_begin ()
   fi
  fi
 
- if [ $MP4CLIENT_NOT_FOUND > 0 ] ; then
+ if [ $MP4CLIENT_NOT_FOUND = 0 ] ; then
   skip_play_hash=1
  fi
 
@@ -1425,7 +1425,6 @@ fi
 TESTS_TOTAL=$((TESTS_TOTAL + 1))
 if [ $TEST_SKIP = 0 ] ; then
  TESTS_DONE=$((TESTS_DONE + 1))
-cp $i "test.txt"
 else
  TESTS_SKIP=$((TESTS_SKIP + $TEST_SKIP))
 fi
