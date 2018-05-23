@@ -894,9 +894,10 @@ static void increase_counter(char *x, int x_size) {
 	return;
 }
 
-static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
+static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
+{
 	char next_IV[17];
-	int size = 17;
+	u32 size = 17;
 
 	gf_crypt_get_IV(mc, (u8 *) next_IV, &size);
 	/*
@@ -1534,7 +1535,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		else {
 			//in cbcs scheme, Per_Sample_IV_size is 0; use constant IV
 			if (tci->IV_size) {
-				int IV_size = 16;
+				u32 IV_size = 16;
 				gf_crypt_get_IV(mc, IV, &IV_size);
 			}
 			gf_cenc_encrypt_sample_cbc(mc, tci, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);

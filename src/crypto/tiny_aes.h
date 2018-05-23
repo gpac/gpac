@@ -46,6 +46,7 @@ struct AES_ctx
 #if (defined(CBC) && (CBC == 1)) || (defined(CTR) && (CTR == 1))
   uint8_t Iv[AES_BLOCKLEN];
   uint8_t counter_pos;
+  uint8_t buffer[AES_BLOCKLEN];
 #endif
 };
 
