@@ -522,6 +522,8 @@ DASHCAST="DashCast $base_args"
 $MP4BOX -version 2> $TEMP_DIR/version.txt
 VERSION="`head -1 $TEMP_DIR/version.txt | cut -d ' ' -f 5-` "
 rm $TEMP_DIR/version.txt
+log $L_INF "GPAC version: $VERSION"
+log $L_INF ""
 
 #reset all the possible return values
 reset_stat ()
@@ -908,11 +910,12 @@ do_test ()
   return
  fi
 
- if [ $MP4CLIENT_NOT_FOUND != 0 ] ; then
+ if [ $MP4CLIENT_NOT_FOUND = 1 ] ; then
 	case $1 in MP4Client*)
 		return
 	esac
  fi
+
  log L_DEB "executing $1"
 
  subtest_idx=$((subtest_idx + 1))
@@ -1029,6 +1032,11 @@ do_playback_test ()
  if [ $test_skip  = 1 ] ; then
   return
  fi
+
+ if [ $MP4CLIENT_NOT_FOUND = 1 ] ; then
+  return
+ fi
+
 
  if [ $single_test = 1 ] ; then
   FULL_SUBTEST="$TEST_NAME"
