@@ -2195,7 +2195,7 @@ static u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32
 }
 
 /*returns the nal_size without emulation prevention bytes*/
-static u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
+u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -2232,7 +2232,7 @@ static u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
 }
 
 /*nal_size is updated to allow better error detection*/
-static u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
+u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -2663,7 +2663,7 @@ s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 	/*pps->init_qp = */bs_get_se(bs) /*+ 26*/;
 	/*pps->init_qs= */bs_get_se(bs) /*+ 26*/;
 	/*pps->chroma_qp_index_offset = */bs_get_se(bs);
-	/*pps->deblocking_filter_parameters_present = */gf_bs_read_int(bs, 1);
+	pps->deblocking_filter_control_present_flag = gf_bs_read_int(bs, 1);
 	/*pps->constrained_intra_pred = */gf_bs_read_int(bs, 1);
 	pps->redundant_pic_cnt_present = gf_bs_read_int(bs, 1);
 
@@ -2872,7 +2872,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	}
 
 	if (si->nal_ref_idc != 0) {
-		dec_ref_pic_marking(bs, avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE);
+		dec_ref_pic_marking(bs, (avc->s_info.nal_unit_type == GF_AVC_NALU_IDR_SLICE) );
 	}
 
 	if (si->pps->entropy_coding_mode_flag && si->slice_type % 5 != GF_AVC_TYPE_I && si->slice_type % 5 != GF_AVC_TYPE_SI) {
@@ -3181,12 +3181,13 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
 		return 0;
 
+	case GF_AVC_NALU_IDR_SLICE:
 	case GF_AVC_NALU_NON_IDR_SLICE:
 	case GF_AVC_NALU_DP_A_SLICE:
 	case GF_AVC_NALU_DP_B_SLICE:
 	case GF_AVC_NALU_DP_C_SLICE:
-	case GF_AVC_NALU_IDR_SLICE:
 		slice = 1;
+		avc->s_info.nal_unit_type = n_state.nal_unit_type;
 		/* slice buffer - read the info and compare.*/
 		ret = avc_parse_slice(bs, avc, idr_flag, &n_state);
 		if (ret<0) return ret;
