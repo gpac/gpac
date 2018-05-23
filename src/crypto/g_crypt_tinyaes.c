@@ -52,13 +52,13 @@ void gf_crypt_deinit_tinyaes_cbc(GF_Crypt* td)
 {
 }
 
-void gf_set_key_tinyaes_cbc(GF_Crypt* td)
+void gf_set_key_tinyaes_cbc(GF_Crypt* td, void *key)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
-	AES_init_ctx(ctx, td->in_keyword);
+	AES_init_ctx(ctx, key);
 }
 
-GF_Err gf_crypt_set_state_tinyaes_cbc(GF_Crypt* td, const u8 *iv, u32 iv_size)
+GF_Err gf_crypt_set_IV_tinyaes_cbc(GF_Crypt* td, const u8 *iv, u32 iv_size)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 	if (iv_size>AES_BLOCKLEN) return GF_BAD_PARAM;
@@ -67,7 +67,7 @@ GF_Err gf_crypt_set_state_tinyaes_cbc(GF_Crypt* td, const u8 *iv, u32 iv_size)
 	return GF_OK;
 }
 
-GF_Err gf_crypt_get_state_tinyaes_cbc(GF_Crypt* td, u8 *iv, u32 *iv_size)
+GF_Err gf_crypt_get_IV_tinyaes_cbc(GF_Crypt* td, u8 *iv, u32 *iv_size)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 	AES_ctx_get_iv(ctx, iv);
@@ -97,13 +97,13 @@ GF_Err gf_crypt_decrypt_tinyaes_cbc(GF_Crypt* td, u8 *ciphertext, u32 len)
 
 /** CTR mode **/
 
-void gf_set_key_tinyaes_ctr(GF_Crypt* td)
+void gf_set_key_tinyaes_ctr(GF_Crypt* td, void *key)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
-	AES_init_ctx(ctx, td->in_keyword);
+	AES_init_ctx(ctx, key);
 }
 
-GF_Err gf_crypt_set_state_tinyaes_ctr(GF_Crypt* td, const u8 *iv, u32 iv_size)
+GF_Err gf_crypt_set_IV_tinyaes_ctr(GF_Crypt* td, const u8 *iv, u32 iv_size)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 
@@ -116,7 +116,7 @@ GF_Err gf_crypt_set_state_tinyaes_ctr(GF_Crypt* td, const u8 *iv, u32 iv_size)
 	return GF_OK;
 }
 
-GF_Err gf_crypt_get_state_tinyaes_ctr(GF_Crypt* td, u8 *iv, u32 *iv_size)
+GF_Err gf_crypt_get_IV_tinyaes_ctr(GF_Crypt* td, u8 *iv, u32 *iv_size)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 	*iv_size = AES_BLOCKLEN + 1;
@@ -171,8 +171,8 @@ GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode)
 		td->_set_key = gf_set_key_tinyaes_cbc;
 		td->_crypt = gf_crypt_encrypt_tinyaes_cbc;
 		td->_decrypt = gf_crypt_decrypt_tinyaes_cbc;
-		td->_get_state = gf_crypt_get_state_tinyaes_cbc;
-		td->_set_state = gf_crypt_set_state_tinyaes_cbc;
+		td->_get_state = gf_crypt_get_IV_tinyaes_cbc;
+		td->_set_state = gf_crypt_set_IV_tinyaes_cbc;
 		break;
 	case GF_CTR:
 		td->_init_crypt = gf_crypt_init_tinyaes_ctr;
@@ -180,8 +180,8 @@ GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode)
 		td->_set_key = gf_set_key_tinyaes_ctr;
 		td->_crypt = gf_crypt_encrypt_tinyaes_ctr;
 		td->_decrypt = gf_crypt_decrypt_tinyaes_ctr;
-		td->_get_state = gf_crypt_get_state_tinyaes_ctr;
-		td->_set_state = gf_crypt_set_state_tinyaes_ctr;
+		td->_get_state = gf_crypt_get_IV_tinyaes_ctr;
+		td->_set_state = gf_crypt_set_IV_tinyaes_ctr;
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -190,9 +190,7 @@ GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode)
 	}
 
 	td->algo = GF_AES_128;
-	td->key_size = 16;
 	td->is_block_algo = 1;
-	td->algo_block_size = AES_BLOCKLEN;
 
 	td->has_IV = 1;
 	td->is_block_mode = 1;

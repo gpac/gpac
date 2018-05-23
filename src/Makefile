@@ -74,14 +74,15 @@ endif
 ## libgpac objects gathering: src/scenegraph
 LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o scenegraph/html5_media_smjs.o scenegraph/html5_mse_smjs.o scenegraph/webvtt_smjs.o
 
-## libgpac objects gathering: src/mcrypt
-LIBGPAC_MCRYPT=
-ifeq ($(DISABLE_MCRYPT), no)
-LIBGPAC_MCRYPT+=mcrypt/g_crypt.o mcrypt/g_crypt_openssl.o
+## libgpac objects gathering: src/crypto
+LIBGPAC_CRYPTO=
+ifeq ($(DISABLE_CRYPTO), no)
+LIBGPAC_CRYPTO+=crypto/g_crypt.o crypto/g_crypt_openssl.o crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
 endif
 
 ## libgpac objects gathering: src/media tools
 LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o media_tools/atsc_dmx.o
+
 ifeq ($(DISABLE_AV_PARSERS), no)
 LIBGPAC_MEDIATOOLS+=media_tools/img.o
 endif
@@ -118,7 +119,7 @@ endif
 ifeq ($(DISABLE_OGG), no)
 LIBGPAC_MEDIATOOLS+=media_tools/gpac_ogg.o
 endif
-ifeq ($(DISABLE_MCRYPT), no)
+ifeq ($(DISABLE_CRYPTO), no)
 LIBGPAC_MEDIATOOLS+=media_tools/ismacryp.o
 endif
 ifeq ($(DISABLE_ISOFF_HINT), no)
@@ -204,7 +205,7 @@ LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
 ## libgpac objects gathering: 
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER)
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER)
 
 SCENEGRAPH_CFLAGS=
 MEDIATOOLS_CFLAGS=$(JS_FLAGS)
@@ -242,8 +243,8 @@ all: lib
 lib: ../bin/gcc/$(LIB)
 
 #there's a bunch of warnings in there, get rid of them
-mcrypt: CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include"
-mcrypt: $(LIBGPAC_MCRYPT)
+crypto: CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include"
+crypto: $(LIBGPAC_CRYPTO)
 
 scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
@@ -261,7 +262,7 @@ compositor: $(LIBGPAC_COMPOSITOR)
 .deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
 
 
-../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt $(OBJS)
+../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools crypto $(OBJS)
 	@echo "OBJS $(OBJS)"
 	@echo "LIBS $(EXTRALIBS)"
 

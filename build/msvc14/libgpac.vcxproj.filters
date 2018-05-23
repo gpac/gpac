@@ -25,7 +25,7 @@
     <Filter Include="laser">
       <UniqueIdentifier>{3073cf49-9ebb-48cf-aea8-35a44d810e10}</UniqueIdentifier>
     </Filter>
-    <Filter Include="mcrypt">
+    <Filter Include="crypto">
       <UniqueIdentifier>{34d7c2c7-ecca-42a1-b891-dab22082820c}</UniqueIdentifier>
     </Filter>
     <Filter Include="media_tools">
@@ -396,9 +396,6 @@
     <ClInclude Include="..\..\include\gpac\webvtt.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\mcrypt\g_crypt_openssl.h">
-      <Filter>mcrypt</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -752,9 +749,18 @@
     <ClCompile Include="..\..\src\laser\lsr_tables.c">
       <Filter>laser</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\g_crypt.c">
-      <Filter>mcrypt</Filter>
+    <ClCompile Include="..\..\src\crypto\g_crypt.c">
+      <Filter>crypto</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\crypto\g_crypt_openssl.c">
+      <Filter>crypto</Filter>
+    </ClCompile>    
+    <ClCompile Include="..\..\src\crypto\g_crypt_tinyaes.c">
+      <Filter>crypto</Filter>
+    </ClCompile>    
+    <ClCompile Include="..\..\src\crypto\tiny_aes.c">
+      <Filter>crypto</Filter>
+    </ClCompile>    
     <ClCompile Include="..\..\src\media_tools\ait.c">
       <Filter>media_tools</Filter>
     </ClCompile>
@@ -1135,9 +1141,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\isomedia\iff.c">
       <Filter>isomedia</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\g_crypt_openssl.c">
-      <Filter>mcrypt</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

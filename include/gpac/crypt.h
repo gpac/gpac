@@ -68,32 +68,30 @@ typedef enum {
 } GF_CRYPTO_ALGO;
 
 
-/*opens crypto context - algo and mode SHALL NOT be NULL*/
+/*opens crypto context*/
 GF_Crypt *gf_crypt_open(GF_CRYPTO_ALGO algorithm, GF_CRYPTO_MODE mode);
 /*close crypto context*/
 void gf_crypt_close(GF_Crypt *gfc);
 
-/* sets the state of the algorithm. Can be used only with block algorithms and certain modes like CBC, CFB etc.
-It is useful if you want to restart or start a different encryption quickly.
-*/
-GF_Err gf_crypt_set_state(GF_Crypt *gfc, const void *iv, u32 size);
-/*gets the state of the algorithm. Can be used only certain modes and algorithms.
-The size will hold the size of the state and the state must have enough bytes to hold it.
-*/
-GF_Err gf_crypt_get_state(GF_Crypt *gfc, void *iv, u32 *size);
-
 /*
 This function initializes all buffers for the specified context
-@iv: usually size of the algorithms block size - get it by calling gf_crypt_get_iv_size().
-IV is ignored in ECB. IV MUST exist in CFB, CBC, STREAM, nOFB and OFB modes.
-It needs to be random and unique (but not secret). The same IV must be used
-for encryption/decryption.
-@iv_size: key size in BYTES.
+@key: Key used. MUST be 16 bytes long
+@iv: Init Vector. It needs to be random and unique (but not secret). The same IV must be used
+for encryption/decryption. MUST be 16 bytes long
 After calling this function you can use the descriptor for encryption or decryption (not both).
 */
 GF_Err gf_crypt_init(GF_Crypt *gfc, void *key, const void *iv);
-/*changes key*/
+
+/*changes key, does not touch IV - used for key roll*/
 GF_Err gf_crypt_set_key(GF_Crypt *gfc, void *key);
+
+/* sets the IV for the algorithm. Used for ISMA and CENC CTR.
+*/
+GF_Err gf_crypt_set_IV(GF_Crypt *gfc, const void *iv, u32 size);
+
+/*gets the IV of the algorithm. The size will hold the size of the state and the state must have enough bytes to hold it (17 is enough). In CTR mode, the first byte will be set to the counter value (number of bytes consummed in last block), or 0 if all bytes were consummed
+*/
+GF_Err gf_crypt_get_IV(GF_Crypt *gfc, void *iv, u32 *size);
 
 /*
 main encryption function.

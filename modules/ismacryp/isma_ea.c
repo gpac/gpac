@@ -227,7 +227,7 @@ static GF_Err ISMA_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		gf_bs_write_data(bs, priv->salt, 8);
 		gf_bs_write_u64(bs, (s64) count);
 		gf_bs_del(bs);
-		gf_crypt_set_state(priv->crypt, IV, 17);
+		gf_crypt_set_IV(priv->crypt, IV, 17);
 
 		/*decrypt remain bytes*/
 		if (remain) {
@@ -465,7 +465,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			if (sai->IV_size == 8)
 				gf_bs_write_u64(bs, 0); /*0-padded if IV_size == 8*/
 			gf_bs_del(bs);
-			gf_crypt_set_state(priv->crypt, IV, 17);
+			gf_crypt_set_IV(priv->crypt, IV, 17);
 		}
 		e = gf_crypt_set_key(priv->crypt, priv->key);
 		if (e) {
@@ -485,7 +485,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 				memmove(IV, evt->constant_IV, evt->constant_IV_size);
 				if (evt->constant_IV_size == 8)
 					memset(IV+8, 0, sizeof(char)*8);
-				gf_crypt_set_state(priv->crypt, IV, 16);
+				gf_crypt_set_IV(priv->crypt, IV, 16);
 			}
 
 			/*read clear data and write it to plaintext_bs bitstream*/
