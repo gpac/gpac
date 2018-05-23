@@ -188,14 +188,7 @@ GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode)
 		break;
 
 	}
-
 	td->algo = GF_AES_128;
-	td->is_block_algo = 1;
-
-	td->has_IV = 1;
-	td->is_block_mode = 1;
-	td->is_block_algo_mode = 1;
-
 	return GF_OK;
 }
 

@@ -547,8 +547,6 @@ void AES_CBC_decrypt_buffer(struct AES_ctx* ctx, uint8_t* buf,  uint32_t length)
 /* Symmetrical operation: same function for encrypting as for decrypting. Note any IV/nonce should never be reused with the same key */
 void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, uint32_t length)
 {
-  uint8_t buffer[AES_BLOCKLEN];
-  
   unsigned i;
   int bi = (AES_BLOCKLEN - ctx->counter_pos);
   assert(ctx->counter_pos<AES_BLOCKLEN);
@@ -558,8 +556,8 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, uint32_t length)
     if (bi == AES_BLOCKLEN) /* we need to regen xor compliment in buffer */
     {
       
-      memcpy(buffer, ctx->Iv, AES_BLOCKLEN);
-      Cipher((state_t*)buffer,ctx->RoundKey);
+      memcpy(ctx->buffer, ctx->Iv, AES_BLOCKLEN);
+      Cipher((state_t*)ctx->buffer,ctx->RoundKey);
 
       /* Increment Iv and handle overflow */
       for (bi = (AES_BLOCKLEN - 1); bi >= 0; --bi)
@@ -576,7 +574,7 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, uint32_t length)
       bi = 0;
     }
 
-    buf[i] = (buf[i] ^ buffer[bi]);
+    buf[i] = (buf[i] ^ ctx->buffer[bi]);
   }
   ctx->counter_pos = (AES_BLOCKLEN - bi);
 }
