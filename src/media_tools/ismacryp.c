@@ -942,9 +942,24 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (tci->is_avc) {
-			u32 ntype = gf_bs_read_u8(plaintext_bs);
+			u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size);
+			u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
 
-			gf_media_avc_parse_nalu(plaintext_bs, ntype, &tci->avc);
+			u32 ntype, nb_epb_count;
+			GF_BitStream *bs = NULL;
+			char *epb_rem_bytes;
+			/*fixe me, too many allocs/free !*/
+
+			nb_epb_count = avc_emulation_bytes_remove_count(samp_data + nal_start, nal_size);
+			if (nb_epb_count) {
+				epb_rem_bytes = gf_malloc(sizeof(char) * nal_size);
+				nb_epb_count = avc_remove_emulation_bytes(samp_data + nal_start, epb_rem_bytes, nal_size);
+				bs = gf_bs_new(epb_rem_bytes, nb_epb_count, GF_BITSTREAM_READ);
+			}
+
+			ntype = gf_bs_read_u8(bs ? bs : plaintext_bs);
+
+			gf_media_avc_parse_nalu(bs ? bs : plaintext_bs, ntype, &tci->avc);
 			ntype &= 0x1F;
 			switch (ntype) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
@@ -955,13 +970,27 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			case GF_AVC_NALU_SLICE_AUX:
 			case GF_AVC_NALU_SVC_SLICE:
 				//skip bits till alignment
-				gf_bs_align(plaintext_bs);
-				//position is now on the last byte read after align, so we need +1 to get next byte after end of slice
-				clear_bytes = 1 + (u32) gf_bs_get_position(plaintext_bs) - nal_start;
+				gf_bs_align(bs ? bs : plaintext_bs);
+				if (bs) {
+					//position is now on the last byte read after align
+					clear_bytes = (u32) gf_bs_get_position(bs);
+				} else {
+					//position is now on the last byte read after align (pos=1 for once byte is loaded)
+					clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
+				}
 				break;
 			default:
 				clear_bytes = nal_size;
 				break;
+			}
+			if (bs) {
+				gf_bs_del(bs);
+				gf_free(epb_rem_bytes);
+
+				nb_epb_count = avc_emulation_bytes_remove_count(samp_data + nal_start, clear_bytes);
+				if (nb_epb_count)
+					clear_bytes += nb_epb_count;
+
 			}
 		} else {
 #if !defined(GPAC_DISABLE_HEVC)
