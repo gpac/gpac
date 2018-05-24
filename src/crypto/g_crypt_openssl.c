@@ -81,8 +81,8 @@ GF_Err gf_crypt_get_IV_openssl_cbc(GF_Crypt* td, u8 *iv, u32 *iv_size)
 
 GF_Err gf_crypt_crypt_openssl_cbc(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_crypt_type) {
 	Openssl_ctx_cbc* ctx = (Openssl_ctx_cbc*)td->context;
-	int iteration;
-	int numberOfIterations = len / AES_BLOCK_SIZE;
+	u32 iteration;
+	u32 numberOfIterations = len / AES_BLOCK_SIZE;
 	if (numberOfIterations * AES_BLOCK_SIZE < len) numberOfIterations++;
 
 	for (iteration = 0; iteration < numberOfIterations; ++iteration) {
