@@ -3631,7 +3631,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 				GF_MPD_BaseURL *b_url = gf_list_get(a_rep->base_URLs, j);
 				char *nURL = gf_url_concatenate(dash->base_url, b_url->URL);
 				if (nURL) {
-					u32 len = strlen(nURL);
+					u32 len = (u32) strlen(nURL);
 					if (nURL[len] != '/') {
 						GF_Err e = gf_dash_download_resource(dash, &(group->segment_download), nURL, 0, 0, 1, group);
 						if (!e) {
