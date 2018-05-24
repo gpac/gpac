@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC 
@@ -36,9 +36,8 @@ extern "C" {
  */
 	
 /*!
- *	\addtogroup bascod_grp Base coding
- *	\ingroup utils_grp
- *	\brief main() macro for win32.
+ * \addtogroup cst_grp Constants
+ *	\brief main() macro for windows systems to handle UTF input.
  *
  *	@{
  */

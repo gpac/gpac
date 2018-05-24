@@ -74,14 +74,15 @@ endif
 ## libgpac objects gathering: src/scenegraph
 LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o scenegraph/svg_attributes.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o  scenegraph/dom_smjs.o scenegraph/xbl_process.o scenegraph/xml_ns.o scenegraph/html5_media_smjs.o scenegraph/html5_mse_smjs.o
 
-## libgpac objects gathering: src/mcrypt
-LIBGPAC_MCRYPT=
-ifeq ($(DISABLE_MCRYPT), no)
-LIBGPAC_MCRYPT+=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o 
+## libgpac objects gathering: src/crypto
+LIBGPAC_CRYPTO=
+ifeq ($(DISABLE_CRYPTO), no)
+LIBGPAC_CRYPTO+=crypto/g_crypt.o crypto/g_crypt_openssl.o crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
 endif
 
 ## libgpac objects gathering: src/media tools
 LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o media_tools/atsc_dmx.o
+
 ifeq ($(DISABLE_AV_PARSERS), no)
 LIBGPAC_MEDIATOOLS+=media_tools/img.o
 endif
@@ -118,7 +119,7 @@ endif
 ifeq ($(DISABLE_OGG), no)
 LIBGPAC_MEDIATOOLS+=media_tools/gpac_ogg.o
 endif
-ifeq ($(DISABLE_MCRYPT), no)
+ifeq ($(DISABLE_CRYPTO), no)
 LIBGPAC_MEDIATOOLS+=media_tools/ismacryp.o
 endif
 ifeq ($(DISABLE_ISOFF_HINT), no)
@@ -204,7 +205,7 @@ LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
 ## libgpac objects gathering: 
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_FILTERS)
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_FILTERS)
 
 SCENEGRAPH_CFLAGS=
 MEDIATOOLS_CFLAGS=$(JS_FLAGS)
@@ -212,13 +213,49 @@ MEDIATOOLS_CFLAGS=$(JS_FLAGS)
 ##include static modules and other deps for libgpac
 include ../static.mak
 
-LIBGPAC_FILTERS+=filters/compose.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_odf.o filters/dec_openhevc.o filters/dec_opensvc.o filters/dec_theora.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/ff_common.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/filelist.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_udp.o filters/inspect.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_isom.o filters/out_audio.o  filters/out_file.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_amr.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/resample_audio.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_vtt.o
+LIBGPAC_FILTERS+=filters/compose.o filters/dasher.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_odf.o filters/dec_openhevc.o filters/dec_opensvc.o filters/dec_theora.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/ff_common.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/filelist.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_udp.o filters/inspect.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_isom.o filters/mux_ts.o filters/out_audio.o  filters/out_file.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_amr.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/resample_audio.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_vtt.o
 
 FILTERS_CFLAGS=$(JS_FLAGS)
 
 ifneq ($(CONFIG_FFMPEG),no)
 FILTERS_CFLAGS+=$(ffmpeg_cflags)
 EXTRALIBS+=$(ffmpeg_lflags)
+endif
+
+ifneq ($(CONFIG_FAAD),no)
+EXTRALIBS+=-lfaad
+endif
+
+ifneq ($(CONFIG_MAD),no)
+EXTRALIBS+=-lmad
+endif
+
+ifneq ($(CONFIG_XVID),no)
+EXTRALIBS+=-lxvidcore
+endif
+
+ifneq ($(CONFIG_A52),no)
+EXTRALIBS+=-la52
+endif
+
+ifneq ($(CONFIG_VORBIS),no)
+EXTRALIBS+=-lvorbis
+endif
+
+ifneq ($(CONFIG_THEORA),no)
+EXTRALIBS+=-ltheora
+endif
+
+ifneq ($(CONFIG_JP2),no)
+EXTRALIBS+=-lopenjpeg
+endif
+
+ifeq ($(CONFIG_OPENHEVC),yes)
+EXTRALIBS+=-lopenhevc
+endif
+
+ifeq ($(CONFIG_OPENSVC),yes)
+EXTRALIBS+=-lOpenSVCDec
 endif
 
 ifeq ($(CONFIG_VTB),yes)
@@ -255,8 +292,8 @@ all: lib
 lib: ../bin/gcc/$(LIB)
 
 #there's a bunch of warnings in there, get rid of them
-mcrypt: CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include"
-mcrypt: $(LIBGPAC_MCRYPT)
+crypto: CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include"
+crypto: $(LIBGPAC_CRYPTO)
 
 scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
@@ -279,7 +316,7 @@ filters: $(LIBGPAC_FILTERS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 
 
-../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt  filters $(OBJS)
+../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools crypto filters $(OBJS)
 	@echo "OBJS $(OBJS)"
 	@echo "LIBS $(EXTRALIBS)"
 

@@ -82,11 +82,19 @@ typedef struct
 
 } GF_PropertyEntry;
 
-#define HASH_TABLE_SIZE 30
+#ifndef GF_PROPS_HASHTABLE_SIZE
+#define GF_PROPS_HASHTABLE_SIZE 0
+#endif
+
+void gf_propmap_del(void *pmap);
 
 typedef struct
 {
-	GF_List *hash_table[HASH_TABLE_SIZE];
+#if GF_PROPS_HASHTABLE_SIZE
+	GF_List *hash_table[GF_PROPS_HASHTABLE_SIZE];
+#else
+	GF_List *properties;
+#endif
 	volatile u32 reference_count;
 	GF_FilterSession *session;
 	//current timescale, cached for duration/buffer compute
@@ -105,13 +113,16 @@ GF_List *gf_props_get_list(GF_PropertyMap *map);
 
 const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name);
 
+#if GF_PROPS_HASHTABLE_SIZE
 u32 gf_props_hash_djb2(u32 p4cc, const char *str);
+#else
+#define gf_props_hash_djb2(_a, _b) 0
+#endif
 
 GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props, gf_filter_prop_filter filter_prop, void *cbk);
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
-Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 Bool gf_props_4cc_check_props();
 
 
@@ -161,7 +172,7 @@ typedef struct __gf_filter_pck_info
 	u8 sap_type;
 	u8 interlaced;
 	u8 corrupted;
-	u8 eos_type; //0: nothing, 1: eos, 2: pid remove
+	u8 internal_command; //0: nothing (regular packet), 1: eos, 2: pid remove
 	u8 clock_type;
 	u8 seek_flag;
 	u8 duration_set;
@@ -214,6 +225,7 @@ struct __gf_fs_task
 	//set for tasks that have been requeued (i.e. no longer present in filter task list)
 	Bool in_main_task_list_only;
 	Bool requeue_request;
+	Bool is_filter_process;
 
 	u64 schedule_next_time;
 
@@ -267,12 +279,14 @@ struct __gf_media_session
 
 	//reservoir for property maps for PID and packets properties
 	GF_FilterQueue *prop_maps_reservoir;
-	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties
-	GF_FilterQueue *prop_maps_list_reservoir;
 	//reservoir for property entries  - properties may be inherited between packets
 	GF_FilterQueue *prop_maps_entry_reservoir;
 	//reservoir for property entries with allocated data buffers - properties may be inherited between packets
 	GF_FilterQueue *prop_maps_entry_data_alloc_reservoir;
+#if GF_PROPS_HASHTABLE_SIZE
+	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties
+	GF_FilterQueue *prop_maps_list_reservoir;
+#endif
 
 	GF_Mutex *props_mx;
 
@@ -430,6 +444,9 @@ struct __gf_filter
 	u64 nb_bytes_processed;
 	//number of packets sent by this filter
 	u64 nb_pck_sent;
+	//number of hardware frames packets sent by this filter
+	u64 nb_hw_pck_sent;
+
 	//number of bytes sent by this filter
 	u64 nb_bytes_sent;
 	//number of microseconds this filter was active
@@ -455,7 +472,8 @@ struct __gf_filter
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
 	//sticky filters won't unload if all inputs are deconnected. Usefull for sink filters
-	Bool sticky;
+	//2 means temporary sticky, used when reconfiguring filter chain
+	u32 sticky;
 	//explicitly loaded filters are usually not cloned, except if this flag is set
 	Bool clonable;
 	//one of the output PID needs reconfiguration
@@ -473,6 +491,8 @@ struct __gf_filter
 
 	GF_PropertyMap *caps_negociate;
 	Bool is_pid_adaptation_filter;
+	GF_FilterPidInst *swap_pidinst;
+	Bool swap_needs_init;
 
 	const GF_FilterCapability *forced_caps;
 	u32 nb_forced_caps;
@@ -482,6 +502,8 @@ struct __gf_filter
 	s32 cap_idx_at_resolution;
 
 	Bool reconfigure_outputs;
+
+	Bool user_pid_props;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -530,11 +552,16 @@ struct __gf_filter_pid_inst
 	Bool requires_full_data_block;
 	Bool last_block_ended;
 	Bool first_block_started;
-
+	//set during play/stop/reset phases
 	Bool discard_packets;
+
+	//set by filter
+	Bool discard_inputs;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile s64 buffer_duration;
+
+	volatile s32 detach_pending;
 
 	void *udta;
 
@@ -624,6 +651,8 @@ struct __gf_filter_pid
 	GF_FilterPidInst *caps_negociate_pidi;
 	GF_List *adapters_blacklist;
 	GF_Filter *caps_dst_filter;
+
+	u32 forced_cap;
 };
 
 
@@ -653,6 +682,20 @@ Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
 
 void gf_filter_check_output_reconfig(GF_Filter *filter);
 Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid);
+
+void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *pidi, Bool reconfig_only);
+
+GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned);
+GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
+u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
+
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
+
+void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
+
+void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections);
+
+GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct, Bool intern_pck);
 
 #endif //_GF_FILTER_SESSION_H_
 

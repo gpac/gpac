@@ -1739,6 +1739,24 @@ s32 gf_net_get_ntp_diff_ms(u64 ntp)
 	return (s32) (local - remote);
 }
 
+GF_EXPORT
+u64 gf_net_get_ntp_ms()
+{
+	u32 sec, frac;
+	u64 time_ms;
+	Double msec;
+
+	gf_net_get_ntp(&sec, &frac);
+	time_ms = sec;
+	time_ms *= 1000;
+	msec = frac*1000.0;
+	msec /= 0xFFFFFFFF;
+
+	time_ms += (u32)msec;
+
+	return time_ms;
+}
+
 
 
 GF_EXPORT
@@ -2034,7 +2052,7 @@ GF_Err gf_bin128_parse(const char *string, bin128 value)
 		}
 	}
 	if (i != 16) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[CORE] 128bit blob is not 16-bytes long: %s\n", string));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CORE] 128bit blob is not 16-bytes long: %s\n", string));
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;

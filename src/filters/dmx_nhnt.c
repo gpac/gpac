@@ -95,7 +95,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 	}
 	if (ctx->duration.num) return;
 
-	stream = gf_fopen(p->value.string, "r");
+	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
 //	ctx->index_size = 0;

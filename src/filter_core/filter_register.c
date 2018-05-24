@@ -105,6 +105,8 @@ const GF_FilterRegister *pngenc_register(GF_FilterSession *session);
 const GF_FilterRegister *ffenc_register(GF_FilterSession *session);
 const GF_FilterRegister *rewind_register(GF_FilterSession *session);
 const GF_FilterRegister *filelist_register(GF_FilterSession *session);
+const GF_FilterRegister *tsmux_register(GF_FilterSession *session);
+const GF_FilterRegister *dasher_register(GF_FilterSession *session);
 
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -178,6 +180,8 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, pngenc_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, rewind_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, filelist_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, tsmux_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, dasher_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );

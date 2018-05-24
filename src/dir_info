@@ -10,8 +10,8 @@ gpac/src/isomedia
 	IsoMedia File Format - features file reading/writing/editing, precise interleaving, hint track creation 
 and supports movie fragments (read/write). Includes 3GPP/3GPP2 features and simple AVC support - JPEG2000 support to be done.
 
-gpac/src/mcrypt
-	Port of libmcrypt into gpac for cryptographic tool. Currently only AES-128 CTR mode is used, but the other tools will likely be usefull for IPMPX
+gpac/src/crypto
+	Cryptographic tools (AES 128 CBC and CTR only for now)
 
 gpac/src/media_tools
 	media tools for authoring: ISMA & 3GPP tools, media importing and exporting, hinting

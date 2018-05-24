@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug - MP4Box_only|Win32">
       <Configuration>Debug - MP4Box_only</Configuration>
@@ -291,6 +291,7 @@
     <ClCompile Include="..\..\src\filters\load_text.c" />
     <ClCompile Include="..\..\src\filters\mux_avi.c" />
     <ClCompile Include="..\..\src\filters\mux_isom.c" />
+    <ClCompile Include="..\..\src\filters\mux_ts.c" />
     <ClCompile Include="..\..\src\filters\out_audio.c" />
     <ClCompile Include="..\..\src\filters\out_file.c" />
     <ClCompile Include="..\..\src\filters\out_video.c" />
@@ -369,20 +370,10 @@
     <ClCompile Include="..\..\src\laser\lsr_dec.c" />
     <ClCompile Include="..\..\src\laser\lsr_enc.c" />
     <ClCompile Include="..\..\src\laser\lsr_tables.c" />
-    <ClCompile Include="..\..\src\mcrypt\cbc.c" />
-    <ClCompile Include="..\..\src\mcrypt\cfb.c" />
-    <ClCompile Include="..\..\src\mcrypt\ctr.c" />
-    <ClCompile Include="..\..\src\mcrypt\des.c" />
-    <ClCompile Include="..\..\src\mcrypt\ecb.c" />
-    <ClCompile Include="..\..\src\mcrypt\g_crypt.c" />
-    <ClCompile Include="..\..\src\mcrypt\ncfb.c" />
-    <ClCompile Include="..\..\src\mcrypt\nofb.c" />
-    <ClCompile Include="..\..\src\mcrypt\ofb.c" />
-    <ClCompile Include="..\..\src\mcrypt\rijndael-128.c" />
-    <ClCompile Include="..\..\src\mcrypt\rijndael-192.c" />
-    <ClCompile Include="..\..\src\mcrypt\rijndael-256.c" />
-    <ClCompile Include="..\..\src\mcrypt\stream.c" />
-    <ClCompile Include="..\..\src\mcrypt\tripledes.c" />
+    <ClCompile Include="..\..\src\crypto\g_crypt.c" />
+    <ClCompile Include="..\..\src\crypto\g_crypt_openssl.c" />
+    <ClCompile Include="..\..\src\crypto\g_crypt_tinyaes.c" />
+    <ClCompile Include="..\..\src\crypto\tiny_aes.c" />
     <ClCompile Include="..\..\src\media_tools\ait.c" />
     <ClCompile Include="..\..\src\media_tools\atsc_dmx.c" />
     <ClCompile Include="..\..\src\media_tools\avilib.c" />
@@ -492,59 +483,62 @@
     <ClCompile Include="..\..\src\utils\utf.c" />
     <ClCompile Include="..\..\src\utils\xml_parser.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\filters\dec_vtb_glctx.m" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{233014D5-F6E5-419D-8757-FA9CE7337088}</ProjectGuid>
     <RootNamespace>libgpac</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">

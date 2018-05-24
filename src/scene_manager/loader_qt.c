@@ -80,6 +80,8 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	for (i=0; i<gf_isom_get_track_count(src); i++) {
 		switch (gf_isom_get_media_type(src, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			if (gf_isom_get_media_subtype(src, i+1, 1) == GF_ISOM_BOX_TYPE_JPEG) {
 				GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(src, i+1, 1);
 				if ((udesc->width>w) || (udesc->height>h)) {

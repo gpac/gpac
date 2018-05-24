@@ -35,15 +35,11 @@ extern "C" {
 /*!
  *	\file <gpac/constants.h>
  *	\brief Most constants defined in GPAC are in this file.
- */
-
-
-/*! \addtogroup cst_grp Constants
+ *  \addtogroup cst_grp
  *	\brief Constants used within GPAC
  *
  *	This section documents some constants used in the GPAC framework which are not related to
  *	any specific sub-project.
- *	\ingroup utils_grp
  *	@{
  */
 
@@ -104,7 +100,7 @@ enum
 
 	GF_STREAM_ENCRYPTED		= 0xE0,
 	/*stream carries files, each file being a complete AU*/
-	GF_STREAM_FILE		= 0xE1
+	GF_STREAM_FILE		= 0xE1,
 
 	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
 };
@@ -234,13 +230,13 @@ const char *gf_pixel_fmt_all_names();
 */
 const char *gf_pixel_fmt_all_shortnames();
 
-/*! returns size and stride characteristics for the pixel format
+/*! returns size and stride characteristics for the pixel format. If the stride or stride_uv value are not 0, they are used to compute the size. Otherwise no padding at end of line is assumed.
  \param pixfmt  pixfmt format code
  \param width target frame width
  \param height target frame height
  \param[out] out_size output frame size
- \param[out] out_stride output frame stride for single plane or plane 0
- \param[out] out_stride_uv output frame stride for UV planes
+ \param[in,out] out_stride output frame stride for single plane or plane 0
+ \param[in,out] out_stride_uv output frame stride for UV planes
  \param[out] out_planes output frame plane numbers
  \param[out] out_plane_uv_height height of UV planes
  \return error code if any
@@ -398,48 +394,64 @@ enum
 	/*! codecid for subtitle streams in xml format*/
 	GF_CODECID_SUBS_XML = GF_4CC('s','t','p','p'),
 
+	/*! codecid for subtitle/text streams in tx3g / apple text format*/
+	GF_CODECID_TX3G = GF_4CC( 't', 'x', '3', 'g' ),
+
 	/*!
 	 * \brief OGG DecoderConfig
 	 *
 	 *	The DecoderConfig for theora, vorbis, flac and opus contains all intitialization ogg packets for the codec
 	 * and is formated as follows:\n
 	 *\code
-		while (dsi_size) {
+	  while (dsi_size) {
 			bit(16) packet_size;
 			char packet[packet_size];
 			dsi_size -= packet_size;
-		}\endcode
+		}
+	 *\endcode
 	*/
-	//TODO, cross-check
+	/*! codecid for theora video streams*/
 	GF_CODECID_THEORA = GF_4CC('t','h','e','u'),
+	/*! codecid for vorbis audio streams*/
 	GF_CODECID_VORBIS = GF_4CC('v','o','r','b'),
+	/*! codecid for flac audio streams*/
 	GF_CODECID_FLAC = GF_4CC('f','l','a','c'),
+	/*! codecid for speex audio streams*/
 	GF_CODECID_SPEEX = GF_4CC('s','p','e','x'),
-
+	/*! codecid for opus audio streams*/
 	GF_CODECID_OPUS = GF_4CC('O','p','u','s'),
-
-	//associated stream type is text
+	/*! codecid for subpic DVD subtittles - the associated stream type is text*/
 	GF_CODECID_SUBPIC = GF_4CC('s','u','b','p'),
-
-
+	/*! codecid for raw audio PCM, as used in AVI*/
 	GF_CODECID_PCM = GF_4CC('P','C','M',' '),
+	/*! codecid for ADPCM audio, as used in AVI*/
 	GF_CODECID_ADPCM = GF_4CC('A','P','C','M'),
+	/*! codecid for IBM CVSD audio, as used in AVI*/
 	GF_CODECID_IBM_CVSD = GF_4CC('C','S','V','D'),
+	/*! codecid for ALAW audio, as used in AVI*/
 	GF_CODECID_ALAW = GF_4CC('A','L','A','W'),
+	/*! codecid for MULAW audio, as used in AVI*/
 	GF_CODECID_MULAW = GF_4CC('M','L','A','W'),
+	/*! codecid for OKI ADPCM audio, as used in AVI*/
 	GF_CODECID_OKI_ADPCM = GF_4CC('O','P','C','M'),
+	/*! codecid for DVI ADPCM audio, as used in AVI*/
 	GF_CODECID_DVI_ADPCM = GF_4CC('D','P','C','M'),
+	/*! codecid for DIGISTD audio, as used in AVI*/
 	GF_CODECID_DIGISTD = GF_4CC('D','S','T','D'),
+	/*! codecid for Yamaha ADPCM audio, as used in AVI*/
 	GF_CODECID_YAMAHA_ADPCM = GF_4CC('Y','P','C','M'),
+	/*! codecid for TrueSpeech audio, as used in AVI*/
 	GF_CODECID_DSP_TRUESPEECH = GF_4CC('T','S','P','E'),
+	/*! codecid for GSM 610 audio, as used in AVI*/
 	GF_CODECID_GSM610 = GF_4CC('G','6','1','0'),
+	/*! codecid for IBM MULAW audio, as used in AVI*/
 	GF_CODECID_IBM_MULAW = GF_4CC('I','U','L','W'),
+	/*! codecid for IBM ALAW audio, as used in AVI*/
 	GF_CODECID_IBM_ALAW = GF_4CC('I','A','L','W'),
+	/*! codecid for IBM ADPCM audio, as used in AVI*/
 	GF_CODECID_IBM_ADPCM = GF_4CC('I','P','C','M'),
-
-
+	/*! codecid for Flash/ShockWave streams*/
 	GF_CODECID_FLASH = GF_4CC( 'f', 'l', 's', 'h' ),
-
 	/*! codecid for RAW media streams. No decoder config associated (config through PID properties)*/
 	GF_CODECID_RAW = GF_4CC('R','A','W','M'),
 };
@@ -476,6 +488,12 @@ u32 gf_codecid_type(u32 codecid);
  \return ObjectTypeIndication if defined, 0 otherwise
 */
 u8 gf_codecid_oti(u32 codecid);
+
+/*! Gets the associated 4CC used by isomedia or RFC6381
+ \param codecid target codec ID
+ \return RFC 4CC of codec, 0 if not mapped/known
+*/
+u32 gf_codecid_4cc_type(u32 codecid);
 
 /*! Gets the codecid given the associated short name
  \param cname target codec short name
@@ -568,10 +586,6 @@ enum
 	/*!Back Right High Audio Channel*/
 	GF_AUDIO_CH_TOP_BACK_RIGHT = (1 << 17)
 };
-
-#define SPEAKER_TOP_BACK_LEFT           0x8000
-#define SPEAKER_TOP_BACK_CENTER         0x10000
-#define SPEAKER_TOP_BACK_RIGHT          0x20000
 
 
 /*!
@@ -937,6 +951,9 @@ enum {
 	GF_S4CC_MPEG4 = GF_4CC('m', 'p', '4', 's'),
 	GF_S4CC_LASER = GF_4CC('l', 's', 'r', '1'),
 };
+
+
+/*! @} */
 
 #ifdef __cplusplus
 }

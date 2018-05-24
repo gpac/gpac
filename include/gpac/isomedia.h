@@ -214,11 +214,12 @@ enum
 {
 	/*base media types*/
 	GF_ISOM_MEDIA_VISUAL	= GF_4CC( 'v', 'i', 'd', 'e' ),
+    GF_ISOM_MEDIA_AUXV      = GF_4CC( 'a', 'u', 'x', 'v' ),
+    GF_ISOM_MEDIA_PICT      = GF_4CC( 'p', 'i', 'c', 't' ),
 	GF_ISOM_MEDIA_AUDIO		= GF_4CC( 's', 'o', 'u', 'n' ),
 	GF_ISOM_MEDIA_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
 	GF_ISOM_MEDIA_META		= GF_4CC( 'm', 'e', 't', 'a' ),
 	GF_ISOM_MEDIA_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
-	GF_ISOM_MEDIA_PICT	= GF_4CC( 'p', 'i', 'c', 't' ),
 	/*subtitle code point used on ipod - same as text*/
 	GF_ISOM_MEDIA_SUBT		= GF_4CC( 's', 'b', 't', 'l' ),
 	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
@@ -292,6 +293,8 @@ enum
 	GF_ISOM_SUBTYPE_AVC4_H264		= GF_4CC( 'a', 'v', 'c', '4' ),
 	GF_ISOM_SUBTYPE_SVC_H264		= GF_4CC( 's', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_MVC_H264		= GF_4CC( 'm', 'v', 'c', '1' ),
+
+	/*HEVC media type*/
 	GF_ISOM_SUBTYPE_HVC1			= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_HEV1			= GF_4CC( 'h', 'e', 'v', '1' ),
 	GF_ISOM_SUBTYPE_HVC2			= GF_4CC( 'h', 'v', 'c', '2' ),
@@ -1040,6 +1043,9 @@ u16 gf_isom_get_sample_fragment_size(GF_ISOFile *the_file, u32 trackNumber, u32 
 /*returns 1 if file is single AV (max one audio, one video, one text and basic od/bifs)*/
 Bool gf_isom_is_single_av(GF_ISOFile *file);
 
+/*returns TRUE if this is a video track type (vide, auxv, pict, ...)*/
+Bool gf_isom_is_video_subtype(u32 mtype);
+
 /*guess which std this file refers to. return value:
 	GF_ISOM_BRAND_ISOM: unrecognized std
 	GF_ISOM_BRAND_3GP5: 3GP file (max 1 audio, 1 video) without text track
@@ -1076,9 +1082,16 @@ u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescrip
 /*set the timescale of the movie*/
 GF_Err gf_isom_set_timescale(GF_ISOFile *the_file, u32 timeScale);
 
+//loads the set of top-level boxes in moov udta and child boxes. UDTA will be replaced if already present
+GF_Err gf_isom_load_extra_boxes(GF_ISOFile *movie, char *moov_boxes, u32 moov_boxes_size, Bool udta_only);
+
 /*creates a new Track. If trackID = 0, the trackID is chosen by the API
 returns the track number or 0 if error*/
 u32 gf_isom_new_track(GF_ISOFile *the_file, u32 trackID, u32 MediaType, u32 TimeScale);
+
+/*creates a new Track from an encoded trak box. If udta_only, only keeps the udta box from the template. If trackID = 0, the trackID is chosen by the API
+returns the track number or 0 if error*/
+u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale, char *tk_box, u32 tk_box_size, Bool udta_only);
 
 /*removes the desired track - internal cross dependancies will be updated.
 WARNING: any OD streams with references to this track through  ODUpdate, ESDUpdate, ESDRemove commands
@@ -1435,6 +1448,10 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest);
 /*clones root OD from input to output file, without copying root OD track references*/
 GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
+
+GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, char **output, u32 *output_size);
+
+GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_size);
 
 /*clones the entire movie file to destination. Tracks can be cloned if clone_tracks is set, in which case hint tracks can be
 kept if keep_hint_tracks is set
@@ -2338,7 +2355,9 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 
 
 GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID);
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len);
+
+//if buf is NULL but len is given, this adds an unencrypted entry. otherwise, buf && len represent the sai cenc info to add
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len, Bool use_subsamples);
 
 
 
@@ -2686,6 +2705,7 @@ u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);
 /*Sets the number of the next moof to be produced*/
 void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value);
 
+GF_Err gf_isom_set_sample_group_in_traf(GF_ISOFile *file);
 
 /*returns 'rap ' and 'roll' group info for the given sample*/
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance);
@@ -2734,6 +2754,8 @@ GF_Err gf_isom_set_track_group(GF_ISOFile *file, u32 track_number, u32 track_gro
 GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
 									u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV);
 
+
+GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_TextSampleDescriptor **out_desc);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

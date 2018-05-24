@@ -62,10 +62,8 @@ u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs);
 returns data_len if no startcode found and sets sc_size to 0 (last nal in payload)*/
 u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size);
 
-/*returns NAL unit type - bitstream must be sync'ed!!*/
-u8 AVC_NALUType(GF_BitStream *bs);
-Bool SVC_NALUIsSlice(u8 type);
-
+u32 gf_media_nalu_emulation_bytes_remove_count(const char *buffer, u32 nal_size);
+u32 gf_media_nalu_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
 
 enum
 {
@@ -146,6 +144,7 @@ typedef struct
 	u8 chroma_format;
 	u8 luma_bit_depth_m8;
 	u8 chroma_bit_depth_m8;
+	u32 ChromaArrayType;
 
 	s16 offset_for_ref_frame[256];
 
@@ -170,9 +169,15 @@ typedef struct
 	s32 pic_order_present;			/* pic_order_present_flag*/
 	s32 redundant_pic_cnt_present;	/* redundant_pic_cnt_present_flag */
 	u32 slice_group_count;			/* num_slice_groups_minus1 + 1*/
+	u32 mb_slice_group_map_type;
+	u32 pic_size_in_map_units_minus1;
+	u32 slice_group_change_rate_minus1;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 status;
-
+	Bool weighted_pred_flag;
+	u8 weighted_bipred_idc;
+	Bool deblocking_filter_control_present_flag;
+	u32 num_ref_idx_l0_default_active_minus1, num_ref_idx_l1_default_active_minus1;
 } AVC_PPS;
 
 typedef struct
@@ -535,6 +540,10 @@ typedef enum
 	GF_DASH_TEMPLATE_TEMPLATE,
 	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE,
 	GF_DASH_TEMPLATE_REPINDEX,
+	//same as GF_DASH_TEMPLATE_INITIALIZATION but skip default "init" concatenation
+	GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT,
+	//same as GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE but skip default "init" concatenation
+	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT,
 } GF_DashTemplateSegmentType;
 
 GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline);

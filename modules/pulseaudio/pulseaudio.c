@@ -129,9 +129,7 @@ PulseAudio_Shutdown (GF_AudioOutput * dr)
 }
 
 static GF_Err
-PulseAudio_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate,
-                            u32 * NbChannels, u32 * nbBitsPerSample,
-                            u32 channel_cfg)
+PulseAudio_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
 {
 	int pa_error = 0;
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
@@ -144,6 +142,10 @@ PulseAudio_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate,
 		pa_simple_free (ctx->playback_handle);
 		ctx->playback_handle = NULL;
 	}
+
+	//only support for PCM 16
+	*audioFormat = GF_AUDIO_FMT_S16;
+
 	ctx->consecutive_zero_reads = 0;
 	ctx->sample_spec.format = PA_SAMPLE_S16NE;
 	ctx->sample_spec.channels = *NbChannels;
@@ -289,7 +291,7 @@ NewPulseAudioOutput ()
 	driv->SelfThreaded = 0;
 	driv->Setup = PulseAudio_Setup;
 	driv->Shutdown = PulseAudio_Shutdown;
-	driv->ConfigureOutput = PulseAudio_ConfigureOutput;
+	driv->Configure = PulseAudio_Configure;
 	driv->GetAudioDelay = PulseAudio_GetAudioDelay;
 	driv->SetVolume = PulseAudio_SetVolume;
 	driv->SetPan = PulseAudio_SetPan;

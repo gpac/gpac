@@ -66,7 +66,7 @@ struct __tag_bitstream
 	GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size);
 	void *usr_data;
 	u64 bytes_out;
-
+	Bool prevent_dispatch;
 };
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 BufferSize)
@@ -216,6 +216,11 @@ GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, char *data, u32 bl
 	return tmp;
 }
 
+void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch)
+{
+	if (bs) bs->prevent_dispatch = prevent_dispatch;
+}
+
 static void bs_flush_cache(GF_BitStream *bs)
 {
 	if (bs->buffer_written) {
@@ -270,7 +275,7 @@ void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove)
 }
 
 /*returns 1 if aligned wrt current mode, 0 otherwise*/
-static Bool BS_IsAlign(GF_BitStream *bs)
+Bool gf_bs_is_align(GF_BitStream *bs)
 {
 	switch (bs->bsmode) {
 	case GF_BITSTREAM_READ:
@@ -516,7 +521,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 
 	if (bs->position+nbBytes > bs->size) return 0;
 
-	if (BS_IsAlign(bs)) {
+	if (gf_bs_is_align(bs)) {
 		s32 bytes_read;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
@@ -560,7 +565,8 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 	}
 	/*we are in MEM mode*/
 	if ( (bs->bsmode == GF_BITSTREAM_WRITE) || (bs->bsmode == GF_BITSTREAM_WRITE_DYN) ) {
-		if (bs->on_block_out) {
+		//if callback mode and dispatch is not blocked, dispatch
+		if (bs->on_block_out && !bs->prevent_dispatch) {
 			assert(bs->position >= bs->bytes_out);
 			if (bs->position - bs->bytes_out == bs->size) {
 				bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out));
@@ -572,7 +578,8 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			assert(bs->position >= bs->bytes_out);
 			return;
 		}
-		if (bs->position == bs->size) {
+		//otherwise store
+		if (bs->position - bs->bytes_out == bs->size) {
 			/*no more space...*/
 			if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
 			/*gf_realloc if enough space...*/
@@ -582,7 +589,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (!bs->original) return;	
 		}
 		if (bs->original)
-			bs->original[bs->position] = val;
+			bs->original[bs->position - bs->bytes_out] = val;
 		bs->position++;
 		return;
 	}
@@ -685,7 +692,7 @@ void gf_bs_write_u64(GF_BitStream *bs, u64 value)
 GF_EXPORT
 u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 repeat_count)
 {
-	if (!BS_IsAlign(bs) || bs->buffer_io) {
+	if (!gf_bs_is_align(bs) || bs->buffer_io) {
 		u32 count = 0;
 		while (count<repeat_count) {
 			gf_bs_write_int(bs, byte, 8);
@@ -770,16 +777,19 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 	u64 begin = bs->position;
 	if (!nbBytes) return 0;
 
-	if (BS_IsAlign(bs)) {
+	if (gf_bs_is_align(bs)) {
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_WRITE:
-			if (bs->position+nbBytes > bs->size)
+			if (bs->position+nbBytes > bs->size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overwrite bitstream by %d bytes\n", bs->position + nbBytes - bs->size));
 				return 0;
+			}
 			memcpy(bs->original + bs->position, data, nbBytes);
 			bs->position += nbBytes;
 			return nbBytes;
 		case GF_BITSTREAM_WRITE_DYN:
-			if (bs->on_block_out) {
+			//if callback mode and dispatch not disabled, dispatch bytes
+			if (bs->on_block_out && !bs->prevent_dispatch) {
 				assert(bs->position >= bs->bytes_out);
 
 				if (bs->position - bs->bytes_out + nbBytes <= bs->size) {
@@ -794,8 +804,9 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 				assert(bs->position >= bs->bytes_out);
 				return nbBytes;
 			}
+			//otherwise store
 			/*need to gf_realloc ...*/
-			if (bs->position+nbBytes > bs->size) {
+			if (bs->position + nbBytes - bs->bytes_out > bs->size) {
 				u32 new_size = (u32) (bs->size*2);
 				if (!new_size) new_size = BS_MEM_BLOCK_ALLOC_SIZE;
 
@@ -809,7 +820,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 					return 0;
 				bs->size = new_size;
 			}
-			memcpy(bs->original + bs->position, data, nbBytes);
+			memcpy(bs->original + bs->position - bs->bytes_out, data, nbBytes);
 			bs->position += nbBytes;
 			return nbBytes;
 		case GF_BITSTREAM_FILE_READ:
@@ -1049,7 +1060,17 @@ GF_EXPORT
 GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 {
 	if (bs->on_block_out) {
-		return GF_BAD_PARAM;
+		GF_Err e;
+		if (offset < bs->bytes_out) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to seek on byte range already forwarded\n"));
+			return GF_BAD_PARAM;
+		}
+		/*warning: we allow offset = bs->size for WRITE buffers*/
+		if (offset > bs->size) return GF_BAD_PARAM;
+		gf_bs_align(bs);
+		e = BS_SeekIntern(bs, offset - bs->bytes_out);
+		bs->position += bs->bytes_out;
+		return e;
 	}
 	/*warning: we allow offset = bs->size for WRITE buffers*/
 	if (offset > bs->size) return GF_BAD_PARAM;

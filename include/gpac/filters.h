@@ -128,6 +128,8 @@ typedef enum
 	GF_PROP_CONST_DATA,
 	//user-managed pointer
 	GF_PROP_POINTER,
+	//string list: memory is ALWAYS duplicated
+	GF_PROP_STRING_LIST,
 } GF_PropType;
 
 typedef struct
@@ -202,13 +204,15 @@ typedef struct
 		//alloc/freed by filter if type is GF_PROP_STRING, otherwise const char *
 		char *string;
 		void *ptr;
+		GF_List *string_list;
 	} value;
 } GF_PropertyValue;
 
 const char *gf_props_get_type_name(u32 type);
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values);
+GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
 
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data);
+#define GF_PROP_DUMP_ARG_SIZE	1000
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
 Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type);
 u32 gf_props_get_id(const char *name);
@@ -271,7 +275,7 @@ typedef struct
 #define CAP_DOUBLE(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_DOUBLE, .value.number = _b}, .flags=(_f) }
 #define CAP_NAME(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_NAME, .value.string = _b}, .flags=(_f) }
 #define CAP_STRING(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_STRING, .value.string = _b}, .flags=(_f) }
-#define CAP_UINT_PRIORITY(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f), .priority=_p}
+#define CAP_UINT_PRIORITY(_f, _a, _b, _p) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f), .priority=_p}
 
 enum
 {
@@ -290,13 +294,18 @@ enum
 	//Only used for output caps, indicates that this cap applies to all bundles
 	//This avoids repeating caps common to all bundles by setting them only in the first
 	GF_FILTER_CAPS_STATIC = 1<<5,
+	//Only used for input caps, indicates that this cap is optionnal in the input pid
+	GF_FILTER_CAPS_OPTIONAL = 1<<6,
 };
 
 #define GF_CAPS_INPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT)
+#define GF_CAPS_INPUT_OPT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_OPTIONAL)
 #define GF_CAPS_INPUT_STATIC	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_STATIC)
+#define GF_CAPS_INPUT_STATIC_OPT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_STATIC|GF_FILTER_CAPS_OPTIONAL)
 #define GF_CAPS_INPUT_EXCLUDED	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_EXCLUDED)
 #define GF_CAPS_INPUT_EXCPLICIT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_EXPLICIT)
 #define GF_CAPS_OUTPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT)
+#define GF_CAPS_OUTPUT_EXPLICIT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT|GF_FILTER_CAPS_EXPLICIT)
 #define GF_CAPS_OUTPUT_EXCLUDED	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT|GF_FILTER_CAPS_EXCLUDED)
 #define GF_CAPS_OUTPUT_STATIC	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_OUTPUT|GF_FILTER_CAPS_STATIC)
 #define GF_CAPS_INPUT_OUTPUT	(GF_FILTER_CAPS_IN_BUNDLE|GF_FILTER_CAPS_INPUT|GF_FILTER_CAPS_OUTPUT)
@@ -431,6 +440,7 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
 
 void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
+Bool gf_filter_block_enabled(GF_Filter *filter);
 
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
@@ -445,6 +455,7 @@ GF_Err gf_fs_get_last_connect_error(GF_FilterSession *fsess);
 GF_Err gf_fs_get_last_process_error(GF_FilterSession *fsess);
 
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err);
+GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err);
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
@@ -452,6 +463,7 @@ GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
 u32 gf_filter_get_opid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx);
 
+//by default copy properties if only one input pid
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 void gf_filter_pid_remove(GF_FilterPid *pid);
 
@@ -707,6 +719,8 @@ enum
 	GF_PROP_PID_SERVICE_PROVIDER = GF_4CC('S','P','R','O'),
 	//(uint) media stream type, matching gpac stream types
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
+	//(uint) media subtype (auxiliary, picture, etc)
+	GF_PROP_PID_SUBTYPE = GF_4CC('P','S','S','T'),
 	//(uint) media stream type before encryption
 	GF_PROP_PID_ORIG_STREAM_TYPE = GF_4CC('P','O','S','T'),
 	//(uint) object type indication , matching gpac codecid types
@@ -759,8 +773,10 @@ enum
 	GF_PROP_PID_BIT_DEPTH_Y = GF_4CC('Y','B','P','S'),
 	//(uint) bit depth of UV samples
 	GF_PROP_PID_BIT_DEPTH_UV = GF_4CC('C','B','P','S'),
-	//(rational) video FPS
+	//(fraction) video FPS
 	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
+	//(boolean) video is interlaced
+	GF_PROP_PID_INTERLACED = GF_4CC('V','I','L','C'),
 	//(fraction) sample (ie pixel) aspect ratio
 	GF_PROP_PID_SAR = GF_4CC('P','S','A','R'),
 	//(fraction) picture aspect ratio
@@ -815,6 +831,9 @@ enum
 	//(uint) display  height of service
 	GF_PROP_SERVICE_HEIGHT = GF_4CC('D','H','G','T'),
 
+	//(uint) repeat rate in ms
+	GF_PROP_PID_CAROUSEL_RATE = GF_4CC('C','A','R','A'),
+
 	//thses two may need refinements when handling clock discontinuities
 	//(longuint) UTC date and time of PID
 	GF_PROP_PID_UTC_TIME = GF_4CC('U','T','C','D'),
@@ -852,20 +871,70 @@ enum
 	GF_PROP_PID_PCK_CENC_PATTERN = GF_4CC('C','P','T','R'),
 	//(uint)
 	GF_PROP_PID_AMR_MODE_SET = GF_4CC('A','M','S','T'),
-	//(data)
-	GF_PROP_PID_AC3_CFG = GF_4CC('A','C','3','C'),
 	//(data) binary blob containing N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
 	GF_PROP_PCK_SUBS = GF_4CC('S','U','B','S'),
 	//(uint)
 	GF_PROP_PID_MAX_NALU_SIZE = GF_4CC('N','A','L','S'),
 	//(uint)
 	GF_PROP_PCK_FILENUM = GF_4CC('F','N','U','M'),
+	//(uint)
+	GF_PROP_PCK_FILENAME = GF_4CC('F','N','A','M'),
+	//(uint)
+	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
+
+	//ISOBMFF specific properties
+	//(data)
+	GF_PROP_PID_ISOM_TRACK_TEMPLATE = GF_4CC('I','T','K','T'),
+	//(data)
+	GF_PROP_PID_ISOM_UDTA = GF_4CC('I','M','U','D'),
+
+
+	//DASH/HAS specific properties
+	//(string)
+	GF_PROP_PID_PERIOD_ID = GF_4CC('P','E','I','D'),
+	//(double)
+	GF_PROP_PID_PERIOD_START = GF_4CC('P','E','S','T'),
+	//(double)
+	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
+	//(string)
+	GF_PROP_PID_REP_ID = GF_4CC('D','R','I','D'),
+	//(string)
+	GF_PROP_PID_MUX_SRC = GF_4CC('M','S','R','C'),
+	//(uint)
+	GF_PROP_PID_DASH_MODE = GF_4CC('D','M','O','D'),
+	//(double)
+	GF_PROP_PID_DASH_DUR = GF_4CC('D','D','U','R'),
+	//(pointer)
+	GF_PROP_PID_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
+	//(uint)
+	GF_PROP_PID_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
+	//(stringlist)
+	GF_PROP_PID_ROLE = GF_4CC('R','O','L','E'),
+	//(stringlist)
+	GF_PROP_PID_PERIOD_DESC = GF_4CC('P','D','E','S'),
+	//(stringlist)
+	GF_PROP_PID_AS_COND_DESC = GF_4CC('A','C','D','S'),
+	//(stringlist)
+	GF_PROP_PID_AS_ANY_DESC = GF_4CC('A','A','D','S'),
+	//(stringlist)
+	GF_PROP_PID_REP_DESC = GF_4CC('R','D','E','S'),
+	//(stringlist)
+	GF_PROP_PID_BASE_URL = GF_4CC('B','U','R','L'),
+	//(string)
+	GF_PROP_PID_TEMPLATE = GF_4CC('D','T','P','L'),
+	//(uint)
+	GF_PROP_PID_START_NUMBER = GF_4CC('D','R','S','N'),
+	//(string)
+	GF_PROP_PID_XLINK = GF_4CC('X','L','N','K'),
+
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
 
 u32 gf_props_4cc_get_type(u32 prop_4cc);
 void gf_props_reset_single(GF_PropertyValue *p);
+
+Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 
 //PID messaging: PIDs may receive commands and may emit messages using this system
 //event may flow
@@ -884,6 +953,7 @@ typedef enum
 	GF_FEVT_RESUME,	//no associated event structure
 	GF_FEVT_SOURCE_SEEK,
 	GF_FEVT_SOURCE_SWITCH,
+	GF_FEVT_SEGMENT_SIZE,
 	GF_FEVT_ATTACH_SCENE,
 	GF_FEVT_RESET_SCENE,
 	GF_FEVT_QUALITY_SWITCH,
@@ -935,7 +1005,7 @@ typedef struct
 	u8 forced_dash_segment_switch;
 } GF_FEVT_Play;
 
-/*GF_FEVT_SOURCE_SEEK and GF_FEVT_SOURCE_SWITCH*/
+/*GF_FEVT_SOURCE_SEEK*/
 typedef struct
 {
 	FILTER_EVENT_BASE
@@ -960,6 +1030,19 @@ typedef struct
 	u64 switch_start_offset;
 	u64 switch_end_offset;
 } GF_FEVT_SourceSwitch;
+
+/*GF_FEVT_SEGMENT_SIZE*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	const char *seg_url;
+	//global sidx is signaled using is_init=1 and range in idx range
+	Bool is_init;
+	u64 media_range_start;
+	u64 media_range_end;
+	u64 idx_range_start;
+	u64 idx_range_end;
+} GF_FEVT_SegmentSize;
 
 /*GF_FEVT_ATTACH_SCENE and GF_FEVT_RESET_SCENE*/
 typedef struct
@@ -1013,6 +1096,10 @@ typedef struct
 	//the buffer is only activated on pids connected to decoders
 	u32 max_buffer_us;
 	u32 max_playout_us;
+	//for muxers: if set, only the pid target of the event will have the buffer req set
+	//otherwise, the buffer requirement event is passed down the chain until
+	//a raw media PID is found or a decoder is found
+	Bool pid_only;
 } GF_FEVT_BufferRequirement;
 
 union __gf_filter_event
@@ -1025,6 +1112,7 @@ union __gf_filter_event
 	GF_FEVT_QualitySwitch quality_switch;
 	GF_FEVT_VisibililityHint visibility_hint;
 	GF_FEVT_BufferRequirement buffer_req;
+	GF_FEVT_SegmentSize seg_size;
 };
 
 
@@ -1113,7 +1201,7 @@ void gf_fs_filter_print_possible_connections(GF_FilterSession *session);
 - $$ is an escape for $
 
 Supported KEYWORD (case insensitive):
-- Number or num: replaced by \file_number (usually matches GF_PROP_PCK_FILENUM)
+- num: replaced by \file_number (usually matches GF_PROP_PCK_FILENUM)
 - PID: ID of the source pid
 - URL: URL of source file
 - File: path on disk for source file
@@ -1126,6 +1214,33 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 void gf_filter_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name);
 
 Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output);
+
+typedef enum
+{
+	GF_FS_SEP_ARGS=0,
+	GF_FS_SEP_NAME,
+	GF_FS_SEP_FRAG,
+	GF_FS_SEP_LIST,
+	GF_FS_SEP_NEG,
+} GF_FilterSessionSepType;
+
+/*0: args separator, 1: value separator, 2: fragment, 3: list, 4: negator*/
+u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type);
+
+const char *gf_filter_get_dst_args(GF_Filter *filter);
+
+//setdiscard mode on or off. When discard is on, all nput packets for this PID are no longer dispatched
+//this only affect the current PID, not the source filter(s) for that pid
+//PID reconfigurations are still forwarded to the filter, so that a filter may decide to re-enable regular mode
+//this is typically needed for filters that stop consuming data for a while (dash periods for example) but may resume
+//consumption later on (stream moving from period 1 to period 2 for example)
+GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on);
+
+
+GF_Err gf_filter_pid_force_cap(GF_FilterPid *pid, u32 cap4cc);
+
+//query first destination of PID if any - memory shall be freed by caller
+char *gf_filter_pid_get_destination(GF_FilterPid *pid);
 
 #ifdef __cplusplus
 }

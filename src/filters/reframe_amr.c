@@ -121,7 +121,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 	}
 	ctx->is_file = GF_TRUE;
 
-	stream = gf_fopen(p->value.string, "r");
+	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
 	ctx->codecid = 0;

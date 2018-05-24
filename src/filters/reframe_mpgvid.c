@@ -165,7 +165,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	}
 	ctx->is_file = GF_TRUE;
 
-	stream = gf_fopen(p->value.string, "r");
+	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
 	ctx->index_size = 0;

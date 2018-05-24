@@ -26,7 +26,7 @@
 #include "filter_session.h"
 #include <gpac/constants.h>
 
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values)
+GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
 	char *unit_sep=NULL;
@@ -187,37 +187,37 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_VEC2I:
 		if (!value || (sscanf(value, "%dx%d", &p.value.vec2i.x, &p.value.vec2i.y) != 2)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s - using {0,0}\n", value, name));
-			p.value.vec2i.x = p.value.vec2i.x = 0;
+			p.value.vec2i.x = p.value.vec2i.y = 0;
 		}
 		break;
 	case GF_PROP_VEC2:
 		if (!value || (sscanf(value, "%lgx%lg", &p.value.vec2.x, &p.value.vec2.y) != 2)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2 arg %s - using {0,0}\n", value, name));
-			p.value.vec2.x = p.value.vec2.x = 0;
+			p.value.vec2.x = p.value.vec2.y = 0;
 		}
 		break;
 	case GF_PROP_VEC3I:
 		if (!value || (sscanf(value, "%dx%dx%d", &p.value.vec3i.x, &p.value.vec3i.y, &p.value.vec3i.z) != 3)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec3i arg %s - using {0,0,0}\n", value, name));
-			p.value.vec3i.x = p.value.vec3i.x = p.value.vec3i.z = 0;
+			p.value.vec3i.x = p.value.vec3i.y = p.value.vec3i.z = 0;
 		}
 		break;
 	case GF_PROP_VEC3:
 		if (!value || (sscanf(value, "%lgx%lgx%lg", &p.value.vec3.x, &p.value.vec3.y, &p.value.vec3.z) != 3)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec3 arg %s - using {0,0,0}\n", value, name));
-			p.value.vec3.x = p.value.vec3.x = p.value.vec3.z = 0;
+			p.value.vec3.x = p.value.vec3.y = p.value.vec3.z = 0;
 		}
 		break;
 	case GF_PROP_VEC4I:
 		if (!value || (sscanf(value, "%dx%dx%dx%d", &p.value.vec4i.x, &p.value.vec4i.y, &p.value.vec4i.z, &p.value.vec4i.w) != 4)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4i arg %s - using {0,0,0}\n", value, name));
-			p.value.vec4i.x = p.value.vec4i.x = p.value.vec4i.z = p.value.vec4i.w = 0;
+			p.value.vec4i.x = p.value.vec4i.y = p.value.vec4i.z = p.value.vec4i.w = 0;
 		}
 		break;
 	case GF_PROP_VEC4:
 		if (!value || (sscanf(value, "%lgx%lgx%lgx%lg", &p.value.vec4.x, &p.value.vec4.y, &p.value.vec4.z, &p.value.vec4.w) != 4)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4 arg %s - using {0,0,0}\n", value, name));
-			p.value.vec4.x = p.value.vec4.x = p.value.vec4.z = p.value.vec4.w = 0;
+			p.value.vec4.x = p.value.vec4.y = p.value.vec4.z = p.value.vec4.w = 0;
 		}
 		break;
 	case GF_PROP_PIXFMT:
@@ -243,6 +243,41 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		if (!value || (sscanf(value, "%p", &p.value.ptr) != 1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for pointer arg %s - using 0\n", value, name));
 		}
+		break;
+	case GF_PROP_STRING_LIST:
+	{
+		Bool is_xml = GF_FALSE;
+		p.value.string_list = gf_list_new();
+		char *v = (char *) value;
+		if (v[0]=='<') is_xml = GF_TRUE;
+		if (!list_sep_char) list_sep_char = ',';
+		while (v) {
+			u32 len=0;
+			char *nv;
+			char *sep = strchr(v, list_sep_char);
+			if (sep) {
+				char *xml_end = strchr(v, '>');
+				len = sep - v;
+				if (xml_end) {
+					u32 xml_len = xml_end - v;
+					if (xml_len > len) {
+						sep = strchr(xml_end, list_sep_char);
+						if (sep)
+							len = sep - v;
+					}
+				}
+			}
+			if (!sep)
+			 	len = strlen(v);
+
+			nv = gf_malloc(sizeof(char)*(len+1));
+			strncpy(nv, v, sizeof(char)*len);
+			nv[len] = 0;
+			gf_list_add(p.value.string_list, nv);
+			if (!sep) break;
+			v = sep+1;
+		}
+	}
 		break;
 	case GF_PROP_FORBIDEN:
 	default:
@@ -321,6 +356,24 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		if (p1->value.data.size != p2->value.data.size) return GF_FALSE;
 		return !memcmp(p1->value.data.ptr, p2->value.data.ptr, p1->value.data.size) ? GF_TRUE : GF_FALSE;
 
+	case GF_PROP_STRING_LIST:
+	{
+		u32 c1, c2, i, j;
+		c1 = gf_list_count(p1->value.string_list);
+		c2 = gf_list_count(p2->value.string_list);
+		if (c1 != c2) return GF_FALSE;
+		for (i=0; i<c1; i++) {
+			u32 found = 0;
+			char *s1 = gf_list_get(p1->value.string_list, i);
+			for (j=0; j<c2; j++) {
+				char *s2 = gf_list_get(p2->value.string_list, j);
+				if (s1 && s2 && !strcmp(s1, s2)) found++;
+			}
+			if (found!=1) return GF_FALSE;
+		}
+		return GF_TRUE;
+	}
+
 	//user-managed pointer
 	case GF_PROP_POINTER: return (p1->value.ptr==p2->value.ptr) ? GF_TRUE : GF_FALSE;
 	default:
@@ -330,6 +383,7 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 	return GF_FALSE;
 }
 
+#if GF_PROPS_HASHTABLE_SIZE
 GFINLINE u32 gf_props_hash_djb2(u32 p4cc, const char *str)
 {
 	u32 hash = 5381;
@@ -345,8 +399,9 @@ GFINLINE u32 gf_props_hash_djb2(u32 p4cc, const char *str)
 			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
 	}
-	return (hash % HASH_TABLE_SIZE);
+	return (hash % GF_PROPS_HASHTABLE_SIZE);
 }
+#endif
 
 GF_PropertyMap * gf_props_new(GF_Filter *filter)
 {
@@ -357,6 +412,10 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 	if (!map) {
 		GF_SAFEALLOC(map, GF_PropertyMap);
 		map->session = filter->session;
+#if GF_PROPS_HASHTABLE_SIZE
+#else
+		map->properties = gf_list_new();
+#endif
 	}
 	assert(!map->reference_count);
 	map->reference_count = 1;
@@ -387,6 +446,16 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 			assert(it->alloc_size);
 			//DATA props are collected at session level for future reuse
 		}
+		//string list are destroyed
+		else if (it->prop.type==GF_PROP_STRING_LIST) {
+			GF_List *l = it->prop.value.string_list;
+			it->prop.value.string_list = NULL;
+			while (gf_list_count(l)) {
+				char *s = gf_list_pop_back(l);
+				gf_free(s);
+			}
+			gf_list_del(l);
+		}
 		it->prop.value.data.size = 0;
 		if (it->alloc_size) {
 			assert(it->prop.type==GF_PROP_DATA);
@@ -397,10 +466,22 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 	}
 }
 
+void gf_propmap_del(void *pmap)
+{
+#if GF_PROPS_HASHTABLE_SIZE
+	gf_free(pamp);
+#else
+	GF_PropertyMap *map = pmap;
+	gf_list_del(map->properties);
+	gf_free(map);
+#endif
+
+}
 void gf_props_reset(GF_PropertyMap *prop)
 {
+#if GF_PROPS_HASHTABLE_SIZE
 	u32 i;
-	for (i=0; i<HASH_TABLE_SIZE; i++) {
+	for (i=0; i<GF_PROPS_HASHTABLE_SIZE; i++) {
 		if (prop->hash_table[i]) {
 			GF_List *l = prop->hash_table[i];
 			while (gf_list_count(l)) {
@@ -410,6 +491,11 @@ void gf_props_reset(GF_PropertyMap *prop)
 			gf_fq_add(prop->session->prop_maps_list_reservoir, l);
 		}
 	}
+#else
+	while (gf_list_count(prop->properties)) {
+		gf_props_del_property(prop, (GF_PropertyEntry *) gf_list_pop_back(prop->properties) );
+	}
+#endif
 }
 
 void gf_props_del(GF_PropertyMap *prop)
@@ -425,6 +511,7 @@ void gf_props_del(GF_PropertyMap *prop)
 //purge existing property of same name
 void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name)
 {
+#if GF_PROPS_HASHTABLE_SIZE
 	if (map->hash_table[hash]) {
 		u32 i, count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
@@ -436,23 +523,21 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 			}
 		}
 	}
-#if 1
-	{
-		u32 i, j, count;
-		for (i=0; i<HASH_TABLE_SIZE; i++) {
-			count = gf_list_count(map->hash_table[i]);
-			for (j=0; j<count; j++) {
-				GF_PropertyEntry *prop = gf_list_get(map->hash_table[i], j);
-				if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
-					assert(0);
-				}
-			}
+#else
+	u32 i, count = gf_list_count(map->properties);
+	for (i=0; i<count; i++) {
+		GF_PropertyEntry *prop = gf_list_get(map->properties, i);
+		if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
+			gf_list_rem(map->properties, i);
+			gf_props_del_property(map, prop);
+			break;
 		}
 	}
 #endif
 
 }
 
+#if GF_PROPS_HASHTABLE_SIZE
 GF_List *gf_props_get_list(GF_PropertyMap *map)
 {
 	GF_List *l;
@@ -462,23 +547,27 @@ GF_List *gf_props_get_list(GF_PropertyMap *map)
 	if (!l) l = gf_list_new();
 	return l;
 }
+#endif
 
 GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
 {
 	GF_PropertyEntry *prop;
 	char *src_ptr;
-
+#if GF_PROPS_HASHTABLE_SIZE
+	u32 i, count;
+#endif
 	if ((value->type == GF_PROP_DATA) || (value->type == GF_PROP_DATA_NO_COPY)) {
 		if (!value->value.data.ptr) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt at defining data property %s with NULL pointer, not allowed\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name ));
 			return GF_BAD_PARAM;
 		}
 	}
+#if GF_PROPS_HASHTABLE_SIZE
 	if (! map->hash_table[hash] ) {
 		map->hash_table[hash] = gf_props_get_list(map);
 		if (!map->hash_table[hash]) return GF_OUT_OF_MEM;
 	} else {
-		u32 i, count = gf_list_count(map->hash_table[hash]);
+		count = gf_list_count(map->hash_table[hash]);
 		if (count) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries before insertion:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, gf_list_count(map->hash_table[hash]) ));
 			for (i=0; i<count; i++) {
@@ -488,6 +577,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 			}
 		}
 	}
+#endif
 	if ((value->type == GF_PROP_DATA) && value->value.data.ptr) {
 		prop = gf_fq_pop(map->session->prop_maps_entry_data_alloc_reservoir);
 	} else {
@@ -531,7 +621,12 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		prop->alloc_size = value->value.data.size;
 	}
 
+#if GF_PROPS_HASHTABLE_SIZE
 	return gf_list_add(map->hash_table[hash], prop);
+#else
+	return gf_list_add(map->properties, prop);
+#endif
+
 }
 
 GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
@@ -547,6 +642,7 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 	u32 i, count, hash;
 	const GF_PropertyValue *res=NULL;
 	hash = gf_props_hash_djb2(prop_4cc, name);
+#if GF_PROPS_HASHTABLE_SIZE
 	if (map->hash_table[hash] ) {
 		count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
@@ -558,17 +654,15 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 			}
 		}
 	}
-#if 1
-	{
-		u32 i, j, count, nb_props=0;
-		for (i=0; i<HASH_TABLE_SIZE; i++) {
-			count = gf_list_count(map->hash_table[i]);
-			for (j=0; j<count; j++) {
-				GF_PropertyEntry *prop = gf_list_get(map->hash_table[i], j);
-				if (&prop->prop == res) nb_props++;
-			}
+#else
+	count = gf_list_count(map->properties);
+	for (i=0; i<count; i++) {
+		GF_PropertyEntry *p = gf_list_get(map->properties, i);
+
+		if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
+			res = &p->prop;
+			break;
 		}
-		assert(nb_props<=1);
 	}
 #endif
 	return res;
@@ -577,42 +671,63 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props, gf_filter_prop_filter filter_prop, void *cbk)
 {
 	GF_Err e;
-	u32 i, count, idx;
+	u32 i, count;
+#if GF_PROPS_HASHTABLE_SIZE
+	u32 idx;
+#endif
+	GF_List *list;
 	dst_props->timescale = src_props->timescale;
-	for (idx=0; idx<HASH_TABLE_SIZE; idx++) {
-		if (src_props->hash_table[idx]) {
-			count = gf_list_count(src_props->hash_table[idx] );
 
+#if GF_PROPS_HASHTABLE_SIZE
+	for (idx=0; idx<GF_PROPS_HASHTABLE_SIZE; idx++) {
+		if (src_props->hash_table[idx]) {
+			list = src_props->hash_table[idx];
+#else
+			list = src_props->properties;
+#endif
+			count = gf_list_count(list);
 			for (i=0; i<count; i++) {
-				GF_PropertyEntry *prop = gf_list_get(src_props->hash_table[idx], i);
+				GF_PropertyEntry *prop = gf_list_get(list, i);
 				assert(prop->reference_count);
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
 
+#if GF_PROPS_HASHTABLE_SIZE
 					if (!dst_props->hash_table[idx]) {
 						dst_props->hash_table[idx] = gf_props_get_list(dst_props);
 						if (!dst_props->hash_table[idx]) return GF_OUT_OF_MEM;
 					}
 					e = gf_list_add(dst_props->hash_table[idx], prop);
 					if (e) return e;
+#else
+					e = gf_list_add(dst_props->properties, prop);
+					if (e) return e;
+#endif
 				}
 			}
+#if GF_PROPS_HASHTABLE_SIZE
 		}
 	}
+#endif
 	return GF_OK;
 }
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name)
 {
-	u32 i, count, idx;
+#if GF_PROPS_HASHTABLE_SIZE
+	u32 i, count;
+#endif
+	u32 idx;
+	
+	const GF_PropertyEntry *pe;
 	if (!io_idx) return NULL;
 
 	idx = *io_idx;
-	if (idx== 0xFFFFFFFF) return NULL;
+	if (idx == 0xFFFFFFFF) return NULL;
 
-	for (i=0; i<HASH_TABLE_SIZE; i++) {
+#if GF_PROPS_HASHTABLE_SIZE
+	for (i=0; i<GF_PROPS_HASHTABLE_SIZE; i++) {
 		if (props->hash_table[i]) {
-			const GF_PropertyEntry *pe;
 			count = gf_list_count(props->hash_table[i]);
 			if (idx >= count) {
 				idx -= count;
@@ -631,6 +746,21 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 	}
 	*io_idx = 0xFFFFFFFF;
 	return NULL;
+#else
+	if (idx >= gf_list_count(props->properties)) {
+		*io_idx = 0xFFFFFFFF;
+		return NULL;
+	}
+	pe = gf_list_get(props->properties, idx);
+	if (!pe) {
+		*io_idx = 0xFFFFFFFF;
+		return NULL;
+	}
+	if (prop_4cc) *prop_4cc = pe->p4cc;
+	if (prop_name) *prop_name = pe->pname;
+	*io_idx = (*io_idx) + 1;
+	return &pe->prop;
+#endif
 }
 
 GF_EXPORT
@@ -659,6 +789,7 @@ const char *gf_props_get_type_name(u32 type)
 	case GF_PROP_VEC4: return "vec4d float";
 	case GF_PROP_PIXFMT: return "pixel format";
 	case GF_PROP_PCMFMT: return "audio format";
+	case GF_PROP_STRING_LIST: return "string list";
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
 	return "Undefined";
@@ -684,6 +815,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service of this PID", GF_PROP_STRING},
 	{ GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service of this PID", GF_PROP_STRING},
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "media stream type", GF_PROP_UINT},
+	{ GF_PROP_PID_SUBTYPE, "StreamSubtype", "media subtype (auxiliary, pic sequence, etc ..)", GF_PROP_UINT},
 	{ GF_PROP_PID_ORIG_STREAM_TYPE, "OrigStreamType", "Original stream type before encryption", GF_PROP_UINT},
 	{ GF_PROP_PID_CODECID, "CodecID", "codec ID (MPEG-4 OTI or ISOBMFF 4CC)", GF_PROP_UINT},
 	{ GF_PROP_PID_IN_IOD, "InitialObjectDescriptor", "indicates if PID is declared in the IOD for MPEG-4", GF_PROP_BOOL},
@@ -711,6 +843,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_BIT_DEPTH_Y, "BitDepthLuma", "Bit depth for luma components", GF_PROP_UINT},
 	{ GF_PROP_PID_BIT_DEPTH_UV, "BitDepthChroma", "Bit depth for chroma components", GF_PROP_UINT},
 	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
+	{ GF_PROP_PID_INTERLACED, "Interlaced", "Video interlaced flag", GF_PROP_BOOL},
 	{ GF_PROP_PID_SAR, "SAR", "Sample (ie pixel) aspect ratio", GF_PROP_FRACTION},
 	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION},
 	{ GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Max Visual Width (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
@@ -736,6 +869,8 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_DISABLE_PROGRESSIVE, "DisableProgressive", "indicates file cannot be progressivley uploaded because first blocks need patching upon closing", GF_PROP_BOOL},
 	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "display width of service", GF_PROP_UINT},
 	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "display height of service", GF_PROP_UINT},
+	{ GF_PROP_PID_CAROUSEL_RATE, "CarouselRate", "repeat rate in ms for systems carousel data", GF_PROP_UINT},
+
 	{ GF_PROP_PID_UTC_TIME, "UTC", "UTC date and time of PID", GF_PROP_LUINT},
 	{ GF_PROP_PID_UTC_TIMESTAMP, "UTCTimestamp", "timestamp corresponding to UTC date and time of PID", GF_PROP_LUINT},
 	{ GF_PROP_PID_AUDIO_VOLUME, "AudioVolume", "Volume of audio PID", GF_PROP_UINT},
@@ -755,16 +890,42 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_PCK_CENC_IV_CONST, "ConstantIV", "Constant IV the PID", GF_PROP_DATA},
 	{ GF_PROP_PID_PCK_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den", GF_PROP_FRACTION},
 	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
-	{ GF_PROP_PID_AC3_CFG, "AC3Config", "24 bits of AC3 config as 3GPP", GF_PROP_DATA},
 	{ GF_PROP_PCK_SUBS, "SubSampleInfo", "binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]", GF_PROP_DATA},
 	{ GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - set as info, not property", GF_PROP_UINT},
 	{ GF_PROP_PCK_FILENUM, "FileNumber", "Index of file when dumping to files", GF_PROP_UINT},
+	{ GF_PROP_PCK_FILENAME, "FileName", "Name of output file when dumping / dashing. Must be set on first packet belonging to new file", GF_PROP_STRING},
+	{ GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - set as info, not property", GF_PROP_UINT},
+
+	{ GF_PROP_PID_ISOM_TRACK_TEMPLATE, "TrackTemplate", "ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},
+	{ GF_PROP_PID_ISOM_UDTA, "MovieUserData", "ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},
+	{ GF_PROP_PID_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING},
+	{ GF_PROP_PID_PERIOD_START, "PStart", "DASH Period start - cf dasher help", GF_PROP_DOUBLE},
+	{ GF_PROP_PID_PERIOD_DUR, "PDur", "DASH Period duration - cf dasher help", GF_PROP_DOUBLE},
+	{ GF_PROP_PID_REP_ID, "Representation", "ID of DASH representation", GF_PROP_STRING},
+	{ GF_PROP_PID_MUX_SRC, "MuxSrc", "Identifies mux source(s)", GF_PROP_STRING},
+	{ GF_PROP_PID_DASH_MODE, "DashMode", "Indicates DASH mode to muxer, if any. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT},
+	{ GF_PROP_PID_DASH_DUR, "DashDur", "Indicates DASH target segment duration in seconds to muxer, if any.", GF_PROP_DOUBLE},
+	{ GF_PROP_PID_DASH_MULTI_PID, "__no_def_name__", "Pointer to the GF_List of input pits for multi-stsd entries segments.", GF_PROP_POINTER},
+	{ GF_PROP_PID_DASH_MULTI_PID_IDX, "__no_def_name__", "1-based index of PID in the multi PID list", GF_PROP_UINT},
+	{ GF_PROP_PID_ROLE, "Role", "list of roles for this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_PERIOD_DESC, "PDesc", "list of descriptors for the DASH period containing this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_AS_COND_DESC, "ASDesc", "list of conditionnal descriptors for the DASH AdaptationSet containing this PID. If a pid with the same property type but different value is found, the PIDs will be in different AdaptationSets", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_AS_ANY_DESC, "ASCDesc", "list of common descriptors for the DASH AdaptationSet containing this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_REP_DESC, "RDesc", "list of descriptors for the DASH Representation containing this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_BASE_URL, "BUrl", "list of base URLs for this PID", GF_PROP_STRING_LIST},
+	{ GF_PROP_PID_TEMPLATE, "Template", "template to use for DASH generation", GF_PROP_STRING},
+	{ GF_PROP_PID_START_NUMBER, "StartNumber", "specifies the start number to use for this DASH representation", GF_PROP_UINT},
+	{ GF_PROP_PID_XLINK, "xlink", "specifies remote period URL for DASH", GF_PROP_STRING},
+
+
 };
 
 GF_EXPORT
 u32 gf_props_get_id(const char *name)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	u32 i, nb_props;
+	if (!name) return 0;
+	nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
 	for (i=0; i<nb_props; i++) {
 		if (!strcmp(GF_BuiltInProps[i].name, name)) return GF_BuiltInProps[i].type;
 	}
@@ -819,7 +980,7 @@ Bool gf_props_4cc_check_props()
 }
 
 GF_EXPORT
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool dump_data)
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
 {
 	switch (att->type) {
 	case GF_PROP_SINT:
@@ -894,6 +1055,26 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[100], Bool d
 	case GF_PROP_POINTER:
 		sprintf(dump, "%p", att->value.ptr);
 		break;
+	case GF_PROP_STRING_LIST:
+	{
+		u32 i, count = gf_list_count(att->value.string_list);
+		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
+		for (i=0; i<count; i++) {
+			char *s = gf_list_get(att->value.string_list, i);
+			if (!i) {
+				strncpy(dump, s, len);
+			} else {
+				strcat(dump, ",");
+				strncat(dump, s, len-1);
+			}
+			len = GF_PROP_DUMP_ARG_SIZE - 1 - strlen(dump);
+			if (len<=1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("String list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
+				return dump;
+			}
+		}
+		return dump;
+	}
 	case GF_PROP_FORBIDEN:
 		sprintf(dump, "forbiden");
 		break;

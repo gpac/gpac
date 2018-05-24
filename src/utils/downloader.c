@@ -42,8 +42,8 @@
 #include <openssl/rand.h>
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
-#pragma comment(lib, "ssleay32")
-#pragma comment(lib, "libeay32")
+//#pragma comment(lib, "ssleay32")
+//#pragma comment(lib, "libeay32")
 #endif
 
 #endif
@@ -3985,7 +3985,7 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 
 	gf_cache_set_mime(the_entry, mime);
 	gf_cache_set_range(the_entry, size, start_range, end_range);
-	gf_cache_set_content(the_entry, data, (u32) size, GF_FALSE);
+	gf_cache_set_content(the_entry, data, (u32) size, clone_memory ? GF_TRUE : GF_FALSE);
 	gf_cache_set_downtime(the_entry, download_time_ms);
 
 	gf_mx_v(dm->cache_mx );

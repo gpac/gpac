@@ -62,7 +62,7 @@ void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister 
 		char *fname = strstr(fsess->blacklist, freg->name);
 		if (fname) {
 			u32 len = (u32) strlen(freg->name);
-			if (!fname[len] || (fname[len] == ',')) {
+			if (!fname[len] || (fname[len] == fsess->sep_list)) {
 				return;
 			}
 		}
@@ -87,6 +87,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	u32 i;
 	GF_FilterSession *fsess, *a_sess;
 
+	//safety check: all built-in properties shall have unique 4CCs
 	if ( ! gf_props_4cc_check_props())
 		return NULL;
 
@@ -120,9 +121,9 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->tasks_reservoir = gf_fq_new(fsess->tasks_mx);
 
 	if (nb_threads || (sched_type==GF_FS_SCHEDULER_LOCK_FORCE) ) {
-		fsess->semaphore_main = fsess->semaphore_other = gf_sema_new(GF_UINT_MAX, 0);
+		fsess->semaphore_main = fsess->semaphore_other = gf_sema_new(GF_INT_MAX, 0);
 		if (nb_threads>0)
-			fsess->semaphore_other = gf_sema_new(GF_UINT_MAX, 0);
+			fsess->semaphore_other = gf_sema_new(GF_INT_MAX, 0);
 
 		//force testing of mutex queues
 		//fsess->use_locks = GF_TRUE;
@@ -167,7 +168,9 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	if (fsess->use_locks)
 		fsess->props_mx = gf_mx_new("FilterSessionProps");
 
+#if GF_PROPS_HASHTABLE_SIZE
 	fsess->prop_maps_list_reservoir = gf_fq_new(fsess->props_mx);
+#endif
 	fsess->prop_maps_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_data_alloc_reservoir = gf_fq_new(fsess->props_mx);
@@ -334,8 +337,10 @@ void gf_fs_del(GF_FilterSession *fsess)
 		gf_list_del(fsess->threads);
 	}
 
-	gf_fq_del(fsess->prop_maps_reservoir, gf_void_del);
+	gf_fq_del(fsess->prop_maps_reservoir, gf_propmap_del);
+#if GF_PROPS_HASHTABLE_SIZE
 	gf_fq_del(fsess->prop_maps_list_reservoir, (gf_destruct_fun) gf_list_del);
+#endif
 	gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
 	gf_fq_del(fsess->prop_maps_entry_data_alloc_reservoir, gf_propalloc_del);
 
@@ -632,6 +637,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		Bool notified;
 		Bool requeue = GF_FALSE;
 		u64 active_start, task_time;
+		u32 consecutive_filter_tasks;
 		GF_FSTask *task=NULL;
 #ifdef CHECK_TASK_LIST_INTEGRITY
 		GF_Filter *prev_current_filter = NULL;
@@ -641,6 +647,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", thid, use_main_sema ? "main" : "secondary"));
 			//wait for something to be done
 			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
+			consecutive_filter_tasks = 0;
 		}
 
 		active_start = gf_sys_clock_high_res();
@@ -864,6 +871,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		assert( task->run_task );
 		task_time = gf_sys_clock_high_res();
 
+		task->is_filter_process = GF_FALSE;
 		task->requeue_request = GF_FALSE;
 		task->run_task(task);
 		requeue = task->requeue_request;
@@ -881,6 +889,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (current_filter) {
 			current_filter->nb_tasks_done++;
 			current_filter->time_process += task_time;
+			consecutive_filter_tasks++;
 			gf_mx_p(current_filter->tasks_mx);
 
 			//drop task from filter task list if this was not a requeued task
@@ -888,14 +897,27 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_fq_pop(current_filter->tasks);
 
 			//no more pending tasks for this filter
-			if ((gf_fq_count(current_filter->tasks) == 0) || (requeue && current_filter->stream_reset_pending) ) {
-//				assert (gf_fq_count(current_filter->tasks) == 0);
-
+			if ((gf_fq_count(current_filter->tasks) == 0)
+				//or requeue request and stream reset pending (we must exit the filter task loop for the task to pe processed)
+				|| (requeue && current_filter->stream_reset_pending)
+				//or requeue request and we have been running on that filter for more than 10 times, abort
+				|| (requeue && (consecutive_filter_tasks>10))
+			) {
 				current_filter->in_process = GF_FALSE;
 				if (current_filter->stream_reset_pending)
 					current_filter->in_process = GF_FALSE;
 
 				if (requeue) {
+					//filter process task are pushed back the queue of filter tasks
+					if (task->is_filter_process) {
+						GF_FSTask *a_task = gf_fq_pop(current_filter->tasks);
+						//if requeue
+						if (a_task) {
+							a_task->notified = task->notified;
+							gf_fq_add(current_filter->tasks, task);
+							task = a_task;
+						}
+					}
 					current_filter->process_th_id = 0;
 				} else {
 					//don't reset the flag if not requeued to make sure no other task posted from
@@ -1160,9 +1182,17 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 			fprintf(stderr, "\n");
 		}
 		if (opids) {
-			fprintf(stderr, "\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent);
-			if (f->time_process) {
-				fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8/f->time_process);
+			if (f->nb_hw_pck_sent) {
+				fprintf(stderr, "\t\t"LLU" hardware frames sent", f->nb_hw_pck_sent);
+				if (f->time_process) {
+					fprintf(stderr, " (%g pck/sec)", (Double) f->nb_hw_pck_sent*1000000/f->time_process);
+				}
+
+			} else if (f->nb_pck_sent) {
+				fprintf(stderr, "\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent);
+				if (f->time_process) {
+					fprintf(stderr, " (%g pck/sec %g mbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8/f->time_process);
+				}
 			}
 			fprintf(stderr, "\n");
 		}
@@ -1300,8 +1330,10 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (gf_url_is_local(sURL))
 			gf_url_to_fs_path(sURL);
 	}
+
+	sep = strchr(sURL, fsess->sep_args);
 	//special case here, need to escape ://
-	if (fsess->sep_args==':') {
+	if (sep && (fsess->sep_args==':') && !strnicmp(sep, "://", 3))  {
 		sep = strstr(sURL, "://");
 		if (sep) {
 			sep = strchr(sep+3, '/');
@@ -1310,8 +1342,6 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			sep = strchr(sURL, ':');
 			if (sep && !strnicmp(sep, ":\\", 2)) sep = strstr(sep+2, ":gpac:");
 		}
-	} else {
-		sep = strchr(sURL, fsess->sep_args);
 	}
 	if (sep) {
 		char szForceReg[20];
@@ -1546,6 +1576,18 @@ void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps)
 	}
 }
 
+GF_EXPORT
+u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type)
+{
+	switch (sep_type) {
+	case GF_FS_SEP_ARGS: return filter->session->sep_args;
+	case GF_FS_SEP_NAME: return filter->session->sep_name;
+	case GF_FS_SEP_FRAG: return filter->session->sep_frag;
+	case GF_FS_SEP_LIST: return filter->session->sep_list;
+	case GF_FS_SEP_NEG: return filter->session->sep_neg;
+	default: return 0;
+	}
+}
 
 GF_EXPORT
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)

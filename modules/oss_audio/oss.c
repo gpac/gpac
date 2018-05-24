@@ -97,7 +97,7 @@ static void OSS_Shutdown(GF_AudioOutput*dr)
 }
 
 
-static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err OSS_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
 {
 	int format, blockalign, nb_bufs, frag_spec;
 	long flags;
@@ -122,11 +122,19 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	if (ioctl(ctx->audio_dev, SNDCTL_DSP_CHANNELS, &ctx->nb_ch)==-1) return GF_IO_ERR;
 
 	blockalign = ctx->nb_ch;
-	if ((*nbBitsPerSample) == 16) {
+
+	//only support for PCM 8/16/24/32 packet mode
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+		format = AFMT_S8;
+		break;
+	default:
+		//otherwise force PCM16
+		*audioFormat = GF_AUDIO_FMT_S16;
+	case GF_AUDIO_FMT_S16:
 		blockalign *= 2;
 		format = AFMT_S16_LE;
-	} else {
-		format = AFMT_S8;
+		break;
 	}
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SETFMT,&format)==-1) return GF_IO_ERR;
 	ctx->sr = (*SampleRate);
@@ -233,7 +241,7 @@ void *NewOSSRender()
 	driv->SelfThreaded = 0;
 	driv->Setup = OSS_Setup;
 	driv->Shutdown = OSS_Shutdown;
-	driv->ConfigureOutput = OSS_ConfigureOutput;
+	driv->Configure = OSS_Configure;
 	driv->GetAudioDelay = OSS_GetAudioDelay;
 	driv->SetVolume = OSS_SetVolume;
 	driv->SetPan = OSS_SetPan;

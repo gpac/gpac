@@ -167,6 +167,8 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 				gf_list_insert(writers, writer, 0);
 			}
 		}
+		if (movie->sample_groups_in_traf && trak->Media->information->sampleTable)
+			trak->Media->information->sampleTable->skip_sample_groups = GF_TRUE;
 	}
 	return GF_OK;
 

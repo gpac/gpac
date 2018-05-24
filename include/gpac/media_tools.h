@@ -253,6 +253,8 @@ struct __track_import_info
 	u32 stream_type;
 	/*! codec ID ( one of GF_CODECID_XXX*)*/
 	u32 codecid;
+	/*! GF_ISOM_MEDIA_* : vide, auxv, pict*/
+	u32 media_subtype;
 	Bool is_chapter;
 	/*! import flags supported by the importer*/
 	u32 flags;
@@ -559,17 +561,20 @@ typedef struct
 /*!
  * DASH profile constants
  *	\hideinitializer
+ * Matches profile enum of dasher module: auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand
  */
 typedef enum
 {
-	/*! Full dash (no profile)*/
-	GF_DASH_PROFILE_FULL = 0,
+	/*! auto profile, internal use only*/
+	GF_DASH_PROFILE_AUTO = 0,
 	/*! Live dash profile for: live for ISOFF, SIMPLE for M2TS */
 	GF_DASH_PROFILE_LIVE,
 	/*! onDemand profile*/
  	GF_DASH_PROFILE_ONDEMAND,
 	/*! main profile*/
 	GF_DASH_PROFILE_MAIN,
+	/*! Full dash (no profile)*/
+	GF_DASH_PROFILE_FULL,
 
 	/*! industry profile HbbTV 1.5 ISOBMFF Live */
 	GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE,
@@ -577,9 +582,6 @@ typedef enum
 	GF_DASH_PROFILE_AVC264_LIVE,
 	/*! industry profile DASH-IF ISOBMFF onDemand */
 	GF_DASH_PROFILE_AVC264_ONDEMAND,
-
-	/*! Unknown profile, internal use only*/
-	GF_DASH_PROFILE_UNKNOWN
 } GF_DashProfile;
 
 
@@ -666,7 +668,7 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher);
  *	\param sourceInfo MPD source info
  *	\return error code if any
 */
-GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo);
+GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo, const char *lang);
 
 /*!
  Sets MPD Location. This is useful to distrubute a dynamic MPD by mail or any non-HTTP mean
@@ -816,9 +818,10 @@ GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_s
  *	\param pssh_moof if set, PSSH is stored in each moof, and not set in init segment. Default value is GF_FALSE
  *	\param samplegroups_in_traf if set, all sample group definitions are stored in each traf and not set in init segment. Default value is GF_FALSE
  *	\param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
+ *  \param tfdt_per_traf if set, each traf will contain a tfdt. Only applicable when single_traf_per_moof is GF_TRUE. Default value is GF_FALSE
  *	\return error code if any
 */
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof);
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf);
 
 /*!
  Enables insertion of UTC reference in the begining of segments
@@ -887,10 +890,18 @@ GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_boun
 /*!
  Enable/Disable split on closest mode.
  *	\param dasher the DASH segmenter object
- *	\param split_on_bound if true, video streams are segmented as close to the segment boundary as possible
+ *	\param split_on_closest if true, video streams are segmented as close to the segment boundary as possible
  *	\return error code if any
 */
 GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest);
+
+/*!
+ Sets m3u8 file name - if not set, no m3u8 output
+ *	\param dasher the DASH segmenter object
+ *	\param m3u8_name name of master m3u8 playlist to generate
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name);
 
 /*!
  Adds a media input to the DASHer
@@ -1233,7 +1244,6 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
  \param ts_inc output timestamp increment value
 */
 void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *ts_inc);
-
 
 #ifdef __cplusplus
 }

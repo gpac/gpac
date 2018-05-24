@@ -364,7 +364,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	if (ctx->timescale != ctx->sample_rate) {
 		u64 dur =ctx->info.samples * ctx->timescale;
 		dur /= ctx->sample_rate;
-		gf_filter_pck_set_duration(dst_pck, dur);
+		gf_filter_pck_set_duration(dst_pck, (u32) dur);
 		ctx->last_cts += dur;
 	} else {
 		gf_filter_pck_set_duration(dst_pck, ctx->info.samples);

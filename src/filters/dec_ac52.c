@@ -243,7 +243,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 	if (ctx->timescale != ctx->sample_rate) {
 		u64 dur = AC3_FRAME_SIZE * ctx->timescale;
 		dur /= ctx->sample_rate;
-		gf_filter_pck_set_duration(dst_pck, dur);
+		gf_filter_pck_set_duration(dst_pck, (u32) dur);
 		ctx->last_cts += dur;
 	} else {
 		gf_filter_pck_set_duration(dst_pck, AC3_FRAME_SIZE);

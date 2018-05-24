@@ -41,6 +41,8 @@ extern "C" {
 
 /*include event system*/
 #include <gpac/module.h>
+/*include audio formats*/
+#include <gpac/constants.h>
 
 
 /*

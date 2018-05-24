@@ -327,6 +327,7 @@ void PrintDASHUsage()
 	        " -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
 	        " -no-frags-default    disables default flags in fragments\n"
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
+            " -tfdt-traf           uses a tfdt per track fragment (when -single-traf is used)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 	        " -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
 	        " -cp-location=MODE    sets ContentProtection element location. Possible values for mode are:\n"
@@ -670,7 +671,8 @@ void PrintDumpUsage()
 	        " -diso                dumps IsoMedia file boxes in XML output\n"
 	        " -dxml                dumps IsoMedia file boxes and known track samples in XML output\n"
 	        " -drtp                rtp hint samples structure to XML output\n"
-	        " -dts                 prints sample timing to text output\n"
+	        " -dts                 prints sample timing, size and position in file to text output\n"
+	        " -dtsx                same as -dst but does not print offset\n"
 	        " -dnal trackID        prints NAL sample info of given track\n"
 	        " -dnalc trackID       prints NAL sample info of given track, adding CRC for each nal\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
@@ -927,6 +929,18 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 				media_prio = 2;
 			}
 			break;
+        case GF_ISOM_MEDIA_AUXV:
+            if (single_av) {
+                media_group = 2;
+                media_prio = 3;
+            }
+            break;
+        case GF_ISOM_MEDIA_PICT:
+            if (single_av) {
+                media_group = 2;
+                media_prio = 4;
+            }
+            break;
 		case GF_ISOM_MEDIA_AUDIO:
 			if (single_av) {
 				media_group = 2;
@@ -1085,6 +1099,8 @@ void remove_systems_tracks(GF_ISOFile *file)
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		switch (gf_isom_get_media_type(file, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
@@ -1230,7 +1246,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		strcpy(szSlot, opts);
 		next = strchr(szSlot, ':');
 		/*use ':' as separator, but beware DOS paths...*/
-		if (next && next[1]=='\\') next = strchr(szSlot+2, ':');
+		if (next && next[1]=='\\') next = strchr(next+2, ':');
 		if (next) next[0] = 0;
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
@@ -1800,9 +1816,9 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, dump_nal_crc;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
-u32 track_dump_type, dump_isom;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *dash_mpd_m3u_name;
+u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
 Double min_buffer = 1.5;
 s32 ast_offset_ms = 0;
@@ -1847,7 +1863,7 @@ Bool single_segment = GF_FALSE;
 Bool single_file = GF_FALSE;
 Bool segment_timeline = GF_FALSE;
 u32 segment_marker = GF_FALSE;
-GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
+GF_DashProfile dash_profile = GF_DASH_PROFILE_AUTO;
 const char *dash_profile_extension = NULL;
 Bool use_url_template = GF_FALSE;
 Bool seg_at_rap = GF_FALSE;
@@ -3042,6 +3058,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 				}
 			}
 		}
+		else if (!stricmp(arg, "-dtsx")) {
+			dump_timestamps = 2;
+		}
 		else if (!stricmp(arg, "-dnal")) {
 			CHECK_NEXT_ARG
 			dump_nal = atoi(argv[i + 1]);
@@ -3202,6 +3221,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] -dash-strict is deprecated, will behave like -dash\n"));
 			i++;
 		}
+               else if (!stricmp(arg, "-m3u8-from-mpd")) {
+                       CHECK_NEXT_ARG
+                       dash_mpd_m3u_name = argv[i + 1];
+                       i++;
+               }
 		else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
 			dash_subduration = atof(argv[i + 1]) / 1000;
@@ -3338,6 +3362,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-single-traf")) {
 			single_traf_per_moof = 1;
 		}
+        else if (!stricmp(arg, "-tfdt-traf")) {
+            tfdt_per_traf = 1;
+        }
 		else if (!stricmp(arg, "-mpd-title")) {
 			CHECK_NEXT_ARG dash_title = argv[i + 1];
 			i++;
@@ -3452,9 +3479,10 @@ int mp4boxMain(int argc, char **argv)
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = GF_FALSE;
+    tfdt_per_traf = GF_FALSE;
 	dump_nal_crc = GF_FALSE;
 	dump_isom = 0;
 	/*align cat is the new default behaviour for -cat*/
@@ -3466,6 +3494,7 @@ int mp4boxMain(int argc, char **argv)
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
 	seg_name = dash_ctx_file = NULL;
+       dash_mpd_m3u_name = NULL;
 	initial_moof_sn = 0;
 	initial_tfdt = 0;
 
@@ -4000,7 +4029,7 @@ int mp4boxMain(int argc, char **argv)
 			dash_ctx = gf_cfg_force_new(NULL, dash_ctx_file);
 		}
 
-		if (dash_profile==GF_DASH_PROFILE_UNKNOWN)
+		if (dash_profile==GF_DASH_PROFILE_AUTO)
 			dash_profile = dash_mode ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_FULL;
 
 		if (!dash_mode) {
@@ -4024,7 +4053,7 @@ int mp4boxMain(int argc, char **argv)
 			return mp4box_cleanup(1);
 			return GF_OUT_OF_MEM;
 		}
-		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source);
+		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source, NULL);
 		if (e) {
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
@@ -4060,7 +4089,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
 		if (!e) e = gf_dasher_enable_memory_fragmenting(dasher, memory_frags);
 		if (!e) e = gf_dasher_set_initial_isobmf(dasher, initial_moof_sn, initial_tfdt);
-		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
+		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, tfdt_per_traf);
 		if (!e) e = gf_dasher_enable_utc_ref(dasher, insert_utc);
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
@@ -4070,6 +4099,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
+		if (!e) e = gf_dasher_set_m3u8info(dasher, dash_mpd_m3u_name);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
@@ -4413,7 +4443,7 @@ int mp4boxMain(int argc, char **argv)
 
 #endif
 
-	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_timestamps==2) ? GF_TRUE : GF_FALSE);
 	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_crc);
 
 	if (do_hash) {
@@ -4762,6 +4792,8 @@ int mp4boxMain(int argc, char **argv)
 				u32 mType = gf_isom_get_media_type(file, i+1);
 				switch (mType) {
 				case GF_ISOM_MEDIA_VISUAL:
+                case GF_ISOM_MEDIA_AUXV:
+                case GF_ISOM_MEDIA_PICT:
 					major_brand = GF_ISOM_BRAND_M4V;
 					gf_isom_set_ipod_compatible(file, i+1);
 #if 0

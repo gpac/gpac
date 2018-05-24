@@ -103,7 +103,7 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 
 		sprintf(szPath, "http://gpatsc/service%d/%s", evt_param, finfo->filename);
 		od->URLString = gf_strdup(szPath);
-		cache_entry = gf_dm_add_cache_entry(atscd->dm, szPath, finfo->data, finfo->size, 0, 0, "application/dash+xml", GF_FALSE, 0);
+		cache_entry = gf_dm_add_cache_entry(atscd->dm, szPath, finfo->data, finfo->size, 0, 0, "application/dash+xml", GF_TRUE, 0);
 
 		sprintf(szPath, "x-dash-atsc: %d\r\n", evt_param);
 		gf_dm_force_headers(atscd->dm, cache_entry, szPath);

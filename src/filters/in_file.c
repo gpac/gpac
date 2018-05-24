@@ -42,6 +42,7 @@ typedef struct
 	u64 file_size;
 	u64 file_pos, end_pos;
 	Bool is_end, pck_out;
+	Bool is_null;
 	Bool full_file_only;
 	Bool do_reconfigure;
 	char *block;
@@ -138,6 +139,14 @@ static GF_Err filein_initialize(GF_Filter *filter)
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 
+	if (!strcmp(ctx->src, "null")) {
+		ctx->pid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
+		gf_filter_pid_set_eos(ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return GF_OK;
+	}
+
 	if (strnicmp(ctx->src, "file:/", 6) && strstr(ctx->src, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
@@ -156,7 +165,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	else if (!strnicmp(ctx->src, "file:", 5)) src += 5;
 
 	if (!ctx->file)
-		ctx->file = gf_fopen(src, "r");
+		ctx->file = gf_fopen(src, "rb");
 
 	if (!ctx->file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] Failed to open %s\n", src));
@@ -207,6 +216,8 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 	if (!strnicmp(url, "file://", 7)) src += 7;
 	else if (!strnicmp(url, "file:", 5)) src += 5;
 
+	if (!strcmp(url, "null")) return GF_FPROBE_SUPPORTED;
+
 	//strip any fragment identifer
 	frag_par = strchr(url, '#');
 	if (frag_par) frag_par[0] = 0;
@@ -226,7 +237,7 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
 	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid))
-	 return GF_FALSE;
+		return GF_FALSE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -342,6 +353,13 @@ static GF_Err filein_process(GF_Filter *filter)
 
 	if (ctx->file_pos + nb_read == ctx->file_size)
 		ctx->is_end = GF_TRUE;
+	else if (nb_read < to_read) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
+		if (feof(ctx->file)) {
+			ctx->is_end = GF_TRUE;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] IO error EOF found after reading %d bytes but file %s size is %d\n", ctx->file_pos+nb_read, ctx->src, ctx->file_size));
+		}
+	}
 	gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	ctx->file_pos += nb_read;

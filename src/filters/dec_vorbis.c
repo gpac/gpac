@@ -32,6 +32,12 @@
 
 #include <vorbis/codec.h>
 
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "libvorbis_static")
+# endif
+#endif
+
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;
@@ -241,7 +247,7 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 	if (ctx->timescale != ctx->sample_rate) {
 		u64 dur = total_samples * ctx->timescale;
 		dur /= ctx->sample_rate;
-		gf_filter_pck_set_duration(dst_pck, dur);
+		gf_filter_pck_set_duration(dst_pck, (u32) dur);
 		ctx->last_cts += dur;
 	} else {
 		gf_filter_pck_set_duration(dst_pck, total_samples);

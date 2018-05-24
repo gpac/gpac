@@ -26,6 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/config_file.h>
 #include <gpac/internal/compositor_dev.h>
+//to set caps in filter session, to cleanup!
 #include "../filter_core/filter_session.h"
 
 

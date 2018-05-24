@@ -29,8 +29,8 @@
 #include <gpac/network.h>
 
 #ifndef WIN32
-#define GPAC_HAS_LINUX_DVB
-#define GPAC_SIM_LINUX_DVB
+//#define GPAC_HAS_LINUX_DVB
+//#define GPAC_SIM_LINUX_DVB
 #endif
 
 
@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef GPAC_SIM_LINUX_DVB
 #include <linux/dvb/dmx.h>
@@ -103,7 +104,7 @@ static GF_Err dvblin_tune(GF_DVBLinuxCtx *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[DVB4Lin] Missing channels config file\n"));
 		return GF_BAD_PARAM;
 	}
-	chanfile = gf_fopen(ctx->chcfg, "r");
+	chanfile = gf_fopen(ctx->chcfg, "rb");
 	if (!chanfile) return GF_BAD_PARAM;
 
 	chan_name = (char *) ctx->src+6; // 6 = strlen("dvb://")
@@ -255,7 +256,7 @@ static u32 gf_dvblin_get_freq_from_url(GF_DVBLinuxCtx *ctx, const char *url)
 
 	channel_name = (char *)url+6;
 
-	chcfgig_file = gf_fopen(ctx->chcfg, "r");
+	chcfgig_file = gf_fopen(ctx->chcfg, "rb");
 	if (!chcfgig_file) return GF_BAD_PARAM;
 
 	freq = 0;
@@ -336,10 +337,7 @@ void dvblin_finalize(GF_Filter *filter)
 
 GF_FilterProbeScore dvblin_probe_url(const char *url, const char *mime_type)
 {
-	if (!strnicmp(url, "udp://", 6)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "tcp://", 6)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "mpegts-udp://", 13)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "mpegts-tcp://", 13)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "dvb://", 6)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 

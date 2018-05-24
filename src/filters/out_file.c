@@ -32,7 +32,7 @@ typedef struct
 {
 	//options
 	Double start, speed;
-	char *dst, *mime;
+	char *dst, *mime, *fext;
 	Bool append, dynext;
 
 	//only one output pid declared for now
@@ -57,7 +57,8 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		gf_fclose(ctx->file);
 	}
 	ctx->file = NULL;
-	if (!filename) return GF_OK;
+	if (!filename)
+		return GF_OK;
 
 	if (!strcmp(filename, "std")) ctx->is_std = GF_TRUE;
 	else if (!strcmp(filename, "stdout")) ctx->is_std = GF_TRUE;
@@ -78,7 +79,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 			strcpy(szName, filename);
 		}
 		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx);
-		ctx->file = gf_fopen(szFinalName, ctx->append ? "a+" : "w");
+		ctx->file = gf_fopen(szFinalName, ctx->append ? "a+b" : "w");
 
 		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));
@@ -148,8 +149,12 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	}
 	if (ctx->dynext) return GF_OK;
 
-	ext = strrchr(ctx->dst, '.');
-	if (!ext) ext = "*";
+	if (ctx->fext) ext = ctx->fext;
+	else {
+		ext = strrchr(ctx->dst, '.');
+		if (!ext) ext = "*";
+	}
+
 	if (!ext && !ctx->mime) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] No extension provided nor mime type for output file %s, cannot infer format\n", ctx->dst));
 		return GF_NOT_SUPPORTED;
@@ -210,6 +215,8 @@ static GF_Err fileout_process(GF_Filter *filter)
 			fext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 			if (!fname) name = ctx->dst;
 		}
+		//filename change at packet start, open new file
+		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
 		if (!fext) fext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
@@ -317,6 +324,8 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(fext), "Sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+
 	{0}
 };
 

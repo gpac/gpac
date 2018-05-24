@@ -403,9 +403,9 @@ enum
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
-	GF_ISOM_BOX_TYPE_GNRM	= GF_4CC( 'g', 'n', 'r', 'm' ),
-	GF_ISOM_BOX_TYPE_GNRV	= GF_4CC( 'g', 'n', 'r', 'v' ),
-	GF_ISOM_BOX_TYPE_GNRA	= GF_4CC( 'g', 'n', 'r', 'a' ),
+	GF_ISOM_BOX_TYPE_GNRM	= GF_4CC( 'G', 'N', 'R', 'M' ),
+	GF_ISOM_BOX_TYPE_GNRV	= GF_4CC( 'G', 'N', 'R', 'V' ),
+	GF_ISOM_BOX_TYPE_GNRA	= GF_4CC( 'G', 'N', 'R', 'A' ),
 	/*storage of AU fragments (for MPEG-4 visual resync marker (video packets), located in stbl.*/
 	GF_ISOM_BOX_TYPE_STSF	=  GF_4CC( 'S', 'T', 'S', 'F' ),
 	/*base constructor of all hint formats (currently only RTP uses it)*/
@@ -1489,6 +1489,7 @@ typedef struct
 	u32 currentEntryIndex;
 
 	Bool no_sync_found;
+	Bool skip_sample_groups;
 } GF_SampleTableBox;
 
 typedef struct __tag_media_info_box
@@ -3250,6 +3251,7 @@ struct __tag_isom {
 	GF_SegmentIndexBox *root_sidx;
 	u64 root_sidx_offset;
 	u32 root_sidx_index;
+	Bool dyn_root_sidx;
 
 	Bool is_index_segment;
 
@@ -3257,6 +3259,8 @@ struct __tag_isom {
 	/* 0: no moof found yet, 1: 1 moof found, 2: next moof found */
 	Bool single_moof_mode;
 	u32 single_moof_state;
+
+	Bool sample_groups_in_traf;
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
@@ -3424,6 +3428,8 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 
 Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
 
+GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp);
@@ -3466,10 +3472,10 @@ void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
 GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary);
-Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl);
+Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl, u32 scheme_type);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf);
+Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type);
 void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len);
 #endif
 void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len);
