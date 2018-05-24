@@ -995,7 +995,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 		} else {
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
-			u32 nal_start = gf_bs_get_position(plaintext_bs);
+			u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 			tci->hevc.full_slice_header_parse = GF_TRUE;
 			gf_media_hevc_parse_nalu (samp_data + nal_start, nal_size, &tci->hevc, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {

@@ -1383,7 +1383,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_decrypt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_encrypt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_key) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_state) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_IV) )
 #endif GPAC_DISABLE_CRYPTO
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum) )
