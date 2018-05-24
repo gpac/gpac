@@ -231,6 +231,7 @@ void PrintUsage()
 	        "\t        \"module\"     : GPAC modules debugging\n"
 	        "\t        \"mutex\"      : mutex\n"
 	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
+	        "\tThe special value \"ncl\" disables color logs.\n"
 	        "\n"
 	        "\t-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
 	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
@@ -2498,7 +2499,7 @@ void PrintAVInfo(Bool final)
 			}
 		}
 		if (audio_odm) {
-			fprintf(stderr, "%s SR %d num channels %s %d duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, gf_audio_fmt_name(a_odi.afmt), a_odi.duration);
+			fprintf(stderr, "%s SR %d num channels %d %s duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, gf_audio_fmt_name(a_odi.afmt), a_odi.duration);
 			if (final) {
 				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
 				if (!dec_run_time) dec_run_time = 1;
@@ -2667,7 +2668,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 {
 	GF_MediaInfo odi;
-	u32 i, j, count, d_enum;
+	u32 i, count, d_enum;
 	GF_ObjectManager *odm, *root_odm = gf_term_get_root_object(term);
 	if (!root_odm) return;
 

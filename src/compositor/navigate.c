@@ -26,7 +26,6 @@
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 #include <gpac/options.h>
-#include <gpac/terminal.h>
 
 
 #ifndef GPAC_DISABLE_3D
@@ -624,7 +623,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 				return 1;
 			}
 			break;
-		case GF_KEY_H:
+		case GF_KEY_G:
 			if (keys & GF_KEY_MOD_CTRL) {
 				compositor->vrhud_mode++;
 				if (compositor->vrhud_mode==5) compositor->vrhud_mode=0;;

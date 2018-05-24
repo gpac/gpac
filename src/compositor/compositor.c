@@ -3906,11 +3906,9 @@ void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node)
 	gf_sc_lock(compositor, GF_FALSE);
 }
 
-
-#include "../filter_core/filter_session.h"
 GF_EXPORT
 GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor)
 {
-	return compositor->filter->session->download_manager;
+	return gf_filter_get_download_manager(compositor->filter);
 }
 

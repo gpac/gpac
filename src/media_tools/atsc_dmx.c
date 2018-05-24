@@ -303,7 +303,7 @@ GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_
 		return NULL;
 	}
 	gf_sk_set_buffer_size(atscd->sock, GF_FALSE, sock_buffer_size);
-	gf_sk_set_block_mode(atscd->sock, GF_TRUE);
+	//gf_sk_set_block_mode(atscd->sock, GF_TRUE);
 	//create static bs
 	atscd->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
@@ -437,6 +437,9 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 				gf_atsc3_service_del(atscd, service);
 				continue;
 			}
+			gf_sk_set_buffer_size(service->sock, GF_FALSE, atscd->unz_buffer_size);
+			//gf_sk_set_block_mode(service->sock, GF_TRUE);
+
 			service->dst_ip = gf_strdup(dst_ip);
 			service->port = dst_port;
 			service->objects = gf_list_new();
@@ -512,6 +515,12 @@ static void gf_atsc3_obj_to_reservoir(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_L
 
 }
 
+//#define CHECK_ISOM
+
+#ifdef CHECK_ISOM
+#include <gpac/isomedia.h>
+#endif
+
 static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *obj)
 {
 	char szPath[GF_MAX_PATH], *sep;
@@ -548,6 +557,22 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d got file %s (TSI %u TOI %u) size %d in %d ms\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
 		}
 #endif
+
+#ifdef CHECK_ISOM
+		{
+			char szBlob[1024];
+			GF_ISOFile *file;
+			sprintf(szBlob, "gmem://%d@%p", obj->total_length, obj->payload);
+			file = gf_isom_open(szBlob, GF_ISOM_OPEN_READ_DUMP, NULL);
+			if (file) {
+				fprintf(stderr, "ISOBMF %s file OK\n", szPath);
+				gf_isom_delete(file);
+			} else {
+				fprintf(stderr, "ISOBMF %s file invalid\n", szPath);
+			}
+		}
+#endif
+
 		if (atscd->on_event) {
 			GF_ATSCEventFileInfo finfo;
 			memset(&finfo, 0, sizeof(GF_ATSCEventFileInfo));
@@ -583,7 +608,7 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 	}
 	sep[0]='/';
 
-	out = gf_fopen(szPath, "w");
+	out = gf_fopen(szPath, "wb");
 	if (!out) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create file %s\n", s->service_id, szPath ));
 		return GF_IO_ERR;
@@ -595,6 +620,19 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to write DASH resource file %d written for %d total\n", s->service_id, bytes, obj->total_length));
 			return GF_IO_ERR;
 		}
+
+#ifdef CHECK_ISOM
+		{
+			GF_ISOFile *file = gf_isom_open(szPath, GF_ISOM_OPEN_READ_DUMP, NULL);
+			if (file) {
+				fprintf(stderr, "ISOBMF %s file OK\n", szPath);
+				gf_isom_delete(file);
+			} else {
+				fprintf(stderr, "ISOBMF %s file invalid\n", szPath);
+			}
+		}
+#endif
+
 	}
 #ifndef GPAC_DISABLE_LOG
 	if (partial || gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
@@ -887,7 +925,7 @@ static GF_Err gf_atsc3_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 		FILE *out;
 		char szPath[GF_MAX_PATH];
 		sprintf(szPath, "%s/%s", s->output_dir, content_location);
-		out = gf_fopen(szPath, "w");
+		out = gf_fopen(szPath, "wb");
 		if (!out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d failed to create MPD file %s\n", s->service_id, szPath ));
 			return GF_IO_ERR;
@@ -1005,6 +1043,8 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d  failed to setup mcast for route session on %s:%d\n", s->service_id, dst_ip, dst_port));
 				return e;
 			}
+			gf_sk_set_buffer_size(rsess->sock, GF_FALSE, atscd->unz_buffer_size);
+			//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
 			s->secondary_sockets++;
 			if (s->tune_mode == GF_ATSC_TUNE_ON) gf_sk_group_register(atscd->active_sockets, rsess->sock);
 		}

@@ -31,6 +31,11 @@
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
 #else
+
+#ifdef GPAC_CONFIG_LINUX
+#include <arpa/inet.h>
+#endif
+
 typedef struct tagBITMAPFILEHEADER
 {
 	u16	bfType;
@@ -105,9 +110,9 @@ GF_Err img_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
+		return GF_OK;
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &size);
-	assert(!ctx->opid);
 	
 	if (!ctx->opid) {
 #ifndef GPAC_DISABLE_AV_PARSERS

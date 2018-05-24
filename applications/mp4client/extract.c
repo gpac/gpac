@@ -343,7 +343,6 @@ void write_hash(FILE *sha_out, char *buf, u32 size)
 void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 frameNum, char *conv_buf, FILE *sha_out)
 {
 	GF_Err e;
-	u32 i, k;
 	GF_Compositor *compositor = gf_term_get_compositor(term);
 
 	GF_VideoSurface fb;
@@ -382,7 +381,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fra
 void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 frameNum, char *conv_buf, FILE *sha_out)
 {
 	GF_Err e = GF_OK;
-	u32 i, k, out_size;
+	u32 out_size;
 	GF_VideoSurface fb;
 	GF_Compositor *compositor = gf_term_get_compositor(term);
 
@@ -432,7 +431,6 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	GF_Err e;
 	Bool ret = 0;
 	u32 i = 0;
-	GF_VideoSurface fb;
 	char szPath[GF_MAX_PATH];
 	char szOutPath[GF_MAX_PATH];
 	char *prev=NULL;

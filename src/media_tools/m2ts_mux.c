@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
- *  This file is part of GPAC / MPEG2-TS sub-project
+ *  This file is part of GPAC / MPEG2-TS multiplexer sub-project
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -496,7 +496,7 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 
 //#define USE_AF_STUFFING
 
-void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
+void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux *mux, GF_M2TS_Mux_Stream *stream, char *packet)
 {
 	GF_BitStream *bs;
 	GF_M2TS_Mux_Table *table;
@@ -519,7 +519,8 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	section = stream->current_section;
 	assert(section);
 
-	bs = gf_bs_new(packet, 188, GF_BITSTREAM_WRITE);
+	bs = mux->pck_bs;
+	gf_bs_reassign_buffer(bs, packet, 188);
 
 	gf_bs_write_int(bs,	0x47, 8); // sync
 	gf_bs_write_int(bs,	0, 1);    // error indicator
@@ -584,7 +585,6 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		/* no concatenations of sections in ts packets, so start address is 0 */
 		gf_bs_write_u8(bs, 0);
 	}
-	gf_bs_del(bs);
 
 	memcpy(packet+188-payload_start, section->data + stream->current_section_offset, payload_length);
 	stream->current_section_offset += payload_length;
@@ -913,7 +913,7 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 	}
 	if (!stream->program->initial_ts_set) {
 		u32 nb_bits = (u32) (stream->program->mux->tot_pck_sent - stream->program->num_pck_at_pcr_init) * 1504;
-		u32 nb_ticks = 90000*nb_bits / stream->program->mux->bit_rate;
+		u64 nb_ticks = 90000*nb_bits / stream->program->mux->bit_rate;
 		stream->program->initial_ts = *dts;
 
 		if (stream->program->initial_ts > nb_ticks)
@@ -1032,6 +1032,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		if (stream->curr_pck.data_len) {
 			/*discard packet data if we use SL over PES*/
 			if (stream->discard_data) gf_free(stream->curr_pck.data);
+			if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
 			/*release data*/
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
 		}
@@ -1052,7 +1053,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		/*flush input pipe*/
 		if (stream->ifce->input_ctrl) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
 
-		gf_mx_p(stream->mx);
+		if (stream->mx) gf_mx_p(stream->mx);
 
 		stream->pck_offset = 0;
 		stream->curr_pck.data_len = 0;
@@ -1060,7 +1061,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		/*fill curr_pck*/
 		curr_pck = stream->pck_first;
 		if (!curr_pck) {
-			gf_mx_v(stream->mx);
+			if (stream->mx) gf_mx_v(stream->mx);
 			return ret;
 		}
 		stream->curr_pck.cts = curr_pck->cts;
@@ -1077,7 +1078,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		gf_free(curr_pck);
 		stream->discard_data = GF_TRUE;
 
-		gf_mx_v(stream->mx);
+		if (stream->mx) gf_mx_v(stream->mx);
 	}
 
 	if (!(stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS))
@@ -1100,8 +1101,11 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		} else {
 			/*PES has been sent, discard internal buffer*/
 			if (stream->discard_data) gf_free(stream->curr_pck.data);
+			if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
 			stream->curr_pck.data = NULL;
 			stream->curr_pck.data_len = 0;
+			stream->curr_pck.mpeg2_af_descriptors = NULL;
+			stream->curr_pck.mpeg2_af_descriptors_size = 0;
 			stream->pck_offset = 0;
 			/*don't send until PCR is initialized*/
 			return 0;
@@ -1131,6 +1135,9 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			gf_free(stream->curr_pck.data);
 			stream->curr_pck.data = NULL;
 			stream->curr_pck.data_len = 0;
+			gf_free(stream->curr_pck.mpeg2_af_descriptors);
+			stream->curr_pck.mpeg2_af_descriptors = NULL;
+			stream->curr_pck.mpeg2_af_descriptors_size = 0;
 		}
 		break;
 	case GF_M2TS_SYSTEMS_MPEG4_PES:
@@ -1604,7 +1611,8 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	u32 adaptation_field_control, payload_length, payload_to_copy, padding_length, hdr_len, pos, copy_next;
 
 	assert(stream->pid);
-	bs = gf_bs_new(packet, 188, GF_BITSTREAM_WRITE);
+	bs = stream->program->mux->pck_bs;
+	gf_bs_reassign_buffer(bs, packet, 188);
 
 	if (stream->pcr_only_mode) {
 		payload_length = 184 - 8;
@@ -1808,8 +1816,6 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	if (hdr_len) gf_m2ts_stream_add_pes_header(bs, stream);
 
 	pos = (u32) gf_bs_get_position(bs);
-	gf_bs_del(bs);
-
 
 	if (adaptation_field_control == GF_M2TS_ADAPTATION_ONLY) {
 		return;
@@ -1854,6 +1860,9 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		if (stream->discard_data) gf_free(stream->curr_pck.data);
 		stream->curr_pck.data = NULL;
 		stream->curr_pck.data_len = 0;
+		if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+		stream->curr_pck.mpeg2_af_descriptors = NULL;
+		stream->curr_pck.mpeg2_af_descriptors_size = 0;
 		stream->pck_offset = 0;
 
 //#ifndef GPAC_DISABLE_LOG
@@ -1906,6 +1915,9 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 					if (stream->discard_data) gf_free(stream->curr_pck.data);
 					stream->curr_pck.data = NULL;
 					stream->curr_pck.data_len = 0;
+					if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+					stream->curr_pck.mpeg2_af_descriptors = NULL;
+					stream->curr_pck.mpeg2_af_descriptors_size = 0;
 					stream->pck_offset = 0;
 				}
 				if (!remain) break;
@@ -1947,14 +1959,14 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 
 		if (stream->force_new || (esi_pck->flags & GF_ESI_DATA_AU_START)) {
 			if (stream->pck_reassembler) {
-				gf_mx_p(stream->mx);
+				if (stream->mx) gf_mx_p(stream->mx);
 				if (!stream->pck_first) {
 					stream->pck_first = stream->pck_last = stream->pck_reassembler;
 				} else {
 					stream->pck_last->next = stream->pck_reassembler;
 					stream->pck_last = stream->pck_reassembler;
 				}
-				gf_mx_v(stream->mx);
+				if (stream->mx) gf_mx_v(stream->mx);
 				stream->pck_reassembler = NULL;
 			}
 		}
@@ -1983,14 +1995,14 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 
 		stream->pck_reassembler->flags |= esi_pck->flags;
 		if (stream->force_new) {
-			gf_mx_p(stream->mx);
+			if (stream->mx) gf_mx_p(stream->mx);
 			if (!stream->pck_first) {
 				stream->pck_first = stream->pck_last = stream->pck_reassembler;
 			} else {
 				stream->pck_last->next = stream->pck_reassembler;
 				stream->pck_last = stream->pck_reassembler;
 			}
-			gf_mx_v(stream->mx);
+			if (stream->mx) gf_mx_v(stream->mx);
 			stream->pck_reassembler = NULL;
 		}
 		break;
@@ -2118,7 +2130,31 @@ static void gf_m2ts_stream_add_metadata_descriptor(GF_M2TS_Mux_Stream *stream)
 }
 
 GF_EXPORT
-GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr, Bool force_pes)
+u32 gf_m2ts_mux_program_get_pmt_pid(GF_M2TS_Mux_Program *prog)
+{
+	return prog->pmt ? prog->pmt->pid : 0;
+}
+
+GF_EXPORT
+u32 gf_m2ts_mux_program_get_pcr_pid(GF_M2TS_Mux_Program *prog)
+{
+	return prog->pcr ? prog->pcr->pid : 0;
+}
+
+GF_EXPORT
+u32 gf_m2ts_mux_program_get_stream_count(GF_M2TS_Mux_Program *prog)
+{
+	GF_M2TS_Mux_Stream *stream = prog->streams;
+	u32 count=0;
+	while (stream) {
+		count++;
+		stream = stream->next;
+	}
+	return count;
+}
+
+GF_EXPORT
+GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr, Bool force_pes, Bool needs_mutex)
 {
 	GF_M2TS_Mux_Stream *stream, *st;
 
@@ -2210,6 +2246,10 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			gf_m2ts_stream_set_default_slconfig(stream);
 			break;
 		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
+			stream->force_single_au = GF_TRUE;
+			stream->mpeg2_stream_id = 0xFA;
 			break;
 		}
 		break;
@@ -2227,12 +2267,20 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		case GF_CODECID_AAC_MPEG2_MP:
 		case GF_CODECID_AAC_MPEG2_LCP:
 		case GF_CODECID_AAC_MPEG2_SSRP:
-			stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
-			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
+			if (ifce->caps & GF_ESI_AAC_USE_LATM)
+				stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
+			else
+				stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
+
 			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
 			break;
 		case GF_CODECID_AC3:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
+			stream->force_single_au = GF_TRUE;
 			break;
 		}
 		/*just pick first valid stream_id in audio range*/
@@ -2268,6 +2316,12 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
 		gf_m2ts_stream_add_metadata_pointer_descriptor(stream->program);
 		gf_m2ts_stream_add_metadata_descriptor(stream);
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+		stream->mpeg2_stream_id = 0xBD;
+		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
+		break;
 	}
 
 	if (! (ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
@@ -2284,7 +2338,9 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 
 	stream->ifce->output_ctrl = gf_m2ts_output_ctrl;
 	stream->ifce->output_udta = stream;
-	stream->mx = gf_mx_new("M2TS PID");
+	if (needs_mutex)
+		stream->mx = gf_mx_new("M2TS PID");
+
 	if (ifce->timescale != 90000) {
 		stream->ts_scale.num = 90000;
 		stream->ts_scale.den = ifce->timescale;
@@ -2313,6 +2369,19 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_nu
 		program = program->next;
 	}
 	return NULL;
+}
+
+
+GF_EXPORT
+u32 gf_m2ts_mux_program_count(GF_M2TS_Mux *muxer)
+{
+	u32 num=0;
+	GF_M2TS_Mux_Program *program = muxer->programs;
+	while (program) {
+		num++;
+		program = program->next;
+	}
+	return num;
 }
 
 GF_EXPORT
@@ -2363,7 +2432,6 @@ void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *prog
 GF_EXPORT
 GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 {
-	GF_BitStream *bs;
 	GF_M2TS_Mux *muxer;
 	GF_SAFEALLOC(muxer, GF_M2TS_Mux);
 	if (!muxer) return NULL;
@@ -2381,16 +2449,16 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 	if (mux_rate) muxer->fixed_rate = GF_TRUE;
 
 	/*format NULL packet*/
-	bs = gf_bs_new(muxer->null_pck, 188, GF_BITSTREAM_WRITE);
-	gf_bs_write_int(bs,	0x47, 8);
-	gf_bs_write_int(bs,	0, 1);
-	gf_bs_write_int(bs,	0, 1);
-	gf_bs_write_int(bs,	0, 1);
-	gf_bs_write_int(bs,	0x1FFF, 13);
-	gf_bs_write_int(bs,	0, 2);
-	gf_bs_write_int(bs,	1, 2);
-	gf_bs_write_int(bs,	0, 4);
-	gf_bs_del(bs);
+	muxer->pck_bs = gf_bs_new(muxer->null_pck, 188, GF_BITSTREAM_WRITE);
+	gf_bs_write_int(muxer->pck_bs,	0x47, 8);
+	gf_bs_write_int(muxer->pck_bs,	0, 1);
+	gf_bs_write_int(muxer->pck_bs,	0, 1);
+	gf_bs_write_int(muxer->pck_bs,	0, 1);
+	gf_bs_write_int(muxer->pck_bs,	0x1FFF, 13);
+	gf_bs_write_int(muxer->pck_bs,	0, 2);
+	gf_bs_write_int(muxer->pck_bs,	1, 2);
+	gf_bs_write_int(muxer->pck_bs,	0, 4);
+
 	gf_rand_init(GF_FALSE);
 	muxer->pcr_update_ms = 100;
 	return muxer;
@@ -2435,6 +2503,7 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 		gf_free(curr_pck);
 	}
 	if (st->curr_pck.data) gf_free(st->curr_pck.data);
+	if (st->curr_pck.mpeg2_af_descriptors) gf_free(st->curr_pck.mpeg2_af_descriptors);
 	if (st->mx) gf_mx_del(st->mx);
 	if (st->loop_descriptors) {
 		while (gf_list_count(st->loop_descriptors) ) {
@@ -2450,6 +2519,11 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 
 void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 {
+	Bool del_sys = GF_FALSE;
+	if (prog->iod) {
+		del_sys = GF_TRUE;
+		gf_odf_desc_del(prog->iod);
+	}
 	while (prog->streams) {
 		GF_M2TS_Mux_Stream *st = prog->streams->next;
 		gf_m2ts_mux_stream_del(prog->streams);
@@ -2471,6 +2545,27 @@ void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 }
 
 GF_EXPORT
+void gf_m2ts_program_stream_remove(GF_M2TS_Mux_Stream *stream)
+{
+	GF_M2TS_Mux_Program *program = stream->program;
+	GF_M2TS_Mux_Stream *a_stream = program->streams;
+	if (a_stream==stream) {
+		program->streams = stream->next;
+	} else {
+		while (a_stream) {
+			if (a_stream->next == stream) {
+				a_stream->next = stream->next;
+				break;
+			}
+			a_stream = a_stream->next;
+		}
+	}
+	stream->next = NULL;
+	gf_m2ts_mux_stream_del(stream);
+	program->pmt->table_needs_update = GF_TRUE;
+}
+
+GF_EXPORT
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux)
 {
 	while (mux->programs) {
@@ -2480,6 +2575,8 @@ void gf_m2ts_mux_del(GF_M2TS_Mux *mux)
 	}
 	gf_m2ts_mux_stream_del(mux->pat);
 	if (mux->sdt) gf_m2ts_mux_stream_del(mux->sdt);
+	if (mux->pck_bs) gf_bs_del(mux->pck_bs);
+
 	gf_free(mux);
 }
 
@@ -2528,6 +2625,11 @@ void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 	if (reset_time) {
 		mux->time.sec = mux->time.nanosec = 0;
 		mux->init_sys_time = 0;
+	}
+
+	if (!mux->bit_rate) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] No bitrates set in VBR mux mode, using 100kbps\n"));
+		mux->bit_rate=100000;
 	}
 }
 
@@ -2789,7 +2891,7 @@ send_pck:
 	} else {
 
 		if (stream_to_process->tables) {
-			gf_m2ts_mux_table_get_next_packet(stream_to_process, muxer->dst_pck);
+			gf_m2ts_mux_table_get_next_packet(muxer, stream_to_process, muxer->dst_pck);
 		} else {
 			gf_m2ts_mux_pes_get_next_packet(stream_to_process, muxer->dst_pck);
 		}

@@ -57,6 +57,7 @@ typedef struct
 
 	/*input file*/
 	GF_ISOFile *mov;
+	Bool extern_mov;
 	u32 time_scale;
 	u32 nb_playing;
 	//source data is completely available
@@ -110,6 +111,8 @@ typedef struct
 	GF_ISOSample *sample;
 	GF_SLHeader current_slh;
 	GF_Err last_state;
+	Bool sap_3, sap_4;
+	s32 roll;
 
 	Bool has_edit_list;
 	u32 sample_num;

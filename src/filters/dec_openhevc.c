@@ -1132,7 +1132,7 @@ static const GF_FilterArgs OHEVCDecArgs[] =
 	{ OFFS(pack_hfr), "Packs 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(seek_reset), "Resets decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(force_stereo), "Forces stereo output for multiview (top-bottom only)", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{}
+	{0}
 };
 
 GF_FilterRegister OHEVCDecRegister = {

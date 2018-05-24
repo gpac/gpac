@@ -140,6 +140,7 @@ static GF_Err SDLAud_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChann
 	case GF_AUDIO_FMT_S16P:
 		want_format.format = AUDIO_S16;
 		break;
+#if SDL_VERSION_ATLEAST(2,0,0)
 	case GF_AUDIO_FMT_S32:
 	case GF_AUDIO_FMT_S32P:
 		want_format.format = AUDIO_S32;
@@ -148,6 +149,7 @@ static GF_Err SDLAud_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChann
 	case GF_AUDIO_FMT_FLTP:
 		want_format.format = AUDIO_F32;
 		break;
+#endif
 	default:
 		want_format.format = AUDIO_S16;
 		break;
@@ -183,12 +185,14 @@ static GF_Err SDLAud_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChann
 	case AUDIO_S16:
 		*audioFormat = GF_AUDIO_FMT_S16;
 		break;
+#if SDL_VERSION_ATLEAST(2,0,0)
 	case AUDIO_S32:
 		*audioFormat = GF_AUDIO_FMT_S32;
 		break;
 	case AUDIO_F32:
 		*audioFormat = GF_AUDIO_FMT_FLT;
 		break;
+#endif
 	default:
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Error, unhandled audio format %s, requesting PCM s16\n", got_format.format));
 		break;

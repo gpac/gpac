@@ -402,7 +402,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	ctx->is_file = GF_TRUE;
 	if (!ctx->file_loaded) return;
 
-	stream = gf_fopen(p->value.string, "r");
+	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
 	ogg_sync_init(&oy);

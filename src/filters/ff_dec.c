@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright ([FFDec]) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -23,12 +23,11 @@
  *
  */
 
-#include "ff_common.h"
+#include <gpac/setup.h>
 
-#include <gpac/filters.h>
-#include <gpac/list.h>
-#include <gpac/constants.h>
-#include <gpac/isomedia.h>
+#ifdef GPAC_HAS_FFMPEG
+
+#include "ff_common.h"
 
 #include <libswscale/swscale.h>
 
@@ -93,6 +92,7 @@ static GF_Err ffdec_initialize(GF_Filter *filter)
 static void ffdec_finalize(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
+
 	if (ctx->options) av_dict_free(&ctx->options);
 	if (ctx->frame) av_frame_free(&ctx->frame);
 	if (ctx->sws_ctx) sws_freeContext(ctx->sws_ctx);
@@ -912,5 +912,11 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 	return &FFDecodeRegister;
 }
 
-
+#else
+#include <gpac/filters.h>
+const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif
 

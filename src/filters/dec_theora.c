@@ -32,6 +32,12 @@
 
 #include <theora/theora.h>
 
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "libtheora_static")
+# endif
+#endif
+
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;

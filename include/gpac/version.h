@@ -27,12 +27,7 @@
 
 /*! \file "gpac/version.h"
  *	\brief GPAC version.
- *
-*/
-
-/*!
- *	\ingroup utils_grp
- *	\brief GPAC version definition.
+ *  \addtogroup cst_grp
  *
  *	@{
  */
@@ -40,16 +35,18 @@
 /*!
  *	\brief GPAC Version
  *	\hideinitializer
- *
- *	Macro giving GPAC version expressed as a printable string
 */
 /* KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE & CONFIGURE & CO)
  * NO SPACE in GPAC_VERSION / GPAC_FULL_VERSION for proper install
  * SONAME versions must be digits (not strings)
  */
+/*! Macro giving GPAC version name expressed as a printable string*/
 #define GPAC_VERSION          "1.0.0-ALPHA"
+/*! ABI Major number of libgpac */
 #define GPAC_VERSION_MAJOR 8
+/*! ABI Minor number of libgpac */
 #define GPAC_VERSION_MINOR 0
+/*! ABI Micro number of libgpac */
 #define GPAC_VERSION_MICRO 0
 
 #include <gpac/revision.h>

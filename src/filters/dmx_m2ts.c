@@ -69,17 +69,6 @@ typedef struct
 } GF_M2TSDmxCtx;
 
 
-static GF_FilterProbeScore m2tsdmx_probe_url(const char *url, const char *mime)
-{
-	if (!strnicmp(url, "mpegts-udp://", 13)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "mpegts-tcp://", 13)) return GF_FPROBE_SUPPORTED;
-#ifdef GPAC_HAS_LINUX_DVB
-	if (!strnicmp(url, "dvb://", 6)) return GF_FPROBE_SUPPORTED;
-#endif
-	if (!strnicmp(url, "udp://", 6)) return GF_FPROBE_MAYBE_SUPPORTED;
-	return GF_FPROBE_NOT_SUPPORTED;
-}
-
 static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 {
 	Bool changed;
@@ -313,7 +302,7 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	u32 i, count;
 
 	count = gf_list_count(prog->streams);
-#ifdef GPAC_HAS_LINUX_DVB
+#ifdef FILTER_FIXME
 	if (ctx->ts->tuner) {
 		Bool found = 0;
 		for (i=0; i<count; i++) {
@@ -683,7 +672,7 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (p && p->value.string && !ctx->duration.num) {
-		FILE *stream = gf_fopen(p->value.string, "r");
+		FILE *stream = gf_fopen(p->value.string, "rb");
 		ctx->ipid = pid;
 		ctx->is_file = GF_TRUE;
 		ctx->ts->seek_mode = GF_TRUE;
@@ -974,7 +963,6 @@ GF_FilterRegister M2TSDmxRegister = {
 	.configure_pid = m2tsdmx_configure_pid,
 	.process = m2tsdmx_process,
 	.process_event = m2tsdmx_process_event,
-	.probe_url = m2tsdmx_probe_url
 };
 
 

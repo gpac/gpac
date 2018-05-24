@@ -125,6 +125,13 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
  */
 GF_BitStream *gf_bs_new_cbk(GF_Err (*on_block_out)(void *cbk, char *data, u32 block_size), void *usr_data, u32 block_size);
 
+/*!
+ * Prevents byte dispatching in callback mode. This is used when seek operations are used.
+ *	\param bs the target bitstream
+ *	\param prevent_dispatch activates temporary internal storage if set
+ */
+void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch);
+
 
 /*!
  *	\brief gets bitstream write cache size
@@ -419,6 +426,15 @@ u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 count);
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
 
 /*!
+ *	\brief bitstream alignment checking
+ *
+ *	Checks if bitstream position is aligned to a byte boundary.
+ *	\param bs the target bitstream
+ *	\return GF_TRUE if aligned with regard to the read/write mode, GF_FALSE otherwise
+ */
+Bool gf_bs_is_align(GF_BitStream *bs);
+
+/*!
  *	\brief bitstream alignment
  *
  *	Aligns bitstream to next byte boundary. In write mode, this will write 0 bit values until alignment.
@@ -546,10 +562,7 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs);
  *Returns the size of the associated buffer/file.
  *\param dst the target bitstream
  *\param src the source bitstream.
-<<<<<<< HEAD
  *\param keep_src If not set, the source bitstream is empty after calling the function
-=======
->>>>>>> master
  *\return error if any
  */
 GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src);

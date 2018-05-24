@@ -23,11 +23,11 @@
  *
  */
 
+#include <gpac/setup.h>
+
+#ifdef GPAC_HAS_FFMPEG
+
 #include "ff_common.h"
-#include <gpac/filters.h>
-#include <gpac/list.h>
-#include <gpac/constants.h>
-#include <gpac/isomedia.h>
 
 
 typedef struct _gf_ffenc_ctx
@@ -451,7 +451,7 @@ static GF_Err ffenc_process(GF_Filter *filter)
 	return ctx->process(filter, ctx);
 }
 
-static GF_Err ffenc_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
 	u32 type=0;
@@ -821,7 +821,7 @@ GF_FilterRegister FFEncodeRegister = {
 	SETCAPS(FFEncodeCaps),
 	.initialize = ffenc_initialize,
 	.finalize = ffenc_finalize,
-	.configure_pid = ffenc_config_input,
+	.configure_pid = ffenc_configure_pid,
 	.process = ffenc_process,
 	.update_arg = ffenc_update_arg,
 };
@@ -901,4 +901,12 @@ const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 }
 
 
+#else
+#include <gpac/filters.h>
+const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+#endif //GPAC_HAS_FFMPEG
 

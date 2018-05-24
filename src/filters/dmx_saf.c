@@ -245,7 +245,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 	ctx->is_file = GF_TRUE;
 	if (!ctx->file_loaded) return;
 
-	stream = gf_fopen(p->value.string, "r");
+	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);

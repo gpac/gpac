@@ -352,6 +352,8 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 {
 	switch (HandlerType) {
 	case GF_ISOM_MEDIA_VISUAL:
+    case GF_ISOM_MEDIA_AUXV:
+    case GF_ISOM_MEDIA_PICT:
 	case GF_ISOM_MEDIA_AUDIO:
 	case GF_ISOM_MEDIA_SUBPIC:
 	case GF_ISOM_MEDIA_OD:
@@ -411,9 +413,9 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, Bool is_first_merge)
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, u64 *cumulated_offset, Bool is_first_merge)
 {
-	u32 i, j, chunk_size;
+	u32 i, j, chunk_size, track_num;
 	u64 base_offset, data_offset;
 	u32 def_duration, DescIndex, def_size, def_flags;
 	u32 duration, size, flags, cts_offset, prev_trun_data_offset;
@@ -439,8 +441,15 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	def_size = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_SIZE) ? traf->tfhd->def_sample_size : traf->trex->def_sample_size;
 	def_flags = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) ? traf->tfhd->def_sample_flags : traf->trex->def_sample_flags;
 
-	//locate base offset
-	base_offset = (traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) ? traf->tfhd->base_data_offset : moof_offset;
+	//locate base offset, by default use moof (dash-like)
+	base_offset = moof_offset;
+	//explicit base offset, use it
+	if (traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET)
+		base_offset = traf->tfhd->base_data_offset;
+	//no moof offset and no explicit offset, the offset is the end of the last written chunk of
+	//the previous traf. For the first traf, *cumulated_offset is actually moof offset
+	else if (!(traf->tfhd->flags & GF_ISOM_MOOF_BASE_OFFSET))
+		base_offset = *cumulated_offset;
 
 	chunk_size = 0;
 	prev_trun_data_offset = 0;
@@ -485,19 +494,22 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			//add chunk on first sample
 			if (!j) {
 				data_offset = base_offset;
-				//aggregated offset if base-data-offset-present is not set AND if default-base-is-moof is not set
-				if (!(traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) && !(traf->tfhd->flags & GF_ISOM_MOOF_BASE_OFFSET) )
-					data_offset += chunk_size;
-
+				//we have an explicit data offset for this trun
 				if (trun->flags & GF_ISOM_TRUN_DATA_OFFSET) {
 					data_offset += trun->data_offset;
 					/*reset chunk size since data is now relative to this trun*/
 					chunk_size = 0;
 					/*remember this data offset for following trun*/
 					prev_trun_data_offset = trun->data_offset;
-				} else {
+				}
+				//we had an explicit data offset for the previous trun, use it + chunk size
+				else if (prev_trun_data_offset) {
 					/*data offset is previous chunk size plus previous offset of the trun*/
-					data_offset += prev_trun_data_offset;
+					data_offset += prev_trun_data_offset + chunk_size;
+				}
+				//no explicit data offset, continuous data after last data in previous chunk
+				else {
+					data_offset += chunk_size;
 				}
 				stbl_AppendChunk(trak->Media->information->sampleTable, data_offset);
 				//then sampleToChunk
@@ -525,6 +537,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 		}
 	}
+	//in any case, update the cumulated offset
+	//this will handle hypothetical files mixing MOOF offset and implicit non-moof offset
+	*cumulated_offset = data_offset + chunk_size;
+
 	/*merge sample groups*/
 	if (traf->sampleGroups) {
 		GF_List *groups;
@@ -641,11 +657,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	}
 
 	/*content is encrypted*/
-	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)
+	track_num = gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID);
+	if (gf_isom_is_cenc_media(trak->moov->mov, track_num, 1)
 		|| traf->sample_encryption) {
 		/*Merge sample auxiliary encryption information*/
 		GF_SampleEncryptionBox *senc = NULL;
 		GF_List *sais = NULL;
+		u32 scheme_type;
+		gf_isom_get_cenc_info(trak->moov->mov, track_num, 1, NULL, &scheme_type, NULL, NULL);
 
 		if (traf->sample_encryption) {
 			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
@@ -661,6 +680,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 					break;
 				}
 			}
+			if (!senc && trak->sample_encryption)
+				senc = trak->sample_encryption;
+				
 			if (!senc) {
 				if (traf->sample_encryption->is_piff) {
 					senc = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
@@ -670,18 +692,17 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
 
-				assert(trak->sample_encryption == NULL);
-
 				trak->sample_encryption = senc;
-				gf_isom_box_add_default((GF_Box *)trak, (GF_Box *)senc);
+				gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
 			}
 
 			sais = traf->sample_encryption->samp_aux_info;
 		}
 
 		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-		if (gf_isom_cenc_has_saiz_saio_traf(traf)) {
+		if (gf_isom_cenc_has_saiz_saio_traf(traf, scheme_type)) {
 			u32 size, nb_saio;
+			u32 aux_info_type;
 			u64 offset;
 			GF_Err e;
 			Bool is_encrypted;
@@ -692,8 +713,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 			for (i = 0; i < gf_list_count(traf->sai_offsets); i++) {
 				saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(traf->sai_offsets, i);
+				aux_info_type = saio->aux_info_type;
+				if (!aux_info_type) aux_info_type = scheme_type;
+
 				/*if we have only 1 sai_offsets, assume that its type is cenc*/
-				if ((saio->aux_info_type == GF_ISOM_CENC_SCHEME) || (gf_list_count(traf->sai_offsets) == 1)) {
+				if ((aux_info_type == GF_ISOM_CENC_SCHEME) || (aux_info_type == GF_ISOM_CBC_SCHEME) ||
+					(aux_info_type == GF_ISOM_CENS_SCHEME) || (aux_info_type == GF_ISOM_CBCS_SCHEME) ||
+					(gf_list_count(traf->sai_offsets) == 1)) {
 					offset = (saio->version ? saio->offsets_large[0] : saio->offsets[0]) + moof_offset;
 					nb_saio = saio->entry_count;
 					break;
@@ -701,8 +727,12 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 			for (i = 0; i < gf_list_count(traf->sai_sizes); i++) {
 				saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(traf->sai_sizes, i);
+				aux_info_type = saiz->aux_info_type;
+				if (!aux_info_type) aux_info_type = scheme_type;
 				/*if we have only 1 sai_sizes, assume that its type is cenc*/
-				if ((saiz->aux_info_type == GF_ISOM_CENC_SCHEME)  || (gf_list_count(traf->sai_sizes) == 1)) {
+				if ((aux_info_type == GF_ISOM_CENC_SCHEME) || (aux_info_type == GF_ISOM_CBC_SCHEME) ||
+					(aux_info_type == GF_ISOM_CENS_SCHEME) || (aux_info_type == GF_ISOM_CBCS_SCHEME) ||
+					(gf_list_count(traf->sai_sizes) == 1)) {
 					break;
 				}
 			}
@@ -825,120 +855,154 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 
 	GF_Err e;
 
-	if (*mdia || !mdia) return GF_BAD_PARAM;
+	if (!mdia) return GF_BAD_PARAM;
 
-	minf = NULL;
-	mdhd = NULL;
-	hdlr = NULL;
-	dinf = NULL;
-	stbl = NULL;
-	dref = NULL;
-	mediaInfo = NULL;
+	minf = *mdia ? (*mdia)->information : NULL;
+	mdhd = *mdia ? (*mdia)->mediaHeader : NULL;
+	hdlr = *mdia ? (*mdia)->handler : NULL;
+	dinf =  minf ? minf->dataInformation : NULL;
+	stbl = minf ? minf->sampleTable : NULL;
+	dref = dinf ? dinf->dref : NULL;
+	mediaInfo = minf ? minf->InfoHeader : NULL;
 
 	//first create the media
-	*mdia = (GF_MediaBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDIA);
-	mdhd = (GF_MediaHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDHD);
-
-	//"handler name" is for debugging purposes. Let's stick our name here ;)
-	switch (MediaType) {
-	case GF_ISOM_MEDIA_VISUAL:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
-		str = "GPAC ISO Video Handler";
-		break;
-	case GF_ISOM_MEDIA_AUDIO:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_SMHD);
-		str = "GPAC ISO Audio Handler";
-		break;
-	case GF_ISOM_MEDIA_HINT:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_HMHD);
-		str = "GPAC ISO Hint Handler";
-		break;
-	case GF_ISOM_MEDIA_META:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC Timed MetaData Handler";
-		break;
-	case GF_ISOM_MEDIA_OD:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 OD Handler";
-		break;
-	case GF_ISOM_MEDIA_OCR:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 OCR Handler";
-		break;
-	case GF_ISOM_MEDIA_SCENE:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 Scene Description Handler";
-		break;
-	case GF_ISOM_MEDIA_MPEG7:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 MPEG-7 Handler";
-		break;
-	case GF_ISOM_MEDIA_OCI:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 OCI Handler";
-		break;
-	case GF_ISOM_MEDIA_IPMP:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 IPMP Handler";
-		break;
-	case GF_ISOM_MEDIA_MPEGJ:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC MPEG-4 MPEG-J Handler";
-		break;
-	case GF_ISOM_MEDIA_TEXT:
-	case GF_ISOM_MEDIA_SUBT:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC Streaming Text Handler";
-		break;
-	case GF_ISOM_MEDIA_MPEG_SUBT:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_STHD);
-		str = "GPAC MPEG Subtitle Handler";
-		break;
-	case GF_ISOM_MEDIA_DIMS:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
-		MediaType = GF_ISOM_MEDIA_SCENE;
-		str = "GPAC DIMS Handler";
-		break;
-	default:
-		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
-		str = "GPAC IsoMedia Handler";
-		break;
+	if (!*mdia) *mdia = (GF_MediaBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDIA);
+	if (!mdhd) {
+		mdhd = (GF_MediaHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDHD);
+		e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) mdhd);
+		if (e) goto err_exit;
 	}
-	hdlr = (GF_HandlerBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
-	minf = (GF_MediaInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MINF);
+	if (!hdlr) {
+		hdlr = (GF_HandlerBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
+		e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) hdlr);
+		if (e) goto err_exit;
+	}
+	if (!minf) {
+		minf = (GF_MediaInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MINF);
+		e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) minf);
+		if (e) goto err_exit;
+	}
+	if (!dinf) {
+		dinf = (GF_DataInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DINF);
+		e = minf_AddBox((GF_Box*)minf, (GF_Box *) dinf);
+		if (e) goto err_exit;
+	}
+
+	if (!mediaInfo) {
+		//"handler name" is for debugging purposes. Let's stick our name here ;)
+		switch (MediaType) {
+		case GF_ISOM_MEDIA_VISUAL:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
+			str = "GPAC ISO Video Handler";
+			break;
+		case GF_ISOM_MEDIA_AUXV:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
+			str = "GPAC ISO Auxiliary Video Handler";
+			break;
+		case GF_ISOM_MEDIA_PICT:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
+			str = "GPAC ISO Picture Sequence Handler";
+			break;
+		case GF_ISOM_MEDIA_AUDIO:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_SMHD);
+			str = "GPAC ISO Audio Handler";
+			break;
+		case GF_ISOM_MEDIA_HINT:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_HMHD);
+			str = "GPAC ISO Hint Handler";
+			break;
+		case GF_ISOM_MEDIA_META:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC Timed MetaData Handler";
+			break;
+		case GF_ISOM_MEDIA_OD:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC MPEG-4 OD Handler";
+			break;
+		case GF_ISOM_MEDIA_OCR:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC MPEG-4 OCR Handler";
+			break;
+		case GF_ISOM_MEDIA_SCENE:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC MPEG-4 Scene Description Handler";
+			break;
+		case GF_ISOM_MEDIA_MPEG7:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC MPEG-4 MPEG-7 Handler";
+			break;
+		case GF_ISOM_MEDIA_OCI:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC MPEG-4 OCI Handler";
+			break;
+		case GF_ISOM_MEDIA_IPMP:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC MPEG-4 IPMP Handler";
+			break;
+		case GF_ISOM_MEDIA_MPEGJ:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC MPEG-4 MPEG-J Handler";
+			break;
+		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC Streaming Text Handler";
+			break;
+		case GF_ISOM_MEDIA_MPEG_SUBT:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_STHD);
+			str = "GPAC MPEG Subtitle Handler";
+			break;
+		case GF_ISOM_MEDIA_DIMS:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_VMHD);
+			MediaType = GF_ISOM_MEDIA_SCENE;
+			str = "GPAC DIMS Handler";
+			break;
+		default:
+			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
+			str = "GPAC IsoMedia Handler";
+			break;
+		}
+		e = minf_AddBox((GF_Box*)minf, (GF_Box *) mediaInfo);
+		if (e) goto err_exit;
+	}
 
 	mdhd->timeScale = TimeScale;
 	hdlr->handlerType = MediaType;
-	hdlr->nameUTF8 = gf_strdup(str);
+	if (!hdlr->nameUTF8)
+		hdlr->nameUTF8 = gf_strdup(str);
 
-	//first set-up the sample table...
-	stbl = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
-	dinf = (GF_DataInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DINF);
-	stbl->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
-	stbl->ChunkOffset = gf_isom_box_new(GF_ISOM_BOX_TYPE_STCO);
-	//by default create a regular table
-	stbl->SampleSize = (GF_SampleSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSZ);
-	stbl->SampleToChunk = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
-	stbl->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STTS);
+	if (!dref) {
+		//Create a data reference WITHOUT DATA ENTRY (we don't know anything yet about the media Data)
+		dref = (GF_DataReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
+		e = dinf_AddBox((GF_Box*)dinf, (GF_Box *)dref);
+		if (e) goto err_exit;
+	}
 
-	//Create a data reference WITHOUT DATA ENTRY (we don't know anything yet about the media Data)
-	dref = (GF_DataReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
-	e = dinf_AddBox((GF_Box*)dinf, (GF_Box *)dref);
-	if (e) goto err_exit;
+	if (!stbl) {
+		//first set-up the sample table...
+		stbl = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
 
-	e = minf_AddBox((GF_Box*)minf, (GF_Box *) mediaInfo);
-	if (e) goto err_exit;
-	e = minf_AddBox((GF_Box*)minf, (GF_Box *) stbl);
-	if (e) goto err_exit;
-	e = minf_AddBox((GF_Box*)minf, (GF_Box *) dinf);
-	if (e) goto err_exit;
+		e = minf_AddBox((GF_Box*)minf, (GF_Box *) stbl);
+		if (e) goto err_exit;
+	}
+	if (!stbl->SampleDescription)
+		stbl->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
 
-	e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) mdhd);
-	if (e) goto err_exit;
-	e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) minf);
-	if (e) goto err_exit;
-	e = mdia_AddBox((GF_Box*)*mdia, (GF_Box *) hdlr);
-	if (e) goto err_exit;
+	//by default create a regular table, 32 but offset and normal sample size
+	if (!stbl->ChunkOffset)
+		stbl->ChunkOffset = gf_isom_box_new(GF_ISOM_BOX_TYPE_STCO);
+
+	if (!stbl->SampleSize)
+		stbl->SampleSize = (GF_SampleSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSZ);
+
+	if (!stbl->SampleToChunk)
+		stbl->SampleToChunk = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
+
+	if (!stbl->TimeToSample)
+		stbl->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STTS);
+
+	if (!stbl->SampleDescription)
+		stbl->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
 
 	return GF_OK;
 
@@ -1126,6 +1190,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 
 		//OK, check the handler and create the entry
 		switch (trak->Media->handler->handlerType) {
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_VISUAL:
 			if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_MVC)) {
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);

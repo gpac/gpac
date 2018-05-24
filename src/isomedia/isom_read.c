@@ -123,6 +123,7 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MOOF:
 	case GF_ISOM_BOX_TYPE_STYP:
+	case GF_ISOM_BOX_TYPE_SIDX:
 		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
@@ -243,6 +244,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	trak->Media->mediaHeader->timeScale = timescale;
 
 	trak->Media->handler = (GF_HandlerBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
+    //we assume by default vide for handler type (only used for smooth streaming)
 	trak->Media->handler->handlerType = width ? GF_ISOM_MEDIA_VISUAL : GF_ISOM_MEDIA_AUDIO;
 
 	trak->Media->information = (GF_MediaInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MINF);
@@ -2826,6 +2828,15 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			gf_isom_box_array_del(stbl->sampleGroups);
 			stbl->sampleGroups = NULL;
 
+			if (trak->sample_encryption) {
+				gf_list_del_item(trak->other_boxes, trak->sample_encryption);
+				if (trak->Media->information->sampleTable->other_boxes) {
+					gf_list_del_item(trak->Media->information->sampleTable->other_boxes, trak->sample_encryption);
+				}
+				gf_isom_box_del((GF_Box*)trak->sample_encryption);
+				trak->sample_encryption = NULL;
+			}
+
 			j = stbl->nb_sgpd_in_stbl;
 			while ((a = (GF_Box *)gf_list_enum(stbl->sampleGroupsDescription, &j))) {
 				gf_isom_box_del(a);
@@ -3277,8 +3288,8 @@ void gf_isom_set_default_sync_track(GF_ISOFile *movie, u32 trackNumber)
 GF_EXPORT
 Bool gf_isom_is_single_av(GF_ISOFile *file)
 {
-	u32 count, i, nb_any, nb_a, nb_v, nb_scene, nb_od, nb_text;
-	nb_a = nb_v = nb_any = nb_scene = nb_od = nb_text = 0;
+	u32 count, i, nb_any, nb_a, nb_v, nb_auxv, nb_pict, nb_scene, nb_od, nb_text;
+	nb_auxv = nb_pict = nb_a = nb_v = nb_any = nb_scene = nb_od = nb_text = 0;
 
 	if (!file->moov) return GF_FALSE;
 	count = gf_isom_get_track_count(file);
@@ -3300,6 +3311,16 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 		case GF_ISOM_MEDIA_AUDIO:
 			nb_a++;
 			break;
+        case GF_ISOM_MEDIA_AUXV:
+            /*discard file with images*/
+            if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
+            else nb_auxv++;
+            break;
+        case GF_ISOM_MEDIA_PICT:
+            /*discard file with images*/
+            if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
+            else nb_pict++;
+            break;
 		case GF_ISOM_MEDIA_VISUAL:
 			/*discard file with images*/
 			if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
@@ -3311,7 +3332,7 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 		}
 	}
 	if (nb_any) return GF_FALSE;
-	if ((nb_scene<=1) && (nb_od<=1) && (nb_a<=1) && (nb_v<=1) && (nb_text<=1) ) return GF_TRUE;
+	if ((nb_scene<=1) && (nb_od<=1) && (nb_a<=1) && (nb_v+nb_pict+nb_auxv<=1) && (nb_text<=1) ) return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -3324,9 +3345,9 @@ Bool gf_isom_is_JPEG2000(GF_ISOFile *mov)
 GF_EXPORT
 u32 gf_isom_guess_specification(GF_ISOFile *file)
 {
-	u32 count, i, nb_any, nb_m4s, nb_a, nb_v, nb_scene, nb_od, nb_mp3, nb_aac, nb_m4v, nb_avc, nb_amr, nb_h263, nb_qcelp, nb_evrc, nb_smv, nb_text;
+	u32 count, i, nb_any, nb_m4s, nb_a, nb_v, nb_auxv,nb_scene, nb_od, nb_mp3, nb_aac, nb_m4v, nb_avc, nb_amr, nb_h263, nb_qcelp, nb_evrc, nb_smv, nb_text, nb_pict;
 
-	nb_m4s = nb_a = nb_v = nb_any = nb_scene = nb_od = nb_mp3 = nb_aac = nb_m4v = nb_avc = nb_amr = nb_h263 = nb_qcelp = nb_evrc = nb_smv = nb_text = 0;
+	nb_m4s = nb_a = nb_v = nb_auxv = nb_any = nb_scene = nb_od = nb_mp3 = nb_aac = nb_m4v = nb_avc = nb_amr = nb_h263 = nb_qcelp = nb_evrc = nb_smv = nb_text = nb_pict = 0;
 
 	if (file->is_jp2) {
 		if (file->moov) return GF_ISOM_BRAND_MJP2;
@@ -3352,7 +3373,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_m4s++;
 		}
 		else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) nb_text++;
-		else if ((mtype==GF_ISOM_MEDIA_AUDIO) || (mtype==GF_ISOM_MEDIA_VISUAL)) {
+		else if ((mtype==GF_ISOM_MEDIA_AUDIO) || gf_isom_is_video_subtype(mtype) ) {
 			switch (mstype) {
 			case GF_ISOM_SUBTYPE_3GP_AMR:
 			case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -3423,9 +3444,11 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 				}
 				gf_odf_desc_del((GF_Descriptor *)dcd);
 			}
-			break;
+				break;
 			default:
 				if (mtype==GF_ISOM_MEDIA_VISUAL) nb_v++;
+				else if (mtype==GF_ISOM_MEDIA_AUXV) nb_auxv++;
+				else if (mtype==GF_ISOM_MEDIA_PICT) nb_pict++;
 				else nb_a++;
 				break;
 			}
@@ -3750,11 +3773,11 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 				continue;
 			}
 			/*we found our sample*/
-			group_desc_index = 1 + sg->sample_entries[j].group_description_index;
+			group_desc_index = sg->sample_entries[j].group_description_index;
 			break;
 		}
 		/*no sampleGroup info associated*/
-		if (group_desc_index <= 1) continue;
+		if (!group_desc_index) continue;
 
 		sgdesc = NULL;
 		for (j=0; j<gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription); j++) {
@@ -3774,7 +3797,8 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 			if (has_roll) *has_roll = GF_TRUE;
 			if (roll_distance) {
 				GF_RollRecoveryEntry *roll_entry = (GF_RollRecoveryEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
-				if (roll_entry) *roll_distance = roll_entry->roll_distance;
+				if (roll_entry)
+					*roll_distance = roll_entry->roll_distance;
 			}
 			break;
 		}
@@ -4045,7 +4069,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 		return GF_BAD_PARAM;
 #endif
 
-	if (trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
+	if (trak && trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
 		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, &edit);
 	} else {
 		//this is dump mode of fragments, we haven't merged tables yet :(
@@ -4307,6 +4331,18 @@ u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescrip
 	if (ve->hevc_config) return ve->hevc_config->config->nal_unit_size;
 	if (ve->lhvc_config) return ve->lhvc_config->config->nal_unit_size;
 	return 0;
+}
+
+Bool gf_isom_is_video_subtype(u32 mtype)
+{
+	switch (mtype) {
+	case GF_ISOM_MEDIA_VISUAL:
+	case GF_ISOM_MEDIA_AUXV:
+	case GF_ISOM_MEDIA_PICT:
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

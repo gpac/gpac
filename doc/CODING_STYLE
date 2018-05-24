@@ -104,8 +104,8 @@ All destructor like functions should be of style gf_zzz_del
     former BIFS - code for BIFS encoding and decoding - exported function names: gf_bifs_*
   /gpac/src/terminal: 
     former ESM - code for terminal module - exported function names: gf_term_*
-  /gpac/src/mcrypt: 
-    unchaged - function names: gf_crypt_*
+  /gpac/src/crypto: 
+    unchanged - function names: gf_crypt_*
   /gpac/src/renderer: 
     former renderer - function names: gf_sr_*
   /gpac/src/scenegraph:

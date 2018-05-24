@@ -109,17 +109,6 @@ ifneq ($(MP4BOX_STATIC), yes)
 	if [ -f bin/gcc/MP42TS$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
-ifneq ($(CONFIG_WIN32), yes)
-ifneq ($(CONFIG_FFMPEG), no)
-ifneq ($(DISABLE_CORE_TOOLS), yes)
-ifneq ($(DISABLE_AV_PARSERS), yes)
-	if [ -f bin/gcc/DashCast$(EXE_SUFFIX) ] ; then \
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
-	fi
-endif
-endif
-endif
-endif
 endif
 endif
 ifneq ($(MP4BOX_STATIC), yes)
@@ -182,15 +171,6 @@ endif
 ifneq ($(MP4BOX_STATIC),yes)
 ifeq ($(DISABLE_PLAYER), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
-endif
-ifneq ($(CONFIG_WIN32), yes)
-ifneq ($(CONFIG_FFMPEG), no)
-ifneq ($(DISABLE_CORE_TOOLS), yes)
-ifneq ($(DISABLE_AV_PARSERS), yes)
-	ln -sf $(BUILD_PATH)/bin/gcc/DashCast$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/DashCast$(EXE_SUFFIX)
-endif
-endif
-endif
 endif
 endif
 ifeq ($(CONFIG_DARWIN),yes)

@@ -89,6 +89,10 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 				read->play_only_first_media = GF_ISOM_MEDIA_AUDIO;
 			} else if (!strnicmp(tmp, "#video", 6)) {
 				read->play_only_first_media = GF_ISOM_MEDIA_VISUAL;
+			} else if (!strnicmp(tmp, "#auxv", 5)) {
+				read->play_only_first_media = GF_ISOM_MEDIA_AUXV;
+			} else if (!strnicmp(tmp, "#pict", 5)) {
+				read->play_only_first_media = GF_ISOM_MEDIA_PICT;
 			} else if (!strnicmp(tmp, "#text", 5)) {
 				read->play_only_first_media = GF_ISOM_MEDIA_TEXT;
 			} else if (!strnicmp(tmp, "#trackID=", 9)) {
@@ -358,7 +362,14 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 		read->input_loaded = GF_TRUE;
 		return isoffin_setup(filter, read);
 	}
-
+	else if (read->mov) {
+		read->extern_mov = GF_TRUE;
+		read->input_loaded = GF_TRUE;
+		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
+		read->time_scale = gf_isom_get_timescale(read->mov);
+		isor_declare_objects(read);
+		gf_filter_post_process_task(filter);
+	}
 	return GF_OK;
 }
 
@@ -377,7 +388,7 @@ static void isoffin_finalize(GF_Filter *filter)
 	}
 	gf_list_del(read->channels);
 
-	if (read->mov) gf_isom_close(read->mov);
+	if (!read->extern_mov && read->mov) gf_isom_close(read->mov);
 	read->mov = NULL;
 }
 
@@ -386,7 +397,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 {
 	GF_ISOFile *mov = ch->owner->mov;
 	u32 track = ch->track;
-	u32 scheme_type, scheme_version;
+	u32 scheme_type, scheme_version, PSSH_count=0;
 	const char *kms_uri, *scheme_uri;
 
 	if (!ch->is_encrypted) return;
@@ -406,7 +417,12 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		ch->is_cenc = GF_TRUE;
 
 		gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &scheme_type, &scheme_version, NULL);
+
+		PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+		//if no PSSH declared, don't update the properties
+		if (!PSSH_count) return;
 	}
+
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
 	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
@@ -415,7 +431,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	if (ch->is_cenc) {
 		char *psshd;
 		GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		u32 i, s, PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+		u32 i, s;
 
 		gf_bs_write_u32(pssh_bs, PSSH_count);
 
@@ -466,6 +482,8 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		ch->streamType = GF_STREAM_SCENE;
 		break;
 	case GF_ISOM_MEDIA_VISUAL:
+	case GF_ISOM_MEDIA_AUXV:
+	case GF_ISOM_MEDIA_PICT:
 		gf_isom_get_reference(ch->owner->mov, ch->track, GF_ISOM_REF_BASE, 1, &ch->base_track);
 		//use base track only if avc/svc or hevc/lhvc. If avc+lhvc we need different rules
 		if ( gf_isom_get_avc_svc_type(ch->owner->mov, ch->base_track, 1) == GF_ISOM_AVCTYPE_AVC_ONLY) {
@@ -746,6 +764,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			in_is_eos = GF_TRUE;
 			read->input_loaded = GF_TRUE;
 		}
+	} else if (read->extern_mov) {
+		in_is_eos = GF_TRUE;
 	}
 	if (read->moov_not_loaded) {
 		read->moov_not_loaded = GF_FALSE;
@@ -804,6 +824,13 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				else
 					gf_filter_pck_set_sap(pck, (GF_FilterSAPType) ch->sample->IsRAP);
 
+				if (ch->sap_3)
+					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_3);
+				else if (ch->sap_4) {
+					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
+					gf_filter_pck_set_roll_info(pck, ch->roll);
+				}
+
 				sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
 				gf_filter_pck_set_duration(pck, sample_dur);
 				gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);
@@ -845,6 +872,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(alltracks), "loads all tracks (except hint) event when not supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
 	{0}
 };
 

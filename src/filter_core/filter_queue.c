@@ -29,11 +29,14 @@
 
 #ifndef __GCC__
 #ifdef GPAC_64_BITS
-#define __sync_bool_compare_and_swap(a,b,c) InterlockedCompareExchange64((__int64*)a,(__int64)b,(__int64)c)
+#define atomic_compare_and_swap(_ptr, _comparand, _replacement) (InterlockedCompareExchange64((__int64*)_ptr,(__int64)_replacement,(__int64)_comparand)==(__int64)_comparand)
 #else
-#define __sync_bool_compare_and_swap(a,b,c) InterlockedCompareExchange(a,b,c)
+#define atomic_compare_and_swap(_ptr, _comparand, _replacement) (InterlockedCompareExchange((int *)_ptr,(int )_replacement,(int )_comparand)==(int)_comparand)
 #endif
 #endif
+
+#else
+#define atomic_compare_and_swap(_ptr, _comparand, _replacement)	__sync_bool_compare_and_swap(_ptr, _comparand, _replacement)
 #endif
 
 
@@ -121,16 +124,16 @@ static void gf_fq_lockfree_enqueue(GF_LFQItem *it, GF_LFQItem **tail_ptr)
 		next = tail->next;
 		if (next == tail->next) {
 			if (next==NULL) {
-				if (__sync_bool_compare_and_swap(&tail->next, next, it)) {
+				if (atomic_compare_and_swap(&tail->next, next, it)) {
 					break; // Enqueue is done.  Exit loop
 				}
 			} else {
 				//tail not pointing at last node, move it
-				__sync_bool_compare_and_swap(tail_ptr, tail, next);
+				atomic_compare_and_swap(tail_ptr, tail, next);
 			}
 		}
 	}
-	__sync_bool_compare_and_swap(tail_ptr, tail, it);
+	atomic_compare_and_swap(tail_ptr, tail, it);
 }
 
 static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr, GF_LFQItem **prev_head)
@@ -153,11 +156,11 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 					return NULL;
 
 				//swap back tail at next
-				__sync_bool_compare_and_swap(tail_ptr, tail, next);
+				atomic_compare_and_swap(tail_ptr, tail, next);
 			} else {
 				data = next->data;
 				//try to advance q->head to next
-				if (__sync_bool_compare_and_swap(head_ptr, head, next))
+				if (atomic_compare_and_swap(head_ptr, head, next))
 					break; //success!
 			}
 		}

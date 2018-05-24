@@ -33,6 +33,7 @@
 #include <libavutil/pixdesc.h>
 #include <libavutil/dict.h>
 #include <libavdevice/avdevice.h>
+#include <libswscale/swscale.h>
 
 #define GF_FFMPEG_DECODER_CONFIG GF_4CC('f','f','D','C')
 

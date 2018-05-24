@@ -252,7 +252,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	}
 
 	/* Create an idx file */
-	fidx = gf_fopen(szName, "w");
+	fidx = gf_fopen(szName, "wb");
 	if (!fidx) {
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
@@ -589,7 +589,6 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 
 
 
-
 /* Required for base64 encoding of DecoderSpecificInfo */
 #include <gpac/base_coding.h>
 
@@ -672,7 +671,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 		fprintf(vtt, "MPEG-4-streamType: %d\n", esd->decoderConfig->streamType);
 		/* TODO: export the MPEG-4 Object Type Indication only if it is not a GPAC internal value */
 		fprintf(vtt, "MPEG-4-objectTypeIndication: %d\n", esd->decoderConfig->objectTypeIndication);
-		if (mtype==GF_ISOM_MEDIA_VISUAL) {
+		if (gf_isom_is_video_subtype(mtype) ) {
 			gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 			fprintf(vtt, "width:%d\n", w);
 			fprintf(vtt, "height:%d\n", h);
@@ -732,7 +731,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 		fprintf(vtt, "mediaType: %s\n", gf_4cc_to_str(mtype));
 		fprintf(vtt, "mediaSubType: %s\n", gf_4cc_to_str(mstype ));
 		if (sdesc) {
-			if (mtype==GF_ISOM_MEDIA_VISUAL) {
+			if (gf_isom_is_video_subtype(mtype) ) {
 				fprintf(vtt, "codecVendor: %s\n", gf_4cc_to_str(sdesc->vendor_code));
 				fprintf(vtt, "codecVersion: %d\n", sdesc->version);
 				fprintf(vtt, "codecRevision: %d\n", sdesc->revision);
@@ -1171,9 +1170,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
 		return e;
 	}
-	gf_fs_run(fsess);
+	e = gf_fs_run(fsess);
 	gf_fs_del(fsess);
-	return GF_OK;
+	return (e<GF_OK) ? e : GF_OK;
 }
 
 GF_EXPORT

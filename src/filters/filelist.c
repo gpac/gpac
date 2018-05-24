@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2018
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -53,7 +53,7 @@ typedef struct
 {
 	//opts
 	Bool loop, revert;
-	char *in;
+	GF_List *in;
 	GF_Fraction dur;
 	u32 timescale;
 
@@ -106,71 +106,8 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 	iopid->first_dts_plus_one = 0;
 }
 
-#define FILELIST_SEP_SET	"# \n\r\t,"
-void filelist_update_pid_props(GF_FileListCtx *ctx, GF_FilterPid *pid)
-{
-	char *com = ctx->szCom;
-	while (com[0]) {
-		char *next;
-		char c;
-		u32 end=0;
-		//strip whitespace and comma
-		while (com[end] && strchr(FILELIST_SEP_SET, com[end])) {
-			end++;
-		}
-		if (!com[end]) break;
-		com += end;
-		//locate next whitespace/comma
-		end=0;
-		while (com[end] && !strchr(FILELIST_SEP_SET, com[end])) {
-			end++;
-		}
-		next = com + end;
-		c = com[end];
-		com[end]=0;
-
-		if (!strncmp(com, "repeat=", 7)) {}
-		else if (!strncmp(com, "stop=", 5)) {}
-		else if (!strncmp(com, "start=", 6)) {}
-		else {
-			char *sep = strchr(com, '=');
-			if (!sep) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] bad command format in playlist: %s, expecting '='\n", com));
-			} else {
-				u32 p4cc=0;
-				u32 prop_type=0;
-				sep[0] = 0;
-				p4cc = gf_props_get_id(com);
-				if (!p4cc && (strlen(com)==4) ) p4cc = GF_4CC(com[0], com[1], com[2], com[3]);
-				if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
-
-				if (prop_type != GF_PROP_FORBIDEN) {
-					GF_PropertyValue p = gf_props_parse_value(prop_type, com, sep+1, NULL);
-					if (prop_type==GF_PROP_NAME) {
-						p.type = GF_PROP_STRING;
-						gf_filter_pid_set_property(pid, p4cc, &p);
-						p.type = GF_PROP_NAME;
-					} else {
-						gf_filter_pid_set_property(pid, p4cc, &p);
-					}
-					gf_props_reset_single(&p);
-				} else {
-					GF_PropertyValue p;
-					memset(&p, 0, sizeof(GF_PropertyValue));
-					p.type = GF_PROP_STRING;
-					p.value.string = sep+1;
-					gf_filter_pid_set_property_dyn(pid, com, &p);
-				}
-			}
-		}
-		com[end]=c;
-		com += end;
-	}
-}
-
 GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_FilterEvent evt;
 	FileListPid *iopid;
 	const GF_PropertyValue *p;
 	u32 i, count;
@@ -190,9 +127,6 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		//we want the complete file
 		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
-		//fire a play event from 0 on the source
-		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-		gf_filter_send_event(filter, &evt);
 		//we will declare pids later
 
 		//from now on we only accept the above caps
@@ -222,11 +156,11 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (!iopid) {
 		GF_SAFEALLOC(iopid, FileListPid);
 		iopid->ipid = pid;
-		iopid->timescale = iopid->o_timescale = gf_filter_pid_get_timescale(pid);
-		if (!iopid->timescale) iopid->timescale = iopid->o_timescale = 1000;
-
 		if (ctx->timescale) iopid->o_timescale = ctx->timescale;
-
+		else {
+			iopid->o_timescale = gf_filter_pid_get_timescale(pid);
+			if (!iopid->o_timescale) iopid->o_timescale = 1000;
+		}
 		gf_list_add(ctx->io_pids, iopid);
 	}
 	if (!iopid->opid) {
@@ -246,8 +180,9 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
 	iopid->single_frame = (p && (p->value.uint==1)) ? GF_TRUE : GF_FALSE ;
+	iopid->timescale = gf_filter_pid_get_timescale(pid);
+	if (!iopid->timescale) iopid->timescale = 1000;
 
-	filelist_update_pid_props(ctx, iopid->opid);
 	//if we reattached the input, we must send a play request
 	if (reassign) {
 		filelist_start_ipid(ctx, iopid);
@@ -404,6 +339,7 @@ GF_Err filelist_process(GF_Filter *filter)
 		pck = gf_filter_pid_get_packet(ctx->file_pid);
 		if (!pck) return GF_OK;
 		gf_filter_pck_get_framing(pck, &start, &end);
+		gf_filter_pid_drop_packet(ctx->file_pid);
 		if (end) {
 			FILE *f=NULL;
 			p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_FILEPATH);
@@ -413,14 +349,12 @@ GF_Err filelist_process(GF_Filter *filter)
 			}
 			if (!f) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
-				gf_filter_pid_drop_packet(ctx->file_pid);
 				return GF_SERVICE_ERROR;
 			} else {
 				gf_fclose(f);
 				ctx->load_next = GF_TRUE;
 			}
 		}
-		gf_filter_pid_drop_packet(ctx->file_pid);
 	}
 
 	count = gf_list_count(ctx->io_pids);
@@ -552,6 +486,8 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (ctx->stop>ctx->start) {
 				if ( (ctx->stop-ctx->start) * iopid->timescale <= (iopid->max_dts - iopid->first_dts_plus_one + 1)) {
 					iopid->is_eos = GF_TRUE;
+					nb_done++;
+					break;
 				}
 			}
 		}
@@ -618,17 +554,19 @@ Bool filelist_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo
 
 GF_Err filelist_initialize(GF_Filter *filter)
 {
-	char *sep_dir, *sep, c=0, *dir, *pattern, *list;
+	u32 i, count;
+	char *sep_dir, c=0, *dir, *pattern;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 	ctx->io_pids = gf_list_new();
 
-	if (!ctx->in) return GF_OK;
+	if (!ctx->in || !gf_list_count(ctx->in)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
+		return GF_OK;
+	}
 	ctx->file_list = gf_list_new();
-
-	list = ctx->in;
-	while (list) {
-		sep = strrchr(list, ',');
-		if (sep) sep[0] = 0;
+	count = gf_list_count(ctx->in);
+	for (i=0; i<count; i++) {
+		char *list = gf_list_get(ctx->in, i);
 
 		if (strchr(list, '*') ) {
 			sep_dir = strrchr(list, '/');
@@ -637,13 +575,12 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				c = sep_dir[0];
 				sep_dir[0] = 0;
 				dir = list;
-				pattern =  sep_dir+1;
+				pattern = sep_dir+1;
 			} else {
 				dir = ".";
 				pattern = list;
 			}
 			gf_enum_directory(dir, GF_FALSE, filelist_enum, ctx, pattern);
-			if (sep_dir) sep_dir[0] = c;
 		} else {
 			if (gf_file_exists(list)) {
 				gf_list_add(ctx->file_list, gf_strdup(list));
@@ -651,10 +588,8 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] File %s not found, ignoring\n", list));
 			}
 		}
-		if (!sep) break;
-		sep[0] = ',';
-		list = sep+1;
 	}
+
 	if (!gf_list_count(ctx->file_list)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->in));
 		return GF_BAD_PARAM;
@@ -691,7 +626,7 @@ void filelist_finalize(GF_Filter *filter)
 static const GF_FilterArgs GF_FileListArgs[] =
 {
 	{ OFFS(loop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, GF_FALSE},
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, GF_FALSE},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(timescale), "forces output timescal on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FALSE},
@@ -727,12 +662,9 @@ GF_FilterRegister FileListRegister = {
 		"\t\t!! This may not work with some files/formats not supporting seeking\n"
 		"\tstop=T: stops source playback after T seconds (double format only)\n"\
 		"\t\tThis works on any source (implemented independetly from seek support)\n"
-		"\tName=Val: sets output PIDs property (4cc, built-in name or any name) to the given value.\n"\
-		"\t\tIf a non built-in property is used, the value will be delared as string\n"
-		"\t\t!! Properties are not filtered and override the source props, be carefull not to break\n"
-		"\t\tthe session by overriding core properties such as width/height/samplerate/... !!\n"
-		"\t\tAdded properties are valid only for the current source, and are reseted at next source\n"
 		"\n"\
+		"The source lines follow the usual source syntax, see main help\n"\
+		"\t\tAdditionnal pid properties can be added per source, but are valid only for the current source, and reset at next source\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n"\
 	,

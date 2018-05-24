@@ -23,7 +23,23 @@
  *
  */
 
+#include <gpac/setup.h>
+
+#ifdef GPAC_HAS_FFMPEG
+
 #include "ff_common.h"
+
+
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "avutil")
+#  pragma comment(lib, "avformat")
+#  pragma comment(lib, "avcodec")
+#  pragma comment(lib, "avdevice")
+#  pragma comment(lib, "swscale")
+# endif
+#endif
+
 
 static Bool ffmpeg_init = GF_FALSE;
 
@@ -506,6 +522,34 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 			subname = fmt->name;
 			description = fmt->long_name;
     		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
+#else
+			fmt = av_iformat_next(fmt);
+			if (!fmt) break;
+			av_class = fmt->priv_class;
+			subname = fmt->name;
+			description = fmt->long_name;
+			//brute force ...
+			if (!strcmp(subname, "dshow")) {}
+			else if (!strcmp(subname, "avfoundation")) {}
+			else if (!strcmp(subname, "video4linux2")) {}
+			else if (!strcmp(subname, "x11grab")) {}
+			else if (!strcmp(subname, "alsa")) {}
+			else if (!strcmp(subname, "decklink")) {}
+			else if (!strcmp(subname, "kmsgrab")) {}
+			else if (!strcmp(subname, "libndi_newtek")) {}
+			else if (!strcmp(subname, "fbdev")) {}
+			else if (!strcmp(subname, "gdigrab")) {}
+			else if (!strcmp(subname, "iec61883")) {}
+			else if (!strcmp(subname, "lavfi")) {}
+			else if (!strcmp(subname, "libcdio")) {}
+			else if (!strcmp(subname, "lavfi")) {}
+			else if (!strcmp(subname, "openal")) {}
+			else if (!strcmp(subname, "openal")) {}
+			else if (!strcmp(subname, "oss")) {}
+			else if (!strcmp(subname, "pulse")) {}
+			else if (!strcmp(subname, "sndio")) {}
+			else if (!stricmp(subname, "vfw")) {}
+			else continue;
 #endif
 		} else if (type==FF_REG_TYPE_ENCODE) {
 			codec = av_codec_next(codec);
@@ -677,3 +721,4 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
 }
 
 
+#endif

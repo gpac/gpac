@@ -23,10 +23,13 @@
  *
  */
 
+#include <gpac/setup.h>
+
+#ifdef GPAC_HAS_FFMPEG
+
 #include "ff_common.h"
-#include <gpac/filters.h>
-#include <gpac/list.h>
-#include <gpac/constants.h>
+
+//for NTP clock
 #include <gpac/network.h>
 
 enum
@@ -234,7 +237,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 	if (!ctx->raw_pck_out)
 		av_free_packet(&ctx->pkt);
-	return GF_OK;
+	return e;
 }
 
 
@@ -421,6 +424,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 
 		if (codec->bit_rate)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT( codec->bit_rate ) );
+
+		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(ctx->demuxer->filename));
 	}
 
 	if (!nb_t && !nb_a && !nb_v)
@@ -654,7 +659,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 			dev_fmt = NULL;
 		}
 #else
-		dev_fmt = NULL;
+		//not supported for old FFMPE versions
 #endif
 	}
 #if LIBAVCODEC_VERSION_MAJOR >= 58
@@ -671,6 +676,10 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		}
 	}
 #endif
+	if (!dev_fmt) {
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] No input format specified\n", ctx->fname, ctx->fmt));
+		return GF_BAD_PARAM;
+	}
 
 	dev_name = ctx->dev;
 
@@ -864,3 +873,18 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 
 	return &FFAVInRegister;
 }
+
+#else
+
+#include <gpac/filters.h>
+
+const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+const GF_FilterRegister *ffavin_register(GF_FilterSession *session) 
+{
+	return NULL;
+}
+#endif
