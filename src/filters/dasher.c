@@ -207,8 +207,8 @@ typedef struct _dash_stream
 	u64 est_first_cts_in_next_seg;
 	u64 last_cts;
 	u64 cumulated_dur;
-	u32 nb_pck;
-	u32 seek_to_pck;
+	u64 nb_pck;
+	u64 seek_to_pck;
 
 	Bool splitable;
 	u32 split_dur_next;
@@ -490,15 +490,15 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		gf_list_add(ctx->mpd->attributes, xlink_att);
 	}
 
-	if (ctx->tsb>=0) ctx->mpd->time_shift_buffer_depth = 1000*ctx->tsb;
+	if (ctx->tsb>=0) ctx->mpd->time_shift_buffer_depth = (u32) (1000*ctx->tsb);
 	else ctx->mpd->time_shift_buffer_depth = (u32) -1;
 
 	if (ctx->refresh>=0) {
-		ctx->mpd->minimum_update_period = 1000*(ctx->refresh ? ctx->refresh : ctx->dur);
+		ctx->mpd->minimum_update_period = (u32) (1000*(ctx->refresh ? ctx->refresh : ctx->dur) );
 		ctx->mpd->media_presentation_duration = 0;
 	} else {
 		ctx->mpd->minimum_update_period = 0;
-		ctx->mpd->media_presentation_duration = (-ctx->refresh) * 1000;
+		ctx->mpd->media_presentation_duration = (u32) ( (-ctx->refresh) * 1000 );
 	}
 	return GF_OK;
 }
@@ -514,7 +514,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	ctx->mpd->attributes = gf_list_new();
 	if (ctx->buf<0) {
 		s32 buf = -ctx->buf;
-		ctx->mpd->min_buffer_time = ctx->dur*10 * buf; //*1000 (ms) / 100 (percent)
+		ctx->mpd->min_buffer_time = (u32) ( ctx->dur*10 * buf ); //*1000 (ms) / 100 (percent)
 	}
 	else ctx->mpd->min_buffer_time = ctx->buf;
 
@@ -1469,7 +1469,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-		if (ds->xlink) pdur = 1000*ds->period_dur;
+		if (ds->xlink) pdur = (u32) (1000*ds->period_dur);
 		else if (!min_dur || (min_dur>ds->max_period_dur)) min_dur = ds->max_period_dur;
 		if (pdur< ds->max_period_dur) pdur = ds->max_period_dur;
 	}
@@ -1517,7 +1517,7 @@ GF_Err dasher_send_mpd(GF_Filter *filter, GF_DasherCtx *ctx)
 	gf_fseek(tmp, 0, SEEK_SET);
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
-	nb_read = gf_fread(output, 1, size, tmp);
+	nb_read = (u32) gf_fread(output, 1, size, tmp);
 	if (nb_read != size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
 	}
@@ -2000,7 +2000,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				next_period_start = dur;
 		}
 		if (next_period_start>0) {
-			ctx->current_period->period->duration = (next_period_start - period_start) * 1000;
+			ctx->current_period->period->duration = (u32) ( (next_period_start - period_start) * 1000 );
 		}
 	}
 
@@ -2192,7 +2192,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//setup segmentation
 		ds->rep_init = GF_FALSE;
 		ds->seg_done = GF_FALSE;
-		ds->next_seg_start = ds->dash_dur * ds->timescale;
+		ds->next_seg_start = (u32) ( ds->dash_dur * ds->timescale );
 		ds->adjusted_next_seg_start = ds->next_seg_start;
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
@@ -2220,11 +2220,12 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			ctx->nb_secs_to_discard = sec;
 			ctx->nb_secs_to_discard -= start_date_sec_ntp;
+			//FIXME, no accurate enough
 			if (ctx->tsb>=0)
-				ctx->nb_secs_to_discard -= ctx->tsb;
+				ctx->nb_secs_to_discard -= (u32) ctx->tsb;
 
-			sec = start_date_sec_ntp;
-			frac = start_date_sec_ntp_ms_frac;
+			sec = (u32) start_date_sec_ntp;
+			frac = (u32) start_date_sec_ntp_ms_frac;
 		}
 		ctx->generation_start_utc = sec - GF_NTP_SEC_1900_TO_1970;
 		ctx->generation_start_utc *= 1000;
@@ -2309,7 +2310,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	//nope, allocate
 	GF_SAFEALLOC(s, GF_MPD_SegmentTimelineEntry);
 	s->start_time = ds->seg_start_time;
-	s->duration = duration;
+	s->duration = (u32) duration;
 	gf_list_add(tl->entries, s);
 }
 
@@ -2381,7 +2382,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 
 	if (ds->segment_started) {
-		Double seg_duration = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+		Double seg_duration = (Double) (base_ds->first_cts_in_next_seg - ds->first_cts_in_seg);
 		seg_duration /= base_ds->timescale;
 		assert(seg_duration);
 
@@ -2479,9 +2480,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			assert(base_ds->segment_started);
 			base_ds->segment_started = GF_FALSE;
 
-			base_ds->next_seg_start += base_ds->dash_dur * base_ds->timescale;
+			base_ds->next_seg_start += (u64) (base_ds->dash_dur * base_ds->timescale);
 			while (base_ds->next_seg_start <= base_ds->adjusted_next_seg_start) {
-				base_ds->next_seg_start += base_ds->dash_dur * base_ds->timescale;
+				base_ds->next_seg_start += (u64) (base_ds->dash_dur * base_ds->timescale);
 				if (ctx->skip_seg)
 					base_ds->seg_number++;
 			}
@@ -2540,7 +2541,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 
 	if (!ctx->stl) {
-		Double drift, seg_start = ds->seg_start_time;
+		Double drift, seg_start = (Double) ds->seg_start_time;
 		seg_start /= ds->mpd_timescale;
 		drift = seg_start - (ds->seg_number - ds->startNumber) * ds->dash_dur;
 
@@ -2771,7 +2772,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->first_cts_in_next_seg = cts;
 				base_ds->nb_comp_done ++;
 				if (split_dur_next)
-					ds->split_dur_next = split_dur_next;
+					ds->split_dur_next = (u32) split_dur_next;
 
 				if (base_ds->nb_comp_done == base_ds->nb_comp) {
 					dasher_flush_segment(ctx, base_ds);

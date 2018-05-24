@@ -1695,7 +1695,7 @@ restart_fragmentation_pass:
 						GF_MPD_SegmentURL *seg_url;
 						const char *name = gf_dasher_strip_output_dir(dasher->mpd_name, SegmentName);
 						seg_url = gf_mpd_segmenturl_new(name, 0, 0, NULL, 0, 0);
-						seg_url->duration=SegmentDuration;
+						seg_url->duration = (u64) SegmentDuration;
 						if (dasher->dash_ctx) {
 							char szKey[100], szVal[4046];
 							sprintf(szKey, "UrlInfo%d", cur_seg );

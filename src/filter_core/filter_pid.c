@@ -3883,7 +3883,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 					}
 				}
 			} else {
-				u32 i, len = next_sep ? 1+(next_sep - name) : strlen(name);
+				u32 i, len = (u32) (next_sep ? 1+(next_sep - name) : strlen(name) );
 				szFinalName[k]='$';
 				k++;
 				for (i=0; i<len; i++) {
@@ -4021,7 +4021,7 @@ static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *ds
 	if (dst && sep) {
 		u32 len;
 		dst += 4;
-		len = sep - dst;
+		len = (u32) (sep - dst);
 		char *res = gf_malloc(sizeof(char)* (len+1));
 		memcpy(res, dst, sizeof(char)* len);
 		res[len]=0;
