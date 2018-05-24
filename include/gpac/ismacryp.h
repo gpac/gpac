@@ -144,6 +144,8 @@ typedef struct
 	u32 cenc_scheme_type;
 	//for avc1 ctr CENC edition 1
 	Bool allow_encrypted_slice_header;
+	//force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples
+	u32 block_align;
 
 
 	char metadata[5000];

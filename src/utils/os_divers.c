@@ -2052,7 +2052,7 @@ GF_Err gf_bin128_parse(const char *string, bin128 value)
 		}
 	}
 	if (i != 16) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[CORE] 128bit blob is not 16-bytes long: %s\n", string));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CORE] 128bit blob is not 16-bytes long: %s\n", string));
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;

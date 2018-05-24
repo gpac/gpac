@@ -259,8 +259,8 @@
 /*disables XMTA/X3D -> scene decoder*/
 //#define GPAC_DISABLE_LOADER_XMT
 
-/*disables mcrypt*/
-//#define GPAC_DISABLE_MCRYPT
+/*disables crypto tools*/
+//#define GPAC_DISABLE_CRYPTO
 
 /*disables all ISO FF*/
 //#define GPAC_DISABLE_ISOM

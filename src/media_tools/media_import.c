@@ -453,11 +453,11 @@ exit:
 
 #endif // FILTER_FIXME
 
-
 GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
+	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode;
 	s32 trans_x, trans_y;
 	s16 layer;
@@ -672,7 +672,21 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			}
 		}
 	}
-
+	switch (mstype) {
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_SVC_H264:
+	case GF_ISOM_SUBTYPE_MVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_AVC3_H264:
+	case GF_ISOM_SUBTYPE_AVC4_H264:
+	case GF_ISOM_SUBTYPE_HEV1:
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_LHE1:
+	case GF_ISOM_SUBTYPE_LHV1:
+	case GF_ISOM_SUBTYPE_HVT1:
+		is_nalu_video = GF_TRUE;
+		break;
+	}
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
 
 	if (is_cenc) {
@@ -717,7 +731,6 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
 
-
 		if (duration && (sampDTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		if (e)
@@ -754,10 +767,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				gf_isom_cenc_samp_aux_info_del(sai);
 				gf_bs_get_content(bs, &buffer, &len);
 				gf_bs_del(bs);
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video);
 				gf_free(buffer);
 			} else {
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0, is_nalu_video);
 			}
 			if (e) goto exit;
 
@@ -924,7 +937,8 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
 			GF_ISOSample *samp;
 			u32 ts, inc;
-			if (gf_isom_get_media_type(import->dest, i+1) != GF_ISOM_MEDIA_VISUAL) continue;
+            u32 mtype = gf_isom_get_media_type(import->dest, i+1);
+			if (!gf_isom_is_video_subtype(mtype)) continue;
 			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
 			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);
 			inc = (u32) samp->DTS;
@@ -1231,6 +1245,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_CAN_DATAREF);
 
 			if (p && p->value.boolean) tki->flags |= GF_IMPORT_USE_DATAREF;
+
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
+			if (p) tki->media_subtype = p->value.uint;
 
 			importer->nb_tracks++;
 		}

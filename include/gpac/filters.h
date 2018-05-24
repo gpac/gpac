@@ -719,6 +719,8 @@ enum
 	GF_PROP_PID_SERVICE_PROVIDER = GF_4CC('S','P','R','O'),
 	//(uint) media stream type, matching gpac stream types
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
+	//(uint) media subtype (auxiliary, picture, etc)
+	GF_PROP_PID_SUBTYPE = GF_4CC('P','S','S','T'),
 	//(uint) media stream type before encryption
 	GF_PROP_PID_ORIG_STREAM_TYPE = GF_4CC('P','O','S','T'),
 	//(uint) object type indication , matching gpac codecid types

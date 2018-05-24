@@ -7276,22 +7276,13 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return NULL;
 
-	/*solve dependencies if any*/
-#if 0
-	/*non-compliant way: init segment shall be different for each dependent reps, using the base is wrong
-	unless bitstream switching is set (handled below)*/
-	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	/*solve dependencies if any - we first test highest: if this is a complementary rep, keep the highest for init
+	otherwise use the selected one
+	this is need for scalable because we only init once the demuxer*/
 
-	while (rep && rep->dependency_id) {
-		char *sep = strchr(rep->dependency_id, ' ');
-		if (sep) sep[0] = 0;
-		rep = gf_dash_find_rep(dash, rep->dependency_id, &group);
-		if (sep) sep[0] = ' ';
-	}
-#else
-	/*the the highest rep and use its init segment*/
 	rep = gf_list_last(group->adaptation_set->representations);
-#endif
+	if (!rep->dependency_id)
+		rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 
 	if (group->bs_switching_init_segment_url) {
 		if (start_range) *start_range = group->bs_switching_init_segment_url_start_range;
