@@ -62,10 +62,8 @@ u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs);
 returns data_len if no startcode found and sets sc_size to 0 (last nal in payload)*/
 u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size);
 
-/*returns NAL unit type - bitstream must be sync'ed!!*/
-u8 AVC_NALUType(GF_BitStream *bs);
-Bool SVC_NALUIsSlice(u8 type);
-
+u32 gf_media_nalu_emulation_bytes_remove_count(const char *buffer, u32 nal_size);
+u32 gf_media_nalu_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
 
 enum
 {
@@ -179,6 +177,7 @@ typedef struct
 	Bool weighted_pred_flag;
 	u8 weighted_bipred_idc;
 	Bool deblocking_filter_control_present_flag;
+	u32 num_ref_idx_l0_default_active_minus1, num_ref_idx_l1_default_active_minus1;
 } AVC_PPS;
 
 typedef struct
