@@ -41,11 +41,6 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
-//#pragma comment(lib, "ssleay32")
-//#pragma comment(lib, "libeay32")
-#endif
-
 #endif
 
 #ifdef __USE_POSIX
@@ -237,12 +232,6 @@ static void init_prng (void)
 		RAND_load_file(random_file, 16384);
 
 	if (RAND_status ()) return;
-
-#ifdef WIN32
-	RAND_screen ();
-	if (RAND_status ())
-		return;
-#endif
 }
 
 #endif
