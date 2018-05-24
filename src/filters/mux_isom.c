@@ -1477,11 +1477,11 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		char *output;
 		u32 nb_read, blocksize = ctx->block_size;
 		if (ctx->flush_done + blocksize>ctx->flush_size) {
-			blocksize = ctx->flush_size - ctx->flush_done;
+			blocksize = (u32) (ctx->flush_size - ctx->flush_done);
 		}
 		if (!blocksize) return GF_EOS;
 		pck = gf_filter_pck_new_alloc(ctx->opid, blocksize, &output);
-		nb_read = fread(output, 1, blocksize, ctx->tmp_store);
+		nb_read = (u32) fread(output, 1, blocksize, ctx->tmp_store);
 		ctx->flush_done += blocksize;
 		if (ctx->flush_done==ctx->flush_size) {
 			gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
@@ -1639,7 +1639,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				GF_BitStream *bs;
 				char *output, *msg;
 				GF_FilterPacket *pck;
-				u32 len, nb_segs = ctx->media_dur / ctx->dash_dur;
+				u32 len, nb_segs = (u32) ( ctx->media_dur / ctx->dash_dur);
 				//always add an extra segment
 				nb_segs ++;
 				//and safety alloc of 10%
@@ -1652,7 +1652,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				ctx->sidx_max_size = 12 + 12 + 16 + 12 * nb_segs;
 				//and a free box
 				ctx->sidx_max_size += 8;
-				ctx->sidx_chunk_offset = ctx->current_offset + ctx->current_size;
+				ctx->sidx_chunk_offset = (u32) (ctx->current_offset + ctx->current_size);
 				//send a dummy packet
 				pck = gf_filter_pck_new_alloc(ctx->opid, ctx->sidx_max_size, &output);
 				gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
@@ -1661,7 +1661,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				gf_bs_write_u32(bs, ctx->sidx_max_size);
 				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FREE);
 				msg = "GPAC " GPAC_VERSION" SIDX placeholder";
-				len = strlen(msg);
+				len = (u32) strlen(msg);
 				if (len+8>ctx->sidx_max_size) len = ctx->sidx_max_size - 8;
 				gf_bs_write_data(bs, msg, len );
 				gf_bs_del(bs);
@@ -1970,7 +1970,7 @@ static GF_Err mp4_mux_on_data(void *cbk, char *data, u32 block_size)
 	}
 
 	if (ctx->store_output) {
-		u32 nb_write = fwrite(data, 1, block_size, ctx->tmp_store);
+		u32 nb_write = (u32) fwrite(data, 1, block_size, ctx->tmp_store);
 		if (nb_write != block_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error writing to temp cache: %d bytes write instead of %d\n", nb_write, block_size));
 			return GF_IO_ERR;

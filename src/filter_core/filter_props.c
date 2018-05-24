@@ -257,18 +257,18 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			char *sep = strchr(v, list_sep_char);
 			if (sep) {
 				char *xml_end = strchr(v, '>');
-				len = sep - v;
+				len = (u32) (sep - v);
 				if (xml_end) {
-					u32 xml_len = xml_end - v;
+					u32 xml_len = (u32) (xml_end - v);
 					if (xml_len > len) {
 						sep = strchr(xml_end, list_sep_char);
 						if (sep)
-							len = sep - v;
+							len = (u32) (sep - v);
 					}
 				}
 			}
 			if (!sep)
-			 	len = strlen(v);
+			 	len = (u32) strlen(v);
 
 			nv = gf_malloc(sizeof(char)*(len+1));
 			strncpy(nv, v, sizeof(char)*len);
@@ -1067,7 +1067,7 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 				strcat(dump, ",");
 				strncat(dump, s, len-1);
 			}
-			len = GF_PROP_DUMP_ARG_SIZE - 1 - strlen(dump);
+			len = GF_PROP_DUMP_ARG_SIZE - 1 - (u32) strlen(dump);
 			if (len<=1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("String list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
 				return dump;
