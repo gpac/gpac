@@ -25,7 +25,7 @@
     <Filter Include="laser">
       <UniqueIdentifier>{3073cf49-9ebb-48cf-aea8-35a44d810e10}</UniqueIdentifier>
     </Filter>
-    <Filter Include="mcrypt">
+    <Filter Include="crypto">
       <UniqueIdentifier>{34d7c2c7-ecca-42a1-b891-dab22082820c}</UniqueIdentifier>
     </Filter>
     <Filter Include="media_tools">
@@ -755,48 +755,18 @@
     <ClCompile Include="..\..\src\laser\lsr_tables.c">
       <Filter>laser</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\cbc.c">
-      <Filter>mcrypt</Filter>
+    <ClCompile Include="..\..\src\crypto\g_crypt.c">
+      <Filter>crypto</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\cfb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ctr.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\des.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ecb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\g_crypt.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ncfb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\nofb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ofb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\rijndael-128.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\rijndael-192.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\rijndael-256.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\stream.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\tripledes.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
+    <ClCompile Include="..\..\src\crypto\g_crypt_openssl.c">
+      <Filter>crypto</Filter>
+    </ClCompile>    
+    <ClCompile Include="..\..\src\crypto\g_crypt_tinyaes.c">
+      <Filter>crypto</Filter>
+    </ClCompile>    
+    <ClCompile Include="..\..\src\crypto\tiny_aes.c">
+      <Filter>crypto</Filter>
+    </ClCompile>    
     <ClCompile Include="..\..\src\media_tools\ait.c">
       <Filter>media_tools</Filter>
     </ClCompile>

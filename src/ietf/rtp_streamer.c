@@ -395,6 +395,13 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
 			OfficialPayloadType = 14;
 			required_rate = 90000;
 			break;
+		case GF_ISOM_SUBTYPE_TEXT:
+		case GF_ISOM_SUBTYPE_TX3G:
+			rtp_type = GF_RTP_PAYT_3GPP_TEXT;
+			/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
+			PL_ID = 0x10;
+			break;
+
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Unsupported stream type %x\n", streamType));
 			return NULL;
@@ -523,6 +530,8 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 		switch (gf_isom_get_media_type(file, i+1)) {
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			gf_isom_get_track_layout_info(file, i+1, &w, &h, &tx, &ty, &l);
 			if (w>m_w) m_w = w;
 			if (h>m_h) m_h = h;

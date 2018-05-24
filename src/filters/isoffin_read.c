@@ -89,6 +89,10 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 				read->play_only_first_media = GF_ISOM_MEDIA_AUDIO;
 			} else if (!strnicmp(tmp, "#video", 6)) {
 				read->play_only_first_media = GF_ISOM_MEDIA_VISUAL;
+			} else if (!strnicmp(tmp, "#auxv", 5)) {
+				read->play_only_first_media = GF_ISOM_MEDIA_AUXV;
+			} else if (!strnicmp(tmp, "#pict", 5)) {
+				read->play_only_first_media = GF_ISOM_MEDIA_PICT;
 			} else if (!strnicmp(tmp, "#text", 5)) {
 				read->play_only_first_media = GF_ISOM_MEDIA_TEXT;
 			} else if (!strnicmp(tmp, "#trackID=", 9)) {
@@ -478,6 +482,8 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		ch->streamType = GF_STREAM_SCENE;
 		break;
 	case GF_ISOM_MEDIA_VISUAL:
+	case GF_ISOM_MEDIA_AUXV:
+	case GF_ISOM_MEDIA_PICT:
 		gf_isom_get_reference(ch->owner->mov, ch->track, GF_ISOM_REF_BASE, 1, &ch->base_track);
 		//use base track only if avc/svc or hevc/lhvc. If avc+lhvc we need different rules
 		if ( gf_isom_get_avc_svc_type(ch->owner->mov, ch->base_track, 1) == GF_ISOM_AVCTYPE_AVC_ONLY) {

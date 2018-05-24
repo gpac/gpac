@@ -78,7 +78,8 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		}
 #endif
 	} else {
-		if (gf_isom_get_media_type(file, track)==GF_ISOM_MEDIA_VISUAL) {
+        u32 mtype = gf_isom_get_media_type(file, track);
+		if (gf_isom_is_video_subtype(mtype)) {
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_BAD_PARAM;
@@ -291,6 +292,8 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		mType = gf_isom_get_media_type(mp4file, i+1);
 		switch (mType) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			image_track = 0;
 			if (esd && ((esd->decoderConfig->objectTypeIndication==GF_CODECID_JPEG) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_PNG)) )
 				image_track = 1;
@@ -585,6 +588,8 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
 		switch (mType) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			/*remove image tracks if wanted*/
 			if (gf_isom_get_sample_count(mp4file, i+1)<=1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[3GPP convert] Visual track ID %d: only one sample found\n", gf_isom_get_track_id(mp4file, i+1) ));
@@ -850,6 +855,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		gf_bs_del(bs);
 		return esd;
 	}
+
 	return NULL;
 }
 

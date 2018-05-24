@@ -32,7 +32,6 @@
 GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_TextSampleDescriptor **out_desc)
 {
 	GF_TrackBox *trak;
-	GF_Err e;
 	u32 i;
 	GF_Tx3gSampleEntryBox *txt;
 

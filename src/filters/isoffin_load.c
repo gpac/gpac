@@ -126,6 +126,7 @@ void isor_declare_objects(ISOMReader *read)
 			streamtype = GF_STREAM_AUDIO;
 			break;
 		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_QTVR:
 			streamtype = GF_STREAM_VISUAL;
@@ -465,6 +466,9 @@ void isor_declare_objects(ISOMReader *read)
 			w /= ch->time_scale;
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(w));
 		}
+
+		//set stream subtype
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SUBTYPE, &PROP_UINT(mtype) );
 
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, i+1) ) );
 

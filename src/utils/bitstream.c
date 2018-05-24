@@ -275,7 +275,7 @@ void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove)
 }
 
 /*returns 1 if aligned wrt current mode, 0 otherwise*/
-static Bool BS_IsAlign(GF_BitStream *bs)
+Bool gf_bs_is_align(GF_BitStream *bs)
 {
 	switch (bs->bsmode) {
 	case GF_BITSTREAM_READ:
@@ -521,7 +521,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 
 	if (bs->position+nbBytes > bs->size) return 0;
 
-	if (BS_IsAlign(bs)) {
+	if (gf_bs_is_align(bs)) {
 		s32 bytes_read;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
@@ -692,7 +692,7 @@ void gf_bs_write_u64(GF_BitStream *bs, u64 value)
 GF_EXPORT
 u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 repeat_count)
 {
-	if (!BS_IsAlign(bs) || bs->buffer_io) {
+	if (!gf_bs_is_align(bs) || bs->buffer_io) {
 		u32 count = 0;
 		while (count<repeat_count) {
 			gf_bs_write_int(bs, byte, 8);
@@ -777,7 +777,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 	u64 begin = bs->position;
 	if (!nbBytes) return 0;
 
-	if (BS_IsAlign(bs)) {
+	if (gf_bs_is_align(bs)) {
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_WRITE:
 			if (bs->position+nbBytes > bs->size) {

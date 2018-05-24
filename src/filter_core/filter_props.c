@@ -815,6 +815,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service of this PID", GF_PROP_STRING},
 	{ GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service of this PID", GF_PROP_STRING},
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "media stream type", GF_PROP_UINT},
+	{ GF_PROP_PID_SUBTYPE, "StreamSubtype", "media subtype (auxiliary, pic sequence, etc ..)", GF_PROP_UINT},
 	{ GF_PROP_PID_ORIG_STREAM_TYPE, "OrigStreamType", "Original stream type before encryption", GF_PROP_UINT},
 	{ GF_PROP_PID_CODECID, "CodecID", "codec ID (MPEG-4 OTI or ISOBMFF 4CC)", GF_PROP_UINT},
 	{ GF_PROP_PID_IN_IOD, "InitialObjectDescriptor", "indicates if PID is declared in the IOD for MPEG-4", GF_PROP_BOOL},

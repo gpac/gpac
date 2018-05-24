@@ -214,11 +214,12 @@ enum
 {
 	/*base media types*/
 	GF_ISOM_MEDIA_VISUAL	= GF_4CC( 'v', 'i', 'd', 'e' ),
+    GF_ISOM_MEDIA_AUXV      = GF_4CC( 'a', 'u', 'x', 'v' ),
+    GF_ISOM_MEDIA_PICT      = GF_4CC( 'p', 'i', 'c', 't' ),
 	GF_ISOM_MEDIA_AUDIO		= GF_4CC( 's', 'o', 'u', 'n' ),
 	GF_ISOM_MEDIA_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
 	GF_ISOM_MEDIA_META		= GF_4CC( 'm', 'e', 't', 'a' ),
 	GF_ISOM_MEDIA_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
-	GF_ISOM_MEDIA_PICT	= GF_4CC( 'p', 'i', 'c', 't' ),
 	/*subtitle code point used on ipod - same as text*/
 	GF_ISOM_MEDIA_SUBT		= GF_4CC( 's', 'b', 't', 'l' ),
 	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
@@ -292,6 +293,8 @@ enum
 	GF_ISOM_SUBTYPE_AVC4_H264		= GF_4CC( 'a', 'v', 'c', '4' ),
 	GF_ISOM_SUBTYPE_SVC_H264		= GF_4CC( 's', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_MVC_H264		= GF_4CC( 'm', 'v', 'c', '1' ),
+
+	/*HEVC media type*/
 	GF_ISOM_SUBTYPE_HVC1			= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_HEV1			= GF_4CC( 'h', 'e', 'v', '1' ),
 	GF_ISOM_SUBTYPE_HVC2			= GF_4CC( 'h', 'v', 'c', '2' ),
@@ -1039,6 +1042,9 @@ u16 gf_isom_get_sample_fragment_size(GF_ISOFile *the_file, u32 trackNumber, u32 
 
 /*returns 1 if file is single AV (max one audio, one video, one text and basic od/bifs)*/
 Bool gf_isom_is_single_av(GF_ISOFile *file);
+
+/*returns TRUE if this is a video track type (vide, auxv, pict, ...)*/
+Bool gf_isom_is_video_subtype(u32 mtype);
 
 /*guess which std this file refers to. return value:
 	GF_ISOM_BRAND_ISOM: unrecognized std
@@ -2349,7 +2355,9 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 
 
 GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID);
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len);
+
+//if buf is NULL but len is given, this adds an unencrypted entry. otherwise, buf && len represent the sai cenc info to add
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len, Bool use_subsamples);
 
 
 

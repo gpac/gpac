@@ -272,7 +272,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 		        (buf[0x17] & 0xf0) != 0x20			   ||
 		        (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
 		{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file (1)\n"));
 			return GF_CORRUPTED_DATA;
 		}
 
@@ -313,12 +313,12 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 		}
 
 		if (i != psize || left > 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file (2)\n"));
 			return GF_CORRUPTED_DATA;
 		}
 
 		if (vobsub_get_subpic_duration(packet, psize, dsize, &duration) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file (3)\n"));
 			return GF_CORRUPTED_DATA;
 		}
 

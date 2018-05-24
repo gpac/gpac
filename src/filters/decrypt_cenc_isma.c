@@ -196,12 +196,12 @@ static GF_Err decenc_access_isma(GF_CENCDecCtx *ctx, Bool is_play)
 		//ctx->nb_allow_play--;
 
 		/*init decrypter*/
-		ctx->crypt = gf_crypt_open("AES-128", "CTR");
+		ctx->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 		if (!ctx->crypt) return GF_IO_ERR;
 
 		memset(IV, 0, sizeof(char)*16);
 		memcpy(IV, ctx->salt, sizeof(char)*8);
-		e = gf_crypt_init(ctx->crypt, ctx->key, 16, IV);
+		e = gf_crypt_init(ctx->crypt, ctx->key, IV);
 		if (e) return e;
 
 		ctx->state = ISMAEA_STATE_PLAY;
@@ -253,7 +253,7 @@ static GF_Err decenc_process_isma(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 		gf_bs_write_data(bs, ctx->salt, 8);
 		gf_bs_write_u64(bs, (s64) count);
 		gf_bs_del(bs);
-		gf_crypt_set_state(ctx->crypt, IV, 17);
+		gf_crypt_set_IV(ctx->crypt, IV, 17);
 
 		/*decrypt remain bytes*/
 		if (remain) {
@@ -378,12 +378,12 @@ static GF_Err decenc_setup_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 schem
 			gf_bin128_parse("0x6770616363656E6364726D746F6F6C31", cypherKey);
 			gf_bin128_parse("0x00000000000000000000000000000001", cypherIV);
 
-			mc = gf_crypt_open("AES-128", "CTR");
+			mc = gf_crypt_open(GF_AES_128, GF_CTR);
 			if (!mc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
 				return GF_IO_ERR;
 			}
-			gf_crypt_init(mc, cypherKey, 16, cypherIV);
+			gf_crypt_init(mc, cypherKey, cypherIV);
 			gf_crypt_decrypt(mc, pssh_data + pos + cypherOffset, priv_len - cypherOffset);
 			gf_crypt_close(mc);
 
@@ -406,9 +406,9 @@ static GF_Err decenc_access_cenc(GF_CENCDecCtx *ctx, Bool is_play)
 
 		/*open decrypter - we do NOT initialize decrypter; it wil be done when we decrypt the first crypted sample*/
 		if (ctx->is_cenc)
-			ctx->crypt = gf_crypt_open("AES-128", "CTR");
+			ctx->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 		else
-			ctx->crypt = gf_crypt_open("AES-128", "CBC");
+			ctx->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 		if (!ctx->crypt) return GF_IO_ERR;
 
 		ctx->first_crypted_samp = GF_TRUE;
@@ -550,7 +550,7 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 			if (const_IV->value.data.size == 8)
 				memset(IV+8, 0, sizeof(char)*8);
 		}
-		e = gf_crypt_init(ctx->crypt, ctx->key, 16, IV);
+		e = gf_crypt_init(ctx->crypt, ctx->key, IV);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 AES-128 %s (%s)\n", ctx->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
 			e = GF_IO_ERR;
@@ -564,9 +564,9 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 			IV[0] = 0;	/*begin of counter*/
 			memcpy(&IV[1], (char *) ctx->sai.IV, sizeof(char)*ctx->sai.IV_size);
 //			if (ctx->sai.IV_size == 8)	/*0-padded if IV_size == 8*/
-			gf_crypt_set_state(ctx->crypt, IV, 17);
+			gf_crypt_set_IV(ctx->crypt, IV, 17);
 		}
-		e = gf_crypt_set_key(ctx->crypt, ctx->key, 16, IV);
+		e = gf_crypt_set_key(ctx->crypt, ctx->key);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", ctx->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
 			e = GF_IO_ERR;
@@ -584,7 +584,7 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 				memmove(IV, const_IV->value.data.ptr, const_IV->value.data.size);
 				if (const_IV->value.data.size == 8)
 					memset(IV+8, 0, sizeof(char)*8);
-				gf_crypt_set_state(ctx->crypt, IV, 16);
+				gf_crypt_set_IV(ctx->crypt, IV, 16);
 			}
 
 			/*read clear data and write it to plaintext_bs bitstream*/
