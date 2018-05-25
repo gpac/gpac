@@ -1260,18 +1260,18 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 		return GF_BAD_PARAM;
 
 	senc = trak->sample_encryption;
-	if (!senc)
-		return GF_BAD_PARAM;
+	//no senc is OK
+	if (senc) {
+		if ((senc->type == GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)senc)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
+			type = GF_ISOM_BOX_UUID_PSEC;
+		} else if (senc->type == GF_ISOM_BOX_TYPE_SENC) {
+			type = GF_ISOM_BOX_TYPE_SENC;
+		} else {
+			type = 0;
+		}
 
-	if ((senc->type == GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)senc)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
-		type = GF_ISOM_BOX_UUID_PSEC;
-	} else if (senc->type == GF_ISOM_BOX_TYPE_SENC) {
-		type = GF_ISOM_BOX_TYPE_SENC;
-	} else {
-		type = 0;
+		if (container_type) *container_type = type;
 	}
-
-	if (container_type) *container_type = type;
 
 	if (!sai) return GF_OK; /*we need only container_type*/
 
@@ -1290,6 +1290,9 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	if (gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
 		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, scheme_type, IV_size, sai);
 	}
+	if (!senc)
+		return GF_OK;
+		
 	//senc is not loaded by default, do it now
 	if (!gf_list_count(senc->samp_aux_info)) {
 		GF_Err e = senc_Parse(the_file->movieFileMap->bs, trak, NULL, senc);
