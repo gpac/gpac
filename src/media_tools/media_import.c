@@ -7844,6 +7844,7 @@ typedef struct
 	u32 nb_video, nb_video_configured;
 	u32 nb_audio, nb_audio_configured;
 
+	Bool is_substream;
 } GF_TSImport;
 
 #ifndef GPAC_DISABLE_MPEG2TS
@@ -8191,6 +8192,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					tsimp->nb_video++;
 					break;
 				case GF_M2TS_VIDEO_HEVC:
+				case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+				case GF_M2TS_VIDEO_HEVC_MCTS:
 				case GF_M2TS_VIDEO_SHVC:
 				case GF_M2TS_VIDEO_SHVC_TEMPORAL:
 				case GF_M2TS_VIDEO_MHVC:
@@ -8200,6 +8203,17 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
 					tsimp->nb_video++;
+
+					switch (es->stream_type) {
+					case GF_M2TS_VIDEO_HEVC_MCTS:
+						import->tk_info[idx].media_type = GF_MEDIA_TYPE_HEVC;
+						break;
+					case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+						import->tk_info[idx].media_type = GF_MEDIA_TYPE_HEVC;
+					case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+					case GF_M2TS_VIDEO_MHVC_TEMPORAL:
+						import->tk_info[idx].video_info.temporal_enhancement = GF_TRUE;
+					}
 					break;
 				case GF_M2TS_AUDIO_MPEG1:
 					import->tk_info[idx].media_type = GF_MEDIA_TYPE_MPG1;
@@ -8338,6 +8352,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				tsimp->avccfg = gf_odf_avc_cfg_new();
 				break;
 			case GF_M2TS_VIDEO_HEVC:
+			case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+			case GF_M2TS_VIDEO_HEVC_MCTS:
 			case GF_M2TS_VIDEO_SHVC:
 			case GF_M2TS_VIDEO_SHVC_TEMPORAL:
 			case GF_M2TS_VIDEO_MHVC:
@@ -8347,6 +8363,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				oti = GPAC_OTI_VIDEO_HEVC;
 #ifndef GPAC_DISABLE_HEVC
 				tsimp->hevccfg = gf_odf_hevc_cfg_new();
+				if (es->stream_type != GF_M2TS_VIDEO_HEVC) tsimp->is_substream = GF_TRUE;
 #endif //GPAC_DISABLE_HEVC
 				break;
 			case GF_M2TS_VIDEO_SVC:
@@ -9054,11 +9071,36 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		}
 
 		if (tsimp.hevccfg) {
-			u32 w = ((GF_M2TS_PES*)es)->vid_w;
-			u32 h = ((GF_M2TS_PES*)es)->vid_h;
+			GF_M2TS_PES *pes = (GF_M2TS_PES*) es;
+ 			u32 w = pes->vid_w;
+			u32 h = pes->vid_h;
 			hevc_set_parall_type(tsimp.hevccfg);
 			gf_isom_hevc_config_update(import->dest, tsimp.track, 1, tsimp.hevccfg);
 
+			if (tsimp.is_substream) {
+				u32 tk = gf_isom_get_track_by_id(import->dest, pes->depends_on_pid);
+				if (tk) {
+					GF_HEVCConfig *hcfg = gf_isom_hevc_config_get(import->dest, tk, 1);
+					gf_isom_set_track_reference(import->dest, tsimp.track, GF_ISOM_REF_BASE, pes->depends_on_pid);
+					gf_isom_get_visual_info(import->dest, tk, 1, &w, &h);
+					if (hcfg && tsimp.hevccfg) {
+						GF_List *ar = tsimp.hevccfg->param_array;
+						memcpy(tsimp.hevccfg, hcfg, sizeof(GF_HEVCConfig));
+						tsimp.hevccfg->param_array = ar;
+						gf_isom_hevc_config_update(import->dest, tsimp.track, 1, tsimp.hevccfg);
+					}
+					if (hcfg) gf_odf_hevc_cfg_del(hcfg);
+
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("Importing HEVC substream but base track not found\n"));
+				}
+				if ((es->stream_type==GF_M2TS_VIDEO_HEVC_TEMPORAL) || (es->stream_type==GF_M2TS_VIDEO_HEVC_MCTS)) {
+					//NULL config: we keep hvcC but change to hvc2 the sample entry
+					gf_isom_lhvc_config_update(import->dest, tsimp.track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
+				} else {
+					gf_isom_lhvc_config_update(import->dest, tsimp.track, 1, tsimp.hevccfg, GF_ISOM_LEHVC_ONLY);
+				}
+			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				gf_isom_hevc_set_inband_config(import->dest, tsimp.track, 1);
 			}

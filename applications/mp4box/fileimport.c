@@ -148,6 +148,7 @@ void convert_file_info(char *inName, u32 trackID)
 		switch (import.tk_info[i].type) {
 		case GF_ISOM_MEDIA_VISUAL:
 			fprintf(stderr, "Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+			if (import.tk_info[i].video_info.temporal_enhancement) fprintf(stderr, " Temporal Enhancement");
 			break;
         case GF_ISOM_MEDIA_AUXV:
             fprintf(stderr, "Auxiliary Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
