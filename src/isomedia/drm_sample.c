@@ -1220,13 +1220,15 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		*sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 		memset(*sai, 0, sizeof(GF_CENCSampleAuxInfo));
 
-		gf_bs_read_data(mdia->information->dataHandler->bs, (char *)(*sai)->IV, IV_size);
-		if (size > IV_size) {
-			(*sai)->subsample_count = gf_bs_read_u16(mdia->information->dataHandler->bs);
-			(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
-			for (i = 0; i < (*sai)->subsample_count; i++) {
-				(*sai)->subsamples[i].bytes_clear_data = gf_bs_read_u16(mdia->information->dataHandler->bs);
-				(*sai)->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(mdia->information->dataHandler->bs);
+		if (size) {
+			gf_bs_read_data(mdia->information->dataHandler->bs, (char *)(*sai)->IV, IV_size);
+			if (size > IV_size) {
+				(*sai)->subsample_count = gf_bs_read_u16(mdia->information->dataHandler->bs);
+				(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+				for (i = 0; i < (*sai)->subsample_count; i++) {
+					(*sai)->subsamples[i].bytes_clear_data = gf_bs_read_u16(mdia->information->dataHandler->bs);
+					(*sai)->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(mdia->information->dataHandler->bs);
+				}
 			}
 		}
 	} else {
@@ -1259,18 +1261,18 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 		return GF_BAD_PARAM;
 
 	senc = trak->sample_encryption;
-	if (!senc)
-		return GF_BAD_PARAM;
+	//no senc is OK
+	if (senc) {
+		if ((senc->type == GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)senc)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
+			type = GF_ISOM_BOX_UUID_PSEC;
+		} else if (senc->type == GF_ISOM_BOX_TYPE_SENC) {
+			type = GF_ISOM_BOX_TYPE_SENC;
+		} else {
+			type = 0;
+		}
 
-	if ((senc->type == GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)senc)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
-		type = GF_ISOM_BOX_UUID_PSEC;
-	} else if (senc->type == GF_ISOM_BOX_TYPE_SENC) {
-		type = GF_ISOM_BOX_TYPE_SENC;
-	} else {
-		type = 0;
+		if (container_type) *container_type = type;
 	}
-
-	if (container_type) *container_type = type;
 
 	if (!sai && !out_buffer) return GF_OK; /*we need only container_type*/
 
@@ -1290,6 +1292,9 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, scheme_type, IV_size, sai, out_buffer, outSize);
 
 	}
+	if (!senc)
+		return GF_OK;
+		
 	//senc is not loaded by default, do it now
 	if (!gf_list_count(senc->samp_aux_info)) {
 		GF_Err e = senc_Parse(the_file->movieFileMap->bs, trak, NULL, senc);

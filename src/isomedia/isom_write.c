@@ -5409,6 +5409,7 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 			char udta[2];
 			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(bs, ((GF_RollRecoveryEntry *)entry)->roll_distance);
+			gf_bs_del(bs);
 			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_roll_create_entry, sg_roll_compare_entry);
 		}
 		case GF_ISOM_SAMPLE_GROUP_SEIG:

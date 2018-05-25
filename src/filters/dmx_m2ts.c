@@ -182,6 +182,8 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_HEVC:
+	case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+	case GF_M2TS_VIDEO_HEVC_MCTS:
 		stype = GF_STREAM_VISUAL;
 		codecid = GF_CODECID_HEVC;
 		unframed = GF_TRUE;

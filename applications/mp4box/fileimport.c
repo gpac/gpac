@@ -148,16 +148,15 @@ void convert_file_info(char *inName, u32 trackID)
 
 		switch (import.tk_info[i].stream_type) {
 		case GF_STREAM_VISUAL:
-			fprintf(stderr, "Video ");
+			if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_AUXV)  fprintf(stderr, "Auxiliary Video ");
+			else if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_PICT)  fprintf(stderr, "Picture Sequence ");
+			else fprintf(stderr, "Video ");
+
+			fprintf(stderr, "(%s)", gf_codecid_name(import.tk_info[i].codecid));
+			if (import.tk_info[i].video_info.temporal_enhancement) fprintf(stderr, " Temporal Enhancement");
 			break;
-        case GF_ISOM_MEDIA_AUXV:
-            fprintf(stderr, "Auxiliary Video (%s)", gf_4cc_to_str(import.tk_info[i].codecid));
-            break;
-        case GF_ISOM_MEDIA_PICT:
-            fprintf(stderr, "Picture Sequence (%s)", gf_4cc_to_str(import.tk_info[i].codecid));
-            break;
 		case GF_ISOM_MEDIA_AUDIO:
-			fprintf(stderr, "Audio (%s)", gf_4cc_to_str(import.tk_info[i].codecid));
+			fprintf(stderr, "Audio (%s)", gf_codecid_name(import.tk_info[i].codecid));
 			break;
 		case GF_STREAM_TEXT:
 			fprintf(stderr, "Text ");
