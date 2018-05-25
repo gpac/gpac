@@ -1,10 +1,6 @@
 
-#create our test file
-mp4file="$TEMP_DIR/source_media.mp4"
-$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac -new $mp4file 2> /dev/null
 
-
-crypto_test()
+crypto_unit_test()
 {
 
 test_begin "encryption-$1"
@@ -48,13 +44,32 @@ test_end
 
 }
 
+crypto_test_file()
+{
+
 for drm in $MEDIA_DIR/encryption/*.xml ; do
 
 name=$(basename $drm)
 name=${name%%.*}
 
-crypto_test "$name" $drm
+crypto_unit_test "$name-$1" $drm
 
 done
+
+}
+
+mp4file="$TEMP_DIR/source_media.mp4"
+
+#AVC
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -new $mp4file 2> /dev/null
+crypto_test_file "avc"
+
+#AAC
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_audio.aac -new $mp4file 2> /dev/null
+crypto_test_file "aac"
+
+#HEVC
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/counter.hvc -new $mp4file 2> /dev/null
+crypto_test_file "hevc"
 
 rm -f $mp4file 2> /dev/null
