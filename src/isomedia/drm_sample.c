@@ -1223,17 +1223,19 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 
 	*sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 	memset(*sai, 0, sizeof(GF_CENCSampleAuxInfo));
-	bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
-	gf_bs_read_data(bs, (char *)(*sai)->IV, IV_size);
-	if (size > IV_size) {
-		(*sai)->subsample_count = gf_bs_read_u16(bs);
-		(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
-		for (i = 0; i < (*sai)->subsample_count; i++) {
-			(*sai)->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
-			(*sai)->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
+	if (size) {
+		bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
+		gf_bs_read_data(bs, (char *)(*sai)->IV, IV_size);
+		if (size > IV_size) {
+			(*sai)->subsample_count = gf_bs_read_u16(bs);
+			(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+			for (i = 0; i < (*sai)->subsample_count; i++) {
+				(*sai)->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
+				(*sai)->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
+			}
 		}
+		gf_bs_del(bs);
 	}
-	gf_bs_del(bs);
 	gf_free(buffer);
 
 	return e;
