@@ -4827,6 +4827,8 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 					switch (gf_isom_get_media_subtype(file, j+1, 1)) {
 					case GF_ISOM_SUBTYPE_LHE1:
 					case GF_ISOM_SUBTYPE_LHV1:
+					case GF_ISOM_SUBTYPE_HEV2:
+					case GF_ISOM_SUBTYPE_HVC2:
 						count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_BASE);
 						break;
 					}
@@ -4945,6 +4947,8 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 						switch (gf_isom_get_media_subtype(file, j+1, 1)) {
 						case GF_ISOM_SUBTYPE_LHE1:
 						case GF_ISOM_SUBTYPE_LHV1:
+						case GF_ISOM_SUBTYPE_HEV2:
+						case GF_ISOM_SUBTYPE_HVC2:
 							dep_type = GF_ISOM_REF_BASE;
 							count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_BASE);
 							break;

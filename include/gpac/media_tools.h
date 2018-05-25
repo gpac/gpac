@@ -225,6 +225,8 @@ struct __track_video_info
 	u32 height;
 	/*! pixel aspect ratio expressed as 32 bits, high 16 bits being the numerator and low ones being the denominator*/
 	u32 par;
+	/*! temporal enhancement flag*/
+	Bool temporal_enhancement;
 	/*! Video frame rate*/
 	Double FPS;
 };

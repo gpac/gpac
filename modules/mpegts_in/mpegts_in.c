@@ -212,6 +212,8 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_SVC;
 		break;
 	case GF_M2TS_VIDEO_HEVC:
+	case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+	case GF_M2TS_VIDEO_HEVC_MCTS:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_HEVC;
 		break;
@@ -326,8 +328,9 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 
 				the_esd->dependsOnESID = cur_ES;
 				gf_list_add(od->ESDescriptors, the_esd);
+
+				cur_ES = the_esd->ESID;
 			}
-			cur_ES = the_esd->ESID;
 		}
 	}
 
