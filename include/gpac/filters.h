@@ -710,6 +710,7 @@ enum
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),
 	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
+	GF_PROP_PID_SUBLAYER = GF_4CC('D','P','S','L'),
 	//(bool) playback mode (rewind, fast forward, seek) capability of the pid
 	GF_PROP_PID_PLAYBACK_MODE = GF_4CC('P','B','K','M'),
 	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers

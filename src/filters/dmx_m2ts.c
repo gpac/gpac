@@ -294,6 +294,9 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	/*indicate our coding dependencies if any*/
 	if (stream->depends_on_pid) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(stream->depends_on_pid) );
+		if ((stream->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) || (stream->stream_type == GF_M2TS_VIDEO_HEVC_MCTS)) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_SUBLAYER, &PROP_BOOL(GF_TRUE) );
+		}
 	}
 
 	gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
@@ -317,9 +320,11 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 #endif
 
 	for (i=0; i<count; i++) {
-		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+		GF_M2TS_PES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
-		if (((GF_M2TS_PES *)es)->depends_on_pid ) {
+		
+		if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL ) continue;
+		if (es->depends_on_pid ) {
 			prog->is_scalable = GF_TRUE;
 			break;
 		}

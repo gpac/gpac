@@ -47,6 +47,7 @@ typedef struct
 	u32 id;
 	u32 dep_id;
 	u32 codec_id;
+	Bool sublayer;
 
 	char *inject_hdr;
 	u32 inject_hdr_size;
@@ -234,6 +235,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 {
 	u32 i, j, dep_id=0, id=0, cfg_crc=0, codecid;
 	Bool has_scalable = GF_FALSE;
+	Bool is_sublayer = GF_FALSE;
 	GF_HEVCStream *stream;
 	const GF_PropertyValue *p, *dsi;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
@@ -276,6 +278,9 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SCALABLE);
 	if (p) has_scalable = p->value.boolean;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBLAYER);
+	if (p) is_sublayer = p->value.boolean;
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	cfg_crc = 0;
@@ -320,6 +325,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				ctx->streams[i+1].dep_id = dep_id;
 				ctx->streams[i+1].id = id;
 				ctx->streams[i+1].codec_id = codecid;
+				ctx->streams[i+1].sublayer = is_sublayer;
 				gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 				stream = &ctx->streams[i+1];
 				break;
@@ -333,6 +339,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				ctx->streams[i].dep_id = dep_id;
 				ctx->streams[i].id = id;
 				ctx->streams[i].codec_id = codecid;
+				ctx->streams[i].sublayer = is_sublayer;
 				gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 				stream = &ctx->streams[i];
 				break;
@@ -344,6 +351,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->streams[ctx->nb_streams].id = id;
 			ctx->streams[ctx->nb_streams].dep_id = dep_id;
 			ctx->streams[ctx->nb_streams].codec_id = codecid;
+			ctx->streams[ctx->nb_streams].sublayer = is_sublayer;
 			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 			stream = &ctx->streams[ctx->nb_streams];
 		}
@@ -352,8 +360,12 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ctx->nb_layers = ctx->cur_layer = 1;
 	ctx->probe_layers = (ctx->nb_streams>1) ? GF_FALSE : GF_TRUE;
 
+	//temporal sublayer stream setup, do nothing
+	if (stream->sublayer)
+		return GF_OK;
+
 	//scalable stream setup
-	if (dep_id) {
+	if (stream->dep_id) {
 		GF_Err e = ohevcdec_configure_scalable_pid(ctx, pid, codecid, dsi);
 		ohevcdec_set_codec_name(filter);
 		return e;
@@ -446,17 +458,17 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 	}
 
-	if (ctx->codec)
-		return GF_OK;
-
+	if (!ctx->codec) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
-	if (ctx->avc_base_id) {
-		ctx->codec = oh_init_lhvc(ctx->nb_threads, ctx->threading);
-	} else
+		if (ctx->avc_base_id) {
+			ctx->codec = oh_init_lhvc(ctx->nb_threads, ctx->threading);
+		} else
 #endif
-	{
-		ctx->codec = oh_init(ctx->nb_threads, ctx->threading);
+		{
+			ctx->codec = oh_init(ctx->nb_threads, ctx->threading);
+		}
 	}
+
 
 #if defined(OPENHEVC_HAS_AVC_BASE) && !defined(GPAC_DISABLE_LOG)
 	if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_DEBUG) ) {
@@ -913,11 +925,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	}
 	if (!ctx->codec) return GF_SERVICE_ERROR;
 
-	if (!ctx->decoder_started) {
-		oh_start(ctx->codec);
-		ctx->decoder_started=1;
-	}
-
+	//probe all streams
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
@@ -949,6 +957,13 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			pck_ref = pck;
 		}
 	}
+
+	//start decoder
+	if (!ctx->decoder_started) {
+		oh_start(ctx->codec);
+		ctx->decoder_started=1;
+	}
+
 	if (nb_eos == ctx->nb_streams) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id)

@@ -809,6 +809,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
+	{ GF_PROP_PID_SUBLAYER, "SubLayer", "Indicates this is a sublayer of the stream depended on rather than an enhancement layer", GF_PROP_BOOL},
 	{ GF_PROP_PID_PLAYBACK_MODE, "PlaybackMode", "playback mode supported by PID:\n\t0 is no time control\n\t1 is play/pause/seek,speed=1\n\t2 is play/pause/seek,speed>=0\n\t3 is play/pause/seek, reverse playback", GF_PROP_UINT},
 	{ GF_PROP_PID_SCALABLE, "Scalable", "Stream is a scalable stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_LANGUAGE, "Language", "Language name for this PID", GF_PROP_NAME},
