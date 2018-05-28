@@ -551,7 +551,6 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 	u32 data_size;
 	u32 i;
 	GF_AVCConfigSlot *vps_sl = gf_list_get(ctx->vps, 0);
-
 	HEVC_VPS *vps = &ctx->hevc_state->vps[vps_sl->id];
 	
 	if (!vps->vps_extension_found) return GF_OK;
@@ -1072,7 +1071,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		if (dsi_enh) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(dsi_enh, dsi_enh_size) );
 	}
 
-	if (ctx->is_hevc) {
+	if (ctx->is_hevc && gf_list_count(ctx->vps) ) {
 		GF_Err e = naludmx_set_hevc_oinf(ctx, NULL);
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] Failed to create OINF chunk\n", ctx->log_name));

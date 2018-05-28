@@ -85,7 +85,9 @@ typedef struct
 	Bool disable_hw;
 
 	//internal
-	GF_FilterPid *ipid, *opid;
+//	GF_FilterPid *ipid;
+	GF_List *streams;
+	GF_FilterPid *opid;
 	u32 width, height;
 	GF_Fraction pixel_ar;
 	u32 pix_fmt;
@@ -191,7 +193,6 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 		return;
 	}
 
-
 	frame = gf_list_pop_back(ctx->frames_res);
 	if (!frame) {
 		GF_SAFEALLOC(frame, GF_VTBHWFrame);
@@ -210,6 +211,8 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	cts = gf_filter_pck_get_cts(frame->pck_src);
 	dts = gf_filter_pck_get_dts(frame->pck_src);
 	timescale = gf_filter_pck_get_timescale(frame->pck_src);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Decoded frame DTS "LLU" CTS "LLU" timescale %d\n", dts, cts, timescale));
 
 	if (!ctx->last_timescale_out)
 		ctx->last_timescale_out = gf_filter_pck_get_timescale(frame->pck_src);
@@ -296,6 +299,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	char *dsi_data=NULL;
 	u32 dsi_data_size=0;
 	u32 w, h, stride;
+	GF_FilterPid *pid;
 	w = h = 0;
 	
     dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
@@ -311,14 +315,14 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
-
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_WIDTH);
+	pid = gf_list_get(ctx->streams, 0);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	if (p) w = p->value.uint;
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_HEIGHT);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 	if (p) h = p->value.uint;
 
 
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DECODER_CONFIG);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 
 	switch (ctx->codecid) {
     case GF_CODECID_AVC:
@@ -389,7 +393,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			default:
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-					ctx->pix_fmt = GF_PIXEL_YUV_10;
+					ctx->pix_fmt = GF_PIXEL_NV12;
 				}
 				break;
 			}
@@ -502,7 +506,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			default:
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-					ctx->pix_fmt = GF_PIXEL_YUV_10;
+					ctx->pix_fmt = GF_PIXEL_NV12;
 				}
 				break;
 			}
@@ -876,12 +880,13 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	const GF_PropertyValue *p, *dsi;
 	u32 codecid, dsi_crc;
 	GF_Err e;
+	GF_FilterPid *base_pid = NULL;
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
 		ctx->opid = NULL;
-		ctx->ipid = NULL;
+		gf_list_del_item(ctx->streams, pid);
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid)) {
@@ -897,6 +902,40 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	codecid = p->value.uint;
 
+	base_pid = gf_list_get(ctx->streams, 0);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
+	if (!p && base_pid && (base_pid != pid)) return GF_REQUIRES_NEW_INSTANCE;
+	else if (p) {
+		u32 i;
+		u32 base_idx_plus_one = 0;
+
+		if (ctx->codecid != GF_CODECID_HEVC) return GF_REQUIRES_NEW_INSTANCE;
+
+		for (i=0; i<gf_list_count(ctx->streams); i++) {
+			GF_FilterPid *ipid = gf_list_get(ctx->streams, i);
+			const GF_PropertyValue *p_dep;
+			if (ipid==pid) continue;
+
+			p_dep = gf_filter_pid_get_property(ipid, GF_PROP_PID_ID);
+			if (p_dep && p_dep->value.uint == p->value.uint) {
+				base_idx_plus_one = i+1;
+				break;
+			}
+		}
+		if (!base_idx_plus_one) return GF_REQUIRES_NEW_INSTANCE;
+
+		//no support for L-HEVC
+		if (codecid != GF_CODECID_HEVC) return GF_NOT_SUPPORTED;
+		if (gf_list_find(ctx->streams, pid) < 0) {
+			gf_list_insert(ctx->streams, pid, base_idx_plus_one);
+		}
+		//no configure for temporal enhancements
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (ctx->opid && p) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, p);
+		return GF_OK;
+	}
+
+
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
 	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
@@ -909,17 +948,20 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			vtbdec_flush_frame(filter, ctx);
 		}
 	}
-	ctx->ipid = pid;
+	if (gf_list_find(ctx->streams, pid) < 0) {
+		gf_list_insert(ctx->streams, pid, 0);
+	}
 	ctx->cfg_crc = dsi_crc;
 	ctx->codecid = codecid;
+	gf_filter_sep_max_extra_input_pids(filter, (codecid==GF_CODECID_HEVC) ? 5 : 0);
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	}
 
 	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 
 	ctx->nalu_size_length = 0;
@@ -1256,9 +1298,12 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	GF_VTBHWFrame *vtbframe;
     OSStatus status;
 	OSType type;
+
 	if (ctx->no_copy) return vtbdec_send_output_frame(filter, ctx);
 
 	vtbframe = gf_list_pop_front(ctx->frames);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Outputing frame DTS "LLU" CTS "LLU" timescale %d\n", gf_filter_pck_get_dts(vtbframe->pck_src), gf_filter_pck_get_cts(vtbframe->pck_src), gf_filter_pck_get_timescale(vtbframe->pck_src)));
+
 
 	status = CVPixelBufferLockBaseAddress(vtbframe->frame, kCVPixelBufferLock_ReadOnly);
     if (status != kCVReturnSuccess) {
@@ -1335,22 +1380,49 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	char *in_data=NULL;
 	u32 in_data_size;
 	char *in_buffer;
-	u32 in_buffer_size, frames_count;
+	u32 in_buffer_size, frames_count, i, count, nb_eos;
+	u64 min_dts;
 	GF_Err e;
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
+	GF_FilterPid *ref_pid = NULL;
 
-	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
-		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			while (gf_list_count(ctx->frames)) {
-				vtbdec_flush_frame(filter, ctx);
+	//figure out min DTS
+	count = gf_list_count(ctx->streams);
+	nb_eos = 0;
+	min_dts = 0;
+	for (i=0; i<count; i++) {
+		u64 dts;
+		GF_FilterPid *pid = gf_list_get(ctx->streams, i);
+
+		pck = gf_filter_pid_get_packet(pid);
+		if (!pck) {
+			if (gf_filter_pid_is_eos(pid)) {
+				nb_eos++;
+			} else {
+				return GF_OK;
 			}
-			gf_filter_pid_set_eos(ctx->opid);
-			return GF_EOS;
 		}
-		return GF_OK;
+		dts = gf_filter_pck_get_dts(pck);
+		dts *= 1000;
+		dts /= gf_filter_pck_get_timescale(pck);
+		if (!min_dts || (min_dts>dts)) {
+			min_dts = dts;
+			ref_pid = pid;
+		}
 	}
+
+	if (nb_eos==count) {
+		while (gf_list_count(ctx->frames)) {
+			vtbdec_flush_frame(filter, ctx);
+		}
+		gf_filter_pid_set_eos(ctx->opid);
+		return GF_EOS;
+	}
+	assert(ref_pid);
+	pck = gf_filter_pid_get_packet(ref_pid);
+	assert(pck);
+
 	in_buffer = (char *) gf_filter_pck_get_data(pck, &in_buffer_size);
 
 	if (ctx->skip_mpeg4_vosh) {
@@ -1364,7 +1436,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 				ctx->vosh_size = dsi.next_object_start;
 				e = vtbdec_init_decoder(filter, ctx);
 				if (e) {
-					gf_filter_pid_drop_packet(ctx->ipid);
+					gf_filter_pid_drop_packet(ref_pid);
 					return e;
 				}
 
@@ -1373,7 +1445,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 			}
 			ctx->vosh_size = dsi.next_object_start;
 		} else if (!ctx->vtb_session) {
-			gf_filter_pid_drop_packet(ctx->ipid);
+			gf_filter_pid_drop_packet(ref_pid);
 			return GF_OK;
 		}
 	}
@@ -1391,13 +1463,13 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 			
 			e = vtbdec_init_decoder(filter, ctx);
 			if (e) {
-				gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pid_drop_packet(ref_pid);
 				return e;
 			}
 		}
 
 		if (!ctx->vtb_session) {
-			gf_filter_pid_drop_packet(ctx->ipid);
+			gf_filter_pid_drop_packet(ref_pid);
 			return GF_OK;
 		}
 	}
@@ -1445,7 +1517,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		vtbdec_init_decoder(filter, ctx);
 	}
 	if (!ctx->vtb_session) {
-		gf_filter_pid_drop_packet(ctx->ipid);
+		gf_filter_pid_drop_packet(ref_pid);
 		return GF_OK;
 	}
 	
@@ -1466,9 +1538,10 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		if (block_buffer)
 			CFRelease(block_buffer);
 
-		gf_filter_pid_drop_packet(ctx->ipid);
+		gf_filter_pid_drop_packet(ref_pid);
 		return GF_IO_ERR;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Decoding frame DTS "LLU" ms\n", min_dts));
 	ctx->cur_pck = pck;
 	ctx->last_error = GF_OK;
     status = VTDecompressionSessionDecodeFrame(ctx->vtb_session, sample, 0, NULL, 0);
@@ -1479,7 +1552,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	CFRelease(block_buffer);
 	CFRelease(sample);
 
-	gf_filter_pid_drop_packet(ctx->ipid);
+	gf_filter_pid_drop_packet(ref_pid);
 	ctx->cur_pck = NULL;
 
 	if (ctx->last_error) return ctx->last_error;
@@ -1666,6 +1739,8 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	vtb_frame = gf_list_pop_front(ctx->frames);
 	if (!vtb_frame) return GF_BAD_PARAM;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Outputing frame DTS "LLU" CTS "LLU" timescale %d\n", gf_filter_pck_get_dts(vtb_frame->pck_src), gf_filter_pck_get_cts(vtb_frame->pck_src), gf_filter_pck_get_timescale(vtb_frame->pck_src)));
+
 	vtb_frame->hw_frame.user_data = vtb_frame;
 	vtb_frame->hw_frame.get_plane = vtbframe_get_plane;
 #ifdef VTB_GL_TEXTURE
@@ -1715,6 +1790,7 @@ static GF_Err vtbdec_initialize(GF_Filter *filter)
 
 	ctx->frames_res = gf_list_new();
 	ctx->frames = gf_list_new();
+	ctx->streams = gf_list_new();
 	return GF_OK;
 }
 
@@ -1744,6 +1820,8 @@ static void vtbdec_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->frames_res);
 	}
+	gf_list_del(ctx->streams);
+
 	if (ctx->nal_bs) gf_bs_del(ctx->nal_bs);
 	if (ctx->ps_bs) gf_bs_del(ctx->ps_bs);
 	if (ctx->nalu_rewrite_bs) gf_bs_del(ctx->nalu_rewrite_bs);
@@ -1793,6 +1871,7 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	.finalize = vtbdec_finalize,
 	.configure_pid = vtbdec_configure_pid,
 	.process = vtbdec_process,
+	.max_extra_pids = 5,
 	.process_event = vtbdec_process_event,
 };
 

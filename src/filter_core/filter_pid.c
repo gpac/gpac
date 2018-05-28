@@ -2199,8 +2199,12 @@ restart:
 		}
 		//pid->filter->dst_filter NULL and pid->filter->target_filter is not: we had a wrong resolved chain to target
 		//so only attempt to reling the chain if dst_filter is the expected target
-		if (!pid->filter->dst_filter && pid->filter->target_filter && (filter_dst != pid->filter->target_filter))
-			continue;
+		if (!pid->filter->dst_filter && pid->filter->target_filter && (filter_dst != pid->filter->target_filter)) {
+			if (filter_dst->target_filter != pid->filter->target_filter) {
+				continue;
+			}
+			//if the target filter of this filter is the same as ours, try to connect - typically scalable streams decoding
+		}
 
 		//dynamic filters only connect to their destination, unless explicit connections through sources
 		//we could remove this but this highly complicates PID resolution
