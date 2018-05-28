@@ -117,6 +117,7 @@ static Bool log_utc_time = GF_FALSE;
 static Bool loop_at_end = GF_FALSE;
 static u32 forced_width=0;
 static u32 forced_height=0;
+static const char *blacklist = NULL;
 
 /*windowless options*/
 u32 align_mode = 0;
@@ -1416,6 +1417,10 @@ int mp4client_main(int argc, char **argv)
 			/* already parsed */
 			i++;
 		}
+		else if (!strcmp(arg, "-bl")) {
+			blacklist = argv[i+1];
+			i++;
+		}
 
 		/*arguments only used in non-gui mode*/
 		if (!gui_mode) {
@@ -1626,6 +1631,7 @@ int mp4client_main(int argc, char **argv)
 
 	fprintf(stderr, "Loading GPAC Terminal\n");
 	i = gf_sys_clock();
+	user.blacklist = blacklist;
 	term = gf_term_new(&user);
 	if (!term) {
 		fprintf(stderr, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
@@ -1687,6 +1693,9 @@ int mp4client_main(int argc, char **argv)
 		Run = 0;
 	}
 	else if (views) {
+	}
+	else if (url_arg && !strcmp(url_arg, "NOGUI")) {
+		url_arg = NULL;
 	}
 	/*connect if requested*/
 	else if (!gui_mode && url_arg) {
