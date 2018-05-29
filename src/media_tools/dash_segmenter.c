@@ -433,8 +433,8 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
-#ifndef GPAC_DISABLE_AV1 //Romain: TODO
-	GF_AV1Config *av1c;
+#ifndef GPAC_DISABLE_AV1 //Romain: TODO rfc_6381
+	//TODO: GF_AV1Config *av1c;
 #endif
 
 	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
@@ -541,7 +541,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot find AVC configuration box"));
 			return GF_ISOM_INVALID_FILE;
 		}
-#ifndef GPAC_DISABLE_HEVC //TODO for AV1
+#ifndef GPAC_DISABLE_HEVC
 	case GF_ISOM_SUBTYPE_HVC1:
 	case GF_ISOM_SUBTYPE_HEV1:
 	case GF_ISOM_SUBTYPE_HVC2:
@@ -549,7 +549,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_HVT1:
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
-
 		if (force_inband) {
 			if (subtype==GF_ISOM_SUBTYPE_HVC1) subtype = GF_ISOM_SUBTYPE_HEV1;
 			else if (subtype==GF_ISOM_SUBTYPE_HVC2) subtype = GF_ISOM_SUBTYPE_HEV2;
@@ -629,7 +628,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		}
 		return GF_OK;
-#endif
+#endif /*GPAC_DISABLE_HEVC*/
+
+#ifndef GPAC_DISABLE_AV1
+	//TODO: case GF_ISOM_SUBTYPE_AV01:
+#endif /*GPAC_DISABLE_AV1*/
 
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));

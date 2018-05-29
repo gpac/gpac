@@ -6883,7 +6883,7 @@ next_nal:
 		//must use LHV1/LHC1 since no base HEVC in the track
 		gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, GF_ISOM_LEHVC_ONLY);
 	}
-	//HEVC with optionnal lhvc
+	//HEVC with optional lhvc
 	else {
 		gf_isom_set_visual_info(import->dest, track, di, max_w_b, max_h_b);
 		hevc_set_parall_type(hevc_cfg);
@@ -7016,70 +7016,28 @@ exit:
 #endif //GPAC_DISABLE_HEVC
 }
 
-u64 leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
-	u64 value = 0;
-	u8 Leb128Bytes = 0, i = 0;
-	for (i = 0; i < 8; i++) {
-		u8 leb128_byte = gf_bs_read_u8(bs);
-		value |= ((leb128_byte & 0x7f) << (i * 7));
-		Leb128Bytes += 1;
-		if (!(leb128_byte & 0x80)) {
-			break;
-		}
+static void av1_reset_frame_state(AV1StateFrame *frame_state) {
+	while (gf_list_count(frame_state->header_obus)) {
+		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->header_obus, 0);
+		if (a->obu) gf_free(a->obu);
+		gf_list_rem(frame_state->header_obus, 0);
+		gf_free(a);
 	}
-
-	if (opt_Leb128Bytes) {
-		*opt_Leb128Bytes = Leb128Bytes;
-	}
-	return value;
-}
-
-static GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, u64 *frame_size, AV1State *state)
-{
-	GF_Err e = GF_OK;
-	assert(bs && frame_size && state);
-	u64 sz = leb128(bs, NULL);
-	*frame_size = sz;
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", *frame_size)); //Romain: should be debug
-	while (sz > 0)
-	{
-		u8 Leb128Bytes = 0;
-		u64 frame_unit_size = leb128(bs, &Leb128Bytes);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] Annex B    frame unit detected (size "LLU")\n", frame_unit_size)); //Romain: should be debug
-		sz -= Leb128Bytes;
-		while (frame_unit_size > 0) {
-			ObuType obu_type;
-			u64 obu_length = leb128(bs, &Leb128Bytes);
-			frame_unit_size -= Leb128Bytes;
-			e = gf_media_aom_av1_parse_obu(bs, &obu_length, &obu_type, state);
-			if (e) return e;
-			frame_unit_size -= obu_length;
-		}
-		sz -= frame_unit_size;
-	}
-
-	return GF_OK;
-}
-
-static GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, u64 *frame_size, AV1State *state)
-{
-	GF_Err e = gf_media_aom_parse_ivf_frame_header(bs, frame_size);
-	u64 sz = *frame_size;
-	if (e) return e;
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", *frame_size)); //Romain: should be debug
-
-	while (sz > 8) {
-		u64 obu_size = 0;
-		ObuType obu_type;
-		if (gf_media_aom_av1_parse_obu(bs, &obu_size, &obu_type, state) != GF_OK)
-			return e;
-
-		sz -= obu_size;
-	}
+	gf_list_del(frame_state->header_obus);
 	
-	*frame_size += 12; //add IVF header size
-	return e;
+	while (gf_list_count(frame_state->frame_obus)) {
+		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->frame_obus, 0);
+		if (a->obu) gf_free(a->obu);
+		gf_list_rem(frame_state->frame_obus, 0);
+		gf_free(a);
+	}
+	gf_list_del(frame_state->frame_obus);
+
+	memset(frame_state, 0, sizeof(AV1StateFrame));
 }
+
+GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, u64 *frame_size, AV1State *state);
+GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, u64 *frame_size, AV1State *state);
 
 static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 {
@@ -7090,12 +7048,17 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	GF_AV1Config *av1_cfg = NULL;
 	AV1State state;
 	FILE *mdia = NULL;
-	GF_BitStream *bs = NULL, *sample_data = NULL;
+	GF_BitStream *bs = NULL, *sample_data = NULL /*sample_data should be mapped in AV1FrameState*/;
 	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0;
 	Bool detect_fps;
 	Double FPS = 0.0;
 	u64 pos = 0;
-	const Bool annex_b = GF_FALSE; //if not Annex B assumer IVF
+	typedef enum {
+		OBUs,   /*Section 5*/
+		AnnexB,
+		IVF
+	} AV1BitstreamSyntax;
+	AV1BitstreamSyntax av1_bs_syntax = OBUs;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -7111,7 +7074,6 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	mdia = gf_fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
-	//Romain: is this block necessary?
 	detect_fps = GF_TRUE;
 	FPS = (Double)import->video_fps;
 	if (!FPS) {
@@ -7142,9 +7104,10 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		gf_isom_set_track_reference(import->dest, track_num, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
 	}
 
-	e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg, NULL, NULL, &di);
+	e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg /*Romain: this is empty and zeroed!!! => gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);*/, NULL, NULL, &di);
 	if (e) goto exit;
 
+	//Romain: check below
 	//gf_isom_set_nalu_extract_mode(import->dest, trackNum, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 	//duration = (u64) ( ((Double)import->duration) * timescale / 1000.0);
@@ -7161,41 +7124,32 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 	while (gf_bs_available(bs)) {
 		u64 frame_size = 0;
+		av1_reset_frame_state(&state.frame_state);
 		pos = gf_bs_get_position(bs);
-		if (annex_b) {
+
+		/*we process each TU and extract only the necessary OBUs*/
+		if (av1_bs_syntax == OBUs) {
+			gf_import_message(import, GF_OK, "Error parsing OBUs: Section 5 not supported. Use IVF or Annex B.");
+			//delimit at OBU_TEMPORAL_DELIMITER
+		} else if (av1_bs_syntax == AnnexB) {
 			if (aom_av1_parse_obu_from_annexb(bs, &frame_size, &state) != GF_OK) {
 				gf_import_message(import, GF_OK, "Error parsing OBU");
 				goto exit;
 			}
-		}
-		else {
+		} else if (av1_bs_syntax == IVF) {
 			if (aom_av1_parse_obu_from_ivf(bs, &frame_size, &state) != GF_OK) {
 				gf_import_message(import, GF_OK, "Error parsing OBU");
 				goto exit;
 			}
 		}
 
-		gf_bs_seek(bs, pos);
-
-		//Romain:
-		//A sync sample for this specification is a temporal unit satisfying the following constraints :
-		//- Its first frame is a Key Frame that has show_frame flag set to 1,
-		//- It contains a Sequence Header before the first Frame Header.
-		//
-		//Intra-only frames SHOULD be signaled using the sample_depends_on flag set to 2.
-		//etc. See for sample groups
-
+		/*add sample*/
 		{
 			GF_ISOSample *samp = gf_isom_sample_new();
-			samp->DTS = (u64)/*dts_inc Romain*/1*cur_samp;
-			samp->IsRAP = RAP;//Romain: TODO: (sample_rap_type == SAP_TYPE_1) ? RAP : RAP_NO;
-			/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
+			samp->DTS = (u64)dts_inc*cur_samp;
+			samp->IsRAP = state.frame_state.key_frame;
 			samp->CTS_Offset = 0;
-			samp->data = gf_malloc(frame_size);
-			//Romain: take care that IVF size and data contains the HEADER!! and what about Annex B
-			//Romain: gf_bs_get_content()
-			//Romain: memcpy(samp->data, , frame_size);
-			samp->dataLength = (u32)frame_size;
+			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 			gf_bs_del(sample_data);
 			sample_data = NULL;
 			e = gf_isom_add_sample(import->dest, track_num, di, samp);
@@ -7228,10 +7182,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AV01, 1);
 
 exit:
-#if 0 //Romain
+	av1_reset_frame_state(&state.frame_state);
 	if (sample_data) gf_bs_del(sample_data);
-	gf_free(buffer);
-#endif
 	gf_odf_av1_cfg_del(av1_cfg);
 	gf_bs_del(bs);
 	gf_fclose(mdia);

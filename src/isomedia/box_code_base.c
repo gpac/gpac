@@ -5568,6 +5568,8 @@ GF_Err stsd_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_HVT1:
 	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_LHE1:
+	case GF_ISOM_BOX_TYPE_AV01:
+	case GF_ISOM_BOX_TYPE_AV1C:
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_TEXT:
 	case GF_ISOM_BOX_TYPE_ENCT:
@@ -6821,6 +6823,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_HVT1:
 		case GF_ISOM_BOX_TYPE_LHV1:
 		case GF_ISOM_BOX_TYPE_LHE1:
+		case GF_ISOM_BOX_TYPE_AV01:
+		case GF_ISOM_BOX_TYPE_AV1C:
 		case GF_ISOM_BOX_TYPE_TX3G:
 		case GF_ISOM_BOX_TYPE_TEXT:
 		case GF_ISOM_BOX_TYPE_ENCT:

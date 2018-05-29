@@ -589,6 +589,9 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_SUBTYPE_LHE1:
 		name = "LHEVCSampleEntryBox";
 		break;
+	case GF_ISOM_SUBTYPE_AV01:
+		name = "AV1SampleEntryBox";
+		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		name = "H263SampleDescriptionBox";
 		break;
@@ -1560,6 +1563,16 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "</%sDecoderConfigurationRecord>\n", name);
 
 	gf_isom_box_dump_done(boxname, a, trace);
+	return GF_OK;
+}
+
+GF_Err av1c_dump(GF_Box *a, FILE *trace) {
+	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)a;
+	fprintf(trace, "<AV1ConfigurationBox>\n");
+	if (ptr->config) {
+		fprintf(trace, "</AV1Config initial_presentation_delay_minus_one=%u OBUs_count=%u>\n", ptr->config->initial_presentation_delay_minus_one, gf_list_count(ptr->config->obu_array));
+	}
+	fprintf(trace, "</AV1ConfigurationBox>\n");
 	return GF_OK;
 }
 

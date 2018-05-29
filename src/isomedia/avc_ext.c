@@ -1538,8 +1538,21 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	return e;
 }
 
+static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg) {
+	u32 i = 0;
+	GF_AV1Config *out = gf_malloc(sizeof(GF_AV1Config));
+	out->initial_presentation_delay_minus_one = cfg->initial_presentation_delay_minus_one;;
+	out->obu_array = gf_list_new();
+	for (i=0; i<gf_list_count(cfg->obu_array); ++i) {
+		GF_AV1_OBUArrayEntry *dst = gf_malloc(sizeof(GF_AV1_OBUArrayEntry)), *src = gf_list_get(cfg->obu_array, i);
+		dst->obu_length = src->obu_length;
+		memcpy(dst->obu, src->obu, src->obu_length);
+		gf_list_add(out->obu_array, dst);
+	}
+	return out;
+}
+
 GF_EXPORT
-//Romain: move this fct elsewhere: aom_ext.c?
 GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -1567,13 +1580,15 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Confi
 	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AV01);
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->av1_config = (GF_AV1ConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
-	//Romain: entry->av1_config->config = HEVC_DuplicateConfig(cfg);
+	if (!entry->av1_config) return GF_OUT_OF_MEM;
+	entry->av1_config->config = AV1_DuplicateConfig(cfg);
 	entry->dataReferenceIndex = dataRefIndex;
 	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
-	//Romain: HEVC_RewriteESDescriptor(entry);
 	return e;
 }
+
+
 typedef enum
 {
 	GF_ISOM_HVCC_UPDATE = 0,
@@ -2377,6 +2392,100 @@ GF_Err hvcc_Size(GF_Box *s)
 	}
 	return GF_OK;
 }
+
+GF_Box *av1c_New() {
+	GF_AV1ConfigurationBox *tmp = (GF_AV1ConfigurationBox *)gf_malloc(sizeof(GF_AV1ConfigurationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_AV1ConfigurationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_AV1C;
+	return (GF_Box *)tmp;
+}
+
+void av1c_del(GF_Box *s) {
+	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
+	if (ptr->config) gf_odf_av1_cfg_del(ptr->config);
+	gf_free(ptr);
+}
+
+GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_type, AV1State *state);
+
+GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
+	AV1State state;
+	u8 reserved;
+	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
+	
+	if (ptr->config) gf_odf_av1_cfg_del(ptr->config);
+	GF_SAFEALLOC(ptr->config, GF_AV1Config);
+
+	reserved = gf_bs_read_int(bs, 5);
+	if (reserved != 0)
+		return GF_NOT_SUPPORTED;
+	ptr->config->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 3);
+	ptr->config->obu_array = gf_list_new();
+
+	while (gf_bs_available(bs)) {
+		u64 pos, obu_size;
+		ObuType obu_type;
+		GF_AV1_OBUArrayEntry *a;
+		
+		pos = gf_bs_get_position(bs);
+		if (gf_media_aom_av1_parse_obu(bs, &obu_size, &obu_type, &state) != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMFF: could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
+			break;
+		}
+		gf_bs_seek(bs, pos);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMFF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", pos)); /*Romain: debug*/
+
+		//Romain: we should have a function to select proper obu type: safety here and selection elsewhere
+		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
+		gf_bs_read_data(bs, a->obu, (u32)obu_size);
+		a->obu_length = obu_size;
+		gf_list_add(ptr->config->obu_array, a);
+	}
+
+	return GF_OK;
+}
+
+GF_Err av1c_Write(GF_Box *s, GF_BitStream *bs) {
+	GF_Err e;
+	u32 i;
+	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
+	if (!s) return GF_BAD_PARAM;
+	if (!ptr->config) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_int(bs, 0, 5); /*reserved*/
+	gf_bs_write_int(bs, ptr->config->initial_presentation_delay_minus_one, 3); /*Romain: modify this after debugging: TODO: compute initial_presentation_delay_minus_one*/
+
+	for (i = 0; i < gf_list_count(ptr->config->obu_array); ++i) {
+		GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
+		gf_bs_write_data(bs, a->obu, (u32)a->obu_length);
+	}
+
+	return GF_OK;
+}
+
+GF_Err av1c_Size(GF_Box *s) {
+	u32 i;
+	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox *)s;
+
+	if (!ptr->config) {
+		ptr->size = 0;
+		return GF_BAD_PARAM;
+	}
+
+	ptr->size += 1;
+
+	for (i = 0; i < gf_list_count(ptr->config->obu_array); ++i) {
+		GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
+		ptr->size += a->obu_length;
+	}
+
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_OperatingPointsInformation *gf_isom_oinf_new_entry()

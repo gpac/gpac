@@ -493,6 +493,7 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u3
 
 
 typedef enum {
+	OBU_SKIP = 0,
 	OBU_SEQUENCE_HEADER = 1,
 	OBU_TEMPORAL_DELIMITER = 2,
 	OBU_FRAME_HEADER = 3,
@@ -503,7 +504,7 @@ typedef enum {
 	OBU_PADDING = 15,
 } ObuType;
 
-/*!\brief OBU metadata types. */
+/*!\brief obu metadata types. */
 typedef enum {
 	OBU_METADATA_TYPE_PRIVATE_DATA = 0,
 	OBU_METADATA_TYPE_HDR_CLL = 1,
@@ -513,12 +514,24 @@ typedef enum {
 
 typedef struct
 {
+	Bool seen_frame_header;
+	Bool key_frame;
+	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
+} AV1StateFrame;
+
+typedef struct
+{
+	Bool frame_id_numbers_present_flag;
+	Bool reduced_still_picture_header;
 	u16 OperatingPointIdc;
 	u16 width, height;
+	AV1StateFrame frame_state;
 } AV1State;
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
 GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
+
+/*parses one OBU*/
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_type, AV1State *state);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
