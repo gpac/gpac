@@ -995,16 +995,15 @@ typedef struct
 /*! used for storing AV1 OBUs*/
 typedef struct
 {
-	u8 OBULength;
-	u8 *OBU;
-} GF_AV1_OBUArray;
+	u64 obu_length;
+	u8 *obu;
+} GF_AV1_OBUArrayEntry;
 
 /*! AV1 config record - not a real MPEG-4 descriptor*/
 typedef struct
 {
 	u8 initial_presentation_delay_minus_one;
-	u8 numOBUs;
-	GF_List *OBUs_array; /*GF_AV1_OBUArray*/
+	GF_List *obu_array; /*GF_AV1_OBUArrayEntry*/
 } GF_AV1Config;
 
 /*! Media Segment Descriptor used for Media Control Extensions*/
