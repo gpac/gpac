@@ -690,7 +690,7 @@ static GF_Err gf_isom_write_content_protection(GF_ISOFile *input, FILE *mpd, u32
 	if (gf_isom_is_cenc_media(input, protected_track, 1)) {
 		bin128 default_KID;
 		u8 i;
-		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID);
+		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
 		for (i=0; i<indent; i++)
 			fprintf(mpd, " ");
 		fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"", gf_4cc_to_str(prot_scheme) );

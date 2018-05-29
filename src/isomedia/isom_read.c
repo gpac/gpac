@@ -4022,8 +4022,6 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	if (constant_IV_size) *constant_IV_size = 0;
 	if (constant_IV) memset(*constant_IV, 0, 16);
 
-	if (!senc) return GF_BAD_PARAM;
-
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf)
 		return GF_BAD_PARAM;
@@ -4035,8 +4033,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 		//this is dump mode of fragments, we haven't merged tables yet :(
 		descIndex = 1;
 	}
-	gf_isom_cenc_get_default_info_ex(trak, descIndex, IsEncrypted, IV_size, KID);
-
+	gf_isom_cenc_get_default_info_ex(trak, descIndex, IsEncrypted, IV_size, KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
 
 	sample_group = NULL;
 	group_desc_index = 0;
@@ -4125,7 +4122,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 exit:
 
 	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
-	if ((senc->is_piff || (trak->moov && trak->moov->mov->is_smooth) ) && !(*IV_size) ) {
+	if (( (senc && senc->is_piff) || (trak->moov && trak->moov->mov->is_smooth) ) && !(*IV_size) ) {
 		if (!senc->is_piff) {
 			senc->is_piff = GF_TRUE;
 			senc->IV_size=8;
