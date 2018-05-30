@@ -142,7 +142,7 @@ typedef struct
 	unsigned char constant_IV[16];
 	//true if using AES-CTR mode, false if using AES-CBC mode
 	Bool ctr_mode;
-	u32 cenc_scheme_type;
+	u32 scheme_type;
 	//for avc1 ctr CENC edition 1
 	Bool allow_encrypted_slice_header;
 	//force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples
