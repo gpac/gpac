@@ -201,7 +201,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 						sscanf(szV, "%x", &v);
 						tkc->first_IV[j/2] = v;
 					}
-					if (!tkc->IV_size) tkc->IV_size = strlen(sKey) / 2;
+					if (!tkc->IV_size) tkc->IV_size = (u32) strlen(sKey) / 2;
 				}
 			}
 			else if (!stricmp(att->name, "saiSavedBox")) {
@@ -244,7 +244,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 						tkc->constant_IV[j/2] = v;
 					}
 				}
-				if (!tkc->constant_IV_size) tkc->constant_IV_size = strlen(sKey) / 2;
+				if (!tkc->constant_IV_size) tkc->constant_IV_size = (u32) strlen(sKey) / 2;
 			}
 			else if (!stricmp(att->name, "encryptSliceHeader")) {
 				tkc->allow_encrypted_slice_header = !strcmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
@@ -1200,7 +1200,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nal_size, bytes_in_nalhr);
 			} else {
-				nal_size = gf_bs_available(plaintext_bs);
+				nal_size = (u32) gf_bs_available(plaintext_bs);
 				clear_bytes = bytes_in_nalhr;
 				if (nal_size<clear_bytes) {
 					if (tci->block_align==2) {
