@@ -1009,7 +1009,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_HEVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
-		if (e == GF_OK && props.config) {			
+		if (e == GF_OK && props.config) {
 			gf_odf_hevc_cfg_write(((GF_HEVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
@@ -3264,13 +3264,16 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	GF_List *fragmenters;
 	u32 MaxFragmentDuration;
 	GF_TrackFragmenter *tf;
-    Bool drop_version = gf_isom_drop_date_version_info_enabled(input);
+	GF_TrackFragmentRandomAccessBox *tfra;
+	Bool drop_version = gf_isom_drop_date_version_info_enabled(input);
 
 	//create output file
 	output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 	if (!output) return gf_isom_last_error(NULL);
 
-    gf_isom_no_version_date_info(output, drop_version);
+	output->mfra = (GF_MovieFragmentRandomAccessBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRA);
+
+	gf_isom_no_version_date_info(output, drop_version);
 
 
 	nb_samp = 0;
@@ -3360,6 +3363,15 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 			tf->DefaultDuration = defaultDuration;
 			gf_list_add(fragmenters, tf);
 			nb_samp += count;
+
+			tfra = (GF_TrackFragmentRandomAccessBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TFRA);
+			tfra->entries = 0;
+			tfra->nb_entries = 0;
+			tfra->track_id = tf->TrackID;
+			tfra->traf_bits = 8;
+			tfra->trun_bits = 8;
+			tfra->sample_bits = 8;
+			gf_list_add(output->mfra->tfra_list, tfra);
 		}
 
 		if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
@@ -3402,6 +3414,15 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		for (i=0; i<count; i++) {
 			tf = (GF_TrackFragmenter *)gf_list_get(fragmenters, i);
 
+			tfra = (GF_TrackFragmentRandomAccessBox *)gf_list_get(output->mfra->tfra_list, i);
+			tfra->entries = (GF_RandomAccessEntry *)gf_realloc(tfra->entries, (tfra->nb_entries+1)*sizeof(GF_RandomAccessEntry));
+			GF_RandomAccessEntry *raf = &tfra->entries[tfra->nb_entries++];
+			raf->sample_number = 1;
+			raf->time = 0;
+			raf->traf_number = i+1;
+			raf->trun_number = 1;
+			raf->moof_offset = output->moof->fragment_offset;
+
 			gf_isom_set_nalu_extract_mode(input, tf->OriginalTrack, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 			//ok write samples
@@ -3426,8 +3447,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 				/*copy subsample information*/
 				e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1, GF_FALSE);
-				if (e)
-					goto err_exit;
+				if (e) goto err_exit;
+
+				if (!raf->time)
+				  raf->time = sample->DTS;
 
 				gf_set_progress("ISO File Fragmenting", nb_done, nb_samp);
 				nb_done++;
@@ -3464,7 +3487,7 @@ err_exit:
 	}
 	gf_list_del(fragmenters);
 	if (e) gf_isom_delete(output);
-	else gf_isom_close(output);
+  else gf_isom_close(output);
 	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);
 	return e;
 #else
