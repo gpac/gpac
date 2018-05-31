@@ -464,6 +464,16 @@ GF_Err gf_isom_write(GF_ISOFile *movie) {
 		if ( (movie->openMode == GF_ISOM_OPEN_WRITE) && (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) {
 			e = gf_isom_close_fragments(movie);
 			if (e) return e;
+			//in case of mfra box usage -> create mfro, calculate box sizes and write it out
+			if (movie->mfra) {
+				movie->mfra->mfro = (GF_MovieFragmentRandomAccessOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRO);
+				e = gf_isom_box_size((GF_Box *)movie->mfra);
+				if (e) return e;
+				movie->mfra->mfro->container_size = movie->mfra->size;
+				//write mfra
+				GF_BitStream *bs = movie->editFileMap->bs;
+				e = gf_isom_box_write((GF_Box *)movie->mfra, bs);
+			}
 		} else
 #endif
 			e = WriteToFile(movie);
