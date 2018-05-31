@@ -399,7 +399,8 @@ void PrintDASHUsage()
 	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
-	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
+	        " -pssh-moof           [deprecated] use -pssh=f\n"
+	        " -pssh=MODE           sets pssh store mode. Mode can be v (moov), f (frag), m (mpd) mv/vm (moov+mpd) mf/fm (moof+mpd).\n"
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
 	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
@@ -1950,7 +1951,7 @@ Bool live_scene = GF_FALSE;
 GF_MemTrackerType mem_track = GF_MemTrackerNone;
 
 Bool dump_iod = GF_FALSE;
-Bool pssh_in_moof = GF_FALSE;
+GF_DASHPSSHMode pssh_mode = 0;
 Bool samplegroups_in_traf = GF_FALSE;
 Bool daisy_chain_sidx = GF_FALSE;
 Bool single_segment = GF_FALSE;
@@ -3488,7 +3489,15 @@ Bool mp4box_parse_args(int argc, char **argv)
 			single_file = 1;
 		}
 		else if (!stricmp(arg, "-pssh-moof")) {
-			pssh_in_moof = 1;
+			pssh_mode = GF_DASH_PSSH_MOOF;
+		}
+		else if (!strnicmp(arg, "-pssh=", 6)) {
+			if (!strcmp(arg+6, "f")) pssh_mode = GF_DASH_PSSH_MOOF;
+			else if (!strcmp(arg+6, "v")) pssh_mode = GF_DASH_PSSH_MOOV;
+			else if (!strcmp(arg+6, "m")) pssh_mode = GF_DASH_PSSH_MPD;
+			else if (!strcmp(arg+6, "mf") || !strcmp(arg+6, "fm")) pssh_mode = GF_DASH_PSSH_MOOF_MPD;
+			else if (!strcmp(arg+6, "mv") || !strcmp(arg+6, "vm")) pssh_mode = GF_DASH_PSSH_MOOV_MPD;
+			else pssh_mode = GF_DASH_PSSH_MOOV;
 		}
 		else if (!stricmp(arg, "-sample-groups-traf")) {
 			samplegroups_in_traf = 1;
@@ -4176,7 +4185,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
 		if (!e) e = gf_dasher_enable_memory_fragmenting(dasher, memory_frags);
 		if (!e) e = gf_dasher_set_initial_isobmf(dasher, initial_moof_sn, initial_tfdt);
-		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, tfdt_per_traf);
+		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_mode, samplegroups_in_traf, single_traf_per_moof, tfdt_per_traf);
 		if (!e) e = gf_dasher_enable_utc_ref(dasher, insert_utc);
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
