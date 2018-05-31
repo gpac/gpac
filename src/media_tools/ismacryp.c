@@ -1434,7 +1434,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 
-	if ((tci->scheme_type == GF_CRYPT_TYPE_CENS) || ((tci->scheme_type == GF_CRYPT_TYPE_CBCS) && is_nalu_video)) {
+	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && is_nalu_video) {
 		if (!tci->crypt_byte_block || !tci->skip_byte_block) {
 			if (tci->crypt_byte_block || tci->skip_byte_block) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
@@ -1454,10 +1454,18 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			//cbcs allows bytes of clear data
 			bytes_in_nalhr = tci->clear_bytes;
 		}
+		//This is not clear in the spec, setting skip and crypt to 0 means no pattern, in which case tenc version shall be 0
+		//but cbcs asks for 1 - needs further clarification
+#if 0
 		//setup defaults
 		else if (!tci->crypt_byte_block) {
 			tci->crypt_byte_block = 1;
 		}
+#else
+		else {
+			tci->crypt_byte_block = 0;
+		}
+#endif
 	}
 	else if ((tci->scheme_type == GF_CRYPT_TYPE_CENS) && tci->skip_byte_block) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using cens pattern mode on non NAL video track not allowed, forcing skip_byte_block to 0\n"));
