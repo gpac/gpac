@@ -1720,8 +1720,31 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 		//add 8 bytes (MDAT size+type) to avoid the data_offset in the first trun
 		traf->tfhd->base_data_offset = movie->moof->fragment_offset + 8;
 		gf_list_add(movie->moof->TrackList, traf);
-	}
 
+		if (movie->mfra) {
+			GF_TrackFragmentRandomAccessBox *tfra;
+			GF_RandomAccessEntry *raf;
+			if (!traf->trex->tfra) {
+				tfra = (GF_TrackFragmentRandomAccessBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TFRA);
+				tfra->track_id = traf->trex->trackID;
+				tfra->traf_bits = 8;
+				tfra->trun_bits = 8;
+				tfra->sample_bits = 8;
+				gf_list_add(movie->mfra->tfra_list, tfra);
+				traf->trex->tfra = tfra;
+			}
+			tfra = traf->trex->tfra;
+			tfra->entries = (GF_RandomAccessEntry *)gf_realloc(tfra->entries, (tfra->nb_entries+1)*sizeof(GF_RandomAccessEntry));
+			tfra->nb_entries++;
+			raf = &tfra->entries[tfra->nb_entries-1];
+			raf->sample_number = 1;
+			raf->time = 0;
+			raf->traf_number = i+1;
+			//trun number is set once we fond a sync
+			raf->trun_number = 0;
+			raf->moof_offset = movie->moof->fragment_offset;
+		}
+	}
 	return GF_OK;
 }
 
@@ -1873,6 +1896,17 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 		}
 	}
 	if (od_sample) gf_isom_sample_del(&od_sample);
+
+	if (traf->trex->tfra) {
+		GF_RandomAccessEntry *raf;
+		raf = &traf->trex->tfra->entries[traf->trex->tfra->nb_entries-1];
+		//if sample is sync, store its time and trun number
+		if (!raf->trun_number && sample->IsRAP) {
+			raf->time = sample->DTS + sample->CTS_Offset;
+			raf->trun_number = gf_list_count(traf->TrackRuns);
+			raf->sample_number = trun->sample_count;
+		}
+	}
 	return GF_OK;
 }
 
@@ -2171,6 +2205,13 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u
 	return GF_OK;
 }
 
+GF_Err gf_isom_enable_mfra(GF_ISOFile *file)
+{
+	if (!file) return GF_BAD_PARAM;
+	file->mfra = (GF_MovieFragmentRandomAccessBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRA);
+	return GF_OK;
+}
+
 #else
 
 GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, u32 media_segment_type)
@@ -2237,6 +2278,12 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u
 {
 	return GF_NOT_SUPPORTED;
 }
+
+GF_Err gf_isom_enable_mfra(GF_ISOFile *file)
+{
+	return GF_NOT_SUPPORTED;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS)*/
 

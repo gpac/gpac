@@ -1942,6 +1942,8 @@ typedef struct
 	u32 def_sample_size;
 	u32 def_sample_flags;
 	GF_TrackBox *track;
+
+	GF_TrackFragmentRandomAccessBox *tfra;
 } GF_TrackExtendsBox;
 
 /*the TrackExtends contains default values for the track fragments*/

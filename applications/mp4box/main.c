@@ -1948,6 +1948,7 @@ Bool stream_rtp = GF_FALSE;
 Bool force_test_mode = GF_FALSE;
 Bool force_co64 = GF_FALSE;
 Bool live_scene = GF_FALSE;
+Bool use_mfra = GF_FALSE;
 GF_MemTrackerType mem_track = GF_MemTrackerNone;
 
 Bool dump_iod = GF_FALSE;
@@ -2132,6 +2133,9 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		}
 		else if (!stricmp(arg, "-frag-rap")) {
 			frag_at_rap = 1;
+		}
+		else if (!stricmp(arg, "-mfra")) {
+			use_mfra = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-ts")) hint_flags |= GP_RTP_PCK_SIGNAL_TS;
 		else if (!stricmp(arg, "-size")) hint_flags |= GP_RTP_PCK_SIGNAL_SIZE;
@@ -5255,7 +5259,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!interleaving_time) interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
 		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", interleaving_time);
-		e = gf_media_fragment_file(file, outfile, interleaving_time);
+		e = gf_media_fragment_file(file, outfile, interleaving_time, use_mfra);
 		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		if (!e && !outName && !force_new) {
 			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
