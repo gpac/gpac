@@ -3238,6 +3238,9 @@ struct __tag_isom {
 	/* 0: no moof found yet, 1: 1 moof found, 2: next moof found */
 	Bool single_moof_mode;
 	u32 single_moof_state;
+
+	/* optional mfra box used in write mode */
+	GF_MovieFragmentRandomAccessBox *mfra;
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
