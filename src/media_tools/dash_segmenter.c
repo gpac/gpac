@@ -4888,7 +4888,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		j = *nb_dash_inputs + max_nb_deps;
 		dash_inputs = (GF_DashSegInput*)gf_realloc(dash_inputs, sizeof(GF_DashSegInput) * j);
 		memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegInput) * max_nb_deps);
-		*io_dash_inputs = dash_inputs;
+		(*io_dash_inputs) = dash_inputs;
 
 		dash_input = & dash_inputs[idx];
 		dash_input->nb_representations = 1 + max_nb_deps;
@@ -5012,7 +5012,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		}
 #endif
 
-		/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
+		/*dependencyID - FIXME - the declaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
 		for (k=0; k<2; k++) {
 			for (j = idx; j < *nb_dash_inputs; j++) {
 				GF_DashSegInput *di;
@@ -5021,17 +5021,18 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				u32 dep_type;
 
 				di = &dash_inputs[j];
+				if (di->dependencyID) continue;
 
 #ifdef GENERATE_VIRTUAL_REP_SRD
-				if (k==0) dep_type = (di->virtual_representation) ? GF_ISOM_REF_SABT : GF_ISOM_REF_TBAS;
+				if (k==1) dep_type = (di->virtual_representation) ? GF_ISOM_REF_SABT : GF_ISOM_REF_TBAS;
 #else
-				if (k==0) dep_type = GF_ISOM_REF_TBAS;
+				if (k==1) dep_type = GF_ISOM_REF_TBAS;
 #endif
 				else dep_type = GF_ISOM_REF_SCAL;
 
 				count = gf_isom_get_reference_count(file, di->trackNum, dep_type);
 				if (!count) {
-					if (k==0) {
+					if (k==1) {
 						switch (gf_isom_get_media_subtype(file, j+1, 1)) {
 						case GF_ISOM_SUBTYPE_LHE1:
 						case GF_ISOM_SUBTYPE_LHV1:
@@ -5067,6 +5068,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 					di->lower_layer_track = ref_track;
 				}
+				if (di->dependencyID) gf_free(di->dependencyID);
 				di->dependencyID = depID;
 			}
 		}
