@@ -7041,7 +7041,7 @@ GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, u64 *frame_size, AV1State *s
 
 static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 {
-#ifdef GPAC_DISABLE_AV1 //Romain: TODO
+#ifdef GPAC_DISABLE_AV1
 	return GF_NOT_SUPPORTED;
 #endif
 	GF_Err e = GF_OK;
