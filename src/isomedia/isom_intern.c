@@ -657,7 +657,8 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 	gf_isom_box_array_del(mov->TopBoxes);
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	gf_isom_box_array_del(mov->moof_list);
-	gf_isom_box_del(mov->mfra);
+	if (mov->mfra)
+		gf_isom_box_del((GF_Box*)mov->mfra);
 #endif
 	if (mov->last_producer_ref_time)
 		gf_isom_box_del((GF_Box *) mov->last_producer_ref_time);
