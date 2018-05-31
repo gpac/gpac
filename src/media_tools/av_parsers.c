@@ -1839,7 +1839,6 @@ static GF_Err av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *ob
 	return GF_OK;
 }
 
-//Romain: use both following functions
 static Bool av1_is_obu_header(ObuType obu_type) {
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
@@ -1891,11 +1890,11 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 {
 	if (av1_is_obu_header(obu_type)) {
 		OBU_COPY;
-		gf_list_add(state->frame_state.header_obus, a);
+		gf_list_add(state->frame_state.header_obus, a); //Romain: use a bs instead
 	}
 	if (av1_is_obu_frame(obu_type)) {
 		OBU_COPY;
-		gf_list_add(state->frame_state.frame_obus, a);
+		gf_list_add(state->frame_state.frame_obus, a); //Romain: use a bs instead
 	}
 }
 
@@ -1905,11 +1904,11 @@ GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, u64 *frame_size, AV1State
 	assert(bs && frame_size && state);
 	u64 sz = leb128(bs, NULL);
 	*frame_size = sz;
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", *frame_size)); //Romain: should be debug
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", *frame_size));
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
 		u64 frame_unit_size = leb128(bs, &Leb128Bytes);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] Annex B    frame unit detected (size "LLU")\n", frame_unit_size)); //Romain: should be debug
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B    frame unit detected (size "LLU")\n", frame_unit_size));
 		sz -= Leb128Bytes;
 
 		while (frame_unit_size > 0) {
@@ -1937,7 +1936,7 @@ GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, u64 *frame_size, AV1State *s
 	GF_Err e = gf_media_aom_parse_ivf_frame_header(bs, frame_size);
 	u64 sz = *frame_size;
 	if (e) return e;
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", *frame_size)); //Romain: should be debug
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", *frame_size));
 
 	while (sz > 8) {
 		u64 obu_size = 0, pos = gf_bs_get_position(bs);
@@ -2047,7 +2046,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_
 	}
 	case OBU_METADATA: {
 #if 0 //TODO + sample groups
-		const ObuMetadataType metadata_type = gf_bs_read_u16/*Romain: should u16 be _le?*/(bs);
+		const ObuMetadataType metadata_type = gf_bs_read_u16_le?(bs);
 		if (metadata_type == OBU_METADATA_TYPE_PRIVATE_DATA) {
 			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_HDR_CLL) {

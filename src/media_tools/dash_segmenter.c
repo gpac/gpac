@@ -433,7 +433,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
-#ifndef GPAC_DISABLE_AV1 //Romain: TODO rfc_6381
+#ifndef GPAC_DISABLE_AV1
 	//TODO: GF_AV1Config *av1c;
 #endif
 

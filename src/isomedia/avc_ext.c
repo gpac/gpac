@@ -2434,9 +2434,11 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 			break;
 		}
 		gf_bs_seek(bs, pos);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMFF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", pos)); /*Romain: debug*/
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", pos));
 
-		//Romain: we should have a function to select proper obu type: safety here and selection elsewhere
+		if (!(obu_type) && !(obu_type)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
+		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		gf_bs_read_data(bs, a->obu, (u32)obu_size);
 		a->obu_length = obu_size;
@@ -2456,8 +2458,8 @@ GF_Err av1c_Write(GF_Box *s, GF_BitStream *bs) {
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	gf_bs_write_int(bs, 0, 5); /*reserved*/
-	gf_bs_write_int(bs, ptr->config->initial_presentation_delay_minus_one, 3); /*Romain: modify this after debugging: TODO: compute initial_presentation_delay_minus_one*/
+	gf_bs_write_int(bs, 0, 4); /*reserved*/
+	gf_bs_write_int(bs, ptr->config->initial_presentation_delay_minus_one, 4); /*TODO: compute initial_presentation_delay_minus_one*/
 
 	for (i = 0; i < gf_list_count(ptr->config->obu_array); ++i) {
 		GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
