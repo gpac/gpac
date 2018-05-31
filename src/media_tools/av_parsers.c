@@ -2876,7 +2876,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	}
 
 	if (si->nal_ref_idc != 0) {
-		dec_ref_pic_marking(bs, (avc->s_info.nal_unit_type == GF_AVC_NALU_IDR_SLICE) );
+		dec_ref_pic_marking(bs, (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE) );
 	}
 
 	if (si->pps->entropy_coding_mode_flag && si->slice_type % 5 != GF_AVC_TYPE_I && si->slice_type % 5 != GF_AVC_TYPE_SI) {
@@ -3191,7 +3191,6 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	case GF_AVC_NALU_DP_B_SLICE:
 	case GF_AVC_NALU_DP_C_SLICE:
 		slice = 1;
-		avc->s_info.nal_unit_type = n_state.nal_unit_type;
 		/* slice buffer - read the info and compare.*/
 		ret = avc_parse_slice(bs, avc, idr_flag, &n_state);
 		if (ret<0) return ret;
