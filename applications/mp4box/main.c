@@ -231,6 +231,7 @@ void PrintGeneralUsage()
 	        " -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
 	        "                       * Note: Set by default whith '-add' and '-cat'\n"
 	        " -no-iod              removes InitialObjectDescriptor from file\n"
+	        " -mfra                inserts movie fragment ranndom offset when fragmenting file (ignored in dash mode).\n"
 	        " -isma                rewrites the file as an ISMA 1.0 AV file\n"
 	        " -ismax               same as \'-isma\' and removes all clock references\n"
 	        " -3gp                 rewrites as 3GPP(2) file (no more MPEG-4 Systems Info)\n"
