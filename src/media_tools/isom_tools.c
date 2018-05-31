@@ -3248,7 +3248,7 @@ typedef struct
 } GF_TrackFragmenter;
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, Bool use_mfra)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u8 NbBits;
@@ -3264,14 +3264,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	GF_List *fragmenters;
 	u32 MaxFragmentDuration;
 	GF_TrackFragmenter *tf;
-	GF_TrackFragmentRandomAccessBox *tfra;
 	Bool drop_version = gf_isom_drop_date_version_info_enabled(input);
 
 	//create output file
 	output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 	if (!output) return gf_isom_last_error(NULL);
-
-	output->mfra = (GF_MovieFragmentRandomAccessBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRA);
 
 	gf_isom_no_version_date_info(output, drop_version);
 
@@ -3313,6 +3310,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		}
 	}
 
+	if (use_mfra)
+		gf_isom_enable_mfra(output);
+
 	MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
@@ -3327,56 +3327,33 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 		count = gf_isom_get_sample_count(input, i+1);
 		//we always fragment each track regardless of the sample count
-#if 0
-		//if few samples don't fragment track
-		if (count<=1) {
-			for (j=0; j<count; j++) {
-				sample = gf_isom_get_sample(input, i+1, j+1, &descIndex);
-				e = gf_isom_add_sample(output, TrackNum, 1, sample);
-				gf_isom_sample_del(&sample);
-				if (e) goto err_exit;
-			}
+
+		gf_isom_get_fragment_defaults(input, i+1,
+									  &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
+		//otherwise setup fragmentation
+		e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
+										 defaultDescriptionIndex, defaultDuration,
+										 defaultSize, (u8) defaultRandomAccess,
+										 defaultPadding, defaultDegradationPriority);
+		if (e) goto err_exit;
+
+		GF_SAFEALLOC(tf, GF_TrackFragmenter);
+		if (!tf) {
+			e = GF_OUT_OF_MEM;
+			goto err_exit;
 		}
-		//otherwise setup fragmented
-		else
-#endif
-		{
-			gf_isom_get_fragment_defaults(input, i+1,
-			                              &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
-			//otherwise setup fragmentation
-			e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
-			                                 defaultDescriptionIndex, defaultDuration,
-			                                 defaultSize, (u8) defaultRandomAccess,
-			                                 defaultPadding, defaultDegradationPriority);
-			if (e) goto err_exit;
-
-			GF_SAFEALLOC(tf, GF_TrackFragmenter);
-			if (!tf) {
-				e = GF_OUT_OF_MEM;
-				goto err_exit;
-			}
-			tf->TrackID = gf_isom_get_track_id(output, TrackNum);
-			tf->SampleCount = count;
-			tf->OriginalTrack = i+1;
-			tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
-			tf->MediaType = gf_isom_get_media_type(input, i+1);
-			tf->DefaultDuration = defaultDuration;
-			gf_list_add(fragmenters, tf);
-			nb_samp += count;
-
-			tfra = (GF_TrackFragmentRandomAccessBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TFRA);
-			tfra->entries = 0;
-			tfra->nb_entries = 0;
-			tfra->track_id = tf->TrackID;
-			tfra->traf_bits = 8;
-			tfra->trun_bits = 8;
-			tfra->sample_bits = 8;
-			gf_list_add(output->mfra->tfra_list, tfra);
-		}
-
-		if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
-		//copy user data ?
+		tf->TrackID = gf_isom_get_track_id(output, TrackNum);
+		tf->SampleCount = count;
+		tf->OriginalTrack = i+1;
+		tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
+		tf->MediaType = gf_isom_get_media_type(input, i+1);
+		tf->DefaultDuration = defaultDuration;
+		gf_list_add(fragmenters, tf);
+		nb_samp += count;
 	}
+
+	if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
+	//copy user data ?
 
 
 	//flush movie
@@ -3414,15 +3391,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		for (i=0; i<count; i++) {
 			tf = (GF_TrackFragmenter *)gf_list_get(fragmenters, i);
 
-			tfra = (GF_TrackFragmentRandomAccessBox *)gf_list_get(output->mfra->tfra_list, i);
-			tfra->entries = (GF_RandomAccessEntry *)gf_realloc(tfra->entries, (tfra->nb_entries+1)*sizeof(GF_RandomAccessEntry));
-			GF_RandomAccessEntry *raf = &tfra->entries[tfra->nb_entries++];
-			raf->sample_number = 1;
-			raf->time = 0;
-			raf->traf_number = i+1;
-			raf->trun_number = 1;
-			raf->moof_offset = output->moof->fragment_offset;
-
 			gf_isom_set_nalu_extract_mode(input, tf->OriginalTrack, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 			//ok write samples
@@ -3448,9 +3416,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 				/*copy subsample information*/
 				e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1, GF_FALSE);
 				if (e) goto err_exit;
-
-				if (!raf->time)
-				  raf->time = sample->DTS;
 
 				gf_set_progress("ISO File Fragmenting", nb_done, nb_samp);
 				nb_done++;

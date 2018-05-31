@@ -947,9 +947,10 @@ void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date)
  \param file the target file to be fragmented
  \param output_file name of the output file
  \param max_duration_sec max fragment duration in seconds
+ \param use_mfra insert track fragment movie fragments
  \return error if any
  */
-GF_Err gf_media_fragment_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec);
+GF_Err gf_media_fragment_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec, Bool use_mfra);
 #endif
 
 /*! @} */

@@ -1538,6 +1538,9 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 /*sets the baseMediaDecodeTime of the first sample of the given track*/
 GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time);
 
+/*enables mfra when writing movie fragments*/
+GF_Err gf_isom_enable_mfra(GF_ISOFile *file);
+
 /*sets Microsoft Smooth Streaming traf 'tfxd' box info, written at the end of each traf*/
 GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp_in_10mhz, u64 traf_duration_in_10mhz);
 
