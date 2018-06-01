@@ -768,7 +768,7 @@ static GF_Err gf_isom_write_content_protection(GF_ISOFile *input, FILE *mpd, u32
 			for (j=0; j<indent; j++)
 				fprintf(mpd, " ");
 			get_canon_urn(sysID, sCan);
-			fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:%s\" value=\"%s\">\n", sCan, get_drm_kms_name(sCan) );
+			fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:uuid:%s\" value=\"%s\">\n", sCan, get_drm_kms_name(sCan) );
 
 			size_64 = 2*pssh_len;
 			pssh_data_64 = gf_malloc(size_64);
