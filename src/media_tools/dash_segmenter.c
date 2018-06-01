@@ -28,6 +28,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/config_file.h>
 #include <gpac/network.h>
+#include <gpac/base_coding.h>
 #ifdef _WIN32_WCE
 #include <winbase.h>
 #else
@@ -60,6 +61,7 @@ struct _dash_component
 	char *lang;
 	Double duration;
 };
+
 
 struct __gf_dash_segmenter
 {
@@ -99,7 +101,8 @@ struct __gf_dash_segmenter
 	u32 initial_moof_sn;
 	u64 initial_tfdt;
 	Bool no_fragments_defaults;
-	Bool pssh_moof;
+
+	GF_DASHPSSHMode pssh_mode;
 	Bool samplegroups_in_traf;
     Bool single_traf_per_moof;
 	Bool tfdt_per_traf;
@@ -691,34 +694,123 @@ static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count
 	return time;
 }
 
+static void get_canon_urn(bin128 URN, char *res)
+{
+	char sres[4];
+	u32 i;
+	/* Output canonical UIID form */
+	strcpy(res, "");
+	for (i=0; i<4; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=4; i<6; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=6; i<8; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=8; i<10; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=10; i<16; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+}
+
+static const char *get_drm_kms_name(const char *canURN)
+{
+	if (!stricmp(canURN, "67706163-6365-6E63-6472-6D746F6F6C31")) return "GPAC1.0";
+	else if (!stricmp(canURN, "5E629AF5-38DA-4063-8977-97FFBD9902D4")) return "Marlin1.0";
+	else if (!strcmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
+	else if (!strcmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
+	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return "PlayReady";
+	else if (!strcmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
+	else if (!strcmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
+	else if (!strcmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
+	else if (!strcmp(canURN, "644FE7B5-260F-4FAD-949A-0762FFB054B4")) return "CMLA (OMA DRM)";
+	else if (!strcmp(canURN, "6a99532d-869f-5922-9a91-113ab7b1e2f3")) return "MobiTVDRM";
+	else if (!strcmp(canURN, "35BF197B-530E-42D7-8B65-1B4BF415070F")) return "DivX DRM";
+	else if (!strcmp(canURN, "B4413586-C58C-FFB0-94A5-D4896C1AF6C3")) return "VODRM";
+	else if (!strcmp(canURN, "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")) return "Widevine";
+	else if (!strcmp(canURN, "80a6be7e-1448-4c37-9e70-d5aebe04c8d2")) return "Irdeto";
+	else if (!strcmp(canURN, "dcf4e3e3-62f1-5818-7ba6-0a6fe33ff3dd")) return "CA 1.0, DRM+ 2.0";
+	else if (!strcmp(canURN, "45d481cb-8fe0-49c0-ada9-ab2d2455b2f2")) return "CoreCrypt";
+	else if (!strcmp(canURN, "616C7469-6361-7374-2D50-726F74656374")) return "altiProtect";
+	else if (!strcmp(canURN, "992c46e6-c437-4899-b6a0-50fa91ad0e39")) return "Arris SecureMedia SteelKnot version 1";
+	else if (!strcmp(canURN, "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b")) return "cenc initData";
+	else if (!strcmp(canURN, "e2719d58-a985-b3c9-781a-b030af78d30e")) return "ClearKey1.0";
+	else if (!strcmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "FairPlay";
+	else if (!strcmp(canURN, "279fe473-512c-48fe-ade8-d176fee6b40f")) return "Arris Titanium";
+	else if (!strcmp(canURN, "aa11967f-cc01-4a4a-8e99-c5d3dddfea2d")) return "UDRM";
+	return "unknown";
+}
+
 static GF_MPD_Descriptor *gf_isom_get_content_protection_desc(GF_ISOFile *input, u32 protected_track)
 {
+	char sCan[40];
 	u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 1);
-	bin128 default_KID;
-	u8 i;
 	if (gf_isom_is_cenc_media(input, protected_track, 1)) {
+		bin128 default_KID;
 		GF_MPD_Descriptor *desc;
 		GF_XMLAttribute *att;
 		char cenc_value[256];
 		cenc_value[0]='\0';				
-		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID);
+		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
 		desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:mp4protection:2011", gf_4cc_to_str(prot_scheme));
-		/* Output canonical UIID form */
-		for (i=0; i<4; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
-		sprintf(cenc_value, "%s-",cenc_value);
-		for (i=4; i<6; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
-		sprintf(cenc_value, "%s-",cenc_value);
-		for (i=6; i<8; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
-		sprintf(cenc_value, "%s-",cenc_value);
-		for (i=8; i<10; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
-		sprintf(cenc_value, "%s-",cenc_value);
-		for (i=10; i<16; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
-		att = gf_xml_dom_create_attribute("cenc:default_KID", cenc_value);
+
+
+		get_canon_urn(default_KID, sCan);
+		att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
 		if (!desc->attributes) {
 			desc->attributes = gf_list_new();
 		}
 		gf_list_add(desc->attributes, att);
 		return desc;
+
+#ifdef FILTER_FIXME
+		bin128 default_KID;
+		u32 i, count;
+		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
+		for (i=0; i<indent; i++)
+			fprintf(mpd, " ");
+
+		get_canon_urn(default_KID, sCan);
+		fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"%s\"/>\n", gf_4cc_to_str(prot_scheme), sCan );
+
+		if (dasher->pssh_mode <= GF_DASH_PSSH_MOOF) {
+			return GF_OK;
+		}
+
+		//add pssh
+		count = gf_isom_get_pssh_count(input);
+		for (i=0; i<count; i++) {
+			GF_Err e;
+			u32 j;
+			bin128 sysID;
+			u8 *pssh_data=NULL;
+			u8 *pssh_data_64=NULL;
+			u32 pssh_len, size_64;
+
+			gf_isom_get_pssh_info(input, i+1, sysID, NULL, NULL, NULL, NULL);
+
+			e = gf_isom_get_pssh(input, i+1, &pssh_data, &pssh_len);
+			if (e) continue;
+
+			for (j=0; j<indent; j++)
+				fprintf(mpd, " ");
+			get_canon_urn(sysID, sCan);
+			fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:%s\" value=\"%s\">\n", sCan, get_drm_kms_name(sCan) );
+
+			size_64 = 2*pssh_len;
+			pssh_data_64 = gf_malloc(size_64);
+			size_64 = gf_base64_encode((const char *)pssh_data, pssh_len, (char *)pssh_data_64, size_64);
+			pssh_data_64[size_64] = 0;
+
+			for (j=0; j<indent+1; j++)
+				fprintf(mpd, " ");
+			fprintf(mpd, "<cenc:pssh>%s</cenc:pssh>\n", pssh_data_64);
+			gf_free(pssh_data_64);
+			gf_free(pssh_data);
+			for (j=0; j<indent; j++)
+				fprintf(mpd, " ");
+			fprintf(mpd, "</ContentProtection>\n");
+		}
+#endif
+
 	}
 	//todo for ISMA or OMA DRM
 
@@ -1117,7 +1209,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 #endif
 
 	if (! dash_moov_setup) {
-		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE, !dasher->pssh_moof );
+		Bool keep_pssh = GF_FALSE;
+		if ((dasher->pssh_mode==GF_DASH_PSSH_MOOV) || (dasher->pssh_mode==GF_DASH_PSSH_MOOV_MPD))
+			keep_pssh = GF_TRUE;
+		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE, keep_pssh);
 		if (e) goto err_exit;
 
 		/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
@@ -1709,8 +1804,14 @@ restart_fragmentation_pass:
 				} else {
 					e = gf_isom_start_segment(output, NULL, dasher->fragments_in_memory);
 				}
-				if (dasher->pssh_moof)
+				switch (dasher->pssh_mode) {
+				case GF_DASH_PSSH_MOOF:
+				case GF_DASH_PSSH_MOOF_MPD:
 					store_pssh = GF_TRUE;
+					break;
+				default:
+					break;
+				}
 
 				if (tfref /* tfref set to NULL after its last sample is processed */ && dasher->insert_utc) {
 					store_utc = GF_TRUE;
@@ -2469,7 +2570,7 @@ restart_fragmentation_pass:
 
 	/* Write adaptation set content protection element */
 	if (protected_track && first_in_set && (dasher->cp_location_mode != GF_DASH_CPMODE_REPRESENTATION)) {
-		GF_MPD_Descriptor *desc = gf_isom_get_content_protection_desc(input, protected_track);		
+		GF_MPD_Descriptor *desc = gf_isom_get_content_protection_desc(input, protected_track);
 		gf_list_add(adaptation_set_obj->content_protection, desc);
 	}
 
@@ -3449,7 +3550,7 @@ retry_track:
 				gf_isom_modify_alternate_brand(init_seg, GF_ISOM_BRAND_DASH, 1);
 			}
 
-			if (!dash_opts->pssh_moof) {
+			if ((dash_opts->pssh_mode==GF_DASH_PSSH_MOOV) || (dash_opts->pssh_mode==GF_DASH_PSSH_MOOV_MPD) ) {
 				e = gf_isom_clone_pssh(init_seg, in, GF_FALSE);
 			}
 		}
@@ -4982,7 +5083,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		j = *nb_dash_inputs + max_nb_deps;
 		dash_inputs = (GF_DashSegInput*)gf_realloc(dash_inputs, sizeof(GF_DashSegInput) * j);
 		memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegInput) * max_nb_deps);
-		*io_dash_inputs = dash_inputs;
+		(*io_dash_inputs) = dash_inputs;
 
 		dash_input = & dash_inputs[idx];
 		dash_input->nb_representations = 1 + max_nb_deps;
@@ -5106,7 +5207,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		}
 #endif
 
-		/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
+		/*dependencyID - FIXME - the declaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
 		for (k=0; k<2; k++) {
 			for (j = idx; j < *nb_dash_inputs; j++) {
 				GF_DashSegInput *di;
@@ -5115,17 +5216,18 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				u32 dep_type;
 
 				di = &dash_inputs[j];
+				if (di->dependencyID) continue;
 
 #ifdef GENERATE_VIRTUAL_REP_SRD
-				if (k==0) dep_type = (di->virtual_representation) ? GF_ISOM_REF_SABT : GF_ISOM_REF_TBAS;
+				if (k==1) dep_type = (di->virtual_representation) ? GF_ISOM_REF_SABT : GF_ISOM_REF_TBAS;
 #else
-				if (k==0) dep_type = GF_ISOM_REF_TBAS;
+				if (k==1) dep_type = GF_ISOM_REF_TBAS;
 #endif
 				else dep_type = GF_ISOM_REF_SCAL;
 
 				count = gf_isom_get_reference_count(file, di->trackNum, dep_type);
 				if (!count) {
-					if (k==0) {
+					if (k==1) {
 						switch (gf_isom_get_media_subtype(file, j+1, 1)) {
 						case GF_ISOM_SUBTYPE_LHE1:
 						case GF_ISOM_SUBTYPE_LHV1:
@@ -5161,6 +5263,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 					di->lower_layer_track = ref_track;
 				}
+				if (di->dependencyID) gf_free(di->dependencyID);
 				di->dependencyID = depID;
 			}
 		}
@@ -6120,11 +6223,11 @@ GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_s
 }
 
 GF_EXPORT
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf)
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->no_fragments_defaults = no_fragments_defaults;
-	dasher->pssh_moof = pssh_moof;
+	dasher->pssh_mode = pssh_mode;
 	dasher->samplegroups_in_traf = samplegroups_in_traf;
 	dasher->single_traf_per_moof = single_traf_per_moof;
     dasher->tfdt_per_traf = tfdt_per_traf;

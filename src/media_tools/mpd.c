@@ -2965,7 +2965,7 @@ u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_Adaptat
 	return base_url_count;
 }
 
-static char *gf_mpd_get_base_url(GF_List *baseURLs, char *url, u32 *base_url_index)
+static char *gf_mpd_get_base_url(GF_List *baseURLs, char *parent_url, u32 *base_url_index)
 {
 	GF_MPD_BaseURL *url_child;
 	u32 idx = 0;
@@ -2988,11 +2988,11 @@ static char *gf_mpd_get_base_url(GF_List *baseURLs, char *url, u32 *base_url_ind
 
 	url_child = gf_list_get(baseURLs, idx);
 	if (url_child) {
-		char *t_url = gf_url_get_absolute_path(url_child->redirection ? url_child->redirection : url_child->URL, url);
-		gf_free(url);
-		url = t_url;
+		char *t_url = gf_url_concatenate(parent_url, url_child->redirection ? url_child->redirection : url_child->URL);
+		gf_free(parent_url);
+		parent_url = t_url;
 	}
-	return url;
+	return parent_url;
 }
 
 GF_EXPORT

@@ -890,7 +890,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_HEVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
-		if (e == GF_OK && props.config) {			
+		if (e == GF_OK && props.config) {
 			gf_odf_hevc_cfg_write(((GF_HEVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
@@ -3126,7 +3126,7 @@ err_exit:
 #include <gpac/filters.h>
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, Bool use_mfra)
 {
 	char szArgs[1024];
 	GF_Err e = GF_OK;
@@ -3142,6 +3142,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	if (!f) return GF_NOT_SUPPORTED;
 
 	sprintf(szArgs, "%s:SID=1:frag:cdur=%g", output_file, max_duration_sec);
+	if (use_mfra)
+		strcat(szArgs, ":mfra");
+		
 	f = gf_fs_load_destination(fsess, szArgs, NULL, NULL, &e);
 	if (!f) return e;
 
