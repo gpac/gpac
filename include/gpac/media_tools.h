@@ -813,17 +813,33 @@ GF_Err gf_dasher_enable_memory_fragmenting(GF_DASHSegmenter *dasher, Bool enable
 */
 GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_sn, u64 initial_tfdt);
 
+
+
+typedef enum
+{
+	//! PSSH box in moov only
+	GF_DASH_PSSH_MOOV = 0,
+	//! PSSH box in moof only
+	GF_DASH_PSSH_MOOF,
+	//! PSSH box in moov and MPD
+	GF_DASH_PSSH_MOOV_MPD,
+	//! PSSH box in moof and MPD
+	GF_DASH_PSSH_MOOF_MPD,
+	//! PSSH box in MPD only
+	GF_DASH_PSSH_MPD
+} GF_DASHPSSHMode;
+
 /*!
  Configure how default values for ISOBMFF are stored
  *	\param dasher the DASH segmenter object
  *	\param no_fragments_defaults if set, fragments default values are repeated in each traf and not set in trex. Default value is GF_FALSE
- *	\param pssh_moof if set, PSSH is stored in each moof, and not set in init segment. Default value is GF_FALSE
+ *	\param pssh_mode sets the storage mode of PSSH in moov/moof/mpd. 
  *	\param samplegroups_in_traf if set, all sample group definitions are stored in each traf and not set in init segment. Default value is GF_FALSE
  *	\param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
  *  \param tfdt_per_traf if set, each traf will contain a tfdt. Only applicable when single_traf_per_moof is GF_TRUE. Default value is GF_FALSE
  *	\return error code if any
 */
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf);
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf);
 
 /*!
  Enables insertion of UTC reference in the begining of segments
@@ -943,9 +959,10 @@ void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date)
  \param file the target file to be fragmented
  \param output_file name of the output file
  \param max_duration_sec max fragment duration in seconds
+ \param use_mfra insert track fragment movie fragments
  \return error if any
  */
-GF_Err gf_media_fragment_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec);
+GF_Err gf_media_fragment_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec, Bool use_mfra);
 #endif
 
 /*! @} */
