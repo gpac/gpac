@@ -765,7 +765,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	Bool add_ext;
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
-	char szName[1000], szEXT[5], GUID[16];
+	char szName[1000], GUID[16];
 	FILE *out;
 	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
 	GF_AVCConfig *avccfg, *svccfg, *mvccfg;
@@ -1119,19 +1119,19 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			}
 			switch (m_type) {
 			case GF_ISOM_MEDIA_VISUAL:
-				gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown");
+				gf_export_message(dumper, GF_OK, "Extracting Video - Compressor %s", udesc ? udesc->compressor_name : "Unknown");
 				break;
             case GF_ISOM_MEDIA_AUXV:
-                gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown");
+                gf_export_message(dumper, GF_OK, "Extracting Video - Compressor %s", udesc ? udesc->compressor_name : "Unknown");
                 break;
             case GF_ISOM_MEDIA_PICT:
-                gf_export_message(dumper, GF_OK, "Extracting \'%s\' picture sequence - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown");
+                gf_export_message(dumper, GF_OK, "Extracting picture sequence - Compressor %s", udesc ? udesc->compressor_name : "Unknown");
                 break;
 			case GF_ISOM_MEDIA_AUDIO:
-				gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown");
+				gf_export_message(dumper, GF_OK, "Extracting Audio - Compressor %s", udesc ? udesc->compressor_name : "Unknown");
 				break;
 			default:
-				gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->compressor_name : "Unknown");
+				gf_export_message(dumper, GF_OK, "Extracting Track (type '%s') - Compressor %s", gf_4cc_to_str(m_type), udesc ? udesc->compressor_name : "Unknown");
 				break;
 			}
 			if (udesc) gf_free(udesc);
@@ -2223,7 +2223,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	fprintf(nhml, "<%s version=\"1.0\" timeScale=\"%d\" ", szRootName, gf_isom_get_media_timescale(dumper->file, track) );
 	if (esd) {
         u32 mtype;
-        
+
 		fprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 		if (!dumper->nhml_only && esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 			sprintf(szName, "%s.info", dumper->out_name);
