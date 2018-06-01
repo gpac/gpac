@@ -1884,27 +1884,27 @@ u64 leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry); \
 	a->obu = gf_malloc(obu_length); \
 	gf_bs_read_data(bs, a->obu, (u32)obu_length); \
-	a->obu_length = obu_length;
+	a->obu_length = obu_length; \
+	a->obu_type = obu_type;
 
 static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
 	if (av1_is_obu_header(obu_type)) {
 		OBU_COPY;
-		gf_list_add(state->frame_state.header_obus, a); //Romain: use a bs instead
+		gf_list_add(state->frame_state.header_obus, a);
 	}
 	if (av1_is_obu_frame(obu_type)) {
 		OBU_COPY;
-		gf_list_add(state->frame_state.frame_obus, a); //Romain: use a bs instead
+		gf_list_add(state->frame_state.frame_obus, a);
 	}
 }
 
-GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, u64 *frame_size, AV1State *state)
+GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e = GF_OK;
-	assert(bs && frame_size && state);
+	assert(bs && state);
 	u64 sz = leb128(bs, NULL);
-	*frame_size = sz;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", *frame_size));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
 		u64 frame_unit_size = leb128(bs, &Leb128Bytes);
@@ -1917,11 +1917,12 @@ GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, u64 *frame_size, AV1State
 			u64 pos = gf_bs_get_position(bs);
 			frame_unit_size -= Leb128Bytes;
 
-			e = gf_media_aom_av1_parse_obu(bs, &obu_length, &obu_type, state);
+			e = gf_media_aom_av1_parse_obu(bs, &obu_type, state);
 			if (e) return e;
 
+			assert(obu_length == gf_bs_get_position(bs) - pos);
+			obu_length = gf_bs_get_position(bs) - pos;
 			av1_populate_state_from_obu(bs, pos, obu_length, obu_type, state);
-
 			frame_unit_size -= obu_length;
 		}
 
@@ -1931,25 +1932,26 @@ GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, u64 *frame_size, AV1State
 	return GF_OK;
 }
 
-GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, u64 *frame_size, AV1State *state)
+GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, AV1State *state)
 {
-	GF_Err e = gf_media_aom_parse_ivf_frame_header(bs, frame_size);
-	u64 sz = *frame_size;
+	u64 frame_size;
+	GF_Err e = gf_media_aom_parse_ivf_frame_header(bs, &frame_size);
 	if (e) return e;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", *frame_size));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", frame_size));
 
-	while (sz > 8) {
+	while (frame_size > 8) {
 		u64 obu_size = 0, pos = gf_bs_get_position(bs);
 		ObuType obu_type;
-		if (gf_media_aom_av1_parse_obu(bs, &obu_size, &obu_type, state) != GF_OK)
+		if (gf_media_aom_av1_parse_obu(bs, &obu_type, state) != GF_OK)
 			return e;
 
+		obu_size = gf_bs_get_position(bs) - pos;
 		av1_populate_state_from_obu(bs, pos, obu_size, obu_type, state);
 
-		sz -= obu_size;
+		frame_size -= obu_size;
 	}
 
-	*frame_size += 12; //add IVF header size
+	gf_bs_read_u64(bs); gf_bs_read_u64(bs); //add IVF header size
 	return e;
 }
 
@@ -2003,14 +2005,14 @@ static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 	/*parsing is voluntarily incomplete*/
 }
 
-GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_type, AV1State *state)
+GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, AV1State *state)
 {
 	GF_Err e = GF_OK;
 	Bool obu_has_size_field = GF_FALSE, obu_extension_flag = GF_FALSE;
 	u8 temporal_id = 0, spatial_id = 0;
-	u64 pos = 0;
+	u64 pos = 0, obu_size = 0;
 
-	if (!bs || !obu_type || !obu_size || !obu_type || !state)
+	if (!bs || !obu_type || !obu_type || !state)
 		return GF_BAD_PARAM;
 
 	e = av1_parse_obu_header(bs, obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
@@ -2018,9 +2020,14 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_
 		return e;
 
 	if (obu_has_size_field) {
-		*obu_size = (u32)leb128(bs, NULL);
+		obu_size = (u32)leb128(bs, NULL);
 	} else {
-		*obu_size = *obu_size - 1 - obu_extension_flag;
+		if (obu_size >= 1 + obu_extension_flag)
+			obu_size = obu_size - 1 - obu_extension_flag;
+		else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] computed OBU size "LLD"). Skipping.\n", obu_size - 1 - obu_extension_flag));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 	}
 
 	if (*obu_type != OBU_SEQUENCE_HEADER && *obu_type != OBU_TEMPORAL_DELIMITER &&
@@ -2030,7 +2037,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_
 		u32 inSpatialLayer = (state->OperatingPointIdc >> (spatial_id + 8)) & 1;
 		if (!inTemporalLayer || !inSpatialLayer) {
 			*obu_type = OBU_SKIP;
-			gf_bs_seek(bs, pos + *obu_size);
+			gf_bs_seek(bs, pos + obu_size);
 			return GF_OK;
 		}
 	}
@@ -2039,14 +2046,12 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_
 	switch (*obu_type) {
 	case OBU_SEQUENCE_HEADER: {
 		av1_parse_sequence_header_obu(bs, state);
-		gf_bs_align(bs);
-		assert(gf_bs_get_position(bs) == pos + *obu_size);
-		gf_bs_seek(bs, pos + *obu_size);
+		gf_bs_seek(bs, pos + obu_size);
 		return GF_OK;
 	}
 	case OBU_METADATA: {
 #if 0 //TODO + sample groups
-		const ObuMetadataType metadata_type = gf_bs_read_u16_le?(bs);
+		const ObuMetadataType metadata_type = gf_bs_read_u16_le(bs);
 		if (metadata_type == OBU_METADATA_TYPE_PRIVATE_DATA) {
 			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_HDR_CLL) {
@@ -2058,23 +2063,23 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_
 		}
 #endif
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] parsing for metadata is not implemented. Forwarding.\n"));
-		gf_bs_seek(bs, pos + *obu_size);
+		gf_bs_seek(bs, pos + obu_size);
 		break;
 	}
 	case OBU_FRAME_HEADER:
 		av1_parse_frame_header(bs, state);
-		gf_bs_seek(bs, pos + *obu_size);
+		gf_bs_seek(bs, pos + obu_size);
 		break;
 	case OBU_TILE_GROUP:
 	case OBU_PADDING:
 	case OBU_REDUNDANT_FRAME_HEADER:
 	case OBU_TEMPORAL_DELIMITER:
 	case OBU_FRAME:
-		gf_bs_seek(bs, pos + *obu_size);
+		gf_bs_seek(bs, pos + obu_size);
 		break;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] unknown OBU type %u (size "LLU"). Skipping.\n", *obu_type, obu_size));
-		gf_bs_seek(bs, pos + *obu_size);
+		gf_bs_seek(bs, pos + obu_size);
 		break;
 	}
 

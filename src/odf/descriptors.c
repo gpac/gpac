@@ -1076,6 +1076,7 @@ GF_AV1Config *gf_odf_av1_cfg_new()
 	GF_AV1Config *cfg;
 	GF_SAFEALLOC(cfg, GF_AV1Config);
 	if (!cfg) return NULL;
+	cfg->initial_presentation_delay_minus_one = 10;
 	cfg->obu_array = gf_list_new();
 	return cfg;
 }

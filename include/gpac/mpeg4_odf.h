@@ -996,6 +996,7 @@ typedef struct
 typedef struct
 {
 	u64 obu_length;
+	int obu_type; /*ObuType*/
 	u8 *obu;
 } GF_AV1_OBUArrayEntry;
 
