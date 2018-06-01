@@ -7036,8 +7036,8 @@ static void av1_reset_frame_state(AV1StateFrame *frame_state) {
 	memset(frame_state, 0, sizeof(AV1StateFrame));
 }
 
-GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, u64 *frame_size, AV1State *state);
-GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, u64 *frame_size, AV1State *state);
+GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state);
+GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs,  AV1State *state);
 
 static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 {
@@ -7048,7 +7048,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	GF_AV1Config *av1_cfg = NULL;
 	AV1State state;
 	FILE *mdia = NULL;
-	GF_BitStream *bs = NULL, *sample_data = NULL /*sample_data should be mapped in AV1FrameState*/;
+	GF_BitStream *bs = NULL;
 	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0;
 	Bool detect_fps;
 	Double FPS = 0.0;
@@ -7058,7 +7058,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		AnnexB,
 		IVF
 	} AV1BitstreamSyntax;
-	AV1BitstreamSyntax av1_bs_syntax = OBUs;
+	AV1BitstreamSyntax av1_bs_syntax = IVF;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -7069,6 +7069,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	}
 
 	memset(&state, 0, sizeof(AV1State));
+	state.frame_state.frame_obus = gf_list_new();
+	state.frame_state.header_obus = gf_list_new();
 	av1_cfg = gf_odf_av1_cfg_new();
 
 	mdia = gf_fopen(import->in_name, "rb");
@@ -7103,28 +7105,19 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (import->esd && import->esd->dependsOnESID) {
 		gf_isom_set_track_reference(import->dest, track_num, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
 	}
-
-	e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg /*Romain: this is empty and zeroed!!! => gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);*/, NULL, NULL, &di);
-	if (e) goto exit;
-
-	//Romain: check below
-	//gf_isom_set_nalu_extract_mode(import->dest, trackNum, GF_ISOM_NALU_EXTRACT_INSPECT);
-
-	//duration = (u64) ( ((Double)import->duration) * timescale / 1000.0);
-
-	//gf_isom_set_cts_packing(import->dest, track, GF_TRUE);
+	gf_isom_set_cts_packing(import->dest, track_num, GF_TRUE);
 
 	pos = gf_bs_get_position(bs);
 	e = gf_media_aom_parse_ivf_file_header(bs, &state);
 	if (e) {
 		gf_bs_seek(bs, pos);
 		gf_import_message(import, GF_OK, "Detected Annex B.");
+		av1_bs_syntax = AnnexB;
 	}
 	else gf_import_message(import, GF_OK, "Detected IVF.");
 
 	while (gf_bs_available(bs)) {
 		u64 frame_size = 0;
-		av1_reset_frame_state(&state.frame_state);
 		pos = gf_bs_get_position(bs);
 
 		/*we process each TU and extract only the necessary OBUs*/
@@ -7132,12 +7125,12 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			gf_import_message(import, GF_OK, "Error parsing OBUs: Section 5 not supported. Use IVF or Annex B.");
 			//delimit at OBU_TEMPORAL_DELIMITER
 		} else if (av1_bs_syntax == AnnexB) {
-			if (aom_av1_parse_obu_from_annexb(bs, &frame_size, &state) != GF_OK) {
+			if (aom_av1_parse_obu_from_annexb(bs, &state) != GF_OK) {
 				gf_import_message(import, GF_OK, "Error parsing OBU");
 				goto exit;
 			}
 		} else if (av1_bs_syntax == IVF) {
-			if (aom_av1_parse_obu_from_ivf(bs, &frame_size, &state) != GF_OK) {
+			if (aom_av1_parse_obu_from_ivf(bs, &state) != GF_OK) {
 				gf_import_message(import, GF_OK, "Error parsing OBU");
 				goto exit;
 			}
@@ -7145,13 +7138,58 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 		/*add sample*/
 		{
+			u32 i = 0;
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = state.frame_state.key_frame;
 			samp->CTS_Offset = 0;
-			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
-			gf_bs_del(sample_data);
-			sample_data = NULL;
+
+			for (i = 0; i < gf_list_count(state.frame_state.frame_obus); ++i)
+				samp->dataLength += (u32)((GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.frame_obus, i))->obu_length;
+			samp->data = gf_malloc(samp->dataLength);
+
+			samp->dataLength = 0;
+			while (gf_list_count(state.frame_state.frame_obus)) {
+				GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.frame_obus, 0);
+				if (a->obu) {
+					memcpy(samp->data + samp->dataLength, a->obu, a->obu_length);
+					samp->dataLength += (u32)a->obu_length;
+					gf_free(a->obu);
+				}
+				gf_list_rem(state.frame_state.frame_obus, 0);
+				gf_free(a);
+			}
+
+			if (cur_samp == 0) {
+				while (gf_list_count(state.frame_state.header_obus)) {
+					GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, 0);
+					gf_list_add(av1_cfg->obu_array, a);
+					gf_list_rem(state.frame_state.header_obus, 0);
+				}
+
+				e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg, NULL, NULL, &di);
+				if (e) goto exit;
+			} else {
+				/*safety check: we only support static metadata*/
+				if (gf_list_count(state.frame_state.header_obus) > gf_list_count(av1_cfg->obu_array)) {
+					gf_import_message(import, GF_NOT_SUPPORTED, "More header OBUs in than ", import->in_name);
+					goto exit;
+				}
+				while (gf_list_count(state.frame_state.header_obus)) {
+					u32 i;
+					for (i = 0; i < gf_list_count(av1_cfg->obu_array); ++i) {
+						GF_AV1_OBUArrayEntry *a_hdr = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, i);
+						GF_AV1_OBUArrayEntry *a_cfg = (GF_AV1_OBUArrayEntry*)gf_list_get(av1_cfg->obu_array, 0);
+						if (a_cfg->obu_type == a_hdr->obu_type) {
+							if (a_cfg->obu_length != a_hdr->obu_length || memcmp(a_cfg->obu, a_hdr->obu, a_hdr->obu_length)) {
+								gf_import_message(import, GF_NOT_SUPPORTED, "Cannot find file %s", import->in_name);
+								goto exit;
+							}
+						}
+					}
+				}
+			}
+
 			e = gf_isom_add_sample(import->dest, track_num, di, samp);
 			if (e) goto exit;
 
@@ -7183,7 +7221,6 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 exit:
 	av1_reset_frame_state(&state.frame_state);
-	if (sample_data) gf_bs_del(sample_data);
 	gf_odf_av1_cfg_del(av1_cfg);
 	gf_bs_del(bs);
 	gf_fclose(mdia);

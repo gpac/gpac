@@ -1546,6 +1546,8 @@ static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg) {
 	for (i=0; i<gf_list_count(cfg->obu_array); ++i) {
 		GF_AV1_OBUArrayEntry *dst = gf_malloc(sizeof(GF_AV1_OBUArrayEntry)), *src = gf_list_get(cfg->obu_array, i);
 		dst->obu_length = src->obu_length;
+		dst->obu_type = src->obu_type;
+		dst->obu = gf_malloc(dst->obu_length);
 		memcpy(dst->obu, src->obu, src->obu_length);
 		gf_list_add(out->obu_array, dst);
 	}
@@ -2407,8 +2409,6 @@ void av1c_del(GF_Box *s) {
 	gf_free(ptr);
 }
 
-GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, u64 *obu_size, ObuType *obu_type, AV1State *state);
-
 GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	AV1State state;
 	u8 reserved;
@@ -2429,10 +2429,11 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		GF_AV1_OBUArrayEntry *a;
 		
 		pos = gf_bs_get_position(bs);
-		if (gf_media_aom_av1_parse_obu(bs, &obu_size, &obu_type, &state) != GF_OK) {
+		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &state) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMFF: could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
+		obu_size = gf_bs_get_position(bs) - pos;
 		gf_bs_seek(bs, pos);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", pos));
 
@@ -2442,6 +2443,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		gf_bs_read_data(bs, a->obu, (u32)obu_size);
 		a->obu_length = obu_size;
+		a->obu_type = obu_type;
 		gf_list_add(ptr->config->obu_array, a);
 	}
 
