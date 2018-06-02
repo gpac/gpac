@@ -1128,7 +1128,7 @@ exit:
 	if (buffer) gf_free(buffer);
 	if (bs) gf_bs_del(bs);
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
-	return DQId;;
+	return DQId;
 }
 
 static Bool gf_isom_has_svc_explicit(GF_ISOFile *file, u32 track)
@@ -1555,7 +1555,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 
 			switch (nal_type) {
 			case GF_AVC_NALU_PIC_PARAM:
-				pps_id = gf_media_avc_read_pps(buffer, size, &avc);;
+				pps_id = gf_media_avc_read_pps(buffer, size, &avc);
 				j = 0;
 				dst_track = 0;
 				while (j < num_pps)

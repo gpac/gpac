@@ -2017,7 +2017,7 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
 		visual->mat_2d.blue = INT2FIX( GF_COL_B(col) ) / 255;
-		visual->mat_2d.alpha = INT2FIX( a ) / 255;;
+		visual->mat_2d.alpha = INT2FIX( a ) / 255;
 	}
 }
 
