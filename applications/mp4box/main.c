@@ -2648,7 +2648,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-split")) {
 			CHECK_NEXT_ARG
 			split_duration = atof(argv[i + 1]);
-			if (split_duration < 0) split_duration = 0;;
+			if (split_duration < 0) split_duration = 0;
 			i++;
 			split_size = 0;
 		}

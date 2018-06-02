@@ -1294,7 +1294,7 @@ static JSBool SMJS_FUNCTION(upnp_share_virtual_resource)
 	}
 	mime = NULL;
 	if (argc==3) mime = SMJS_CHARS(c, argv[2]);
-	if ((argc==4) && JSVAL_IS_BOOLEAN(argv[3]) && (JSVAL_TO_BOOLEAN(argv[3])==JS_TRUE) ) temp = GF_TRUE;;
+	if ((argc==4) && JSVAL_IS_BOOLEAN(argv[3]) && (JSVAL_TO_BOOLEAN(argv[3])==JS_TRUE) ) temp = GF_TRUE;
 
 	upnp->m_pMediaServer->ShareVirtualResource(res_url, res_val, mime ? mime : "application/octet-stream", temp);
 	SMJS_FREE(c, res_url);

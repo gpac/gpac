@@ -6719,7 +6719,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				if (!p_id) p_id = "";
 				if (!strcmp(p_id, prev_id)) {
 					last_period_dur += dasher->inputs[last_period_rep_idx_plus_one-1].period_duration;
-					presentation_duration -= dasher->inputs[last_period_rep_idx_plus_one-1].period_duration;;
+					presentation_duration -= dasher->inputs[last_period_rep_idx_plus_one-1].period_duration;
 					prev_period_not_done = GF_TRUE;
 					break;
 				}

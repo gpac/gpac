@@ -2486,7 +2486,7 @@ GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs)
 	count=gf_list_count(ptr->operating_points);
 	gf_bs_write_u16(bs, count);
 	for (i = 0; i < count; i++) {
-		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);;
+		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);
 		gf_bs_write_u16(bs, op->output_layer_set_idx);
 		gf_bs_write_u8(bs, op->max_temporal_id);
 		gf_bs_write_u8(bs, op->layer_count);
@@ -2544,7 +2544,7 @@ u32 gf_isom_oinf_size_entry(void *entry)
 	size += 2;//num_operating_points
 	count=gf_list_count(ptr->operating_points);
 	for (i = 0; i < count; i++) {
-		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);;
+		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);
 		size += 2/*output_layer_set_idx*/ + 1/*max_temporal_id*/ + 1/*layer_count*/;
 		size += op->layer_count * 2;
 		size += 9;

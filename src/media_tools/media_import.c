@@ -6987,7 +6987,7 @@ next_nal:
 			}
 		}
 		if (!hevc_base_track && !avc_base_track) {
-			gf_import_message(import, GF_BAD_PARAM, "Using LHVC external base layer, but no base layer not found - NOT SETTING SBAS TRACK REFERENCE!");;
+			gf_import_message(import, GF_BAD_PARAM, "Using LHVC external base layer, but no base layer not found - NOT SETTING SBAS TRACK REFERENCE!");
 		} else {
 			ref_track_id = gf_isom_get_track_id(import->dest, hevc_base_track ? hevc_base_track : avc_base_track);
 			gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_BASE, ref_track_id);
