@@ -1000,9 +1000,12 @@ typedef struct
 	u8 *obu;
 } GF_AV1_OBUArrayEntry;
 
+#define AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX 9
+
 /*! AV1 config record - not a real MPEG-4 descriptor*/
 typedef struct
 {
+	Bool initial_presentation_delay_present;
 	u8 initial_presentation_delay_minus_one;
 	GF_List *obu_array; /*GF_AV1_OBUArrayEntry*/
 } GF_AV1Config;
@@ -1273,15 +1276,18 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs);
 /*! HEVC config constructor
 \return the created HEVC config*/
 GF_HEVCConfig *gf_odf_hevc_cfg_new();
+
 /*! HEVC config destructor
  \param cfg the HEVC config to destroy*/
 void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg);
+
 /*! writes GF_HEVCConfig as MPEG-4 DSI in a bitstream object
  \param cfg the HEVC config to encode
  \param bs output bitstream object in which the config is written
  \return error if any
  */
 GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
+
 /*! writes GF_HEVCConfig as MPEG-4 DSI
  \param cfg the HEVC config to encode
  \param outData encoded dsi buffer - it is the caller responsability to free this
@@ -1289,12 +1295,14 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
  \return error if any
  */
 GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize);
+
 /*! gets GF_HEVCConfig from bitstream MPEG-4 DSI
  \param bs bitstream containing the encoded HEVC decoder specific info
  \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
  \return the decoded HEVC config
  */
 GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
+
 /*! gets GF_HEVCConfig from MPEG-4 DSI
  \param dsi encoded HEVC decoder specific info
  \param dsi_size encoded HEVC decoder specific info size
@@ -1303,12 +1311,29 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
  */
 GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc);
 
+
 /*! AV1 config constructor
 \return the created AV1 config*/
 GF_AV1Config *gf_odf_av1_cfg_new();
+
 /*! AV1 config destructor
 \param cfg the AV1 config to destroy*/
 void gf_odf_av1_cfg_del(GF_AV1Config *cfg);
+
+/*! writes GF_AV1Config as MPEG-4 DSI
+\param cfg the AV1 config to encode
+\param outData encoded dsi buffer - it is the caller responsability to free this
+\param outSize  encoded dsi buffer size
+\return error if any
+*/
+GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize);
+
+/*! gets GF_AV1Config from bitstream MPEG-4 DSI
+\param bs bitstream containing the encoded AV1 decoder specific info
+\return the decoded HEVC config
+*/
+GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs);
+
 
 /*! destroy the descriptors in a list but not the list
  \param descList descriptor list to destroy

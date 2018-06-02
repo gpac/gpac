@@ -7117,7 +7117,6 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	else gf_import_message(import, GF_OK, "Detected IVF.");
 
 	while (gf_bs_available(bs)) {
-		u64 frame_size = 0;
 		pos = gf_bs_get_position(bs);
 
 		/*we process each TU and extract only the necessary OBUs*/
@@ -7152,7 +7151,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			while (gf_list_count(state.frame_state.frame_obus)) {
 				GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.frame_obus, 0);
 				if (a->obu) {
-					memcpy(samp->data + samp->dataLength, a->obu, a->obu_length);
+					memcpy(samp->data + samp->dataLength, a->obu, (size_t)a->obu_length);
 					samp->dataLength += (u32)a->obu_length;
 					gf_free(a->obu);
 				}
@@ -7176,17 +7175,20 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 					goto exit;
 				}
 				while (gf_list_count(state.frame_state.header_obus)) {
-					u32 i;
+					u32 i = 0;
+					GF_AV1_OBUArrayEntry *a_hdr = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, 0);
 					for (i = 0; i < gf_list_count(av1_cfg->obu_array); ++i) {
-						GF_AV1_OBUArrayEntry *a_hdr = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, i);
-						GF_AV1_OBUArrayEntry *a_cfg = (GF_AV1_OBUArrayEntry*)gf_list_get(av1_cfg->obu_array, 0);
+						GF_AV1_OBUArrayEntry *a_cfg = (GF_AV1_OBUArrayEntry*)gf_list_get(av1_cfg->obu_array, i);
 						if (a_cfg->obu_type == a_hdr->obu_type) {
-							if (a_cfg->obu_length != a_hdr->obu_length || memcmp(a_cfg->obu, a_hdr->obu, a_hdr->obu_length)) {
+							if (a_cfg->obu_length != a_hdr->obu_length || memcmp(a_cfg->obu, a_hdr->obu, (size_t)a_hdr->obu_length)) {
 								gf_import_message(import, GF_NOT_SUPPORTED, "Cannot find file %s", import->in_name);
 								goto exit;
 							}
 						}
 					}
+					gf_list_rem(state.frame_state.header_obus, 0);
+					if (a_hdr->obu) gf_free(a_hdr->obu);
+					gf_free(a_hdr);
 				}
 			}
 
@@ -7197,13 +7199,13 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			gf_set_progress("Importing AV1", (u32)cur_samp, cur_samp + 1);
 			cur_samp++;
 		}
-
-		gf_bs_seek(bs, pos + frame_size);
 	}
 
-	gf_isom_set_visual_info(import->dest, track_num, di, state.width, state.height);
-	gf_media_update_par(import->dest, track_num);
-	gf_media_update_bitrate(import->dest, track_num);
+	e = gf_isom_set_visual_info(import->dest, track_num, di, state.width, state.height);
+	if (e) goto exit;
+	e = gf_media_update_par(import->dest, track_num);
+	if (e) goto exit;
+	//gf_media_update_bitrate(import->dest, track_num);
 
 	/*rewrite ESD*/
 	if (import->esd) {

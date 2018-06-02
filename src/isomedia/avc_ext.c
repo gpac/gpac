@@ -1196,6 +1196,64 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 }
 
 
+
+static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg) {
+	u32 i = 0;
+	GF_AV1Config *out = gf_malloc(sizeof(GF_AV1Config));
+	out->initial_presentation_delay_present = cfg->initial_presentation_delay_present;
+	out->initial_presentation_delay_minus_one = cfg->initial_presentation_delay_minus_one;
+	out->obu_array = gf_list_new();
+	for (i = 0; i<gf_list_count(cfg->obu_array); ++i) {
+		GF_AV1_OBUArrayEntry *dst = gf_malloc(sizeof(GF_AV1_OBUArrayEntry)), *src = gf_list_get(cfg->obu_array, i);
+		dst->obu_length = src->obu_length;
+		dst->obu_type = src->obu_type;
+		dst->obu = gf_malloc((size_t)dst->obu_length);
+		memcpy(dst->obu, src->obu, (size_t)src->obu_length);
+		gf_list_add(out->obu_array, dst);
+	}
+	return out;
+}
+
+void AV1_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *av1, GF_MediaBox *mdia)
+{
+	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)av1, GF_FALSE);
+
+	if (av1->emul_esd) gf_odf_desc_del((GF_Descriptor *)av1->emul_esd);
+	av1->emul_esd = gf_odf_desc_esd_new(2);
+	av1->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+	av1->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_AV1;
+
+	if (btrt) {
+		av1->emul_esd->decoderConfig->bufferSizeDB = btrt->bufferSizeDB;
+		av1->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
+		av1->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
+	}
+	if (av1->descr) {
+		GF_Descriptor *desc, *clone;
+		u32 i = 0;
+		while ((desc = (GF_Descriptor *)gf_list_enum(av1->descr->descriptors, &i))) {
+			clone = NULL;
+			gf_odf_desc_copy(desc, &clone);
+			if (gf_odf_desc_add_desc((GF_Descriptor *)av1->emul_esd, clone) != GF_OK)
+				gf_odf_desc_del(clone);
+		}
+	}
+
+	if (av1->av1_config) {
+		GF_AV1Config *av1_cfg = AV1_DuplicateConfig(av1->av1_config->config);
+		if (av1_cfg) {
+			gf_odf_av1_cfg_write(av1_cfg, &av1->emul_esd->decoderConfig->decoderSpecificInfo->data, &av1->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_odf_av1_cfg_del(av1_cfg);
+		}
+	}
+}
+
+void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1)
+{
+	AV1_RewriteESDescriptorEx(av1, NULL);
+}
+
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
@@ -1536,22 +1594,6 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	HEVC_RewriteESDescriptor(entry);
 	return e;
-}
-
-static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg) {
-	u32 i = 0;
-	GF_AV1Config *out = gf_malloc(sizeof(GF_AV1Config));
-	out->initial_presentation_delay_minus_one = cfg->initial_presentation_delay_minus_one;;
-	out->obu_array = gf_list_new();
-	for (i=0; i<gf_list_count(cfg->obu_array); ++i) {
-		GF_AV1_OBUArrayEntry *dst = gf_malloc(sizeof(GF_AV1_OBUArrayEntry)), *src = gf_list_get(cfg->obu_array, i);
-		dst->obu_length = src->obu_length;
-		dst->obu_type = src->obu_type;
-		dst->obu = gf_malloc(dst->obu_length);
-		memcpy(dst->obu, src->obu, src->obu_length);
-		gf_list_add(out->obu_array, dst);
-	}
-	return out;
 }
 
 GF_EXPORT
@@ -2347,6 +2389,7 @@ GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs)
 
 	return ptr->config ? GF_OK : GF_ISOM_INVALID_FILE;
 }
+
 GF_Box *hvcc_New()
 {
 	GF_HEVCConfigurationBox *tmp = (GF_HEVCConfigurationBox *) gf_malloc(sizeof(GF_HEVCConfigurationBox));
@@ -2368,6 +2411,7 @@ GF_Err hvcc_Write(GF_Box *s, GF_BitStream *bs)
 
 	return gf_odf_hevc_cfg_write_bs(ptr->config, bs);
 }
+
 GF_Err hvcc_Size(GF_Box *s)
 {
 	u32 i, count, j, subcount;
@@ -2409,21 +2453,30 @@ void av1c_del(GF_Box *s) {
 	gf_free(ptr);
 }
 
+Bool av1_is_obu_header(ObuType obu_type);
 GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	AV1State state;
 	u8 reserved;
+	u64 read = 0;
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
 	
 	if (ptr->config) gf_odf_av1_cfg_del(ptr->config);
 	GF_SAFEALLOC(ptr->config, GF_AV1Config);
 
-	reserved = gf_bs_read_int(bs, 5);
+	reserved = gf_bs_read_int(bs, 3);
 	if (reserved != 0)
 		return GF_NOT_SUPPORTED;
-	ptr->config->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 3);
+	ptr->config->initial_presentation_delay_present = gf_bs_read_int(bs, 1);
+	if (ptr->config->initial_presentation_delay_present) {
+		ptr->config->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
+	} else {
+		reserved = gf_bs_read_int(bs, 4);
+		ptr->config->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
+	}
+	read += 1;
 	ptr->config->obu_array = gf_list_new();
 
-	while (gf_bs_available(bs)) {
+	while (read < ptr->size) {
 		u64 pos, obu_size;
 		ObuType obu_type;
 		GF_AV1_OBUArrayEntry *a;
@@ -2434,18 +2487,23 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 			break;
 		}
 		obu_size = gf_bs_get_position(bs) - pos;
+		read += obu_size;
 		gf_bs_seek(bs, pos);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", pos));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
-		if (!(obu_type) && !(obu_type)) {
+		if (!av1_is_obu_header(obu_type)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
+		a->obu = gf_malloc((size_t)obu_size);
 		gf_bs_read_data(bs, a->obu, (u32)obu_size);
 		a->obu_length = obu_size;
 		a->obu_type = obu_type;
 		gf_list_add(ptr->config->obu_array, a);
 	}
+
+	if (read > ptr->size)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ISOBMFF: AV1: overflow: read "LLU" bytes, of box size "LLU".\n", read, ptr->size));
 
 	return GF_OK;
 }
@@ -2460,12 +2518,13 @@ GF_Err av1c_Write(GF_Box *s, GF_BitStream *bs) {
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	gf_bs_write_int(bs, 0, 4); /*reserved*/
+	gf_bs_write_int(bs, 0, 3); /*reserved*/
+	gf_bs_write_int(bs, ptr->config->initial_presentation_delay_present, 1);
 	gf_bs_write_int(bs, ptr->config->initial_presentation_delay_minus_one, 4); /*TODO: compute initial_presentation_delay_minus_one*/
 
 	for (i = 0; i < gf_list_count(ptr->config->obu_array); ++i) {
 		GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
-		gf_bs_write_data(bs, a->obu, (u32)a->obu_length);
+		gf_bs_write_data(bs, a->obu, (u32)a->obu_length); //TODO: we are supposed to omit the size on the last OBU...
 	}
 
 	return GF_OK;

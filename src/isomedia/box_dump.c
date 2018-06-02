@@ -621,6 +621,7 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 		if (p->svc_config) gf_isom_box_dump(p->svc_config, trace);
 		if (p->mvc_config) gf_isom_box_dump(p->mvc_config, trace);
 		if (p->lhvc_config) gf_isom_box_dump(p->lhvc_config, trace);
+		if (p->av1_config) gf_isom_box_dump(p->av1_config, trace);
 		if (p->cfg_3gpp) gf_isom_box_dump(p->cfg_3gpp, trace);
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
@@ -1570,7 +1571,7 @@ GF_Err av1c_dump(GF_Box *a, FILE *trace) {
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)a;
 	fprintf(trace, "<AV1ConfigurationBox>\n");
 	if (ptr->config) {
-		fprintf(trace, "</AV1Config initial_presentation_delay_minus_one=%u OBUs_count=%u>\n", ptr->config->initial_presentation_delay_minus_one, gf_list_count(ptr->config->obu_array));
+		fprintf(trace, "<AV1Config initial_presentation_delay=\"%u\" OBUs_count=\"%u\"/>\n", ptr->config->initial_presentation_delay_minus_one+1, gf_list_count(ptr->config->obu_array));
 	}
 	fprintf(trace, "</AV1ConfigurationBox>\n");
 	return GF_OK;

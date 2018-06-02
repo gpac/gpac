@@ -3812,6 +3812,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_ISOM_BOX_TYPE_HEV2:
 		case GF_ISOM_BOX_TYPE_LHE1:
 		case GF_ISOM_BOX_TYPE_LHV1:
+		case GF_ISOM_BOX_TYPE_AV01:
 		{
 			GF_MPEGVisualSampleEntryBox *avc1 = (GF_MPEGVisualSampleEntryBox *)ent1;
 			GF_MPEGVisualSampleEntryBox *avc2 = (GF_MPEGVisualSampleEntryBox *)ent2;
@@ -3824,6 +3825,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 				a = (GF_Box *) avc1->svc_config;
 			else if (avc1->mvc_config)
 				a = (GF_Box *) avc1->mvc_config;
+			else if (avc1->av1_config)
+				a = (GF_Box *)avc1->av1_config;
 			else
 				a = (GF_Box *) avc1->avc_config;
 
@@ -3835,6 +3838,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 				b = (GF_Box *) avc2->svc_config;
 			else if (avc2->mvc_config)
 				b = (GF_Box *) avc2->mvc_config;
+			else if (avc2->av1_config)
+				b = (GF_Box *)avc2->av1_config;
 			else
 				b = (GF_Box *) avc2->avc_config;
 
