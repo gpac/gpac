@@ -314,6 +314,8 @@ enum
 	GPAC_OTI_VIDEO_LHVC = 0x25,
 	/*!OTI for H264-SVC streams*/
 	GPAC_OTI_VIDEO_MVC = 0x29,
+	/*!OTI for AOM AV1 streams*/
+	GPAC_OTI_VIDEO_AV1 = 0x30,
 	/*!OTI for MPEG-4 AAC streams*/
 	GPAC_OTI_AUDIO_AAC_MPEG4 = 0x40,
 

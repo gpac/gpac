@@ -1076,7 +1076,7 @@ GF_AV1Config *gf_odf_av1_cfg_new()
 	GF_AV1Config *cfg;
 	GF_SAFEALLOC(cfg, GF_AV1Config);
 	if (!cfg) return NULL;
-	cfg->initial_presentation_delay_minus_one = 10;
+	cfg->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
 	cfg->obu_array = gf_list_new();
 	return cfg;
 }
@@ -1094,6 +1094,35 @@ void gf_odf_av1_cfg_del(GF_AV1Config *cfg)
 	gf_list_del(cfg->obu_array);
 	gf_free(cfg);
 }
+
+GF_EXPORT
+GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
+{
+	u32 i = 0;
+	gf_bs_write_int(bs, 0, 3); /*reserved*/
+	gf_bs_write_int(bs, cfg->initial_presentation_delay_present, 1);
+	gf_bs_write_int(bs, cfg->initial_presentation_delay_minus_one, 4);
+	for (i = 0; i < gf_list_count(cfg->obu_array); ++i) {
+		GF_AV1_OBUArrayEntry *a = gf_list_get(cfg->obu_array, i);
+		gf_bs_write_data(bs, a->obu, (u32)a->obu_length);
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize) {
+	GF_Err e;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	*outSize = 0;
+	*outData = NULL;
+	e = gf_odf_av1_cfg_write_bs(cfg, bs);
+	if (e == GF_OK)
+		gf_bs_get_content(bs, outData, outSize);
+
+	gf_bs_del(bs);
+	return e;
+}
+
 
 GF_EXPORT
 const char *gf_afx_get_type_description(u8 afx_code)
