@@ -1979,6 +1979,9 @@ GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 /*gets LHVC config - user is responsible for deleting it*/
 GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
+/*gets AV1 config - user is responsible for deleting it*/
+GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
 /*return true if track dependencies implying extractors or implicit reconstruction are found*/
 Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file);
 

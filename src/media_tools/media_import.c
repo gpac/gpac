@@ -7016,29 +7016,29 @@ exit:
 #endif //GPAC_DISABLE_HEVC
 }
 
-static void av1_reset_frame_state(AV1StateFrame *frame_state) {
-	while (gf_list_count(frame_state->header_obus)) {
-		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->header_obus, 0);
-		if (a->obu) gf_free(a->obu);
-		gf_list_rem(frame_state->header_obus, 0);
-		gf_free(a);
+void av1_reset_frame_state(AV1StateFrame *frame_state) {
+	if (frame_state->header_obus) {
+		while (gf_list_count(frame_state->header_obus)) {
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->header_obus, 0);
+			if (a->obu) gf_free(a->obu);
+			gf_list_rem(frame_state->header_obus, 0);
+			gf_free(a);
+		}
+		gf_list_del(frame_state->header_obus);
 	}
-	gf_list_del(frame_state->header_obus);
 	
-	while (gf_list_count(frame_state->frame_obus)) {
-		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->frame_obus, 0);
-		if (a->obu) gf_free(a->obu);
-		gf_list_rem(frame_state->frame_obus, 0);
-		gf_free(a);
+	if (frame_state->frame_obus) {
+		while (gf_list_count(frame_state->frame_obus)) {
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->frame_obus, 0);
+			if (a->obu) gf_free(a->obu);
+			gf_list_rem(frame_state->frame_obus, 0);
+			gf_free(a);
+		}
+		gf_list_del(frame_state->frame_obus);
 	}
-	gf_list_del(frame_state->frame_obus);
 
 	memset(frame_state, 0, sizeof(AV1StateFrame));
 }
-
-GF_Err aom_av1_parse_obu_from_section5(GF_BitStream *bs, AV1State *state);
-GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state);
-GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs,  AV1State *state);
 
 static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 {
@@ -7070,9 +7070,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	}
 
 	memset(&state, 0, sizeof(AV1State));
-	state.frame_state.frame_obus = gf_list_new();
-	state.frame_state.header_obus = gf_list_new();
 	av1_cfg = gf_odf_av1_cfg_new();
+	state.config = av1_cfg;
 
 	mdia = gf_fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
@@ -7112,6 +7111,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (!e) {
 		gf_import_message(import, GF_OK, "Detected IVF.");
 		av1_bs_syntax = IVF;
+		pos = gf_bs_get_position(bs);
 	} else {
 		gf_bs_seek(bs, pos);
 		e = aom_av1_parse_obu_from_annexb(bs, &state);
@@ -7137,16 +7137,18 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 		/*we process each TU and extract only the necessary OBUs*/
 		if (av1_bs_syntax == OBUs) {
-			gf_import_message(import, GF_OK, "Error parsing OBUs: Section 5 not supported. Use IVF or Annex B.");
-			//delimit at OBU_TEMPORAL_DELIMITER
+			if (aom_av1_parse_obu_from_section5(bs, &state) != GF_OK) {
+				gf_import_message(import, GF_OK, "Error parsing OBU (Section 5)");
+				goto exit;
+			}
 		} else if (av1_bs_syntax == AnnexB) {
 			if (aom_av1_parse_obu_from_annexb(bs, &state) != GF_OK) {
-				gf_import_message(import, GF_OK, "Error parsing OBU");
+				gf_import_message(import, GF_OK, "Error parsing OBU (Annex B)");
 				goto exit;
 			}
 		} else if (av1_bs_syntax == IVF) {
 			if (aom_av1_parse_obu_from_ivf(bs, &state) != GF_OK) {
-				gf_import_message(import, GF_OK, "Error parsing OBU");
+				gf_import_message(import, GF_OK, "Error parsing OBU (IVF)");
 				goto exit;
 			}
 		}
