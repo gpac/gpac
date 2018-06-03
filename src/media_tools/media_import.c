@@ -7036,6 +7036,7 @@ static void av1_reset_frame_state(AV1StateFrame *frame_state) {
 	memset(frame_state, 0, sizeof(AV1StateFrame));
 }
 
+GF_Err aom_av1_parse_obu_from_section5(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs,  AV1State *state);
 
@@ -7058,7 +7059,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		AnnexB,
 		IVF
 	} AV1BitstreamSyntax;
-	AV1BitstreamSyntax av1_bs_syntax = IVF;
+	AV1BitstreamSyntax av1_bs_syntax;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -7107,15 +7108,29 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	}
 	gf_isom_set_cts_packing(import->dest, track_num, GF_TRUE);
 
-	pos = gf_bs_get_position(bs);
 	e = gf_media_aom_parse_ivf_file_header(bs, &state);
-	if (e) {
+	if (!e) {
+		gf_import_message(import, GF_OK, "Detected IVF.");
+		av1_bs_syntax = IVF;
+	} else {
 		gf_bs_seek(bs, pos);
-		gf_import_message(import, GF_OK, "Assuming Annex B.");
-		av1_bs_syntax = AnnexB;
+		e = aom_av1_parse_obu_from_annexb(bs, &state);
+		if (!e) {
+			gf_import_message(import, GF_OK, "Detected Annex B.");
+			av1_bs_syntax = AnnexB;
+		} else {
+			gf_bs_seek(bs, pos);
+			e = aom_av1_parse_obu_from_section5(bs, &state);
+			if (e) {
+				gf_import_message(import, GF_OK, "Couldn't guess bitstream format (IVF then Annex B then Section 5 tested.");
+				goto exit;
+			}
+			gf_import_message(import, GF_OK, "OBUs Section 5.");
+			av1_bs_syntax = OBUs;
+		}
 	}
-	else gf_import_message(import, GF_OK, "Detected IVF.");
 
+	gf_bs_seek(bs, pos);
 	while (gf_bs_available(bs)) {
 		av1_reset_frame_state(&state.frame_state);
 		pos = gf_bs_get_position(bs);
