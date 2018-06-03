@@ -1552,16 +1552,14 @@ static void color_config(GF_BitStream *bs, const u8 seq_profile)
 	if (seq_profile == 2 && high_bitdepth) {
 		const Bool twelve_bit = gf_bs_read_int(bs, 1);
 		BitDepth = twelve_bit ? 12 : 10;
-	}
-	else if (seq_profile <= 2) {
+	} else if (seq_profile <= 2) {
 		BitDepth = high_bitdepth ? 10 : 8;
 	}
 
 	Bool mono_chrome = GF_FALSE;
 	if (seq_profile == 1) {
 		mono_chrome = 0;
-	}
-	else {
+	} else {
 		mono_chrome = gf_bs_read_int(bs, 1);
 	}
 	/*NumPlanes = mono_chrome ? 1 : 3;*/
@@ -1571,8 +1569,7 @@ static void color_config(GF_BitStream *bs, const u8 seq_profile)
 		color_primaries = gf_bs_read_int(bs, 8);
 		transfer_characteristics = gf_bs_read_int(bs, 8);
 		matrix_coefficients = gf_bs_read_int(bs, 8);
-	}
-	else {
+	} else {
 		color_primaries = 2/*CP_UNSPECIFIED*/;
 		transfer_characteristics = 2/*TC_UNSPECIFIED*/;
 		matrix_coefficients = 2/*MC_UNSPECIFIED*/;
@@ -1584,35 +1581,30 @@ static void color_config(GF_BitStream *bs, const u8 seq_profile)
 		chroma_sample_position = CSP_UNKNOWN;
 		separate_uv_delta_q = 0;*/
 		return;
-	}
-	else if (color_primaries == 0/*CP_BT_709*/ &&
+	} else if (color_primaries == 0/*CP_BT_709*/ &&
 		transfer_characteristics == 13/*TC_SRGB*/ &&
 		matrix_coefficients == 0/*MC_IDENTITY*/) {
 		/*color_range = 1;
 		subsampling_x = 0;
 		subsampling_y = 0;*/
-	}
-	else {
+	} else {
 		Bool subsampling_x = GF_FALSE, subsampling_y = GF_FALSE;
 
 		/*color_range = */gf_bs_read_int(bs, 1);
 		if (seq_profile == 0) {
 			/*subsampling_x = 1;
 			subsampling_y = 1;*/
-		}
-		else if (seq_profile == 1) {
+		} else if (seq_profile == 1) {
 			/*subsampling_x = 0;
 			subsampling_y = 0;*/
-		}
-		else {
+		} else {
 			if (BitDepth == 12) {
 				Bool subsampling_x = gf_bs_read_int(bs, 1);
 				if (subsampling_x)
 					subsampling_y = gf_bs_read_int(bs, 1);
 				else
 					subsampling_y = 0;
-			}
-			else {
+			} else {
 				subsampling_x = 1;
 				subsampling_y = 0;
 			}
@@ -1990,7 +1982,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state) {
 			return;
 		}
 		AV1FrameType frame_type = gf_bs_read_int(bs, 2);
-		frame_state->key_frame = gf_bs_read_int(bs, 1)/*show_frame*/ && frame_type == KEY_FRAME;
+		frame_state->key_frame = gf_bs_read_int(bs, 1)/*show_frame*/ && frame_type == KEY_FRAME && frame_state->seen_frame_header;
 	}
 }
 

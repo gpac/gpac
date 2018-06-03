@@ -1101,10 +1101,10 @@ GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
 	u32 i = 0;
 	gf_bs_write_int(bs, 0, 3); /*reserved*/
 	gf_bs_write_int(bs, cfg->initial_presentation_delay_present, 1);
-	gf_bs_write_int(bs, cfg->initial_presentation_delay_minus_one, 4);
+	gf_bs_write_int(bs, cfg->initial_presentation_delay_minus_one, 4); /*TODO: compute initial_presentation_delay_minus_one*/
 	for (i = 0; i < gf_list_count(cfg->obu_array); ++i) {
 		GF_AV1_OBUArrayEntry *a = gf_list_get(cfg->obu_array, i);
-		gf_bs_write_data(bs, a->obu, (u32)a->obu_length);
+		gf_bs_write_data(bs, a->obu, (u32)a->obu_length); //TODO: we are supposed to omit the size on the last OBU...
 	}
 	return GF_OK;
 }

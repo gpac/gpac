@@ -2476,23 +2476,23 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	read += 1;
 	ptr->config->obu_array = gf_list_new();
 
-	while (read < ptr->size) {
+	while (read < ptr->size && gf_bs_available(bs)) {
 		u64 pos, obu_size;
 		ObuType obu_type;
 		GF_AV1_OBUArrayEntry *a;
 		
 		pos = gf_bs_get_position(bs);
 		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &state) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMFF: could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
 		obu_size = gf_bs_get_position(bs) - pos;
 		read += obu_size;
 		gf_bs_seek(bs, pos);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ISOBMFF] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
 		if (!av1_is_obu_header(obu_type)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("ISOBMFF: AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ISOBMFF] AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		a->obu = gf_malloc((size_t)obu_size);
@@ -2502,15 +2502,16 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		gf_list_add(ptr->config->obu_array, a);
 	}
 
+	if (read < ptr->size)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] AV1ConfigurationBox: read only "LLU" bytes (expected "LLU").\n", read, ptr->size));
 	if (read > ptr->size)
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ISOBMFF: AV1: overflow: read "LLU" bytes, of box size "LLU".\n", read, ptr->size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AV1ConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", read, ptr->size));
 
 	return GF_OK;
 }
 
 GF_Err av1c_Write(GF_Box *s, GF_BitStream *bs) {
 	GF_Err e;
-	u32 i;
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
 	if (!s) return GF_BAD_PARAM;
 	if (!ptr->config) return GF_BAD_PARAM;
@@ -2518,16 +2519,7 @@ GF_Err av1c_Write(GF_Box *s, GF_BitStream *bs) {
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	gf_bs_write_int(bs, 0, 3); /*reserved*/
-	gf_bs_write_int(bs, ptr->config->initial_presentation_delay_present, 1);
-	gf_bs_write_int(bs, ptr->config->initial_presentation_delay_minus_one, 4); /*TODO: compute initial_presentation_delay_minus_one*/
-
-	for (i = 0; i < gf_list_count(ptr->config->obu_array); ++i) {
-		GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
-		gf_bs_write_data(bs, a->obu, (u32)a->obu_length); //TODO: we are supposed to omit the size on the last OBU...
-	}
-
-	return GF_OK;
+	return gf_odf_av1_cfg_write_bs(ptr->config, bs);
 }
 
 GF_Err av1c_Size(GF_Box *s) {
