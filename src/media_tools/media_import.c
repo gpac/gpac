@@ -7111,12 +7111,13 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	e = gf_media_aom_parse_ivf_file_header(bs, &state);
 	if (e) {
 		gf_bs_seek(bs, pos);
-		gf_import_message(import, GF_OK, "Detected Annex B.");
+		gf_import_message(import, GF_OK, "Assuming Annex B.");
 		av1_bs_syntax = AnnexB;
 	}
 	else gf_import_message(import, GF_OK, "Detected IVF.");
 
 	while (gf_bs_available(bs)) {
+		av1_reset_frame_state(&state.frame_state);
 		pos = gf_bs_get_position(bs);
 
 		/*we process each TU and extract only the necessary OBUs*/
