@@ -1545,72 +1545,72 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 	return GF_OK;
 }
 
-static void color_config(GF_BitStream *bs, const u8 seq_profile)
+static void color_config(GF_BitStream *bs, AV1State *state)
 {
 	const Bool high_bitdepth = gf_bs_read_int(bs, 1);
-	u8 BitDepth = 8;
-	if (seq_profile == 2 && high_bitdepth) {
+	state->bit_depth = 8;
+	if (state->seq_profile == 2 && high_bitdepth) {
 		const Bool twelve_bit = gf_bs_read_int(bs, 1);
-		BitDepth = twelve_bit ? 12 : 10;
-	} else if (seq_profile <= 2) {
-		BitDepth = high_bitdepth ? 10 : 8;
+		state->bit_depth = twelve_bit ? 12 : 10;
+	} else if (state->seq_profile <= 2) {
+		state->bit_depth = high_bitdepth ? 10 : 8;
 	}
 
-	Bool mono_chrome = GF_FALSE;
-	if (seq_profile == 1) {
-		mono_chrome = 0;
+	state->mono_chrome = GF_FALSE;
+	if (state->seq_profile == 1) {
+		state->mono_chrome = 0;
 	} else {
-		mono_chrome = gf_bs_read_int(bs, 1);
+		state->mono_chrome = gf_bs_read_int(bs, 1);
 	}
 	/*NumPlanes = mono_chrome ? 1 : 3;*/
-	const Bool color_description_present_flag = gf_bs_read_int(bs, 1);
-	u8 color_primaries, transfer_characteristics, matrix_coefficients;
-	if (color_description_present_flag) {
-		color_primaries = gf_bs_read_int(bs, 8);
-		transfer_characteristics = gf_bs_read_int(bs, 8);
-		matrix_coefficients = gf_bs_read_int(bs, 8);
+	state->color_description_present_flag = gf_bs_read_int(bs, 1);
+	if (state->color_description_present_flag) {
+		state->color_primaries = gf_bs_read_int(bs, 8);
+		state->transfer_characteristics = gf_bs_read_int(bs, 8);
+		state->matrix_coefficients = gf_bs_read_int(bs, 8);
 	} else {
-		color_primaries = 2/*CP_UNSPECIFIED*/;
-		transfer_characteristics = 2/*TC_UNSPECIFIED*/;
-		matrix_coefficients = 2/*MC_UNSPECIFIED*/;
+		state->color_primaries = 2/*CP_UNSPECIFIED*/;
+		state->transfer_characteristics = 2/*TC_UNSPECIFIED*/;
+		state->matrix_coefficients = 2/*MC_UNSPECIFIED*/;
 	}
-	if (mono_chrome) {
-		/*color_range = */gf_bs_read_int(bs, 1);
+	if (state->mono_chrome) {
+		state->color_range = gf_bs_read_int(bs, 1);
 		/*subsampling_x = 1;
 		subsampling_y = 1;
 		chroma_sample_position = CSP_UNKNOWN;
 		separate_uv_delta_q = 0;*/
 		return;
-	} else if (color_primaries == 0/*CP_BT_709*/ &&
-		transfer_characteristics == 13/*TC_SRGB*/ &&
-		matrix_coefficients == 0/*MC_IDENTITY*/) {
-		/*color_range = 1;
-		subsampling_x = 0;
-		subsampling_y = 0;*/
+	} else if (state->color_primaries == 0/*CP_BT_709*/ &&
+		state->transfer_characteristics == 13/*TC_SRGB*/ &&
+		state->matrix_coefficients == 0/*MC_IDENTITY*/) {
+		state->color_range = 1;
+		state->chroma_subsampling_x = 0;
+		state->chroma_subsampling_y = 0;
 	} else {
-		Bool subsampling_x = GF_FALSE, subsampling_y = GF_FALSE;
+		state->chroma_subsampling_x = GF_FALSE;
+		state->chroma_subsampling_y = GF_FALSE;
 
-		/*color_range = */gf_bs_read_int(bs, 1);
-		if (seq_profile == 0) {
-			/*subsampling_x = 1;
-			subsampling_y = 1;*/
-		} else if (seq_profile == 1) {
-			/*subsampling_x = 0;
-			subsampling_y = 0;*/
+		state->color_range = gf_bs_read_int(bs, 1);
+		if (state->seq_profile == 0) {
+			/*state->subsampling_x = 1;
+			state->subsampling_y = 1;*/
+		} else if (state->seq_profile == 1) {
+			/*state->subsampling_x = 0;
+			state->subsampling_y = 0;*/
 		} else {
-			if (BitDepth == 12) {
-				Bool subsampling_x = gf_bs_read_int(bs, 1);
-				if (subsampling_x)
-					subsampling_y = gf_bs_read_int(bs, 1);
+			if (state->bit_depth == 12) {
+				state->chroma_subsampling_x = gf_bs_read_int(bs, 1);
+				if (state->chroma_subsampling_x)
+					state->chroma_subsampling_y = gf_bs_read_int(bs, 1);
 				else
-					subsampling_y = 0;
+					state->chroma_subsampling_y = 0;
 			} else {
-				subsampling_x = 1;
-				subsampling_y = 0;
+				state->chroma_subsampling_x = 1;
+				state->chroma_subsampling_y = 0;
 			}
 		}
-		if (subsampling_x && subsampling_y) {
-			/*chroma_sample_position = */gf_bs_read_int(bs, 2);
+		if (state->chroma_subsampling_x && state->chroma_subsampling_y) {
+			state->chroma_sample_position = gf_bs_read_int(bs, 2);
 		}
 	}
 	/*separate_uv_delta_q = */gf_bs_read_int(bs, 1);
@@ -1622,17 +1622,18 @@ static void av1_choose_operating_point(GF_BitStream *bs)
 
 static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
-	const u8 seq_profile = gf_bs_read_int(bs, 3);
-	const Bool still_picture = gf_bs_read_int(bs, 1);
+	state->seq_profile = gf_bs_read_int(bs, 3);
+	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);
 	if (state->reduced_still_picture_header) {
-		/*seq_level_idx[0] =*/gf_bs_read_int(bs, 5);
+		state->seq_level_idx/*[0]*/ =gf_bs_read_int(bs, 5);
 	} else {
 		const u8 operating_points_cnt_minus_1 = gf_bs_read_int(bs, 5);
 		size_t i;
 		for (i = 0; i <= operating_points_cnt_minus_1; i++) {
 			/*operating_point_idc[i] = */gf_bs_read_int(bs, 12);
-			/*seq_level_idx[i] = */gf_bs_read_int(bs, 5);
+			u8 seq_level_idx/*[i]*/ = gf_bs_read_int(bs, 5);
+			if (i == 0) state->seq_level_idx = seq_level_idx;
 		}
 	}
 
@@ -1708,7 +1709,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	/*enable_cdef = */gf_bs_read_int(bs, 1);
 	/*enable_restoration = */gf_bs_read_int(bs, 1);
 	
-	color_config(bs, seq_profile);
+	color_config(bs, state);
 
 	Bool timing_info_present_flag = GF_FALSE;
 	if (state->reduced_still_picture_header) {
@@ -1726,8 +1727,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		if (decoder_model_info_present_flag) {
 			assert(0);/*decoder_model_info();*/
 		}
-	}
-	else {
+	} else {
 		/*decoder_model_info_present_flag = 0;*/
 	}
 
@@ -1747,8 +1747,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 				}
 			}
 		}
-	}
-	else {
+	} else {
 		/*operating_points_decoder_model_count_minus_1 = -1;*/
 	}
 
@@ -1883,17 +1882,19 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 {
 	if (av1_is_obu_header(obu_type)) {
 		OBU_COPY;
+		if (!state->frame_state.header_obus) state->frame_state.header_obus = gf_list_new();
 		gf_list_add(state->frame_state.header_obus, a);
 	}
 	if (av1_is_obu_frame(obu_type)) {
 		OBU_COPY;
+		if (!state->frame_state.frame_obus) state->frame_state.frame_obus = gf_list_new();
 		gf_list_add(state->frame_state.frame_obus, a);
 	}
 }
 
 GF_Err aom_av1_parse_obu_from_section5(GF_BitStream *bs, AV1State *state) {
 	ObuType obu_type = OBU_SKIP;
-	while (obu_type != OBU_TEMPORAL_DELIMITER || !gf_bs_available(bs)) {
+	while (obu_type != OBU_TEMPORAL_DELIMITER && gf_bs_available(bs)) {
 		u64 pos = gf_bs_get_position(bs), obu_length = 0;
 		GF_Err e;
 
@@ -1905,7 +1906,7 @@ GF_Err aom_av1_parse_obu_from_section5(GF_BitStream *bs, AV1State *state) {
 		av1_populate_state_from_obu(bs, pos, obu_length, obu_type, state);
 	}
 
-	return GF_TRUE;
+	return GF_OK;
 }
 
 GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state)

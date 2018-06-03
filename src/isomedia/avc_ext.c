@@ -1932,6 +1932,25 @@ GF_AVCConfig *gf_isom_mvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return AVC_DuplicateConfig(entry->mvc_config->config);
 }
 
+GF_EXPORT
+GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_MPEGVisualSampleEntryBox *entry;
+	if (gf_isom_get_reference_count(the_file, trackNumber, GF_ISOM_REF_TBAS)) {
+		u32 ref_track;
+		GF_Err e = gf_isom_get_reference(the_file, trackNumber, GF_ISOM_REF_TBAS, 1, &ref_track);
+		if (e == GF_OK) {
+			trackNumber = ref_track;
+		}
+	}
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex - 1);
+	if (!entry || !entry->av1_config) return NULL;
+	return AV1_DuplicateConfig(entry->av1_config->config);
+}
+
 
 GF_EXPORT
 u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
@@ -2462,6 +2481,8 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	
 	if (ptr->config) gf_odf_av1_cfg_del(ptr->config);
 	GF_SAFEALLOC(ptr->config, GF_AV1Config);
+	memset(&state, 0, sizeof(AV1State));
+	state.config = ptr->config;
 
 	reserved = gf_bs_read_int(bs, 3);
 	if (reserved != 0)
@@ -2508,6 +2529,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	if (read > ptr->size)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AV1ConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", read, ptr->size));
 
+	av1_reset_frame_state(&state);
 	return GF_OK;
 }
 
