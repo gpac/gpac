@@ -1242,6 +1242,8 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			return "SMPTE VC-1 Video";
 		case GPAC_OTI_VIDEO_DIRAC:
 			return "Dirac Video";
+		case GPAC_OTI_VIDEO_AV1:
+			return "AOM AV1 Video";
 		default:
 			return "Unknown Video type";
 		}

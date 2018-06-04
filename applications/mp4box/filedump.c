@@ -2514,6 +2514,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			}
 
 		}
+	} else if (msub_type == GF_ISOM_SUBTYPE_AV01) {
+		u32 w, h;
+		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+		fprintf(stderr, "\tAOM AV1 stream - Resolution %d x %d\n", w, h);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_H263) {
 		u32 w, h;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);

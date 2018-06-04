@@ -7158,7 +7158,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			u32 i = 0;
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
-			samp->IsRAP = state.frame_state.key_frame;
+			samp->IsRAP = state.frame_state.key_frame ? SAP_TYPE_1 : 0;
 			samp->CTS_Offset = 0;
 
 			for (i = 0; i < gf_list_count(state.frame_state.frame_obus); ++i)

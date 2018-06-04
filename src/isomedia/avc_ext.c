@@ -2518,7 +2518,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		a->obu = gf_malloc((size_t)obu_size);
-		gf_bs_read_data(bs, a->obu, (u32)obu_size);
+		gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);
 		a->obu_length = obu_size;
 		a->obu_type = obu_type;
 		gf_list_add(ptr->config->obu_array, a);
@@ -2529,7 +2529,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	if (read > ptr->size)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AV1ConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", read, ptr->size));
 
-	av1_reset_frame_state(&state);
+	av1_reset_frame_state(& state.frame_state);
 	return GF_OK;
 }
 
