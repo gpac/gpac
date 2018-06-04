@@ -278,9 +278,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				codec_id = CODEC_ID_PNG;
 				ffd->is_image = GF_TRUE;
 				break;
+#ifdef CODEC_ID_AV1
 			case GPAC_OTI_VIDEO_AV1:
-				codec_id = AV_CODEC_ID_AV1;
+				codec_id = CODEC_ID_AV1;
 				break;
+#endif
 			case 0xFF:
 				codec_id = CODEC_ID_SVQ3;
 				break;
@@ -1663,9 +1665,11 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 				return GF_CODEC_MAYBE_SUPPORTED;
 			return GF_CODEC_NOT_SUPPORTED;
 
+#ifdef CODEC_ID_AV1
 		case GPAC_OTI_VIDEO_AV1:
-			if (avcodec_find_decoder(AV_CODEC_ID_AV1) != NULL)
+			if (avcodec_find_decoder(CODEC_ID_AV1) != NULL)
 				return GF_CODEC_MAYBE_SUPPORTED;
+#endif
 			return GF_CODEC_NOT_SUPPORTED;
 
 		default:
