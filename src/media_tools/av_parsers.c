@@ -1834,6 +1834,22 @@ static GF_Err av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *ob
 	return GF_OK;
 }
 
+const char *av1_get_obu_name(ObuType obu_type)
+{
+	switch (obu_type) {
+	case OBU_SKIP: return "skip";
+	case OBU_SEQUENCE_HEADER: return "seq_header";
+	case OBU_TEMPORAL_DELIMITER: return "delimiter";
+	case OBU_FRAME_HEADER: return "frame_header";
+	case OBU_TILE_GROUP: return "tile_group";
+	case OBU_METADATA: return "metadata";
+	case OBU_FRAME: return "frame";
+	case OBU_REDUNDANT_FRAME_HEADER: return "redundant_frame_header";
+	case OBU_PADDING: return "padding";
+	default: return "unknown";
+	}
+}
+
 Bool av1_is_obu_header(ObuType obu_type) {
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
