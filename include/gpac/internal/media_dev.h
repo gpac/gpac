@@ -492,27 +492,6 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
 
-/*!\brief obu types. */
-typedef enum {
-	OBU_SKIP = 0,
-	OBU_SEQUENCE_HEADER = 1,
-	OBU_TEMPORAL_DELIMITER = 2,
-	OBU_FRAME_HEADER = 3,
-	OBU_TILE_GROUP = 4,
-	OBU_METADATA = 5,
-	OBU_FRAME = 6,
-	OBU_REDUNDANT_FRAME_HEADER = 7,
-	OBU_PADDING = 15,
-} ObuType;
-
-/*!\brief obu metadata types. */
-typedef enum {
-	OBU_METADATA_TYPE_PRIVATE_DATA = 0,
-	OBU_METADATA_TYPE_HDR_CLL = 1,
-	OBU_METADATA_TYPE_HDR_MDCV = 2,
-	OBU_METADATA_TYPE_SCALABILITY = 3,
-} ObuMetadataType;
-
 typedef struct
 {
 	Bool seen_frame_header;

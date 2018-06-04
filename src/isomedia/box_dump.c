@@ -1571,7 +1571,15 @@ GF_Err av1c_dump(GF_Box *a, FILE *trace) {
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)a;
 	fprintf(trace, "<AV1ConfigurationBox>\n");
 	if (ptr->config) {
-		fprintf(trace, "<AV1Config initial_presentation_delay=\"%u\" OBUs_count=\"%u\"/>\n", ptr->config->initial_presentation_delay_minus_one+1, gf_list_count(ptr->config->obu_array));
+		u32 i, obu_count = gf_list_count(ptr->config->obu_array);
+		fprintf(trace, "<AV1Config initial_presentation_delay=\"%u\" OBUs_count=\"%u\"/>\n", ptr->config->initial_presentation_delay_minus_one+1, obu_count);
+
+		for (i=0; i<obu_count; i++) {
+			GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
+			fprintf(trace, "<OBU type=\"%d\" name=\"%s\" size=\"%d\" content=\"", a->obu_type, av1_get_obu_name(a->obu_type), (u32) a->obu_length);
+			dump_data(trace, (char *)a->obu, (u32) a->obu_length);
+			fprintf(trace, "\"/>\n");
+		}
 	}
 	fprintf(trace, "</AV1ConfigurationBox>\n");
 	return GF_OK;
