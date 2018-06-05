@@ -775,7 +775,7 @@ static GF_Err gf_isom_write_content_protection(GF_ISOFile *input, FILE *mpd, u32
 			size_64 = gf_base64_encode((const char *)pssh_data, pssh_len, (char *)pssh_data_64, size_64);
 			pssh_data_64[size_64] = 0;
 
-			for (j=0; j<indent+1; j++)
+			for (j=0; j<=indent; j++)
 				fprintf(mpd, " ");
 			fprintf(mpd, "<cenc:pssh>%s</cenc:pssh>\n", pssh_data_64);
 			gf_free(pssh_data_64);
