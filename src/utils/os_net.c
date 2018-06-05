@@ -1209,7 +1209,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 	}
 	if (usec_wait>=1000000) {
 		timeout.tv_sec = usec_wait/1000000;
-		timeout.tv_usec = usec_wait - (timeout.tv_sec*1000000);
+		timeout.tv_usec = (u32) (usec_wait - (timeout.tv_sec*1000000));
 	} else {
 		timeout.tv_sec = 0;
 		timeout.tv_usec = usec_wait;

@@ -1260,6 +1260,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	if (!stbl)
 		return GF_BAD_PARAM;
 
+	type = 0;
 	senc = trak->sample_encryption;
 	//no senc is OK
 	if (senc) {
@@ -1267,8 +1268,6 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 			type = GF_ISOM_BOX_UUID_PSEC;
 		} else if (senc->type == GF_ISOM_BOX_TYPE_SENC) {
 			type = GF_ISOM_BOX_TYPE_SENC;
-		} else {
-			type = 0;
 		}
 
 		if (container_type) *container_type = type;

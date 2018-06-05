@@ -1046,7 +1046,7 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 		if (e != GF_IP_NETWORK_EMPTY) is_empty = GF_FALSE;
 
 		if (is_empty) {
-			u32 st, now = gf_sys_clock()- start_time;
+			u32 /*st, */now = gf_sys_clock()- start_time;
 			gf_sleep(1);
 
 			if (gf_prompt_has_input()) {
@@ -1067,7 +1067,7 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 				run = GF_FALSE;
 			}
 			if (stats_rate) {
-				st = gf_sys_clock();
+				/*st = gf_sys_clock();*/
 				if (now >= nb_stats*1000*stats_rate) {
 					nb_stats+=1;
 					atsc_stats(atscd, now);

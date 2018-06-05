@@ -455,6 +455,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 	chunk_size = 0;
 	prev_trun_data_offset = 0;
+	data_offset = 0;
 
 	/*in playback mode*/
 	if (traf->tfdt && is_first_merge) {
