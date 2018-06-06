@@ -1012,7 +1012,7 @@ exit:
 	if (buffer) gf_free(buffer);
 	if (bs) gf_bs_del(bs);
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
-	return DQId;;
+	return DQId;
 }
 
 static Bool gf_isom_has_svc_explicit(GF_ISOFile *file, u32 track)

@@ -1938,7 +1938,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	if (lock_fail) {
 		GF_Event *evt_clone;
 		gf_mx_p(gjs->event_mx);
-		evt_clone = gf_malloc(sizeof(GF_Event));;
+		evt_clone = gf_malloc(sizeof(GF_Event));
 		memcpy(evt_clone, evt, sizeof(GF_Event));
 		gf_list_add(gjs->event_queue, evt_clone);
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[GPACJS] Couldn't lock % mutex, queing event\n", (lock_fail==2) ? "JavaScript" : "Compositor"));

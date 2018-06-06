@@ -588,7 +588,6 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-
 /* Required for base64 encoding of DecoderSpecificInfo */
 #include <gpac/base_coding.h>
 

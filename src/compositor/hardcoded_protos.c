@@ -1471,10 +1471,10 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 	GF_Matrix mv_bck, proj_bck, cam_bck;
+	/*SFVec3f target;*/
 	GF_Rect vp, orig_vp;
 	u32 mode, i, cull_bck;
-	Fixed angle_yaw;
-	//Fixed angle_pitch, dlen;
+	Fixed angle_yaw/*, angle_pitch*/;
 	SFVec3f axis;
 	GF_Node *subtree = gf_node_get_private(node);
 	if (is_destroy) return;
@@ -1487,14 +1487,16 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx_copy(cam_bck, tr_state->camera->modelview);
 
 	tr_state->disable_partial_sphere = GF_TRUE;
+	/*target = tr_state->camera->target;*/
 	orig_vp = tr_state->camera->proj_vp;
 
 /*
 	//compute pitch (elevation)
 	dlen = tr_state->camera->target.x*tr_state->camera->target.x + tr_state->camera->target.z*tr_state->camera->target.z;
 	dlen = gf_sqrt(dlen);
-	angle_pitch = gf_atan2(tr_state->camera->target.y, dlen);
 */
+
+	/*angle_pitch = gf_atan2(tr_state->camera->target.y, dlen);*/
 
 	//compute yaw (rotation Y)
 	angle_yaw = gf_atan2(tr_state->camera->target.z, tr_state->camera->target.x);

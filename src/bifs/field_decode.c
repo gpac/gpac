@@ -89,7 +89,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		* ((SFBool *) field->far_ptr) = (SFBool) gf_bs_read_int(bs, 1);
 		break;
 	case GF_SG_VRML_SFCOLOR:
-		((SFColor *)field->far_ptr)->red = BD_ReadSFFloat(codec, bs);;
+		((SFColor *)field->far_ptr)->red = BD_ReadSFFloat(codec, bs);
 		((SFColor *)field->far_ptr)->green = BD_ReadSFFloat(codec, bs);
 		((SFColor *)field->far_ptr)->blue = BD_ReadSFFloat(codec, bs);
 		break;

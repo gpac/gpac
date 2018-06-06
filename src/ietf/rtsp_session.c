@@ -330,7 +330,7 @@ static GF_TCPChan *GetTCPChannel(GF_RTSPSession *sess, u8 rtpID, u8 rtcpID, Bool
 	u32 i, count = gf_list_count(sess->TCPChannels);
 	for (i=0; i<count; i++) {
 		ptr = (GF_TCPChan *)gf_list_get(sess->TCPChannels, i);
-		if (ptr->rtpID == rtpID) goto exit;;
+		if (ptr->rtpID == rtpID) goto exit;
 		if (ptr->rtcpID == rtcpID) goto exit;
 	}
 	return NULL;
