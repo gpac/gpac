@@ -3984,4 +3984,175 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
     return GF_OK;
 }
 
+#define EXTRACT_FORMAT(_nb_chars)	\
+			strcpy(szFmt, "%d");	\
+			char_template+=_nb_chars;	\
+			if (seg_rad_name[char_template]=='%') {	\
+				char *sep = strchr(seg_rad_name+char_template, '$');	\
+				if (sep) {	\
+					sep[0] = 0;	\
+					strcpy(szFmt, seg_rad_name+char_template);	\
+					char_template += (u32) strlen(seg_rad_name+char_template);	\
+					sep[0] = '$';	\
+				}	\
+			}	\
+			char_template+=1;	\
+
+GF_EXPORT
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline)
+{
+	char szFmt[20];
+	Bool has_number= GF_FALSE;
+	Bool is_index = (seg_type==GF_DASH_TEMPLATE_REPINDEX) ? GF_TRUE : GF_FALSE;
+	Bool is_init = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION) ? GF_TRUE : GF_FALSE;
+	Bool is_template = (seg_type==GF_DASH_TEMPLATE_TEMPLATE) ? GF_TRUE : GF_FALSE;
+	Bool is_init_template = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE) ? GF_TRUE : GF_FALSE;
+	Bool needs_init=((is_init || is_init_template) && !is_bs_switching) ? GF_TRUE : GF_FALSE;
+	u32 char_template = 0;
+	char tmp[100];
+	strcpy(segment_name, "");
+
+	if (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT) {
+		seg_type = GF_DASH_TEMPLATE_INITIALIZATION;
+		needs_init = GF_FALSE;
+		is_init = GF_TRUE;
+	}
+	if (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT) {
+		seg_type = GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE;
+		is_init_template = GF_TRUE;
+		needs_init = GF_FALSE;
+	}
+
+	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$")))
+		needs_init = GF_FALSE;
+
+	if (!seg_rad_name) {
+		strcpy(segment_name, output_file_name); //already contains base_url
+	} else {
+		char c;
+		const size_t seg_rad_name_len = strlen(seg_rad_name);
+		while (char_template <= seg_rad_name_len) {
+			c = seg_rad_name[char_template];
+
+			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
+				char_template += 18;
+				strcat(segment_name, rep_id);
+				needs_init = GF_FALSE;
+			}
+			else if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$Bandwidth", 10)) {
+				EXTRACT_FORMAT(10);
+
+				sprintf(tmp, szFmt, bandwidth);
+				strcat(segment_name, tmp);
+				needs_init = GF_FALSE;
+			}
+			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Time", 5)) {
+				EXTRACT_FORMAT(5);
+				if (is_init || is_init_template) continue;
+				/*replace %d to LLD*/
+				szFmt[strlen(szFmt)-1]=0;
+				strcat(szFmt, &LLD[1]);
+				sprintf(tmp, szFmt, start_time);
+				strcat(segment_name, tmp);
+				has_number = GF_TRUE;
+			}
+			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Number", 7)) {
+				EXTRACT_FORMAT(7);
+
+				if (is_init || is_init_template) continue;
+				sprintf(tmp, szFmt, segment_number);
+				strcat(segment_name, tmp);
+				has_number = GF_TRUE;
+			}
+			else if (!strnicmp(& seg_rad_name[char_template], "$Init=", 6)) {
+				char *sep = strchr(seg_rad_name + char_template+6, '$');
+				if (sep) sep[0] = 0;
+				if (is_init || is_init_template) {
+					strcat(segment_name, seg_rad_name + char_template+6);
+					needs_init = GF_FALSE;
+				}
+				char_template += (u32) strlen(seg_rad_name + char_template)+1;
+				if (sep) sep[0] = '$';
+			}
+			else if (!strnicmp(& seg_rad_name[char_template], "$Index=", 7)) {
+				char *sep = strchr(seg_rad_name + char_template+7, '$');
+				if (sep) sep[0] = 0;
+				if (is_index) {
+					strcat(segment_name, seg_rad_name + char_template+6);
+					needs_init = GF_FALSE;
+				}
+				char_template += (u32) strlen(seg_rad_name + char_template)+1;
+				if (sep) sep[0] = '$';
+			}
+			else if (!strnicmp(& seg_rad_name[char_template], "$Path=", 6)) {
+				char *sep = strchr(seg_rad_name + char_template+6, '$');
+				if (sep) sep[0] = 0;
+				if (!is_template && !is_init_template) {
+					strcat(segment_name, seg_rad_name + char_template+6);
+				}
+				char_template += (u32) strlen(seg_rad_name + char_template)+1;
+				if (sep) sep[0] = '$';
+			}
+			else if (!strnicmp(& seg_rad_name[char_template], "$Segment=", 9)) {
+				char *sep = strchr(seg_rad_name + char_template+9, '$');
+				if (sep) sep[0] = 0;
+				if (!is_init && !is_init_template) {
+					strcat(segment_name, seg_rad_name + char_template+9);
+				}
+				char_template += (u32) strlen(seg_rad_name + char_template)+1;
+				if (sep) sep[0] = '$';
+			}
+
+			else {
+				char_template+=1;
+				if (c=='\\') c = '/';
+
+				sprintf(tmp, "%c", c);
+				strcat(segment_name, tmp);
+			}
+		}
+	}
+
+	if (is_template && !strstr(seg_rad_name, "$Number") && !strstr(seg_rad_name, "$Time")) {
+		if (use_segment_timeline) {
+			strcat(segment_name, "$Time$");
+		} else {
+			strcat(segment_name, "$Number$");
+		}
+	}
+
+	if (needs_init)
+		strcat(segment_name, "init");
+
+	if (!is_init && !is_template && !is_init_template && !is_index && !has_number) {
+		if (use_segment_timeline) {
+			sprintf(tmp, LLU, start_time);
+			strcat(segment_name, tmp);
+		}
+		else {
+			sprintf(tmp, "%d", segment_number);
+			strcat(segment_name, tmp);
+		}
+	}
+	if (seg_ext) {
+		strcat(segment_name, ".");
+		strcat(segment_name, seg_ext);
+	}
+
+	if ((seg_type != GF_DASH_TEMPLATE_TEMPLATE) && (seg_type != GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE)) {
+		char *sep = strrchr(segment_name, '/');
+		if (sep) {
+			char c = sep[0];
+			sep[0] = 0;
+			if (!gf_dir_exists(segment_name)) {
+				gf_mkdir(segment_name);
+			}
+			sep[0] = c;
+		}
+	}
+
+	return GF_OK;
+}
+
+
 #endif /*GPAC_DISABLE_CORE_TOOLS*/

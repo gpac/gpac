@@ -649,7 +649,7 @@ typedef struct __gf_dash_segmenter GF_DASHSegmenter;
  *	\param dasher_context_file config file used to store the context of the DASH segmenter. This allows destroying the segmenter and restarting it later on with the right DASH segquence numbers, MPD and and timing info
  *	\return the DASH segmenter object
 */
-GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile profile, const char *tmp_dir, u32 timescale, GF_Config *dasher_context_file);
+GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile profile, const char *tmp_dir, u32 timescale, const char *dasher_context_file);
 /*!
  Deletes a DASH segmenter
  \param dasher the DASH segmenter object
@@ -737,9 +737,10 @@ GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode 
  *	\param dasher the DASH segmenter object
  *	\param default_segment_duration the duration of a dash segment
  *	\param default_fragment_duration the duration of a dash fragment - if 0, same as default_segment_duration
+ *	\param sub_duration the duration in seconds of media to DASH. If 0, the whole sources will be processed.
  *	\return error code if any
 */
-GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration);
+GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration, Double sub_duration);
 
 /*!
  Enables spliting at RAP boundaries
@@ -927,15 +928,14 @@ GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name);
  *	\param input media source to add
  *	\return error code if any
 */
-GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *input);
+GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput *input);
 
 /*!
  Process the media source and generate segments
  *	\param dasher the DASH segmenter object
- *	\param sub_duration the duration in seconds of media to DASH. If 0, the whole sources will be processed.
  *	\return error code if any
 */
-GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
+GF_Err gf_dasher_process(GF_DASHSegmenter *dasher);
 
 /*!
  Returns time to wait until end of currently generated segments
@@ -949,9 +949,9 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_ins_session);
 /*!
  Sets dasher start date, rather than use current time. Used for debugging purposes, such as simulating long lasting sessions.
  *	\param dasher the DASH segmenter object
- *  \param dash_utc_start_date start date as UTC timstamp. If 0, current time is used
+ *  \param dash_utc_start_date start date as as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. If 0, current time is used
 */
-void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date);
+void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, const char *dash_utc_start_date);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!
