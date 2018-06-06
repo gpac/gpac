@@ -897,8 +897,10 @@ enum
 	GF_PROP_PID_PERIOD_START = GF_4CC('P','E','S','T'),
 	//(double)
 	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
-	//(string)
+	//(uint)
 	GF_PROP_PID_REP_ID = GF_4CC('D','R','I','D'),
+	//(string)
+	GF_PROP_PID_AS_ID = GF_4CC('D','A','I','D'),
 	//(string)
 	GF_PROP_PID_MUX_SRC = GF_4CC('M','S','R','C'),
 	//(uint)

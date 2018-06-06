@@ -3482,6 +3482,8 @@
 					"-lxcb-shape",
 					"-lxcb-xfixes",
 					"-lSDL2",
+					"-laom",
+					"-llzma",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3591,6 +3593,8 @@
 					"-lxcb-shape",
 					"-lxcb-xfixes",
 					"-lSDL2",
+					"-laom",
+					"-llzma",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
