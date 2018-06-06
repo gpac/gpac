@@ -251,6 +251,7 @@ void PrintDASHUsage()
 	        " \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
 	        " \":period_duration=VALUE\"  increases the duration of this period by the given duration in seconds\n"
 	        "                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
+	        " \":duration=VALUE\"  overrides target DASH segment duration for this input\n"
 	        " \":xlink=VALUE\"     sets the xlink value for the period containing this element\n"
 	        "                       only the xlink declared on the first rep of a period will be used\n"
 	        " \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
@@ -1848,7 +1849,7 @@ Bool do_bin_nhml = GF_FALSE;
 #endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
-u64 dash_start_date=0;
+const char *dash_start_date=NULL;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
 Bool stream_rtp = GF_FALSE;
@@ -3306,7 +3307,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			frag_real_time = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-start-date")) {
-			dash_start_date = gf_net_parse_date(argv[i+1]);
+			dash_start_date = argv[i+1];
 			i++;
 		}
 		else if (!strnicmp(arg, "-cp-location=", 13)) {
@@ -4010,9 +4011,10 @@ int mp4boxMain(int argc, char **argv)
 	if (dash_duration) {
 		Bool del_file = GF_FALSE;
 		char szMPD[GF_MAX_PATH], *sep;
-		GF_Config *dash_ctx = NULL;
+		char szStateFile[GF_MAX_PATH];
+		Bool dyn_state_file = GF_FALSE;
 		u32 do_abort = 0;
-		GF_DASHSegmenter *dasher;
+		GF_DASHSegmenter *dasher=NULL;
 
 		if (crypt) {
 			fprintf(stderr, "MP4Box cannot crypt and DASH on the same pass. Please encrypt your content first.\n");
@@ -4035,12 +4037,12 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Live DASH-ing - press 'q' to quit, 's' to save context and quit\n");
 
 		if (!dash_ctx_file && dash_live) {
-			dash_ctx = gf_cfg_new(NULL, NULL);
+			sprintf(szStateFile, "%sdasher%p.xml", gf_get_default_cache_directory(), &dasher);
+			dash_ctx_file = szStateFile;
+			dyn_state_file = GF_TRUE;
 		} else if (dash_ctx_file) {
 			if (force_new)
 				gf_delete_file(dash_ctx_file);
-
-			dash_ctx = gf_cfg_force_new(NULL, dash_ctx_file);
 		}
 
 		if (dash_profile==GF_DASH_PROFILE_AUTO)
@@ -4062,7 +4064,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		/*setup dash*/
-		dasher = gf_dasher_new(szMPD, dash_profile, tmpdir, dash_scale, dash_ctx);
+		dasher = gf_dasher_new(szMPD, dash_profile, tmpdir, dash_scale, dash_ctx_file);
 		if (!dasher) {
 			return mp4box_cleanup(1);
 			return GF_OUT_OF_MEM;
@@ -4094,7 +4096,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
 		if (!e) e = gf_dasher_enable_single_file(dasher, single_file);
 		if (!e) e = gf_dasher_set_switch_mode(dasher, bitstream_switching_mode);
-		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time);
+		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time, dash_subduration);
 		if (!e) e = gf_dasher_enable_rap_splitting(dasher, seg_at_rap, frag_at_rap);
 		if (!e) e = gf_dasher_set_segment_marker(dasher, segment_marker);
 		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
@@ -4134,7 +4136,7 @@ int mp4boxMain(int argc, char **argv)
 				e = gf_dasher_set_dynamic_mode(dasher, GF_DASH_DYNAMIC_LAST, 0, time_shift_depth, mpd_live_duration);
 			}
 
-			if (!e) e = gf_dasher_process(dasher, dash_subduration);
+			if (!e) e = gf_dasher_process(dasher);
 
 			if (do_abort)
 				break;
@@ -4190,18 +4192,12 @@ int mp4boxMain(int argc, char **argv)
 
 		gf_dasher_del(dasher);
 
-		if (dash_ctx) {
-			if (do_abort==3) {
-				if (!dash_ctx_file) {
-					char szName[1024];
-					fprintf(stderr, "Enter file name to save dash context:\n");
-					if (scanf("%s", szName) == 1) {
-						gf_cfg_set_filename(dash_ctx, szName);
-						gf_cfg_save(dash_ctx);
-					}
-				}
+		if (dash_ctx_file && (do_abort==3) && (dyn_state_file)) {
+			char szName[1024];
+			fprintf(stderr, "Enter file name to save dash context:\n");
+			if (scanf("%s", szName) == 1) {
+				gf_move_file(dash_ctx_file, szName);
 			}
-			gf_cfg_del(dash_ctx);
 		}
 		if (e) fprintf(stderr, "Error DASHing file: %s\n", gf_error_to_string(e));
 		if (file) gf_isom_delete(file);

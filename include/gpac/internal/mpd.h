@@ -31,6 +31,22 @@
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
+
+typedef enum
+{
+	GF_DASH_TEMPLATE_SEGMENT = 0,
+	GF_DASH_TEMPLATE_INITIALIZATION,
+	GF_DASH_TEMPLATE_TEMPLATE,
+	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE,
+	GF_DASH_TEMPLATE_REPINDEX,
+	//same as GF_DASH_TEMPLATE_INITIALIZATION but skip default "init" concatenation
+	GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT,
+	//same as GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE but skip default "init" concatenation
+	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT,
+} GF_DashTemplateSegmentType;
+
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline);
+
 /*TODO*/
 typedef struct
 {
@@ -406,8 +422,9 @@ typedef struct
 
 
 typedef enum {
-	GF_MPD_TYPE_STATIC,
+	GF_MPD_TYPE_STATIC=0,
 	GF_MPD_TYPE_DYNAMIC,
+	GF_MPD_TYPE_DYNAMIC_LAST,
 } GF_MPD_Type;
 
 typedef struct {

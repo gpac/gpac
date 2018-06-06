@@ -370,7 +370,7 @@ typedef struct
 {
 	//options
 	char *drv;
-	GF_VideoOutMode mode;
+	GF_VideoOutMode disp;
 	Bool vsync, linear, fullscreen, drop;
 	GF_Fraction dur;
 	Double speed, hold;
@@ -510,7 +510,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		dh = ctx->size.y;
 	}
 	//in 2D mode we need to send a setup event to resize backbuffer to the video source size
-	if (ctx->mode>=MODE_2D) {
+	if (ctx->disp>=MODE_2D) {
 		dw = w;
 		dh = h;
 	}
@@ -523,7 +523,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		evt.setup.height = dh;
 
 #ifndef GPAC_DISABLE_3D
-		if (ctx->mode<MODE_2D) {
+		if (ctx->disp<MODE_2D) {
 			evt.setup.opengl_mode = 1;
 			//always double buffer
 			evt.setup.back_buffer = 1;
@@ -540,11 +540,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 #if !defined(GPAC_DISABLE_3D) && defined(WIN32)
 		vout_load_gl();
-		if ((ctx->mode<MODE_2D) && (glCompileShader == NULL)) {
+		if ((ctx->disp<MODE_2D) && (glCompileShader == NULL)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load openGL, fallback to 2D rastzer\n"));
 			evt.setup.opengl_mode = 0;
 			evt.setup.back_buffer = 1;
-			ctx->mode = MODE_2D;
+			ctx->disp = MODE_2D;
 			ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 		}
 #endif
@@ -721,7 +721,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		glDeleteTextures(ctx->num_textures, ctx->txid);
 	ctx->num_textures = 0;
 
-	if (ctx->mode<MODE_2D) {
+	if (ctx->disp<MODE_2D) {
 		u32 i;
 		GF_Matrix mx;
 		Float hw, hh;
@@ -814,15 +814,15 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 #ifdef WIN32
 		if (glMapBuffer == NULL) {
-			if (ctx->mode == MODE_GL_PBO) {
+			if (ctx->disp == MODE_GL_PBO) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] GL PixelBufferObject extensions not found, fallback to regular GL\n"));
-				ctx->mode = MODE_GL;
+				ctx->disp = MODE_GL;
 			}
 		}
 #endif
 
 		ctx->first_tx_load = GF_TRUE;
-		if (ctx->is_yuv && (ctx->mode==MODE_GL_PBO)) {
+		if (ctx->is_yuv && (ctx->disp==MODE_GL_PBO)) {
 			ctx->first_tx_load = GF_FALSE;
 			glGenBuffers(1, &ctx->pbo_Y);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
@@ -994,9 +994,9 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	|| (1)
 #endif
 	) {
-		if (ctx->mode < MODE_2D) {
+		if (ctx->disp < MODE_2D) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("No openGL support - using 2D rasterizer!\n", ctx->video_out->module_name));
-			ctx->mode = MODE_2D;
+			ctx->disp = MODE_2D;
 		}
 	}
 	return GF_OK;
@@ -1157,7 +1157,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
-	else if (ctx->mode==MODE_GL_PBO) {
+	else if (ctx->disp==MODE_GL_PBO) {
 		u32 i, linesize, count, p_stride;
 		u8 *ptr;
 
@@ -1445,7 +1445,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	src_wnd.w = ctx->width;
 	src_wnd.h = ctx->height;
 
-	if ((ctx->mode!=MODE_2D_SOFT) && ctx->video_out->Blit) {
+	if ((ctx->disp!=MODE_2D_SOFT) && ctx->video_out->Blit) {
 		e = ctx->video_out->Blit(ctx->video_out, &src_surf, &src_wnd, &dst_wnd, 0);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error bliting surface %s - retrying in software mode\n", gf_error_to_string(e) ));
@@ -1602,7 +1602,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 	if (ctx->pfmt) {
 #ifndef GPAC_DISABLE_3D
-		if (ctx->mode < MODE_2D) {
+		if (ctx->disp < MODE_2D) {
 			vout_draw_gl(ctx, pck);
 		} else
 #endif
@@ -1628,7 +1628,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(mode), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FALSE},
+	{ OFFS(disp), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FALSE},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},

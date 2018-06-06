@@ -929,6 +929,8 @@ enum
 	GF_PROP_PID_START_NUMBER = GF_4CC('D','R','S','N'),
 	//(string)
 	GF_PROP_PID_XLINK = GF_4CC('X','L','N','K'),
+	//(double)
+	GF_PROP_PID_CLAMP_DUR = GF_4CC('D','C','M','D'),
 
 };
 
