@@ -289,13 +289,19 @@ typedef struct
 	char *src_url;
 	char *init_seg;
 	char *template_seg;
-	u32 pid_id, muxed_comp_id;
+	u32 pid_id, source_pid;
 	Bool owns_set;
 	Bool multi_pids;
 	Bool removed;
 	Double dash_dur;
 	u64 next_seg_start;
-	u64 first_cts;
+	u64 first_cts, first_dts;
+	u32 nb_repeat;
+	u64 ts_offset;
+	u32 mpd_timescale;
+	u64 est_next_dts;
+	Double cumulated_subdur, cumulated_dur;
+	char *mux_pids;
 } GF_DASH_SegmenterContext;
 
 typedef struct {

@@ -664,7 +664,6 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "segNumber")) dasher->seg_number = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lastPacketIdx")) dasher->last_pck_idx = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "pidID")) dasher->pid_id = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "muxedCompID")) dasher->muxed_comp_id = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "periodStart")) dasher->period_start = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "periodDuration")) dasher->period_duration = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "ownsSet")) dasher->owns_set = gf_mpd_parse_bool(att->value);
@@ -672,6 +671,15 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "dashDuration")) dasher->dash_dur = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "nextSegmentStart")) dasher->next_seg_start = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "firstCTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "firstDTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "estimatedNextDTS")) dasher->est_next_dts = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "nbRepeat")) dasher->nb_repeat = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "tsOffset")) dasher->ts_offset = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "mpdTimescale")) dasher->mpd_timescale = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "sourcePID")) dasher->source_pid = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "cumulatedDur")) dasher->cumulated_dur = gf_mpd_parse_double(att->value);
+		else if (!strcmp(att->name, "cumulatedSubdur")) dasher->cumulated_subdur = gf_mpd_parse_double(att->value);
+		else if (!strcmp(att->name, "muxPIDs")) dasher->mux_pids = gf_mpd_parse_string(att->value);
 	}
 	return dasher;
 }
@@ -1132,6 +1140,7 @@ void gf_mpd_representation_free(void *_item)
 			gf_free(ptr->dasher_ctx->period_id);
 		gf_free(ptr->dasher_ctx->src_url);
 		gf_free(ptr->dasher_ctx->template_seg);
+		if (ptr->dasher_ctx->mux_pids) gf_free(ptr->dasher_ctx->mux_pids);
 		gf_free(ptr->dasher_ctx);
 	}
 
@@ -1238,8 +1247,10 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 	i = 0;
 	while ((att = gf_list_enum(root->attributes, &i))) {
 		if (!strcmp(att->name, "id")) {
+			if (mpd->ID) gf_free(mpd->ID);
 			mpd->ID = gf_mpd_parse_string(att->value);
 		} else if (!strcmp(att->name, "profiles")) {
+			if (mpd->profiles) gf_free(mpd->profiles);
 			mpd->profiles = gf_mpd_parse_string(att->value);
 		} else if (!strcmp(att->name, "type")) {
 			if (!strcmp(att->value, "static")) mpd->type = GF_MPD_TYPE_STATIC;
@@ -2461,7 +2472,7 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 	fprintf(out, "url=\"%s\" ", dasher->src_url);
 	fprintf(out, "lastPacketIdx=\""LLU"\" ", dasher->last_pck_idx);
 	fprintf(out, "pidID=\"%d\" ", dasher->pid_id);
-	fprintf(out, "muxedCompID=\"%d\" ", dasher->muxed_comp_id);
+
 	if (dasher->period_id)
 		fprintf(out, "periodID=\"%s\" ", dasher->period_id);
 
@@ -2474,6 +2485,19 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 	fprintf(out, "dashDuration=\"%g\" ", dasher->dash_dur);
 	fprintf(out, "nextSegmentStart=\""LLU"\" ", dasher->next_seg_start);
 	fprintf(out, "firstCTS=\""LLU"\" ", dasher->first_cts);
+	fprintf(out, "firstDTS=\""LLU"\" ", dasher->first_dts);
+	fprintf(out, "mpdTimescale=\"%d\" ", dasher->mpd_timescale);
+	fprintf(out, "sourcePID=\"%d\" ", dasher->source_pid);
+	fprintf(out, "estimatedNextDTS=\""LLU"\" ", dasher->est_next_dts);
+	fprintf(out, "cumulatedDur=\"%g\" ", dasher->cumulated_dur);
+	fprintf(out, "cumulatedSubdur=\"%g\" ", dasher->cumulated_subdur);
+
+	if (dasher->nb_repeat)
+		fprintf(out, "nbRepeat=\"%d\" ", dasher->nb_repeat);
+	if (dasher->ts_offset)
+		fprintf(out, "tsOffset=\""LLU"\" ", dasher->ts_offset);
+	if (dasher->mux_pids)
+		fprintf(out, "muxPIDs=\"%s\" ", dasher->mux_pids);
 
 	fprintf(out, "ownsSet=\"%s\"/>\n", dasher->owns_set ? "true" : "false");
 }
@@ -2541,13 +2565,13 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 
 	fprintf(out, "  <AdaptationSet");
 
+	if (as->id) fprintf(out, " id=\"%d\"", as->id);
 	if (as->xlink_href) {
 		fprintf(out, " xlink:href=\"%s\"", as->xlink_href);
 		if (as->xlink_actuate_on_load)
 			fprintf(out, " actuate=\"onLoad\"");
 	}
 	if (as->segment_alignment) fprintf(out, " segmentAlignment=\"true\"");
-	if (as->id) fprintf(out, " id=\"%d\"", as->id);
 	if (as->group !=  (u32) -1) fprintf(out, " group=\"%d\"", as->group);
 	if (as->min_bandwidth) fprintf(out, " minBandwidth=\"%d\"", as->min_bandwidth);
 	if (as->max_bandwidth) fprintf(out, " maxBandwidth=\"%d\"", as->max_bandwidth);

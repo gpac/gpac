@@ -903,6 +903,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_PERIOD_START, "PStart", "DASH Period start - cf dasher help", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_PERIOD_DUR, "PDur", "DASH Period duration - cf dasher help", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_REP_ID, "Representation", "ID of DASH representation", GF_PROP_STRING},
+	{ GF_PROP_PID_AS_ID, "ASID", "ID of parent DASH AS", GF_PROP_UINT},
 	{ GF_PROP_PID_MUX_SRC, "MuxSrc", "Identifies mux source(s)", GF_PROP_STRING},
 	{ GF_PROP_PID_DASH_MODE, "DashMode", "Indicates DASH mode to muxer, if any. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT},
 	{ GF_PROP_PID_DASH_DUR, "DashDur", "Indicates DASH target segment duration in seconds to muxer, if any.", GF_PROP_DOUBLE},

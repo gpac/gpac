@@ -117,7 +117,7 @@ typedef struct
 	Bool chain_sidx;
 	u32 moof_sn;
 	GF_Fraction64 tfdt;
-	Bool no_def, straf, pssh_moof, sgpd_traf, cache, noinit;
+	Bool no_def, straf, strun, pssh_moof, sgpd_traf, cache, noinit;
 	
 	//internal
 	u64 first_cts_min;
@@ -1500,7 +1500,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	//init movie not yet produced
 	if (!ctx->init_movie_done) {
 		TrackWriter *ref_tkw = NULL;
-
+		u64 min_dts = 0;
+		u32 min_dts_scale=0;
 		ctx->single_file = GF_TRUE;
 		ctx->current_offset = ctx->current_size = 0;
 
@@ -1520,7 +1521,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		//good to go, finalize for fragments
 		for (i=0; i<count; i++) {
 			u32 def_pck_dur;
-			u32 def_is_rap;
+			u32 def_is_rap, tscale;
+			u64 dts;
 			const GF_PropertyValue *p;
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
@@ -1529,6 +1531,18 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			//otherwise setup fragmentation, using first sample desc as default idx
 			//first pck dur as default
 			def_pck_dur = gf_filter_pck_get_duration(pck);
+
+			dts = gf_filter_pck_get_dts(pck);
+			if (dts == GF_FILTER_NO_TS)
+				dts = gf_filter_pck_get_cts(pck);
+			tscale = gf_filter_pck_get_timescale(pck);
+
+			if (!min_dts || min_dts * tscale > dts * min_dts_scale) {
+				min_dts = dts;
+				min_dts_scale = tscale;
+			}
+
+
 			//and consider audio & text all RAPs, the rest not rap - this will need refinement later on
 			//but won't break the generated files
 			switch (tkw->stream_type) {
@@ -1611,7 +1625,12 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			return e;
 		}
 		ctx->init_movie_done = GF_TRUE;
-		ctx->next_frag_start = ctx->cdur;
+
+		if (min_dts_scale) {
+			ctx->next_frag_start = min_dts;
+			ctx->next_frag_start /= min_dts_scale;
+		}
+		ctx->next_frag_start += ctx->cdur;
 		ctx->adjusted_next_frag_start = ctx->next_frag_start;
 		ctx->fragment_started = GF_FALSE;
 
@@ -1691,7 +1710,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		for (i=0; i<count; i++) {
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 			e = GF_OK;
-			if (ctx->fsap && (tkw->stream_type == GF_STREAM_VISUAL)) {
+			if (ctx->strun) {
+				e = gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_RANDOM_ACCESS, 0);
+
+			} else if (ctx->fsap && (tkw->stream_type == GF_STREAM_VISUAL)) {
 				e = gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_RANDOM_ACCESS, 1);
 				if (e) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable set fragment options: %s\n", gf_error_to_string(e) ));
@@ -1781,7 +1803,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			tkw->cts_next += gf_filter_pck_get_duration(pck);
 
 
-			if (!ctx->flush_seg
+			if (!ctx->flush_seg && !ctx->dash_mode
 				&& (cts >= ((u64) (ctx->adjusted_next_frag_start * tkw->timescale)) + tkw->ts_delay)
 			 ) {
 				u32 sap = gf_filter_pck_get_sap(pck);
@@ -2366,6 +2388,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tfdt), "sets TFDT of first traf", GF_PROP_FRACTION64, "0", NULL, GF_FALSE},
 	{ OFFS(no_def), "disables default flags in fragments", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(straf), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(strun), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(pssh_moof), "stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(sgpd_traf), "stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(cache), "Enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, GF_FALSE},
