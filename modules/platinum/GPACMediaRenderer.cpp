@@ -101,9 +101,9 @@ GPAC_MediaRenderer::SetupServices()
 
 		// GetMediaInfo
 		m_pAVService->SetStateVariable("NumberOfTracks", "0");
-		m_pAVService->SetStateVariable("CurrentMediaDuration", "00:00:00");;
+		m_pAVService->SetStateVariable("CurrentMediaDuration", "00:00:00");
 		m_pAVService->SetStateVariable("AVTransportURI", "");
-		m_pAVService->SetStateVariable("AVTransportURIMetadata", "");;
+		m_pAVService->SetStateVariable("AVTransportURIMetadata", "");
 		m_pAVService->SetStateVariable("NextAVTransportURI", "NOT_IMPLEMENTED");
 		m_pAVService->SetStateVariable("NextAVTransportURIMetadata", "NOT_IMPLEMENTED");
 		m_pAVService->SetStateVariable("PlaybackStorageMedium", "NONE");

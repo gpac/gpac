@@ -2252,7 +2252,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not supported\n"));
-			return GF_NOT_SUPPORTED;;
+			return GF_NOT_SUPPORTED;
 		}
 
 		if (gf_isom_is_ismacryp_media(mp4, i+1, 1)) {
@@ -2522,7 +2522,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not supported\n"));
-			return GF_NOT_SUPPORTED;;
+			return GF_NOT_SUPPORTED;
 		}
 
 		/*default to FILE uri*/

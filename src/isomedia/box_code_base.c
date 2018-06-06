@@ -3279,7 +3279,7 @@ GF_Err tfra_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->nb_entries);
 
 	for (i=0; i<ptr->nb_entries; i++) {
-		GF_RandomAccessEntry *p = &ptr->entries[i];;
+		GF_RandomAccessEntry *p = &ptr->entries[i];
 		if (ptr->version==1) {
 			gf_bs_write_u64(bs, p->time);
 			gf_bs_write_u64(bs, p->moof_offset);

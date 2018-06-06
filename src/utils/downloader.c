@@ -2896,7 +2896,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		GF_NETIO_Parameter par;
 		sess->reply_time = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
 		sess->rsp_hdr_size = 0;
-		sess->total_size = sess->bytes_done = gf_cache_get_content_length(sess->cache_entry);;
+		sess->total_size = sess->bytes_done = gf_cache_get_content_length(sess->cache_entry);
 
 		memset(&par, 0, sizeof(GF_NETIO_Parameter));
 		par.msg_type = GF_NETIO_DATA_TRANSFERED;

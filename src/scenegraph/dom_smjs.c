@@ -2491,7 +2491,7 @@ if (SMJS_ID_IS_INT(id)) {
 		u32 len;
 		s16 txt[2];
 		const u16 *srcp;
-		char szData[5];;
+		char szData[5];
 		txt[0] = evt->detail;
 		txt[1] = 0;
 		srcp = (const u16 *) txt;

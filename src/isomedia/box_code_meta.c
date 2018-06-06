@@ -399,7 +399,7 @@ GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs)
 			GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_malloc(sizeof(GF_ItemExtentEntry));
 			gf_list_add(location_entry->extent_entries, extent_entry);
 			if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0) {
-				extent_entry->extent_index = gf_bs_read_int(bs, 8 * ptr->index_size);;
+				extent_entry->extent_index = gf_bs_read_int(bs, 8 * ptr->index_size);
 			}
 			else {
 				extent_entry->extent_index = 0;

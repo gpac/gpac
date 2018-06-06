@@ -793,14 +793,14 @@ static GF_MPD_Descriptor *gf_isom_get_content_protection_desc(GF_ISOFile *input,
 			for (j=0; j<indent; j++)
 				fprintf(mpd, " ");
 			get_canon_urn(sysID, sCan);
-			fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:%s\" value=\"%s\">\n", sCan, get_drm_kms_name(sCan) );
+			fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:uuid:%s\" value=\"%s\">\n", sCan, get_drm_kms_name(sCan) );
 
 			size_64 = 2*pssh_len;
 			pssh_data_64 = gf_malloc(size_64);
 			size_64 = gf_base64_encode((const char *)pssh_data, pssh_len, (char *)pssh_data_64, size_64);
 			pssh_data_64[size_64] = 0;
 
-			for (j=0; j<indent+1; j++)
+			for (j=0; j<=indent; j++)
 				fprintf(mpd, " ");
 			fprintf(mpd, "<cenc:pssh>%s</cenc:pssh>\n", pssh_data_64);
 			gf_free(pssh_data_64);
@@ -6907,7 +6907,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				if (!p_id) p_id = "";
 				if (!strcmp(p_id, prev_id)) {
 					last_period_dur += dasher->inputs[last_period_rep_idx_plus_one-1].period_duration;
-					presentation_duration -= dasher->inputs[last_period_rep_idx_plus_one-1].period_duration;;
+					presentation_duration -= dasher->inputs[last_period_rep_idx_plus_one-1].period_duration;
 					prev_period_not_done = GF_TRUE;
 					break;
 				}

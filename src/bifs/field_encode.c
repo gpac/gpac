@@ -399,7 +399,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	}
 
 	if (node->sgprivate->tag == TAG_ProtoNode) {
-		clone = gf_sg_proto_create_instance(node->sgprivate->scenegraph, ((GF_ProtoInstance *)node)->proto_interface);;
+		clone = gf_sg_proto_create_instance(node->sgprivate->scenegraph, ((GF_ProtoInstance *)node)->proto_interface);
 	} else {
 		clone = gf_node_new(node->sgprivate->scenegraph, node->sgprivate->tag);
 	}

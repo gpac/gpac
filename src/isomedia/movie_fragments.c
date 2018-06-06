@@ -2318,6 +2318,7 @@ GF_Err gf_isom_enable_mfra(GF_ISOFile *file)
 {
 	if (!file) return GF_BAD_PARAM;
 	file->mfra = (GF_MovieFragmentRandomAccessBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRA);
+	if (!file->mfra) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
 
