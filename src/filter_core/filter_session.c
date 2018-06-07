@@ -1271,23 +1271,25 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 }
 
 
-void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val)
+void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, u32 propagate_mask)
 {
 	GF_FilterUpdate *upd;
-	GF_Filter *filter=NULL;
 	u32 i, count;
 	Bool removed = GF_FALSE;
-	if (!fid || !name) return;
+	if ((!fid && !filter) || !name) return;
 
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
-	count = gf_list_count(fsess->filters);
-	for (i=0; i<count; i++) {
-		filter = gf_list_get(fsess->filters, i);
-		if (filter->id && !strcmp(filter->id, fid)) {
-			break;
+	if (!filter) {
+		count = gf_list_count(fsess->filters);
+		for (i=0; i<count; i++) {
+			filter = gf_list_get(fsess->filters, i);
+			if (filter->id && !strcmp(filter->id, fid)) {
+				break;
+			}
 		}
 	}
+
 	removed = (!filter || filter->removed || filter->finalized) ? GF_TRUE : GF_FALSE;
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
@@ -1296,6 +1298,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
 	upd->name = gf_strdup(name);
 	upd->val = gf_strdup(val);
+	upd->recursive = propagate_mask;
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }
 

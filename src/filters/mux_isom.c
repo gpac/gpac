@@ -1436,6 +1436,7 @@ static void mp4_mux_flush_frag(GF_MP4MuxCtx *ctx, u32 type, u64 idx_start_range,
 			gf_filter_pck_get_framing(ctx->dst_pck, &s, &e);
 			gf_filter_pck_set_framing(ctx->dst_pck, s, GF_TRUE);
 			ctx->first_pck_sent = GF_FALSE;
+			ctx->current_offset = 0;
 		}
 		gf_filter_pck_send(ctx->dst_pck);
 		ctx->dst_pck = NULL;
@@ -1778,7 +1779,20 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 
 			cts = gf_filter_pck_get_cts(pck);
-			assert(cts != GF_FILTER_NO_TS);
+
+			if (cts == GF_FILTER_NO_TS) {
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
+				if (p && p->value.boolean) {
+					nb_done ++;
+					tkw->fragment_done = GF_TRUE;
+					gf_filter_pid_drop_packet(tkw->ipid);
+					ctx->flush_seg = GF_TRUE;
+					break;
+				}
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MuxIsom] Packet with no CTS assigned, cannot store to track, ignoring\n"));
+				gf_filter_pid_drop_packet(tkw->ipid);
+				continue;
+			}
 
 			if (ctx->dash_mode) {
 				//get dash segment number
@@ -1878,7 +1892,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 		//end of DASH segment
 		if (ctx->dash_mode && (ctx->flush_seg || is_eos) ) {
-			u64 offset = ctx->current_offset;
+			u64 offset = ctx->single_file ? ctx->current_offset : 0;
 			u64 idx_start_range, idx_end_range, segment_size_in_bytes;
 			idx_start_range = idx_end_range = 0;
 
@@ -2029,6 +2043,7 @@ static GF_Err mp4_mux_on_data(void *cbk, char *data, u32 block_size)
 	}
 	//set packet prop as string since we may discard the seg_name  packet before this packet is processed
 	if (!ctx->first_pck_sent && ctx->seg_name) {
+		ctx->current_offset = 0;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->seg_name) );
 	}
 	ctx->first_pck_sent = GF_TRUE;

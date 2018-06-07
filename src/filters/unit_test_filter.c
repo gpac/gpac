@@ -130,7 +130,7 @@ static void ut_filter_send_update(GF_Filter *filter, u32 nb_pck)
 			} else {
 				val=NULL;
 			}
-			gf_filter_send_update(filter, fid, name, val);
+			gf_filter_send_update(filter, fid, name, val, 0);
 		}
 		gf_free(cmd);
 	}

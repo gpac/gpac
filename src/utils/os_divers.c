@@ -1415,7 +1415,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	return res;
 }
 
-
+GF_EXPORT
 char * gf_get_default_cache_directory() {
 	char szPath[GF_MAX_PATH];
 	char* root_tmp;

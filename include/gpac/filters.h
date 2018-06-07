@@ -570,7 +570,13 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid);
 
 Bool gf_filter_pid_would_block(GF_FilterPid *pid);
 
-void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char *arg_name, const char *arg_val);
+enum
+{
+	GF_FILTER_UPDATE_DOWNSTREAM = 1<<1,
+	GF_FILTER_UPDATE_UPSTREAM = 1<<2,
+};
+
+void gf_filter_send_update(GF_Filter *filter, const char *target_filter_id, const char *arg_name, const char *arg_val, u32 propagate_mask);
 
 //keeps a reference to the given packet
 GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
@@ -880,6 +886,9 @@ enum
 	GF_PROP_PCK_FILENUM = GF_4CC('F','N','U','M'),
 	//(uint)
 	GF_PROP_PCK_FILENAME = GF_4CC('F','N','A','M'),
+	//(bool)
+	GF_PROP_PCK_EODS = GF_4CC('E','O','D','S'),
+
 	//(uint)
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 

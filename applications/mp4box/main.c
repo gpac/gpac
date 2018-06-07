@@ -4137,6 +4137,10 @@ int mp4boxMain(int argc, char **argv)
 			}
 
 			if (!e) e = gf_dasher_process(dasher);
+			if (!dash_live && (e==GF_EOS) ) {
+				fprintf(stderr, "Nothing to dash, too early ...\n");
+				e = GF_OK;
+			}
 
 			if (do_abort)
 				break;

@@ -4366,6 +4366,7 @@ u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescrip
 	return 0;
 }
 
+GF_EXPORT
 Bool gf_isom_is_video_subtype(u32 mtype)
 {
 	switch (mtype) {

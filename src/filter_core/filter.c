@@ -467,6 +467,7 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 void gf_filter_update_arg_task(GF_FSTask *task)
 {
 	u32 i=0;
+	Bool found = GF_FALSE;
 	GF_FilterUpdate *arg=task->udta;
 	//find arg
 	i=0;
@@ -479,6 +480,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 		if (strcmp(a->arg_name, arg->name))
 			continue;
 
+		found = GF_TRUE;
 		if (!a->updatable) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, task->filter->name));
 			break;
@@ -487,18 +489,60 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 		argv = gf_filter_parse_prop_solve_env_var(task->filter, a->arg_type, a->arg_name, arg->val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
-			GF_Err e;
+			GF_Err e = GF_OK;
 			FSESS_CHECK_THREAD(task->filter)
-			e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
+			//if no update function consider the arg OK
+			if (task->filter->freg->update_arg) {
+				e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
+			}
 			if (e==GF_OK) {
 				gf_filter_set_arg(task->filter, a, &argv);
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept opdate of arg %s to value %s: %s\n", task->filter->name, arg->name, arg->val, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", task->filter->name, arg->name, arg->val, gf_error_to_string(e) ));
 			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
 		}
 		break;
+	}
+
+	if (!found) {
+		if (arg->recursive) {
+			u32 i;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Failed to locate argument %s in filter %s, propagating %s the filter chain\n", arg->name, task->filter->freg->name,
+				arg->recursive & (GF_FILTER_UPDATE_UPSTREAM|GF_FILTER_UPDATE_DOWNSTREAM) ? "up and down" : ((arg->recursive & GF_FILTER_UPDATE_UPSTREAM) ? "up" : "down") ));
+
+			GF_List *flist = gf_list_new();
+			if (arg->recursive & GF_FILTER_UPDATE_UPSTREAM) {
+				for (i=0; i<task->filter->num_output_pids; i++) {
+					GF_FilterPid *pid = gf_list_get(task->filter->output_pids, i);
+					if (gf_list_find(flist, pid->filter)<0) gf_list_add(flist, pid->filter);
+				}
+				for (i=0; i<gf_list_count(flist); i++) {
+					GF_Filter *a_f = gf_list_get(flist, i);
+					//only allow upstream propagation
+					gf_fs_send_update(task->filter->session, NULL, a_f, arg->name, arg->val, GF_FILTER_UPDATE_UPSTREAM);
+				}
+				gf_list_reset(flist);
+
+			}
+			if (arg->recursive & GF_FILTER_UPDATE_DOWNSTREAM) {
+				for (i=0; i<task->filter->num_input_pids; i++) {
+					GF_FilterPidInst *pidi = gf_list_get(task->filter->input_pids, i);
+					if (gf_list_find(flist, pidi->pid->filter)<0) gf_list_add(flist, pidi->pid->filter);
+				}
+
+				for (i=0; i<gf_list_count(flist); i++) {
+					GF_Filter *a_f = gf_list_get(flist, i);
+					//only allow downstream propagation
+					gf_fs_send_update(task->filter->session, NULL, a_f, arg->name, arg->val, GF_FILTER_UPDATE_DOWNSTREAM);
+				}
+			}
+
+			gf_list_del(flist);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Failed to locate argument %s in filter %s\n", arg->name, task->filter->freg->name));
+		}
 	}
 	gf_free(arg->name);
 	gf_free(arg->val);
@@ -1314,9 +1358,9 @@ void gf_filter_process_inline(GF_Filter *filter)
 	if (e) filter->session->last_process_error = e;
 }
 
-void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val)
+void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val, u32 propagate_mask)
 {
-	gf_fs_send_update(filter->session, fid, name, val);
+	if (filter) gf_fs_send_update(filter->session, fid, fid ? NULL : filter, name, val, propagate_mask);
 }
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)

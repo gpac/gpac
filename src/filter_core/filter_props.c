@@ -895,6 +895,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - set as info, not property", GF_PROP_UINT},
 	{ GF_PROP_PCK_FILENUM, "FileNumber", "Index of file when dumping to files", GF_PROP_UINT},
 	{ GF_PROP_PCK_FILENAME, "FileName", "Name of output file when dumping / dashing. Must be set on first packet belonging to new file", GF_PROP_STRING},
+	{ GF_PROP_PCK_EODS, "EODS", "End of DASH segment", GF_PROP_BOOL},
 	{ GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - set as info, not property", GF_PROP_UINT},
 
 	{ GF_PROP_PID_ISOM_TRACK_TEMPLATE, "TrackTemplate", "ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},

@@ -318,7 +318,21 @@ typedef struct
 	u64 est_next_dts;
 	Double cumulated_subdur, cumulated_dur;
 	char *mux_pids;
+	u32 segs_purged;
+	Double dur_purged;
+
 } GF_DASH_SegmenterContext;
+
+typedef struct
+{
+	u64 time; //in mpd timescale
+	u64 dur; //in timescale
+	char *file_name;
+	u32 file_size;
+	u64 file_offset;
+	u32 index_size;
+	u64 index_offset;
+} GF_DASH_SegmentContext;
 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
@@ -341,8 +355,11 @@ typedef struct {
 	u32 m3u8_media_seq_min, m3u8_media_seq_max;
 	GF_List *other_descriptors;
 
-
 	GF_DASH_SegmenterContext *dasher_ctx;
+	GF_List *state_seg_list;
+	u64 gpac_index_start_range;
+	u64 gpac_index_endrange;
+
 } GF_MPD_Representation;
 
 
@@ -459,8 +476,16 @@ typedef struct {
 
 	/*set during parsing*/
 	const char *xml_namespace; /*won't be freed by GPAC*/
-	
+
+	/*serialized for state mode only*/
+	u64 gpac_init_ntp_ms;
+	u64 gpac_next_ntp_ms;
+	u64 gpac_mpd_time; //in ms
+
+	//internal options
+	//skip version/dates/... for file diff/hash
 	Bool force_test_mode;
+	//indicates the GPAC state info should be writen
 	Bool write_context;
 } GF_MPD;
 
