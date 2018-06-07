@@ -149,7 +149,9 @@ void PrintLiveUsage();
 u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *outName);
 #endif
 
+#ifndef GPAC_DISABLE_ATSC
 u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 max_segs, u32 stats_rate, u32 debug_tsi);
+#endif
 
 int mp4boxTerminal(int argc, char **argv);
 
@@ -1968,12 +1970,14 @@ Bool frag_at_rap = GF_FALSE;
 Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
+#ifndef GPAC_DISABLE_ATSC
 Bool grab_atsc = GF_FALSE;
 s32 atsc_max_segs = -1;
 u32 atsc_stats_rate = 0;
 u32 atsc_debug_tsi = 0;
 const char *atsc_output_dir = NULL;
 s32 atsc_service = -1;
+#endif
 u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
@@ -2828,7 +2832,9 @@ else if (!stricmp(arg, "-h")) {
 	else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
 	else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
 	else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
+#ifndef GPAC_DISABLE_ATSC
 	else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
+#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	else if (!strcmp(argv[i + 1], "rtp")) PrintStreamerUsage();
 	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
@@ -2845,7 +2851,9 @@ else if (!stricmp(arg, "-h")) {
 		PrintEncryptUsage();
 		PrintMetaUsage();
 		PrintSWFUsage();
+#ifndef GPAC_DISABLE_ATSC
 		PrintATSCUsage();
+#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		PrintStreamerUsage();
 		PrintLiveUsage();
@@ -2961,6 +2969,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			grab_ifce = argv[i + 1];
 			i++;
 		}
+#ifndef GPAC_DISABLE_ATSC
 		else if (!stricmp(arg, "-atsc")) {
 			grab_atsc = GF_TRUE;
 		}
@@ -2989,6 +2998,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			atsc_debug_tsi = atoi(argv[i + 1]);
 			i++;
 		}
+#endif
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
@@ -3649,6 +3659,7 @@ int mp4boxMain(int argc, char **argv)
 	if (!inName && dump_std)
 		inName = "std";
 
+#ifndef GPAC_DISABLE_ATSC
 	if (grab_atsc) {
 		if (!gf_logs) {
 			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
@@ -3656,6 +3667,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		return grab_atsc3_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
 	}
+#endif
 
 	if (!inName) {
 		PrintUsage();
