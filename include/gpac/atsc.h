@@ -7,6 +7,8 @@
 
 #include <gpac/tools.h>
 
+#ifndef GPAC_DISABLE_ATSC
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -178,6 +180,8 @@ void *gf_atsc3_dmx_get_service_udta(GF_ATSCDmx *atscd, u32 service_id);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* GPAC_DISABLE_ATSC */
 
 #endif	//_GF_ATSC_H_
 

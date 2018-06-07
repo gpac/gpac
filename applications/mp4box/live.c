@@ -148,7 +148,7 @@ int stream_file_rtp(int argc, char **argv)
 		gf_isom_streamer_write_sdp(file_streamer, sdp_file);
 
         if (run_for==0) run=GF_FALSE;
-        
+
 		while (run) {
 			gf_isom_streamer_send_next_packet(file_streamer, 0, 0);
 			check--;
@@ -958,6 +958,8 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 
 #endif /* GPAC_DISABLE_MPEG2TS */
 
+#ifndef GPAC_DISABLE_ATSC
+
 #include <gpac/atsc.h>
 
 static Bool inspect_mode = GF_FALSE;
@@ -1081,3 +1083,4 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 	return 0;
 }
 
+#endif /* GPAC_DISABLE_ATSC */
