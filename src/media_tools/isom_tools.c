@@ -3350,10 +3350,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		tf->DefaultDuration = defaultDuration;
 		gf_list_add(fragmenters, tf);
 		nb_samp += count;
+
+		if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
+
 	}
 
-	if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
-	//copy user data ?
+
 
 
 	//flush movie
