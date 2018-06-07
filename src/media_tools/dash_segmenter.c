@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -26,13 +26,14 @@
 #include <gpac/media_tools.h>
 #include <gpac/network.h>
 
+#include <gpac/internal/mpd.h>
 #include <gpac/filters.h>
 
 
 struct __gf_dash_segmenter
 {
 	GF_FilterSession *fsess;
-	GF_Filter *filter;
+	GF_Filter *output;
 
 	GF_List *inputs;
 
@@ -107,200 +108,26 @@ struct __gf_dash_segmenter
 	Bool check_duration;
 
 	const char *dash_state;
+
+	u64 next_gen_ntp_ms;
+	u64 mpd_time_ms;
+
+	Bool dash_mode_changed;
 };
 
 
 GF_EXPORT
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 {
-#ifdef FILTER_FIXME
-
-	Double past_period_dur = 0, max_dur = 0;
-//	Double safety_dur;
-	Double ms_elapsed;
-	u32 i, ntp_sec, frac, prev_sec, prev_frac, dash_scale;
-	const char *opt, *section;
-
-	if (!dasher || !dasher->dash_ctx) return -1;
-
-	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration");
-	if (!opt) return 0;
-
-/*
-	safety_dur = atof(opt) / 2;
-	if (safety_dur > dasher->mpd->minimum_update_period)
-		safety_dur = dasher->mpd->minimum_update_period;
-
-	safety_dur = 0;
-*/
-
-	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "GenerationNTP");
-	sscanf(opt, "%u:%u", &prev_sec, &prev_frac);
-
-	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "TimeScale");
-	sscanf(opt, "%u", &dash_scale);
-
-
-	/*compute cumulated duration*/
-	for (i=0; i<gf_cfg_get_section_count(dasher->dash_ctx); i++) {
-		Double dur = 0;
-		section = gf_cfg_get_section_name(dasher->dash_ctx, i);
-		if (section && !strncmp(section, "Representation_", 15)) {
-			opt = gf_cfg_get_key(dasher->dash_ctx, section, "CumulatedDuration");
-			if (opt) {
-				u64 val;
-				sscanf(opt, LLU, &val);
-				dur = ((Double) val) / dash_scale;
-			}
-			if (dur>max_dur) max_dur = dur;
-		}
+	s64 diff = 0;
+	if (dasher->next_gen_ntp_ms) {
+		diff = (s64) dasher->next_gen_ntp_ms;
+		diff -= (s64) gf_net_get_ntp_ms();
 	}
-	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "CumulatedPastPeriodsDuration");
-	if (opt) {
-		sscanf(opt, "%lf", &past_period_dur);
-		max_dur += past_period_dur;
-	}
-
-	if (!max_dur) return 0;
-	gf_net_get_ntp(&ntp_sec, &frac);
-
-	ms_elapsed = frac;
-	ms_elapsed -= prev_frac;
-	ms_elapsed /= 0xFFFFFFFF;
-	ms_elapsed *= 1000;
-	ms_elapsed += ((u64)(ntp_sec - prev_sec))*1000;
-
-	if (ms_in_session) *ms_in_session = (u64) ( 1000*max_dur );
-
-	/*check if we need to generate */
-	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
-		return (u32) (1000*max_dur - ms_elapsed);
-	}
-#endif
-	return 0;
+	if (ms_in_session) *ms_in_session = dasher->mpd_time_ms;
+	return diff>0 ? diff : 0;
 }
 
-/*peform all file cleanup*/
-static Bool gf_dasher_cleanup(GF_DASHSegmenter *dasher)
-{
-#ifdef FILTER_FIXME
-	Double max_dur = 0;
-	Double elapsed = 0;
-	Double dash_duration = 1000*dasher->segment_duration / dasher->dash_scale;
-	Double safety_dur = MAX(dasher->mpd->minimum_update_period, dash_duration);
-	u32 i, ntp_sec, frac, prev_sec, prev_frac;
-	const char *opt, *section;
-	GF_Err e;
-
-	if (!dasher->dash_mode) return GF_TRUE;
-
-	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "StoreParams");
-	if (opt && !strcmp(opt, "yes")) return GF_TRUE;
-
-	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "GenerationNTP");
-	if (!opt) return GF_TRUE;
-	sscanf(opt, "%u:%u", &prev_sec, &prev_frac);
-
-	/*compute cumulated duration*/
-	for (i=0; i<gf_cfg_get_section_count(dasher->dash_ctx); i++) {
-		Double dur = 0;
-		section = gf_cfg_get_section_name(dasher->dash_ctx, i);
-		if (section && !strncmp(section, "Representation_", 15)) {
-			opt = gf_cfg_get_key(dasher->dash_ctx, section, "CumulatedDuration");
-			if (opt) {
-				u64 val;
-				sscanf(opt, LLU, &val);
-				dur = ((Double) val) / dasher->dash_scale;
-			}
-			if (dur>max_dur) max_dur = dur;
-		}
-	}
-	if (!max_dur) return GF_TRUE;
-	gf_net_get_ntp(&ntp_sec, &frac);
-
-	if (dasher->dash_mode == GF_DASH_DYNAMIC_DEBUG) {
-		elapsed = (u32)-1;
-	} else {
-		elapsed = ntp_sec;
-		elapsed += (frac*1.0)/0xFFFFFFFF;
-		elapsed -= prev_sec;
-		elapsed -= (prev_frac*1.0)/0xFFFFFFFF;
-		/*check if we need to generate */
-		if (!dasher->dash_mode && elapsed < max_dur - safety_dur ) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
-			return GF_FALSE;
-		}
-		if (elapsed > max_dur) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Generating segments and MPD %g seconds too late\n", elapsed - (u32) max_dur));
-		} else {
-			/*generate as if max_dur has been reached*/
-			elapsed = max_dur;
-		}
-	}
-
-	/*cleanup old segments*/
-	if ((s32) dasher->mpd->time_shift_buffer_depth >= 0) {
-		for (i=0; i<gf_cfg_get_key_count(dasher->dash_ctx, "SegmentsStartTimes"); i++) {
-			Double seg_time;
-			u64 start, dur, scale;
-			char szRepID[100];
-			char szSecName[200];
-			u32 j;
-			const char *fileName = gf_cfg_get_key_name(dasher->dash_ctx, "SegmentsStartTimes", i);
-			const char *opt = gf_cfg_get_key(dasher->dash_ctx, "SegmentsStartTimes", fileName);
-			if (!fileName)
-				break;
-
-			sscanf(opt, ""LLU"-"LLU"-"LLU"@%s", &start, &dur, &scale, szRepID);
-			seg_time = (Double) start;
-			seg_time /= scale;
-
-			if (dasher->ast_offset_ms > 0)
-				seg_time += ((Double) dasher->ast_offset_ms) / 1000;
-
-
-			seg_time += 2 * dash_duration + dasher->mpd->time_shift_buffer_depth;
-			seg_time -= elapsed;
-			if (seg_time >= 0)
-				continue;
-
-			if (! (dasher->dash_mode == GF_DASH_DYNAMIC_DEBUG) ) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Removing segment %s - %g sec too late\n", fileName, -seg_time - dash_duration));
-			}
-
-			e = gf_delete_file(fileName);
-			if (e) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Could not remove file %s: %s\n", fileName, gf_error_to_string(e) ));
-				break;
-			}
-
-			sprintf(szSecName, "URLs_%s", szRepID);
-
-			/*remove URLs*/
-			for (j=0; j<gf_cfg_get_key_count(dasher->dash_ctx, szSecName); j++) {
-				const char *entry = gf_cfg_get_key_name(dasher->dash_ctx, szSecName, j);
-				const char *name = gf_cfg_get_key(dasher->dash_ctx, szSecName, entry);
-				if (strstr(name, fileName)) {
-					gf_cfg_set_key(dasher->dash_ctx, szSecName, entry, NULL);
-					break;
-				}
-			}
-
-			/*adjust seg removed count - this is needed to adjust startNumber for SegmentTimeline case*/
-			sprintf(szSecName, "Representation_%s", szRepID);
-			j = 1;
-			opt = gf_cfg_get_key(dasher->dash_ctx, szSecName, "NbSegmentsRemoved");
-			if (opt) j += atoi(opt);
-			sprintf(szRepID, "%d", j);
-			gf_cfg_set_key(dasher->dash_ctx, szSecName, "NbSegmentsRemoved", szRepID);
-
-			gf_cfg_set_key(dasher->dash_ctx, "SegmentsStartTimes", fileName, NULL);
-			i--;
-		}
-	}
-#endif
-	return GF_TRUE;
-}
 
 GF_EXPORT
 GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile, const char *tmp_dir, u32 dash_timescale, const char *dasher_context_file)
@@ -513,7 +340,10 @@ GF_EXPORT
 GF_Err gf_dasher_set_dynamic_mode(GF_DASHSegmenter *dasher, GF_DashDynamicMode dash_mode, Double mpd_update_time, s32 time_shift_depth, Double mpd_live_duration)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->dash_mode = dash_mode;
+	if (dasher->dash_mode != dash_mode) {
+		dasher->dash_mode = dash_mode;
+		dasher->dash_mode_changed = GF_TRUE;
+	}
 	dasher->time_shift_depth = time_shift_depth;
 	dasher->mpd_update_time = mpd_update_time;
 	dasher->mpd_live_duration = mpd_live_duration;
@@ -653,6 +483,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 	return GF_OK;
 }
 
+/*create filter session, setup destination options and setup sources options*/
 static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 {
 	GF_Err e;
@@ -772,6 +603,12 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (! dasher->disable_loop && dasher->dash_state) { APPEND_ARG("loop")}
 	//split not yet exposed
 
+	if (dasher->dash_mode>=GF_DASH_DYNAMIC) {
+	 	sprintf(szArg, "_p_gentime=%p", &dasher->next_gen_ntp_ms); APPEND_ARG(szArg)
+	 	sprintf(szArg, "_p_mpdtime=%p", &dasher->mpd_time_ms); APPEND_ARG(szArg)
+
+	}
+
 	//append ISOBMFF options
 	if (dasher->fragment_duration) { sprintf(szArg, "cdur=%g", dasher->fragment_duration); APPEND_ARG(szArg)}
 	if (dasher->segment_marker_4cc) { sprintf(szArg, "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) ); APPEND_ARG(szArg)}
@@ -799,11 +636,14 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->fragments_start_with_rap) { APPEND_ARG("sfrag")}
 	if (dasher->tmpdir) { sprintf(szArg, "tmpd=%s", dasher->tmpdir ); APPEND_ARG(szArg)}
 
-	dasher->filter = gf_fs_load_destination(dasher->fsess, dasher->mpd_name, args, NULL, &e);
+	dasher->dash_mode_changed = GF_FALSE;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher filter for dst %s with args %s\n", dasher->mpd_name, args));
+
+	dasher->output = gf_fs_load_destination(dasher->fsess, dasher->mpd_name, args, NULL, &e);
 
 	if (args) gf_free(args);
 
-	if (!dasher->filter) {
+	if (!dasher->output) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load DASH filer\n"));
 		return e;
 	}
@@ -846,8 +686,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		if (di->xlink)  { sprintf(szArg, "#xlink=%s", di->xlink ); APPEND_ARG(szArg)}
 		if (di->bandwidth)  { sprintf(szArg, "#Bitrate=%d", di->bandwidth ); APPEND_ARG(szArg)}
 
-		//di->no_cache is deprecated, always on
-
 		for (j=0;j<di->nb_baseURL; j++) {
 			if (!j) { sprintf(szArg, "#BUrl=%s", di->baseURL[j] ); APPEND_ARG(szArg)}
 			else { APPEND_STR(di->baseURL[j]) }
@@ -880,6 +718,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		//TODO: ASID, start number, template
 
 		if (!url) url = "null";
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher source %s with args %s\n", url, args));
 		src = gf_fs_load_source(dasher->fsess, url, args, NULL, &e);
 		if (args) gf_free(args);
 
@@ -900,22 +739,57 @@ GF_EXPORT
 GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 {
 	GF_Err e;
+	Bool need_seek = GF_TRUE;
+
+	/*first run, we need to extract the next gen time from context*/
+	if (dasher->dash_state && gf_file_exists(dasher->dash_state) && (dasher->dash_mode>=GF_DASH_DYNAMIC) && !dasher->next_gen_ntp_ms) {
+		GF_DOMParser *mpd_parser;
+		GF_MPD *mpd;
+
+		/* parse the MPD */
+		mpd_parser = gf_xml_dom_new();
+		e = gf_xml_dom_parse(mpd_parser, dasher->dash_state, NULL, NULL);
+		if (!e) {
+			mpd = gf_mpd_new();
+			e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), mpd, dasher->dash_state);
+			gf_xml_dom_del(mpd_parser);
+			gf_mpd_del(mpd);
+			dasher->next_gen_ntp_ms = mpd->gpac_next_ntp_ms;
+		}
+
+		if (dasher->next_gen_ntp_ms) {
+			u64 ntp_ms = gf_net_get_ntp_ms();
+			if (ntp_ms < dasher->next_gen_ntp_ms) {
+				s64 diff = dasher->next_gen_ntp_ms - ntp_ms;
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] generation called too early by %d ms\n", (s32) diff));
+				return GF_EOS;
+			}
+		}
+	}
+
 	if (!dasher->fsess) {
 		e = gf_dasher_setup(dasher);
 		if (e) return e;
+		need_seek = GF_FALSE;
 	}
 
-	/*update dash context*/
-	if (dasher->dash_state) {
-		Bool regenerate;
+	if (need_seek) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_RESUME, NULL);
+		gf_filter_send_event(dasher->output, &evt);
+	}
 
-		/*peform all file cleanup*/
-		regenerate = gf_dasher_cleanup(dasher);
-		if (!regenerate) return GF_OK;
+	if (dasher->dash_mode_changed) {
+		gf_filter_send_update(dasher->output, NULL, "dmode", (dasher->dash_mode == GF_DASH_DYNAMIC_LAST)  ? "dynlast" : "dynamic", GF_FILTER_UPDATE_DOWNSTREAM);
 	}
 
 	e = gf_fs_run(dasher->fsess);
 	if (e<0) return e;
+
+	if (dasher->no_cache) {
+		gf_fs_del(dasher->fsess);
+		dasher->fsess = NULL;
+	}
 	return GF_OK;
 }
 

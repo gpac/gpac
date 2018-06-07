@@ -680,9 +680,43 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "cumulatedDur")) dasher->cumulated_dur = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "cumulatedSubdur")) dasher->cumulated_subdur = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "muxPIDs")) dasher->mux_pids = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "segsPurged")) dasher->segs_purged = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "durPurged")) dasher->dur_purged = gf_mpd_parse_double(att->value);
+
 	}
 	return dasher;
 }
+
+static GF_List *gf_mpd_parse_segments_context(GF_MPD *mpd, GF_XMLNode *root)
+{
+	GF_List *res = NULL;
+	u32 i, j;
+	GF_XMLAttribute *att;
+	GF_XMLNode *child;
+	while ((child = gf_list_enum(root->content, &i))) {
+		GF_DASH_SegmentContext *sctx;
+		if (!gf_mpd_valid_child(mpd, child)) continue;
+
+		if (strcmp(child->name, "segmentInfo")) continue;
+		if (!res) res = gf_list_new();
+
+		GF_SAFEALLOC(sctx, GF_DASH_SegmentContext);
+		gf_list_add(res, sctx);
+
+		j = 0;
+		while ( (att = gf_list_enum(child->attributes, &j)) ) {
+			if (!strcmp(att->name, "file")) sctx->file_name = gf_mpd_parse_string(att->value);
+			else if (!strcmp(att->name, "time")) sctx->time = gf_mpd_parse_long_int(att->value);
+			else if (!strcmp(att->name, "dur")) sctx->dur = gf_mpd_parse_long_int(att->value);
+			else if (!strcmp(att->name, "size")) sctx->file_size = gf_mpd_parse_int(att->value);
+			else if (!strcmp(att->name, "offset")) sctx->file_offset = gf_mpd_parse_long_int(att->value);
+			else if (!strcmp(att->name, "idx_size")) sctx->index_size = gf_mpd_parse_int(att->value);
+			else if (!strcmp(att->name, "idx_offset")) sctx->index_offset = gf_mpd_parse_long_int(att->value);
+		}
+	}
+	return res;
+}
+
 static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
 {
 	u32 i;
@@ -730,6 +764,10 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(child->name, "dasher")) {
 			assert(!rep->dasher_ctx);
 			rep->dasher_ctx = gf_mpd_parse_dasher_context(mpd, child);
+		}
+		else if (!strcmp(child->name, "segments")) {
+			assert(!rep->state_seg_list);
+			rep->state_seg_list = gf_mpd_parse_segments_context(mpd, child);
 		}
 		else{
 			/*We'll be assuming here that any unrecognized element is a representation level
@@ -1143,6 +1181,14 @@ void gf_mpd_representation_free(void *_item)
 		if (ptr->dasher_ctx->mux_pids) gf_free(ptr->dasher_ctx->mux_pids);
 		gf_free(ptr->dasher_ctx);
 	}
+	if (ptr->state_seg_list) {
+		while (gf_list_count(ptr->state_seg_list)) {
+			GF_DASH_SegmentContext *s = gf_list_pop_back(ptr->state_seg_list);
+			if (s->file_name) gf_free(s->file_name);
+			gf_free(s);
+		}
+		gf_list_del(ptr->state_seg_list);
+	}
 
 	gf_free(ptr);
 }
@@ -1275,6 +1321,12 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 			mpd->max_segment_duration = gf_mpd_parse_duration_u32(att->value);
 		} else if (!strcmp(att->name, "maxSubsegmentDuration")) {
 			mpd->max_subsegment_duration = gf_mpd_parse_duration_u32(att->value);
+		} else if (!strcmp(att->name, "gpac:init_gen_time")) {
+			mpd->gpac_init_ntp_ms = gf_mpd_parse_long_int(att->value);
+		} else if (!strcmp(att->name, "gpac:next_gen_time")) {
+			mpd->gpac_next_ntp_ms = gf_mpd_parse_long_int(att->value);
+		} else if (!strcmp(att->name, "gpac:mpd_time")) {
+			mpd->gpac_mpd_time = gf_mpd_parse_long_int(att->value);
 		} else {
 			MPD_STORE_EXTENSION_ATTR(mpd)
 		}
@@ -1541,11 +1593,11 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 			pe = gf_list_get(stream->variants, j);
 
 			if (pe->element_type == TYPE_MEDIA) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 Media\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] NOT SUPPORTED: M3U8 Media\n"));
 			} else if (pe->load_error) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error loading playlist element %s\n", pe->url));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Error loading playlist element %s\n", pe->url));
 			} else if (pe->element_type != TYPE_PLAYLIST) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 unknown type for %s\n", pe->url));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] NOT SUPPORTED: M3U8 unknown type for %s\n", pe->url));
 			}
 
 			count_elements = gf_list_count(pe->element.playlist.elements);
@@ -1709,7 +1761,7 @@ try_next_segment:
 			rep->bandwidth = pe->bandwidth;
 			/* TODO : if mime-type is still unknown, don't try to add codec information since it would be wrong */
 			if (!strcmp(M3U8_UNKNOWN_MIME_TYPE, mimeTypeForM3U8Segments)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Unknown mime-type when converting from M3U8 HLS playlist, setting %s\n", mimeTypeForM3U8Segments));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Unknown mime-type when converting from M3U8 HLS playlist, setting %s\n", mimeTypeForM3U8Segments));
 			}
 			if (elt && elt->init_segment_url && (strstr(elt->init_segment_url, ".mp4") || strstr(elt->init_segment_url, ".MP4")) ) {
 				rep->mime_type = gf_strdup(samplerate ? "audio/mp4" : "video/mp4");
@@ -1933,7 +1985,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			if (!suburl || !strcmp(base_url, suburl)) {
 				if (suburl)
 					gf_free(suburl);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Not downloading, programs are identical for %s...\n", pe->url));
 				continue;
 			}
 
@@ -1950,12 +2002,12 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				//getter->del_session(getter);
 			} else { /* for use in MP4Box */
 				if (strstr(suburl, "://")) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Downloading %s...\n", suburl));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Downloading %s...\n", suburl));
 					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0, NULL);
 					if (e == GF_OK) {
 						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
 					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download failed for %s\n", suburl));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Download failed for %s\n", suburl));
 						e = GF_OK;
 					}
 					gf_delete_file("tmp.m3u8");
@@ -1963,7 +2015,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe);
 				}
 				if (e) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8toMPD] Failed to parse subplaylist %s\n", suburl));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Failed to parse subplaylist %s\n", suburl));
 				}
 
 			}
@@ -1976,7 +2028,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 	is_end = !pl->playlist_needs_refresh;
 	if (!the_pe) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] The M3U8 playlist is not correct.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] The M3U8 playlist is not correct.\n"));
 		return GF_BAD_PARAM;
 	}
 
@@ -1997,9 +2049,9 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 	if (is_end || ((the_pe->element_type == TYPE_PLAYLIST) && the_pe->element.playlist.is_ended)) {
 		update_interval = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] No need to refresh playlist!\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] No need to refresh playlist!\n"));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Playlist will be refreshed every %g seconds, len=%d\n", update_interval, the_pe->duration_info));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Playlist will be refreshed every %g seconds, len=%d\n", update_interval, the_pe->duration_info));
 	}
 
 	title = the_pe->title;
@@ -2030,10 +2082,10 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	u32 k, count_elements;
 	u64 start_time=0;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
 
 	if (!getter || !getter->new_session || !getter->del_session || !getter->get_cache_name) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] FileDownloader not found\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] FileDownloader not found\n"));
 		return GF_BAD_PARAM;
 	}
 
@@ -2042,7 +2094,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	} else {
 		e = getter->new_session(getter, rep->segment_list->xlink_href);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Download failed for %s\n", rep->segment_list->xlink_href));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Download failed for %s\n", rep->segment_list->xlink_href));
 			return e;
 		}
 		e = gf_m3u8_parse_master_playlist(getter->get_cache_name(getter), &pl, rep->segment_list->xlink_href);
@@ -2492,6 +2544,11 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 	fprintf(out, "cumulatedDur=\"%g\" ", dasher->cumulated_dur);
 	fprintf(out, "cumulatedSubdur=\"%g\" ", dasher->cumulated_subdur);
 
+	if (dasher->segs_purged)
+		fprintf(out, "segsPurged=\"%d\" ", dasher->segs_purged);
+	if (dasher->dur_purged)
+		fprintf(out, "durPurged=\"%g\" ", dasher->dur_purged);
+
 	if (dasher->nb_repeat)
 		fprintf(out, "nbRepeat=\"%d\" ", dasher->nb_repeat);
 	if (dasher->ts_offset)
@@ -2500,6 +2557,32 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 		fprintf(out, "muxPIDs=\"%s\" ", dasher->mux_pids);
 
 	fprintf(out, "ownsSet=\"%s\"/>\n", dasher->owns_set ? "true" : "false");
+}
+
+static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, char *indent)
+{
+	u32 i, count = gf_list_count(segments);
+	if (!count) return;
+
+	fprintf(out, "%s<gpac:segments>\n", indent);
+	for (i=0; i<count; i++) {
+		GF_DASH_SegmentContext *sctx = gf_list_get(segments, i);
+		fprintf(out, "%s <segmentInfo ", indent);
+		fprintf(out, "time=\""LLU"\" ", sctx->time);
+		fprintf(out, "dur=\""LLU"\" ", sctx->dur);
+		if (sctx->file_name) fprintf(out, "file=\"%s\" ", sctx->file_name);
+		if (sctx->file_size) {
+			fprintf(out, "size=\"%d\" ", sctx->file_size);
+			if (sctx->file_offset) fprintf(out, "offset=\""LLU"\" ", sctx->file_offset);
+		}
+		if (sctx->index_size) {
+			fprintf(out, "idx_size=\"%d\" ", sctx->index_size);
+			if (sctx->index_offset) fprintf(out, "idx_offset=\""LLU"\" ", sctx->index_offset);
+		}
+		fprintf(out, "/>\n");
+	}
+
+	fprintf(out, "%s</gpac:segments>\n", indent);
 }
 
 static void gf_mpd_print_representation(GF_MPD_Representation const * const rep, FILE *out, Bool write_context)
@@ -2525,8 +2608,13 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 
 	fprintf(out, ">\n");
 
-	if (write_context && rep->dasher_ctx) {
-		gf_mpd_print_dasher_context(out, rep->dasher_ctx, "    ");
+	if (write_context) {
+		if (rep->dasher_ctx) {
+			gf_mpd_print_dasher_context(out, rep->dasher_ctx, "    ");
+		}
+		if (rep->state_seg_list) {
+			gf_mpd_print_dasher_segments(out, rep->state_seg_list, "    ");
+		}
 	}
 
 	if (rep->other_descriptors){
@@ -2779,7 +2867,7 @@ static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, cons
 	
 	m3u8_name_rad=remove_m3u8_ext(m3u8_name);
 	if(!m3u8_name_rad){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] The m3u8 file should contain .m3u8 extension.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] The m3u8 file should contain .m3u8 extension.\n"));
 		return GF_BAD_PARAM;
 	}
 	
@@ -2793,7 +2881,7 @@ static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, cons
 			fprintf(out,"\n");
 			e=gf_mpd_write_m3u8_playlist(as,rs,URL_NAME, period->duration);
 			if(e){
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] IO error while opening m3u8 files.\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files.\n"));
 				return GF_IO_ERR;
 			}
 		}
@@ -2822,7 +2910,9 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	if(!mpd->force_test_mode){
 		fprintf(out, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" at %d-%02d-%02dT%02d:%02d:%02d.%03dZ -->\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms);
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms));	
+	if (!mpd->write_context) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms));
+	}
 	return GF_OK;
 }
 
@@ -2854,7 +2944,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	fprintf(out, "<MPD xmlns=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"));
 
 	if (mpd->write_context) {
-	 	fprintf(out, " xmlns:gpac=\"urn:gpac:dash:dasher:2018\"" );
+	 	fprintf(out, " xmlns:gpac=\"urn:gpac:filters:dasher:2018\"" );
 	}
 
 	if (mpd->ID)
@@ -2887,6 +2977,15 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration, GF_TRUE);
 
 	if (mpd->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)mpd);
+
+	if (mpd->write_context) {
+		if (mpd->gpac_init_ntp_ms)
+			fprintf(out," gpac:init_gen_time=\""LLU"\"", mpd->gpac_init_ntp_ms);
+		if (mpd->gpac_next_ntp_ms)
+			fprintf(out," gpac:next_gen_time=\""LLU"\"", mpd->gpac_next_ntp_ms);
+		if (mpd->gpac_mpd_time)
+			fprintf(out," gpac:mpd_time=\""LLU"\"", mpd->gpac_mpd_time);
+	}
 
 	fprintf(out, ">\n");
 
@@ -3154,7 +3253,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		case GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE:
 		case GF_MPD_RESOLVE_URL_MEDIA_NOSTART:
 			if (!url) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Media URL is not set in segment list\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Media URL is not set in segment list\n"));
 				return GF_SERVICE_ERROR;
 			}
 			if ((item_index >= segment_count) || ((s32) item_index < 0)) {
@@ -3311,7 +3410,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			if (rep->id) {
 				strcat(solved_template, rep->id);
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Missing ID on representation - cannot solve template\n\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Missing ID on representation - cannot solve template\n\n"));
 				gf_free(url);
 				gf_free(solved_template);
 				second_sep[0] = '$';
@@ -3339,7 +3438,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			}
 		}
 		else if (!strcmp(first_sep+1, "Index")) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Wrong template identifier Index detected - using Number instead\n\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Wrong template identifier Index detected - using Number instead\n\n"));
 			sprintf(szFormat, szPrintFormat, start_number + item_index);
 			strcat(solved_template, szFormat);
 		}
@@ -3394,7 +3493,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			}
 		}
 		else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Unknown template identifier %s - disabling rep\n\n", first_sep+1));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Unknown template identifier %s - disabling rep\n\n", first_sep+1));
 			*out_url = NULL;
 			gf_free(url);
 			gf_free(solved_template);
