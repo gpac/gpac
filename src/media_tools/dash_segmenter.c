@@ -546,7 +546,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	//avcp, hvcp, aacp not mapped
 	if (dasher->seg_rad_name) { sprintf(szArg, "template=%s", dasher->seg_rad_name); APPEND_ARG(szArg) }
 	if (dasher->seg_ext) { sprintf(szArg, "ext=%s", dasher->seg_ext); APPEND_ARG(szArg) }
-	if (dasher->ast_offset_ms) { sprintf(szArg, "asto=%d", dasher->ast_offset_ms); APPEND_ARG(szArg) }
+	if (dasher->ast_offset_ms) { sprintf(szArg, "asto=%d", -dasher->ast_offset_ms); APPEND_ARG(szArg) }
 	switch (dasher->profile) {
 	case GF_DASH_PROFILE_AUTO:
 		break;
