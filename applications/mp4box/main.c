@@ -4180,7 +4180,7 @@ int mp4boxMain(int argc, char **argv)
 					}
 					if (!sleep_for) break;
 
-					gf_sleep(1);
+					gf_sleep(sleep_for/10);
 					sleep_for = gf_dasher_next_update_time(dasher, NULL);
 					if (sleep_for<1) {
 						dash_now_time=gf_sys_clock();

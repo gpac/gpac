@@ -105,7 +105,7 @@ typedef struct
 
 	GF_Err setup_failure;
 
-	u64 nb_secs_to_discard;
+	Double nb_secs_to_discard;
 	Bool first_context_load, store_init_params;
 } GF_DasherCtx;
 
@@ -1477,6 +1477,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		if (ds->as_id && !as_id)
 			as_id = ds->as_id;
+
 	}
 	if (!template) template = ctx->template;
 
@@ -1903,7 +1904,7 @@ GF_Err dasher_send_mpd(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	tmp = gf_temp_file_new(NULL);
 
-	ctx->mpd->publishTime = gf_net_get_ntp_ms();
+	ctx->mpd->publishTime = gf_net_get_utc();
 	dasher_update_mpd(ctx);
 	ctx->mpd->write_context = GF_FALSE;
 	e = gf_mpd_write(ctx->mpd, tmp);
@@ -2799,6 +2800,35 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 	}
 
+	//init UTC reference time for dynamic
+	if (!ctx->mpd->availabilityStartTime && (ctx->dmode!=GF_MPD_TYPE_STATIC) ) {
+		u64 dash_start_date = ctx->ast ? gf_net_parse_date(ctx->ast) : 0;
+
+		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
+		ctx->mpd->availabilityStartTime = gf_net_get_utc();
+		
+		if (dash_start_date && (dash_start_date < ctx->mpd->availabilityStartTime)) {
+			u64 start_date_sec_ntp, secs;
+			Double ms;
+			//recompute NTP init time matching the required ast
+			secs = dash_start_date/1000;
+			start_date_sec_ntp = (u32) secs;
+			start_date_sec_ntp += GF_NTP_SEC_1900_TO_1970;
+			ms = (Double) (dash_start_date - secs*1000);
+			ms /= 1000.0;
+			ctx->mpd->gpac_init_ntp_ms = start_date_sec_ntp * 1000 + ms;
+			//compute number of seconds to discard
+			ctx->nb_secs_to_discard = (ctx->mpd->availabilityStartTime - dash_start_date);
+			ctx->nb_secs_to_discard /= 1000;
+			//don't discard TSB, this will be done automatically
+
+			ctx->mpd->availabilityStartTime = dash_start_date;
+
+		} else if (dash_start_date) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] specified AST %s seems in the future, ignoring it\n", ctx->ast));
+		}
+	}
+
 	//setup adaptation sets bitstream switching
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -2811,6 +2841,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		dasher_setup_sources(filter, ctx, ds->set);
 	}
 
+
 	//good to go !
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -2822,42 +2853,28 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
 		ds->first_cts = ds->first_dts = ds->max_period_dur = 0;
-	}
 
-	//init UTC reference time for dynamic
-	if (!ctx->mpd->availabilityStartTime && (ctx->dmode!=GF_MPD_TYPE_STATIC) ) {
-		u32 sec, frac;
-		u64 dash_start_date = ctx->ast ? gf_net_parse_date(ctx->ast) : 0;
+		//simulate N loops of the source
+		if (ctx->nb_secs_to_discard) {
+			u64 period_dur, seg_dur;
+			u32 nb_skip=0;
 
-		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
-		gf_net_get_ntp(&sec, &frac);
+			period_dur = (u64) (ctx->nb_secs_to_discard * ds->timescale);
+			seg_dur = ds->dash_dur*ds->timescale;
 
-		if (dash_start_date) {
-			u64 start_date_sec_ntp, start_date_sec_ntp_ms_frac;
-			Double ms;
-			u64 secs = dash_start_date/1000;
-			start_date_sec_ntp = (u32) secs;
-			start_date_sec_ntp += GF_NTP_SEC_1900_TO_1970;
+			nb_skip = (u32) (period_dur / seg_dur);
+			ds->ts_offset += nb_skip*seg_dur;
+			ds->max_period_dur += nb_skip*seg_dur;
+			ds->seg_number += nb_skip;
 
-			ms = (Double) (dash_start_date - secs*1000);
-			ms /= 1000.0;
-			ms *= 0xFFFFFFFF;
-			start_date_sec_ntp_ms_frac = (u32) ms;
-
-			ctx->nb_secs_to_discard = sec;
-			ctx->nb_secs_to_discard -= start_date_sec_ntp;
-			//FIXME, no accurate enough
-			if (ctx->tsb>=0)
-				ctx->nb_secs_to_discard -= (u32) ctx->tsb;
-
-			sec = (u32) start_date_sec_ntp;
-			frac = (u32) start_date_sec_ntp_ms_frac;
+			ds->max_period_dur = ds->cumulated_dur;
+			ds->adjusted_next_seg_start += ds->ts_offset;
+			ds->next_seg_start += ds->ts_offset;
 		}
-		ctx->mpd->availabilityStartTime = sec - GF_NTP_SEC_1900_TO_1970;
-		ctx->mpd->availabilityStartTime *= 1000;
-		ctx->mpd->availabilityStartTime += ((u64) frac) * 1000 / 0xFFFFFFFFUL;
-
 	}
+
+	ctx->nb_secs_to_discard = 0;
+
 	if (ctx->state)
 		dasher_context_update_period_start(ctx);
 	return GF_OK;
@@ -3411,11 +3428,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 			dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS) dts = cts;
 
-			if (ds->ts_offset) {
-				cts += ds->ts_offset;
-				dts += ds->ts_offset;
-			}
-
 			if (!ds->rep_init) {
 				if (!sap_type) {
 					gf_filter_pid_drop_packet(ds->ipid);
@@ -3444,6 +3456,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 				has_init++;
 			}
 			nb_init++;
+
+			if (ds->ts_offset) {
+				cts += ds->ts_offset;
+				dts += ds->ts_offset;
+			}
+
 			//ready to write MPD for the first time in dynamic mode
 			if (has_init && (nb_init==count) && (ctx->dmode==GF_MPD_TYPE_DYNAMIC) ) {
 				e = dasher_send_mpd(filter, ctx);
