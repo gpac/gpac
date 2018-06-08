@@ -440,6 +440,12 @@ void isor_declare_objects(ISOMReader *read)
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
 		gf_filter_pid_set_info(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
 
+		if (sample_count && w && h) {
+			u64 mdur = gf_isom_get_media_duration(read->mov, i+1);
+			mdur /= sample_count;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ch->time_scale, mdur));
+		}
+
 		track_dur = (Double) (s64) ch->duration;
 		track_dur /= read->time_scale;
 		//move channel duration in media timescale

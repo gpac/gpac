@@ -40,8 +40,6 @@ struct __gf_dash_segmenter
 	char *title, *copyright, *moreInfoURL, *sourceInfo, *lang;
 	char *locations, *base_urls;
 	char *mpd_name;
-	char *m3u8_name;
-
 	GF_DashProfile profile;
 
 	GF_DashDynamicMode dash_mode;
@@ -95,11 +93,15 @@ struct __gf_dash_segmenter
 
 	Bool disable_loop;
 
-	/* indicates if a segment must contain its theorical boundary */
+	/* NOT YET BACKPORTED indicates if a segment must contain its theorical boundary */
 	Bool split_on_bound;
 
-	/* used to segment video as close to the boundary as possible */
+	/* NOT YET BACKPORTED  used to segment video as close to the boundary as possible */
 	Bool split_on_closest;
+
+	//some HLS options
+	Bool hls_clock;
+
 
 	//not yet exposed through API
 	Bool disable_segment_alignment;
@@ -171,7 +173,6 @@ void gf_dasher_del(GF_DASHSegmenter *dasher)
 	gf_dasher_clean_inputs(dasher);
 	gf_free(dasher->tmpdir);
 	gf_free(dasher->mpd_name);
-	gf_free(dasher->m3u8_name);
 	if (dasher->title) gf_free(dasher->title);
 	if (dasher->moreInfoURL) gf_free(dasher->moreInfoURL);
 	if (dasher->sourceInfo) gf_free(dasher->sourceInfo);
@@ -444,10 +445,10 @@ GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop)
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name)
+GF_Err gf_dasher_set_hls_clock(GF_DASHSegmenter *dasher, Bool insert_clock)
 {
        if (!dasher) return GF_BAD_PARAM;
-       if (m3u8_name)dasher->m3u8_name = gf_strdup(m3u8_name);
+       dasher->hls_clock = insert_clock;
        return GF_OK;
 }
 
@@ -488,6 +489,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 {
 	GF_Err e;
 	u32 i, count;
+	char *sep_ext;
 	u32 l1, l2;
 	char *args=NULL, szArg[1024];
 
@@ -511,8 +513,22 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		return GF_OUT_OF_MEM;
 	}
 
+	sep_ext = strchr(dasher->mpd_name, ':');
+	if (sep_ext) {
+		if (sep_ext[1] == '\\') sep_ext = strchr(sep_ext+1, ':');
+		else if (sep_ext[1]=='/') {
+			sep_ext = strchr(sep_ext+1, '/');
+			if (sep_ext) sep_ext = strchr(sep_ext, ':');
+		}
+	}
+	if (sep_ext) {
+		sep_ext[0] = 0;
+	}
+
 	sprintf(szArg, "dur=%g", dasher->segment_duration);
 	APPEND_ARG(szArg)
+	if (sep_ext) { APPEND_ARG(sep_ext+1) }
+
 	if (dasher->single_segment) { APPEND_ARG("sseg") }
 	if (dasher->single_file) { APPEND_ARG("sfile") }
 	if (dasher->use_url_template) { APPEND_ARG("tpl") }
@@ -601,7 +617,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->sub_duration) { sprintf(szArg, "subdur=%g", dasher->sub_duration); APPEND_ARG(szArg)}
 	if (dasher->dash_state) { sprintf(szArg, "state=%s", dasher->dash_state); APPEND_ARG(szArg)}
 	if (! dasher->disable_loop && dasher->dash_state) { APPEND_ARG("loop")}
-	//split not yet exposed
+	if (dasher->hls_clock) { APPEND_ARG("hlsc")}
+
+	//the rest is not yet exposed through the old api, but can be set through output file name
 
 	if (dasher->dash_mode>=GF_DASH_DYNAMIC) {
 	 	sprintf(szArg, "_p_gentime=%p", &dasher->next_gen_ntp_ms); APPEND_ARG(szArg)
@@ -643,6 +661,10 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	if (args) gf_free(args);
 
+	if (sep_ext) {
+		sep_ext[0] = ':';
+	}
+
 	if (!dasher->output) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load DASH filer\n"));
 		return e;
@@ -673,9 +695,14 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		args = NULL;
 
+		if (di->other_opts) {
+			APPEND_ARG(di->other_opts)
+		}
+
 		//set all args
 		if (di->representationID)  { sprintf(szArg, "#Representation=%s", di->representationID ); APPEND_ARG(szArg)}
 		if (di->periodID)  { sprintf(szArg, "#Period=%s", di->periodID ); APPEND_ARG(szArg)}
+		if (di->asID)  { sprintf(szArg, "#ASID=%d", di->asID ); APPEND_ARG(szArg)}
 		//period start not exposed
 		if (di->period_duration) {
 			if (!url) { sprintf(szArg, "#PDur=%g", di->period_duration ); APPEND_ARG(szArg)}
@@ -715,7 +742,10 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			else { APPEND_STR(di->as_c_descs[j]) }
 		}
 
-		//TODO: ASID, start number, template
+		if (di->startNumber)  { sprintf(szArg, "#StartNumber=%d", di->startNumber ); APPEND_ARG(szArg)}
+		if (di->seg_template)  { sprintf(szArg, "#Template=%s", di->seg_template ); APPEND_ARG(szArg)}
+		if (di->hls_pl)  { sprintf(szArg, "#HLSPL=%s", di->hls_pl ); APPEND_ARG(szArg)}
+
 
 		if (!url) url = "null";
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher source %s with args %s\n", url, args));

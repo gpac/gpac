@@ -312,6 +312,7 @@ void PrintDASHUsage()
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
 	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
+	        " -hlsc                inserts UTC in variant playlists for live HLS\n"
 	        " -bound               enables video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)\n"
 	        " -closest             enables video segmentation closest to the segment boundary (before or after)\n"
 
@@ -1524,6 +1525,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 {
 	GF_DashSegmenterInput *di;
 	char *sep;
+	char *other_opts = NULL;
 	// skip ./ and ../, and look for first . to figure out extension
 	if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
 	else {
@@ -1559,9 +1561,30 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":role=", 6) ||
 				        !strnicmp(sep, ":desc", 5) ||
 				        !strnicmp(sep, ":duration=", 10) || /*legacy*/!strnicmp(sep, ":period_duration=", 10) ||
-				        !strnicmp(sep, ":xlink=", 7)) {
+				        !strnicmp(sep, ":xlink=", 7) ||
+				        !strnicmp(sep, ":asID=", 6) ||
+				        !strnicmp(sep, ":sn=", 4) ||
+				        !strnicmp(sep, ":tpl=", 5) ||
+				        !strnicmp(sep, ":hls=", 5)
+				        ) {
 					break;
 				} else {
+					u32 l1, l2;
+					char *nsep = strchr(sep+1, ':');
+
+					if (nsep && !strncmp(nsep, "://", 3)) nsep = strchr(nsep+3, ':');
+					if (nsep) nsep[0] = 0;
+					l1 = other_opts ? strlen(other_opts) : 0;
+					l2 = strlen(sep);
+					if (other_opts) {
+						other_opts = gf_realloc(other_opts, sizeof(char) * (l1+l2+2));
+						strcat(other_opts, ":");
+						strcat(other_opts, sep);
+					} else {
+						other_opts = strdup(sep);
+					}
+					if (nsep) nsep[0] = ':';
+
 					sep = strchr(sep+1, ':');
 				}
 			}
@@ -1629,6 +1652,10 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			}	else if (!strnicmp(opts, "duration=", 9)) {
 				di->period_duration = (Double) atof(opts+9); /*legacy: use period_duration instead*/
 			}
+			else if (!strnicmp(opts, "asID=", 5)) di->asID = atoi(opts+5);
+			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = atoi(opts+3);
+			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
+			else if (!strnicmp(opts, "hls=", 4)) di->hls_pl = gf_strdup(opts+4);
 
 			if (!sep) break;
 			sep[0] = ':';
@@ -1637,6 +1664,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		first_opt[0] = '\0';
 	}
 	di->file_name = name;
+	di->other_opts = other_opts;
+
 	if (!di->representationID) {
 		char szRep[100];
 		sprintf(szRep, "%d", *nb_dash_inputs);
@@ -1819,8 +1848,8 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *dash_mpd_m3u_name;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
 Double min_buffer = 1.5;
@@ -1979,6 +2008,9 @@ u32 mp4box_cleanup(u32 ret_code) {
 			if (di->representationID) gf_free(di->representationID);
 			if (di->periodID) gf_free(di->periodID);
 			if (di->xlink) gf_free(di->xlink);
+			if (di->seg_template) gf_free(di->seg_template);
+			if (di->hls_pl) gf_free(di->hls_pl);
+			if (di->other_opts) gf_free(di->other_opts);
 
 			if (di->roles) {
 				for (j = 0; j<di->nb_roles; j++) {
@@ -3228,11 +3260,6 @@ Bool mp4box_parse_args(int argc, char **argv)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] -dash-strict is deprecated, will behave like -dash\n"));
 			i++;
 		}
-               else if (!stricmp(arg, "-m3u8-from-mpd")) {
-                       CHECK_NEXT_ARG
-                       dash_mpd_m3u_name = argv[i + 1];
-                       i++;
-               }
 		else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
 			dash_subduration = atof(argv[i + 1]) / 1000;
@@ -3272,6 +3299,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-no-loop")) {
 			no_loop = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-hlsc")) {
+			hls_clock = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-bound")) {
 			split_on_bound = GF_TRUE;
@@ -3496,7 +3526,7 @@ int mp4boxMain(int argc, char **argv)
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
-	single_traf_per_moof = GF_FALSE;
+	single_traf_per_moof = hls_clock = GF_FALSE;
     tfdt_per_traf = GF_FALSE;
 	dump_nal_crc = GF_FALSE;
 	dump_isom = 0;
@@ -3509,7 +3539,6 @@ int mp4boxMain(int argc, char **argv)
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
 	seg_name = dash_ctx_file = NULL;
-       dash_mpd_m3u_name = NULL;
 	initial_moof_sn = 0;
 	initial_tfdt = 0;
 
@@ -4026,8 +4055,13 @@ int mp4boxMain(int argc, char **argv)
 		if (sep) sep[0] = 0;
 		if (!outName) strcat(outfile, "_dash");
 		strcpy(szMPD, outfile);
-		strcat(szMPD, ".mpd");
-
+		if (sep) {
+			sep[0] = '.';
+			strcat(szMPD, sep);
+		} else {
+			strcat(szMPD, ".mpd");
+		}
+		
 		if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
 			fprintf(stderr, "Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration);
 			dash_subduration = dash_duration;
@@ -4115,7 +4149,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
-		if (!e) e = gf_dasher_set_m3u8info(dasher, dash_mpd_m3u_name);
+		if (!e) e = gf_dasher_set_hls_clock(dasher, hls_clock);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
