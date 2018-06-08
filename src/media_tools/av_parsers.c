@@ -1845,6 +1845,7 @@ const char *av1_get_obu_name(ObuType obu_type)
 	case OBU_METADATA: return "metadata";
 	case OBU_FRAME: return "frame";
 	case OBU_REDUNDANT_FRAME_HEADER: return "redundant_frame_header";
+	case OBU_TILE_LIST: return "tile_list";
 	case OBU_PADDING: return "padding";
 	default: return "unknown";
 	}
@@ -1854,6 +1855,7 @@ Bool av1_is_obu_header(ObuType obu_type) {
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
 	case OBU_METADATA:
+		// TODO add check based on the metadata type
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -2052,7 +2054,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 	u8 temporal_id = 0, spatial_id = 0;
 	u64 pos = gf_bs_get_position(bs);
 
-	if (!bs || !obu_type || !obu_type || !state)
+	if (!bs || !obu_type || !state)
 		return GF_BAD_PARAM;
 
 	e = av1_parse_obu_header(bs, obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
@@ -2093,13 +2095,15 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 	case OBU_METADATA: {
 #if 0 //TODO + sample groups
 		const ObuMetadataType metadata_type = gf_bs_read_u16_le(bs);
-		if (metadata_type == OBU_METADATA_TYPE_PRIVATE_DATA) {
+		if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
 			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_HDR_CLL) {
 			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_HDR_MDCV) {
 			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_SCALABILITY) {
+			assert(0); //not implemented
+		} else if (metadata_type == METADATA_TYPE_TIMECODE) {
 			assert(0); //not implemented
 		}
 #endif

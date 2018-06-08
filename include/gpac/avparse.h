@@ -328,15 +328,17 @@ typedef enum {
 	OBU_METADATA = 5,
 	OBU_FRAME = 6,
 	OBU_REDUNDANT_FRAME_HEADER = 7,
+	OBU_TILE_LIST = 8,
 	OBU_PADDING = 15,
 } ObuType;
 
 /*!\brief obu metadata types. */
 typedef enum {
-	OBU_METADATA_TYPE_PRIVATE_DATA = 0,
 	OBU_METADATA_TYPE_HDR_CLL = 1,
 	OBU_METADATA_TYPE_HDR_MDCV = 2,
 	OBU_METADATA_TYPE_SCALABILITY = 3,
+	OBU_METADATA_TYPE_ITUT_T35 = 4,
+	OBU_METADATA_TYPE_TIMECODE = 5
 } ObuMetadataType;
 
 const char *av1_get_obu_name(ObuType obu_type);

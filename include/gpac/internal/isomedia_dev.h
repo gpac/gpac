@@ -1121,7 +1121,7 @@ typedef struct
 
 typedef struct
 {
-	GF_ISOM_BOX
+	GF_ISOM_FULL_BOX
 	GF_AV1Config *config;
 } GF_AV1ConfigurationBox;
 
