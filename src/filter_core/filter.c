@@ -641,6 +641,20 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			while (sep && (sep[1]=='\\')) {
 				sep = strchr(sep+1, ':');
 			}
+			if (sep) {
+				char *prev = sep-3;
+				if (prev[0]=='T') {}
+				else if (prev[1]=='T') { prev ++; }
+				else { prev = NULL; }
+
+				if (prev) {
+					//assume date Th:m:s or Th:mm:s or Thh:m:s or Thh:mm:s
+					if ((prev[2] == ':') && (prev[4] == ':')) sep = strchr(prev+5, ':');
+					else if ((prev[2] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
+					else if ((prev[3] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
+					else if ((prev[3] == ':') && (prev[6] == ':')) sep = strchr(prev+7, ':');
+				}
+			}
 		}
 		if (sep) {
 			escaped = strstr(sep, szEscape);
