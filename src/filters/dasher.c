@@ -1654,8 +1654,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
 					seg_template->duration = (u64)(ds->dash_dur * ds->mpd_timescale);
-					if (ctx->asto < 0) {
-						seg_template->availability_time_offset = - (Double) ctx->asto / 1000.0;
+					if (ctx->asto>0) {
+						seg_template->availability_time_offset = (Double) ctx->asto / 1000.0;
 					}
 				} else {
 					seg_template->start_number = (u32)-1;
@@ -1675,8 +1675,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				seg_template->duration = (u64)(ds->dash_dur * ds->mpd_timescale);
 				seg_template->timescale = ds->mpd_timescale;
 				seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
-				if (ctx->asto < 0) {
-					seg_template->availability_time_offset = - (Double) ctx->asto / 1000.0;
+				if (ctx->asto > 0) {
+					seg_template->availability_time_offset = (Double) ctx->asto / 1000.0;
 				}
 				rep->segment_template = seg_template;
 			}
@@ -1863,6 +1863,10 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 		Double min_valid_mpd_time = pdur;
 		min_valid_mpd_time /= 1000;
 		min_valid_mpd_time -= ctx->tsb;
+		//negative asto, we produce segments earlier but we don't want to delete them before the asto 
+		if (ctx->asto<0) {
+			min_valid_mpd_time += ((Double) ctx->asto)/1000;
+		}
 		if (min_valid_mpd_time>0) dasher_purge_segments(ctx, min_valid_mpd_time, &pdur);
 	}
 
@@ -1888,8 +1892,11 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 	ctx->mpd->gpac_mpd_time = ctx->mpd->media_presentation_duration;
 	ctx->mpd->media_presentation_duration = 0;
 	ctx->mpd->gpac_next_ntp_ms = ctx->mpd->gpac_init_ntp_ms + ctx->mpd->gpac_mpd_time;
+	if (ctx->asto<0)
+		ctx->mpd->gpac_next_ntp_ms -= (u64) (-ctx->asto);
 	if (ctx->_p_gentime) (*ctx->_p_gentime) = ctx->mpd->gpac_next_ntp_ms;
 	if (ctx->_p_mpdtime) (*ctx->_p_mpdtime) = ctx->mpd->gpac_mpd_time;
+
 }
 
 
@@ -3987,7 +3994,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(aacp), "AAC profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(template), "DASH template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(ext), "File extension to use for segments", GF_PROP_STRING, "m4s", NULL, GF_FALSE},
-	{ OFFS(asto), "AvailabilityStartTime offset to use", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(profile), "Specifies the target DASH profile. This will set default option values to ensure conformance to the desired profile. Auto turns profile to live for dynamic and full for non-dynamic.", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand", GF_FALSE },
 	{ OFFS(profX), "specifies a list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used", GF_PROP_STRING, NULL, NULL, GF_FALSE },
 	{ OFFS(cp), "Specifies the content protection element location", GF_PROP_UINT, "set", "set|rep|both", GF_FALSE },
