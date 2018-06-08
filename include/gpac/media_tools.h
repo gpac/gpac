@@ -524,6 +524,8 @@ typedef struct
 	char *representationID;
 	/*! ID of the period. If not set, assigned automatically*/
 	char *periodID;
+	/*! ID of the adaptation set. If not set, assigned automatically.*/
+	u32 asID;
 	/*! forced media duration.*/
 	Double media_duration;
 	/*! number of base URLs in the baseURL structure*/
@@ -556,8 +558,15 @@ typedef struct
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
 	Double period_duration;
-	/*! if true, the dasher inputs will open each time the segmentation function is called */
-	Bool no_cache;
+	/*! sets default start number for this representation. if not set, assigned automatically */
+	u32 startNumber; 	//TODO: start number, template
+	/*! overrides template for this input*/
+	char *seg_template;
+	/*! sets name of HLS playlist*/
+	char *hls_pl;
+	/*! non legacy options passed to dasher */
+	char *other_opts;
+
 } GF_DashSegmenterInput;
 
 /*!
@@ -917,10 +926,10 @@ GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_cl
 /*!
  Sets m3u8 file name - if not set, no m3u8 output
  *	\param dasher the DASH segmenter object
- *	\param m3u8_name name of master m3u8 playlist to generate
+ *	\param insert_clock if true UTC clock is inserted in variant playlists in live
  *	\return error code if any
 */
-GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name);
+GF_Err gf_dasher_set_hls_clock(GF_DASHSegmenter *dasher, Bool insert_clock);
 
 /*!
  Adds a media input to the DASHer

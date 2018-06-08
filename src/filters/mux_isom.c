@@ -153,6 +153,9 @@ typedef struct
 	Double media_dur;
 	u32 sidx_max_size, sidx_chunk_offset;
 	Bool final_sidx_flush;
+
+	u32 *seg_sizes;
+	u32 nb_seg_sizes, alloc_seg_sizes;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -1470,9 +1473,6 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	GF_Err e = GF_OK;
 	u32 nb_eos, nb_done, i, count = gf_list_count(ctx->tracks);
 
-	if (!ctx->file)
-		return GF_EOS;
-
 	if (ctx->flush_size) {
 		GF_FilterPacket *pck;
 		char *output;
@@ -1497,6 +1497,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		return GF_OK;
 	}
 
+	if (!ctx->file)
+		return GF_EOS;
 
 	//init movie not yet produced
 	if (!ctx->init_movie_done) {
@@ -1902,6 +1904,17 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
 				mp4_mux_flush_frag(ctx, 0, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
+			} else if (!ctx->cache) {
+				mp4_mux_flush_frag(ctx, 0, 0, 0);
+			} else {
+				if (ctx->nb_seg_sizes == ctx->alloc_seg_sizes) {
+					 ctx->alloc_seg_sizes *= 2;
+					 if (!ctx->alloc_seg_sizes) ctx->alloc_seg_sizes = 10;
+					 ctx->seg_sizes = gf_realloc(ctx->seg_sizes, sizeof(u32) * ctx->alloc_seg_sizes);
+				}
+				assert(segment_size_in_bytes);
+				ctx->seg_sizes[ctx->nb_seg_sizes] = segment_size_in_bytes;
+				ctx->nb_seg_sizes++;
 			}
 		}
 		//cannot flush in DASH mode if using sidx (vod single sidx or live 1 sidx/seg)
@@ -1927,6 +1940,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				//flush SIDX in given space, reserve 8 bytes for free box
 				gf_isom_flush_sidx(ctx->file, ctx->sidx_max_size - 8);
 			} else {
+				u64 start_offset;
 				//reenable packet dispatch
 				ctx->store_output = GF_FALSE;
 				gf_isom_flush_sidx(ctx->file, 0);
@@ -1938,6 +1952,20 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				ctx->flush_size = gf_ftell(ctx->tmp_store);
 				ctx->flush_done = 0;
 				gf_fseek(ctx->tmp_store, 0, SEEK_SET);
+
+				if (ctx->seg_sizes) {
+					start_offset = ctx->current_offset;
+					for (i=0; i<ctx->nb_seg_sizes; i++) {
+						ctx->current_size = ctx->seg_sizes[i];
+						mp4_mux_flush_frag(ctx, 0, 0, 0);
+					}
+					ctx->current_offset = start_offset;
+					ctx->current_size = 0;
+
+					gf_free(ctx->seg_sizes);
+					ctx->seg_sizes = NULL;
+					ctx->alloc_seg_sizes = ctx->nb_seg_sizes = 0;
+				}
 			}
 		}
 		if (ctx->file) {
@@ -2367,6 +2395,7 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->seg_name) gf_free(ctx->seg_name);
 	if (ctx->tmp_store) gf_fclose(ctx->tmp_store);
+	if (ctx->seg_sizes) gf_free(ctx->seg_sizes);
 }
 
 static const GF_FilterCapability MP4MuxCaps[] =

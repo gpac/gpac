@@ -712,6 +712,8 @@ static GF_List *gf_mpd_parse_segments_context(GF_MPD *mpd, GF_XMLNode *root)
 			else if (!strcmp(att->name, "offset")) sctx->file_offset = gf_mpd_parse_long_int(att->value);
 			else if (!strcmp(att->name, "idx_size")) sctx->index_size = gf_mpd_parse_int(att->value);
 			else if (!strcmp(att->name, "idx_offset")) sctx->index_offset = gf_mpd_parse_long_int(att->value);
+			else if (!strcmp(att->name, "seg_num")) sctx->seg_num = gf_mpd_parse_int(att->value);
+
 		}
 	}
 	return res;
@@ -1189,6 +1191,8 @@ void gf_mpd_representation_free(void *_item)
 		}
 		gf_list_del(ptr->state_seg_list);
 	}
+	if (ptr->m3u8_var_name) gf_free(ptr->m3u8_var_name);
+	if (ptr->m3u8_var_file) gf_fclose(ptr->m3u8_var_file);
 
 	gf_free(ptr);
 }
@@ -2221,15 +2225,22 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	sec = (u32)(time / 1000);
 	ms = (u32)(time - ((u64)sec) * 1000);
 
+	if (name) {
+		fprintf(out, " %s=\"", name);
+	}
+
 #ifdef _WIN32_WCE
 	*(LONGLONG *) &filet = (sec/* - GF_NTP_SEC_1900_TO_1970*/) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
 	FileTimeToSystemTime(&filet, &syst);
-	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) ms);
+	fprintf(out, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) ms);
 #else
 	t = gmtime(&gtime);
-	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", name, 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
+	fprintf(out, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
 #endif
 
+	if (name) {
+		fprintf(out, "\"");
+	}
 }
 
 void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms, Bool UseHoursAndMinutes)
@@ -2570,6 +2581,7 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, char *ind
 		fprintf(out, "%s <segmentInfo ", indent);
 		fprintf(out, "time=\""LLU"\" ", sctx->time);
 		fprintf(out, "dur=\""LLU"\" ", sctx->dur);
+		fprintf(out, "seg_num=\"%d\" ", sctx->seg_num);
 		if (sctx->file_name) fprintf(out, "file=\"%s\" ", sctx->file_name);
 		if (sctx->file_size) {
 			fprintf(out, "size=\"%d\" ", sctx->file_size);
@@ -2764,135 +2776,6 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 }
 
-static GF_Err gf_mpd_write_m3u8_playlist_tags(GF_MPD_AdaptationSet const * const as,GF_MPD_Representation const * const rs, FILE *out, char *m3u8_name)
-{
-	if(rs->mime_type){
-		if (!strcmp(rs->mime_type,"audio/mp4")){
-			fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",");
-			fprintf(out, "NAME=\"%s\",",rs->id);
-			fprintf(out, "LANGUAGE=\"%s\",",as->lang);
-			fprintf(out, "AUTOSELECT=YES,URI=%s\"\n",m3u8_name);
-		}
-		else if(!strcmp(rs->mime_type,"video/mp4")){
-			fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=%d,",rs->bandwidth);
-			fprintf(out,"CODECS=\"%s\",",rs->codecs);
-			fprintf(out,"RESOLUTION=%dx%d,",rs->width,rs->height);
-			fprintf(out,"AUDIO=\"audio\"\n");
-			fprintf(out, "%s\n",m3u8_name);
-		}
-	}
-	return GF_OK;
-}
-
-/*Warning, returned string should be freed by user*/
-static char *remove_m3u8_ext(const char* mystr) {
-	char *retstr;
-	char *lastdot;
-	if (mystr == NULL)
-		return NULL;
-	if ((retstr = malloc (strlen (mystr) + 1)) == NULL)
-		return NULL;
-	strcpy (retstr, mystr);
-	lastdot = strrchr (retstr, '.');
-	if (lastdot != NULL)
-		*lastdot = '\0';
-	return retstr;
-}
-
-static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, GF_MPD_Representation const * const rs, char *m3u8_name,u64 duration){
-	FILE *out;
-	if (!strcmp(m3u8_name, "std")) out = stdout;
-	else {
-		out = gf_fopen(m3u8_name, "wb");
-		if (!out) return GF_IO_ERR;
-	}
-
-	fprintf(out,"#EXTM3U\n");
-	fprintf(out,"#EXT-X-TARGETDURATION:%d\n",(u32) (duration/1000));
-	fprintf(out,"#EXT-X-VERSION:\n");
-	fprintf(out,"#EXT-X-MEDIA-SEQUENCE:1\n");
-	fprintf(out,"#EXT-X-PLAYLIST-TYPE:VOD\n");
-	fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
-	if (rs->segment_list) {
-		u32 i,j;
-		GF_MPD_SegmentURL *url;
-		Double *duration;
-		GF_MPD_SegmentList *s=rs->segment_list;
-		fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n\n",s->initialization_segment->sourceURL);
-		
-		if (s->segment_URLs) {
-			i = 0;
-			j = 0;
-			while ( (url = gf_list_enum(s->segment_URLs, &i))) {
-				duration = gf_list_enum(url->Segments_duration_list,&j);
-				fprintf(out,"#EXTINF:%f\n",(float)(*duration)/1000.0);
-				fprintf(out,"%s\n",url->media);
-			}
-		}
-	}
-	else if(rs->segment_base){
-		u32 i=0;
-		u32 j=0;
-		u32 k=0;
-		u64 *current_offset;
-		u64 prev_offset=0;
-		Double *duration;
-		GF_MPD_BaseURL *url;
-		GF_MPD_SegmentBase *b=rs->segment_base;
-		url=gf_list_enum(rs->base_URLs, &k);
-		while ( (current_offset = gf_list_enum(b->Segments_Byte_Size_list, &i))) {
-			if(!(duration = gf_list_enum(b->Segments_duration_list,&j)))
-				break;
-			fprintf(out,".#EXTINF:%f\n",(float)(*duration)/1000.0);
-			fprintf(out,"#EXT-X-BYTERANGE:%d@%d \n",(u32) ((*current_offset)-prev_offset), (u32) prev_offset);
-			fprintf(out,"%s\n",url->URL);
-			prev_offset=(*current_offset);
-		}
-		
-	}
-
-	gf_fclose(out);
-	
-	return GF_OK;
-}
-
-static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, const char* m3u8_name)
-{
-	u32 i,j;
-	GF_Err e;
-	GF_MPD_AdaptationSet *as;
-	GF_MPD_Representation *rs;
-	char URL_NAME[1000];
-	char *m3u8_name_rad;
-	
-	m3u8_name_rad=remove_m3u8_ext(m3u8_name);
-	if(!m3u8_name_rad){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] The m3u8 file should contain .m3u8 extension.\n"));
-		return GF_BAD_PARAM;
-	}
-	
-	
-	i=0;
-	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-		j=0;
-		while ( (rs = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
-			sprintf(URL_NAME, "%s_%d_%d.m3u8",m3u8_name_rad, i, j);
-			gf_mpd_write_m3u8_playlist_tags(as, rs, out, URL_NAME);
-			fprintf(out,"\n");
-			e=gf_mpd_write_m3u8_playlist(as,rs,URL_NAME, period->duration);
-			if(e){
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files.\n"));
-				return GF_IO_ERR;
-			}
-		}
-	}
-	
-	free(m3u8_name_rad);
-	
-	return GF_OK;
-}
-
-
 static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 {
 	u64 time_ms;
@@ -2916,17 +2799,272 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	return GF_OK;
 }
 
-static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period)
+static Bool gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep, FILE *out, char *m3u8_name, u32 nb_audio)
 {
-	fprintf(out, "#EXTM3U\n");
-	fprintf(out, "#EXT-X-VERSION:6\n");
-	fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n\n");
+	if (!rep->mime_type) return GF_FALSE;
 
-	gf_mpd_write_m3u8_playlists(period, out, m3u8_name);
+	if (!strncmp(rep->mime_type, "audio/", 6)) {
+		if (nb_audio>1) {
+			fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", rep->id, as->lang, m3u8_name);
+			if (rep->nb_chan)
+				fprintf(out,",CHANNELS=\"%d\"", rep->nb_chan);
+			fprintf(out,"\n");
+		}
+
+		fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=\"%s\"", rep->bandwidth, rep->codecs);
+		fprintf(out, "%s\n",m3u8_name);
+		return GF_TRUE;
+	}
+
+	if (!strncmp(rep->mime_type, "video/", 6)) {
+		fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=\"%s\",RESOLUTION=%dx%d", rep->bandwidth, rep->codecs, rep->width, rep->height);
+		if (nb_audio>1)
+			fprintf(out,",AUDIO=\"audio\"");
+		if (rep->fps)
+			fprintf(out,",FRAME-RATE=\"%.03g\"", rep->fps);
+		fprintf(out,"\n");
+
+		fprintf(out, "%s\n",m3u8_name);
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep)
+{
+	const char *url = NULL;
+	if (rep->segment_list) url = rep->segment_list->initialization_segment->sourceURL;
+	else if (rep->segment_template && rep->segment_template->initialization) url = rep->segment_template->initialization;
+	else if (rep->segment_template && rep->segment_template->initialization_segment) url = rep->segment_template->initialization_segment->sourceURL;
+
+	if (as->segment_list && as->segment_list->initialization_segment) url = as->segment_list->initialization_segment->sourceURL;
+	else if (as->segment_template && as->segment_template->initialization) url = as->segment_template->initialization;
+	else if (as->segment_template && as->segment_template->initialization_segment) url = as->segment_template->initialization_segment->sourceURL;
+
+	if (period->segment_list && period->segment_list->initialization_segment) url = period->segment_list->initialization_segment->sourceURL;
+	else if (period->segment_template && period->segment_template->initialization) url = period->segment_template->initialization;
+	else if (period->segment_template && period->segment_template->initialization_segment) url = period->segment_template->initialization_segment->sourceURL;
+	return url;
+}
+
+static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version)
+{
+	u32 i, count;
+	GF_DASH_SegmentContext *sctx;
+	FILE *out;
+	Bool close_file = GF_FALSE;
+
+	if (!strcmp(m3u8_name, "std")) out = stdout;
+	else if (mpd->create_m3u8_files) {
+		out = gf_fopen(m3u8_name, "wb");
+		if (!out) return GF_IO_ERR;
+		close_file = GF_TRUE;
+	} else {
+		out = gf_temp_file_new(NULL);
+		if (rep->m3u8_var_file) gf_fclose(rep->m3u8_var_file);
+		rep->m3u8_var_file = out;
+	}
+
+	count = gf_list_count(rep->state_seg_list);
+	sctx = gf_list_get(rep->state_seg_list, 0);
+
+	fprintf(out,"#EXTM3U\n");
+	fprintf(out,"#EXT-X-TARGETDURATION:%d\n",(u32) (rep->dash_dur) );
+	fprintf(out,"#EXT-X-VERSION:%d\n", hls_version);
+	fprintf(out,"#EXT-X-MEDIA-SEQUENCE:%d\n", sctx->seg_num);
+	fprintf(out,"#EXT-X-PLAYLIST-TYPE:%s\n", (mpd->type == GF_MPD_TYPE_DYNAMIC) ? "EVENT" : "VOD");
+
+	if (as->starts_with_sap<SAP_TYPE_3)
+		fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
+
+	if (mpd->m3u8_time && rep->timescale_mpd && (mpd->type == GF_MPD_TYPE_DYNAMIC)) {
+		u64 seg_ast = mpd->availabilityStartTime;
+		seg_ast += (sctx->time * 1000) / rep->timescale_mpd;
+		fprintf(out, "#EXT-X-PROGRAM-DATE-TIME:");
+		gf_mpd_print_date(out, NULL, seg_ast);
+		fprintf(out, "\n");
+	}
+
+	if (sctx->file_name) {
+		//locate init segment if any
+		const char *url = gf_mpd_m3u8_get_init_seg(period, as, rep);
+
+		if (url) {
+			fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n\n", url);
+		}
+		for (i=0; i<count; i++) {
+			Double dur;
+			sctx = gf_list_get(rep->state_seg_list, i);
+			assert(sctx->file_name);
+			
+			dur = sctx->dur;
+			dur /= rep->timescale;
+			fprintf(out,"#EXTINF:%g\n", dur);
+			fprintf(out,"%s\n", sctx->file_name);
+		}
+	} else {
+		GF_MPD_BaseURL *base_url=NULL;
+		GF_MPD_URL *init=NULL;
+		
+		if (rep->segment_base && rep->segment_base->initialization_segment) init = rep->segment_base->initialization_segment;
+		if (as->segment_base && as->segment_base->initialization_segment) init = as->segment_base->initialization_segment;
+		if (period->segment_base && period->segment_base->initialization_segment) init = period->segment_base->initialization_segment;
+
+		if (rep->segment_list && rep->segment_list->initialization_segment) init = rep->segment_list->initialization_segment;
+		if (as->segment_list && as->segment_list->initialization_segment) init = as->segment_list->initialization_segment;
+		if (period->segment_list && period->segment_list->initialization_segment) init = period->segment_list->initialization_segment;
+
+		if (init) {
+			fprintf(out,"#EXT-X-MAP:BYTERANGE=\"%d@"LLU"\"\n\n", (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+		}
+
+		base_url = gf_list_get(rep->base_URLs, 0);
+		assert(base_url);
+
+		for (i=0; i<count; i++) {
+			Double dur;
+			sctx = gf_list_get(rep->state_seg_list, i);
+			assert(!sctx->file_name);
+			assert(sctx->file_size);
+
+			dur = sctx->dur;
+			dur /= rep->timescale;
+			fprintf(out,"#EXTINF:%g\n", dur);
+			fprintf(out,"#EXT-X-BYTERANGE:%d@"LLU"\n", sctx->file_size, sctx->file_offset);
+			fprintf(out,"%s\n", base_url->URL);
+		}
+	}
+
+	if (mpd->type != GF_MPD_TYPE_DYNAMIC)
+		fprintf(out,"\n#EXT-X-ENDLIST\n");
+
+	if (close_file)
+		gf_fclose(out);
+	
 	return GF_OK;
 }
 
 
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period)
+{
+	u32 i, j, hls_version;
+	u32 var_idx;
+	GF_Err e;
+	GF_MPD_AdaptationSet *as;
+	GF_MPD_Representation *rep;
+	Bool use_range = GF_FALSE;
+	Bool use_crypt = GF_FALSE;
+	Bool use_init = GF_FALSE;
+	Bool use_ind_segments = GF_TRUE;
+	u32 nb_audio = 0;
+	char *szVariantName;
+	char *m3u8_name_rad, *sep;
+
+	if (!m3u8_name) return GF_BAD_PARAM;
+
+	i=0;
+	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		Bool as_has_audio = GF_FALSE;
+		if (gf_list_count(as->content_protection)) use_crypt = GF_TRUE;
+		if (as->starts_with_sap>2) use_ind_segments = GF_FALSE;
+
+		j=0;
+		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			GF_DASH_SegmentContext *sctx;
+			const char *init_seg;
+			if (!rep) continue;
+			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] No segment state in representation, MPD cannot be translated to M3U8\n"));
+				return GF_BAD_PARAM;
+			}
+
+			sctx = gf_list_get(rep->state_seg_list, 0);
+			if (!sctx->file_name) use_range = GF_TRUE;
+			if (gf_list_count(rep->content_protection)) use_crypt = GF_TRUE;
+
+			init_seg = gf_mpd_m3u8_get_init_seg(period, as, rep);
+			if (init_seg) use_init = GF_TRUE;
+			if (rep->mime_type && !strncmp(rep->mime_type, "audio/", 6)) as_has_audio = GF_TRUE;
+		}
+		if (as_has_audio) nb_audio++;
+	}
+	//we by default use floating point durations
+	hls_version = 3;
+	if (use_range) hls_version = 4;
+	if (use_init) hls_version = 6;
+
+
+	fprintf(out, "#EXTM3U\n");
+	fprintf(out, "#EXT-X-VERSION: %d\n", hls_version);
+	if (use_ind_segments)
+		fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n");
+	fprintf(out,"#EXT-X-PLAYLIST-TYPE:%s\n", (mpd->type == GF_MPD_TYPE_DYNAMIC) ? "EVENT" : "VOD");
+	fprintf(out, "\n");
+
+	m3u8_name_rad = gf_strdup(m3u8_name);
+	sep = strrchr(m3u8_name_rad, '.');
+	if (sep) sep[0] = 0;
+	szVariantName = gf_malloc(sizeof(char) * (100 + strlen(m3u8_name_rad)) );
+
+
+	var_idx = 1;
+	i=0;
+	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		j=0;
+		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			char *name = (char *) rep->m3u8_name;
+			if (!rep) continue;
+			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] No segment state in representation, MPD cannot be translated to M3U8, ignoring representation\n"));
+				continue;
+			}
+
+			if (!name) {
+				sprintf(szVariantName, "%s_%d.m3u8",m3u8_name_rad, var_idx);
+				if (rep->m3u8_var_name) gf_free(rep->m3u8_var_name);
+				name = rep->m3u8_var_name = gf_strdup(szVariantName);
+			}
+			if (!gf_mpd_write_m3u8_playlist_tags(as, rep, out, name, nb_audio)) continue;
+
+
+			fprintf(out, "\n");
+
+
+			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
+				return GF_IO_ERR;
+			}
+		}
+	}
+
+	if (mpd->type != GF_MPD_TYPE_DYNAMIC)
+		fprintf(out,"#EXT-X-ENDLIST\n");
+
+	gf_free(m3u8_name_rad);
+	gf_free(szVariantName);
+	return GF_OK;
+}
+
+
+GF_EXPORT
+GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period *period)
+{
+	GF_Err e;
+	FILE *out;
+	if (!strcmp(file_name, "std")) out = stdout;
+	else {
+		out = gf_fopen(file_name, "wb");
+		if (!out) return GF_IO_ERR;
+
+		mpd->create_m3u8_files = GF_TRUE;
+	}
+
+	e = gf_mpd_write_m3u8_master_playlist(mpd, out, file_name, period);
+	gf_fclose(out);
+	mpd->create_m3u8_files = GF_FALSE;
+	return e;
+}
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 {
@@ -3055,21 +3193,6 @@ GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name)
 	return e;
 }
 
-GF_EXPORT
-GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name, GF_MPD_Period *period)
-{
-	GF_Err e;
-	FILE *out;
-	if (!strcmp(file_name, "std")) out = stdout;
-	else {
-		out = gf_fopen(file_name, "wb");
-		if (!out) return GF_IO_ERR;
-	}
-
-	e = gf_mpd_write_m3u8_master_playlist(mpd, out, file_name, period);
-	gf_fclose(out);
-	return e;
-}
 
 GF_EXPORT
 u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_AdaptationSet *set, GF_MPD_Representation *rep)

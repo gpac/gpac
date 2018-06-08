@@ -156,8 +156,6 @@ typedef struct
 	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
-	GF_List *Segments_Byte_Size_list;	\
-	GF_List *Segments_duration_list;	\
 
 
 
@@ -332,6 +330,7 @@ typedef struct
 	u64 file_offset;
 	u32 index_size;
 	u64 index_offset;
+	u32 seg_num;
 } GF_DASH_SegmentContext;
 
 typedef struct {
@@ -359,7 +358,16 @@ typedef struct {
 	GF_List *state_seg_list;
 	u64 gpac_index_start_range;
 	u64 gpac_index_endrange;
-
+	//used for HLS
+	u32 timescale;
+	u32 timescale_mpd;
+	Double dash_dur;
+	const char *init_seg;
+	u32 nb_chan;
+	Double fps;
+	const char *m3u8_name; //assigned by user
+	char *m3u8_var_name; //gen one
+	FILE *m3u8_var_file; //tmp file
 } GF_MPD_Representation;
 
 
@@ -487,6 +495,9 @@ typedef struct {
 	Bool force_test_mode;
 	//indicates the GPAC state info should be writen
 	Bool write_context;
+	//indicates the HLS variant files shall be created, otherwise temp files are used
+	Bool create_m3u8_files;
+	Bool m3u8_time;
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
@@ -506,10 +517,10 @@ void gf_mpd_url_free(void *_item);
 GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
 
-GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
-GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name, GF_MPD_Period *period);
-
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out);
+GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
+GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period *period);
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period);
 
 void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context);
 GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
