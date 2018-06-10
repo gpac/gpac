@@ -494,7 +494,7 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u3
 
 typedef struct
 {
-	Bool seen_frame_header;
+	Bool seen_frame_header, seen_seq_header;
 	Bool key_frame;
 	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
 } AV1StateFrame;
@@ -521,9 +521,9 @@ typedef struct
 	Bool color_range;
 } AV1State;
 
-GF_Err aom_av1_parse_obu_from_section5(GF_BitStream *bs, AV1State *state);
-GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state);
-GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, AV1State *state);
+GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);
+GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state);
+GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
 GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);

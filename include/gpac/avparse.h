@@ -320,7 +320,6 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 
 /*!\brief obu types. */
 typedef enum {
-	OBU_SKIP = 0,
 	OBU_SEQUENCE_HEADER = 1,
 	OBU_TEMPORAL_DELIMITER = 2,
 	OBU_FRAME_HEADER = 3,

@@ -1625,7 +1625,7 @@ static void av1_choose_operating_point(GF_BitStream *bs)
 static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
 	u8 frame_width_bits_minus_1, frame_height_bits_minus_1;
-
+	state->frame_state.seen_seq_header = GF_TRUE;
 	state->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);
@@ -1837,7 +1837,6 @@ static GF_Err av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *ob
 const char *av1_get_obu_name(ObuType obu_type)
 {
 	switch (obu_type) {
-	case OBU_SKIP: return "skip";
 	case OBU_SEQUENCE_HEADER: return "seq_header";
 	case OBU_TEMPORAL_DELIMITER: return "delimiter";
 	case OBU_FRAME_HEADER: return "frame_header";
@@ -1847,6 +1846,7 @@ const char *av1_get_obu_name(ObuType obu_type)
 	case OBU_REDUNDANT_FRAME_HEADER: return "redundant_frame_header";
 	case OBU_TILE_LIST: return "tile_list";
 	case OBU_PADDING: return "padding";
+	case 0: case 9: case 10: case 11: case 12: case 13: case 14: "reserved";
 	default: return "unknown";
 	}
 }
@@ -1891,31 +1891,30 @@ u64 leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	return value;
 }
 
-#define OBU_COPY \
-	gf_bs_seek(bs, pos); \
-	GF_AV1_OBUArrayEntry *a; \
-	GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry); \
-	a->obu = gf_malloc((size_t)obu_length); \
-	gf_bs_read_data(bs, a->obu, (u32)obu_length); \
-	a->obu_length = obu_length; \
+static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List *obu_list) {
+	gf_bs_seek(bs, pos);
+	GF_AV1_OBUArrayEntry *a;
+	GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
+	a->obu = gf_malloc((size_t)obu_length);
+	gf_bs_read_data(bs, a->obu, (u32)obu_length);
+	a->obu_length = obu_length;
 	a->obu_type = obu_type;
+	if (!obu_list) obu_list = gf_list_new();
+	gf_list_add(obu_list, a);
+}
 
 static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
 	if (av1_is_obu_header(obu_type)) {
-		OBU_COPY;
-		if (!state->frame_state.header_obus) state->frame_state.header_obus = gf_list_new();
-		gf_list_add(state->frame_state.header_obus, a);
+		av1_add_obu_internal(bs, pos, obu_length, obu_type, state->frame_state.header_obus);
 	}
 	if (av1_is_obu_frame(obu_type)) {
-		OBU_COPY;
-		if (!state->frame_state.frame_obus) state->frame_state.frame_obus = gf_list_new();
-		gf_list_add(state->frame_state.frame_obus, a);
+		av1_add_obu_internal(bs, pos, obu_length, obu_type, state->frame_state.frame_obus);
 	}
 }
 
-GF_Err aom_av1_parse_obu_from_section5(GF_BitStream *bs, AV1State *state) {
-	ObuType obu_type = OBU_SKIP;
+GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state) {
+	ObuType obu_type = -1;
 	while (obu_type != OBU_TEMPORAL_DELIMITER && gf_bs_available(bs)) {
 		u64 pos = gf_bs_get_position(bs), obu_length = 0;
 		GF_Err e;
@@ -1931,7 +1930,7 @@ GF_Err aom_av1_parse_obu_from_section5(GF_BitStream *bs, AV1State *state) {
 	return GF_OK;
 }
 
-GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state)
+GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e = GF_OK;
 	assert(bs && state);
@@ -1974,7 +1973,7 @@ GF_Err aom_av1_parse_obu_from_annexb(GF_BitStream *bs, AV1State *state)
 	return GF_OK;
 }
 
-GF_Err aom_av1_parse_obu_from_ivf(GF_BitStream *bs, AV1State *state)
+GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 {
 	u64 frame_size;
 	GF_Err e = gf_media_aom_parse_ivf_frame_header(bs, &frame_size);
@@ -2013,6 +2012,8 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state) {
 	if (state->reduced_still_picture_header) {
 		frame_state->key_frame = GF_TRUE;
 	} else {
+		AV1FrameType frame_type;
+		Bool show_frame = GF_FALSE;
 		Bool show_existing_frame = gf_bs_read_int(bs, 1);
 		if (show_existing_frame == GF_TRUE) {
 			/*frame_to_show_map_idx	f(3)
@@ -2032,8 +2033,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state) {
 			}*/
 			return;
 		}
-		AV1FrameType frame_type = gf_bs_read_int(bs, 2);
-		frame_state->key_frame = gf_bs_read_int(bs, 1)/*show_frame*/ && frame_type == KEY_FRAME && frame_state->seen_frame_header;
+		frame_type = gf_bs_read_int(bs, 2);
+		show_frame = gf_bs_read_int(bs, 1);
+		frame_state->key_frame = frame_state->seen_seq_header && show_frame && frame_type == KEY_FRAME && frame_state->seen_frame_header;
 	}
 }
 
@@ -2079,7 +2081,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 		u32 inTemporalLayer = (state->OperatingPointIdc >> temporal_id) & 1;
 		u32 inSpatialLayer = (state->OperatingPointIdc >> (spatial_id + 8)) & 1;
 		if (!inTemporalLayer || !inSpatialLayer) {
-			*obu_type = OBU_SKIP;
+			*obu_type = -1;
 			gf_bs_seek(bs, pos + *obu_size);
 			return GF_OK;
 		}

@@ -648,7 +648,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			if (!av1_is_obu_header(a->obu_type))
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. PArsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
 
-			e = aom_av1_parse_obu_from_section5(bs, &av1_state);
+			e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
 			gf_bs_del(bs); bs = NULL;
 			if (e) {
 				gf_odf_av1_cfg_del(av1c);
