@@ -2528,7 +2528,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			u8 hash[20];
 			u32 j;
 			GF_AV1_OBUArrayEntry *obu = gf_list_get(av1c->obu_array, i);
-			gf_sha1_csum((u8 *) obu->obu, obu->obu_length, hash);
+			gf_sha1_csum((u8*)obu->obu, (u32)obu->obu_length, hash);
 			fprintf(stderr, "\tOBU#%d %s hash: ", i+1, av1_get_obu_name(obu->obu_type) );
 			for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
 			fprintf(stderr, "\n");

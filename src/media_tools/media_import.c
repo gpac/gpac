@@ -7114,15 +7114,15 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		pos = gf_bs_get_position(bs);
 	} else {
 		gf_bs_seek(bs, pos);
-		e = aom_av1_parse_obu_from_annexb(bs, &state);
+		e = aom_av1_parse_temporal_unit_from_annexb(bs, &state);
 		if (!e) {
 			gf_import_message(import, GF_OK, "Detected Annex B.");
 			av1_bs_syntax = AnnexB;
 		} else {
 			gf_bs_seek(bs, pos);
-			e = aom_av1_parse_obu_from_section5(bs, &state);
+			e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
 			if (e) {
-				gf_import_message(import, GF_OK, "Couldn't guess bitstream format (IVF then Annex B then Section 5 tested.");
+				gf_import_message(import, GF_NOT_SUPPORTED, "Couldn't guess AV1 bitstream format (IVF then Annex B then Section 5 tested).");
 				goto exit;
 			}
 			gf_import_message(import, GF_OK, "OBUs Section 5.");
@@ -7137,17 +7137,17 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 		/*we process each TU and extract only the necessary OBUs*/
 		if (av1_bs_syntax == OBUs) {
-			if (aom_av1_parse_obu_from_section5(bs, &state) != GF_OK) {
+			if (aom_av1_parse_temporal_unit_from_section5(bs, &state) != GF_OK) {
 				gf_import_message(import, GF_OK, "Error parsing OBU (Section 5)");
 				goto exit;
 			}
 		} else if (av1_bs_syntax == AnnexB) {
-			if (aom_av1_parse_obu_from_annexb(bs, &state) != GF_OK) {
+			if (aom_av1_parse_temporal_unit_from_annexb(bs, &state) != GF_OK) {
 				gf_import_message(import, GF_OK, "Error parsing OBU (Annex B)");
 				goto exit;
 			}
 		} else if (av1_bs_syntax == IVF) {
-			if (aom_av1_parse_obu_from_ivf(bs, &state) != GF_OK) {
+			if (aom_av1_parse_temporal_unit_from_ivf(bs, &state) != GF_OK) {
 				gf_import_message(import, GF_OK, "Error parsing OBU (IVF)");
 				goto exit;
 			}
@@ -7199,7 +7199,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 						GF_AV1_OBUArrayEntry *a_cfg = (GF_AV1_OBUArrayEntry*)gf_list_get(av1_cfg->obu_array, i);
 						if (a_cfg->obu_type == a_hdr->obu_type) {
 							if (a_cfg->obu_length != a_hdr->obu_length || memcmp(a_cfg->obu, a_hdr->obu, (size_t)a_hdr->obu_length)) {
-								gf_import_message(import, GF_NOT_SUPPORTED, "Cannot find file %s", import->in_name);
+								gf_import_message(import, GF_NOT_SUPPORTED, "Changing AV1 header OBUs detected for file %s", import->in_name);
 								goto exit;
 							}
 						}
