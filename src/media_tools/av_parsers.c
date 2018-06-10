@@ -1891,7 +1891,7 @@ u64 leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	return value;
 }
 
-static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List *obu_list) {
+static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list) {
 	gf_bs_seek(bs, pos);
 	GF_AV1_OBUArrayEntry *a;
 	GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
@@ -1899,17 +1899,17 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 	gf_bs_read_data(bs, a->obu, (u32)obu_length);
 	a->obu_length = obu_length;
 	a->obu_type = obu_type;
-	if (!obu_list) obu_list = gf_list_new();
-	gf_list_add(obu_list, a);
+	if (!*obu_list) *obu_list = gf_list_new();
+	gf_list_add(*obu_list, a);
 }
 
 static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
 	if (av1_is_obu_header(obu_type)) {
-		av1_add_obu_internal(bs, pos, obu_length, obu_type, state->frame_state.header_obus);
+		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus);
 	}
 	if (av1_is_obu_frame(obu_type)) {
-		av1_add_obu_internal(bs, pos, obu_length, obu_type, state->frame_state.frame_obus);
+		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.frame_obus);
 	}
 }
 
