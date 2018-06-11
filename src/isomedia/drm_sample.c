@@ -1252,7 +1252,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	GF_CENCSampleAuxInfo *a_sai;
 	u8 IV_size, constant_IV_size;
 	bin128 constant_IV;
-	u32 is_Protected, scheme_type;
+	u32 is_Protected, scheme_type=-1;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -1292,7 +1292,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 	if (!senc)
 		return GF_OK;
-		
+
 	//senc is not loaded by default, do it now
 	if (!gf_list_count(senc->samp_aux_info)) {
 		GF_Err e = senc_Parse(the_file->movieFileMap->bs, trak, NULL, senc);
