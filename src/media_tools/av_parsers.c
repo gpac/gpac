@@ -1625,6 +1625,7 @@ static void av1_choose_operating_point(GF_BitStream *bs)
 static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
 	u8 frame_width_bits_minus_1, frame_height_bits_minus_1;
+	Bool timing_info_present_flag, decoder_model_info_present_flag;
 	state->frame_state.seen_seq_header = GF_TRUE;
 	state->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
@@ -1635,8 +1636,9 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		const u8 operating_points_cnt_minus_1 = gf_bs_read_int(bs, 5);
 		size_t i;
 		for (i = 0; i <= operating_points_cnt_minus_1; i++) {
+			u8 seq_level_idx;
 			/*operating_point_idc[i] = */gf_bs_read_int(bs, 12);
-			u8 seq_level_idx/*[i]*/ = gf_bs_read_int(bs, 5);
+			seq_level_idx/*[i]*/ = gf_bs_read_int(bs, 5);
 			if (i == 0) state->seq_level_idx = seq_level_idx;
 		}
 	}
@@ -1671,11 +1673,13 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		seq_force_integer_mv = SELECT_INTEGER_MV;
 		OrderHintBits = 0;*/
 	} else {
+		Bool enable_order_hint, seq_choose_screen_content_tools;
+		u8 seq_force_screen_content_tools, seq_force_integer_mv;
 		/*enable_interintra_compound =*/ gf_bs_read_int(bs, 1);
 		/*enable_masked_compound =*/ gf_bs_read_int(bs, 1);
 		/*enable_warped_motion =*/ gf_bs_read_int(bs, 1);
 		/*enable_dual_filter =*/ gf_bs_read_int(bs, 1);
-		const Bool enable_order_hint = gf_bs_read_int(bs, 1);
+		enable_order_hint = gf_bs_read_int(bs, 1);
 		if (enable_order_hint) {
 			/*enable_jnt_comp =*/ gf_bs_read_int(bs, 1);
 			/*enable_ref_frame_mvs =*/ gf_bs_read_int(bs, 1);
@@ -1683,15 +1687,15 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 			/*enable_jnt_comp =  0*/;
 			/*enable_ref_frame_mvs = 0*/;
 		}
-		const Bool seq_choose_screen_content_tools = gf_bs_read_int(bs, 1);
-		u8 seq_force_screen_content_tools = 0;
+		seq_choose_screen_content_tools = gf_bs_read_int(bs, 1);
+		seq_force_screen_content_tools = 0;
 		if (seq_choose_screen_content_tools) {
 			seq_force_screen_content_tools = 2/*SELECT_SCREEN_CONTENT_TOOLS*/;
 		} else {
 			seq_force_screen_content_tools = gf_bs_read_int(bs, 1);
 		}
 
-		u8 seq_force_integer_mv = 0;
+		seq_force_integer_mv = 0;
 		if (seq_force_screen_content_tools > 0) {
 			const Bool seq_choose_integer_mv = gf_bs_read_int(bs, 1);
 			if (seq_choose_integer_mv) {
@@ -1715,7 +1719,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	
 	color_config(bs, state);
 
-	Bool timing_info_present_flag = GF_FALSE;
+	timing_info_present_flag = GF_FALSE;
 	if (state->reduced_still_picture_header) {
 		timing_info_present_flag = 0;
 	} else {
@@ -1725,7 +1729,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		assert(0); /*timing_info();*/
 	}
 	
-	Bool decoder_model_info_present_flag = GF_FALSE;
+	decoder_model_info_present_flag = GF_FALSE;
 	if (timing_info_present_flag) {
 		decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
 		if (decoder_model_info_present_flag) {
@@ -1739,8 +1743,9 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		u8 operating_points_decoder_model_count_minus_1 = gf_bs_read_int(bs, 5);
 		size_t opNum;
 		for (opNum = 0; opNum <= operating_points_decoder_model_count_minus_1; opNum++) {
+			Bool display_model_param_present_flag;
 			/*decoder_model_operating_point_idc[opNum] = */gf_bs_read_int(bs, 12);
-			Bool display_model_param_present_flag = gf_bs_read_int(bs, 1);
+			display_model_param_present_flag = gf_bs_read_int(bs, 1);
 			if (display_model_param_present_flag) {
 				/*initial_display_delay_minus_1 =*/ gf_bs_read_int(bs, 4);
 			}
@@ -1834,6 +1839,7 @@ static GF_Err av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *ob
 	return GF_OK;
 }
 
+GF_EXPORT
 const char *av1_get_obu_name(ObuType obu_type)
 {
 	switch (obu_type) {
@@ -1892,9 +1898,9 @@ u64 leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 }
 
 static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list) {
-	gf_bs_seek(bs, pos);
 	GF_AV1_OBUArrayEntry *a;
 	GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
+	gf_bs_seek(bs, pos);
 	a->obu = gf_malloc((size_t)obu_length);
 	gf_bs_read_data(bs, a->obu, (u32)obu_length);
 	a->obu_length = obu_length;
@@ -1933,8 +1939,8 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e = GF_OK;
-	assert(bs && state);
 	u64 sz = leb128(bs, NULL);
+	assert(bs && state);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
@@ -1948,13 +1954,13 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 
 		while (frame_unit_size > 0) {
 			ObuType obu_type;
-			u64 obu_length = leb128(bs, &Leb128Bytes);
+			u64 pos, obu_length = leb128(bs, &Leb128Bytes);
 			if (frame_unit_size < Leb128Bytes + obu_length) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < Leb128Bytes("LLU") + obu_length("LLU")\n", frame_unit_size, Leb128Bytes, obu_length));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B        OBU detected (size "LLU")\n", obu_length));
-			u64 pos = gf_bs_get_position(bs);
+			pos = gf_bs_get_position(bs);
 			frame_unit_size -= Leb128Bytes;
 
 			e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_length, state);
