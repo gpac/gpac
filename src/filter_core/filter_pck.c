@@ -1070,6 +1070,20 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 	return pck->pck->info.seek_flag;
 }
 
+GF_Err gf_filter_pck_set_dependency_flag(GF_FilterPacket *pck, u8 dep_flags)
+{
+	PCK_SETTER_CHECK("dependency_flags")
+	pck->info.dependency_flags = dep_flags;
+	return GF_OK;
+}
+u8 gf_filter_pck_get_dependency_flags(GF_FilterPacket *pck)
+{
+	assert(pck);
+	//get true packet pointer
+	return pck->pck->info.dependency_flags;
+}
+
+
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number)
 {
 	PCK_SETTER_CHECK("carousel_version")

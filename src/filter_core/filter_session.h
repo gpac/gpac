@@ -177,6 +177,7 @@ typedef struct __gf_filter_pck_info
 	u8 seek_flag;
 	u8 duration_set;
 	u8 carousel_version_number;
+	u8 dependency_flags;
 	s16 roll;
 	u64 byte_offset;
 

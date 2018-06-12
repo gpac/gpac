@@ -250,6 +250,7 @@ enum
 {
 	GF_ISOM_BOX_UUID_PSEC	= GF_4CC( 'P', 'S', 'E', 'C' ),
 	GF_ISOM_BOX_TYPE_SENC	= GF_4CC( 's', 'e', 'n', 'c'),
+	GF_ISOM_BOX_TYPE_PSSH	= GF_4CC( 'p', 's', 's', 'h'),
 
 	/* Encryption Scheme Type in the SchemeTypeInfoBox */
 	GF_ISOM_ISMACRYP_SCHEME	= GF_4CC( 'i', 'A', 'E', 'C' ),
@@ -1314,6 +1315,7 @@ if the function is never called the padding bit info is ignored
 this MUST be called on an existin sample*/
 GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u8 NbBits);
 
+GF_Err gf_isom_set_sample_flags(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 /*since v2 you must specify w/h of video tracks for authoring tools (no decode the video cfg / first sample)*/
 GF_Err gf_isom_set_visual_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 Width, u32 Height);
@@ -1663,11 +1665,13 @@ u32 gf_isom_get_fragments_count(GF_ISOFile *movie, Bool segments_only);
 /*gets total sample number and duration*/
 GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *nb_samples, u64 *duration);
 
-GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum);
+GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_size, char *sai_b, u32 sai_b_size, Bool use_subsample);
+
 GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof);
 
 GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number, s16 roll_distance);
 GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 num_leading_samples);
+GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
@@ -2356,6 +2360,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
                                   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers, u32 textual_headers_len,
                                   Bool selective_encryption, u32 KI_length, u32 IV_length);
 
+GF_Err gf_isom_set_generic_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, char *scheme_uri, char *kms_URI);
 
 GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID);
 
@@ -2394,16 +2399,16 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
 GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type);
 
 /*container_type is type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC
-alloc/realloc output buffer, containing 16-bytes unused at the begining, then IV on IV_size bytes, then subsample count if any an [clear_bytes(u16), crypt_bytes(u32)] subsamples*/
+alloc/realloc output buffer, containing IV on IV_size bytes, then subsample count if any an [clear_bytes(u16), crypt_bytes(u32)] subsamples*/
 GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *container_type, char **out_buffer, u32 *outSize);
 
-void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block);
+void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block);
 
 Bool gf_isom_cenc_is_pattern_mode(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 u32 gf_isom_get_pssh_count(GF_ISOFile *file);
 /*index is 1-based, all pointers shall not be free*/
-GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size);
+GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, u32 *version, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size);
 
 GF_Err gf_isom_get_pssh(GF_ISOFile *file, u32 pssh_index, u8 **pssh_data, u32 *pssh_size);
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1313,7 +1313,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 {
 	GF_Err e;
 	u32 i, j, count;
+	u32 senc_size = senc->size;
+	u32 subs_size = 0, def_IV_size;
 	u64 pos = gf_bs_get_position(bs);
+	Bool do_warn = GF_TRUE;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (!traf)
@@ -1322,7 +1325,29 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 
 	gf_bs_seek(bs, senc->bs_offset);
 
+	if (senc_size<16) return GF_BAD_PARAM;
+	senc_size -= 16;
+	if (senc->is_piff) {
+		//UUID
+		if (senc_size<16) return GF_BAD_PARAM;
+		senc_size -= 16;
+	}
+	if (senc->flags & 2) subs_size = 8;
+
 	count = gf_bs_read_u32(bs);
+
+	def_IV_size = 0;
+	//check the target size if we have one subsample
+	if (senc_size >= count * (16 + subs_size)) {
+		def_IV_size = 16;
+	}
+	else if (senc_size >= count * (8 + subs_size)) {
+		def_IV_size = 8;
+	}
+	else if (senc_size >= count * (subs_size)) {
+		def_IV_size = 0;
+	}
+
 	if (!senc->samp_aux_info) senc->samp_aux_info = gf_list_new();
 	for (i=0; i<count; i++) {
 		u32 is_encrypted;
@@ -1344,9 +1369,12 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		}
 		//no init movie setup (segment dump/inspaction, assume default encrypted and 16 bytes IV
 		else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] no moov found, cannot get cenc default info, assuming isEncrypted, IV size 16\n" ));
-			is_encrypted = GF_TRUE;
-			sai->IV_size = 16;
+			if (do_warn) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] no moov found, cannot get cenc default info, assuming isEncrypted, IV size %d (computed from senc size)\n", def_IV_size));
+				is_encrypted = GF_TRUE;
+				sai->IV_size = def_IV_size;
+			}
+			do_warn = GF_FALSE;
 		}
 		//while this would technically be correct, senc mandates that sample_count = all samples in traf/track
 		//regardless of their encryption state

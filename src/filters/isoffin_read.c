@@ -399,6 +399,14 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	u32 track = ch->track;
 	u32 scheme_type, scheme_version, PSSH_count=0;
 	const char *kms_uri, *scheme_uri;
+	Bool selectiveEncryption=0;
+	u32 IVLength=0;
+	u32 KeyIndicationLength=0;
+	const char *txtHdr=NULL;
+	const char *contentID=NULL;
+	u32 txtHdrLen=0;
+	u64 plainTextLen=0;
+	u32 crypt_type=0;
 
 	if (!ch->is_encrypted) return;
 
@@ -406,11 +414,10 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	kms_uri = scheme_uri = NULL;
 
 	if (gf_isom_is_ismacryp_media(mov, track, 1)) {
-		gf_isom_get_ismacryp_info(mov, track, 1, NULL, &scheme_type, &scheme_version, &scheme_uri, &kms_uri, NULL, NULL, NULL);
+		gf_isom_get_ismacryp_info(mov, track, 1, NULL, &scheme_type, &scheme_version, &scheme_uri, &kms_uri, &selectiveEncryption, &IVLength, &KeyIndicationLength);
 	} else if (gf_isom_is_omadrm_media(mov, track, 1)) {
-		u32 crypt_type;
 		//u8 hash[20];
-		gf_isom_get_omadrm_info(mov, track, 1, NULL, &scheme_type, &scheme_version, NULL, &kms_uri, NULL, NULL, NULL, &crypt_type, NULL, NULL, NULL);
+		gf_isom_get_omadrm_info(mov, track, 1, NULL, &scheme_type, &scheme_version, &contentID, &kms_uri, &txtHdr, &txtHdrLen, &plainTextLen, &crypt_type, &selectiveEncryption, &IVLength, &KeyIndicationLength);
 
 		//gf_media_get_file_hash(gf_isom_get_filename(mov), hash);
 	} else if (gf_isom_is_cenc_media(mov, track, 1)) {
@@ -428,19 +435,28 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
 	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING((char*) kms_uri) );
 
+	if (selectiveEncryption) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISMA_SELECTIVE_ENC, &PROP_BOOL(GF_TRUE) );
+	if (IVLength) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISMA_IV_LENGTH, &PROP_UINT(IVLength) );
+	if (KeyIndicationLength) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISMA_KI_LENGTH, &PROP_UINT(KeyIndicationLength) );
+	if (crypt_type) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_OMA_CRYPT_TYPE, &PROP_UINT(crypt_type) );
+	if (contentID) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_OMA_CID, &PROP_STRING(contentID) );
+	if (txtHdr) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_OMA_TXT_HDR, &PROP_STRING(txtHdr) );
+	if (plainTextLen) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_OMA_CLEAR_LEN, &PROP_LONGUINT(plainTextLen) );
+
 	if (ch->is_cenc) {
 		char *psshd;
 		GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		u32 i, s;
+		u32 i, s, container_type;
 
 		gf_bs_write_u32(pssh_bs, PSSH_count);
 
 		/*fill PSSH in the structure. We will free it in CENC_Setup*/
 		for (i=0; i<PSSH_count; i++) {
 			GF_CENCPSSHSysInfo info;
-			gf_isom_get_pssh_info(ch->owner->mov, i+1, info.SystemID, &info.KID_count, (const bin128 **) & info.KIDs, (const u8 **) &info.private_data, &info.private_data_size);
+			gf_isom_get_pssh_info(ch->owner->mov, i+1, info.SystemID, &info.version, &info.KID_count, (const bin128 **) & info.KIDs, (const u8 **) &info.private_data, &info.private_data_size);
 
 			gf_bs_write_data(pssh_bs, info.SystemID, 16);
+			gf_bs_write_u32(pssh_bs, info.version);
 			gf_bs_write_u32(pssh_bs, info.KID_count);
 			for (s=0; s<info.KID_count; s++) {
 				gf_bs_write_data(pssh_bs, info.KIDs[s], 16);
@@ -451,6 +467,24 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		gf_bs_get_content(pssh_bs, &psshd, &s);
 		gf_bs_del(pssh_bs);
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PSSH, & PROP_DATA_NO_COPY(psshd, s) );
+
+		gf_isom_cenc_get_default_info(ch->owner->mov, ch->track, 1, &container_type, &ch->pck_encrypted, &ch->IV_size, &ch->KID, &ch->constant_IV_size, &ch->constant_IV, &ch->crypt_byte_block, &ch->skip_byte_block);
+
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STORE, &PROP_UINT(container_type) );
+
+		gf_filter_pid_set_info(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
+
+		if (ch->skip_byte_block || ch->crypt_byte_block) {
+			gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
+		}
+
+		if (ch->IV_size) {
+			gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
+		}
+		if (ch->constant_IV_size) {
+			gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
+		}
+		gf_filter_pid_set_info(ch->pid, GF_PROP_PID_KID, &PROP_DATA(ch->KID, sizeof(bin128) ) );
 	}
 }
 
@@ -811,14 +845,15 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 			if (ch->sample) {
 				u32 sample_dur;
+				u8 dep_flags;
 				GF_FilterPacket *pck;
 				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
 				assert(pck);
 				
 				memcpy(data, ch->sample->data, ch->sample->dataLength);
 
-				gf_filter_pck_set_dts(pck, ch->current_slh.decodingTimeStamp);
-				gf_filter_pck_set_cts(pck, ch->current_slh.compositionTimeStamp);
+				gf_filter_pck_set_dts(pck, ch->dts);
+				gf_filter_pck_set_cts(pck, ch->cts);
 				if (ch->sample->IsRAP==-1)
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_REDUNDANT);
 				else
@@ -833,20 +868,33 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
 				gf_filter_pck_set_duration(pck, sample_dur);
-				gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);
+				gf_filter_pck_set_seek_flag(pck, ch->seek_flag);
 
-				if (ch->current_slh.cenc_encrypted) {
-					gf_filter_pck_set_property(pck, GF_PROP_PCK_ENCRYPTED, &PROP_BOOL(ch->current_slh.cenc_encrypted) );
-					gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_PATTERN, &PROP_FRAC_INT(ch->current_slh.skip_byte_block, ch->current_slh.crypt_byte_block) );
+				dep_flags = ch->isLeading;
+				dep_flags <<= 2;
+				dep_flags |= ch->dependsOn;
+				dep_flags <<= 2;
+				dep_flags |= ch->dependedOn;
+				dep_flags <<= 2;
+				dep_flags |= ch->redundant;
+				if (dep_flags)
+					gf_filter_pck_set_dependency_flag(pck, dep_flags);
 
-					if (ch->current_slh.cenc_encrypted && !ch->current_slh.IV_size) {
-						gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_IV_CONST, &PROP_DATA(ch->current_slh.constant_IV, ch->current_slh.constant_IV_size) );
+				if (ch->cenc_state_changed) {
+
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
+
+					gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
+
+					if (!ch->IV_size) {
+						gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
 					} else {
-						gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_IV_SIZE, &PROP_UINT(ch->current_slh.IV_size) );
+						gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
 					}
+				}
+				if (ch->sai_buffer) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );
 				}
-				
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
 			} else if (ch->last_state==GF_EOS) {

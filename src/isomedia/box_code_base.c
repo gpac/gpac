@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3620,6 +3620,7 @@ void moof_del(GF_Box *s)
 
 	if (ptr->mfhd) gf_isom_box_del((GF_Box *) ptr->mfhd);
 	gf_isom_box_array_del(ptr->TrackList);
+	if (ptr->PSSHs) gf_isom_box_array_del(ptr->PSSHs);
 	if (ptr->mdat) gf_free(ptr->mdat);
 	gf_free(ptr);
 }
@@ -3636,6 +3637,8 @@ GF_Err moof_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAF:
 		return gf_list_add(ptr->TrackList, a);
 	case GF_ISOM_BOX_TYPE_PSSH:
+		if (!ptr->PSSHs) ptr->PSSHs = gf_list_new();
+		return gf_list_add(ptr->PSSHs, a);
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -3669,8 +3672,12 @@ GF_Err moof_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->mfhd, bs);
 		if (e) return e;
 	}
-//then the track list
-return gf_isom_box_array_write(s, ptr->TrackList, bs);
+	if (ptr->PSSHs) {
+		e = gf_isom_box_array_write(s, ptr->PSSHs, bs);
+		if (e) return e;
+	}
+	//then the track list
+	return gf_isom_box_array_write(s, ptr->TrackList, bs);
 }
 
 GF_Err moof_Size(GF_Box *s)
@@ -3682,6 +3689,10 @@ GF_Err moof_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->mfhd);
 		if (e) return e;
 		ptr->size += ptr->mfhd->size;
+	}
+	if (ptr->PSSHs) {
+		e = gf_isom_box_array_size(s, ptr->PSSHs);
+		if (e) return e;
 	}
 	return gf_isom_box_array_size(s, ptr->TrackList);
 }

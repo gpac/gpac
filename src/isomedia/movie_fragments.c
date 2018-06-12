@@ -177,6 +177,8 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 	if (media_segment_type) {
 		movie->use_segments = GF_TRUE;
 		movie->moof_list = gf_list_new();
+	} else if (movie->on_block_out) {
+		movie->moof_list = gf_list_new();
 	}
 
 	/*set brands for segment*/
@@ -1027,7 +1029,7 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 {
 	GF_Err e = GF_OK;
 	/*write STYP if we write to a different file or if we write the last segment*/
-	if (!movie->append_segment && !movie->segment_start && !movie->styp_written) {
+	if (movie->use_segments && !movie->append_segment && !movie->segment_start && !movie->styp_written) {
 
 		/*modify brands STYP*/
 
@@ -1808,7 +1810,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 	movie->moof->mfhd = (GF_MovieFragmentHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MFHD);
 	movie->moof->mfhd->sequence_number = movie->NextMoofNumber;
 	movie->NextMoofNumber ++;
-	if (movie->use_segments)
+	if (movie->use_segments || movie->on_block_out)
 		gf_list_add(movie->moof_list, movie->moof);
 
 
@@ -2020,75 +2022,83 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 TrackID, u32 SampleNum)
+GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_size, char *sai_b, u32 sai_b_size, Bool use_subsamples)
 {
-	u32 trackNum;
-	GF_Err e = GF_OK;
+	GF_CENCSampleAuxInfo *sai;
+	GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
+	u32 i;
+	GF_SampleEncryptionBox *senc;
+	GF_BitStream *bs;
 
-	trackNum = gf_isom_get_track_by_id(input, TrackID);
-	if (gf_isom_is_cenc_media(input, trackNum, 1)) {
-		GF_CENCSampleAuxInfo *sai;
-		GF_TrackFragmentBox  *traf = GetTraf(output, TrackID);
-		GF_TrackBox  *src_trak = gf_isom_get_track_from_file(input, TrackID);
-		u32 boxType;
-		GF_SampleEncryptionBox *senc;
-		u8 IV_size;
-		u32 IsEncrypted;
+	if (!traf)  return GF_BAD_PARAM;
+	if (!sai_b) return GF_BAD_PARAM;
 
-		if (!traf)  return GF_BAD_PARAM;
-
-		sai = NULL;
-		gf_isom_get_sample_cenc_info(input, trackNum, SampleNum, &IsEncrypted, &IV_size, NULL, NULL, NULL, NULL, NULL);
-		e = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, &sai, &boxType);
-		if (e) return e;
-		//no associated SAI (constant IV and no subsample)
-		if (!sai) return GF_OK;
-		
-		sai->IV_size = IV_size;
-
-		switch (boxType) {
-		case GF_ISOM_BOX_UUID_PSEC:
-			//have we seen cases where the psec box is in trak but not in traf ? to check
-			if (!traf->sample_encryption) {
-				GF_SampleEncryptionBox *psec = (GF_SampleEncryptionBox *) src_trak->sample_encryption;
-				if (!psec) return GF_ISOM_INVALID_FILE;
-				traf->sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
-				if (!traf->sample_encryption)
-					return GF_OUT_OF_MEM;
-				traf->sample_encryption->traf = traf;
-			}
-
-			senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
-			break;
-		case GF_ISOM_BOX_TYPE_SENC:
-			if (!traf->sample_encryption) {
-				traf->sample_encryption = gf_isom_create_samp_enc_box(0, 0);
-				traf->sample_encryption->traf = traf;
-			}
-
-			if (!traf->sample_encryption) {
-				return GF_IO_ERR;
-			}
-			senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
-			break;
-		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isofile] Unsupported encryption storage box %s\n", gf_4cc_to_str(boxType) ));
-			return GF_NOT_SUPPORTED;
+	if (!traf->sample_encryption) {
+		if (!traf->trex->track->sample_encryption) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isofile] trying to add CENC SAI without storage box allocated\n" ));
+			return GF_BAD_PARAM;
 		}
-
-		gf_list_add(senc->samp_aux_info, sai);
-		if (sai->subsample_count) senc->flags = 0x00000002;
-
-		//no subsample (not NAL-based data), saiz is IV size only
-		if (! sai->subsample_count) {
-			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
+		if (traf->trex->track->sample_encryption->type == GF_ISOM_BOX_TYPE_SENC) {
+			traf->sample_encryption = gf_isom_create_samp_enc_box(0, 0);
+		} else {
+			GF_SampleEncryptionBox *psec = (GF_SampleEncryptionBox *) traf->trex->track->sample_encryption;
+			if (!psec) return GF_ISOM_INVALID_FILE;
+			traf->sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
 		}
-		// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample
-		else {
-			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count);
+		if (!traf->sample_encryption) return GF_OUT_OF_MEM;
+		traf->sample_encryption->traf = traf;
+	}
+	senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
+
+
+	GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+	if (!sai) return GF_OUT_OF_MEM;
+	sai->IV_size = IV_size;
+	if (sai_b && sai_b_size) {
+		bs = gf_bs_new(sai_b, sai_b_size, GF_BITSTREAM_READ);
+		gf_bs_read_data(bs, sai->IV, IV_size);
+		sai->subsample_count = gf_bs_read_u16(bs);
+		sai->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
+		for (i=0; i<sai->subsample_count; i++) {
+			sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
+			sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
 		}
+		gf_bs_del(bs);
+	} else if (sai_b_size) {
+		u32 olen = sai_b_size;
+		if (use_subsamples) {
+			sai->subsample_count = 1;
+			if (sai->subsample_count) senc->flags = 0x00000002;
+			while (olen>0xFFFF) {
+				olen -= 0xFFFF;
+				sai->subsample_count ++;
+			}
+			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			olen = sai_b_size;
+			for (i = 0; i < sai->subsample_count; i++) {
+				if (olen<0xFFFF) {
+					sai->subsamples[i].bytes_clear_data = olen;
+				} else {
+					sai->subsamples[i].bytes_clear_data = 0xFFFF;
+					olen -= 0xFFFF;
+				}
+				sai->subsamples[i].bytes_encrypted_data = 0;
+			}
+		}
+		sai_b_size = IV_size + 2 + 6*sai->subsample_count;
 	}
 
+	gf_list_add(senc->samp_aux_info, sai);
+	if (sai->subsample_count) senc->flags = 0x00000002;
+
+	//no subsample (not NAL-based data), saiz is IV size only
+	if (! sai->subsample_count) {
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
+	}
+	// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample
+	else {
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count);
+	}
 	return GF_OK;
 }
 
@@ -2275,6 +2285,31 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 	return GF_OK;
 }
 
+GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant)
+{
+	u32 count;
+	GF_TrackFragmentBox *traf;
+	GF_TrunEntry *ent;
+	GF_TrackFragmentRunBox *trun;
+	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+
+	traf = GetTraf(movie, trackID);
+	if (!movie || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
+
+	count = gf_list_count(traf->TrackRuns);
+	if (!count) return GF_BAD_PARAM;
+	trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
+	count = gf_list_count(trun->entries);
+	if (!count) return GF_BAD_PARAM;
+
+	ent = (GF_TrunEntry *)gf_list_get(trun->entries, count-1);
+
+	GF_ISOM_RESET_FRAG_DEPEND_FLAGS(ent->flags);
+	ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(is_leading, dependsOn, dependedOn, redundant);
+
+	return GF_OK;
+}
+
 
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -2390,6 +2425,10 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u
 }
 
 GF_Err gf_isom_enable_mfra(GF_ISOFile *file)
+{
+	return GF_NOT_SUPPORTED;
+}
+GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant)
 {
 	return GF_NOT_SUPPORTED;
 }

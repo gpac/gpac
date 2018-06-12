@@ -109,7 +109,7 @@ typedef struct
 	/*current sample*/
 	GF_ISOSample *static_sample;
 	GF_ISOSample *sample;
-	GF_SLHeader current_slh;
+
 	GF_Err last_state;
 	Bool sap_3, sap_4;
 	s32 roll;
@@ -133,10 +133,31 @@ typedef struct
 	Bool disable_seek;
 	u32 nalu_extract_mode;
 
+	//channel sample state
 	u32 last_sample_desc_index;
+	u32 isLeading, dependsOn, dependedOn, redundant;
+	u64 dts, cts;
+	u8 skip_byte_block, crypt_byte_block;
+	Bool is_protected;
+	u8 constant_IV_size;
+	bin128 constant_IV;
+	u8 IV_size;
+	u32 au_seq_num;
+	u64 sender_ntp;
+	u32 seek_flag;
+	u32 au_duration;
+	Bool set_disc;
+	Bool isma_encrypted;
+	Bool cenc_state_changed;
+	u64 isma_BSO;
+	bin128 KID;
+	Bool pck_encrypted;
 
 	char *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
+
+
+
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);

@@ -4053,7 +4053,7 @@ GF_Err gf_isom_get_pssh(GF_ISOFile *file, u32 pssh_index, u8 **pssh_data, u32 *p
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size)
+GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, u32 *version, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size)
 {
 	u32 count=1;
 	u32 i=0;
@@ -4066,6 +4066,7 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 	if (!pssh) return GF_BAD_PARAM;
 
 	if (SystemID) memcpy(SystemID, pssh->SystemID, 16);
+	if (version) *version = pssh->version;
 	if (KID_count) *KID_count = pssh->KID_count;
 	if (KIDs) *KIDs = (const bin128 *) pssh->KIDs;
 	if (private_data_size) *private_data_size = pssh->private_data_size;
@@ -4109,7 +4110,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 		//this is dump mode of fragments, we haven't merged tables yet :(
 		descIndex = 1;
 	}
-	gf_isom_cenc_get_default_info_ex(trak, descIndex, IsEncrypted, IV_size, KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
+	gf_isom_cenc_get_default_info_ex(trak, descIndex, NULL, IsEncrypted, IV_size, KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
 
 	sample_group = NULL;
 	group_desc_index = 0;

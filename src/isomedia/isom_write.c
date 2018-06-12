@@ -517,10 +517,11 @@ GF_Err gf_isom_load_extra_boxes(GF_ISOFile *movie, char *moov_boxes, u32 moov_bo
 		GF_Box *a_box;
 		e = gf_isom_box_parse_ex((GF_Box**)&a_box, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
 		if (e || !a_box) goto exit;
+
 		if (a_box->type == GF_ISOM_BOX_TYPE_UDTA) {
 			if (movie->moov->udta) gf_isom_box_del((GF_Box*)movie->moov->udta);
 			movie->moov->udta = (GF_UserDataBox*) a_box;
-		} else if (!udta_only) {
+		} else if (!udta_only && (a_box->type!=GF_ISOM_BOX_TYPE_PSSH) ) {
 			if (!movie->moov->other_boxes) movie->moov->other_boxes = gf_list_new();
 			gf_list_add(movie->moov->other_boxes, a_box);
 		} else {
@@ -607,6 +608,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 			if (!trak->Header || !trak->Media || !trak->Media->handler || !trak->Media->mediaHeader || !trak->Media->information) tpl_ok = GF_FALSE;
 
 			else {
+				if (!MediaType) MediaType = trak->Media->handler->handlerType;
 				e = NewMedia(&trak->Media, MediaType, TimeScale);
 				if (e) tpl_ok = GF_FALSE;
 			}
@@ -2907,10 +2909,12 @@ GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, char **output, u32 *output_si
 	if (!file || !file->moov || (!file->moov->udta && !file->moov->other_boxes)) return GF_OK;
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	e = gf_isom_box_size( (GF_Box *) file->moov->udta);
-	if (e) goto exit;
-	e = gf_isom_box_write((GF_Box *) file->moov->udta, bs);
-	if (e) goto exit;
+	if (file->moov->udta) {
+		e = gf_isom_box_size( (GF_Box *) file->moov->udta);
+		if (e) goto exit;
+		e = gf_isom_box_write((GF_Box *) file->moov->udta, bs);
+		if (e) goto exit;
+	}
 	i=0;
 	while ((b = gf_list_enum(file->moov->other_boxes, &i))) {
 		e = gf_isom_box_size( (GF_Box *) b);
@@ -5632,6 +5636,20 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	gf_free(buf2);
 #endif
 	return res;
+}
+
+
+GF_Err gf_isom_set_sample_flags(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+	return stbl_SetDependencyType(trak->Media->information->sampleTable, sampleNumber, isLeading, dependsOn, dependedOn, redundant);
 }
 
 GF_EXPORT

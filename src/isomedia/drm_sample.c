@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato / Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -529,6 +529,27 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	}
 	return GF_OK;
 }
+
+GF_Err gf_isom_set_generic_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, char *scheme_uri, char *kms_URI)
+{
+	GF_Err e;
+	GF_ProtectionSchemeInfoBox *sinf;
+
+	//setup generic protection
+	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_TRUE, &sinf);
+	if (e) return e;
+
+	if (scheme_uri) {
+		sinf->scheme_type->flags |= 0x000001;
+		sinf->scheme_type->URI = gf_strdup(scheme_uri);
+	}
+
+	if (kms_URI) {
+		sinf->info->ikms = (GF_ISMAKMSBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IKMS);
+		sinf->info->ikms->URI = gf_strdup(kms_URI);
+	}
+	return GF_OK;
+}
 #endif // GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
@@ -723,28 +744,66 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
-GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, char *data, u32 len) {
-	GF_ProtectionSystemHeaderBox *pssh;
-
-	pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PSSH);
-	if (!pssh)
-		return GF_IO_ERR;
-	memmove((char *)pssh->SystemID, systemID, 16);
-	pssh->version = version;
-	if (version) {
-		pssh->KID_count = KID_count;
-		if (KID_count) {
-			if (!pssh->KIDs) pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
-			memmove(pssh->KIDs, KIDs, pssh->KID_count*sizeof(bin128));
-		}
+GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, char *data, u32 len)
+{
+	GF_ProtectionSystemHeaderBox *pssh = NULL;
+	u32 i=0;
+	GF_Box *a;
+	GF_List *other_boxes = NULL;
+	if (file->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
+		if (!file->moof) return GF_BAD_PARAM;
+		if (!file->moof->PSSHs) file->moof->PSSHs = gf_list_new();
+		other_boxes = file->moof->PSSHs;
+	} else {
+		if (!file->moov->other_boxes) file->moov->other_boxes = gf_list_new();
+		other_boxes = file->moov->other_boxes;
 	}
-	pssh->private_data_size = len;
-	if (!pssh->private_data)
-		pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
-	memmove((char *)pssh->private_data, data, pssh->private_data_size);
 
-	if (!mp4->moov->other_boxes) mp4->moov->other_boxes = gf_list_new();
-	gf_list_add(mp4->moov->other_boxes, pssh);
+	while ((a = gf_list_enum(other_boxes, &i))) {
+		if (a->type!=GF_ISOM_BOX_TYPE_PSSH) continue;
+		pssh = (GF_ProtectionSystemHeaderBox *)a;
+		if (!memcmp(pssh->SystemID, systemID, sizeof(bin128))) break;
+		pssh = NULL;
+	}
+	//we had a pssh with same ID but different private data, keep both...
+	if (pssh && pssh->private_data && len && memcmp(pssh->private_data, data, sizeof(char)*len) ) {
+		pssh = NULL;
+	}
+
+	if (!pssh) {
+		pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PSSH);
+		if (!pssh) return GF_IO_ERR;
+
+		memcpy((char *)pssh->SystemID, systemID, sizeof(bin128));
+		pssh->version = version;
+
+		gf_list_add(other_boxes, pssh);
+	}
+
+	if (KID_count) {
+		u32 j;
+		for (j=0; j<KID_count; j++) {
+			Bool found = GF_FALSE;
+			for (i=0; i<pssh->KID_count; i++) {
+				if (!memcmp(pssh->KIDs[i], KIDs[j], sizeof(bin128))) found = GF_TRUE;
+			}
+
+			if (!found) {
+				pssh->KIDs = gf_realloc(pssh->KIDs, sizeof(bin128) * (pssh->KID_count+1));
+				memcpy(pssh->KIDs[pssh->KID_count], KIDs[j], sizeof(bin128));
+				pssh->KID_count++;
+			}
+		}
+		if (!pssh->version)
+			pssh->version = 1;
+	}
+
+	if (!pssh->private_data_size) {
+		pssh->private_data_size = len;
+		if (!pssh->private_data && len)
+			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+		memcpy((char *)pssh->private_data, data, pssh->private_data_size);
+	}
 
 	return GF_OK;
 }
@@ -1232,11 +1291,11 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 			}
 		}
 	} else {
-		if ((*out_size) < size + 16) {
-			(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size+16) );
+		if ((*out_size) < size) {
+			(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
 		}
-		(*out_size) = size+16;
-		gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer)+16, size);
+		(*out_size) = size;
+		gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer), size);
 	}
 	gf_bs_seek(mdia->information->dataHandler->bs, cur_position);
 
@@ -1347,7 +1406,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	return gf_isom_cenc_get_sample_aux_info_internal(the_file, trackNumber, sampleNumber, sai, container_type, NULL, NULL);
 }
 
-void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block)
+void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block)
 {
 	GF_ProtectionSchemeInfoBox *sinf;
 
@@ -1358,6 +1417,7 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 	if (constant_IV) memset(*constant_IV, 0, 16);
 	if (crypt_byte_block) *crypt_byte_block = 0;
 	if (skip_byte_block) *skip_byte_block = 0;
+	if (container_type) *container_type = 0;
 
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
@@ -1382,14 +1442,19 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 		//leave as 0 to make sure we use the default IV size from PIFF_PSEC if any ...
 		if (default_IV_size) *default_IV_size = 0;
 	}
+
+	if (container_type && trak->sample_encryption) {
+		if (trak->sample_encryption->type == GF_ISOM_BOX_TYPE_SENC) *container_type = GF_ISOM_BOX_TYPE_SENC;
+		else if (trak->sample_encryption->type == GF_ISOM_BOX_TYPE_UUID) *container_type = ((GF_UUIDBox*)trak->sample_encryption)->internal_4cc;
+	}
 }
 
 GF_EXPORT
-void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block)
+void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return;
-	gf_isom_cenc_get_default_info_ex(trak, sampleDescriptionIndex, default_IsEncrypted, default_IV_size, default_KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
+	gf_isom_cenc_get_default_info_ex(trak, sampleDescriptionIndex, container_type, default_IsEncrypted, default_IV_size, default_KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
 }
 
 /*

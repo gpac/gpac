@@ -967,7 +967,7 @@ GF_MPD *gf_mpd_new()
 	return mpd;
 }
 
-static void gf_mpd_del_list(GF_List *list, void (*__destructor)(void *), Bool reset_only)
+void gf_mpd_del_list(GF_List *list, void (*__destructor)(void *), Bool reset_only)
 {
 	if (!list) return;
 	while (gf_list_count(list)) {
@@ -1096,11 +1096,9 @@ GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *schemeIdUri
 	GF_MPD_Descriptor *mpd_desc;
 	GF_SAFEALLOC(mpd_desc, GF_MPD_Descriptor);
 	if (!mpd_desc) return NULL;
-	if(id!=NULL){
-		mpd_desc->id = gf_strdup(id);
-	}
-	mpd_desc->scheme_id_uri = gf_strdup(schemeIdUri);
-	mpd_desc->value = gf_strdup(value);
+	if (id) mpd_desc->id = gf_strdup(id);
+	if (schemeIdUri) mpd_desc->scheme_id_uri = gf_strdup(schemeIdUri);
+	if (value) mpd_desc->value = gf_strdup(value);
 	return mpd_desc;
 }
 
@@ -2425,7 +2423,7 @@ static void gf_mpd_extensible_print_attr(FILE *out, GF_MPD_ExtensibleVirtual *it
 	}
 }
 
-static void gf_mpd_extensible_print_nodes(FILE *out, GF_MPD_ExtensibleVirtual *item)
+static void gf_mpd_extensible_print_nodes(FILE *out, GF_MPD_ExtensibleVirtual *item, char *indent)
 {
 	if (item->children) {
 		u32 j=0;
@@ -2433,7 +2431,7 @@ static void gf_mpd_extensible_print_nodes(FILE *out, GF_MPD_ExtensibleVirtual *i
 		fprintf(out, ">\n");
 		while ((child = (GF_XMLNode *)gf_list_enum(item->children, &j))) {
 			char *txt = gf_xml_dom_serialize(child, 0);
-			fprintf(out, "%s", txt);
+			fprintf(out, "%s %s\n", indent, txt);
 			gf_free(txt);
 		}
 	}
@@ -2452,7 +2450,7 @@ static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_n
 		if (desc->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)desc);
 
 		if (desc->children) {
-			gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)desc);
+			gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)desc, indent);
 			fprintf(out, "%s</%s>\n", indent, desc_name);
 		} else {
 			fprintf(out, "/>\n");
@@ -3128,7 +3126,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	fprintf(out, ">\n");
 
 	if (mpd->children) {
-		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)mpd);
+		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)mpd, "");
 	}
 
 	i=0;
