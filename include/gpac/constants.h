@@ -336,6 +336,9 @@ enum
 	GF_CODECID_S263 = GF_4CC('s','2','6','3'),
 	GF_CODECID_H263 = GF_4CC('h','2','6','3'),
 
+	/*! codecid for HEVC tiles */
+	GF_CODECID_HEVC_TILES = GF_4CC( 'h', 'v', 't', '1' ),
+
 	/*! codecid for EVRC Voice streams*/
 	GF_CODECID_EVRC	= GF_4CC('s','e','v','c'),
 	/*! codecid for SMV Voice streams*/

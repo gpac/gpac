@@ -111,6 +111,9 @@ void isor_declare_objects(ISOMReader *read)
 		u32 dsi_size = 0;
 		Double track_dur=0;
 		GF_FilterPid *pid;
+		u32 srd_id=0, srd_indep=0, srd_x=0, srd_y=0, srd_w=0, srd_h=0;
+		u32 base_ttile_track=0;
+		Bool srd_full_frame=GF_FALSE;
 		u32 mtype, m_subtype;
 		GF_GenericSampleDescription *udesc = NULL;
 
@@ -162,7 +165,11 @@ void isor_declare_objects(ISOMReader *read)
 		m_subtype = gf_isom_get_media_subtype(read->mov, i+1, 1);
 		switch (m_subtype) {
 		case GF_ISOM_SUBTYPE_HVT1:
-			continue;
+			if (!read->alltracks) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Tile track in regular mode, ignoring track - you may retry by specifying alltracks options\n" ));
+				continue;
+			}
+			break;
 		default:
 			break;
 		}
@@ -189,7 +196,7 @@ void isor_declare_objects(ISOMReader *read)
 			}
 		}
 
-		if ((gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) && !highest_stream)
+		if (!read->alltracks && (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) && !highest_stream)
 			continue;
 
 		ocr_es_id = 0;
@@ -219,6 +226,7 @@ void isor_declare_objects(ISOMReader *read)
 			Bool load_default = GF_FALSE;
 			lang_desc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 			gf_isom_get_media_language(read->mov, i+1, &lang_desc->full_lang_code);
+			esid = gf_isom_get_track_id(read->mov,i+1);
 
 			if (!streamtype) streamtype = gf_codecid_type(m_subtype);
 			codec_id = 0;
@@ -282,6 +290,14 @@ void isor_declare_objects(ISOMReader *read)
 				break;
 			case GF_ISOM_SUBTYPE_3GP_DIMS:
 				codec_id = GF_CODECID_DIMS;
+				break;
+			case GF_ISOM_SUBTYPE_HVT1:
+				codec_id = GF_CODECID_HEVC_TILES;
+				gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_TBAS, 1, &base_ttile_track);
+				if (base_ttile_track) {
+					depends_on_id = gf_isom_get_track_id(read->mov, base_ttile_track);
+				}
+				gf_isom_get_tile_info(read->mov, i+1, 1, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
 				break;
 			case GF_ISOM_SUBTYPE_TEXT:
 			case GF_ISOM_SUBTYPE_TX3G:
@@ -429,6 +445,21 @@ void isor_declare_objects(ISOMReader *read)
 		}
 		if (has_scalable_layers)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
+
+		if (gf_isom_get_reference_count(read->mov, i+1, GF_ISOM_REF_SABT)>0) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
+		}
+
+		if (srd_w && srd_h) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
+			if (base_ttile_track) {
+				gf_isom_get_visual_info(read->mov, base_ttile_track, 1, &w, &h);
+				if (w && h) {
+					gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(w, h) );
+				}
+			}
+		}
+
 
 		ch = isor_create_channel(read, pid, i+1, 0);
 
