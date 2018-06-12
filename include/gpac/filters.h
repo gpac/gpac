@@ -690,6 +690,31 @@ u32 gf_filter_pid_get_timescale(GF_FilterPid *pid);
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number);
 u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck);
 
+/* Sample dependency flags, same semantics as ISOBMFF: bit(2)is_leading bit(2)sample_depends_on (2)sample_is_depended_on (2)sample_has_redundancy
+
+is_leading takes one of the following four values:
+0: the leading nature of this sample is unknown;
+1: this sample is a leading sample that has a dependency before the referenced I-picture (and is
+therefore not decodable);
+2: this sample is not a leading sample;
+3: this sample is a leading sample that has no dependency before the referenced I-picture (and
+is therefore decodable);
+sample_depends_on takes one of the following four values:
+0: the dependency of this sample is unknown;
+1: this sample does depend on others (not an I picture); 2: this sample does not depend on others (I picture);
+3: reserved
+sample_is_depended_on takes one of the following four values: 0: the dependency of other samples on this sample is unknown; 1: other samples may depend on this one (not disposable);
+2: no other sample depends on this one (disposable);
+3: reserved
+sample_has_redundancy takes one of the following four values:
+0: it is unknown whether there is redundant coding in this sample; 1: there is redundant coding in this sample;
+2: there is no redundant coding in this sample;
+3: reserved
+*/
+
+GF_Err gf_filter_pck_set_dependency_flag(GF_FilterPacket *pck, u8 dep_flags);
+u8 gf_filter_pck_get_dependency_flags(GF_FilterPacket *pck);
+
 void gf_filter_pid_clear_eos(GF_FilterPid *pid);
 
 //for user defined registries
@@ -857,25 +882,39 @@ enum
 	GF_PROP_PID_PROTECTION_SCHEME_VERSION = GF_4CC('S','C','H','V'),
 	GF_PROP_PID_PROTECTION_SCHEME_URI = GF_4CC('S','C','H','U'),
 	GF_PROP_PID_PROTECTION_KMS_URI = GF_4CC('K','M','S','U'),
-	
+
+	GF_PROP_PID_ISMA_SELECTIVE_ENC = GF_4CC('I','S','S','E'),
+	GF_PROP_PID_ISMA_IV_LENGTH = GF_4CC('I','S','I','V'),
+	GF_PROP_PID_ISMA_KI_LENGTH = GF_4CC('I','S','K','I'),
+
+	GF_PROP_PID_OMA_CRYPT_TYPE = GF_4CC('O','M','C','T'),
+	GF_PROP_PID_OMA_CID = GF_4CC('O','M','I','D'),
+	GF_PROP_PID_OMA_TXT_HDR = GF_4CC('O','M','T','H'),
+	GF_PROP_PID_OMA_CLEAR_LEN = GF_4CC('O','M','P','T'),
+
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
-	//(boolean) packet protected
-	GF_PROP_PCK_ENCRYPTED = GF_4CC('E','P','C','K'),
 	//(longuint) ISMA BSO
 	GF_PROP_PCK_ISMA_BSO = GF_4CC('I','B','S','O'),
+	//(boolean) packets are protected
+	GF_PROP_PID_ENCRYPTED = GF_4CC('E','P','C','K'),
 	//(long uint)
 	GF_PROP_PID_OMA_PREVIEW_RANGE = GF_4CC('O','D','P','R'),
-	//(data) binary blob containing (u32)N [(bin128)SystemID(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]
+	//(data) binary blob containing (u32)N [(bin128)SystemID(u32)version(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]
 	GF_PROP_PID_CENC_PSSH = GF_4CC('P','S','S','H'),
 	//ptr to raw CENC subsample info
 	GF_PROP_PCK_CENC_SAI = GF_4CC('S','A','I','S'),
-	//(uint) IV size, used on PID and packets
-	GF_PROP_PID_PCK_CENC_IV_SIZE = GF_4CC('S','A','I','V'),
+	//(uint) KID, used on PID
+	GF_PROP_PID_KID = GF_4CC('S','K','I','D'),
+	//(uint) IV size, used on PID
+	GF_PROP_PID_CENC_IV_SIZE = GF_4CC('S','A','I','V'),
 	//(data) constant IV
-	GF_PROP_PID_PCK_CENC_IV_CONST = GF_4CC('C','B','I','V'),
+	GF_PROP_PID_CENC_IV_CONST = GF_4CC('C','B','I','V'),
 	//(fraction) CENC pattern, skip as num crypt as den
-	GF_PROP_PID_PCK_CENC_PATTERN = GF_4CC('C','P','T','R'),
+	GF_PROP_PID_CENC_PATTERN = GF_4CC('C','P','T','R'),
+	//(uint) senc/piff
+	GF_PROP_PID_CENC_STORE = GF_4CC('C','S','T','R'),
+
 	//(uint)
 	GF_PROP_PID_AMR_MODE_SET = GF_4CC('A','M','S','T'),
 	//(data) binary blob containing N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
@@ -1185,6 +1224,7 @@ GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck);
 typedef struct
 {
 	bin128 SystemID;
+	u32 version;
 	u32 KID_count;
 	bin128 *KIDs;
 	u32 private_data_size;

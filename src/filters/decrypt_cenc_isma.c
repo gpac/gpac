@@ -229,7 +229,7 @@ static GF_Err decenc_process_isma(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 	in_pck = gf_filter_pid_get_packet(ipid);
 	if (!in_pck) return GF_OK;
 
-	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_ENCRYPTED);
+	prop = gf_filter_pid_get_property(ipid, GF_PROP_PID_ENCRYPTED);
 	if (prop && !prop->value.boolean) {
 		gf_filter_pck_forward(in_pck, opid);
 		gf_filter_pid_drop_packet(ipid);
@@ -336,6 +336,7 @@ static GF_Err decenc_setup_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 schem
 		u32 j, kid_count;
 
 		gf_bs_read_data(bs, sysID, 16);
+		/*version =*/ gf_bs_read_u32(bs);
 		kid_count = gf_bs_read_u32(bs);
 
 		memset(szSystemID, 0, 33);
@@ -425,19 +426,6 @@ static GF_Err decenc_access_cenc(GF_CENCDecCtx *ctx, Bool is_play)
 	return GF_BAD_PARAM;
 }
 
-static Bool cenc_prop_filter(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
-{
-	switch (prop_4cc) {
-	case GF_PROP_PCK_ENCRYPTED:
-	case GF_PROP_PCK_CENC_SAI:
-	case GF_PROP_PID_PCK_CENC_IV_SIZE:
-	case GF_PROP_PID_PCK_CENC_IV_CONST:
-	case GF_PROP_PID_PCK_CENC_PATTERN:
-		return GF_FALSE;
-	default:
-		return GF_TRUE;
-	}
-}
 
 static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_FilterPid *opid)
 {
@@ -458,12 +446,19 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 	in_pck = gf_filter_pid_get_packet(ipid);
 	if (!in_pck) return GF_OK;
 
-	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_ENCRYPTED);
+	prop = gf_filter_pid_get_property(ipid, GF_PROP_PID_ENCRYPTED);
 	if (prop && !prop->value.boolean) {
 		gf_filter_pck_forward(in_pck, opid);
 		gf_filter_pid_drop_packet(ipid);
 		return GF_OK;
 	}
+	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PID_KID);
+	if (!prop) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no KID info\n" ) );
+		return GF_SERVICE_ERROR;
+	}
+	memcpy(KID, prop->value.data.ptr, 16);
+
 	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_CENC_SAI);
 	if (!prop) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info\n" ) );
@@ -499,18 +494,17 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 	}
 
 	ctx->sai.IV_size = 8;
-	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PID_PCK_CENC_IV_SIZE);
+	prop = gf_filter_pid_get_property(ipid, GF_PROP_PID_CENC_IV_SIZE);
 	if (!prop) {
-		const_IV = gf_filter_pid_get_property(ipid, GF_PROP_PID_PCK_CENC_IV_CONST);
+		const_IV = gf_filter_pid_get_property(ipid, GF_PROP_PID_CENC_IV_CONST);
 	} else {
 		ctx->sai.IV_size = prop->value.uint;
 	}
 	
-	cbc_pattern = gf_filter_pid_get_property(ipid, GF_PROP_PID_PCK_CENC_PATTERN);
+	cbc_pattern = gf_filter_pid_get_property(ipid, GF_PROP_PID_CENC_PATTERN);
 
 
 	/*read sample auxiliary information from bitstream*/
-	gf_bs_read_data(ctx->sai_bs,  (char *)KID, 16);
 	gf_bs_read_data(ctx->sai_bs, (char *)ctx->sai.IV, ctx->sai.IV_size);
 	subsample_count = gf_bs_read_u16(ctx->sai_bs);
 	if (ctx->sai.subsample_count < subsample_count) {
@@ -629,7 +623,14 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 		}
 	}
 
-	gf_filter_pck_merge_properties_filter(in_pck, out_pck, cenc_prop_filter, NULL);
+	gf_filter_pck_merge_properties(in_pck, out_pck);
+	gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
+
+	gf_filter_pid_set_info(opid, GF_PROP_PID_ENCRYPTED, NULL);
+	gf_filter_pid_set_info(opid, GF_PROP_PID_CENC_IV_SIZE, NULL);
+	gf_filter_pid_set_info(opid, GF_PROP_PID_CENC_IV_CONST, NULL);
+	gf_filter_pid_set_info(opid, GF_PROP_PID_CENC_PATTERN, NULL);
+
 	gf_filter_pck_send(out_pck);
 
 exit:

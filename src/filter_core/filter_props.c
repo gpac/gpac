@@ -76,17 +76,27 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		} else if (enum_values && strchr(enum_values, '|')) {
-			char *str_start = strstr(enum_values, value);
+			u32 a_len = strlen(value);
+			u32 val = 0;
+			char *str_start = (char *) enum_values;
+			while (str_start) {
+				u32 len;
+				char *sep = strchr(str_start, '|');
+				if (sep) {
+					len = sep - str_start;
+				} else {
+					len = strlen(str_start);
+				}
+				if ((a_len == len) && !strncmp(str_start, value, len))
+					break;
+				if (!sep) break;
+				str_start = sep+1;
+				val++;
+			}
 			if (!str_start) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using 0\n", value, name, enum_values));
 				p.value.uint = 0;
 			} else {
-				char *pos = (char *)enum_values;
-				u32 val=0;
-				while (pos != str_start) {
-					if (pos[0]=='|') val++;
-					pos++;
-				}
 				p.value.uint = val;
 			}
 		} else if (!strnicmp(value, "0x", 2)) {
@@ -881,15 +891,30 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_PROTECTION_SCHEME_VERSION, "SchemeVersion", "protection scheme version used", GF_PROP_UINT},
 	{ GF_PROP_PID_PROTECTION_SCHEME_URI, "SchemeURI", "protection scheme URI", GF_PROP_STRING},
 	{ GF_PROP_PID_PROTECTION_KMS_URI, "KMS_URI", "URI for key management system", GF_PROP_STRING},
+
+	{ GF_PROP_PID_ISMA_SELECTIVE_ENC, "SelectiveEncryption", "Indicates if ISAM/OMA selective encryption is used", GF_PROP_BOOL},
+	{ GF_PROP_PID_ISMA_IV_LENGTH, "IVLength", "Indicates ISAM IV size", GF_PROP_UINT},
+	{ GF_PROP_PID_ISMA_KI_LENGTH, "KILength", "Indicates ISAM KeyIndication size", GF_PROP_UINT},
+
+	{ GF_PROP_PID_OMA_CRYPT_TYPE, "CryptType", "Indicates OMA encryption type", GF_PROP_UINT},
+	{ GF_PROP_PID_OMA_CID, "ContentID", "Indicates OMA content ID", GF_PROP_STRING},
+	{ GF_PROP_PID_OMA_TXT_HDR, "TextualHeaders", "Indicates OMA textual headers", GF_PROP_STRING},
+	{ GF_PROP_PID_OMA_CLEAR_LEN, "PlaintextLen", "Indicates OMA size of plaintext data", GF_PROP_LUINT},
+
 	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Sender NTP time", GF_PROP_LUINT},
-	{ GF_PROP_PCK_ENCRYPTED, "Encrypted", "Indicates the stream is encrypted", GF_PROP_BOOL},
 	{ GF_PROP_PCK_ISMA_BSO, "ISMA_BSO", "Indicates ISMA BSO of the packet", GF_PROP_LUINT},
+	{ GF_PROP_PID_ENCRYPTED, "Encrypted", "Indicates packets for the stream are encrypted - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_BOOL},
 	{ GF_PROP_PID_OMA_PREVIEW_RANGE, "OMAPreview", "Indicates OMA Preview range ", GF_PROP_LUINT},
 	{ GF_PROP_PID_CENC_PSSH, "CENC_PSSH", "Carries PSSH blob for CENC, formatted as (u32)NbSystems [(bin128)SystemID(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]", GF_PROP_DATA},
-	{ GF_PROP_PCK_CENC_SAI, "CENC_SAI", "Carries CENC SAI for the sample, formated as (bin128)KeyID(char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]", GF_PROP_DATA},
-	{ GF_PROP_PID_PCK_CENC_IV_SIZE, "IVSize", "IV size of the sample", GF_PROP_UINT},
-	{ GF_PROP_PID_PCK_CENC_IV_CONST, "ConstantIV", "Constant IV the PID", GF_PROP_DATA},
-	{ GF_PROP_PID_PCK_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den", GF_PROP_FRACTION},
+	{ GF_PROP_PCK_CENC_SAI, "CENC_SAI", "Carries CENC SAI for the sample, formated as (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]", GF_PROP_DATA},
+	{ GF_PROP_PID_KID, "KID", "Key ID for packets of the PID - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_DATA},
+	{ GF_PROP_PID_CENC_IV_SIZE, "IVSize", "IV size for packets of the PID - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_UINT},
+	{ GF_PROP_PID_CENC_IV_CONST, "ConstantIV", "Constant IV for packets of the PID - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_DATA},
+	{ GF_PROP_PID_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_FRACTION},
+	{ GF_PROP_PID_CENC_STORE, "CENCStore", "Indicates storage location of SAI data - set as a regular property", GF_PROP_UINT},
+
+
+
 	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
 	{ GF_PROP_PCK_SUBS, "SubSampleInfo", "binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]", GF_PROP_DATA},
 	{ GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - set as info, not property", GF_PROP_UINT},

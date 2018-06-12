@@ -43,6 +43,7 @@ typedef struct
 	u32 timescale;
 	u32 stream_type;
 	u32 codecid;
+	Bool is_encrypted;
 
 	u32 cfg_crc, enh_cfg_crc;
 	u32 dep_id;
@@ -78,6 +79,14 @@ typedef struct
 	Bool insert_tfdt;
 	u64 first_dts_in_seg, next_seg_cts, cts_next;
 	u64 offset_dts;
+
+	//0: not cenc, 1: needs setup of stsd entry, 2: setup done
+	u32 cenc_state;
+	u32 skip_byte_block, crypt_byte_block;
+	u32 IV_size, constant_IV_size;
+	bin128 constant_IV, KID;
+	Bool needs_seig;
+	Bool cenc_subsamples;
 } TrackWriter;
 
 enum
@@ -96,6 +105,13 @@ enum
 	MP4MX_DASH_OFF=0,
 	MP4MX_DASH_ON,
 	MP4MX_DASH_VOD,
+};
+
+enum
+{
+	MP4MX_PSSH_MOOV=0,
+	MP4MX_PSSH_MOOF,
+	MP4MX_PSSH_SKIP,
 };
 
 typedef struct
@@ -118,7 +134,7 @@ typedef struct
 	u32 moof_sn;
 	GF_Fraction64 tfdt;
 	Bool no_def, straf, strun, sgpd_traf, cache, noinit;
-	u32 pssh;
+	u32 psshs;
 	//internal
 	u64 first_cts_min;
 	Bool owns_mov;
@@ -129,7 +145,7 @@ typedef struct
 
 	GF_BitStream *bs_r;
 	//fragmentation state
-	Bool init_movie_done, fragment_started, segment_started, insert_tfdt;
+	Bool init_movie_done, fragment_started, segment_started, insert_tfdt, insert_pssh;
 	Double next_frag_start, adjusted_next_frag_start;
 
 	u64 current_offset;
@@ -476,15 +492,28 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (p) tkid = p->value.uint;
 		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->codecid);
+		if (!mtype) {
+			if (tkw->stream_type == GF_STREAM_ENCRYPTED) {
+				tkw->is_encrypted = GF_TRUE;
+				tkw->stream_type = gf_codecid_type(tkw->codecid);
+				mtype = gf_isom_stream_type_to_media_type( tkw->stream_type, tkw->codecid);
+			}
+		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE);
 		if (ctx->tktpl && p && p->value.data.ptr) {
 			Bool udta_only = (ctx->tktpl==2) ? GF_TRUE : GF_FALSE;
+
+
 			tkw->track_num = gf_isom_new_track_from_template(ctx->file, tkid, mtype, tkw->timescale, p->value.data.ptr, p->value.data.size, udta_only);
 			if (!tkw->track_num) {
 				tkw->track_num = gf_isom_new_track_from_template(ctx->file, 0, mtype, tkw->timescale, p->value.data.ptr, p->value.data.size, udta_only);
 			}
 		} else {
+			if (!mtype) {
+				mtype = GF_4CC('u','n','k','n');
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable to find ISOM media type for stream type %s codec %s\n", gf_stream_type_name(tkw->stream_type), gf_codecid_name(tkw->codecid) ));
+			}
 			tkw->track_num = gf_isom_new_track(ctx->file, tkid, mtype, tkw->timescale);
 			if (!tkw->track_num) {
 				tkw->track_num = gf_isom_new_track(ctx->file, 0, mtype, tkw->timescale);
@@ -1152,6 +1181,90 @@ multipid_stsd_setup:
 
 	if (lang_name) gf_isom_set_media_language(ctx->file, tkw->track_num, (char*)lang_name);
 
+
+	if (tkw->is_encrypted) {
+		const char *scheme_uri=NULL;
+		const char *kms_uri=NULL;
+		u32 scheme_version=0;
+		u32 scheme_type = 0;
+		Bool is_sel_enc = GF_FALSE;
+		u32 KI_length=0;
+		u32 IV_length=0;
+		/*todo !*/
+		u32 oma_contentID=0;
+		u32 oma_encryption_type=0;
+		u32 oma_plainTextLength=0;
+		const char *oma_textual_headers=NULL;
+		u32 textual_headers_len=0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+		if (p) scheme_type = p->value.uint;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
+		if (p) scheme_version = p->value.uint;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_URI);
+		if (p) scheme_uri = p->value.string;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_KMS_URI);
+		if (p) kms_uri = p->value.string;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISMA_SELECTIVE_ENC);
+		if (p) is_sel_enc = p->value.boolean;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISMA_IV_LENGTH);
+		if (p) IV_length = p->value.uint;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISMA_KI_LENGTH);
+		if (p) KI_length = p->value.uint;
+
+		switch (scheme_type) {
+		case GF_ISOM_ISMA_SCHEME:
+			gf_isom_set_ismacryp_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, (char *) scheme_uri, (char *) kms_uri, is_sel_enc, KI_length, IV_length);
+			break;
+		case GF_ISOM_OMADRM_SCHEME:
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_CRYPT_TYPE);
+			if (p) oma_encryption_type = p->value.uint;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_CID);
+			if (p) oma_contentID = p->value.string;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_TXT_HDR);
+			if (p) oma_textual_headers = p->value.string;
+			if (oma_textual_headers) textual_headers_len = strlen(oma_textual_headers);
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_CLEAR_LEN);
+			if (p) oma_plainTextLength = p->value.string;
+			gf_isom_set_oma_protection(ctx->file, tkw->track_num, tkw->stsd_idx, oma_contentID, (char*) kms_uri, oma_encryption_type, oma_plainTextLength, (char*)oma_textual_headers, textual_headers_len,
+                                  is_sel_enc, KI_length, IV_length);
+
+			break;
+		case GF_ISOM_ADOBE_SCHEME:
+			gf_isom_set_adobe_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, is_sel_enc, NULL, 0);
+			break;
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+			tkw->cenc_state = 1;
+			if (tkw->is_nalu) tkw->cenc_subsamples = GF_TRUE;
+			break;
+		default:
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized protection scheme type %s, using generic signaling\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			switch (tkw->stream_type) {
+			case GF_STREAM_VISUAL:
+				gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_ENCV);
+				break;
+			case GF_STREAM_AUDIO:
+				gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_ENCA);
+				break;
+			case GF_STREAM_TEXT:
+				gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_ENCT);
+				break;
+			case GF_STREAM_FONT:
+				gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_ENCF);
+				break;
+			default:
+				gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_ENCS);
+				break;
+			}
+			gf_isom_set_generic_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, (char*)scheme_uri, (char*)kms_uri);
+		}
+
+	}
+
 	if (ctx->importer && !tkw->import_msg_header_done) {
 		tkw->import_msg_header_done = GF_TRUE;
 		if (!imp_name) imp_name = comp_name;
@@ -1215,6 +1328,171 @@ static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static void mp4_mux_done(GF_MP4MuxCtx *ctx);
 
+enum
+{
+	CENC_CONFIG=0,
+	CENC_ADD_NORMAL,
+	CENC_ADD_FRAG,
+};
+
+static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+{
+	bin128 *keyIDs=NULL;
+	u32 max_keys = 0;
+	u32 i, nb_pssh;
+
+	//set pssh
+	const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PSSH);
+	if (!p) return;
+
+	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+	else gf_bs_reassign_buffer(ctx->bs_r, p->value.data.ptr, p->value.data.size);
+
+	nb_pssh = gf_bs_read_u32(ctx->bs_r);
+	for (i = 0; i < nb_pssh; i++) {
+		bin128 sysID;
+		u32 j, kid_count, version=0;
+		char *data;
+		u32 len;
+
+		gf_bs_read_data(ctx->bs_r, sysID, 16);
+		version = gf_bs_read_u32(ctx->bs_r);
+		kid_count = gf_bs_read_u32(ctx->bs_r);
+
+		if (kid_count>=max_keys) {
+			max_keys = kid_count;
+			keyIDs = gf_realloc(keyIDs, sizeof(bin128)*max_keys);
+		}
+		for (j=0; j<kid_count; j++) {
+			gf_bs_read_data(ctx->bs_r, keyIDs[j], 16);
+		}
+		j = (u32) gf_bs_get_position(ctx->bs_r);
+
+		data = NULL;
+		len = p->value.data.size - j;
+		if (len <= 4) len = 0;
+		else {
+			len -= 4;
+			data = 4 + p->value.data.ptr + j;
+		}
+		gf_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len);
+	}
+	if (keyIDs) gf_free(keyIDs);
+}
+
+static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, u32 act_type, u32 pck_size)
+{
+	const GF_PropertyValue *p;
+	GF_Err e;
+	Bool pck_is_encrypted = GF_FALSE;
+	u32 skip_byte_block=0, crypt_byte_block=0;
+	u32 IV_size=0, constant_IV_size=0;
+	bin128 constant_IV, KID;
+	u32 scheme_type=0;
+	u32 scheme_version=0;
+	char *sai = NULL;
+	u32 sai_size = 0;
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ENCRYPTED);
+	if (p) pck_is_encrypted = p->value.boolean;
+
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PATTERN);
+	if (p) {
+		skip_byte_block = p->value.frac.num;
+		crypt_byte_block = p->value.frac.den;
+	}
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_IV_CONST);
+	if (p) {
+		constant_IV_size = p->value.data.size;
+		if (constant_IV_size>16) constant_IV_size=16;
+		memcpy(constant_IV, p->value.data.ptr, constant_IV_size);
+	}
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_IV_SIZE);
+	if (p) IV_size = p->value.data.size;
+
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_KID);
+	if (p) {
+		memcpy(KID, p->value.data.ptr, 16);
+	}
+
+	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_SAI);
+	if (p) {
+		sai = p->value.data.ptr;
+		sai_size = p->value.data.size;
+	}
+
+
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+	if (p) scheme_type = p->value.uint;
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
+	if (p) scheme_version = p->value.uint;
+
+	//initial setup
+	if (tkw->cenc_state==1) {
+		u32 container_type = GF_ISOM_BOX_TYPE_SENC;
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_STORE);
+		if (p) container_type = p->value.uint;
+
+		tkw->cenc_state = 2;
+		e = gf_isom_set_cenc_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, pck_is_encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC information: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+
+		if (ctx->psshs == MP4MX_PSSH_MOOV)
+			mp4_mux_cenc_insert_pssh(ctx, tkw);
+
+		tkw->IV_size = IV_size;
+		memcpy(tkw->KID, KID, sizeof(bin128));
+		tkw->crypt_byte_block = crypt_byte_block;
+		tkw->skip_byte_block = skip_byte_block;
+		tkw->constant_IV_size = constant_IV_size;
+		memcpy(tkw->constant_IV, constant_IV, sizeof(bin128));
+		tkw->needs_seig = GF_FALSE;
+
+		e = gf_isom_cenc_allocate_storage(ctx->file, tkw->track_num, container_type, 0, 0, NULL);
+		if (e) return e;
+	}
+	if (act_type==CENC_CONFIG) return GF_OK;
+
+
+	if (!pck_is_encrypted) {
+		bin128 dumb_IV;
+		memset(dumb_IV, 0, 16);
+		return gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, dumb_IV, 0, 0, 0, NULL);
+	}
+
+	if (!tkw->needs_seig) {
+		if (tkw->IV_size != IV_size) tkw->needs_seig = GF_TRUE;
+		if (memcmp(tkw->KID, KID, sizeof(bin128))) tkw->needs_seig = GF_TRUE;
+		if (tkw->crypt_byte_block != crypt_byte_block) tkw->needs_seig = GF_TRUE;
+		if (tkw->skip_byte_block != skip_byte_block) tkw->needs_seig = GF_TRUE;
+		if (tkw->constant_IV_size != constant_IV_size) tkw->needs_seig = GF_TRUE;
+		if (memcmp(tkw->constant_IV, constant_IV, sizeof(bin128))) tkw->needs_seig = GF_TRUE;
+	}
+	if (tkw->needs_seig) {
+		e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+		if (e) return e;
+	}
+
+	if (!sai) {
+		sai_size = pck_size;
+	}
+
+	if (act_type==CENC_ADD_FRAG) {
+		e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, IV_size, sai, sai_size, tkw->cenc_subsamples);
+
+	} else {
+		if (sai) {
+			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, IV_size, sai, sai_size, tkw->cenc_subsamples);
+			if (e) return e;
+		}
+	}
+
+	return GF_OK;
+}
+
+
 GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, Bool for_fragment)
 {
 	GF_Err e;
@@ -1224,6 +1502,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	u32 timescale = 0;
 	const GF_PropertyValue *subs = NULL;
 	GF_FilterSAPType sap_type;
+	u8 dep_flags;
 
 
 	timescale = gf_filter_pck_get_timescale(pck);
@@ -1338,6 +1617,10 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
 		}
+
+		if (tkw->cenc_state) {
+			mp4_mux_cenc_update(ctx, tkw, pck, for_fragment ? CENC_ADD_FRAG : CENC_ADD_NORMAL, tkw->sample.dataLength);
+		}
 	}
 
 	tkw->nb_samples++;
@@ -1384,6 +1667,20 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 			}
 		}
 	}
+
+	dep_flags = gf_filter_pck_get_dependency_flags(pck);
+	if (dep_flags) {
+		u32 is_leading = (dep_flags>>6) & 0x3;
+		u32 depends_on = (dep_flags>>4) & 0x3;
+		u32 depended_on = (dep_flags>>2) & 0x3;
+		u32 redundant = (dep_flags) & 0x3;
+		if (for_fragment) {
+			gf_isom_fragment_set_sample_flags(ctx->file, tkw->track_id, is_leading, depends_on, depended_on, redundant);
+		} else {
+			gf_isom_set_sample_flags(ctx->file, tkw->track_num, tkw->nb_samples, is_leading, depends_on, depended_on, redundant);
+		}
+	}
+
 
 	tkw->next_is_first_sample = GF_FALSE;
 
@@ -1515,6 +1812,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 			if (!pck) return GF_OK;
+
+			if (tkw->cenc_state==1) {
+				mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
+			}
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (p && strlen(p->value.string)) ctx->single_file = GF_FALSE;
@@ -1719,6 +2020,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	if (ctx->dash_mode && !ctx->segment_started) {
 		ctx->segment_started = GF_TRUE;
 		ctx->insert_tfdt = GF_TRUE;
+		ctx->insert_pssh = (ctx->psshs == MP4MX_PSSH_MOOF) ? GF_TRUE : GF_FALSE;
+
 		gf_isom_start_segment(ctx->file, ctx->single_file ? NULL : "_gpac_isobmff_redirect", GF_FALSE);
 	}
 
@@ -1743,9 +2046,14 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 			tkw->fragment_done = GF_FALSE;
 			tkw->insert_tfdt = ctx->tfdt_traf ? GF_TRUE : ctx->insert_tfdt;
+
+			if (ctx->insert_pssh)
+				mp4_mux_cenc_insert_pssh(ctx, tkw);
+
 		}
 		ctx->fragment_started = GF_TRUE;
 		ctx->insert_tfdt = GF_FALSE;
+		ctx->insert_pssh = GF_FALSE;
 	}
 
 	//process pid by pid
@@ -1971,6 +2279,11 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (ctx->file) {
 			gf_isom_close(ctx->file);
 			ctx->file = NULL;
+
+			if (ctx->dst_pck) {
+				gf_filter_pck_send(ctx->dst_pck);
+				ctx->dst_pck = NULL;
+			}
 			if (!ctx->flush_size) gf_filter_pid_set_eos(ctx->opid);
 		}
 		return ctx->flush_size ? GF_OK : GF_EOS;
@@ -2004,6 +2317,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			nb_eos++;
 			continue;
 		}
+		if (tkw->cenc_state==1) mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
+
 		mp4_mux_process_sample(ctx, tkw, pck, GF_FALSE);
 
 		gf_filter_pid_drop_packet(tkw->ipid);
@@ -2448,7 +2763,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(no_def), "disables default flags in fragments", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(straf), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(strun), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(pssh), "stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box", GF_PROP_UINT, "moov", "moov|moof|none", GF_FALSE},
+	{ OFFS(psshs), "PSSH boxes store mode:\n\tmoof: in first moof of each segments\n\tmoov: in movie box\n\tnone: discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FALSE},
 	{ OFFS(sgpd_traf), "stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(cache), "Enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(block_size), "block size used to flush files in onDemand mode when cache is used", GF_PROP_UINT, "50000", NULL, GF_FALSE},

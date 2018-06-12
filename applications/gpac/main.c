@@ -506,10 +506,12 @@ static int gpac_main(int argc, char **argv)
 
 		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") ) {
 			filter = gf_fs_load_source(session, argv[i+1], NULL, NULL, &e);
+			arg = argv[i+1];
 			i++;
 			f_loaded = GF_TRUE;
 		} else if (!strcmp(arg, "-dst") || !strcmp(arg, "-o") ) {
 			filter = gf_fs_load_destination(session, argv[i+1], NULL, NULL, &e);
+			arg = argv[i+1];
 			i++;
 			f_loaded = GF_TRUE;
 		}
@@ -517,21 +519,21 @@ static int gpac_main(int argc, char **argv)
 		else if (arg[0]=='-') {
 			continue;
 		}
-		if (arg[0]== separator_set[SEP_LINK] ) {
-			char *ext = strchr(arg, separator_set[SEP_FRAG]);
-			if (ext) {
-				ext[0] = 0;
-				link_prev_filter_ext = ext+1;
-			}
-			link_prev_filter = 0;
-			if (strlen(arg)>1)
-				link_prev_filter = atoi(arg+1);
-
-			if (ext) ext[0] = separator_set[SEP_FRAG];
-			continue;
-		}
-
 		if (!f_loaded) {
+			if (arg[0]== separator_set[SEP_LINK] ) {
+				char *ext = strchr(arg, separator_set[SEP_FRAG]);
+				if (ext) {
+					ext[0] = 0;
+					link_prev_filter_ext = ext+1;
+				}
+				link_prev_filter = 0;
+				if (strlen(arg)>1)
+					link_prev_filter = atoi(arg+1);
+
+				if (ext) ext[0] = separator_set[SEP_FRAG];
+				continue;
+			}
+
 			if (!strncmp(arg, "src=", 4) ) {
 				filter = gf_fs_load_source(session, arg+4, NULL, NULL, &e);
 			} else if (!strncmp(arg, "dst=", 4) ) {

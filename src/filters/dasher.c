@@ -28,6 +28,7 @@
 #include <gpac/iso639.h>
 #include <gpac/internal/mpd.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/base_coding.h>
 
 
 typedef struct
@@ -60,6 +61,7 @@ typedef struct
 	u32 bs_switch, profile, cp, subs_per_sidx, ntp;
 	s32 buf, timescale;
 	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc;
+	u32 pssh;
 	Double dur;
 	u32 dmode;
 	char *avcp;
@@ -133,9 +135,9 @@ typedef struct _dash_stream
 	const char *template;
 	const char *xlink;
 	const char *hls_vp_name;
-
-	//TODO: get the values for all below
 	u32 ch_layout, nb_surround, nb_lfe;
+	
+	//TODO: get the values for all below
 	GF_PropVec4i srd;
 	u32 view_id;
 	//end of TODO
@@ -180,6 +182,7 @@ typedef struct _dash_stream
 	Bool rep_init;
 	u64 first_cts;
 	u64 first_dts;
+	Bool is_encrypted;
 
 	//target MPD timescale
 	u32 mpd_timescale;
@@ -231,7 +234,6 @@ typedef struct _dash_stream
 	u32 split_dur_next;
 
 	Double clamped_dur;
-
 
 	u32 nb_segments_purged;
 	Double dur_purged;
@@ -352,6 +354,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	CHECK_PROP(GF_PROP_PID_STREAM_TYPE, ds->stream_type, GF_NOT_SUPPORTED)
 
 	if (ds->stream_type != GF_STREAM_FILE) {
+		if (ds->stream_type==GF_STREAM_ENCRYPTED) {
+			CHECK_PROP(GF_PROP_PID_ORIG_STREAM_TYPE, ds->stream_type, GF_EOS)
+			ds->is_encrypted = GF_TRUE;
+		}
 
 		CHECK_PROP(GF_PROP_PID_CODECID, ds->codec_id, GF_NOT_SUPPORTED)
 		CHECK_PROP(GF_PROP_PID_TIMESCALE, ds->timescale, GF_NOT_SUPPORTED)
@@ -898,8 +904,6 @@ static u32 dasher_get_dep_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
 	return bitrate;
 }
 
-#ifdef FILTER_FIXME
-
 static void get_canon_urn(bin128 URN, char *res)
 {
 	char sres[4];
@@ -945,81 +949,143 @@ static const char *get_drm_kms_name(const char *canURN)
 	return "unknown";
 }
 
-static GF_MPD_Descriptor *gf_isom_get_content_protection_desc(GF_ISOFile *input, u32 protected_track)
+static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStream *ds, GF_MPD_AdaptationSet *for_set)
 {
-
 	char sCan[40];
-	u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 1);
-	if (gf_isom_is_cenc_media(input, protected_track, 1)) {
-		bin128 default_KID;
+	u32 prot_scheme=0;
+	u32 i, count;
+	const GF_PropertyValue *p;
+	GF_List *res = NULL;
+	GF_BitStream *bs_r=NULL;
+
+	count = gf_list_count(ctx->current_period->streams);
+	bs_r = gf_bs_new((const char *) &count, 1, GF_BITSTREAM_READ);
+
+	for (i=0; i<count; i++) {
 		GF_MPD_Descriptor *desc;
-		GF_XMLAttribute *att;
-		char cenc_value[256];
-		cenc_value[0]='\0';
-		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
-		desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:mp4protection:2011", gf_4cc_to_str(prot_scheme));
+		GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+		if (!a_ds->is_encrypted) continue;
 
-
-		get_canon_urn(default_KID, sCan);
-		att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
-		if (!desc->attributes) {
-			desc->attributes = gf_list_new();
-		}
-		gf_list_add(desc->attributes, att);
-		return desc;
-
-		bin128 default_KID;
-		u32 i, count;
-		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
-		for (i=0; i<indent; i++)
-			fprintf(mpd, " ");
-
-		get_canon_urn(default_KID, sCan);
-		fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"%s\"/>\n", gf_4cc_to_str(prot_scheme), sCan );
-
-		if (dasher->pssh_mode <= GF_DASH_PSSH_MOOF) {
-			return GF_OK;
+		if (for_set) {
+			if (a_ds->set != for_set) continue;
+			//for now only insert for the stream holding the set
+			if (!a_ds->owns_set) continue;
+		} else if ((a_ds != ds) && (a_ds->muxed_base != ds) ) {
+			continue;
 		}
 
-		//add pssh
-		count = gf_isom_get_pssh_count(input);
-		for (i=0; i<count; i++) {
-			GF_Err e;
-			u32 j;
-			bin128 sysID;
-			u8 *pssh_data=NULL;
-			u8 *pssh_data_64=NULL;
-			u32 pssh_len, size_64;
+		p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+		if (p) prot_scheme = p->value.uint;
 
-			gf_isom_get_pssh_info(input, i+1, sysID, NULL, NULL, NULL, NULL);
+		if ((prot_scheme==GF_ISOM_CENC_SCHEME) || (prot_scheme==GF_ISOM_CBC_SCHEME) || (prot_scheme==GF_ISOM_CENS_SCHEME) || (prot_scheme==GF_ISOM_CBCS_SCHEME)) {
+			u32 j, nb_pssh;
+			GF_XMLAttribute *att;
+			char cenc_value[256];
+			char szVal[GF_MAX_PATH];
+			cenc_value[0]='\0';
 
-			e = gf_isom_get_pssh(input, i+1, &pssh_data, &pssh_len);
-			if (e) continue;
+			p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_KID);
+			if (!p) {
+				continue;
+			}
 
-			for (j=0; j<indent; j++)
-				fprintf(mpd, " ");
-			get_canon_urn(sysID, sCan);
-			fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:uuid:%s\" value=\"%s\">\n", sCan, get_drm_kms_name(sCan) );
+			if (!res) res = gf_list_new();
+			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:mp4protection:2011", gf_4cc_to_str(prot_scheme));
+			gf_list_add(res, desc);
 
-			size_64 = 2*pssh_len;
-			pssh_data_64 = gf_malloc(size_64);
-			size_64 = gf_base64_encode((const char *)pssh_data, pssh_len, (char *)pssh_data_64, size_64);
-			pssh_data_64[size_64] = 0;
 
-			for (j=0; j<=indent; j++)
-				fprintf(mpd, " ");
-			fprintf(mpd, "<cenc:pssh>%s</cenc:pssh>\n", pssh_data_64);
-			gf_free(pssh_data_64);
-			gf_free(pssh_data);
-			for (j=0; j<indent; j++)
-				fprintf(mpd, " ");
-			fprintf(mpd, "</ContentProtection>\n");
+			get_canon_urn(p->value.data.ptr, sCan);
+			att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
+			if (!desc->attributes) desc->attributes = gf_list_new();
+			gf_list_add(desc->attributes, att);
+
+			if (ctx->pssh <= GF_DASH_PSSH_MOOF) {
+				continue;
+			}
+			//(data) binary blob containing (u32)N [(bin128)SystemID(u32)version(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]
+			p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CENC_PSSH);
+			if (!p) continue;
+
+			gf_bs_reassign_buffer(bs_r, p->value.data.ptr, p->value.data.ptr);
+			nb_pssh = gf_bs_read_u32(bs_r);
+
+			//add pssh
+			for (j=0; j<count; j++) {
+				u32 j;
+				bin128 sysID;
+				GF_XMLNode *node, *pnode;
+				u32 version, k_count;
+				char *pssh_data=NULL;
+				u32 pssh_len, size_64;
+				GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+				//rewrite PSSH box
+				gf_bs_write_u32(bs_w, 0);
+				gf_bs_write_u32(bs_w, GF_ISOM_BOX_TYPE_PSSH);
+
+				gf_bs_read_data(bs_r, sysID, 16);
+				version = gf_bs_read_u32(bs_r);
+
+				k_count = gf_bs_read_u32(bs_r);
+				if (k_count) version = 1;
+				gf_bs_write_u8(bs_w, version);
+				gf_bs_write_u24(bs_w, 0);
+				gf_bs_write_data(bs_w, sysID, 16);
+				if (version) {
+					gf_bs_write_u32(bs_w, k_count);
+					for (j=0; j<k_count; j++) {
+						bin128 keyID;
+						gf_bs_read_data(bs_r, keyID, 16);
+						gf_bs_write_data(bs_w, keyID, 16);
+					}
+				}
+				k_count = gf_bs_read_u32(bs_r);
+				gf_bs_write_u32(bs_w, k_count);
+				for (j=0; j<k_count; j++) {
+					gf_bs_write_u8(bs_w, gf_bs_read_u8(bs_r) );
+				}
+				pssh_len = gf_bs_get_position(bs_w);
+				gf_bs_seek(bs_w, 0);
+				gf_bs_write_u32(bs_w, pssh_len);
+				gf_bs_seek(bs_w, pssh_len);
+				gf_bs_get_content(bs_w, &pssh_data, &pssh_len);
+				gf_bs_del(bs_w);
+
+				get_canon_urn(sysID, sCan);
+				desc = gf_mpd_descriptor_new(NULL, NULL, NULL);
+				desc->children = gf_list_new();
+				sprintf(szVal, "urn:uuid:%s", sCan);
+				desc->scheme_id_uri = gf_strdup(szVal);
+				desc->value = gf_strdup(get_drm_kms_name(sCan));
+				gf_list_add(res, desc);
+
+				GF_SAFEALLOC(node, GF_XMLNode);
+				node->type = GF_XML_NODE_TYPE;
+				node->name = gf_strdup("cenc:pssh");
+				node->content = gf_list_new();
+				gf_list_add(desc->children, node);
+
+				GF_SAFEALLOC(pnode, GF_XMLNode);
+				pnode->type = GF_XML_TEXT_TYPE;
+				gf_list_add(node->content, pnode);
+
+				size_64 = 2*pssh_len;
+				pnode->name = gf_malloc(size_64);
+				size_64 = gf_base64_encode((const char *)pssh_data, pssh_len, (char *)pnode->name, size_64);
+				pnode->name[size_64] = 0;
+
+				gf_free(pssh_data);
+			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Protection scheme %s has no official DASH mapping, using URI \"urn:gpac:dash:mp4protection:2018\"\n", gf_4cc_to_str(prot_scheme)));
+			if (!res) res = gf_list_new();
+			desc = gf_mpd_descriptor_new(NULL, "urn:gpac:dash:mp4protection:2018", gf_4cc_to_str(prot_scheme));
+			gf_list_add(res, desc);
 		}
 	}
-	//todo for ISMA or OMA DRM
-	return NULL;
+	gf_bs_del(bs_r);
+	return res;
 }
-#endif
 
 
 
@@ -1073,8 +1139,10 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (ds->interlaced) ds->rep->scan_type = GF_MPD_SCANTYPE_INTERLACED;
 	if (ds->dep_id) ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
 
-	//TODO setup protection
-
+	if (ctx->cp!=GF_DASH_CPMODE_ADAPTATION_SET) {
+		gf_mpd_del_list(ds->rep->content_protection, gf_mpd_descriptor_free, 0);
+		ds->rep->content_protection = dasher_get_content_protection_desc(ctx, ds, NULL);
+	}
 }
 
 
@@ -1318,6 +1386,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	GF_Err e;
 	Bool has_frag=GF_FALSE;
 	Bool has_subs=GF_FALSE;
+	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
+	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
 	const char *dst_args;
 	char szDST[GF_MAX_PATH];
 	char szSRC[100];
@@ -1346,40 +1416,53 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	dst_args = gf_filter_get_dst_args(filter);
 	if (dst_args) {
 		char szKey[20];
-		sprintf(szSRC, "%c", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
+		sprintf(szSRC, "%c", sep_args);
 		strcat(szDST, szSRC);
 		strcat(szDST, dst_args);
 		//look for frag arg
-		sprintf(szKey, "%cfrag", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
+		sprintf(szKey, "%cfrag", sep_args);
 		if (strstr(dst_args, szKey)) has_frag = GF_TRUE;
 		else {
-			sprintf(szKey, "%csfrag", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
+			sprintf(szKey, "%csfrag", sep_args);
 			if (strstr(dst_args, szKey)) has_frag = GF_TRUE;
 		}
 		//look for subs_sidx arg
-		sprintf(szKey, "%csubs_sidx", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
+		sprintf(szKey, "%csubs_sidx", sep_args);
 		if (strstr(dst_args, szKey)) has_subs = GF_TRUE;
 	}
 	if (trash_init) {
-		sprintf(szSRC, "%cnoinit", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
+		sprintf(szSRC, "%cnoinit", sep_args);
 		strcat(szDST, szSRC);
 	}
 	if (!has_frag) {
-		sprintf(szSRC, "%cfrag", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
+		sprintf(szSRC, "%cfrag", sep_args);
 		strcat(szDST, szSRC);
 	}
 	if (!has_subs && ctx->sseg) {
-		sprintf(szSRC, "%csubs_sidx%c0", gf_filter_get_sep(filter, GF_FS_SEP_ARGS), gf_filter_get_sep(filter, GF_FS_SEP_NAME));
+		sprintf(szSRC, "%csubs_sidx%c0", sep_args, sep_name);
 		strcat(szDST, szSRC);
 	}
 	//override xps inband declaration in args
-	sprintf(szSRC, "%cxps_inband%c%s", gf_filter_get_sep(filter, GF_FS_SEP_ARGS), gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->inband_params ? "all" : "no");
+	sprintf(szSRC, "%cxps_inband%c%s", sep_args, sep_name, ds->inband_params ? "all" : "no");
 	strcat(szDST, szSRC);
 
 	if (ctx->no_fragments_defaults) {
-		sprintf(szSRC, "%cno_frags_def", gf_filter_get_sep(filter, GF_FS_SEP_ARGS) );
+		sprintf(szSRC, "%cno_frags_def", sep_args );
 		strcat(szDST, szSRC);
 	}
+	switch (ctx->pssh) {
+	case GF_DASH_PSSH_MPD:
+		sprintf(szSRC, "%cpsshs%cnone", sep_args, sep_name);
+		break;
+	case GF_DASH_PSSH_MOOF:
+	case GF_DASH_PSSH_MOOF_MPD:
+		sprintf(szSRC, "%cpsshs%cmoof", sep_args, sep_name);
+		break;
+	default:
+		sprintf(szSRC, "%cpsshs%cmoov", sep_args, sep_name);
+		break;
+	}
+	strcat(szDST, szSRC);
 
 	ds->dst_filter = gf_filter_connect_destination(filter, szDST, &e);
 	if (e) {
@@ -1401,6 +1484,10 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	sprintf(szSRC, "dasher_%p", base_ds->dst_filter);
 	ds->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_copy_properties(ds->opid, ds->ipid);
+
+	if (ctx->pssh == GF_DASH_PSSH_MPD) {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_CENC_PSSH, NULL);
+	}
 
 	//set init filename
 //	if (ds->init_seg) gf_filter_pid_set_property(ds->opid, GF_PROP_PID_OUTPATH, &PROP_STRING(ds->init_seg));
@@ -1573,7 +1660,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 	}
 
-	//TODO setup protection
+	if (ctx->cp!=GF_DASH_CPMODE_REPRESENTATION) {
+		gf_mpd_del_list(set->content_protection, gf_mpd_descriptor_free, 0);
+		set->content_protection = dasher_get_content_protection_desc(ctx, NULL, set);
+	}
 
 	for (i=0; i<count; i++) {
 		GF_Err e;
@@ -4094,6 +4184,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(profile), "Specifies the target DASH profile. This will set default option values to ensure conformance to the desired profile. Auto turns profile to live for dynamic and full for non-dynamic.", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand", GF_FALSE },
 	{ OFFS(profX), "specifies a list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used", GF_PROP_STRING, NULL, NULL, GF_FALSE },
 	{ OFFS(cp), "Specifies the content protection element location", GF_PROP_UINT, "set", "set|rep|both", GF_FALSE },
+	{ OFFS(pssh), "sets PSSH storage mode:\n\tf: stores in movie fragment only\n\tv: stores in movie only\n\tm: stores in mpd only\n\tmf: stores in mpd and movie fragment\n\tmv: stores in mpd and movie\n\tn: discard pssh from mpd and segments", GF_PROP_UINT, "v", "v|f|mv|mf|m|n", GF_TRUE},
 	{ OFFS(buf), "DASH min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)", GF_PROP_SINT, "-100", NULL, GF_FALSE},
 	{ OFFS(timescale), "sets timescales for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale", GF_PROP_SINT, "0", NULL, GF_FALSE},
 	{ OFFS(check_dur), "checks duration of sources in period, trying to have roughly equal duration. Enforced whenever period start times are used", GF_PROP_BOOL, "true", NULL, GF_FALSE},
@@ -4113,6 +4204,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(loop), "loops source file when dashing with subdur and state. If not set, a new period is created once the source is over", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(split), "enables cloning samples for text/metadata/scene description streams, marking further clones as redundant", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(hlsc), "inserts clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+
 
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FALSE},

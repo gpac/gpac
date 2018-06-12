@@ -96,7 +96,6 @@ enum
 	GF_ISOM_BOX_TYPE_MFRO	= GF_4CC( 'm', 'f', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_TFRA	= GF_4CC( 't', 'f', 'r', 'a' ),
 
-	GF_ISOM_BOX_TYPE_PSSH	= GF_4CC( 'p', 's', 's', 'h' ),
 	GF_ISOM_BOX_TYPE_TENC	= GF_4CC( 't', 'e', 'n', 'c' ),
 
 	//track group
@@ -1503,6 +1502,7 @@ typedef struct __tag_media_info_box
 	u32 dataEntryIndex;
 } GF_MediaInformationBox;
 
+GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 typedef struct
@@ -1982,6 +1982,7 @@ typedef struct
 	GF_ISOM_BOX
 	GF_MovieFragmentHeaderBox *mfhd;
 	GF_List *TrackList;
+	GF_List *PSSHs;
 	GF_ISOFile *mov;
 	/*offset in the file of moof or mdat (whichever comes first) for this fragment*/
 	u64 fragment_offset;
@@ -2834,7 +2835,7 @@ typedef struct __traf_mss_timeext_box
 GF_SampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
-void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block);
+void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block);
 
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS

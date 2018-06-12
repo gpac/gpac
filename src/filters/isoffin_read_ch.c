@@ -46,7 +46,8 @@ void isor_reset_reader(ISOMChannel *ch)
 	if (ch->sai_buffer) gf_free(ch->sai_buffer);
 	ch->sai_buffer = NULL;
 	ch->sai_alloc_size = 0;
-	memset(&ch->current_slh, 0, sizeof(GF_SLHeader));
+	ch->dts = ch->cts = 0;
+	ch->seek_flag = 0;
 }
 
 void isor_check_producer_ref_time(ISOMReader *read)
@@ -96,13 +97,7 @@ static void init_reader(ISOMChannel *ch)
 {
 	u32 sample_desc_index=0;
 
-	ch->current_slh.accessUnitEndFlag = 1;
-	ch->current_slh.accessUnitStartFlag = 1;
-	ch->current_slh.AU_sequenceNumber = 1;
-	ch->current_slh.compositionTimeStampFlag = 1;
-	ch->current_slh.decodingTimeStampFlag = 1;
-	ch->current_slh.packetSequenceNumber = 1;
-	ch->current_slh.randomAccessPointFlag = 0;
+	ch->au_seq_num = 1;
 
 	assert(ch->sample==NULL);
 	if (!ch->static_sample) {
@@ -169,21 +164,20 @@ static void init_reader(ISOMChannel *ch)
 	}
 	ch->to_init = GF_FALSE;
 
-	ch->current_slh.seekFlag = 0;
+	ch->seek_flag = 0;
 	if (ch->disable_seek) {
-		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
-		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;
+		ch->dts = ch->sample->DTS;
+		ch->cts = ch->sample->DTS + ch->sample->CTS_Offset;
 		ch->start = 0;
 	} else {
-		ch->current_slh.decodingTimeStamp = ch->start;
-		ch->current_slh.compositionTimeStamp = ch->start;
+		ch->dts = ch->start;
+		ch->cts = ch->start;
 
 		//TODO - we need to notify scene decoder how many secs elapsed between RAP and seek point
-		if (ch->current_slh.compositionTimeStamp != ch->sample->DTS + ch->sample->CTS_Offset) {
-			ch->current_slh.seekFlag = 1;
+		if (ch->cts != ch->sample->DTS + ch->sample->CTS_Offset) {
+			ch->seek_flag = 1;
 		}
 	}
-	ch->current_slh.randomAccessPointFlag = ch->sample ? ch->sample->IsRAP : 0;
 	if (!sample_desc_index) sample_desc_index = 1;
 	ch->last_sample_desc_index = sample_desc_index;
 	ch->owner->no_order_check = ch->speed < 0 ? GF_TRUE : GF_FALSE;
@@ -195,8 +189,8 @@ void isor_reader_load_next_item(ISOMReader *read, ISOMChannel *ch, u32 item_idx)
 }
 void isor_reader_get_sample_from_item(ISOMChannel *ch)
 {
-	if (ch->current_slh.AU_sequenceNumber) {
-		if (!ch->owner->itt || !isor_declare_item_properties(ch->owner, ch, 1+ch->current_slh.AU_sequenceNumber)) {
+	if (ch->au_seq_num) {
+		if (!ch->owner->itt || !isor_declare_item_properties(ch->owner, ch, 1+ch->au_seq_num)) {
 			ch->last_state = GF_EOS;
 			return;
 		}
@@ -209,15 +203,8 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 
 	ch->sample = ch->static_sample;
 	ch->sample->IsRAP = RAP;
-	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
-	ch->current_slh.au_duration = 1000;
-	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
-	ch->current_slh.compositionTimeStampFlag = 1;
-	ch->current_slh.decodingTimeStampFlag = 0;
-	ch->current_slh.compositionTimeStamp = 1000 * ch->current_slh.AU_sequenceNumber;
+	ch->dts = ch->cts = 1000 * ch->au_seq_num;
 	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
-
-	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 }
 
 void isor_reader_get_sample(ISOMChannel *ch)
@@ -427,9 +414,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 
 	ch->last_state = GF_OK;
-	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
-	ch->current_slh.accessUnitLength = ch->sample->dataLength;
-	ch->current_slh.au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
+	ch->au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
 
 	ch->sap_3 = GF_FALSE;
 	ch->sap_4 = GF_FALSE;
@@ -464,32 +449,31 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	 2- otherwise set DTS+CTS to start value
 	 */
 	if ((ch->speed < 0) || (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset)) {
-		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
-		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;
-		ch->current_slh.seekFlag = 0;
+		ch->dts = ch->sample->DTS;
+		ch->cts = ch->sample->DTS + ch->sample->CTS_Offset;
+		ch->seek_flag = 0;
 	} else {
-		ch->current_slh.compositionTimeStamp = ch->start;
-		ch->current_slh.seekFlag = 1;
-		ch->current_slh.decodingTimeStamp = ch->start;
+		ch->cts = ch->start;
+		ch->seek_flag = 1;
+		ch->dts = ch->start;
 	}
-	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
-	ch->current_slh.OCRflag = ch->owner->clock_discontinuity ? 2 : 0;
+	ch->set_disc = ch->owner->clock_discontinuity ? 2 : 0;
 	ch->owner->clock_discontinuity = 0;
 
 	//handle negative ctts
-	if (ch->current_slh.decodingTimeStamp > ch->current_slh.compositionTimeStamp)
-		ch->current_slh.decodingTimeStamp = ch->current_slh.compositionTimeStamp;
+	if (ch->dts > ch->cts)
+		ch->dts = ch->cts;
 
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
 		ch->last_state = GF_EOS;
 	}
-	if (ch->owner->last_sender_ntp && ch->current_slh.compositionTimeStamp==ch->owner->cts_for_last_sender_ntp) {
-		ch->current_slh.sender_ntp = ch->owner->last_sender_ntp;
+	if (ch->owner->last_sender_ntp && ch->cts==ch->owner->cts_for_last_sender_ntp) {
+		ch->sender_ntp = ch->owner->last_sender_ntp;
 	} else {
-		ch->current_slh.sender_ntp = 0;
+		ch->sender_ntp = 0;
 	}
-
+	gf_isom_get_sample_flags(ch->owner->mov, ch->track, ch->last_sample_desc_index, &ch->isLeading, &ch->dependsOn, &ch->dependedOn, &ch->redundant);
 
 	if (ch->is_encrypted) {
 		GF_ISMASample *ismasamp = gf_isom_get_ismacryp_sample(ch->owner->mov, ch->track, ch->sample, 1);
@@ -499,11 +483,11 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			ch->sample->dataLength = ismasamp->dataLength;
 			ismasamp->data = NULL;
 			ismasamp->dataLength = 0;
-			ch->current_slh.isma_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0;
-			ch->current_slh.isma_BSO = ismasamp->IV;
+			ch->isma_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0;
+			ch->isma_BSO = ismasamp->IV;
 			gf_isom_ismacryp_delete_sample(ismasamp);
 		} else {
-			ch->current_slh.isma_encrypted = 0;
+			ch->isma_encrypted = 0;
 			/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
 			if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
 				u32 Is_Encrypted;
@@ -514,27 +498,36 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				bin128 constant_IV;
 
 				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_bytr_block, &skip_byte_block, &constant_IV_size, &constant_IV);
-				ch->current_slh.IV_size = IV_size;
-				ch->current_slh.crypt_byte_block = crypt_bytr_block;
-				ch->current_slh.skip_byte_block = skip_byte_block;
-				if (Is_Encrypted && !ch->current_slh.IV_size) {
-					ch->current_slh.constant_IV_size = constant_IV_size;
-					memmove(ch->current_slh.constant_IV, constant_IV, ch->current_slh.constant_IV_size);
+
+				if (ch->IV_size != IV_size) {
+					ch->IV_size = IV_size;
+					ch->cenc_state_changed = 1;
+				}
+				if ((ch->crypt_byte_block != crypt_bytr_block) || (ch->skip_byte_block != skip_byte_block)) {
+					ch->crypt_byte_block = crypt_bytr_block;
+					ch->skip_byte_block = skip_byte_block;
+					ch->cenc_state_changed = 1;
+				}
+				if (Is_Encrypted != ch->pck_encrypted) {
+					ch->pck_encrypted = Is_Encrypted;
+					ch->cenc_state_changed = 1;
+				}
+				if (Is_Encrypted && !ch->IV_size) {
+					if (ch->constant_IV_size != constant_IV_size) {
+						ch->constant_IV_size = constant_IV_size;
+						ch->cenc_state_changed = 1;
+					} else if (memcmp(ch->constant_IV, constant_IV, ch->constant_IV_size)) {
+						ch->cenc_state_changed = 1;
+					}
+					memmove(ch->constant_IV, constant_IV, ch->constant_IV_size);
 				}
 				if (Is_Encrypted) {
 					u32 out_size = ch->sai_alloc_size;
-					ch->current_slh.cenc_encrypted = 1;
 
 					gf_isom_cenc_get_sample_aux_info_buffer(ch->owner->mov, ch->track, ch->sample_num, NULL, &ch->sai_buffer, &out_size);
 					if (out_size > ch->sai_alloc_size) ch->sai_alloc_size = out_size;
-					if (out_size) {
-						assert(out_size>=16);
-						memcpy(ch->sai_buffer, (char *)KID, 16);
-						ch->sai_buffer_size = out_size;
-					}
+					ch->sai_buffer_size = out_size;
 				}
-				else
-					ch->current_slh.cenc_encrypted = 0;
 			}
 		}
 	}
@@ -544,8 +537,7 @@ void isor_reader_release_sample(ISOMChannel *ch)
 {
 	ch->sample = NULL;
 	ch->sai_buffer_size = 0;
-	ch->current_slh.AU_sequenceNumber++;
-	ch->current_slh.packetSequenceNumber++;
+	ch->au_seq_num++;
 }
 
 
