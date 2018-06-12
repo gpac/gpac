@@ -631,7 +631,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->fragment_duration) { sprintf(szArg, "cdur=%g", dasher->fragment_duration); APPEND_ARG(szArg)}
 	if (dasher->segment_marker_4cc) { sprintf(szArg, "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) ); APPEND_ARG(szArg)}
 	if (dasher->daisy_chain_sidx) { APPEND_ARG("chain_sidx")}
-	if (dasher->initial_moof_sn) { sprintf(szArg, "moof_sn=%d", dasher->initial_moof_sn ); APPEND_ARG(szArg)}
+	if (dasher->initial_moof_sn) { sprintf(szArg, "msn=%d", dasher->initial_moof_sn ); APPEND_ARG(szArg)}
 	if (dasher->initial_tfdt) { sprintf(szArg, "tfdt="LLU"", dasher->initial_tfdt ); APPEND_ARG(szArg)}
 	if (dasher->no_fragments_defaults) {APPEND_ARG("no_def")}
 	if (dasher->single_traf_per_moof) {APPEND_ARG("straf")}

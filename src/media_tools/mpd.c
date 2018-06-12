@@ -682,6 +682,8 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "muxPIDs")) dasher->mux_pids = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "segsPurged")) dasher->segs_purged = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "durPurged")) dasher->dur_purged = gf_mpd_parse_double(att->value);
+		else if (!strcmp(att->name, "moofSN")) dasher->moof_sn = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "moofInc")) dasher->moof_sn_inc = gf_mpd_parse_int(att->value);
 
 	}
 	return dasher;
@@ -2552,6 +2554,9 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 	fprintf(out, "estimatedNextDTS=\""LLU"\" ", dasher->est_next_dts);
 	fprintf(out, "cumulatedDur=\"%g\" ", dasher->cumulated_dur);
 	fprintf(out, "cumulatedSubdur=\"%g\" ", dasher->cumulated_subdur);
+
+	fprintf(out, "moofSN=\"%d\" ", dasher->moof_sn);
+	fprintf(out, "moofInc=\"%d\" ", dasher->moof_sn_inc);
 
 	if (dasher->segs_purged)
 		fprintf(out, "segsPurged=\"%d\" ", dasher->segs_purged);

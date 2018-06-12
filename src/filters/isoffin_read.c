@@ -542,6 +542,8 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 	if (!track || !gf_isom_is_track_encrypted(read->mov, track)) {
 		if (ch->nalu_extract_mode) {
 			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
+		} else if (read->alltracks) {
+			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, GF_ISOM_NALU_EXTRACT_INSPECT);
 		}
 		return ch;
 	}

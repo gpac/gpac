@@ -318,7 +318,7 @@ typedef struct
 	char *mux_pids;
 	u32 segs_purged;
 	Double dur_purged;
-
+	u32 moof_sn, moof_sn_inc;
 } GF_DASH_SegmenterContext;
 
 typedef struct

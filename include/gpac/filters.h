@@ -237,10 +237,12 @@ u32 gf_props_get_id(const char *name);
 #define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data.ptr = _val, .value.data.size = _len}
 #define PROP_VEC2(_val) (GF_PropertyValue){.type=GF_PROP_VEC2, .value.vec2 = _val}
 #define PROP_VEC2I(_val) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i = _val}
+#define PROP_VEC2I_INT(_x, _y) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i.x = _x, .value.vec2i.y = _y}
 #define PROP_VEC3(_val) (GF_PropertyValue){.type=GF_PROP_VEC3, .value.vec3 = _val}
 #define PROP_VEC3I(_val) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i = _val}
 #define PROP_VEC4(_val) (GF_PropertyValue){.type=GF_PROP_VEC4, .value.vec4 = _val}
 #define PROP_VEC4I(_val) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i = _val}
+#define PROP_VEC4I_INT(_x, _y, _z, _w) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i.x = _x, .value.vec4i.y = _y, .value.vec4i.z = _z, .value.vec4i.w = _w}
 
 #define PROP_POINTER(_val) (GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
 
@@ -746,6 +748,7 @@ enum
 	GF_PROP_PID_PLAYBACK_MODE = GF_4CC('P','B','K','M'),
 	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers
 	GF_PROP_PID_SCALABLE = GF_4CC('S','C','A','L'),
+	GF_PROP_PID_TILE_BASE = GF_4CC('S','A','B','T'),
 	GF_PROP_PID_LANGUAGE = GF_4CC('L','A','N','G'),
 	GF_PROP_PID_SERVICE_NAME = GF_4CC('S','N','A','M'),
 	GF_PROP_PID_SERVICE_PROVIDER = GF_4CC('S','P','R','O'),
@@ -959,6 +962,8 @@ enum
 	GF_PROP_PID_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
 	//(uint)
 	GF_PROP_PID_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
+	//(pointer)
+	GF_PROP_PID_DASH_MULTI_TRACK = GF_4CC('D','M','T','K'),
 	//(stringlist)
 	GF_PROP_PID_ROLE = GF_4CC('R','O','L','E'),
 	//(stringlist)

@@ -79,6 +79,8 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_MPEG_AUDIO, GF_CODECID_MPEG_AUDIO, GF_STREAM_AUDIO, "MPEG-1 Audio", "m1a", ".mp3"},
 	{GF_CODECID_S263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "s263"},
 	{GF_CODECID_H263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "h263"},
+	{GF_CODECID_HEVC_TILES, 0, GF_STREAM_VISUAL, "HEVC tiles Video", "hvt1", "hvt1"},
+
 	{GF_CODECID_EVRC, 0xA0, GF_STREAM_AUDIO, "EVRC Voice", "evrc", "sevc"},
 	{GF_CODECID_SMV, 0xA1, GF_STREAM_AUDIO, "SMV Voice", "smv", "ssmv"},
 	{GF_CODECID_QCELP, 0xE1, GF_STREAM_AUDIO, "QCELP Voice", "qcelp", "sqcp"},
