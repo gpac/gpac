@@ -684,77 +684,111 @@ SectionEnd
   !endif
 !endif
 
-; AddToPath - Adds the given dir to the search path.
-;        Input - head of the stack
-;        Note - Win9x systems requires reboot
+;--------------------------------------------------------------------
+; Path functions
+;
+; Based on example from:
+; http://nsis.sourceforge.net/Path_Manipulation
+;
+
+
+!include "WinMessages.nsh"
+
+; Registry Entry for environment (NT4,2000,XP)
+; All users:
+;!define Environ 'HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"'
+; Current user only:
+!define Environ 'HKCU "Environment"'
+
+
+; AddToPath - Appends dir to PATH
+;   (does not work on Win9x/ME)
+;
+; Usage:
+;   Push "dir"
+;   Call AddToPath
 
 Function AddToPath
   Exch $0
   Push $1
   Push $2
   Push $3
+  Push $4
 
-  # don't add if the path doesn't exist
-  IfFileExists "$0\*.*" "" AddToPath_done
+  ; NSIS ReadRegStr returns empty string on string overflow
+  ; Native calls are used here to check actual length of PATH
 
-  ReadEnvStr $1 PATH
+  ; $4 = RegOpenKey(HKEY_CURRENT_USER, "Environment", &$3)
+  System::Call "advapi32::RegOpenKey(i 0x80000001, t'Environment', *i.r3) i.r4"
+  IntCmp $4 0 0 done done
+  ; $4 = RegQueryValueEx($3, "PATH", (DWORD*)0, (DWORD*)0, &$1, ($2=NSIS_MAX_STRLEN, &$2))
+  ; RegCloseKey($3)
+  System::Call "advapi32::RegQueryValueEx(i $3, t'PATH', i 0, i 0, t.r1, *i ${NSIS_MAX_STRLEN} r2) i.r4"
+  System::Call "advapi32::RegCloseKey(i $3)"
+
+  ${If} $4 = 234 ; ERROR_MORE_DATA
+    DetailPrint "AddToPath: original length $2 > ${NSIS_MAX_STRLEN}"
+    MessageBox MB_OK "PATH not updated, original length $2 > ${NSIS_MAX_STRLEN}" /SD IDOK
+    Goto done
+  ${EndIf}
+
+  ${If} $4 <> 0 ; NO_ERROR
+    ${If} $4 <> 2 ; ERROR_FILE_NOT_FOUND
+      DetailPrint "AddToPath: unexpected error code $4"
+      Goto done
+    ${EndIf}
+    StrCpy $1 ""
+  ${EndIf}
+
+  ; Check if already in PATH
   Push "$1;"
   Push "$0;"
   Call StrStr
   Pop $2
-  StrCmp $2 "" "" AddToPath_done
+  StrCmp $2 "" 0 done
   Push "$1;"
   Push "$0\;"
   Call StrStr
   Pop $2
-  StrCmp $2 "" "" AddToPath_done
-  GetFullPathName /SHORT $3 $0
-  Push "$1;"
-  Push "$3;"
-  Call StrStr
-  Pop $2
-  StrCmp $2 "" "" AddToPath_done
-  Push "$1;"
-  Push "$3\;"
-  Call StrStr
-  Pop $2
-  StrCmp $2 "" "" AddToPath_done
+  StrCmp $2 "" 0 done
 
-  Call IsNT
+  ; Prevent NSIS string overflow
+  StrLen $2 $0
+  StrLen $3 $1
+  IntOp $2 $2 + $3
+  IntOp $2 $2 + 2 ; $2 = strlen(dir) + strlen(PATH) + sizeof(";")
+  ${If} $2 > ${NSIS_MAX_STRLEN}
+    DetailPrint "AddToPath: new length $2 > ${NSIS_MAX_STRLEN}"
+    MessageBox MB_OK "PATH not updated, new length $2 > ${NSIS_MAX_STRLEN}." /SD IDOK
+    Goto done
+  ${EndIf}
+
+  ; Append dir to PATH
+  DetailPrint "Add to PATH: $0"
+  StrCpy $2 $1 1 -1
+  ${If} $2 == ";"
+    StrCpy $1 $1 -1 ; remove trailing ';'
+  ${EndIf}
+  ${If} $1 != "" ; no leading ';'
+    StrCpy $0 "$1;$0"
+  ${EndIf}
+  WriteRegExpandStr ${Environ} "PATH" $0
+  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+
+done:
+  Pop $4
+  Pop $3
+  Pop $2
   Pop $1
-  StrCmp $1 1 AddToPath_NT
-    ; Not on NT
-    StrCpy $1 $WINDIR 2
-    FileOpen $1 "$1\autoexec.bat" a
-    FileSeek $1 -1 END
-    FileReadByte $1 $2
-    IntCmp $2 26 0 +2 +2 # DOS EOF
-      FileSeek $1 -1 END # write over EOF
-    FileWrite $1 "$\r$\nSET PATH=%PATH%;$3$\r$\n"
-    FileClose $1
-    SetRebootFlag true
-    Goto AddToPath_done
-
-  AddToPath_NT:
-    ReadRegStr $1 ${WriteEnvStr_RegKey} "PATH"
-    StrCpy $2 $1 1 -1 # copy last char
-    StrCmp $2 ";" 0 +2 # if last char == ;
-      StrCpy $1 $1 -1 # remove last char
-    StrCmp $1 "" AddToPath_NTdoIt
-      StrCpy $0 "$1;$0"
-    AddToPath_NTdoIt:
-      WriteRegExpandStr ${WriteEnvStr_RegKey} "PATH" $0
-      SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
-
-  AddToPath_done:
-    Pop $3
-    Pop $2
-    Pop $1
-    Pop $0
+  Pop $0
 FunctionEnd
 
-; RemoveFromPath - Remove a given dir from the path
-;     Input: head of the stack
+
+; RemoveFromPath - Removes dir from PATH
+;
+; Usage:
+;   Push "dir"
+;   Call RemoveFromPath
 
 Function un.RemoveFromPath
   Exch $0
@@ -765,79 +799,40 @@ Function un.RemoveFromPath
   Push $5
   Push $6
 
-  IntFmt $6 "%c" 26 # DOS EOF
+  ReadRegStr $1 ${Environ} "PATH"
+  StrCpy $5 $1 1 -1
+  ${If} $5 != ";"
+    StrCpy $1 "$1;" ; ensure trailing ';'
+  ${EndIf}
+  Push $1
+  Push "$0;"
+  Call un.StrStr
+  Pop $2 ; pos of our dir
+  StrCmp $2 "" done
 
-  Call un.IsNT
+  DetailPrint "Remove from PATH: $0"
+  StrLen $3 "$0;"
+  StrLen $4 $2
+  StrCpy $5 $1 -$4 ; $5 is now the part before the path to remove
+  StrCpy $6 $2 "" $3 ; $6 is now the part after the path to remove
+  StrCpy $3 "$5$6"
+  StrCpy $5 $3 1 -1
+  ${If} $5 == ";"
+    StrCpy $3 $3 -1 ; remove trailing ';'
+  ${EndIf}
+  WriteRegExpandStr ${Environ} "PATH" $3
+  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+
+done:
+  Pop $6
+  Pop $5
+  Pop $4
+  Pop $3
+  Pop $2
   Pop $1
-  StrCmp $1 1 unRemoveFromPath_NT
-    ; Not on NT
-    StrCpy $1 $WINDIR 2
-    FileOpen $1 "$1\autoexec.bat" r
-    GetTempFileName $4
-    FileOpen $2 $4 w
-    GetFullPathName /SHORT $0 $0
-    StrCpy $0 "SET PATH=%PATH%;$0"
-    Goto unRemoveFromPath_dosLoop
-
-    unRemoveFromPath_dosLoop:
-      FileRead $1 $3
-      StrCpy $5 $3 1 -1 # read last char
-      StrCmp $5 $6 0 +2 # if DOS EOF
-        StrCpy $3 $3 -1 # remove DOS EOF so we can compare
-      StrCmp $3 "$0$\r$\n" unRemoveFromPath_dosLoopRemoveLine
-      StrCmp $3 "$0$\n" unRemoveFromPath_dosLoopRemoveLine
-      StrCmp $3 "$0" unRemoveFromPath_dosLoopRemoveLine
-      StrCmp $3 "" unRemoveFromPath_dosLoopEnd
-      FileWrite $2 $3
-      Goto unRemoveFromPath_dosLoop
-      unRemoveFromPath_dosLoopRemoveLine:
-        SetRebootFlag true
-        Goto unRemoveFromPath_dosLoop
-
-    unRemoveFromPath_dosLoopEnd:
-      FileClose $2
-      FileClose $1
-      StrCpy $1 $WINDIR 2
-      Delete "$1\autoexec.bat"
-      CopyFiles /SILENT $4 "$1\autoexec.bat"
-      Delete $4
-      Goto unRemoveFromPath_done
-
-  unRemoveFromPath_NT:
-    ReadRegStr $1 ${WriteEnvStr_RegKey} "PATH"
-    StrCpy $5 $1 1 -1 # copy last char
-    StrCmp $5 ";" +2 # if last char != ;
-      StrCpy $1 "$1;" # append ;
-    Push $1
-    Push "$0;"
-    Call un.StrStr ; Find `$0;` in $1
-    Pop $2 ; pos of our dir
-    StrCmp $2 "" unRemoveFromPath_done
-      ; else, it is in path
-      # $0 - path to add
-      # $1 - path var
-      StrLen $3 "$0;"
-      StrLen $4 $2
-      StrCpy $5 $1 -$4 # $5 is now the part before the path to remove
-      StrCpy $6 $2 "" $3 # $6 is now the part after the path to remove
-      StrCpy $3 $5$6
-
-      StrCpy $5 $3 1 -1 # copy last char
-      StrCmp $5 ";" 0 +2 # if last char == ;
-        StrCpy $3 $3 -1 # remove last char
-
-      WriteRegExpandStr ${WriteEnvStr_RegKey} "PATH" $3
-      SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
-
-  unRemoveFromPath_done:
-    Pop $6
-    Pop $5
-    Pop $4
-    Pop $3
-    Pop $2
-    Pop $1
-    Pop $0
+  Pop $0
 FunctionEnd
+
 
 ###########################################
 #            Utility Functions            #
