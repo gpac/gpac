@@ -80,7 +80,7 @@ static void gpac_filter_help(void)
 "Filters are listed with their name and options are given using a list of colon-separated Name=Value: \n"
 "\tValue can be omitted for booleans, defaulting to true (eg :noedit). Using '!'before the name negates\n"
 "the result (eg :!moof_first)\n"
-"\tName can be omitted for enumerations (eg :mode=pbo is equivalent to :pbo).\n"
+"\tName can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enum names in one filter!\n"
 "\n"
 "When string parameters are used (eg URLs), it is recommended to escape the string using the keword \"gpac\" \n"
 "\tEX: \"filter:ARG=http://foo/bar?yes:gpac:opt=VAL\" will properly extract the URL\n"

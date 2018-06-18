@@ -33,7 +33,7 @@ typedef struct
 {
 	//options
 	GF_PropVec2i size;
-	u32 pfmt, mode;
+	u32 pfmt, scale;
 	Double p1, p2;
 
 	//internal data
@@ -244,7 +244,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u32 nb_par = 0;
 		nb_par = 0;
 		Bool res;
-		u32 mode = get_sws_mode(ctx->mode, &nb_par);
+		u32 mode = get_sws_mode(ctx->scale, &nb_par);
 		u32 ff_src_pfmt = ffmpeg_pixfmt_from_gpac(pfmt);
 		u32 ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->pfmt);
 
@@ -339,7 +339,7 @@ static GF_FilterArgs FFSWSArgs[] =
 {
 	{ OFFS(size), "size of output video. When not set, input size is used", GF_PROP_VEC2I, NULL, NULL, GF_FALSE},
 	{ OFFS(pfmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
-	{ OFFS(mode), "scaling mode", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FALSE},
+	{ OFFS(scale), "scaling mode", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FALSE},
 	{ OFFS(p1), "scaling algo param1. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
 	{ OFFS(p2), "scaling algo param2. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
 	{0}

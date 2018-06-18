@@ -3297,7 +3297,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Transform_Translate_datatype:
 	{
 		u32 i = 0;
-		SVG_Point *p = (SVG_Point *)info->far_ptr;;
+		SVG_Point *p = (SVG_Point *)info->far_ptr;
 		i+=svg_parse_number(&(attribute_content[i]), &(p->x), 0);
 		if (attribute_content[i] == 0) {
 			p->y = 0;
@@ -3309,7 +3309,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Transform_Scale_datatype:
 	{
 		u32 i = 0;
-		SVG_Point *p = (SVG_Point *)info->far_ptr;;
+		SVG_Point *p = (SVG_Point *)info->far_ptr;
 		i+=svg_parse_number(&(attribute_content[i]), &(p->x), 0);
 		if (attribute_content[i] == 0) {
 			p->y = p->x;
@@ -3328,7 +3328,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Transform_Rotate_datatype:
 	{
 		u32 i = 0;
-		SVG_Point_Angle *p = (SVG_Point_Angle *)info->far_ptr;;
+		SVG_Point_Angle *p = (SVG_Point_Angle *)info->far_ptr;
 		i+=svg_parse_number(&(attribute_content[i]), &(p->angle), 1);
 		if (attribute_content[i] == 0) {
 			p->y = p->x = 0;

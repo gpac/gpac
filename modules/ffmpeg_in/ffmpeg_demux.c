@@ -287,7 +287,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 
 	ctx = NULL;
 	if (open_file(&ctx, szName, NULL, ffd->options ? &ffd->options : NULL)<0) {
-		AVInputFormat *av_in = NULL;;
+		AVInputFormat *av_in = NULL;
 		/*some extensions not supported by ffmpeg*/
 		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 

@@ -438,8 +438,6 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 	task->run_task = task_fun;
 	task->log_name = log_name;
 	task->udta = udta;
-	task->in_main_task_list_only = GF_FALSE;
-	task->notified = GF_FALSE;
 
 	if (filter) {
 	
@@ -447,6 +445,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 		if (! filter->scheduled_for_next_task && (gf_fq_count(filter->tasks) == 0)) {
 			task->notified = GF_TRUE;
 		}
+		assert(!task->in_main_task_list_only);
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
 
@@ -810,6 +809,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						}
 						task->in_main_task_list_only = GF_FALSE;
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s reposted to filter task until task exec time is reached (%d us)\n", thid, current_filter->name, task->log_name, (s32) (task->schedule_next_time - next->schedule_next_time) ));
+						assert(!task->in_main_task_list_only);
 						gf_fq_add(current_filter->tasks, task);
 						continue;
 					}
@@ -914,6 +914,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						//if requeue
 						if (a_task) {
 							a_task->notified = task->notified;
+							task->in_main_task_list_only = GF_FALSE;
+							task->notified = GF_FALSE;
+
 							gf_fq_add(current_filter->tasks, task);
 							task = a_task;
 						}
@@ -942,6 +945,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #ifdef CHECK_TASK_LIST_INTEGRITY
 				check_task_list(fsess->main_thread_tasks, task);
 #endif
+				assert(!task->in_main_task_list_only);
 				gf_fq_add(current_filter->tasks, task);
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
@@ -1267,23 +1271,25 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 }
 
 
-void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val)
+void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, u32 propagate_mask)
 {
 	GF_FilterUpdate *upd;
-	GF_Filter *filter=NULL;
 	u32 i, count;
 	Bool removed = GF_FALSE;
-	if (!fid || !name) return;
+	if ((!fid && !filter) || !name) return;
 
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
-	count = gf_list_count(fsess->filters);
-	for (i=0; i<count; i++) {
-		filter = gf_list_get(fsess->filters, i);
-		if (filter->id && !strcmp(filter->id, fid)) {
-			break;
+	if (!filter) {
+		count = gf_list_count(fsess->filters);
+		for (i=0; i<count; i++) {
+			filter = gf_list_get(fsess->filters, i);
+			if (filter->id && !strcmp(filter->id, fid)) {
+				break;
+			}
 		}
 	}
+
 	removed = (!filter || filter->removed || filter->finalized) ? GF_TRUE : GF_FALSE;
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
@@ -1292,6 +1298,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
 	upd->name = gf_strdup(name);
 	upd->val = gf_strdup(val);
+	upd->recursive = propagate_mask;
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }
 

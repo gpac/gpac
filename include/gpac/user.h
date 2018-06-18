@@ -122,6 +122,9 @@ struct _tag_user
 
 	/*init flags bypassing GPAC config file	*/
 	u32 init_flags;
+
+	/*filter blacklist - temporary, should be moved to config ?*/
+	const char *blacklist;
 };
 
 /*! @} */

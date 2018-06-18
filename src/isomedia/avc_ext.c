@@ -2148,7 +2148,8 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 				AVCState avc;
 				s32 idx;
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ptr->config->sequenceParameterSets, 0);
-				idx = gf_media_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, NULL);
+				idx = sl ? gf_media_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, NULL) : -1;
+
 				if (idx>=0) {
 					ptr->config->chroma_format = avc.sps[idx].chroma_format;
 					ptr->config->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
@@ -2512,7 +2513,7 @@ GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs)
 	count=gf_list_count(ptr->operating_points);
 	gf_bs_write_u16(bs, count);
 	for (i = 0; i < count; i++) {
-		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);;
+		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);
 		gf_bs_write_u16(bs, op->output_layer_set_idx);
 		gf_bs_write_u8(bs, op->max_temporal_id);
 		gf_bs_write_u8(bs, op->layer_count);
@@ -2570,7 +2571,7 @@ u32 gf_isom_oinf_size_entry(void *entry)
 	size += 2;//num_operating_points
 	count=gf_list_count(ptr->operating_points);
 	for (i = 0; i < count; i++) {
-		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);;
+		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);
 		size += 2/*output_layer_set_idx*/ + 1/*max_temporal_id*/ + 1/*layer_count*/;
 		size += op->layer_count * 2;
 		size += 9;

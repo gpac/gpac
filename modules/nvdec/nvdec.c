@@ -1050,9 +1050,19 @@ GF_Err NVDec_GetOutputFrame(struct _mediadecoder *dec, u16 ES_ID, GF_MediaDecode
 
 static u32 NVDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
+	const char *opt;
 	if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
 	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dec, "NVDec", "Enabled");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)dec, "NVDec", "Enabled", "no");
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] nvdec disabled by default, enable it in config file NVDec:Enabled=yes\n") );
+		return GF_CODEC_NOT_SUPPORTED;
+	} else if (!strcmp(opt, "no")) {
+		return GF_CODEC_NOT_SUPPORTED;
+	}
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_HEVC:

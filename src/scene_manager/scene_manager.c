@@ -700,7 +700,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_XBL:
 		e = gf_sm_load_init_xbl(load);
 
-		load->process = gf_sm_load_run_xbl;;
+		load->process = gf_sm_load_run_xbl;
 		load->done = gf_sm_load_done_xbl;
 		return e;
 #endif

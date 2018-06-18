@@ -310,7 +310,7 @@ static GF_Node *s2b_get_gradient(SWFReader *read, GF_Node *parent, SWFShape *sha
 		}
 		/*and remove material !!*/
 		((M_Material2D *)app->material)->filled = 0;
-		((M_Material2D *)app->material)->lineProps = s2b_new_node(read, TAG_MPEG4_LineProperties);;
+		((M_Material2D *)app->material)->lineProps = s2b_new_node(read, TAG_MPEG4_LineProperties);
 		((M_LineProperties *)((M_Material2D *)app->material)->lineProps)->width = 0;
 		gf_node_register(((M_Material2D *)app->material)->lineProps, app->material);
 	}

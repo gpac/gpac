@@ -155,7 +155,7 @@ GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 {
 	u32 BPP;
 	EVGSurface *surf = (EVGSurface *)_this;
-	EVG_Texture *tx = (EVG_Texture *) sten;;
+	EVG_Texture *tx = (EVG_Texture *) sten;
 	if (!surf || (tx->type != GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
 
 	switch (tx->pixel_format) {

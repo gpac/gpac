@@ -3968,7 +3968,7 @@ restart:
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 //		x = 0;
 		y = 1;
-		y = gf_mulfix(y, INT2FIX(txh->height/2));;
+		y = gf_mulfix(y, INT2FIX(txh->height/2));
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
 		in_strip = 0;

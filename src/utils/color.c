@@ -2447,6 +2447,90 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 }
 
 GF_EXPORT
+GF_Err gf_color_write_nv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pUV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+{
+	u32 i, j, w, h;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+	} else {
+		w = src_width;
+		h = src_height;
+	}
+
+
+//#ifdef GPAC_HAS_SSE2
+#if 0
+
+#ifdef GPAC_64_BITS
+#define GFINTCAST  (u64)
+#else
+#define GFINTCAST  (u32)
+#endif
+
+	if ( (w%32 == 0)
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y/2)%8 == 0)
+	        && (GFINTCAST (pU + src_stride/2)%8 == 0)
+	        && (GFINTCAST (pV + src_stride/2)%8 == 0)
+	   ) {
+		return gf_color_write_yv12_10_to_yuv_intrin(vs_dst, pY, pU, pV, src_stride, src_width, src_height, _src_wnd, swap_uv);
+	}
+#endif
+
+	if (!pUV) {
+		pUV = pY + src_stride * src_height;
+	}
+
+	if (_src_wnd) {
+		pY = pY + src_stride * _src_wnd->y + _src_wnd->x;
+		/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
+		therefore force an even Y offset for U and V planes.*/
+		pUV = pUV + (src_stride * (_src_wnd->y / 2) + _src_wnd->x) / 2;
+	}
+
+	for (i=0; i<h; i++) {
+		u16 *src = (u16 *) (pY + i*src_stride);
+		u8 *dst = (u8 *) vs_dst->video_buffer + i*vs_dst->pitch_y;
+
+		for (j=0; j<w; j++) {
+			*dst = (*src) >> 2;
+			dst++;
+			src++;
+		}
+	}
+
+	for (i=0; i<h/2; i++) {
+		u16 *src = (u16 *) (pUV + i*src_stride/2);
+		u8 *dst = (u8 *) vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y/2;
+		if (vs_dst->u_ptr) dst = (u8 *) (vs_dst->u_ptr + i*vs_dst->pitch_y/2);
+		if (swap_uv) src += 1;
+
+		for (j=0; j<w/2; j++) {
+			*dst = (*src) >> 2;
+			dst++;
+			src++;
+		}
+	}
+
+	for (i=0; i<h/2; i++) {
+		u16 *src = (u16 *) (pUV + i*src_stride/2);
+		u8 *dst = (u8 *) vs_dst->video_buffer + 5*vs_dst->pitch_y * vs_dst->height/4  + i*vs_dst->pitch_y/2;
+		if (vs_dst->v_ptr) dst = (u8 *) (vs_dst->v_ptr + i*vs_dst->pitch_y/2);
+		if (!swap_uv) src += 1;
+
+		for (j=0; j<w/2; j++) {
+			*dst = (*src) >> 2;
+			dst++;
+			src++;
+		}
+	}
+	return GF_OK;
+
+}
+
+GF_EXPORT
 GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
