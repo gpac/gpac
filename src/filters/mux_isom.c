@@ -1649,7 +1649,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		ctx->init_movie_done = GF_TRUE;
 
 		if (min_dts_scale) {
-			ctx->next_frag_start = min_dts;
+			ctx->next_frag_start = (Double) min_dts;
 			ctx->next_frag_start /= min_dts_scale;
 		}
 		ctx->next_frag_start += ctx->cdur;
@@ -1913,7 +1913,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					 ctx->seg_sizes = gf_realloc(ctx->seg_sizes, sizeof(u32) * ctx->alloc_seg_sizes);
 				}
 				assert(segment_size_in_bytes);
-				ctx->seg_sizes[ctx->nb_seg_sizes] = segment_size_in_bytes;
+				ctx->seg_sizes[ctx->nb_seg_sizes] = (u32) segment_size_in_bytes;
 				ctx->nb_seg_sizes++;
 			}
 		}

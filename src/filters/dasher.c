@@ -1801,9 +1801,9 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, Double min_valid_mpd_time, 
 			Double time, dur;
 			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, 0);
 			if (!sctx) break;
-			time = (u64) sctx->time;
-			time /= (u64) ds->mpd_timescale;
-			dur = sctx->dur;
+			time = (Double) sctx->time;
+			time /= ds->mpd_timescale;
+			dur = (Double) sctx->dur;
 			dur/= ds->timescale;
 			if (time + dur >= min_valid_mpd_time) break;
 			if (sctx->file_name) {
@@ -1834,7 +1834,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, Double min_valid_mpd_time, 
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
-		if (max_rem_dur < ds->dur_purged*1000) max_rem_dur = ds->dur_purged*1000;
+		if (max_rem_dur < ds->dur_purged*1000) max_rem_dur = (u64) (ds->dur_purged * 1000);
 		//final flush to static of live session: update start number
 		if (ctx->dmode!=GF_MPD_TYPE_DYNAMIC) {
 			if (ds->owns_set && ds->set && ds->set->segment_template) {
@@ -1865,10 +1865,10 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 		if (ds->xlink) pdur = (u32) (1000*ds->period_dur);
 		else {
 			u64 ds_dur = ds->max_period_dur;
-			if (ds->clamped_dur) ds_dur = ds->clamped_dur * 1000;
+			if (ds->clamped_dur) ds_dur = (u64) (ds->clamped_dur) * 1000;
 
 			if (ds->dur_purged && (ctx->mpd->type != GF_MPD_TYPE_DYNAMIC)) {
-				u64 rem_dur = ds->dur_purged*1000;
+				u64 rem_dur = (u64) (ds->dur_purged) * 1000;
 				if (ds_dur>rem_dur) ds_dur -= rem_dur;
 				else ds_dur = 0;
 			}
@@ -1887,7 +1887,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 
 	//non-static mode, purge segments
 	if ((ctx->dmode != GF_MPD_TYPE_STATIC) && (ctx->tsb>=0)) {
-		Double min_valid_mpd_time = pdur;
+		Double min_valid_mpd_time = (Double) pdur;
 		min_valid_mpd_time /= 1000;
 		min_valid_mpd_time -= ctx->tsb;
 		//negative asto, we produce segments earlier but we don't want to delete them before the asto
@@ -2144,12 +2144,12 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
 			if (a_ds==ds) continue;
 			if (a_ds->muxed_base != ds) continue;
-			l1 = ds->rep->dasher_ctx->mux_pids ? strlen(ds->rep->dasher_ctx->mux_pids) : 0;
+			l1 = ds->rep->dasher_ctx->mux_pids ? (u32) strlen(ds->rep->dasher_ctx->mux_pids) : 0;
 			if (l1)
 				sprintf(szMuxPID, " %d", a_ds->id);
 			else
 				sprintf(szMuxPID, "%d", a_ds->id);
-			l2 = strlen(szMuxPID);
+			l2 = (u32) strlen(szMuxPID);
 			ds->rep->dasher_ctx->mux_pids = gf_realloc(ds->rep->dasher_ctx->mux_pids, sizeof(char)*(l1+l2+1));
 			strcpy(ds->rep->dasher_ctx->mux_pids + l1, szMuxPID);
 			ds->rep->dasher_ctx->mux_pids[l1+l2] = 0;
@@ -2369,7 +2369,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->ts_offset = rep->dasher_ctx->ts_offset;
 			ds->est_next_dts = rep->dasher_ctx->est_next_dts;
 			ds->mpd_timescale = rep->dasher_ctx->mpd_timescale;
-			ds->cumulated_dur = rep->dasher_ctx->cumulated_dur * ds->timescale;
+			ds->cumulated_dur = (u64) (rep->dasher_ctx->cumulated_dur) * ds->timescale;
 			ds->cumulated_subdur = rep->dasher_ctx->cumulated_subdur;
 			ds->rep_init = GF_TRUE;
 			ds->subdur_done = GF_FALSE;
@@ -2895,9 +2895,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			start_date_sec_ntp += GF_NTP_SEC_1900_TO_1970;
 			ms = (Double) (dash_start_date - secs*1000);
 			ms /= 1000.0;
-			ctx->mpd->gpac_init_ntp_ms = start_date_sec_ntp * 1000 + ms;
+			ctx->mpd->gpac_init_ntp_ms = (u64) (start_date_sec_ntp * 1000 + ms);
 			//compute number of seconds to discard
-			ctx->nb_secs_to_discard = (ctx->mpd->availabilityStartTime - dash_start_date);
+			ctx->nb_secs_to_discard = (Double) (ctx->mpd->availabilityStartTime - dash_start_date);
 			ctx->nb_secs_to_discard /= 1000;
 			//don't discard TSB, this will be done automatically
 
@@ -2939,7 +2939,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			u32 nb_skip=0;
 
 			period_dur = (u64) (ctx->nb_secs_to_discard * ds->timescale);
-			seg_dur = ds->dash_dur*ds->timescale;
+			seg_dur = (u64) (ds->dash_dur) * ds->timescale;
 
 			nb_skip = (u32) (period_dur / seg_dur);
 			ds->ts_offset += nb_skip*seg_dur;
@@ -3828,9 +3828,9 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			assert(sctx);
 			assert(ctx->nb_seg_url_pending);
 			ctx->nb_seg_url_pending--;
-			sctx->file_size = 1 + evt->seg_size.media_range_end - evt->seg_size.media_range_start;
+			sctx->file_size = 1 + (u32) (evt->seg_size.media_range_end - evt->seg_size.media_range_start);
 			sctx->file_offset = evt->seg_size.media_range_start;
-			sctx->index_size = 1 + evt->seg_size.idx_range_end - evt->seg_size.idx_range_start;
+			sctx->index_size = 1 + (u32) (evt->seg_size.idx_range_end - evt->seg_size.idx_range_start);
 			sctx->index_offset = evt->seg_size.idx_range_start;
 		}
 

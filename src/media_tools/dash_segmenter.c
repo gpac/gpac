@@ -127,7 +127,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 		diff -= (s64) gf_net_get_ntp_ms();
 	}
 	if (ms_in_session) *ms_in_session = dasher->mpd_time_ms;
-	return diff>0 ? diff : 0;
+	return diff>0 ? (u32) diff : 0;
 }
 
 
@@ -210,8 +210,8 @@ GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
 }
 
 #define SET_LIST_STR(_field, _val)	\
-	l1 = dasher->_field ? strlen(dasher->_field) : 0;\
-	l2 = strlen(_val);\
+	l1 = dasher->_field ? (u32) strlen(dasher->_field) : 0;\
+	l2 = (u32) strlen(_val);\
 	if (l1) dasher->_field = gf_realloc(dasher->_field, sizeof(char)*(l1+l2+2));\
 	else dasher->_field = gf_realloc(dasher->_field, sizeof(char)*(l1+l2+1));\
 	if (!dasher->_field) return GF_OUT_OF_MEM;\
@@ -494,8 +494,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	char *args=NULL, szArg[1024];
 
 #define APPEND_ARG(_an_arg) \
-		l1 = args ? strlen(args) : 0; \
-		l2 = strlen(_an_arg);\
+		l1 = args ? (u32) strlen(args) : 0; \
+		l2 = (u32) strlen(_an_arg);\
 		if (l1) args = gf_realloc(args, sizeof(char)*(l1+l2+2));\
 		else args = gf_realloc(args, sizeof(char)*(l1+l2+1));\
 		if (!args) return GF_OUT_OF_MEM;\
@@ -671,8 +671,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 #define APPEND_STR(_an_arg) \
-		l1 = args ? strlen(args) : 0; \
-		l2 = strlen(_an_arg);\
+		l1 = args ? (u32) strlen(args) : 0; \
+		l2 = (u32) strlen(_an_arg);\
 		args = gf_realloc(args, sizeof(char)*(l1+l2+2));\
 		if (!args) return GF_OUT_OF_MEM;\
 		strcat(args, ","); \
