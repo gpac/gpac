@@ -111,13 +111,19 @@ typedef struct
 	GF_List *src_packets;
 } GF_OHEVCDecCtx;
 
-static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid, const GF_PropertyValue *dsi)
+static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid)
 {
 	GF_HEVCConfig *cfg = NULL;
 	char *data;
 	u32 data_len;
 	GF_BitStream *bs;
+	Bool is_lhvc = GF_FALSE;
 	u32 i, j;
+	const GF_PropertyValue *dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	if (!dsi) {
+		dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+		is_lhvc = GF_TRUE;
+	}
 
 	if (!ctx->codec) return GF_NOT_SUPPORTED;
 
@@ -128,13 +134,9 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 		return GF_OK;
 	}
-	//FIXME in isomedia this should be an LHCC, not an HVCC
-	if (codecid==GF_CODECID_LHVC) {
-		cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
-	} else {
-		cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
-	}
-	
+
+	cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, is_lhvc);
+
 	if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
 	if (!ctx->hevc_nalu_size_length) ctx->hevc_nalu_size_length = cfg->nal_unit_size;
 	else if (ctx->hevc_nalu_size_length != cfg->nal_unit_size)
@@ -366,7 +368,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	//scalable stream setup
 	if (stream->dep_id) {
-		GF_Err e = ohevcdec_configure_scalable_pid(ctx, pid, codecid, dsi);
+		GF_Err e;
+		e = ohevcdec_configure_scalable_pid(ctx, pid, codecid);
 		ohevcdec_set_codec_name(filter);
 		return e;
 	}
@@ -991,6 +994,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 	ctx->dec_frames++;
 	got_pic = 0;
+	ctx->reaggregation_size = 0;
 
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
@@ -1065,17 +1069,13 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 					}
 				}
 			}
-			if (!ctx->hevc_nalu_size_length && (ctx->nb_streams>1) ) {
+			if (ctx->nb_streams>1) {
 				if (ctx->reaggregation_alloc_size < ctx->reaggregation_size + data_size) {
 					ctx->reaggregation_alloc_size = ctx->reaggregation_size + data_size;
 					ctx->reaggregation_buffer = gf_realloc(ctx->reaggregation_buffer, sizeof(char)*ctx->reaggregation_alloc_size);
 				}
 				memcpy(ctx->reaggregation_buffer + ctx->reaggregation_size, data, sizeof(char)*data_size);
 				ctx->reaggregation_size += data_size;
-				if (idx+1 == ctx->nb_streams) {
-					got_pic = oh_decode(ctx->codec, (u8 *) ctx->reaggregation_buffer, ctx->reaggregation_size, cts);
-					ctx->reaggregation_size = 0;
-				}
 			} else {
 				got_pic = oh_decode(ctx->codec, (u8 *) data, data_size, cts);
 			}
@@ -1084,8 +1084,15 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			has_pic = GF_TRUE;
 
 		gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
-
 	}
+
+	if (ctx->reaggregation_size) {
+		got_pic = oh_decode(ctx->codec, (u8 *) ctx->reaggregation_buffer, ctx->reaggregation_size, min_cts);
+		ctx->reaggregation_size = 0;
+		if (got_pic)
+			has_pic = GF_TRUE;
+	}
+
 
 	if (!has_pic) return GF_OK;
 

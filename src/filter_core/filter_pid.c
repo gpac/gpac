@@ -2067,6 +2067,9 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 			if (prop_type==GF_PROP_STRING_LIST) {
 				p.value.string_list = NULL;
 			}
+			else if (prop_type==GF_PROP_UINT_LIST) {
+				p.value.uint_list.vals = NULL;
+			}
 			gf_props_reset_single(&p);
 		} else {
 			GF_PropertyValue p;

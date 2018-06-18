@@ -489,7 +489,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 }
 
 
-ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id)
+ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id, Bool force_no_extractors)
 {
 	ISOMChannel *ch;
 	const GF_PropertyValue *p;
@@ -540,10 +540,23 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
 	if (!track || !gf_isom_is_track_encrypted(read->mov, track)) {
+		if (force_no_extractors) {
+			ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_LAYER_ONLY;
+		} else {
+			switch (read->smode) {
+			case MP4DMX_SPLIT_EXTRACTORS:
+				ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INSPECT;
+				break;
+			case MP4DMX_SPLIT:
+				ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_LAYER_ONLY;
+				break;
+			default:
+				break;
+			}
+		}
+
 		if (ch->nalu_extract_mode) {
 			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
-		} else if (read->alltracks) {
-			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, GF_ISOM_NALU_EXTRACT_INSPECT);
 		}
 		return ch;
 	}
@@ -919,9 +932,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 static const GF_FilterArgs ISOFFInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(alltracks), "loads all tracks (except hint) event when not supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(allt), "loads all tracks even if unknown\n\t", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(smode), "Load mode for scalable/tile tracks\n\tsplit: each track is declared, extractors are removed\n\tsplitx: each track is declared, extractors are kept\n\tsingle: a single track is declared (highest level for scalable, tile base for tiling)", GF_PROP_UINT, "split", "split|splitx|single", GF_FALSE},
+
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
 	{0}
 };
@@ -943,6 +958,14 @@ static const GF_FilterCapability ISOFFInCaps[] =
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
 	.description = "ISOBMFF demuxer",
+	.comment = "When scalable tracks are present in a file, the reader can operate in 3 modes using smode option:\n"\
+	 	"\tsmode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
+	 	"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"\
+	 	"\tsmode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"
+	 	"and an enhancement decoder config.\n"\
+	 	"\tsmode=splitx: extractors are kept in the bitstream, and every track of the scalable set is declared. In this mode, each enhancement track has a base decoder config\n"
+	 	" (copied from base) and an enhancement decoder config. This is mostly used for DASHing content.\n"\
+	 	"\tWARNING: smode=splitx will result in extractor NAL units still present in the output bitstream, which shall only be true if the output is ISOBMFF based\n",
 	.private_size = sizeof(ISOMReader),
 	.args = ISOFFInArgs,
 	.initialize = isoffin_initialize,

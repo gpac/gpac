@@ -664,6 +664,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "segNumber")) dasher->seg_number = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lastPacketIdx")) dasher->last_pck_idx = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "pidID")) dasher->pid_id = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "depID")) dasher->dep_pid_id = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "periodStart")) dasher->period_start = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "periodDuration")) dasher->period_duration = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "ownsSet")) dasher->owns_set = gf_mpd_parse_bool(att->value);
@@ -2536,6 +2537,9 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 	fprintf(out, "lastPacketIdx=\""LLU"\" ", dasher->last_pck_idx);
 	fprintf(out, "pidID=\"%d\" ", dasher->pid_id);
 
+	if (dasher->dep_pid_id)
+		fprintf(out, "depID=\"%d\" ", dasher->dep_pid_id);
+
 	if (dasher->period_id)
 		fprintf(out, "periodID=\"%s\" ", dasher->period_id);
 
@@ -4233,6 +4237,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	Bool is_template = (seg_type==GF_DASH_TEMPLATE_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool is_init_template = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool needs_init=((is_init || is_init_template) && !is_bs_switching) ? GF_TRUE : GF_FALSE;
+	Bool has_init_keyword = GF_FALSE;
 	u32 char_template = 0;
 	char tmp[100];
 	strcpy(segment_name, "");
@@ -4250,6 +4255,10 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$")))
 		needs_init = GF_FALSE;
+
+	if (strstr(seg_rad_name, "$Init="))
+		has_init_keyword = GF_TRUE;
+
 
 	if (!seg_rad_name) {
 		strcpy(segment_name, output_file_name); //already contains base_url
@@ -4273,7 +4282,13 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			}
 			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Time", 5)) {
 				EXTRACT_FORMAT(5);
-				if (is_init || is_init_template) continue;
+				if (is_init || is_init_template) {
+					if (!has_init_keyword && needs_init) {
+						strcat(segment_name, "init");
+						needs_init = GF_FALSE;
+					}
+					continue;
+				}
 				/*replace %d to LLD*/
 				szFmt[strlen(szFmt)-1]=0;
 				strcat(szFmt, &LLD[1]);
@@ -4284,7 +4299,13 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Number", 7)) {
 				EXTRACT_FORMAT(7);
 
-				if (is_init || is_init_template) continue;
+				if (is_init || is_init_template) {
+					if (!has_init_keyword && needs_init) {
+						strcat(segment_name, "init");
+						needs_init = GF_FALSE;
+					}
+					continue;
+				}
 				sprintf(tmp, szFmt, segment_number);
 				strcat(segment_name, tmp);
 				has_number = GF_TRUE;

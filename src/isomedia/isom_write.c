@@ -616,6 +616,9 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 				udta = trak->udta;
 				trak->udta = NULL;
 				gf_isom_box_del((GF_Box*)trak);
+			} else {
+				if (trak->References) gf_isom_box_del((GF_Box*)trak->References);
+				trak->References = NULL;
 			}
 		}
 	}

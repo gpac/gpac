@@ -130,13 +130,24 @@ typedef enum
 	GF_PROP_POINTER,
 	//string list: memory is ALWAYS duplicated
 	GF_PROP_STRING_LIST,
+	GF_PROP_UINT_LIST,
 } GF_PropType;
+
+
+typedef struct __gf_prop_val GF_PropertyValue;
 
 typedef struct
 {
 	char *ptr;
 	u32 size;
 } GF_PropData;
+
+
+typedef struct
+{
+	u32 *vals;
+	u32 nb_items;
+} GF_PropUIntList;
 
 typedef struct
 {
@@ -180,7 +191,7 @@ typedef struct
 	Double w;
 } GF_PropVec4;
 
-typedef struct
+struct __gf_prop_val
 {
 	GF_PropType type;
 	union {
@@ -205,8 +216,9 @@ typedef struct
 		char *string;
 		void *ptr;
 		GF_List *string_list;
+		GF_PropUIntList uint_list;
 	} value;
-} GF_PropertyValue;
+};
 
 const char *gf_props_get_type_name(u32 type);
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);

@@ -751,6 +751,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				//insert xPS before CRA/BLA
 				if (check_cra_bla && !sample->IsRAP) {
 					sample->IsRAP = sap_type_from_nal_type(nal_type);
+					if (sei_suffix_bs) gf_bs_del(sei_suffix_bs);
+					gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
 					return gf_isom_nalu_sample_rewrite(mdia, sample, sampleNumber, entry);
 				}
 			default:
@@ -819,7 +821,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	if (sei_suffix_bs) {
 		gf_bs_transfer(mdia->nalu_out_bs, sei_suffix_bs, GF_FALSE);
-		gf_bs_del(sei_suffix_bs);
 	}
 	/*done*/
 	gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
@@ -831,6 +832,9 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 
 exit:
+	if (sei_suffix_bs)
+		gf_bs_del(sei_suffix_bs);
+
 	return e;
 }
 
@@ -1094,8 +1098,6 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 	hevc->emul_esd = gf_odf_desc_esd_new(2);
 	hevc->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 	hevc->emul_esd->decoderConfig->objectTypeIndication = GF_CODECID_HEVC;
-	if (hevc->lhvc_config /*&& !hevc->hevc_config*/)
-		hevc->emul_esd->decoderConfig->objectTypeIndication = GF_CODECID_LHVC;
 
 	if (btrt) {
 		hevc->emul_esd->decoderConfig->bufferSizeDB = btrt->bufferSizeDB;
@@ -1128,6 +1130,7 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 			if (mdia && ((mdia->mediaTrack->extractor_mode&0x0000FFFF) != GF_ISOM_NALU_EXTRACT_INSPECT)) {
 				hcfg->is_lhvc=GF_FALSE;
 			}
+
 			gf_odf_hevc_cfg_write(hcfg, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->data, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_odf_hevc_cfg_del(hcfg);
 		}

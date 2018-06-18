@@ -303,7 +303,7 @@ typedef struct
 	char *src_url;
 	char *init_seg;
 	char *template_seg;
-	u32 pid_id, source_pid;
+	u32 pid_id, source_pid, dep_pid_id;
 	Bool owns_set;
 	Bool multi_pids;
 	Bool removed;

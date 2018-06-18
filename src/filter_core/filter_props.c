@@ -289,6 +289,30 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 	}
 		break;
+	case GF_PROP_UINT_LIST:
+	{
+		char *v = (char *) value;
+		if (!list_sep_char) list_sep_char = ',';
+		while (v) {
+			char szV[100];
+			u32 val_uint, len=0;
+			char *sep = strchr(v, list_sep_char);
+			if (sep) {
+				len = (u32) (sep - v);
+			}
+			if (!sep)
+			 	len = (u32) strlen(v);
+
+			strncpy(szV, v, sizeof(char)*100);
+			sscanf(szV, "%u", &val_uint);
+			p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
+			p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+			p.value.uint_list.nb_items++;
+			if (!sep) break;
+			v = sep+1;
+		}
+	}
+		break;
 	case GF_PROP_FORBIDEN:
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Forbidden property type %d for arg %s - ignoring\n", type, name));
@@ -383,6 +407,15 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		}
 		return GF_TRUE;
 	}
+	case GF_PROP_UINT_LIST:
+	{
+		u32 i;
+		if (p1->value.uint_list.nb_items != p2->value.uint_list.nb_items) return GF_FALSE;
+		for (i=0; i<p1->value.uint_list.nb_items; i++) {
+			if (p1->value.uint_list.vals[i] != p2->value.uint_list.vals[i]) return GF_FALSE;
+		}
+		return GF_TRUE;
+	}
 
 	//user-managed pointer
 	case GF_PROP_POINTER: return (p1->value.ptr==p2->value.ptr) ? GF_TRUE : GF_FALSE;
@@ -440,6 +473,13 @@ void gf_props_reset_single(GF_PropertyValue *p)
 	}
 	else if (p->type==GF_PROP_DATA) {
 		gf_free(p->value.data.ptr);
+		p->value.data.ptr = NULL;
+		p->value.data.size = 0;
+	}
+	else if (p->type==GF_PROP_UINT_LIST) {
+		gf_free(p->value.uint_list.vals);
+		p->value.uint_list.vals = NULL;
+		p->value.uint_list.nb_items = 0;
 	}
 }
 void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
@@ -465,6 +505,11 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 				gf_free(s);
 			}
 			gf_list_del(l);
+		}
+		//string list are destroyed
+		else if (it->prop.type==GF_PROP_UINT_LIST) {
+			if (it->prop.value.uint_list.vals)
+				gf_free(it->prop.value.uint_list.vals);
 		}
 		it->prop.value.data.size = 0;
 		if (it->alloc_size) {
@@ -629,6 +674,11 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
 		prop->prop.type = GF_PROP_DATA;
 		prop->alloc_size = value->value.data.size;
+	}
+	else if (prop->prop.type == GF_PROP_UINT_LIST) {
+		prop->prop.value.uint_list.vals = gf_malloc(sizeof(u32) * value->value.uint_list.nb_items);
+		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, sizeof(u32) * value->value.uint_list.nb_items);
+		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
 	}
 
 #if GF_PROPS_HASHTABLE_SIZE
@@ -800,6 +850,7 @@ const char *gf_props_get_type_name(u32 type)
 	case GF_PROP_PIXFMT: return "pixel format";
 	case GF_PROP_PCMFMT: return "audio format";
 	case GF_PROP_STRING_LIST: return "string list";
+	case GF_PROP_UINT_LIST: return "uint list";
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
 	return "Undefined";
@@ -1102,6 +1153,27 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 			len = GF_PROP_DUMP_ARG_SIZE - 1 - (u32) strlen(dump);
 			if (len<=1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("String list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
+				return dump;
+			}
+		}
+		return dump;
+	}
+	case GF_PROP_UINT_LIST:
+	{
+		u32 i, count = att->value.uint_list.nb_items;
+		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
+		for (i=0; i<count; i++) {
+			char szItem[1024];
+			sprintf(szItem, "%u", att->value.uint_list.vals[i]);
+			if (!i) {
+				strncpy(dump, szItem, len);
+			} else {
+				strcat(dump, ",");
+				strncat(dump, szItem, len-1);
+			}
+			len = GF_PROP_DUMP_ARG_SIZE - 1 - (u32) strlen(dump);
+			if (len<=1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Uint list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
 				return dump;
 			}
 		}
