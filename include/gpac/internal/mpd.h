@@ -31,6 +31,22 @@
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
+
+typedef enum
+{
+	GF_DASH_TEMPLATE_SEGMENT = 0,
+	GF_DASH_TEMPLATE_INITIALIZATION,
+	GF_DASH_TEMPLATE_TEMPLATE,
+	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE,
+	GF_DASH_TEMPLATE_REPINDEX,
+	//same as GF_DASH_TEMPLATE_INITIALIZATION but skip default "init" concatenation
+	GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT,
+	//same as GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE but skip default "init" concatenation
+	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT,
+} GF_DashTemplateSegmentType;
+
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline);
+
 /*TODO*/
 typedef struct
 {
@@ -140,8 +156,6 @@ typedef struct
 	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
-	GF_List *Segments_Byte_Size_list;	\
-	GF_List *Segments_duration_list;	\
 
 
 
@@ -289,14 +303,35 @@ typedef struct
 	char *src_url;
 	char *init_seg;
 	char *template_seg;
-	u32 pid_id, muxed_comp_id;
+	u32 pid_id, source_pid;
 	Bool owns_set;
 	Bool multi_pids;
 	Bool removed;
 	Double dash_dur;
 	u64 next_seg_start;
-	u64 first_cts;
+	u64 first_cts, first_dts;
+	u32 nb_repeat;
+	u64 ts_offset;
+	u32 mpd_timescale;
+	u64 est_next_dts;
+	Double cumulated_subdur, cumulated_dur;
+	char *mux_pids;
+	u32 segs_purged;
+	Double dur_purged;
+
 } GF_DASH_SegmenterContext;
+
+typedef struct
+{
+	u64 time; //in mpd timescale
+	u64 dur; //in timescale
+	char *file_name;
+	u32 file_size;
+	u64 file_offset;
+	u32 index_size;
+	u64 index_offset;
+	u32 seg_num;
+} GF_DASH_SegmentContext;
 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
@@ -319,8 +354,20 @@ typedef struct {
 	u32 m3u8_media_seq_min, m3u8_media_seq_max;
 	GF_List *other_descriptors;
 
-
 	GF_DASH_SegmenterContext *dasher_ctx;
+	GF_List *state_seg_list;
+	u64 gpac_index_start_range;
+	u64 gpac_index_endrange;
+	//used for HLS
+	u32 timescale;
+	u32 timescale_mpd;
+	Double dash_dur;
+	const char *init_seg;
+	u32 nb_chan;
+	Double fps;
+	const char *m3u8_name; //assigned by user
+	char *m3u8_var_name; //gen one
+	FILE *m3u8_var_file; //tmp file
 } GF_MPD_Representation;
 
 
@@ -400,8 +447,9 @@ typedef struct
 
 
 typedef enum {
-	GF_MPD_TYPE_STATIC,
+	GF_MPD_TYPE_STATIC=0,
 	GF_MPD_TYPE_DYNAMIC,
+	GF_MPD_TYPE_DYNAMIC_LAST,
 } GF_MPD_Type;
 
 typedef struct {
@@ -410,9 +458,9 @@ typedef struct {
 	char *ID;
 	char *profiles;	/*MANDATORY*/
 	GF_MPD_Type type;
-	u64 availabilityStartTime; /* expressed in milliseconds */	/*MANDATORY if type=dynamic*/
-	u64 availabilityEndTime;/* expressed in milliseconds */
-	u64 publishTime;/* expressed in milliseconds */
+	u64 availabilityStartTime; /*UTC,  expressed in milliseconds */	/*MANDATORY if type=dynamic*/
+	u64 availabilityEndTime;/* UTC, expressed in milliseconds */
+	u64 publishTime;/* UTC, expressed in milliseconds */
 	u64 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
 	u32 minimum_update_period; /* expressed in milliseconds */
 	u32 min_buffer_time; /* expressed in milliseconds */	/*MANDATORY*/
@@ -436,9 +484,20 @@ typedef struct {
 
 	/*set during parsing*/
 	const char *xml_namespace; /*won't be freed by GPAC*/
-	
+
+	/*serialized for state mode only*/
+	u64 gpac_init_ntp_ms;
+	u64 gpac_next_ntp_ms;
+	u64 gpac_mpd_time; //in ms
+
+	//internal options
+	//skip version/dates/... for file diff/hash
 	Bool force_test_mode;
+	//indicates the GPAC state info should be writen
 	Bool write_context;
+	//indicates the HLS variant files shall be created, otherwise temp files are used
+	Bool create_m3u8_files;
+	Bool m3u8_time;
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
@@ -458,10 +517,10 @@ void gf_mpd_url_free(void *_item);
 GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
 
-GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
-GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name, GF_MPD_Period *period);
-
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out);
+GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
+GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period *period);
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period);
 
 void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context);
 GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);

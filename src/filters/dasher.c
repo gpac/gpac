@@ -59,8 +59,9 @@ typedef struct
 {
 	u32 bs_switch, profile, cp, subs_per_sidx, ntp;
 	s32 buf, timescale;
-	Bool forcep, dynamic, single_file, single_segment, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split;
+	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc;
 	Double dur;
+	u32 dmode;
 	char *avcp;
 	char *hvcp;
 	char *aacp;
@@ -72,8 +73,9 @@ typedef struct
 	char *state;
 	char *title, *source, *info, *cprt, *lang;
 	GF_List *location, *base;
-	Bool for_test, check_dur, skip_seg;
+	Bool for_test, check_dur, skip_seg, loop;
 	Double refresh, tsb, subdur;
+	u64 *_p_gentime, *_p_mpdtime;
 	
 	//TODO & not yet exposed
 	Bool mpeg2;
@@ -103,9 +105,11 @@ typedef struct
 
 	GF_Err setup_failure;
 
-	u64 generation_start_utc;
-	u64 nb_secs_to_discard;
+	Double nb_secs_to_discard;
 	Bool first_context_load, store_init_params;
+	Bool do_m3u8, do_mpd;
+
+	Bool store_seg_states;
 } GF_DasherCtx;
 
 
@@ -128,6 +132,7 @@ typedef struct _dash_stream
 	const GF_PropertyValue *p_base_url;
 	const char *template;
 	const char *xlink;
+	const char *hls_vp_name;
 
 	//TODO: get the values for all below
 	u32 ch_layout, nb_surround, nb_lfe;
@@ -152,10 +157,12 @@ typedef struct _dash_stream
 	u32 nb_rep, nb_rep_done;
 	Double set_seg_duration;
 
-	//repID for this stream
+	//repID for this stream, generated if not found
 	char *rep_id;
+	//AS ID for this stream, may be 0
+	u32 as_id;
 	struct _dash_stream *muxed_base;
-	GF_List *complementary_reps;
+	GF_List *complementary_streams;
 
 	//the one and only representation element
 	GF_MPD_Representation *rep;
@@ -172,6 +179,7 @@ typedef struct _dash_stream
 	u32 startNumber, seg_number;
 	Bool rep_init;
 	u64 first_cts;
+	u64 first_dts;
 
 	//target MPD timescale
 	u32 mpd_timescale;
@@ -186,10 +194,13 @@ typedef struct _dash_stream
 
 	char *init_seg, *seg_template;
 	u32 nb_sap_3, nb_sap_4;
+	//ID of output pid (renumbered), used for content component and making sure output muxers use the same IDs
 	u32 pid_id;
 
 	//seg urls not yet handled (waiting for size/index callbacks)
-	GF_List *seg_urls;
+	GF_List *pending_segment_urls;
+	//segment states not yet handled (waiting for size/index/etc callbacks), used for M3U8 and state mode
+	GF_List *pending_segment_states;
 	//next segment start time in this stream timescale (NOT MPD timescale)
 	u64 next_seg_start;
 	//adjusted next segment start time in this stream timescale (NOT MPD timescale)
@@ -207,11 +218,23 @@ typedef struct _dash_stream
 	u64 est_first_cts_in_next_seg;
 	u64 last_cts;
 	u64 cumulated_dur;
-	u32 nb_pck;
-	u32 seek_to_pck;
-
+	Double cumulated_subdur;
+	Bool subdur_done;
+	u64 nb_pck;
+	u64 est_next_dts;
+	u64 seek_to_pck;
+	u64 ts_offset;
+	u32 nb_repeat;
+	
 	Bool splitable;
+	u32 loop_state;
 	u32 split_dur_next;
+
+	Double clamped_dur;
+
+
+	u32 nb_segments_purged;
+	Double dur_purged;
 } GF_DashStream;
 
 
@@ -223,10 +246,29 @@ static GF_DasherPeriod *dasher_new_period()
 	return period;
 }
 
+static GF_Err dasher_get_audio_info_with_m4a_sbr_ps(GF_DashStream *ds, const GF_PropertyValue *dsi, u32 *SampleRate, u32 *Channels)
+{
+	GF_M4ADecSpecInfo a_cfg;
+	GF_Err e = gf_m4a_get_config(dsi->value.data.ptr, dsi->value.data.size, &a_cfg);
+	if (SampleRate) *SampleRate = ds->sr;
+	if (Channels) *Channels = ds->nb_ch;
+
+	if (e) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] corrupted AAC Config, %s\n", gf_error_to_string(e)));
+		return GF_NOT_SUPPORTED;
+	}
+	if (SampleRate && a_cfg.has_sbr) {
+		*SampleRate = a_cfg.sbr_sr;
+	}
+	if (Channels) *Channels = a_cfg.nb_chan;
+	return e;
+}
+
+
 static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool period_switch = GF_FALSE;
-	const GF_PropertyValue *p;
+	const GF_PropertyValue *p, *dsi=NULL;
 	u32 dc_crc, dc_enh_crc;
 	GF_DashStream *ds;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
@@ -236,6 +278,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (!ctx->opid) {
+		char *ext=NULL;
 		ctx->opid = gf_filter_pid_new(filter);
 
 		//copy properties at init or reconfig
@@ -246,11 +289,24 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_FILE_EXT);
-		if (p)
+		if (p) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, p );
-		else
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mpd") );
+			ext = p->value.string;
+		} else {
+			if (!ctx->out_path) ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
+			ext = ctx->out_path ? strrchr(ctx->out_path, '.') : NULL;
+			if (!ext) ext = "mpd";
+			else ext++;
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext) );
+		}
 		gf_filter_pid_set_name(ctx->opid, "manifest" );
+
+		if (!strcmp(ext, "m3u8")) ctx->do_m3u8 = GF_TRUE;
+		else ctx->do_mpd = GF_TRUE;
+
+		ctx->store_seg_states = GF_FALSE;
+		//in m3u8 mode, always store all seg states. In MPD only if state, not ondemand
+		if ((ctx->state && !ctx->sseg) || ctx->do_m3u8) ctx->store_seg_states = GF_TRUE;
 	}
 
 	ds = gf_filter_pid_get_udta(pid);
@@ -258,7 +314,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		GF_SAFEALLOC(ds, GF_DashStream);
 		ds->ipid = pid;
 		gf_list_add(ctx->pids, ds);
-		ds->complementary_reps = gf_list_new();
+		ds->complementary_streams = gf_list_new();
 		period_switch = GF_TRUE;
 		//don't create pid at this time
 	}
@@ -318,7 +374,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
 
 		dc_crc = 0;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		dsi = p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (p) dc_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		dc_enh_crc = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
@@ -353,6 +409,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_PROP(GF_PROP_PID_REP_DESC, ds->p_rep_desc, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_BASE_URL, ds->p_base_url, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_ROLE, ds->p_role, GF_EOS)
+		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
 
 		ds->startNumber = 1;
 		CHECK_PROP(GF_PROP_PID_START_NUMBER, ds->startNumber, GF_EOS)
@@ -369,6 +426,58 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ds->splitable = ctx->split;
 			break;
 		}
+
+		ds->clamped_dur = 0;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAMP_DUR);
+		if (p) ds->clamped_dur = p->value.number;
+
+		if (ds->stream_type==GF_STREAM_AUDIO) {
+			u32 _sr=0, _nb_ch=0;
+#ifndef GPAC_DISABLE_AV_PARSERS
+			switch (ds->codec_id) {
+			case GF_CODECID_AAC_MPEG4:
+			case GF_CODECID_AAC_MPEG2_MP:
+			case GF_CODECID_AAC_MPEG2_LCP:
+			case GF_CODECID_AAC_MPEG2_SSRP:
+				//DASH-IF and MPEG disagree here:
+				if (ctx->profile == GF_DASH_PROFILE_AVC264_LIVE || ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+					GF_Err res = dasher_get_audio_info_with_m4a_sbr_ps(ds, dsi, &_sr, &_nb_ch);
+					if (res) {
+						//DASH-IF IOP 3.3 mandates the SBR/PS info
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Could not get AAC info, %s\n", gf_error_to_string(res)));
+					}
+				} else {
+					dasher_get_audio_info_with_m4a_sbr_ps(ds, dsi, NULL, &_nb_ch);
+				}
+				break;
+			case GF_CODECID_AC3:
+				if (dsi) {
+					u32 i;
+					GF_AC3Config ac3;
+					GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+					ac3.nb_streams = 1;
+					ac3.streams[0].fscod = gf_bs_read_int(bs, 2);
+					ac3.streams[0].bsid = gf_bs_read_int(bs, 5);
+					ac3.streams[0].bsmod = gf_bs_read_int(bs, 3);
+					ac3.streams[0].acmod = gf_bs_read_int(bs, 3);
+					ac3.streams[0].lfon = gf_bs_read_int(bs, 1);
+					ac3.brcode = gf_bs_read_int(bs, 5);
+					gf_bs_del(bs);
+
+					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
+					_nb_ch = gf_ac3_get_channels(ac3.streams[0].acmod);
+					for (i=0; i<ac3.streams[0].nb_dep_sub; ++i) {
+						assert(ac3.streams[0].nb_dep_sub == 1);
+						_nb_ch += gf_ac3_get_channels(ac3.streams[0].chan_loc);
+					}
+				}
+				break;
+			}
+#endif
+			if (_sr > ds->sr) ds->sr = _sr;
+			if (_nb_ch > ds->nb_ch) ds->nb_ch = _nb_ch;
+		}
+
 	} else {
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
@@ -412,6 +521,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_list_add(ctx->next_period->streams, ds);
 		ds->period = ctx->next_period;
 	}
+
 	return GF_OK;
 }
 
@@ -420,21 +530,19 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	char profiles_string[GF_MAX_PATH];
 	GF_XMLAttribute *cenc_att = NULL;
 	GF_XMLAttribute *xlink_att = NULL;
-	GF_XMLAttribute *prof_att = NULL;
 
 	u32 i, count=gf_list_count(ctx->mpd->attributes);
 	for (i=0; i<count; i++) {
 		GF_XMLAttribute * att = gf_list_get(ctx->mpd->attributes, i);
-		if (!strcmp(att->name, "profiles")) prof_att = att;
 		if (!strcmp(att->name, "xmlns:cenc")) cenc_att = att;
 		if (!strcmp(att->name, "xmlns:xlink")) xlink_att = att;
 
 	}
-	if (ctx->dynamic) {
+	if (ctx->dmode==GF_MPD_TYPE_DYNAMIC) {
 		ctx->mpd->type = GF_MPD_TYPE_DYNAMIC;
-		ctx->mpd->availabilityStartTime = ctx->generation_start_utc;
 	} else {
 		ctx->mpd->type = GF_MPD_TYPE_STATIC;
+		ctx->mpd->availabilityStartTime = 0;
 	}
 
 	if (ctx->profile==GF_DASH_PROFILE_LIVE) {
@@ -464,21 +572,11 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	if (ctx->profX) {
 		char profiles_w_ext[256];
 		sprintf(profiles_w_ext, "%s,%s", profiles_string, ctx->profX);
-		if (!prof_att) {
-			prof_att = gf_xml_dom_create_attribute("profiles", profiles_w_ext);
-			gf_list_add(ctx->mpd->attributes, prof_att);
-		} else {
-			if (prof_att->value) gf_free(prof_att->value);
-			prof_att->value = gf_strdup(profiles_w_ext);
-		}
+		if (ctx->mpd->profiles) gf_free(ctx->mpd->profiles);
+		ctx->mpd->profiles = gf_strdup(profiles_w_ext);
 	} else {
-		if (!prof_att) {
-			prof_att = gf_xml_dom_create_attribute("profiles", profiles_string);
-			gf_list_add(ctx->mpd->attributes, prof_att);
-		} else {
-			if (prof_att->value) gf_free(prof_att->value);
-			prof_att->value = gf_strdup(profiles_string);
-		}
+		if (ctx->mpd->profiles) gf_free(ctx->mpd->profiles);
+		ctx->mpd->profiles = gf_strdup(profiles_string);
 	}
 
 	if (ctx->use_cenc && !cenc_att) {
@@ -490,15 +588,20 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		gf_list_add(ctx->mpd->attributes, xlink_att);
 	}
 
-	if (ctx->tsb>=0) ctx->mpd->time_shift_buffer_depth = 1000*ctx->tsb;
-	else ctx->mpd->time_shift_buffer_depth = (u32) -1;
+	ctx->mpd->time_shift_buffer_depth = 0;
+	ctx->mpd->minimum_update_period = 0;
 
-	if (ctx->refresh>=0) {
-		ctx->mpd->minimum_update_period = 1000*(ctx->refresh ? ctx->refresh : ctx->dur);
-		ctx->mpd->media_presentation_duration = 0;
-	} else {
-		ctx->mpd->minimum_update_period = 0;
-		ctx->mpd->media_presentation_duration = (-ctx->refresh) * 1000;
+	if (ctx->dmode==GF_MPD_TYPE_DYNAMIC) {
+		ctx->mpd->time_shift_buffer_depth = (u32) -1;
+		if (ctx->tsb>=0) ctx->mpd->time_shift_buffer_depth = (u32) (1000*ctx->tsb);
+
+		if (ctx->refresh>=0) {
+			ctx->mpd->minimum_update_period = (u32) (1000*(ctx->refresh ? ctx->refresh : ctx->dur) );
+			ctx->mpd->media_presentation_duration = 0;
+		} else {
+			ctx->mpd->minimum_update_period = 0;
+			ctx->mpd->media_presentation_duration = (u32) ( (-ctx->refresh) * 1000 );
+		}
 	}
 	return GF_OK;
 }
@@ -514,7 +617,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	ctx->mpd->attributes = gf_list_new();
 	if (ctx->buf<0) {
 		s32 buf = -ctx->buf;
-		ctx->mpd->min_buffer_time = ctx->dur*10 * buf; //*1000 (ms) / 100 (percent)
+		ctx->mpd->min_buffer_time = (u32) ( ctx->dur*10 * buf ); //*1000 (ms) / 100 (percent)
 	}
 	else ctx->mpd->min_buffer_time = ctx->buf;
 
@@ -772,12 +875,153 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4s.%02X", ds->codec_id);
 			}
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Dasher] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Dasher] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		}
 	}
 	return GF_OK;
 }
+
+static u32 dasher_get_dep_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	u32 bitrate = ds->bitrate;
+	if (ds->dep_id) {
+		u32 i, count = gf_list_count(ctx->current_period->streams);
+		for (i=0; i<count; i++) {
+			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+			if (gf_list_find(a_ds->complementary_streams, ds)) {
+
+				bitrate += dasher_get_dep_bitrate(ctx, a_ds);
+			}
+		}
+	}
+	return bitrate;
+}
+
+#ifdef FILTER_FIXME
+
+static void get_canon_urn(bin128 URN, char *res)
+{
+	char sres[4];
+	u32 i;
+	/* Output canonical UIID form */
+	strcpy(res, "");
+	for (i=0; i<4; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=4; i<6; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=6; i<8; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=8; i<10; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	strcat(res, "-");
+	for (i=10; i<16; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+}
+
+static const char *get_drm_kms_name(const char *canURN)
+{
+	if (!stricmp(canURN, "67706163-6365-6E63-6472-6D746F6F6C31")) return "GPAC1.0";
+	else if (!stricmp(canURN, "5E629AF5-38DA-4063-8977-97FFBD9902D4")) return "Marlin1.0";
+	else if (!strcmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
+	else if (!strcmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
+	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return "PlayReady";
+	else if (!strcmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
+	else if (!strcmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
+	else if (!strcmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
+	else if (!strcmp(canURN, "644FE7B5-260F-4FAD-949A-0762FFB054B4")) return "CMLA (OMA DRM)";
+	else if (!strcmp(canURN, "6a99532d-869f-5922-9a91-113ab7b1e2f3")) return "MobiTVDRM";
+	else if (!strcmp(canURN, "35BF197B-530E-42D7-8B65-1B4BF415070F")) return "DivX DRM";
+	else if (!strcmp(canURN, "B4413586-C58C-FFB0-94A5-D4896C1AF6C3")) return "VODRM";
+	else if (!strcmp(canURN, "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")) return "Widevine";
+	else if (!strcmp(canURN, "80a6be7e-1448-4c37-9e70-d5aebe04c8d2")) return "Irdeto";
+	else if (!strcmp(canURN, "dcf4e3e3-62f1-5818-7ba6-0a6fe33ff3dd")) return "CA 1.0, DRM+ 2.0";
+	else if (!strcmp(canURN, "45d481cb-8fe0-49c0-ada9-ab2d2455b2f2")) return "CoreCrypt";
+	else if (!strcmp(canURN, "616C7469-6361-7374-2D50-726F74656374")) return "altiProtect";
+	else if (!strcmp(canURN, "992c46e6-c437-4899-b6a0-50fa91ad0e39")) return "Arris SecureMedia SteelKnot version 1";
+	else if (!strcmp(canURN, "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b")) return "cenc initData";
+	else if (!strcmp(canURN, "e2719d58-a985-b3c9-781a-b030af78d30e")) return "ClearKey1.0";
+	else if (!strcmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "FairPlay";
+	else if (!strcmp(canURN, "279fe473-512c-48fe-ade8-d176fee6b40f")) return "Arris Titanium";
+	else if (!strcmp(canURN, "aa11967f-cc01-4a4a-8e99-c5d3dddfea2d")) return "UDRM";
+	return "unknown";
+}
+
+static GF_MPD_Descriptor *gf_isom_get_content_protection_desc(GF_ISOFile *input, u32 protected_track)
+{
+
+	char sCan[40];
+	u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 1);
+	if (gf_isom_is_cenc_media(input, protected_track, 1)) {
+		bin128 default_KID;
+		GF_MPD_Descriptor *desc;
+		GF_XMLAttribute *att;
+		char cenc_value[256];
+		cenc_value[0]='\0';
+		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
+		desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:mp4protection:2011", gf_4cc_to_str(prot_scheme));
+
+
+		get_canon_urn(default_KID, sCan);
+		att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
+		if (!desc->attributes) {
+			desc->attributes = gf_list_new();
+		}
+		gf_list_add(desc->attributes, att);
+		return desc;
+
+		bin128 default_KID;
+		u32 i, count;
+		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID, NULL, NULL, NULL, NULL);
+		for (i=0; i<indent; i++)
+			fprintf(mpd, " ");
+
+		get_canon_urn(default_KID, sCan);
+		fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"%s\"/>\n", gf_4cc_to_str(prot_scheme), sCan );
+
+		if (dasher->pssh_mode <= GF_DASH_PSSH_MOOF) {
+			return GF_OK;
+		}
+
+		//add pssh
+		count = gf_isom_get_pssh_count(input);
+		for (i=0; i<count; i++) {
+			GF_Err e;
+			u32 j;
+			bin128 sysID;
+			u8 *pssh_data=NULL;
+			u8 *pssh_data_64=NULL;
+			u32 pssh_len, size_64;
+
+			gf_isom_get_pssh_info(input, i+1, sysID, NULL, NULL, NULL, NULL);
+
+			e = gf_isom_get_pssh(input, i+1, &pssh_data, &pssh_len);
+			if (e) continue;
+
+			for (j=0; j<indent; j++)
+				fprintf(mpd, " ");
+			get_canon_urn(sysID, sCan);
+			fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:uuid:%s\" value=\"%s\">\n", sCan, get_drm_kms_name(sCan) );
+
+			size_64 = 2*pssh_len;
+			pssh_data_64 = gf_malloc(size_64);
+			size_64 = gf_base64_encode((const char *)pssh_data, pssh_len, (char *)pssh_data_64, size_64);
+			pssh_data_64[size_64] = 0;
+
+			for (j=0; j<=indent; j++)
+				fprintf(mpd, " ");
+			fprintf(mpd, "<cenc:pssh>%s</cenc:pssh>\n", pssh_data_64);
+			gf_free(pssh_data_64);
+			gf_free(pssh_data);
+			for (j=0; j<indent; j++)
+				fprintf(mpd, " ");
+			fprintf(mpd, "</ContentProtection>\n");
+		}
+	}
+	//todo for ISMA or OMA DRM
+	return NULL;
+}
+#endif
+
+
 
 static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
@@ -823,7 +1067,14 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 	ds->rep->id = gf_strdup(ds->rep_id);
 
+	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_AS_ID);
+	ds->as_id = p ? p->value.uint : 0;
+
 	if (ds->interlaced) ds->rep->scan_type = GF_MPD_SCANTYPE_INTERLACED;
+	if (ds->dep_id) ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
+
+	//TODO setup protection
+
 }
 
 
@@ -864,6 +1115,11 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	if (ds->p_as_desc && ! gf_props_equal(ds->p_as_desc, ds_test->p_as_desc))
 		return GF_FALSE;
 
+	//need same AS ID if specified
+	if (ds->as_id && ds_test->as_id &&(ds->as_id != ds_test->as_id) )
+		return GF_FALSE;
+
+	//need same dash duration if aligned
 	if (ctx->align) {
 		if (ds->dash_dur != ds_test->dash_dur) return GF_FALSE;
 	}
@@ -907,7 +1163,7 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	//ok, we are video or audio with mixed codecs
 	if (ctx->mix_codecs) return GF_TRUE;
 	//we need dependencies
-	if (ds_test->dep_id && gf_list_find(ds->complementary_reps, ds_test->rep) < 0)
+	if (ds_test->dep_id && gf_list_find(ds->complementary_streams, ds_test) < 0)
 		return GF_FALSE;
 	//we should be good
 	return GF_TRUE;
@@ -941,7 +1197,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 	u32 i, count;
 	Bool main_role_set = GF_FALSE;
 	//by default setup alignment
-	if (ctx->single_segment) set->subsegment_alignment = ctx->align;
+	if (ctx->sseg) set->subsegment_alignment = ctx->align;
 	else set->segment_alignment = ctx->align;
 
 	//startWithSAP is set when the first packet comes in
@@ -979,6 +1235,20 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				}
 				desc = gf_mpd_descriptor_new(NULL, uri, role);
 				gf_list_add(set->role, desc);
+			}
+		}
+		//set SRD
+		if (!i && ds->srd.z && ds->srd.w) {
+			if (ds->dep_id) {
+				char value[256];
+				GF_MPD_Descriptor *desc;
+				sprintf(value, "1,%d,%d,%d,%d", ds->srd.x, ds->srd.y, ds->srd.z, ds->srd.w);
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
+				gf_list_add(set->supplemental_properties, desc);
+			} else {
+				GF_MPD_Descriptor *desc;
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", "1,0,0,0,0");
+				gf_list_add(set->essential_properties, desc);
 			}
 		}
 	}
@@ -1057,7 +1327,16 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 	strcpy(szDST, szInitURL);
 	if (ctx->out_path) {
-		char *rel = gf_url_concatenate(ctx->out_path, szInitURL);
+		char *rel = NULL;
+		if (ctx->do_m3u8 && ds->hls_vp_name) {
+			char *tmp = gf_url_concatenate(ctx->out_path, ds->hls_vp_name);
+			if (tmp) {
+				rel = gf_url_concatenate(tmp, szInitURL);
+				gf_free(tmp);
+			}
+		}
+		if (!rel)
+			rel = gf_url_concatenate(ctx->out_path, szInitURL);
 		if (rel) {
 			strcpy(szDST, rel);
 			gf_free(rel);
@@ -1089,7 +1368,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cfrag", gf_filter_get_sep(filter, GF_FS_SEP_ARGS));
 		strcat(szDST, szSRC);
 	}
-	if (!has_subs && ctx->single_segment) {
+	if (!has_subs && ctx->sseg) {
 		sprintf(szSRC, "%csubs_sidx%c0", gf_filter_get_sep(filter, GF_FS_SEP_ARGS), gf_filter_get_sep(filter, GF_FS_SEP_NAME));
 		strcat(szDST, szSRC);
 	}
@@ -1108,7 +1387,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		return;
 	}
 	sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
-	//assigne sourceID to be this
+	//assign sourceID to be this
 	gf_filter_set_source(ds->dst_filter, filter, szSRC);
 }
 
@@ -1124,13 +1403,12 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	gf_filter_pid_copy_properties(ds->opid, ds->ipid);
 
 	//set init filename
-	if (ds->init_seg)
-		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_OUTPATH, &PROP_STRING(ds->init_seg));
+//	if (ds->init_seg) gf_filter_pid_set_property(ds->opid, GF_PROP_PID_OUTPATH, &PROP_STRING(ds->init_seg));
 
 	//force PID ID
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_ID, &PROP_UINT(ds->pid_id) );
 	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_MUX_SRC, &PROP_STRING(szSRC) );
-	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_DASH_MODE, &PROP_UINT(ctx->single_segment ? 2 : 1) );
+	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_DASH_MODE, &PROP_UINT(ctx->sseg ? 2 : 1) );
 	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_DOUBLE(ds->dash_dur) );
 
 	gf_filter_pid_force_cap(ds->opid, GF_PROP_PID_DASH_MODE);
@@ -1163,7 +1441,7 @@ static void dasher_set_content_components(GF_DashStream *ds)
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 
 	GF_SAFEALLOC(component, GF_MPD_ContentComponent);
-	component->id = ds->id;
+	component->id = ds->pid_id;
 	switch (ds->stream_type) {
 	case GF_STREAM_TEXT:
 		component->type = gf_strdup("text");
@@ -1194,6 +1472,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	char szSegmentName[GF_MAX_PATH];
 	char szInitSegmentName[GF_MAX_PATH];
 	const char *template;
+	u32 as_id = 0;
 	Bool single_template = GF_TRUE;
 	GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
 	GF_DashStream *ds = rep->playback.udta;
@@ -1202,6 +1481,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	u32 set_timescale = 0;
 	Bool init_template_done=GF_FALSE;
 	Bool use_inband = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE;
+	Bool template_use_source = GF_FALSE;
 
 	count = gf_list_count(set->representations);
 
@@ -1216,22 +1496,31 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		} else {
 			single_template = GF_FALSE;
 		}
-		if (ds->template && dasher_template_use_source_url(ds->template) ) {
+		if (ds->template) template_use_source = dasher_template_use_source_url(ds->template);
+
+		if (template_use_source) {
 			single_template = GF_FALSE;
-			ctx->template_use_source = GF_TRUE;
 		}
+
+		if (ds->as_id && !as_id)
+			as_id = ds->as_id;
+
 	}
 	if (!template) template = ctx->template;
+
+	if (as_id) {
+		set->id = ds->as_id;
+	}
 
 	if (single_template) {
 		if (count==1) single_template = GF_TRUE;
 		//for regular reps, if we depend on filename we cannot mutualize the template
 		else if (dasher_template_use_source_url(template) ) {
 			single_template = GF_FALSE;
-			ctx->template_use_source = GF_TRUE;
+			template_use_source = GF_TRUE;
 		}
 		//and for scalable reps, if we don't have bandwidth /repID we cannot mutualize the template
-		else if (ds->complementary_reps) {
+		else if (gf_list_count(ds->complementary_streams) ) {
 			if (strstr(template, "$Bandwidth$") != NULL) single_template = GF_FALSE;
 			else if (strstr(template, "$RepresentationId$") != NULL) single_template = GF_FALSE;
 		}
@@ -1284,6 +1573,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 	}
 
+	//TODO setup protection
+
 	for (i=0; i<count; i++) {
 		GF_Err e;
 		u32 init_template_mode = GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE;
@@ -1332,6 +1623,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ctx->timescale<0) ds->mpd_timescale = ds->timescale;
 		else ds->mpd_timescale = set_timescale;
 
+		if (ds->nb_repeat && !ctx->loop) {
+			char szEXT[20];
+			sprintf(szEXT, "_N%d", ds->nb_repeat);
+			strcat(szTemplate, szEXT);
+		}
+
 		//resolve segment template
 		e = gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0);
 		if (e) {
@@ -1355,7 +1652,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		ds->init_seg = gf_strdup(szInitSegmentName);
 		ds->seg_template = gf_strdup(szSegmentName);
-
+		if (ctx->store_seg_states) {
+			assert(!ds->pending_segment_states);
+			ds->pending_segment_states = gf_list_new();
+		}
 		/* baseURLs */
 		nb_base = ds->p_base_url ? gf_list_count(ds->p_base_url->value.string_list) : 0;
 		for (j=0; j<nb_base; j++) {
@@ -1381,8 +1681,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
 					seg_template->duration = (u64)(ds->dash_dur * ds->mpd_timescale);
-					if (ctx->asto < 0) {
-						seg_template->availability_time_offset = - (Double) ctx->asto / 1000.0;
+					if (ctx->asto>0) {
+						seg_template->availability_time_offset = (Double) ctx->asto / 1000.0;
 					}
 				} else {
 					seg_template->start_number = (u32)-1;
@@ -1402,14 +1702,14 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				seg_template->duration = (u64)(ds->dash_dur * ds->mpd_timescale);
 				seg_template->timescale = ds->mpd_timescale;
 				seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
-				if (ctx->asto < 0) {
-					seg_template->availability_time_offset = - (Double) ctx->asto / 1000.0;
+				if (ctx->asto > 0) {
+					seg_template->availability_time_offset = (Double) ctx->asto / 1000.0;
 				}
 				rep->segment_template = seg_template;
 			}
 		}
 		/*we are using a single file or segment, use base url*/
-		else if (ctx->single_segment || ctx->single_file) {
+		else if (ctx->sseg || ctx->sfile) {
 			GF_MPD_BaseURL *baseURL;
 
 			//get rid of default "init" added for init templates
@@ -1422,7 +1722,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (!rep->base_URLs) rep->base_URLs = gf_list_new();
 			gf_list_add(rep->base_URLs, baseURL);
 
-			if (ctx->single_segment) {
+			if (ctx->sseg) {
 				GF_MPD_SegmentBase *segment_base;
 				baseURL->URL = gf_strdup(szInitSegmentName);
 				GF_SAFEALLOC(segment_base, GF_MPD_SegmentBase);
@@ -1432,12 +1732,13 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				GF_MPD_SegmentList *seg_list;
 				GF_SAFEALLOC(seg_list, GF_MPD_SegmentList);
 				GF_SAFEALLOC(seg_list->initialization_segment, GF_MPD_URL);
+				seg_list->start_number = (u32) -1;
 				baseURL->URL = gf_strdup(szInitSegmentName);
 				seg_list->dasher_segment_name = gf_strdup(szSegmentName);
 				seg_list->timescale = ds->mpd_timescale;
 				seg_list->segment_URLs = gf_list_new();
 				rep->segment_list = seg_list;
-				ds->seg_urls = gf_list_new();
+				ds->pending_segment_urls = gf_list_new();
 
 				dasher_open_destination(filter, ctx, rep, szInitSegmentName, GF_FALSE);
 			}
@@ -1451,13 +1752,103 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			seg_list->dasher_segment_name = gf_strdup(szSegmentName);
 			seg_list->timescale = ds->mpd_timescale;
 			seg_list->segment_URLs = gf_list_new();
+			seg_list->start_number = (u32) -1;
 			rep->segment_list = seg_list;
-			ds->seg_urls = gf_list_new();
+			ds->pending_segment_urls = gf_list_new();
 
 			dasher_open_destination(filter, ctx, rep, szInitSegmentName, GF_FALSE);
 		}
 		//open PID
 		dasher_open_pid(filter, ctx, ds, multi_pids);
+	}
+}
+
+static void dahser_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimeline *stl, GF_DASH_SegmentContext *sctx)
+{
+	GF_MPD_SegmentTimelineEntry *stl_e = gf_list_get(stl->entries, 0);
+	if (stl_e->repeat_count) {
+		stl_e->repeat_count--;
+		stl_e->start_time += stl_e->duration;
+	} else {
+		u64 start_time = stl_e->start_time + stl_e->duration;
+		gf_list_rem(stl->entries, 0);
+		gf_free(stl_e);
+		stl_e = gf_list_get(stl->entries, 0);
+		if (!stl_e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] No timeline entry after currently removed segment, cannot update start time\n" ));
+			return;
+		}
+
+		if (!stl_e->start_time) stl_e->start_time = start_time;
+		else if (stl_e->start_time != start_time) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Mismatch in segment timeline while purging, new start time "LLU" but entry indicates "LLU", keeping original one\n", start_time, stl_e->start_time ));
+		}
+	}
+}
+
+static void dasher_purge_segments(GF_DasherCtx *ctx, Double min_valid_mpd_time, u64 *period_dur)
+{
+	u64 max_rem_dur = 0;
+	u32 i, count;
+	count = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (ds->muxed_base) continue;
+		if (!ds->rep) continue;
+		if (!ds->rep->state_seg_list) continue;
+
+		while (1) {
+			Double time, dur;
+			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, 0);
+			if (!sctx) break;
+			time = (u64) sctx->time;
+			time /= (u64) ds->mpd_timescale;
+			dur = sctx->dur;
+			dur/= ds->timescale;
+			if (time + dur >= min_valid_mpd_time) break;
+			if (sctx->file_name) {
+				fprintf(stderr, "removing segment %s\n", sctx->file_name);
+				gf_delete_file(sctx->file_name);
+				gf_free(sctx->file_name);
+			}
+
+			if (ds->rep->segment_list) {
+				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->rep->segment_list->segment_URLs);
+				gf_mpd_segment_url_free(surl);
+			} else if (ds->owns_set && ds->set->segment_list) {
+				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->set->segment_list->segment_URLs);
+				gf_mpd_segment_url_free(surl);
+			}
+			if (ds->rep->segment_template) {
+				if (ds->rep->segment_template->segment_timeline) {
+					dahser_purge_segment_timeline(ds, ds->rep->segment_template->segment_timeline, sctx);
+				}
+			} else if (ds->owns_set && ds->set->segment_template) {
+				if (ds->set->segment_template->segment_timeline) {
+					dahser_purge_segment_timeline(ds, ds->set->segment_template->segment_timeline, sctx);
+				}
+			}
+
+			ds->nb_segments_purged ++;
+			ds->dur_purged += dur;
+			gf_free(sctx);
+			gf_list_rem(ds->rep->state_seg_list, 0);
+		}
+		if (max_rem_dur < ds->dur_purged*1000) max_rem_dur = ds->dur_purged*1000;
+		//final flush to static of live session: update start number
+		if (ctx->dmode!=GF_MPD_TYPE_DYNAMIC) {
+			if (ds->owns_set && ds->set && ds->set->segment_template) {
+				ds->set->segment_template->start_number += ds->nb_segments_purged;
+			} else if (ds->rep && ds->rep->segment_template) {
+				ds->rep->segment_template->start_number += ds->nb_segments_purged;
+			}
+			ds->nb_segments_purged = 0;
+		}
+	}
+	//final flush to static of live session: update period duration
+	if (ctx->dmode!=GF_MPD_TYPE_DYNAMIC) {
+		if (max_rem_dur > *period_dur) *period_dur = 0;
+		else *period_dur = *period_dur - max_rem_dur;
 	}
 }
 
@@ -1469,9 +1860,22 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-		if (ds->xlink) pdur = 1000*ds->period_dur;
-		else if (!min_dur || (min_dur>ds->max_period_dur)) min_dur = ds->max_period_dur;
-		if (pdur< ds->max_period_dur) pdur = ds->max_period_dur;
+		if (ds->muxed_base) continue;
+
+		if (ds->xlink) pdur = (u32) (1000*ds->period_dur);
+		else {
+			u64 ds_dur = ds->max_period_dur;
+			if (ds->clamped_dur) ds_dur = ds->clamped_dur * 1000;
+
+			if (ds->dur_purged && (ctx->mpd->type != GF_MPD_TYPE_DYNAMIC)) {
+				u64 rem_dur = ds->dur_purged*1000;
+				if (ds_dur>rem_dur) ds_dur -= rem_dur;
+				else ds_dur = 0;
+			}
+
+			if (!min_dur || (min_dur > ds_dur)) min_dur = ds->max_period_dur;
+			if (pdur < ds_dur) pdur = ds_dur;
+		}
 	}
 
 	if (!ctx->check_dur) {
@@ -1481,49 +1885,126 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 		}
 	}
 
-	ctx->current_period->period->duration = pdur;
-	if (!ctx->dynamic) {
-		if (ctx->current_period->period->start) {
-			ctx->mpd->media_presentation_duration = ctx->current_period->period->start + pdur;
-		} else {
-			ctx->mpd->media_presentation_duration += pdur;
+	//non-static mode, purge segments
+	if ((ctx->dmode != GF_MPD_TYPE_STATIC) && (ctx->tsb>=0)) {
+		Double min_valid_mpd_time = pdur;
+		min_valid_mpd_time /= 1000;
+		min_valid_mpd_time -= ctx->tsb;
+		//negative asto, we produce segments earlier but we don't want to delete them before the asto
+		if (ctx->asto<0) {
+			min_valid_mpd_time += ((Double) ctx->asto)/1000;
 		}
+		if (min_valid_mpd_time>0) dasher_purge_segments(ctx, min_valid_mpd_time, &pdur);
 	}
+
+	ctx->current_period->period->duration = pdur;
+
+	//update MPD duration in any case
+	if (ctx->current_period->period->start) {
+		ctx->mpd->media_presentation_duration = ctx->current_period->period->start + pdur;
+	} else {
+		ctx->mpd->media_presentation_duration += pdur;
+	}
+
+	//static mode, done
+	if (ctx->dmode != GF_MPD_TYPE_DYNAMIC) {
+		return;
+	}
+	//dynamic mode only, reset durations
+
+	//not done yet for this period, keep duration to 0
+	if (ctx->subdur_done)
+		ctx->current_period->period->duration = 0;
+
+	ctx->mpd->gpac_mpd_time = ctx->mpd->media_presentation_duration;
+	ctx->mpd->media_presentation_duration = 0;
+	ctx->mpd->gpac_next_ntp_ms = ctx->mpd->gpac_init_ntp_ms + ctx->mpd->gpac_mpd_time;
+	if (ctx->asto<0)
+		ctx->mpd->gpac_next_ntp_ms -= (u64) (-ctx->asto);
+	if (ctx->_p_gentime) (*ctx->_p_gentime) = ctx->mpd->gpac_next_ntp_ms;
+	if (ctx->_p_mpdtime) (*ctx->_p_mpdtime) = ctx->mpd->gpac_mpd_time;
+
 }
 
-
-GF_Err dasher_send_mpd(GF_Filter *filter, GF_DasherCtx *ctx)
+static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 {
 	GF_FilterPacket *pck;
 	u32 size, nb_read;
 	char *output;
+
+	gf_fseek(f, 0, SEEK_END);
+	size = (u32) gf_ftell(f);
+	gf_fseek(f, 0, SEEK_SET);
+
+	pck = gf_filter_pck_new_alloc(opid, size, &output);
+	nb_read = (u32) gf_fread(output, 1, size, f);
+	if (nb_read != size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
+	}
+	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+	gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+	if (name) {
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(name) );
+	}
+	gf_filter_pck_send(pck);
+}
+
+GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_only)
+{
 	GF_Err e;
 	FILE *tmp;
 
-
 	tmp = gf_temp_file_new(NULL);
 
-	ctx->mpd->publishTime = gf_net_get_ntp_ms();
+	ctx->mpd->publishTime = gf_net_get_utc();
 	dasher_update_mpd(ctx);
 	ctx->mpd->write_context = GF_FALSE;
-	e = gf_mpd_write(ctx->mpd, tmp);
+	if (ctx->do_m3u8) {
+		if (for_mpd_only) return GF_OK;
+		ctx->mpd->m3u8_time = ctx->hlsc;
+		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
+	} else {
+		e = gf_mpd_write(ctx->mpd, tmp);
+	}
+
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write MPD file: %s\n", gf_error_to_string(e) ));
 		gf_fclose(tmp);
 		return e;
 	}
-	gf_fseek(tmp, 0, SEEK_END);
-	size = (u32) gf_ftell(tmp);
-	gf_fseek(tmp, 0, SEEK_SET);
 
-	pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
-	nb_read = gf_fread(output, 1, size, tmp);
-	if (nb_read != size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
-	}
-	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-	gf_filter_pck_send(pck);
+	dasher_transfer_file(tmp, ctx->opid, NULL);
 	gf_fclose(tmp);
+
+	if (ctx->do_m3u8) {
+		u32 i, j;
+		GF_MPD_Period *period = gf_list_get(ctx->mpd->periods, 0);
+		GF_MPD_AdaptationSet *as;
+		GF_MPD_Representation *rep;
+		i=0;
+		while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+			j=0;
+			while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+				if (rep->m3u8_var_file) {
+					char *outfile = rep->m3u8_var_name;
+					Bool do_free = GF_FALSE;
+
+					if (rep->m3u8_name) {
+						outfile = (char *) rep->m3u8_name;
+						if (ctx->out_path) {
+							outfile = gf_url_concatenate(ctx->out_path, rep->m3u8_name);
+							do_free = GF_TRUE;
+						}
+					}
+					dasher_transfer_file(rep->m3u8_var_file, ctx->opid, outfile);
+					gf_fclose(rep->m3u8_var_file);
+					rep->m3u8_var_file = NULL;
+					if (do_free) gf_free(outfile);
+				}
+			}
+		}
+	}
+
 
 	if (ctx->state) {
 		tmp = gf_fopen(ctx->state, "w");
@@ -1553,9 +2034,13 @@ static void dasher_reset_stream(GF_DashStream *ds, Bool is_destroy)
 	if (ds->init_seg) gf_free(ds->init_seg);
 	if (ds->multi_pids) gf_list_del(ds->multi_pids);
 	ds->multi_pids = NULL;
+	if (ds->pending_segment_urls) gf_list_del(ds->pending_segment_urls);
+	ds->pending_segment_urls = NULL;
+	if (ds->pending_segment_states) gf_list_del(ds->pending_segment_states);
+	ds->pending_segment_states = NULL;
 
 	if (is_destroy) {
-		gf_list_del(ds->complementary_reps);
+		gf_list_del(ds->complementary_streams);
 		gf_free(ds->rep_id);
 		return;
 	}
@@ -1570,10 +2055,13 @@ static void dasher_reset_stream(GF_DashStream *ds, Bool is_destroy)
 	ds->rep = NULL;
 	ds->muxed_base = NULL;
 	ds->nb_comp = ds->nb_comp_done = 0;
-	gf_list_reset(ds->complementary_reps);
+	gf_list_reset(ds->complementary_streams);
 	ds->inband_params = GF_FALSE;
 	ds->seg_start_time = 0;
 	ds->seg_number = ds->startNumber;
+	ds->nb_segments_purged = 0;
+	ds->dur_purged = 0;
+
 }
 
 void dasher_context_update_period_end(GF_DasherCtx *ctx)
@@ -1585,16 +2073,31 @@ void dasher_context_update_period_end(GF_DasherCtx *ctx)
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->rep) continue;
 		if (!ds->rep->dasher_ctx) continue;
 		if (ds->done == 1) {
 			ds->rep->dasher_ctx->done = GF_TRUE;
-		} else if (ds->done==2) {
+		} else {
 			//store all dynamic parameters of the rep
 			ds->rep->dasher_ctx->last_pck_idx = ds->nb_pck;
 			ds->rep->dasher_ctx->seg_number = ds->seg_number;
 			ds->rep->dasher_ctx->next_seg_start = ds->next_seg_start;
 			ds->rep->dasher_ctx->first_cts = ds->first_cts;
+			ds->rep->dasher_ctx->first_dts = ds->first_dts;
+			ds->rep->dasher_ctx->ts_offset = ds->ts_offset;
+			ds->rep->dasher_ctx->segs_purged = ds->nb_segments_purged;
+			ds->rep->dasher_ctx->dur_purged = ds->dur_purged;
+
 		}
+		if (ctx->subdur) {
+			ds->rep->dasher_ctx->cumulated_subdur = ds->cumulated_subdur + ctx->subdur;
+			ds->rep->dasher_ctx->cumulated_dur = ((Double)ds->cumulated_dur) / ds->timescale;
+
+		}
+		ds->rep->dasher_ctx->nb_repeat = ds->nb_repeat;
+		ds->rep->dasher_ctx->est_next_dts = ds->est_next_dts;
+		ds->rep->dasher_ctx->source_pid = ds->id;
+		ds->rep->dasher_ctx->mpd_timescale = ds->mpd_timescale;
 		assert(ds->rep->dasher_ctx->init_seg);
 		assert(ds->rep->dasher_ctx->src_url);
 		assert(ds->rep->dasher_ctx->template_seg);
@@ -1603,12 +2106,13 @@ void dasher_context_update_period_end(GF_DasherCtx *ctx)
 
 void dasher_context_update_period_start(GF_DasherCtx *ctx)
 {
-	u32 i, count;
+	u32 i, j, count;
 
 	if (!ctx->mpd) return;
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->rep) continue;
 		if (ds->rep->dasher_ctx) continue;
 
 		//store all static parameters of the rep
@@ -1622,7 +2126,6 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 		assert(ds->seg_template);
 		ds->rep->dasher_ctx->template_seg = gf_strdup(ds->seg_template);
 		ds->rep->dasher_ctx->pid_id = ds->pid_id;
-		ds->rep->dasher_ctx->muxed_comp_id = ds->muxed_base ? ds->muxed_base->pid_id : 0;
 		ds->rep->dasher_ctx->period_start = ds->period_start;
 		ds->rep->dasher_ctx->period_duration = ds->period_dur;
 		ds->rep->dasher_ctx->multi_pids = ds->multi_pids ? GF_TRUE : GF_FALSE;
@@ -1633,28 +2136,84 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 
 		ds->rep->dasher_ctx->owns_set = (ds->set->udta == ds) ? GF_TRUE : GF_FALSE;
 
-	}
+		if (ds->rep->dasher_ctx->mux_pids) gf_free(ds->rep->dasher_ctx->mux_pids);
+		ds->rep->dasher_ctx->mux_pids = NULL;
+		for (j=0; j<count; j++) {
+			char szMuxPID[10];
+			u32 l1, l2;
+			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
+			if (a_ds==ds) continue;
+			if (a_ds->muxed_base != ds) continue;
+			l1 = ds->rep->dasher_ctx->mux_pids ? strlen(ds->rep->dasher_ctx->mux_pids) : 0;
+			if (l1)
+				sprintf(szMuxPID, " %d", a_ds->id);
+			else
+				sprintf(szMuxPID, "%d", a_ds->id);
+			l2 = strlen(szMuxPID);
+			ds->rep->dasher_ctx->mux_pids = gf_realloc(ds->rep->dasher_ctx->mux_pids, sizeof(char)*(l1+l2+1));
+			strcpy(ds->rep->dasher_ctx->mux_pids + l1, szMuxPID);
+			ds->rep->dasher_ctx->mux_pids[l1+l2] = 0;
+		}
 
+	}
 }
 
-static GF_DashStream *dasher_get_stream(GF_DasherCtx *ctx, const char *src_url, u32 pid_id)
+static GF_DashStream *dasher_get_stream(GF_DasherCtx *ctx, const char *src_url, u32 original_pid, u32 pid_id)
 {
 	GF_DashStream *ds;
 	u32 i, count = gf_list_count(ctx->pids);
 	for (i=0; i<count; i++) {
 		ds = gf_list_get(ctx->pids, i);
 		if (pid_id && (ds->pid_id==pid_id)) return ds;
-		if (src_url && ds->src_url && !strcmp(ds->src_url, src_url)) return ds;
+		if (src_url && ds->src_url && !strcmp(ds->src_url, src_url) && (ds->id == original_pid) ) return ds;
 	}
 	return NULL;
+}
+
+static GF_Err dasher_reload_muxed_comp(GF_DasherCtx *ctx, GF_DashStream *base_ds, char *mux_pids, Bool check_only)
+{
+	GF_Err e = GF_OK;
+	while (mux_pids) {
+		u32 pid_id;
+		GF_DashStream *ds;
+		char *sep = strchr(mux_pids, ' ');
+		if (sep) sep[0] = 0;
+
+		pid_id = atoi(mux_pids);
+		ds = dasher_get_stream(ctx, base_ds->src_url, pid_id, 0);
+		if (ds) {
+			if (!check_only) {
+				if (ds->rep) gf_mpd_representation_free(ds->rep);
+				ds->rep = NULL;
+				ds->set = base_ds->set;
+				ds->muxed_base = base_ds;
+				base_ds->nb_comp ++;
+				ds->nb_comp = 1;
+
+				ds->period = ctx->current_period;
+
+				gf_list_del_item(ctx->next_period->streams, ds);
+				gf_list_add(ctx->current_period->streams, ds);
+			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't find muxed PID %d in source %s, did you modify the source ?\n", pid_id, base_ds->src_url));
+			e = GF_BAD_PARAM;
+		}
+
+		if (!sep) break;
+		sep[0] = ' ';
+		mux_pids = sep+1;
+
+		if (e) return e;
+	}
+	return GF_OK;
 }
 
 static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 {
 	GF_Err e;
 	Bool last_period_active = GF_FALSE;
-
-	u32 i, j, k, nb_p, nb_as, nb_rep;
+	u32 i, j, k, nb_p, nb_as, nb_rep, count;
 	GF_DOMParser *mpd_parser;
 
 	ctx->first_context_load = GF_FALSE;
@@ -1670,6 +2229,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 		gf_xml_dom_del(mpd_parser);
 		return GF_URL_ERROR;
 	}
+	if (ctx->mpd) gf_mpd_del(ctx->mpd);
 	ctx->mpd = gf_mpd_new();
 	e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), ctx->mpd, ctx->state);
 	gf_xml_dom_del(mpd_parser);
@@ -1683,10 +2243,12 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 		ctx->mpd = NULL;
 		return GF_URL_ERROR;
 	}
+
 	//do a first pass to detect any potential changes in input config, if so consider the period over.
 	nb_p = gf_list_count(ctx->mpd->periods);
 	for (i=0; i<nb_p; i++) {
-		Bool all_done_in_period = GF_TRUE;
+		u32 nb_done_in_period = 0;
+		u32 nb_remain_in_period = 0;
 		GF_MPD_Period *p = gf_list_get(ctx->mpd->periods, i);
 		nb_as = gf_list_count(p->adaptation_sets);
 		for (j=0; j<nb_as; j++) {
@@ -1698,16 +2260,20 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				GF_MPD_Representation *rep = gf_list_get(set->representations, k);
 				if (! rep->dasher_ctx) continue;
 
-				if (rep->dasher_ctx->done) {
-					all_done_in_period = GF_TRUE;
-					continue;
-				}
 				//ensure we have the same settings - if not consider the dash stream has been resetup for a new period
-				ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, 0);
+				ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, 0);
 				if (!ds) {
 					rep->dasher_ctx->removed = GF_TRUE;
+					nb_done_in_period++;
 					continue;
 				}
+
+				if (rep->dasher_ctx->done) {
+					nb_done_in_period++;
+					ds->nb_repeat = rep->dasher_ctx->nb_repeat + 1;
+					continue;
+				}
+
 				p_id = "_gpac_dasher_default_period_id";
 				if (rep->dasher_ctx->period_id) p_id = rep->dasher_ctx->period_id;
 
@@ -1715,20 +2281,32 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				} else if (!ds->period_id && !rep->dasher_ctx->period_id) {
 				} else {
 					rep->dasher_ctx->removed = GF_TRUE;
+					nb_done_in_period++;
 					continue;
 				}
 				if (ds->period_start != rep->dasher_ctx->period_start) {
 					rep->dasher_ctx->removed = GF_TRUE;
+					nb_done_in_period++;
 					continue;
 				}
 				if (ds->period_dur != rep->dasher_ctx->period_duration) {
 					rep->dasher_ctx->removed = GF_TRUE;
+					nb_done_in_period++;
 					continue;
 				}
-				all_done_in_period = GF_FALSE;
+				//check we can reload muxed components - if not consider this source as removed
+				if (rep->dasher_ctx->mux_pids) {
+					e = dasher_reload_muxed_comp(ctx, ds, rep->dasher_ctx->mux_pids, GF_TRUE);
+					if (e) {
+						rep->dasher_ctx->removed = GF_TRUE;
+						nb_done_in_period++;
+						continue;
+					}
+				}
+				nb_remain_in_period++;
 			}
 		}
-		if (!all_done_in_period) {
+		if (nb_remain_in_period) {
 			assert(i+1==nb_p);
 			last_period_active = GF_TRUE;
 		}
@@ -1737,6 +2315,17 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (!last_period_active) return GF_OK;
 	ctx->current_period->period = gf_list_last(ctx->mpd->periods);
 	gf_list_reset(ctx->current_period->streams);
+	gf_list_del(ctx->next_period->streams);
+	ctx->next_period->streams = gf_list_clone(ctx->pids);
+
+	if (ctx->current_period->period->duration) {
+		//reset last period duration and cumultaed dur of MPD
+		if (ctx->mpd->media_presentation_duration>ctx->current_period->period->duration)
+			ctx->mpd->media_presentation_duration -= ctx->current_period->period->duration;
+		else
+			ctx->mpd->media_presentation_duration = 0;
+		ctx->current_period->period->duration = 0;
+	}
 
 	nb_as = gf_list_count(ctx->current_period->period->adaptation_sets);
 	for (j=0; j<nb_as; j++) {
@@ -1750,16 +2339,24 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			GF_MPD_Representation *rep = gf_list_get(set->representations, k);
 			if (! rep->dasher_ctx) continue;
 
-			ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, 0);
+			ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, 0);
 			if (!ds) continue;
 
 			//restore everything
 			ds->done = rep->dasher_ctx->done;
 			ds->seg_number = rep->dasher_ctx->seg_number;
+
+			if (ds->init_seg) gf_free(ds->init_seg);
 			ds->init_seg = gf_strdup(rep->dasher_ctx->init_seg);
+
+			if (ds->seg_template) gf_free(ds->seg_template);
 			ds->seg_template = gf_strdup(rep->dasher_ctx->template_seg);
-			if (rep->dasher_ctx->period_id)
-			ds->period_id = gf_strdup(rep->dasher_ctx->period_id);
+
+			if (rep->dasher_ctx->period_id) {
+				if (ds->period_id) gf_free(ds->period_id);
+				ds->period_id = gf_strdup(rep->dasher_ctx->period_id);
+			}
+
 			ds->period_start = rep->dasher_ctx->period_start;
 			ds->period_dur = rep->dasher_ctx->period_duration;
 			ds->pid_id = rep->dasher_ctx->pid_id;
@@ -1768,20 +2365,34 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->next_seg_start = rep->dasher_ctx->next_seg_start;
 			ds->adjusted_next_seg_start = ds->next_seg_start;
 			ds->first_cts = rep->dasher_ctx->first_cts;
+			ds->first_dts = rep->dasher_ctx->first_dts;
+			ds->ts_offset = rep->dasher_ctx->ts_offset;
+			ds->est_next_dts = rep->dasher_ctx->est_next_dts;
+			ds->mpd_timescale = rep->dasher_ctx->mpd_timescale;
+			ds->cumulated_dur = rep->dasher_ctx->cumulated_dur * ds->timescale;
+			ds->cumulated_subdur = rep->dasher_ctx->cumulated_subdur;
 			ds->rep_init = GF_TRUE;
+			ds->subdur_done = GF_FALSE;
+			ds->nb_pck = 0;
+			ds->nb_segments_purged = rep->dasher_ctx->segs_purged;
+			ds->dur_purged = rep->dasher_ctx->dur_purged;
+
+			if (ctx->store_seg_states && !ds->pending_segment_states)
+				ds->pending_segment_states = gf_list_new();
+
+			if (rep->segment_list && !ds->pending_segment_urls)
+				ds->pending_segment_urls = gf_list_new();
 
 			ds->owns_set = rep->dasher_ctx->owns_set;
 			if (ds->owns_set) set_ds = ds;
 
 			if (rep->dasher_ctx->done) {
-				ds->done = GF_TRUE;
+				ds->done = 1;
+				if (ds->rep) gf_mpd_representation_free(ds->rep);
+				ds->rep = NULL;
 				continue;
 			}
-			if (rep->dasher_ctx->muxed_comp_id) {
-				GF_DashStream *base_ds = dasher_get_stream(ctx, NULL, rep->dasher_ctx->muxed_comp_id);
-				ds->muxed_base = base_ds;
-				base_ds->nb_comp ++;
-			}
+
 			ds->nb_comp = 1;
 
 			if (ds->rep) gf_mpd_representation_free(ds->rep);
@@ -1795,14 +2406,17 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			ds->period = ctx->current_period;
 
-			//move all muxed components at the end
-			if (ds->muxed_base)
-				gf_list_add(ctx->current_period->streams, ds);
-			else
-				gf_list_insert(ctx->current_period->streams, ds, 0);
+			//non-muxed component or main comp of muxed goes first in the list
+			gf_list_del_item(ctx->next_period->streams, ds);
+			gf_list_insert(ctx->current_period->streams, ds, 0);
+
+			if (rep->dasher_ctx->mux_pids) {
+				e = dasher_reload_muxed_comp(ctx, ds, rep->dasher_ctx->mux_pids, GF_FALSE);
+				if (e) return e;
+			}
 		}
 		assert(set_ds);
-		set_ds->nb_rep  =gf_list_count(set->representations);
+		set_ds->nb_rep = gf_list_count(set->representations);
 
 		//if multi PID init, gather pids
 		if (use_multi_pid_init) {
@@ -1814,14 +2428,26 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				gf_list_add(multi_pids, ds->ipid);
 			}
 		}
+		count = gf_list_count(ctx->current_period->streams);
 		for (i=0; i<nb_rep; i++) {
 			GF_MPD_Representation *rep = gf_list_get(set->representations, i);
 			GF_DashStream *ds = rep->playback.udta;
+			if (!ds || ds->done) continue;
+			//happens when reloading context without closing the filter
+			if (ds->dst_filter || ds->opid) continue;
+
 			//open destination, trashing init
-			if (!ds->muxed_base)
-				dasher_open_destination(filter, ctx, rep, ds->init_seg, GF_TRUE);
+			assert(!ds->muxed_base);
+			dasher_open_destination(filter, ctx, rep, ds->init_seg, GF_TRUE);
 
 			dasher_open_pid(filter, ctx, ds, multi_pids);
+
+			for (j=0; j<count; j++) {
+				GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
+				if (a_ds->muxed_base != ds) continue;
+
+				dasher_open_pid(filter, ctx, a_ds, multi_pids);
+			}
 		}
 	}
 
@@ -1830,13 +2456,16 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 {
-	u32 i, count, nb_done;
+	u32 i, count, j, nb_sets, nb_done;
+	u32 nb_periods = 0;
 	Bool has_muxed_bases=GF_FALSE;
 	char *period_id;
 	const char *remote_xlink = NULL;
 	Bool empty_period = GF_FALSE;
 	Bool is_restore = GF_FALSE;
+	Bool has_as_id = GF_FALSE;
 	GF_DasherPeriod *p;
+	GF_List *streams;
 	Double period_idx, period_start, next_period_start;
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
@@ -1850,23 +2479,21 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		if (ctx->state)
 		 	dasher_context_update_period_end(ctx);
+
+		//we have a MPD ready, flush it
+		if (ctx->mpd)
+			dasher_send_manifest(filter, ctx, GF_FALSE);
 	}
-	//we have a MPD ready, flush it
-	if (ctx->mpd)
-		dasher_send_mpd(filter, ctx);
 
 	if (ctx->subdur_done)
 		return GF_EOS;
-
-	if (ctx->state)
-		dasher_context_update_period_end(ctx);
+		
 
 	//reset - don't destroy, it is in the MPD
 	ctx->current_period->period = NULL;
 	//switch
 	ctx->current_period = ctx->next_period;
 	ctx->next_period = p;
-	ctx->template_use_source = GF_FALSE;
 	ctx->on_demand_done = GF_FALSE;
 	//reset MPD pointers
 	count = gf_list_count(ctx->current_period->streams);
@@ -1902,6 +2529,35 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (period_start>=0)
 		period_idx = 0;
 
+	if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		//count periods
+		streams = gf_list_clone(ctx->current_period->streams);
+		for (i=0; i< gf_list_count(streams); i++) {
+			GF_DashStream *ds = gf_list_get(streams, i);
+			for (j=i+1; j<gf_list_count(streams); j++) {
+				GF_DashStream *a_ds = gf_list_get(streams, i);
+				Bool same_period = GF_FALSE;
+				if (a_ds->period_start == ds->period_start) same_period = GF_TRUE;
+				if (a_ds->period_id && ds->period_id && !strcmp(a_ds->period_id, ds->period_id) ) same_period = GF_TRUE;
+				if (same_period) {
+					nb_periods++;
+					gf_list_rem(streams, j);
+					j--;
+				}
+			}
+		}
+		gf_list_del(streams);
+	}
+
+	if (ctx->first_context_load) {
+		GF_Err e = dasher_reload_context(filter, ctx);
+		if (e) {
+			ctx->setup_failure = e;
+			return e;
+		}
+		if (ctx->current_period->period) is_restore = GF_TRUE;
+	}
+
 	//filter out PIDs not for this period
 	count = gf_list_count(ctx->current_period->streams);
 	period_id = NULL;
@@ -1936,11 +2592,12 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (ds->stream_type == GF_STREAM_FILE) {
 			if (ds->xlink) remote_xlink = ds->xlink;
 			else empty_period = GF_TRUE;
-		} else {
+		} else if (!is_restore) {
 			//setup representation - the representation is created independetly from the period
 			dasher_setup_rep(ctx, ds);
 		}
 	}
+
 	count = gf_list_count(ctx->current_period->streams);
 	if (!count) {
 		count = gf_list_count(ctx->next_period->streams);
@@ -1952,15 +2609,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (nb_done == count) {
 			return GF_EOS;
 		}
-	}
-
-	if (ctx->first_context_load) {
-		GF_Err e = dasher_reload_context(filter, ctx);
-		if (e) {
-			ctx->setup_failure = e;
-			return e;
-		}
-		if (ctx->current_period->period) is_restore = GF_TRUE;
 	}
 
 	//we need a new period unless created during reload, create it
@@ -2000,7 +2648,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				next_period_start = dur;
 		}
 		if (next_period_start>0) {
-			ctx->current_period->period->duration = (next_period_start - period_start) * 1000;
+			ctx->current_period->period->duration = (u32) ( (next_period_start - period_start) * 1000 );
 		}
 	}
 
@@ -2060,7 +2708,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			if (i==j) continue;
 			a_ds = gf_list_get(ctx->current_period->streams, j);
 			if (a_ds->dep_id && (a_ds->dep_id==ds->id) ) {
-				gf_list_add(ds->complementary_reps, a_ds);
+				gf_list_add(ds->complementary_streams, a_ds);
 			}
 			if (!a_ds->muxed_base && !strcmp(a_ds->rep_id, ds->rep_id) ) {
 				char szCodecs[1024];
@@ -2078,6 +2726,17 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				strcat(szCodecs, a_ds->rep->codecs);
 				gf_free(ds->rep->codecs);
 				ds->rep->codecs = gf_strdup(szCodecs);
+
+				if (ctx->profile == GF_DASH_PROFILE_AVC264_LIVE) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
+					ctx->profile = GF_DASH_PROFILE_LIVE;
+				} else if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in HbbTV 1.5 ISOBMF live profile\n\tswitching to regular live profile\n"));
+					ctx->profile = GF_DASH_PROFILE_LIVE;
+				} else if (ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
+					ctx->profile = GF_DASH_PROFILE_ONDEMAND;
+				}
 			}
 		}
 		//use video as main stream for segmentation of muxed sources
@@ -2091,6 +2750,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 		}
 	}
+
 
 	if (is_restore) return GF_OK;
 
@@ -2110,26 +2770,30 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		u32 j;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		if (ds->muxed_base) continue;
+		//already setup
+		if (ds->set) continue;
 
-		if (!ds->set) {
-			ds->set = gf_mpd_adaptation_set_new();
-			ds->owns_set = GF_TRUE;
-			ds->set->udta = ds;
+		//not setup, create new AS
+		ds->set = gf_mpd_adaptation_set_new();
+		ds->owns_set = GF_TRUE;
+		ds->set->udta = ds;
 
-			if (!ds->set->representations)
-			 	ds->set->representations = gf_list_new();
-			if (!ds->period->period->adaptation_sets)
-				ds->period->period->adaptation_sets = gf_list_new();
-			gf_list_add(ds->period->period->adaptation_sets, ds->set);
+		if (!ds->set->representations)
+			ds->set->representations = gf_list_new();
+		if (!ds->period->period->adaptation_sets)
+			ds->period->period->adaptation_sets = gf_list_new();
+		gf_list_add(ds->period->period->adaptation_sets, ds->set);
 
-			gf_list_add(ds->set->representations, ds->rep);
-			ds->nb_rep++;
+		gf_list_add(ds->set->representations, ds->rep);
+		ds->nb_rep++;
 
-			//add non-conditional adaptation set descriptors
-			dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_any_desc);
-			//new AS, add conditionnal adaptation set descriptors
-			dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_desc);
-		}
+		//add non-conditional adaptation set descriptors
+		dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_any_desc);
+		//new AS, add conditionnal adaptation set descriptors
+		dasher_add_descriptors(&ds->set->other_descriptors, ds->p_as_desc);
+
+		if (ds->as_id) has_as_id = GF_TRUE;
+		//for each following, check if same AS is possible
 		for (j=i+1; j<count; j++) {
 			GF_DashStream *a_ds;
 			a_ds = gf_list_get(ctx->current_period->streams, j);
@@ -2143,37 +2807,107 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 		}
 	}
-	//we need a pass on adaptation sets to figure out if they share the same source URL
-	//in case we use file name in templates
-	if (ctx->template_use_source) {
-		u32 i, j, nb_sets = gf_list_count(ctx->current_period->period->adaptation_sets);
-
-		for (i=0; i<nb_sets; i++) {
-			GF_MPD_AdaptationSet *set = gf_list_get(ctx->current_period->period->adaptation_sets, i);
-			GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
-			GF_DashStream *ds = rep->playback.udta;
-			for (j=0; j<nb_sets; j++) {
-				Bool split_init = GF_FALSE;
-				const GF_PropertyValue *p1, *p2;
-				GF_DashStream *a_ds;
-				if (i==j) continue;
-				set = gf_list_get(ctx->current_period->period->adaptation_sets, j);
-				rep = gf_list_get(set->representations, 0);
-				a_ds = rep->playback.udta;
-				p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
-				p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_FILEPATH);
-				if (gf_props_equal(p1, p2)) split_init = GF_TRUE;
-				p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
-				p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_URL);
-				if (gf_props_equal(p1, p2)) split_init = GF_TRUE;
-
-				if (split_init) {
-					ds->split_set_names = GF_TRUE;
-					a_ds->split_set_names = GF_TRUE;
+	if (has_as_id) {
+		u32 j;
+		for (i=0; i<count; i++) {
+			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+			if (!ds->owns_set) continue;
+			for (j=i+1; j<count; j++) {
+				GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
+				//avoid as id duplicates
+				if (ds->owns_set && a_ds->owns_set && (a_ds->as_id == ds->as_id)) {
+					a_ds->as_id = 0;
 				}
 			}
 		}
 	}
+	
+	//we need a pass on adaptation sets to figure out if they share the same source URL
+	//in case we use file name in templates
+	nb_sets = gf_list_count(ctx->current_period->period->adaptation_sets);
+	for (i=0; i<nb_sets; i++) {
+		GF_MPD_AdaptationSet *set = gf_list_get(ctx->current_period->period->adaptation_sets, i);
+		GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
+		GF_DashStream *ds = rep->playback.udta;
+
+		if (!dasher_template_use_source_url(ds->template ? ds->template : ctx->template))
+			continue;
+
+		for (j=i+1; j<nb_sets; j++) {
+			Bool split_init = GF_FALSE;
+			const GF_PropertyValue *p1, *p2;
+			GF_DashStream *a_ds;
+
+			set = gf_list_get(ctx->current_period->period->adaptation_sets, j);
+			rep = gf_list_get(set->representations, 0);
+			a_ds = rep->playback.udta;
+
+			if (!dasher_template_use_source_url(a_ds->template ? a_ds->template : ctx->template))
+				continue;
+
+			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
+			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_FILEPATH);
+			if (gf_props_equal(p1, p2)) split_init = GF_TRUE;
+			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
+			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_URL);
+			if (gf_props_equal(p1, p2)) split_init = GF_TRUE;
+
+			if (split_init) {
+				ds->split_set_names = GF_TRUE;
+				a_ds->split_set_names = GF_TRUE;
+			}
+		}
+	}
+
+	/*HbbTV 1.5 ISO live specific checks*/
+	if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		if (nb_sets > 16) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to DASH AVC/264 live profile\n"));
+			ctx->profile = GF_DASH_PROFILE_AVC264_LIVE;
+		}
+		if (nb_periods > 32) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to regular DASH AVC/264 live profile\n"));
+			ctx->profile = GF_DASH_PROFILE_AVC264_LIVE;
+		}
+		if (ctx->dur < 1.0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
+			ctx->dur = 1.0;
+		}
+		if (ctx->dur > 15.0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
+			ctx->dur = 15.0;
+		}
+	}
+
+	//init UTC reference time for dynamic
+	if (!ctx->mpd->availabilityStartTime && (ctx->dmode!=GF_MPD_TYPE_STATIC) ) {
+		u64 dash_start_date = ctx->ast ? gf_net_parse_date(ctx->ast) : 0;
+
+		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
+		ctx->mpd->availabilityStartTime = gf_net_get_utc();
+		
+		if (dash_start_date && (dash_start_date < ctx->mpd->availabilityStartTime)) {
+			u64 start_date_sec_ntp, secs;
+			Double ms;
+			//recompute NTP init time matching the required ast
+			secs = dash_start_date/1000;
+			start_date_sec_ntp = (u32) secs;
+			start_date_sec_ntp += GF_NTP_SEC_1900_TO_1970;
+			ms = (Double) (dash_start_date - secs*1000);
+			ms /= 1000.0;
+			ctx->mpd->gpac_init_ntp_ms = start_date_sec_ntp * 1000 + ms;
+			//compute number of seconds to discard
+			ctx->nb_secs_to_discard = (ctx->mpd->availabilityStartTime - dash_start_date);
+			ctx->nb_secs_to_discard /= 1000;
+			//don't discard TSB, this will be done automatically
+
+			ctx->mpd->availabilityStartTime = dash_start_date;
+
+		} else if (dash_start_date) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] specified AST %s seems in the future, ignoring it\n", ctx->ast));
+		}
+	}
+
 	//setup adaptation sets bitstream switching
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -2186,50 +2920,40 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		dasher_setup_sources(filter, ctx, ds->set);
 	}
 
+
 	//good to go !
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		//setup segmentation
 		ds->rep_init = GF_FALSE;
 		ds->seg_done = GF_FALSE;
-		ds->next_seg_start = ds->dash_dur * ds->timescale;
+		ds->next_seg_start = (u32) ( ds->dash_dur * ds->timescale );
 		ds->adjusted_next_seg_start = ds->next_seg_start;
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
-		ds->first_cts = ds->max_period_dur = 0;
-	}
+		ds->first_cts = ds->first_dts = ds->max_period_dur = 0;
 
-	//init UTC reference time for dynamic
-	if (!ctx->generation_start_utc && ctx->dynamic) {
-		u32 sec, frac;
-		u64 dash_start_date = ctx->ast ? gf_net_parse_date(ctx->ast) : 0;
+		//simulate N loops of the source
+		if (ctx->nb_secs_to_discard) {
+			u64 period_dur, seg_dur;
+			u32 nb_skip=0;
 
-		gf_net_get_ntp(&sec, &frac);
+			period_dur = (u64) (ctx->nb_secs_to_discard * ds->timescale);
+			seg_dur = ds->dash_dur*ds->timescale;
 
-		if (dash_start_date) {
-			u64 start_date_sec_ntp, start_date_sec_ntp_ms_frac;
-			Double ms;
-			u64 secs = dash_start_date/1000;
-			start_date_sec_ntp = (u32) secs;
-			start_date_sec_ntp += GF_NTP_SEC_1900_TO_1970;
+			nb_skip = (u32) (period_dur / seg_dur);
+			ds->ts_offset += nb_skip*seg_dur;
+			ds->max_period_dur += nb_skip*seg_dur;
+			ds->seg_number += nb_skip;
 
-			ms = (Double) (dash_start_date - secs*1000);
-			ms /= 1000.0;
-			ms *= 0xFFFFFFFF;
-			start_date_sec_ntp_ms_frac = (u32) ms;
-
-			ctx->nb_secs_to_discard = sec;
-			ctx->nb_secs_to_discard -= start_date_sec_ntp;
-			if (ctx->tsb>=0)
-				ctx->nb_secs_to_discard -= ctx->tsb;
-
-			sec = start_date_sec_ntp;
-			frac = start_date_sec_ntp_ms_frac;
+			ds->max_period_dur = ds->cumulated_dur;
+			ds->adjusted_next_seg_start += ds->ts_offset;
+			ds->next_seg_start += ds->ts_offset;
 		}
-		ctx->generation_start_utc = sec - GF_NTP_SEC_1900_TO_1970;
-		ctx->generation_start_utc *= 1000;
-		ctx->generation_start_utc += ((u64) frac) * 1000 / 0xFFFFFFFFUL;
 	}
+
+	ctx->nb_secs_to_discard = 0;
+
 	if (ctx->state)
 		dasher_context_update_period_start(ctx);
 	return GF_OK;
@@ -2245,6 +2969,11 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 	//we only store segment timeline for the main component in the representation
 	if (ds->muxed_base) return;
+
+	if (ds->rep && ds->rep->state_seg_list) {
+		GF_DASH_SegmentContext *sctx = gf_list_last(ds->rep->state_seg_list);
+		sctx->dur = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+	}
 
 	//we only use segment timeline with templates
 	if (!ctx->stl) return;
@@ -2289,6 +3018,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 			//in case we had no template at set level
 			if (!ds->set->segment_list) {
 				GF_SAFEALLOC(ds->set->segment_list, GF_MPD_SegmentList);
+				ds->set->segment_list->start_number = (u32) -1;
 			}
 			p_tl = &ds->set->segment_list->segment_timeline;
 			ds->set->segment_list->duration = 0;
@@ -2309,7 +3039,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	//nope, allocate
 	GF_SAFEALLOC(s, GF_MPD_SegmentTimelineEntry);
 	s->start_time = ds->seg_start_time;
-	s->duration = duration;
+	s->duration = (u32) duration;
 	gf_list_add(tl->entries, s);
 }
 
@@ -2349,6 +3079,7 @@ static void dasher_copy_segment_timelines(GF_DasherCtx *ctx, GF_MPD_AdaptationSe
 		} else {
 			if (!rep->segment_list) {
 				GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
+				rep->segment_list->start_number = (u32) -1;
 			}
 			if (!i) {
 				rep->segment_list->segment_timeline = src_tl;
@@ -2381,7 +3112,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 
 	if (ds->segment_started) {
-		Double seg_duration = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+		Double seg_duration = (Double) (base_ds->first_cts_in_next_seg - ds->first_cts_in_seg);
 		seg_duration /= base_ds->timescale;
 		assert(seg_duration);
 
@@ -2430,18 +3161,24 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		}
 	}
 
+	if (ctx->subdur && (ds->cumulated_dur >= (ds->cumulated_subdur + ctx->subdur) * ds->timescale))
+		ds->subdur_done = GF_TRUE;
 
 	count = gf_list_count(ctx->current_period->streams);
 
 	if (ctx->subdur) {
+		u32 nb_sub_done=0;
 		if (ctx->subdur_done) return;
 		for (i=0; i<count; i++) {
 			ds = gf_list_get(ctx->current_period->streams, i);
-			if (ds->muxed_base) continue;
-			if (ds->cumulated_dur >= ctx->subdur * ds->timescale) {
-				ctx->subdur_done = GF_TRUE;
+			if (ds->muxed_base) ds = ds->muxed_base;
+
+			if (ds->subdur_done) {
+				nb_sub_done++;
 			}
 		}
+		if (nb_sub_done==count)
+			ctx->subdur_done = GF_TRUE;
 	}
 
 	//reset all streams from our rep or our set
@@ -2479,9 +3216,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			assert(base_ds->segment_started);
 			base_ds->segment_started = GF_FALSE;
 
-			base_ds->next_seg_start += base_ds->dash_dur * base_ds->timescale;
+			base_ds->next_seg_start += (u64) (base_ds->dash_dur * base_ds->timescale);
 			while (base_ds->next_seg_start <= base_ds->adjusted_next_seg_start) {
-				base_ds->next_seg_start += base_ds->dash_dur * base_ds->timescale;
+				base_ds->next_seg_start += (u64) (base_ds->dash_dur * base_ds->timescale);
 				if (ctx->skip_seg)
 					base_ds->seg_number++;
 			}
@@ -2507,6 +3244,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_FilterPacket *pck)
 {
+	GF_DASH_SegmentContext *seg_state=NULL;
 	char szSegmentName[GF_MAX_PATH];
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 
@@ -2522,25 +3260,51 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	//only signal file name & insert timelines on one stream for muxed representations
 	if (ds->muxed_base) return;
 
-	if (ctx->single_file) {
-		if (ds->rep->segment_list) {
-			GF_MPD_SegmentURL *seg_url;
-			GF_SAFEALLOC(seg_url, GF_MPD_SegmentURL);
-			gf_list_add(ds->rep->segment_list->segment_URLs, seg_url);
-			gf_list_add(ds->seg_urls, seg_url);
-			ctx->nb_seg_url_pending++;
-		}
-		return;
-	}
-
 	ds->seg_start_time = ds->first_cts_in_seg;
 	if (ds->timescale != ds->mpd_timescale) {
 		ds->seg_start_time *= ds->mpd_timescale;
 		ds->seg_start_time /= ds->timescale;
 	}
 
+	if (ctx->store_seg_states) {
+		if (!ds->rep->state_seg_list) {
+			ds->rep->state_seg_list = gf_list_new();
+		}
+		if (!ds->rep->dash_dur) {
+			ds->rep->timescale = ds->timescale;
+			ds->rep->timescale_mpd = ds->mpd_timescale;
+			ds->rep->dash_dur = ds->dash_dur;
+			ds->rep->init_seg = ds->init_seg;
+			ds->rep->nb_chan = ds->nb_ch;
+			ds->rep->m3u8_name = ds->hls_vp_name;
+			if (ds->fps.den) {
+				ds->rep->fps = ds->fps.num;
+				ds->rep->fps /= ds->fps.den;
+			}
+		}
+		GF_SAFEALLOC(seg_state, GF_DASH_SegmentContext);
+		seg_state->time = ds->seg_start_time;
+		seg_state->seg_num = ds->seg_number;
+		gf_list_add(ds->rep->state_seg_list, seg_state);
+		gf_list_add(ds->pending_segment_states, seg_state);
+		ctx->nb_seg_url_pending++;
+	}
+
+	if (ctx->sseg) return;
+
+	if (ctx->sfile) {
+		GF_MPD_SegmentURL *seg_url;
+		assert(ds->rep->segment_list);
+		GF_SAFEALLOC(seg_url, GF_MPD_SegmentURL);
+		gf_list_add(ds->rep->segment_list->segment_URLs, seg_url);
+		gf_list_add(ds->pending_segment_urls, seg_url);
+
+		ctx->nb_seg_url_pending++;
+		return;
+	}
+
 	if (!ctx->stl) {
-		Double drift, seg_start = ds->seg_start_time;
+		Double drift, seg_start = (Double) ds->seg_start_time;
 		seg_start /= ds->mpd_timescale;
 		drift = seg_start - (ds->seg_number - ds->startNumber) * ds->dash_dur;
 
@@ -2551,25 +3315,37 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		}
 	}
 
-	//get final segment template - output file name is NULL, we already have solved this
+	//get final segment template - output file name is NULL, we already have solved this in source_setup
 	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, NULL, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
 
 
+	if (seg_state)
+		seg_state->file_name = gf_strdup(szSegmentName);
+
 	if (ctx->out_path) {
-		char *rel = gf_url_concatenate(ctx->out_path, szSegmentName);
+		char *rel = NULL;
+		if (ctx->do_m3u8 && ds->hls_vp_name) {
+			char *tmp = gf_url_concatenate(ctx->out_path, ds->hls_vp_name);
+			if (tmp) {
+				rel = gf_url_concatenate(tmp, szSegmentName);
+				gf_free(tmp);
+			}
+		}
+		if (!rel)
+			rel = gf_url_concatenate(ctx->out_path, szSegmentName);
+
 		if (rel) {
 			strcpy(szSegmentName, rel);
 			gf_free(rel);
 		}
 	}
 
-
 	if (ds->rep->segment_list) {
 		GF_MPD_SegmentURL *seg_url;
 		GF_SAFEALLOC(seg_url, GF_MPD_SegmentURL);
 		gf_list_add(ds->rep->segment_list->segment_URLs, seg_url);
 		seg_url->media = gf_strdup(szSegmentName);
-		gf_list_add(ds->seg_urls, seg_url);
+		gf_list_add(ds->pending_segment_urls, seg_url);
 		ctx->nb_seg_url_pending++;
 	}
 
@@ -2599,6 +3375,88 @@ static void dasher_update_pck_times(GF_DashStream *ds, GF_FilterPacket *dst)
 	}
 }
 
+static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	u32 i, count;
+	GF_FilterEvent evt;
+	u32 pmode = GF_PLAYBACK_MODE_NONE;
+	u64 ts_offset, max_ts_offset, max_ts_scale;
+	const GF_PropertyValue *p;
+	if (!ds->src_url) return GF_FALSE;
+
+	//loop requested
+	if (ds->loop_state==2) return GF_TRUE;
+
+	count = gf_list_count(ctx->current_period->streams);
+	if (!ds->loop_state) {
+		for (i=0; i<count; i++) {
+			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+
+			p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_PLAYBACK_MODE);
+			if (p) pmode = p->value.uint;
+			if (pmode == GF_PLAYBACK_MODE_NONE) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Loop requested in subdur mode, but source cannot seek, defaulting to multi period for all streams\n"));
+				ctx->loop = GF_FALSE;
+				return GF_FALSE;
+			}
+		}
+		ds->loop_state = 1;
+	}
+
+	max_ts_offset = 0;
+	max_ts_scale = 1;
+	//check all input media duration
+	for (i=0; i<count; i++) {
+		GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+
+		//wait for each input to query loop
+		if (!a_ds->loop_state) {
+			a_ds->subdur_done = GF_FALSE;
+			a_ds->done = 0;
+			return GF_TRUE;
+		}
+
+		//get max duration
+		ts_offset = a_ds->est_next_dts;
+
+		if (max_ts_offset * a_ds->timescale < ts_offset * max_ts_scale) {
+			max_ts_offset = ts_offset;
+			max_ts_scale = a_ds->timescale;
+		}
+	}
+
+	//assign ts offset and send stop/play
+	for (i=0; i<count; i++) {
+		u64 ts_offset;
+		GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+
+		ts_offset = max_ts_offset;
+		ts_offset *= a_ds->timescale;
+		ts_offset /= max_ts_scale;
+
+		a_ds->ts_offset = ts_offset;
+		if (a_ds->done) continue;
+		if (a_ds->ts_offset > a_ds->est_next_dts) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Looping streams of unequal duration, inserting "LLU" us of timestamp delay in pid %s from %s\n", ((a_ds->ts_offset - a_ds->est_next_dts) * 1000000) / a_ds->timescale, gf_filter_pid_get_name(a_ds->ipid), a_ds->src_url));
+		}
+
+		a_ds->seek_to_pck = 0;
+		a_ds->nb_pck = 0;
+	
+		a_ds->loop_state = 2;
+
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, a_ds->ipid);
+		gf_filter_pid_send_event(a_ds->ipid, &evt);
+
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, a_ds->ipid);
+		evt.play.speed = 1.0;
+		gf_filter_pid_send_event(a_ds->ipid, &evt);
+	}
+
+	return GF_TRUE;
+}
+
+
 static GF_Err dasher_process(GF_Filter *filter)
 {
 	u32 i, count, nb_init, has_init;
@@ -2616,21 +3474,16 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 		if (ds->done) continue;
 		base_ds = ds->muxed_base ? ds->muxed_base : ds;
-		//subdur mode abort
-		if (ctx->subdur_done) {
-			if (!ds->done) {
-				ds->done = 2;
-				gf_filter_pid_set_eos(ds->opid);
-				gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
-			}
+		//subdur mode abort, don't process
+		if (ds->subdur_done) {
 			continue;
 		}
 		if (ds->seg_done) continue;
 
-		//flush as mush as possible
+		//flush as much as possible
 		while (1) {
-			u32 sap_type, dur, split_dur;
-			u64 cts, ncts, split_dur_next;
+			u32 sap_type, dur, o_dur, split_dur;
+			u64 cts, dts, ncts, split_dur_next;
 			Bool seg_over = GF_FALSE;
 			Bool is_split = GF_FALSE;
 			GF_FilterPacket *pck;
@@ -2646,8 +3499,14 @@ static GF_Err dasher_process(GF_Filter *filter)
 				break;
 			}
 
+
 			if (!pck) {
 				if (gf_filter_pid_is_eos(ds->ipid)) {
+					if (ctx->subdur && ctx->loop) {
+						if (dasher_check_loop(ctx, ds))
+							break;
+					}
+
 					gf_filter_pid_set_eos(ds->opid);
 					ds->done = 1;
 					ds->seg_done = GF_TRUE;
@@ -2666,8 +3525,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 				continue;
 			}
 			sap_type = gf_filter_pck_get_sap(pck);
+			ds->loop_state = 0;
 
 			cts = gf_filter_pck_get_cts(pck);
+			dts = gf_filter_pck_get_dts(pck);
+			if (dts==GF_FILTER_NO_TS) dts = cts;
+
 			if (!ds->rep_init) {
 				if (!sap_type) {
 					gf_filter_pid_drop_packet(ds->ipid);
@@ -2677,12 +3540,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 					//set AS sap type
 					if (!ds->set->starts_with_sap) {
 						//don't set SAP type if not a base rep - could be further checked
-						if (!gf_list_count(ds->complementary_reps) )
+						if (!gf_list_count(ds->complementary_streams) )
 							ds->set->starts_with_sap = sap_type;
 					}
 					else if (ds->set->starts_with_sap != sap_type) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Segments do not start with the same SAP types: set initialized with %d but first packet got %d - bitstream will not be compliant\n", ds->set->starts_with_sap, sap_type));
 					}
+					//TODO setup proper PTO, the code below will break sync by realigning first AU of each stream
 					if (ds->rep->segment_list)
 						ds->rep->segment_list->presentation_time_offset = cts;
 					else if (ds->rep->segment_template)
@@ -2690,18 +3554,26 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 
 				ds->first_cts = cts;
+				ds->first_dts = dts;
 				ds->rep_init++;
 				has_init++;
 			}
 			nb_init++;
-			//ready to write MPD for the first time in dynamic mode
-			if (has_init && (nb_init==count) && ctx->dynamic) {
-				e = dasher_send_mpd(filter, ctx);
+
+			if (ds->ts_offset) {
+				cts += ds->ts_offset;
+				dts += ds->ts_offset;
+			}
+
+			//ready to write MPD for the first time in dynamic mode with template
+			if (has_init && (nb_init==count) && (ctx->dmode==GF_MPD_TYPE_DYNAMIC) && ctx->tpl && ctx->do_mpd) {
+				e = dasher_send_manifest(filter, ctx, GF_TRUE);
 				if (e) return e;
 			}
 			cts -= ds->first_cts;
+			dts -= ds->first_dts;
 
-			dur = gf_filter_pck_get_duration(pck);
+			dur = o_dur = gf_filter_pck_get_duration(pck);
 			split_dur = 0;
 			split_dur_next = 0;
 
@@ -2730,9 +3602,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 				break;
 
 			//forcing max time
-			if (base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) ) {
+			if ((base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
+				|| (base_ds->clamped_dur && (cts >= base_ds->clamped_dur * ds->timescale))
+			) {
 				seg_over = GF_TRUE;
-				if (!base_ds->period->period->duration) {
+				if (!base_ds->period->period->duration && base_ds->force_rep_end) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Inputs duration do not match, %s truncated to %g duration\n", ds->src_url, ((Double)base_ds->force_rep_end)/base_ds->timescale ));
 				}
 				ds->done = 1;
@@ -2771,7 +3645,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->first_cts_in_next_seg = cts;
 				base_ds->nb_comp_done ++;
 				if (split_dur_next)
-					ds->split_dur_next = split_dur_next;
+					ds->split_dur_next = (u32) split_dur_next;
 
 				if (base_ds->nb_comp_done == base_ds->nb_comp) {
 					dasher_flush_segment(ctx, base_ds);
@@ -2788,13 +3662,20 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (ncts>base_ds->max_period_dur)
 				base_ds->max_period_dur = ncts;
 
-			ds->last_cts = cts;
+			ds->last_cts = cts + (split_dur ? split_dur : dur);
 			ds->nb_pck ++;
-			
+			ds->est_next_dts = dts + o_dur;
+
 			//create new ref to input
 			dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
 			//merge all props
 			gf_filter_pck_merge_properties(pck, dst);
+			//we have ts offset, use computed cts and dts
+			if (ds->ts_offset) {
+				gf_filter_pck_set_cts(dst, cts + ds->first_cts);
+				gf_filter_pck_set_dts(dst, dts + ds->first_dts);
+			}
+
 			if (!ds->segment_started) {
 				ds->first_cts_in_seg = cts;
 				dasher_mark_segment_start(ctx, ds, dst);
@@ -2816,12 +3697,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 				assert(cts >= ts);
 				diff = cts - ts;
 
-				gf_filter_pck_set_cts(dst, cts);
+				gf_filter_pck_set_cts(dst, cts + ds->ts_offset);
 
 				ts = gf_filter_pck_get_dts(pck);
 				if (ts != GF_FILTER_NO_TS)
-					gf_filter_pck_set_dts(dst, ts + diff);
-
+					gf_filter_pck_set_dts(dst, ts + diff + ds->ts_offset);
 
 				gf_filter_pck_set_sap(dst, GF_FILTER_SAP_REDUNDANT);
 				gf_filter_pck_set_duration(dst, dur);
@@ -2838,6 +3718,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			ds->cumulated_dur += dur;
 
+			//TODO check drift between MPD start time and min CTS in segment (not just first CTS in segment)
+
 			//send packet
 			gf_filter_pck_send(dst);
 
@@ -2849,16 +3731,34 @@ static GF_Err dasher_process(GF_Filter *filter)
 	nb_init=0;
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-		if (ds->done) nb_init++;
+		if (ds->muxed_base) ds = ds->muxed_base;
+		if (ds->done || ds->subdur_done) nb_init++;
 	}
 	//still some running steams in period
 	if (count && (nb_init<count)) return GF_OK;
+
+	//in subdur mode once we are done, flush outpud pids and discard all input packets
+	//this is done at the end to be able to resume dashing when loop is requested
+	if (ctx->subdur) {
+		for (i=0; i<count; i++) {
+			GF_FilterPacket *eods_pck;
+			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+			if (ds->done) continue;
+			ds->done = 2;
+			ds->subdur_done = GF_TRUE;
+			eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
+			gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
+			gf_filter_pck_send(eods_pck);
+
+			gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+		}
+	}
 
 	//we need to wait for full flush of packets before switching periods in order to get the
 	//proper segment size for segment_list+byte_range mode
 	if (ctx->nb_seg_url_pending)
 		return GF_OK;
-	if (ctx->single_segment && !ctx->on_demand_done) return GF_OK;
+	if (ctx->sseg && !ctx->on_demand_done) return GF_OK;
 
 	//done with this period, do period switch - this will update the MPD if needed
 	e = dasher_switch_period(filter, ctx);
@@ -2872,11 +3772,47 @@ static GF_Err dasher_process(GF_Filter *filter)
 	return e;
 }
 
+
+
+static void dasher_resume_subdur(GF_DasherCtx *ctx)
+{
+	GF_FilterEvent evt;
+	u32 i, count;
+	if (!ctx->state) return;
+
+	count = gf_list_count(ctx->pids);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->pids, i);
+		ds->rep = NULL;
+		if (ds->done != 2) continue;
+		gf_filter_pid_set_discard(ds->ipid, GF_FALSE);
+
+		//send stop and play
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, ds->ipid);
+		gf_filter_pid_send_event(ds->ipid, &evt);
+
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
+		evt.play.speed = 1.0;
+		gf_filter_pid_send_event(ds->ipid, &evt);
+	}
+	ctx->subdur_done = GF_FALSE;
+	ctx->is_eos = GF_FALSE;
+	ctx->current_period->period = NULL;
+	ctx->first_context_load = GF_TRUE;
+}
+
+
 static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i, count;
 	Bool flush_mpd = GF_FALSE;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
+
+	if (evt->base.type == GF_FEVT_RESUME) {
+		dasher_resume_subdur(ctx);
+		return GF_TRUE;
+	}
+
 	if (evt->base.type != GF_FEVT_SEGMENT_SIZE) return GF_FALSE;
 
 	count = gf_list_count(ctx->pids);
@@ -2887,10 +3823,22 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		if (ds->muxed_base) continue;
 
+		if (ctx->store_seg_states && !evt->seg_size.is_init) {
+			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);
+			assert(sctx);
+			assert(ctx->nb_seg_url_pending);
+			ctx->nb_seg_url_pending--;
+			sctx->file_size = 1 + evt->seg_size.media_range_end - evt->seg_size.media_range_start;
+			sctx->file_offset = evt->seg_size.media_range_start;
+			sctx->index_size = 1 + evt->seg_size.idx_range_end - evt->seg_size.idx_range_start;
+			sctx->index_offset = evt->seg_size.idx_range_start;
+		}
+
+		//in state mode we store everything
 		//don't set segment sizes in template mode
 		if (ctx->tpl) continue;
-		//only set  size/index size for init segment when doing onDemand/single index
-		if (ctx->single_segment && !evt->seg_size.is_init) continue;
+		//only set size/index size for init segment when doing onDemand/single index
+		if (ctx->sseg && !evt->seg_size.is_init) continue;
 
 		if (evt->seg_size.media_range_end) {
 			r_start = evt->seg_size.media_range_start;
@@ -2900,7 +3848,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			r_end = evt->seg_size.idx_range_end;
 		}
 		//init segment or representation index, set it in on demand and main single source
-		if (ctx->single_file && (evt->seg_size.is_init==1))  {
+		if (ctx->sfile && (evt->seg_size.is_init==1))  {
 			GF_MPD_URL *url, **s_url;
 
 			if (ds->rep->segment_base && !evt->seg_size.media_range_end) {
@@ -2931,12 +3879,12 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (*s_url) gf_mpd_url_free(*s_url);
 			*s_url = url;
 		} else if (ds->rep->segment_list && !evt->seg_size.is_init) {
-			GF_MPD_SegmentURL *url = gf_list_pop_front(ds->seg_urls);
+			GF_MPD_SegmentURL *url = gf_list_pop_front(ds->pending_segment_urls);
 			assert(url);
 			assert(ctx->nb_seg_url_pending);
 			ctx->nb_seg_url_pending--;
 
-			if (!url->media && ctx->single_file) {
+			if (!url->media && ctx->sfile) {
 				GF_SAFEALLOC(url->media_range, GF_MPD_ByteRange);
 				url->media_range->start_range = evt->seg_size.media_range_start;
 				url->media_range->end_range = evt->seg_size.media_range_end;
@@ -2948,7 +3896,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 		}
 	}
-	if (!ctx->single_segment || !flush_mpd) return GF_TRUE;
+	if (!ctx->sseg || !flush_mpd) return GF_TRUE;
 
 	flush_mpd = GF_TRUE;
 	for (i=0; i<count; i++) {
@@ -2971,8 +3919,8 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	case GF_DASH_PROFILE_AVC264_LIVE:
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
 		if (ctx->cp == GF_DASH_CPMODE_REPRESENTATION) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element.\n"));
-			return GF_BAD_PARAM;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element, updating.\n"));
+			ctx->cp = GF_DASH_CPMODE_ADAPTATION_SET;
 		}
 	default:
 		break;
@@ -2981,7 +3929,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	/*adjust params based on profiles*/
 	switch (ctx->profile) {
 	case GF_DASH_PROFILE_LIVE:
-		ctx->single_segment = ctx->single_file = GF_FALSE;
+		ctx->sseg = ctx->sfile = GF_FALSE;
 		ctx->tpl = ctx->align = ctx->sap = GF_TRUE;
 		break;
 	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
@@ -2990,15 +3938,15 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] HBBTV1.5 profile not yet ported to filter architecture.\n"));
 		//FALLTHROUGH
 	case GF_DASH_PROFILE_AVC264_LIVE:
-		ctx->single_segment = ctx->single_file = GF_FALSE;
+		ctx->sseg = ctx->sfile = GF_FALSE;
 		ctx->no_fragments_defaults = ctx->align = ctx->tpl = ctx->sap = GF_TRUE;
 		break;
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
 		ctx->tpl = GF_FALSE;
-		ctx->no_fragments_defaults = ctx->align = ctx->single_segment = ctx->sap = GF_TRUE;
+		ctx->no_fragments_defaults = ctx->align = ctx->sseg = ctx->sap = GF_TRUE;
 		break;
 	case GF_DASH_PROFILE_ONDEMAND:
-		ctx->single_segment = ctx->align = ctx->sap = ctx->single_file = GF_TRUE;
+		ctx->sseg = ctx->align = ctx->sap = ctx->sfile = GF_TRUE;
 		ctx->tpl = GF_FALSE;
 		if ((ctx->bs_switch != DASHER_BS_SWITCH_DEF) && (ctx->bs_switch != DASHER_BS_SWITCH_OFF)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] onDemand profile, bitstream switching mode cannot be used, defaulting to off.\n"));
@@ -3008,7 +3956,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		break;
 	case GF_DASH_PROFILE_MAIN:
 		ctx->align = ctx->sap = GF_TRUE;
-		ctx->single_segment = ctx->tpl = GF_FALSE;
+		ctx->sseg = ctx->tpl = GF_FALSE;
 		break;
 	default:
 		break;
@@ -3041,11 +3989,11 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 
 	//check we have a segment template
 	if (!ctx->template) {
-		ctx->template = gf_strdup( ctx->single_file ? "$File$_dash" : "$File$_$Number$" );
+		ctx->template = gf_strdup( ctx->sfile ? "$File$_dash" : (ctx->stl ? "$File$_$Time$" : "$File$_$Number$") );
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] No template assigned, using %s\n", ctx->template));
 	}
 
-	if (ctx->single_segment) {
+	if (ctx->sseg) {
 		ctx->subs_per_sidx = 0;
 	}
 	return GF_OK;
@@ -3063,7 +4011,7 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	if (e) return e;
 
 	if (!ctx->ext) ctx->ext = "m4s";
-	if (ctx->single_file && ctx->tpl)
+	if (ctx->sfile && ctx->tpl)
 		ctx->tpl = GF_FALSE;
 
 	ctx->current_period = dasher_new_period();
@@ -3072,6 +4020,10 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 
 	if (ctx->state) {
 		ctx->first_context_load = GF_TRUE;
+	}
+	if (ctx->subdur && !ctx->state) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] subdur mode specified but no context set, will only dash %g seconds of media\n", ctx->subdur));
+
 	}
 	return GF_OK;
 }
@@ -3120,11 +4072,11 @@ static const GF_FilterCapability DasherCaps[] =
 static const GF_FilterArgs DasherArgs[] =
 {
 	{ OFFS(dur), "DASH target duration in seconds", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{ OFFS(single_segment), "single segment is used", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(tpl), "use template mode (multiple segment, template URLs)", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(stl), "use segment timeline (ignored in on_demand mode)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(dynamic), "MPD is dynamic (live generation)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(single_file), "Segments are contained in a single file (default in on_demand)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(dmode), "MPD mode static: not live, dynamic: live generation, dynlast: last call for live, will turn the MPD into static)", GF_PROP_UINT, "static", "static|dynamic|dynlast", GF_TRUE},
+	{ OFFS(sseg), "single segment is used", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(sfile), "Segments are contained in a single file (default in on_demand)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(align), "Enables segment time alignment between representations", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(sap), "Enables spliting segments at SAP boundaries", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(mix_codecs), "Enables mixing different codecs in an adaptation set", GF_PROP_BOOL, "false", NULL, GF_FALSE},
@@ -3138,7 +4090,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(aacp), "AAC profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(template), "DASH template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(ext), "File extension to use for segments", GF_PROP_STRING, "m4s", NULL, GF_FALSE},
-	{ OFFS(asto), "AvailabilityStartTime offset to use", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FALSE},
 	{ OFFS(profile), "Specifies the target DASH profile. This will set default option values to ensure conformance to the desired profile. Auto turns profile to live for dynamic and full for non-dynamic.", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand", GF_FALSE },
 	{ OFFS(profX), "specifies a list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used", GF_PROP_STRING, NULL, NULL, GF_FALSE },
 	{ OFFS(cp), "Specifies the content protection element location", GF_PROP_UINT, "set", "set|rep|both", GF_FALSE },
@@ -3158,15 +4110,20 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(subdur), "specifies maximum duration of the input file to be segmentated. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.", GF_PROP_DOUBLE, "0", NULL, GF_FALSE},
 	{ OFFS(ast), "for live mode, sets start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(state), "path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(loop), "loops source file when dashing with subdur and state. If not set, a new period is created once the source is over", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(split), "enables cloning samples for text/metadata/scene description streams, marking further clones as redundant", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(hlsc), "inserts clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+
+	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
+	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
 	{0}
 };
 
 
 GF_FilterRegister DasherRegister = {
 	.name = "dasher",
-	.description = "MPEG-DASH / HLS / Smooth segmenter",
-	.comment = "GPAC DASH segmenter\n"\
+	.description = "MPEG-DASH and HLS segmenter",
+	.comment = "GPAC DASH and HLS segmenter\n"\
 			"The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)\n"\
 			"The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
 			"\tEX: template=Great_$File$_$Width$_$Number$ on 640x360 foo.mp4 source will resolve in Great_foo_640_$Number$ for the DASH template\n"\
@@ -3190,6 +4147,8 @@ GF_FilterRegister DasherRegister = {
 			"\tPeriod: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time\n"
 			"\tPStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end\n"\
 			"\t\tWhen both positive and negative values are found, the by-order periods (negative) will be inserted AFTER the timed period (positive)\n"\
+			"\tASID: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set\n"
+			"\t\tIf multiple streams in source, only the first stream will have an AS ID assigned\n"\
 			"\txlink: for remote periods, only checked for null pid\n"\
 			"\tRole, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation\n"\
 			"\tBUrl: base URLs to use for the pid (per representation)\n"\
@@ -3211,14 +4170,19 @@ GF_FilterRegister DasherRegister = {
 			"\tEX: \"src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1\" will insert an create an MPD with first a remote period then a regular one\n"\
 			"\tEX: \"src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4\" will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one\n"\
 			"\n"\
-			"The dasher will create muxing filter chains for each representation and will reassign PID IDs\n"\
+			"The dasher will request muxing filter chains for each representation and will reassign PID IDs\n"\
 			"so that each media component (video, audio, ...) in an adaptation set has the same ID\n"\
+			"\n"\
+			"For HLS, the output pid will deliver the master playlist and the variant playlists\n"\
+			"The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant\n"\
 			"\n"\
 			"Note to developpers: output muxers allowing segmented output must obey the following:\n"\
 			"* add a \"DashMode\" capability to their input caps (value of the cap is ignored, only its presence is required)\n"\
-			"* inspect packet properties, \"FileNumber\" giving the signal of a new DASH segment, \"FileName\" giving the optional file name (if not present, ouput shall be a single file). \n"\
+			"* inspect packet properties, \"FileNumber\" giving the signal of a new DASH segment, \"FileName\" giving the optional file name (if not present, output shall be a single file). \n"\
 			"\t\t\"FileName\" property is only set for packet carrying the \"FileNumber\" property\n"\
 			"\t\t\"FileName\" property is only on one PID (usually the first) for multiplexed outputs\n"\
+			"\t\t\"EODS\" property is set on packets with no DATA, no TS to signal the end of a DASH segment\n"\
+			"\t\t\tThis is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see dasher \"subdur\" option)\n"\
 			"* for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"\
 			"* for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"\
 			"* the following filter options are passed to muxers, which should declare them as arguments:\n"\

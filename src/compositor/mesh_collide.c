@@ -156,7 +156,7 @@ if (!mesh || !node) return;
 		res[1] = gf_mulfix(res[1], res[1]);
 		num_pos = aabb_split(mesh, node, 2);
 		res[2] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2;
-		res[2] = gf_mulfix(res[2], res[2]);;
+		res[2] = gf_mulfix(res[2], res[2]);
 
 		axis = 0;
 		if (res[1] < res[axis])	axis = 1;
@@ -341,7 +341,7 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 			gf_vec_add(*outPoint, ray->orig, *outPoint);
 		}
 		if (outNormal) {
-			IDX_TYPE *idx = &mesh->indices[3*n->indices[inters_idx]];;
+			IDX_TYPE *idx = &mesh->indices[3*n->indices[inters_idx]];
 			if (mesh->flags & MESH_IS_SMOOTHED) {
 				gf_vec_diff(v1, mesh->vertices[idx[1]].pos, mesh->vertices[idx[0]].pos);
 				gf_vec_diff(v2, mesh->vertices[idx[2]].pos, mesh->vertices[idx[0]].pos);
@@ -352,7 +352,7 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 			}
 		}
 		if (outTexCoords) {
-			IDX_TYPE *idx = &mesh->indices[3*n->indices[inters_idx]];;
+			IDX_TYPE *idx = &mesh->indices[3*n->indices[inters_idx]];
 			ray_hit_triangle_get_u_v(ray,
 			                         &mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
 			                         &outTexCoords->x, &outTexCoords->y);

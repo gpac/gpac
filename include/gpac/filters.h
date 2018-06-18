@@ -570,7 +570,13 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid);
 
 Bool gf_filter_pid_would_block(GF_FilterPid *pid);
 
-void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char *arg_name, const char *arg_val);
+enum
+{
+	GF_FILTER_UPDATE_DOWNSTREAM = 1<<1,
+	GF_FILTER_UPDATE_UPSTREAM = 1<<2,
+};
+
+void gf_filter_send_update(GF_Filter *filter, const char *target_filter_id, const char *arg_name, const char *arg_val, u32 propagate_mask);
 
 //keeps a reference to the given packet
 GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
@@ -710,6 +716,7 @@ enum
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),
 	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
+	GF_PROP_PID_SUBLAYER = GF_4CC('D','P','S','L'),
 	//(bool) playback mode (rewind, fast forward, seek) capability of the pid
 	GF_PROP_PID_PLAYBACK_MODE = GF_4CC('P','B','K','M'),
 	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers
@@ -879,6 +886,9 @@ enum
 	GF_PROP_PCK_FILENUM = GF_4CC('F','N','U','M'),
 	//(uint)
 	GF_PROP_PCK_FILENAME = GF_4CC('F','N','A','M'),
+	//(bool)
+	GF_PROP_PCK_EODS = GF_4CC('E','O','D','S'),
+
 	//(uint)
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 
@@ -896,8 +906,10 @@ enum
 	GF_PROP_PID_PERIOD_START = GF_4CC('P','E','S','T'),
 	//(double)
 	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
-	//(string)
+	//(uint)
 	GF_PROP_PID_REP_ID = GF_4CC('D','R','I','D'),
+	//(string)
+	GF_PROP_PID_AS_ID = GF_4CC('D','A','I','D'),
 	//(string)
 	GF_PROP_PID_MUX_SRC = GF_4CC('M','S','R','C'),
 	//(uint)
@@ -926,6 +938,10 @@ enum
 	GF_PROP_PID_START_NUMBER = GF_4CC('D','R','S','N'),
 	//(string)
 	GF_PROP_PID_XLINK = GF_4CC('X','L','N','K'),
+	//(double)
+	GF_PROP_PID_CLAMP_DUR = GF_4CC('D','C','M','D'),
+	//(string)
+	GF_PROP_PID_HLS_PLAYLIST = GF_4CC('H','L','V','P'),
 
 };
 

@@ -32,7 +32,7 @@
 #include <math.h>
 
 typedef struct {
-	AES_KEY key;
+	AES_KEY enc_key, dec_key;
 
 	u8 block[AES_BLOCK_SIZE];
 	u8 padded_input[AES_BLOCK_SIZE]; // use only when the input length is inferior to the algo block size
@@ -61,7 +61,8 @@ void gf_crypt_deinit_openssl_cbc(GF_Crypt* td)
 void gf_set_key_openssl_cbc(GF_Crypt* td, void *key)
 {
 	Openssl_ctx_cbc* ctx = (Openssl_ctx_cbc*)td->context;
-	AES_set_encrypt_key(key, 128, &(ctx->key));
+	AES_set_encrypt_key(key, 128, &(ctx->enc_key));
+	AES_set_decrypt_key(key, 128, &(ctx->dec_key));
 }
 
 GF_Err gf_crypt_set_IV_openssl_cbc(GF_Crypt* td, const u8 *iv, u32 iv_size)
@@ -81,18 +82,19 @@ GF_Err gf_crypt_get_IV_openssl_cbc(GF_Crypt* td, u8 *iv, u32 *iv_size)
 
 GF_Err gf_crypt_crypt_openssl_cbc(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_crypt_type) {
 	Openssl_ctx_cbc* ctx = (Openssl_ctx_cbc*)td->context;
-	int iteration;
-	int numberOfIterations = len / AES_BLOCK_SIZE;
+	u32 iteration;
+	AES_KEY *key = aes_crypt_type ? &ctx->enc_key : &ctx->dec_key;
+	u32 numberOfIterations = len / AES_BLOCK_SIZE;
 	if (numberOfIterations * AES_BLOCK_SIZE < len) numberOfIterations++;
 
 	for (iteration = 0; iteration < numberOfIterations; ++iteration) {
 		if (len - iteration*AES_BLOCK_SIZE < AES_BLOCK_SIZE) {
 			memset(ctx->padded_input, 0, AES_BLOCK_SIZE);
 			memcpy(ctx->padded_input, plaintext, len - iteration*AES_BLOCK_SIZE);
-			AES_cbc_encrypt(plaintext + iteration*AES_BLOCK_SIZE, ctx->block, AES_BLOCK_SIZE, &ctx->key, ctx->previous_ciphertext, aes_crypt_type);
+			AES_cbc_encrypt(plaintext + iteration*AES_BLOCK_SIZE, ctx->block, AES_BLOCK_SIZE, key, ctx->previous_ciphertext, aes_crypt_type);
 			memcpy(plaintext + iteration*AES_BLOCK_SIZE, ctx->block, len - iteration*AES_BLOCK_SIZE);
 		} else {
-			AES_cbc_encrypt(plaintext + iteration*AES_BLOCK_SIZE, plaintext + iteration*AES_BLOCK_SIZE, AES_BLOCK_SIZE, &ctx->key, ctx->previous_ciphertext, aes_crypt_type);
+			AES_cbc_encrypt(plaintext + iteration*AES_BLOCK_SIZE, plaintext + iteration*AES_BLOCK_SIZE, AES_BLOCK_SIZE, key, ctx->previous_ciphertext, aes_crypt_type);
 		}
 	}
 	return GF_OK;

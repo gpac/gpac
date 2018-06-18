@@ -256,8 +256,8 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_ROOT}\doc\osmo4.ico"
   File "${GPAC_BIN}\libgpac.dll"
   File "${GPAC_BIN}\js.dll"
-  File "${GPAC_BIN}\libeay32.dll"
-  File "${GPAC_BIN}\ssleay32.dll"
+  File "${GPAC_BIN}\libcryptoMD.dll"
+  File "${GPAC_BIN}\libsslMD.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache

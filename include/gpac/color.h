@@ -263,9 +263,8 @@ typedef struct
 GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
 
 
-/*!\brief copies YUV 420 10 bits to YUV destination (only YUV420 8 bits supported)
+/*! copies YUV 420 10 bits to YUV destination (only YUV420 8 bits supported)
  *
- * Software stretch of source surface ont destination surface.
  *\param vs_dst destination surface
  *\param pY source Y plane
  *\param pU source U plane. if NULL, the U plane is located after the Y plane
@@ -278,6 +277,20 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
  *\return error code if any
  */
 GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
+
+/*! copies YUV NV12 10 bits to YUV destination (only YUV420 8 bits supported)
+ *
+ *\param vs_dst destination surface
+ *\param pY source Y plane
+ *\param pUV source U plane. if NULL, the U plane is located after the Y plane
+ *\param src_stride source stride in bytes
+ *\param src_width source width in pixels
+ *\param src_height source height in pixels
+ *\param src_wnd source rectangle. If null the entire source surface is used
+ *\param swap_uv If GF_TRUE, swaps U and V components.
+ *\return error code if any
+ */
+GF_Err gf_color_write_nv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pUV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv);
 
 /*! @} */
 

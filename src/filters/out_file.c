@@ -50,7 +50,7 @@ typedef struct
 } GF_FileOutCtx;
 
 
-static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx)
+static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
 {
 	char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 	if (ctx->file && !ctx->is_std) {
@@ -81,7 +81,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx);
 		ctx->file = gf_fopen(szFinalName, ctx->append ? "a+b" : "w");
 
-		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write) {
+		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write && !explicit_overwrite) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));
 		}
 		strcpy(ctx->szFileName, szFinalName);
@@ -94,22 +94,22 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	return GF_OK;
 }
 
-static void fileout_setup_file(GF_FileOutCtx *ctx)
+static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 {
 	const GF_PropertyValue *p;
 	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
 	if (p && p->value.string) {
-		fileout_open_close(ctx, p->value.string, NULL, 0);
+		fileout_open_close(ctx, p->value.string, NULL, 0, explicit_overwrite);
 	} else if (ctx->dynext) {
 		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
 		if (!p) {
 			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 			if (p && p->value.string) {
-				fileout_open_close(ctx, ctx->dst, p->value.string, 0);
+				fileout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
 			}
 		}
 	} else {
-		fileout_open_close(ctx, ctx->dst, NULL, 0);
+		fileout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite);
 	}
 }
 static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -118,7 +118,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 	if (is_remove) {
 		ctx->pid = NULL;
-		fileout_open_close(ctx, NULL, NULL, 0);
+		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 		return GF_OK;
 	}
 	gf_filter_pid_check_caps(pid);
@@ -182,7 +182,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 static void fileout_finalize(GF_Filter *filter)
 {
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
-	fileout_open_close(ctx, NULL, NULL, 0);
+	fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 }
 
 static GF_Err fileout_process(GF_Filter *filter)
@@ -197,7 +197,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->pid)) {
-			fileout_open_close(ctx, NULL, NULL, 0);
+			fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -206,6 +206,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	gf_filter_pck_get_framing(pck, &start, &end);
 
 	if (start) {
+		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
 		fname = fext = NULL;
 		//file num increased per packet, open new file
@@ -221,10 +222,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 		if (!fext) fext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
 
+		if (end && gf_filter_pck_get_seek_flag(pck))
+			explicit_overwrite = GF_TRUE;
+
 		if (name) {
-			fileout_open_close(ctx, name, fext ? fext->value.string : NULL, fnum ? fnum->value.uint : 0);
+			fileout_open_close(ctx, name, fext ? fext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite);
 		} else if (!ctx->file) {
-			fileout_setup_file(ctx);
+			fileout_setup_file(ctx, explicit_overwrite);
 		}
 	}
 
@@ -301,7 +305,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
 	if (end) {
-		fileout_open_close(ctx, NULL, NULL, 0);
+		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 	}
 	return GF_OK;
 }

@@ -1466,8 +1466,8 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			char *next_tx3g, szOut[1000];
 			u32 len, s_len;
 			next_tx3g = strchr(a_tx3g, ',');
-			if (next_tx3g) s_len = next_tx3g - a_tx3g - 1;
-			else s_len = strlen(a_tx3g);
+			if (next_tx3g) s_len = (u32) (next_tx3g - a_tx3g - 1);
+			else s_len = (u32) strlen(a_tx3g);
 
 			len = gf_base64_decode(a_tx3g, s_len, szOut, 1000);
 			nb_desc++;

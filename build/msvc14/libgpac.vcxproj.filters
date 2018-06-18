@@ -390,18 +390,10 @@
     <ClInclude Include="..\..\include\gpac\webvtt.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\filter_core\filter_session.h">
-      <Filter>filter_core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\filters\ff_common.h">
-      <Filter>filters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\filters\in_rtp.h">
-      <Filter>filters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\filters\isoffin.h">
-      <Filter>filters</Filter>
-    </ClInclude>
+    <ClInclude Include="..\..\src\filters\ff_common.h" />
+    <ClInclude Include="..\..\src\filters\in_rtp.h" />
+    <ClInclude Include="..\..\src\filters\isoffin.h" />
+    <ClInclude Include="..\..\src\filter_core\filter_session.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -760,13 +752,13 @@
     </ClCompile>
     <ClCompile Include="..\..\src\crypto\g_crypt_openssl.c">
       <Filter>crypto</Filter>
-    </ClCompile>    
+    </ClCompile>
     <ClCompile Include="..\..\src\crypto\g_crypt_tinyaes.c">
       <Filter>crypto</Filter>
-    </ClCompile>    
+    </ClCompile>
     <ClCompile Include="..\..\src\crypto\tiny_aes.c">
       <Filter>crypto</Filter>
-    </ClCompile>    
+    </ClCompile>
     <ClCompile Include="..\..\src\media_tools\ait.c">
       <Filter>media_tools</Filter>
     </ClCompile>
@@ -1392,6 +1384,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\mux_ts.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dasher.c">
       <Filter>filters</Filter>
     </ClCompile>
   </ItemGroup>

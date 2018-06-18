@@ -233,9 +233,11 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		p_u = p_v = NULL;
 		p_y = (u8 *)txh->data;
 		if (txh->hw_frame) {
-			txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &p_y, &src_stride);
-			txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &p_u, &src_stride);
-			txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &src_stride);
+			u32 st_y, st_u, st_v;
+			txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &p_y, &st_y);
+			txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &p_u, &st_u);
+			txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &st_v);
+			if (p_y) src_stride = st_y;
 		}
 
 		if (txh->pixelformat == GF_PIXEL_YUV) {

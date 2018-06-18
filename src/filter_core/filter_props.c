@@ -257,18 +257,18 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			char *sep = strchr(v, list_sep_char);
 			if (sep) {
 				char *xml_end = strchr(v, '>');
-				len = sep - v;
+				len = (u32) (sep - v);
 				if (xml_end) {
-					u32 xml_len = xml_end - v;
+					u32 xml_len = (u32) (xml_end - v);
 					if (xml_len > len) {
 						sep = strchr(xml_end, list_sep_char);
 						if (sep)
-							len = sep - v;
+							len = (u32) (sep - v);
 					}
 				}
 			}
 			if (!sep)
-			 	len = strlen(v);
+			 	len = (u32) strlen(v);
 
 			nv = gf_malloc(sizeof(char)*(len+1));
 			strncpy(nv, v, sizeof(char)*len);
@@ -809,6 +809,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
+	{ GF_PROP_PID_SUBLAYER, "SubLayer", "Indicates this is a sublayer of the stream depended on rather than an enhancement layer", GF_PROP_BOOL},
 	{ GF_PROP_PID_PLAYBACK_MODE, "PlaybackMode", "playback mode supported by PID:\n\t0 is no time control\n\t1 is play/pause/seek,speed=1\n\t2 is play/pause/seek,speed>=0\n\t3 is play/pause/seek, reverse playback", GF_PROP_UINT},
 	{ GF_PROP_PID_SCALABLE, "Scalable", "Stream is a scalable stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_LANGUAGE, "Language", "Language name for this PID", GF_PROP_NAME},
@@ -894,6 +895,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - set as info, not property", GF_PROP_UINT},
 	{ GF_PROP_PCK_FILENUM, "FileNumber", "Index of file when dumping to files", GF_PROP_UINT},
 	{ GF_PROP_PCK_FILENAME, "FileName", "Name of output file when dumping / dashing. Must be set on first packet belonging to new file", GF_PROP_STRING},
+	{ GF_PROP_PCK_EODS, "EODS", "End of DASH segment", GF_PROP_BOOL},
 	{ GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - set as info, not property", GF_PROP_UINT},
 
 	{ GF_PROP_PID_ISOM_TRACK_TEMPLATE, "TrackTemplate", "ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF", GF_PROP_DATA},
@@ -902,6 +904,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_PERIOD_START, "PStart", "DASH Period start - cf dasher help", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_PERIOD_DUR, "PDur", "DASH Period duration - cf dasher help", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_REP_ID, "Representation", "ID of DASH representation", GF_PROP_STRING},
+	{ GF_PROP_PID_AS_ID, "ASID", "ID of parent DASH AS", GF_PROP_UINT},
 	{ GF_PROP_PID_MUX_SRC, "MuxSrc", "Identifies mux source(s)", GF_PROP_STRING},
 	{ GF_PROP_PID_DASH_MODE, "DashMode", "Indicates DASH mode to muxer, if any. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT},
 	{ GF_PROP_PID_DASH_DUR, "DashDur", "Indicates DASH target segment duration in seconds to muxer, if any.", GF_PROP_DOUBLE},
@@ -916,7 +919,8 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_TEMPLATE, "Template", "template to use for DASH generation", GF_PROP_STRING},
 	{ GF_PROP_PID_START_NUMBER, "StartNumber", "specifies the start number to use for this DASH representation", GF_PROP_UINT},
 	{ GF_PROP_PID_XLINK, "xlink", "specifies remote period URL for DASH", GF_PROP_STRING},
-
+	{ GF_PROP_PID_CLAMP_DUR, "CDur", "max media duration to process from PID in DASH mode", GF_PROP_DOUBLE},
+	{ GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "specifies the name of the variant playlist for this media", GF_PROP_STRING},
 
 };
 
@@ -1067,7 +1071,7 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 				strcat(dump, ",");
 				strncat(dump, s, len-1);
 			}
-			len = GF_PROP_DUMP_ARG_SIZE - 1 - strlen(dump);
+			len = GF_PROP_DUMP_ARG_SIZE - 1 - (u32) strlen(dump);
 			if (len<=1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("String list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
 				return dump;

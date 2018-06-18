@@ -2978,7 +2978,7 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	}
 	else if (f_buf_now <= rate_minus) {
 		// rate_next = min of Ri st. Ri > f_buf_now
-		new_index = gf_list_count(group->adaptation_set->representations) - 1;;
+		new_index = gf_list_count(group->adaptation_set->representations) - 1;
 		get_min_rate_above(group->adaptation_set->representations, f_buf_now, &new_index);
 	}
 	else {

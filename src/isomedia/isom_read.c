@@ -470,6 +470,17 @@ GF_Err gf_isom_write(GF_ISOFile *movie) {
 		if ( (movie->openMode == GF_ISOM_OPEN_WRITE) && (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) {
 			e = gf_isom_close_fragments(movie);
 			if (e) return e;
+			//in case of mfra box usage -> create mfro, calculate box sizes and write it out
+			if (movie->mfra) {
+				if (!movie->mfra->mfro)
+					movie->mfra->mfro = (GF_MovieFragmentRandomAccessOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRO);
+				
+				e = gf_isom_box_size((GF_Box *)movie->mfra);
+				if (e) return e;
+				movie->mfra->mfro->container_size = (u32) movie->mfra->size;
+				//write mfra
+				e = gf_isom_box_write((GF_Box *)movie->mfra, movie->editFileMap->bs);
+			}
 		} else
 #endif
 			e = WriteToFile(movie);
@@ -1072,7 +1083,7 @@ GF_Err gf_isom_get_media_time(GF_ISOFile *the_file, u32 trackNumber, u32 movieTi
 	u8 useEdit;
 	s64 SegmentStartTime, mediaOffset;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !MediaTime) return GF_BAD_PARAM;;
+	if (!trak || !MediaTime) return GF_BAD_PARAM;
 
 	SegmentStartTime = 0;
 	return GetMediaTime(trak, GF_FALSE, movieTime, MediaTime, &SegmentStartTime, &mediaOffset, &useEdit, NULL);
@@ -3980,6 +3991,8 @@ Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file)
 		switch (gf_isom_get_media_subtype(file, i+1, 1)) {
 		case GF_ISOM_SUBTYPE_LHV1:
 		case GF_ISOM_SUBTYPE_LHE1:
+		case GF_ISOM_SUBTYPE_HVC2:
+		case GF_ISOM_SUBTYPE_HEV2:
 			if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_BASE) > 0) {
 				return GF_TRUE;
 			}
@@ -4017,6 +4030,29 @@ u32 gf_isom_get_pssh_count(GF_ISOFile *file)
 }
 
 GF_EXPORT
+GF_Err gf_isom_get_pssh(GF_ISOFile *file, u32 pssh_index, u8 **pssh_data, u32 *pssh_size)
+{
+	GF_Err e;
+	u32 i=0;
+	GF_BitStream *bs;
+	u32 count=1;
+	GF_Box *pssh;
+	while ((pssh = (GF_Box *)gf_list_enum(file->moov->other_boxes, &i))) {
+		if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+		if (count == pssh_index) break;
+		count++;
+	}
+	if (!pssh) return GF_BAD_PARAM;
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	e = gf_isom_box_write(pssh, bs);
+	if (!e) {
+		gf_bs_get_content(bs, (char **)pssh_data, pssh_size);
+	}
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_EXPORT
 GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size)
 {
 	u32 count=1;
@@ -4029,11 +4065,11 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 	}
 	if (!pssh) return GF_BAD_PARAM;
 
-	memcpy(SystemID, pssh->SystemID, 16);
-	*KID_count = pssh->KID_count;
-	*KIDs = (const bin128 *) pssh->KIDs;
-	*private_data_size = pssh->private_data_size;
-	*private_data = pssh->private_data;
+	if (SystemID) memcpy(SystemID, pssh->SystemID, 16);
+	if (KID_count) *KID_count = pssh->KID_count;
+	if (KIDs) *KIDs = (const bin128 *) pssh->KIDs;
+	if (private_data_size) *private_data_size = pssh->private_data_size;
+	if (private_data) *private_data = pssh->private_data;
 	return GF_OK;
 }
 
@@ -4062,8 +4098,6 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	if (constant_IV_size) *constant_IV_size = 0;
 	if (constant_IV) memset(*constant_IV, 0, 16);
 
-	if (!senc) return GF_BAD_PARAM;
-
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf)
 		return GF_BAD_PARAM;
@@ -4075,8 +4109,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 		//this is dump mode of fragments, we haven't merged tables yet :(
 		descIndex = 1;
 	}
-	gf_isom_cenc_get_default_info_ex(trak, descIndex, IsEncrypted, IV_size, KID);
-
+	gf_isom_cenc_get_default_info_ex(trak, descIndex, IsEncrypted, IV_size, KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
 
 	sample_group = NULL;
 	group_desc_index = 0;
@@ -4165,7 +4198,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 exit:
 
 	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
-	if ((senc->is_piff || (trak->moov && trak->moov->mov->is_smooth) ) && IV_size && !(*IV_size) ) {
+	if (( (senc && senc->is_piff) || (trak->moov && trak->moov->mov->is_smooth) ) && !(*IV_size) ) {
 		if (!senc->is_piff) {
 			senc->is_piff = GF_TRUE;
 			senc->IV_size=8;
@@ -4333,6 +4366,7 @@ u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescrip
 	return 0;
 }
 
+GF_EXPORT
 Bool gf_isom_is_video_subtype(u32 mtype)
 {
 	switch (mtype) {

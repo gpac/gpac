@@ -5309,7 +5309,7 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 
 	GF_LSR_READ_INT(lsr, flag, 1, "has_pointvalue");
 	if (flag) {
-		lsr_read_byte_align_string(lsr, NULL, "string");;
+		lsr_read_byte_align_string(lsr, NULL, "string");
 	}
 	lsr_read_any_attribute(lsr, NULL, 1);
 

@@ -1386,6 +1386,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	u32 info_length, pos, desc_len, evt_type, nb_es,i;
 	u32 nb_sections;
 	u32 data_size;
+	u32 nb_hevc, nb_hevc_temp, nb_shvc, nb_shvc_temp, nb_mhvc, nb_mhvc_temp;
 	unsigned char *data;
 	GF_M2TS_Section *section;
 	GF_Err e = GF_OK;
@@ -1480,7 +1481,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		}
 	}
 
-
+	nb_hevc = nb_hevc_temp = nb_shvc = nb_shvc_temp = nb_mhvc = nb_mhvc_temp = 0;
 	while (pos<data_size) {
 		GF_M2TS_PES *pes = NULL;
 		GF_M2TS_SECTION_ES *ses = NULL;
@@ -1503,7 +1504,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_SYSTEMS_MPEG4_PES:
 		case GF_M2TS_VIDEO_H264:
 		case GF_M2TS_VIDEO_SVC:
+		case GF_M2TS_VIDEO_MVCD:
 		case GF_M2TS_VIDEO_HEVC:
+		case GF_M2TS_VIDEO_HEVC_MCTS:
+		case GF_M2TS_VIDEO_HEVC_TEMPORAL:
 		case GF_M2TS_VIDEO_SHVC:
 		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
 		case GF_M2TS_VIDEO_MHVC:
@@ -1515,6 +1519,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_AUDIO_LATM_AAC:
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_DTS:
+		case GF_M2TS_MHAS_MAIN:
+		case GF_M2TS_MHAS_AUX:
 		case GF_M2TS_SUBTITLE_DVB:
 		case GF_M2TS_METADATA_PES:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
@@ -1565,6 +1571,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_13818_6_ANNEX_C:
 		case GF_M2TS_13818_6_ANNEX_D:
 		case GF_M2TS_PRIVATE_SECTION:
+		case GF_M2TS_QUALITY_SEC:
+		case GF_M2TS_MORE_SEC:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			if (!ses) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
@@ -1574,10 +1582,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			es->flags |= GF_M2TS_ES_IS_SECTION;
 			es->pid = pid;
 			es->service_id = pmt->program->number;
-			if(stream_type == GF_M2TS_PRIVATE_SECTION) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT section found on pid %d\n", pid));
+			if (stream_type == GF_M2TS_PRIVATE_SECTION) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("AIT sections on pid %d\n", pid));
+			} else if (stream_type == GF_M2TS_QUALITY_SEC) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Quality metadata sections on pid %d\n", pid));
+			} else if (stream_type == GF_M2TS_MORE_SEC) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("MORE sections on pid %d\n", pid));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type DSM CC user private section: pid = %d \n", pid));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type DSM CC user private sections on pid %d \n", pid));
 			}
 			/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
 			ses->sec = gf_m2ts_section_filter_new(NULL, 1);
@@ -1782,11 +1794,48 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 			nb_es++;
 		}
+
+		if (es->stream_type == GF_M2TS_VIDEO_HEVC) nb_hevc++;
+		else if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) nb_hevc_temp++;
+		else if (es->stream_type == GF_M2TS_VIDEO_SHVC) nb_shvc++;
+		else if (es->stream_type == GF_M2TS_VIDEO_SHVC_TEMPORAL) nb_shvc_temp++;
+		else if (es->stream_type == GF_M2TS_VIDEO_MHVC) nb_mhvc++;
+		else if (es->stream_type == GF_M2TS_VIDEO_MHVC_TEMPORAL) nb_mhvc_temp++;
 	}
 
+	//Table 2-139, implied hierarchy indexes
+	if (nb_hevc_temp + nb_shvc + nb_shvc_temp + nb_mhvc+ nb_mhvc_temp) {
+		for (i=0; i<gf_list_count(pmt->program->streams); i++) {
+			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_get(pmt->program->streams, i);
+			if ( !(es->flags & GF_M2TS_ES_IS_PES)) continue;
+			if (es->depends_on_pid) continue;
+
+			switch (es->stream_type) {
+			case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+				es->depends_on_pid = 1;
+				break;
+			case GF_M2TS_VIDEO_SHVC:
+				if (!nb_hevc_temp) es->depends_on_pid = 1;
+				else es->depends_on_pid = 2;
+				break;
+			case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+				es->depends_on_pid = 3;
+				break;
+			case GF_M2TS_VIDEO_MHVC:
+				if (!nb_hevc_temp) es->depends_on_pid = 1;
+				else es->depends_on_pid = 2;
+				break;
+			case GF_M2TS_VIDEO_MHVC_TEMPORAL:
+				if (!nb_hevc_temp) es->depends_on_pid = 2;
+				else es->depends_on_pid = 3;
+				break;
+			}
+		}
+	}
 
 	if (nb_es) {
 		u32 i;
+
 		//translate hierarchy descriptors indexes into PIDs - check whether the PMT-index rules are the same for HEVC
 		for (i=0; i<gf_list_count(pmt->program->streams); i++) {
 			GF_M2TS_PES *an_es = NULL;
@@ -2927,6 +2976,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_VIDEO_HEVC:
+		case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+		case GF_M2TS_VIDEO_HEVC_MCTS:
 		case GF_M2TS_VIDEO_SHVC:
 		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
 		case GF_M2TS_VIDEO_MHVC:

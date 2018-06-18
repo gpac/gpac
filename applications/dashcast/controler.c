@@ -1121,7 +1121,7 @@ int dc_run_controler(CmdData *in_data)
 	dc_message_queue_init(&delete_seg_mq);
 	dc_message_queue_init(&send_frag_mq);
 
-	memset(&audio_input_data, 0, sizeof(AudioInputData));;
+	memset(&audio_input_data, 0, sizeof(AudioInputData));
 	memset(&audio_input_file, 0, sizeof(AudioInputFile));
 	memset(&video_input_data, 0, sizeof(VideoInputData));
 

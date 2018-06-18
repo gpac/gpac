@@ -239,7 +239,7 @@ struct __gf_fs_task
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
 
-void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val);
+void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, u32 propagate_mask);
 void gf_filter_pid_send_event_downstream(GF_FSTask *task);
 
 
@@ -531,6 +531,8 @@ typedef struct
 {
 	char *name;
 	char *val;
+	//0: only on filter, 1: forward downstream, 2: forward upstream
+	u32 recursive;
 } GF_FilterUpdate;
 
 //structure for input pids, in order to handle fan-outs of a pid into several filters

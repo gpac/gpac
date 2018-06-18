@@ -2199,8 +2199,12 @@ restart:
 		}
 		//pid->filter->dst_filter NULL and pid->filter->target_filter is not: we had a wrong resolved chain to target
 		//so only attempt to reling the chain if dst_filter is the expected target
-		if (!pid->filter->dst_filter && pid->filter->target_filter && (filter_dst != pid->filter->target_filter))
-			continue;
+		if (!pid->filter->dst_filter && pid->filter->target_filter && (filter_dst != pid->filter->target_filter)) {
+			if (filter_dst->target_filter != pid->filter->target_filter) {
+				continue;
+			}
+			//if the target filter of this filter is the same as ours, try to connect - typically scalable streams decoding
+		}
 
 		//dynamic filters only connect to their destination, unless explicit connections through sources
 		//we could remove this but this highly complicates PID resolution
@@ -3335,9 +3339,11 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			canceled = GF_TRUE;
 		}
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY) && evt->base.on_pid->pid->is_playing) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type)));
 		gf_free(evt);
 		return;
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type)));
 		gf_free(evt);
 		return;
 	} else if (f->freg->process_event) {
@@ -3883,7 +3889,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 					}
 				}
 			} else {
-				u32 i, len = next_sep ? 1+(next_sep - name) : strlen(name);
+				u32 i, len = (u32) (next_sep ? 1+(next_sep - name) : strlen(name) );
 				szFinalName[k]='$';
 				k++;
 				for (i=0; i<len; i++) {
@@ -4021,7 +4027,7 @@ static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *ds
 	if (dst && sep) {
 		u32 len;
 		dst += 4;
-		len = sep - dst;
+		len = (u32) (sep - dst);
 		char *res = gf_malloc(sizeof(char)* (len+1));
 		memcpy(res, dst, sizeof(char)* len);
 		res[len]=0;

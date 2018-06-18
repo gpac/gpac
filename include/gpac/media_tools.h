@@ -225,6 +225,8 @@ struct __track_video_info
 	u32 height;
 	/*! pixel aspect ratio expressed as 32 bits, high 16 bits being the numerator and low ones being the denominator*/
 	u32 par;
+	/*! temporal enhancement flag*/
+	Bool temporal_enhancement;
 	/*! Video frame rate*/
 	Double FPS;
 };
@@ -522,6 +524,8 @@ typedef struct
 	char *representationID;
 	/*! ID of the period. If not set, assigned automatically*/
 	char *periodID;
+	/*! ID of the adaptation set. If not set, assigned automatically.*/
+	u32 asID;
 	/*! forced media duration.*/
 	Double media_duration;
 	/*! number of base URLs in the baseURL structure*/
@@ -554,8 +558,15 @@ typedef struct
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
 	Double period_duration;
-	/*! if true, the dasher inputs will open each time the segmentation function is called */
-	Bool no_cache;
+	/*! sets default start number for this representation. if not set, assigned automatically */
+	u32 startNumber; 	//TODO: start number, template
+	/*! overrides template for this input*/
+	char *seg_template;
+	/*! sets name of HLS playlist*/
+	char *hls_pl;
+	/*! non legacy options passed to dasher */
+	char *other_opts;
+
 } GF_DashSegmenterInput;
 
 /*!
@@ -647,7 +658,7 @@ typedef struct __gf_dash_segmenter GF_DASHSegmenter;
  *	\param dasher_context_file config file used to store the context of the DASH segmenter. This allows destroying the segmenter and restarting it later on with the right DASH segquence numbers, MPD and and timing info
  *	\return the DASH segmenter object
 */
-GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile profile, const char *tmp_dir, u32 timescale, GF_Config *dasher_context_file);
+GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile profile, const char *tmp_dir, u32 timescale, const char *dasher_context_file);
 /*!
  Deletes a DASH segmenter
  \param dasher the DASH segmenter object
@@ -735,9 +746,10 @@ GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode 
  *	\param dasher the DASH segmenter object
  *	\param default_segment_duration the duration of a dash segment
  *	\param default_fragment_duration the duration of a dash fragment - if 0, same as default_segment_duration
+ *	\param sub_duration the duration in seconds of media to DASH. If 0, the whole sources will be processed.
  *	\return error code if any
 */
-GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration);
+GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration, Double sub_duration);
 
 /*!
  Enables spliting at RAP boundaries
@@ -811,17 +823,33 @@ GF_Err gf_dasher_enable_memory_fragmenting(GF_DASHSegmenter *dasher, Bool enable
 */
 GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_sn, u64 initial_tfdt);
 
+
+
+typedef enum
+{
+	//! PSSH box in moov only
+	GF_DASH_PSSH_MOOV = 0,
+	//! PSSH box in moof only
+	GF_DASH_PSSH_MOOF,
+	//! PSSH box in moov and MPD
+	GF_DASH_PSSH_MOOV_MPD,
+	//! PSSH box in moof and MPD
+	GF_DASH_PSSH_MOOF_MPD,
+	//! PSSH box in MPD only
+	GF_DASH_PSSH_MPD
+} GF_DASHPSSHMode;
+
 /*!
  Configure how default values for ISOBMFF are stored
  *	\param dasher the DASH segmenter object
  *	\param no_fragments_defaults if set, fragments default values are repeated in each traf and not set in trex. Default value is GF_FALSE
- *	\param pssh_moof if set, PSSH is stored in each moof, and not set in init segment. Default value is GF_FALSE
+ *	\param pssh_mode sets the storage mode of PSSH in moov/moof/mpd. 
  *	\param samplegroups_in_traf if set, all sample group definitions are stored in each traf and not set in init segment. Default value is GF_FALSE
  *	\param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
  *  \param tfdt_per_traf if set, each traf will contain a tfdt. Only applicable when single_traf_per_moof is GF_TRUE. Default value is GF_FALSE
  *	\return error code if any
 */
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf);
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf);
 
 /*!
  Enables insertion of UTC reference in the begining of segments
@@ -898,10 +926,10 @@ GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_cl
 /*!
  Sets m3u8 file name - if not set, no m3u8 output
  *	\param dasher the DASH segmenter object
- *	\param m3u8_name name of master m3u8 playlist to generate
+ *	\param insert_clock if true UTC clock is inserted in variant playlists in live
  *	\return error code if any
 */
-GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name);
+GF_Err gf_dasher_set_hls_clock(GF_DASHSegmenter *dasher, Bool insert_clock);
 
 /*!
  Adds a media input to the DASHer
@@ -909,15 +937,14 @@ GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name);
  *	\param input media source to add
  *	\return error code if any
 */
-GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *input);
+GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput *input);
 
 /*!
  Process the media source and generate segments
  *	\param dasher the DASH segmenter object
- *	\param sub_duration the duration in seconds of media to DASH. If 0, the whole sources will be processed.
  *	\return error code if any
 */
-GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
+GF_Err gf_dasher_process(GF_DASHSegmenter *dasher);
 
 /*!
  Returns time to wait until end of currently generated segments
@@ -931,9 +958,9 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_ins_session);
 /*!
  Sets dasher start date, rather than use current time. Used for debugging purposes, such as simulating long lasting sessions.
  *	\param dasher the DASH segmenter object
- *  \param dash_utc_start_date start date as UTC timstamp. If 0, current time is used
+ *  \param dash_utc_start_date start date as as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. If 0, current time is used
 */
-void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date);
+void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, const char *dash_utc_start_date);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!
@@ -941,9 +968,10 @@ void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date)
  \param file the target file to be fragmented
  \param output_file name of the output file
  \param max_duration_sec max fragment duration in seconds
+ \param use_mfra insert track fragment movie fragments
  \return error if any
  */
-GF_Err gf_media_fragment_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec);
+GF_Err gf_media_fragment_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec, Bool use_mfra);
 #endif
 
 /*! @} */
