@@ -2897,7 +2897,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			sctx = gf_list_get(rep->state_seg_list, i);
 			assert(sctx->file_name);
 			
-			dur = sctx->dur;
+			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
 			fprintf(out,"#EXTINF:%g\n", dur);
 			fprintf(out,"%s\n", sctx->file_name);
@@ -2927,7 +2927,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			assert(!sctx->file_name);
 			assert(sctx->file_size);
 
-			dur = sctx->dur;
+			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
 			fprintf(out,"#EXTINF:%g\n", dur);
 			fprintf(out,"#EXT-X-BYTERANGE:%d@"LLU"\n", sctx->file_size, sctx->file_offset);
