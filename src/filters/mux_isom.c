@@ -337,6 +337,16 @@ static void mp4_mux_track_writer_del(TrackWriter *tkw)
 	gf_free(tkw);
 }
 
+static void mp4_mux_write_track_refs(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const char *rname, u32 rtype)
+{
+	u32 i;
+	const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, rname);
+	if (!p) return;
+	for (i=0; i<p->value.uint_list.nb_items; i++) {
+		gf_isom_set_track_reference(ctx->file, tkw->track_num, rtype, p->value.uint_list.vals[i]);
+	}
+}
+
 
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
 {
@@ -365,6 +375,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	u32 codec_id;
 	u32 frames_per_sample_backup=0;
 	Bool is_nalu_backup = GF_FALSE;
+	Bool is_tile_base = GF_FALSE;
 	u32 multi_pid_final_stsd_idx = 0;
 
 	const char *lang_name = NULL;
@@ -400,7 +411,23 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mp4") );
 	}
-	
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TILE_BASE);
+	if (p && p->value.boolean) is_tile_base = GF_TRUE;
+
+	if (is_true_pid && !is_tile_base) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_TRACK);
+		if (p) {
+			u32 i, count;
+			GF_List *multi_tracks = p->value.ptr;
+			count = gf_list_count(multi_tracks);
+			for (i=0; i<count; i++) {
+				GF_FilterPid *a_ipid = gf_list_get(multi_tracks, i);
+				mp4_mux_setup_pid(filter, a_ipid, GF_FALSE);
+			}
+		}
+	}
+
 	//new pid ?
 	tkw = gf_filter_pid_get_udta(pid);
 	if (!tkw) {
@@ -408,6 +435,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		GF_SAFEALLOC(tkw, TrackWriter);
 		gf_list_add(ctx->tracks, tkw);
 		tkw->ipid = pid;
+		tkw->fake_track = !is_true_pid;
 		if (is_true_pid) {
 			gf_filter_pid_set_udta(pid, tkw);
 
@@ -946,12 +974,15 @@ sample_entry_setup:
 	} else if (use_hevc) {
 		if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
 
-		if (!dsi) {
+		if (!dsi && !enh_dsi) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for HEVC\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (codec_id == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
-
+		if (dsi) {
+			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (codec_id == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+		} else {
+			tkw->hvcc = gf_odf_hevc_cfg_new();
+		}
 		e = gf_isom_hevc_config_new(ctx->file, tkw->track_num, tkw->hvcc, NULL, NULL, &tkw->stsd_idx);
 
 		gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
@@ -963,7 +994,7 @@ sample_entry_setup:
 			if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
 			tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
 			if (tkw->lvcc) {
-				e = gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->lvcc, GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
+				e = gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->lvcc, dsi ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
 				if (e) {
 					gf_odf_hevc_cfg_del(tkw->lvcc);
 					tkw->lvcc = NULL;
@@ -1292,8 +1323,12 @@ multipid_stsd_setup:
 		}
 	}
 
+	if (is_true_pid) {
+		mp4_mux_write_track_refs(ctx, tkw, "isom:scal", GF_ISOM_REF_SCAL);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:sabt", GF_ISOM_REF_SABT);
+	}
 
-	if (is_true_pid && ctx->dash_mode) {
+	if (is_true_pid && ctx->dash_mode && is_tile_base) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_TRACK);
 		if (p) {
 			u32 i, count;
@@ -1352,7 +1387,6 @@ multipid_stsd_setup:
 	} else {
 		mp4_mux_make_inband_header(ctx, tkw);
 	}
-	tkw->fake_track = !is_true_pid;
 	return GF_OK;
 }
 
@@ -1883,6 +1917,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (p && strlen(p->value.string)) ctx->single_file = GF_FALSE;
+
+			def_fake_dur = gf_filter_pck_get_duration(pck);
+			def_fake_scale = tkw->timescale;
 		}
 		
 		//good to go, finalize for fragments
@@ -1907,13 +1944,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				pck = gf_filter_pid_get_packet(tkw->ipid);
 				assert(pck);
 
-
 				//otherwise setup fragmentation, using first sample desc as default idx
 				//first pck dur as default
 				def_pck_dur = gf_filter_pck_get_duration(pck);
-				def_fake_dur = def_pck_dur;
-				def_fake_scale = tkw->timescale;
-
 
 				dts = gf_filter_pck_get_dts(pck);
 				if (dts == GF_FILTER_NO_TS)
@@ -1991,6 +2024,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			if (tkw->fake_track) {
 				gf_list_del_item(ctx->tracks, tkw);
+				if (ref_tkw==tkw) ref_tkw=NULL;
 				mp4_mux_track_writer_del(tkw);
 				i--;
 				count--;
@@ -2606,6 +2640,11 @@ static void mp4_mux_set_lhvc_base_layer(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	} else {
 		ref_track_id = gf_isom_get_track_id(ctx->file, hevc_base_track ? hevc_base_track : avc_base_track);
 		gf_isom_set_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_BASE, ref_track_id);
+
+		if (hevc_base_track) {
+			ref_track_id = gf_isom_get_track_id(ctx->file, hevc_base_track);
+			gf_isom_set_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_OREF, ref_track_id);
+		}
 	}
 }
 
@@ -2620,16 +2659,15 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		if (p) {
 			gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_LINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
 		}
-
-		//sets track in group of type group_type and id track_group_id. If do_add is GF_FALSE, track is removed from that group
 		gf_isom_set_track_group(ctx->file, tkw->track_num, 1000+gf_isom_get_track_id(ctx->file, tkw->track_num), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
 	}
 
 	p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
 	if (p && p->value.uint) {
 		mp4_mux_set_lhvc_base_layer(ctx, tkw);
+	} else if (tkw->codecid==GF_CODECID_LHVC) {
+		mp4_mux_set_lhvc_base_layer(ctx, tkw);
 	}
-
 }
 
 static void mp4_mux_done(GF_MP4MuxCtx *ctx)

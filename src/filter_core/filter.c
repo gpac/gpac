@@ -431,6 +431,14 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 			res = GF_TRUE;
 		}
 		break;
+	case GF_PROP_UINT_LIST:
+		if (a->offset_in_private + sizeof(void *) <= filter->freg->private_size) {
+			GF_PropUIntList *l = (GF_PropUIntList *)ptr;
+			if (l) gf_free(l->vals);
+			*l = argv->value.uint_list;
+			res = GF_TRUE;
+		}
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property type %s not supported for filter argument\n", gf_props_get_type_name(argv->type) ));
 		return;

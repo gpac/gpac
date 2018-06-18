@@ -204,6 +204,8 @@ typedef struct _dash_stream
 	u32 nb_sap_3, nb_sap_4;
 	//ID of output pid (renumbered), used for content component and making sure output muxers use the same IDs
 	u32 pid_id;
+	//dependency ID of output pid (renumbered)
+	u32 dep_pid_id;
 
 	//seg urls not yet handled (waiting for size/index callbacks)
 	GF_List *pending_segment_urls;
@@ -791,7 +793,6 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		return GF_OK;
 #ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_LHVC:
-		if (dcd_enh) dcd = dcd_enh;
 		subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
 		//fallthrough
 	case GF_CODECID_HEVC_TILES:
@@ -811,74 +812,81 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			if (tile_base) {
 				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
 			} else if (dcd_enh) {
-				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+				if (dcd) {
+					subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+				} else {
+					subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
+				}
 			} else {
 				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV1 : GF_ISOM_SUBTYPE_HVC1;
 			}
 		}
-		if (dcd && (!ctx->forcep || !ctx->hvcp)) {
+		if ((dcd || dcd_enh) && (!ctx->forcep || !ctx->hvcp)) {
 			u8 c;
 			char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
-			GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, (dcd==dcd_enh) ? GF_TRUE : GF_FALSE);
+			GF_HEVCConfig *hvcc = dcd ? gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE) : NULL;
+
 			//TODO - check we do expose hvcC for tiled tracks !
 
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
-			if (hvcc->profile_space==1) strcat(szCodec, "A");
-			else if (hvcc->profile_space==2) strcat(szCodec, "B");
-			else if (hvcc->profile_space==3) strcat(szCodec, "C");
-			//profile idc encoded as a decimal number
-			sprintf(szTemp, "%d", hvcc->profile_idc);
-			strcat(szCodec, szTemp);
-			//general profile compatibility flags: hexa, bit-reversed
-			{
-				u32 val = hvcc->general_profile_compatibility_flags;
-				u32 i, res = 0;
-				for (i=0; i<32; i++) {
-					res |= val & 1;
-					if (i==31) break;
-					res <<= 1;
-					val >>=1;
-				}
-				sprintf(szTemp, ".%X", res);
+			if (hvcc) {
+				if (hvcc->profile_space==1) strcat(szCodec, "A");
+				else if (hvcc->profile_space==2) strcat(szCodec, "B");
+				else if (hvcc->profile_space==3) strcat(szCodec, "C");
+				//profile idc encoded as a decimal number
+				sprintf(szTemp, "%d", hvcc->profile_idc);
 				strcat(szCodec, szTemp);
-			}
+				//general profile compatibility flags: hexa, bit-reversed
+				{
+					u32 val = hvcc->general_profile_compatibility_flags;
+					u32 i, res = 0;
+					for (i=0; i<32; i++) {
+						res |= val & 1;
+						if (i==31) break;
+						res <<= 1;
+						val >>=1;
+					}
+					sprintf(szTemp, ".%X", res);
+					strcat(szCodec, szTemp);
+				}
 
-			if (hvcc->tier_flag) strcat(szCodec, ".H");
-			else strcat(szCodec, ".L");
-			sprintf(szTemp, "%d", hvcc->level_idc);
-			strcat(szCodec, szTemp);
+				if (hvcc->tier_flag) strcat(szCodec, ".H");
+				else strcat(szCodec, ".L");
+				sprintf(szTemp, "%d", hvcc->level_idc);
+				strcat(szCodec, szTemp);
 
-			c = hvcc->progressive_source_flag << 7;
-			c |= hvcc->interlaced_source_flag << 6;
-			c |= hvcc->non_packed_constraint_flag << 5;
-			c |= hvcc->frame_only_constraint_flag << 4;
-			c |= (hvcc->constraint_indicator_flags >> 40);
-			sprintf(szTemp, ".%X", c);
-			strcat(szCodec, szTemp);
-			if (hvcc->constraint_indicator_flags & 0xFFFFFFFF) {
-				c = (hvcc->constraint_indicator_flags >> 32) & 0xFF;
+				c = hvcc->progressive_source_flag << 7;
+				c |= hvcc->interlaced_source_flag << 6;
+				c |= hvcc->non_packed_constraint_flag << 5;
+				c |= hvcc->frame_only_constraint_flag << 4;
+				c |= (hvcc->constraint_indicator_flags >> 40);
 				sprintf(szTemp, ".%X", c);
 				strcat(szCodec, szTemp);
-				if (hvcc->constraint_indicator_flags & 0x00FFFFFF) {
-					c = (hvcc->constraint_indicator_flags >> 24) & 0xFF;
+				if (hvcc->constraint_indicator_flags & 0xFFFFFFFF) {
+					c = (hvcc->constraint_indicator_flags >> 32) & 0xFF;
 					sprintf(szTemp, ".%X", c);
 					strcat(szCodec, szTemp);
-					if (hvcc->constraint_indicator_flags & 0x0000FFFF) {
-						c = (hvcc->constraint_indicator_flags >> 16) & 0xFF;
+					if (hvcc->constraint_indicator_flags & 0x00FFFFFF) {
+						c = (hvcc->constraint_indicator_flags >> 24) & 0xFF;
 						sprintf(szTemp, ".%X", c);
 						strcat(szCodec, szTemp);
-						if (hvcc->constraint_indicator_flags & 0x000000FF) {
-							c = (hvcc->constraint_indicator_flags >> 8) & 0xFF;
+						if (hvcc->constraint_indicator_flags & 0x0000FFFF) {
+							c = (hvcc->constraint_indicator_flags >> 16) & 0xFF;
 							sprintf(szTemp, ".%X", c);
 							strcat(szCodec, szTemp);
-							c = (hvcc->constraint_indicator_flags ) & 0xFF;
-							sprintf(szTemp, ".%X", c);
-							strcat(szCodec, szTemp);
+							if (hvcc->constraint_indicator_flags & 0x000000FF) {
+								c = (hvcc->constraint_indicator_flags >> 8) & 0xFF;
+								sprintf(szTemp, ".%X", c);
+								strcat(szCodec, szTemp);
+								c = (hvcc->constraint_indicator_flags ) & 0xFF;
+								sprintf(szTemp, ".%X", c);
+								strcat(szCodec, szTemp);
+							}
 						}
 					}
 				}
+				gf_odf_hevc_cfg_del(hvcc);
 			}
-			gf_odf_hevc_cfg_del(hvcc);
 			return GF_OK;
 		}
 
@@ -1399,6 +1407,8 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 		if (ds->codec_id == base_ds->codec_id) {
 			//we will use inband params, so bs switching is OK
 			if (use_inband || use_multi) continue;
+			//we have deps, cannot use bitstream switching
+			if (ds->dep_id) return;
 			//we consider we can switch in non-inband only if we have same CRC for the decoder config
 			if (base_ds->dsi_crc == ds->dsi_crc) continue;
 			//not the same config, no BS switching
@@ -1527,6 +1537,35 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	gf_filter_set_source(ds->dst_filter, filter, szSRC);
 }
 
+static void dasher_gather_deps(GF_DasherCtx *ctx, u32 dependency_id, GF_List *multi_tracks)
+{
+	u32 i, count = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (ds->id == dependency_id) {
+			assert(ds->opid);
+			gf_list_insert(multi_tracks, ds->opid, 0);
+			if (ds->dep_id) dasher_gather_deps(ctx, ds->dep_id, multi_tracks);
+		}
+	}
+}
+
+static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const char *ref_type)
+{
+	u32 i, j, count;
+	GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_property_str(ds->opid, ref_type);
+	if (!p) return;
+	count = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<p->value.uint_list.nb_items; i++) {
+		for (j=0; j<count; j++) {
+			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
+			if ((a_ds->id == p->value.uint_list.vals[i]) && a_ds->pid_id) {
+				p->value.uint_list.vals[j] = a_ds->pid_id;
+			}
+		}
+	}
+}
+
 static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, GF_List *multi_pids, Bool init_trashed)
 {
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
@@ -1558,9 +1597,16 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 
 	//force PID ID
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_ID, &PROP_UINT(ds->pid_id) );
+	if (ds->dep_pid_id)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ds->dep_pid_id) );
 	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_MUX_SRC, &PROP_STRING(szSRC) );
 	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_DASH_MODE, &PROP_UINT(ctx->sseg ? 2 : 1) );
 	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_DOUBLE(ds->dash_dur) );
+
+	if (ds->id != ds->pid_id) {
+		dasher_update_dep_list(ctx, ds, "isom:scal");
+		dasher_update_dep_list(ctx, ds, "isom:sabt");
+	}
 
 	gf_filter_pid_force_cap(ds->opid, GF_PROP_PID_DASH_MODE);
 
@@ -1587,6 +1633,13 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 			gf_list_add(ds->multi_tracks, a_ds->opid);
 		}
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MULTI_TRACK, &PROP_POINTER(ds->multi_tracks) );
+	}
+	if (ds->dep_id) {
+		if (!ds->multi_tracks) ds->multi_tracks = gf_list_new();
+		gf_list_reset(ds->multi_tracks);
+		dasher_gather_deps(ctx, ds->dep_id, ds->multi_tracks);
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MULTI_TRACK, &PROP_POINTER(ds->multi_tracks) );
+
 	}
 }
 
@@ -1647,6 +1700,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	Bool init_template_done=GF_FALSE;
 	Bool use_inband = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE;
 	Bool template_use_source = GF_FALSE;
+	Bool split_rep_names = GF_FALSE;
 
 	count = gf_list_count(set->representations);
 
@@ -1708,6 +1762,32 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 	}
 
+	for (i=0; i<count; i++) {
+		u32 j;
+		rep = gf_list_get(set->representations, i);
+		ds = rep->playback.udta;
+
+		if (!dasher_template_use_source_url(template))
+			continue;
+
+		for (j=i+1; j<count; j++) {
+			const GF_PropertyValue *p1, *p2;
+			GF_DashStream *a_ds;
+			rep = gf_list_get(set->representations, j);
+			a_ds = rep->playback.udta;
+
+			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
+			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_FILEPATH);
+			if (gf_props_equal(p1, p2)) split_rep_names = GF_TRUE;
+			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
+			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_URL);
+			if (gf_props_equal(p1, p2)) split_rep_names = GF_TRUE;
+
+			if (split_rep_names) break;
+		}
+		if (split_rep_names) break;
+	}
+
 	//assign PID IDs - we assume only one component of a given media type per adaptation set
 	//and assign the same PID ID for each component of the same type
 	//we could refine this using roles, but most HAS solutions don't use roles at the mulitplexed level
@@ -1723,9 +1803,27 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			rep = gf_list_get(set->representations, j);
 			a_ds = rep->playback.udta;
 			if (a_ds->pid_id) continue;
+			if (a_ds->dep_id) continue;
 			if (a_ds->stream_type == ds->stream_type) a_ds->pid_id = ds->pid_id;
 		}
 	}
+	for (i=0; i<count; i++) {
+		u32 j;
+		rep = gf_list_get(set->representations, i);
+		ds = rep->playback.udta;
+		if (!ds->dep_id) continue;
+
+		for (j=i+1; j<count; j++) {
+			GF_DashStream *a_ds;
+			rep = gf_list_get(set->representations, j);
+			a_ds = rep->playback.udta;
+			if (ds->dep_id == a_ds->id) {
+				ds->dep_pid_id = a_ds->pid_id;
+				break;
+			}
+		}
+	}
+
 	//this is crude because we don't copy the properties, we just pass a list of pids to the destination muxer !!
 	//we should cleanup one of these days
 	if (set->bitstream_switching && (ctx->bs_switch==DASHER_BS_SWITCH_MULTI)) {
@@ -1809,8 +1907,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			char szStrName[20];
 			sprintf(szStrName, "_set%d", 1 + gf_list_find(ctx->current_period->period->adaptation_sets, set)  );
 			strcat(szDASHTemplate, szStrName);
-			//don't bother forcing an "init" since we rename the destinations
-			init_template_mode = GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT;
+		}
+		else if (split_rep_names) {
+			char szStrName[20];
+			sprintf(szStrName, "_rep%d", 1 + gf_list_find(set->representations, ds->rep)  );
+			strcat(szDASHTemplate, szStrName);
 		}
 
 		//get final segment template - output file name is NULL, we already have solved this
@@ -2308,6 +2409,7 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 		assert(ds->seg_template);
 		ds->rep->dasher_ctx->template_seg = gf_strdup(ds->seg_template);
 		ds->rep->dasher_ctx->pid_id = ds->pid_id;
+		ds->rep->dasher_ctx->dep_pid_id = ds->dep_pid_id;
 		ds->rep->dasher_ctx->period_start = ds->period_start;
 		ds->rep->dasher_ctx->period_duration = ds->period_dur;
 		ds->rep->dasher_ctx->multi_pids = ds->multi_pids ? GF_TRUE : GF_FALSE;
@@ -2542,6 +2644,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->period_start = rep->dasher_ctx->period_start;
 			ds->period_dur = rep->dasher_ctx->period_duration;
 			ds->pid_id = rep->dasher_ctx->pid_id;
+			ds->dep_pid_id = rep->dasher_ctx->dep_pid_id;
 			ds->seek_to_pck = rep->dasher_ctx->last_pck_idx;
 			ds->dash_dur = rep->dasher_ctx->dash_dur;
 			ds->next_seg_start = rep->dasher_ctx->next_seg_start;

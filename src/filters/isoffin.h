@@ -41,12 +41,19 @@
 
 //#define DASH_USE_PULL
 
+enum
+{
+	MP4DMX_SPLIT=0,
+	MP4DMX_SPLIT_EXTRACTORS,
+	MP4DMX_SINGLE,
+};
+
 typedef struct
 {
 	//options
 	char *src;
-	Bool alltracks, noedit, itt;
-
+	Bool allt, noedit, itt;
+	u32 smode;
 
 	//internal
 
@@ -167,7 +174,7 @@ void isor_reader_release_sample(ISOMChannel *ch);
 void isor_check_producer_ref_time(ISOMReader *read);
 
 //ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid);
-ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id);
+ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id, Bool force_no_extractors);
 
 /*uses nero chapter info and remaps to MPEG-4 OCI if no OCI present in descriptor*/
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
