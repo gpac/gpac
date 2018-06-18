@@ -828,26 +828,26 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_Y);
 
 			if (ctx->num_textures>1) {
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->width*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->bytes_per_pix * ctx->width*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
 
 				glGenBuffers(1, &ctx->pbo_U);
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_U);
 			} else {
 				//packed YUV
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, 4*ctx->width/2*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->bytes_per_pix * 4*ctx->width/2*ctx->height, NULL, GL_DYNAMIC_DRAW_ARB);
 
 			}
 
 			if (ctx->num_textures==3) {
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->bytes_per_pix * ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
 
 				glGenBuffers(1, &ctx->pbo_V);
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->pbo_V);
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->bytes_per_pix * ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
 			}
 			//nv12/21
 			else {
-				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, 2*ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, ctx->bytes_per_pix * 2*ctx->uv_w*ctx->uv_h, NULL, GL_DYNAMIC_DRAW_ARB);
 
 			}
 
@@ -1030,7 +1030,7 @@ static void vout_finalize(GF_Filter *filter)
 #ifndef GPAC_DISABLE_3D
 static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 {
-	u32 needs_stride = 0;
+	Bool use_stride = GF_FALSE;
 	Float dw, dh;
 	char *data;
 	GF_Event evt;
@@ -1129,11 +1129,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	}
 
 	if (stride_luma != ctx->width) {
-		if (ctx->bit_depth==10) {
-			needs_stride = stride_luma / 2;
-		} else {
-			needs_stride = stride_luma;
-		}
+		use_stride = GF_TRUE; //whether >8bits or real stride
 	}
 	if (ctx->swap_uv) {
 		char *tmp = pU;
@@ -1145,9 +1141,8 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	if (!ctx->is_yuv) {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
-		if (needs_stride) {
-			needs_stride /= ctx->bytes_per_pix;
-			glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
+		if (use_stride) {
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, ctx->stride / ctx->bytes_per_pix);
 		}
 		if (ctx->first_tx_load) {
 			glTexImage2D(TEXTURE_TYPE, 0, ctx->pixel_format, ctx->width, ctx->height, 0, ctx->pixel_format, GL_UNSIGNED_BYTE, data);
@@ -1155,7 +1150,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		} else {
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width, ctx->height, ctx->pixel_format, ctx->memory_format, data);
 		}
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
 	else if (ctx->disp==MODE_GL_PBO) {
 		u32 i, linesize, count, p_stride;
@@ -1254,17 +1249,19 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 	}
 	else if ((ctx->pfmt==GF_PIXEL_UYVY) || (ctx->pfmt==GF_PIXEL_YUYV)) {
+		u32 uv_stride = 0;
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
 
-		needs_stride = 0;
+		use_stride = GF_FALSE;
 		if (stride_luma > 2*ctx->width) {
 			//stride is given in bytes for packed formats, so divide by 2 to get the number of pixels
 			//for YUYV, and we upload as a texture with half the size so rdevide again by two
 			//since GL_UNPACK_ROW_LENGTH counts in component and we moved the set 2 bytes per comp on 10 bits
 			//no need to further divide
-			needs_stride = stride_luma/4;
+			uv_stride = stride_luma/4;
+			use_stride = GF_TRUE;
 		}
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, uv_stride);
 		if (ctx->first_tx_load) {
 			glTexImage2D(TEXTURE_TYPE, 0, GL_RGBA, ctx->width/2, ctx->height, 0, GL_RGBA, ctx->memory_format, pY);
 			ctx->first_tx_load = GF_FALSE;
@@ -1272,45 +1269,45 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width/2, ctx->height, GL_RGBA, ctx->memory_format, pY);
 
 		}
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
 	else if (ctx->first_tx_load) {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/ctx->bytes_per_pix);
 		glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->width, ctx->height, 0, ctx->pixel_format, ctx->memory_format, pY);
 
 		glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 		glTexImage2D(TEXTURE_TYPE, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->uv_w, ctx->uv_h, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, pU);
 
 		if (pV) {
 			glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
-			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma);
+			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 			glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->uv_w, ctx->uv_h, 0, ctx->pixel_format, ctx->memory_format, pV);
 		}
 
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 		ctx->first_tx_load = GF_FALSE;
 	}
 	else {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/ctx->bytes_per_pix);
 		glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width, ctx->height, ctx->pixel_format, ctx->memory_format, pY);
 		glBindTexture(TEXTURE_TYPE, 0);
 
 		glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 		glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->uv_w, ctx->uv_h, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, pU);
 		glBindTexture(TEXTURE_TYPE, 0);
 
 		if (pV) {
 			glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
-			if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma);
+			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->uv_w, ctx->uv_h, ctx->pixel_format, ctx->memory_format, pV);
 			glBindTexture(TEXTURE_TYPE, 0);
 		}
 
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
 
 	glUseProgram(ctx->glsl_program);
