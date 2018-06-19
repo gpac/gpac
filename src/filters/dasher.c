@@ -1043,7 +1043,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CENC_PSSH);
 			if (!p) continue;
 
-			gf_bs_reassign_buffer(bs_r, p->value.data.ptr, p->value.data.ptr);
+			gf_bs_reassign_buffer(bs_r, p->value.data.ptr, p->value.data.size);
 			nb_pssh = gf_bs_read_u32(bs_r);
 
 			//add pssh
@@ -1543,6 +1543,8 @@ static void dasher_gather_deps(GF_DasherCtx *ctx, u32 dependency_id, GF_List *mu
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		if (ds->id == dependency_id) {
+			if (ds->tile_base) continue;
+
 			assert(ds->opid);
 			gf_list_insert(multi_tracks, ds->opid, 0);
 			if (ds->dep_id) dasher_gather_deps(ctx, ds->dep_id, multi_tracks);
@@ -1638,7 +1640,12 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		if (!ds->multi_tracks) ds->multi_tracks = gf_list_new();
 		gf_list_reset(ds->multi_tracks);
 		dasher_gather_deps(ctx, ds->dep_id, ds->multi_tracks);
-		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MULTI_TRACK, &PROP_POINTER(ds->multi_tracks) );
+		if (gf_list_count(ds->multi_tracks)) {
+			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MULTI_TRACK, &PROP_POINTER(ds->multi_tracks) );
+		} else {
+			gf_list_del(ds->multi_tracks);
+			ds->multi_tracks = NULL;
+		}
 
 	}
 }

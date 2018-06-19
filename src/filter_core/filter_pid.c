@@ -1548,7 +1548,7 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 
 			if (!sub_weight) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d No valid shorter chain to filter %s input\n", rlevel, freg->name));
-				gf_list_add(tested_filters, (void *) freg);
+				//gf_list_add(tested_filters, (void *) freg);
 				continue;
 			}
 			path_weight += sub_weight;
