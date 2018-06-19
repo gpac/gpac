@@ -545,10 +545,10 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		} else {
 			switch (read->smode) {
 			case MP4DMX_SPLIT_EXTRACTORS:
-				ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INSPECT;
+				ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INSPECT | GF_ISOM_NALU_EXTRACT_TILE_ONLY;
 				break;
 			case MP4DMX_SPLIT:
-				ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_LAYER_ONLY;
+				ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_TILE_ONLY;
 				break;
 			default:
 				break;

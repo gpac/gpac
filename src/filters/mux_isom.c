@@ -1250,7 +1250,7 @@ multipid_stsd_setup:
 		u32 KI_length=0;
 		u32 IV_length=0;
 		/*todo !*/
-		u32 oma_contentID=0;
+		const char *oma_contentID=0;
 		u32 oma_encryption_type=0;
 		u32 oma_plainTextLength=0;
 		const char *oma_textual_headers=NULL;
@@ -1285,8 +1285,8 @@ multipid_stsd_setup:
 			if (p) oma_textual_headers = p->value.string;
 			if (oma_textual_headers) textual_headers_len = strlen(oma_textual_headers);
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_CLEAR_LEN);
-			if (p) oma_plainTextLength = p->value.string;
-			gf_isom_set_oma_protection(ctx->file, tkw->track_num, tkw->stsd_idx, oma_contentID, (char*) kms_uri, oma_encryption_type, oma_plainTextLength, (char*)oma_textual_headers, textual_headers_len,
+			if (p) oma_plainTextLength = p->value.longuint;
+			gf_isom_set_oma_protection(ctx->file, tkw->track_num, tkw->stsd_idx, (char *) oma_contentID, (char*) kms_uri, oma_encryption_type, oma_plainTextLength, (char*)oma_textual_headers, textual_headers_len,
                                   is_sel_enc, KI_length, IV_length);
 
 			break;

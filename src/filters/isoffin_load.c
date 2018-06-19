@@ -165,10 +165,9 @@ void isor_declare_objects(ISOMReader *read)
 		m_subtype = gf_isom_get_media_subtype(read->mov, i+1, 1);
 		switch (m_subtype) {
 		case GF_ISOM_SUBTYPE_HVT1:
-			if (!read->allt) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Tile track in regular mode, ignoring track - you may retry by specifying allt options\n" ));
+			if (read->smode == MP4DMX_SINGLE)
 				continue;
-			}
+
 			break;
 		default:
 			break;

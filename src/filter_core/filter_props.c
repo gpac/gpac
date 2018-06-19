@@ -40,7 +40,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	unit_sep = NULL;
 	if (value) {
 		u32 len = (u32) strlen(value);
-		unit_sep = strrchr("kKgGmM", value[len-1]);
+		unit_sep = len ? strrchr("kKgGmM", value[len-1]) : NULL;
 		if (unit_sep) {
 			unit_char = unit_sep[0];
 			if ((unit_char=='k') || (unit_char=='K')) unit = 1000;
