@@ -910,6 +910,16 @@ GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_boun
 GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_closest);
 
 /*!
+ Sets cue file for the session.
+ *	\param dasher the DASH segmenter object
+ *	\param cues_file name of the cue file. This is an XML document with root <DASHCues>, one or multiple <Stream> with attribute ID (trackID)
+ and timescale (trackTimescale), and a set of <cues> per Stream with attributes sampleNumber, dts or cts.
+ *	\param strict_cues if true will fail if one cue doesn't match a timestamp in the stream or if the split sample is not RAP
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool strict_cues);
+
+/*!
  Adds a media input to the DASHer
  *	\param dasher the DASH segmenter object
  *	\param input media source to add
