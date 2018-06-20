@@ -31,13 +31,12 @@ GPAC supports many multimedia formats, from simple audiovisual containers (avi, 
 
 GPAC currently supports local file playback, HTTP progressive download, Adaptive HTTP Streaming (MPEG-DASH, HLS), RTP/RTSP streaming over UDP (unicast or multicast) or TCP,  TS demuxing (from file, IP or DVB4Linux), ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg.
 
-For more information, visit the GPAC website:
-	http://gpac.io
+For more information, visit the [GPAC website](http://gpac.io)
 
 GPAC includes the following applications built by default:
 ## MP4Box
 MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See MP4Box -h for more info on the tool
-MP4Box documentation is available online at https://gpac.wp.imt.fr/mp4box/
+MP4Box documentation is [available online](https://gpac.wp.imt.fr/mp4box/)
 
 
 ## MP4Client
@@ -50,6 +49,40 @@ MP42TS is a TS multiplexer from MP4 and RTP sources.
 ## gpac 
 As of version 0.9.0, GPAC features a filter engine in charge of stream management and used by most applications in GPAC. For API backward compatibility, old apps (MP4Box, MP4Client, ...) have been kept but rewritten to match the new filter architecture, but do not expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details.
 
+
+# Roadmap
+## Ongoing tasks and bugs
+Please use [our github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as feature-request.	
+
+## V0.9.0
+Remaining before release
+- [ ] move encrypter to filter
+- [ ] move ATSC demux to filter
+- [ ] move NVDec to filter
+- [ ] move MediaCodec to filter
+- [ ] move DekTec output to filter
+- [ ] move SVC/SHVC splitters and aggregators to filter
+- [ ] move HEVC tiling splitter to filter
+- [ ] merge AV1 branch
+- [ ] move iOS client to filters
+- [ ] move Android client to filters
+- [ ] rewrite MP42TS to filters or drop it
+- [ ] add generic pipe and tcp source and sink
+- [ ] add segmentation handling in TS muxer
+- [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
+- [ ] pass all test suite
+
+## V1.0.0
+Targets:
+- [ ] freeze filter API
+- [ ] filter API documentation
+- [ ] add ffmpeg muxer support
+- [ ] add ffmpeg simple avfilter support
+- [ ] improve filter scheduler ?
+- [ ] improve filter graph resolver ?
+- [ ] move input sensors to filter ?
+- [ ] scriptable JS filters
+- [ ] scriptable other filters ?
 
 # Compilation and Installation
 
