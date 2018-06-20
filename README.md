@@ -33,6 +33,8 @@ GPAC currently supports local file playback, HTTP progressive download, Adaptive
 
 For more information, visit the [GPAC website](http://gpac.io)
 
+GPAC is being developped at [Telecom ParisTech](https://www.telecom-paristech.fr/), in the [MultiMedia group](http://www.tsi.telecom-paristech.fr/mm/), by many [great contributors](https://github.com/gpac/gpac/graphs/contributors)
+
 GPAC includes the following applications built by default:
 ## MP4Box
 MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See MP4Box -h for more info on the tool
@@ -52,7 +54,7 @@ As of version 0.9.0, GPAC features a filter engine in charge of stream managemen
 
 # Roadmap
 ## Ongoing tasks and bugs
-Please use [our github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as feature-request.	
+Please use [github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as feature-request.	
 
 ## V0.9.0
 Remaining before release
@@ -84,22 +86,23 @@ Targets:
 - [ ] scriptable JS filters
 - [ ] scriptable other filters ?
 
+# Testing
+GPAC has a test suite exercicing most features of the framework. Check the [tests readme](./tests/README.md) for more details.
+
 # Compilation and Installation
 
 ## Quick Instructions
 Installation instructions for latest GPAC GIT version - June 2018:
 
-For Windows: https://gpac.wp.imt.fr/2011/04/18/command-line-gpac-compiling-on-windows-x86-using-free-microsoft-visual-c/
-For Linux Ubuntu: https://gpac.wp.imt.fr/2011/04/20/compiling-gpac-on-ubuntu/
-For Mac OS X: https://gpac.wp.imt.fr/2011/05/02/compiling-gpac-for-macos-x/
-For Android: https://gpac.wp.imt.fr/compiling-gpac-for-android/
+[For Windows](https://gpac.wp.imt.fr/2011/04/18/command-line-gpac-compiling-on-windows-x86-using-free-microsoft-visual-c/)
+[For Linux Ubuntu](https://gpac.wp.imt.fr/2011/04/20/compiling-gpac-on-ubuntu/)
+[For Mac OS X](https://gpac.wp.imt.fr/2011/05/02/compiling-gpac-for-macos-x/)
+[For Android](https://gpac.wp.imt.fr/compiling-gpac-for-android/)
 
 
 ## Generic Instructions
 
-GPAC may be compiled without any third party libraries, but in this case its functionalities are very limited (no still image, no audio, no video, no text, no scripting). It is therefore recommended to download the extra lib package available at http://sourceforge.net/projects/gpac. Compilation instructions for these libraries are provided per library in the package. 
-
-The current extra_lib package to use with gpac is gpac_extra_libs available here: http://download.tsi.telecom-paristech.fr/gpac/gpac_extra_libs.zip
+GPAC may be compiled without any third party libraries, but in this case its functionalities are very limited (no still image, no audio, no video, no text, no scripting). It is therefore recommended to download the [extra lib package](http://download.tsi.telecom-paristech.fr/gpac/gpac_extra_libs.zip). Compilation instructions for these libraries are provided per library in the package. 
 
 In case you have some of these libs already installed on your system, the detailed list of dependencies is
 * freetype2 from version 2.1.4 on.
@@ -116,25 +119,16 @@ In case you have some of these libs already installed on your system, the detail
 * OpenSVCDecoder, version 1.3
 
 
-/!\ GPAC won't compile if the 'git' command is not in your path /!\
+**GPAC won't compile if the 'git' command is not in your path**
 
-!! WARNING !!
-The following instructions may not be completely up to data
-You should use online instructions which may be more up-to-date:
-http://gpac.io/2011/04/18/command-line-gpac-compiling-on-windows-x86-using-free-microsoft-visual-c/
+**_! WARNING: the following instructions may not be completely up-to-date._**
 
 Detailed instruction for Win32 MSVC Compilation are available in gpac/doc/INSTALL.w32
-
 Detailed instruction for WinCE eVC Compilation are available in gpac/doc/INSTALL.wCE
-
 Detailed instruction for GCC Compilation are available in gpac/doc/INSTALL.gcc
-
 Detailed instruction for GCC cross-compilation for familiar+GPE systems are available in gpac/doc/INSTALL.gpe
-	
 Detailed instruction for GCCE/Symbian cross-compilation for Symbian v9.1 systems are available in gpac/doc/INSTALL.symbian
-
 Detailed instruction for iOS Compilation are available in gpac/build/xcode/README_IOS.txt
-
 
 # Source code tree
 This is a short overview of the gpac source repository. 
