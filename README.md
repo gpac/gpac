@@ -95,8 +95,11 @@ GPAC has a test suite exercicing most features of the framework. Check the [test
 Installation instructions for latest GPAC GIT version - June 2018:
 
 [For Windows](https://gpac.wp.imt.fr/2011/04/18/command-line-gpac-compiling-on-windows-x86-using-free-microsoft-visual-c/)
+
 [For Linux Ubuntu](https://gpac.wp.imt.fr/2011/04/20/compiling-gpac-on-ubuntu/)
+
 [For Mac OS X](https://gpac.wp.imt.fr/2011/05/02/compiling-gpac-for-macos-x/)
+
 [For Android](https://gpac.wp.imt.fr/compiling-gpac-for-android/)
 
 
