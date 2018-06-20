@@ -69,6 +69,7 @@ Remaining before release
 - [ ] move iOS client to filters
 - [ ] move Android client to filters
 - [ ] rewrite MP42TS to filters or drop it
+- [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
 - [ ] add generic pipe and tcp source and sink
 - [ ] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
