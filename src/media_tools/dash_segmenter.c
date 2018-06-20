@@ -35,6 +35,7 @@
 #include <time.h>
 #endif
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/internal/mpd.h>
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #ifdef GPAC_DISABLE_ISOM
@@ -147,6 +148,8 @@ struct __gf_dash_segmenter
 
 	/* used to segment video as close to the boundary as possible */
 	Bool split_on_closest;
+	const char *cues_file;
+	Bool strict_cues;
 };
 
 struct _dash_segment_input
@@ -659,6 +662,11 @@ typedef struct
 	s32 media_time_to_pres_time_shift;
 	u64 min_cts_in_segment;
 	u64 start_tfdt;
+
+	u32 cues_timescale;
+	u32 nb_cues;
+	GF_DASHCueInfo *cues;
+	Bool cues_use_edits;
 } GF_ISOMTrackFragmenter;
 
 static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -1350,6 +1358,12 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 		tf->finalSampleDescriptionIndex = 1;
 
+		if (dasher->cues_file) {
+			e = gf_mpd_load_cues(dasher->cues_file, tf->TrackID, &tf->cues_timescale, &tf->cues_use_edits, &tf->cues, &tf->nb_cues);
+			if (e) goto err_exit;
+		}
+
+
 		/*figure out if we have an initial TS*/
 		if (!dash_moov_setup) {
 			u32 j, edit_count = gf_isom_get_edit_segment_count(input, i+1);
@@ -1836,6 +1850,7 @@ restart_fragmentation_pass:
 
 			//ok write samples
 			while (1) {
+				u64 last_sample_dts;
 				Bool loop_track = GF_FALSE;
 				Bool force_eos = GF_FALSE;
 				Bool stop_frag = GF_FALSE;
@@ -2008,6 +2023,7 @@ restart_fragmentation_pass:
 
 				tf->last_sample_cts = sample->DTS + sample->CTS_Offset;
 				tf->next_sample_dts = sample->DTS + sample_duration;
+				last_sample_dts = sample->DTS;
 
 				if (split_sample_duration) {
 					gf_isom_sample_del(&next);
@@ -2147,7 +2163,99 @@ restart_fragmentation_pass:
 					next_sample_rap = GF_FALSE;
 				}
 
-				if (tf->SampleNum==tf->SampleCount) {
+				if (tf->cues && sample) {
+					u32 cidx;
+					GF_DASHCueInfo *cue=NULL;
+					Bool is_split = GF_FALSE;
+					s32 has_mismatch = -1;
+					s32 strip_from = -1;
+
+					stop_frag = GF_FALSE;
+					force_switch_segment = GF_FALSE;
+
+					for (cidx=0;cidx<tf->nb_cues; cidx++) {
+						cue = &tf->cues[cidx];
+						if (cue->sample_num) {
+							//ignore first sample
+							if (cue->sample_num==1) continue;
+
+							if (cue->sample_num == tf->SampleNum+1) {
+								is_split = GF_TRUE;
+								break;
+							} else if (cue->sample_num < tf->SampleNum+1) {
+								if (cue->sample_num == tf->SampleNum) {
+									strip_from = cidx;
+								} else {
+									has_mismatch = cidx;
+								}
+							} else {
+								break;
+							}
+						}
+						else if (cue->dts) {
+							s64 ts = cue->dts * tf->TimeScale;
+							u64 ts2 = sample->DTS * tf->cues_timescale;
+							if (ts == ts2) {
+								is_split = GF_TRUE;
+								break;
+							} else if (ts < ts2) {
+								if (last_sample_dts * tf->cues_timescale == ts) {
+									strip_from = cidx;
+								} else {
+									has_mismatch = cidx;
+								}
+							} else {
+								break;
+							}
+						}
+						else if (cue->cts) {
+							s64 ts = cue->cts * tf->TimeScale;
+							s64 ts2 = (sample->DTS + sample->CTS_Offset) * tf->cues_timescale;
+
+							//cues are given in track timeline (presentation time), substract the media time to pres time offset
+							if (tf->cues_use_edits) {
+								ts -= (s64) (tf->media_time_to_pres_time_shift) * tf->TimeScale;
+							}
+							if (ts == ts2) {
+								is_split = GF_TRUE;
+								break;
+							} else if (ts < ts2) {
+								if (tf->last_sample_cts * tf->cues_timescale == ts) {
+									strip_from = cidx;
+								} else {
+									has_mismatch = cidx;
+								}
+							} else {
+								break;
+							}
+						}
+					}
+					if (is_split) {
+						if (!next_sample_rap) {
+							GF_LOG(dasher->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for track ID %d but sample %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, tf->TrackID, tf->SampleNum));
+							if (dasher->strict_cues) {
+								e = GF_BAD_PARAM;
+								goto err_exit;
+							}
+						}
+						stop_frag = GF_TRUE;
+						force_switch_segment = GF_TRUE;
+						memmove(tf->cues, &tf->cues[cidx+1], (tf->nb_cues-cidx-1) * sizeof(GF_DASHCueInfo));
+						tf->nb_cues -= cidx+1;
+					} else if (strip_from>=0) {
+						memmove(tf->cues, &tf->cues[strip_from+1], (tf->nb_cues-strip_from-1) * sizeof(GF_DASHCueInfo));
+						tf->nb_cues -= strip_from+1;
+					}
+
+					if (has_mismatch>=0) {
+						cue = &tf->cues[has_mismatch];
+						GF_LOG(dasher->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] found cue (sn %d - dts "LLD" - cts "LLD") in track ID %d before current sample (sn %d - dts "LLD" - cts "LLD") , buggy source cues ?\n", cue->sample_num, cue->dts, cue->cts, tf->TrackID, tf->SampleNum+1, sample->DTS, sample->DTS + sample->CTS_Offset));
+							if (dasher->strict_cues) {
+								e = GF_BAD_PARAM;
+								goto err_exit;
+							}
+					}
+				} else if (tf->SampleNum==tf->SampleCount) {
 					stop_frag = GF_TRUE;
 				} else if (tf->is_ref_track) {
 					/* NOTE: we don't need to check for split_sample_duration because if it is used, stop_frag should already be TRUE */
@@ -2868,6 +2976,11 @@ err_exit:
 	if (fragmenters) {
 		while (gf_list_count(fragmenters)) {
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
+			if (!e && tf->nb_cues) {
+				GF_LOG(dasher->strict_cues ? GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Track ID %d still has %d cues not processed after segmentation\n", tf->TrackID, tf->nb_cues));
+				if (dasher->strict_cues) e = GF_BAD_PARAM;
+			}
+			if (tf->cues) gf_free(tf->cues);
 			gf_free(tf);
 			gf_list_rem(fragmenters, 0);
 		}
@@ -6121,6 +6234,15 @@ GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_cl
 	dasher->split_on_closest = split_on_closest;
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool strict_cues)
+{
+	dasher->cues_file = cues_file;
+	dasher->strict_cues = strict_cues;
+	return GF_OK;
+}
+
 
 static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input)
 {

@@ -482,6 +482,17 @@ Double gf_mpd_get_duration(GF_MPD *mpd);
 /*get the duration of media segments in seconds*/
 void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
+
+typedef struct
+{
+	u32 sample_num;
+	u64 dts;
+	s64 cts;
+} GF_DASHCueInfo;
+
+GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, GF_DASHCueInfo **out_cues, u32 *nb_cues);
+
+
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif // _MPD_H_
