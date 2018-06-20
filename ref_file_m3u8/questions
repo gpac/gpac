@@ -1,5 +1,0 @@
-1, specs defines iso6 ftyp box. default dash in gpac uses isom ftyp box. Compatible ?
-
-2, How to deal with periods ?
-
-3, Mime types should be parsed at Adaptation Set and Representation Set ? How ?
