@@ -87,7 +87,7 @@ Targets:
 - [ ] scriptable other filters ?
 
 # Testing
-GPAC has a test suite exercicing most features of the framework. Check the [tests readme](./tests/README.md) for more details.
+GPAC has a test suite exercicing most features of the framework. Check the [tests readme](/tests/README.md) for more details. Per-commit [build](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master) and [tests results](http://gpacvm-ext.enst.fr/django/testres/) are available.
 
 # Compilation and Installation
 
