@@ -70,7 +70,7 @@ typedef struct
 
 	GF_TSMuxCtx *ctx;
 	u32 last_cv;
-	u32 cts_dts_shift;
+	s32 cts_dts_shift;
 	Bool done;
 
 	u32 temi_id;
@@ -306,7 +306,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (dts != GF_FILTER_NO_TS) {
 			es_pck.dts = dts;
 			if (tspid->cts_dts_shift) {
-				es_pck.dts += + tspid->cts_dts_shift;
+				es_pck.cts += tspid->cts_dts_shift;
 			}
 			if (es_pck.dts > es_pck.cts) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU" !\n", es_pck.cts, es_pck.dts));

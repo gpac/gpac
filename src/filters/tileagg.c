@@ -48,7 +48,6 @@ typedef struct
 static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 codec_id=0;
-	u32 id=0;
 	const GF_PropertyValue *p;
 	GF_HEVCConfig *hvcc;
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);

@@ -188,6 +188,7 @@ typedef struct _dash_stream
 	Bool rep_init;
 	u64 first_cts;
 	u64 first_dts;
+	s32 pts_minus_cts;
 	Bool is_encrypted;
 
 	//target MPD timescale
@@ -3872,6 +3873,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (dts==GF_FILTER_NO_TS) dts = cts;
 
 			if (!ds->rep_init) {
+				const GF_PropertyValue *p;
 				if (!sap_type) {
 					gf_filter_pid_drop_packet(ds->ipid);
 					break;
@@ -3897,6 +3899,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->first_dts = dts;
 				ds->rep_init++;
 				has_init++;
+
+				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_MEDIA_SKIP);
+				if (p) ds->pts_minus_cts = p->value.sint;
 			}
 			nb_init++;
 
@@ -3981,7 +3986,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 						//cues are given in track timeline (presentation time), substract the media time to pres time offset
 						if (ds->cues_use_edits) {
-//							ts -= (s64) (tf->media_time_to_pres_time_shift) * ds->timescale;
+							ts2 -= (s64) (ds->pts_minus_cts) * ds->cues_timescale;
 						}
 						if (ts == ts2) {
 							is_split = GF_TRUE;

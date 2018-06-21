@@ -149,19 +149,8 @@ static void init_reader(ISOMChannel *ch)
 		return;
 	}
 
-	if (ch->has_edit_list) {
-		ch->sample_time = ch->sample->DTS;
-	} else {
-		//store movie time in media timescale in the sample time, eg no edit list is used but we may have a shift (dts_offset) between
-		//movie and media timelines
+	ch->sample_time = ch->sample->DTS;
 
-		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset)) {
-			ch->sample_time = 0;
-			ch->do_dts_shift_test = GF_TRUE;
-		} else {
-			ch->sample_time = ch->sample->DTS + ch->dts_offset;
-		}
-	}
 	ch->to_init = GF_FALSE;
 
 	ch->seek_flag = 0;
@@ -252,16 +241,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 		ch->sample = ch->static_sample;
 
-		if (ch->sample->DTS + ch->dts_offset == ch->sample_time) {
+		if (ch->sample->DTS == ch->sample_time) {
 			if (!ch->owner->frag_type) {
 				ch->last_state = GF_EOS;
 			}
 		}
 		if (ch->sample) {
-			if ((ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset))	//should not happen
-				ch->sample_time = 0;
-			else
-				ch->sample_time = ch->sample->DTS + ch->dts_offset;
+			ch->sample_time = ch->sample->DTS;
 		}
 
 	} else if (ch->has_edit_list) {
@@ -364,7 +350,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 		else if (!ch->sample_num
 		         || ((ch->speed >= 0) && (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)))
-		         || ((ch->speed < 0) && (ch->sample_time == gf_isom_get_current_tfdt(ch->owner->mov, ch->track) + ch->dts_offset))
+		         || ((ch->speed < 0) && (ch->sample_time == gf_isom_get_current_tfdt(ch->owner->mov, ch->track) ))
 		        ) {
 
 			if (ch->owner->frag_type==1) {
@@ -421,27 +407,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->roll = 0;
 	if (ch->sample) {
 		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4, &ch->roll);
-	}
-
-	//update timestamp when single edit
-	if (ch->sample && ch->dts_offset) {
-		if (ch->do_dts_shift_test) {
-			s64 DTS, CTS;
-			DTS = (s64) ch->sample->DTS + ch->dts_offset;
-			CTS = (s64) ch->sample->DTS + ch->dts_offset + (s32) ch->sample->CTS_Offset;
-			if (DTS<0)
-				DTS=0;
-			else
-				ch->do_dts_shift_test = GF_FALSE;
-
-			if (CTS<0) CTS=0;
-			ch->sample->DTS = (u64) DTS;
-			ch->sample->CTS_Offset = (s32) (CTS - DTS);
-		}
-		//if sample is fetched from init(), dts is already shifted
-		else if (!is_init) {
-			ch->sample->DTS = ch->sample->DTS + ch->dts_offset;
-		}
 	}
 
 	/*still seeking or not ?
