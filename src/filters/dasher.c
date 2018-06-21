@@ -60,7 +60,7 @@ typedef struct
 {
 	u32 bs_switch, profile, cp, subs_per_sidx, ntp;
 	s32 buf, timescale;
-	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc;
+	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues;
 	u32 pssh;
 	Double dur;
 	u32 dmode;
@@ -73,6 +73,7 @@ typedef struct
 	s32 asto;
 	char *ast;
 	char *state;
+	char *cues;
 	char *title, *source, *info, *cprt, *lang;
 	GF_List *location, *base;
 	Bool for_test, check_dur, skip_seg, loop;
@@ -247,6 +248,11 @@ typedef struct _dash_stream
 	Double dur_purged;
 	Bool tile_base;
 
+	u32 cues_timescale;
+	u32 nb_cues;
+	GF_DASHCueInfo *cues;
+	Bool cues_use_edits;
+
 } GF_DashStream;
 
 
@@ -283,6 +289,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	const GF_PropertyValue *p, *dsi=NULL;
 	u32 dc_crc, dc_enh_crc;
 	GF_DashStream *ds;
+	const char *cue_file=NULL;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -492,6 +499,19 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #endif
 			if (_sr > ds->sr) ds->sr = _sr;
 			if (_nb_ch > ds->nb_ch) ds->nb_ch = _nb_ch;
+		}
+
+
+		cue_file = ctx->cues;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_CUE);
+		if (p) cue_file = p->value.string;
+
+		if (ds->cues) gf_free(ds->cues);
+		ds->cues = NULL;
+		ds->nb_cues = 0;
+		if (cue_file) {
+			GF_Err e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues, &ds->nb_cues);
+			if (e) return e;
 		}
 
 	} else {
@@ -2328,6 +2348,7 @@ static void dasher_reset_stream(GF_DashStream *ds, Bool is_destroy)
 	ds->pending_segment_states = NULL;
 
 	if (is_destroy) {
+		if (ds->cues) gf_free(ds->cues);
 		gf_list_del(ds->complementary_streams);
 		gf_free(ds->rep_id);
 		return;
@@ -3920,8 +3941,98 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if ((base_ds != ds) && !base_ds->seg_done && (cts * base_ds->timescale > base_ds->last_cts * ds->timescale ) )
 				break;
 
+			//cue base
+			if (ds->cues) {
+				u32 cidx;
+				GF_DASHCueInfo *cue=NULL;
+				Bool is_split = GF_FALSE;
+				s32 has_mismatch = -1;
+
+				for (cidx=0;cidx<ds->nb_cues; cidx++) {
+					cue = &ds->cues[cidx];
+					if (cue->sample_num) {
+						//ignore first sample
+						if (!ds->nb_pck) continue;
+
+						if (cue->sample_num == ds->nb_pck) {
+							is_split = GF_TRUE;
+							break;
+						} else if (cue->sample_num < ds->nb_pck) {
+							has_mismatch = cidx;
+						} else {
+							break;
+						}
+					}
+					else if (cue->dts) {
+						s64 ts = cue->dts * ds->timescale;
+						u64 ts2 = (dts + ds->first_cts) * ds->cues_timescale;
+						if (ts == ts2) {
+							is_split = GF_TRUE;
+							break;
+						} else if (ts < ts2) {
+							has_mismatch = cidx;
+						} else {
+							break;
+						}
+					}
+					else if (cue->cts) {
+						s64 ts = cue->cts * ds->timescale;
+						s64 ts2 = (cts + ds->first_cts) * ds->cues_timescale;
+
+						//cues are given in track timeline (presentation time), substract the media time to pres time offset
+						if (ds->cues_use_edits) {
+//							ts -= (s64) (tf->media_time_to_pres_time_shift) * ds->timescale;
+						}
+						if (ts == ts2) {
+							is_split = GF_TRUE;
+							break;
+						} else if (ts < ts2) {
+							has_mismatch = cidx;
+						} else {
+							break;
+						}
+					}
+				}
+				if (is_split) {
+					if (!sap_type) {
+						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
+						if (ctx->strict_cues) {
+							gf_filter_pid_drop_packet(ds->ipid);
+							return GF_BAD_PARAM;
+						}
+					}
+					memmove(ds->cues, &ds->cues[cidx+1], (ds->nb_cues-cidx-1) * sizeof(GF_DASHCueInfo));
+					ds->nb_cues -= cidx+1;
+
+					if (sap_type==3)
+						ds->nb_sap_3 ++;
+					else if (sap_type>3)
+						ds->nb_sap_4 ++;
+
+					/*check requested profiles can be generated, or adjust them*/
+					if ((ctx->profile != GF_DASH_PROFILE_FULL) && (ds->nb_sap_4 || (ds->nb_sap_3 > 1)) ) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
+						ctx->profile = GF_DASH_PROFILE_FULL;
+						ds->set->starts_with_sap = sap_type;
+					}
+
+					seg_over = GF_TRUE;
+					if (ds == base_ds) {
+						base_ds->adjusted_next_seg_start = cts;
+					}
+				}
+
+				if (has_mismatch>=0) {
+					cue = &ds->cues[has_mismatch];
+					GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] found cue (sn %d - dts "LLD" - cts "LLD") in stream %s before current packet (sn %d - dts "LLD" - cts "LLD") , buggy source cues ?\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck+1, dts + ds->first_cts, cts + ds->first_cts));
+					if (ctx->strict_cues) {
+						gf_filter_pid_drop_packet(ds->ipid);
+						return GF_BAD_PARAM;
+					}
+				}
+			}
 			//forcing max time
-			if ((base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
+			else if ((base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
 				|| (base_ds->clamped_dur && (cts >= base_ds->clamped_dur * ds->timescale))
 			) {
 				seg_over = GF_TRUE;
@@ -4436,6 +4547,9 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(split), "enables cloning samples for text/metadata/scene description streams, marking further clones as redundant", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(hlsc), "inserts clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 
+	{ OFFS(cues), "sets cue file - see filter help", GF_PROP_STRING, NULL, NULL, GF_TRUE},
+	{ OFFS(strict_cues), "strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+
 
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FALSE},
@@ -4498,6 +4612,17 @@ GF_FilterRegister DasherRegister = {
 			"\n"\
 			"For HLS, the output pid will deliver the master playlist and the variant playlists\n"\
 			"The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant\n"\
+			"\n"\
+			"The segmenter can take a list of cues to use for the segmentation process, in which case only these cues are used to derive segment boundaries.\n"
+			"Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:\n"\
+			"\t\"id\": integer for stream/track/pid ID\n"\
+			"\t\"timescale\":integer giving the units of following timestamps\n"\
+			"\t\"mode\": if present and value is \"edit\", the timestamp are in presentation time (edit list applied). Otherwise they are in media time\n"\
+			"The children of <Stream> are <Cue> elements, with attributes:\n"\
+			"\t\"sample\": integer giving the sample/frame number of a sample at which spliting shall happen\n"\
+			"\t\"dts\": long integer giving the decoding time stamp of a sample at which spliting shall happen\n"\
+			"\t\"cts\": long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"\
+			"WARNING: cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.\n"\
 			"\n"\
 			"Note to developpers: output muxers allowing segmented output must obey the following:\n"\
 			"* add a \"DashMode\" capability to their input caps (value of the cap is ignored, only its presence is required)\n"\

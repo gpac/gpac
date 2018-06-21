@@ -57,6 +57,7 @@
 #define BUFFSIZE	8192
 #define DEFAULT_INTERLEAVING_IN_SEC 0.5
 
+
 int mp4boxTerminal(int argc, char **argv);
 
 u32 quiet = 0;
@@ -340,6 +341,8 @@ void PrintDASHUsage()
 	        "                        both: sets ContentProtection in both elements\n"
 	        " -start-date          for live mode, sets start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. Default is now.\n"
 	        "                        !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!\n"
+	        " -cues                ignores dash duration and segment according to cue times in given XML file. See tests/media/dash_cues for examples.\n"
+	        " -strict-cues         throw error if something is wrong while parsing cues or applying cue-based segmentation.\n"
 	        "\n");
 }
 
@@ -1898,18 +1901,22 @@ Bool segment_timeline = GF_FALSE;
 u32 segment_marker = GF_FALSE;
 GF_DashProfile dash_profile = GF_DASH_PROFILE_AUTO;
 const char *dash_profile_extension = NULL;
+const char *dash_cues = NULL;
+Bool strict_cues = GF_FALSE;
 Bool use_url_template = GF_FALSE;
 Bool seg_at_rap = GF_FALSE;
 Bool frag_at_rap = GF_FALSE;
 Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
+#ifndef GPAC_DISABLE_ATSC
 Bool grab_atsc = GF_FALSE;
 s32 atsc_max_segs = -1;
 u32 atsc_stats_rate = 0;
 u32 atsc_debug_tsi = 0;
 const char *atsc_output_dir = NULL;
 s32 atsc_service = -1;
+#endif
 u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
@@ -2767,7 +2774,9 @@ else if (!stricmp(arg, "-h")) {
 	else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
 	else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
 	else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
+#ifndef GPAC_DISABLE_ATSC
 	else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
+#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	else if (!strcmp(argv[i + 1], "rtp")) PrintStreamerUsage();
 	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
@@ -2784,7 +2793,9 @@ else if (!stricmp(arg, "-h")) {
 		PrintEncryptUsage();
 		PrintMetaUsage();
 		PrintSWFUsage();
+#ifndef GPAC_DISABLE_ATSC
 		PrintATSCUsage();
+#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		PrintStreamerUsage();
 		PrintLiveUsage();
@@ -2900,6 +2911,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			grab_ifce = argv[i + 1];
 			i++;
 		}
+#ifndef GPAC_DISABLE_ATSC
 		else if (!stricmp(arg, "-atsc")) {
 			grab_atsc = GF_TRUE;
 		}
@@ -2928,6 +2940,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			atsc_debug_tsi = atoi(argv[i + 1]);
 			i++;
 		}
+#endif
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
@@ -3491,6 +3504,14 @@ Bool mp4box_parse_args(int argc, char **argv)
 			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
 			i++;
 		}
+		else if (!stricmp(arg, "-cues")) {
+			CHECK_NEXT_ARG
+			dash_cues = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-strict-cues")) {
+			strict_cues = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-insert-utc")) {
 			insert_utc = GF_TRUE;
 		}
@@ -3592,6 +3613,7 @@ int mp4boxMain(int argc, char **argv)
 	if (!inName && dump_std)
 		inName = "std";
 
+#ifndef GPAC_DISABLE_ATSC
 	if (grab_atsc) {
 		if (!gf_logs) {
 			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
@@ -3599,6 +3621,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		return grab_atsc3_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
 	}
+#endif
 
 	if (!inName) {
 		PrintUsage();
@@ -4150,6 +4173,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
 		if (!e) e = gf_dasher_set_hls_clock(dasher, hls_clock);
+		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);

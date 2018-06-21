@@ -394,7 +394,7 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 			SetConsoleTextAttribute(console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
 			break;
 	}
-	
+
 	vfprintf(stderr, fmt, vlist);
 	SetConsoleTextAttribute(console, console_attr_ori);
 #elif !defined(_WIN32_WCE)
@@ -804,7 +804,9 @@ const char *gpac_features()
 #ifdef GPAC_DISABLE_STREAMING
 	                       "GPAC_DISABLE_STREAMING "
 #endif
-
+#ifdef GPAC_DISABLE_ATSC
+	                       "GPAC_DISABLE_ATSC "
+#endif
 	                       ;
 	return features;
 }

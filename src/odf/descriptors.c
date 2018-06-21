@@ -26,9 +26,7 @@
 #include <gpac/internal/odf_dev.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
-#endif
 
 s32 gf_odf_size_field_size(u32 size_desc)
 {
@@ -359,10 +357,10 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 {
 	u32 to_skip;
 	GF_BitStream *bs;
-	
+
 	if (!cfg) return GF_BAD_PARAM;
 	memset(cfg, 0, sizeof(GF_LASERConfig));
-	
+
 	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	memset(cfg, 0, sizeof(GF_LASERConfig));

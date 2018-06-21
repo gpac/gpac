@@ -442,10 +442,14 @@ void isor_declare_objects(ISOMReader *read)
 				if (lhcc) gf_odf_hevc_cfg_del(lhcc);
 			}
 			if ((codec_id==GF_CODECID_AVC) || (codec_id==GF_CODECID_SVC) || (codec_id==GF_CODECID_MVC)) {
+				Bool is_mvc = GF_FALSE;
 				Bool signal_svc = (read->smode==MP4DMX_SPLIT) ? GF_TRUE : GF_FALSE;
 				GF_AVCConfig *avcc = gf_isom_avc_config_get(read->mov, i+1, 1);
 				GF_AVCConfig *svcc = gf_isom_svc_config_get(read->mov, i+1, 1);
-				if (!svcc) svcc = gf_isom_mvc_config_get(read->mov, i+1, 1);
+				if (!svcc) {
+					svcc = gf_isom_mvc_config_get(read->mov, i+1, 1);
+					is_mvc = GF_TRUE;
+				}
 
 				if (avcc || svcc) {
 					if (dsi) gf_free(dsi);
@@ -453,9 +457,9 @@ void isor_declare_objects(ISOMReader *read)
 					//no base layer config
 					if (!avcc) signal_svc = GF_TRUE;
 
-					if (signal_svc && avcc) {
+					if (signal_svc && svcc) {
 						gf_odf_avc_cfg_write(svcc, &enh_dsi, &enh_dsi_size);
-						codec_id = GF_CODECID_LHVC;
+						codec_id = is_mvc ? GF_CODECID_MVC : GF_CODECID_SVC;
 					} else {
 						if (avcc) {
 							gf_odf_avc_cfg_write(avcc, &dsi, &dsi_size);
@@ -463,7 +467,7 @@ void isor_declare_objects(ISOMReader *read)
 						if (svcc) {
 							gf_odf_avc_cfg_write(svcc, &enh_dsi, &enh_dsi_size);
 						}
-						codec_id = GF_CODECID_HEVC;
+						codec_id = GF_CODECID_AVC;
 					}
 				}
 				if (avcc) gf_odf_avc_cfg_del(avcc);
