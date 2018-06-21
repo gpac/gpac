@@ -1000,7 +1000,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_XLINK, "xlink", "specifies remote period URL for DASH", GF_PROP_STRING},
 	{ GF_PROP_PID_CLAMP_DUR, "CDur", "max media duration to process from PID in DASH mode", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "specifies the name of the variant playlist for this media", GF_PROP_STRING},
-
+	{ GF_PROP_PID_DASH_CUE, "DCue", "specifies the name of a cue list file (see dasher help) for this PID", GF_PROP_STRING},
 };
 
 GF_EXPORT

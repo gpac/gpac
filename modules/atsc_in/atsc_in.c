@@ -24,10 +24,13 @@
  */
 
 #include <gpac/atsc.h>
+
 #include <gpac/thread.h>
 #include <gpac/modules/service.h>
 
 #include <time.h>
+
+#ifndef GPAC_DISABLE_ATSC
 
 typedef struct
 {
@@ -157,7 +160,7 @@ void ATSCIn_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		if (cache_entry) gf_dm_force_headers(atscd->dm, cache_entry, "x-atsc: yes\r\n");
 
 		if (is_loop) break;
-		
+
 		nb_obj = gf_atsc3_dmx_get_object_count(atscd->atsc_dmx, evt_param);
 		if (nb_obj>10) {
 			while (nb_obj>10) {
@@ -318,11 +321,13 @@ void ATSCIn_Delete(void *ifce)
 	gf_free(plug);
 }
 
+#endif /* GPAC_DISABLE_ATSC */
+
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_ATSC)
 		GF_NET_CLIENT_INTERFACE,
 #endif
 		0
@@ -334,7 +339,7 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_ATSC)
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)ATSCIn_Load();
 #endif
 	return NULL;
@@ -344,7 +349,7 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_ATSC)
 	case GF_NET_CLIENT_INTERFACE:
 		ATSCIn_Delete(ifce);
 		break;

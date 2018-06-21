@@ -34,6 +34,7 @@
 #elif defined(WIN32)
 
 #include <windows.h>
+#include <process.h>
 #include <direct.h>
 #include <sys/stat.h>
 #include <share.h>
@@ -474,6 +475,7 @@ FILE *gf_temp_file_new(char ** const fileName)
 		res = _wfopen(pTemp, TEXT("w+b"));
 #elif defined(WIN32)
 	res = tmpfile();
+
 	if (!res) {
 		wchar_t tmp[MAX_PATH];
 
@@ -484,7 +486,7 @@ FILE *gf_temp_file_new(char ** const fileName)
 			wchar_t tmp2[MAX_PATH], *t_file;
 			char* mbs_t_file;
 			gf_rand_init(GF_FALSE);
-			swprintf(tmp2, MAX_PATH, L"gpac_%08x_", gf_rand());
+			swprintf(tmp2, MAX_PATH, L"gpac_%d_%08x_", _getpid(), gf_rand());
 			t_file = _wtempnam(tmp, tmp2);
 			mbs_t_file = wcs_to_utf8(t_file);
 			if (!mbs_t_file)
@@ -750,7 +752,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			}
 		}
 #endif
-		
+
 #ifdef WIN32
 		mbs_file = wcs_to_utf8(file);
 		mbs_item_path = wcs_to_utf8(item_path);

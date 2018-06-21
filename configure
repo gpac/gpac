@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# GPAC configure script 
-#     (c) 2003-2018 Telecom ParisTech 
+# GPAC configure script
+#     (c) 2003-2018 Telecom ParisTech
 #     Authors: Jean Le Feuvre, Romain Bouqueau
 #
 #set -v
@@ -164,6 +164,8 @@ disable_vobsub="no"
 disable_ttxt="no"
 disable_ttml="no"
 disable_hevc="no"
+disable_atsc="no"
+disable_mcrypt="no"
 enable_depth_compositor="no"
 enable_renoir="no"
 has_avcap="no"
@@ -310,6 +312,8 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-player         disable player (terminal and compositor)
   --disable-scenegraph     disable scenegraph, scene parsers and player (terminal and compositor)
   --disable-hevc           disable HEVC support
+  --disable-atsc           disable ATSC3 support
+  --disable-mcrypt         disable MCRYPT support
 
 Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/
   --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]
@@ -416,7 +420,7 @@ case "$cpu" in
         ;;
     ppc64)
         cpu="powerpc"
-        ;;  
+        ;;
     "Power Macintosh"|ppc)
         cpu="powerpc"
         ;;
@@ -575,13 +579,13 @@ EOF
         darwin="yes"
         gcc_version=`$cc -v 2>>$logs | grep version | cut -d ' ' -f3`
         case "$gcc_version" in
-            *2.95*) 
+            *2.95*)
                 CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer"
                 ;;
             3.*)
                 CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer -mdynamic-no-pic -fno-common"
                 ;;
-            4.*) 
+            4.*)
                 CFLAGS="$CFLAGS -pipe -fomit-frame-pointer -fno-common"
                 ;;
         esac
@@ -612,7 +616,7 @@ EOF
         ;;
 
     CYGWIN*|cygwin*)
-        js_flags=-DXP_PC 
+        js_flags=-DXP_PC
         extralibs="$extralibs -lws2_32 -lwinmm"
         cygwin="yes"
         win32="yes"
@@ -645,7 +649,7 @@ esac
 
 
 #defines directory for binaries and libs (ex. for TinyGL)
-target_bin_dir="" 
+target_bin_dir=""
 if test "$cross_prefix" = "" ; then
     target_bin_dir=`${cc} -v 2>>$logs | sed -n '2p' | awk ' {print $2}'`-${cc_orig}
 else
@@ -1027,14 +1031,14 @@ avcap_ldflags="-lavcap"
 cat > $TMPC << EOF
 #include <avcap/avcap.h>
 using namespace avcap;
-int main( void ) { 
+int main( void ) {
   const DeviceCollector::DeviceList& dl = DEVICE_COLLECTOR::instance().getDeviceList();
   DeviceDescriptor* dd = 0;
   for (DeviceCollector::DeviceList::const_iterator i = dl.begin(); i != dl.end(); i++) {
     dd = *i;
     std::cout << dd->getName().c_str() << "\n";
   }
-  return 0; 
+  return 0;
 }
 EOF
 if docxx -o $TMPO $TMPC $LDFLAGS $avcap_cflags $avcap_ldflags ; then
@@ -1514,8 +1518,8 @@ if test "$pkg_config" != "no"; then
     freenect_flags=`$pkg_config --cflags libfreenect`
     freenect_libs=`$pkg_config --libs libfreenect`
     has_freenect="system"
-    freenect_flags="-DFREENECT_FLAT_HEADERS $freenect_flags" 
-  fi 
+    freenect_flags="-DFREENECT_FLAT_HEADERS $freenect_flags"
+  fi
 fi
 
 if test "$has_freenect" = "no"; then
@@ -1957,13 +1961,13 @@ for opt do
             if test "$tmp_has_png" = "system" ; then
                 if test "$has_png"  != "system" ; then
                     if test "$cross_prefix" != "" ; then
-                        echo 
+                        echo
                         echo "WARNING: PNG has been forced to system, but we are cross-compiling, it will have to be on target"
-                        echo 
+                        echo
                     else
-                        echo 
+                        echo
                         echo "WARNING!! : PNG has been forced to system even though it hasn't been found in this host"
-                        echo 
+                        echo
                     fi
                 fi
             fi
@@ -1973,20 +1977,20 @@ for opt do
             if test "$tmp_has_zlib" = "system" ; then
                 if test "$has_zlib"  != "system" ; then
                     if test "$cross_prefix" != "" ; then
-                        echo 
+                        echo
                         echo "WARNING: ZLIB has been forced to system, but we are cross-compiling, it will have to be on target"
-                        echo 
+                        echo
                     else
-                        echo 
+                        echo
                         echo "WARNING!! : ZLIB has been forced to system even though it hasn't been found in this host"
-                        echo 
+                        echo
                     fi
                 fi
                 has_zlib=$tmp_has_zlib
             elif test "$tmp_has_zlib" = "no" ; then
-                echo 
+                echo
                 echo "WARNING!! : you have forced not to use ZLIB. This will disable some core functionalities of GPAC."
-                echo 
+                echo
                 has_zlib="force-no"
             fi
             ;;
@@ -2002,9 +2006,9 @@ for opt do
             ;;
         --enable-pulseaudio) has_pulseaudio="yes"
             ;;
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_vtt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_vtt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes" ; disable_atsc="yes" ; disable_mcrypt="yes"
             ;;
-        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no"
+        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no" ; disable_atsc="yes" ; disable_mcrypt="yes"
             ;;
         --disable-3d) disable_3d="yes"
             ;;
@@ -2147,59 +2151,67 @@ for opt do
         --disable-streaming) disable_streaming="yes"
             ;;
         --enable-streaming) disable_streaming="no"
-            ;; 
+            ;;
         --disable-player) disable_player="yes"
             ;;
         --enable-player) disable_player="no"
-            ;; 
+            ;;
         --disable-scenegraph) disable_scenegraph="yes"
             ;;
         --enable-scenegraph) disable_scenegraph="no"
-            ;; 
+            ;;
         --disable-dvbx) disable_dvbx="yes"
             ;;
         --enable-dvbx) disable_dvbx="no"
-            ;; 
+            ;;
         --disable-vobsub) disable_vobsub="yes"
             ;;
         --enable-vobsub) disable_vobsub="no"
-            ;; 
+            ;;
         --disable-ttxt) disable_ttxt="yes"
             ;;
         --enable-ttxt) disable_ttxt="no"
-            ;; 
+            ;;
         --disable-ttml) disable_ttml="yes"
             ;;
         --enable-vtt) disable_vtt="no"
-            ;; 
+            ;;
         --disable-vtt) disable_vtt="yes"
             ;;
         --enable-ttml) disable_ttml="no"
-            ;; 
+            ;;
         --disable-saf) disable_saf="yes"
             ;;
         --enable-saf) disable_saf="no"
-            ;; 
+            ;;
         --disable-smgr) disable_smgr="yes"
             ;;
         --enable-smgr) disable_smgr="no"
-            ;; 
+            ;;
         --disable-mpd) disable_mpd="yes"
             ;;
         --enable-mpd) disable_mpd="no"
-            ;; 
+            ;;
         --disable-dash) disable_dash="yes"
             ;;
         --enable-dash) disable_dash="no"
-            ;; 
+            ;;
         --disable-core) disable_core_tools="yes"
             ;;
         --enable-core) disable_core_tools="no"
-            ;; 
+            ;;
         --disable-hevc) disable_hevc="yes"
             ;;
         --enable-hevc) disable_hevc="no"
-            ;; 
+            ;;
+        --disable-atsc) disable_atsc="yes"
+            ;;
+        --enable-atsc) disable_atsc="no"
+            ;;
+        --disable-mcrypt) disable_mcrypt="yes"
+            ;;
+        --enable-mcrypt) disable_mcrypt="no"
+            ;;
     esac
 done
 
@@ -2302,7 +2314,7 @@ if test "$pkg_config" != "no"; then
     if $pkg_config --exists libxul 2>>$logs ; then
         if docxx -o $TMPO $TMPCXX `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
             has_xul="system"
-            xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`" 
+            xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`"
         fi
     fi
   fi
@@ -2803,6 +2815,16 @@ if test "$disable_hevc" = "yes" ; then
     echo "#define GPAC_DISABLE_HEVC" >> $TMPH
 fi
 
+if test "$disable_atsc" = "yes" ; then
+    echo "ATSC3 Support disabled"
+    echo "#define GPAC_DISABLE_ATSC" >> $TMPH
+fi
+
+if test "$disable_mcrypt" = "yes" ; then
+    echo "MCRYPT Support disabled"
+    echo "#define GPAC_DISABLE_MCRYPT" >> $TMPH
+fi
+
 echo ""
 
 echo "** Detected libraries **"
@@ -3019,7 +3041,7 @@ if test "$win32" = "yes" ; then
         echo "#define fseeko64 fseek" >> $TMPH
     fi
     if test "$mingw32" = "yes" ; then
-    
+
 # -municode test
 cat > $TMPC << EOF
 #include <inttypes.h>
@@ -3204,6 +3226,8 @@ echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
 echo "MINIMAL_OD=$disable_od" >> config.mak
 echo "DISABLE_ISOM_ADOBE=$disable_isoff_hds" >> config.mak
 echo "DISABLE_VRML=$disable_vrml" >> config.mak
+echo "DISABLE_ATSC=$disable_atsc" >> config.mak
+echo "DISABLE_MCRYPT=$disable_mcrypt" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"
@@ -3380,9 +3404,9 @@ echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
-    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/filters_imp src/terminal src/crypto src/media_tools src/scene_manager src/compositor src/laser" 
+    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/terminal src/crypto src/media_tools src/scene_manager src/compositor src/laser" 
 
-    APP_DIRS="applications/gpac applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx applications/mp42ts applications/dashcast"
+    APP_DIRS="applications/gpac applications/mp4box applications/mp4client applications/mp42ts"
 
     for dir in $SRC_DIRS ; do
         mkdir -p "$dir"

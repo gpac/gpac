@@ -24,6 +24,9 @@
  */
 
 #include <gpac/atsc.h>
+
+#ifndef GPAC_DISABLE_ATSC
+
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
 #include <gpac/xml.h>
@@ -467,7 +470,7 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 			else if (atscd->tune_all_sls) service->tune_mode = GF_ATSC_TUNE_SLS_ONLY;
 
 			//we are tuning, register socket
-			if (service->tune_mode != GF_ATSC_TUNE_OFF) 
+			if (service->tune_mode != GF_ATSC_TUNE_OFF)
 				gf_sk_group_register(atscd->active_sockets, service->sock);
 
 			gf_list_add(atscd->services, service);
@@ -1546,7 +1549,7 @@ static GF_Err gf_atsc3_dmx_process_lls(GF_ATSCDmx *atscd)
 	GF_XMLNode *root;
 
 	e = gf_sk_receive_no_select(atscd->sock, atscd->buffer, atscd->buffer_size, 0, &read);
-	if (e) 
+	if (e)
 		return e;
 
 	atscd->nb_packets++;
@@ -1625,7 +1628,7 @@ GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd)
 {
 	u32 i, count;
 	GF_Err e;
-	
+
 	//check all active sockets
 	e = gf_sk_group_select(atscd->active_sockets, 10);
 	if (e) return e;
@@ -1842,3 +1845,4 @@ void gf_atsc3_dmx_debug_tsi(GF_ATSCDmx *atscd, u32 tsi)
 	if (atscd) atscd->debug_tsi = tsi;
 }
 
+#endif /* GPAC_DISABLE_ATSC */

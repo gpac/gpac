@@ -25,7 +25,6 @@
 
 #include <gpac/media_tools.h>
 #include <gpac/network.h>
-
 #include <gpac/internal/mpd.h>
 #include <gpac/filters.h>
 
@@ -102,6 +101,8 @@ struct __gf_dash_segmenter
 	//some HLS options
 	Bool hls_clock;
 
+	const char *cues_file;
+	Bool strict_cues;
 
 	//not yet exposed through API
 	Bool disable_segment_alignment;
@@ -469,6 +470,14 @@ GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_cl
 }
 
 GF_EXPORT
+GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool strict_cues)
+{
+	dasher->cues_file = cues_file;
+	dasher->strict_cues = strict_cues;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput *input)
 {
 	if (!dasher) return GF_BAD_PARAM;
@@ -653,6 +662,10 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	if (dasher->fragments_start_with_rap) { APPEND_ARG("sfrag")}
 	if (dasher->tmpdir) { sprintf(szArg, "tmpd=%s", dasher->tmpdir ); APPEND_ARG(szArg)}
+
+	if (dasher->cues_file) { sprintf(szArg, "cues=%s", dasher->cues_file ); APPEND_ARG(szArg)}
+	if (dasher->strict_cues) { APPEND_ARG("strict_cues")}
+
 
 	dasher->dash_mode_changed = GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher filter for dst %s with args %s\n", dasher->mpd_name, args));

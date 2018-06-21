@@ -4401,4 +4401,99 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 }
 
 
+GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, GF_DASHCueInfo **out_cues, u32 *nb_cues)
+{
+	GF_XMLNode *root, *stream, *cue;
+	GF_XMLAttribute *att;
+	u32 i, j, k;
+	GF_DOMParser *parser = gf_xml_dom_new();
+	GF_Err e = gf_xml_dom_parse(parser, cues_file, NULL, NULL);
+	if (e != GF_OK) {
+		gf_xml_dom_del(parser);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error loading cue file %s: %s\n", cues_file, gf_error_to_string(e)));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	root = gf_xml_dom_get_root(parser);
+	if (e != GF_OK) {
+		gf_xml_dom_del(parser);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error loading cue file, no root element found\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	if (strcmp(root->name, "DASHCues")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Wrong cue file, expecting DASHCues got %s\n", root->name));
+		gf_xml_dom_del(parser);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	i=0;
+	while ((stream = gf_list_enum(root->content, &i))) {
+		u32 id=0;
+		u32 cur_cue;
+		GF_DASHCueInfo *cues;
+		u32 timescale=1000;
+		if (stream->type != GF_XML_NODE_TYPE) continue;
+		if (strcmp(stream->name, "Stream")) continue;
+
+		*use_edit_list = GF_FALSE;
+		j=0;
+		while ((att = gf_list_enum(stream->attributes, &j))) {
+			if (!strcmp(att->name, "id")) id = atoi(att->value);
+			else if (!strcmp(att->name, "timescale")) timescale = atoi(att->value);
+			else if (!strcmp(att->name, "mode") && !strcmp(att->value, "edit") ) *use_edit_list = GF_TRUE;
+		}
+		if (id != stream_id) continue;
+
+		*cues_timescale = timescale;
+		*nb_cues = 0;
+
+		j=0;
+		while ((cue = gf_list_enum(stream->content, &j))) {
+			if (cue->type != GF_XML_NODE_TYPE) continue;
+			if (strcmp(cue->name, "Cue")) continue;
+			(*nb_cues)++;
+		}
+		cues = gf_malloc(sizeof(GF_DASHCueInfo)* (*nb_cues) );
+		if (!cues) {
+			gf_xml_dom_del(parser);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to allocate %d cues\n", (*nb_cues) ));
+			return GF_OUT_OF_MEM;
+		}
+		memset(cues, 0, sizeof(GF_DASHCueInfo)* (*nb_cues) );
+		*out_cues = cues;
+
+		j=0;
+		cur_cue = 0;
+		while ((cue = gf_list_enum(stream->content, &j))) {
+			if (cue->type != GF_XML_NODE_TYPE) continue;
+			if (strcmp(cue->name, "Cue")) continue;
+
+			k=0;
+			while ((att = gf_list_enum(cue->attributes, &k))) {
+				if (!strcmp(att->name, "sample")) cues[cur_cue].sample_num = atoi(att->value);
+				else if (!strcmp(att->name, "dts")) sscanf(att->value, LLD, &cues[cur_cue].dts);
+				else if (!strcmp(att->name, "cts")) sscanf(att->value, LLD, &cues[cur_cue].cts);
+			}
+			//first cue
+			if (!cues[cur_cue].cts && !cues[cur_cue].dts && (cues[cur_cue].sample_num<=1) ) {
+				(*nb_cues)--;
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] cue for first sample found in stream %d, ignoring\n", stream_id));
+			} else {
+				cur_cue++;
+			}
+		}
+
+
+		break;
+	}
+	gf_xml_dom_del(parser);
+
+	if (!stream) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] No cues found for requested stream %d\n", stream_id));
+		return GF_BAD_PARAM;
+	}
+	return GF_OK;
+}
+
+
+
 #endif /*GPAC_DISABLE_CORE_TOOLS*/

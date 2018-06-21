@@ -998,6 +998,8 @@ enum
 	GF_PROP_PID_CLAMP_DUR = GF_4CC('D','C','M','D'),
 	//(string)
 	GF_PROP_PID_HLS_PLAYLIST = GF_4CC('H','L','V','P'),
+	//(string)
+	GF_PROP_PID_DASH_CUE = GF_4CC('D','C','U','E'),
 
 };
 
