@@ -815,6 +815,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 		if (e) return e;
 		need_seek = GF_FALSE;
 	}
+	gf_fs_get_last_connect_error(dasher->fsess);
+	gf_fs_get_last_process_error(dasher->fsess);
 
 	if (need_seek) {
 		GF_FilterEvent evt;
@@ -827,6 +829,10 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	}
 
 	e = gf_fs_run(dasher->fsess);
+	if (e>0) e = GF_OK;
+	
+	if (!e) e = gf_fs_get_last_connect_error(dasher->fsess);
+	if (!e) e = gf_fs_get_last_process_error(dasher->fsess);
 	if (e<0) return e;
 
 	if (dasher->no_cache) {

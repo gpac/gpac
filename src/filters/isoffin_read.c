@@ -535,9 +535,9 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		s64 ts_offset = 0;
 		ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ts_offset) ? GF_TRUE : GF_FALSE;
 		if (!ch->has_edit_list && ts_offset) {
-			//if >0 this is a hold, we signal negative skip
-			//if <0 this is a skip, we signal positive skip
-			gf_filter_pid_set_property(pid, GF_PROP_PID_MEDIA_SKIP, &PROP_SINT((s32) -ts_offset) );
+			//if >0 this is a hold, we signal positive delay
+			//if <0 this is a skip, we signal negative delay
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) ts_offset) );
 		}
 	} else
 		ch->has_edit_list = GF_FALSE;

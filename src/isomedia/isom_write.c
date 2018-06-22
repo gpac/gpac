@@ -5478,27 +5478,37 @@ GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 	return e;
 }
 
-static GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, GF_TrackBox *trak)
+GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
 {
 	u32 i, shift;
 	u64 duration;
 	GF_CompositionOffsetBox *ctts;
 	GF_CompositionToDecodeBox *cslg;
 	s32 leastCTTS, greatestCTTS;
+	GF_TrackBox *trak;
+	GF_Err e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+ 	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
 
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
-	shift = ctts->entries[0].decodingOffset;
+	shift = ctts->version ? ctts_shift : ctts->entries[0].decodingOffset;
 	leastCTTS = GF_INT_MAX;
 	greatestCTTS = 0;
 	for (i=0; i<ctts->nb_entries; i++) {
-		ctts->entries[i].decodingOffset -= shift;
+		if (!ctts->version)
+			ctts->entries[i].decodingOffset -= shift;
+
 		if ((s32)ctts->entries[i].decodingOffset < leastCTTS)
 			leastCTTS = ctts->entries[i].decodingOffset;
 		if ((s32)ctts->entries[i].decodingOffset > greatestCTTS)
 			greatestCTTS = ctts->entries[i].decodingOffset;
 	}
-	ctts->version = 1;
-	gf_isom_remove_edit_segments(file, track);
+	if (!ctts->version) {
+		ctts->version = 1;
+		gf_isom_remove_edit_segments(file, track);
+	}
 
 	if (!trak->Media->information->sampleTable->CompositionToDecode)
 		trak->Media->information->sampleTable->CompositionToDecode = (GF_CompositionToDecodeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CSLG);
@@ -5575,10 +5585,15 @@ GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use
 	if (!trak) return GF_BAD_PARAM;
 
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
-	if (!ctts) return GF_OK;
+	if (!ctts) {
+		if (!use_negative_offsets && trak->Media->information->sampleTable->CompositionToDecode) {
+			gf_isom_box_del((GF_Box *)trak->Media->information->sampleTable->CompositionToDecode);
+			trak->Media->information->sampleTable->CompositionToDecode = NULL;
+		}
+		return GF_OK;
+	}
 
 	if (use_negative_offsets) {
-		if (ctts->version==1) return GF_OK;
 		return gf_isom_set_ctts_v1(file, track, trak);
 	} else {
 		if (ctts->version==0) return GF_OK;

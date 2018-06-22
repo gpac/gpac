@@ -75,8 +75,8 @@ typedef struct
 	u32 inband_hdr_size;
 	Bool is_nalu;
 	Bool fragment_done;
-	s32 ts_delay;
-	Bool insert_tfdt;
+	s32 ts_delay, negctts_shift;
+	Bool insert_tfdt, probe_min_ctts;
 	u64 first_dts_in_seg, next_seg_cts, cts_next;
 	u64 offset_dts;
 
@@ -116,6 +116,13 @@ enum
 	MP4MX_PSSH_SKIP,
 };
 
+enum
+{
+	MP4MX_CT_EDIT=0,
+	MP4MX_CT_NOEDIT,
+	MP4MX_CT_NEGCTTS,
+};
+
 typedef struct
 {
 	//filter args
@@ -123,8 +130,8 @@ typedef struct
 	char *tmpd;
 	Bool m4sys, dref;
 	GF_Fraction dur;
-	u32 pack3gp;
-	Bool importer, noedit, pack_nal, for_test, moof_first, abs_offset, fsap, tfdt_traf;
+	u32 pack3gp, ctmode;
+	Bool importer, pack_nal, for_test, moof_first, abs_offset, fsap, tfdt_traf;
 	u32 xps_inband;
 	u32 block_size;
 	u32 store, tktpl, mudta;
@@ -138,7 +145,7 @@ typedef struct
 	Bool no_def, straf, strun, sgpd_traf, cache, noinit;
 	u32 psshs;
 	//internal
-	u64 first_cts_min;
+	u32 first_ts_min;
 	Bool owns_mov;
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
@@ -174,6 +181,7 @@ typedef struct
 
 	u32 *seg_sizes;
 	u32 nb_seg_sizes, alloc_seg_sizes;
+	Bool config_timing;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -1387,6 +1395,46 @@ multipid_stsd_setup:
 	} else {
 		mp4_mux_make_inband_header(ctx, tkw);
 	}
+
+	tkw->negctts_shift = 0;
+	tkw->probe_min_ctts = GF_FALSE;
+	if (is_true_pid && !tkw->nb_samples ) {
+		Bool use_negccts = GF_FALSE;
+		s64 moffset=0;
+		ctx->config_timing = GF_TRUE;
+
+		//if we have an edit list (due to track template) only providing media offset, trash it
+		if (!gf_isom_get_edit_list_type(ctx->file, tkw->track_num, &moffset)) {
+			gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
+		}
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DELAY);
+		if (p) {
+			if (p->value.sint < 0) {
+				if (ctx->ctmode==MP4MX_CT_NEGCTTS) use_negccts = GF_TRUE;
+				else {
+					gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, 0, -p->value.sint, GF_ISOM_EDIT_NORMAL);
+				}
+			} else if (p->value.sint > 0) {
+				s64 dur = p->value.sint * -1;
+				dur *= ctx->timescale;
+				dur /= tkw->timescale;
+				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, p->value.sint, GF_ISOM_EDIT_DWELL);
+				gf_isom_set_edit_segment(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+			}
+			tkw->ts_delay = p->value.sint;
+		} else if (tkw->stream_type==GF_STREAM_VISUAL) {
+			tkw->probe_min_ctts = GF_TRUE;
+		}
+		if (use_negccts) {
+			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, 1);
+			tkw->negctts_shift = (tkw->ts_delay<0) ? -tkw->ts_delay : 0;
+		} else {
+			//this will remove any cslg in the track due to template
+			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
+
+		}
+	}
 	return GF_OK;
 }
 
@@ -1624,18 +1672,21 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	if (sap_type==GF_FILTER_SAP_1)
 		tkw->sample.IsRAP = SAP_TYPE_1;
 
-	if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
-	if (tkw->next_is_first_sample && tkw->sample.DTS) {
-		if (!ctx->first_cts_min) {
-			ctx->first_cts_min = tkw->sample.DTS * 1000000;
-			ctx->first_cts_min /= tkw->timescale;
-			tkw->ts_shift = tkw->sample.DTS;
-		}
-	}
+
 	if (tkw->ts_shift) {
-		assert(tkw->sample.DTS >= tkw->ts_shift);
+		assert (tkw->sample.DTS >= tkw->ts_shift);
 		tkw->sample.DTS -= tkw->ts_shift;
 	}
+
+	if (tkw->negctts_shift)
+		tkw->sample.CTS_Offset -= tkw->negctts_shift;
+
+	if (tkw->probe_min_ctts) {
+		s32 diff = (s32) ((s64) cts - (s64) tkw->sample.DTS);
+		if (diff < tkw->min_neg_ctts)
+			tkw->min_neg_ctts = diff;
+	}
+	if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
 
 	duration = gf_filter_pck_get_duration(pck);
 
@@ -1927,7 +1978,6 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			u32 def_pck_dur;
 			u32 def_is_rap, tscale;
 			u64 dts;
-			const GF_PropertyValue *p;
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 			GF_FilterPacket *pck;
 
@@ -1982,24 +2032,6 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			default:
 				def_is_rap = GF_FALSE;
 				break;
-			}
-
-			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MEDIA_SKIP);
-			if (p) {
-				if (p->value.sint > 0) {
-					gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, 0, p->value.uint, GF_ISOM_EDIT_NORMAL);
-				} else if (p->value.sint < 0) {
-					s64 dur = p->value.sint * -1;
-					dur *= ctx->timescale;
-					dur /= tkw->timescale;
-					gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, p->value.uint, GF_ISOM_EDIT_DWELL);
-					gf_isom_set_edit_segment(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
-				}
-				tkw->ts_delay = p->value.uint;
-			} else {
-				//this could be refine, but since we have no info on cts adjustments we may end up with wrong values
-				gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
-				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, 1);
 			}
 
 			mp4_mux_set_hevc_groups(ctx, tkw);
@@ -2413,12 +2445,71 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	return GF_OK;
 }
 
+static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
+{
+	u32 i, count = gf_list_count(ctx->tracks);
+	//compute min dts of first packet on each track
+	ctx->first_ts_min = (u32) -1;
+	for (i=0; i<count; i++) {
+		s64 ts, dts_min;
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
+		if (!pck) return;
+		ts = gf_filter_pck_get_dts(pck);
+		if (ts==GF_FILTER_NO_TS)
+			ts = gf_filter_pck_get_cts(pck);
+
+
+		dts_min = ts * 1000000;
+		dts_min /= tkw->timescale;
+
+		if (ctx->first_ts_min > dts_min) {
+			ctx->first_ts_min = dts_min;
+		}
+		tkw->ts_shift = ts;
+	}
+	//for all packets with dts greater than min dts, we need to add a pause
+	for (i=0; i<count; i++) {
+		s64 dts_diff;
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+
+		//compute offsets
+		dts_diff = ctx->first_ts_min;
+		dts_diff *= tkw->timescale;
+		dts_diff /= 1000000;
+		dts_diff -= (s64) tkw->ts_shift;
+		//negative could happen due to rounding, ignore them
+		if (dts_diff<=0) continue;
+
+
+		//if dts_diff > 0, we need a dwell
+		if (dts_diff) {
+			s64 dur = dts_diff;
+			dur *= ctx->timescale;
+			dur /= tkw->timescale;
+
+			gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
+
+			gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_DWELL);
+			gf_isom_set_edit_segment(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+		}
+	}
+
+	ctx->config_timing = GF_FALSE;
+}
+
 GF_Err mp4_mux_process(GF_Filter *filter)
 {
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	u32 nb_eos, i, count = gf_list_count(ctx->tracks);
 
 	nb_eos = 0;
+
+	if (ctx->config_timing) {
+		mp4_mux_config_timing(ctx);
+		if (ctx->config_timing) return GF_OK;
+	}
+
 
 	//in frag mode, force fetching a sample from each track before processing
 	if (ctx->store>=MP4MX_MODE_FRAG) return mp4_mux_process_fragmented(filter, ctx);
@@ -2574,6 +2665,8 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 	u32 i, count, di;
 	u64 max_cts, min_cts, doff;
 
+	if (ctx->ctmode > MP4MX_CT_EDIT) return;
+
 	count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
 	max_cts = 0;
 	min_cts = (u64) -1;
@@ -2680,20 +2773,23 @@ static void mp4_mux_done(GF_MP4MuxCtx *ctx)
 		Bool has_bframes = GF_FALSE;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
-		//keep the old importer behaviour: use ctts v0
 		if (tkw->min_neg_ctts<0) {
-			gf_isom_set_cts_packing(ctx->file, tkw->track_num, GF_TRUE);
-			gf_isom_shift_cts_offset(ctx->file, tkw->track_num, (s32) tkw->min_neg_ctts);
-			gf_isom_set_cts_packing(ctx->file, tkw->track_num, GF_FALSE);
-			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
+			//use ctts v1 negative offsets
+			if (ctx->ctmode==MP4MX_CT_NEGCTTS) {
+				gf_isom_set_ctts_v1(ctx->file, tkw->track_num, -tkw->min_neg_ctts);
+			}
+			//ctts v0
+			else {
+				gf_isom_set_cts_packing(ctx->file, tkw->track_num, GF_TRUE);
+				gf_isom_shift_cts_offset(ctx->file, tkw->track_num, (s32) tkw->min_neg_ctts);
+				gf_isom_set_cts_packing(ctx->file, tkw->track_num, GF_FALSE);
+				gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
 
-			if (! ctx->noedit)
 				mp4_mux_update_edit_list_for_bframes(ctx, tkw);
-
+			}
 			has_bframes = GF_TRUE;
 		} else if (tkw->has_ctts && (tkw->stream_type==GF_STREAM_VISUAL) ) {
-			if (! ctx->noedit)
-				mp4_mux_update_edit_list_for_bframes(ctx, tkw);
+			mp4_mux_update_edit_list_for_bframes(ctx, tkw);
 
 			has_bframes = GF_TRUE;
 		}
@@ -2859,10 +2955,10 @@ static const GF_FilterArgs MP4MuxArgs[] =
 {
 	{ OFFS(m4sys), "force MPEG-4 Systems signaling of tracks", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dref), "only references data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(ctmode), "sets cts mode for video tracks. edit uses edit lists to shift first frame to presentation time 0. noedit doesn't shift timeline. negctts uses ctts v1 and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FALSE},
 	{ OFFS(dur), "only imports the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(pack3gp), "packs a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FALSE},
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(noedit), "disable edit lists on video tracks", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(pack_nal), "repacks NALU size length to minimum possible size for AVC/HEVC/...", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(xps_inband), "Use inband param set for AVC/HEVC/.... If mix, creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|mix", GF_FALSE},
 	{ OFFS(block_size), "Target output block size, 0 for default internal value (40k)", GF_PROP_UINT, "0", NULL, GF_FALSE},

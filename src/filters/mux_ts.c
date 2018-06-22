@@ -60,6 +60,7 @@ typedef struct
 	GF_ESInterface esi;
 	GF_FilterPid *ipid;
 	GF_M2TS_Mux_Stream *mstream;
+	GF_M2TS_Mux_Program *prog;
 
 	u32 sid;
 	u32 codec_id;
@@ -70,7 +71,8 @@ typedef struct
 
 	GF_TSMuxCtx *ctx;
 	u32 last_cv;
-	s32 cts_dts_shift;
+	//ts media skip
+	s32 media_delay;
 	Bool done;
 
 	u32 temi_id;
@@ -281,6 +283,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		if (tspid->temi_id) {
 			u64 ntp=0;
+			//TOCHECK: do we want media timeline or composition timeline ?
 			u64 tc = es_pck.cts;
 			if (tspid->ctx->temi_offset) {
 				tc += ((u64) tspid->ctx->temi_offset) * ifce->timescale / 1000;
@@ -296,6 +299,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			es_pck.mpeg2_af_descriptors_size = tsmux_format_af_descriptor(tspid->af_data, tspid->temi_id, tc, tspid->esi.timescale, ntp, tspid->temi_url, tspid->ctx->temi_delay, &tspid->last_temi_url);
 			es_pck.mpeg2_af_descriptors = tspid->af_data;
 		}
+		es_pck.cts += tspid->prog->max_media_skip + tspid->media_delay;
 
 		if (tspid->nb_repeat_last) {
 			es_pck.cts += tspid->nb_repeat_last * ifce->timescale * tspid->ctx->repeat_img / 1000;
@@ -305,9 +309,8 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		dts = gf_filter_pck_get_dts(pck);
 		if (dts != GF_FILTER_NO_TS) {
 			es_pck.dts = dts;
-			if (tspid->cts_dts_shift) {
-				es_pck.cts += tspid->cts_dts_shift;
-			}
+			es_pck.dts += tspid->prog->max_media_skip + tspid->media_delay;
+
 			if (es_pck.dts > es_pck.cts) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU" !\n", es_pck.cts, es_pck.dts));
 			}
@@ -443,6 +446,7 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 
 	tspid->esi.input_ctrl = tsmux_esi_ctrl;
 	tspid->esi.input_udta = tspid;
+	tspid->prog = prog;
 }
 
 static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
@@ -501,6 +505,7 @@ static void tsmux_del_stream(M2Pid *tspid)
 static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 service_id, codec_id, streamtype;
+	GF_M2TS_Mux_Stream *ts_stream;
 	const GF_PropertyValue *p;
 	M2Pid *tspid=NULL;
 	char *sname, *pname;
@@ -633,9 +638,23 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		prog->pmt->table_needs_update = GF_TRUE;
 		ctx->pmt_update_pending = GF_TRUE;
 	}
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MEDIA_SKIP);
-	if (p) tspid->cts_dts_shift = p->value.sint;
 	ctx->update_mux = GF_TRUE;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	if (p) {
+		tspid->media_delay = p->value.sint;
+
+		//compute max ts skip for this program
+		prog->max_media_skip = 0;
+		ts_stream = prog->streams;
+		while (ts_stream) {
+			M2Pid *atspid = ts_stream->ifce->input_udta;
+			s32 media_skip = -atspid->media_delay;
+			if (media_skip  > prog->max_media_skip)
+				prog->max_media_skip = media_skip ;
+			ts_stream = ts_stream->next;
+		}
+	}
 	return GF_OK;
 }
 
