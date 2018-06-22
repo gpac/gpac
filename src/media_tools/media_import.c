@@ -7131,6 +7131,19 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	}
 
 	gf_bs_seek(bs, pos);
+	if (av1_bs_syntax == OBUs) {
+		ObuType obu_type;
+		u64 obu_size;
+		GF_Err e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &state);
+		if (e) {
+			gf_import_message(import, GF_OK, "Error parsing OBU (Section 5)");
+			goto exit;
+		}
+		if (obu_type != OBU_TEMPORAL_DELIMITER) {
+			gf_import_message(import, GF_OK, "Error OBU stream does not start with a temporal delimiter");
+			goto exit;
+		}
+	}
 	while (gf_bs_available(bs)) {
 		av1_reset_frame_state(&state.frame_state);
 		pos = gf_bs_get_position(bs);
