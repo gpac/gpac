@@ -7202,7 +7202,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			} else {
 				/*safety check: we only support static metadata*/
 				if (gf_list_count(state.frame_state.header_obus) > gf_list_count(av1_cfg->obu_array)) {
-					gf_import_message(import, GF_NOT_SUPPORTED, "More header OBUs in than ", import->in_name);
+					gf_import_message(import, GF_NOT_SUPPORTED, "More header OBUs in frame state than in config");
 					goto exit;
 				}
 				while (gf_list_count(state.frame_state.header_obus)) {
