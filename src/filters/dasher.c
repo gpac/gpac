@@ -3900,7 +3900,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->rep_init++;
 				has_init++;
 
-				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_MEDIA_SKIP);
+				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
 				if (p) ds->pts_minus_cts = p->value.sint;
 			}
 			nb_init++;
@@ -3986,7 +3986,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 						//cues are given in track timeline (presentation time), substract the media time to pres time offset
 						if (ds->cues_use_edits) {
-							ts2 -= (s64) (ds->pts_minus_cts) * ds->cues_timescale;
+							ts2 += (s64) (ds->pts_minus_cts) * ds->cues_timescale;
 						}
 						if (ts == ts2) {
 							is_split = GF_TRUE;
@@ -4003,6 +4003,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
 						if (ctx->strict_cues) {
 							gf_filter_pid_drop_packet(ds->ipid);
+							gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
 							return GF_BAD_PARAM;
 						}
 					}
@@ -4032,6 +4033,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] found cue (sn %d - dts "LLD" - cts "LLD") in stream %s before current packet (sn %d - dts "LLD" - cts "LLD") , buggy source cues ?\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck+1, dts + ds->first_cts, cts + ds->first_cts));
 					if (ctx->strict_cues) {
 						gf_filter_pid_drop_packet(ds->ipid);
+						gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
 						return GF_BAD_PARAM;
 					}
 				}

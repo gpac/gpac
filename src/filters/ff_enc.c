@@ -226,7 +226,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 		if (ctx->ts_shift) {
 			s64 shift = ctx->ts_shift;
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_MEDIA_SKIP, &PROP_SINT((s32) shift) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) shift) );
 		}
 	}
 
@@ -392,7 +392,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 		if (ctx->ts_shift) {
 			s64 shift = ctx->ts_shift;
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_MEDIA_SKIP, &PROP_SINT((s32) shift) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) shift) );
 		}
 	}
 

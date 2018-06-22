@@ -425,10 +425,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->set_disc = ch->owner->clock_discontinuity ? 2 : 0;
 	ch->owner->clock_discontinuity = 0;
 
-	//handle negative ctts
-	if (ch->dts > ch->cts)
-		ch->dts = ch->cts;
-
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
 		ch->last_state = GF_EOS;

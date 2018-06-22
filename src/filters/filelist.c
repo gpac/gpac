@@ -172,7 +172,6 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(iopid->opid, iopid->ipid);
-	gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_MEDIA_SKIP, NULL);
 	//we could further optimize by querying the duration of all sources in the list
 	gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE) );
 	gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(iopid->o_timescale) );
@@ -182,6 +181,13 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	iopid->single_frame = (p && (p->value.uint==1)) ? GF_TRUE : GF_FALSE ;
 	iopid->timescale = gf_filter_pid_get_timescale(pid);
 	if (!iopid->timescale) iopid->timescale = 1000;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	if (p) {
+		s64 delay = p->value.sint;
+		delay *= iopid->timescale;
+		delay /= iopid->o_timescale;
+	}
 
 	//if we reattached the input, we must send a play request
 	if (reassign) {

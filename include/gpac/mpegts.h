@@ -1347,6 +1347,8 @@ struct __m2ts_mux_program {
 	Bool mpeg4_signaling_for_scene_only;
 
 	char *name, *provider;
+
+	s32 max_media_skip;
 };
 
 enum
