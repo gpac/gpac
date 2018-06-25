@@ -1349,6 +1349,7 @@ struct __m2ts_mux_program {
 	char *name, *provider;
 
 	s32 max_media_skip;
+	u32 cts_offset;
 };
 
 enum

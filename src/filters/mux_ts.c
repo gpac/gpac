@@ -234,6 +234,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	u32 cversion;
+	u64 cts, cts_diff;
 	M2Pid *tspid = (M2Pid *)ifce->input_udta;
 	if (!tspid) return GF_BAD_PARAM;
 
@@ -279,12 +280,12 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (tspid->is_repeat)
 			es_pck.flags |= GF_ESI_DATA_REPEAT;
 
-		es_pck.cts = gf_filter_pck_get_cts(pck);
+		es_pck.cts = cts = gf_filter_pck_get_cts(pck);
 
 		if (tspid->temi_id) {
 			u64 ntp=0;
 			//TOCHECK: do we want media timeline or composition timeline ?
-			u64 tc = es_pck.cts;
+			u64 tc = cts;
 			if (tspid->ctx->temi_offset) {
 				tc += ((u64) tspid->ctx->temi_offset) * ifce->timescale / 1000;
 			}
@@ -305,6 +306,15 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			es_pck.cts += tspid->nb_repeat_last * ifce->timescale * tspid->ctx->repeat_img / 1000;
 		}
 
+		cts_diff = 0;
+		if (tspid->prog->cts_offset) {
+			cts_diff = tspid->prog->cts_offset;
+			cts_diff *= tspid->esi.timescale;
+			cts_diff /= 1000000;
+
+			es_pck.cts += cts_diff;
+		}
+
 		es_pck.dts = es_pck.cts;
 		dts = gf_filter_pck_get_dts(pck);
 		if (dts != GF_FILTER_NO_TS) {
@@ -312,8 +322,22 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			es_pck.dts += tspid->prog->max_media_skip + tspid->media_delay;
 
 			if (es_pck.dts > es_pck.cts) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU" !\n", es_pck.cts, es_pck.dts));
+				u64 diff;
+
+				diff = cts_diff = es_pck.dts - es_pck.cts;
+				diff *= 1000000;
+				diff /= tspid->esi.timescale;
+				assert(tspid->prog->cts_offset < diff);
+				tspid->prog->cts_offset = diff;
+
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
+
+				es_pck.cts += cts_diff;
 			}
+			if (tspid->esi.stream_type!=GF_STREAM_VISUAL) {
+				es_pck.dts += cts_diff;
+			}
+
 			if (es_pck.dts != es_pck.cts) {
 				es_pck.flags |= GF_ESI_DATA_HAS_DTS;
 			}
@@ -546,7 +570,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 	}
-	//copy properties at init or reconfig
+	//set output properties at init or reconfig
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
@@ -654,6 +678,14 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				prog->max_media_skip = media_skip ;
 			ts_stream = ts_stream->next;
 		}
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CTS_SHIFT);
+	if (p) {
+		u64 diff = p->value.uint;
+		diff *= 1000000;
+		diff /= tspid->esi.timescale;
+		if (diff > tspid->prog->cts_offset)
+			tspid->prog->cts_offset = diff;
 	}
 	return GF_OK;
 }
@@ -829,9 +861,8 @@ static void tsmux_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability TSMuxCaps[] =
 {
-	//first set of caps describe streams that need reframing (NAL, AAC ADTS)
+	//first set of caps describe streams that need reframing (NAL)
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	//unframed streams only
 	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//for NAL-based, we want annexB format
@@ -908,8 +939,9 @@ static const GF_FilterArgs TSMuxArgs[] =
 GF_FilterRegister TSMuxRegister = {
 	.name = "mxts",
 	.description = "MPEG-2 Transport Stream muxer",
-	.comment = "GPAC TS multiplexer selects PID for media streams using the PID of the PMT plus the stream index.\n"\
-		"sid option is overriden by input PID property ServiceID if present\n"\
+	.comment = "GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"\
+	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"\
+		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID inidcated by sid option\n"\
 		"name option is overriden by input PID property ServiceName\n"\
 		"provider option is overriden by input PID property ServiceProvider\n"\
 		"\n"\

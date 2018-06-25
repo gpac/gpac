@@ -898,6 +898,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format", GF_PROP_PCMFMT},
 	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaybackSpeed", "audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE},
 	{ GF_PROP_PID_DELAY, "Delay", "delay of presentation compared to composition timestamps, in PID timescale. Positive value imply holding (delaying) the stream. Negative value imply skipping the beginning of stream", GF_PROP_SINT},
+	{ GF_PROP_PID_CTS_SHIFT, "CTSShift", "CTS offset to apply in case of negative ctts", GF_PROP_UINT},
 	{ GF_PROP_PID_WIDTH, "Width", "Visual Width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visual Height (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_PIXFMT},
