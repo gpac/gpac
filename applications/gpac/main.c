@@ -572,7 +572,10 @@ static int gpac_main(int argc, char **argv)
 	if (quiet<2)
 		fprintf(stderr, "Running session, press 'q' to abort\n");
 	gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
-	gf_fs_run(session);
+	e = gf_fs_run(session);
+	if (e>0) e = GF_OK;
+	if (!e) e = gf_fs_get_last_connect_error(session);
+	if (!e) e = gf_fs_get_last_process_error(session);
 
 	if (dump_stats)
 		gf_fs_print_stats(session);
