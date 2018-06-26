@@ -1616,30 +1616,89 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 	/*separate_uv_delta_q = */gf_bs_read_int(bs, 1);
 }
 
-#if 0
-static void av1_choose_operating_point(GF_BitStream *bs)
-{
+
+static u32 uvlc(GF_BitStream *bs) {
+	u8 leadingZeros = 0;
+	while (1) {
+		Bool done = gf_bs_read_int(bs, 1);
+		if (done)
+			break;
+		leadingZeros++;
+	}
+	if (leadingZeros >= 32) {
+		return 0xFFFFFFFF;
+	}
+	return gf_bs_read_int(bs, leadingZeros) + (1 << leadingZeros) - 1;
 }
-#endif
+
+static void timing_info(GF_BitStream *bs) {
+	/*num_units_in_display_tick =*/ gf_bs_read_u32(bs);
+	/*time_scale =*/ gf_bs_read_u32(bs);
+	if (gf_bs_read_int(bs, 3) /*equal_picture_interval*/)
+		/*num_ticks_per_picture_minus_1 =*/ uvlc(bs);
+}
+
+static void decoder_model_info(GF_BitStream *bs, u8 *buffer_delay_length_minus_1) {
+	*buffer_delay_length_minus_1 = gf_bs_read_int(bs, 5);
+	/*num_units_in_decoding_tick =*/ gf_bs_read_u32(bs);
+	/*buffer_removal_time_length_minus_1 =*/ gf_bs_read_int(bs, 5);
+	/*frame_presentation_time_length_minus_1 =*/ gf_bs_read_int(bs, 5);
+}
+
+static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 buffer_delay_length_minus_1) {
+	const u8 n = buffer_delay_length_minus_1 + 1;
+	/*decoder_buffer_delay[op] =*/ gf_bs_read_int(bs, n);
+	/*encoder_buffer_delay[op] =*/ gf_bs_read_int(bs, n);
+	/*low_delay_mode_flag[op] =*/ gf_bs_read_int(bs, 1);
+}
 
 static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
-	u8 frame_width_bits_minus_1, frame_height_bits_minus_1;
-	Bool timing_info_present_flag, decoder_model_info_present_flag;
+	u8 operating_points_cnt_minus_1, frame_width_bits_minus_1, frame_height_bits_minus_1, buffer_delay_length_minus_1 = 0;
+	Bool timing_info_present_flag, decoder_model_info_present_flag, initial_display_delay_present_flag;
 	state->frame_state.seen_seq_header = GF_TRUE;
 	state->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);
 	if (state->reduced_still_picture_header) {
-		state->seq_level_idx/*[0]*/ =gf_bs_read_int(bs, 5);
+		timing_info_present_flag = GF_FALSE;
+		decoder_model_info_present_flag = GF_FALSE;
+		initial_display_delay_present_flag = GF_FALSE;
+		operating_points_cnt_minus_1 = 0;
+		state->seq_level_idx/*[0]*/ = gf_bs_read_int(bs, 5);
 	} else {
-		const u8 operating_points_cnt_minus_1 = gf_bs_read_int(bs, 5);
-		size_t i;
+		u8 i = 0;
+		timing_info_present_flag = gf_bs_read_int(bs, 1);
+		if (timing_info_present_flag) {
+			timing_info(bs);
+			decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
+			if (decoder_model_info_present_flag) {
+				decoder_model_info(bs, &buffer_delay_length_minus_1);
+			}
+		} else {
+			decoder_model_info_present_flag = 0;
+		}
+		initial_display_delay_present_flag = gf_bs_read_int(bs, 1);
+		operating_points_cnt_minus_1 = gf_bs_read_int(bs, 5);
 		for (i = 0; i <= operating_points_cnt_minus_1; i++) {
-			u8 seq_level_idx;
 			/*operating_point_idc[i] = */gf_bs_read_int(bs, 12);
-			seq_level_idx/*[i]*/ = gf_bs_read_int(bs, 5);
-			if (i == 0) state->seq_level_idx = seq_level_idx;
+			if (gf_bs_read_int(bs, 5) /*seq_level_idx[i]*/ > 7) {
+				/*seq_tier[i] = */gf_bs_read_int(bs, 1);
+			} else {
+				/*seq_tier[i] = 0;*/
+			}
+			if (decoder_model_info_present_flag) {
+				if (gf_bs_read_int(bs, 1) /*decoder_model_present_for_this_op[i]*/) {
+					operating_parameters_info(bs, i, buffer_delay_length_minus_1);
+				}
+			} else {
+				/*decoder_model_present_for_this_op[i] = 0;*/
+			}
+			if (initial_display_delay_present_flag) {
+				if (gf_bs_read_int(bs, 1) /*initial_display_delay_present_for_this_op[i]*/) {
+					/*initial_display_delay_minus_1[i] =*/ gf_bs_read_int(bs, 4);
+				}
+			}
 		}
 	}
 
@@ -1713,53 +1772,11 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 			/*OrderHintBits = 0*/;
 		}
 	}
+
 	/*enable_superres = */gf_bs_read_int(bs, 1);
 	/*enable_cdef = */gf_bs_read_int(bs, 1);
-	/*enable_restoration = */gf_bs_read_int(bs, 1);
-	
-	color_config(bs, state);
-
-	timing_info_present_flag = GF_FALSE;
-	if (state->reduced_still_picture_header) {
-		timing_info_present_flag = 0;
-	} else {
-		timing_info_present_flag = gf_bs_read_int(bs, 1);
-	}
-	if (timing_info_present_flag) {
-		assert(0); /*timing_info();*/
-	}
-	
-	decoder_model_info_present_flag = GF_FALSE;
-	if (timing_info_present_flag) {
-		decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
-		if (decoder_model_info_present_flag) {
-			assert(0);/*decoder_model_info();*/
-		}
-	} else {
-		/*decoder_model_info_present_flag = 0;*/
-	}
-
-	if (gf_bs_read_int(bs, 1) /*operating_points_decoder_model_present*/) {
-		u8 operating_points_decoder_model_count_minus_1 = gf_bs_read_int(bs, 5);
-		size_t opNum;
-		for (opNum = 0; opNum <= operating_points_decoder_model_count_minus_1; opNum++) {
-			Bool display_model_param_present_flag;
-			/*decoder_model_operating_point_idc[opNum] = */gf_bs_read_int(bs, 12);
-			display_model_param_present_flag = gf_bs_read_int(bs, 1);
-			if (display_model_param_present_flag) {
-				/*initial_display_delay_minus_1 =*/ gf_bs_read_int(bs, 4);
-			}
-			if (decoder_model_info_present_flag) {
-				const Bool decoder_model_param_present_flag = gf_bs_read_int(bs, 1);
-				if (decoder_model_param_present_flag) {
-					assert(0); /*operating_parameters_info();*/
-				}
-			}
-		}
-	} else {
-		/*operating_points_decoder_model_count_minus_1 = -1;*/
-	}
-
+	/*enable_restoration = */gf_bs_read_int(bs, 1);	
+	color_config(bs, state);	
 	/*film_grain_params_present =*/ gf_bs_read_int(bs, 1);
 }
 
