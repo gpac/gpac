@@ -36,15 +36,6 @@
 
 #if !defined(GPAC_DISABLE_MCRYPT)
 
-typedef struct
-{
-	GF_List *tcis;
-	Bool has_common_key;
-	Bool in_text_header;
-	//global for all tracks unless overriden
-	u32 def_crypt_type;
-} GF_CryptInfo;
-
 static u32 get_crypt_type(char *cr_type)
 {
 	if (!stricmp(cr_type, "ISMA") || !stricmp(cr_type, "iAEC"))
@@ -344,7 +335,7 @@ void isma_ea_text(void *sax_cbck, const char *text, Bool is_cdata)
 	tkc->TextualHeaders[tkc->TextualHeadersLen] = 0;
 }
 
-static void del_crypt_info(GF_CryptInfo *info)
+void gf_crypt_del_config_file(GF_CryptInfo *info)
 {
 	while (gf_list_count(info->tcis)) {
 		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
@@ -357,7 +348,7 @@ static void del_crypt_info(GF_CryptInfo *info)
 	gf_free(info);
 }
 
-static GF_CryptInfo *load_crypt_file(const char *file)
+GF_CryptInfo *gf_crypt_load_config_file(const char *file)
 {
 	GF_Err e;
 	GF_CryptInfo *info;
@@ -369,7 +360,7 @@ static GF_CryptInfo *load_crypt_file(const char *file)
 	e = gf_xml_sax_parse_file(sax, file, NULL);
 	gf_xml_sax_del(sax);
 	if (e<0) {
-		del_crypt_info(info);
+		gf_crypt_del_config_file(info);
 		return NULL;
 	}
 	return info;
@@ -385,7 +376,7 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 	GF_TrackCryptInfo *tci;
 
 	e = GF_OK;
-	info = load_crypt_file(drm_file);
+	info = gf_crypt_load_config_file(drm_file);
 	if (!info) return GF_NOT_SUPPORTED;
 	count = gf_list_count(info->tcis);
 	for (i=0; i<count; i++) {
@@ -397,7 +388,7 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 			break;
 		}
 	}
-	del_crypt_info(info);
+	gf_crypt_del_config_file(info);
 	return e;
 }
 
@@ -437,7 +428,8 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 
 /*ISMACrypt*/
 
-static GFINLINE void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
+//static GFINLINE
+void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
 {
 	char IV[17];
 	u64 count;
@@ -2193,7 +2185,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	count = 0;
 	info = NULL;
 	if (drm_file) {
-		info = load_crypt_file(drm_file);
+		info = gf_crypt_load_config_file(drm_file);
 		if (!info) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n", drm_file));
 			return GF_NOT_SUPPORTED;
@@ -2318,7 +2310,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 
 	if (is_cenc && !e)
 		e = gf_isom_remove_pssh_box(mp4);
-	if (info) del_crypt_info(info);
+	if (info) gf_crypt_del_config_file(info);
 	return e;
 }
 
@@ -2465,7 +2457,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	Bool check_pssh = GF_FALSE;
 	is_oma = 0;
 
-	info = load_crypt_file(drm_file);
+	info = gf_crypt_load_config_file(drm_file);
 	if (!info) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n", drm_file));
 		return GF_NOT_SUPPORTED;
@@ -2556,7 +2548,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Warning: no track was encrypted (but PSSH was written).\n"));
 	}
 
-	del_crypt_info(info);
+	gf_crypt_del_config_file(info);
 	return e;
 }
 

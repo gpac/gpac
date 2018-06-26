@@ -5594,7 +5594,7 @@ GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use
 	}
 
 	if (use_negative_offsets) {
-		return gf_isom_set_ctts_v1(file, track, trak);
+		return gf_isom_set_ctts_v1(file, track, 0);
 	} else {
 		if (ctts->version==0) return GF_OK;
 		return gf_isom_set_ctts_v0(file, trak);

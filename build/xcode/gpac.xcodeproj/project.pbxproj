@@ -175,6 +175,7 @@
 		9202FEB2204840FB000EE9B1 /* load_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85591F7BFB61009BC9C8 /* load_svg.c */; };
 		9202FEB32048411D000EE9B1 /* dec_vorbis.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C11F7D10F400299CC6 /* dec_vorbis.c */; };
 		92061A851FE0484600B5C464 /* reframer.c in Sources */ = {isa = PBXBuildFile; fileRef = 92061A841FE0484500B5C464 /* reframer.c */; };
+		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
 		922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */; };
 		922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1261FCF169900F2F6A4 /* dmx_avi.c */; };
 		922E29832051940C00C8DCBB /* mux_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922E29812051940C00C8DCBB /* mux_avi.c */; };
@@ -1001,6 +1002,7 @@
 		9201FFFE18D5A444003D1ACA /* hint_track.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hint_track.c; sourceTree = "<group>"; };
 		9201FFFF18D5A444003D1ACA /* hinting.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hinting.c; sourceTree = "<group>"; };
 		92061A841FE0484500B5C464 /* reframer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframer.c; path = filters/reframer.c; sourceTree = "<group>"; };
+		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_mpegps.c; path = filters/dmx_mpegps.c; sourceTree = "<group>"; };
 		922CF1261FCF169900F2F6A4 /* dmx_avi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_avi.c; path = filters/dmx_avi.c; sourceTree = "<group>"; };
@@ -2410,6 +2412,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -3019,6 +3022,7 @@
 				92B9A5811F8660D700A24FE4 /* svg_geometry.c in Sources */,
 				9201015118D5A445003D1ACA /* m2ts_mux.c in Sources */,
 				9201015218D5A445003D1ACA /* m3u8.c in Sources */,
+				92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */,
 				926998B41FEACE8F00AA759D /* dmx_vobsub.c in Sources */,
 				9201015318D5A445003D1ACA /* media_export.c in Sources */,
 				9201015418D5A445003D1ACA /* media_import.c in Sources */,
