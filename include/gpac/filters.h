@@ -768,6 +768,8 @@ enum
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
 	//(uint) media subtype (auxiliary, picture, etc)
 	GF_PROP_PID_SUBTYPE = GF_4CC('P','S','S','T'),
+	//(uint) media 4cc used in isobmf
+	GF_PROP_PID_ISOM_SUBTYPE = GF_4CC('P','I','S','T'),
 	//(uint) media stream type before encryption
 	GF_PROP_PID_ORIG_STREAM_TYPE = GF_4CC('P','O','S','T'),
 	//(uint) object type indication , matching gpac codecid types
@@ -903,6 +905,7 @@ enum
 	GF_PROP_PID_ISMA_SELECTIVE_ENC = GF_4CC('I','S','S','E'),
 	GF_PROP_PID_ISMA_IV_LENGTH = GF_4CC('I','S','I','V'),
 	GF_PROP_PID_ISMA_KI_LENGTH = GF_4CC('I','S','K','I'),
+	GF_PROP_PID_ISMA_KI = GF_4CC('I','K','E','Y'),
 
 	GF_PROP_PID_OMA_CRYPT_TYPE = GF_4CC('O','M','C','T'),
 	GF_PROP_PID_OMA_CID = GF_4CC('O','M','I','D'),
@@ -913,6 +916,7 @@ enum
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
 	//(longuint) ISMA BSO
 	GF_PROP_PCK_ISMA_BSO = GF_4CC('I','B','S','O'),
+	GF_PROP_PID_ADOBE_CRYPT_META = GF_4CC('A','M','E','T'),
 	//(boolean) packets are protected
 	GF_PROP_PID_ENCRYPTED = GF_4CC('E','P','C','K'),
 	//(long uint)
@@ -931,6 +935,7 @@ enum
 	GF_PROP_PID_CENC_PATTERN = GF_4CC('C','P','T','R'),
 	//(uint) senc/piff
 	GF_PROP_PID_CENC_STORE = GF_4CC('C','S','T','R'),
+
 
 	//(uint)
 	GF_PROP_PID_AMR_MODE_SET = GF_4CC('A','M','S','T'),

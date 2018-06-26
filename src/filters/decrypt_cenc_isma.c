@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2018
  *					All rights reserved
  *
- *  This file is part of GPAC / LASeR decoder module
+ *  This file is part of GPAC / CENC and ISMA decrypt filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -67,11 +67,11 @@ typedef struct
 } GF_CENCDecCtx;
 
 
-static void decenc_kms_netio(void *cbck, GF_NETIO_Parameter *par)
+static void cenc_dec_kms_netio(void *cbck, GF_NETIO_Parameter *par)
 {
 }
 
-static GF_Err decenc_get_gpac_kms(GF_CENCDecCtx *ctx, GF_FilterPid *pid, const char *kms_url)
+static GF_Err cenc_dec_get_gpac_kms(GF_CENCDecCtx *ctx, GF_FilterPid *pid, const char *kms_url)
 {
 	const GF_PropertyValue *prop;
 	GF_Err e;
@@ -97,7 +97,7 @@ static GF_Err decenc_get_gpac_kms(GF_CENCDecCtx *ctx, GF_FilterPid *pid, const c
 	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[CENC/ISMA] Fetching ISMACryp key for channel %d\n", id) );
 
-	sess = gf_dm_sess_new(ctx->dm, kms_url, 0, decenc_kms_netio, ctx, NULL);
+	sess = gf_dm_sess_new(ctx->dm, kms_url, 0, cenc_dec_kms_netio, ctx, NULL);
 	if (!sess) return GF_IO_ERR;
 	/*start our download (threaded)*/
 	gf_dm_sess_process(sess);
@@ -114,7 +114,7 @@ static GF_Err decenc_get_gpac_kms(GF_CENCDecCtx *ctx, GF_FilterPid *pid, const c
 }
 
 
-static GF_Err decenc_setup_isma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
+static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
 	GF_Err e;
 
@@ -164,7 +164,7 @@ static GF_Err decenc_setup_isma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 schem
 	}
 	/*gpac default scheme is used, fetch file from KMS and load keys*/
 	else if (scheme_uri && !stricmp(scheme_uri, "urn:gpac:isma:encryption_scheme")) {
-		e = decenc_get_gpac_kms(ctx, pid, kms_uri);
+		e = cenc_dec_get_gpac_kms(ctx, pid, kms_uri);
 		if (e) return e;
 	}
 	/*hardcoded keys*/
@@ -183,7 +183,7 @@ static GF_Err decenc_setup_isma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 schem
 	return GF_OK;
 }
 
-static GF_Err decenc_access_isma(GF_CENCDecCtx *ctx, Bool is_play)
+static GF_Err cenc_dec_access_isma(GF_CENCDecCtx *ctx, Bool is_play)
 {
 	GF_Err e;
 	char IV[16];
@@ -216,7 +216,7 @@ static GF_Err decenc_access_isma(GF_CENCDecCtx *ctx, Bool is_play)
 	return GF_BAD_PARAM;
 }
 
-static GF_Err decenc_process_isma(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_FilterPid *opid)
+static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_FilterPid *opid)
 {
 	u32 data_size;
 	const char *in_data;
@@ -278,7 +278,7 @@ static GF_Err decenc_process_isma(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 	return GF_OK;
 }
 
-static GF_Err decenc_setup_oma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
+static GF_Err cenc_dec_setup_oma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
 	const GF_PropertyValue *prop;
 	ctx->state = ISMAEA_STATE_ERROR;
@@ -300,7 +300,7 @@ static GF_Err decenc_setup_oma(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err decenc_setup_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
+static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
 	u32 i, nb_pssh;
 	GF_BitStream *bs=NULL;
@@ -396,7 +396,7 @@ static GF_Err decenc_setup_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 schem
 	return GF_OK;
 }
 
-static GF_Err decenc_access_cenc(GF_CENCDecCtx *ctx, Bool is_play)
+static GF_Err cenc_dec_access_cenc(GF_CENCDecCtx *ctx, Bool is_play)
 {
 	if (is_play) {
 		if (ctx->state != ISMAEA_STATE_SETUP) return GF_SERVICE_ERROR;
@@ -427,7 +427,7 @@ static GF_Err decenc_access_cenc(GF_CENCDecCtx *ctx, Bool is_play)
 }
 
 
-static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_FilterPid *opid)
+static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_FilterPid *opid)
 {
 	GF_Err e;
 	char IV[17];
@@ -643,7 +643,7 @@ exit:
 }
 
 
-static GF_Err decenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *prop;
 	GF_Err e = GF_OK;
@@ -683,17 +683,17 @@ static GF_Err decenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (prop) kms_uri = prop->value.string;
 
 	switch (scheme_type) {
-	case GF_ISOM_ISMA_SCHEME:
-		e = decenc_setup_isma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
+	case GF_ISOM_ISMACRYP_SCHEME:
+		e = cenc_dec_setup_isma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
 		break;
-	case GF_ISOM_ODRM_SCHEME:
-		e = decenc_setup_oma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
+	case GF_ISOM_OMADRM_SCHEME:
+		e = cenc_dec_setup_oma(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
 		break;
 	case GF_ISOM_CENC_SCHEME:
 	case GF_ISOM_CBC_SCHEME:
 	case GF_ISOM_CENS_SCHEME:
 	case GF_ISOM_CBCS_SCHEME:
-		e = decenc_setup_cenc(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
+		e = cenc_dec_setup_cenc(ctx, pid, scheme_type, scheme_version, scheme_uri, kms_uri);
 		break;
 	default:
 		e = GF_SERVICE_ERROR;
@@ -717,7 +717,7 @@ static GF_Err decenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 }
 
 
-static Bool decenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+static Bool cenc_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FilterPid *ipid;
 	Bool is_play = GF_FALSE;
@@ -731,12 +731,12 @@ static Bool decenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		is_play = GF_TRUE;
 	case GF_FEVT_STOP:
 		if (ctx->is_cenc || ctx->is_cbc) {
-			decenc_access_cenc(ctx, is_play);
+			cenc_dec_access_cenc(ctx, is_play);
 		} else if (ctx->is_oma) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] OMA not supported, canceling filter event\n") );
 			return GF_TRUE;
 		} else {
-			decenc_access_isma(ctx, is_play);
+			cenc_dec_access_isma(ctx, is_play);
 		}
 		break;
 	default:
@@ -744,7 +744,7 @@ static Bool decenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 	return GF_FALSE;
 }
-static GF_Err decenc_process(GF_Filter *filter)
+static GF_Err cenc_dec_process(GF_Filter *filter)
 {
 	u32 i, count = gf_filter_get_ipid_count(filter);
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
@@ -756,16 +756,16 @@ static GF_Err decenc_process(GF_Filter *filter)
 		opid = gf_filter_pid_get_udta(ipid);
 
 		if (ctx->is_cenc || ctx->is_cbc) {
-			return decenc_process_cenc(ctx, ipid, opid);
+			return cenc_dec_process_cenc(ctx, ipid, opid);
 		} else if (ctx->is_oma) {
 			return GF_NOT_SUPPORTED;
 		}
-		return decenc_process_isma(ctx, ipid, opid);
+		return cenc_dec_process_isma(ctx, ipid, opid);
 	}
 	return GF_OK;
 }
 
-static void decenc_finalize(GF_Filter *filter)
+static void cenc_dec_finalize(GF_Filter *filter)
 {
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
 	/*in case something went wrong*/
@@ -798,20 +798,20 @@ static const GF_FilterCapability CENCDecCaps[] =
 };
 
 GF_FilterRegister CENCDecRegister = {
-	.name = "cencdecrypt",
+	.name = "cdcrypt",
 	.description = "CENC and ISMA decryptor",
 	.private_size = sizeof(GF_CENCDecCtx),
 	SETCAPS(CENCDecCaps),
-	.configure_pid = decenc_configure_pid,
-	.finalize = decenc_finalize,
-	.process = decenc_process,
-	.process_event = decenc_process_event
+	.configure_pid = cenc_dec_configure_pid,
+	.finalize = cenc_dec_finalize,
+	.process = cenc_dec_process,
+	.process_event = cenc_dec_process_event
 	//for now only one PID per CENC decryptor instance, could be further optimized
 };
 
 #endif /*GPAC_DISABLE_MCRYPT*/
 
-const GF_FilterRegister *decrypt_register(GF_FilterSession *session)
+const GF_FilterRegister *cenc_decrypt_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_MCRYPT
 	return &CENCDecRegister;

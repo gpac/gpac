@@ -62,7 +62,7 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
 enum
 {
 	/*ISMA E&A encryption*/
-	GF_CRYPT_TYPE_ISMA		= GF_4CC( 'i', 'A', 'E', 'C' ),
+	GF_CRYPT_TYPE_ISMA	= GF_4CC( 'i', 'A', 'E', 'C' ),
 	/*CENC CTR-128 encryption*/
 	GF_CRYPT_TYPE_CENC	= GF_4CC('c','e','n','c'),
 	/*CENC CBC-128 encryption*/
@@ -73,6 +73,7 @@ enum
 	GF_CRYPT_TYPE_CBCS	= GF_4CC('c','b','c','s'),
 	/*Adobe CBC-128 encryption*/
 	GF_CRYPT_TYPE_ADOBE	= GF_4CC('a','d','k','m'),
+	GF_CRYPT_TYPE_OMA = GF_4CC( 'o', 'd', 'k', 'm' )
 };
 
 enum
@@ -106,7 +107,7 @@ typedef struct
 	/*the rest is only used for encryption*/
 	char KMS_URI[5000];
 	char Scheme_URI[5000];
-	/*selecive encryption type*/
+	/*selective encryption type*/
 	u32 sel_enc_type;
 	u32 sel_enc_range;
 	/*IPMP signaling: 0: none, 1: IPMP, 2: IPMPX
@@ -162,6 +163,18 @@ typedef struct
 #endif
 
 } GF_TrackCryptInfo;
+
+typedef struct
+{
+	GF_List *tcis;
+	Bool has_common_key;
+	Bool in_text_header;
+	//global for all tracks unless overriden
+	u32 def_crypt_type;
+} GF_CryptInfo;
+
+GF_CryptInfo *gf_crypt_load_config_file(const char *file);
+void gf_crypt_del_config_file(GF_CryptInfo *info);
 
 #if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 

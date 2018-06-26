@@ -269,9 +269,6 @@ enum
 	/* Pattern Encryption Scheme Type in the SchemeTypeInfoBox */
 	GF_ISOM_CENS_SCHEME	= GF_4CC('c','e','n','s'),
 	GF_ISOM_CBCS_SCHEME	= GF_4CC('c','b','c','s'),
-
-	GF_ISOM_ISMA_SCHEME = GF_4CC('i','s','m','a'),
-	GF_ISOM_ODRM_SCHEME = GF_4CC('o','d','r','m'),
 };
 
 

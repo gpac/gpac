@@ -85,7 +85,6 @@ typedef struct
 	u32 skip_byte_block, crypt_byte_block;
 	u32 IV_size, constant_IV_size;
 	bin128 constant_IV, KID;
-	Bool needs_seig;
 	Bool cenc_subsamples;
 
 	Bool fake_track;
@@ -1281,7 +1280,7 @@ multipid_stsd_setup:
 		if (p) KI_length = p->value.uint;
 
 		switch (scheme_type) {
-		case GF_ISOM_ISMA_SCHEME:
+		case GF_ISOM_ISMACRYP_SCHEME:
 			gf_isom_set_ismacryp_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, (char *) scheme_uri, (char *) kms_uri, is_sel_enc, KI_length, IV_length);
 			break;
 		case GF_ISOM_OMADRM_SCHEME:
@@ -1299,7 +1298,8 @@ multipid_stsd_setup:
 
 			break;
 		case GF_ISOM_ADOBE_SCHEME:
-			gf_isom_set_adobe_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, is_sel_enc, NULL, 0);
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ADOBE_CRYPT_META);
+			gf_isom_set_adobe_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, is_sel_enc,p ? p->value.data.ptr : NULL, p ? p->value.data.size : 0);
 			break;
 		case GF_ISOM_CENC_SCHEME:
 		case GF_ISOM_CENS_SCHEME:
@@ -1309,7 +1309,7 @@ multipid_stsd_setup:
 			if (tkw->is_nalu) tkw->cenc_subsamples = GF_TRUE;
 			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized protection scheme type %s, using generic signaling\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized protection scheme type %s, using generic signaling\n", gf_4cc_to_str(tkw->stream_type) ));
 			switch (tkw->stream_type) {
 			case GF_STREAM_VISUAL:
 				gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_ENCV);
@@ -1432,7 +1432,6 @@ multipid_stsd_setup:
 		} else {
 			//this will remove any cslg in the track due to template
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
-
 		}
 	}
 	return GF_OK;
@@ -1507,16 +1506,10 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		for (j=0; j<kid_count; j++) {
 			gf_bs_read_data(ctx->bs_r, keyIDs[j], 16);
 		}
-		j = (u32) gf_bs_get_position(ctx->bs_r);
-
-		data = NULL;
-		len = p->value.data.size - j;
-		if (len <= 4) len = 0;
-		else {
-			len -= 4;
-			data = 4 + p->value.data.ptr + j;
-		}
+		len = gf_bs_read_u32(ctx->bs_r);
+		data = p->value.data.ptr + gf_bs_get_position(ctx->bs_r);
 		gf_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len);
+		gf_bs_skip_bytes(ctx->bs_r, len);
 	}
 	if (keyIDs) gf_free(keyIDs);
 }
@@ -1533,6 +1526,8 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	u32 scheme_version=0;
 	char *sai = NULL;
 	u32 sai_size = 0;
+	Bool needs_seig = GF_FALSE;
+
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ENCRYPTED);
 	if (p) pck_is_encrypted = p->value.boolean;
 
@@ -1542,13 +1537,13 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		crypt_byte_block = p->value.frac.den;
 	}
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_IV_CONST);
-	if (p) {
+	if (p && p->value.data.size) {
 		constant_IV_size = p->value.data.size;
 		if (constant_IV_size>16) constant_IV_size=16;
 		memcpy(constant_IV, p->value.data.ptr, constant_IV_size);
 	}
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_IV_SIZE);
-	if (p) IV_size = p->value.data.size;
+	if (p) IV_size = p->value.uint;
 
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_KID);
 	if (p) {
@@ -1589,7 +1584,6 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		tkw->skip_byte_block = skip_byte_block;
 		tkw->constant_IV_size = constant_IV_size;
 		memcpy(tkw->constant_IV, constant_IV, sizeof(bin128));
-		tkw->needs_seig = GF_FALSE;
 
 		e = gf_isom_cenc_allocate_storage(ctx->file, tkw->track_num, container_type, 0, 0, NULL);
 		if (e) return e;
@@ -1600,21 +1594,23 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	if (!pck_is_encrypted) {
 		bin128 dumb_IV;
 		memset(dumb_IV, 0, 16);
-		return gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, dumb_IV, 0, 0, 0, NULL);
-	}
+		e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples+1, 0, 0, dumb_IV, 0, 0, 0, NULL);
+		IV_size = 0;
+	} else {
+		e = GF_OK;
+		if (tkw->IV_size != IV_size) needs_seig = GF_TRUE;
+		else if (memcmp(tkw->KID, KID, sizeof(bin128))) needs_seig = GF_TRUE;
+		else if (tkw->crypt_byte_block != crypt_byte_block) needs_seig = GF_TRUE;
+		else if (tkw->skip_byte_block != skip_byte_block) needs_seig = GF_TRUE;
+		else if (tkw->constant_IV_size != constant_IV_size) needs_seig = GF_TRUE;
+		else if (constant_IV_size && memcmp(tkw->constant_IV, constant_IV, sizeof(bin128))) needs_seig = GF_TRUE;
 
-	if (!tkw->needs_seig) {
-		if (tkw->IV_size != IV_size) tkw->needs_seig = GF_TRUE;
-		if (memcmp(tkw->KID, KID, sizeof(bin128))) tkw->needs_seig = GF_TRUE;
-		if (tkw->crypt_byte_block != crypt_byte_block) tkw->needs_seig = GF_TRUE;
-		if (tkw->skip_byte_block != skip_byte_block) tkw->needs_seig = GF_TRUE;
-		if (tkw->constant_IV_size != constant_IV_size) tkw->needs_seig = GF_TRUE;
-		if (memcmp(tkw->constant_IV, constant_IV, sizeof(bin128))) tkw->needs_seig = GF_TRUE;
+		if (needs_seig) {
+			//!! tkw->nb_samples not yet incremented !!
+			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples+1, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+		}
 	}
-	if (tkw->needs_seig) {
-		e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 		if (e) return e;
-	}
 
 	if (!sai) {
 		sai_size = pck_size;
@@ -1659,7 +1655,6 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	if (tkw->sample.DTS == GF_FILTER_NO_TS) {
 		if (cts == GF_FILTER_NO_TS) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Sample with no DTS/CTS, cannot add (last DTS "LLU", last size %d)\n", prev_dts, prev_size ));
-			gf_filter_pid_drop_packet(tkw->ipid);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		} else {
 			tkw->sample.DTS = cts;
@@ -2664,8 +2659,15 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 {
 	u32 i, count, di;
 	u64 max_cts, min_cts, doff;
+	s64 moffset;
 
 	if (ctx->ctmode > MP4MX_CT_EDIT) return;
+
+	//if we have a complex edit list (due to track template), don't override
+	if (gf_isom_get_edit_list_type(ctx->file, tkw->track_num, &moffset)) return;
+
+	gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
+
 
 	count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
 	max_cts = 0;
