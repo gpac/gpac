@@ -434,8 +434,6 @@ void PrintDASHUsage()
 	        "                        both: sets ContentProtection in both elements\n"
 	        " -start-date          for live mode, sets start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. Default is now.\n"
 	        "                        !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!\n"
-	        " -cues                ignores dash duration and segment according to cue times in given XML file. See tests/media/dash_cues for examples.\n"
-	        " -strict-cues         throw error if something is wrong while parsing cues or applying cue-based segmentation.\n"
 	        "\n");
 }
 
@@ -1974,8 +1972,6 @@ Bool segment_timeline = GF_FALSE;
 u32 segment_marker = GF_FALSE;
 GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
 const char *dash_profile_extension = NULL;
-const char *dash_cues = NULL;
-Bool strict_cues = GF_FALSE;
 Bool use_url_template = GF_FALSE;
 Bool seg_at_rap = GF_FALSE;
 Bool frag_at_rap = GF_FALSE;
@@ -3570,14 +3566,6 @@ Bool mp4box_parse_args(int argc, char **argv)
 			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
 			i++;
 		}
-		else if (!stricmp(arg, "-cues")) {
-			CHECK_NEXT_ARG
-			dash_cues = argv[i + 1];
-			i++;
-		}
-		else if (!stricmp(arg, "-strict-cues")) {
-			strict_cues = GF_TRUE;
-		}
 		else if (!stricmp(arg, "-insert-utc")) {
 			insert_utc = GF_TRUE;
 		}
@@ -4232,7 +4220,6 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
-		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
