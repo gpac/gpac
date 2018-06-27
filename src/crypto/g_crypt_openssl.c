@@ -44,10 +44,12 @@ typedef struct {
 GF_Err gf_crypt_init_openssl_cbc(GF_Crypt* td, void *key, const void *iv)
 {
 	Openssl_ctx_cbc *ctx = (Openssl_ctx_cbc*)td->context;
-	GF_SAFEALLOC(ctx, Openssl_ctx_cbc);
-	if (ctx == NULL) return GF_OUT_OF_MEM;
-	td->context = ctx;
-
+	if (!ctx) {
+		GF_SAFEALLOC(ctx, Openssl_ctx_cbc);
+		if (ctx == NULL) return GF_OUT_OF_MEM;
+		td->context = ctx;
+	}
+	
 	if (iv != NULL) {
 		memcpy(ctx->previous_ciphertext, iv, AES_BLOCK_SIZE);
 	}
@@ -151,10 +153,12 @@ GF_Err gf_crypt_get_IV_openssl_ctr(GF_Crypt* td, u8 *iv, u32 *iv_size)
 GF_Err gf_crypt_init_openssl_ctr(GF_Crypt* td, void *key, const void *iv)
 {
 	Openssl_ctx_ctr *ctx = (Openssl_ctx_ctr*)td->context;
-	GF_SAFEALLOC(ctx, Openssl_ctx_ctr);
-	if (!ctx) return GF_OUT_OF_MEM;
+	if (!ctx) {
+		GF_SAFEALLOC(ctx, Openssl_ctx_ctr);
+		if (!ctx) return GF_OUT_OF_MEM;
 
-	td->context = ctx;
+		td->context = ctx;
+	}
 	ctx->c_counter_pos = 0;
 	if (iv != NULL) {
 		memcpy(ctx->iv, &((u8*)iv)[0], AES_BLOCK_SIZE);

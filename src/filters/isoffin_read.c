@@ -27,7 +27,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-#include <gpac/ismacryp.h>
+#include <gpac/crypt_tools.h>
 #include <gpac/media_tools.h>
 
 ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid)
@@ -907,10 +907,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (dep_flags)
 					gf_filter_pck_set_dependency_flag(pck, dep_flags);
 
+				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
+
 				if (ch->cenc_state_changed) {
-
-					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
-
 					gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
 
 					if (!ch->IV_size) {
@@ -918,8 +917,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					} else {
 						gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
 					}
+
+					gf_filter_pid_set_info(ch->pid, GF_PROP_PID_KID, &PROP_DATA(ch->KID, sizeof(bin128) ) );
 				}
 				if (ch->sai_buffer) {
+					assert(ch->sai_buffer_size);
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );
 				}
 				gf_filter_pck_send(pck);

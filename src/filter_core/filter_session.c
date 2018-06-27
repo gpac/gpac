@@ -577,7 +577,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot find any filter providing encoding for %s\n", cid));
 		return NULL;
 	}
-	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_LOCAL, &e);
+	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e);
 	if (!filter) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", candidate->name, gf_error_to_string(e) ));
 	}
@@ -609,7 +609,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
 			GF_Err e;
-			filter = gf_filter_new(fsess, f_reg, args, NULL, GF_FILTER_ARG_LOCAL, &e);
+			filter = gf_filter_new(fsess, f_reg, args, NULL, GF_FILTER_ARG_EXPLICIT, &e);
 			if (!filter) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", name, gf_error_to_string(e) ));
 			}
@@ -1421,7 +1421,7 @@ restart:
 	}
 
 	e = GF_OK;
-	arg_type = for_source ? GF_FILTER_ARG_GLOBAL_SOURCE : GF_FILTER_ARG_GLOBAL_SINK;
+	arg_type = for_source ? GF_FILTER_ARG_EXPLICIT_SOURCE : GF_FILTER_ARG_EXPLICIT_SINK;
 	if (!filter) {
 		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err);
 	} else {

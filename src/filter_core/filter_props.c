@@ -106,7 +106,11 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.uint *= unit;
 			}
 		} else if (sscanf(value, "%d", &p.value.uint)!=1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			if (strlen(value)==4) {
+				p.value.uint = GF_4CC(value[0],value[1],value[2],value[3]);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			}
 		} else if (unit) {
 			p.value.uint *= unit;
 		}
@@ -669,11 +673,13 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		if (prop->alloc_size < value->value.data.size) {
 			prop->alloc_size = value->value.data.size;
 			prop->prop.value.data.ptr = gf_realloc(prop->prop.value.data.ptr, sizeof(char) * value->value.data.size);
+			assert(prop->alloc_size);
 		}
 		memcpy(prop->prop.value.data.ptr, value->value.data.ptr, value->value.data.size);
 	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
 		prop->prop.type = GF_PROP_DATA;
 		prop->alloc_size = value->value.data.size;
+		assert(prop->alloc_size);
 	}
 	else if (prop->prop.type == GF_PROP_UINT_LIST) {
 		prop->prop.value.uint_list.vals = gf_malloc(sizeof(u32) * value->value.uint_list.nb_items);
@@ -919,7 +925,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_CROP_POS, "CropOrigin", "Position in source window, X,Y indicates coord in source", GF_PROP_VEC2I},
 	{ GF_PROP_PID_ORIG_SIZE, "OriginalSize", "Original resolution of video", GF_PROP_VEC2I},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "PID bitrate in bps", GF_PROP_UINT},
-	{ GF_PROP_PID_MEDIA_DATA_SIZE, "MediaDat Size", "Size in bytes of media in PID", GF_PROP_LUINT},
+	{ GF_PROP_PID_MEDIA_DATA_SIZE, "MediaDataSize", "Size in bytes of media in PID", GF_PROP_LUINT},
 	{ GF_PROP_PID_CAN_DATAREF, "DataRef", "Inidcates this PID can use data ref", GF_PROP_BOOL},
 	{ GF_PROP_PID_URL, "URL", "URL of source", GF_PROP_STRING},
 	{ GF_PROP_PID_REMOTE_URL, "RemoteURL", "Remote URL of source", GF_PROP_STRING},
@@ -954,10 +960,13 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_OMA_CID, "ContentID", "Indicates OMA content ID", GF_PROP_STRING},
 	{ GF_PROP_PID_OMA_TXT_HDR, "TextualHeaders", "Indicates OMA textual headers", GF_PROP_STRING},
 	{ GF_PROP_PID_OMA_CLEAR_LEN, "PlaintextLen", "Indicates OMA size of plaintext data", GF_PROP_LUINT},
+	{ GF_PROP_PID_CRYPT_INFO, "CryptInfo", "Sets crypt info file for a given PID", GF_PROP_STRING},
+	{ GF_PROP_PID_DECRYPT_INFO, "DecryptInfo", "Sets crypt info file for a given PID to be decrypted.", GF_PROP_STRING},
+
 
 	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Sender NTP time", GF_PROP_LUINT},
 	{ GF_PROP_PCK_ISMA_BSO, "ISMA_BSO", "Indicates ISMA BSO of the packet", GF_PROP_LUINT},
-	{ GF_PROP_PID_ENCRYPTED, "Encrypted", "Indicates packets for the stream are encrypted - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_BOOL},
+	{ GF_PROP_PID_ENCRYPTED, "Encrypted", "Indicates packets for the stream are by default encrypted (however the encryption state is carried in packet crypt flags) - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_BOOL},
 	{ GF_PROP_PID_OMA_PREVIEW_RANGE, "OMAPreview", "Indicates OMA Preview range ", GF_PROP_LUINT},
 	{ GF_PROP_PID_CENC_PSSH, "CENC_PSSH", "Carries PSSH blob for CENC, formatted as (u32)NbSystems [(bin128)SystemID(u32)version(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]", GF_PROP_DATA},
 	{ GF_PROP_PCK_CENC_SAI, "CENC_SAI", "Carries CENC SAI for the sample, formated as (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]", GF_PROP_DATA},
@@ -1081,10 +1090,19 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 		sprintf(dump, ""LLU, att->value.longuint);
 		break;
 	case GF_PROP_FRACTION:
-		sprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
+		//reduce fraction
+		if (att->value.frac.den && ((att->value.frac.num/att->value.frac.den) * att->value.frac.den == att->value.frac.num)) {
+			sprintf(dump, "%d", att->value.frac.num / att->value.frac.den);
+		} else {
+			sprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
+		}
 		break;
 	case GF_PROP_FRACTION64:
-		sprintf(dump, LLD"/"LLU, att->value.lfrac.num, att->value.lfrac.den);
+		//reduce fraction
+		if (att->value.lfrac.den && ((att->value.lfrac.num/att->value.lfrac.den) * att->value.lfrac.den == att->value.lfrac.num)) {
+		} else {
+			sprintf(dump, LLD"/"LLU, att->value.lfrac.num, att->value.lfrac.den);
+		}
 		break;
 	case GF_PROP_BOOL:
 		sprintf(dump, "%s", att->value.boolean ? "true" : "false");
@@ -1134,7 +1152,7 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 				sprintf(dump, "%02X", (unsigned char) att->value.data.ptr[i]);
 			}
 		} else {
-			sprintf(dump, "%d bytes CRC32 0x%08X", att->value.data.size, gf_crc_32(att->value.data.ptr, att->value.data.size));
+			sprintf(dump, "%d bytes (CRC32 0x%08X)", att->value.data.size, gf_crc_32(att->value.data.ptr, att->value.data.size));
 		}
 		break;
 	case GF_PROP_POINTER:
@@ -1186,5 +1204,35 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 		break;
 	}
 	return dump;
+}
+
+GF_EXPORT
+const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
+{
+	switch (p4cc) {
+	case GF_PROP_PID_STREAM_TYPE:
+	case GF_PROP_PID_ORIG_STREAM_TYPE:
+		return gf_stream_type_name(att->value.uint);
+	case GF_PROP_PID_CODECID:
+		return gf_codecid_name(att->value.uint);
+	case GF_PROP_PID_PIXFMT:
+		return gf_pixel_fmt_name(att->value.uint);
+	case GF_PROP_PID_AUDIO_FORMAT:
+		return gf_audio_fmt_name(att->value.uint);
+	case GF_PROP_PID_PROTECTION_SCHEME_TYPE:
+	case GF_PROP_PID_CENC_STORE:
+	case GF_PROP_PID_SUBTYPE:
+	case GF_PROP_PID_ISOM_SUBTYPE:
+		return gf_4cc_to_str(att->value.uint);
+	case GF_PROP_PID_PLAYBACK_MODE:
+		if (att->value.uint == GF_PLAYBACK_MODE_SEEK) return "seek";
+		else if (att->value.uint == GF_PLAYBACK_MODE_REWIND) return "rewind";
+		else if (att->value.uint == GF_PLAYBACK_MODE_FASTFORWARD) return "forward";
+		else return "none";
+
+	default:
+		return gf_prop_dump_val(att, dump, dump_data);
+	}
+	return "";
 }
 

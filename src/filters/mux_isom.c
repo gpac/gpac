@@ -1518,7 +1518,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 {
 	const GF_PropertyValue *p;
 	GF_Err e;
-	Bool pck_is_encrypted = GF_FALSE;
+	Bool pck_is_encrypted;
 	u32 skip_byte_block=0, crypt_byte_block=0;
 	u32 IV_size=0, constant_IV_size=0;
 	bin128 constant_IV, KID;
@@ -1527,9 +1527,6 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	char *sai = NULL;
 	u32 sai_size = 0;
 	Bool needs_seig = GF_FALSE;
-
-	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ENCRYPTED);
-	if (p) pck_is_encrypted = p->value.boolean;
 
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PATTERN);
 	if (p) {
@@ -1565,6 +1562,12 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	//initial setup
 	if (tkw->cenc_state==1) {
 		u32 container_type = GF_ISOM_BOX_TYPE_SENC;
+
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ENCRYPTED);
+		if (p) pck_is_encrypted = p->value.boolean;
+		else pck_is_encrypted = GF_FALSE;
+
+
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_STORE);
 		if (p) container_type = p->value.uint;
 
@@ -1585,11 +1588,16 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		tkw->constant_IV_size = constant_IV_size;
 		memcpy(tkw->constant_IV, constant_IV, sizeof(bin128));
 
+		if (scheme_type==GF_ISOM_OMADRM_SCHEME)
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_OPF2, 1);
+
+
 		e = gf_isom_cenc_allocate_storage(ctx->file, tkw->track_num, container_type, 0, 0, NULL);
 		if (e) return e;
 	}
 	if (act_type==CENC_CONFIG) return GF_OK;
 
+	pck_is_encrypted = gf_filter_pck_get_crypt_flags(pck);
 
 	if (!pck_is_encrypted) {
 		bin128 dumb_IV;

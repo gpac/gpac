@@ -120,7 +120,7 @@ ifeq ($(DISABLE_OGG), no)
 LIBGPAC_MEDIATOOLS+=media_tools/gpac_ogg.o
 endif
 ifeq ($(DISABLE_CRYPTO), no)
-LIBGPAC_MEDIATOOLS+=media_tools/ismacryp.o
+LIBGPAC_MEDIATOOLS+=media_tools/crypt_tools.o
 endif
 ifeq ($(DISABLE_ISOFF_HINT), no)
 LIBGPAC_MEDIATOOLS+=media_tools/isom_hinter.o

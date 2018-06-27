@@ -1925,7 +1925,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
-			af = gf_filter_new(fsess, freg, args, dst_args, GF_FILTER_ARG_GLOBAL, NULL);
+			af = gf_filter_new(fsess, freg, args, dst_args, GF_FILTER_ARG_INHERIT, NULL);
 			if (!af) goto exit;
 
 			//the other filters shouldn't need any specific init

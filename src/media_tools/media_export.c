@@ -1170,8 +1170,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		return e;
 	}
 	e = gf_fs_run(fsess);
+	if (e>GF_OK) e = GF_OK;
+	if (!e) e = gf_fs_get_last_connect_error(fsess);
+	if (!e) e = gf_fs_get_last_process_error(fsess);
 	gf_fs_del(fsess);
-	return (e<GF_OK) ? e : GF_OK;
+	return e;
 }
 
 GF_EXPORT

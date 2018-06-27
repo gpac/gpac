@@ -178,6 +178,8 @@ typedef struct __gf_filter_pck_info
 	u8 duration_set;
 	u8 carousel_version_number;
 	u8 dependency_flags;
+	u8 crypt_flags;
+
 	s16 roll;
 	u64 byte_offset;
 
@@ -344,10 +346,10 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
 
 typedef enum
 {
-	GF_FILTER_ARG_LOCAL = 0,
-	GF_FILTER_ARG_GLOBAL,
-	GF_FILTER_ARG_GLOBAL_SOURCE,
-	GF_FILTER_ARG_GLOBAL_SINK,
+	GF_FILTER_ARG_EXPLICIT = 0,
+	GF_FILTER_ARG_INHERIT,
+	GF_FILTER_ARG_EXPLICIT_SOURCE,
+	GF_FILTER_ARG_EXPLICIT_SINK,
 } GF_FilterArgType;
 
 struct __gf_filter

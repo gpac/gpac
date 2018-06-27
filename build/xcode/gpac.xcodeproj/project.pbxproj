@@ -79,7 +79,6 @@
 		9201014B18D5A445003D1ACA /* html5_media.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002D18D5A444003D1ACA /* html5_media.c */; };
 		9201014C18D5A445003D1ACA /* html5_mse.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002E18D5A444003D1ACA /* html5_mse.c */; };
 		9201014D18D5A445003D1ACA /* img.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002F18D5A444003D1ACA /* img.c */; };
-		9201014E18D5A445003D1ACA /* ismacryp.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003018D5A444003D1ACA /* ismacryp.c */; };
 		9201014F18D5A445003D1ACA /* isom_hinter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003118D5A444003D1ACA /* isom_hinter.c */; };
 		9201015018D5A445003D1ACA /* isom_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003218D5A444003D1ACA /* isom_tools.c */; };
 		9201015118D5A445003D1ACA /* m2ts_mux.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201003318D5A444003D1ACA /* m2ts_mux.c */; };
@@ -201,6 +200,8 @@
 		923E89CE20B6F04600F299B2 /* tiny_aes.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E89C920B6F04600F299B2 /* tiny_aes.c */; };
 		923E89CF20B6F04600F299B2 /* g_crypt_tinyaes.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */; };
 		923E89D020B6F2D300F299B2 /* filter_props.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4721F71642E00616F7C /* filter_props.c */; };
+		92493D8020E2A64000203C2C /* crypt_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 92493D7F20E2A64000203C2C /* crypt_tools.c */; };
+		92493D8220E2A81700203C2C /* crypt_tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 92493D8120E2A81700203C2C /* crypt_tools.h */; };
 		924E805D206D357A00AB580F /* reframe_rawvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 924E805C206D357A00AB580F /* reframe_rawvid.c */; };
 		924E805F206D427A00AB580F /* reframe_rawpcm.c in Sources */ = {isa = PBXBuildFile; fileRef = 924E805E206D427A00AB580F /* reframe_rawpcm.c */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
@@ -406,7 +407,6 @@
 		92BBFCD51A7122AD006A7735 /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC731A7122AD006A7735 /* smjs_api.h */; };
 		92BBFCD61A7122AD006A7735 /* swf_dev.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC741A7122AD006A7735 /* swf_dev.h */; };
 		92BBFCD81A7122AD006A7735 /* vobsub.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC761A7122AD006A7735 /* vobsub.h */; };
-		92BBFCD91A7122AD006A7735 /* ismacryp.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC771A7122AD006A7735 /* ismacryp.h */; };
 		92BBFCDA1A7122AD006A7735 /* iso639.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC781A7122AD006A7735 /* iso639.h */; };
 		92BBFCDB1A7122AD006A7735 /* isomedia.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC791A7122AD006A7735 /* isomedia.h */; };
 		92BBFCDC1A7122AD006A7735 /* laser.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC7A1A7122AD006A7735 /* laser.h */; };
@@ -626,7 +626,6 @@
 		9201002D18D5A444003D1ACA /* html5_media.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_media.c; sourceTree = "<group>"; };
 		9201002E18D5A444003D1ACA /* html5_mse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_mse.c; sourceTree = "<group>"; };
 		9201002F18D5A444003D1ACA /* img.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = img.c; sourceTree = "<group>"; };
-		9201003018D5A444003D1ACA /* ismacryp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ismacryp.c; sourceTree = "<group>"; };
 		9201003118D5A444003D1ACA /* isom_hinter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_hinter.c; sourceTree = "<group>"; };
 		9201003218D5A444003D1ACA /* isom_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_tools.c; sourceTree = "<group>"; };
 		9201003318D5A444003D1ACA /* m2ts_mux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = m2ts_mux.c; sourceTree = "<group>"; };
@@ -1026,6 +1025,8 @@
 		923E89C820B6F04600F299B2 /* g_crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt.c; path = crypto/g_crypt.c; sourceTree = "<group>"; };
 		923E89C920B6F04600F299B2 /* tiny_aes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tiny_aes.c; path = crypto/tiny_aes.c; sourceTree = "<group>"; };
 		923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt_tinyaes.c; path = crypto/g_crypt_tinyaes.c; sourceTree = "<group>"; };
+		92493D7F20E2A64000203C2C /* crypt_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crypt_tools.c; sourceTree = "<group>"; };
+		92493D8120E2A81700203C2C /* crypt_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypt_tools.h; path = ../include/gpac/crypt_tools.h; sourceTree = "<group>"; };
 		924E805C206D357A00AB580F /* reframe_rawvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_rawvid.c; path = filters/reframe_rawvid.c; sourceTree = "<group>"; };
 		924E805E206D427A00AB580F /* reframe_rawpcm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_rawpcm.c; path = filters/reframe_rawpcm.c; sourceTree = "<group>"; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
@@ -1234,7 +1235,6 @@
 		92BBFC731A7122AD006A7735 /* smjs_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smjs_api.h; sourceTree = "<group>"; };
 		92BBFC741A7122AD006A7735 /* swf_dev.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = swf_dev.h; sourceTree = "<group>"; };
 		92BBFC761A7122AD006A7735 /* vobsub.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vobsub.h; sourceTree = "<group>"; };
-		92BBFC771A7122AD006A7735 /* ismacryp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ismacryp.h; path = ../include/gpac/ismacryp.h; sourceTree = "<group>"; };
 		92BBFC781A7122AD006A7735 /* iso639.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iso639.h; path = ../include/gpac/iso639.h; sourceTree = "<group>"; };
 		92BBFC791A7122AD006A7735 /* isomedia.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = isomedia.h; path = ../include/gpac/isomedia.h; sourceTree = "<group>"; };
 		92BBFC7A1A7122AD006A7735 /* laser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = laser.h; path = ../include/gpac/laser.h; sourceTree = "<group>"; };
@@ -1419,6 +1419,7 @@
 				9201002318D5A444003D1ACA /* ait.c */,
 				9201002418D5A444003D1ACA /* av_parsers.c */,
 				9201002518D5A444003D1ACA /* avilib.c */,
+				92493D7F20E2A64000203C2C /* crypt_tools.c */,
 				9201002618D5A444003D1ACA /* dash_client.c */,
 				9201002818D5A444003D1ACA /* dash_segmenter.c */,
 				9201002918D5A444003D1ACA /* dsmcc.c */,
@@ -1428,7 +1429,6 @@
 				9201002D18D5A444003D1ACA /* html5_media.c */,
 				9201002E18D5A444003D1ACA /* html5_mse.c */,
 				9201002F18D5A444003D1ACA /* img.c */,
-				9201003018D5A444003D1ACA /* ismacryp.c */,
 				9201003118D5A444003D1ACA /* isom_hinter.c */,
 				9201003218D5A444003D1ACA /* isom_tools.c */,
 				9201003318D5A444003D1ACA /* m2ts_mux.c */,
@@ -2218,6 +2218,7 @@
 				92BBFC511A7122AD006A7735 /* configuration.h */,
 				92BBFC521A7122AD006A7735 /* constants.h */,
 				92BBFC531A7122AD006A7735 /* crypt.h */,
+				92493D8120E2A81700203C2C /* crypt_tools.h */,
 				92BBFC541A7122AD006A7735 /* dash.h */,
 				92BBFC551A7122AD006A7735 /* download.h */,
 				92BBFC561A7122AD006A7735 /* dsmcc.h */,
@@ -2229,7 +2230,6 @@
 				92BBFC5D1A7122AD006A7735 /* html5_mse.h */,
 				92BBFC5E1A7122AD006A7735 /* ietf.h */,
 				92BBFC5F1A7122AD006A7735 /* internal */,
-				92BBFC771A7122AD006A7735 /* ismacryp.h */,
 				92BBFC781A7122AD006A7735 /* iso639.h */,
 				92BBFC791A7122AD006A7735 /* isomedia.h */,
 				92BBFC7A1A7122AD006A7735 /* laser.h */,
@@ -2592,11 +2592,11 @@
 				92BBFCE51A7122AD006A7735 /* font.h in Headers */,
 				92BBFCD61A7122AD006A7735 /* swf_dev.h in Headers */,
 				92BBFCC31A7122AD006A7735 /* bifs_dev.h in Headers */,
+				92493D8220E2A81700203C2C /* crypt_tools.h in Headers */,
 				92BBFCF81A7122AD006A7735 /* rtp_streamer.h in Headers */,
 				92BBFD071A7122AD006A7735 /* user.h in Headers */,
 				92B9A59B1F8660D700A24FE4 /* nodes_stacks.h in Headers */,
 				92BBFCFA1A7122AD006A7735 /* scene_manager.h in Headers */,
-				92BBFCD91A7122AD006A7735 /* ismacryp.h in Headers */,
 				92BBFCB71A7122AD006A7735 /* dash.h in Headers */,
 				92BBFD0A1A7122AD006A7735 /* webvtt.h in Headers */,
 				9201015718D5A445003D1ACA /* mpeg2_ps.h in Headers */,
@@ -3016,7 +3016,6 @@
 				9201014C18D5A445003D1ACA /* html5_mse.c in Sources */,
 				9201014D18D5A445003D1ACA /* img.c in Sources */,
 				92BBDD751F9642C0001471C6 /* dec_openhevc.c in Sources */,
-				9201014E18D5A445003D1ACA /* ismacryp.c in Sources */,
 				9201014F18D5A445003D1ACA /* isom_hinter.c in Sources */,
 				9201015018D5A445003D1ACA /* isom_tools.c in Sources */,
 				92B9A5811F8660D700A24FE4 /* svg_geometry.c in Sources */,
@@ -3065,6 +3064,7 @@
 				9201016718D5A445003D1ACA /* odf_dump.c in Sources */,
 				9201016818D5A445003D1ACA /* odf_parse.c in Sources */,
 				9201016918D5A445003D1ACA /* qos.c in Sources */,
+				92493D8020E2A64000203C2C /* crypt_tools.c in Sources */,
 				9201016A18D5A445003D1ACA /* slc.c in Sources */,
 				92586A7F1EAA5A4300A0838A /* validator.c in Sources */,
 				92BB85751F7BFB63009BC9C8 /* inspect.c in Sources */,
