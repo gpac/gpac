@@ -165,7 +165,7 @@ disable_ttxt="no"
 disable_ttml="no"
 disable_hevc="no"
 disable_atsc="no"
-disable_mcrypt="no"
+disable_crypto="no"
 enable_depth_compositor="no"
 enable_renoir="no"
 has_avcap="no"
@@ -313,7 +313,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-scenegraph     disable scenegraph, scene parsers and player (terminal and compositor)
   --disable-hevc           disable HEVC support
   --disable-atsc           disable ATSC3 support
-  --disable-mcrypt         disable MCRYPT support
+  --disable-crypto         disable crypto support
 
 Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/
   --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]
@@ -2006,9 +2006,9 @@ for opt do
             ;;
         --enable-pulseaudio) has_pulseaudio="yes"
             ;;
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_vtt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes" ; disable_atsc="yes" ; disable_mcrypt="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_vtt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes" ; disable_atsc="yes" ; disable_crypto="yes"
             ;;
-        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no" ; disable_atsc="yes" ; disable_mcrypt="yes"
+        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no" ; disable_atsc="yes" ; disable_crypto="yes"
             ;;
         --disable-3d) disable_3d="yes"
             ;;
@@ -2208,9 +2208,9 @@ for opt do
             ;;
         --enable-atsc) disable_atsc="no"
             ;;
-        --disable-mcrypt) disable_mcrypt="yes"
+        --disable-crypto) disable_crypto="yes"
             ;;
-        --enable-mcrypt) disable_mcrypt="no"
+        --enable-crypto) disable_crypto="no"
             ;;
     esac
 done
@@ -2820,9 +2820,9 @@ if test "$disable_atsc" = "yes" ; then
     echo "#define GPAC_DISABLE_ATSC" >> $TMPH
 fi
 
-if test "$disable_mcrypt" = "yes" ; then
-    echo "MCRYPT Support disabled"
-    echo "#define GPAC_DISABLE_MCRYPT" >> $TMPH
+if test "$disable_crypto" = "yes" ; then
+    echo "CRYPTO Support disabled"
+    echo "#define GPAC_DISABLE_CRYPTO" >> $TMPH
 fi
 
 echo ""
@@ -3227,7 +3227,7 @@ echo "MINIMAL_OD=$disable_od" >> config.mak
 echo "DISABLE_ISOM_ADOBE=$disable_isoff_hds" >> config.mak
 echo "DISABLE_VRML=$disable_vrml" >> config.mak
 echo "DISABLE_ATSC=$disable_atsc" >> config.mak
-echo "DISABLE_MCRYPT=$disable_mcrypt" >> config.mak
+echo "DISABLE_CRYPTO=$disable_crypto" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"

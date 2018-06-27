@@ -225,6 +225,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 
 #define GF_PROP_DUMP_ARG_SIZE	1000
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
+const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
 Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type);
 u32 gf_props_get_id(const char *name);
@@ -689,6 +690,11 @@ u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_roll_info(GF_FilterPacket *pck, s16 roll_count);
 s16 gf_filter_pck_get_roll_info(GF_FilterPacket *pck);
 
+
+#define GF_FILTER_PCK_CRYPT 1
+GF_Err gf_filter_pck_set_crypt_flags(GF_FilterPacket *pck, u8 crypt_flag);
+u8 gf_filter_pck_get_crypt_flags(GF_FilterPacket *pck);
+
 typedef enum
 {
 	GF_FILTER_CLOCK_NONE=0,
@@ -911,6 +917,8 @@ enum
 	GF_PROP_PID_OMA_CID = GF_4CC('O','M','I','D'),
 	GF_PROP_PID_OMA_TXT_HDR = GF_4CC('O','M','T','H'),
 	GF_PROP_PID_OMA_CLEAR_LEN = GF_4CC('O','M','P','T'),
+	GF_PROP_PID_CRYPT_INFO = GF_4CC('E','C','R','I'),
+	GF_PROP_PID_DECRYPT_INFO = GF_4CC('E','D','R','I'),
 
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),

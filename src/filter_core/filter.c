@@ -730,7 +730,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			goto skip_arg;
 		}
 
-		if ((arg_type == GF_FILTER_ARG_GLOBAL) && !strcmp(szArg, "src"))
+		if ((arg_type == GF_FILTER_ARG_INHERIT) && !strcmp(szArg, "src"))
 			goto skip_arg;
 
 		i=0;
@@ -785,16 +785,16 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			found = GF_TRUE;
 		} else if (!found) {
 			if (!strcmp("FID", szArg)) {
-				if (arg_type != GF_FILTER_ARG_GLOBAL)
+				if (arg_type != GF_FILTER_ARG_INHERIT)
 					gf_filter_set_id(filter, value);
 				found = GF_TRUE;
 			}
 			else if (!strcmp("SID", szArg)) {
-				if (arg_type==GF_FILTER_ARG_LOCAL)
+				if (arg_type!=GF_FILTER_ARG_INHERIT)
 					gf_filter_set_sources(filter, value);
 				found = GF_TRUE;
 			} else if (!strcmp("clone", szArg)) {
-				if (arg_type==GF_FILTER_ARG_GLOBAL_SINK)
+				if (arg_type==GF_FILTER_ARG_EXPLICIT_SINK)
 					filter->clonable=GF_TRUE;
 				found = GF_TRUE;
 			}
@@ -807,7 +807,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			}
 		}
 
-		if (!found && (arg_type==GF_FILTER_ARG_LOCAL) ) {
+		if (!found && (arg_type==GF_FILTER_ARG_EXPLICIT) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter %s options, ignoring\n", szArg, filter->freg->name));
 		}
 skip_arg:

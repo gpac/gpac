@@ -42,6 +42,7 @@ typedef struct
 	Bool dump_data;
 	Bool pid_only;
 	const char *logfile;
+	Bool muxed;
 
 	FILE *dump;
 
@@ -84,7 +85,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
 	fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
-	fprintf(dump, "%s", gf_prop_dump_val(att, szDump, ctx->dump_data) );
+	fprintf(dump, "%s", gf_prop_dump(p4cc, att, szDump, ctx->dump_data) );
+
 	fprintf(dump, "\n");
 }
 
@@ -212,6 +214,14 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return GF_OK;
 }
 
+static const GF_FilterCapability InspecterReframeCaps[] =
+{
+	//accept any stream but files, framed
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	{0},
+};
+
 GF_Err inspect_initialize(GF_Filter *filter)
 {
 	const char *name = gf_filter_get_name(filter);
@@ -232,6 +242,9 @@ GF_Err inspect_initialize(GF_Filter *filter)
 			return GF_IO_ERR;
 		}
 	}
+	if (!ctx->muxed) {
+		gf_filter_override_caps(filter, InspecterReframeCaps,  sizeof(InspecterReframeCaps)/sizeof(GF_FilterCapability) );
+	}
 	return GF_OK;
 }
 
@@ -246,6 +259,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(pid_only), "Only dumps PID state change, not packets", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dump_data), "Enables full data dump - heavy !", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(muxed), "Inspect muxed inputs", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{0}
 };
 
@@ -278,14 +292,6 @@ static const GF_FilterCapability ProberCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
-
-	//for scene and OD, we don't want raw codecid (filters modifying a scene graph we don't expose)
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	{0}
 };
 
 

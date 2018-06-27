@@ -578,9 +578,10 @@ void isor_declare_objects(ISOMReader *read)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avg_rate));
 		}
 
-		gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
+/*		gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
 		gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
 		gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
+*/
 
 		if (mime) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime) );
 		if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING(encoding) );

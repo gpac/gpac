@@ -25,14 +25,16 @@
 
 #include <gpac/filters.h>
 #include <gpac/constants.h>
-#include <gpac/ismacryp.h>
+#include <gpac/crypt_tools.h>
 #include <gpac/crypt.h>
 #include <gpac/base_coding.h>
 #include <gpac/download.h>
 #include <gpac/xml.h>
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_DISABLE_MCRYPT
+#include <gpac/internal/media_dev.h>
+
+#ifndef GPAC_DISABLE_CRYPTO
 
 
 enum
@@ -45,6 +47,8 @@ enum
 typedef struct
 {
 	Bool passthrough;
+
+	GF_CryptInfo *cinfo;
 
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
@@ -72,6 +76,19 @@ typedef struct
 	Bool cenc_init;
 	u32 nb_pck_encrypted, kidx;
 	char IV[16];
+	bin128 default_KID;
+
+	//true if using AES-CTR mode, false if using AES-CBC mode
+	Bool ctr_mode;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+	AVCState avc;
+#ifndef GPAC_DISABLE_HEVC
+	HEVCState hevc;
+#endif
+	Bool slice_header_clear;
+	Bool is_avc;
+#endif
 } GF_CENCStream;
 
 typedef struct
@@ -152,14 +169,19 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 
 	/*init crypto*/
 	memset(IV, 0, sizeof(char)*16);
-	memcpy(IV, cstr->tci->salt, sizeof(char)*8);
+	memcpy(IV, cstr->tci->first_IV, sizeof(char)*8);
 	if (cstr->crypt) gf_crypt_close(cstr->crypt);
 	cstr->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 	if (!cstr->crypt) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] Cannot open AES-128 CTR\n"));
 		return GF_IO_ERR;
 	}
-	e = gf_crypt_init(cstr->crypt, cstr->tci->key, IV);
+	if (!cstr->tci->KID_count) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] No keys specified for ISMA\n"));
+		return GF_BAD_PARAM;
+	}
+
+	e = gf_crypt_init(cstr->crypt, cstr->tci->keys[0], IV);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] Cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)) );
 		return GF_IO_ERR;
@@ -170,8 +192,8 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	if (!stricmp(kms_uri, "self")) {
 		char Data[100], d64[100];
 		u32 s64;
-		memcpy(Data, cstr->tci->key, sizeof(char)*16);
-		memcpy(Data+16, cstr->tci->salt, sizeof(char)*8);
+		memcpy(Data, cstr->tci->keys[0], sizeof(char)*16);
+		memcpy(Data+16, cstr->tci->first_IV, sizeof(char)*8);
 		s64 = gf_base64_encode(Data, 24, d64, 100);
 		d64[s64] = 0;
 		strcpy(cstr->tci->KMS_URI, "(key)");
@@ -189,15 +211,24 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_URI, scheme_uri ? &PROP_STRING(scheme_uri) : NULL );
 	} else {
 		if ((cstr->tci->sel_enc_type==GF_CRYPT_SELENC_PREVIEW) && cstr->tci->sel_enc_range) {
-			char *szPreview = cstr->tci->TextualHeaders + cstr->tci->TextualHeadersLen;
-			sprintf(szPreview, "PreviewRange:%d", cstr->tci->sel_enc_range);
-			cstr->tci->TextualHeadersLen += (u32) strlen(szPreview)+1;
+			char szSTR[100];
+			u32 len;
+			char *szPreview;
+
+			sprintf(szSTR, "PreviewRange:%d", cstr->tci->sel_enc_range);
+			len = strlen(szSTR) + ( cstr->tci->TextualHeaders ? strlen(cstr->tci->TextualHeaders) : 0 ) + 1;
+			szPreview = gf_malloc(sizeof(char) * len);
+			strcpy(szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "");
+			strcat(szPreview, szSTR);
+
+			gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_TXT_HDR, &PROP_STRING_NO_COPY(szPreview));
+		} else {
+			gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_TXT_HDR, cstr->tci->TextualHeaders ? &PROP_STRING(cstr->tci->TextualHeaders) : NULL);
 		}
 
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_CID, scheme_uri ? &PROP_STRING(scheme_uri) : NULL );
 
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_CRYPT_TYPE, &PROP_UINT(cstr->tci->encryption));
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_TXT_HDR, cstr->tci->TextualHeaders ? &PROP_STRING(cstr->tci->TextualHeaders) : NULL);
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_CLEAR_LEN, &PROP_LONGUINT(cstr->tci->sel_enc_range) );
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ISMA_KI_LENGTH, &PROP_UINT(0) );
 	}
@@ -211,6 +242,81 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 
 	cstr->isma_oma = GF_TRUE;
 	cstr->prev_sample_encryped = GF_TRUE;
+
+	//we drop IPMPX support for now
+#if GPAC_DEPRECTAED
+	/*format as IPMP(X) - note that the ISMACryp spec is broken since it always uses IPMPPointers to a
+	single desc which would assume the same protection (eg key & salt) for all streams using it...*/
+	if (!tci->ipmp_type) return GF_OK;
+
+	ipmpdp = (GF_IPMPPtr*)gf_odf_desc_new(GF_ODF_IPMP_PTR_TAG);
+	if (!tci->ipmp_desc_id) tci->ipmp_desc_id = track;
+	if (tci->ipmp_type==2) {
+		ipmpdp->IPMP_DescriptorID = 0xFF;
+		ipmpdp->IPMP_DescriptorIDEx = tci->ipmp_desc_id;
+	} else {
+		ipmpdp->IPMP_DescriptorID = tci->ipmp_desc_id;
+	}
+	gf_isom_add_desc_to_description(mp4, track, 1, (GF_Descriptor *)ipmpdp);
+	gf_odf_desc_del((GF_Descriptor*)ipmpdp);
+
+	ipmpdU = (GF_IPMPUpdate*)gf_odf_com_new(GF_ODF_IPMP_UPDATE_TAG);
+	/*format IPMPD*/
+	ipmpd = (GF_IPMP_Descriptor*)gf_odf_desc_new(GF_ODF_IPMP_TAG);
+	if (tci->ipmp_type==2) {
+#ifndef GPAC_MINIMAL_ODF
+		ipmpd->IPMP_DescriptorID = 0xFF;
+		ipmpd->IPMP_DescriptorIDEx = tci->ipmp_desc_id;
+		ipmpd->IPMPS_Type = 0xFFFF;
+		ipmpd->IPMP_ToolID[14] = 0x49;
+		ipmpd->IPMP_ToolID[15] = 0x53;
+		ipmpd->control_point = 1;
+		ipmpd->cp_sequence_code = 0x80;
+		/*format IPMPXData*/
+		ismac = (GF_IPMPX_ISMACryp *) gf_ipmpx_data_new(GF_IPMPX_ISMACRYP_TAG);
+		ismac->cryptoSuite = 1;	/*default ISMA AESCTR128*/
+		ismac->IV_length = IV_size;
+		ismac->key_indicator_length = 0;
+		ismac->use_selective_encryption = (tci->sel_enc_type!=0)? 1 : 0;
+		gf_list_add(ipmpd->ipmpx_data, ismac);
+#endif
+	} else {
+		ipmpd->IPMP_DescriptorID = tci->ipmp_desc_id;
+	}
+	gf_list_add(ipmpdU->IPMPDescList, ipmpd);
+
+	for (i=0; i<gf_isom_get_track_count(mp4); i++) {
+		GF_ODCodec *cod;
+		if (gf_isom_get_media_type(mp4, i+1) != GF_ISOM_MEDIA_OD) continue;
+
+		/*add com*/
+		samp = gf_isom_get_sample(mp4, i+1, 1, &di);
+		cod = gf_odf_codec_new();
+		gf_odf_codec_set_au(cod, samp->data, samp->dataLength);
+		gf_odf_codec_decode(cod);
+		gf_odf_codec_add_com(cod, (GF_ODCom *) ipmpdU);
+		gf_free(samp->data);
+		samp->data = NULL;
+		samp->dataLength = 0;
+		gf_odf_codec_encode(cod, 1);
+		gf_odf_codec_get_au(cod, &samp->data, &samp->dataLength);
+		ipmpdU = NULL;
+		gf_odf_codec_del(cod);
+		gf_isom_update_sample(mp4, i+1, 1, samp, 1);
+		gf_isom_sample_del(&samp);
+
+		if (tci->ipmp_type==2) {
+			GF_IPMP_ToolList*ipmptl = (GF_IPMP_ToolList*)gf_odf_desc_new(GF_ODF_IPMP_TL_TAG);
+			GF_IPMP_Tool *ipmpt = (GF_IPMP_Tool*)gf_odf_desc_new(GF_ODF_IPMP_TOOL_TAG);
+			gf_list_add(ipmptl->ipmp_tools, ipmpt);
+			ipmpt->IPMP_ToolID[14] = 0x49;
+			ipmpt->IPMP_ToolID[15] = 0x53;
+			gf_isom_add_desc_to_root_od(mp4, (GF_Descriptor *)ipmptl);
+			gf_odf_desc_del((GF_Descriptor *)ipmptl);
+		}
+		break;
+	}
+#endif
 	return GF_OK;
 }
 
@@ -226,8 +332,8 @@ static GF_Err adobe_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	/*Adobe's protection scheme does not support selective key*/
 	memcpy(cstr->key, cstr->tci->keys[0], 16);
 
-	if (cstr->tci->metadata && cstr->tci->metadata_len)
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA(cstr->tci->metadata, cstr->tci->metadata_len) );
+	if (cstr->tci->metadata)
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA(cstr->tci->metadata, strlen(cstr->tci->metadata) ) );
 
 	cstr->is_adobe = GF_TRUE;
 
@@ -250,7 +356,7 @@ static void hevc_parse_ps(GF_HEVCConfig *hevccfg, HEVCState *hevc, u32 nal_type)
 }
 #endif
 
-static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
+static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
 {
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node;
@@ -260,7 +366,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	GF_BitStream *pssh_bs=NULL;
 
 	parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse(parser, ctx->cfile, NULL, NULL);
+	e = gf_xml_dom_parse(parser, cfile_name, NULL, NULL);
 	if (e) {
 		gf_xml_dom_del(parser);
 		return e;
@@ -407,7 +513,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 }
 
 
-static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
+static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
 {
 	u32 i;
 	const GF_PropertyValue *p, *p2;
@@ -427,25 +533,25 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 			if (avccfg) cstr->nalu_size_length = avccfg->nal_unit_size;
 
 			p2 = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_ISOM_SUBTYPE);
-			if (p && (p->value.uint==GF_ISOM_BOX_TYPE_AVC1)) {
+			if (p2 && (p2->value.uint==GF_ISOM_BOX_TYPE_AVC1)) {
 				if (!cstr->tci->allow_encrypted_slice_header) {
-					cstr->tci->slice_header_clear = GF_TRUE;
+					cstr->slice_header_clear = GF_TRUE;
 				} else if (cstr->tci->scheme_type==GF_CRYPT_TYPE_CBCS) {
-					cstr->tci->slice_header_clear = GF_TRUE;
+					cstr->slice_header_clear = GF_TRUE;
 				}
 			} else {
-				cstr->tci->slice_header_clear = GF_TRUE;
+				cstr->slice_header_clear = GF_TRUE;
 			}
-			cstr->tci->is_avc = GF_TRUE;
+			cstr->is_avc = GF_TRUE;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, i);
-				gf_media_avc_read_sps(slc->data, slc->size, &cstr->tci->avc, 0, NULL);
+				gf_media_avc_read_sps(slc->data, slc->size, &cstr->avc, 0, NULL);
 			}
 			for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->pictureParameterSets, i);
-				gf_media_avc_read_pps(slc->data, slc->size, &cstr->tci->avc);
+				gf_media_avc_read_pps(slc->data, slc->size, &cstr->avc);
 			}
 #endif
 			if (avccfg) gf_odf_avc_cfg_del(avccfg);
@@ -464,17 +570,17 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-			hevc_parse_ps(hevccfg, &cstr->tci->hevc, GF_HEVC_NALU_VID_PARAM);
-			hevc_parse_ps(hevccfg, &cstr->tci->hevc, GF_HEVC_NALU_SEQ_PARAM);
-			hevc_parse_ps(hevccfg, &cstr->tci->hevc, GF_HEVC_NALU_PIC_PARAM);
+			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
+			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
+			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
 #endif
 			//mandatory for HEVC
-			cstr->tci->slice_header_clear = GF_TRUE;
-			cstr->tci->is_avc = GF_FALSE;
+			cstr->slice_header_clear = GF_TRUE;
+			cstr->is_avc = GF_FALSE;
 
 			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 			cstr->is_nalu_video = GF_TRUE;
-			cstr->tci->slice_header_clear = GF_TRUE;
+			cstr->slice_header_clear = GF_TRUE;
 			cstr->bytes_in_nal_hdr = 2;
 		}
 		if (!cstr->nalu_size_length) {
@@ -526,7 +632,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	}
 
 	if (cstr->crypt) gf_crypt_close(cstr->crypt);
-	if (cstr->tci->ctr_mode) {
+	if (cstr->ctr_mode) {
 		cstr->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 	}
 	else {
@@ -534,7 +640,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	}
 
 	if (!cstr->crypt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 %s\n", cstr->tci->ctr_mode ? "CTR" : "CBC"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 %s\n", cstr->ctr_mode ? "CTR" : "CBC"));
 		return GF_IO_ERR;
 	}
 
@@ -544,12 +650,12 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 		return GF_BAD_PARAM;
 	}
 	if (cstr->tci->defaultKeyIdx && (cstr->tci->defaultKeyIdx < cstr->tci->KID_count)) {
-		memcpy(cstr->tci->key, cstr->tci->keys[cstr->tci->defaultKeyIdx], 16);
-		memcpy(cstr->tci->default_KID, cstr->tci->KIDs[cstr->tci->defaultKeyIdx], 16);
+		memcpy(cstr->key, cstr->tci->keys[cstr->tci->defaultKeyIdx], 16);
+		memcpy(cstr->default_KID, cstr->tci->KIDs[cstr->tci->defaultKeyIdx], 16);
 		cstr->kidx = cstr->tci->defaultKeyIdx;
 	} else {
-		memcpy(cstr->tci->key, cstr->tci->keys[0], 16);
-		memcpy(cstr->tci->default_KID, cstr->tci->KIDs[0], 16);
+		memcpy(cstr->key, cstr->tci->keys[0], 16);
+		memcpy(cstr->default_KID, cstr->tci->KIDs[0], 16);
 		cstr->kidx = 0;
 	}
 
@@ -565,7 +671,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	} else {
 		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, NULL);
 	}
-	gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_KID, &PROP_DATA(cstr->tci->default_KID, sizeof(bin128) ) );
+	gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_KID, &PROP_DATA(cstr->default_KID, sizeof(bin128) ) );
 
 	if (cstr->tci->skip_byte_block || cstr->tci->crypt_byte_block) {
 		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(cstr->tci->skip_byte_block, cstr->tci->crypt_byte_block ) );
@@ -582,7 +688,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STORE, &PROP_UINT(cstr->tci->sai_saved_box_type) );
 	}
 
-	return cenc_parse_pssh(ctx, cstr);
+	return cenc_parse_pssh(ctx, cstr, cfile_name);
 }
 
 static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -590,13 +696,15 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	const GF_PropertyValue *prop;
 	GF_Err e = GF_OK;
 	u32 scheme_type = 0;
-	u32 scheme_version = 0;
 	GF_TrackCryptInfo *tci = NULL;
 	const char *scheme_uri = NULL;
 	const char *kms_uri = NULL;
-	u64 oma_preview = 0;
+	GF_CryptInfo *cinfo = NULL;
 	GF_CENCStream *cstr;
 	GF_CENCEncCtx *ctx = (GF_CENCEncCtx *)gf_filter_get_udta(filter);
+	const char *cfile_name = ctx->cfile;
+	GF_TrackCryptInfo *tci_any = NULL;
+	u32 i, count;
 
 
 	if (is_remove) {
@@ -605,6 +713,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			gf_list_del_item(ctx->streams, cstr);
 			gf_filter_pid_remove(cstr->opid);
 			if (cstr->crypt) gf_crypt_close(cstr->crypt);
+			if (cstr->cinfo) gf_crypt_info_del(cstr->cinfo);
 			gf_free(cstr);
 		}
 		return GF_OK;
@@ -613,37 +722,41 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
-	if (prop) scheme_type = prop->value.uint;
-	else {
-		GF_TrackCryptInfo *tci_any = NULL;
-
-		u32 i, count;
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-
-		if (!ctx->cinfo) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing XML crypto file and no PID scheme type set\n") );
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CRYPT_INFO);
+	if (prop) {
+		cinfo = gf_crypt_info_load(prop->value.string);
+		if (!cinfo) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] failed to load crypt info file %s for pid %s\n", prop->value.string, gf_filter_pid_get_name(pid) ) );
 			return GF_NOT_SUPPORTED;
 		}
-		count = gf_list_count(ctx->cinfo->tcis);
-		for (i=0; i<count; i++) {
-			tci = gf_list_get(ctx->cinfo->tcis, i);
-			if (prop && tci->trackID && (tci->trackID==prop->value.uint)) break;
-			if (!tci_any && !tci->trackID) tci_any = tci;
-			tci = NULL;
-		}
-
-		/*default to FILE uri*/
-		if (tci && !strlen(tci->KMS_URI)) strcpy(tci->KMS_URI, ctx->cfile);
-
-		if (!tci) tci = tci_any;
-
-		if (!tci) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in file\n") );
-			return GF_NOT_SUPPORTED;
-		}
-		scheme_type = tci->scheme_type;
+		cfile_name = prop->value.string;
 	}
+	if (!cinfo) cinfo = ctx->cinfo;
+
+
+	if (!cinfo) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing XML crypto file\n") );
+		return GF_NOT_SUPPORTED;
+	}
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+	count = gf_list_count(cinfo->tcis);
+	for (i=0; i<count; i++) {
+		tci = gf_list_get(cinfo->tcis, i);
+		if (prop && tci->trackID && (tci->trackID==prop->value.uint)) break;
+		if (!tci_any && !tci->trackID) tci_any = tci;
+		if ((cinfo != ctx->cinfo) && !tci_any) tci_any = tci;
+		tci = NULL;
+	}
+	if (!tci) tci = tci_any;
+
+	if (!tci) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in file\n") );
+		if (cinfo != ctx->cinfo) gf_crypt_info_del(cinfo);
+		return GF_NOT_SUPPORTED;
+	}
+	scheme_type = tci->scheme_type;
+
 	switch (scheme_type) {
 	case GF_CRYPT_TYPE_ISMA:
 	case GF_CRYPT_TYPE_OMA:
@@ -655,6 +768,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Unsupported scheme type %s\n", gf_4cc_to_str(scheme_type) ));
+		if (cinfo != ctx->cinfo) gf_crypt_info_del(cinfo);
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -667,6 +781,10 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_list_add(ctx->streams, cstr);
 		gf_filter_pid_set_udta(pid, cstr);
 	}
+	if (cstr->cinfo) gf_crypt_info_del(cstr->cinfo);
+	cstr->cinfo = (cinfo != ctx->cinfo) ? cinfo : NULL;
+	cstr->tci = tci;
+
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(cstr->opid, pid);
 
@@ -696,27 +814,19 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
-	if (prop) scheme_version = prop->value.uint;
-//	else if (cstr->tci) scheme_version = cstr->tci->scheme_version;
+	scheme_uri = cstr->tci->Scheme_URI;
+	kms_uri = cstr->tci->KMS_URI;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_URI);
-	if (prop) scheme_uri = prop->value.string;
-	else if (cstr->tci) scheme_uri = cstr->tci->Scheme_URI;
+	/*default to FILE uri*/
+	if (!kms_uri || !strlen(kms_uri) ) {
+		kms_uri = cfile_name;
+	}
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_KMS_URI);
-	if (prop) kms_uri = prop->value.string;
-	else if (cstr->tci) kms_uri = cstr->tci->KMS_URI;
-
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_PREVIEW_RANGE);
-	if (prop) oma_preview = (u32) prop->value.longuint;
-//	else if (cstr->tci) oma_preview = cstr->tci->oma_preview_range;
-
-	cstr->tci->ctr_mode = GF_FALSE;
+	cstr->ctr_mode = GF_FALSE;
 
 	switch (scheme_type) {
 	case GF_CRYPT_TYPE_ISMA:
-		cstr->tci->ctr_mode = GF_TRUE;
+		cstr->ctr_mode = GF_TRUE;
 		return isma_enc_configure(ctx, cstr, GF_TRUE, scheme_uri, kms_uri);
 	case GF_CRYPT_TYPE_OMA:
 		return isma_enc_configure(ctx, cstr, GF_FALSE, scheme_uri, kms_uri);
@@ -724,10 +834,10 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		return adobe_enc_configure(ctx, cstr);
 	case GF_CRYPT_TYPE_CENC:
 	case GF_CRYPT_TYPE_CENS:
-		cstr->tci->ctr_mode = GF_TRUE;
+		cstr->ctr_mode = GF_TRUE;
 	case GF_CRYPT_TYPE_CBC1:
 	case GF_CRYPT_TYPE_CBCS:
-		return cenc_enc_configure(ctx, cstr);
+		return cenc_enc_configure(ctx, cstr, cfile_name);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -735,9 +845,32 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	return e;
 }
 
+
+static GFINLINE void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
+{
+	char IV[17];
+	u64 count;
+	u32 remain;
+	GF_BitStream *bs;
+	count = BSO / 16;
+	remain = (u32) (BSO % 16);
+
+	/*format IV to begin of counter*/
+	bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
+	gf_bs_write_u8(bs, 0);	/*begin of counter*/
+	gf_bs_write_data(bs, salt, 8);
+	gf_bs_write_u64(bs, (s64) count);
+	gf_bs_del(bs);
+	gf_crypt_set_IV(mc, IV, GF_AES_128_KEYSIZE+1);
+
+	/*decrypt remain bytes*/
+	if (remain) {
+		char dummy[20];
+		gf_crypt_decrypt(mc, dummy, remain);
+	}
+}
 static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
 {
-	void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt);
 	u32 isma_hdr_size=0;
 	GF_FilterPacket *dst_pck;
 	const u8 *data;
@@ -821,7 +954,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	//encrypt
 	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		/*resync IV*/
-		if (!cstr->prev_sample_encryped) isma_resync_IV(cstr->crypt, cstr->BSO, (char *) cstr->tci->salt);
+		if (!cstr->prev_sample_encryped) isma_resync_IV(cstr->crypt, cstr->BSO, (char *) cstr->tci->first_IV);
 		gf_crypt_encrypt(cstr->crypt, output+isma_hdr_size, size);
 		cstr->prev_sample_encryped = GF_TRUE;
 	} else {
@@ -981,16 +1114,16 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 }
 
 //parses slice header and returns its size
-static u32 cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plaintext_bs, char *samp_data, u32 nal_size, u32 bytes_in_nalhr)
+static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs, char *samp_data, u32 nal_size, u32 bytes_in_nalhr)
 {
 	u32 clear_bytes = 0;
-	if (tci->slice_header_clear) {
+	if (cstr->slice_header_clear) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
-		if (tci->is_avc) {
+		if (cstr->is_avc) {
 			u32 ntype;
-			gf_media_avc_parse_nalu(plaintext_bs, &tci->avc);
-			ntype = tci->avc.last_nal_type_parsed;
+			gf_media_avc_parse_nalu(plaintext_bs, &cstr->avc);
+			ntype = cstr->avc.last_nal_type_parsed;
 			switch (ntype) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
 			case GF_AVC_NALU_DP_A_SLICE:
@@ -1009,10 +1142,10 @@ static u32 cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plaintext_
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
 			u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
-			tci->hevc.full_slice_header_parse = GF_TRUE;
-			gf_media_hevc_parse_nalu (samp_data + nal_start, nal_size, &tci->hevc, &ntype, &ntid, &nlid);
+			cstr->hevc.full_slice_header_parse = GF_TRUE;
+			gf_media_hevc_parse_nalu (samp_data + nal_start, nal_size, &cstr->hevc, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
-				clear_bytes = tci->hevc.s_info.payload_start_offset;
+				clear_bytes = cstr->hevc.s_info.payload_start_offset;
 			} else {
 				clear_bytes = nal_size;
 			}
@@ -1048,6 +1181,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 	dst_pck = gf_filter_pck_new_alloc(cstr->opid, pck_size, &output);
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
+	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
 
 	//copy over all data
 	memcpy(output, data, sizeof(char)*pck_size);
@@ -1060,6 +1194,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 	gf_bs_write_data(sai_bs, cstr->IV, cstr->tci->IV_size);
 
 	while (gf_bs_available(ctx->bs_r)) {
+		GF_Err e=GF_OK;
 		u32 cur_pos = gf_bs_get_position(ctx->bs_r);
 
 		if (cstr->is_nalu_video) {
@@ -1069,7 +1204,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 				continue;
 			}
 
-	 		clear_bytes = cenc_get_clear_bytes(cstr->tci, ctx->bs_r, (char *) data, nalu_size, cstr->bytes_in_nal_hdr);
+	 		clear_bytes = cenc_get_clear_bytes(cstr, ctx->bs_r, (char *) data, nalu_size, cstr->bytes_in_nal_hdr);
 			// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
 			if (nalu_size > clear_bytes) {
 				u32 ret = (nalu_size - clear_bytes) % 16;
@@ -1107,7 +1242,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 					u32 pos = cur_pos;
 					u32 res = nalu_size - clear_bytes;
 					while (res) {
-						gf_crypt_encrypt(cstr->crypt, output+pos, res >= (u32) (16*cstr->tci->crypt_byte_block) ? 16*cstr->tci->crypt_byte_block : res);
+						e = gf_crypt_encrypt(cstr->crypt, output+pos, res >= (u32) (16*cstr->tci->crypt_byte_block) ? 16*cstr->tci->crypt_byte_block : res);
 						if (res >= (u32) (16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block))) {
 							pos += 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
 							res -= 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
@@ -1118,7 +1253,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 				}
 				//full subsample encryption
 				else {
-					gf_crypt_encrypt(cstr->crypt, output+cur_pos, nalu_size - clear_bytes);
+					e = gf_crypt_encrypt(cstr->crypt, output+cur_pos, nalu_size - clear_bytes);
 				}
 			}
 			//prev entry is not a VCL, append this NAL
@@ -1138,9 +1273,14 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 			}
 		} else {
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
-			gf_crypt_encrypt(cstr->crypt, output, pck_size);
+			e = gf_crypt_encrypt(cstr->crypt, output, pck_size);
+		}
+		if (e) {
+			gf_filter_pck_discard(dst_pck);
+			return e;
 		}
 	}
+	
 	if (prev_entry_bytes_clear || prev_entry_bytes_crypt) {
 		if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
 		nb_subsamples++;
@@ -1168,6 +1308,168 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 	return GF_OK;
 }
 
+static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
+{
+	GF_BitStream *sai_bs;
+	u32 prev_entry_bytes_clear=0;
+	u32 prev_entry_bytes_crypt=0;
+	u32 pck_size;
+	GF_FilterPacket *dst_pck;
+	const u8 *data;
+	char *output;
+	u32 sai_size = cstr->tci->IV_size;
+	u32 nb_subsamples=0;
+
+
+	data = gf_filter_pck_get_data(pck, &pck_size);
+	dst_pck = gf_filter_pck_new_alloc(cstr->opid, pck_size, &output);
+
+	gf_filter_pck_merge_properties(pck, dst_pck);
+	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
+
+	//copy over all data
+	memcpy(output, data, sizeof(char)*pck_size);
+
+	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	else gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
+
+	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	gf_bs_write_data(sai_bs, cstr->IV, cstr->tci->IV_size);
+
+	while (gf_bs_available(ctx->bs_r)) {
+		if (cstr->tci->skip_byte_block || cstr->is_nalu_video) {
+			u32 clear_bytes = 0;
+			u32 clear_bytes_at_end = 0;
+			u32 nal_size = 0;
+
+			if (cstr->is_nalu_video) {
+				nal_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
+
+				clear_bytes = cenc_get_clear_bytes(cstr, ctx->bs_r, (char *) data, nal_size, cstr->bytes_in_nal_hdr);
+			} else {
+				nal_size = (u32) gf_bs_available(ctx->bs_r);
+				clear_bytes = cstr->bytes_in_nal_hdr;
+				if (nal_size < clear_bytes) {
+					if (cstr->tci->block_align == 2) {
+						clear_bytes = nal_size;
+					} else {
+						clear_bytes = 0;
+					}
+				}
+			}
+
+			//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
+			if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
+				u32 ret = (nal_size-clear_bytes) % 16;
+				clear_bytes_at_end = ret;
+			}
+			//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
+			else {
+				u32 ret = (nal_size-clear_bytes) % 16;
+				clear_bytes += ret;
+				clear_bytes_at_end = 0;
+			}
+
+			//skip clear bytes
+			if (clear_bytes) {
+				gf_bs_skip_bytes(ctx->bs_r, clear_bytes);
+			}
+
+			if (nal_size - clear_bytes) {
+				u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
+
+				//cbcs scheme with constant IV, reinit at each sub sample,
+				if (!cstr->IV_size)
+					gf_crypt_set_IV(cstr->crypt, cstr->IV, 16);
+
+				//pattern encryption
+				if (cstr->tci->crypt_byte_block && cstr->tci->skip_byte_block) {
+					u32 pos = cur_pos;
+					u32 res = nal_size - clear_bytes - clear_bytes_at_end;
+					assert((res % 16) == 0);
+
+					while (res) {
+						gf_crypt_encrypt(cstr->crypt, output + pos, res >= (u32) (16*cstr->tci->crypt_byte_block) ? 16*cstr->tci->crypt_byte_block : res);
+						if (res >= (u32) (16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block))) {
+							pos += 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
+							res -= 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
+						} else {
+							res = 0;
+						}
+					}
+				} else {
+					gf_crypt_encrypt(cstr->crypt, output+cur_pos, nal_size - clear_bytes - clear_bytes_at_end);
+				}
+				//skip
+				gf_bs_skip_bytes(ctx->bs_r, nal_size - clear_bytes);
+			}
+
+			//for NALU-based, subsamples. Otherwise, if bytes in clear at the begining, subsample
+			//the spec is not clear here: can we ommit subsamples if we always cypher everything ?
+			//for now commented out for max compatibility
+			//if (is_nalu_video || bytes_in_nalhr)
+			{
+				//note that we write encrypted data to cover the complete byte range after the slice header
+				//but the last incomplete block might be unencrypted, but is still signaled in bytes_encrypted, as per the spec
+
+				//prev entry is not a VCL, append this NAL
+				if (!prev_entry_bytes_crypt) {
+					prev_entry_bytes_clear += cstr->nalu_size_length + clear_bytes;
+					prev_entry_bytes_crypt += nal_size - clear_bytes;
+				} else {
+
+					//store current
+					if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
+					nb_subsamples++;
+					gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
+					gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
+					sai_size+=6;
+
+					prev_entry_bytes_clear = cstr->nalu_size_length + clear_bytes;
+					prev_entry_bytes_crypt = nal_size - clear_bytes;
+				}
+			}
+		} else {
+			u32 clear_trailing;
+
+			clear_trailing = pck_size % 16;
+
+			//cbcs scheme with constant IV, reinit at each sample,
+			if (!cstr->IV_size)
+				gf_crypt_set_IV(cstr->crypt, cstr->IV, 16);
+
+			if (pck_size >= 16) {
+				gf_crypt_encrypt(cstr->crypt, output, pck_size - clear_trailing);
+			}
+			gf_bs_skip_bytes(ctx->bs_r, pck_size);
+		}
+	}
+	if (prev_entry_bytes_clear || prev_entry_bytes_crypt) {
+		if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
+		nb_subsamples++;
+		gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
+		gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
+		sai_size+=6;
+	}
+
+
+	if (sai_size) {
+		char *sai=NULL;
+		sai_size = gf_bs_get_position(sai_bs);
+		gf_bs_seek(sai_bs, cstr->tci->IV_size);
+		gf_bs_write_u16(sai_bs, nb_subsamples);
+		gf_bs_seek(sai_bs, sai_size);
+		sai_size = 0;
+		gf_bs_get_content(sai_bs, &sai, &sai_size);
+
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA_NO_COPY(sai, sai_size) );
+	}
+	gf_bs_del(sai_bs);
+
+	gf_filter_pck_send(dst_pck);
+	return GF_OK;
+}
 
 static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
 {
@@ -1239,17 +1541,9 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		if (sai)
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA_NO_COPY(sai, sai_size) );
 
-		if (cstr->prev_sample_encryped) {
-			cstr->prev_sample_encryped = GF_FALSE;
-			gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(GF_FALSE) );
-		}
-
+		gf_filter_pck_set_crypt_flags(dst_pck, 0);
 		gf_filter_pck_send(dst_pck);
 		return GF_OK;
-	}
-	if (!cstr->prev_sample_encryped) {
-		cstr->prev_sample_encryped = GF_TRUE;
-		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(GF_TRUE) );
 	}
 
 	/*generate initialization vector for the first sample in track ... */
@@ -1276,9 +1570,9 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 			return GF_NOT_SUPPORTED;
 		}
 
-		e = gf_crypt_init(cstr->crypt, cstr->tci->key, cstr->IV);
+		e = gf_crypt_init(cstr->crypt, cstr->key, cstr->IV);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 %s (%s)\n", cstr->tci->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
 			return GF_IO_ERR;
 		}
 		cstr->cenc_init = GF_TRUE;
@@ -1287,11 +1581,11 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 			u32 new_idx = (cstr->nb_pck_encrypted / cstr->tci->keyRoll) % cstr->tci->KID_count;
 			if (cstr->kidx != new_idx) {
 				cstr->kidx = new_idx;
-				memcpy(cstr->tci->key, cstr->tci->keys[cstr->kidx], 16);
+				memcpy(cstr->key, cstr->tci->keys[cstr->kidx], 16);
 				key_changed = GF_TRUE;
-				e = gf_crypt_set_key(cstr->crypt, cstr->tci->key);
+				e = gf_crypt_set_key(cstr->crypt, cstr->key);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", cstr->tci->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
 					return e;
 				}
 			}
@@ -1304,7 +1598,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		//TODO add support for multiple IV size in key roll ?
 	}
 
-	if (cstr->tci->ctr_mode) {
+	if (cstr->ctr_mode) {
 	 	e = cenc_encrypt_ctr(ctx, cstr, pck);
 	} else {
 		//in cbcs scheme, if Per_Sample_IV_size is not 0 (no constant IV), fetch current IV
@@ -1312,7 +1606,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 			u32 IV_size = 16;
 			gf_crypt_get_IV(cstr->crypt, cstr->IV, &IV_size);
 		}
-//		gf_cenc_encrypt_sample_cbc(mc, tci, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+		e = cenc_encrypt_cbc(ctx, cstr, pck);
 	}
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error encrypting packet %d in PID %s: %s\n", cstr->nb_pck, gf_filter_pid_get_name(cstr->ipid), gf_error_to_string(e)) );
@@ -1365,16 +1659,14 @@ static GF_Err cenc_enc_initialize(GF_Filter *filter)
 {
 	GF_CENCEncCtx *ctx = (GF_CENCEncCtx *)gf_filter_get_udta(filter);
 
-	if (!ctx->cfile) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENCCrypt] Missing crypto config file\n" ));
-		return GF_BAD_PARAM;
+	if (ctx->cfile) {
+		ctx->cinfo = gf_crypt_info_load(ctx->cfile);
+		if (!ctx->cinfo) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENCCrypt] Cannot load config file %s\n", ctx->cfile ));
+			return GF_BAD_PARAM;
+		}
 	}
 
-	ctx->cinfo = gf_crypt_load_config_file(ctx->cfile);
-	if (!ctx->cinfo) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENCCrypt] Cannot load config file %s\n", ctx->cfile ));
-		return GF_BAD_PARAM;
-	}
 	ctx->streams = gf_list_new();
 	return GF_OK;
 }
@@ -1382,10 +1674,11 @@ static GF_Err cenc_enc_initialize(GF_Filter *filter)
 static void cenc_enc_finalize(GF_Filter *filter)
 {
 	GF_CENCEncCtx *ctx = (GF_CENCEncCtx *)gf_filter_get_udta(filter);
-	if (ctx->cinfo) gf_crypt_del_config_file(ctx->cinfo);
+	if (ctx->cinfo) gf_crypt_info_del(ctx->cinfo);
 	while (gf_list_count(ctx->streams)) {
 		GF_CENCStream *s = gf_list_pop_back(ctx->streams);
 		if (s->crypt) gf_crypt_close(s->crypt);
+		if (s->cinfo) gf_crypt_info_del(s->cinfo);
 		gf_free(s);
 	}
 	gf_list_del(ctx->streams);
@@ -1414,13 +1707,17 @@ static const GF_FilterCapability CENCEncCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_CENCEncCtx, _n)
 static const GF_FilterArgs GF_CENCEncArgs[] =
 {
-	{ OFFS(cfile), "Crypt file", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(cfile), "Crypt file - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{0}
 };
 
 GF_FilterRegister CENCEncRegister = {
 	.name = "cecrypt",
 	.description = "CENC and ISMA encryptor",
+	.comment = "The CENC/ISMA encryptor uses a configuration file for declaring keys. The syntax is available at:\n"\
+			"https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/\n"\
+			"The file can be set per PID using the property CryptFile, or set at the filter option level.\n"\
+			 "When the file set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.",
 	.private_size = sizeof(GF_CENCEncCtx),
 	.max_extra_pids=-1,
 	.args = GF_CENCEncArgs,
@@ -1432,11 +1729,11 @@ GF_FilterRegister CENCEncRegister = {
 
 };
 
-#endif /*GPAC_DISABLE_MCRYPT*/
+#endif /*GPAC_DISABLE_CRYPTO*/
 
 const GF_FilterRegister *cenc_encrypt_register(GF_FilterSession *session)
 {
-#ifndef GPAC_DISABLE_MCRYPT
+#ifndef GPAC_DISABLE_CRYPTO
 	return &CENCEncRegister;
 #else
 	return NULL;

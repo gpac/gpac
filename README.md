@@ -58,7 +58,7 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 
 ## V0.9.0
 Remaining before release
-- [ ] move encrypter to filter
+- [x] move encrypter to filter
 - [ ] move ATSC demux to filter
 - [ ] move NVDec to filter
 - [ ] move MediaCodec to filter
@@ -70,7 +70,8 @@ Remaining before release
 - [ ] move Android client to filters
 - [ ] rewrite MP42TS to filters or drop it
 - [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
-- [ ] add generic pipe and tcp source and sink
+- [ ] add pipe and tcp source and sink
+- [ ] add generic serializer/reader for all events/packets in filter arch
 - [ ] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
 - [ ] pass all test suite

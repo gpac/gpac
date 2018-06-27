@@ -1404,15 +1404,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_profile) )
 #endif
 
-#if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
-/*ismacryp.h exports*/
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_ISOM_WRITE)
+/*crypt_tools.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_decrypt_file) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_encrypt_track) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_decrypt_track) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_gpac_get_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ismacryp_mpeg4ip_get_info) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_crypt_info_load) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_crypt_info_del) )
 
 #endif
 

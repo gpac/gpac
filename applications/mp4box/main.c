@@ -44,8 +44,8 @@
 #include <gpac/ietf.h>
 #endif
 
-#ifndef GPAC_DISABLE_MCRYPT
-#include <gpac/ismacryp.h>
+#ifndef GPAC_DISABLE_CRYPTO
+#include <gpac/crypt_tools.h>
 #endif
 
 #include <gpac/constants.h>
@@ -4916,7 +4916,7 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 		}
 
-#ifndef GPAC_DISABLE_MCRYPT
+#ifndef GPAC_DISABLE_CRYPTO
 		if (crypt) {
 			if (!drm_file) {
 				fprintf(stderr, "Missing DRM file location - usage '-%s drm_file input_file\n", (crypt==1) ? "crypt" : "decrypt");
@@ -4929,14 +4929,14 @@ int mp4boxMain(int argc, char **argv)
 				goto err_exit;
 			}
 			if (crypt == 1) {
-				e = gf_crypt_file(file, drm_file);
+				e = gf_crypt_file(file, drm_file, outfile);
 			} else if (crypt ==2) {
-				e = gf_decrypt_file(file, drm_file);
+				e = gf_decrypt_file(file, drm_file, outfile);
 			}
 			if (e) goto err_exit;
-			needSave = GF_TRUE;
+			needSave = outName ? GF_FALSE : GF_TRUE;
 		}
-#endif /*GPAC_DISABLE_MCRYPT*/
+#endif /*GPAC_DISABLE_CRYPTO*/
 	} else if (outName) {
 		strcpy(outfile, outName);
 	}

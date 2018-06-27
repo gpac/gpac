@@ -34,12 +34,15 @@
 
 GF_Err gf_crypt_init_tinyaes_cbc(GF_Crypt* td, void *key, const void *iv)
 {
-	struct AES_ctx *ctx;
-	GF_SAFEALLOC(ctx, struct AES_ctx);
-	if (ctx == NULL) return GF_OUT_OF_MEM;
+	struct AES_ctx *ctx = (struct AES_ctx *)td->context;
+	if (!ctx) {
+		GF_SAFEALLOC(ctx, struct AES_ctx);
+		if (ctx == NULL) return GF_OUT_OF_MEM;
 
-	td->context = ctx;
+		td->context = ctx;
+	}
 
+	
 	if (iv != NULL) {
 		AES_init_ctx_iv(ctx, key, iv);
 	} else {
@@ -127,10 +130,11 @@ GF_Err gf_crypt_get_IV_tinyaes_ctr(GF_Crypt* td, u8 *iv, u32 *iv_size)
 
 GF_Err gf_crypt_init_tinyaes_ctr(GF_Crypt* td, void *key, const void *iv)
 {
-	struct AES_ctx* ctx;
-
-	GF_SAFEALLOC(ctx, struct AES_ctx);
-	td->context = ctx;
+	struct AES_ctx* ctx = (struct AES_ctx* ) td->context;
+	if (!ctx) {
+		GF_SAFEALLOC(ctx, struct AES_ctx);
+		td->context = ctx;
+	}
 
 	/* For ctr */
 	if (iv) {

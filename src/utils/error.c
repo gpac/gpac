@@ -783,11 +783,11 @@ const char *gpac_features()
 #ifdef GPAC_DISABLE_OD_DUMP
 	                       "GPAC_DISABLE_OD_DUMP "
 #endif
-#ifdef GPAC_DISABLE_MCRYPT
-	                       "GPAC_DISABLE_MCRYPT "
+#ifdef GPAC_DISABLE_CRYPTO
+	                       "GPAC_DISABLE_CRYPTO "
 #endif
 #ifdef GPAC_DISABLE_ISOM
-	                       "GPAC_DISABLE_MCRYPT "
+	                       "GPAC_DISABLE_CRYPTO "
 #endif
 #ifdef GPAC_DISABLE_ISOM_HINTING
 	                       "GPAC_DISABLE_ISOM_HINTING "

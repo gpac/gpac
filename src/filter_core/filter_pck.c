@@ -1110,6 +1110,18 @@ u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 	return pck->pck->info.byte_offset;
 }
 
+GF_Err gf_filter_pck_set_crypt_flags(GF_FilterPacket *pck, u8 crypt_flag)
+{
+	PCK_SETTER_CHECK("byteOffset")
+	pck->info.crypt_flags = crypt_flag;
+	return GF_OK;
+}
+u8 gf_filter_pck_get_crypt_flags(GF_FilterPacket *pck)
+{
+	return pck->pck->info.crypt_flags;
+}
+
+
 GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType ctype)
 {
 	PCK_SETTER_CHECK("clock_type")

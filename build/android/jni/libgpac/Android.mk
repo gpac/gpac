@@ -101,7 +101,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/media_import.c \
 	../../../../src/media_tools/text_import.c \
 	../../../../src/media_tools/webvtt.c \
-	../../../../src/media_tools/ismacryp.c \
+	../../../../src/media_tools/crypt_tools.c \
 	../../../../src/media_tools/img.c \
 	../../../../src/media_tools/mpegts.c \
 	../../../../src/media_tools/saf.c \

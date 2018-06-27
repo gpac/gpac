@@ -255,6 +255,10 @@ const char *gf_stream_type_name(u32 streamType)
 		return "Font";
 	case GF_STREAM_TEXT:
 		return "Text_Subtitle";
+	case GF_STREAM_FILE:
+		return "File";
+	case GF_STREAM_ENCRYPTED:
+		return "Encrypted";
 	default:
 		return "Unknown";
 	}
