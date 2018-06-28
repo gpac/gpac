@@ -10165,7 +10165,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	        || !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "MHVC") || !stricmp(fmt, "LHVC") || !stricmp(fmt, "H265") )
 		return gf_import_hevc(importer);
 	/*AOM AV1 video*/
-	if (!strnicmp(ext, ".av1", 4))
+	if (!strnicmp(ext, ".av1", 4) || !strnicmp(ext, ".ivf", 4) || !strnicmp(ext, ".obu", 4))
 		return gf_import_aom_av1(importer);
 	/*AC3 and E-AC3*/
 	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
