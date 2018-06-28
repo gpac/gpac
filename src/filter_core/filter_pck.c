@@ -1129,6 +1129,11 @@ GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType cty
 	return GF_OK;
 }
 
+GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck)
+{
+	return pck->info.clock_type;
+}
+
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)
 {
 	assert(pck);

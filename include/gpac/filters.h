@@ -223,7 +223,7 @@ struct __gf_prop_val
 const char *gf_props_get_type_name(u32 type);
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
 
-#define GF_PROP_DUMP_ARG_SIZE	1000
+#define GF_PROP_DUMP_ARG_SIZE	4000
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
@@ -704,6 +704,8 @@ typedef enum
 
 GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType ctype);
 GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_val, u32 *timescale);
+
+GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck);
 
 u32 gf_filter_pid_get_timescale(GF_FilterPid *pid);
 
