@@ -484,7 +484,7 @@ GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 {
 	GF_HandlerBox *p = (GF_HandlerBox *)a;
 	gf_isom_box_dump_start(a, "HandlerBox", trace);
-	if (p->nameUTF8 && (u32) p->nameUTF8[0] == strlen(p->nameUTF8+1)) {
+	if (p->nameUTF8 && (u32) p->nameUTF8[0] == strlen(p->nameUTF8)-1) {
 		fprintf(trace, "hdlrType=\"%s\" Name=\"%s\" ", gf_4cc_to_str(p->handlerType), p->nameUTF8+1);
 	} else {
 		fprintf(trace, "hdlrType=\"%s\" Name=\"%s\" ", gf_4cc_to_str(p->handlerType), p->nameUTF8);
@@ -4157,9 +4157,9 @@ static void oinf_entry_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 		fprintf(trace, " maxPicWidth=\"%u\" maxPicHeight=\"%u\"", op->maxPicWidth, op->maxPicHeight);
 		fprintf(trace, " maxChromaFormat=\"%u\" maxBitDepth=\"%u\"", op->maxChromaFormat, op->maxBitDepth);
 		fprintf(trace, " frame_rate_info_flag=\"%u\" bit_rate_info_flag=\"%u\"", op->frame_rate_info_flag, op->bit_rate_info_flag);
-		if (op->frame_rate_info_flag) 
+		if (op->frame_rate_info_flag)
 			fprintf(trace, " avgFrameRate=\"%u\" constantFrameRate=\"%u\"", op->avgFrameRate, op->constantFrameRate);
-		if (op->bit_rate_info_flag) 
+		if (op->bit_rate_info_flag)
 			fprintf(trace, " maxBitRate=\"%u\" avgBitRate=\"%u\"", op->maxBitRate, op->avgBitRate);
 		fprintf(trace, "/>\n");
 	}
@@ -4261,14 +4261,14 @@ static void nalm_dump(FILE * trace, char *data, u32 data_size)
 		fprintf(trace, "</NALUMap>\n");
 		return;
 	}
-	
+
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	gf_bs_read_int(bs, 6);
 	large_size = gf_bs_read_int(bs, 1);
 	rle = gf_bs_read_int(bs, 1);
 	entry_count = gf_bs_read_int(bs, large_size ? 16 : 8);
 	fprintf(trace, "<NALUMap rle=\"%d\" large_size=\"%d\">\n", rle, large_size);
-	
+
 	while (entry_count) {
 		u32 ID;
 		fprintf(trace, "<NALUMapEntry ");
@@ -4338,7 +4338,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_TRIF:
 			trif_dump(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			break;
-			
+
 		case GF_ISOM_SAMPLE_GROUP_NALM:
 			nalm_dump(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			break;
@@ -4507,7 +4507,7 @@ GF_Err tenc_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "\"  KID=\"");
 	}
 	dump_data_hex(trace, (char *) ptr->KID, 16);
-	if (ptr->version) 
+	if (ptr->version)
 		fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
 	fprintf(trace, "\">\n");
 	gf_isom_box_dump_done("TrackEncryptionBox", a, trace);
