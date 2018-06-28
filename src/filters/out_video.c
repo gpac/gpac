@@ -45,17 +45,23 @@
 
 #if defined(GPAC_USE_GLES2)
 # ifdef GPAC_IPHONE
-#  include "OpenGLES/ES2/gl.h"
+#  include "OpenGLES/ES3/gl.h"
 #  include "glues.h"
 # else
 #  include <GLES2/gl2.h>
 #  include <GLES2/gl2ext.h>
+#  define GPAC_GL_NO_STRIDE
 # endif
 #elif defined (CONFIG_DARWIN_GL)
 # include <OpenGL/gl.h>
 #else
 # include <GL/gl.h>
 #endif
+
+#if defined(GPAC_USE_GLES1X)
+#  define GPAC_GL_NO_STRIDE
+#endif
+
 
 #if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
 #define GF_SHADERID u64
@@ -1171,7 +1177,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (!ctx->is_yuv) {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
 		if (use_stride) {
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, ctx->stride / ctx->bytes_per_pix);
 #endif
 
@@ -1182,7 +1188,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		} else {
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width, ctx->height, ctx->pixel_format, ctx->memory_format, data);
 		}
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
 	}
@@ -1297,7 +1303,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			uv_stride = stride_luma/4;
 			use_stride = GF_TRUE;
 		}
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, uv_stride);
 #endif
 		if (ctx->first_tx_load) {
@@ -1307,47 +1313,48 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width/2, ctx->height, GL_RGBA, ctx->memory_format, pY);
 
 		}
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
 
 	}
 	else if (ctx->first_tx_load) {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/ctx->bytes_per_pix);
 #endif
 		glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->width, ctx->height, 0, ctx->pixel_format, ctx->memory_format, pY);
 
 		glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 #endif
 		glTexImage2D(TEXTURE_TYPE, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->uv_w, ctx->uv_h, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, pU);
 
 		if (pV) {
 			glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 #endif
 			glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->uv_w, ctx->uv_h, 0, ctx->pixel_format, ctx->memory_format, pV);
 		}
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
 		ctx->first_tx_load = GF_FALSE;
 	}
 	else {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/ctx->bytes_per_pix);
 #endif
 		glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width, ctx->height, ctx->pixel_format, ctx->memory_format, pY);
 		glBindTexture(TEXTURE_TYPE, 0);
 
 		glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 #endif
 		glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->uv_w, ctx->uv_h, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, pU);
@@ -1355,14 +1362,14 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		if (pV) {
 			glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
 #endif
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->uv_w, ctx->uv_h, ctx->pixel_format, ctx->memory_format, pV);
 			glBindTexture(TEXTURE_TYPE, 0);
 		}
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
 
