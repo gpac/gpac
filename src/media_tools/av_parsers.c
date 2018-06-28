@@ -2003,7 +2003,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 	if (e) return e;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", frame_size));
 
-	while (frame_size > 8) {
+	while (frame_size > 0) {
 		u64 obu_size = 0, pos = gf_bs_get_position(bs);
 		ObuType obu_type;
 
@@ -2109,6 +2109,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 			return GF_OK;
 		}
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Found OBU type %u (size "LLU").\n", *obu_type, *obu_size));
 
 	switch (*obu_type) {
 	case OBU_SEQUENCE_HEADER: {
