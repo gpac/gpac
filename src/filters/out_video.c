@@ -40,10 +40,21 @@
 
 #define GL_GLEXT_PROTOTYPES
 
-#if defined (CONFIG_DARWIN_GL)
-#include <OpenGL/gl.h>
+#include "../compositor/gl_inc.h"
+
+
+#if defined(GPAC_USE_GLES2)
+# ifdef GPAC_IPHONE
+#  include "OpenGLES/ES2/gl.h"
+#  include "glues.h"
+# else
+#  include <GLES2/gl2.h>
+#  include <GLES2/gl2ext.h>
+# endif
+#elif defined (CONFIG_DARWIN_GL)
+# include <OpenGL/gl.h>
 #else
-#include <GL/gl.h>
+# include <GL/gl.h>
 #endif
 
 #if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
@@ -204,11 +215,12 @@ static char *glsl_yuv_shader = "#version 120\n"\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
 	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec2 texc;\
 		vec3 yuv, rgb;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		yuv.x = texture2D(y_plane, texc).r; \
 		yuv.y = texture2D(u_plane, texc).r; \
 		yuv.z = texture2D(v_plane, texc).r; \
@@ -226,11 +238,12 @@ static char *glsl_nv12_shader = "#version 120\n"\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
 	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec2 texc;\
 		vec3 yuv, rgb;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		yuv.x = texture2D(y_plane, texc).r; \
 		yuv.yz = texture2D(u_plane, texc).ra; \
 		yuv += offset; \
@@ -247,11 +260,12 @@ static char *glsl_nv21_shader = "#version 120\n"\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
 	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec2 texc;\
 		vec3 yuv, rgb;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		yuv.x = texture2D(y_plane, texc).r; \
 		yuv.y = texture2D(u_plane, texc).a; \
 		yuv.z = texture2D(u_plane, texc).r; \
@@ -269,13 +283,14 @@ static char *glsl_uyvy_shader = "#version 120\n"\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
 	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec2 texc, t_texc;\
 		vec3 yuv, rgb;\
 		vec4 uyvy;\
 		float tex_s;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		t_texc = texc * vec2(1, 1);\
 		uyvy = texture2D(y_plane, t_texc); \
 		tex_s = texc.x*width;\
@@ -299,13 +314,14 @@ static char *glsl_yuyv_shader = "#version 120\n"\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
 	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec2 texc, t_texc;\
 		vec3 yuv, rgb;\
 		vec4 yuyv;\
 		float tex_s;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		t_texc = texc * vec2(1, 1);\
 		yuyv = texture2D(y_plane, t_texc); \
 		tex_s = texc.x*width;\
@@ -325,11 +341,12 @@ static char *glsl_yuyv_shader = "#version 120\n"\
 static char *glsl_rgb_shader = "#version 120\n"\
 	"uniform sampler2D rgbtx;\
 	uniform int rgb_mode;\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec2 texc;\
 		vec4 col;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		col = texture2D(rgbtx, texc); \
 		if (rgb_mode==1) {\
 			gl_FragColor.r = col.b;\
@@ -348,13 +365,16 @@ static char *glsl_rgb_shader = "#version 120\n"\
 		}\
 	}";
 
+
 static char *default_glsl_vertex = "\
+	attribute vec4 gfVertex;\
+	attribute vec2 gfTexCoord;\
+	varying vec2 TexCoord;\
 	void main(void)\
 	{\
-		gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
-		gl_TexCoord[0] = gl_MultiTexCoord0;\
+		gl_Position = gl_ModelViewProjectionMatrix * gfVertex;\
+		TexCoord = gfTexCoord;\
 	}";
-
 
 #endif
 
@@ -432,7 +452,9 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
-#ifdef CONFIG_DARWIN_GL
+#if defined(GPAC_USE_GLES2)
+		glGetShaderInfoLog(shader_id, blen, &slen, compiler_log);
+#elif defined(CONFIG_DARWIN_GL)
 		glGetInfoLogARB((GLhandleARB) shader_id, blen, &slen, compiler_log);
 #else
 		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
@@ -763,19 +785,26 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			glBindTexture(TEXTURE_TYPE, ctx->txid[i] );
 
 			if (ctx->is_yuv && ctx->bit_depth>8) {
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 				glPixelTransferi(GL_RED_SCALE, 64);
-				ctx->memory_format = GL_UNSIGNED_SHORT;
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+#endif
+				ctx->memory_format = GL_UNSIGNED_SHORT;
+
 			} else {
 				ctx->memory_format = GL_UNSIGNED_BYTE;
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 				glPixelTransferi(GL_RED_SCALE, 1);
+#endif
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 			}
 
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			glTexParameteri(TEXTURE_TYPE, GL_TEXTURE_WRAP_S, GL_CLAMP);
 			glTexParameteri(TEXTURE_TYPE, GL_TEXTURE_WRAP_T, GL_CLAMP);
 			glTexParameteri(TEXTURE_TYPE, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
 			glTexParameteri(TEXTURE_TYPE, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+#endif
 
 			glDisable(TEXTURE_TYPE);
 		}
@@ -1142,7 +1171,10 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (!ctx->is_yuv) {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
 		if (use_stride) {
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, ctx->stride / ctx->bytes_per_pix);
+#endif
+
 		}
 		if (ctx->first_tx_load) {
 			glTexImage2D(TEXTURE_TYPE, 0, ctx->pixel_format, ctx->width, ctx->height, 0, ctx->pixel_format, GL_UNSIGNED_BYTE, data);
@@ -1150,8 +1182,11 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		} else {
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width, ctx->height, ctx->pixel_format, ctx->memory_format, data);
 		}
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 	}
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	else if (ctx->disp==MODE_GL_PBO) {
 		u32 i, linesize, count, p_stride;
 		u8 *ptr;
@@ -1248,6 +1283,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 		}
 	}
+#endif
 	else if ((ctx->pfmt==GF_PIXEL_UYVY) || (ctx->pfmt==GF_PIXEL_YUYV)) {
 		u32 uv_stride = 0;
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
@@ -1261,7 +1297,9 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			uv_stride = stride_luma/4;
 			use_stride = GF_TRUE;
 		}
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, uv_stride);
+#endif
 		if (ctx->first_tx_load) {
 			glTexImage2D(TEXTURE_TYPE, 0, GL_RGBA, ctx->width/2, ctx->height, 0, GL_RGBA, ctx->memory_format, pY);
 			ctx->first_tx_load = GF_FALSE;
@@ -1269,45 +1307,65 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width/2, ctx->height, GL_RGBA, ctx->memory_format, pY);
 
 		}
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+
 	}
 	else if (ctx->first_tx_load) {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/ctx->bytes_per_pix);
+#endif
 		glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->width, ctx->height, 0, ctx->pixel_format, ctx->memory_format, pY);
 
 		glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
+#endif
 		glTexImage2D(TEXTURE_TYPE, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->uv_w, ctx->uv_h, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, pU);
 
 		if (pV) {
 			glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
+#endif
 			glTexImage2D(TEXTURE_TYPE, 0, GL_LUMINANCE, ctx->uv_w, ctx->uv_h, 0, ctx->pixel_format, ctx->memory_format, pV);
 		}
 
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 		ctx->first_tx_load = GF_FALSE;
 	}
 	else {
 		glBindTexture(TEXTURE_TYPE, ctx->txid[0] );
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/ctx->bytes_per_pix);
+#endif
 		glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->width, ctx->height, ctx->pixel_format, ctx->memory_format, pY);
 		glBindTexture(TEXTURE_TYPE, 0);
 
 		glBindTexture(TEXTURE_TYPE, ctx->txid[1] );
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
+#endif
 		glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->uv_w, ctx->uv_h, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, ctx->memory_format, pU);
 		glBindTexture(TEXTURE_TYPE, 0);
 
 		if (pV) {
 			glBindTexture(TEXTURE_TYPE, ctx->txid[2] );
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/ctx->bytes_per_pix);
+#endif
 			glTexSubImage2D(TEXTURE_TYPE, 0, 0, 0, ctx->uv_w, ctx->uv_h, ctx->pixel_format, ctx->memory_format, pV);
 			glBindTexture(TEXTURE_TYPE, 0);
 		}
 
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+
 	}
 
 	glUseProgram(ctx->glsl_program);
@@ -1331,21 +1389,39 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	dw = ((Float)ctx->dw)/2;
 	dh = ((Float)ctx->dh)/2;
 
-	glBegin(GL_QUADS);
 
-	glTexCoord2f(1, 0);
-	glVertex3f(dw, dh, 0);
+	GLfloat squareVertices[] = {
+        dw, dh,
+        dw, -dh,
+        -dw,  -dh,
+        -dw,  dh,
+    };
 
-	glTexCoord2f(1, 1);
-	glVertex3f(dw, -dh, 0);
+    GLfloat textureVertices[] = {
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f,  1.0f,
+        0.0f,  0.0f,
+    };
 
-	glTexCoord2f(0, 1);
-	glVertex3f(-dw, -dh, 0);
+	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
+	if (loc >= 0) {
+		glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, squareVertices);
+		glEnableVertexAttribArray(loc);
 
-	glTexCoord2f(0, 0);
-	glVertex3f(-dw, dh, 0);
+		//setup texcoord location
+		loc = glGetAttribLocation(ctx->glsl_program, "gfTexCoord");
+		if (loc>=0) {
+			glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, textureVertices);
+			glEnableVertexAttribArray(loc);
 
-	glEnd();
+			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfTexCoord uniform in shader\n"));
+		}
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfVertex uniform in shader\n"));
+	}
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(TEXTURE_TYPE, 0);

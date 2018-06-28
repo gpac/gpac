@@ -76,16 +76,16 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		} else if (enum_values && strchr(enum_values, '|')) {
-			u32 a_len = strlen(value);
+			u32 a_len = (u32) strlen(value);
 			u32 val = 0;
 			char *str_start = (char *) enum_values;
 			while (str_start) {
 				u32 len;
 				char *sep = strchr(str_start, '|');
 				if (sep) {
-					len = sep - str_start;
+					len = (u32) (sep - str_start);
 				} else {
-					len = strlen(str_start);
+					len = (u32) strlen(str_start);
 				}
 				if ((a_len == len) && !strncmp(str_start, value, len))
 					break;
