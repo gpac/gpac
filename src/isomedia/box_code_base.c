@@ -632,7 +632,7 @@ GF_Err urn_Read(GF_Box *s, GF_BitStream *bs)
 
 	//then get the break
 	i = 0;
-	while ( (tmpName[i] != 0) && (i < to_read) ) {
+	while ( (i < to_read) && (tmpName[i] != 0) ) {
 		i++;
 	}
 	//check the data is consistent
