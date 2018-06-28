@@ -2256,6 +2256,8 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_YV12;
 		break;
+	/*FIXME we need to upgrade our SDL build*/
+#if !defined(GPAC_IPHONE) && SDL_VERSION_ATLEAST(2,0,0)
 	case GF_PIXEL_NV12:
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_NV12;
@@ -2264,6 +2266,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_NV21;
 		break;
+#endif
 	case GF_PIXEL_UYVY:
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_UYVY;

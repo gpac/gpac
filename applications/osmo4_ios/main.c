@@ -29,8 +29,6 @@
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/events.h>
-#include <gpac/modules/service.h>
-#include <gpac/internal/terminal_dev.h>
 
 #include <pwd.h>
 #include <unistd.h>
@@ -129,6 +127,7 @@ static void ResetCaption()
 	if (display_rti) return;
 	event.type = GF_EVENT_SET_CAPTION;
 	if (is_connected) {
+#ifdef FILTER_FIXME
 		char szName[1024];
 		NetInfoCommand com;
 
@@ -162,6 +161,8 @@ static void ResetCaption()
 			if (!str) str = strrchr(the_url, '/');
 			event.caption.caption = str ? str+1 : the_url;
 		}
+#endif
+
 	} else {
 		event.caption.caption = "GPAC MP4Client " GPAC_FULL_VERSION;
 	}
@@ -623,12 +624,15 @@ int main (int argc, char *argv[])
 		strcpy(pl_path, url_arg);
 		/*this is not clean, we need to have a plugin handle playlist for ourselves*/
 		if (!strncmp("http:", url_arg, 5)) {
+#ifdef FILTER_FIXME
 			GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, url_arg, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 			if (sess) {
 				e = gf_dm_sess_process(sess);
 				if (!e) strcpy(pl_path, gf_dm_sess_get_cache_name(sess));
 				gf_dm_sess_del(sess);
 			}
+#endif
+
 		}
 
 		playlist = e ? NULL : gf_fopen(pl_path, "rt");
@@ -831,7 +835,7 @@ void PrintAVInfo(Bool final)
 			}
 		}
 		if (audio_odm) {
-			fprintf(stderr, "%s SR %d num channels %d bpp %d duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, a_odi.bits_per_sample, a_odi.duration);
+			fprintf(stderr, "%s SR %d num channels %d fmt %s duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, gf_audio_fmt_name(a_odi.afmt), a_odi.duration);
 			if (final) {
 				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
 				if (!dec_run_time) dec_run_time = 1;
@@ -870,25 +874,26 @@ void PrintAVInfo(Bool final)
 	}
 
 	if (video_odm) {
+		u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
+		if (!dec_run_time) dec_run_time = 1;
 		tot_time = v_odi.last_frame_time - v_odi.first_frame_time;
 		if (!tot_time) tot_time=1;
 		if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-		fprintf(stderr, "%d f FPS %.2f (%.2f ms max) rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time/1000.0, (u32) v_odi.instant_bitrate/1000);
+		fprintf(stderr, "%d f FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
 	}
 	else if (scene_odm) {
-
 		if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
-			avg_dec_time = (Float) 1000000 * s_odi.nb_dec_frames;
-			avg_dec_time /= s_odi.total_dec_time;
-			if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
-			fprintf(stderr, "%d f %.2f (%d us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
+			u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
+			if (!dec_run_time) dec_run_time = 1;
+			fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+			fprintf(stderr, "\n");
 		} else {
 			u32 nb_frames_drawn;
 			Double FPS;
 			gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
 			tot_time = gf_sys_clock() - bench_mode_start;
-			FPS = gf_term_get_framerate(term, 1);
-			fprintf(stderr, "%d f FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
+			FPS = gf_term_get_framerate(term, 0);
+			fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
 		}
 	}
 	else if (audio_odm) {

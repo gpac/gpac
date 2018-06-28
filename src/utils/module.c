@@ -49,7 +49,6 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #endif
 
 	LOAD_PLUGIN(soft_raster);
-	LOAD_PLUGIN(raw_out);
 
 #ifdef GPAC_HAS_FREETYPE
 	LOAD_PLUGIN(ftfont);

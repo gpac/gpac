@@ -158,7 +158,7 @@
 
 #define GPAC_HAS_IPV6
 #define GPAC_HAS_SSL
-
+#define GPAC_DISABLE_OGG
 
 /*Configuration for Symbian*/
 #elif defined(__SYMBIAN32__)

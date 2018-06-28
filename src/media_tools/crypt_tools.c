@@ -212,7 +212,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					tkc->keyRoll = atoi(att->value+5);
 			}
 			else if (!stricmp(att->name, "metadata")) {
-				u32 l = 2 * strlen(att->value);
+				u32 l = 2 * (u32) strlen(att->value);
 				tkc->metadata = gf_malloc(sizeof(char) * l);
 				l = gf_base64_encode(att->value, (u32) strlen(att->value), tkc->metadata, l);
 				tkc->metadata[l] = 0;
@@ -331,7 +331,7 @@ static void cryptinfo_text(void *sax_cbck, const char *text, Bool is_cdata)
 
 	tkc = (GF_TrackCryptInfo *) gf_list_last(info->tcis);
 	len = (u32) strlen(text);
-	len2 = tkc->TextualHeaders ? strlen(tkc->TextualHeaders) : 0;
+	len2 = tkc->TextualHeaders ? (u32) strlen(tkc->TextualHeaders) : 0;
 
 	tkc->TextualHeaders = gf_realloc(tkc->TextualHeaders, sizeof(char) * (len+len2+1));
 	if (!len2) strcpy(tkc->TextualHeaders, "");
