@@ -197,6 +197,8 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		gf_list_add(fsess->threads, sess_thread);
 	}
 
+	gf_fs_set_separators(fsess, NULL);
+
 	fsess->registry = gf_list_new();
 	fsess->blacklist = blacklist;
 	a_sess = load_meta_filters ? fsess : NULL;
@@ -212,7 +214,6 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->default_pid_buffer_max_us = 1000;
 	fsess->decoder_pid_buffer_max_us = 1000000;
 
-	gf_fs_set_separators(fsess, NULL);
 	return fsess;
 }
 
