@@ -260,6 +260,8 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_hevc ? GF_CODECID_HEVC : GF_CODECID_AVC));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 	return GF_OK;
 }
@@ -1036,6 +1038,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 	if ((ctx->crc_cfg == crc_cfg) && (ctx->crc_cfg_enh == crc_cfg_enh)
 		&& (ctx->width==w) && (ctx->height==h)
@@ -2138,6 +2142,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = (u32) ( (char *)start -  (char *)data);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] not yet playing\n", ctx->log_name));
 			return GF_OK;
 		}
 		if (ctx->in_seek) {
