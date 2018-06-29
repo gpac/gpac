@@ -1016,7 +1016,7 @@ static const struct box_registry_entry {
 
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),
-	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01", 0, 0, "av1"),
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv", 0, 0, "av1"),
 
 	//part20 boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LSR1, lsr1, "stsd", "p20"),

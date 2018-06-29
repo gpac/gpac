@@ -7134,7 +7134,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (av1_bs_syntax == OBUs) {
 		ObuType obu_type;
 		u64 obu_size;
-		GF_Err e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &state);
+		GF_Err e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state);
 		if (e) {
 			gf_import_message(import, GF_OK, "Error parsing OBU (Section 5)");
 			goto exit;
