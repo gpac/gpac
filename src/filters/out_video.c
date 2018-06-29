@@ -506,8 +506,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
 	if (p) stride = p->value.uint;
 
-	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
-
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
 		//set a minimum buffer (although we don't buffer)
@@ -525,6 +523,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		ctx->pid = pid;
 	}
+
+	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
 
 	//pid not yet ready
 	if (!pfmt || !w || !h) return GF_OK;
