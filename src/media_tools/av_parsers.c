@@ -1632,15 +1632,15 @@ static u32 uvlc(GF_BitStream *bs) {
 }
 
 static void timing_info(GF_BitStream *bs) {
-	/*num_units_in_display_tick =*/ gf_bs_read_u32(bs);
-	/*time_scale =*/ gf_bs_read_u32(bs);
+	/*num_units_in_display_tick =*/ gf_bs_read_int(bs, 32);
+	/*time_scale =*/ gf_bs_read_int(bs, 32);
 	if (gf_bs_read_int(bs, 3) /*equal_picture_interval*/)
 		/*num_ticks_per_picture_minus_1 =*/ uvlc(bs);
 }
 
 static void decoder_model_info(GF_BitStream *bs, u8 *buffer_delay_length_minus_1) {
 	*buffer_delay_length_minus_1 = gf_bs_read_int(bs, 5);
-	/*num_units_in_decoding_tick =*/ gf_bs_read_u32(bs);
+	/*num_units_in_decoding_tick =*/ gf_bs_read_int(bs, 32);
 	/*buffer_removal_time_length_minus_1 =*/ gf_bs_read_int(bs, 5);
 	/*frame_presentation_time_length_minus_1 =*/ gf_bs_read_int(bs, 5);
 }
@@ -1942,7 +1942,7 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		u64 pos = gf_bs_get_position(bs), obu_length = 0;
 		GF_Err e;
 
-		e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_length, state);
+		e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_length, NULL, state);
 		if (e) return e;
 		assert(obu_length == gf_bs_get_position(bs) - pos);
 		
@@ -1980,7 +1980,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 			pos = gf_bs_get_position(bs);
 			frame_unit_size -= Leb128Bytes;
 
-			e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_length, state);
+			e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_length, NULL, state);
 			if (e) return e;
 			assert(obu_length == gf_bs_get_position(bs) - pos);
 
@@ -2007,7 +2007,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 		u64 obu_size = 0, pos = gf_bs_get_position(bs);
 		ObuType obu_type;
 
-		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, state) != GF_OK)
+		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, state) != GF_OK)
 			return e;
 		assert(obu_size == gf_bs_get_position(bs) - pos);
 
@@ -2072,11 +2072,12 @@ static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 	/*parsing is voluntarily incomplete*/
 }
 
-GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, AV1State *state)
+GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
 {
 	GF_Err e = GF_OK;
 	Bool obu_has_size_field = GF_FALSE, obu_extension_flag = GF_FALSE;
 	u8 temporal_id = 0, spatial_id = 0;
+	u32 hdr_size;
 	u64 pos = gf_bs_get_position(bs);
 
 	if (!bs || !obu_type || !state)
@@ -2096,7 +2097,9 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
-	*obu_size += (gf_bs_get_position(bs) - pos);
+	hdr_size = (u32) (gf_bs_get_position(bs) - pos);
+	*obu_size += hdr_size;
+	if (obu_hdr_size) *obu_hdr_size = hdr_size;
 
 	if (*obu_type != OBU_SEQUENCE_HEADER && *obu_type != OBU_TEMPORAL_DELIMITER &&
 		state->OperatingPointIdc != 0 && obu_extension_flag == 1)

@@ -2504,7 +2504,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		
 		pos = gf_bs_get_position(bs);
 		obu_size = 0;
-		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &state) != GF_OK) {
+		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}

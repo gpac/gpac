@@ -446,6 +446,7 @@ enum
 	/* from drm_sample.c */
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
 	GF_ISOM_BOX_TYPE_265B 	= GF_4CC('2','6','5','b'),
+	GF_ISOM_BOX_TYPE_AV1B 	= GF_4CC('a','v','1','b'),
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
