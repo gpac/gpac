@@ -1399,6 +1399,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		if (!pck) {
 			if (gf_filter_pid_is_eos(pid)) {
 				nb_eos++;
+				continue;
 			} else {
 				return GF_OK;
 			}
