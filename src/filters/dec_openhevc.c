@@ -403,7 +403,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				ctx->chroma_format_idc = avcc->chroma_format;
 			}
 
-			if (ctx->codec) {
+			if (ctx->codec && ctx->decoder_started) {
 				ohevcdec_create_inband(stream, avcc->nal_unit_size, avcc->sequenceParameterSets, avcc->pictureParameterSets, NULL);
 			}
 			gf_odf_avc_cfg_del(avcc);
@@ -454,7 +454,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					}
 				}
 			}
-			if (ctx->codec) {
+			if (ctx->codec && ctx->decoder_started) {
 				ohevcdec_create_inband(stream, hvcc->nal_unit_size, SPSs, PPSs, VPSs);
 			}
 			gf_odf_hevc_cfg_del(hvcc);
@@ -964,7 +964,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	//start decoder
 	if (!ctx->decoder_started) {
 		oh_start(ctx->codec);
-		ctx->decoder_started=1;
+		ctx->decoder_started = GF_TRUE;
 	}
 
 	if (nb_eos == ctx->nb_streams) {
