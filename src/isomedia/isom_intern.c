@@ -382,7 +382,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				if (mov->moov) {
 					for (k=0; k<gf_list_count(mov->moof->TrackList); k++) {
 						GF_TrackFragmentBox *traf = gf_list_get(mov->moof->TrackList, k);
-						if (traf->tfhd) {
+						if (traf->tfhd && mov->moov->mvex && mov->moov->mvex->TrackExList) {
 							GF_TrackBox *trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
 							u32 j=0;
 							while ((traf->trex = (GF_TrackExtendsBox*)gf_list_enum(mov->moov->mvex->TrackExList, &j))) {
