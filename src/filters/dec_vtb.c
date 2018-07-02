@@ -1809,6 +1809,7 @@ static void vtbdec_finalize(GF_Filter *filter)
 	if (ctx->frames) {
 		while (gf_list_count(ctx->frames) ) {
 			GF_VTBHWFrame *f = gf_list_pop_back(ctx->frames);
+			if (f->pck_src) gf_filter_pck_unref(f->pck_src);
 			gf_free(f);
 		}
 		gf_list_del(ctx->frames);
@@ -1817,6 +1818,7 @@ static void vtbdec_finalize(GF_Filter *filter)
 	if (ctx->frames_res) {
 		while (gf_list_count(ctx->frames_res) ) {
 			GF_VTBHWFrame *f = gf_list_pop_back(ctx->frames_res);
+			if (f->pck_src) gf_filter_pck_unref(f->pck_src);
 			gf_free(f);
 		}
 		gf_list_del(ctx->frames_res);
