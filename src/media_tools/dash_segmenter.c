@@ -2193,7 +2193,7 @@ restart_fragmentation_pass:
 							}
 						}
 						else if (cue->dts) {
-							s64 ts = cue->dts * tf->TimeScale;
+							u64 ts = cue->dts * tf->TimeScale;
 							u64 ts2 = sample->DTS * tf->cues_timescale;
 							if (ts == ts2) {
 								is_split = GF_TRUE;
