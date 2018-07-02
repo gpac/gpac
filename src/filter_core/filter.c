@@ -48,6 +48,14 @@ static const char *gf_filter_get_dst_args_stripped(GF_FilterSession *fsess, cons
 		dst_striped = strstr(dst_args, szDst);
 		if (dst_striped) {
 			dst_striped = strchr(dst_striped+5, fsess->sep_args);
+			if (dst_striped && (fsess->sep_args==':') && !strncmp(dst_striped, "://", 3) ) {
+				char *sep2 = strchr(dst_striped+3, '/');
+				if (sep2) {
+					dst_striped = strchr(sep2, fsess->sep_args);
+				} else {
+					dst_striped = strchr(dst_striped+3, fsess->sep_args);
+				}
+			}
 			if (dst_striped) dst_striped ++;
 		} else {
 			dst_striped = (char *)dst_args;
@@ -561,7 +569,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 {
 	u32 i=0;
 	char szEscape[7];
-	char szSrc[5];
+	char szSrc[5], szDst[5];
 	Bool has_meta_args = GF_FALSE;
 	char *szArg=NULL;
 	u32 alloc_len=1024;
@@ -582,6 +590,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 	sprintf(szEscape, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
 	sprintf(szSrc, "src%c", filter->session->sep_name);
+	sprintf(szDst, "dst%c", filter->session->sep_name);
 
 	//instantiate all others with defauts value
 	i=0;
@@ -626,12 +635,13 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		if (filter->session->sep_args == ':') {
 			while (sep && !strncmp(sep, "://", 3)) {
 				//filter internal url schemes
-				if (!strncmp(args, szSrc, 4) &&
+				if ((!strncmp(args, szSrc, 4) || !strncmp(args, szDst, 4) ) &&
 					(!strncmp(args+4, "video://", 8)
 					|| !strncmp(args+4, "audio://", 8)
 					|| !strncmp(args+4, "av://", 5)
 					|| !strncmp(args+4, "gmem://", 7)
 					|| !strncmp(args+4, "gpac://", 7)
+					|| !strncmp(args+4, "pipe://", 7)
 					)
 				) {
 					internal_url = GF_TRUE;
@@ -730,7 +740,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			goto skip_arg;
 		}
 
-		if ((arg_type == GF_FILTER_ARG_INHERIT) && !strcmp(szArg, "src"))
+		if ((arg_type == GF_FILTER_ARG_INHERIT) && (!strcmp(szArg, "src") || !strcmp(szArg, "dst")) )
 			goto skip_arg;
 
 		i=0;
@@ -1944,5 +1954,22 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 {
 	if (!filter) return GF_FALSE;
 	return filter->session->disable_blocking ? GF_FALSE : GF_TRUE;
+}
+
+const char *gf_filter_probe_mime(GF_Filter *filter, const u8 *data, u32 size)
+{
+	const char *mime = NULL;
+	u32 i, count;
+	gf_mx_p(filter->session->filters_mx);
+	count = gf_list_count(filter->session->registry);
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
+		if (!freg || !freg->probe_data) continue;
+		mime = freg->probe_data(data, size);
+		if (mime) break;
+	}
+
+	gf_mx_v(filter->session->filters_mx);
+	return mime;
 }
 

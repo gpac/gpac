@@ -326,6 +326,9 @@ const char *gf_m2ts_get_stream_name(u32 streamType);
 /*returns 1 if file is an MPEG-2 TS */
 Bool gf_m2ts_probe_file(const char *fileName);
 
+/*returns 1 if data is MPEG-2 TS */
+Bool gf_m2ts_probe_data(const u8 *data, u32 size);
+
 /*shifts all timing by the given value
 @is_pes: array of GF_M2TS_MAX_STREAMS u8 set to 1 for PES PIDs to be restamped
 */

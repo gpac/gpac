@@ -35,7 +35,7 @@ typedef struct
 	char *dst, *mime, *fext;
 	Bool append, dynext;
 
-	//only one output pid declared for now
+	//only one input pid
 	GF_FilterPid *pid;
 
 	FILE *file;

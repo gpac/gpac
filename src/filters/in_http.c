@@ -66,7 +66,7 @@ typedef struct
 	GF_Err last_state;
 } GF_HTTPInCtx;
 
-GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **pid, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size);
+GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **pid, const char *url, const char *local_file, const char *mime_type, const char *ext, char *probe_data, u32 probe_size);
 
 static GF_Err httpin_initialize(GF_Filter *filter)
 {
@@ -300,7 +300,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			}
 			ctx->file_size = total_size;
 			ctx->block[nb_read] = 0;
-			e = filein_declare_pid(filter, &ctx->pid, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), ctx->block, nb_read);
+			e = filein_declare_pid(filter, &ctx->pid, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), NULL, ctx->block, nb_read);
 			if (e) return e;
 			if (!ctx->initial_ack_done) {
 				ctx->initial_ack_done = GF_TRUE;

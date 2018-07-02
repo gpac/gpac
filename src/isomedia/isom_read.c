@@ -90,32 +90,8 @@ void gf_isom_sample_del(GF_ISOSample **samp)
 	*samp = NULL;
 }
 
-GF_EXPORT
-u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_range)
+static u32 gf_isom_probe_type(u32 type)
 {
-	u32 type = 0;
-
-	if (!strncmp(fileName, "gmem://", 7)) {
-		u32 size;
-		u8 *mem_address;
-		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
-			return 0;
-		}
-		if (size > start_range + 8)
-			type = GF_4CC(mem_address[start_range + 4], mem_address[start_range + 5], mem_address[start_range + 6], mem_address[start_range + 7]);
-	} else {
-		unsigned char data[4];
-		FILE *f = gf_fopen(fileName, "rb");
-		if (!f) return 0;
-		if (start_range) gf_fseek(f, start_range, SEEK_SET);
-		type = 0;
-		if (fread(data, 1, 4, f) == 4) {
-			if (fread(data, 1, 4, f) == 4) {
-				type = GF_4CC(data[0], data[1], data[2], data[3]);
-			}
-		}
-		gf_fclose(f);
-	}
 	switch (type) {
 	case GF_ISOM_BOX_TYPE_FTYP:
 	case GF_ISOM_BOX_TYPE_MOOV:
@@ -146,10 +122,50 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 }
 
 GF_EXPORT
+u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_range)
+{
+	u32 type = 0;
+
+	if (!strncmp(fileName, "gmem://", 7)) {
+		u32 size;
+		u8 *mem_address;
+		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
+			return 0;
+		}
+		if (size > start_range + 8)
+			type = GF_4CC(mem_address[start_range + 4], mem_address[start_range + 5], mem_address[start_range + 6], mem_address[start_range + 7]);
+	} else {
+		unsigned char data[4];
+		FILE *f = gf_fopen(fileName, "rb");
+		if (!f) return 0;
+		if (start_range) gf_fseek(f, start_range, SEEK_SET);
+		type = 0;
+		if (fread(data, 1, 4, f) == 4) {
+			if (fread(data, 1, 4, f) == 4) {
+				type = GF_4CC(data[0], data[1], data[2], data[3]);
+			}
+		}
+		gf_fclose(f);
+	}
+	return gf_isom_probe_type(type);
+}
+
+GF_EXPORT
 u32 gf_isom_probe_file(const char *fileName)
 {
 	return gf_isom_probe_file_range(fileName, 0, 0);
 }
+
+GF_EXPORT
+u32 gf_isom_probe_data(const u8*inBuf, u32 inSize)
+{
+	u32 type;
+	if (inSize < 8) return 0;
+	type = GF_4CC(inBuf[4], inBuf[5], inBuf[6], inBuf[7]);
+	return gf_isom_probe_type(type);
+}
+
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/internal/media_dev.h>
 #endif

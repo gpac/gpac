@@ -1344,8 +1344,9 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	if (sep && (fsess->sep_args==':') && !strnicmp(sep, "://", 3))  {
 		sep = strstr(sURL, "://");
 		if (sep) {
-			sep = strchr(sep+3, '/');
-			if (sep) sep = strstr(sep+1, ":gpac:");
+			char *sep2 = strchr(sep+3, '/');
+			if (sep2) sep = strstr(sep2+1, ":gpac:");
+			else sep = strchr(sep+3, ':');
 		} else {
 			sep = strchr(sURL, ':');
 			if (sep && !strnicmp(sep, ":\\", 2)) sep = strstr(sep+2, ":gpac:");

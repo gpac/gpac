@@ -941,6 +941,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	return is_active ? GF_OK : GF_EOS;
 }
 
+static const char *isoffin_probe_data(const u8 *data, u32 size)
+{
+	if (gf_isom_probe_data(data, size)) {
+		return "video/mp4";
+	}
+	return NULL;
+}
+
 #define OFFS(_n)	#_n, offsetof(ISOMReader, _n)
 
 static const GF_FilterArgs ISOFFInArgs[] =
@@ -987,7 +995,8 @@ GF_FilterRegister ISOFFInRegister = {
 	.process = isoffin_process,
 	.configure_pid = isoffin_configure_pid,
 	SETCAPS(ISOFFInCaps),
-	.process_event = isoffin_process_event
+	.process_event = isoffin_process_event,
+	.probe_data = isoffin_probe_data
 };
 
 
