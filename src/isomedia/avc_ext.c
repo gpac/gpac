@@ -1574,7 +1574,7 @@ static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand
 			gf_list_rem(cfg->param_array, i);
 			i--;
 		}
-		if (!ar->array_completeness) 
+		if (!ar->array_completeness)
 			array_incomplete = 1;
 	}
 	return array_incomplete;
@@ -2452,6 +2452,10 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		if (!dep) return GF_OUT_OF_MEM;
 		dep->dependent_layerID = gf_bs_read_u8(bs);
 		dep->num_layers_dependent_on = gf_bs_read_u8(bs);
+		if (dep->num_layers_dependent_on > ARRAY_LENGTH(dep->dependent_on_layerID)) {
+			gf_free(dep);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		for (j = 0; j < dep->num_layers_dependent_on; j++)
 			dep->dependent_on_layerID[j] = gf_bs_read_u8(bs);
 		for (j = 0; j < 16; j++) {
