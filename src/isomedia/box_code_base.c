@@ -652,15 +652,22 @@ GF_Err urn_Read(GF_Box *s, GF_BitStream *bs)
 		gf_free(tmpName);
 		return GF_OUT_OF_MEM;
 	}
-	ptr->location = (char*)gf_malloc(sizeof(char) * (to_read - i - 1));
-	if (!ptr->location) {
-		gf_free(tmpName);
-		gf_free(ptr->nameURN);
-		ptr->nameURN = NULL;
-		return GF_OUT_OF_MEM;
-	}
 	memcpy(ptr->nameURN, tmpName, i + 1);
-	memcpy(ptr->location, tmpName + i + 1, (to_read - i - 1));
+
+	if (tmpName[to_read - 1] != 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] urn box cointains invalid location field\n" ));
+	}
+	else {
+		ptr->location = (char*)gf_malloc(sizeof(char) * (to_read - i - 1));
+		if (!ptr->location) {
+			gf_free(tmpName);
+			gf_free(ptr->nameURN);
+			ptr->nameURN = NULL;
+			return GF_OUT_OF_MEM;
+		}
+		memcpy(ptr->location, tmpName + i + 1, (to_read - i - 1));
+	}
+
 	gf_free(tmpName);
 	return GF_OK;
 }
