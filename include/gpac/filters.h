@@ -416,6 +416,10 @@ typedef struct __gf_filter_register
 	// (filters having a "dst" argument) - probe the given URL, returning a score
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
 
+	//optional, usually set by demuxers
+	//probes the mime type of a data chunk
+	const char * (*probe_data)(const u8 *data, u32 size);
+
 	//for filters having the same match of input caps for a PID, the filter with priority at the lowest value will be used
 	//scalable decoders should use high values, so that they are only selected when enhancement layers are present
 	u8 priority;
@@ -481,6 +485,8 @@ GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx);
 //by default copy properties if only one input pid
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 void gf_filter_pid_remove(GF_FilterPid *pid);
+
+const char *gf_filter_probe_mime(GF_Filter *filter, const u8 *data, u32 size);
 
 void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf);
 

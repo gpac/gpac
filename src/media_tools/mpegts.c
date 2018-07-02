@@ -3224,14 +3224,24 @@ GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u
 
 
 #define M2TS_PROBE_SIZE	188000
+static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
+{
+	GF_Err e;
+	GF_M2TS_Demuxer *ts = gf_m2ts_demux_new();
+	e = gf_m2ts_process_data(ts, buf, size);
+	if (!ts->pck_number) e = GF_BAD_PARAM;
+	gf_m2ts_demux_del(ts);
+
+	if (e) return GF_FALSE;
+	return GF_TRUE;
+
+}
 GF_EXPORT
 Bool gf_m2ts_probe_file(const char *fileName)
 {
 	char buf[M2TS_PROBE_SIZE];
-	GF_Err e;
 	u32 size;
 	FILE *t;
-	GF_M2TS_Demuxer *ts;
 
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u8 *mem_address;
@@ -3247,13 +3257,19 @@ Bool gf_m2ts_probe_file(const char *fileName)
 		gf_fclose(t);
 		if ((s32) size <= 0) return 0;
 	}
-	ts = gf_m2ts_demux_new();
-	e = gf_m2ts_process_data(ts, buf, size);
-	if (!ts->pck_number) e = GF_BAD_PARAM;
-	gf_m2ts_demux_del(ts);
-	if (e) return 0;
-	return 1;
+	return gf_m2ts_probe_buffer(buf, size);
 }
+
+GF_EXPORT
+Bool gf_m2ts_probe_data(const u8 *data, u32 size)
+{
+	char buf[M2TS_PROBE_SIZE];
+	size /= 188;
+	size *= 188;
+	if (size>M2TS_PROBE_SIZE) size = M2TS_PROBE_SIZE;
+	return gf_m2ts_probe_buffer(buf, size);
+}
+
 
 static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 {

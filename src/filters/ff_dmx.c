@@ -536,6 +536,28 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 	return GF_FPROBE_MAYBE_SUPPORTED;
 }
 
+
+static const char *ffdmx_probe_data(const u8 *data, u32 size)
+{
+	int score;
+	AVInputFormat *probe_fmt;
+	AVProbeData pb;
+
+	av_register_all();
+
+	memset(&pb, 0, sizeof(AVProbeData));
+	pb.filename = "";
+	pb.buf = gf_malloc(sizeof(char)*(size+AVPROBE_PADDING_SIZE) );
+	memcpy(pb.buf, data, sizeof(char)*size);
+	pb.buf_size = size;
+	probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &score);
+	gf_free(pb.buf);
+
+	if (!probe_fmt) return NULL;
+	if (probe_fmt->mime_type) return probe_fmt->mime_type;
+	return NULL;
+}
+
 #define OFFS(_n)	#_n, offsetof(GF_FFDemuxCtx, _n)
 
 static const GF_FilterCapability FFDmxCaps[] =
@@ -555,6 +577,7 @@ GF_FilterRegister FFDemuxRegister = {
 	.process = ffdmx_process,
 	.update_arg = ffdmx_update_arg,
 	.probe_url = ffdmx_probe_url,
+	.probe_data = ffdmx_probe_data,
 	.process_event = ffdmx_process_event
 };
 
@@ -870,7 +893,6 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 	FFAVInRegister.args = args;
 
 	ffmpeg_expand_registry(session, &FFAVInRegister, FF_REG_TYPE_DEV_IN);
-
 	return &FFAVInRegister;
 }
 

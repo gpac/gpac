@@ -775,6 +775,39 @@ static void ctxload_finalize(GF_Filter *filter)
 	if (priv->load.localPath) gf_free((char *)priv->load.localPath);
 }
 
+static const char *ctxload_probe_data(const u8 *probe_data, u32 size)
+{
+	if (strstr(probe_data, "<XMT-A") || strstr(probe_data, ":mpeg4:xmta:")) {
+		return "application/x-xmt";
+	} else if (strstr(probe_data, "InitialObjectDescriptor")
+		|| (strstr(probe_data, "EXTERNPROTO") && strstr(probe_data, "gpac:"))
+	) {
+		return "application/x-bt";
+	} else if (strstr(probe_data, "#VRML V2.0 utf8")) {
+		return "model/vrml";
+	} else if ( strstr(probe_data, "#X3D V3.0")) {
+		return "model/x3d+vrml";
+	} else if (strstr(probe_data, "<X3D") || strstr(probe_data, "/x3d-3.0.dtd")) {
+		return "model/x3d+xml";
+	} else if (strstr(probe_data, "<saf") || strstr(probe_data, "mpeg4:SAF:2005")
+		|| strstr(probe_data, "mpeg4:LASeR:2005")
+	) {
+		return "application/x-LASeR+xml";
+	} else if (strstr(probe_data, "<svg") || strstr(probe_data, "w3.org/2000/svg") ) {
+		return "image/svg+xml";
+	} else if (strstr(probe_data, "<widget")  ) {
+		return "application/widget";
+	} else if (strstr(probe_data, "<NHNTStream")) {
+		return "application/x-nhml";
+	} else if (strstr(probe_data, "DIMSStream") ) {
+		return "application/dims";
+	} else if (strstr(probe_data, "TextStream") ) {
+		return "text/ttxt";
+	} else if (strstr(probe_data, "text3GTrack") ) {
+		return "quicktime/text";
+	}
+	return NULL;
+}
 
 #endif //defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 
@@ -811,6 +844,7 @@ GF_FilterRegister CTXLoadRegister = {
 	.process = ctxload_process,
 	.configure_pid = ctxload_configure_pid,
 	.process_event = ctxload_process_event,
+	.probe_data = ctxload_probe_data,
 };
 
 

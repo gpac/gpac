@@ -933,6 +933,13 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static const char *m2tsdmx_probe_data(const u8 *data, u32 size)
+{
+	if (gf_m2ts_probe_data(data, size)) {
+		return "video/mp2t";
+	}
+	return NULL;
+}
 
 static const GF_FilterCapability M2TSDmxCaps[] =
 {
@@ -970,6 +977,7 @@ GF_FilterRegister M2TSDmxRegister = {
 	.configure_pid = m2tsdmx_configure_pid,
 	.process = m2tsdmx_process,
 	.process_event = m2tsdmx_process_event,
+	.probe_data = m2tsdmx_probe_data,
 };
 
 

@@ -3802,6 +3802,11 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 	u32 k;
 	char szFormat[10], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
 	char *name = szTemplate;
+	if (!strchr(szTemplate, '$')) {
+		strcpy(szFinalName, szTemplate);
+		return GF_OK;
+	}
+	
 	k = 0;
 	while (name[0]) {
 		char *sep=NULL;
@@ -4023,9 +4028,9 @@ static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *ds
 
 	sep = strchr(dst, sess->sep_args);
 	if (sep && (sess->sep_args==':') && !strncmp(sep, "://", 3)) {
-		sep = strchr(sep+3, '/');
-		if (sep) sep = strchr(sep+1, ':');
-		else dst = NULL;
+		char *sep2 = strchr(sep+3, '/');
+		if (sep2) sep = strchr(sep+1, ':');
+		else sep = strchr(sep+3, ':');
 	}
 	if (dst && sep) {
 		u32 len;

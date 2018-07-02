@@ -2579,6 +2579,48 @@ static void naludmx_finalize(GF_Filter *filter)
 	if (ctx->hevc_state) gf_free(ctx->hevc_state);
 }
 
+static const char *naludmx_probe_data(const u8 *data, u32 size)
+{
+	u32 sc, sc_size;
+	u32 not_hevc=0;
+	u32 not_avc=0;
+	u32 nb_hevc=0;
+	u32 nb_avc=0;
+	u32 nb_nalus=0;
+
+	while (size) {
+		u32 avc_type=0;
+		u32 hevc_type=0;
+		sc = gf_media_nalu_next_start_code(data, size, &sc_size);
+		if (!sc_size) break;
+
+		data += sc + sc_size;
+		if (size <= sc + sc_size) break;
+		size -= sc + sc_size;
+
+		nb_nalus++;
+
+		hevc_type = (data[0] & 0x7E) >> 1;
+		if (hevc_type<=40) {
+			nb_hevc++;
+		} else {
+			not_hevc++;
+		}
+
+		avc_type = data[0] & 0x1F;
+		if (avc_type && avc_type<=23) {
+			nb_avc++;
+		} else {
+			not_avc++;
+		}
+	}
+	if (!nb_hevc && !nb_avc) return NULL;
+	if (!nb_hevc) return nb_avc ? "video/avc" : NULL;
+	if (!nb_avc) return "video/hevc";
+	if (nb_hevc>nb_avc) return "video/hevc";
+	return "video/avc";
+}
+
 static const GF_FilterCapability NALUDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -2630,7 +2672,8 @@ GF_FilterRegister NALUDmxRegister = {
 	SETCAPS(NALUDmxCaps),
 	.configure_pid = naludmx_configure_pid,
 	.process = naludmx_process,
-	.process_event = naludmx_process_event
+	.process_event = naludmx_process_event,
+	.probe_data = naludmx_probe_data,
 };
 
 

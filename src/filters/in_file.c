@@ -26,7 +26,6 @@
 
 #include <gpac/filters.h>
 #include <gpac/constants.h>
-#include <gpac/xml.h>
 
 typedef struct
 {
@@ -49,9 +48,8 @@ typedef struct
 } GF_FileInCtx;
 
 
-GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size)
+GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size)
 {
-	char *ext = NULL;
 	char *sep;
 	GF_FilterPid *pid = (*the_pid);
 	//declare a single PID carrying FILE data pid
@@ -73,55 +71,30 @@ GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char 
 	else sep++;
 	gf_filter_pid_set_name(pid, sep);
 
-
-	ext = strrchr(url, '.');
-	if (ext && !stricmp(ext, ".gz")) {
-		char *anext;
-		ext[0] = 0;
-		anext = strrchr(url, '.');
-		ext[0] = '.';
-		ext = anext;
-	}
-	if (ext) ext++;
-	if (ext) {
-		char *s = strchr(ext, '#');
-		if (s) s[0] = 0;
-
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext));
-		if (s) s[0] = '#';
-	}
-
-	//TODO - make this generic
-	if (!mime_type && probe_data) {
-		if (strstr(probe_data, "<XMT-A") || strstr(probe_data, ":mpeg4:xmta:")) {
-			mime_type = "application/x-xmt";
-		} else if (strstr(probe_data, "InitialObjectDescriptor")
-			|| (strstr(probe_data, "EXTERNPROTO") && strstr(probe_data, "gpac:"))
-		) {
-			mime_type = "application/x-bt";
-		} else if (strstr(probe_data, "#VRML V2.0 utf8")) {
-			mime_type = "model/vrml";
-		} else if ( strstr(probe_data, "#X3D V3.0")) {
-			mime_type = "model/x3d+vrml";
-		} else if (strstr(probe_data, "<X3D") || strstr(probe_data, "/x3d-3.0.dtd")) {
-			mime_type = "model/x3d+xml";
-		} else if (strstr(probe_data, "<saf") || strstr(probe_data, "mpeg4:SAF:2005")
-			|| strstr(probe_data, "mpeg4:LASeR:2005")
-		) {
-			mime_type = "application/x-LASeR+xml";
-		} else if (strstr(probe_data, "<svg") || strstr(probe_data, "w3.org/2000/svg") ) {
-			mime_type = "image/svg+xml";
-		} else if (strstr(probe_data, "<widget")  ) {
-			mime_type = "application/widget";
-		} else if (strstr(probe_data, "<NHNTStream")) {
-			mime_type = "application/x-nhml";
-		} else if (strstr(probe_data, "DIMSStream") ) {
-			mime_type = "application/dims";
-		} else if (strstr(probe_data, "TextStream") ) {
-			mime_type = "text/ttxt";
-		} else if (strstr(probe_data, "text3GTrack") ) {
-			mime_type = "quicktime/text";
+	if (fext) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(fext));
+	} else {
+		char *ext = strrchr(url, '.');
+		if (ext && !stricmp(ext, ".gz")) {
+			char *anext;
+			ext[0] = 0;
+			anext = strrchr(url, '.');
+			ext[0] = '.';
+			ext = anext;
 		}
+		if (ext) ext++;
+
+		if (ext) {
+			char *s = strchr(ext, '#');
+			if (s) s[0] = 0;
+
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext));
+			if (s) s[0] = '#';
+		}
+	}
+	//probe data
+	if (!mime_type && probe_data) {
+		mime_type = gf_filter_probe_mime(filter, probe_data, probe_size);
 	}
 	if (mime_type)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( mime_type));
@@ -338,7 +311,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
 		ctx->do_reconfigure = GF_FALSE;
-		e = filein_declare_pid(filter, &ctx->pid, ctx->src, ctx->src, NULL, ctx->block, nb_read);
+		e = filein_declare_pid(filter, &ctx->pid, ctx->src, ctx->src, NULL, NULL, ctx->block, nb_read);
 		if (e) return e;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );

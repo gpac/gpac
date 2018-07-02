@@ -70,7 +70,8 @@ Remaining before release
 - [ ] move Android client to filters
 - [ ] rewrite MP42TS to filters or drop it
 - [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
-- [ ] add pipe and tcp source and sink
+- [x] add pipe source and sink
+- [ ] add  tcp source and sink
 - [ ] add generic serializer/reader for all events/packets in filter arch
 - [ ] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
