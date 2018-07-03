@@ -10702,6 +10702,7 @@ GF_Err segr_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->num_session_groups = gf_bs_read_u16(bs);
 	if (ptr->num_session_groups*3>ptr->size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in segr\n", ptr->num_session_groups));
+		ptr->num_session_groups = 0;
 		return GF_ISOM_INVALID_FILE;
 	}
 
