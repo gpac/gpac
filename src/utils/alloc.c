@@ -244,7 +244,7 @@ static void store_backtrace(char *s_backtrace)
 			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
 			break;
 		}
-		
+
 		len = _snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
 		if (len<0) len = SYMBOL_MAX_SIZE-1;
 		s_backtrace[bt_idx+len]='\n';
@@ -277,12 +277,12 @@ static void store_backtrace(char *s_backtrace)
 			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
 			break;
 		}
-		
+
 		len = snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02zu %s", i, messages[i]);
 		if (len<0) len = SYMBOL_MAX_SIZE-1;
 		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
-		
+
 	}
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
 	s_backtrace[bt_idx-1] = '\0';
@@ -503,7 +503,7 @@ static void gf_memory_add_stack(memory_element **p, void *ptr, int size, const c
 	element->ptr = ptr;
 	element->size = size;
 	element->line = line;
-	
+
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
     if (gf_mem_backtrace_enabled) {
         element->backtrace_stack = MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
