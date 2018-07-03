@@ -7057,6 +7057,11 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MediaBox\n"));
 		return GF_ISOM_INVALID_FILE;
 	}
+	if (!ptr->Media->information || !ptr->Media->information->sampleTable) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid MediaBox\n"));
+		return GF_ISOM_INVALID_FILE;
+	}
+
 	for (i=0; i<gf_list_count(ptr->Media->information->sampleTable->other_boxes); i++) {
 		GF_Box *a = gf_list_get(ptr->Media->information->sampleTable->other_boxes, i);
 		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
