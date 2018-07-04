@@ -36,6 +36,7 @@ typedef struct
 
 	u32 idx;
 	u16 nb_pck;
+	Bool eos;
 } GF_GSFStream;
 
 typedef struct
@@ -71,9 +72,7 @@ typedef struct
 typedef enum
 {
 	GFS_PCKTYPE_HDR=0,
-	GFS_PCKTYPE_TUNEIN_REPEAT,
 	GFS_PCKTYPE_PID_CONFIG,
-	GFS_PCKTYPE_PID_RECONFIG,
 	GFS_PCKTYPE_PID_INFO_UPDATE,
 	GFS_PCKTYPE_PID_REMOVE,
 	GFS_PCKTYPE_PID_EOS,
@@ -85,11 +84,14 @@ typedef enum
 	GFS_PCKTYPE_UNDEF2,
 	GFS_PCKTYPE_UNDEF3,
 	GFS_PCKTYPE_UNDEF4,
-	GFS_PCKTYPE_UNDEF5
+	GFS_PCKTYPE_UNDEF5,
+	GFS_PCKTYPE_UNDEF6,
+	GFS_PCKTYPE_UNDEF7,
+	GFS_PCKTYPE_UNDEF8,
 	/*NO MORE PACKET TYPE AVAILABLE*/
 } GF_GSFPacketType;
 
-static void gsfmx_send_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketType pck_type, Bool is_end)
+static void gsfmx_send_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketType pck_type, Bool is_end, Bool is_redundant)
 {
 	u32 crypt_offset=0;
 	char *output;
@@ -114,9 +116,11 @@ static void gsfmx_send_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketT
 	gf_bs_write_int(ctx->bs_w, (gst && ctx->sigsn) ? 1 : 0, 1);
 	gf_bs_write_int(ctx->bs_w, lmode, 2);
 
-	if ((pck_type == GFS_PCKTYPE_HDR) || (pck_type == GFS_PCKTYPE_TUNEIN_REPEAT)) {
-		gf_bs_write_int(ctx->bs_w, 1, 1);
-		crypt_offset=25; //sig + version + IV + pattern
+	if (pck_type == GFS_PCKTYPE_HDR) {
+		if (ctx->crypt) {
+			crypt_offset=25; //sig + version + IV + pattern
+			do_encrypt = GF_TRUE;
+		}
 	} else {
 		if (ctx->crypt) {
 			switch (pck_type) {
@@ -128,8 +132,10 @@ static void gsfmx_send_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketT
 				break;
 			}
 		}
-		gf_bs_write_int(ctx->bs_w, do_encrypt ? 1 : 0, 1);
 	}
+
+	gf_bs_write_int(ctx->bs_w, do_encrypt ? 1 : 0, 1);
+
 	gf_bs_write_int(ctx->bs_w, pck_type, 4);
 	if (gst && ctx->sigsn) {
 		gf_bs_write_u32(ctx->bs_w, gst->nb_pck);
@@ -168,7 +174,7 @@ static void gsfmx_send_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketT
 		}
 	}
 
-	if (pck_type==GFS_PCKTYPE_TUNEIN_REPEAT) {
+	if (is_redundant) {
 		gf_filter_pck_set_dependency_flag(dst_pck, 1);
 		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	} else {
@@ -192,7 +198,7 @@ static void gsfmx_send_pid_rem(GF_GSFMxCtx *ctx, GF_GSFStream *gst)
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
 	//pid ID
 	gsfmx_write_vlen(ctx, gst->idx);
-	gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PID_REMOVE, GF_FALSE);
+	gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PID_REMOVE, GF_FALSE, GF_FALSE);
 
 }
 
@@ -201,7 +207,7 @@ static void gsfmx_send_pid_eos(GF_GSFMxCtx *ctx, GF_GSFStream *gst, Bool is_eos)
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
 	//pid ID
 	gsfmx_write_vlen(ctx, gst->idx);
-	gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PID_EOS, is_eos);
+	gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PID_EOS, is_eos, GF_FALSE);
 
 }
 
@@ -303,10 +309,10 @@ static void gsfmx_write_prop(GF_GSFMxCtx *ctx, const GF_PropertyValue *p)
 		}
 		break;
 	case GF_PROP_POINTER:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[GSFMux] Cannot serialize property of unknown type, ignoring !!\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize property of unknown type, ignoring !!\n"));
 		break;
 	}
 }
@@ -420,7 +426,7 @@ static void gsfmx_send_header(GF_GSFMxCtx *ctx, Bool is_tunein_packet)
 		gsfmx_write_vlen(ctx, 0);
 	}
 
-	gsfmx_send_packet(ctx, NULL, is_tunein_packet ? GFS_PCKTYPE_TUNEIN_REPEAT : GFS_PCKTYPE_HDR, GF_FALSE);
+	gsfmx_send_packet(ctx, NULL, GFS_PCKTYPE_HDR, GF_FALSE, is_tunein_packet);
 	ctx->is_start = GF_FALSE;
 }
 
@@ -432,7 +438,7 @@ static void gsfmx_send_pid_config(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPac
 
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
 	gsfmx_write_pid_config(ctx, gst);
-	gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE);
+	gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE, GF_FALSE);
 	ctx->regenerate_tunein_info = GF_TRUE;
 }
 
@@ -445,7 +451,7 @@ static u32 gsfmx_get_header_size(GF_GSFMxCtx *ctx, u32 psize)
 	return 1 + lmode+1 + (ctx->sigsn ? 2 : 0);
 }
 
-static void gsfmx_send_pck(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket *pck)
+static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket *pck)
 {
 	u32 w=0, h=0, stride=0, stride_uv=0, pf=0;
 	u32 nb_planes=0, uv_height=0;
@@ -491,7 +497,7 @@ static void gsfmx_send_pck(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket 
 			stride_uv = p ? p->value.uint : 0;
 
 			if (! gf_pixel_get_size_info(pf, w, h, &psize, &stride, &stride_uv, &nb_planes, &uv_height)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[GSFMux] Raw packet with unsupported pixel format, cannot send\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFMux] Raw packet with unsupported pixel format, cannot send\n"));
 				return;
 			}
 		}
@@ -647,7 +653,7 @@ static void gsfmx_send_pck(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket 
 			if (prop_4cc) continue;
 
 			len = strlen(prop_name);
-			gf_bs_write_u32(ctx->bs_w, len);
+			gsfmx_write_vlen(ctx, len);
 			gf_bs_write_data(ctx->bs_w, prop_name, len);
 
 			gf_bs_write_u8(ctx->bs_w, p->type);
@@ -677,7 +683,7 @@ static void gsfmx_send_pck(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket 
 			if (nb_write != psize) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, psize));
 			}
-			gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE);
+			gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE);
 		} else {
 			Bool first = GF_TRUE;
 			const char *ptr = data;
@@ -697,7 +703,7 @@ static void gsfmx_send_pck(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket 
 				if (nb_write != to_write) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, to_write));
 				}
-				gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE);
+				gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE, GF_FALSE);
 				ptr += to_write;
 				psize -= to_write;
 				if (!psize) break;
@@ -765,7 +771,7 @@ static void gsfmx_send_pck(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket 
 							if (first) pck_type = GFS_PCKTYPE_PCK;
 							else if (last) pck_type = GFS_PCKTYPE_PCK_LAST;
 
-							gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE);
+							gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE, GF_FALSE);
 							if (last) break;
 
 							pck_size = ctx->mpck - hsize;
@@ -786,7 +792,7 @@ static void gsfmx_send_pck(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket 
 		}
 		//not fragmented, send packet
 		if (!last)
-			gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE);
+			gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE);
 	}
 }
 
@@ -835,7 +841,7 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gsfmx_send_pid_config(ctx, gst, GFS_PCKTYPE_PID_CONFIG);
 
 	} else {
-		gsfmx_send_pid_config(ctx, gst, GFS_PCKTYPE_PID_RECONFIG);
+		gsfmx_send_pid_config(ctx, gst, GFS_PCKTYPE_PID_CONFIG);
 
 	}
 	return GF_OK;
@@ -854,11 +860,15 @@ GF_Err gsfmx_process(GF_Filter *filter)
 		if (!pck) {
 			if (gf_filter_pid_is_eos(gst->pid)) {
 				nb_eos++;
-				gsfmx_send_pid_eos(ctx, gst, (nb_eos==count) ? GF_TRUE : GF_FALSE);
+				if (!gst->eos) {
+					gsfmx_send_pid_eos(ctx, gst, (nb_eos==count) ? GF_TRUE : GF_FALSE);
+					gst->eos = GF_TRUE;
+				}
 			}
 			continue;
 		}
-		gsfmx_send_pck(ctx, gst, pck);
+		gst->eos = GF_FALSE;
+		gsfmx_write_packet(ctx, gst, pck);
 		gf_filter_pid_drop_packet(gst->pid);
 	}
 	if (ctx->regenerate_tunein_info) {
@@ -896,7 +906,7 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 		if (ctx->IV.size==16) {
 			memcpy(ctx->crypt_IV, ctx->IV.ptr, 16);
 		} else if (ctx->IV.size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[GSFMux] Wrong IV value, size %d expecting 16\n", ctx->key.size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Wrong IV value, size %d expecting 16\n", ctx->key.size));
 			return GF_BAD_PARAM;
 		} else if (ctx->for_test) {
 			memset(ctx->crypt_IV, 1, 16);
@@ -913,20 +923,20 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 				sprintf(szC, "%02X", ctx->crypt_IV[i]);
 				strcat(szIV, szC);
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[GSFMux] Generated IV value Ox%s\n", szIV));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[GSFMux] Generated IV value Ox%s\n", szIV));
 		}
 		ctx->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 		if (!ctx->crypt) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[GSFMux] Failed to allocate crypt context\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Failed to allocate crypt context\n"));
 			return GF_IO_ERR;
 		}
 		e = gf_crypt_init(ctx->crypt, ctx->key.ptr, ctx->crypt_IV);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[GSFMux] Failed to setup encryption: %s\n", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Failed to setup encryption: %s\n", gf_error_to_string(e) ));
 			return GF_IO_ERR;
 		}
 	} else if (ctx->key.size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[GSFMux] Wrong key value, size %d expecting 16\n", ctx->key.size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Wrong key value, size %d expecting 16\n", ctx->key.size));
 		return GF_BAD_PARAM;
 	}
 

@@ -628,6 +628,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	gf_filter_pid_configure(filter, task->pid->pid, GF_PID_CONF_CONNECT);
 	//once connected, any set_property before the first packet dispatch will have to trigger a reconfigure
 	task->pid->pid->request_property_map = GF_TRUE;
+	task->pid->pid->pid_info_changed = GF_FALSE;
 
 	//filter may now be the clone, decrement on original filter
 	safe_int_dec(&task->filter->in_pid_connection_pending);
@@ -2474,7 +2475,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 		return old_map;
 	}
 	pid->request_property_map = GF_FALSE;
-	pid->pid_info_changed = GF_TRUE;
+	pid->pid_info_changed = GF_FALSE;
 	map = gf_props_new(pid->filter);
 	if (!map) return NULL;
 	gf_list_add(pid->properties, map);
@@ -2521,6 +2522,7 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 			map = gf_props_new(pid->filter);
 			if (map) gf_list_add(pid->properties, map);
 		}
+		pid->pid_info_changed = GF_TRUE;
 	} else {
 		//always merge properties
 		map = check_new_pid_props(pid, GF_TRUE);
@@ -2885,6 +2887,11 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	}
 	if (pcki->pck->info.pid_info_changed && !pcki->pid_info_change_done && pidinst->filter->freg->process_event) {
 		GF_FilterEvent evt;
+		//it may happen that this filter pid is pulled from another thread than ours (eg audio callback), in which case
+		//we cannot go reentrant, we have to wait until the filter is not in use ...
+		if (pidinst->filter->process_th_id && (pidinst->filter->process_th_id != gf_th_id()) ) {
+			return NULL;
+		}
 		pcki->pid_info_change_done = 1;
 		GF_FEVT_INIT(evt, GF_FEVT_INFO_UPDATE, pid);
 
