@@ -849,6 +849,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							}
 							gf_fq_add(fsess->tasks, task);
 						}
+						assert(current_filter->process_th_id == 0);
 						current_filter = NULL;
 						continue;
 					}
@@ -930,6 +931,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				}
 
 				gf_mx_v(current_filter->tasks_mx);
+				current_filter->process_th_id = 0;
+				current_filter->in_process = GF_FALSE;
 				current_filter = NULL;
 			} else {
 				gf_mx_v(current_filter->tasks_mx);

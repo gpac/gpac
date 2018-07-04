@@ -479,6 +479,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
 		pck->info.pid_props_changed = GF_TRUE;
+		pid->pid_info_changed = GF_FALSE;
 	}
 	//any new pid_set_property after this packet will trigger a new property map
 	pck->info.pid_info_changed = GF_FALSE;
@@ -487,7 +488,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		pid->props_changed_since_connect = GF_FALSE;
 	}
 	if (pid->pid_info_changed) {
-		pck->info.pid_info_changed = GF_TRUE;
+		if (!pck->info.pid_props_changed)
+			pck->info.pid_info_changed = GF_TRUE;
 		pid->pid_info_changed = GF_FALSE;
 	}
 
@@ -502,7 +504,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 	}
 
-	if (pid->filter->out_pid_connection_pending || pid->filter->has_pending_pids) {
+	if (pid->filter->out_pid_connection_pending || pid->filter->has_pending_pids || pid->init_task_pending) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s connection pending, queuing packet\n", pck->pid->filter->name, pck->pid->name));
 		if (!pid->filter->postponed_packets) pid->filter->postponed_packets = gf_list_new();
 		gf_list_add(pid->filter->postponed_packets, pck);
@@ -1131,7 +1133,7 @@ GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType cty
 
 GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck)
 {
-	return pck->info.clock_type;
+	return pck->pck->info.clock_type;
 }
 
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)

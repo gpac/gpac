@@ -173,6 +173,7 @@
 		920101D118D5ACA7003D1ACA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 920101D018D5ACA7003D1ACA /* libz.dylib */; };
 		9202FEB2204840FB000EE9B1 /* load_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85591F7BFB61009BC9C8 /* load_svg.c */; };
 		9202FEB32048411D000EE9B1 /* dec_vorbis.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C11F7D10F400299CC6 /* dec_vorbis.c */; };
+		9203644B20ECF67C0087883E /* dmx_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 9203644A20ECF67C0087883E /* dmx_gsf.c */; };
 		92061A851FE0484600B5C464 /* reframer.c in Sources */ = {isa = PBXBuildFile; fileRef = 92061A841FE0484500B5C464 /* reframer.c */; };
 		9206822C20EA41530041169F /* in_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822B20EA41530041169F /* in_pipe.c */; };
 		9206822E20EA69680041169F /* out_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822D20EA69680041169F /* out_pipe.c */; };
@@ -1003,6 +1004,7 @@
 		9201FFFC18D5A444003D1ACA /* drm_sample.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = drm_sample.c; sourceTree = "<group>"; };
 		9201FFFE18D5A444003D1ACA /* hint_track.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hint_track.c; sourceTree = "<group>"; };
 		9201FFFF18D5A444003D1ACA /* hinting.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hinting.c; sourceTree = "<group>"; };
+		9203644A20ECF67C0087883E /* dmx_gsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_gsf.c; path = filters/dmx_gsf.c; sourceTree = "<group>"; };
 		92061A841FE0484500B5C464 /* reframer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframer.c; path = filters/reframer.c; sourceTree = "<group>"; };
 		9206822B20EA41530041169F /* in_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_pipe.c; path = filters/in_pipe.c; sourceTree = "<group>"; };
 		9206822D20EA69680041169F /* out_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_pipe.c; path = filters/out_pipe.c; sourceTree = "<group>"; };
@@ -2418,10 +2420,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				9206823320EA96AA0041169F /* mux_gsf.c */,
-				9206822D20EA69680041169F /* out_pipe.c */,
-				9206822B20EA41530041169F /* in_pipe.c */,
-				92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -2443,6 +2441,7 @@
 				925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */,
 				922CF1261FCF169900F2F6A4 /* dmx_avi.c */,
 				92BB9A661F9C827600524E5B /* dmx_dash.c */,
+				9203644A20ECF67C0087883E /* dmx_gsf.c */,
 				926656C51F7D45F700299CC6 /* dmx_ogg.c */,
 				926656C71F7E92C200299CC6 /* dmx_m2ts.c */,
 				922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */,
@@ -2452,6 +2451,7 @@
 				926998B31FEACE8F00AA759D /* dmx_vobsub.c */,
 				9239B8D5207369E5005F7264 /* enc_jpg.c */,
 				9239B8D72073AFEF005F7264 /* enc_png.c */,
+				92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */,
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
 				926245971FD691A000184072 /* ff_common.h */,
 				92BB85501F7BFB60009BC9C8 /* ff_dec.c */,
@@ -2462,6 +2462,7 @@
 				92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */,
 				92BB855A1F7BFB61009BC9C8 /* in_file.c */,
 				92BB855E1F7BFB61009BC9C8 /* in_http.c */,
+				9206822B20EA41530041169F /* in_pipe.c */,
 				9234CF4C1FD8344500CCDFA1 /* in_rtp */,
 				926656C91F836DE200299CC6 /* in_udp.c */,
 				92BB855F1F7BFB62009BC9C8 /* inspect.c */,
@@ -2473,10 +2474,12 @@
 				92EE76401FD0315D008926F5 /* load_text.c */,
 				92BB85591F7BFB61009BC9C8 /* load_svg.c */,
 				922E29812051940C00C8DCBB /* mux_avi.c */,
+				9206823320EA96AA0041169F /* mux_gsf.c */,
 				9290F5101FAB4C2C0038C30D /* mux_isom.c */,
 				9256B38A208662FB00088537 /* mux_ts.c */,
 				922E29822051940C00C8DCBB /* out_audio.c */,
 				9289D9F41FDEFFCD00C24F83 /* out_file.c */,
+				9206822D20EA69680041169F /* out_pipe.c */,
 				928A7F802059372C00E02E89 /* out_video.c */,
 				92061A841FE0484500B5C464 /* reframer.c */,
 				92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */,
@@ -2904,6 +2907,7 @@
 				920100BB18D5A444003D1ACA /* quantize.c in Sources */,
 				920100BD18D5A444003D1ACA /* script_dec.c in Sources */,
 				92B9A59D1F8660D700A24FE4 /* compositor.c in Sources */,
+				9203644B20ECF67C0087883E /* dmx_gsf.c in Sources */,
 				922E29832051940C00C8DCBB /* mux_avi.c in Sources */,
 				92BB85761F7BFB63009BC9C8 /* ff_dmx.c in Sources */,
 				92B9A5B91F866E0500A24FE4 /* mpeg4_inputsensor.c in Sources */,

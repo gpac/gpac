@@ -2614,6 +2614,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size)
 			not_avc++;
 		}
 	}
+	if (not_avc && not_hevc) return NULL;
+	
 	if (!nb_hevc && !nb_avc) return NULL;
 	if (!nb_hevc) return nb_avc ? "video/avc" : NULL;
 	if (!nb_avc) return "video/hevc";
