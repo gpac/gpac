@@ -249,7 +249,24 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
 	case GF_PROP_DATA_NO_COPY:
-		if (!value || (sscanf(value, "%p:%d", &p.value.data.ptr, &p.value.data.size)!=2) ) {
+		if (!value) {
+			p.value.data.ptr=NULL;
+			p.value.data.size=0;
+		} else if (sscanf(value, "%d@%p", &p.value.data.size,&p.value.data.ptr)==2) {
+			p.type = GF_PROP_CONST_DATA;
+		} else if (!strnicmp(value, "0x", 2) ) {
+			u32 i;
+			value += 2;
+			p.value.data.size = strlen(value) / 2;
+			p.value.data.ptr = gf_malloc(sizeof(char)*p.value.data.size);
+			for (i=0; i<p.value.data.size; i++) {
+				char szV[3];
+				szV[0] = value[2*i];
+				szV[1] = value[2*i + 1];
+				szV[2] = 0;
+				sscanf(szV, "%c", &p.value.data.ptr[i]);
+			}
+		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for data arg %s - using 0\n", value, name));
 		}
 		break;

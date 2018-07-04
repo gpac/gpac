@@ -192,6 +192,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	Bool start, end;
 	const char *pck_data;
 	u32 pck_size, nb_write;
+	u32 dep_flags;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
 	pck = gf_filter_pid_get_packet(ctx->pid);
@@ -204,6 +205,12 @@ static GF_Err fileout_process(GF_Filter *filter)
 	}
 
 	gf_filter_pck_get_framing(pck, &start, &end);
+	dep_flags = gf_filter_pck_get_dependency_flags(pck);
+	//redundant packet, do not store
+	if ((dep_flags & 0x3) == 1) {
+		gf_filter_pid_drop_packet(ctx->pid);
+		return GF_OK;
+	}
 
 	if (start) {
 		Bool explicit_overwrite = GF_FALSE;
