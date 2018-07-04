@@ -113,6 +113,11 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	filter->arg_type = arg_type;
 	dst_striped = gf_filter_get_dst_args_stripped(fsess, dst_args);
+	//if we already concatenated our dst args to this source filter (eg this is an intermediate dynamically loaded one)
+	//don't reappend the args
+	if (dst_striped && strstr(args, dst_striped) != NULL) {
+		dst_striped = NULL;
+	}
 
 	if (args && dst_striped) {
 		char *all_args;
@@ -415,6 +420,18 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 			if (*(char **)ptr) gf_free( * (char **)ptr);
 			//we don't strdup since we don't free the string at the caller site
 			*(char **)ptr = argv->value.string;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_DATA:
+	case GF_PROP_DATA_NO_COPY:
+	case GF_PROP_CONST_DATA:
+		if (a->offset_in_private + sizeof(GF_PropData) <= filter->freg->private_size) {
+			GF_PropData *pd = (GF_PropData *) ptr;
+			if ((argv->type!=GF_PROP_CONST_DATA) && pd->ptr) gf_free(pd->ptr);
+			//we don't free/alloc  since we don't free the string at the caller site
+			pd->size = argv->value.data.size;
+			pd->ptr = argv->value.data.ptr;
 			res = GF_TRUE;
 		}
 		break;
