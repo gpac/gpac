@@ -2346,8 +2346,10 @@ restart:
 
 	//nothing found, redo a pass, this time allowing for link resolve
 	if (first_pass) {
-		first_pass = GF_FALSE;
-		goto restart;
+		if (!filter->session->no_link_resolution) {
+			first_pass = GF_FALSE;
+			goto restart;
+		}
 	}
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
@@ -2356,6 +2358,9 @@ restart:
 		//no filter found for this pid !
 		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
 
+		if (!pid->not_connected_ok && filter->session->no_link_resolution) {
+			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
+		}
 	}
 	assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
