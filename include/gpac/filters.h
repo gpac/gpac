@@ -227,7 +227,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
-Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type);
+Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type, u8 *is_pck);
 u32 gf_props_get_id(const char *name);
 
 //helper macros to set properties
@@ -1284,6 +1284,8 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 
 GF_Err gf_fs_abort(GF_FilterSession *fsess);
 Bool gf_fs_is_last_task(GF_FilterSession *fsess);
+
+void gf_fs_disable_link_resolution(GF_FilterSession *fsess, Bool disable_link_resolution);
 
 void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp);
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);

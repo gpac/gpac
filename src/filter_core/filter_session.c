@@ -1714,6 +1714,13 @@ Bool gf_fs_is_last_task(GF_FilterSession *fsess)
 }
 
 
+GF_EXPORT
+void gf_fs_disable_link_resolution(GF_FilterSession *fsess, Bool disable_link_resolution)
+{
+	fsess->no_link_resolution = disable_link_resolution;
+}
+
+
 #ifdef FILTER_FIXME
 
 

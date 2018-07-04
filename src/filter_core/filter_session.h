@@ -338,6 +338,9 @@ struct __gf_media_session
 	u64 hint_clock_us;
 	Double hint_timestamp;
 
+	Bool no_link_resolution;
+
+
 	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
 	const char *blacklist;
 };

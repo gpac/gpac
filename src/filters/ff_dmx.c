@@ -839,6 +839,14 @@ static const GF_FilterCapability FFAVInCaps[] =
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.description = "FFMPEG Audio Video Capture "LIBAVDEVICE_IDENT,
+	.comment = "Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux\n\n"\
+	"Typical device name can be the webcam name:\n"\
+		"'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux\n"\
+		"'screen-capture-recorder', see http://screencapturer.sf.net/ on windows\n"\
+		"'Capture screen 0' on OSX (0=first screen)\n"\
+		"X display name (eg ':0.0') on linux"\
+		"\n"\
+		"See ffmpeg help for more info\n",
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFAVInCaps),
 	.initialize = ffavin_initialize,
@@ -853,8 +861,8 @@ GF_FilterRegister FFAVInRegister = {
 static const GF_FilterArgs FFAVInArgs[] =
 {
 	{ OFFS(src), "url of device, video:// audio:// or av://", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(fmt), "name of device class. If not set, defaults to first device class. Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(dev), "name of device or index of device. Typical names can be the webcam name ('FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux), 'screen-capture-recorder' (see http://screencapturer.sf.net/) on windows, 'Capture screen 0' on OSX (0=first screen), or X display name (eg ':0.0') on linux", GF_PROP_STRING, "0", NULL, GF_FALSE},
+	{ OFFS(fmt), "name of device class - see filter help. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(dev), "name of device or index of device - see filter help", GF_PROP_STRING, "0", NULL, GF_FALSE},
 	{ OFFS(copy), "Copy raw frames rather instead of sharing them", GF_PROP_UINT, "A", "NO|A|V|AV", GF_FALSE},
 	{ OFFS(sclock), "Use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(probes), "Probes a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FALSE},
