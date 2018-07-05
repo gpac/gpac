@@ -813,6 +813,17 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	return e;
 }
 
+static const char *gsfdmx_probe_data(const u8 *data, u32 data_size)
+{
+	char szSig[5];
+	strcpy(szSig, "GSSF");
+	char *found_sig = memmem(data, data_size, szSig, 4);
+	if (!found_sig) return NULL;
+
+	if (found_sig[4]!=1)return NULL;
+	return "application/x-gpac-sf";
+}
+
 static GF_Err gsfdmx_initialize(GF_Filter *filter)
 {
 	GF_GSFDemuxCtx *ctx = gf_filter_get_udta(filter);
@@ -875,6 +886,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	.configure_pid = gsfdmx_configure_pid,
 	.process = gsfdmx_process,
 	.process_event = gsfdmx_process_event,
+	.probe_data = gsfdmx_probe_data,
 };
 
 
