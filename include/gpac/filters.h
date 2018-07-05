@@ -486,7 +486,7 @@ GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx);
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 void gf_filter_pid_remove(GF_FilterPid *pid);
 
-const char *gf_filter_probe_mime(GF_Filter *filter, const u8 *data, u32 size);
+GF_FilterPid *gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_Err *err);
 
 void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf);
 

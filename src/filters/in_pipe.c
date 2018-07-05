@@ -231,8 +231,6 @@ static void pipein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 	gf_filter_post_process_task(filter);
 }
 
-GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **pid, const char *url, const char *local_file, const char *mime_type, const char *ext, char *probe_data, u32 probe_size);;
-
 static GF_Err pipein_process(GF_Filter *filter)
 {
 	GF_Err e;
@@ -277,7 +275,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 	ctx->buffer[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
 		ctx->do_reconfigure = GF_FALSE;
-		e = filein_declare_pid(filter, &ctx->pid, ctx->src, NULL, ctx->mime, ctx->ext, ctx->buffer, nb_read);
+		ctx->pid = gf_filter_pid_raw_new(filter, ctx->src, NULL, ctx->mime, ctx->ext, ctx->buffer, nb_read, &e);
 		if (e) return e;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE) );
