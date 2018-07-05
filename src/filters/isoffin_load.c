@@ -511,8 +511,17 @@ void isor_declare_objects(ISOMReader *read)
 		sr = nb_ch = 0;
 		gf_isom_get_audio_info(read->mov, i+1, 1, &sr, &nb_ch, NULL);
 		if (sr && nb_ch) {
+			u32 d1, d2;
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 			gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+
+			d1 = gf_isom_get_sample_duration(read->mov, ch->track, 1);
+			d2 = gf_isom_get_sample_duration(read->mov, ch->track, 2);
+			if (d1 && d2 && (d1==d2)) {
+				d1 *= sr;
+				d2 /= ch->time_scale;
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(d1));
+			}
 		}
 		if (has_scalable_layers)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
@@ -587,14 +596,6 @@ void isor_declare_objects(ISOMReader *read)
 		if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING(encoding) );
 		if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(namespace) );
 		if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING(schemaloc) );
-
-		w = gf_isom_get_sample_duration(read->mov, ch->track, 1);
-		h = gf_isom_get_sample_duration(read->mov, ch->track, 2);
-		if (w && h && (w==h)) {
-			w *= sr;
-			w /= ch->time_scale;
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(w));
-		}
 
 		//set stream subtype
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SUBTYPE, &PROP_UINT(mtype) );
