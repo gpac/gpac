@@ -1029,7 +1029,7 @@ u32 gf_props_get_id(const char *name)
 	if (!name) return 0;
 	nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
 	for (i=0; i<nb_props; i++) {
-		if (!strcmp(GF_BuiltInProps[i].name, name)) return GF_BuiltInProps[i].type;
+		if (GF_BuiltInProps[i].name && !strcmp(GF_BuiltInProps[i].name, name)) return GF_BuiltInProps[i].type;
 	}
 	return 0;
 }

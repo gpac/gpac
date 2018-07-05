@@ -47,7 +47,7 @@ typedef struct
 	u32 mode;
 	Bool interleave;
 	Bool dump_data;
-	Bool pid_only;
+	Bool pck;
 	char *log;
 	char *fmt;
 	Bool props, hdr;
@@ -103,10 +103,8 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	u32 size=0;
 	const char *data=NULL;
-
 	char *str = ctx->fmt;
-
-	if (ctx->pid_only) return;
+	assert(str);
 
 	if (pck)
 		data = gf_filter_pck_get_data(pck, &size);
@@ -253,7 +251,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	Bool start, end;
 	const char *data;
 
-	if (ctx->pid_only) return;
+	if (!ctx->pck && !ctx->fmt) return;
 
 	data = gf_filter_pck_get_data(pck, &size);
 	gf_filter_pck_get_framing(pck, &start, &end);
@@ -402,7 +400,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				inspect_dump_packet_fmt(ctx, pctx->tmp, NULL, 0, 0);
 		}
 	}
-	if (ctx->is_prober || !ctx->pid_only) {
+	if (ctx->is_prober || ctx->pck || ctx->fmt) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 		gf_filter_pid_send_event(pid, &evt);
@@ -453,10 +451,10 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(log), "Sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", GF_FALSE},
 	{ OFFS(mode), "Dump mode: au dumps full frame, pck dumps packets before AU reconstruction, raw dumps source packets without demuxing", GF_PROP_UINT, "au", "au|pck|raw", GF_FALSE},
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(pid_only), "Only dumps PID state change, not packets", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(pck), "Dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(props), "Dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(dump_data), "Enables full data dump, WARNING heavy  - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(fmt), "sets packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(dump_data), "Enables full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(fmt), "sets packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_TRUE},
 	{ OFFS(hdr), "prints a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{0}
 };
@@ -470,7 +468,8 @@ static const GF_FilterCapability InspectCaps[] =
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
 	.description = "Inspect packets on pids",
-	.comment = "The packet inspector mode can be configured to dump specific properties of packets using the fmt option.\n"\
+	.comment = "The inspector filter can be used to dump pid and packets. Te default options load only pid changes.\n"\
+				"The packet inspector mode can be configured to dump specific properties of packets using the fmt option.\n"\
 	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed. TOKEN can be:\n"\
 				"\tpn: packet (frame in framed mode) number\n"\
 				"\tdts: decoding time stamp in stream timescale, N/A if not available\n"\
