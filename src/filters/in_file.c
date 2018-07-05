@@ -31,6 +31,7 @@ typedef struct
 {
 	//options
 	char *src;
+	char *ext, mime;
 	u32 block_size;
 	GF_Fraction64 range;
 
@@ -311,7 +312,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
 		ctx->do_reconfigure = GF_FALSE;
-		e = filein_declare_pid(filter, &ctx->pid, ctx->src, ctx->src, NULL, NULL, ctx->block, nb_read);
+		e = filein_declare_pid(filter, &ctx->pid, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read);
 		if (e) return e;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
@@ -356,6 +357,8 @@ static const GF_FilterArgs FileInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FALSE},
 	{ OFFS(range), "byte range", GF_PROP_FRACTION, "0-0", NULL, GF_FALSE},
+	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{0}
 };
 

@@ -342,9 +342,10 @@ GF_FilterRegister PipeInRegister = {
 	.description = "pipe input",
 	.comment = "This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.\n"\
 		"Input pipes cannot seek\n"\
-		"The assoicated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)\n"\
+		"The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)\n"\
 		"It can be set to run forever (until the session is closed), ignoring any potential pipe close on the writing side\n"\
-		"Data format of the pipe must currently be specified using extension (either in file name or through ext option) or mime type\n",
+		"Data format of the pipe should be specified using extension (either in file name or through ext option) or mime type.\n"\
+		"If neither is set, data format probing will be done\n",
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,
 	.initialize = pipein_initialize,
