@@ -721,6 +721,9 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		strcpy(server_un.sun_path, peer_name);
 		ret = bind(sock->socket, (struct sockaddr *) &server_un, (int) sizeof(struct sockaddr_un));
 		if (ret == SOCKET_ERROR) {
+			if (LASTSOCKERROR == EADDRINUSE) {
+				return gf_sk_connect(sock, peer_name, peer_port, NULL);
+			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
 			return GF_IP_CONNECTION_FAILURE;
 		}
@@ -975,11 +978,14 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 #ifndef __SYMBIAN32__
 			case ENOTCONN:
 			case ECONNRESET:
-				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] select failure: %s\n", gf_errno_str(LASTSOCKERROR)));
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
 				return GF_IP_CONNECTION_CLOSED;
 #endif
+			case ENOBUFS:
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
+				return GF_BUFFER_TOO_SMALL;
 			default:
-				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] select failure: %s\n", gf_errno_str(LASTSOCKERROR)));
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
 				return GF_IP_NETWORK_FAILURE;
 			}
 		}

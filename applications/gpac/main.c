@@ -785,14 +785,20 @@ static void dump_all_props(void)
 	u32 i=0;
 	u32 prop_4cc;
 	const char *name, *desc;
-	u8 ptype, is_pck;
-	fprintf(stderr, "Built-in properties for PIDs and packets \"Name (type, 4CC): description\" :\n\n");
-	while (gf_props_get_description(i, &prop_4cc, &name, &desc, &ptype, &is_pck)) {
+	u8 ptype, prop_flags;
+	fprintf(stderr, "Built-in properties for PIDs and packets \"Name (4CC type FLAGS): description\"\nFLAGS can be D (dropable - cf gsfm help), P (packet)\n\n");
+	while (gf_props_get_description(i, &prop_4cc, &name, &desc, &ptype, &prop_flags)) {
 		i++;
+		char szFlags[10];
 		if (!name) continue;
 		if (!name) continue;
 
-		fprintf(stderr, "%s (%s, %s): %s", name, gf_props_get_type_name(ptype), gf_4cc_to_str(prop_4cc), desc);
+		szFlags[0]=0;
+		if (prop_flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
+		if (prop_flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
+
+		fprintf(stderr, "%s (%s %s %s): %s", name, gf_4cc_to_str(prop_4cc), gf_props_get_type_name(ptype), szFlags, desc);
+
 		if (ptype==GF_PROP_PIXFMT) {
 			fprintf(stderr, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
 		} else if (ptype==GF_PROP_PCMFMT) {
