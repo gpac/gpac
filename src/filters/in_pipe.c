@@ -185,25 +185,10 @@ static void pipein_finalize(GF_Filter *filter)
 
 static GF_FilterProbeScore pipein_probe_url(const char *url, const char *mime_type)
 {
-	char *frag_par = NULL;
-	char *cgi_par = NULL;
-	char *src = (char *) url;
-	Bool res;
-	if (!strnicmp(url, "pipe://", 7)) src += 7;
-	else if (!strnicmp(url, "pipe:", 5)) src += 5;
+	if (!strnicmp(url, "pipe://", 7)) return GF_FPROBE_SUPPORTED;
+	else if (!strnicmp(url, "pipe:", 5)) return GF_FPROBE_SUPPORTED;
 
-	//strip any fragment identifer
-	frag_par = strchr(url, '#');
-	if (frag_par) frag_par[0] = 0;
-	cgi_par = strchr(url, '?');
-	if (cgi_par) cgi_par[0] = 0;
-
-	res = gf_file_exists(src);
-
-	if (frag_par) frag_par[0] = '#';
-	if (cgi_par) cgi_par[0] = '?';
-
-	return res ? GF_FPROBE_SUPPORTED : GF_FPROBE_NOT_SUPPORTED;
+	return GF_FPROBE_NOT_SUPPORTED;
 }
 
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
