@@ -31,7 +31,7 @@ typedef struct
 {
 	//options
 	char *src;
-	char *ext, mime;
+	char *ext, *mime;
 	u32 block_size;
 	GF_Fraction64 range;
 
@@ -47,61 +47,6 @@ typedef struct
 	Bool do_reconfigure;
 	char *block;
 } GF_FileInCtx;
-
-
-GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size)
-{
-	char *sep;
-	GF_FilterPid *pid = (*the_pid);
-	//declare a single PID carrying FILE data pid
-	if (!pid) {
-		pid = gf_filter_pid_new(filter);
-		(*the_pid) = pid;
-		if (!pid) return GF_OUT_OF_MEM;
-	}
-
-	if (local_file)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILEPATH, &PROP_STRING(local_file));
-
-	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
-	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-
-	sep = strrchr(url, '/');
-	if (!sep) sep = strrchr(url, '\\');
-	if (!sep) sep = (char *) url;
-	else sep++;
-	gf_filter_pid_set_name(pid, sep);
-
-	if (fext) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(fext));
-	} else {
-		char *ext = strrchr(url, '.');
-		if (ext && !stricmp(ext, ".gz")) {
-			char *anext;
-			ext[0] = 0;
-			anext = strrchr(url, '.');
-			ext[0] = '.';
-			ext = anext;
-		}
-		if (ext) ext++;
-
-		if (ext) {
-			char *s = strchr(ext, '#');
-			if (s) s[0] = 0;
-
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext));
-			if (s) s[0] = '#';
-		}
-	}
-	//probe data
-	if (!mime_type && probe_data) {
-		mime_type = gf_filter_probe_mime(filter, probe_data, probe_size);
-	}
-	if (mime_type)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( mime_type));
-
-	return GF_OK;
-}
 
 
 static GF_Err filein_initialize(GF_Filter *filter)
@@ -312,7 +257,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
 		ctx->do_reconfigure = GF_FALSE;
-		e = filein_declare_pid(filter, &ctx->pid, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read);
+		ctx->pid = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read, &e);
 		if (e) return e;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );

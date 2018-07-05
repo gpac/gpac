@@ -1973,20 +1973,67 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 	return filter->session->disable_blocking ? GF_FALSE : GF_TRUE;
 }
 
-const char *gf_filter_probe_mime(GF_Filter *filter, const u8 *data, u32 size)
+GF_EXPORT
+GF_FilterPid *gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_Err *err)
 {
-	const char *mime = NULL;
-	u32 i, count;
-	gf_mx_p(filter->session->filters_mx);
-	count = gf_list_count(filter->session->registry);
-	for (i=0; i<count; i++) {
-		const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
-		if (!freg || !freg->probe_data) continue;
-		mime = freg->probe_data(data, size);
-		if (mime) break;
+	char *sep;
+	GF_FilterPid *pid = gf_filter_pid_new(filter);
+	if (!pid) {
+		if (err) *err = GF_OUT_OF_MEM;
+		return NULL;
 	}
 
-	gf_mx_v(filter->session->filters_mx);
-	return mime;
+	if (local_file)
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILEPATH, &PROP_STRING(local_file));
+
+	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+
+	sep = strrchr(url, '/');
+	if (!sep) sep = strrchr(url, '\\');
+	if (!sep) sep = (char *) url;
+	else sep++;
+	gf_filter_pid_set_name(pid, sep);
+
+	if (fext) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(fext));
+	} else {
+		char *ext = strrchr(url, '.');
+		if (ext && !stricmp(ext, ".gz")) {
+			char *anext;
+			ext[0] = 0;
+			anext = strrchr(url, '.');
+			ext[0] = '.';
+			ext = anext;
+		}
+		if (ext) ext++;
+
+		if (ext) {
+			char *s = strchr(ext, '#');
+			if (s) s[0] = 0;
+
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext));
+			if (s) s[0] = '#';
+		}
+	}
+	//probe data
+	if (!mime_type && probe_data) {
+		u32 i, count;
+		gf_mx_p(filter->session->filters_mx);
+		count = gf_list_count(filter->session->registry);
+		for (i=0; i<count; i++) {
+			const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
+			if (!freg || !freg->probe_data) continue;
+			mime_type = freg->probe_data(probe_data, probe_size);
+			if (mime_type) break;
+		}
+		gf_mx_v(filter->session->filters_mx);
+
+	}
+	if (mime_type)
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( mime_type));
+	if (err) *err = GF_OK;
+	return pid;
 }
+
 
