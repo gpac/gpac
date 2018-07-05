@@ -116,6 +116,7 @@
 
 #define GPAC_HAS_IPV6
 #define GPAC_HAS_SSL
+#define GPAC_HAS_SOCK_UN
 
 //64-bits OSX
 #ifdef __LP64__
@@ -139,6 +140,7 @@
 #define GPAC_HAS_SPIDERMONKEY
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
+#define GPAC_HAS_SOCK_UN
 
 /*don't use fixed-point version on iOS, not needed*/
 //#define GPAC_FIXED_POINT

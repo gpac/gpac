@@ -57,6 +57,15 @@ extern "C" {
 Bool gf_url_is_local(const char *url);
 
 /*!
+ *\brief error code description
+ *
+ *Returns text description of given errno code
+ *\param errnoval the error value to test
+ *\return its description
+ */
+const char *gf_errno_str(int errnoval);
+
+/*!
  *\brief gets absolute file path
  *
  *Gets the absolute file path from a relative path and its parent absolute one. This can only be used with file paths.
@@ -234,6 +243,13 @@ typedef struct __tag_sock_group GF_SockGroup;
 #define GF_SOCK_TYPE_TCP		0x01
 /*!socket is a UDP socket*/
 #define GF_SOCK_TYPE_UDP		0x02
+
+#ifdef GPAC_HAS_SOCK_UN
+/*!socket is a TCP socket*/
+#define GF_SOCK_TYPE_TCP_UN		0x03
+/*!socket is a TCP socket*/
+#define GF_SOCK_TYPE_UDP_UN		0x04
+#endif
 
 /*!
  *\brief socket constructor

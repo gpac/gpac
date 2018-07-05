@@ -114,6 +114,7 @@ want_gcov="no"
 has_joystick="no"
 has_xul="no"
 has_hid="no"
+has_sock_un="no"
 enable_joystick="no"
 static_mp4box="no"
 disable_core_tools="no"
@@ -1872,6 +1873,16 @@ if docc -lhidapi-hidraw $LDFLAGS ; then
     has_hid="yes"
 fi
 
+#look for sys/un.h support
+cat > $TMPC << EOF
+#include <sys/un.h>
+int main( void ) { struct sockaddr_un serv_add; return 0; }
+EOF
+
+if docc $LDFLAGS ; then
+    has_sock_un="yes"
+fi
+
 #overwrite detection with manual settings
 for opt do
     case "$opt" in
@@ -3135,6 +3146,10 @@ if test "$has_vtb" != "no" ; then
     echo "vtb_ldflags=$vtb_ldflags" >> config.mak
 fi
 
+if test "$has_sock_un" != "no" ; then
+    echo "#define GPAC_HAS_SOCK_UN" >> $TMPH
+fi
+
 
 echo "CONFIG_JP2=$has_openjpeg" >> config.mak
 if test "$has_openjpeg" != "no" ; then
@@ -3357,6 +3372,7 @@ fi
 
 echo "CONFIG_HID=$has_hid" >> config.mak
 echo "HID_LDFLAGS=$hid_lib" >> config.mak
+
 
 
 if test "$is_64" = "yes"; then

@@ -79,6 +79,8 @@ static void gpac_filter_help(void)
 "See -h for available options.\n"
 "Help is given with default separator sets :=#,@. See -s to change them.\n"
 "\n"
+"General\n"
+"\n"
 "Filters are configurable processing units consuming and producing data packets. These packets are carried "
 "between filters through a data channel called pid.\n"
 "A pid is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s).\n"
@@ -94,7 +96,8 @@ static void gpac_filter_help(void)
 "Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values "
 "that must be matched or excluded in connecting pids.\n"
 "\n"
-"FILTER_DECL\n"
+"Filter declaration [FILTER_DECL]\n"
+"\n"
 "Filters are listed by name, with options appended as a list of colon-separated Name=Value pairs.\n"
 "\tValue can be omitted for booleans, defaulting to true (eg :noedit). Using '!'before the name negates "
 "the result (eg :!moof_first)\n"
@@ -104,7 +107,11 @@ static void gpac_filter_help(void)
 "\tEX: \"filter:ARG=http://foo/bar?yes:gpac:opt=VAL\" will properly extract the URL\n"
 "\tEX: \"filter:ARG=http://foo/bar?yes:opt=VAL\" will fail to extract it and keep :opt=VAL as part of the URL\n"
 "Note: that the escape mechanism is not needed for local source, for which file existence is probed during argument parsing\n"
-"\tIt is also not needed for builtin procotol handlers (avin://, video://, audio://, pipe:// etc)\n"
+"\tIt is also not needed for builtin procotol handlers (avin://, video://, audio://, pipe://)\n"
+"For tcp:// and udp:// protocols, the escape is not needed if a trailing / is appended after the port\n"
+"\tEX: \"-i tcp://127.0.0.1:1234:OPT\" will fail to extract the URL and options\n"
+"\tEX: \"-i tcp://127.0.0.1:1234/:OPT\" will extract the URL and options\n"
+"Note: one trick to avoid the escape sequence is to declare the urls option at the end, eg f1:opt1=foo:url=http://bar, provided you have only one URL. See arguments inheriting below.\n"
 "\n"
 "Source and sink filters do not need to be adressed by the filter name, specifying src= or dst= instead is enough.\n"
 "You can also use the syntax -src URL or -i URL for sources and -dst URL or -o URL for destination\n"
@@ -132,7 +139,8 @@ static void gpac_filter_help(void)
 "\tEX: \"src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264 creates a 25 fps AVC\n"
 "at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg\n"
 "\n"
-"LINK\n"
+"Expliciting links between filters [LINK]\n"
+"\n"
 "Link between filters may be manually specified. The syntax is an '@' character optionnaly followed by an integer (0 if omitted).\n"
 "This indicates which previous (0-based) filters should be link to the next filter listed.\n"
 "Only the last link directive occuring before a filter is used to setup links for that filter.\n"
@@ -170,12 +178,6 @@ static void gpac_filter_help(void)
 "Note that these extensions also work with the LINK shortcut:\n"
 "\tEX: \"fA fB @1#video fC\" indicates to direct fA video outputs to fC\n"
 "\n"
-"Unless explicitly disabled (-nd option), the filter engine will resolve implicit or explicit (LINK) connections between filters "
-"and will allocate any filter chain required to connect the filters. "
-"In doing so, it loads new filters with arguments inherited from both the source and the destination.\n"
-"\tEX: \"src=file.mp4:OPT dst=file.aac dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the two destinations\n"
-"\tEX: \"src=file.mp4 dst=file.aac:OPT dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the file.aac destination\n"
-"\n"
 "Note that if a filter pid gets connected to a loaded filter, no further dynamic link resolution will "
 "be done to connect it to other filters. Link directives should be carfully setup\n"
 "\tEX: src=file.mp4 @ reframer dst=dump.mp4\n"
@@ -185,6 +187,18 @@ static void gpac_filter_help(void)
 "\tEX: src=file.mp4 reframer @ dst=dump.mp4\n"
 "This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and "
 "src pid will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file\n"
+"\n"
+"Arguments inheriting\n"
+"\n"
+"Unless explicitly disabled (-nd option), the filter engine will resolve implicit or explicit (LINK) connections between filters "
+"and will allocate any filter chain required to connect the filters. "
+"In doing so, it loads new filters with arguments inherited from both the source and the destination.\n"
+"\tEX: \"src=file.mp4:OPT dst=file.aac dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the two destinations\n"
+"\tEX: \"src=file.mp4 dst=file.aac:OPT dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the file.aac destination\n"
+"NOTE: the destination arguments inherited are the arguments placed AFTER the dst= option.\n"
+"\tEX: \"src=file.mp4 fout:OPTFOO:dst=file.aac:OPTBAR\" will pass the \":OPTBAR\" to all filters loaded between the source and the file.aac destination, but not OPTFOO\n"
+"\n"
+"URL templating\n"
 "\n"
 "Destination URLs can be templated using the same mechanism as MPEG-DASH:\n"
 "\t$KEYWORD$ is replaced in the template with the resolved value,\n"
@@ -205,6 +219,8 @@ static void gpac_filter_help(void)
 "This will create a croped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k "
 "outputs will be dump_0x0x320x180.264 for the croped version and dump_0x0x640x360.264 for the non-croped one\n"
 "\n"
+"Cloning filters\n"
+"\n"
 "When a filter accepts a single connection and has a connected input, it is no longer available for dynamic resolution. "
 "There may be cases where this behaviour is undesired. Take a HEIF file with N items and do:\n"
 "\tEX: src=img.heif dst=dump_$ItemID$.jpg\n"
@@ -213,6 +229,8 @@ static void gpac_filter_help(void)
 "There is a special option \"clone\" allowing destination filters (only) to be cloned with the same arguments:\n"
 "\tEX: src=img.heif dst=dump_$ItemID$.jpg:clone\n"
 "In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.\n"
+"\n"
+"Assigning PID properties\n"
 "\n"
 "It is possible to define properties on output pids that will be declared by a filter. This allows tagging parts of the "
 "graph with different properties than other parts (for example ServiceID). "
@@ -581,7 +599,7 @@ static int gpac_main(int argc, char **argv)
 
 		if (!filter) {
 			fprintf(stderr, "Failed to load filter%s %s\n", is_simple ? "" : " for",  arg);
-			e = GF_NOT_SUPPORTED;
+			if (!e) e = GF_NOT_SUPPORTED;
 			goto exit;
 		}
 
@@ -690,8 +708,9 @@ static void print_filter(const GF_FilterRegister *reg)
 		if (reg->requires_main_thread) fprintf(stderr, "MainThread");
 		if (reg->probe_url) fprintf(stderr, " IsSource");
 		if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
-		fprintf(stderr, "\nPriority %d\n", reg->priority);
+		fprintf(stderr, "\nPriority %d", reg->priority);
 	}
+	fprintf(stderr, "\n");
 
 	if (reg->args) {
 		u32 idx=0;
