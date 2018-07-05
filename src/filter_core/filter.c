@@ -659,6 +659,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 					|| !strncmp(args+4, "gmem://", 7)
 					|| !strncmp(args+4, "gpac://", 7)
 					|| !strncmp(args+4, "pipe://", 7)
+					|| !strncmp(args+4, "tcpu://", 7)
+					|| !strncmp(args+4, "udpu://", 7)
 					)
 				) {
 					internal_url = GF_TRUE;
@@ -700,6 +702,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			Bool file_exists;
 			sep[0]=0;
 			if (!strcmp(args+4, "null")) file_exists = GF_TRUE;
+			else if (!strncmp(args+4, "tcp://", 6)) file_exists = GF_TRUE;
+			else if (!strncmp(args+4, "udp://", 6)) file_exists = GF_TRUE;
 			else file_exists = gf_file_exists(args+4);
 
 			if (!file_exists) {
@@ -2033,6 +2037,8 @@ GF_FilterPid *gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const ch
 	if (mime_type)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( mime_type));
 	if (err) *err = GF_OK;
+
+	pid->max_buffer_unit = 1;
 	return pid;
 }
 

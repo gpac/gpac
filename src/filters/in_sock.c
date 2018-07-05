@@ -34,52 +34,67 @@
 
 typedef struct
 {
-	//options
-	const char *src;
-	u32 block_size;
-	u32 port;
-	char *mcast_ifce;
-	const char *ext;
-	const char *mime;
-	Bool np;
-#ifndef GPAC_DISABLE_STREAMING
-	u32 reorder_pck;
-	u32 reorder_delay;
-#endif
-
-	//only one output pid declared
 	GF_FilterPid *pid;
 	GF_Socket *socket;
 	Bool pck_out;
-
-	char *block;
-	u32 bsize;
-
 #ifndef GPAC_DISABLE_STREAMING
 	GF_RTPReorder *rtp_reorder;
 #else
 	Bool is_rtp;
 #endif
+	char adress[GF_MAX_IP_NAME_LEN];
 
-	Bool is_gsf;
+	u64 start_time;
+	u64 nb_bytes;
+
+} GF_SockInClient;
+
+typedef struct
+{
+	//options
+	const char *src;
+	u32 block_size, sockbuf;
+	u32 port, maxc;
+	char *mcast_ifce;
+	const char *ext;
+	const char *mime;
+	Bool np, listen, ka, block;
+#ifndef GPAC_DISABLE_STREAMING
+	u32 reorder_pck;
+	u32 reorder_delay;
+#endif
+
+	GF_SockInClient sock_c;
+	GF_List *clients;
+	Bool had_clients;
+
+	char *buffer;
 } GF_SockInCtx;
 
 
 
-static GF_Err sockin_setup_socket(GF_Filter *filter, GF_SockInCtx *ctx)
+static GF_Err sockin_initialize(GF_Filter *filter)
 {
-	GF_Err e = GF_OK;
 	char *str, *url;
 	u16 port;
 	u32 sock_type = 0;
+	GF_Err e = GF_OK;
+	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
-	if (ctx->socket) return GF_OK;
 
 	if (!strnicmp(ctx->src, "udp://", 6) || !strnicmp(ctx->src, "mpegts-udp://", 13)) {
 		sock_type = GF_SOCK_TYPE_UDP;
+		ctx->listen = GF_FALSE;
 	} else if (!strnicmp(ctx->src, "tcp://", 6) || !strnicmp(ctx->src, "mpegts-tcp://", 13) ) {
 		sock_type = GF_SOCK_TYPE_TCP;
+#ifdef GPAC_HAS_SOCK_UN
+	} else if (!strnicmp(ctx->src, "tcpu://", 7) ) {
+		sock_type = GF_SOCK_TYPE_TCP_UN;
+	} else if (!strnicmp(ctx->src, "udpu://", 7) ) {
+		sock_type = GF_SOCK_TYPE_UDP_UN;
+		ctx->listen = GF_FALSE;
+#endif
 	} else {
 		return GF_NOT_SUPPORTED;
 	}
@@ -87,9 +102,9 @@ static GF_Err sockin_setup_socket(GF_Filter *filter, GF_SockInCtx *ctx)
 	url = strchr(ctx->src, ':');
 	url += 3;
 
-	ctx->socket = gf_sk_new(sock_type);
-	if (! ctx->socket ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[SockIn] Failed to open socket for %s\n", ctx->src));
+	ctx->sock_c.socket = gf_sk_new(sock_type);
+	if (! ctx->sock_c.socket ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Failed to open socket for %s\n", ctx->src));
 		return GF_IO_ERR;
 	}
 
@@ -104,57 +119,73 @@ static GF_Err sockin_setup_socket(GF_Filter *filter, GF_SockInCtx *ctx)
 	}
 
 	/*do we have a source ?*/
-	if (strlen(url) && strcmp(url, "localhost") ) {
-		if (gf_sk_is_multicast_address(url)) {
-			e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->mcast_ifce);
-		} else if (sock_type==GF_SOCK_TYPE_UDP) {
-			e = gf_sk_bind(ctx->socket, ctx->mcast_ifce, port, url, 0, GF_SOCK_REUSE_PORT);
-		} else {
-			e = gf_sk_connect(ctx->socket, url, port, ctx->mcast_ifce);
+	if (gf_sk_is_multicast_address(url)) {
+		e = gf_sk_setup_multicast(ctx->sock_c.socket, url, port, 0, 0, ctx->mcast_ifce);
+		ctx->listen = GF_FALSE;
+	} else if ((sock_type==GF_SOCK_TYPE_UDP) || (sock_type==GF_SOCK_TYPE_UDP_UN)) {
+		e = gf_sk_bind(ctx->sock_c.socket, ctx->mcast_ifce, port, url, 0, GF_SOCK_REUSE_PORT);
+		ctx->listen = GF_FALSE;
+	} else if (ctx->listen) {
+		e = gf_sk_bind(ctx->sock_c.socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
+		if (!e) e = gf_sk_listen(ctx->sock_c.socket, ctx->maxc);
+		if (!e) {
+			gf_filter_post_process_task(filter);
+			gf_sk_server_mode(ctx->sock_c.socket, GF_TRUE);
 		}
-		
-		if (e) {
-			gf_sk_del(ctx->socket);
-			ctx->socket = NULL;
-			return e;
-		}
+
+	} else {
+		e = gf_sk_connect(ctx->sock_c.socket, url, port, ctx->mcast_ifce);
 	}
+
 	if (str) str[0] = ':';
 
-	gf_sk_set_buffer_size(ctx->socket, 0, ctx->block_size);
-	gf_sk_set_block_mode(ctx->socket, 0);
-	return e;
+	if (e) {
+		gf_sk_del(ctx->sock_c.socket);
+		ctx->sock_c.socket = NULL;
+		return e;
+	}
+
+	gf_sk_set_buffer_size(ctx->sock_c.socket, 0, ctx->sockbuf);
+	gf_sk_set_block_mode(ctx->sock_c.socket, !ctx->block);
+
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] opening %s%s\n", ctx->src, ctx->listen ? " in server mode" : ""));
+
+	if (ctx->block_size<2000)
+		ctx->block_size = 2000;
+	ctx->buffer = gf_malloc(ctx->block_size + 1);
+	if (!ctx->buffer) return GF_OUT_OF_MEM;
+	if (ctx->ext || ctx->mime) ctx->np = GF_TRUE;
+
+	if (ctx->listen) {
+		ctx->clients = gf_list_new();
+		if (!ctx->clients) return GF_OUT_OF_MEM;
+	}
+	return GF_OK;
 }
 
-static GF_Err sockin_initialize(GF_Filter *filter)
+static void sockin_client_reset(GF_SockInClient *sc)
 {
-	GF_Err e = GF_OK;
-	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
-
-	if (!ctx || !ctx->src) return GF_BAD_PARAM;
-	e = sockin_setup_socket(filter, ctx);
-
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[SockIn] Failed to open %s\n", ctx->src));
-		gf_filter_setup_failure(filter, e);
-		return GF_URL_ERROR;
-	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[SockIn] opening %s\n", ctx->src));
-
-	ctx->bsize = 10000;
-	ctx->block = gf_malloc(ctx->bsize+1);
-	if (ctx->ext || ctx->mime) ctx->np = GF_TRUE;
-	return GF_OK;
+	if (sc->socket) gf_sk_del(sc->socket);
+#ifndef GPAC_DISABLE_STREAMING
+	if (sc->rtp_reorder) gf_rtp_reorderer_del(sc->rtp_reorder);
+#endif
 }
 
 static void sockin_finalize(GF_Filter *filter)
 {
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
-	if (ctx->socket) gf_sk_del(ctx->socket);
-#ifndef GPAC_DISABLE_STREAMING
-	if (ctx->rtp_reorder) gf_rtp_reorderer_del(ctx->rtp_reorder);
-#endif
-	if (ctx->block) gf_free(ctx->block);
+
+	if (ctx->clients) {
+		while (gf_list_count(ctx->clients)) {
+			GF_SockInClient *sc = gf_list_pop_back(ctx->clients);
+			sockin_client_reset(sc);
+			gf_free(sc);
+		}
+		gf_list_del(ctx->clients);
+	}
+	sockin_client_reset(&ctx->sock_c);
+	if (ctx->buffer) gf_free(ctx->buffer);
 }
 
 static GF_FilterProbeScore sockin_probe_url(const char *url, const char *mime_type)
@@ -163,6 +194,10 @@ static GF_FilterProbeScore sockin_probe_url(const char *url, const char *mime_ty
 	if (!strnicmp(url, "tcp://", 6)) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "mpegts-udp://", 13)) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "mpegts-tcp://", 13)) return GF_FPROBE_SUPPORTED;
+#ifdef GPAC_HAS_SOCK_UN
+	if (!strnicmp(url, "udpu://", 7)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "tcpu://", 7)) return GF_FPROBE_SUPPORTED;
+#endif
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -170,30 +205,20 @@ static void sockin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 {
 	u32 size;
 	char *data;
-	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
-	ctx->pck_out = GF_FALSE;
+	GF_SockInClient *sc = (GF_SockInClient *) gf_filter_pid_get_udta(pid);
+	sc->pck_out = GF_FALSE;
 	data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (data) gf_free(data);
 }
 
 static Bool sockin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
-
 	if (!evt->base.on_pid) return GF_FALSE;
-	if (evt->base.on_pid != ctx->pid) return GF_FALSE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		sockin_setup_socket(filter, ctx);
 		return GF_TRUE;
 	case GF_FEVT_STOP:
-		gf_sk_del(ctx->socket);
-		ctx->socket = NULL;
-#ifndef GPAC_DISABLE_STREAMING
-		gf_rtp_reorderer_del(ctx->rtp_reorder);
-		ctx->rtp_reorder = NULL;
-#endif
 		return GF_TRUE;
 	default:
 		break;
@@ -201,98 +226,166 @@ static Bool sockin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_FALSE;
 }
 
-static GF_Err sockin_process(GF_Filter *filter)
+static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockInClient *sock_c)
 {
 	u32 nb_read;
+	u64 bitrate;
 	GF_Err e;
 	GF_FilterPacket *dst_pck;
 	char *out_data, *in_data;
-	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
-	if (!ctx->socket)
+	if (!sock_c->socket)
 		return GF_EOS;
-	if (ctx->pck_out)
+	if (sock_c->pck_out)
 		return GF_OK;
 
-	if (ctx->pid && gf_filter_pid_would_block(ctx->pid)) {
-		assert(0);
+	if (sock_c->pid && gf_filter_pid_would_block(sock_c->pid)) {
 		return GF_OK;
 	}
 
-	e = gf_sk_receive(ctx->socket, ctx->block, ctx->bsize, 0, &nb_read);
-	if (!nb_read || e)
-		return GF_OK;
+	if (!sock_c->start_time) sock_c->start_time = gf_sys_clock_high_res();
 
-	//should not happen since we start with 10k read buffer !
-	if (nb_read>=ctx->bsize) {
-		u32 offset = nb_read;
-		while (1) {
-			ctx->bsize *= 2;
-			ctx->block = gf_realloc(ctx->block, ctx->bsize+1);
-			e = gf_sk_receive(ctx->socket, ctx->block, ctx->bsize, offset, &nb_read);
-			if (e || !nb_read) break;
-			offset += nb_read;
-			if (offset < ctx->bsize) break;
-			//keep reallocating
-		}
-		nb_read = offset;
+	e = gf_sk_receive(sock_c->socket, ctx->buffer, ctx->block_size, 0, &nb_read);
+	switch (e) {
+	case GF_IP_NETWORK_EMPTY:
+		return GF_OK;
+	case GF_OK:
+		break;
+	case GF_IP_CONNECTION_CLOSED:
+		return GF_IP_CONNECTION_CLOSED;
+	default:
+		return e;
 	}
+	if (!nb_read) return GF_OK;
+	sock_c->nb_bytes += nb_read;
+
 	//we allocated one more byte for that
-	ctx->block[nb_read] = 0;
+	ctx->buffer[nb_read] = 0;
 
 	//first run, probe data
-	if (!ctx->pid) {
+	if (!sock_c->pid) {
 		const char *mime = ctx->mime;
 		//probe MPEG-2
 		if (!ctx->np) {
 			/*TS over RTP signaled as udp */
-			if ((ctx->block[0] != 0x47) && ((ctx->block[1] & 0x7F) == 33) ) {
+			if ((ctx->buffer[0] != 0x47) && ((ctx->buffer[1] & 0x7F) == 33) ) {
 #ifndef GPAC_DISABLE_STREAMING
-				ctx->rtp_reorder = gf_rtp_reorderer_new(ctx->reorder_pck, ctx->reorder_delay);
+				sock_c->rtp_reorder = gf_rtp_reorderer_new(ctx->reorder_pck, ctx->reorder_delay);
 #else
 			ctx-	>is_rtp = GF_TRUE;
 #endif
 				mime = "video/mp2t";
-			} else if (ctx->block[0] == 0x47) {
+			} else if (ctx->buffer[0] == 0x47) {
 				mime = "video/mp2t";
 			}
 		}
 
-		ctx->pid = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, mime, ctx->ext, ctx->block, nb_read, &e);
+		sock_c->pid = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, mime, ctx->ext, ctx->buffer, nb_read, &e);
 		if (e) return e;
 		if (!mime) {
-			const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_MIME);
+			const GF_PropertyValue *p = gf_filter_pid_get_property(sock_c->pid, GF_PROP_PID_MIME);
 			if (p) mime = p->value.string;
 		}
+		gf_filter_pid_set_udta(sock_c->pid, sock_c);
 	}
 
-	in_data = ctx->block;
+	in_data = ctx->buffer;
 
 #ifndef GPAC_DISABLE_STREAMING
-	if (ctx->rtp_reorder) {
+	if (sock_c->rtp_reorder) {
 		char *pck;
-		u16 seq_num = ((ctx->block[2] << 8) & 0xFF00) | (ctx->block[3] & 0xFF);
-		gf_rtp_reorderer_add(ctx->rtp_reorder, (void *) ctx->block, nb_read, seq_num);
+		u16 seq_num = ((ctx->buffer[2] << 8) & 0xFF00) | (ctx->buffer[3] & 0xFF);
+		gf_rtp_reorderer_add(sock_c->rtp_reorder, (void *) ctx->buffer, nb_read, seq_num);
 
-		pck = (char *) gf_rtp_reorderer_get(ctx->rtp_reorder, &nb_read);
+		pck = (char *) gf_rtp_reorderer_get(sock_c->rtp_reorder, &nb_read);
 		if (pck) {
-			dst_pck = gf_filter_pck_new_shared(ctx->pid, pck+12, nb_read-12, sockin_rtp_destructor);
+			dst_pck = gf_filter_pck_new_shared(sock_c->pid, pck+12, nb_read-12, sockin_rtp_destructor);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 			gf_filter_pck_send(dst_pck);
 		}
 		return GF_OK;
 	}
 #else
-	if (ctx->is_rtp) {
-		in_data = ctx->block + 12;
+	if (sock_c->is_rtp) {
+		in_data = ctx->buffer + 12;
 		nb_read -= 12;
 	}
 #endif
 
-	dst_pck = gf_filter_pck_new_alloc(ctx->pid, nb_read, &out_data);
+	dst_pck = gf_filter_pck_new_alloc(sock_c->pid, nb_read, &out_data);
 	memcpy(out_data, in_data, nb_read);
 	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_send(dst_pck);
+
+	//send bitrate
+	bitrate = gf_sys_clock_high_res() - sock_c->start_time;
+	if (bitrate) {
+		bitrate = (sock_c->nb_bytes * 8 * 1000000) / bitrate;
+		gf_filter_pid_set_info(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(bitrate) );
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Receiving from %s at %d kbps\r", sock_c->adress, (u32) (bitrate/10)));
+	}
+
+	return GF_OK;
+}
+
+
+static GF_Err sockin_process(GF_Filter *filter)
+{
+	GF_Socket *new_conn=NULL;
+	GF_Err e;
+	u32 i, count;
+	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
+
+	if (!ctx->listen) {
+		return sockin_read_client(filter, ctx, &ctx->sock_c);
+	}
+
+
+	e = gf_sk_accept(ctx->sock_c.socket, &new_conn);
+	if ((e==GF_OK) && new_conn) {
+		GF_SockInClient *sc;
+		GF_SAFEALLOC(sc, GF_SockInClient);
+		sc->socket = new_conn;
+		strcpy(sc->adress, "unknown");
+		gf_sk_get_remote_address(new_conn, sc->adress);
+		gf_sk_set_block_mode(new_conn, !ctx->block);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Accepting new connection from %s\n", sc->adress));
+		gf_list_add(ctx->clients, sc);
+		ctx->had_clients = GF_TRUE;
+	}
+
+	count = gf_list_count(ctx->clients);
+	for (i=0; i<count; i++) {
+		GF_SockInClient *sc = gf_list_get(ctx->clients, i);
+	 	GF_Err e = sockin_read_client(filter, ctx, sc);
+	 	if (e == GF_IP_CONNECTION_CLOSED) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockIn] Connection to %s lost, removing input\n", sc->adress));
+	 		sockin_client_reset(sc);
+	 		if (sc->pid) {
+	 			gf_filter_pid_set_eos(sc->pid);
+	 			gf_filter_pid_remove(sc->pid);
+	 		}
+	 		gf_free(sc);
+	 		gf_list_del_item(ctx->clients, sc);
+	 		i--;
+	 		count--;
+		} else {
+			if (e) return e;
+		}
+	}
+	if (!ctx->had_clients) {
+		gf_filter_ask_rt_reschedule(filter, 100000);
+		return GF_OK;
+	}
+
+	if (!count) {
+		if (ctx->ka) {
+			gf_filter_ask_rt_reschedule(filter, 100000);
+		} else {
+			return GF_EOS;
+		}
+	}
 	return GF_OK;
 }
 
@@ -303,12 +396,18 @@ static GF_Err sockin_process(GF_Filter *filter)
 static const GF_FilterArgs SockInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FALSE},
+	{ OFFS(block_size), "block size used to read socket", GF_PROP_UINT, "10000", NULL, GF_FALSE},
+	{ OFFS(sockbuf), "socket max buffer size", GF_PROP_UINT, "65536", NULL, GF_FALSE},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, GF_FALSE},
 	{ OFFS(mcast_ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FALSE},
 	{ OFFS(np), "disables TS probe on input data. Implied if mime or ext are given", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(ext), "indicates file extension of udp data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(mime), "indicates mime type of udp data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+
 #ifndef GPAC_DISABLE_STREAMING
 	{ OFFS(reorder_pck), "number of packets delay for RTP reordering", GF_PROP_UINT, "100", NULL, GF_FALSE},
 	{ OFFS(reorder_delay), "number of ms delay for RTP reordering", GF_PROP_UINT, "10", NULL, GF_FALSE},
@@ -328,7 +427,13 @@ GF_FilterRegister SockInRegister = {
 	.name = "sockin",
 	.description = "TCP/UDP socket input",
 	.comment = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
-	"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet",
+		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
+		"\n"
+#ifdef GPAC_HAS_SOCK_UN
+		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME",
+#else
+		"Oops, your platform does not supports unix domain sockets",
+#endif
 	.private_size = sizeof(GF_SockInCtx),
 	.args = SockInArgs,
 	SETCAPS(SockInCaps),

@@ -26,6 +26,7 @@
 
 #include <gpac/filters.h>
 #include <gpac/constants.h>
+#include <gpac/network.h>
 
 #ifdef WIN32
 
@@ -60,48 +61,6 @@ typedef struct
 	Bool do_reconfigure;
 	char *buffer;
 } GF_PipeInCtx;
-
-static char szErrString[100];
-
-const char *gf_errno_get_string(int errnoval)
-{
-	switch (errnoval) {
-	case EPERM: return "Operation not permitted";
-	case ENOENT: return "No such file or directory";
-	case ESRCH: return "No such process";
-	case EINTR: return "Interrupted system call";
-	case EIO: return "Input/output error";
-	case ENXIO: return "Device not configured";
-	case E2BIG: return "Argument list too long";
-	case ENOEXEC: return "Exec format error";
-	case EBADF: return "Bad file descriptor";
-	case ECHILD: return "No child processes";
-	case EDEADLK: return "Resource deadlock avoided";
-	case ENOMEM: return "Cannot allocate memory";
-	case EACCES: return "Permission denied";
-	case EFAULT: return "Bad address";
-	case EBUSY: return "Device / Resource busy";
-	case EEXIST: return "File exists";
-	case EXDEV: return "Cross-device link";
-	case ENODEV: return "Operation not supported by device";
-	case ENOTDIR: return "Not a directory";
-	case EISDIR: return "Is a directory";
-	case EINVAL: return "Invalid argument";
-	case ENFILE: return "Too many open files in system";
-	case EMFILE: return "Too many open files";
-	case ENOTTY: return "Inappropriate ioctl for device";
-	case EFBIG: return "File too large";
-	case ENOSPC: return "No space left on device";
-	case ESPIPE: return "Illegal seek";
-	case EROFS: return "Read-only file system";
-	case EPIPE: return "Broken pipe";
-	case EAGAIN: return "Operation would block";
-	case EINPROGRESS: return "Operation now in progress";
-	case EALREADY: return "Operation already in progress";
-
-	default: sprintf(szErrString, "Unknown error (%d)", errnoval); return szErrString;
-	}
-}
 
 static GF_Err pipein_initialize(GF_Filter *filter)
 {
@@ -144,7 +103,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 #endif
 
 	if (ctx->fd<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %s\n", src, gf_errno_get_string(errno) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %s\n", src, gf_errno_str(errno) ));
 
 		if (frag_par) frag_par[0] = '#';
 		if (cgi_par) cgi_par[0] = '?';
@@ -260,7 +219,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 		if (res == EAGAIN) {
 			//non blocking pipe with writers active
 		} else if (read<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_get_string(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
 			return GF_IO_ERR;
 		} else if (!ctx->nc) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));

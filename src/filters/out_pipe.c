@@ -62,7 +62,7 @@ typedef struct
 
 } GF_PipeOutCtx;
 
-const char *gf_errno_get_string(int errnoval);
+const char *gf_errno_str(int errnoval);
 
 
 static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
@@ -109,7 +109,7 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	strcpy(ctx->szFileName, szFinalName);
 
 	if (ctx->fd<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_get_string(errno)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_str(errno)));
 		return GF_IO_ERR;
 	}
 	return GF_OK;
@@ -266,7 +266,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		if (pck_data) {
 			nb_write = (s32) write(ctx->fd, pck_data, pck_size);
 			if (nb_write != pck_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, pck_size, gf_errno_get_string(errno) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, pck_size, gf_errno_str(errno) ));
 			}
 		} else if (hwf) {
 			u32 w, h, stride, stride_uv, pf;
@@ -299,7 +299,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 					for (j=0; j<write_h; j++) {
 						nb_write = (s32) write(ctx->fd, out_ptr, lsize);
 						if (nb_write != lsize) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, lsize, gf_errno_get_string(errno) ));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, lsize, gf_errno_str(errno) ));
 						}
 						out_ptr += out_stride;
 					}

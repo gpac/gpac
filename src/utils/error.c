@@ -700,6 +700,9 @@ const char *gpac_features()
 #ifdef GPAC_HAS_SSL
 	                       "GPAC_HAS_SSL "
 #endif
+#ifdef GPAC_HAS_SOCK_UN
+	                       "GPAC_HAS_SOCK_UN "
+#endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	                       "GPAC_HAS_SPIDERMONKEY "
 #endif
@@ -807,6 +810,7 @@ const char *gpac_features()
 #ifdef GPAC_DISABLE_ATSC
 	                       "GPAC_DISABLE_ATSC "
 #endif
+
 	                       ;
 	return features;
 }

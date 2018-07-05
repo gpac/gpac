@@ -1,0 +1,436 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2018
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / generic socket output filter
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+
+#include <gpac/filters.h>
+#include <gpac/constants.h>
+#include <gpac/network.h>
+
+typedef struct
+{
+	GF_Socket *socket;
+	Bool is_tuned;
+	char adress[GF_MAX_IP_NAME_LEN];
+
+} GF_SockOutClient;
+
+typedef struct
+{
+	//options
+	Double start, speed;
+	char *dst, *mime, *ext, *mcast_ifce;
+	Bool listen;
+	u32 maxc, port, sockbuf;
+
+
+	GF_Socket *socket;
+	//only one output pid
+	GF_FilterPid *pid;
+
+	GF_List *clients;
+
+	Bool pid_started;
+	Bool had_clients;
+
+	GF_FilterCapability in_caps[2];
+	char szExt[10];
+	char szFileName[GF_MAX_PATH];
+
+	GF_FilterPacket *tunein_pck;
+	Bool first_pck_processed;
+} GF_SockOutCtx;
+
+const char *gf_errno_str(int errnoval);
+
+
+static GF_Err sockout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	const GF_PropertyValue *p;
+	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
+	if (is_remove) {
+		ctx->pid = NULL;
+		gf_sk_del(ctx->socket);
+		ctx->socket = NULL;
+		return GF_OK;
+	}
+	gf_filter_pid_check_caps(pid);
+
+	if (!ctx->pid && (!ctx->listen || gf_list_count(ctx->clients) ) ) {
+		GF_FilterEvent evt;
+		gf_filter_init_play_event(pid, &evt, ctx->start, ctx->speed, "SockOut");
+		gf_filter_pid_send_event(pid, &evt);
+		ctx->pid_started = GF_TRUE;
+	}
+	ctx->pid = pid;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
+	if (p && p->value.boolean) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Block patching is not supported by socket output\n"));
+		return GF_NOT_SUPPORTED;
+	}
+	return GF_OK;
+}
+
+static GF_Err sockout_initialize(GF_Filter *filter)
+{
+	GF_Err e;
+	char *str, *url;
+	u16 port;
+	char *ext;
+	u32 sock_type = 0;
+	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
+
+	if (!ctx || !ctx->dst) return GF_OK;
+	e = GF_NOT_SUPPORTED;
+	if (!strncmp(ctx->dst, "tcp://", 6)) e = GF_OK;
+	else if (!strncmp(ctx->dst, "udp://", 6)) e = GF_OK;
+	else if (!strncmp(ctx->dst, "tcpu://", 7)) e = GF_OK;
+	else if (!strncmp(ctx->dst, "udpu://", 7)) e = GF_OK;
+
+
+	if (e)  {
+		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
+		return GF_NOT_SUPPORTED;
+	}
+	if (ctx->ext) ext = ctx->ext;
+	else {
+		ext = strrchr(ctx->dst, '.');
+		if (ext) ext++;
+	}
+
+	if (!ext && !ctx->mime) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] No extension provided nor mime type for output file %s, cannot infer format\n", ctx->dst));
+		return GF_NOT_SUPPORTED;
+	}
+
+	if (ctx->listen) {
+		ctx->clients = gf_list_new();
+		if (!ctx->clients) return GF_OUT_OF_MEM;
+	}
+
+	//static cap, streamtype = file
+	ctx->in_caps[0].code = GF_PROP_PID_STREAM_TYPE;
+	ctx->in_caps[0].val = PROP_UINT(GF_STREAM_FILE);
+	ctx->in_caps[0].flags = GF_CAPS_INPUT_STATIC;
+
+	if (ctx->mime) {
+		ctx->in_caps[1].code = GF_PROP_PID_MIME;
+		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
+		ctx->in_caps[1].flags = GF_CAPS_INPUT;
+	} else {
+		strncpy(ctx->szExt, ext, 9);
+		strlwr(ctx->szExt);
+		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
+		ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
+		ctx->in_caps[1].flags = GF_CAPS_INPUT;
+	}
+	gf_filter_override_caps(filter, ctx->in_caps, 2);
+
+	/*create our ourput socket*/
+
+	if (!strnicmp(ctx->dst, "udp://", 6)) {
+		sock_type = GF_SOCK_TYPE_UDP;
+		ctx->listen = GF_FALSE;
+	} else if (!strnicmp(ctx->dst, "tcp://", 6)) {
+		sock_type = GF_SOCK_TYPE_TCP;
+#ifdef GPAC_HAS_SOCK_UN
+	} else if (!strnicmp(ctx->dst, "udpu://", 7)) {
+		sock_type = GF_SOCK_TYPE_UDP_UN;
+		ctx->listen = GF_FALSE;
+	} else if (!strnicmp(ctx->dst, "tcpu://", 7)) {
+		sock_type = GF_SOCK_TYPE_TCP_UN;
+#endif
+	} else {
+		return GF_NOT_SUPPORTED;
+	}
+
+
+	url = strchr(ctx->dst, ':');
+	url += 3;
+
+	ctx->socket = gf_sk_new(sock_type);
+	if (! ctx->socket ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[SockOut] Failed to open socket for %s\n", ctx->dst));
+		return GF_IO_ERR;
+	}
+
+	/*setup port and src*/
+	port = ctx->port;
+	str = strrchr(url, ':');
+	/*take care of IPv6 address*/
+	if (str && strchr(str, ']')) str = strchr(url, ':');
+	if (str) {
+		port = atoi(str+1);
+		str[0] = 0;
+	}
+
+	if (gf_sk_is_multicast_address(url)) {
+		e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->mcast_ifce);
+		ctx->listen = GF_FALSE;
+	} else if ((sock_type==GF_SOCK_TYPE_UDP) || (sock_type==GF_SOCK_TYPE_UDP_UN)) {
+		e = gf_sk_bind(ctx->socket, ctx->mcast_ifce, port, url, 0, GF_SOCK_REUSE_PORT);
+		ctx->listen = GF_FALSE;
+	} else if (ctx->listen) {
+		e = gf_sk_bind(ctx->socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
+		if (!e) e = gf_sk_listen(ctx->socket, ctx->maxc);
+		if (!e) {
+			gf_filter_post_process_task(filter);
+			gf_sk_server_mode(ctx->socket, GF_TRUE);
+		}
+	} else {
+		e = gf_sk_connect(ctx->socket, url, port, ctx->mcast_ifce);
+	}
+
+	if (str) str[0] = ':';
+
+	if (e) {
+		gf_sk_del(ctx->socket);
+		ctx->socket = NULL;
+		return e;
+	}
+
+	gf_sk_set_buffer_size(ctx->socket, 0, ctx->sockbuf);
+
+	return GF_OK;
+}
+
+static void sockout_finalize(GF_Filter *filter)
+{
+	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
+	if (ctx->clients) {
+		while (gf_list_count(ctx->clients)) {
+			GF_SockOutClient *sc = gf_list_pop_back(ctx->clients);
+			if (sc->socket) gf_sk_del(sc->socket);
+			gf_free(sc);
+		}
+		gf_list_del(ctx->clients);
+	}
+
+	if (ctx->socket) gf_sk_del(ctx->socket);
+}
+
+static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_Socket *dst_sock)
+{
+	GF_Err e;
+	const GF_PropertyValue *p;
+	u32 w, h, stride, stride_uv, pf;
+	u32 nb_planes, uv_height;
+	const char *pck_data;
+	u32 pck_size;
+	GF_FilterHWFrame *hwf=NULL;
+	if (!dst_sock) return GF_OK;
+
+	pck_data = gf_filter_pck_get_data(pck, &pck_size);
+	if (pck_data) {
+		e = gf_sk_send(dst_sock, pck_data, pck_size);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Write error: %s\n", gf_error_to_string(e) ));
+		}
+		return e;
+	}
+	hwf = gf_filter_pck_get_hw_frame(pck);
+	if (!hwf) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] output file handle is not opened, discarding %d bytes\n", pck_size));
+		return GF_OK;
+	}
+
+	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_WIDTH);
+	w = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_HEIGHT);
+	h = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_PIXFMT);
+	pf = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_STRIDE);
+	stride = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_STRIDE_UV);
+	stride_uv = p ? p->value.uint : 0;
+
+	if (gf_pixel_get_size_info(pf, w, h, NULL, &stride, &stride_uv, &nb_planes, &uv_height) == GF_TRUE) {
+		u32 i, bpp = gf_pixel_get_bytes_per_pixel(pf);
+		for (i=0; i<nb_planes; i++) {
+			u32 j, write_h, lsize;
+			const u8 *out_ptr;
+			u32 out_stride = i ? stride_uv : stride;
+			GF_Err e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Failed to fetch plane data from hardware frame, cannot write\n"));
+				break;
+			}
+			write_h = h;
+			if (i) write_h = uv_height;
+			lsize = bpp * (i ? stride : stride_uv);
+			for (j=0; j<write_h; j++) {
+				e = gf_sk_send(dst_sock, out_ptr, lsize);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Write error: %s\n", gf_error_to_string(e) ));
+				}
+				out_ptr += out_stride;
+			}
+		}
+	}
+	return GF_OK;
+}
+
+
+static GF_Err sockout_process(GF_Filter *filter)
+{
+	GF_Err e;
+	GF_FilterPacket *pck;
+	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
+
+	if (!ctx->socket) return GF_EOS;
+
+	if (ctx->listen) {
+		GF_Socket *new_conn=NULL;
+		e = gf_sk_accept(ctx->socket, &new_conn);
+		if ((e==GF_OK) && new_conn) {
+			GF_SockOutClient *sc;
+			GF_SAFEALLOC(sc, GF_SockOutClient);
+			sc->socket = new_conn;
+			strcpy(sc->adress, "unknown");
+			gf_sk_get_remote_address(new_conn, sc->adress);
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockOut] Accepting new connection from %s\n", sc->adress));
+			gf_list_add(ctx->clients, sc);
+			ctx->had_clients = GF_TRUE;
+			if (!ctx->pid_started && ctx->pid) {
+				GF_FilterEvent evt;
+				gf_filter_init_play_event(ctx->pid, &evt, ctx->start, ctx->speed, "SockOut");
+				gf_filter_pid_send_event(ctx->pid, &evt);
+				ctx->pid_started = GF_TRUE;
+			}
+			if (!ctx->first_pck_processed)
+				sc->is_tuned = GF_TRUE;
+		}
+	}
+	if (!ctx->pid) {
+		if (ctx->listen) gf_filter_post_process_task(filter);
+		return GF_OK;
+	}
+
+	pck = gf_filter_pid_get_packet(ctx->pid);
+	if (!pck) {
+		if (gf_filter_pid_is_eos(ctx->pid)) {
+			if (!ctx->listen) {
+				gf_sk_del(ctx->socket);
+				ctx->socket = NULL;
+			}
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+
+	if (ctx->listen) {
+		u32 i, nb_clients = gf_list_count(ctx->clients);
+		u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
+		if ((dep_flags & 0x3) == 1) {
+			if (ctx->tunein_pck) gf_filter_pck_unref(ctx->tunein_pck);
+			ctx->tunein_pck = pck;
+			gf_filter_pck_ref(&ctx->tunein_pck);
+		}
+		//decide if we wait or discard the packet if no more client
+		if (!nb_clients) return GF_OK;
+		for (i=0; i<nb_clients; i++) {
+			GF_SockOutClient *sc = gf_list_get(ctx->clients, i);
+			if (!sc->is_tuned) {
+
+			}
+			e = sockout_send_packet(ctx, pck, sc->socket);
+		}
+	} else {
+		sockout_send_packet(ctx, pck, ctx->socket);
+	}
+
+	ctx->first_pck_processed = GF_TRUE;
+	
+	gf_filter_pid_drop_packet(ctx->pid);
+	return GF_OK;
+}
+
+static GF_FilterProbeScore sockout_probe_url(const char *url, const char *mime)
+{
+	if (!strnicmp(url, "tcp://", 6)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "udp://", 6)) return GF_FPROBE_SUPPORTED;
+#ifdef GPAC_HAS_SOCK_UN
+	if (!strnicmp(url, "tcpu://", 7)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "udpu://", 7)) return GF_FPROBE_SUPPORTED;
+#endif
+	return GF_FPROBE_NOT_SUPPORTED;
+}
+
+
+#define OFFS(_n)	#_n, offsetof(GF_SockOutCtx, _n)
+
+static const GF_FilterArgs SockOutArgs[] =
+{
+	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(sockbuf), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FALSE},
+	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, GF_FALSE},
+	{ OFFS(mcast_ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(ext), "indicates file extension of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(listen), "indicates the output socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FALSE},
+	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
+	{ OFFS(speed), "sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{0}
+};
+
+static const GF_FilterCapability SockOutCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_MIME, "*"),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_FILE_EXT, "*"),
+};
+
+
+GF_FilterRegister SockOutRegister = {
+	.name = "sockout",
+	.description = "socket output",
+	.comment = "This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"\
+		"\n"
+#ifdef GPAC_HAS_SOCK_UN
+		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME",
+#else
+		"Oops, your platform does not supports unix domain sockets",
+#endif
+	.private_size = sizeof(GF_SockOutCtx),
+	.args = SockOutArgs,
+	SETCAPS(SockOutCaps),
+	.probe_url = sockout_probe_url,
+	.initialize = sockout_initialize,
+	.finalize = sockout_finalize,
+	.configure_pid = sockout_configure_pid,
+	.process = sockout_process
+};
+
+
+const GF_FilterRegister *sockout_register(GF_FilterSession *session)
+{
+	return &SockOutRegister;
+}
+
