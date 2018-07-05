@@ -33,7 +33,7 @@ typedef struct
 	GF_Socket *socket;
 	Bool is_tuned;
 	char adress[GF_MAX_IP_NAME_LEN];
-
+	Bool pck_pending;
 } GF_SockOutClient;
 
 typedef struct
@@ -42,7 +42,7 @@ typedef struct
 	Double start, speed;
 	char *dst, *mime, *ext, *mcast_ifce;
 	Bool listen;
-	u32 maxc, port, sockbuf;
+	u32 maxc, port, sockbuf, ka, kp;
 
 
 	GF_Socket *socket;
@@ -53,16 +53,15 @@ typedef struct
 
 	Bool pid_started;
 	Bool had_clients;
+	Bool pck_pending;
 
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
 	char szFileName[GF_MAX_PATH];
 
 	GF_FilterPacket *tunein_pck;
-	Bool first_pck_processed;
+	u32 nb_pck_processed;
 } GF_SockOutCtx;
-
-const char *gf_errno_str(int errnoval);
 
 
 static GF_Err sockout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -190,7 +189,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->mcast_ifce);
 		ctx->listen = GF_FALSE;
 	} else if ((sock_type==GF_SOCK_TYPE_UDP) || (sock_type==GF_SOCK_TYPE_UDP_UN)) {
-		e = gf_sk_bind(ctx->socket, ctx->mcast_ifce, port, url, 0, GF_SOCK_REUSE_PORT);
+		e = gf_sk_bind(ctx->socket, ctx->mcast_ifce, port, url, port, GF_SOCK_REUSE_PORT);
 		ctx->listen = GF_FALSE;
 	} else if (ctx->listen) {
 		e = gf_sk_bind(ctx->socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
@@ -300,7 +299,8 @@ static GF_Err sockout_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
 
-	if (!ctx->socket) return GF_EOS;
+	if (!ctx->socket)
+		return GF_EOS;
 
 	if (ctx->listen) {
 		GF_Socket *new_conn=NULL;
@@ -321,7 +321,8 @@ static GF_Err sockout_process(GF_Filter *filter)
 				gf_filter_pid_send_event(ctx->pid, &evt);
 				ctx->pid_started = GF_TRUE;
 			}
-			if (!ctx->first_pck_processed)
+			sc->pck_pending = ctx->pck_pending;
+			if (!ctx->nb_pck_processed)
 				sc->is_tuned = GF_TRUE;
 		}
 	}
@@ -336,34 +337,60 @@ static GF_Err sockout_process(GF_Filter *filter)
 			if (!ctx->listen) {
 				gf_sk_del(ctx->socket);
 				ctx->socket = NULL;
+				return GF_EOS;
 			}
-			return GF_EOS;
+			if (!ctx->ka)
+				return GF_EOS;
+			//keep alive, ask for real-time reschedule of 100 ms - we should use socket groups and selects !
+			gf_filter_ask_rt_reschedule(filter, 100000);
 		}
 		return GF_OK;
 	}
 
 	if (ctx->listen) {
+		Bool had_pck_pending = ctx->pck_pending;
 		u32 i, nb_clients = gf_list_count(ctx->clients);
 		u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 		if ((dep_flags & 0x3) == 1) {
-			if (ctx->tunein_pck) gf_filter_pck_unref(ctx->tunein_pck);
+/*			if (ctx->tunein_pck) gf_filter_pck_unref(ctx->tunein_pck);
 			ctx->tunein_pck = pck;
 			gf_filter_pck_ref(&ctx->tunein_pck);
+*/
+
 		}
-		//decide if we wait or discard the packet if no more client
-		if (!nb_clients) return GF_OK;
+		ctx->pck_pending = GF_FALSE;
+
+		if (!nb_clients) {
+			//client disconnected, drop packet if needed
+			if (ctx->had_clients && !ctx->kp) {
+				gf_filter_pid_drop_packet(ctx->pid);
+			}
+			return GF_OK;
+		}
 		for (i=0; i<nb_clients; i++) {
 			GF_SockOutClient *sc = gf_list_get(ctx->clients, i);
 			if (!sc->is_tuned) {
 
 			}
+			if (had_pck_pending && !sc->pck_pending) {
+				continue;
+			}
+			sc->pck_pending = GF_FALSE;
+
 			e = sockout_send_packet(ctx, pck, sc->socket);
+			if (e == GF_BUFFER_TOO_SMALL) {
+				sc->pck_pending = GF_TRUE;
+				ctx->pck_pending = GF_TRUE;
+			}
 		}
+		if (ctx->pck_pending) return GF_TRUE;
+
 	} else {
-		sockout_send_packet(ctx, pck, ctx->socket);
+		e = sockout_send_packet(ctx, pck, ctx->socket);
+		if (e == GF_BUFFER_TOO_SMALL) return GF_OK;
 	}
 
-	ctx->first_pck_processed = GF_TRUE;
+	ctx->nb_pck_processed++;
 	
 	gf_filter_pid_drop_packet(ctx->pid);
 	return GF_OK;
@@ -393,6 +420,8 @@ static const GF_FilterArgs SockOutArgs[] =
 	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(listen), "indicates the output socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FALSE},
+	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(kp), "keep packets in queue if no more clients", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{0}
@@ -410,8 +439,13 @@ static const GF_FilterCapability SockOutCaps[] =
 
 GF_FilterRegister SockOutRegister = {
 	.name = "sockout",
-	.description = "socket output",
+	.description = "UDP / TCP socket output",
 	.comment = "This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"\
+		"The filter can work in server mode, waiting for source connections, or can directly connect\n"
+		"In server mode, the filter can be instructed to keep running at the end of the stream\n"
+		"In server mode, the default behaviour is to keep input packets when no more clients are connected; "
+		"this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.\n"
+		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter)\n"
 		"\n"
 #ifdef GPAC_HAS_SOCK_UN
 		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME",

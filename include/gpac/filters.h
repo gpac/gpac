@@ -227,8 +227,14 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
-Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type, u8 *is_pck);
+//prop aplies only to packets
+#define GF_PROP_FLAG_PCK 1
+//prop is optional for media processing
+#define GF_PROP_FLAG_GSF_REM 1<<1
+
+Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type, u8 *prop_flags);
 u32 gf_props_get_id(const char *name);
+u8 gf_props_4cc_get_flags(u32 prop_4cc);
 
 //helper macros to set properties
 #define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}

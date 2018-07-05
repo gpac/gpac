@@ -69,6 +69,9 @@ typedef struct
 	Bool had_clients;
 
 	char *buffer;
+
+	GF_SockGroup *active_sockets;
+
 } GF_SockInCtx;
 
 
@@ -82,6 +85,9 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
+
+	ctx->active_sockets = gf_sk_group_new();
+	if (!ctx->active_sockets) return GF_OUT_OF_MEM;
 
 	if (!strnicmp(ctx->src, "udp://", 6) || !strnicmp(ctx->src, "mpegts-udp://", 13)) {
 		sock_type = GF_SOCK_TYPE_UDP;
@@ -107,6 +113,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Failed to open socket for %s\n", ctx->src));
 		return GF_IO_ERR;
 	}
+	gf_sk_group_register(ctx->active_sockets, ctx->sock_c.socket);
 
 	/*setup port and src*/
 	port = ctx->port;
@@ -186,6 +193,7 @@ static void sockin_finalize(GF_Filter *filter)
 	}
 	sockin_client_reset(&ctx->sock_c);
 	if (ctx->buffer) gf_free(ctx->buffer);
+	if (ctx->active_sockets) gf_sk_group_del(ctx->active_sockets);
 }
 
 static GF_FilterProbeScore sockin_probe_url(const char *url, const char *mime_type)
@@ -245,7 +253,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 
 	if (!sock_c->start_time) sock_c->start_time = gf_sys_clock_high_res();
 
-	e = gf_sk_receive(sock_c->socket, ctx->buffer, ctx->block_size, 0, &nb_read);
+	e = gf_sk_receive_no_select(sock_c->socket, ctx->buffer, ctx->block_size, 0, &nb_read);
 	switch (e) {
 	case GF_IP_NETWORK_EMPTY:
 		return GF_OK;
@@ -336,31 +344,46 @@ static GF_Err sockin_process(GF_Filter *filter)
 	u32 i, count;
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
-	if (!ctx->listen) {
-		return sockin_read_client(filter, ctx, &ctx->sock_c);
+	e = gf_sk_group_select(ctx->active_sockets, 10);
+	if (e==GF_IP_NETWORK_EMPTY) return GF_OK;
+	else if (e) return e;
+
+	if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket)) {
+		if (!ctx->listen) {
+			return sockin_read_client(filter, ctx, &ctx->sock_c);
+		}
+
+		if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket)) {
+			e = gf_sk_accept(ctx->sock_c.socket, &new_conn);
+			if ((e==GF_OK) && new_conn) {
+				GF_SockInClient *sc;
+				GF_SAFEALLOC(sc, GF_SockInClient);
+				sc->socket = new_conn;
+				strcpy(sc->adress, "unknown");
+				gf_sk_get_remote_address(new_conn, sc->adress);
+				gf_sk_set_block_mode(new_conn, !ctx->block);
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Accepting new connection from %s\n", sc->adress));
+				gf_list_add(ctx->clients, sc);
+				ctx->had_clients = GF_TRUE;
+				gf_sk_group_register(ctx->active_sockets, sc->socket);
+			}
+		}
 	}
-
-
-	e = gf_sk_accept(ctx->sock_c.socket, &new_conn);
-	if ((e==GF_OK) && new_conn) {
-		GF_SockInClient *sc;
-		GF_SAFEALLOC(sc, GF_SockInClient);
-		sc->socket = new_conn;
-		strcpy(sc->adress, "unknown");
-		gf_sk_get_remote_address(new_conn, sc->adress);
-		gf_sk_set_block_mode(new_conn, !ctx->block);
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Accepting new connection from %s\n", sc->adress));
-		gf_list_add(ctx->clients, sc);
-		ctx->had_clients = GF_TRUE;
-	}
+	if (!ctx->listen) return GF_OK;
 
 	count = gf_list_count(ctx->clients);
 	for (i=0; i<count; i++) {
 		GF_SockInClient *sc = gf_list_get(ctx->clients, i);
-	 	GF_Err e = sockin_read_client(filter, ctx, sc);
+
+		if (!gf_sk_group_sock_is_set(ctx->active_sockets, sc->socket)) continue;
+
+	 	e = sockin_read_client(filter, ctx, sc);
 	 	if (e == GF_IP_CONNECTION_CLOSED) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockIn] Connection to %s lost, removing input\n", sc->adress));
+			if (sc->socket)
+				gf_sk_group_unregister(ctx->active_sockets, sc->socket);
+
 	 		sockin_client_reset(sc);
 	 		if (sc->pid) {
 	 			gf_filter_pid_set_eos(sc->pid);
@@ -375,12 +398,14 @@ static GF_Err sockin_process(GF_Filter *filter)
 		}
 	}
 	if (!ctx->had_clients) {
+		//we should use socket groups and selects !
 		gf_filter_ask_rt_reschedule(filter, 100000);
 		return GF_OK;
 	}
 
 	if (!count) {
 		if (ctx->ka) {
+			//keep alive, ask for real-time reschedule of 100 ms - we should use socket groups and selects !
 			gf_filter_ask_rt_reschedule(filter, 100000);
 		} else {
 			return GF_EOS;
@@ -425,7 +450,7 @@ static const GF_FilterCapability SockInCaps[] =
 
 GF_FilterRegister SockInRegister = {
 	.name = "sockin",
-	.description = "TCP/UDP socket input",
+	.description = "UDP / TCP socket input",
 	.comment = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
 		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
 		"\n"

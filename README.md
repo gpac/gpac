@@ -71,8 +71,8 @@ Remaining before release
 - [ ] rewrite MP42TS to filters or drop it
 - [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
 - [x] add pipe source and sink
-- [ ] add  tcp source and sink
-- [ ] add generic serializer/reader for all events/packets in filter arch
+- [x] add  tcp source and sink
+- [x] add generic serializer/reader for all events/packets in filter arch
 - [ ] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
 - [ ] pass all test suite
@@ -83,11 +83,11 @@ Targets:
 - [ ] filter API documentation
 - [ ] add ffmpeg muxer support
 - [ ] add ffmpeg simple avfilter support
-- [ ] improve filter scheduler ?
+- [ ] filters scriptable through JS
 - [ ] improve filter graph resolver ?
+- [ ] improve filter scheduler ?
 - [ ] move input sensors to filter ?
-- [ ] scriptable JS filters
-- [ ] scriptable other filters ?
+- [ ] filters scriptable through other languages ?
 
 # Testing
 GPAC has a test suite exercicing most features of the framework. Check the [tests readme](tests/README.md) for more details. Per-commit [build](http://gpacvm-ext.enst.fr/buildbot/#/grid?branch=master) and [tests results](http://gpacvm-ext.enst.fr/django/testres/) are available.
