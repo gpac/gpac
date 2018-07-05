@@ -515,7 +515,6 @@ GF_Err gsfdmx_read_packet(GF_GSFDemuxCtx *ctx, u32 pck_len)
 	u8 has_str_props = gf_bs_read_int(ctx->bs_r, 1);
 
 	//done with flags
-
 	full_au_size = gf_bs_read_int(ctx->bs_r, 8*(sizemode+1) );
 
 	if (tsmode==3) tsmodebits = 64;
@@ -741,15 +740,19 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GF_GSFDemuxCtx *ctx, char *data, u
 				ctx->wait_for_play = GF_TRUE;
 				break;
 			}
-
 			e = gsfdmx_read_packet(ctx, pck_len);
 		} else if ((pck_type==GFS_PCKTYPE_PCK_CONT) || (pck_type==GFS_PCKTYPE_PCK_LAST)) {
+			u32 sidx_start = gf_bs_get_position(ctx->bs_r);
 			GF_GSFStream *gst = gsfdmx_read_stream(ctx);
+			u32 sidx_size = gf_bs_get_position(ctx->bs_r) - sidx_start;
+			u32 pck_size = pck_len - sidx_size;
+
 			if (gst) {
 				char *output;
-				GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(gst->opid, pck_len, &output);
-				gf_bs_read_data(ctx->bs_r, output, pck_len);
+				GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(gst->opid, pck_size, &output);
+				gf_bs_read_data(ctx->bs_r, output, pck_size);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, (pck_type==GFS_PCKTYPE_PCK_LAST) );
+				gf_filter_pck_send(dst_pck);
 			} else {
 				e = GF_NON_COMPLIANT_BITSTREAM;
 			}

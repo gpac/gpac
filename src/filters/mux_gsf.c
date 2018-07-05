@@ -149,6 +149,9 @@ static void gsfmx_send_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketT
 	memcpy(output+hdr_size, ctx->buffer, psize);
 
 	gf_bs_get_content_no_truncate(ctx->bs_w, &output, &psize, NULL);
+	if (ctx->mpck) {
+		assert(ctx->mpck>=psize);
+	}
 
 	if (do_encrypt) {
 		hdr_size += crypt_offset;
@@ -687,10 +690,11 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 		} else {
 			Bool first = GF_TRUE;
 			const char *ptr = data;
-			hsize = gsfmx_get_header_size(ctx, ctx->mpck);
+			u32 written = gf_bs_get_position(ctx->bs_w);
+			hsize = gsfmx_get_header_size(ctx, ctx->mpck - written);
 			while (psize) {
 				u32 pck_type = GFS_PCKTYPE_PCK_CONT;
-				u32 to_write = ctx->mpck - hsize;
+				u32 to_write = ctx->mpck - hsize - written;
 
 				if (first) pck_type = GFS_PCKTYPE_PCK;
 
@@ -710,6 +714,8 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 				first = GF_FALSE;
 
 				gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
+				gsfmx_write_vlen(ctx, gst->idx);
+				written = gf_bs_get_position(ctx->bs_w);
 			}
 		}
 	} else if (hwframe) {
@@ -779,6 +785,7 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 							if (pck_size>psize) pck_size = psize;
 
 							gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
+							gsfmx_write_vlen(ctx, gst->idx);
 						}
 					}
 				} else {
