@@ -321,6 +321,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 static GF_FilterProbeScore pipeout_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "pipe://", 7)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "pipe:", 5)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
