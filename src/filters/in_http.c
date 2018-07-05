@@ -47,7 +47,10 @@ typedef struct
 	u32 block_size;
 	GF_HTTPInStoreMode cache;
 	GF_Fraction range;
+	char *ext;
+	char *mime;
 
+	//internal
 	Bool initial_ack_done;
 	GF_DownloadManager *dm;
 
@@ -300,7 +303,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			}
 			ctx->file_size = total_size;
 			ctx->block[nb_read] = 0;
-			e = filein_declare_pid(filter, &ctx->pid, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), NULL, ctx->block, nb_read);
+			e = filein_declare_pid(filter, &ctx->pid, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read);
 			if (e) return e;
 			if (!ctx->initial_ack_done) {
 				ctx->initial_ack_done = GF_TRUE;
@@ -366,6 +369,8 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FALSE},
 	{ OFFS(cache), "Sets cache mode: disk, disk without discarding, memory or none", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FALSE},
 	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION, "0-0", NULL, GF_FALSE},
+	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{0}
 };
 

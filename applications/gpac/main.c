@@ -36,7 +36,7 @@ static GF_SystemRTInfo rti;
 static u32 list_filters = 0;
 static Bool dump_stats = GF_FALSE;
 static Bool dump_graph = GF_FALSE;
-static Bool print_filter_info = GF_FALSE;
+static u32 print_filter_info = 0;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static Bool disable_link_resolution = GF_FALSE;
@@ -79,24 +79,24 @@ static void gpac_filter_help(void)
 "See -h for available options.\n"
 "Help is given with default separator sets :=#,@. See -s to change them.\n"
 "\n"
-"Filters are configurable processing units consuming and producing data packets. These packets are carried\n"
+"Filters are configurable processing units consuming and producing data packets. These packets are carried "
 "between filters through a data channel called pid.\n"
 "A pid is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s).\n"
-"A filter output pid may be connected to zero or more filters. This fan-out is handled internally by\n"
+"A filter output pid may be connected to zero or more filters. This fan-out is handled internally by "
 "the filter engine (no such thing as a tee filter in GPAC).\n"
-"When a pid cannot be connected to any filter, a warning is thrown and all packets dispatched on\n"
+"When a pid cannot be connected to any filter, a warning is thrown and all packets dispatched on "
 "this pid will be immediately destroyed. The session may however still run.\n"
 "Each output pid carries a set of properties describing the data it delivers (eg width, ehight, codec, ...).\n"
 "Properties can be built-in (identified by a 4 character code in GPAC), or user-defined (identified by a string).\n"
 "Each pid tracks its properties changes and triggers filter reconfiguration during packet processing.\n"
-"This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain\n"
+"This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain "
 "(eg unload a video decoder when switching from compressed to uncompressed sources).\n"
-"Each filter exposes one or more sets of capabilities, which are property type and values that must be matched\n"
-"or excluded in connecting pids.\n"
+"Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values "
+"that must be matched or excluded in connecting pids.\n"
 "\n"
 "FILTER_DECL\n"
 "Filters are listed by name, with options appended as a list of colon-separated Name=Value pairs.\n"
-"\tValue can be omitted for booleans, defaulting to true (eg :noedit). Using '!'before the name negates\n"
+"\tValue can be omitted for booleans, defaulting to true (eg :noedit). Using '!'before the name negates "
 "the result (eg :!moof_first)\n"
 "\tName can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enum names in one filter!\n"
 "\n"
@@ -118,9 +118,9 @@ static void gpac_filter_help(void)
 "\tEX: \"src=file.mp4:gfreg=ffdmx,ffdec\" will use ffdmx to handle the file and ffdec to decode\n"
 "This can be used to test a specific filter when alternate filter chains are possible.\n"
 "\n"
-"By default filters chain will be resolved without any decoding/encoding if the destination accepts the desired format\n"
-"Otherwise, decoders/encoders will be dynamically loaded to perform the conversion, unless dynamic resolution is disabled.\n"
-"There is a special shorcut filter name for encoders \"enc\" allowing to match a filter providing the desired encoding.\n"
+"By default filters chain will be resolved without any decoding/encoding if the destination accepts the desired format. "
+"Otherwise, decoders/encoders will be dynamically loaded to perform the conversion, unless dynamic resolution is disabled. "
+"There is a special shorcut filter name for encoders \"enc\" allowing to match a filter providing the desired encoding. "
 "The parameters for enc are:\n"
 "\tc=NAME identifes the desired codec. NAME can be the gpac codec name or the encoder instance for ffmpeg/others\n"
 "\tb=UINT or rate=UINT or bitrate=UINT indicates the bitrate in bits per second\n"
@@ -170,22 +170,21 @@ static void gpac_filter_help(void)
 "Note that these extensions also work with the LINK shortcut:\n"
 "\tEX: \"fA fB @1#video fC\" indicates to direct fA video outputs to fC\n"
 "\n"
-"Unless explicitly disabled (-nd option), the filter engine will resolve implicit or explicit (LINK) connections between filters\n"
-"and will allocate any filter chain required to connect the filters.\n"
+"Unless explicitly disabled (-nd option), the filter engine will resolve implicit or explicit (LINK) connections between filters "
+"and will allocate any filter chain required to connect the filters. "
 "In doing so, it loads new filters with arguments inherited from both the source and the destination.\n"
 "\tEX: \"src=file.mp4:OPT dst=file.aac dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the two destinations\n"
 "\tEX: \"src=file.mp4 dst=file.aac:OPT dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the file.aac destination\n"
 "\n"
-"Note that if a filter pid gets connected to a loaded filter, no further dynamic link resolution will\n"
+"Note that if a filter pid gets connected to a loaded filter, no further dynamic link resolution will "
 "be done to connect it to other filters. Link directives should be carfully setup\n"
 "\tEX: src=file.mp4 @ reframer dst=dump.mp4\n"
-"This will link src pid (type file) to dst (type file) because dst has no sourceID and therefore will\n"
-"accept input from src. Since the pid is connected, the filter engine will not try to solve\n"
+"This will link src pid (type file) to dst (type file) because dst has no sourceID and therefore will "
+"accept input from src. Since the pid is connected, the filter engine will not try to solve "
 "a link between src and reframer. The result is a direct copy of the source file, reframer being unused\n"
 "\tEX: src=file.mp4 reframer @ dst=dump.mp4\n"
-"This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and\n"
-"src pid will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is\n"
-"a complete remux of the source file\n"
+"This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and "
+"src pid will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file\n"
 "\n"
 "Destination URLs can be templated using the same mechanism as MPEG-DASH:\n"
 "\t$KEYWORD$ is replaced in the template with the resolved value,\n"
@@ -197,16 +196,16 @@ static void gpac_filter_help(void)
 "\tPID: ID of the source pid\n"
 "\tURL: URL of source file\n"
 "\tFile: path on disk for source file\n"
-"\tp4cc=ABCD: uses pid property with 4CC ABCD\n"
+"\tp4cc=ABCD: uses pid property with 4CC value ABCD\n"
 "\tpname=VAL: uses pid property with name VAL\n"
 "\tOTHER: locates property 4CC for the given name, or property name if no 4CC matches.\n"
 "\n"
 "Templating can be usefull when encoding several qualities in one pass:\n"
 "\tEX: src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264\n"
-"This will create a croped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k\n"
+"This will create a croped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k "
 "outputs will be dump_0x0x320x180.264 for the croped version and dump_0x0x640x360.264 for the non-croped one\n"
 "\n"
-"When a filter accepts a single connection and has a connected input, it is no longer available for dynamic resolution.\n"
+"When a filter accepts a single connection and has a connected input, it is no longer available for dynamic resolution. "
 "There may be cases where this behaviour is undesired. Take a HEIF file with N items and do:\n"
 "\tEX: src=img.heif dst=dump_$ItemID$.jpg\n"
 "In this case, only one item (likely the first declared in the file) will connect to the destination.\n"
@@ -215,12 +214,12 @@ static void gpac_filter_help(void)
 "\tEX: src=img.heif dst=dump_$ItemID$.jpg:clone\n"
 "In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.\n"
 "\n"
-"It is possible to define properties on output pids that will be declared by a filter. This allows tagging parts of the\n"
-"graph with different properties than other parts (for example ServiceID)\n"
-"The syntax uses the fragment separator to identify properties: #Name=Value\n"
+"It is possible to define properties on output pids that will be declared by a filter. This allows tagging parts of the "
+"graph with different properties than other parts (for example ServiceID). "
+"The syntax uses the fragment separator to identify properties, eg #Name=Value. "
 "This sets output pids property (4cc, built-in name or any name) to the given value.\n"\
 "If a non built-in property is used, the value will be delared as string.\n"
-"WARNING: Properties are not filtered and override the source props, be carefull not to break the session by overriding core\n"
+"WARNING: Properties are not filtered and override the source props, be carefull not to break the session by overriding core "
 "properties such as width/height/samplerate/... !\n"
 "\tEX: -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
 "This will mux the streams in dump.ts, using ServiceID 4 for pids from v1.mp4 and ServiceID 1 for pids from v2.mp4\n"
@@ -280,53 +279,55 @@ static void gpac_usage(void)
 {
 	fprintf(stderr, "Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
 			"Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
-			"This is GPAC's command line tool for setting up and running filter chains - see -doc for generic help on GPAC filters.\n"
+			"This is GPAC's command line tool for setting up and running filter chains - see -h doc for generic help on GPAC filters.\n"
 			"\n"
 			"Global options are:\n"
 #ifdef GPAC_MEMORY_TRACKING
             "-mem-track:  enables memory tracker\n"
             "-mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
-			"-s=CHARLIST      : sets the default character sets used to seperate various arguments, default is %s\n"
+			"-s=CHARLIST     : set the default character sets used to seperate various arguments, default is %s\n"
 			"                   The first char is used to seperate argument names\n"
 			"                   The second char, if present, is used to seperate names and values\n"
 			"                   The third char, if present, is used to seperate fragments for pid sources\n"
 			"                   The fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"
 			"                   The fifth char, if present, is used for boolean negation\n"
-			"                   The sixth char, if present, is used for LINK directives (cf -doc)\n"
-			"-props          : prints all built-in pid properties.\n"
-			"-codecs         : prints all codec short names and description.\n"
-			"-list           : lists all supported filters.\n"
-			"-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
-			"-info NAME[ NAME2]      : print info on filter NAME. For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
+			"                   The sixth char, if present, is used for LINK directives (cf -h doc)\n"
+			"-list           : list all supported filters.\n"
+			"-listm          : list all supported filters including meta-filters (ffmpeg & co).\n"
+			"-info NAME      : print info on filter NAME (multiple NAME can be given). For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
 			"                    Use * to print info on all filters (warning, big output!)\n"
 			"                    Use *:* to print info on all filters including meta-filters (warning, big big output!)\n"
-			"-links          : prints possible connections between each supported filters\n"
 			"-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
 			"-graph          : print stats after  Graph can be viewed at runtime by typing 'g' in the prompt\n"
-	        "-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
+	        "-threads=N      : set N extra thread for the session. -1 means use all available cores\n"
 			"\n"
 	        "-strict-error   : exit at first error\n"
-	        "-log-file=file  : sets output log file. Also works with -lf\n"
-	        "-logs=log_args  : sets log tools and levels, see -hlog\n"
-	        "-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
-	        "-log-utc or -lu        : logs UTC time in ms before each log line.\n"
+	        "-log-file=file  : set output log file. Also works with -lf\n"
+	        "-logs=log_args  : set log tools and levels, see -h logs\n"
+	        "-lc             : log time in micro sec since start time of GPAC before each log line (same as -log-clock).\n"
+	        "-lu             : log UTC time in ms before each log line (same as -log-utc).\n"
 			"-quiet          : quiet mode\n"
-			"-noprog         : disables messages if any\n"
-			"-hlog           : prints names of available log tools\n"
-			"-h or -help     : prints command line options.\n"
-			"-doc            : prints filter usage doc.\n"
+			"-noprog         : disable progress messages if any\n"
+			"-h [ARG]        : print help (works with -help as well). ARG can be:\n"
+			"                  not given: prints command line options help (this screen).\n"
+			"                  'doc': prints the general filter info.\n"
+			"                  'log': prints the log system help.\n"
+			"                  'codecs': prints the supported builtin codecs.\n"
+			"                  'props': prints the supported builtin pid properties.\n"
+			"                  'links': prints possible connections between each supported filters.\n"
+			"                  FNAME: prints filter FNAME info and options (for viewing all details, use -info).\n"
 			"\n"
 			"Expert options\n"
-			"-nb             : disables blocking mode of filters\n"
-	        "-sched=MODE     : sets scheduler mode. Possible modes are:\n"
+			"-nb             : disable blocking mode of filters\n"
+	        "-sched=MODE     : set scheduler mode. Possible modes are:\n"
 	        "                   free: uses lock-free queues (default)\n"
 	        "                   lock: uses mutexes for queues when several threads\n"
 	        "                   flock: uses mutexes for queues even when no thread (debug mode)\n"
 	        "                   direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
 			"-bl=NAMES       : blacklist the filters in NAMES (comma-seperated list)\n"
-			"-nd             : disables dynamic link resolution. You will have to specify the entire chain by hand\n"
-			"-ltf            : loads test filters for unit tests.\n"
+			"-nd             : disable dynamic link resolution. You will have to specify the entire chain by hand\n"
+			"-ltf            : load test-unit filters (used for for unit tests only).\n"
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
@@ -388,19 +389,27 @@ static int gpac_main(int argc, char **argv)
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
-			gpac_usage();
-			return 0;
-		} else if (!strcmp(arg, "-hlog") ) {
-			gf_log_usage();
-			return 0;
-		} else if (!strcmp(arg, "-doc")) {
-			gpac_filter_help();
-			return 0;
-		} else if (!strcmp(arg, "-codecs")) {
-			dump_codecs = GF_TRUE;
-		} else if (!strcmp(arg, "-props")) {
-			dump_all_props();
-			return 0;
+			if (i+1==argc) {
+				gpac_usage();
+				return 0;
+			} else if (!strcmp(argv[i+1], "logs")) {
+				gf_log_usage();
+				return 0;
+			} else if (!strcmp(argv[i+1], "doc")) {
+				gpac_filter_help();
+				return 0;
+			} else if (!strcmp(argv[i+1], "props")) {
+				dump_all_props();
+				return 0;
+			} else if (!strcmp(argv[i+1], "codecs")) {
+				dump_codecs = GF_TRUE;
+				i++;
+			} else if (!strcmp(argv[i+1], "links")) {
+				view_filter_conn = GF_TRUE;
+				i++;
+			} else {
+				print_filter_info = 2;
+			}
 		} else if (!strncmp(arg, "-s=", 3)) {
 			u32 len;
 			arg = arg+3;
@@ -459,18 +468,16 @@ static int gpac_main(int argc, char **argv)
 			load_test_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-list")) {
 			list_filters = 1;
-		} else if (!strcmp(arg, "-list-meta")) {
+		} else if (!strcmp(arg, "-listm")) {
 			list_filters = 2;
 		} else if (!strcmp(arg, "-stats")) {
 			dump_stats = GF_TRUE;
 		} else if (!strcmp(arg, "-graph")) {
 			dump_graph = GF_TRUE;
 		} else if (!strcmp(arg, "-info")) {
-			print_filter_info = GF_TRUE;
+			print_filter_info = 1;
 		} else if (!strcmp(arg, "-nb")) {
 			disable_blocking = GF_TRUE;
-		} else if (!strcmp(arg, "-links")) {
-			view_filter_conn = GF_TRUE;
 		} else if (strstr(arg, ":*") && list_filters) {
 			list_filters = 3;
 		} else if (!strncmp(arg, "-bl", 3)) {
@@ -668,20 +675,23 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 
 static void print_filter(const GF_FilterRegister *reg)
 {
+	Bool small_info = (print_filter_info==2) ? GF_TRUE : GF_FALSE;
 	fprintf(stderr, "Name: %s\n", reg->name);
 	if (reg->description) fprintf(stderr, "Description: %s\n", reg->description);
 	if (reg->author) fprintf(stderr, "Author: %s\n", reg->author);
-	if (reg->comment) fprintf(stderr, "Comment:\n%s\n", reg->comment);
+	if (reg->comment) fprintf(stderr, "%s%s\n", small_info ? "\n" : "Comment:\n", reg->comment);
 
-	if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
-	else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
+	if (!small_info) {
+		if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
+		else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
 
-	fprintf(stderr, "Flags:");
-	if (reg->explicit_only) fprintf(stderr, " ExplicitOnly");
-	if (reg->requires_main_thread) fprintf(stderr, "MainThread");
-	if (reg->probe_url) fprintf(stderr, " IsSource");
-	if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
-	fprintf(stderr, "\nPriority %d\n", reg->priority);
+		fprintf(stderr, "Flags:");
+		if (reg->explicit_only) fprintf(stderr, " ExplicitOnly");
+		if (reg->requires_main_thread) fprintf(stderr, "MainThread");
+		if (reg->probe_url) fprintf(stderr, " IsSource");
+		if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
+		fprintf(stderr, "\nPriority %d\n", reg->priority);
+	}
 
 	if (reg->args) {
 		u32 idx=0;
@@ -707,7 +717,7 @@ static void print_filter(const GF_FilterRegister *reg)
 		fprintf(stderr, "No options\n");
 	}
 
-	if (reg->nb_caps) {
+	if (!small_info && reg->nb_caps) {
 		dump_caps(reg->nb_caps, reg->caps);
 	}
 	fprintf(stderr, "\n");
@@ -732,11 +742,10 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 					found = GF_TRUE;
 				} else {
 					char *sep = strchr(arg, ':');
-					if (!sep && !strcmp(arg, "*")) {
-						print_filter(reg);
-						found = GF_TRUE;
-						break;
-					} else if (sep && !strncmp(reg->name, arg, sep - arg) && !strcmp(sep, ":*") ) {
+					if (!strcmp(arg, "*:*")
+						|| (!sep && !strcmp(arg, "*"))
+					 	|| (sep && !strncmp(reg->name, arg, sep - arg) && !strcmp(sep, ":*") )
+					) {
 						print_filter(reg);
 						found = GF_TRUE;
 						break;
