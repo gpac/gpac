@@ -228,15 +228,15 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		location_entry = NULL;
 	}
 
-	switch (item_type) {
-	case GF_ISOM_SUBTYPE_HVC1:
-	case GF_ISOM_SUBTYPE_AVC_H264:
-	case GF_ISOM_SUBTYPE_JPEG:
-		break;
-	default:
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Extracting item type %s not supported\n", gf_4cc_to_str(item_type) ));
-		return GF_NOT_SUPPORTED;
-	}
+	// switch (item_type) {
+	// case GF_ISOM_SUBTYPE_HVC1:
+	// case GF_ISOM_SUBTYPE_AVC_H264:
+	// case GF_ISOM_SUBTYPE_JPEG:
+	// 	break;
+	// default:
+	// 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Extracting item type %s not supported\n", gf_4cc_to_str(item_type) ));
+	// 	return GF_NOT_SUPPORTED;
+	// }
 
 	if (!location_entry) return GF_BAD_PARAM;
 
@@ -712,7 +712,7 @@ static void meta_add_item_property_association(GF_ItemPropertyAssociationBox *ip
 	gf_list_add(found_entry->essential, ess);
 	gf_list_add(found_entry->property_index, index);
 }
-
+	
 static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_ImageItemProperties *image_props) {
 	GF_ImageItemProperties searchprop;
 	GF_ItemPropertyAssociationBox *ipma;
@@ -730,6 +730,31 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		ipco = meta->item_props->property_container;
 		ipma = meta->item_props->property_association;
 	}
+
+	if (strlen(image_props->iccPath) > 0) {
+		FILE *fp = gf_fopen(image_props->iccPath, "rb");
+		if (fp) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] reading ICC colour profile from file %s\n", &image_props->iccPath));
+			GF_ColourInformationBox *colr = (GF_ColourInformationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_COLR);
+			colr->colour_type = GF_ISOM_SUBTYPE_PROF;
+			fseek(fp,0,SEEK_END);
+			colr->opaque_size = ftell(fp);
+			fseek(fp,0,SEEK_SET);
+			colr->opaque = malloc(colr->opaque_size);
+			size_t read = gf_fread(colr->opaque, 1, colr->opaque_size, fp);
+			fclose(fp);
+			if (ferror(fp) || read != colr->opaque_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error reading ICC colour profile from file %s\n", &image_props->iccPath));
+			} else {
+				gf_list_add(ipco->other_boxes, colr);
+				prop_index = gf_list_count(ipco->other_boxes) - 1;
+				meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
+			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error opening ICC colour profile file at %s\n", &image_props->iccPath));
+		}
+	}
+
 	if (image_props->width || image_props->height) {
 		searchprop.width = image_props->width;
 		searchprop.height = image_props->height;
