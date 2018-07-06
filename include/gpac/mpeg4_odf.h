@@ -34,11 +34,11 @@ extern "C" {
  *	\file <gpac/mpeg4_odf.h>
  *	\brief MPEG-4 Object Descriptor Framework.
  */
-	
+
 /*! \defgroup mpeg4sys_grp MPEG-4 Systems
  *	\brief MPEG-4 Systems.
  */
-	
+
 /*!
  *	\addtogroup odf_grp MPEG-4 OD
  *	\ingroup mpeg4sys_grp
@@ -347,7 +347,7 @@ enum
 	u8 tag;	\
 	u8 version;	\
 	u32 dataID;	\
- 
+
 /*! IPMPX base object used for type casting in many function*/
 typedef struct
 {
@@ -982,9 +982,9 @@ typedef struct
 	GF_List *param_array;
 	//used in LHVC config
 	Bool complete_representation;
-	
+
 	//following are internal to libgpac and NEVER serialized
-	
+
 	//set by libisomedia at import/export/parsing time to differentiate between lhcC and hvcC time
 	Bool is_lhvc;
 
@@ -1112,7 +1112,7 @@ GF_ODCodec *gf_odf_codec_new();
  \param codec OD codec to destroy
  */
 void gf_odf_codec_del(GF_ODCodec *codec);
-/*! add a command to the codec command list. 
+/*! add a command to the codec command list.
  \param codec target codec
  \param command command to add
  \return error if any
@@ -1361,7 +1361,7 @@ const char *gf_afx_get_type_description(u8 afx_code);
  \return NULL if unknown, otherwise value
  */
 const char *gf_odf_stream_type_name(u32 streamType);
-	
+
 /*! Gets the stream type based on stream type name
  \param streamType name of the stream type
  \return stream type GF_STREAM_XXX as defined in constants.h, 0 if unknown
@@ -1594,7 +1594,7 @@ typedef struct
 
 #define GF_IPMPX_AUTH_DESC	\
 	u8 tag;	\
- 
+
 /*! IPMPX authentication descriptor*/
 typedef struct
 {
@@ -1766,6 +1766,7 @@ typedef struct
 */
 typedef struct
 {
+	GF_IPMPX_DATA_BASE
 	GF_List *ipmp_tools;
 } GF_IPMPX_GetToolsResponse;
 
