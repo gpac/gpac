@@ -2591,6 +2591,8 @@ GF_Err gf_odf_del_kw(GF_KeyWord *kwd)
 		GF_KeyWordItem *tmp = (GF_KeyWordItem*)gf_list_get(kwd->keyWordsList, 0);
 		if (tmp) {
 			if (tmp->keyWord) gf_free(tmp->keyWord);
+			tmp->keyWord = NULL;
+			gf_list_rem(kwd->keyWordsList, 0);
 			gf_free(tmp);
 		}
 	}
@@ -2618,6 +2620,7 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 		if (e) return e;
 		nbBytes += len;
 		if (nbBytes > DescSize) {
+			gf_free(tmp->keyWord);
 			gf_free(tmp);
 			return GF_ODF_INVALID_DESCRIPTOR;
 		}
