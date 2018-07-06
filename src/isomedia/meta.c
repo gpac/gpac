@@ -734,14 +734,15 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 	if (strlen(image_props->iccPath) > 0) {
 		FILE *fp = gf_fopen(image_props->iccPath, "rb");
 		if (fp) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] reading ICC colour profile from file %s\n", &image_props->iccPath));
+			size_t read;
 			GF_ColourInformationBox *colr = (GF_ColourInformationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_COLR);
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] reading ICC colour profile from file %s\n", &image_props->iccPath));
 			colr->colour_type = GF_ISOM_SUBTYPE_PROF;
 			fseek(fp,0,SEEK_END);
 			colr->opaque_size = ftell(fp);
 			fseek(fp,0,SEEK_SET);
 			colr->opaque = malloc(colr->opaque_size);
-			size_t read = gf_fread(colr->opaque, 1, colr->opaque_size, fp);
+			read = gf_fread(colr->opaque, 1, colr->opaque_size, fp);
 			fclose(fp);
 			if (ferror(fp) || read != colr->opaque_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error reading ICC colour profile from file %s\n", &image_props->iccPath));
