@@ -7107,26 +7107,40 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	}
 	gf_isom_set_cts_packing(import->dest, track_num, GF_TRUE);
 
-	e = gf_media_aom_parse_ivf_file_header(bs, &state);
-	if (!e) {
-		gf_import_message(import, GF_OK, "Detected IVF.");
-		av1_bs_syntax = IVF;
-		pos = gf_bs_get_position(bs);
-	} else {
-		gf_bs_seek(bs, pos);
-		e = aom_av1_parse_temporal_unit_from_annexb(bs, &state);
-		if (!e) {
-			gf_import_message(import, GF_OK, "Detected Annex B.");
+	if (import->streamFormat) {
+		gf_import_message(import, GF_OK, "AV1: forcing format \"%s\".", import->streamFormat);
+		if (!stricmp(import->streamFormat, "obu")) {
+			av1_bs_syntax = OBUs;
+		} else if (!stricmp(import->streamFormat, "annexB")) {
 			av1_bs_syntax = AnnexB;
+		} else if (!stricmp(import->streamFormat, "ivf")) {
+			av1_bs_syntax = IVF;
+		} else {
+			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: unknown bitstream format \"%s\" found. Only \"obu\", \"annexB\" and \"ivf\" found.", import->streamFormat);
+			goto exit;
+		}
+	} else {
+		e = gf_media_aom_parse_ivf_file_header(bs, &state);
+		if (!e) {
+			gf_import_message(import, GF_OK, "Detected IVF.");
+			av1_bs_syntax = IVF;
+			pos = gf_bs_get_position(bs);
 		} else {
 			gf_bs_seek(bs, pos);
-			e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
-			if (e) {
-				gf_import_message(import, GF_NOT_SUPPORTED, "Couldn't guess AV1 bitstream format (IVF then Annex B then Section 5 tested).");
-				goto exit;
+			e = aom_av1_parse_temporal_unit_from_annexb(bs, &state);
+			if (!e) {
+				gf_import_message(import, GF_OK, "Detected Annex B.");
+				av1_bs_syntax = AnnexB;
+			} else {
+				gf_bs_seek(bs, pos);
+				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
+				if (e) {
+					gf_import_message(import, GF_NOT_SUPPORTED, "Couldn't guess AV1 bitstream format (IVF then Annex B then Section 5 tested).");
+					goto exit;
+				}
+				gf_import_message(import, GF_OK, "OBUs Section 5.");
+				av1_bs_syntax = OBUs;
 			}
-			gf_import_message(import, GF_OK, "OBUs Section 5.");
-			av1_bs_syntax = OBUs;
 		}
 	}
 
