@@ -818,7 +818,7 @@ GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u16(bs, count);
 	else
 		gf_bs_write_u32(bs, count);
-		
+
 	if (count) {
 		gf_isom_box_array_write(s, ptr->item_infos, bs);
 	}
@@ -855,6 +855,7 @@ void iref_del(GF_Box *s)
 		gf_isom_box_del(a);
 	}
 	gf_list_del(ptr->references);
+	ptr->references = NULL;
 	gf_free(ptr);
 }
 
