@@ -1255,6 +1255,12 @@ GF_Err gf_odf_read_default(GF_BitStream *bs, GF_DefaultDescriptor *dd, u32 DescS
 		if (! dd->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, dd->data, dd->dataLength);
 		nbBytes += dd->dataLength;
+		/* internal tags are read as default but deleted as their own types
+		   so dd->data would leak here */
+		if ((dd->tag>=GF_ODF_MUXINFO_TAG) && (dd->tag<=GF_ODF_LASER_CFG_TAG)) {
+			gf_free(dd->data);
+			dd->data = NULL;
+		}
 	}
 	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
 	return GF_OK;
@@ -3298,7 +3304,7 @@ GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmpt, u32 DescSize
 		u32 s;
 		nbBytes += gf_ipmpx_array_size(bs, &s);
 		if (s>0xFFFFFF) return GF_ODF_INVALID_DESCRIPTOR;
-		
+
 		if (s) {
 			ipmpt->tool_url = (char*)gf_malloc(sizeof(char)*(s+1));
 			gf_bs_read_data(bs, ipmpt->tool_url, s);
