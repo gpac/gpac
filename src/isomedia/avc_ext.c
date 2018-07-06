@@ -2509,9 +2509,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 			break;
 		}
 		assert(obu_size == gf_bs_get_position(bs) - pos);
-
 		read += obu_size;
-		gf_bs_seek(bs, pos);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ISOBMFF] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
 		if (!av1_is_obu_header(obu_type)) {
@@ -2519,6 +2517,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		a->obu = gf_malloc((size_t)obu_size);
+		gf_bs_seek(bs, pos);
 		gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);
 		a->obu_length = obu_size;
 		a->obu_type = obu_type;

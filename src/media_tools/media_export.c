@@ -1485,6 +1485,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 		}
+		/*AV1: add Temporal Unit Delimiters*/
+		else if (m_stype == GF_ISOM_SUBTYPE_AV01) {
+			gf_bs_write_u8(bs, 0x12);
+			gf_bs_write_u8(bs, 0x00);
+		}
 		if (!avccfg && !svccfg && !mvccfg && !hevccfg && !lhvccfg &!is_webvtt) {
 			gf_bs_write_data(bs, samp->data, samp->dataLength);
 		}
