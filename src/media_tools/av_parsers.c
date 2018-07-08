@@ -1896,7 +1896,7 @@ static Bool av1_is_obu_frame(ObuType obu_type) {
 	}
 }
 
-u64 leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
+u64 read_leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	u64 value = 0;
 	u8 Leb128Bytes = 0, i = 0;
 	for (i = 0; i < 8; i++) {
@@ -1914,13 +1914,67 @@ u64 leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	return value;
 }
 
+static size_t leb128_size(u64 value)
+{
+	size_t leb128_size = 0;
+	do {
+		++leb128_size;
+	} while ((value >>= 7) != 0);
+
+	return leb128_size;
+}
+
+static u64 write_leb128(GF_BitStream *bs, u64 value)
+{
+	size_t i, leb_size = leb128_size(value);
+	for (i = 0; i < leb_size; ++i) {
+		u8 byte = value & 0x7f;
+		value >>= 7;
+		if (value != 0) byte |= 0x80; //more bytes follow
+		gf_bs_write_u8(bs, byte);
+	}
+
+	return 0;
+}
+
 static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list) {
+	Bool isSection5, obu_extension_flag; 
+	u8 temporal_id, spatial_id;
 	GF_AV1_OBUArrayEntry *a;
 	GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
+
 	gf_bs_seek(bs, pos);
-	a->obu = gf_malloc((size_t)obu_length);
-	gf_bs_read_data(bs, a->obu, (u32)obu_length);
-	a->obu_length = obu_length;
+	av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &isSection5, &temporal_id, &spatial_id);
+	gf_bs_seek(bs, pos);
+
+	if (isSection5) {
+		a->obu = gf_malloc((size_t)obu_length);
+		gf_bs_read_data(bs, a->obu, (u32)obu_length);
+		a->obu_length = obu_length;
+	} else {
+		u8 i, hdr_size = obu_extension_flag ? 2 : 1;
+		const u32 leb_size = (u32)leb128_size(obu_length);
+		const u64 obu_size = obu_length - hdr_size;
+		a->obu = gf_malloc((size_t)obu_length + leb_size);
+		a->obu_length = obu_length + leb_size;
+		for (i = 0; i < hdr_size; ++i) {
+			a->obu[i] = gf_bs_read_u8(bs);
+			if (i == 0) a->obu[0] |= 0x02; /*add size field*/
+		}
+		{
+			u32 out_size = 0;
+			char *output = NULL;
+			GF_BitStream *bsLeb128 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			write_leb128(bsLeb128, obu_size);
+			assert(gf_bs_get_position(bsLeb128) == leb_size);
+			gf_bs_get_content(bsLeb128, &output, &out_size);
+			gf_bs_del(bsLeb128);
+			memcpy(a->obu + hdr_size, output, out_size);
+			gf_free(output);
+		}
+		gf_bs_read_data(bs, a->obu + hdr_size + leb_size, (u32)(obu_size));
+		assert(gf_bs_get_position(bs) == pos + obu_length);
+	}
 	a->obu_type = obu_type;
 	if (!*obu_list) *obu_list = gf_list_new();
 	gf_list_add(*obu_list, a);
@@ -1960,12 +2014,12 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e = GF_OK;
-	u64 sz = leb128(bs, NULL);
+	u64 sz = read_leb128(bs, NULL);
 	assert(bs && state);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
-		u64 frame_unit_size = leb128(bs, &Leb128Bytes);
+		u64 frame_unit_size = read_leb128(bs, &Leb128Bytes);
 		if (sz < Leb128Bytes + frame_unit_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B sz("LLU") < Leb128Bytes("LLU") + frame_unit_size("LLU")\n", sz, Leb128Bytes, frame_unit_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -1975,7 +2029,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 
 		while (frame_unit_size > 0) {
 			ObuType obu_type;
-			u64 pos, obu_length = leb128(bs, &Leb128Bytes);
+			u64 pos, obu_length = read_leb128(bs, &Leb128Bytes);
 			if (frame_unit_size < Leb128Bytes + obu_length) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < Leb128Bytes("LLU") + obu_length("LLU")\n", frame_unit_size, Leb128Bytes, obu_length));
 				return GF_NON_COMPLIANT_BITSTREAM;
@@ -2100,7 +2154,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 		return e;
 
 	if (obu_has_size_field) {
-		*obu_size = (u32)leb128(bs, NULL);
+		*obu_size = (u32)read_leb128(bs, NULL);
 	} else {
 		if (*obu_size >= 1 + obu_extension_flag)
 			*obu_size = *obu_size - 1 - obu_extension_flag;
