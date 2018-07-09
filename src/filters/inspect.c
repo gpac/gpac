@@ -396,7 +396,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		if (!ctx->hdr_done) {
 			ctx->hdr_done=GF_TRUE;
-			if (ctx->hdr)
+			if (ctx->hdr && ctx->fmt)
 				inspect_dump_packet_fmt(ctx, pctx->tmp, NULL, 0, 0);
 		}
 	}
