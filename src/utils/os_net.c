@@ -653,7 +653,8 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	}
 
-	if (sock->flags & GF_SOCK_IS_TCP) {
+	//if (sock->flags & GF_SOCK_IS_TCP)
+	{
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
@@ -850,6 +851,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 
 	if (!ip_add) {
 #if 0
+		char buf[GF_MAX_IP_NAME_LEN];
 		buf[0] = 0;
 		ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
 		/*get the IP address*/
@@ -866,7 +868,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	}
 	if (peer_name && peer_port) {
 #ifdef WIN32
-		if ((inet_addr(peer_name)== ip_add)) {
+		if ((inet_addr(peer_name)== ip_add) || !strcmp(peer_name, "127.0.0.1") ) {
 			optval = 1;
 			setsockopt(sock->socket, SOL_SOCKET, SO_USELOOPBACK, SSO_CAST &optval, sizeof(optval));
 		}
@@ -880,15 +882,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 
 
 	if (options & GF_SOCK_REUSE_PORT) {
-#if 0
 		optval = 1;
 		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, SSO_CAST &optval, sizeof(optval));
 #ifdef SO_REUSEPORT
 		optval = 1;
 		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEPORT, SSO_CAST &optval, sizeof(optval));
 #endif
-#endif
-
 	}
 
 	/*bind the socket*/
@@ -985,7 +984,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
 				return GF_BUFFER_TOO_SMALL;
 			default:
-				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
 				return GF_IP_NETWORK_FAILURE;
 			}
 		}
