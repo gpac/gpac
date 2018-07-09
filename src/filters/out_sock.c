@@ -42,8 +42,8 @@ typedef struct
 	Double start, speed;
 	char *dst, *mime, *ext, *mcast_ifce;
 	Bool listen;
-	u32 maxc, port, sockbuf, ka, kp;
-
+	u32 maxc, port, sockbuf, ka, kp, rate;
+	GF_Fraction pckr, pckd;
 
 	GF_Socket *socket;
 	//only one output pid
@@ -59,8 +59,13 @@ typedef struct
 	char szExt[10];
 	char szFileName[GF_MAX_PATH];
 
-	GF_FilterPacket *tunein_pck;
 	u32 nb_pck_processed;
+	u64 start_time;
+	u64 nb_bytes_sent;
+
+	GF_FilterPacket *rev_pck;
+	u32 next_pckd_idx, next_pckr_idx;
+	u32 nb_pckd_wnd, nb_pckr_wnd;
 } GF_SockOutCtx;
 
 
@@ -247,6 +252,7 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Write error: %s\n", gf_error_to_string(e) ));
 		}
+		ctx->nb_bytes_sent += pck_size;
 		return e;
 	}
 	hwf = gf_filter_pck_get_hw_frame(pck);
@@ -286,6 +292,7 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Write error: %s\n", gf_error_to_string(e) ));
 				}
 				out_ptr += out_stride;
+				ctx->nb_bytes_sent += lsize;
 			}
 		}
 	}
@@ -296,11 +303,27 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 static GF_Err sockout_process(GF_Filter *filter)
 {
 	GF_Err e;
+	Bool is_pck_ref = GF_FALSE;
+
 	GF_FilterPacket *pck;
 	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx->socket)
 		return GF_EOS;
+
+	if (ctx->rate) {
+		if (!ctx->start_time) ctx->start_time = gf_sys_clock_high_res();
+		else {
+			u64 now = gf_sys_clock_high_res() - ctx->start_time;
+			if (ctx->nb_bytes_sent*8*1000000 > ctx->rate * now) {
+				u64 diff = ctx->nb_bytes_sent*8*1000000 / ctx->rate - now;
+				gf_filter_ask_rt_reschedule(filter, MAX(diff, 1000) );
+				return GF_OK;
+			} else {
+				fprintf(stderr, "[SockOut] Sending at "LLU" kbps                       \r", ctx->nb_bytes_sent*8*1000/now);
+			}
+		}
+	}
 
 	if (ctx->listen) {
 		GF_Socket *new_conn=NULL;
@@ -334,17 +357,63 @@ static GF_Err sockout_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->pid)) {
-			if (!ctx->listen) {
-				gf_sk_del(ctx->socket);
-				ctx->socket = NULL;
-				return GF_EOS;
+			if (ctx->rev_pck) {
+				is_pck_ref = GF_TRUE;
+				pck = ctx->rev_pck;
+			} else {
+				if (!ctx->listen) {
+					gf_sk_del(ctx->socket);
+					ctx->socket = NULL;
+					return GF_EOS;
+				}
+				if (!ctx->ka)
+					return GF_EOS;
+				//keep alive, ask for real-time reschedule of 100 ms - we should use socket groups and selects !
+				gf_filter_ask_rt_reschedule(filter, 100000);
 			}
-			if (!ctx->ka)
-				return GF_EOS;
-			//keep alive, ask for real-time reschedule of 100 ms - we should use socket groups and selects !
-			gf_filter_ask_rt_reschedule(filter, 100000);
 		}
-		return GF_OK;
+		if (!pck)
+			return GF_OK;
+	}
+
+	if (ctx->pckd.den && !ctx->rev_pck) {
+		u32 pck_idx = ctx->pckd.num;
+		u32 nb_pck = ctx->nb_pckd_wnd * ctx->pckd.den;
+
+		if (!pck_idx) {
+			if (!ctx->next_pckd_idx) ctx->next_pckd_idx = gf_rand() % ctx->pckd.den;
+			pck_idx = ctx->next_pckd_idx;
+		}
+		nb_pck += pck_idx;
+
+		if (nb_pck == 1+ctx->nb_pck_processed) {
+			ctx->nb_pck_processed++;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockOut] Droping packet %d per user request\r", ctx->nb_pck_processed));
+			gf_filter_pid_drop_packet(ctx->pid);
+			ctx->next_pckd_idx = 0;
+			ctx->nb_pckd_wnd ++;
+			return GF_OK;
+		}
+	}
+	if (ctx->pckr.den && !ctx->rev_pck) {
+		u32 pck_idx = ctx->pckr.num;
+		u32 nb_pck = ctx->nb_pckr_wnd * ctx->pckr.den;
+
+		if (!pck_idx) {
+			if (!ctx->next_pckr_idx) ctx->next_pckr_idx = gf_rand() % ctx->pckr.den;
+			pck_idx = ctx->next_pckr_idx;
+		}
+		nb_pck += pck_idx;
+
+		if (nb_pck == 1+ctx->nb_pck_processed) {
+			ctx->rev_pck = pck;
+			gf_filter_pck_ref(&ctx->rev_pck);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockOut] Reverting packet %d per user request\r", ctx->nb_pck_processed));
+			ctx->nb_pck_processed++;
+			gf_filter_pid_drop_packet(ctx->pid);
+			pck = gf_filter_pid_get_packet(ctx->pid);
+			if (!pck) return GF_OK;
+		}
 	}
 
 	if (ctx->listen) {
@@ -352,18 +421,18 @@ static GF_Err sockout_process(GF_Filter *filter)
 		u32 i, nb_clients = gf_list_count(ctx->clients);
 		u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 		if ((dep_flags & 0x3) == 1) {
-/*			if (ctx->tunein_pck) gf_filter_pck_unref(ctx->tunein_pck);
-			ctx->tunein_pck = pck;
-			gf_filter_pck_ref(&ctx->tunein_pck);
-*/
-
 		}
 		ctx->pck_pending = GF_FALSE;
 
 		if (!nb_clients) {
 			//client disconnected, drop packet if needed
 			if (ctx->had_clients && !ctx->kp) {
-				gf_filter_pid_drop_packet(ctx->pid);
+				if (is_pck_ref) {
+					gf_filter_pck_unref(pck);
+					ctx->rev_pck = NULL;
+				} else {
+					gf_filter_pid_drop_packet(ctx->pid);
+				}
 			}
 			return GF_OK;
 		}
@@ -383,7 +452,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 				ctx->pck_pending = GF_TRUE;
 			}
 		}
-		if (ctx->pck_pending) return GF_TRUE;
+		if (ctx->pck_pending) return GF_OK;
 
 	} else {
 		e = sockout_send_packet(ctx, pck, ctx->socket);
@@ -392,7 +461,20 @@ static GF_Err sockout_process(GF_Filter *filter)
 
 	ctx->nb_pck_processed++;
 	
-	gf_filter_pid_drop_packet(ctx->pid);
+	if (is_pck_ref) {
+		gf_filter_pck_unref(pck);
+		ctx->rev_pck = NULL;
+	} else {
+		gf_filter_pid_drop_packet(ctx->pid);
+		if (ctx->rev_pck) {
+			e = sockout_send_packet(ctx, ctx->rev_pck, ctx->socket);
+			if (e == GF_BUFFER_TOO_SMALL) return GF_OK;
+			gf_filter_pck_unref(ctx->rev_pck);
+			ctx->rev_pck = NULL;
+			ctx->next_pckr_idx=0;
+			ctx->nb_pckr_wnd++;
+		}
+	}
 	return GF_OK;
 }
 
@@ -424,6 +506,9 @@ static const GF_FilterArgs SockOutArgs[] =
 	{ OFFS(kp), "keep packets in queue if no more clients", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(rate), "sets send rate, disabled by default (as fast as possible)", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(pckr), "reverse packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FALSE},
+	{ OFFS(pckd), "drop packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FALSE},
 	{0}
 };
 
@@ -445,13 +530,20 @@ GF_FilterRegister SockOutRegister = {
 		"In server mode, the filter can be instructed to keep running at the end of the stream\n"
 		"In server mode, the default behaviour is to keep input packets when no more clients are connected; "
 		"this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.\n"
-		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter)\n"
+		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send rate option\n"
 		"\n"
 #ifdef GPAC_HAS_SOCK_UN
-		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME",
+		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME"
 #else
-		"Oops, your platform does not supports unix domain sockets",
+		"Your platform does not supports unix domain sockets"
 #endif
+		"\n"
+		"The socket output can be configured to drop or revert packet order for test purposes. In both cases, a window size in packets is specified\n"
+		"as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator\n"
+		"If the numerator is 0, a packet is randomly chosen in that window\n"
+		"\tEX: :pckd=4/10 drops every 4th packet of each 10 packet window\n"
+		"\tEX: :pckr=0/100 reverts the send order of one random packet in each 100 packet window\n"
+		"\n",
 	.private_size = sizeof(GF_SockOutCtx),
 	.args = SockOutArgs,
 	SETCAPS(SockOutCaps),
