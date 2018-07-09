@@ -439,8 +439,8 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
 #ifndef GPAC_DISABLE_STREAMING
-	{ OFFS(reorder_pck), "number of packets delay for RTP reordering", GF_PROP_UINT, "100", NULL, GF_FALSE},
-	{ OFFS(reorder_delay), "number of ms delay for RTP reordering", GF_PROP_UINT, "10", NULL, GF_FALSE},
+	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FALSE},
+	{ OFFS(reorder_delay), "number of ms delay for RTP reordering (M2TS over RTP)", GF_PROP_UINT, "10", NULL, GF_FALSE},
 #endif
 	{0}
 };
