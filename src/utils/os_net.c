@@ -552,7 +552,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 
 #ifdef GPAC_HAS_IPV6
 	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
-	gf_sk_free(sock);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Solving %s address\n", PeerName));
 	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
@@ -580,33 +579,36 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
 		if (type != (u32) aip->ai_socktype) continue;
-		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
-		if (sock->socket == INVALID_SOCKET) {
-			sock->socket = NULL_SOCKET;
-			continue;
-		}
-		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, GF_TRUE);
-		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
-		else sock->flags &= ~GF_SOCK_IS_IPV6;
+		if (!sock->socket) {
+			sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
+			if (sock->socket == INVALID_SOCKET) {
+				sock->socket = NULL_SOCKET;
+				continue;
+			}
+			if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, GF_TRUE);
+			if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
+			else sock->flags &= ~GF_SOCK_IS_IPV6;
 
-		if (lip) {
-			ret = bind(sock->socket, lip->ai_addr, (int) lip->ai_addrlen);
+			if (lip) {
+				ret = bind(sock->socket, lip->ai_addr, (int) lip->ai_addrlen);
+				if (ret == SOCKET_ERROR) {
+					closesocket(sock->socket);
+					sock->socket = NULL_SOCKET;
+					continue;
+				}
+			}
+		}
+
+		if (! (sock->flags & GF_SOCK_IS_TCP)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
+			ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
 				continue;
 			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
 		}
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
-		ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
-		if (ret == SOCKET_ERROR) {
-			closesocket(sock->socket);
-			sock->socket = NULL_SOCKET;
-			continue;
-		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
-
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = (u32) aip->ai_addrlen;
 		freeaddrinfo(res);
@@ -653,39 +655,36 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	}
 
-	//if (sock->flags & GF_SOCK_IS_TCP)
-	{
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
-		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
-		if (ret == SOCKET_ERROR) {
-			u32 res = LASTSOCKERROR;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Sock_IPV4] Couldn't connect socket: %s\n", gf_errno_str(res) ));
-			switch (res) {
-			case EAGAIN:
-				return GF_IP_SOCK_WOULD_BLOCK;
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
+	ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
+	if (ret == SOCKET_ERROR) {
+		u32 res = LASTSOCKERROR;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Sock_IPV4] Couldn't connect socket: %s\n", gf_errno_str(res) ));
+		switch (res) {
+		case EAGAIN:
+			return GF_IP_SOCK_WOULD_BLOCK;
 #ifdef WIN32
-			case WSAEINVAL:
-				if (sock->flags & GF_SOCK_NON_BLOCKING)
-					return GF_IP_SOCK_WOULD_BLOCK;
+		case WSAEINVAL:
+			if (sock->flags & GF_SOCK_NON_BLOCKING)
+				return GF_IP_SOCK_WOULD_BLOCK;
 #endif
-			case EISCONN:
-				return GF_OK;
-			case ENOTCONN:
-				return GF_IP_CONNECTION_FAILURE;
-			case ECONNRESET:
-				return GF_IP_CONNECTION_FAILURE;
-			case EMSGSIZE:
-				return GF_IP_CONNECTION_FAILURE;
-			case ECONNABORTED:
-				return GF_IP_CONNECTION_FAILURE;
-			case ENETDOWN:
-				return GF_IP_CONNECTION_FAILURE;
-			default:
-				return GF_IP_CONNECTION_FAILURE;
-			}
+		case EISCONN:
+			return GF_OK;
+		case ENOTCONN:
+			return GF_IP_CONNECTION_FAILURE;
+		case ECONNRESET:
+			return GF_IP_CONNECTION_FAILURE;
+		case EMSGSIZE:
+			return GF_IP_CONNECTION_FAILURE;
+		case ECONNABORTED:
+			return GF_IP_CONNECTION_FAILURE;
+		case ENETDOWN:
+			return GF_IP_CONNECTION_FAILURE;
+		default:
+			return GF_IP_CONNECTION_FAILURE;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connected to %s:%d\n", PeerName, PortNumber));
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connected to %s:%d\n", PeerName, PortNumber));
 #endif
 	return GF_OK;
 }
@@ -811,9 +810,9 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		if (peer_name && peer_port)
 			sock->flags |= GF_SOCK_HAS_PEER;
 
-
 		ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot bind: %s\n", gf_errno_str(LASTSOCKERROR) ));
 			closesocket(sock->socket);
 			sock->socket = NULL_SOCKET;
 			continue;
@@ -1291,7 +1290,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = usec_wait;
 	}
-	ready = select((int) max_fd+1, &sg->group, NULL, NULL, &timeout);
+	ready = select((int) max_fd+1, &sg->group, &sg->group, NULL, &timeout);
 
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
