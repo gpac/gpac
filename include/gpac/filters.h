@@ -515,7 +515,7 @@ void *gf_filter_pid_get_udta(GF_FilterPid *pid);
 void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name);
 const char *gf_filter_pid_get_name(GF_FilterPid *pid);
 const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
-const char *gf_filter_pid_original_args(GF_FilterPid *pid);
+const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid);
 
 const char *gf_filter_pid_get_args(GF_FilterPid *pid);
 
@@ -1029,7 +1029,8 @@ enum
 	GF_PROP_PID_HLS_PLAYLIST = GF_4CC('H','L','V','P'),
 	//(string)
 	GF_PROP_PID_DASH_CUE = GF_4CC('D','C','U','E'),
-
+	//(bool)
+	GF_PROP_PID_UDP = GF_4CC('P','U','D','P'),
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);

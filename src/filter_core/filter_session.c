@@ -213,6 +213,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;
 	fsess->decoder_pid_buffer_max_us = 1000000;
+	fsess->default_pid_buffer_max_units = 1;
 
 	return fsess;
 }
@@ -1537,8 +1538,11 @@ Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt)
 GF_EXPORT
 void gf_fs_filter_print_possible_connections(GF_FilterSession *session)
 {
+	GF_CapsBundleStore capstore;
 	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
 	u32 i, j, count = gf_list_count(session->registry);
+	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
+
 	for (i=0; i<count; i++) {
 		Bool first = GF_TRUE;
 		const GF_FilterRegister *src = gf_list_get(session->registry, i);
@@ -1558,7 +1562,7 @@ void gf_fs_filter_print_possible_connections(GF_FilterSession *session)
 
 			nb_connect = 0;
 			for (k=0; k<src_bundle_count; k++) {
-				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx, -1);
+				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx, -1, &capstore);
 			}
 			if (nb_connect) {
 				if (first) {
@@ -1573,6 +1577,9 @@ void gf_fs_filter_print_possible_connections(GF_FilterSession *session)
 
 		fprintf(stderr, "\n");
 	}
+	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
+	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
+	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
 }
 
 

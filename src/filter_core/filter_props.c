@@ -1019,6 +1019,8 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_CLAMP_DUR, "CDur", "Max media duration to process from pid in DASH mode", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "Name of the HLS variant playlist for this media", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_CUE, "DCue", "Name of a cue list file for this pid - see dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_UDP, "RequireReorder", "Indicates the PID packets come from source with losses and reordering happening (UDP)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+
 };
 
 GF_EXPORT
@@ -1063,7 +1065,7 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc)
 	for (i=0; i<nb_props; i++) {
 		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].prop_flags;
 	}
-	return NULL;
+	return 0;
 }
 
 GF_EXPORT
