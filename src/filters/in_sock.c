@@ -67,11 +67,11 @@ typedef struct
 	GF_SockInClient sock_c;
 	GF_List *clients;
 	Bool had_clients;
+	Bool is_udp;
 
 	char *buffer;
 
 	GF_SockGroup *active_sockets;
-
 } GF_SockInCtx;
 
 
@@ -92,6 +92,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	if (!strnicmp(ctx->src, "udp://", 6) || !strnicmp(ctx->src, "mpegts-udp://", 13)) {
 		sock_type = GF_SOCK_TYPE_UDP;
 		ctx->listen = GF_FALSE;
+		ctx->is_udp = GF_TRUE;
 	} else if (!strnicmp(ctx->src, "tcp://", 6) || !strnicmp(ctx->src, "mpegts-tcp://", 13) ) {
 		sock_type = GF_SOCK_TYPE_TCP;
 #ifdef GPAC_HAS_SOCK_UN
@@ -130,8 +131,9 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		e = gf_sk_setup_multicast(ctx->sock_c.socket, url, port, 0, 0, ctx->mcast_ifce);
 		ctx->listen = GF_FALSE;
 	} else if ((sock_type==GF_SOCK_TYPE_UDP) || (sock_type==GF_SOCK_TYPE_UDP_UN)) {
-		e = gf_sk_bind(ctx->sock_c.socket, ctx->mcast_ifce, port, url, 0, GF_SOCK_REUSE_PORT);
+		e = gf_sk_bind(ctx->sock_c.socket, ctx->mcast_ifce, port, url, port, GF_SOCK_REUSE_PORT);
 		ctx->listen = GF_FALSE;
+		e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
 	} else if (ctx->listen) {
 		e = gf_sk_bind(ctx->sock_c.socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
 		if (!e) e = gf_sk_listen(ctx->sock_c.socket, ctx->maxc);
@@ -294,6 +296,9 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 			const GF_PropertyValue *p = gf_filter_pid_get_property(sock_c->pid, GF_PROP_PID_MIME);
 			if (p) mime = p->value.string;
 		}
+//		if (ctx->is_udp) gf_filter_pid_set_property(sock_c->pid, GF_PROP_PID_UDP, &PROP_BOOL(GF_TRUE) );
+
+
 		gf_filter_pid_set_udta(sock_c->pid, sock_c);
 	}
 
