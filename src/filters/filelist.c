@@ -434,7 +434,12 @@ GF_Err filelist_process(GF_Filter *filter)
 			GF_FilterPacket *dst_pck;
 			u64 cts, dts;
 			u32 dur;
-			GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->ipid);
+			GF_FilterPacket *pck;
+
+			if (gf_filter_pid_would_block(iopid->opid))
+				break;
+				
+			pck = gf_filter_pid_get_packet(iopid->ipid);
 			if (!pck) {
 				if (gf_filter_pid_is_eos(iopid->ipid))
 					iopid->is_eos = GF_TRUE;
@@ -517,7 +522,8 @@ GF_Err filelist_process(GF_Filter *filter)
 				if (max_dts < ts) max_dts = ts;
 			}
 		}
-		ctx->cts_offset += max_cts;
+//		ctx->cts_offset += max_cts;
+		ctx->cts_offset += max_dts;
 		ctx->dts_offset += max_dts;
 
 		if (ctx->nb_repeat) {
@@ -540,6 +546,7 @@ GF_Err filelist_process(GF_Filter *filter)
 			}
 			//force load
 			ctx->load_next = GF_TRUE;
+			return filelist_process(filter);
 		}
 	}
 	return GF_OK;
