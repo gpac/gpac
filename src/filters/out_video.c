@@ -518,7 +518,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_SET_CAPTION;
-		evt.caption.caption = gf_filter_pid_original_args	(pid);
+		evt.caption.caption = gf_filter_pid_original_args(pid);
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
 		ctx->pid = pid;
