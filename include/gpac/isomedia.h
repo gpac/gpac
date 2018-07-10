@@ -345,6 +345,7 @@ enum
 
 	/* on-screen colours */
 	GF_ISOM_SUBTYPE_NCLX 		= GF_4CC( 'n', 'c', 'l', 'x' ),
+	GF_ISOM_SUBTYPE_PROF 		= GF_4CC( 'p', 'r', 'o', 'f' ),
 };
 
 
@@ -2526,6 +2527,7 @@ typedef struct
 	GF_TileItemMode tile_mode;
 	u32 single_tile_number;
 	double time;
+	char iccPath[GF_MAX_PATH];
 } GF_ImageItemProperties;
 
 GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 *item_id);

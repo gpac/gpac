@@ -632,7 +632,7 @@ GF_Err urn_Read(GF_Box *s, GF_BitStream *bs)
 
 	//then get the break
 	i = 0;
-	while ( (tmpName[i] != 0) && (i < to_read) ) {
+	while ( (i < to_read) && (tmpName[i] != 0) ) {
 		i++;
 	}
 	//check the data is consistent
@@ -652,15 +652,22 @@ GF_Err urn_Read(GF_Box *s, GF_BitStream *bs)
 		gf_free(tmpName);
 		return GF_OUT_OF_MEM;
 	}
-	ptr->location = (char*)gf_malloc(sizeof(char) * (to_read - i - 1));
-	if (!ptr->location) {
-		gf_free(tmpName);
-		gf_free(ptr->nameURN);
-		ptr->nameURN = NULL;
-		return GF_OUT_OF_MEM;
-	}
 	memcpy(ptr->nameURN, tmpName, i + 1);
-	memcpy(ptr->location, tmpName + i + 1, (to_read - i - 1));
+
+	if (tmpName[to_read - 1] != 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] urn box cointains invalid location field\n" ));
+	}
+	else {
+		ptr->location = (char*)gf_malloc(sizeof(char) * (to_read - i - 1));
+		if (!ptr->location) {
+			gf_free(tmpName);
+			gf_free(ptr->nameURN);
+			ptr->nameURN = NULL;
+			return GF_OUT_OF_MEM;
+		}
+		memcpy(ptr->location, tmpName + i + 1, (to_read - i - 1));
+	}
+
 	gf_free(tmpName);
 	return GF_OK;
 }
@@ -4443,6 +4450,9 @@ void mvex_del(GF_Box *s)
 	if (ptr->mehd) gf_isom_box_del((GF_Box*)ptr->mehd);
 	gf_isom_box_array_del(ptr->TrackExList);
 	gf_isom_box_array_del(ptr->TrackExPropList);
+	ptr->mehd = NULL;
+	ptr->TrackExList = NULL;
+	ptr->TrackExPropList = NULL;
 	gf_free(ptr);
 }
 
@@ -5085,7 +5095,11 @@ GF_Err stbl_AddBox(GF_Box *s, GF_Box *a)
 		{
 			GF_SubSampleInformationBox *subs = (GF_SubSampleInformationBox *)a;
 			GF_SubSampleInfoEntry *ent = gf_list_get(subs->Samples, 0);
-			if (ent->sample_delta==0) {
+			if (!ent) {
+				gf_list_rem(subs->Samples, 0);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] first entry in SubSample in track SampleTable is invalid\n"));
+			}
+			else if (ent->sample_delta==0) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] first entry in SubSample in track SampleTable has sample_delta of 0, should be one. Fixing\n"));
 				ent->sample_delta = 1;
 			}
@@ -7075,6 +7089,11 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MediaBox\n"));
 		return GF_ISOM_INVALID_FILE;
 	}
+	if (!ptr->Media->information || !ptr->Media->information->sampleTable) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid MediaBox\n"));
+		return GF_ISOM_INVALID_FILE;
+	}
+
 	for (i=0; i<gf_list_count(ptr->Media->information->sampleTable->other_boxes); i++) {
 		GF_Box *a = gf_list_get(ptr->Media->information->sampleTable->other_boxes, i);
 		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
@@ -8335,11 +8354,18 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 	while (size) {
 		str[i] = gf_bs_read_u8(bs);
 		size--;
-		if (!str[i])
+		if (!str[i]) {
+			i++;
 			break;
+		}
 		i++;
 	}
-	if (i) {
+	if (!size && i>1 && str[i-1]) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] metx read invalid string\n"));
+		gf_free(str);
+		return GF_ISOM_INVALID_FILE;
+	}
+	if (i>1) {
 		if (ptr->type==GF_ISOM_BOX_TYPE_STPP) {
 			ptr->xml_namespace = gf_strdup(str);
 		} else {
@@ -8351,12 +8377,19 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 	while (size) {
 		str[i] = gf_bs_read_u8(bs);
 		size--;
-		if (!str[i])
+		if (!str[i]) {
+			i++;
 			break;
+		}
 		i++;
 	}
+	if (!size && i>1 && str[i-1]) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] metx read invalid string\n"));
+		gf_free(str);
+		return GF_ISOM_INVALID_FILE;
+	}
 	if ((ptr->type==GF_ISOM_BOX_TYPE_METX) || (ptr->type==GF_ISOM_BOX_TYPE_STPP)) {
-		if (i) {
+		if (i>1) {
 			if (ptr->type==GF_ISOM_BOX_TYPE_STPP) {
 				ptr->xml_schema_loc = gf_strdup(str);
 			} else {
@@ -8368,11 +8401,18 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 		while (size) {
 			str[i] = gf_bs_read_u8(bs);
 			size--;
-			if (!str[i])
+			if (!str[i]) {
+				i++;
 				break;
+			}
 			i++;
 		}
-		if (i) {
+		if (!size && i>1 && str[i-1]) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] metx read invalid string\n"));
+			gf_free(str);
+			return GF_ISOM_INVALID_FILE;
+		}
+		if (i>1) {
 			if (ptr->type==GF_ISOM_BOX_TYPE_STPP) {
 				ptr->mime_type = gf_strdup(str);
 			} else {
@@ -8382,7 +8422,7 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	//mett, sbtt, stxt, stpp
 	else {
-		if (i) ptr->mime_type = gf_strdup(str);
+		if (i>1) ptr->mime_type = gf_strdup(str);
 	}
 	ptr->size = size;
 	gf_free(str);
@@ -10699,6 +10739,7 @@ GF_Err segr_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->num_session_groups = gf_bs_read_u16(bs);
 	if (ptr->num_session_groups*3>ptr->size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in segr\n", ptr->num_session_groups));
+		ptr->num_session_groups = 0;
 		return GF_ISOM_INVALID_FILE;
 	}
 
@@ -10972,7 +11013,7 @@ GF_Err extr_Read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_parse((GF_Box**) &ptr->feci, bs);
 	if (e) return e;
-	if (ptr->feci->size>ptr->size) return GF_ISOM_INVALID_MEDIA;
+	if (!ptr->feci || ptr->feci->size > ptr->size) return GF_ISOM_INVALID_MEDIA;
 	ptr->data_length = (u32) (ptr->size - ptr->feci->size);
 	ptr->data = gf_malloc(sizeof(char)*ptr->data_length);
 	gf_bs_read_data(bs, ptr->data, ptr->data_length);
