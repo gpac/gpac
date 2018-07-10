@@ -400,6 +400,7 @@ enum
 	/*! codecid for subtitle/text streams in tx3g / apple text format*/
 	GF_CODECID_TX3G = GF_4CC( 't', 'x', '3', 'g' ),
 
+
 	/*!
 	 * \brief OGG DecoderConfig
 	 *
@@ -457,6 +458,8 @@ enum
 	GF_CODECID_FLASH = GF_4CC( 'f', 'l', 's', 'h' ),
 	/*! codecid for RAW media streams. No decoder config associated (config through PID properties)*/
 	GF_CODECID_RAW = GF_4CC('R','A','W','M'),
+
+	GF_CODECID_AV1 = GF_4CC('A','V','1',' ')
 };
 
 /*! Gets a textual description for the given codecID

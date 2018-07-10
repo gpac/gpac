@@ -1103,7 +1103,6 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		if (e) goto err_exit;
 	}
 
-
 err_exit:
 	gf_fclose(f);
 	return e;
@@ -1159,7 +1158,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			return e;
 		}
 	}
-	/*old specific importers not remapped to filter session - we might want to do that one day*/
+
 	/*SC3DMC*/
 	if (!strnicmp(ext, ".s3d", 4) || !stricmp(fmt, "SC3DMC") )
 		return gf_import_afx_sc3dmc(importer, GF_TRUE);
@@ -1313,8 +1312,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	gf_fs_del(fsess);
 	return GF_OK;
 }
-
-
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
