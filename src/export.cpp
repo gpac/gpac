@@ -2225,3 +2225,5 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_force_headers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_service_get_dm) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_localcache_provider) )
+
+#pragma comment (linker, EXPORT_SYMBOL(av1_get_obu_name) )

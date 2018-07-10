@@ -436,6 +436,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
+
 	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
 
 	if (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
@@ -548,7 +549,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_HVT1:
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
-
 		if (force_inband) {
 			if (subtype==GF_ISOM_SUBTYPE_HVC1) subtype = GF_ISOM_SUBTYPE_HEV1;
 			else if (subtype==GF_ISOM_SUBTYPE_HVC2) subtype = GF_ISOM_SUBTYPE_HEV2;
@@ -628,7 +628,60 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		}
 		return GF_OK;
-#endif
+#endif /*GPAC_DISABLE_HEVC*/
+
+#ifndef GPAC_DISABLE_AV1
+	case GF_ISOM_SUBTYPE_AV01: {
+		GF_AV1Config *av1c = NULL;
+		AV1State av1_state;
+		GF_BitStream *bs = NULL;
+		GF_Err e = GF_OK;
+		u32 i = 0;
+
+		memset(&av1_state, 0, sizeof(AV1State));
+		av1c = gf_isom_av1_config_get(movie, track, 1);
+		if (!av1c) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_BAD_PARAM;
+		}
+
+		for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {
+			GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
+			bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
+			if (!av1_is_obu_header(a->obu_type))
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. PArsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
+
+			e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
+			gf_bs_del(bs); bs = NULL;
+			if (e) {
+				gf_odf_av1_cfg_del(av1c);
+				return e;
+			}
+		}
+
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%u.%u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
+			av1_state.seq_profile, av1_state.seq_level_idx, av1_state.bit_depth,
+			av1_state.mono_chrome,
+			av1_state.chroma_subsampling_x, av1_state.chroma_subsampling_y, av1_state.chroma_sample_position);
+			
+		if (av1_state.color_description_present_flag) {
+			char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
+			snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%01u.%01u.%01u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
+			strcat(szCodec, tmp);
+		} else {
+			if (av1_state.color_primaries == 1 && av1_state.transfer_characteristics == 1 && av1_state.matrix_coefficients == 1 && av1_state.color_range == GF_FALSE) {
+
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
+//				assert(0);
+			}
+		}
+
+		gf_odf_av1_cfg_del(av1c);
+		av1_reset_frame_state(&av1_state.frame_state);
+		return GF_OK;
+	}
+#endif /*GPAC_DISABLE_AV1*/
 
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));

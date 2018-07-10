@@ -120,7 +120,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
 GF_EXPORT
 u32 gf_list_count(const GF_List *ptr)
 {
-	if (! ptr) return 0;
+	if (!ptr) return 0;
 	return ptr->entryCount;
 }
 

@@ -63,6 +63,16 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		if (e) return e;
 	}
 #endif
+#if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
+	else if (stype == GF_ISOM_SUBTYPE_AV01) {
+		assert(0);
+		//GF_AV1Config *av1c = gf_isom_av1_config_get(file, track, 1);
+		//gf_media_hevc_change_par(av1c, ar_num, ar_den);
+		//TODO: e = gf_isom_av1_config_update(file, track, 1, av1c);
+		//gf_odf_av1_cfg_del(av1c);
+		if (e) return e;
+	}
+#endif
 	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
@@ -826,6 +836,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	case GF_ISOM_SUBTYPE_HEV2:
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
+	case GF_ISOM_SUBTYPE_AV01:
 		return gf_isom_get_esd(mp4, track, 1);
 	}
 
@@ -950,6 +961,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
 	esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+	esd->decoderConfig->streamType = (type == GF_ISOM_MEDIA_AUDIO) ? GF_STREAM_AUDIO : GF_STREAM_VISUAL;
 	/*format ext*/
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, subtype);

@@ -940,20 +940,6 @@
 		9201FEFA18D5A444003D1ACA /* lsr_dec.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lsr_dec.dep; sourceTree = "<group>"; };
 		9201FEFB18D5A444003D1ACA /* lsr_enc.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lsr_enc.dep; sourceTree = "<group>"; };
 		9201FEFC18D5A444003D1ACA /* lsr_tables.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lsr_tables.dep; sourceTree = "<group>"; };
-		9201FEFE18D5A444003D1ACA /* cbc.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cbc.dep; sourceTree = "<group>"; };
-		9201FEFF18D5A444003D1ACA /* cfb.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cfb.dep; sourceTree = "<group>"; };
-		9201FF0018D5A444003D1ACA /* ctr.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ctr.dep; sourceTree = "<group>"; };
-		9201FF0118D5A444003D1ACA /* des.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = des.dep; sourceTree = "<group>"; };
-		9201FF0218D5A444003D1ACA /* ecb.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ecb.dep; sourceTree = "<group>"; };
-		9201FF0318D5A444003D1ACA /* g_crypt.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = g_crypt.dep; sourceTree = "<group>"; };
-		9201FF0418D5A444003D1ACA /* ncfb.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ncfb.dep; sourceTree = "<group>"; };
-		9201FF0518D5A444003D1ACA /* nofb.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = nofb.dep; sourceTree = "<group>"; };
-		9201FF0618D5A444003D1ACA /* ofb.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ofb.dep; sourceTree = "<group>"; };
-		9201FF0718D5A444003D1ACA /* rijndael-128.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "rijndael-128.dep"; sourceTree = "<group>"; };
-		9201FF0818D5A444003D1ACA /* rijndael-192.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "rijndael-192.dep"; sourceTree = "<group>"; };
-		9201FF0918D5A444003D1ACA /* rijndael-256.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "rijndael-256.dep"; sourceTree = "<group>"; };
-		9201FF0A18D5A444003D1ACA /* stream.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = stream.dep; sourceTree = "<group>"; };
-		9201FF0B18D5A444003D1ACA /* tripledes.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = tripledes.dep; sourceTree = "<group>"; };
 		9201FF0D18D5A444003D1ACA /* av_parsers.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = av_parsers.dep; sourceTree = "<group>"; };
 		9201FF0E18D5A444003D1ACA /* avilib.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = avilib.dep; sourceTree = "<group>"; };
 		9201FF0F18D5A444003D1ACA /* dash_client.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dash_client.dep; sourceTree = "<group>"; };
@@ -1824,7 +1810,6 @@
 				9201FECE18D5A444003D1ACA /* ietf */,
 				9201FEDC18D5A444003D1ACA /* isomedia */,
 				9201FEF918D5A444003D1ACA /* laser */,
-				9201FEFD18D5A444003D1ACA /* crypto */,
 				9201FF0C18D5A444003D1ACA /* media_tools */,
 				9201FF2418D5A444003D1ACA /* odf */,
 				9201FF3218D5A444003D1ACA /* scene_manager */,
@@ -4684,6 +4669,8 @@
 					CoreFoundation,
 					"-weak_framework",
 					QuartzCore,
+					"-laom",
+					"-llzma",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -4733,6 +4720,8 @@
 					CoreFoundation,
 					"-weak_framework",
 					QuartzCore,
+					"-laom",
+					"-llzma",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

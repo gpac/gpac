@@ -491,6 +491,49 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
+
+typedef struct
+{
+	Bool seen_frame_header, seen_seq_header;
+	Bool key_frame;
+	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
+} AV1StateFrame;
+
+typedef struct
+{
+	Bool frame_id_numbers_present_flag;
+	Bool reduced_still_picture_header;
+	u16 OperatingPointIdc;
+	u16 width, height;
+	AV1StateFrame frame_state;
+	GF_AV1Config *config;
+
+	/*Needed for RFC6381*/
+	u8 seq_profile;
+	Bool still_picture;
+	u8 seq_level_idx;
+	u8 bit_depth;
+	Bool mono_chrome;
+	Bool chroma_subsampling_x, chroma_subsampling_y;
+	u8 chroma_sample_position;
+	Bool color_description_present_flag;
+	u8 color_primaries, transfer_characteristics, matrix_coefficients;
+	Bool color_range;
+} AV1State;
+
+GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);
+GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state);
+GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
+
+GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
+GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
+
+/*parses one OBU*/
+GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
+
+Bool av1_is_obu_header(ObuType obu_type);
+void av1_reset_frame_state(AV1StateFrame *frame_state);
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 typedef struct
