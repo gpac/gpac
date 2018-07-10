@@ -278,6 +278,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				codec_id = CODEC_ID_PNG;
 				ffd->is_image = GF_TRUE;
 				break;
+#ifdef CODEC_ID_AV1
+			case GPAC_OTI_VIDEO_AV1:
+				codec_id = CODEC_ID_AV1;
+				break;
+#endif
 			case 0xFF:
 				codec_id = CODEC_ID_SVQ3;
 				break;
@@ -338,7 +343,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	/*setup MPEG-4 video streams*/
 	if (ffd->st==GF_STREAM_VISUAL) {
 		/*for all MPEG-4 variants get size*/
-		if ((ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) || (ffd->oti == GPAC_OTI_VIDEO_AVC) || (ffd->oti == GPAC_OTI_VIDEO_HEVC)) {
+		if ((ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2)
+		 	|| (ffd->oti == GPAC_OTI_VIDEO_AVC)
+		 	|| (ffd->oti == GPAC_OTI_VIDEO_HEVC)
+		 	|| (ffd->oti == GPAC_OTI_VIDEO_AV1)
+		) {
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
 			the DSI is carried in-band*/
 			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -1654,6 +1663,13 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 		case GPAC_OTI_IMAGE_PNG:
 			if (avcodec_find_decoder(CODEC_ID_PNG) != NULL)
 				return GF_CODEC_MAYBE_SUPPORTED;
+			return GF_CODEC_NOT_SUPPORTED;
+
+#ifdef CODEC_ID_AV1
+		case GPAC_OTI_VIDEO_AV1:
+			if (avcodec_find_decoder(CODEC_ID_AV1) != NULL)
+				return GF_CODEC_MAYBE_SUPPORTED;
+#endif
 			return GF_CODEC_NOT_SUPPORTED;
 
 		default:

@@ -1078,54 +1078,122 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc)
 }
 
 
+GF_EXPORT
+GF_AV1Config *gf_odf_av1_cfg_new()
+{
+	GF_AV1Config *cfg;
+	GF_SAFEALLOC(cfg, GF_AV1Config);
+	if (!cfg) return NULL;
+	cfg->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
+	cfg->obu_array = gf_list_new();
+	return cfg;
+}
 
 GF_EXPORT
-const char *gf_esd_get_textual_description(GF_ESD *esd)
+void gf_odf_av1_cfg_del(GF_AV1Config *cfg)
 {
-	const char *name;
-
-	if (!esd || !esd->decoderConfig) return "Bad parameter";
-
-	name = gf_codecid_name_oti(esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-
-	if (!name) name = gf_stream_type_name(esd->decoderConfig->streamType);
-
-	if (!name) name = gf_4cc_to_str(esd->decoderConfig->objectTypeIndication);
-
-	switch (esd->decoderConfig->streamType) {
-	case GF_STREAM_SCENE:
-		switch (esd->decoderConfig->objectTypeIndication) {
-		case GF_CODECID_AFX:
-			if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data)
-				return name;
-			return gf_stream_type_afx_name(esd->decoderConfig->decoderSpecificInfo->data[0]);
-		case GF_CODECID_LASER:
-		{
-			GF_LASERConfig l_cfg;
-			gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
-			if (! l_cfg.newSceneIndicator ) return "LASeR Scene Segment Description";
-		}
-			return name;
-		default:
-			return name;
-		}
-		break;
-	case GF_STREAM_AUDIO:
-		switch (esd->decoderConfig->objectTypeIndication) {
-		case GF_CODECID_AAC_MPEG4:
-#ifndef GPAC_DISABLE_AV_PARSERS
-		{
-			GF_M4ADecSpecInfo a_cfg;
-			if (!esd->decoderConfig->decoderSpecificInfo) return "MPEG-4 AAC";
-			gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
-			return gf_m4a_object_type_name(a_cfg.base_object_type);
-		}
-#endif
-		//fallthrough
-		default:
-			return name;
-		}
-		break;
+	if (!cfg) return;
+	while (gf_list_count(cfg->obu_array)) {
+		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(cfg->obu_array, 0);
+		if (a->obu) gf_free(a->obu);
+		gf_list_rem(cfg->obu_array, 0);
+		gf_free(a);
 	}
-	return name;
+	gf_list_del(cfg->obu_array);
+	gf_free(cfg);
 }
+
+GF_EXPORT
+GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
+{
+	u32 i = 0;
+	gf_bs_write_int(bs, 0, 3); /*reserved*/
+	gf_bs_write_int(bs, cfg->initial_presentation_delay_present, 1);
+	gf_bs_write_int(bs, cfg->initial_presentation_delay_minus_one, 4); /*TODO: compute initial_presentation_delay_minus_one*/
+	for (i = 0; i < gf_list_count(cfg->obu_array); ++i) {
+		GF_AV1_OBUArrayEntry *a = gf_list_get(cfg->obu_array, i);
+		gf_bs_write_data(bs, a->obu, (u32)a->obu_length); //TODO: we are supposed to omit the size on the last OBU...
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize) {
+	GF_Err e;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	*outSize = 0;
+	*outData = NULL;
+	e = gf_odf_av1_cfg_write_bs(cfg, bs);
+	if (e == GF_OK)
+		gf_bs_get_content(bs, outData, outSize);
+
+	gf_bs_del(bs);
+	return e;
+}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+#include <gpac/internal/media_dev.h>
+#endif
+
+GF_EXPORT
+GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
+{
+	AV1State state;
+	u8 reserved;
+	GF_AV1Config *cfg = gf_odf_av1_cfg_new();
+
+	memset(&state, 0, sizeof(AV1State));
+	state.config = cfg;
+
+	reserved = gf_bs_read_int(bs, 3);
+	if (reserved != 0) {
+		gf_odf_av1_cfg_del(cfg);
+		return NULL;
+	}
+
+	cfg->initial_presentation_delay_present = gf_bs_read_int(bs, 1);
+	if (cfg->initial_presentation_delay_present) {
+		cfg->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
+	} else {
+		reserved = gf_bs_read_int(bs, 4);
+		cfg->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
+	}
+
+	while (gf_bs_available(bs)) {
+		u64 pos, obu_size;
+		ObuType obu_type;
+		GF_AV1_OBUArrayEntry *a;
+
+		pos = gf_bs_get_position(bs);
+		obu_size = 0;
+		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state) != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
+			break;
+		}
+		assert(obu_size == gf_bs_get_position(bs) - pos);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
+
+		if (!av1_is_obu_header(obu_type)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
+		}
+		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
+		a->obu = gf_malloc((size_t)obu_size);
+		gf_bs_seek(bs, pos);
+		gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);
+		a->obu_length = obu_size;
+		a->obu_type = obu_type;
+		gf_list_add(cfg->obu_array, a);
+	}
+	av1_reset_frame_state(& state.frame_state);
+	return cfg;
+}
+
+GF_EXPORT
+GF_AV1Config *gf_odf_av1_cfg_read(char *dsi, u32 dsi_size)
+{
+	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+	GF_AV1Config *cfg = gf_odf_av1_cfg_read_bs(bs);
+	gf_bs_del(bs);
+	return cfg;
+}
+

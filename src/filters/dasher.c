@@ -67,6 +67,7 @@ typedef struct
 	char *avcp;
 	char *hvcp;
 	char *aacp;
+	char *av1p;
 	char *template;
 	char *ext;
 	char *profX;
@@ -920,6 +921,72 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		}
 		return GF_OK;
 #endif
+
+#ifndef GPAC_DISABLE_AV1
+	case GF_CODECID_AV1:
+		if (!subtype) subtype =GF_ISOM_SUBTYPE_AV01;
+
+		if (dcd && (!ctx->forcep || !ctx->av1p)) {
+			GF_AV1Config *av1c = NULL;
+
+			av1c = dcd ? gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size) : NULL;
+
+			if (!av1c) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			} else {
+				GF_Err e = GF_OK;
+				u32 i = 0;
+				AV1State av1_state;
+				memset(&av1_state, 0, sizeof(AV1State));
+
+				for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {
+					GF_BitStream *bs;
+					GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
+					bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
+					if (!av1_is_obu_header(a->obu_type))
+						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. PArsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
+
+					e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
+					gf_bs_del(bs);
+					bs = NULL;
+					if (e) {
+						gf_odf_av1_cfg_del(av1c);
+						return e;
+					}
+				}
+
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%u.%u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
+					av1_state.seq_profile, av1_state.seq_level_idx, av1_state.bit_depth,
+					av1_state.mono_chrome,
+					av1_state.chroma_subsampling_x, av1_state.chroma_subsampling_y, av1_state.chroma_sample_position);
+
+				if (av1_state.color_description_present_flag) {
+					char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
+					snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%01u.%01u.%01u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
+					strcat(szCodec, tmp);
+				} else {
+					if (av1_state.color_primaries == 1 && av1_state.transfer_characteristics == 1 && av1_state.matrix_coefficients == 1 && av1_state.color_range == GF_FALSE) {
+
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
+		//				assert(0);
+					}
+				}
+				gf_odf_av1_cfg_del(av1c);
+				av1_reset_frame_state(&av1_state.frame_state);
+				return GF_OK;
+			}
+		}
+
+		if (ctx->av1p)
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), ctx->av1p);
+		else
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		if (!ctx->forcep) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find HEVC config, using default %s\n", szCodec));
+		}
+		return GF_OK;
+#endif /*GPAC_DISABLE_AV1*/
 
 	default:
 		subtype = gf_codecid_4cc_type(ds->codec_id);
@@ -4527,6 +4594,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(avcp), "AVC|H264 profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(hvcp), "HEVC profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(aacp), "AAC profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(av1p), "AV1 profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(template), "DASH template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(ext), "File extension to use for segments", GF_PROP_STRING, "m4s", NULL, GF_FALSE},
 	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FALSE},

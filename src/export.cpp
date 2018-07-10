@@ -622,6 +622,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
 
+#pragma comment (linker, EXPORT_SYMBOL(av1_get_obu_name) )
+
 #ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_add_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_list_read) )

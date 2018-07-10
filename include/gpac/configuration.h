@@ -309,6 +309,9 @@
 /*disables HEVC */
 //#define GPAC_DISABLE_HEVC
 
+/*disables AOM AV1 */
+//#define GPAC_DISABLE_AV1
+
 /*disables VOBSUB */
 //#define GPAC_DISABLE_VOBSUB
 
