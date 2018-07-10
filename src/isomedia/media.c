@@ -356,6 +356,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	u32 dataRefIndex, chunkNumber;
 	u64 offset, new_size;
 	u8 isEdited;
+	u32 sdesc_idx;
 	GF_SampleEntryBox *entry;
 
 	if (!mdia || !mdia->information->sampleTable) return GF_BAD_PARAM;
@@ -367,12 +368,10 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 	//the data info
 	if (!sIDX && !no_data) return GF_BAD_PARAM;
-	if (!sIDX && !out_offset) return GF_OK;
-	if (!sIDX) return GF_OK;
 
-	(*sIDX) = 0;
-	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &isEdited);
+	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, &sdesc_idx, &isEdited);
 	if (e) return e;
+	if (sIDX) (*sIDX) = sdesc_idx;
 
 	if (out_offset) *out_offset = offset;
 	if (!samp ) return GF_OK;
@@ -418,7 +417,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	if (Media_IsSampleSyncShadow(mdia->information->sampleTable->ShadowSync, sampleNumber)) (*samp)->IsRAP = RAP_REDUNDANT;
 
 	//then get the DataRef
-	e = Media_GetSampleDesc(mdia, *sIDX, &entry, &dataRefIndex);
+	e = Media_GetSampleDesc(mdia, sdesc_idx, &entry, &dataRefIndex);
 	if (e) return e;
 
 	// Open the data handler - check our mode, don't reopen in read only if this is
@@ -512,7 +511,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 			stbl_GetSampleDTS(mdia->information->sampleTable->TimeToSample, sampleNumber+1, &dur);
 			dur -= (*samp)->DTS;
 		}
-		e = gf_isom_rewrite_text_sample(*samp, *sIDX, (u32) dur);
+		e = gf_isom_rewrite_text_sample(*samp, sdesc_idx, (u32) dur);
 		if (e) return e;
 	}
 	return GF_OK;
