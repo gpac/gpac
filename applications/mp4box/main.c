@@ -737,6 +737,7 @@ void PrintMetaUsage()
 		"						 split_tiles		for an HEVC tiled image, each tile is stored as a separate item\n"
 		"                        rotation=a       sets the rotation angle for this image to 90*a degrees anti-clockwise.\n"
 		"                        image-hidden       indicates that this image item should be hidden.\n"
+		"                        icc_path           path to icc to add as colr.\n"
 		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
 		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
 		" -set-xml args        sets meta XML data\n"
@@ -1351,6 +1352,13 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		}
 		else if (!stricmp(szSlot, "binary")) {
 			if (meta->act_type==META_ACTION_SET_XML) meta->act_type=META_ACTION_SET_BINARY_XML;
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "icc_path=", 9)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			strcpy(meta->image_props->iccPath, szSlot+9);
 			ret = 1;
 		}
 		else if (!strchr(szSlot, '=')) {

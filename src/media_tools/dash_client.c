@@ -3543,10 +3543,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 	if (!group->nb_segments_in_rep) {
 		if (dash->mpd->type==GF_MPD_TYPE_STATIC) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] 0 segments in static representation, aborting\n"));
-			gf_free(base_init_url);
-			if (key_url) gf_free(key_url);
-			return GF_BAD_PARAM;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] 0 segments in static representation (MPD duration "LLU", will probably have 404\n", group->dash->mpd->media_presentation_duration));
 		}
 	} else if (!group->groups_depending_on &&  (group->nb_segments_in_rep < group->max_cached_segments)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Resizing to %u max_cached_segments elements instead of %u.\n", group->nb_segments_in_rep, group->max_cached_segments));

@@ -481,6 +481,8 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 		gf_free(sl);
 	}
 	gf_list_del(cfg->sequenceParameterSets);
+	cfg->sequenceParameterSets = NULL;
+
 	while (gf_list_count(cfg->pictureParameterSets)) {
 		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, 0);
 		gf_list_rem(cfg->pictureParameterSets, 0);
@@ -488,6 +490,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 		gf_free(sl);
 	}
 	gf_list_del(cfg->pictureParameterSets);
+	cfg->pictureParameterSets = NULL;
 
 	if (cfg->sequenceParameterSetExtensions) {
 		while (gf_list_count(cfg->sequenceParameterSetExtensions)) {
@@ -497,6 +500,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 			gf_free(sl);
 		}
 		gf_list_del(cfg->sequenceParameterSetExtensions);
+		cfg->sequenceParameterSetExtensions = NULL;
 	}
 	gf_free(cfg);
 }
