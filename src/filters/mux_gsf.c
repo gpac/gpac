@@ -37,12 +37,14 @@ typedef struct
 	u32 idx;
 	u16 nb_frames;
 	Bool eos;
-} GF_GSFStream;
+	u8 config_version;
+	u64 last_cts_config;
+	u32 timescale;
+} GSFStream;
 
 typedef struct
 {
 	//opts
-	Bool for_test;
 	Bool sigsn, sigdur, sigbo, sigdts, minp;
 	u32 dbg;
 	const char *magic;
@@ -51,6 +53,7 @@ typedef struct
 	GF_PropData IV;
 	GF_Fraction pattern;
 	u32 mpck;
+	Double crate;
 
 	//only one output pid declared
 	GF_FilterPid *opid;
@@ -68,8 +71,9 @@ typedef struct
 	GF_Crypt *crypt;
 	Bool regenerate_tunein_info;
 
+	u32 nb_frames;
 	u32 nb_pck;
-} GF_GSFMxCtx;
+} GSFMxCtx;
 
 
 typedef enum
@@ -80,8 +84,6 @@ typedef enum
 	GFS_PCKTYPE_PID_REMOVE,
 	GFS_PCKTYPE_PID_EOS,
 	GFS_PCKTYPE_PCK,
-	GFS_PCKTYPE_PCK_CONT,
-	GFS_PCKTYPE_PCK_LAST,
 
 	GFS_PCKTYPE_UNDEF1,
 	GFS_PCKTYPE_UNDEF2,
@@ -91,150 +93,218 @@ typedef enum
 	GFS_PCKTYPE_UNDEF6,
 	GFS_PCKTYPE_UNDEF7,
 	GFS_PCKTYPE_UNDEF8,
+	GFS_PCKTYPE_UNDEF9,
+	GFS_PCKTYPE_UNDEF10,
+
 	/*NO MORE PACKET TYPE AVAILABLE*/
 } GF_GSFPacketType;
 
-static void gsfmx_send_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketType pck_type, Bool is_end, Bool is_redundant)
+
+static GFINLINE u32 get_vlen_size(u32 len)
 {
-	u32 crypt_offset=0;
-	char *output;
-	u32 psize, osize;
-	Bool do_encrypt = GF_FALSE;
-	u32 lmode = 0, hdr_size=1;
-	GF_FilterPacket *dst_pck;
-
-	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->buffer, &psize, &ctx->alloc_size);
-
-	if (psize >= 1<<24) lmode=3;
-	else if (psize >= 1<<16) lmode=2;
-	else if (psize >= 1<<8) lmode=1;
-
-	//psize is without packet header, SN and len field
-	osize = hdr_size + psize + (lmode+1);
-	if (ctx->sigsn) osize += 4;
-
-	//new size might exceed previous mode, recompute
-	if (osize >= 1<<24) lmode=3;
-	else if (osize >= 1<<16) lmode=2;
-	else if (osize >= 1<<8) lmode=1;
-	else lmode=0;
-	osize = hdr_size + psize + (lmode+1);
-	if (ctx->sigsn) osize += 4;
-
-
-	dst_pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
-	//format header
-	gf_bs_reassign_buffer(ctx->bs_w, output, osize);
-	gf_bs_write_int(ctx->bs_w, ctx->sigsn ? 1 : 0, 1);
-	gf_bs_write_int(ctx->bs_w, lmode, 2);
-
-	if (pck_type == GFS_PCKTYPE_HDR) {
-		if (ctx->crypt) {
-			crypt_offset=25; //sig + version + IV + pattern
-			do_encrypt = GF_TRUE;
-		}
-	} else {
-		if (ctx->crypt) {
-			switch (pck_type) {
-			case GFS_PCKTYPE_PID_EOS:
-			case GFS_PCKTYPE_PID_REMOVE:
-				break;
-			default:
-				do_encrypt = GF_TRUE;
-				break;
-			}
-		}
-	}
-
-	gf_bs_write_int(ctx->bs_w, do_encrypt ? 1 : 0, 1);
-
-	gf_bs_write_int(ctx->bs_w, pck_type, 4);
-	if (ctx->sigsn) {
-		gf_bs_write_u16(ctx->bs_w, ctx->nb_pck);
-		gf_bs_write_u16(ctx->bs_w, gst ? gst->nb_frames : 0);
-		hdr_size+=4;
-
-		ctx->nb_pck++;
-	}
-	gf_bs_write_int(ctx->bs_w, psize, 8*(lmode+1) );
-	hdr_size += (lmode+1);
-
-	assert(hdr_size+psize==osize);
-	memcpy(output+hdr_size, ctx->buffer, psize);
-
-	gf_bs_get_content_no_truncate(ctx->bs_w, &output, &psize, NULL);
-	if (ctx->mpck && (ctx->mpck<osize)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFMux] packet type %d size %d exceeds max packet size %d!\n", pck_type, osize, ctx->mpck));
-	}
-
-	if (do_encrypt) {
-		hdr_size += crypt_offset;
-		u32 nb_crypt_bytes = osize - hdr_size;
-		u32 clear_trail = nb_crypt_bytes % 16;
-		nb_crypt_bytes -= clear_trail;
-
-		gf_crypt_set_IV(ctx->crypt, ctx->crypt_IV, 16);
-		if (ctx->pattern.den && ctx->pattern.num) {
-			u32 pos = hdr_size;
-			while (nb_crypt_bytes) {
-				u32 bbytes = 16 * (ctx->pattern.num + ctx->pattern.den);
-				gf_crypt_encrypt(ctx->crypt, output + pos, nb_crypt_bytes >= (u32) (16*ctx->pattern.num) ? 16*ctx->pattern.num : nb_crypt_bytes);
-				if (nb_crypt_bytes >= bbytes) {
-					pos += bbytes;
-					nb_crypt_bytes -= bbytes;
-				} else {
-					nb_crypt_bytes = 0;
-				}
-			}
-		} else {
-			gf_crypt_encrypt(ctx->crypt, output+hdr_size, nb_crypt_bytes);
-		}
-	}
-
-	if (is_redundant) {
-		gf_filter_pck_set_dependency_flag(dst_pck, 1);
-		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
-	} else {
-		gf_filter_pck_set_framing(dst_pck, ctx->is_start, is_end);
-	}
-	gf_filter_pck_send(dst_pck);
+	if (len<=0x7F) return 1;
+	if (len<=0x3FFF) return 2;
+	if (len<=0x1FFFFF) return 3;
+	if (len<=0xFFFFFFF) return 4;
+	return 5;
 }
 
-static GFINLINE void gsfmx_write_vlen(GF_GSFMxCtx *ctx, u32 len)
+static GFINLINE void gsfmx_write_vlen(GSFMxCtx *ctx, u32 len)
 {
 	if (len<=0x7F) {
-		gf_bs_write_u8(ctx->bs_w, len);
+		gf_bs_write_int(ctx->bs_w, 0, 1);
+		gf_bs_write_int(ctx->bs_w, len, 7);
+	} else if (len <= 0x3FFF){
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 0, 1);
+		gf_bs_write_int(ctx->bs_w, len, 14);
+	} else if (len <= 0x1FFFFF){
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 0, 1);
+		gf_bs_write_int(ctx->bs_w, len, 21);
+	} else if (len <= 0xFFFFFFF){
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 0, 1);
+		gf_bs_write_int(ctx->bs_w, len, 28);
 	} else {
 		gf_bs_write_int(ctx->bs_w, 1, 1);
-		gf_bs_write_int(ctx->bs_w, len, 31);
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_int(ctx->bs_w, 1, 1);
+		gf_bs_write_long_int(ctx->bs_w, len, 36);
 	}
 }
 
-static void gsfmx_send_pid_rem(GF_GSFMxCtx *ctx, GF_GSFStream *gst)
+static GFINLINE u32 gsfmx_get_header_size(GSFMxCtx *ctx, GSFStream *gst, Bool use_seq_num, Bool first_frag, u32 pck_size, u32 block_size, u32 block_offset)
 {
-	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
-	//pid ID
-	gsfmx_write_vlen(ctx, gst->idx);
-	gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PID_REMOVE, GF_FALSE, GF_FALSE);
+	u32 hdr_size = 1 + get_vlen_size(pck_size);
+	hdr_size += get_vlen_size(gst ? gst->idx : 0);
+	if (use_seq_num) hdr_size += 2;
 
+	hdr_size += get_vlen_size(block_size);
+	if (!first_frag)
+		hdr_size += get_vlen_size(block_offset);
+	return hdr_size;
 }
 
-static void gsfmx_send_pid_eos(GF_GSFMxCtx *ctx, GF_GSFStream *gst, Bool is_eos)
+static void gsfmx_encrypt(GSFMxCtx *ctx, char *data, u32 nb_crypt_bytes)
+{
+	u32 clear_trail;
+
+	clear_trail = nb_crypt_bytes % 16;
+	nb_crypt_bytes -= clear_trail;
+	if (! nb_crypt_bytes) return;
+
+	//reset IV at each packet
+	gf_crypt_set_IV(ctx->crypt, ctx->crypt_IV, 16);
+	if (ctx->pattern.den && ctx->pattern.num) {
+		u32 pos = 0;
+		while (nb_crypt_bytes) {
+			u32 bbytes = 16 * (ctx->pattern.num + ctx->pattern.den);
+			gf_crypt_encrypt(ctx->crypt, data, nb_crypt_bytes >= (u32) (16*ctx->pattern.num) ? 16*ctx->pattern.num : nb_crypt_bytes);
+			if (nb_crypt_bytes >= bbytes) {
+				pos += bbytes;
+				nb_crypt_bytes -= bbytes;
+			} else {
+				nb_crypt_bytes = 0;
+			}
+		}
+	} else {
+		gf_crypt_encrypt(ctx->crypt, data, nb_crypt_bytes);
+	}
+}
+
+static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType pck_type, Bool is_end, Bool is_redundant, u32 frame_size, u32 frame_hdr_size)
+{
+	u32 pck_size, bytes_remain, pck_offset, block_offset;
+	Bool first_frag = GF_TRUE;
+	//for now only data packets are encrypted on a per-fragment base, others are fully encrypted
+	Bool frag_encryption = (pck_type==GFS_PCKTYPE_PCK) ? GF_TRUE : GF_FALSE;
+	Bool use_seq_num = (pck_type==GFS_PCKTYPE_HDR) ? GF_FALSE : ctx->sigsn;
+
+	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->buffer, &pck_size, &ctx->alloc_size);
+
+	first_frag = GF_TRUE;
+	bytes_remain = pck_size;
+	block_offset = pck_offset = 0;
+	if (!frame_size) frame_size = pck_size;
+
+	if (ctx->crypt && !frag_encryption) {
+		u32 crypt_offset=0;
+		if (pck_type == GFS_PCKTYPE_HDR) {
+			crypt_offset=25; //sig + version + IV + pattern
+		}
+		gsfmx_encrypt(ctx, ctx->buffer + crypt_offset, pck_size - crypt_offset);
+	}
+
+	while (bytes_remain) {
+		char *output;
+		GF_FilterPacket *dst_pck;
+		Bool do_encrypt = GF_FALSE;
+		u32 crypt_offset=0;
+		u32 osize;
+		u32 to_write = bytes_remain;
+		u32 hdr_size = gsfmx_get_header_size(ctx, gst, use_seq_num, first_frag, to_write, frame_size, block_offset);
+		if (ctx->mpck && (ctx->mpck < to_write + hdr_size)) {
+			hdr_size = gsfmx_get_header_size(ctx, gst, use_seq_num, first_frag, ctx->mpck - hdr_size, frame_size, block_offset);
+			to_write = ctx->mpck - hdr_size;
+		}
+		osize = hdr_size + to_write;
+
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+
+		//format header
+		gf_bs_reassign_buffer(ctx->bs_w, output, osize);
+
+		if (ctx->crypt) do_encrypt = GF_TRUE;
+
+		gf_bs_write_int(ctx->bs_w, 0, 2); //reserved
+		gf_bs_write_int(ctx->bs_w, first_frag ? 0 : 1, 1); //fragment flag
+		gf_bs_write_int(ctx->bs_w, do_encrypt ? 1 : 0, 1);
+		gf_bs_write_int(ctx->bs_w, pck_type, 4);
+
+		//write full block size for first frag
+		gsfmx_write_vlen(ctx, gst ? gst->idx : 0);
+		if (use_seq_num) {
+			gf_bs_write_u16(ctx->bs_w, gst ? gst->nb_frames : ctx->nb_frames);
+		}
+
+		gsfmx_write_vlen(ctx, frame_size);
+		if (!first_frag) gsfmx_write_vlen(ctx, block_offset);
+		gsfmx_write_vlen(ctx, to_write);
+
+		hdr_size = gf_bs_get_position(ctx->bs_w);
+		assert(hdr_size + to_write == osize);
+		memcpy(output+hdr_size, ctx->buffer + pck_offset, to_write);
+		bytes_remain -= to_write;
+		pck_offset += to_write;
+		block_offset += to_write;
+		if (frame_hdr_size) {
+			if (frame_hdr_size > block_offset) {
+				frame_hdr_size -= block_offset;
+				block_offset = 0;
+			} else {
+				block_offset -= frame_hdr_size;
+				frame_hdr_size = 0;
+			}
+		}
+
+		if (ctx->mpck && (ctx->mpck < to_write)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFMux] packet type %d size %d exceeds max packet size %d!\n", pck_type, osize, ctx->mpck));
+		}
+		//this is just to detach the buffer from the bit writer
+		gf_bs_get_content_no_truncate(ctx->bs_w, &output, &to_write, NULL);
+
+		if (do_encrypt && frag_encryption) {
+			//encrypt start after fragmentation block info, plus any additional offset based on packet type
+			hdr_size += crypt_offset;
+			gsfmx_encrypt(ctx, output+hdr_size, osize - hdr_size);
+		}
+
+		if (is_redundant) {
+			gf_filter_pck_set_dependency_flag(dst_pck, 1);
+			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+		} else if (first_frag && bytes_remain) {
+			gf_filter_pck_set_framing(dst_pck, ctx->is_start, GF_FALSE);
+		} else if (!first_frag && bytes_remain) {
+			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+		} else if (first_frag) {
+			gf_filter_pck_set_framing(dst_pck, ctx->is_start, is_end);
+		} else {
+			gf_filter_pck_set_framing(dst_pck, GF_FALSE, is_end);
+		}
+		gf_filter_pck_send(dst_pck);
+
+		first_frag = GF_FALSE;
+	}
+}
+
+static void gsfmx_send_pid_rem(GSFMxCtx *ctx, GSFStream *gst)
 {
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
-	//pid ID
-	gsfmx_write_vlen(ctx, gst->idx);
-	gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PID_EOS, is_eos, GF_FALSE);
+	gst->nb_frames++;
+	gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PID_REMOVE, GF_FALSE, GF_FALSE, 0, 0);
+}
 
+static void gsfmx_send_pid_eos(GSFMxCtx *ctx, GSFStream *gst, Bool is_eos)
+{
+	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
+	gst->nb_frames++;
+	gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PID_EOS, is_eos, GF_FALSE, 0, 0);
 }
 
 
-static void gsfmx_write_prop(GF_GSFMxCtx *ctx, const GF_PropertyValue *p)
+static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 {
 	u32 len, len2, i;
 	switch (p->type) {
 	case GF_PROP_SINT:
 	case GF_PROP_UINT:
+		gsfmx_write_vlen(ctx, p->value.uint);
+		break;
 	case GF_PROP_PIXFMT:
 	case GF_PROP_PCMFMT:
 		gf_bs_write_u32(ctx->bs_w, p->value.uint);
@@ -247,8 +317,8 @@ static void gsfmx_write_prop(GF_GSFMxCtx *ctx, const GF_PropertyValue *p)
 		gf_bs_write_u8(ctx->bs_w, p->value.boolean ? 1 : 0);
 		break;
 	case GF_PROP_FRACTION:
-		gf_bs_write_u32(ctx->bs_w, p->value.frac.num);
-		gf_bs_write_u32(ctx->bs_w, p->value.frac.den);
+		gsfmx_write_vlen(ctx, p->value.frac.num);
+		gsfmx_write_vlen(ctx, p->value.frac.den);
 		break;
 	case GF_PROP_FRACTION64:
 		gf_bs_write_u64(ctx->bs_w, p->value.lfrac.num);
@@ -261,17 +331,17 @@ static void gsfmx_write_prop(GF_GSFMxCtx *ctx, const GF_PropertyValue *p)
 		gf_bs_write_double(ctx->bs_w, p->value.number);
 		break;
 	case GF_PROP_VEC2I:
-		gf_bs_write_u32(ctx->bs_w, p->value.vec2i.x);
-		gf_bs_write_u32(ctx->bs_w, p->value.vec2i.y);
+		gsfmx_write_vlen(ctx, p->value.vec2i.x);
+		gsfmx_write_vlen(ctx, p->value.vec2i.y);
 		break;
 	case GF_PROP_VEC2:
 		gf_bs_write_double(ctx->bs_w, p->value.vec2.x);
 		gf_bs_write_double(ctx->bs_w, p->value.vec2.y);
 		break;
 	case GF_PROP_VEC3I:
-		gf_bs_write_u32(ctx->bs_w, p->value.vec3i.x);
-		gf_bs_write_u32(ctx->bs_w, p->value.vec3i.y);
-		gf_bs_write_u32(ctx->bs_w, p->value.vec3i.z);
+		gsfmx_write_vlen(ctx, p->value.vec3i.x);
+		gsfmx_write_vlen(ctx, p->value.vec3i.y);
+		gsfmx_write_vlen(ctx, p->value.vec3i.z);
 		break;
 	case GF_PROP_VEC3:
 		gf_bs_write_double(ctx->bs_w, p->value.vec3.x);
@@ -279,10 +349,10 @@ static void gsfmx_write_prop(GF_GSFMxCtx *ctx, const GF_PropertyValue *p)
 		gf_bs_write_double(ctx->bs_w, p->value.vec3.z);
 		break;
 	case GF_PROP_VEC4I:
-		gf_bs_write_u32(ctx->bs_w, p->value.vec4i.x);
-		gf_bs_write_u32(ctx->bs_w, p->value.vec4i.y);
-		gf_bs_write_u32(ctx->bs_w, p->value.vec4i.z);
-		gf_bs_write_u32(ctx->bs_w, p->value.vec4i.w);
+		gsfmx_write_vlen(ctx, p->value.vec4i.x);
+		gsfmx_write_vlen(ctx, p->value.vec4i.y);
+		gsfmx_write_vlen(ctx, p->value.vec4i.z);
+		gsfmx_write_vlen(ctx, p->value.vec4i.w);
 		break;
 	case GF_PROP_VEC4:
 		gf_bs_write_double(ctx->bs_w, p->value.vec4.x);
@@ -322,7 +392,7 @@ static void gsfmx_write_prop(GF_GSFMxCtx *ctx, const GF_PropertyValue *p)
 		len = p->value.uint_list.nb_items;
 		gsfmx_write_vlen(ctx, len);
 		for (i=0; i<len; i++) {
-			gf_bs_write_u32(ctx->bs_w, p->value.uint_list.vals[i] );
+			gsfmx_write_vlen(ctx, p->value.uint_list.vals[i] );
 		}
 		break;
 	case GF_PROP_POINTER:
@@ -334,7 +404,7 @@ static void gsfmx_write_prop(GF_GSFMxCtx *ctx, const GF_PropertyValue *p)
 	}
 }
 
-static GFINLINE Bool gsfmx_is_prop_skip(GF_GSFMxCtx *ctx, u32 prop_4cc, const char *prop_name, u8 sep_l)
+static GFINLINE Bool gsfmx_is_prop_skip(GSFMxCtx *ctx, u32 prop_4cc, const char *prop_name, u8 sep_l)
 {
 	if (ctx->minp) {
 		u8 flags;
@@ -361,7 +431,7 @@ static GFINLINE Bool gsfmx_is_prop_skip(GF_GSFMxCtx *ctx, u32 prop_4cc, const ch
 	return GF_FALSE;
 }
 
-static void gsfmx_write_pid_config(GF_Filter *filter, GF_GSFMxCtx *ctx, GF_GSFStream *gst)
+static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *gst)
 {
 	u32 nb_4cc_props=0;
 	u32 nb_str_props=0;
@@ -379,8 +449,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GF_GSFMxCtx *ctx, GF_GSFSt
 		if (prop_name) nb_str_props++;
 	}
 
-	//pid ID
-	gsfmx_write_vlen(ctx, gst->idx);
+	gf_bs_write_u8(ctx->bs_w, gst->config_version);
 	gsfmx_write_vlen(ctx, nb_4cc_props);
 	gsfmx_write_vlen(ctx, nb_str_props);
 
@@ -420,7 +489,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GF_GSFMxCtx *ctx, GF_GSFSt
 
 
 
-static void gsfmx_send_header(GF_Filter *filter, GF_GSFMxCtx *ctx, Bool is_tunein_packet)
+static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx)
 {
 	u32 mlen=0;
 
@@ -431,12 +500,13 @@ static void gsfmx_send_header(GF_Filter *filter, GF_GSFMxCtx *ctx, Bool is_tunei
 		gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
 	}
 
+	ctx->nb_frames++;
 	if (ctx->magic) {
 		mlen = strlen(ctx->magic);
 	}
 
 	//header:signature
-	gf_bs_write_u32(ctx->bs_w, GF_4CC('G','S','S','F') );
+	gf_bs_write_u32(ctx->bs_w, GF_4CC('G','S','5','F') );
 	//header protocol version
 	gf_bs_write_u8(ctx->bs_w, 1);
 
@@ -445,6 +515,8 @@ static void gsfmx_send_header(GF_Filter *filter, GF_GSFMxCtx *ctx, Bool is_tunei
 		gf_bs_write_u16(ctx->bs_w, ctx->pattern.num);
 		gf_bs_write_u16(ctx->bs_w, ctx->pattern.den);
 	}
+	gf_bs_write_int(ctx->bs_w, ctx->sigsn ? 1 : 0, 1);
+	gf_bs_write_int(ctx->bs_w, 0, 7);
 
 	//header:magic
 	gsfmx_write_vlen(ctx, mlen);
@@ -452,59 +524,40 @@ static void gsfmx_send_header(GF_Filter *filter, GF_GSFMxCtx *ctx, Bool is_tunei
 		gf_bs_write_data(ctx->bs_w, ctx->magic, mlen);
 	}
 
-	if (is_tunein_packet) {
-		u32 i, count = gf_list_count(ctx->streams);
-		//number of tunein configs
-		gsfmx_write_vlen(ctx, count);
-		for (i=0; i<count; i++) {
-			GF_GSFStream *gst = gf_list_get(ctx->streams, i);
-			gsfmx_write_pid_config(filter, ctx, gst);
-		}
-	} else {
-		//number of tunein configs
-		gsfmx_write_vlen(ctx, 0);
-	}
-
-	gsfmx_send_packet(ctx, NULL, GFS_PCKTYPE_HDR, GF_FALSE, is_tunein_packet);
+	gsfmx_send_packets(ctx, NULL, GFS_PCKTYPE_HDR, GF_FALSE, GF_FALSE, 0, 0);
 	ctx->is_start = GF_FALSE;
 }
 
-static void gsfmx_send_pid_config(GF_Filter *filter, GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_GSFPacketType pck_type)
+static void gsfmx_send_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *gst, Bool is_info, Bool is_carousel_update)
 {
 	if (ctx->is_start) {
-		gsfmx_send_header(filter, ctx, GF_FALSE);
+		gsfmx_send_header(filter, ctx);
 	}
 
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
+	if (!is_info && !is_carousel_update) {
+		gst->config_version++;
+	}
 	gsfmx_write_pid_config(filter, ctx, gst);
-	gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE, GF_FALSE);
-	ctx->regenerate_tunein_info = GF_TRUE;
+	gst->nb_frames++;
+	gsfmx_send_packets(ctx, gst, is_info ? GFS_PCKTYPE_PID_INFO_UPDATE : GFS_PCKTYPE_PID_CONFIG, GF_FALSE, is_carousel_update ? GF_TRUE : GF_FALSE, 0, 0);
 }
 
-static u32 gsfmx_get_header_size(GF_GSFMxCtx *ctx, u32 psize)
-{
-	u32 lmode = 0;
-	if (psize >= 1<<24) lmode=3;
-	else if (psize >= 1<<16) lmode=2;
-	else if (psize >= 1<<8) lmode=1;
-	return 1 + lmode+1 + (ctx->sigsn ? 4 : 0);
-}
-
-static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPacket *pck)
+static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPacket *pck)
 {
 	u32 w=0, h=0, stride=0, stride_uv=0, pf=0;
 	u32 nb_planes=0, uv_height=0;
 	const char *data;
-	u32 psize;
+	u32 frame_size, frame_hdr_size;
 	GF_FilterHWFrame *hwframe=NULL;
 	u32 nb_4cc_props=0;
 	u32 nb_str_props=0;
 	u32 idx=0;
 	u32 tsmode=0;
 	u32 tsmodebits=0;
-	u32 sizemode=0;
 	u32 durmode=0;
 	u32 durmodebits=0;
+	Bool start, end;
 	const GF_PropertyValue *p;
 
 	if (ctx->dbg==2) return;
@@ -522,7 +575,7 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
 
-	data = gf_filter_pck_get_data(pck, &psize);
+	data = gf_filter_pck_get_data(pck, &frame_size);
 	if (!data) {
 		hwframe = gf_filter_pck_get_hw_frame(pck);
 		if (hwframe) {
@@ -537,19 +590,14 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 			p = gf_filter_pid_get_property(gst->pid, GF_PROP_PID_STRIDE_UV);
 			stride_uv = p ? p->value.uint : 0;
 
-			if (! gf_pixel_get_size_info(pf, w, h, &psize, &stride, &stride_uv, &nb_planes, &uv_height)) {
+			if (! gf_pixel_get_size_info(pf, w, h, &frame_size, &stride, &stride_uv, &nb_planes, &uv_height)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFMux] Raw packet with unsupported pixel format, cannot send\n"));
 				return;
 			}
 		}
 	}
 
-	if (ctx->dbg) psize=0;
-
-	if (psize < 1<<8) sizemode=0;
-	else if (psize < 1<<16) sizemode=1;
-	else if (psize < 1<<24) sizemode=2;
-	else sizemode=3;
+	if (ctx->dbg) frame_size=0;
 
 	u64 dts = gf_filter_pck_get_dts(pck);
 	u64 cts = gf_filter_pck_get_cts(pck);
@@ -557,11 +605,9 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 	u8 has_cts=0;
 
 	//packet structure:
-	//vlen stream idx
 	//flags first byte: 1(has_dts) 1(has_ctx) 1(has_byteoffset) 1(corrupted) 1(seek) 2(encrypted) 1(has_carousel)
 	//flags second byte: 2(ilaced) 2(cktype) 3(sap) 1(has_sample_deps)
-	//flags third byte: 2(tsmode) 2(durmode) 2(sizemode) 1(has builtin props) 1(has props)
-	//size on 8*(sizemode+1)
+	//flags third byte: 2(tsmode) 2(durmode) 1(au start) 1(au end) 1(has builtin props) 1(has props)
 	//if has_dts, dts on tsmodebits
 	//if has_cts, cts on tsmodebits
 	//if durmode>0, dur on durmodbits
@@ -572,8 +618,6 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 	//if (has builtin) vlen nb builtin_props then props[builtin_props]
 	//if (has props) vlen nb_str_props then props[nb_str_props]
 	//data
-
-	gsfmx_write_vlen(ctx, gst->idx);
 	if (ctx->sigdts && (dts!=GF_FILTER_NO_TS) && (dts!=cts)) {
 		has_dts=1;
 
@@ -632,15 +676,16 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 	else if (duration<1<<16) { durmode=2; durmodebits=16; }
 	else { durmode=3; durmodebits=32; }
 
+	gf_filter_pck_get_framing(pck, &start, &end);
+
 	gf_bs_write_int(ctx->bs_w, tsmode, 2);
 	gf_bs_write_int(ctx->bs_w, durmode, 2);
-	gf_bs_write_int(ctx->bs_w, sizemode, 2);
+	gf_bs_write_int(ctx->bs_w, start ? 1 : 0, 1);
+	gf_bs_write_int(ctx->bs_w, end ? 1 : 0, 1);
 	gf_bs_write_int(ctx->bs_w, nb_4cc_props ? 1 : 0, 1);
 	gf_bs_write_int(ctx->bs_w, nb_str_props ? 1 : 0, 1);
 
 	//done with flags
-
-	gf_bs_write_int(ctx->bs_w, psize, 8*(sizemode+1) );
 
 	if (has_dts) {
 		if (tsmode==3) gf_bs_write_long_int(ctx->bs_w, dts, tsmodebits);
@@ -703,79 +748,27 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 		gsfmx_write_vlen(ctx, nb_str_props);
 	}
 
+	frame_hdr_size = gf_bs_get_position(ctx->bs_w);
+
+	if (has_cts && ctx->crate>0) {
+		if (!gst->last_cts_config) {
+			gst->last_cts_config = has_cts+1;
+		} else if ( cts - (gst->last_cts_config-1) > ctx->crate * gst->timescale) {
+			ctx->regenerate_tunein_info = GF_TRUE;
+		}
+	}
+
 
 	//write packet data
 	if (ctx->dbg) {
 
 	} else if (data) {
-		u32 pck_size = 0;
-		u32 hsize = 0;
-		Bool do_split = GF_FALSE;
-		if (ctx->mpck) {
-			pck_size = gf_bs_get_position(ctx->bs_w) + psize;
-			hsize = gsfmx_get_header_size(ctx, pck_size);
-			if (hsize + pck_size > ctx->mpck) {
-				do_split = GF_TRUE;
-			}
+		u32 nb_write = gf_bs_write_data(ctx->bs_w, data, frame_size);
+		if (nb_write != frame_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, frame_size));
 		}
-
-		if (!do_split) {
-			u32 nb_write = gf_bs_write_data(ctx->bs_w, data, psize);
-			if (nb_write != psize) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, psize));
-			}
-			gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE);
-		} else {
-			Bool first = GF_TRUE;
-			const char *ptr = data;
-			u32 offset_in_full_pck = 0;
-			u32 written = gf_bs_get_position(ctx->bs_w);
-			hsize = gsfmx_get_header_size(ctx, ctx->mpck - written);
-			while (psize) {
-				u32 pck_type = GFS_PCKTYPE_PCK_CONT;
-				u32 to_write = ctx->mpck - hsize - written;
-
-				if (first) pck_type = GFS_PCKTYPE_PCK;
-
-				if (to_write > psize) {
-					to_write = psize;
-					pck_type = GFS_PCKTYPE_PCK_LAST;
-				}
-
-				u32 nb_write = gf_bs_write_data(ctx->bs_w, ptr, to_write);
-				if (nb_write != to_write) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, to_write));
-				}
-				gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE, GF_FALSE);
-				ptr += to_write;
-				psize -= to_write;
-				offset_in_full_pck += to_write;
-				if (!psize) break;
-				first = GF_FALSE;
-
-				gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
-				gsfmx_write_vlen(ctx, gst->idx);
-				gf_bs_write_u32(ctx->bs_w, offset_in_full_pck);
-				written = gf_bs_get_position(ctx->bs_w);
-			}
-		}
+		gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE, frame_size, frame_hdr_size);
 	} else if (hwframe) {
-		u32 pck_size = 0;
-		u32 hsize = 0;
-		Bool do_split = GF_FALSE;
-		Bool first=GF_TRUE;
-		Bool last=GF_FALSE;
-		u32 offset_in_full_pck = 0;
-		if (ctx->mpck) {
-			pck_size = gf_bs_get_position(ctx->bs_w) + psize;
-			hsize = gsfmx_get_header_size(ctx, pck_size);
-			if (hsize + pck_size > ctx->mpck) {
-				do_split = GF_TRUE;
-				hsize = gsfmx_get_header_size(ctx, ctx->mpck);
-				pck_size = ctx->mpck - gf_bs_get_position(ctx->bs_w) - hsize;
-			}
-		}
-
 		u32 i, bpp = gf_pixel_get_bytes_per_pixel(pf);
 		for (i=0; i<nb_planes; i++) {
 			u32 j, write_h, lsize;
@@ -790,67 +783,22 @@ static void gsfmx_write_packet(GF_GSFMxCtx *ctx, GF_GSFStream *gst, GF_FilterPac
 			if (i) write_h = uv_height;
 			lsize = bpp * (i ? stride : stride_uv);
 			for (j=0; j<write_h; j++) {
-
-				if (do_split) {
-					const char *ptr = out_ptr;
-					u32 nb_bytes = lsize;
-					//write entire line
-					while (nb_bytes) {
-						//try to write remaining packet size
-						u32 to_write = pck_size;
-						//clamp to number of bytes remaining in line
-						if (to_write>nb_bytes) {
-							to_write=nb_bytes;
-							//last line of last plane, we are done
-							if ((i+1==write_h) && (j+1==nb_planes)) last=GF_TRUE;
-						}
-						u32 nb_write = (u32) gf_bs_write_data(ctx->bs_w, ptr, to_write);
-						if (nb_write != to_write) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, to_write));
-						}
-						//move line pointer forward
-						ptr+=to_write;
-						nb_bytes-=to_write;
-						pck_size -= to_write;
-						psize -= to_write;
-						offset_in_full_pck += to_write;
-						//done with current packet, send it and reassign new bitstream for next one if any
-						if (!pck_size) {
-							u32 pck_type = GFS_PCKTYPE_PCK_CONT;
-							if (first) pck_type = GFS_PCKTYPE_PCK;
-							else if (last) pck_type = GFS_PCKTYPE_PCK_LAST;
-
-							gsfmx_send_packet(ctx, gst, pck_type, GF_FALSE, GF_FALSE);
-							if (last) break;
-
-							pck_size = ctx->mpck - hsize;
-							//this will be our last packet
-							if (pck_size>psize) pck_size = psize;
-
-							gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
-							gsfmx_write_vlen(ctx, gst->idx);
-							gf_bs_write_u32(ctx->bs_w, offset_in_full_pck);
-						}
-					}
-				} else {
-					u32 nb_write = (u32) gf_bs_write_data(ctx->bs_w, out_ptr, lsize);
-					if (nb_write != lsize) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
-					}
+				u32 nb_write = (u32) gf_bs_write_data(ctx->bs_w, out_ptr, lsize);
+				if (nb_write != lsize) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
 				}
 				out_ptr += out_stride;
 			}
 		}
-		//not fragmented, send packet
-		if (!last)
-			gsfmx_send_packet(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE);
+		gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE, frame_size, frame_hdr_size);
 	}
 }
 
 GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_GSFStream *gst=NULL;
-	GF_GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFStream *gst=NULL;
+	const GF_PropertyValue *p;
+	GSFMxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		gst = gf_filter_pid_get_udta(pid);
@@ -880,19 +828,25 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-gpac-sf") );
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+
 	gst = gf_filter_pid_get_udta(pid);
 	if (!gst) {
-		GF_SAFEALLOC(gst, GF_GSFStream);
+		GF_SAFEALLOC(gst, GSFStream);
 		gf_list_add(ctx->streams, gst);
 		gst->pid = pid;
 		gf_filter_pid_set_udta(pid, gst);
-		gst->idx = ctx->max_pid_idx;
+		gst->idx = 1+ctx->max_pid_idx;
 		ctx->max_pid_idx++;
+		gst->timescale = 1000;
+		if (p && p->value.uint) gst->timescale = p->value.uint;
 
-		gsfmx_send_pid_config(filter, ctx, gst, GFS_PCKTYPE_PID_CONFIG);
+		gsfmx_send_pid_config(filter, ctx, gst, GF_FALSE, GF_FALSE);
 
 	} else {
-		gsfmx_send_pid_config(filter, ctx, gst, GFS_PCKTYPE_PID_CONFIG);
+		if (p && p->value.uint) gst->timescale = p->value.uint;
+		gst->last_cts_config = 0;
+		gsfmx_send_pid_config(filter, ctx, gst, GF_FALSE, GF_FALSE);
 
 	}
 	return GF_OK;
@@ -901,12 +855,12 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 GF_Err gsfmx_process(GF_Filter *filter)
 {
-	GF_GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = gf_filter_get_udta(filter);
 	u32 i, nb_eos, count = gf_list_count(ctx->streams);
 
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
-		GF_GSFStream *gst = gf_list_get(ctx->streams, i);
+		GSFStream *gst = gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(gst->pid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(gst->pid)) {
@@ -919,12 +873,16 @@ GF_Err gsfmx_process(GF_Filter *filter)
 			continue;
 		}
 		gst->eos = GF_FALSE;
-		gsfmx_write_packet(ctx, gst, pck);
+		gsfmx_write_data_packet(ctx, gst, pck);
 		gf_filter_pid_drop_packet(gst->pid);
 	}
 	if (ctx->regenerate_tunein_info) {
 		ctx->regenerate_tunein_info = GF_FALSE;
-		gsfmx_send_header(filter, ctx, GF_TRUE);
+		gsfmx_send_header(filter, ctx);
+		for (i=0; i<count; i++) {
+			GSFStream *gst = gf_list_get(ctx->streams, i);
+			gsfmx_send_pid_config(filter, ctx, gst, GF_FALSE, GF_TRUE);
+		}
 	}
 
 	if (count && (nb_eos==count) ) {
@@ -936,11 +894,11 @@ GF_Err gsfmx_process(GF_Filter *filter)
 
 static Bool gsfmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = gf_filter_get_udta(filter);
 	if (evt->base.type==GF_FEVT_INFO_UPDATE) {
-		GF_GSFStream *gst = gf_filter_pid_get_udta(evt->base.on_pid);
+		GSFStream *gst = gf_filter_pid_get_udta(evt->base.on_pid);
 		if (gst)
-			gsfmx_send_pid_config(filter, ctx, gst, GFS_PCKTYPE_PID_INFO_UPDATE);
+			gsfmx_send_pid_config(filter, ctx, gst, GF_TRUE, GF_FALSE);
 	}
 	//don't cancel events
 	return GF_FALSE;
@@ -948,7 +906,7 @@ static Bool gsfmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GF_Err gsfmx_initialize(GF_Filter *filter)
 {
-	GF_GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = gf_filter_get_udta(filter);
 
 	gf_rand_init(GF_FALSE);
 
@@ -959,8 +917,6 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 		} else if (ctx->IV.size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Wrong IV value, size %d expecting 16\n", ctx->key.size));
 			return GF_BAD_PARAM;
-		} else if (ctx->for_test) {
-			memset(ctx->crypt_IV, 1, 16);
 		} else {
 			char szIV[64];
 			u32 i;
@@ -1001,9 +957,9 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 
 static void gsfmx_finalize(GF_Filter *filter)
 {
-	GF_GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->streams)) {
-		GF_GSFStream *gst = gf_list_pop_back(ctx->streams);
+		GSFStream *gst = gf_list_pop_back(ctx->streams);
 		gf_free(gst);
 	}
 	gf_list_del(ctx->streams);
@@ -1030,7 +986,7 @@ static const GF_FilterCapability GSFMxCaps[] =
 
 
 
-#define OFFS(_n)	#_n, offsetof(GF_GSFMxCtx, _n)
+#define OFFS(_n)	#_n, offsetof(GSFMxCtx, _n)
 static const GF_FilterArgs GSFMxArgs[] =
 {
 	{ OFFS(sigsn), "signal packet sequence number after header field and before size field. Sequence number is per PID, encoded on 16 bits. Header packet does not have a SN", GF_PROP_BOOL, "false", NULL, GF_FALSE},
@@ -1042,35 +998,38 @@ static const GF_FilterArgs GSFMxArgs[] =
 	{ OFFS(IV), "sets IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, GF_FALSE},
 	{ OFFS(pattern), "sets nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FALSE},
 	{ OFFS(mpck), "sets max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(for_test), "do not include gpac version number in header for regression tests hashing", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(skp), "comma separated list of pid property names to skip - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(minp), "includes only the minimum set of properties required for stream processing - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(crate), "carousel period for tune-in info in seconds - see filter help", GF_PROP_DOUBLE, "0", NULL, GF_FALSE},
 	{0}
 };
 
 
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfm",
-	.description = "GPAC stream format writer",
+	.description = "GPAC Super/Simple/Serialized/Stream/State Format writer",
 	.comment = "This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. "\
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "\
 			"using either pipes or sockets. Upstream events are not serialized.\n"\
 			"\n"\
-			"The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size and optionnal seq num) are in the clear "\
+			"The default behaviour does not insert sequence numbers. When running over general protoclos not ensuring packet order, this should be inserted.\n"\
+			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed\n"
+			"\n"\
+			"The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optionnal seq num) are in the clear "\
 			"and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.\n"\
+			"For data packets, each fragment is encrypted individually to avoid error propagation in case of losses.\n"\
+			"For other packets, the entire packet is encrypted before fragmentation (fragments cannot be processed individually).\n"\
 			"For header/tunein packets, the first 25 bytes after the header are in the clear (signature,version,IV and pattern).\n"\
 			"The IV is constant to avoid packet overhead, randomly generated if not set and sent in the initial stream header. "\
 			"Pattern mode can be used (cf CENC cbcs) to encrypt K block and leave N blocks in the clear\n"
 			"\n"\
-			"The serializer sends a tunein packet whenever a PID is modified. This packet is marked as redundant so that it can be discarded by output filters if needed\n"
-			"\n"\
-			"The header/tunein packet cannot currently be split and may carry a lot of information. In order to help reduce its size, the minp option can be used: "
+			"The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the minp option can be used: "
 			"this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.\n"
 			"The skp option may also be used to specify which property to drop:\n"
 			"\tEX: skp=\"4CC1,Name2\" will remove properties of type 4CC1 and properties (built-in or not) of name Name2\n"
 			"\n",
-	.private_size = sizeof(GF_GSFMxCtx),
+	.private_size = sizeof(GSFMxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFMxArgs,
 	SETCAPS(GSFMxCaps),
