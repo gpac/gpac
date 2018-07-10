@@ -2514,6 +2514,26 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			}
 
 		}
+	} else if (msub_type == GF_ISOM_SUBTYPE_AV01) {
+		GF_AV1Config *av1c;
+		u32 w, h, i, count;
+		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+		fprintf(stderr, "\tAOM AV1 stream - Resolution %d x %d\n", w, h);
+		av1c = gf_isom_av1_config_get(file, trackNum, 1);
+		if (av1c->initial_presentation_delay_present)
+			fprintf(stderr, "\tInitial presentation delay %d\n", (u32) av1c->initial_presentation_delay_minus_one+1);
+
+		count = gf_list_count(av1c->obu_array);
+		for (i=0; i<count; i++) {
+			u8 hash[20];
+			u32 j;
+			GF_AV1_OBUArrayEntry *obu = gf_list_get(av1c->obu_array, i);
+			gf_sha1_csum((u8*)obu->obu, (u32)obu->obu_length, hash);
+			fprintf(stderr, "\tOBU#%d %s hash: ", i+1, av1_get_obu_name(obu->obu_type) );
+			for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
+			fprintf(stderr, "\n");
+		}
+		gf_odf_av1_cfg_del(av1c);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_H263) {
 		u32 w, h;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);

@@ -23,8 +23,6 @@
  *
  */
 
-
-
 #include <gpac/internal/media_dev.h>
 #ifndef GPAC_DISABLE_AVILIB
 #include <gpac/internal/avilib.h>
@@ -6113,7 +6111,7 @@ restart_import:
 			}
 			break;
 		case -1:
-			gf_import_message(import, GF_OK, "Waring: Error parsing NAL unit");
+			gf_import_message(import, GF_OK, "Warning: Error parsing NAL unit");
 			skip_nal = GF_TRUE;
 			break;
 		case -2:
@@ -6769,7 +6767,7 @@ next_nal:
 
 		for (i=0; i<cur_samp; i++) {
 			u64 cts;
-			/*not using descIdx and data_offset will only fecth DTS, CTS and RAP which is all we need*/
+			/*not using descIdx and data_offset will only fetch DTS, CTS and RAP which is all we need*/
 			GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, i+1, NULL, NULL);
 			/*poc re-init (RAP and POC to 0, otherwise that's SEI recovery), update base DTS*/
 			if (samp->IsRAP /*&& !samp->CTS_Offset*/)
@@ -6885,7 +6883,7 @@ next_nal:
 		//must use LHV1/LHC1 since no base HEVC in the track
 		gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, GF_ISOM_LEHVC_ONLY);
 	}
-	//HEVC with optionnal lhvc
+	//HEVC with optional lhvc
 	else {
 		gf_isom_set_visual_info(import->dest, track, di, max_w_b, max_h_b);
 		hevc_set_parall_type(hevc_cfg);
@@ -7016,6 +7014,264 @@ exit:
 	gf_fclose(mdia);
 	return e;
 #endif //GPAC_DISABLE_HEVC
+}
+
+void av1_reset_frame_state(AV1StateFrame *frame_state) {
+	if (frame_state->header_obus) {
+		while (gf_list_count(frame_state->header_obus)) {
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->header_obus, 0);
+			if (a->obu) gf_free(a->obu);
+			gf_list_rem(frame_state->header_obus, 0);
+			gf_free(a);
+		}
+		gf_list_del(frame_state->header_obus);
+	}
+	
+	if (frame_state->frame_obus) {
+		while (gf_list_count(frame_state->frame_obus)) {
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->frame_obus, 0);
+			if (a->obu) gf_free(a->obu);
+			gf_list_rem(frame_state->frame_obus, 0);
+			gf_free(a);
+		}
+		gf_list_del(frame_state->frame_obus);
+	}
+
+	memset(frame_state, 0, sizeof(AV1StateFrame));
+}
+
+static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
+{
+#ifdef GPAC_DISABLE_AV1
+	return GF_NOT_SUPPORTED;
+#endif
+	GF_Err e = GF_OK;
+	GF_AV1Config *av1_cfg = NULL;
+	AV1State state;
+	FILE *mdia = NULL;
+	GF_BitStream *bs = NULL;
+	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0;
+	Bool detect_fps;
+	Double FPS = 0.0;
+	u64 pos = 0;
+	typedef enum {
+		OBUs,   /*Section 5*/
+		AnnexB,
+		IVF
+	} AV1BitstreamSyntax;
+	AV1BitstreamSyntax av1_bs_syntax;
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->nb_tracks = 1;
+		import->tk_info[0].track_num = 1;
+		import->tk_info[0].type = GF_ISOM_MEDIA_VISUAL;
+		import->tk_info[0].flags = GF_IMPORT_OVERRIDE_FPS | GF_IMPORT_FORCE_PACKED;
+		return GF_OK;
+	}
+
+	memset(&state, 0, sizeof(AV1State));
+	av1_cfg = gf_odf_av1_cfg_new();
+	state.config = av1_cfg;
+
+	mdia = gf_fopen(import->in_name, "rb");
+	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
+
+	detect_fps = GF_TRUE;
+	FPS = (Double)import->video_fps;
+	if (!FPS) {
+		FPS = GF_IMPORT_DEFAULT_FPS;
+	} else {
+		if (import->video_fps == GF_IMPORT_AUTO_FPS) {
+			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
+		} else {
+			/*fps is forced by the caller*/
+			detect_fps = GF_FALSE;
+		}
+	}
+	get_video_timing(FPS, &timescale, &dts_inc);
+
+	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
+
+	track_id = 0;
+	if (import->esd) track_id = import->esd->ESID;
+	track_num = gf_isom_new_track(import->dest, track_id, GF_ISOM_MEDIA_VISUAL, timescale);
+	if (!track_num) {
+		e = gf_isom_last_error(import->dest);
+		goto exit;
+	}
+	gf_isom_set_track_enabled(import->dest, track_num, 1);
+	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track_num);
+	import->final_trackID = gf_isom_get_track_id(import->dest, track_num);
+	if (import->esd && import->esd->dependsOnESID) {
+		gf_isom_set_track_reference(import->dest, track_num, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
+	}
+	gf_isom_set_cts_packing(import->dest, track_num, GF_TRUE);
+
+	if (import->streamFormat) {
+		gf_import_message(import, GF_OK, "AV1: forcing format \"%s\".", import->streamFormat);
+		if (!stricmp(import->streamFormat, "obu")) {
+			av1_bs_syntax = OBUs;
+		} else if (!stricmp(import->streamFormat, "annexB")) {
+			av1_bs_syntax = AnnexB;
+		} else if (!stricmp(import->streamFormat, "ivf")) {
+			av1_bs_syntax = IVF;
+		} else {
+			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: unknown bitstream format \"%s\" found. Only \"obu\", \"annexB\" and \"ivf\" found.", import->streamFormat);
+			goto exit;
+		}
+	} else {
+		e = gf_media_aom_parse_ivf_file_header(bs, &state);
+		if (!e) {
+			gf_import_message(import, GF_OK, "Detected IVF.");
+			av1_bs_syntax = IVF;
+			pos = gf_bs_get_position(bs);
+		} else {
+			gf_bs_seek(bs, pos);
+			e = aom_av1_parse_temporal_unit_from_annexb(bs, &state);
+			if (!e) {
+				gf_import_message(import, GF_OK, "Detected Annex B.");
+				av1_bs_syntax = AnnexB;
+			} else {
+				gf_bs_seek(bs, pos);
+				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
+				if (e) {
+					gf_import_message(import, GF_NOT_SUPPORTED, "Couldn't guess AV1 bitstream format (IVF then Annex B then Section 5 tested).");
+					goto exit;
+				}
+				gf_import_message(import, GF_OK, "OBUs Section 5.");
+				av1_bs_syntax = OBUs;
+			}
+		}
+	}
+
+	gf_bs_seek(bs, pos);
+	if (av1_bs_syntax == OBUs) {
+		ObuType obu_type;
+		u64 obu_size;
+		GF_Err e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state);
+		if (e) {
+			gf_import_message(import, GF_OK, "Error parsing OBU (Section 5)");
+			goto exit;
+		}
+		if (obu_type != OBU_TEMPORAL_DELIMITER) {
+			gf_import_message(import, GF_OK, "Error OBU stream does not start with a temporal delimiter");
+			goto exit;
+		}
+	}
+	while (gf_bs_available(bs)) {
+		av1_reset_frame_state(&state.frame_state);
+		pos = gf_bs_get_position(bs);
+
+		/*we process each TU and extract only the necessary OBUs*/
+		if (av1_bs_syntax == OBUs) {
+			if (aom_av1_parse_temporal_unit_from_section5(bs, &state) != GF_OK) {
+				gf_import_message(import, GF_OK, "Error parsing OBU (Section 5)");
+				goto exit;
+			}
+		} else if (av1_bs_syntax == AnnexB) {
+			if (aom_av1_parse_temporal_unit_from_annexb(bs, &state) != GF_OK) {
+				gf_import_message(import, GF_OK, "Error parsing OBU (Annex B)");
+				goto exit;
+			}
+		} else if (av1_bs_syntax == IVF) {
+			if (aom_av1_parse_temporal_unit_from_ivf(bs, &state) != GF_OK) {
+				gf_import_message(import, GF_OK, "Error parsing OBU (IVF)");
+				goto exit;
+			}
+		}
+
+		/*add sample*/
+		{
+			u32 i = 0;
+			GF_ISOSample *samp = gf_isom_sample_new();
+			samp->DTS = (u64)dts_inc*cur_samp;
+			samp->IsRAP = state.frame_state.key_frame ? SAP_TYPE_1 : 0;
+			samp->CTS_Offset = 0;
+
+			for (i = 0; i < gf_list_count(state.frame_state.frame_obus); ++i)
+				samp->dataLength += (u32)((GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.frame_obus, i))->obu_length;
+			samp->data = gf_malloc(samp->dataLength);
+
+			samp->dataLength = 0;
+			while (gf_list_count(state.frame_state.frame_obus)) {
+				GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.frame_obus, 0);
+				if (a->obu) {
+					memcpy(samp->data + samp->dataLength, a->obu, (size_t)a->obu_length);
+					samp->dataLength += (u32)a->obu_length;
+					gf_free(a->obu);
+				}
+				gf_list_rem(state.frame_state.frame_obus, 0);
+				gf_free(a);
+			}
+
+			if (cur_samp == 0) {
+				while (gf_list_count(state.frame_state.header_obus)) {
+					GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, 0);
+					gf_list_add(av1_cfg->obu_array, a);
+					gf_list_rem(state.frame_state.header_obus, 0);
+				}
+
+				e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg, NULL, NULL, &di);
+				if (e) goto exit;
+			} else {
+				/*safety check: we only support static metadata*/
+				if (gf_list_count(state.frame_state.header_obus) > gf_list_count(av1_cfg->obu_array)) {
+					gf_import_message(import, GF_NOT_SUPPORTED, "More header OBUs in frame state than in config");
+					goto exit;
+				}
+				while (gf_list_count(state.frame_state.header_obus)) {
+					u32 i = 0;
+					GF_AV1_OBUArrayEntry *a_hdr = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, 0);
+					for (i = 0; i < gf_list_count(av1_cfg->obu_array); ++i) {
+						GF_AV1_OBUArrayEntry *a_cfg = (GF_AV1_OBUArrayEntry*)gf_list_get(av1_cfg->obu_array, i);
+						if (a_cfg->obu_type == a_hdr->obu_type) {
+							if (a_cfg->obu_length != a_hdr->obu_length || memcmp(a_cfg->obu, a_hdr->obu, (size_t)a_hdr->obu_length)) {
+								gf_import_message(import, GF_NOT_SUPPORTED, "Changing AV1 header OBUs detected for file %s", import->in_name);
+								goto exit;
+							}
+						}
+					}
+					gf_list_rem(state.frame_state.header_obus, 0);
+					if (a_hdr->obu) gf_free(a_hdr->obu);
+					gf_free(a_hdr);
+				}
+			}
+
+			e = gf_isom_add_sample(import->dest, track_num, di, samp);
+			if (e) goto exit;
+
+			gf_isom_sample_del(&samp);
+			gf_set_progress("Importing AV1", (u32)cur_samp, cur_samp + 1);
+			cur_samp++;
+		}
+	}
+
+	e = gf_isom_set_visual_info(import->dest, track_num, di, state.width, state.height);
+	if (e) goto exit;
+	e = gf_media_update_par(import->dest, track_num);
+	if (e) goto exit;
+	//gf_media_update_bitrate(import->dest, track_num);
+
+	/*rewrite ESD*/
+	if (import->esd) {
+		if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig*)gf_odf_desc_new(GF_ODF_SLC_TAG);
+		import->esd->slConfig->predefined = 2;
+		import->esd->slConfig->timestampResolution = timescale;
+		if (import->esd->decoderConfig) gf_odf_desc_del((GF_Descriptor *)import->esd->decoderConfig);
+		import->esd->decoderConfig = gf_isom_get_decoder_config(import->dest, track_num, 1);
+		gf_isom_change_mpeg4_description(import->dest, track_num, 1, import->esd);
+	}
+
+	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_ISO4, 1);
+	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_ISOM, 0);
+	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AV01, 1);
+
+exit:
+	av1_reset_frame_state(&state.frame_state);
+	gf_odf_av1_cfg_del(av1_cfg);
+	gf_bs_del(bs);
+	gf_fclose(mdia);
+	return e;
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
@@ -8114,7 +8370,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_PMT_REPEAT:
 		/*abort upon first PMT repeat if not using 4on2. Otherwise we must parse the entire
 		bitstream to locate ODs sent in OD updates in order to get their stream types...*/
-		/*		if (!ts->has_4on2 && (import->flags & GF_IMPORT_PROBE_ONLY) && !import->trackID)
+		/*		if (!ts->has_4on2 && (import->flags & GF_IMPORT_PROBE_ONLY) && !import->track_id)
 					import->flags |= GF_IMPORT_DO_ABORT;
 		*/
 		break;
@@ -8317,7 +8573,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				}
 			}
 
-			es = ts->ess[import->trackID]; /* import->trackID == pid */
+			es = ts->ess[import->trackID]; /* import->track_id == pid */
 
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
 				//ses = (GF_M2TS_SECTION_ES *)es;
@@ -9803,7 +10059,6 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		if (e) goto err_exit;
 	}
 
-
 err_exit:
 	gf_fclose(f);
 	return e;
@@ -9923,6 +10178,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		|| !strnicmp(ext, ".shvc", 5) || !strnicmp(ext, ".lhvc", 5) || !strnicmp(ext, ".mhvc", 5)
 	        || !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "MHVC") || !stricmp(fmt, "LHVC") || !stricmp(fmt, "H265") )
 		return gf_import_hevc(importer);
+	/*AOM AV1 video*/
+	if (!strnicmp(ext, ".av1", 4) || !strnicmp(ext, ".ivf", 4) || !strnicmp(ext, ".obu", 4))
+		return gf_import_aom_av1(importer);
 	/*AC3 and E-AC3*/
 	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
 		return gf_import_ac3(importer, GF_FALSE);
@@ -10009,8 +10267,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	return gf_import_message(importer, e, "[Importer] Unknown input file type for \"%s\"", importer->in_name);
 }
-
-
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 

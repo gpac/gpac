@@ -308,6 +308,9 @@ enum
 	GF_ISOM_SUBTYPE_LHE1			= GF_4CC( 'l', 'h', 'e', '1' ),
 	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
 
+	/*AV1 media type*/
+	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
+
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263	= GF_4CC( 's', '2', '6', '3' ),
 	GF_ISOM_SUBTYPE_3GP_AMR		= GF_4CC( 's', 'a', 'm', 'r' ),
@@ -435,6 +438,8 @@ enum
 	GF_ISOM_BRAND_HVC1 = GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_BRAND_HVCE = GF_4CC( 'h', 'v', 'c', 'e' ),
 	GF_ISOM_BRAND_HVCI = GF_4CC( 'h', 'v', 'c', 'i' ),
+
+	GF_ISOM_BRAND_AV01 = GF_4CC( 'a', 'v', '0', '1'),
 
 	GF_ISOM_BRAND_ISMA = GF_4CC( 'I', 'S', 'M', 'A' ),
 
@@ -1975,6 +1980,9 @@ GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 /*gets LHVC config - user is responsible for deleting it*/
 GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
+/*gets AV1 config - user is responsible for deleting it*/
+GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
 /*return true if track dependencies implying extractors or implicit reconstruction are found*/
 Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file);
 
@@ -2047,6 +2055,10 @@ typedef enum {
 	GF_ISOM_LEHVC_WITH_BASE_BACKWARD,
 } GF_ISOMLHEVCTrackType;
 GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, GF_ISOMLHEVCTrackType track_type);
+
+
+/*creates new AV1 config*/
+GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

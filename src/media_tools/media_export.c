@@ -1061,6 +1061,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie");
 			if (add_ext)
 				strcat(szName, ".swf");
+		} else if (m_stype==GF_ISOM_SUBTYPE_AV01) {
+			gf_export_message(dumper, GF_OK, "Extracting AOM AV1 Video");
+			if (add_ext)
+				strcat(szName, ".av1");
 		} else if (m_stype==GF_ISOM_SUBTYPE_MP3) {
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-1/2 Audio");
 			if (add_ext)
@@ -1480,6 +1484,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					break;
 				}
 			}
+		}
+		/*AV1: add Temporal Unit Delimiters*/
+		else if (m_stype == GF_ISOM_SUBTYPE_AV01) {
+			gf_bs_write_u8(bs, 0x12);
+			gf_bs_write_u8(bs, 0x00);
 		}
 		if (!avccfg && !svccfg && !mvccfg && !hevccfg && !lhvccfg &!is_webvtt) {
 			gf_bs_write_data(bs, samp->data, samp->dataLength);

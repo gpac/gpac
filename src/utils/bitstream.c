@@ -922,7 +922,14 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 		if (!bs->original) return GF_BAD_PARAM;
 		/*0 for write, read will be done automatically*/
 		if (offset >= bs->size) {
-			if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_WRITE) ) return GF_BAD_PARAM;
+			if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_WRITE) ) {
+				if (offset > bs->size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[BS] Attempt to seek to %d after end of bitstream %d, assuming seek to end\n", offset, bs->size));
+				}
+				bs->position = bs->size;
+				bs->nbBits = (bs->bsmode == GF_BITSTREAM_READ) ? 8 : 0;
+				return GF_OK;
+			}
 			/*in DYN, gf_realloc ...*/
 			bs->original = (char*)gf_realloc(bs->original, (u32) (offset + 1));
 			if (!bs->original)

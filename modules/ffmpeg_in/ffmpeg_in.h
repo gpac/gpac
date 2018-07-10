@@ -288,6 +288,9 @@ void Delete_FFMPEG_Demux(void *ifce);
 #define CODEC_ID_AMR_NB	AV_CODEC_ID_AMR_NB
 #define CODEC_ID_AMR_WB	AV_CODEC_ID_AMR_WB
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 0, 0 )
+#define CODEC_ID_AV1	AV_CODEC_ID_AV1
+#endif
 
 #endif
 
