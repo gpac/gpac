@@ -111,7 +111,6 @@ GF_Err m4vmx_process(GF_Filter *filter)
 		gf_filter_pck_send(dst_pck);
 
 		if (!ctx->rcfg) {
-			gf_free(ctx->dsi);
 			ctx->dsi = NULL;
 			ctx->dsi_size = 0;
 		}

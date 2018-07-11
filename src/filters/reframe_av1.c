@@ -319,6 +319,7 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 			}
 			last_obu_end = gf_bs_get_position(ctx->bs);
 		} else {
+			gf_bs_seek(ctx->bs, 0);
 			e = aom_av1_parse_temporal_unit_from_annexb(ctx->bs, &ctx->state);
 			if (!e) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected Annex B format\n"));
@@ -330,13 +331,14 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 
 				gf_bs_seek(ctx->bs, 0);
 				e = aom_av1_parse_temporal_unit_from_section5(ctx->bs, &ctx->state);
-				if (e) {
+				if (e && !gf_list_count(ctx->state.frame_state.frame_obus) ) {
 					gf_filter_setup_failure(filter, e);
 					ctx->bsmode = UNSUPPORTED;
 					return e;
 				}
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected OBUs Section 5 format\n"));
 				ctx->bsmode = OBUs;
+				av1_reset_frame_state(&ctx->state.frame_state, GF_FALSE);
 				gf_bs_seek(ctx->bs, 0);
 
 				e = gf_media_aom_av1_parse_obu(ctx->bs, &obu_type, &obu_size, NULL, &ctx->state);
@@ -347,7 +349,7 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 					return e;
 				}
 				if (obu_type != OBU_TEMPORAL_DELIMITER) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1Dmx] Error OBU stream does not start with a temporal delimiter\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter - NOT SUPPORTED\n", av1_get_obu_name(obu_type) ));
 					gf_filter_setup_failure(filter, e);
 					ctx->bsmode = UNSUPPORTED;
 					return e;
@@ -415,7 +417,7 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
 
 		gf_filter_pck_set_cts(pck, ctx->cts);
-		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? SAP_TYPE_1 : 0);
+		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
 
 		offset = 0;
 		while (gf_list_count(ctx->state.frame_state.frame_obus)) {
@@ -466,7 +468,8 @@ GF_Err av1dmx_process(GF_Filter *filter)
 				av1dmx_process_buffer(filter, ctx, ctx->buffer, ctx->buf_size, GF_TRUE);
 				ctx->buf_size = 0;
 			}
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 			ctx->src_pck = NULL;
 			return GF_EOS;

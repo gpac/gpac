@@ -545,6 +545,11 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 Bool av1_is_obu_header(ObuType obu_type);
 void av1_reset_frame_state(AV1StateFrame *frame_state, Bool is_destroy);
 
+u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes);
+u32 gf_av1_leb128_size(u64 value);
+u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value);
+GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id);
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 typedef struct
