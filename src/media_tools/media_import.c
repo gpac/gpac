@@ -7105,7 +7105,6 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (import->esd && import->esd->dependsOnESID) {
 		gf_isom_set_track_reference(import->dest, track_num, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
 	}
-	gf_isom_set_cts_packing(import->dest, track_num, GF_TRUE);
 
 	if (import->streamFormat) {
 		gf_import_message(import, GF_OK, "AV1: forcing format \"%s\".", import->streamFormat);
