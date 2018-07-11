@@ -1357,6 +1357,13 @@ GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs);
 GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs);
 
 /*! gets GF_AV1Config from bitstream MPEG-4 DSI
+\param bs bitstream containing the encoded AV1 decoder specific info
+\param size size of encoded structure in the bitstream. A value of 0 means "until the end", equivalent to gf_odf_av1_cfg_read_bs
+\return the decoded HEVC config
+*/
+GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size);
+
+/*! gets GF_AV1Config from bitstream MPEG-4 DSI
 \param dsi encoded AV1 config
 \param dsi_size size of encoded AV1 config
 \return the decoded AV1 config

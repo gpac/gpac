@@ -373,13 +373,26 @@ GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 {
 	GF_Err e;
 	char *desc;
-	u32 size;
+	u32 size, oti=0;
+
+	//patch for esd copy, we now signal codecid (32 bit) in OTI (8 bits)
+	if (inDesc->tag == GF_ODF_ESD_TAG) {
+		GF_ESD *esd = (GF_ESD *)inDesc;
+		if (esd->decoderConfig) {
+			oti = esd->decoderConfig->objectTypeIndication;
+			esd->decoderConfig->objectTypeIndication = 0;
+		}
+	}
 
 	//warning: here we get some data allocated
 	e = gf_odf_desc_write(inDesc, &desc, &size);
 	if (e) return e;
 	e = gf_odf_desc_read(desc, size, outDesc);
 	gf_free(desc);
+	if (oti) {
+		GF_ESD *esd = (GF_ESD *)*outDesc;
+		if (esd->decoderConfig) esd->decoderConfig->objectTypeIndication = oti;
+	}
 	return e;
 }
 
