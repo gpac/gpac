@@ -1176,7 +1176,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	importer->last_error = GF_OK;
 
 	if (importer->flags & GF_IMPORT_PROBE_ONLY) {
-		prober = gf_fs_load_filter(fsess, "probe:pid_only");
+		prober = gf_fs_load_filter(fsess, "probe");
 
 		src_filter = gf_fs_load_source(fsess, importer->in_name, NULL, NULL, &e);
 		if (e) {
