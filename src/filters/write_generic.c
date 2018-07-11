@@ -704,7 +704,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "gpac" ),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "gpac"),
 	{0},
 	//raw audio dump - keep it as second for field extension assignment
 	//cf below
@@ -973,13 +973,14 @@ static GF_Err gendump_initialize(GF_Filter *filter)
 
 const GF_FilterRegister *gendump_register(GF_FilterSession *session)
 {
-	//assign possible file ext
-	assert(!strcmp(GenDumpCaps[3].val.value.string, "gpac"));
-	assert(!strcmp(GenDumpCaps[8].val.value.string, "gpac"));
-	GenDumpCaps[3].val.value.string = (char *) gf_pixel_fmt_all_shortnames();
-	GenDumpCaps[8].val.value.string = (char *) gf_audio_fmt_all_shortnames();
-	GenDumpArgs[1].min_max_enum = gf_pixel_fmt_all_names();
-	GenDumpArgs[2].min_max_enum = gf_audio_fmt_all_names();
+
+	//assign runtime caps on first load
+	if (!strcmp(GenDumpCaps[3].val.value.string, "gpac")) {
+		GenDumpCaps[3].val.value.string = (char *) gf_pixel_fmt_all_shortnames();
+		GenDumpCaps[8].val.value.string = (char *) gf_audio_fmt_all_shortnames();
+		GenDumpArgs[1].min_max_enum = gf_pixel_fmt_all_names();
+		GenDumpArgs[2].min_max_enum = gf_audio_fmt_all_names();
+	}
 
 	return &GenDumpRegister;
 }
