@@ -515,6 +515,7 @@ typedef struct
 	Bool reduced_still_picture_header;
 	u16 OperatingPointIdc;
 	u16 width, height;
+	u32 tb_num, tb_den;
 	AV1StateFrame frame_state;
 	GF_AV1Config *config;
 
@@ -542,7 +543,7 @@ GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
 
 Bool av1_is_obu_header(ObuType obu_type);
-void av1_reset_frame_state(AV1StateFrame *frame_state);
+void av1_reset_frame_state(AV1StateFrame *frame_state, Bool is_destroy);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

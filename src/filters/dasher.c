@@ -973,7 +973,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 					}
 				}
 				gf_odf_av1_cfg_del(av1c);
-				av1_reset_frame_state(&av1_state.frame_state);
+				av1_reset_frame_state(&av1_state.frame_state, GF_TRUE);
 				return GF_OK;
 			}
 		}

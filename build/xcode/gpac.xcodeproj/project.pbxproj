@@ -491,6 +491,7 @@
 		92E318CF20645036007BE021 /* ff_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318CE20645036007BE021 /* ff_rescale.c */; };
 		92E318D120651834007BE021 /* vcrop.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318D020651834007BE021 /* vcrop.c */; };
 		92E9167C2073F1DB00EE92FB /* ff_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E9167B2073F1DB00EE92FB /* ff_enc.c */; };
+		92EB479120F50C4200E1F2DD /* reframe_av1.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB479020F50C4200E1F2DD /* reframe_av1.c */; };
 		92EC32CB1FAC5ACB003FB9C3 /* reframe_qcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */; };
 		92EC32CD1FAC81D6003FB9C3 /* reframe_h263.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */; };
 		92EE76411FD0315D008926F5 /* load_text.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EE76401FD0315D008926F5 /* load_text.c */; };
@@ -1322,6 +1323,7 @@
 		92E318CE20645036007BE021 /* ff_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_rescale.c; path = filters/ff_rescale.c; sourceTree = "<group>"; };
 		92E318D020651834007BE021 /* vcrop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcrop.c; path = filters/vcrop.c; sourceTree = "<group>"; };
 		92E9167B2073F1DB00EE92FB /* ff_enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_enc.c; path = filters/ff_enc.c; sourceTree = "<group>"; };
+		92EB479020F50C4200E1F2DD /* reframe_av1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_av1.c; path = filters/reframe_av1.c; sourceTree = "<group>"; };
 		92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_qcp.c; path = filters/reframe_qcp.c; sourceTree = "<group>"; };
 		92EC32CC1FAC81D5003FB9C3 /* reframe_h263.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_h263.c; path = filters/reframe_h263.c; sourceTree = "<group>"; };
 		92EE76401FD0315D008926F5 /* load_text.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = load_text.c; path = filters/load_text.c; sourceTree = "<group>"; };
@@ -2422,6 +2424,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92EB479020F50C4200E1F2DD /* reframe_av1.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -3067,6 +3070,7 @@
 				92BB856B1F7BFB63009BC9C8 /* dec_faad.c in Sources */,
 				92BB857B1F7BFB63009BC9C8 /* isoffin_read.c in Sources */,
 				92C1FF5A1E7C42DF0093B61E /* stencil.c in Sources */,
+				92EB479120F50C4200E1F2DD /* reframe_av1.c in Sources */,
 				92B9A5851F8660D700A24FE4 /* mesh_tesselate.c in Sources */,
 				923E89CF20B6F04600F299B2 /* g_crypt_tinyaes.c in Sources */,
 				9201016218D5A445003D1ACA /* ipmpx_parse.c in Sources */,

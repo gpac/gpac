@@ -1790,7 +1790,6 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 {
-	char *FourCC = NULL;
 	u32 dw = 0;
 	
 	if (gf_bs_available(bs) < 32) {
@@ -1812,17 +1811,16 @@ GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 	dw = gf_bs_read_u16_le(bs);
 
 	dw = gf_bs_read_u32(bs); //codec_fourcc
-	FourCC = (char*)&dw;
 	if (dw != GF_4CC('A', 'V', '0', '1')) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got %s\n", gf_4cc_to_str(dw) ));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	dw = gf_bs_read_u16_le(bs);
 	state->width = state->width < dw ? dw : state->width;
 	dw = gf_bs_read_u16_le(bs);
 	state->height = state->height < dw ? dw : state->height;
-	dw = gf_bs_read_u32_le(bs); //time_base.numerator
-	dw = gf_bs_read_u32_le(bs); //time_base.denominator
+	state->tb_num = gf_bs_read_u32_le(bs); //time_base.numerator
+	state->tb_den = gf_bs_read_u32_le(bs); //time_base.denominator
 
 	gf_bs_read_u64(bs); //skip
 
@@ -2070,9 +2068,13 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 {
 	u64 frame_size;
-	GF_Err e = gf_media_aom_parse_ivf_frame_header(bs, &frame_size);
+	GF_Err e;
+	if (gf_bs_available(bs)<12) return GF_EOS;
+	e = gf_media_aom_parse_ivf_frame_header(bs, &frame_size);
 	if (e) return e;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", frame_size));
+
+	if (gf_bs_available(bs)<frame_size) return GF_EOS;
 
 	while (frame_size > 0) {
 		u64 obu_size = 0, pos = gf_bs_get_position(bs);
@@ -2138,28 +2140,35 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state) {
 }
 
 GF_EXPORT
-void av1_reset_frame_state(AV1StateFrame *frame_state) {
-	if (frame_state->header_obus) {
+void av1_reset_frame_state(AV1StateFrame *frame_state, Bool is_destroy)
+{
+	GF_List *l1, *l2;
+
+	if ( frame_state->header_obus) {
 		while (gf_list_count(frame_state->header_obus)) {
-			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->header_obus, 0);
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_pop_back(frame_state->header_obus);
 			if (a->obu) gf_free(a->obu);
-			gf_list_rem(frame_state->header_obus, 0);
 			gf_free(a);
 		}
-		gf_list_del(frame_state->header_obus);
 	}
 
 	if (frame_state->frame_obus) {
 		while (gf_list_count(frame_state->frame_obus)) {
-			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->frame_obus, 0);
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_pop_back(frame_state->frame_obus);
 			if (a->obu) gf_free(a->obu);
-			gf_list_rem(frame_state->frame_obus, 0);
 			gf_free(a);
 		}
-		gf_list_del(frame_state->frame_obus);
 	}
-
+	l1 = frame_state->frame_obus;
+	l2 = frame_state->header_obus;
 	memset(frame_state, 0, sizeof(AV1StateFrame));
+	if (is_destroy) {
+		gf_list_del(l1);
+		gf_list_del(l2);
+	} else {
+		frame_state->frame_obus = l1;
+		frame_state->header_obus = l2;
+	}
 }
 
 static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
