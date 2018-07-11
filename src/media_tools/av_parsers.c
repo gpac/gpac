@@ -1869,7 +1869,7 @@ const char *av1_get_obu_name(ObuType obu_type)
 	case OBU_REDUNDANT_FRAME_HEADER: return "redundant_frame_header";
 	case OBU_TILE_LIST: return "tile_list";
 	case OBU_PADDING: return "padding";
-	case 0: case 9: case 10: case 11: case 12: case 13: case 14: "reserved";
+	case 0: case 9: case 10: case 11: case 12: case 13: case 14: return "reserved";
 	default: return "unknown";
 	}
 }
