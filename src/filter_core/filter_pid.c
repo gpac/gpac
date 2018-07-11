@@ -3810,17 +3810,30 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 		u32 j;
 		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
 		for (j=0; j<pidi->filter->nb_forced_caps; j++) {
-			if (pidi->filter->forced_caps[i].code==prop_4cc)
-				return &pidi->filter->forced_caps[i].val;
+			if (pidi->filter->forced_caps[j].code==prop_4cc)
+				return &pidi->filter->forced_caps[j].val;
 		}
+		//walk up the chain
+		for (j=0; j<pidi->filter->num_output_pids; j++) {
+			GF_FilterPid *apid = gf_list_get(pidi->filter->output_pids, j);
+			if (apid) {
+				const GF_PropertyValue *p = gf_filter_pid_caps_query(apid, prop_4cc);
+				if (p) return p;
+			}
+		}
+
 	}
 
 	//trick here: we may not be connected yet (called during a configure_pid), use the target destination
 	//of the filter as caps source
 	if (pid->filter->dst_filter) {
-		for (i=0; i<pid->filter->dst_filter->nb_forced_caps; i++) {
-			if (pid->filter->dst_filter->forced_caps[i].code==prop_4cc)
-				return &pid->filter->dst_filter->forced_caps[i].val;
+		GF_Filter *a_filter = pid->filter->dst_filter;
+		while (a_filter) {
+			for (i=0; i<a_filter->nb_forced_caps; i++) {
+				if (a_filter->forced_caps[i].code==prop_4cc)
+					return &a_filter->forced_caps[i].val;
+			}
+			a_filter = a_filter->dst_filter;
 		}
 	}
 

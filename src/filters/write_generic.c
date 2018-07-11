@@ -60,6 +60,9 @@ typedef struct
 	u32 is_wav;
 	u32 w, h, stride;
 	u64 nb_bytes;
+
+	char av1_td_obu[2];
+	u32 av1_td_obu_size;
 } GF_GenDumpCtx;
 
 
@@ -67,9 +70,10 @@ typedef struct
 
 GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 cid, chan, sr, w, h, stype, pf, sfmt;
+	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode;
 	const char *name;
 	char szExt[10];
+	Bool unframed = GF_FALSE;
 	const GF_PropertyValue *p;
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 
@@ -121,6 +125,8 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->dcfg = p->value.data.ptr;
 		ctx->dcfg_size = p->value.data.size;
 	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+	if (p && p->value.boolean) unframed = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 	switch (cid) {
@@ -286,6 +292,21 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	case GF_CODECID_FLAC:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("flac") );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/flac") );
+		break;
+	case GF_CODECID_AV1:
+		av1mode = 0;
+		p = gf_filter_pid_get_property_str(ctx->ipid, "obu:mode");
+		if (p) av1mode = p->value.uint;
+		if (av1mode==1) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("av1b") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/x-av1b") );
+		} else if (av1mode==2) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ivf") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/x-ivf") );
+		} else {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("obu") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/x-av1") );
+		}
 		break;
 	case GF_CODECID_RAW:
 		ctx->dcfg = NULL;
@@ -742,6 +763,14 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "265|h265|hvc|hevc|shvc|lhvc"),
+	{0},
+
+	//we accept unframed OBU (without size field)
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AV1),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "obu|av1b|ivf"),
 	{0},
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),

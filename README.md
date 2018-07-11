@@ -49,7 +49,8 @@ For GPAC configuration instruction, check gpac/doc/configuration.html or gpac/do
 MP42TS is a TS multiplexer from MP4 and RTP sources.
 
 ## gpac 
-As of version 0.9.0, GPAC features a filter engine in charge of stream management and used by most applications in GPAC. For API backward compatibility, old apps (MP4Box, MP4Client, ...) have been kept but rewritten to match the new filter architecture, but do not expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details.
+As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC. For API backward compatibility, old apps (MP4Box, MP4Client, ...) have been kept but rewritten to match the new filter architecture.
+They do not however expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details.
 
 
 # Roadmap
@@ -65,7 +66,7 @@ Remaining before release
 - [ ] move DekTec output to filter
 - [ ] move SVC/SHVC splitters and aggregators to filter
 - [ ] move HEVC tiling splitter to filter
-- [ ] merge AV1 branch
+- [x] merge AV1 branch
 - [ ] move iOS client to filters
 - [ ] move Android client to filters
 - [ ] rewrite MP42TS to filters or drop it

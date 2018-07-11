@@ -1793,13 +1793,13 @@ GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 	u32 dw = 0;
 	
 	if (gf_bs_available(bs) < 32) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Not enough bytes available ("LLU").\n", gf_bs_available(bs)));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[IVF] Not enough bytes available ("LLU").\n", gf_bs_available(bs)));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	dw = gf_bs_read_u32(bs);
 	if (dw != GF_4CC('D', 'K', 'I', 'F')) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Invalid signature\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[IVF] Invalid signature\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -1842,7 +1842,7 @@ GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 	return GF_OK;
 }
 
-static GF_Err av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
+GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
 {
 	Bool forbidden = gf_bs_read_int(bs, 1);
 	if (forbidden) {
@@ -1903,7 +1903,7 @@ static Bool av1_is_obu_frame(ObuType obu_type) {
 	}
 }
 
-u64 read_leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
+u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	u64 value = 0;
 	u8 Leb128Bytes = 0, i = 0;
 	for (i = 0; i < 8; i++) {
@@ -1921,19 +1921,19 @@ u64 read_leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	return value;
 }
 
-static size_t leb128_size(u64 value)
+u32 gf_av1_leb128_size(u64 value)
 {
-	size_t leb128_size = 0;
+	size_t gf_av1_leb128_size = 0;
 	do {
-		++leb128_size;
+		++gf_av1_leb128_size;
 	} while ((value >>= 7) != 0);
 
-	return leb128_size;
+	return gf_av1_leb128_size;
 }
 
-static u64 write_leb128(GF_BitStream *bs, u64 value)
+u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value)
 {
-	size_t i, leb_size = leb128_size(value);
+	u32 i, leb_size = gf_av1_leb128_size(value);
 	for (i = 0; i < leb_size; ++i) {
 		u8 byte = value & 0x7f;
 		value >>= 7;
@@ -1944,23 +1944,24 @@ static u64 write_leb128(GF_BitStream *bs, u64 value)
 	return 0;
 }
 
-static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list) {
-	Bool isSection5, obu_extension_flag; 
+static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list)
+{
+	Bool has_size_field, obu_extension_flag;
 	u8 temporal_id, spatial_id;
 	GF_AV1_OBUArrayEntry *a;
 	GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 
 	gf_bs_seek(bs, pos);
-	av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &isSection5, &temporal_id, &spatial_id);
+	gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &has_size_field, &temporal_id, &spatial_id);
 	gf_bs_seek(bs, pos);
 
-	if (isSection5) {
+	if (has_size_field) {
 		a->obu = gf_malloc((size_t)obu_length);
 		gf_bs_read_data(bs, a->obu, (u32)obu_length);
 		a->obu_length = obu_length;
 	} else {
 		u8 i, hdr_size = obu_extension_flag ? 2 : 1;
-		const u32 leb_size = (u32)leb128_size(obu_length);
+		const u32 leb_size = (u32)gf_av1_leb128_size(obu_length);
 		const u64 obu_size = obu_length - hdr_size;
 		a->obu = gf_malloc((size_t)obu_length + leb_size);
 		a->obu_length = obu_length + leb_size;
@@ -1972,7 +1973,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 			u32 out_size = 0;
 			char *output = NULL;
 			GF_BitStream *bsLeb128 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			write_leb128(bsLeb128, obu_size);
+			gf_av1_leb128_write(bsLeb128, obu_size);
 			assert(gf_bs_get_position(bsLeb128) == leb_size);
 			gf_bs_get_content(bsLeb128, &output, &out_size);
 			gf_bs_del(bsLeb128);
@@ -2021,12 +2022,19 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e = GF_OK;
-	u64 sz = read_leb128(bs, NULL);
+	u64 tupos;
+	u64 tusize, sz;
+	tusize = sz = gf_av1_leb128_read(bs, NULL);
+	tupos = gf_bs_get_position(bs);
+	if (!sz) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] size 0 for annexN frame, likely not annex B\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	assert(bs && state);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
-		u64 frame_unit_size = read_leb128(bs, &Leb128Bytes);
+		u64 frame_unit_size = gf_av1_leb128_read(bs, &Leb128Bytes);
 		if (sz < Leb128Bytes + frame_unit_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B sz("LLU") < Leb128Bytes("LLU") + frame_unit_size("LLU")\n", sz, Leb128Bytes, frame_unit_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -2036,7 +2044,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 
 		while (frame_unit_size > 0) {
 			ObuType obu_type;
-			u64 pos, obu_length = read_leb128(bs, &Leb128Bytes);
+			u64 pos, obu_length = gf_av1_leb128_read(bs, &Leb128Bytes);
 			if (frame_unit_size < Leb128Bytes + obu_length) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < Leb128Bytes("LLU") + obu_length("LLU")\n", frame_unit_size, Leb128Bytes, obu_length));
 				return GF_NON_COMPLIANT_BITSTREAM;
@@ -2061,6 +2069,10 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	}
 
 	assert(sz == 0);
+	if (tusize !=  gf_bs_get_position(bs) - tupos) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] Annex B TU size "LLU" different from consumed bytes "LLU".\n", tusize, gf_bs_get_position(bs) - tupos));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	return GF_OK;
 }
@@ -2192,12 +2204,12 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 	if (!bs || !obu_type || !state)
 		return GF_BAD_PARAM;
 
-	e = av1_parse_obu_header(bs, obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
+	e = gf_av1_parse_obu_header(bs, obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
 	if (e)
 		return e;
 
 	if (obu_has_size_field) {
-		*obu_size = (u32)read_leb128(bs, NULL);
+		*obu_size = (u32)gf_av1_leb128_read(bs, NULL);
 	} else {
 		if (*obu_size >= 1 + obu_extension_flag)
 			*obu_size = *obu_size - 1 - obu_extension_flag;
