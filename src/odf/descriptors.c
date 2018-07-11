@@ -28,6 +28,10 @@
 
 #include <gpac/avparse.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+#include <gpac/internal/media_dev.h>
+#endif
+
 s32 gf_odf_size_field_size(u32 size_desc)
 {
 	if (size_desc < 0x00000080) {
@@ -1131,10 +1135,6 @@ GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize) {
 	return e;
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
-#include <gpac/internal/media_dev.h>
-#endif
-
 GF_EXPORT
 GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
 {
@@ -1184,7 +1184,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
 		a->obu_type = obu_type;
 		gf_list_add(cfg->obu_array, a);
 	}
-	av1_reset_frame_state(& state.frame_state);
+	av1_reset_frame_state(& state.frame_state, GF_TRUE);
 	return cfg;
 }
 

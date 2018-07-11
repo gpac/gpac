@@ -368,6 +368,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_avc = GF_FALSE;
 	Bool use_hevc = GF_FALSE;
 	Bool use_hvt1 = GF_FALSE;
+	Bool use_av1 = GF_FALSE;
 	Bool use_dref = GF_FALSE;
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
@@ -782,6 +783,14 @@ sample_entry_setup:
 		comp_name = "VobSub";
 		break;
 
+	case GF_CODECID_AV1:
+		use_gen_sample_entry = GF_FALSE;
+		m_subtype = GF_ISOM_SUBTYPE_AV01;
+		use_av1 = GF_TRUE;
+		comp_name = "AOM AV1 Video";
+		break;
+
+
 	default:
 		m_subtype = codec_id;
 		use_gen_sample_entry = GF_TRUE;
@@ -1028,6 +1037,31 @@ sample_entry_setup:
 		}
 
 		tkw->use_dref = GF_FALSE;
+
+	} else if (use_av1) {
+		GF_AV1Config *av1c;
+
+		if (!dsi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for AV1\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		av1c = gf_odf_av1_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!av1c) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to parser AV1 decoder specific info\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		e = gf_isom_av1_config_new(ctx->file, tkw->track_num, av1c, (char *) src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AV1 sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+
+		gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AV01, 1);
+
+		gf_odf_av1_cfg_del(av1c);
 	} else if (use_3gpp_config) {
 		GF_3GPConfig gpp_cfg;
 		memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
@@ -2540,7 +2574,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	}
 
 	if (count == nb_eos) {
-		mp4_mux_done(ctx);
+		if (ctx->file)
+			mp4_mux_done(ctx);
 		return GF_EOS;
 	}
 

@@ -2587,6 +2587,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size)
 	u32 nb_hevc=0;
 	u32 nb_avc=0;
 	u32 nb_nalus=0;
+	u32 nb_hevc_zero=0;
+	u32 nb_avc_zero=0;
 
 	while (size) {
 		u32 avc_type=0;
@@ -2603,6 +2605,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size)
 		hevc_type = (data[0] & 0x7E) >> 1;
 		if (hevc_type<=40) {
 			nb_hevc++;
+			if (!hevc_type) nb_hevc_zero++;
 		} else {
 			not_hevc++;
 		}
@@ -2610,12 +2613,15 @@ static const char *naludmx_probe_data(const u8 *data, u32 size)
 		avc_type = data[0] & 0x1F;
 		if (avc_type && avc_type<=23) {
 			nb_avc++;
+			if (!avc_type) nb_avc_zero++;
 		} else {
 			not_avc++;
 		}
 	}
 	if (not_avc && not_hevc) return NULL;
-	
+	if (nb_avc==nb_avc_zero) nb_avc=0;
+	if (nb_hevc==nb_hevc_zero) nb_hevc=0;
+
 	if (!nb_hevc && !nb_avc) return NULL;
 	if (!nb_hevc) return nb_avc ? "video/avc" : NULL;
 	if (!nb_avc) return "video/hevc";
@@ -2649,7 +2655,7 @@ static const GF_FilterCapability NALUDmxCaps[] =
 static const GF_FilterArgs NALUDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, GF_FALSE},
-	{ OFFS(autofps), "detect FPS from bitstream, fallback to fps option if not possible", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(autofps), "detect FPS from bitstream, fallback to fps option if not possible", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(strict_poc), "delay frame output to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FALSE},
