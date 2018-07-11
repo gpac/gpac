@@ -1136,12 +1136,16 @@ GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize) {
 }
 
 GF_EXPORT
-GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
+GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 {
 	AV1State state;
 	u8 reserved;
-	GF_AV1Config *cfg = gf_odf_av1_cfg_new();
+	GF_AV1Config *cfg;
 
+	if (!size) size = gf_bs_available(bs);
+	if (!size) return NULL;
+
+	cfg = gf_odf_av1_cfg_new();
 	memset(&state, 0, sizeof(AV1State));
 	state.config = cfg;
 
@@ -1151,6 +1155,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
 		return NULL;
 	}
 
+
 	cfg->initial_presentation_delay_present = gf_bs_read_int(bs, 1);
 	if (cfg->initial_presentation_delay_present) {
 		cfg->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
@@ -1158,8 +1163,10 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
 		reserved = gf_bs_read_int(bs, 4);
 		cfg->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
 	}
+	size -= 1;
 
-	while (gf_bs_available(bs)) {
+
+	while (size) {
 		u64 pos, obu_size;
 		ObuType obu_type;
 		GF_AV1_OBUArrayEntry *a;
@@ -1183,11 +1190,23 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
 		a->obu_length = obu_size;
 		a->obu_type = obu_type;
 		gf_list_add(cfg->obu_array, a);
+
+		if (size<obu_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] AV1 config misses %d bytes to fit the entire OBU\n", obu_size - size));
+			break;
+		}
+		size -= obu_size;
 	}
 	av1_reset_frame_state(& state.frame_state, GF_TRUE);
 	return cfg;
 }
 
+GF_EXPORT
+GF_AV1Config *gf_odf_av1_cfg_read_bs(GF_BitStream *bs)
+{
+	return gf_odf_av1_cfg_read_bs_size(bs, 0);
+
+}
 GF_EXPORT
 GF_AV1Config *gf_odf_av1_cfg_read(char *dsi, u32 dsi_size)
 {
