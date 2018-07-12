@@ -1474,7 +1474,7 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 \return the weight of the path found (number of caps matched at each level)
 */
 
-static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *filter_reg, u32 filter_reg_bundle_idx, GF_List *black_list, GF_List *original_filter_chain, GF_List *filter_stack, GF_List *tested_filters, GF_Filter *dst, u32 rlevel, u32 max_chain_len, GF_FilterPid *pid, GF_CapsBundleStore *capstore)
+static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *filter_reg, u32 filter_reg_bundle_idx, GF_List *black_list, GF_List *original_filter_chain, GF_List *filter_stack, GF_List *tested_filters, GF_Filter *dst, u32 rlevel, u32 max_chain_len, GF_FilterPid *pid, GF_CapsBundleStore *capstore, GF_List *list_res )
 {
 	u32 nb_matched = 0;
 	u32 bundle_idx;
@@ -1505,7 +1505,9 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 		return 0;
 
 	//create new temp chain, init with this filter as root
-	current_filter_chain = gf_list_new();
+	current_filter_chain = gf_list_pop_back(list_res);
+	if (!current_filter_chain) current_filter_chain = gf_list_new();
+
 	gf_list_add(current_filter_chain, (void *) filter_reg);
 	//and indicate its matching cap bundle
 	gf_list_add(current_filter_chain, (void *) &filter_reg->caps[filter_reg_bundle_idx]);
@@ -1564,7 +1566,7 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 			//we pass the original filter chain with the new root inserted to break loops
 			//note that of the max_chain_length is not supported and we have a local solution, don't allow
 			//longer chains than the local one
-			sub_weight = gf_filter_check_dst_caps(fsess, freg, bundle_idx, black_list, current_filter_chain, filter_stack, tested_filters, NULL, rlevel+1, max_chain_len ? max_chain_len : subchain_len, pid, capstore);
+			sub_weight = gf_filter_check_dst_caps(fsess, freg, bundle_idx, black_list, current_filter_chain, filter_stack, tested_filters, NULL, rlevel+1, max_chain_len ? max_chain_len : subchain_len, pid, capstore, list_res);
 
 			gf_list_rem_last(filter_stack);
 
@@ -1618,7 +1620,8 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 
 		}
 	}
-	gf_list_del(current_filter_chain);
+	gf_list_reset(current_filter_chain);
+	gf_list_add(list_res, current_filter_chain);
 	return nb_matched;
 }
 
@@ -1691,6 +1694,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	GF_List *filter_chain = gf_list_new();
 	GF_List *filter_stack = gf_list_new();
 	GF_List *tested_filters = gf_list_new();
+	GF_List *list_reservoir = gf_list_new();
 	u32 max_weight=0;
 	u32 min_length=GF_INT_MAX;
 	u32 i, count;
@@ -1775,7 +1779,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			path_len = gf_list_count(filter_chain);
 
 			//min_length/2 because the filter chain contain for each filter the registry and the cap
-			path_weight = gf_filter_check_dst_caps(fsess, freg, cap_bundle_idx, pid->filter->blacklisted, filter_chain, filter_stack, tested_filters, dst, 0, min_length/2, pid, &capstore);
+			path_weight = gf_filter_check_dst_caps(fsess, freg, cap_bundle_idx, pid->filter->blacklisted, filter_chain, filter_stack, tested_filters, dst, 0, min_length/2, pid, &capstore, list_reservoir);
 
 			tested = GF_TRUE;
 
@@ -1859,6 +1863,11 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
 	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
 	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+	while (gf_list_count(list_reservoir)) {
+		GF_List *al = gf_list_pop_back(list_reservoir);
+		gf_list_del(al);
+	}
+	gf_list_del(list_reservoir);
 
 	count = gf_list_count(filter_chain);
 	if (min_chain_len) {
