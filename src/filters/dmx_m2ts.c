@@ -933,9 +933,10 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static const char *m2tsdmx_probe_data(const u8 *data, u32 size)
+static const char *m2tsdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	if (gf_m2ts_probe_data(data, size)) {
+		*score = GF_FPROBE_SUPPORTED;
 		return "video/mp2t";
 	}
 	return NULL;

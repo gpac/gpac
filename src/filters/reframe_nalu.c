@@ -2579,7 +2579,7 @@ static void naludmx_finalize(GF_Filter *filter)
 	if (ctx->hevc_state) gf_free(ctx->hevc_state);
 }
 
-static const char *naludmx_probe_data(const u8 *data, u32 size)
+static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	u32 sc, sc_size;
 	u32 not_hevc=0;
@@ -2618,11 +2618,13 @@ static const char *naludmx_probe_data(const u8 *data, u32 size)
 			not_avc++;
 		}
 	}
+
 	if (not_avc && not_hevc) return NULL;
 	if (nb_avc==nb_avc_zero) nb_avc=0;
 	if (nb_hevc==nb_hevc_zero) nb_hevc=0;
 
 	if (!nb_hevc && !nb_avc) return NULL;
+	*score = GF_FPROBE_MAYBE_SUPPORTED;
 	if (!nb_hevc) return nb_avc ? "video/avc" : NULL;
 	if (!nb_avc) return "video/hevc";
 	if (nb_hevc>nb_avc) return "video/hevc";

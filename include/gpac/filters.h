@@ -425,7 +425,7 @@ typedef struct __gf_filter_register
 
 	//optional, usually set by demuxers
 	//probes the mime type of a data chunk
-	const char * (*probe_data)(const u8 *data, u32 size);
+	const char * (*probe_data)(const u8 *data, u32 size, GF_FilterProbeScore *score);
 
 	//for filters having the same match of input caps for a PID, the filter with priority at the lowest value will be used
 	//scalable decoders should use high values, so that they are only selected when enhancement layers are present

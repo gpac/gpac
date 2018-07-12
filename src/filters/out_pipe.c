@@ -29,6 +29,8 @@
 
 #ifdef WIN32
 
+#include <windows.h>
+
 #else
 
 #include <fcntl.h>
@@ -54,6 +56,7 @@ typedef struct
 	GF_FilterPid *pid;
 
 #ifdef WIN32
+	HANDLE pipe;
 #else
 	int fd;
 #endif
@@ -70,10 +73,13 @@ const char *gf_errno_str(int errnoval);
 
 static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
 {
+	GF_Err e = GF_OK;
 	char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 
 	if (!filename) {
 #ifdef WIN32
+		if (ctx->pipe != INVALID_HANDLE_VALUE) CloseHandle(ctx->pipe);
+		ctx->pipe = INVALID_HANDLE_VALUE;
 #else
 		if (ctx->fd>=0) close(ctx->fd);
 		ctx->fd = -1;
@@ -98,20 +104,77 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 
 	if (!strcmp(szFinalName, ctx->szFileName) 
 #ifdef WIN32
+		&& (ctx->pipe != INVALID_HANDLE_VALUE)
 #else
 		&& ctx->fd>=0
 #endif
 		) return GF_OK;
 
 #ifdef WIN32
+	if (ctx->pipe != INVALID_HANDLE_VALUE) CloseHandle(ctx->pipe);
+	ctx->pipe = INVALID_HANDLE_VALUE;
+	char szNamedPipe[GF_MAX_PATH];
+	if (!strncmp(szFinalName, "\\\\", 2)) {
+		strcpy(szNamedPipe, szFinalName);
+	}
+	else {
+		strcpy(szNamedPipe, "\\\\.\\pipe\\gpac\\");
+		strcat(szNamedPipe, szFinalName);
+	}
+	if (strchr(szFinalName, '/')) {
+		u32 i, len = (u32)strlen(szNamedPipe);
+		for (i = 0; i < len; i++) {
+			if (szNamedPipe[i] == '/')
+				szNamedPipe[i] = '\\';
+		}
+	}
+
+	if (WaitNamedPipeA(szNamedPipe, 1) == FALSE) {
+		if (!ctx->mkp) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to open %s: %d\n", szNamedPipe, GetLastError()));
+			e = GF_URL_ERROR;
+		}
+		else {
+			ctx->pipe = CreateNamedPipe(szNamedPipe, PIPE_ACCESS_OUTBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE,
+				PIPE_TYPE_BYTE | PIPE_WAIT,
+				10,
+				1024,
+				1024,
+				0,
+				NULL);
+
+			if (ctx->pipe == INVALID_HANDLE_VALUE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to create named pipe %s: %d\n", szNamedPipe, GetLastError()));
+				e = GF_IO_ERR;
+			}
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeOut] Waiting for client connection for %s, blocking\n", szNamedPipe));
+				if (!ConnectNamedPipe(ctx->pipe, NULL) && (GetLastError() != ERROR_PIPE_CONNECTED)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to connect named pipe %s: %d\n", szNamedPipe, GetLastError()));
+					e = GF_IO_ERR;
+					CloseHandle(ctx->pipe);
+					ctx->pipe = INVALID_HANDLE_VALUE;
+				}
+				else {
+					ctx->owns_pipe = GF_TRUE;
+				}
+			}
+		}
+	}
+	else {
+		ctx->pipe = CreateFile(szNamedPipe, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+		if (ctx->pipe == INVALID_HANDLE_VALUE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to open %s: %d\n", szNamedPipe, GetLastError()));
+			e = GF_URL_ERROR;
+		}
+	}
+
 #else
 	if (ctx->fd>=0) close(ctx->fd);
 	ctx->fd = -1;
-#endif
 
 	if (!gf_file_exists(szFinalName) && ctx->mkp) {
-#ifdef WIN32
-#elif defined(GPAC_CONFIG_DARWIN)
+#ifdef GPAC_CONFIG_DARWIN
 		mknod(szFinalName, S_IFIFO | 0666, 0);
 #else
 		mkfifo(szFinalName, 0666);
@@ -119,15 +182,14 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 		ctx->owns_pipe = GF_TRUE;
 	}
 
-#ifdef WIN32
-#else
 	ctx->fd = open(szFinalName, O_WRONLY );
 
 	if (ctx->fd<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_str(errno)));
-		return GF_IO_ERR;
+		e = ctx->owns_pipe ? GF_IO_ERR = GF_URL_ERROR;
 	}
 #endif
+	if (e) return e;
 
 	strcpy(ctx->szFileName, szFinalName);
 	return GF_OK;
@@ -171,7 +233,7 @@ static GF_Err pipeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
 	if (p && p->value.boolean) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Block patching is currently not supported by pipe output\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Block patching is not supported by pipe output, use another mux format\n"));
 		return GF_NOT_SUPPORTED;
 	}
 	return GF_OK;
@@ -197,6 +259,7 @@ static GF_Err pipeout_initialize(GF_Filter *filter)
 	}
 
 #ifdef WIN32
+	ctx->pipe = INVALID_HANDLE_VALUE;
 #else
 	ctx->fd = -1;
 #endif
@@ -278,7 +341,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 			pipeout_open_close(ctx, name, fext ? fext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite);
 		} else if (
 #ifdef WIN32
-			1
+			ctx->pipe==INVALID_HANDLE_VALUE
 #else
 			ctx->fd<0
 #endif
@@ -290,7 +353,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (
 #ifdef WIN32
-		0
+		ctx->pipe != INVALID_HANDLE_VALUE
 #else
 		ctx->fd>=0
 #endif
@@ -298,12 +361,16 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		GF_FilterHWFrame *hwf = gf_filter_pck_get_hw_frame(pck);
 		if (pck_data) {
 #ifdef WIN32
+			if (! WriteFile(ctx->pipe, pck_data, pck_size, &nb_write, NULL)) {
+				nb_write = 0;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %d\n", nb_write, pck_size, GetLastError() ));
+			}
 #else
 			nb_write = (s32) write(ctx->fd, pck_data, pck_size);
-#endif
 			if (nb_write != pck_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, pck_size, gf_errno_str(errno) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, pck_size, gf_errno_str(errno)));
 			}
+#endif
 		} else if (hwf) {
 			u32 w, h, stride, stride_uv, pf;
 			u32 nb_planes, uv_height;
@@ -334,12 +401,16 @@ static GF_Err pipeout_process(GF_Filter *filter)
 					lsize = bpp * (i ? stride : stride_uv);
 					for (j=0; j<write_h; j++) {
 #ifdef WIN32
+						if (!WriteFile(ctx->pipe, out_ptr, lsize, &nb_write, NULL)) {
+							nb_write = 0;
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %d\n", nb_write, pck_size, GetLastError()));
+						}
 #else
 						nb_write = (s32) write(ctx->fd, out_ptr, lsize);
-#endif
 						if (nb_write != lsize) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, lsize, gf_errno_str(errno) ));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, lsize, gf_errno_str(errno)));
 						}
+#endif
 						out_ptr += out_stride;
 					}
 				}
@@ -375,6 +446,7 @@ static const GF_FilterArgs PipeOutArgs[] =
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(mkp), "create pipe if not found - this will delete the pipe file upon destruction", GF_PROP_BOOL, "false", NULL, GF_FALSE },
 	{0}
 };
 
@@ -395,7 +467,13 @@ GF_FilterRegister PipeOutRegister = {
 		"Output pipes don't currently support non blocking mode\n"\
 		"The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -o pipe://URL where URL is a relative or absolute pipe name)\n"\
 		"Data format of the pipe must currently be specified using extension (either in filename or through ext option) or mime type\n"\
-		"The pipe name indicated in dst can use template mechanisms from gpac, e.g. dst=pipe_$ServiceID$\n",
+		"The pipe name indicated in dst can use template mechanisms from gpac, e.g. dst=pipe_$ServiceID$\n"\
+		"\n"\
+		"On Windows hosts, the default pipe prefix is \"\\\\.\\pipe\\gpac\\\" if no prefix is set \n"\
+		"\tEX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
+		"\tEX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
+		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
+	"",
 	.private_size = sizeof(GF_PipeOutCtx),
 	.args = PipeOutArgs,
 	SETCAPS(PipeOutCaps),

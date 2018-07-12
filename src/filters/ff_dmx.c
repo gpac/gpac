@@ -538,9 +538,9 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 }
 
 
-static const char *ffdmx_probe_data(const u8 *data, u32 size)
+static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	int score;
+	int ffscore;
 	AVInputFormat *probe_fmt;
 	AVProbeData pb;
 
@@ -551,11 +551,15 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size)
 	pb.buf = gf_malloc(sizeof(char)*(size+AVPROBE_PADDING_SIZE) );
 	memcpy(pb.buf, data, sizeof(char)*size);
 	pb.buf_size = size;
-	probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &score);
+	probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
 	gf_free(pb.buf);
 
 	if (!probe_fmt) return NULL;
-	if (probe_fmt->mime_type) return probe_fmt->mime_type;
+	if (probe_fmt->mime_type) {
+		//TODO try to refine based on ffprobe score
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return probe_fmt->mime_type;
+	}
 	return NULL;
 }
 

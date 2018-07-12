@@ -775,8 +775,9 @@ static void ctxload_finalize(GF_Filter *filter)
 	if (priv->load.localPath) gf_free((char *)priv->load.localPath);
 }
 
-static const char *ctxload_probe_data(const u8 *probe_data, u32 size)
+static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterProbeScore *score)
 {
+	*score = GF_FPROBE_SUPPORTED;
 	if (strstr(probe_data, "<XMT-A") || strstr(probe_data, ":mpeg4:xmta:")) {
 		return "application/x-xmt";
 	} else if (strstr(probe_data, "InitialObjectDescriptor")
@@ -806,6 +807,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size)
 	} else if (strstr(probe_data, "text3GTrack") ) {
 		return "quicktime/text";
 	}
+	*score = GF_FPROBE_NOT_SUPPORTED;
 	return NULL;
 }
 

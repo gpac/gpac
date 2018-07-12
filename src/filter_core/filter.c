@@ -2023,13 +2023,19 @@ GF_FilterPid *gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const ch
 	//probe data
 	if (!mime_type && probe_data) {
 		u32 i, count;
+		GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
 		gf_mx_p(filter->session->filters_mx);
 		count = gf_list_count(filter->session->registry);
 		for (i=0; i<count; i++) {
+			const char *a_mime;
 			const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
 			if (!freg || !freg->probe_data) continue;
-			mime_type = freg->probe_data(probe_data, probe_size);
-			if (mime_type) break;
+			score = GF_FPROBE_NOT_SUPPORTED;
+			a_mime = freg->probe_data(probe_data, probe_size, &score);
+			if (a_mime && (score > max_score)) {
+				mime_type = a_mime;
+				max_score = score;
+			}
 		}
 		gf_mx_v(filter->session->filters_mx);
 
