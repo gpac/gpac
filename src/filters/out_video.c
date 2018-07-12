@@ -133,6 +133,13 @@ GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
 GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
 GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
 GLDECL(void *, glUnmapBuffer, (GLenum) )
+GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name))
+#ifndef GPAC_ANDROID
+GLDECL(void, glEnableVertexAttribArray, (GLuint index))
+GLDECL(void, glDisableVertexAttribArray, (GLuint index))
+GLDECL(void, glVertexAttribPointer, (GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const GLvoid *  pointer))
+GLDECL(void, glVertexAttribIPointer, (GLuint  index, GLint  size, GLenum  type, GLsizei  stride, const GLvoid *  pointer))
+#endif
 #endif
 
 
@@ -177,6 +184,15 @@ GLDECL_STATIC(glBufferData);
 GLDECL_STATIC(glBufferSubData);
 GLDECL_STATIC(glMapBuffer);
 GLDECL_STATIC(glUnmapBuffer);
+GLDECL_STATIC(glGetAttribLocation);
+
+#ifndef GPAC_ANDROID
+GLDECL_STATIC(glEnableVertexAttribArray);
+GLDECL_STATIC(glDisableVertexAttribArray);
+GLDECL_STATIC(glVertexAttribPointer);
+GLDECL_STATIC(glVertexAttribIPointer);
+#endif
+
 #endif
 
 #if !defined(GPAC_DISABLE_3D) && defined(WIN32)
@@ -208,6 +224,13 @@ static void vout_load_gl()
 	GET_GLFUN(glBufferSubData);
 	GET_GLFUN(glMapBuffer);
 	GET_GLFUN(glUnmapBuffer);
+#ifndef GPAC_ANDROID
+	GET_GLFUN(glEnableVertexAttribArray);
+	GET_GLFUN(glDisableVertexAttribArray);
+	GET_GLFUN(glVertexAttribPointer);
+	GET_GLFUN(glVertexAttribIPointer);
+	GET_GLFUN(glGetAttribLocation);
+#endif
 }
 #endif
 
