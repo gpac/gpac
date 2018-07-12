@@ -82,6 +82,7 @@ GF_Err gf_fs_run(GF_FilterSession *ms);
 void gf_fs_print_stats(GF_FilterSession *ms);
 void gf_fs_print_connections(GF_FilterSession *fsess);
 GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set);
+GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_chain_length);
 
 u32 gf_fs_run_step(GF_FilterSession *fsess);
 
@@ -735,13 +736,17 @@ therefore not decodable);
 is therefore decodable);
 sample_depends_on takes one of the following four values:
 0: the dependency of this sample is unknown;
-1: this sample does depend on others (not an I picture); 2: this sample does not depend on others (I picture);
+1: this sample does depend on others (not an I picture);
+2: this sample does not depend on others (I picture);
 3: reserved
-sample_is_depended_on takes one of the following four values: 0: the dependency of other samples on this sample is unknown; 1: other samples may depend on this one (not disposable);
+sample_is_depended_on takes one of the following four values:
+0: the dependency of other samples on this sample is unknown;
+1: other samples may depend on this one (not disposable);
 2: no other sample depends on this one (disposable);
 3: reserved
 sample_has_redundancy takes one of the following four values:
-0: it is unknown whether there is redundant coding in this sample; 1: there is redundant coding in this sample;
+0: it is unknown whether there is redundant coding in this sample;
+1: there is redundant coding in this sample;
 2: there is no redundant coding in this sample;
 3: reserved
 */
@@ -1291,8 +1296,6 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 
 GF_Err gf_fs_abort(GF_FilterSession *fsess);
 Bool gf_fs_is_last_task(GF_FilterSession *fsess);
-
-void gf_fs_disable_link_resolution(GF_FilterSession *fsess, Bool disable_link_resolution);
 
 void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp);
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);

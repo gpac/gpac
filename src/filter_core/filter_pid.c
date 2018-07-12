@@ -1500,6 +1500,9 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 	if (max_chain_len && (rlevel+1>=max_chain_len) )
 		return 0;
 
+	if ((rlevel+1>= fsess->max_resolve_chain_len) )
+		return 0;
+
 	//already being tested for this chain
 	if (gf_list_find(tested_filters, (void *) filter_reg)>=0)
 		return 0;
@@ -1509,6 +1512,9 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 	if (!current_filter_chain) current_filter_chain = gf_list_new();
 
 	gf_list_add(current_filter_chain, (void *) filter_reg);
+	//add ourselves to the filter stack to break loops
+	gf_list_add(filter_stack, (void *) filter_reg);
+
 	//and indicate its matching cap bundle
 	gf_list_add(current_filter_chain, (void *) &filter_reg->caps[filter_reg_bundle_idx]);
 
@@ -1543,9 +1549,6 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 		if (max_chain_len && (rlevel+2>=max_chain_len) )
 			continue;
 
-		if (!strcmp(freg->name, "gsfm") && !strcmp(filter_reg->name, "mp4dmx") )
-			k=0;
-			
 		//for each cap bundle check if we have a valid path
 		nb_in_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
 		for (k=0; k<nb_in_caps; k++) {
@@ -1620,6 +1623,7 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 
 		}
 	}
+	gf_list_pop_back(filter_stack);
 	gf_list_reset(current_filter_chain);
 	gf_list_add(list_res, current_filter_chain);
 	return nb_matched;
@@ -1691,10 +1695,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 {
 	GF_Filter *chain_input = NULL;
 	GF_FilterSession *fsess = pid->filter->session;
-	GF_List *filter_chain = gf_list_new();
-	GF_List *filter_stack = gf_list_new();
-	GF_List *tested_filters = gf_list_new();
-	GF_List *list_reservoir = gf_list_new();
+	GF_List *filter_chain, *filter_stack, *tested_filters, *list_reservoir;
 	u32 max_weight=0;
 	u32 min_length=GF_INT_MAX;
 	u32 i, count;
@@ -1702,6 +1703,14 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	char prefRegistry[1001];
 	char szForceReg[20];
 	GF_CapsBundleStore capstore;
+
+	if (!fsess->max_resolve_chain_len) return NULL;
+
+	filter_chain = gf_list_new();
+	filter_stack = gf_list_new();
+	tested_filters = gf_list_new();
+	list_reservoir = gf_list_new();
+
 
 	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
 
@@ -2384,7 +2393,7 @@ restart:
 
 	//nothing found, redo a pass, this time allowing for link resolve
 	if (first_pass) {
-		if (!filter->session->no_link_resolution) {
+		if (filter->session->max_resolve_chain_len) {
 			first_pass = GF_FALSE;
 			goto restart;
 		}
@@ -2396,7 +2405,7 @@ restart:
 		//no filter found for this pid !
 		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
 
-		if (!pid->not_connected_ok && filter->session->no_link_resolution) {
+		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 		}
 	}
