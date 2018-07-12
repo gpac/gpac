@@ -1585,8 +1585,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 
 					if (nsep && !strncmp(nsep, "://", 3)) nsep = strchr(nsep+3, ':');
 					if (nsep) nsep[0] = 0;
-					l1 = other_opts ? strlen(other_opts) : 0;
-					l2 = strlen(sep);
+					l1 = other_opts ? (u32) strlen(other_opts) : 0;
+					l2 = (u32) strlen(sep);
 					if (other_opts) {
 						other_opts = gf_realloc(other_opts, sizeof(char) * (l1+l2+2));
 						strcat(other_opts, ":");

@@ -236,7 +236,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		if (!first_frag) gsfmx_write_vlen(ctx, block_offset);
 		gsfmx_write_vlen(ctx, to_write);
 
-		hdr_size = gf_bs_get_position(ctx->bs_w);
+		hdr_size = (u32) gf_bs_get_position(ctx->bs_w);
 		assert(hdr_size + to_write == osize);
 		memcpy(output+hdr_size, ctx->buffer + pck_offset, to_write);
 		bytes_remain -= to_write;
@@ -363,7 +363,7 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
 	case GF_PROP_NAME:
-		len = strlen(p->value.string);
+		len = (u32) strlen(p->value.string);
 		gsfmx_write_vlen(ctx, len);
 		gf_bs_write_data(ctx->bs_w, p->value.string, len);
 		break;
@@ -382,7 +382,7 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 		gsfmx_write_vlen(ctx, len2);
 		for (i=0; i<len2; i++) {
 			const char *str = gf_list_get(p->value.string_list, i);
-			len = strlen(str);
+			len = (u32) strlen(str);
 			gsfmx_write_vlen(ctx, len);
 			gf_bs_write_data(ctx->bs_w, str, len);
 		}
@@ -416,13 +416,13 @@ static GFINLINE Bool gsfmx_is_prop_skip(GSFMxCtx *ctx, u32 prop_4cc, const char 
 	}
 	if (ctx->skp) {
 		const char *pname = prop_name ? prop_name : gf_4cc_to_str(prop_4cc);
-		u32 plen = strlen(pname);
+		u32 plen = (u32) strlen(pname);
 		const char *sep = strstr(ctx->skp, pname);
 		if (sep && ((sep[plen]==sep_l) || !sep[plen]))
 			return GF_TRUE;
 		if (prop_4cc) {
 			pname = gf_props_4cc_get_name(prop_4cc);
-			plen = strlen(pname);
+			plen = (u32) strlen(pname);
 			sep = strstr(ctx->skp, pname);
 			if (sep && ((sep[plen]==sep_l) || !sep[plen]))
 				return GF_TRUE;
@@ -478,7 +478,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
 
-		len = strlen(prop_name);
+		len = (u32) strlen(prop_name);
 		gsfmx_write_vlen(ctx, len);
 		gf_bs_write_data(ctx->bs_w, prop_name, len);
 
@@ -502,7 +502,7 @@ static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx)
 
 	ctx->nb_frames++;
 	if (ctx->magic) {
-		mlen = strlen(ctx->magic);
+		mlen = (u32) strlen(ctx->magic);
 	}
 
 	//header:signature
@@ -689,11 +689,11 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 
 	if (has_dts) {
 		if (tsmode==3) gf_bs_write_long_int(ctx->bs_w, dts, tsmodebits);
-		else gf_bs_write_int(ctx->bs_w, dts, tsmodebits);
+		else gf_bs_write_int(ctx->bs_w, (u32) dts, tsmodebits);
 	}
 	if (has_cts) {
 		if (tsmode==3) gf_bs_write_long_int(ctx->bs_w, cts, tsmodebits);
-		else gf_bs_write_int(ctx->bs_w, cts, tsmodebits);
+		else gf_bs_write_int(ctx->bs_w, (u32) cts, tsmodebits);
 	}
 	if (durmode) {
 		gf_bs_write_int(ctx->bs_w, duration, durmodebits);
@@ -738,7 +738,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			if (!p) break;
 			if (prop_4cc) continue;
 
-			len = strlen(prop_name);
+			len = (u32) strlen(prop_name);
 			gsfmx_write_vlen(ctx, len);
 			gf_bs_write_data(ctx->bs_w, prop_name, len);
 
@@ -748,7 +748,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 		gsfmx_write_vlen(ctx, nb_str_props);
 	}
 
-	frame_hdr_size = gf_bs_get_position(ctx->bs_w);
+	frame_hdr_size = (u32) gf_bs_get_position(ctx->bs_w);
 
 	if (has_cts && ctx->crate>0) {
 		if (!gst->last_cts_config) {

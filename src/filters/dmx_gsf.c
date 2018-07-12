@@ -252,7 +252,7 @@ static GFINLINE u32 gsfdmx_read_vlen(GF_BitStream *bs)
 	if (!gf_bs_read_int(bs, 1))
 		return gf_bs_read_int(bs, 28);
 
-	return gf_bs_read_long_int(bs, 36);
+	return (u32) gf_bs_read_long_int(bs, 36);
 }
 
 static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
@@ -638,7 +638,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 
 //	gsfdmx_flush_dst_pck(gst, GF_TRUE);
 
-	spos = gf_bs_get_position(bs);
+	spos = (u32) gf_bs_get_position(bs);
 
 	//first flags byte
 	u8 has_dts = gf_bs_read_int(bs, 1);
@@ -757,7 +757,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 		}
 	}
 
-	consummed = gf_bs_get_position(bs) - spos;
+	consummed = (u32) gf_bs_get_position(bs) - spos;
 	pck_len -= consummed;
 	copy_size = gpck->full_block_size;
 	if (copy_size > pck_len)
@@ -918,7 +918,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 	while (gf_bs_available(ctx->bs_r) > 4) { //1 byte header + 3 vlen field at least 1 bytes
 		GF_Err e = GF_OK;
 		u32 payload_start, pck_len, block_size, block_offset;
-		u32 hdr_pos = gf_bs_get_position(ctx->bs_r);
+		u32 hdr_pos = (u32) gf_bs_get_position(ctx->bs_r);
 		/*Bool reserved =*/ gf_bs_read_int(ctx->bs_r, 2);
 		Bool pck_frag = gf_bs_read_int(ctx->bs_r, 1);
 		Bool is_crypted = gf_bs_read_int(ctx->bs_r, 1);
@@ -954,7 +954,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 					gsfdmx_pck_name(pck_type),
 					is_crypted, sn, pck_len, block_offset, gf_bs_get_position(ctx->bs_r)-hdr_pos, hdr_pos));
 
-		payload_start = gf_bs_get_position(ctx->bs_r);
+		payload_start = (u32) gf_bs_get_position(ctx->bs_r);
 
 
 		e = GF_OK;
@@ -969,13 +969,13 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] tune-in packet shall not be fragmented\n"));
 				e = GF_NON_COMPLIANT_BITSTREAM;
 			} else {
-				u32 pos = gf_bs_get_position(ctx->bs_r);
+				u32 pos = (u32) gf_bs_get_position(ctx->bs_r);
 				e = gsfdmx_tune(filter, ctx, ctx->buffer + pos, pck_len, is_crypted);
 			}
 		}
 		//stream signaling or packet
 		else {
-			u32 cur_pos = gf_bs_get_position(ctx->bs_r);
+			u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 			GSF_Stream *gst = gsfdmx_get_stream(filter, ctx, st_idx, pck_type);
 			if (!gst) {
@@ -1030,7 +1030,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 
 		}
 		gf_bs_skip_bytes(ctx->bs_r, pck_len);
-		last_pck_end = gf_bs_get_position(ctx->bs_r);
+		last_pck_end = (u32) gf_bs_get_position(ctx->bs_r);
 	}
 
 	if (last_pck_end) {
@@ -1078,13 +1078,15 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 
 static const char *gsfdmx_probe_data(const u8 *data, u32 data_size)
 {
-	char szSig[5];
-	strcpy(szSig, "GSSF");
-	char *found_sig = memmem(data, data_size, szSig, 4);
-	if (!found_sig) return NULL;
-
-	if (found_sig[4]!=1)return NULL;
-	return "application/x-gpac-sf";
+	u32 i;
+	if (data_size < 10) return NULL;
+	for (i = 1; i < data_size - 4; i++) {
+		if (strncmp(data + i, "GSSF", 4)) continue;
+		//signature found, check bersion is 1
+		if (data[4] == 1)
+			return "application/x-gpac-sf";
+	}
+	return NULL;
 }
 
 static GF_Err gsfdmx_initialize(GF_Filter *filter)

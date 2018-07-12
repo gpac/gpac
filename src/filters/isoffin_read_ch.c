@@ -451,7 +451,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			ch->isma_encrypted = 0;
 			/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
 			if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
-				u32 Is_Encrypted, out_size;
+				Bool Is_Encrypted;
+				u32 out_size;
 				u8 IV_size;
 				bin128 KID;
 				u8 crypt_bytr_block, skip_byte_block;

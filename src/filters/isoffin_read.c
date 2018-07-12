@@ -548,7 +548,7 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 
 	ts_shift = gf_isom_get_cts_to_dts_shift(ch->owner->mov, ch->track);
 	if (ts_shift) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CTS_SHIFT, &PROP_UINT(ts_shift) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CTS_SHIFT, &PROP_UINT((u32) ts_shift) );
 	}
 
 	if (!track || !gf_isom_is_track_encrypted(read->mov, track)) {

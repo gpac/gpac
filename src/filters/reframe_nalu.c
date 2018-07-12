@@ -1939,7 +1939,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 				if (!ctx->next_nal_end_skip) {
 					e = naludmx_realloc_last_pck(ctx, (u32) size, &pck_data);
 					if (e==GF_OK)
-						memcpy(pck_data, start, size);
+						memcpy(pck_data, start, (size_t) size);
 				}
 
 				if (copy_last_bytes) {
@@ -2432,10 +2432,10 @@ GF_Err naludmx_process(GF_Filter *filter)
 			memcpy(pck_data, ctx->hdr_store + current + sc_size, nal_bytes_from_store);
 			assert(size >= nal_bytes_from_store);
 			size -= nal_bytes_from_store;
-			memcpy(pck_data + nal_bytes_from_store, pck_start, size);
+			memcpy(pck_data + nal_bytes_from_store, pck_start, (size_t) size);
 		} else {
 			//bytes only come from the data packet
-			memcpy(pck_data, pck_start, size);
+			memcpy(pck_data, pck_start, (size_t) size);
 		}
 
 		if (ctx->subsamples) {

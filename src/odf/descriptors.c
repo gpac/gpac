@@ -1142,7 +1142,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	u8 reserved;
 	GF_AV1Config *cfg;
 
-	if (!size) size = gf_bs_available(bs);
+	if (!size) size = (u32) gf_bs_available(bs);
 	if (!size) return NULL;
 
 	cfg = gf_odf_av1_cfg_new();
@@ -1195,7 +1195,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] AV1 config misses %d bytes to fit the entire OBU\n", obu_size - size));
 			break;
 		}
-		size -= obu_size;
+		size -= (u32) obu_size;
 	}
 	av1_reset_frame_state(& state.frame_state, GF_TRUE);
 	return cfg;

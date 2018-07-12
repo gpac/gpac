@@ -833,7 +833,7 @@ enum
 	GF_PROP_PID_AUDIO_SPEED = GF_4CC('A','S','P','D'),
 	//(sint) media delay
 	GF_PROP_PID_DELAY = GF_4CC('M','D','L','Y'),
-	//(sint) CTS shift to apply when negative ctts are used
+	//(uint) CTS shift to apply when negative ctts are used
 	GF_PROP_PID_CTS_SHIFT = GF_4CC('M','D','T','S'),
 	//(uint) frame width
 	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),

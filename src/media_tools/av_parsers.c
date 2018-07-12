@@ -1923,7 +1923,7 @@ u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 
 u32 gf_av1_leb128_size(u64 value)
 {
-	size_t gf_av1_leb128_size = 0;
+	u32 gf_av1_leb128_size = 0;
 	do {
 		++gf_av1_leb128_size;
 	} while ((value >>= 7) != 0);
@@ -1973,7 +1973,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 			gf_bs_read_data(bs, a->obu, (u32)obu_length);
 			a->obu_length = obu_length;
 		} else {
-			u32 remain = obu_length;
+			u32 remain = (u32) obu_length;
 			while (remain) {
 				u32 block_size = OBU_BLOCK_SIZE;
 				if (block_size>remain) block_size = remain;
@@ -2018,7 +2018,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 			}
 			 /*add size field */
 			gf_av1_leb128_write(state->bs, obu_size);
-			u32 remain = obu_length;
+			u32 remain = (u32) obu_length;
 			while (remain) {
 				u32 block_size = OBU_BLOCK_SIZE;
 				if (block_size>remain) block_size = remain;

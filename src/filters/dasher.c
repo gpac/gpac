@@ -1169,7 +1169,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				for (j=0; j<k_count; j++) {
 					gf_bs_write_u8(bs_w, gf_bs_read_u8(bs_r) );
 				}
-				pssh_len = gf_bs_get_position(bs_w);
+				pssh_len = (u32) gf_bs_get_position(bs_w);
 				gf_bs_seek(bs_w, 0);
 				gf_bs_write_u32(bs_w, pssh_len);
 				gf_bs_seek(bs_w, pssh_len);
@@ -4036,7 +4036,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						}
 					}
 					else if (cue->dts) {
-						s64 ts = cue->dts * ds->timescale;
+						u64 ts = cue->dts * ds->timescale;
 						u64 ts2 = (dts + ds->first_cts) * ds->cues_timescale;
 						if (ts == ts2) {
 							is_split = GF_TRUE;

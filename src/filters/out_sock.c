@@ -193,7 +193,11 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	if (gf_sk_is_multicast_address(url)) {
 		e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->mcast_ifce);
 		ctx->listen = GF_FALSE;
-	} else if ((sock_type==GF_SOCK_TYPE_UDP) || (sock_type==GF_SOCK_TYPE_UDP_UN)) {
+	} else if ((sock_type == GF_SOCK_TYPE_UDP)
+#ifdef GPAC_HAS_SOCK_UN 
+		|| (sock_type == GF_SOCK_TYPE_UDP_UN)
+#endif
+	) {
 		e = gf_sk_bind(ctx->socket, ctx->mcast_ifce, port, url, port, GF_SOCK_REUSE_PORT);
 		ctx->listen = GF_FALSE;
 	} else if (ctx->listen) {
@@ -317,7 +321,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 			u64 now = gf_sys_clock_high_res() - ctx->start_time;
 			if (ctx->nb_bytes_sent*8*1000000 > ctx->rate * now) {
 				u64 diff = ctx->nb_bytes_sent*8*1000000 / ctx->rate - now;
-				gf_filter_ask_rt_reschedule(filter, MAX(diff, 1000) );
+				gf_filter_ask_rt_reschedule(filter, (u32) MAX(diff, 1000) );
 				return GF_OK;
 			} else {
 				fprintf(stderr, "[SockOut] Sending at "LLU" kbps                       \r", ctx->nb_bytes_sent*8*1000/now);

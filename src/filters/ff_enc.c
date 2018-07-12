@@ -168,7 +168,7 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 	if (nb_errors) {
 		fprintf(stderr, "PSNR");
 		for (i=0; i<nb_errors; i++) {
-			Double psnr = errors[i];
+			Double psnr = (Double) errors[i];
 			psnr /= ctx->width * ctx->height * 255.0 * 255.0;
 			fprintf(stderr, " %02.02f", psnr);
 		}
@@ -313,7 +313,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_unref(src_pck);
 	} else {
 		if (pkt.duration) {
-			gf_filter_pck_set_duration(dst_pck, pkt.duration);
+			gf_filter_pck_set_duration(dst_pck, (u32) pkt.duration);
 		} else {
 			gf_filter_pck_set_duration(dst_pck, (u32) ctx->frame->pkt_duration);
 		}
