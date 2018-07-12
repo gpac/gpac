@@ -677,6 +677,8 @@ void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx)
 {
 	AVDictionaryEntry *de=NULL;
 
+	ctx->flags = 0;
+	ctx->flags2 = 0;
 	while (1) {
 		u32 idx=0;
 		de = av_dict_get((AVDictionary *)options, "", (const AVDictionaryEntry *) de, AV_DICT_IGNORE_SUFFIX);
