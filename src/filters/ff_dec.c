@@ -623,6 +623,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->in_pid) return GF_REQUIRES_NEW_INSTANCE;
 	}
 
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	ctx->width = prop ? prop->value.uint : 320;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	ctx->height = prop ? prop->value.uint : 240;
 
 
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
@@ -729,13 +733,11 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->decoder->width) {
 			FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
 		} else {
-			ctx->width = 320;
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT( ctx->width) );
 		}
 		if (ctx->decoder->height) {
 			FF_CHECK_PROP(height, height, GF_PROP_PID_HEIGHT)
 		} else {
-			ctx->width = 240;
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT( ctx->height) );
 		}
 		if (ctx->decoder->sample_aspect_ratio.num && ctx->decoder->sample_aspect_ratio.den) {

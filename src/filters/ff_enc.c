@@ -24,6 +24,7 @@
  */
 
 #include <gpac/setup.h>
+#include <gpac/bitstream.h>
 
 #ifdef GPAC_HAS_FFMPEG
 
@@ -35,6 +36,7 @@ typedef struct _gf_ffenc_ctx
 	//opts
 	Bool all_intra;
 	char *c;
+	Bool ls;
 	u32 pfmt;
 
 	//internal data
@@ -48,6 +50,9 @@ typedef struct _gf_ffenc_ctx
 	//media type
 	u32 type;
 	u32 timescale;
+
+	u32 nb_frames;
+	u64 time_spent;
 
 	Bool low_delay;
 
@@ -69,7 +74,7 @@ typedef struct _gf_ffenc_ctx
 	//video state
 	u32 width, height, stride, stride_uv, nb_planes, uv_height;
 	//ffmpeg one
-	u32 pixel_fmt;
+	enum AVPixelFormat pixel_fmt;
 	u64 cts_first_frame_plus_one;
 
 	//audio state
@@ -88,6 +93,8 @@ typedef struct _gf_ffenc_ctx
 	s32 ts_shift;
 
 	GF_List *src_packets;
+
+	GF_BitStream *sdbs;
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_initialize(GF_Filter *filter)
@@ -95,6 +102,7 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
 	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
+	ctx->sdbs = gf_bs_new((u8*)ctx, 1, GF_BITSTREAM_READ);
 	return GF_OK;
 }
 
@@ -115,7 +123,57 @@ static void ffenc_finalize(GF_Filter *filter)
 	if (ctx->encoder) {
 		avcodec_close(ctx->encoder);
 	}
+	if (ctx->sdbs) gf_bs_del(ctx->sdbs);
 	return;
+}
+
+//TODO add more feedback
+static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
+{
+	Double fps=0;
+	u64 errors[10];
+	u32 sq_size, i;
+	s32 q=-1;
+	u8 pictype=0;
+	u8 nb_errors = 0;
+	const char *ptype;
+	u8 *side_q = av_packet_get_side_data(pkt, AV_PKT_DATA_QUALITY_STATS, &sq_size);
+	if (side_q) {
+		gf_bs_reassign_buffer(ctx->sdbs, side_q, sq_size);
+		q = gf_bs_read_u32_le(ctx->sdbs);
+		pictype = gf_bs_read_u8(ctx->sdbs);
+		nb_errors = gf_bs_read_u8(ctx->sdbs);
+		/*res*/gf_bs_read_u16(ctx->sdbs);
+		if (nb_errors>10) nb_errors = 10;
+		for (i=0; i<nb_errors; i++) {
+			errors[i] = gf_bs_read_u64_le(ctx->sdbs);
+		}
+	}
+	if (ctx->time_spent) {
+		fps = ctx->nb_frames;
+		fps *= 1000000;
+		fps /= ctx->time_spent;
+	}
+	switch (pictype) {
+	case AV_PICTURE_TYPE_I: ptype = "I"; break;
+	case AV_PICTURE_TYPE_P: ptype = "P"; break;
+	case AV_PICTURE_TYPE_S: ptype = "S"; break;
+	case AV_PICTURE_TYPE_SP: ptype = "SP"; break;
+	case AV_PICTURE_TYPE_B: ptype = "B"; break;
+	case AV_PICTURE_TYPE_BI: ptype = "B"; break;
+	default: ptype = "U"; break;
+	}
+
+	fprintf(stderr, "[FFEnc] FPS %.02f F %d DTS "LLD" CTS "LLD" Q %02.02f PT %s", fps, ctx->nb_frames, pkt->dts+ctx->ts_shift, pkt->pts+ctx->ts_shift, ((Double)q) /  FF_QP2LAMBDA, ptype);
+	if (nb_errors) {
+		fprintf(stderr, "PSNR");
+		for (i=0; i<nb_errors; i++) {
+			Double psnr = errors[i];
+			psnr /= ctx->width * ctx->height * 255.0 * 255.0;
+			fprintf(stderr, " %02.02f", psnr);
+		}
+	}
+	fprintf(stderr, "\r");
 }
 
 static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
@@ -125,6 +183,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	const char *data = NULL;
 	u32 size=0, i, count;
 	s32 res;
+	u64 now;
 	char *output;
 	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
@@ -148,6 +207,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (ctx->all_intra)
 		ctx->frame->pict_type = AV_PICTURE_TYPE_I;
 
+	now = gf_sys_clock_high_res();
 	gotpck = 0;
 	if (pck) {
 		u32 ilaced;
@@ -212,13 +272,19 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			return GF_EOS;
 		}
 	}
+	now = gf_sys_clock_high_res() - now;
+	ctx->time_spent += now;
+
 	if (res<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error encoding frame: %s\n", av_err2str(res) ));
+		ctx->nb_frames++;
 		return GF_SERVICE_ERROR;
 	}
+
 	if (!gotpck) {
 		return GF_OK;
 	}
+
+	ctx->nb_frames++;
 	if (ctx->init_cts_setup) {
 		ctx->init_cts_setup = GF_FALSE;
 		if (ctx->frame->pts != pkt.pts) {
@@ -253,6 +319,9 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 	}
 
+	if (ctx->ls)
+		ffenc_log_video(ctx, &pkt);
+
 	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
 	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
 
@@ -263,6 +332,9 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
+	if (pkt.flags & AV_PKT_FLAG_DISPOSABLE) {
+		gf_filter_pck_set_dependency_flag(dst_pck, 0x8);
+	}
 	gf_filter_pck_send(dst_pck);
 
 	//we're in final flush, request a process task until all frames flushe
@@ -459,7 +531,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	u32 change_input_fmt = 0;
 	Bool infmt_negociate = GF_FALSE;
 	const GF_PropertyValue *prop;
-	AVCodec *codec=NULL;
+	const AVCodec *codec=NULL;
 	u32 codec_id, pfmt, afmt;
 	GF_FFEncodeCtx  *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
 
@@ -585,7 +657,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->pixel_fmt = ffmpeg_pixfmt_from_gpac(pfmt);
 		//check pixel format
 		if (force_pfmt == AV_PIX_FMT_NONE) {
-			change_input_fmt = 0;
+			change_input_fmt = AV_PIX_FMT_NONE;
 			i=0;
 			while (codec->pix_fmts) {
 				if (codec->pix_fmts[i] == AV_PIX_FMT_NONE) break;
@@ -595,10 +667,41 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				}
 				i++;
 			}
+			if (change_input_fmt == AV_PIX_FMT_NONE) {
+				void *ff_opaque=NULL;
+				while (1) {
+					const AVCodec *codec_alt = av_codec_iterate(&ff_opaque);
+					if (!codec_alt) break;
+					if (codec_alt==codec) continue;
+					if (codec_alt->id == codec_id) {
+						i=0;
+						while (codec_alt->pix_fmts) {
+							if (codec_alt->pix_fmts[i] == AV_PIX_FMT_NONE) break;
+							if (codec_alt->pix_fmts[i] == ctx->pixel_fmt) {
+								change_input_fmt = ctx->pixel_fmt;
+								GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFEnc] Reassigning codec from %s to %s to match pixel format\n", codec->name, codec_alt->name ));
+								codec = codec_alt;
+								break;
+							}
+							i++;
+						}
+					}
+				}
+			}
 		}
+
 		if (ctx->pixel_fmt != change_input_fmt) {
 			if (force_pfmt == AV_PIX_FMT_NONE) {
-				ctx->pixel_fmt = codec->pix_fmts ? codec->pix_fmts[0] : AV_PIX_FMT_YUV420P;
+				ctx->pixel_fmt = AV_PIX_FMT_YUV420P;
+				i=0;
+				//find a mapped pixel format
+				while (codec->pix_fmts) {
+					if (codec->pix_fmts[i] == AV_PIX_FMT_NONE) break;
+					if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i])) {
+						ctx->pixel_fmt = codec->pix_fmts[i];
+						break;
+					}
+				}
 			}
 			pfmt = ffmpeg_pixfmt_to_gpac(ctx->pixel_fmt);
 			gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
@@ -673,7 +776,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->frame = av_frame_alloc();
 
 		ctx->enc_buffer_size = ctx->width*ctx->height;
-		ctx->enc_buffer = gf_malloc(sizeof(char)*ctx->width*ctx->height);
+		ctx->enc_buffer = gf_realloc(ctx->enc_buffer, sizeof(char)*ctx->width*ctx->height);
 
 		gf_pixel_get_size_info(pfmt, ctx->width, ctx->height, NULL, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
 
@@ -713,12 +816,12 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->frame = av_frame_alloc();
 
 		ctx->enc_buffer_size = ctx->sample_rate;
-		ctx->enc_buffer = gf_malloc(sizeof(char) * ctx->enc_buffer_size);
+		ctx->enc_buffer = gf_realloc(ctx->enc_buffer, sizeof(char) * ctx->enc_buffer_size);
 
 		ctx->encoder->sample_fmt = ctx->sample_fmt;
 
 		ctx->audio_buffer_size = ctx->sample_rate;
-		ctx->audio_buffer = gf_malloc(sizeof(char) * ctx->enc_buffer_size);
+		ctx->audio_buffer = gf_realloc(ctx->audio_buffer, sizeof(char) * ctx->enc_buffer_size);
 		ctx->bytes_in_audio_buffer = 0;
 		ctx->bytes_per_sample = ctx->channels * gf_audio_fmt_bit_depth(afmt) / 8;
 		ctx->init_cts_setup = GF_TRUE;
@@ -773,6 +876,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	s32 res;
+	const char *arg_val_str;
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
 
 	if (!strcmp(arg_name, "global_header"))	return GF_OK;
@@ -782,11 +886,19 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	else if (!strcmp(arg_name, "bitrate") || !strcmp(arg_name, "rate"))	arg_name = "b";
 	else if (!strcmp(arg_name, "gop"))	arg_name = "g";
 
+	//disable low delay if these options are set
+	else if (!strcmp(arg_name, "x264opts")) ctx->low_delay = GF_FALSE;
+	else if (!strcmp(arg_name, "vprofile")) ctx->low_delay = GF_FALSE;
+	else if (!strcmp(arg_name, "preset")) ctx->low_delay = GF_FALSE;
+	else if (!strcmp(arg_name, "tune")) ctx->low_delay = GF_FALSE;
+
 	//initial parsing of arguments
 	if (!ctx->initialized) {
 		switch (arg_val->type) {
 		case GF_PROP_STRING:
-			res = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
+			arg_val_str = arg_val->value.string;
+			if (!arg_val_str) arg_val_str = "1";
+			res = av_dict_set(&ctx->options, arg_name, arg_val_str, 0);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Failed to set option %s:%s\n", arg_name, arg_val ));
 			}
@@ -832,6 +944,8 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(c), "codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
 	{ OFFS(all_intra), "only produces intra frames", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(ls), "outputs log", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+
 	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
 	{0}
 };
