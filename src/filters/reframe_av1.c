@@ -251,7 +251,9 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
+	//currently not supported because of OBU size field rewrite - could work on some streams but we would
+	//need to analyse all OBUs in the stream for that
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_FALSE) );
 }
 
 
@@ -382,7 +384,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
 {
-	u32 i, pos = 0;
+	u32 pos = 0;
 	u32 last_obu_end = 0;
 	GF_Err e = GF_OK;
 
@@ -470,7 +472,6 @@ GF_Err av1dmx_process(GF_Filter *filter)
 	GF_Err e;
 	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
-	u64 byte_offset;
 	char *data;
 	u32 pck_size;
 
@@ -503,7 +504,6 @@ GF_Err av1dmx_process(GF_Filter *filter)
 	}
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
-	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale) {
