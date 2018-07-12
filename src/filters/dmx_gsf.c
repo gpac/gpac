@@ -1076,15 +1076,17 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	return e;
 }
 
-static const char *gsfdmx_probe_data(const u8 *data, u32 data_size)
+static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
 {
 	u32 i;
 	if (data_size < 10) return NULL;
 	for (i = 1; i < data_size - 4; i++) {
-		if (strncmp(data + i, "GSSF", 4)) continue;
+		if (strncmp(data + i, "GS5F", 4)) continue;
 		//signature found, check bersion is 1
-		if (data[4] == 1)
+		if (data[i + 4] == 1) {
+			*score = GF_FPROBE_SUPPORTED;
 			return "application/x-gpac-sf";
+		}
 	}
 	return NULL;
 }

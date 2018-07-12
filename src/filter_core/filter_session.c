@@ -646,7 +646,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		Bool notified;
 		Bool requeue = GF_FALSE;
 		u64 active_start, task_time;
-		u32 consecutive_filter_tasks;
+		u32 consecutive_filter_tasks=0;
 		GF_FSTask *task=NULL;
 #ifdef CHECK_TASK_LIST_INTEGRITY
 		GF_Filter *prev_current_filter = NULL;

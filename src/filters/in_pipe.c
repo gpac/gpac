@@ -30,6 +30,8 @@
 
 #ifdef WIN32
 
+#include <windows.h>
+
 #else
 
 #include <fcntl.h>
@@ -55,6 +57,7 @@ typedef struct
 	GF_FilterPid *pid;
 
 #ifdef WIN32
+	HANDLE pipe;
 #else
 	int fd;
 #endif
@@ -67,10 +70,17 @@ typedef struct
 
 static GF_Err pipein_initialize(GF_Filter *filter)
 {
+	GF_Err e = GF_OK;
 	GF_PipeInCtx *ctx = (GF_PipeInCtx *) gf_filter_get_udta(filter);
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
 	char *src;
+
+#ifdef WIN32
+	ctx->pipe = INVALID_HANDLE_VALUE;
+#else
+	ctx->fd = -1;
+#endif
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 
@@ -90,9 +100,71 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	if (!strnicmp(ctx->src, "pipe://", 7)) src += 7;
 	else if (!strnicmp(ctx->src, "pipe:", 5)) src += 5;
 
-	if (!gf_file_exists(src) && ctx->mkp) {
 #ifdef WIN32
-#elif defined(GPAC_CONFIG_DARWIN)
+	char szNamedPipe[GF_MAX_PATH];
+	if (!strncmp(src, "\\\\", 2)) {
+		strcpy(szNamedPipe, src);
+	}
+	else {
+		strcpy(szNamedPipe, "\\\\.\\pipe\\gpac\\");
+		strcat(szNamedPipe, src);
+	}
+	if (strchr(szNamedPipe, '/')) {
+		u32 i, len = (u32)strlen(szNamedPipe);
+		for (i = 0; i < len; i++) {
+			if (szNamedPipe[i] == '/')
+				szNamedPipe[i] = '\\';
+		}
+	}
+
+	if (WaitNamedPipeA(szNamedPipe, 1) == FALSE) {
+		if (!ctx->mkp) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %d\n", szNamedPipe, GetLastError()));
+			e = GF_URL_ERROR;
+		}
+		else {
+			DWORD flags = PIPE_TYPE_BYTE | PIPE_READMODE_BYTE;
+			if (ctx->blk) flags |= PIPE_WAIT;
+			else flags |= PIPE_NOWAIT;
+
+
+			ctx->pipe = CreateNamedPipe(szNamedPipe, PIPE_ACCESS_INBOUND,       // read/write access
+				flags,
+				10,
+				ctx->block_size,
+				ctx->block_size,
+				0,
+				NULL);
+
+			if (ctx->pipe == INVALID_HANDLE_VALUE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to create named pipe %s: %d\n", szNamedPipe, GetLastError()));
+				e = GF_URL_ERROR;
+			}
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] Waiting for client connection for %s, blocking\n", szNamedPipe));
+				if (!ConnectNamedPipe(ctx->pipe, NULL) && (GetLastError() != ERROR_PIPE_CONNECTED)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to connect named pipe %s: %d\n", szNamedPipe, GetLastError()));
+					e = GF_IO_ERR;
+					CloseHandle(ctx->pipe);
+					ctx->pipe = INVALID_HANDLE_VALUE;
+				}
+				else {
+					ctx->owns_pipe = GF_TRUE;
+				}
+			}
+		}
+	}
+	else {
+		ctx->pipe = CreateFile(szNamedPipe, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		if (ctx->pipe == INVALID_HANDLE_VALUE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %d\n", szNamedPipe, GetLastError()));
+			e = GF_URL_ERROR;
+		}
+	}
+#else
+	if (!gf_file_exists(src) && ctx->mkp) {
+
+#ifdef GPAC_CONFIG_DARWIN
 		mknod(src,S_IFIFO | 0666, 0);
 #else
 		mkfifo(src, 0666);
@@ -100,20 +172,15 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 		ctx->owns_pipe = GF_TRUE;
 	}
 
-#ifdef WIN32
-#else
 	ctx->fd = open(src, ctx->blk ? O_RDONLY : O_RDONLY|O_NONBLOCK );
+
+	if (ctx->fd < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %s\n", src, gf_errno_str(errno)));
+		e = GF_URL_ERROR;
+	}
 #endif
 
-	if (
-#ifdef WIN32
-		1
-#else
-		ctx->fd<0
-#endif
-		) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %s\n", src, gf_errno_str(errno) ));
-
+	if (e) {
 		if (frag_par) frag_par[0] = '#';
 		if (cgi_par) cgi_par[0] = '?';
 
@@ -136,11 +203,13 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+
 static void pipein_finalize(GF_Filter *filter)
 {
 	GF_PipeInCtx *ctx = (GF_PipeInCtx *) gf_filter_get_udta(filter);
 
 #ifdef WIN32
+	if (ctx->pipe != INVALID_HANDLE_VALUE) CloseHandle(ctx->pipe);
 #else
 	if (ctx->fd>=0) close(ctx->fd);
 #endif
@@ -224,9 +293,26 @@ static GF_Err pipein_process(GF_Filter *filter)
 	errno = 0;
 #ifdef WIN32
 	nb_read = -1;
+	if (! ReadFile(ctx->pipe, ctx->buffer, to_read, &nb_read, NULL) ) {
+		s32 error = GetLastError();
+		if ((error == ERROR_IO_PENDING) || (error== ERROR_MORE_DATA)) {
+			//non blocking pipe with writers active
+		}
+		else if (nb_read<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %d\n", error));
+			return GF_IO_ERR;
+		}
+		else if (!ctx->nc) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
+			gf_filter_pid_set_eos(ctx->pid);
+			CloseHandle(ctx->pipe);
+			ctx->pipe = INVALID_HANDLE_VALUE;
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
 #else
 	nb_read = (s32) read(ctx->fd, ctx->buffer, to_read);
-#endif
 	if (nb_read <= 0) {
 		s32 res = errno;
 		if (res == EAGAIN) {
@@ -237,15 +323,13 @@ static GF_Err pipein_process(GF_Filter *filter)
 		} else if (!ctx->nc) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
 			gf_filter_pid_set_eos(ctx->pid);
-#ifdef WIN32
-#else
 			close(ctx->fd);
 			ctx->fd=-1;
-#endif
 			return GF_EOS;
 		}
 		return GF_OK;
 	}
+#endif
 
 	ctx->buffer[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
@@ -303,11 +387,17 @@ GF_FilterRegister PipeInRegister = {
 		"The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)\n"\
 		"It can be set to run forever (until the session is closed), ignoring any potential pipe close on the writing side\n"\
 		"Data format of the pipe should be specified using extension (either in file name or through ext option) or mime type.\n"\
-		"If neither is set, data format probing will be done\n",
+		"If neither is set, data format probing will be done\n"\
+		"\n"\
+		"On Windows hosts, the default pipe prefix is \"\\\\.\\pipe\\gpac\\\" if no prefix is set \n"\
+		"\tEX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
+		"\tEX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
+		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
+		"",
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,
-	.initialize = pipein_initialize,
 	SETCAPS(PipeInCaps),
+	.initialize = pipein_initialize,
 	.finalize = pipein_finalize,
 	.process = pipein_process,
 	.process_event = pipein_process_event,
