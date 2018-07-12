@@ -943,7 +943,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_ORIG_SIZE, "OriginalSize", "Original resolution of video", GF_PROP_VEC2I},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "Bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_MEDIA_DATA_SIZE, "MediaDataSize", "Size in bytes of media data", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_CAN_DATAREF, "DataRef", "Data referencin is possible (each compressed frame is a continuous set of bytes in source, with no transformation)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_CAN_DATAREF, "DataRef", "Data referencing is possible (each compressed frame is a continuous set of bytes in source, with no transformation)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_URL, "URL", "URL of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_REMOTE_URL, "RemoteURL", "Remote URL of source - used for MPEG-4 systems", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILEPATH, "SourcePath", "Path of source file on file system", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},

@@ -214,7 +214,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->default_pid_buffer_max_us = 1000;
 	fsess->decoder_pid_buffer_max_us = 1000000;
 	fsess->default_pid_buffer_max_units = 1;
-
+	fsess->max_resolve_chain_len = 6;
 	return fsess;
 }
 
@@ -238,6 +238,14 @@ GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set)
 		session->sep_list = ',';
 		session->sep_neg = '!';
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_chain_length)
+{
+	if (!session) return GF_BAD_PARAM;
+	session->max_resolve_chain_len = max_chain_length;
 	return GF_OK;
 }
 
@@ -1718,13 +1726,6 @@ Bool gf_fs_is_last_task(GF_FilterSession *fsess)
 	if (gf_fq_count(fsess->main_thread_tasks)) return GF_FALSE;
 	if (gf_fq_count(fsess->tasks)) return GF_FALSE;
 	return GF_TRUE;
-}
-
-
-GF_EXPORT
-void gf_fs_disable_link_resolution(GF_FilterSession *fsess, Bool disable_link_resolution)
-{
-	fsess->no_link_resolution = disable_link_resolution;
 }
 
 

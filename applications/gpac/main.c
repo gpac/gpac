@@ -39,7 +39,6 @@ static Bool dump_graph = GF_FALSE;
 static u32 print_filter_info = 0;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
-static Bool disable_link_resolution = GF_FALSE;
 static u64 last_log_time=0;
 
 //the default set of separators
@@ -190,7 +189,7 @@ static void gpac_filter_help(void)
 "\n"
 "Arguments inheriting\n"
 "\n"
-"Unless explicitly disabled (-nd option), the filter engine will resolve implicit or explicit (LINK) connections between filters "
+"Unless explicitly disabled (-cl option), the filter engine will resolve implicit or explicit (LINK) connections between filters "
 "and will allocate any filter chain required to connect the filters. "
 "In doing so, it loads new filters with arguments inherited from both the source and the destination.\n"
 "\tEX: \"src=file.mp4:OPT dst=file.aac dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the two destinations\n"
@@ -344,7 +343,10 @@ static void gpac_usage(void)
 	        "                   flock: uses mutexes for queues even when no thread (debug mode)\n"
 	        "                   direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
 			"-bl=NAMES       : blacklist the filters in NAMES (comma-seperated list)\n"
-			"-nd             : disable dynamic link resolution. You will have to specify the entire chain by hand\n"
+			"-cl=N           : sets maximum chain length when resolving filter links.\n"
+			"                   Default value is 6 ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]\n"
+			"                   (filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)\n"
+			"					Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually\n"
 			"-ltf            : load test-unit filters (used for for unit tests only).\n"
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
@@ -396,6 +398,7 @@ static int gpac_main(int argc, char **argv)
 	Bool disable_blocking = GF_FALSE;
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
+	s32 max_chain_len=-1;
 	const char *blacklist = NULL;
 
 	for (i=1; i<argc; i++) {
@@ -477,6 +480,8 @@ static int gpac_main(int argc, char **argv)
 			gf_log_set_callback(logfile, on_gpac_log);
 		} else if (arg_val && !strcmp(arg, "-threads")) {
 			nb_threads = atoi(arg_val);
+		} else if (arg_val && !strcmp(arg, "-cl")) {
+			max_chain_len = atoi(arg_val);
 		} else if (arg_val && !strcmp(arg, "-sched")) {
 			if (!strcmp(arg_val, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
 			else if (!strcmp(arg_val, "flock")) sched_type = GF_FS_SCHEDULER_LOCK_FORCE;
@@ -500,8 +505,6 @@ static int gpac_main(int argc, char **argv)
 			list_filters = 3;
 		} else if (!strncmp(arg, "-bl", 3)) {
 			blacklist = arg_val;
-		} else if (strstr(arg, "-nd")) {
-			disable_link_resolution = GF_TRUE;
 		} else if (strstr(arg, ":*")) {
 			print_meta_filters = GF_TRUE;
 		}
@@ -534,7 +537,11 @@ static int gpac_main(int argc, char **argv)
 	}
 	if (override_seps) gf_fs_set_separators(session, separator_set);
 	if (load_test_filters) gf_fs_register_test_filters(session);
-	if (disable_link_resolution) gf_fs_disable_link_resolution(session, disable_link_resolution);
+
+	if (max_chain_len>=0) {
+		if (!max_chain_len) fprintf(stderr, "\nDynamic resolution of filter connections disabled\n\n");
+		gf_fs_set_max_resolution_chain_length(session, (u32) max_chain_len);
+	}
 
 	if (list_filters || print_filter_info) {
 		print_filters(argc, argv, session);
