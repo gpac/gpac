@@ -530,6 +530,15 @@ typedef struct
 	Bool color_description_present_flag;
 	u8 color_primaries, transfer_characteristics, matrix_coefficients;
 	Bool color_range;
+
+	//config
+	//if set only header frames are stored
+	Bool skip_frames;
+	//if set, frame OBUs are not pushed to the frame_obus OBU list but are written in the below bitstream
+	Bool mem_mode;
+	GF_BitStream *bs;
+	char *frame_obus;
+	u32 frame_obus_alloc, frame_obus_size;
 } AV1State;
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);

@@ -69,6 +69,8 @@ typedef struct
 	char *buffer;
 	u32 buf_size, alloc_size;
 
+	//ivf header for now
+	u32 file_hdr_size;
 
 	Bool is_playing;
 	Bool is_file, file_loaded;
@@ -100,14 +102,79 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) ctx->timescale = p->value.uint;
+	ctx->state.mem_mode = GF_TRUE;
 	return GF_OK;
 }
+
+GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *bs, u32 *last_obu_end)
+{
+	GF_Err e;
+	if (last_obu_end) (*last_obu_end) = 0;
+	//probing av1 bs mode
+	if (ctx->bsmode != NOT_SET) return GF_OK;
+
+	e = gf_media_aom_parse_ivf_file_header(bs, &ctx->state);
+	if (!e) {
+		ctx->bsmode = IVF;
+		if (ctx->autofps && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
+			ctx->fps.num = ctx->state.tb_num;
+			ctx->fps.den = ctx->state.tb_den;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected IVF format FPS %d/%d\n", ctx->fps.num, ctx->fps.den));
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected IVF format\n"));
+		}
+		ctx->file_hdr_size = gf_bs_get_position(bs);
+		if (last_obu_end) (*last_obu_end) = gf_bs_get_position(bs);
+	} else {
+		gf_bs_seek(bs, 0);
+		e = aom_av1_parse_temporal_unit_from_annexb(bs, &ctx->state);
+		if (!e) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected Annex B format\n"));
+			ctx->bsmode = AnnexB;
+			gf_bs_seek(bs, 0);
+		} else {
+			ObuType obu_type;
+			u64 obu_size;
+
+			gf_bs_seek(bs, 0);
+			e = aom_av1_parse_temporal_unit_from_section5(bs, &ctx->state);
+			if (e && !gf_list_count(ctx->state.frame_state.frame_obus) ) {
+				gf_filter_setup_failure(filter, e);
+				ctx->bsmode = UNSUPPORTED;
+				return e;
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected OBUs Section 5 format\n"));
+			ctx->bsmode = OBUs;
+			av1_reset_frame_state(&ctx->state.frame_state, GF_FALSE);
+			gf_bs_seek(bs, 0);
+
+			e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &ctx->state);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1Dmx] Error parsing OBU (Section 5)\n"));
+				gf_filter_setup_failure(filter, e);
+				ctx->bsmode = UNSUPPORTED;
+				return e;
+			}
+			if (obu_type != OBU_TEMPORAL_DELIMITER) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter - NOT SUPPORTED\n", av1_get_obu_name(obu_type) ));
+				gf_filter_setup_failure(filter, e);
+				ctx->bsmode = UNSUPPORTED;
+				return e;
+			}
+		}
+	}
+	ctx->state.config = gf_odf_av1_cfg_new();
+	return GF_OK;
+}
+
+
 static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
-#if 0
 	FILE *stream;
+	GF_Err e;
 	GF_BitStream *bs;
 	u64 duration, cur_dur;
+	AV1State av1state;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -124,38 +191,56 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	ctx->index_size = 0;
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
+
+	if (ctx->file_hdr_size) {
+		gf_bs_seek(bs, ctx->file_hdr_size);
+	}
+	memset(&av1state, 0, sizeof(AV1State));
+	av1state.skip_frames = GF_TRUE;
+
 	duration = 0;
 	cur_dur = 0;
 	while (gf_bs_available(bs)) {
-		u8 type;
-		u64 pos = gf_bs_get_position(bs);
-		u64 next_pos = pos + av1dmx_next_start_code_bs(bs);
-		gf_bs_read_u32(bs);
-		type = gf_bs_read_u8(bs);
+		Bool is_sap;
+		u64 frame_start = gf_bs_get_position(bs);
+		av1_reset_frame_state(&av1state.frame_state, GF_FALSE);
 
-		if (type & 0x02) type = 0;
-		else
-			type = 1;
-
+		/*we process each TU and extract only the necessary OBUs*/
+		switch (ctx->bsmode) {
+		case OBUs:
+			e = aom_av1_parse_temporal_unit_from_section5(bs, &av1state);
+			break;
+		case AnnexB:
+			e = aom_av1_parse_temporal_unit_from_annexb(bs, &av1state);
+			break;
+		case IVF:
+			e = aom_av1_parse_temporal_unit_from_ivf(bs, &av1state);
+			break;
+		default:
+			e = GF_NOT_SUPPORTED;
+		}
+		if (e)
+		 	break;
 
 		duration += ctx->fps.den;
 		cur_dur += ctx->fps.den;
+		is_sap = av1state.frame_state.key_frame ? GF_TRUE : GF_FALSE;
+
 		//only index at I-frame start
-		if (pos && type && (cur_dur > ctx->index_dur * ctx->fps.num) ) {
+		if (frame_start && is_sap && (cur_dur > ctx->index_dur * ctx->fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AV1Idx)*ctx->index_alloc_size);
-			ctx->indexes[ctx->index_size].pos = pos;
+			ctx->indexes[ctx->index_size].pos = frame_start;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
 			ctx->index_size ++;
 			cur_dur = 0;
 		}
-
-		gf_bs_seek(bs, next_pos);
 	}
 	gf_bs_del(bs);
 	gf_fclose(stream);
+	av1_reset_frame_state(&av1state.frame_state, GF_TRUE);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
 		ctx->duration.num = (s32) duration;
@@ -167,9 +252,6 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
-#endif
-
-
 }
 
 
@@ -187,7 +269,7 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->cts = 0;
 		}
 		if (! ctx->is_file) {
-//			ctx->buf_size = 0;
+			ctx->buf_size = 0;
 			return GF_FALSE;
 		}
 		ctx->start_range = evt->play.start_range;
@@ -209,6 +291,9 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				return GF_TRUE;
 		}
 		ctx->buf_size = 0;
+		if (!file_pos)
+			file_pos = ctx->file_hdr_size;
+
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = file_pos;
@@ -295,7 +380,6 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
 }
 
-
 GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
 {
 	u32 i, pos = 0;
@@ -305,67 +389,17 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 	if (!ctx->bs) ctx->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs, data, data_size);
 
-	//probing av1 bs mode
-	if (ctx->bsmode == NOT_SET) {
-		e = gf_media_aom_parse_ivf_file_header(ctx->bs, &ctx->state);
-		if (!e) {
-			ctx->bsmode = IVF;
-			if (ctx->autofps && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
-				ctx->fps.num = ctx->state.tb_num;
-				ctx->fps.den = ctx->state.tb_den;
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected IVF format FPS %d/%d\n", ctx->fps.num, ctx->fps.den));
-			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected IVF format\n"));
-			}
-			last_obu_end = gf_bs_get_position(ctx->bs);
-		} else {
-			gf_bs_seek(ctx->bs, 0);
-			e = aom_av1_parse_temporal_unit_from_annexb(ctx->bs, &ctx->state);
-			if (!e) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected Annex B format\n"));
-				ctx->bsmode = AnnexB;
-				gf_bs_seek(ctx->bs, 0);
-			} else {
-				ObuType obu_type;
-				u64 obu_size;
-
-				gf_bs_seek(ctx->bs, 0);
-				e = aom_av1_parse_temporal_unit_from_section5(ctx->bs, &ctx->state);
-				if (e && !gf_list_count(ctx->state.frame_state.frame_obus) ) {
-					gf_filter_setup_failure(filter, e);
-					ctx->bsmode = UNSUPPORTED;
-					return e;
-				}
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected OBUs Section 5 format\n"));
-				ctx->bsmode = OBUs;
-				av1_reset_frame_state(&ctx->state.frame_state, GF_FALSE);
-				gf_bs_seek(ctx->bs, 0);
-
-				e = gf_media_aom_av1_parse_obu(ctx->bs, &obu_type, &obu_size, NULL, &ctx->state);
-				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1Dmx] Error parsing OBU (Section 5)\n"));
-					gf_filter_setup_failure(filter, e);
-					ctx->bsmode = UNSUPPORTED;
-					return e;
-				}
-				if (obu_type != OBU_TEMPORAL_DELIMITER) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter - NOT SUPPORTED\n", av1_get_obu_name(obu_type) ));
-					gf_filter_setup_failure(filter, e);
-					ctx->bsmode = UNSUPPORTED;
-					return e;
-				}
-			}
-		}
-		ctx->state.config = gf_odf_av1_cfg_new();
-
-	}
+	e = av1dmx_check_format(filter, ctx, ctx->bs, &last_obu_end);
+	if (e) return e;
 
 	while (gf_bs_available(ctx->bs)) {
-		u32 pck_size, offset;
+		u32 pck_size;
 		GF_FilterPacket *pck;
 		char *output;
 
 		av1_reset_frame_state(&ctx->state.frame_state, GF_FALSE);
+		ctx->state.frame_obus_size = 0;
+
 		pos = gf_bs_get_position(ctx->bs);
 
 		/*we process each TU and extract only the necessary OBUs*/
@@ -400,13 +434,9 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 		if (!ctx->is_playing)
 			break;
 
-
-		pck_size = 0;
-		for (i=0; i < gf_list_count(ctx->state.frame_state.frame_obus); ++i) {
-			GF_AV1_OBUArrayEntry *obu = gf_list_get(ctx->state.frame_state.frame_obus, i);
-			pck_size += obu->obu_length;
-		}
-
+		gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &ctx->state.frame_obus_size, &ctx->state.frame_obus_alloc);
+		pck_size = ctx->state.frame_obus_size;
+		ctx->state.frame_obus_size = 0;
 		if (!pck_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1Dmx] no frame OBU, skiping OBU\n"));
 			last_obu_end = (u32) gf_bs_get_position(ctx->bs);
@@ -418,18 +448,8 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 
 		gf_filter_pck_set_cts(pck, ctx->cts);
 		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+		memcpy(output, ctx->state.frame_obus, pck_size);
 
-		offset = 0;
-		while (gf_list_count(ctx->state.frame_state.frame_obus)) {
-			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(ctx->state.frame_state.frame_obus, 0);
-			if (a->obu) {
-				memcpy(output + offset, a->obu, (size_t)a->obu_length);
-				offset += (u32)a->obu_length;
-				gf_free(a->obu);
-			}
-			gf_list_rem(ctx->state.frame_state.frame_obus, 0);
-			gf_free(a);
-		}
 		gf_filter_pck_send(pck);
 
 		last_obu_end = (u32) gf_bs_get_position(ctx->bs);
@@ -564,6 +584,8 @@ static void av1dmx_finalize(GF_Filter *filter)
 
 	av1_reset_frame_state(&ctx->state.frame_state, GF_TRUE);
 	if (ctx->state.config) gf_odf_av1_cfg_del(ctx->state.config);
+	if (ctx->state.bs) gf_bs_del(ctx->state.bs);
+	if (ctx->state.frame_obus) gf_free(ctx->state.frame_obus);
 	if (ctx->buffer) gf_free(ctx->buffer);
 }
 
