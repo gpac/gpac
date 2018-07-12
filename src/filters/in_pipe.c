@@ -54,7 +54,10 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *pid;
 
+#ifdef WIN32
+#else
 	int fd;
+#endif
 	u64 bytes_read;
 
 	Bool is_end, pck_out, is_first, owns_pipe;
@@ -102,7 +105,13 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	ctx->fd = open(src, ctx->blk ? O_RDONLY : O_RDONLY|O_NONBLOCK );
 #endif
 
-	if (ctx->fd<0) {
+	if (
+#ifdef WIN32
+		1
+#else
+		ctx->fd<0
+#endif
+		) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %s\n", src, gf_errno_str(errno) ));
 
 		if (frag_par) frag_par[0] = '#';
@@ -213,19 +222,26 @@ static GF_Err pipein_process(GF_Filter *filter)
 	to_read = ctx->block_size;
 
 	errno = 0;
+#ifdef WIN32
+	nb_read = -1;
+#else
 	nb_read = (s32) read(ctx->fd, ctx->buffer, to_read);
+#endif
 	if (nb_read <= 0) {
 		s32 res = errno;
 		if (res == EAGAIN) {
 			//non blocking pipe with writers active
-		} else if (read<0) {
+		} else if (nb_read<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
 			return GF_IO_ERR;
 		} else if (!ctx->nc) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
 			gf_filter_pid_set_eos(ctx->pid);
+#ifdef WIN32
+#else
 			close(ctx->fd);
 			ctx->fd=-1;
+#endif
 			return GF_EOS;
 		}
 		return GF_OK;

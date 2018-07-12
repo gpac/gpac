@@ -1313,7 +1313,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 {
 	GF_Err e;
 	u32 i, j, count;
-	u32 senc_size = senc->size;
+	u32 senc_size = (u32) senc->size;
 	u32 subs_size = 0, def_IV_size;
 	u64 pos = gf_bs_get_position(bs);
 	Bool do_warn = GF_TRUE;
@@ -1350,7 +1350,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 
 	if (!senc->samp_aux_info) senc->samp_aux_info = gf_list_new();
 	for (i=0; i<count; i++) {
-		u32 is_encrypted;
+		Bool is_encrypted;
 		u32 samp_count;
 		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 		memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));

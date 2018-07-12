@@ -601,7 +601,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_codec_get_com) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_com_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_com_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_esd_get_textual_description) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_slc_set_pref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_bifs_config) )
@@ -1073,7 +1072,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_single_moof_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_append_data) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sai) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_pssh) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_close_segment) )
@@ -2218,3 +2216,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_filter_print_possible_connections ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_check_registry_cap ) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_process_error ) )

@@ -123,8 +123,8 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected IVF format\n"));
 		}
-		ctx->file_hdr_size = gf_bs_get_position(bs);
-		if (last_obu_end) (*last_obu_end) = gf_bs_get_position(bs);
+		ctx->file_hdr_size = (u32) gf_bs_get_position(bs);
+		if (last_obu_end) (*last_obu_end) = (u32) gf_bs_get_position(bs);
 	} else {
 		gf_bs_seek(bs, 0);
 		e = aom_av1_parse_temporal_unit_from_annexb(bs, &ctx->state);
@@ -402,7 +402,7 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 		av1_reset_frame_state(&ctx->state.frame_state, GF_FALSE);
 		ctx->state.frame_obus_size = 0;
 
-		pos = gf_bs_get_position(ctx->bs);
+		pos = (u32) gf_bs_get_position(ctx->bs);
 
 		/*we process each TU and extract only the necessary OBUs*/
 		switch (ctx->bsmode) {

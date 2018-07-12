@@ -130,7 +130,11 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	if (gf_sk_is_multicast_address(url)) {
 		e = gf_sk_setup_multicast(ctx->sock_c.socket, url, port, 0, 0, ctx->mcast_ifce);
 		ctx->listen = GF_FALSE;
-	} else if ((sock_type==GF_SOCK_TYPE_UDP) || (sock_type==GF_SOCK_TYPE_UDP_UN)) {
+	} else if ((sock_type==GF_SOCK_TYPE_UDP) 
+#ifdef GPAC_HAS_SOCK_UN 
+		|| (sock_type==GF_SOCK_TYPE_UDP_UN)
+#endif
+		) {
 		e = gf_sk_bind(ctx->sock_c.socket, ctx->mcast_ifce, port, url, port, GF_SOCK_REUSE_PORT);
 		ctx->listen = GF_FALSE;
 		e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
@@ -331,10 +335,10 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	gf_filter_pck_send(dst_pck);
 
 	//send bitrate
-	bitrate = gf_sys_clock_high_res() - sock_c->start_time;
+	bitrate = ( gf_sys_clock_high_res() - sock_c->start_time );
 	if (bitrate) {
 		bitrate = (sock_c->nb_bytes * 8 * 1000000) / bitrate;
-		gf_filter_pid_set_info(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(bitrate) );
+		gf_filter_pid_set_info(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT((u32) bitrate) );
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Receiving from %s at %d kbps\r", sock_c->adress, (u32) (bitrate/10)));
 	}
 

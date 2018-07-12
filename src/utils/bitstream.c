@@ -1166,7 +1166,7 @@ void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), vo
 
 
 GF_EXPORT
-u32 gf_bs_read_u64_le(GF_BitStream *bs)
+u64 gf_bs_read_u64_le(GF_BitStream *bs)
 {
 	u64 ret, v;
 	ret = gf_bs_read_int(bs, 8);

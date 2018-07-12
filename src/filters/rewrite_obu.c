@@ -114,7 +114,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->av1b_cfg_size = 0;
 
 		while ((obu = gf_list_enum(ctx->av1c->obu_array, &i))) {
-			ctx->av1b_cfg_size += obu->obu_length;
+			ctx->av1b_cfg_size += (u32) obu->obu_length;
 			ctx->av1b_cfg_size += gf_av1_leb128_size(obu->obu_length);
 		}
 	}
@@ -185,7 +185,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			u32 obu_size;
 			Bool obu_extension_flag, obu_has_size_field;
 			u8 temporal_id, spatial_id;
-			u32 hdr_size = gf_bs_get_position(ctx->bs_r);
+			u32 hdr_size = (u32) gf_bs_get_position(ctx->bs_r);
 
 			gf_av1_parse_obu_header(ctx->bs_r, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
 
@@ -194,7 +194,7 @@ GF_Err obumx_process(GF_Filter *filter)
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			obu_size = (u32)gf_av1_leb128_read(ctx->bs_r, NULL);
-			hdr_size = gf_bs_get_position(ctx->bs_r) - hdr_size;
+			hdr_size = (u32) gf_bs_get_position(ctx->bs_r) - hdr_size;
 			gf_bs_skip_bytes(ctx->bs_r, obu_size);
 
 			obu_size += hdr_size;
@@ -244,7 +244,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			i=0;
 			while ((obu = gf_list_enum(ctx->av1c->obu_array, &i))) {
 				gf_av1_leb128_write(ctx->bs_w, obu->obu_length);
-				gf_bs_write_data(ctx->bs_w, obu->obu, obu->obu_length);
+				gf_bs_write_data(ctx->bs_w, obu->obu, (u32) obu->obu_length);
 			}
 		}
 
@@ -255,12 +255,12 @@ GF_Err obumx_process(GF_Filter *filter)
 			u32 obu_size;
 			Bool obu_extension_flag, obu_has_size_field;
 			u8 temporal_id, spatial_id;
-			u32 hdr_size, start = gf_bs_get_position(ctx->bs_r);
+			u32 hdr_size, start = (u32) gf_bs_get_position(ctx->bs_r);
 
 			gf_av1_parse_obu_header(ctx->bs_r, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
 			obu_size = (u32)gf_av1_leb128_read(ctx->bs_r, NULL);
 
-			hdr_size = gf_bs_get_position(ctx->bs_r) - start;
+			hdr_size = (u32) gf_bs_get_position(ctx->bs_r) - start;
 			gf_bs_skip_bytes(ctx->bs_r, obu_size);
 
 			if (obu_type==OBU_FRAME) {

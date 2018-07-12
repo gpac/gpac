@@ -759,7 +759,7 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 		if (print_filter_info) {
 			u32 k;
 			//all good to go, load filters
-			for (k=1; k<argc; k++) {
+			for (k=1; k<(u32) argc; k++) {
 				char *arg = argv[k];
 				if (arg[0]=='-') continue;
 

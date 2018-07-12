@@ -50,10 +50,10 @@
       <UniqueIdentifier>{d451e478-a766-4a33-a371-db9e1292017f}</UniqueIdentifier>
     </Filter>
     <Filter Include="filter_core">
-      <UniqueIdentifier>{c59ce4a6-c163-4461-bc61-07ac40ae263c}</UniqueIdentifier>
+      <UniqueIdentifier>{e0d29c23-f961-46c4-a4d5-c7939a0d43b9}</UniqueIdentifier>
     </Filter>
     <Filter Include="filters">
-      <UniqueIdentifier>{e82dd1ca-7583-492d-bbb9-3e32725ddb83}</UniqueIdentifier>
+      <UniqueIdentifier>{36bd8e9d-a6d6-4212-8659-33f6692fccaf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -273,9 +273,6 @@
     <ClInclude Include="..\..\include\gpac\ietf.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\ismacryp.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\iso639.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -289,6 +286,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\map.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\gpac\math.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\media_tools.h">
@@ -390,10 +390,20 @@
     <ClInclude Include="..\..\include\gpac\webvtt.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\filters\ff_common.h" />
-    <ClInclude Include="..\..\src\filters\in_rtp.h" />
-    <ClInclude Include="..\..\src\filters\isoffin.h" />
-    <ClInclude Include="..\..\src\filter_core\filter_session.h" />
+    <ClInclude Include="..\..\include\gpac\atsc.h" />
+    <ClInclude Include="..\..\src\filter_core\filter_session.h">
+      <Filter>filter_core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\ff_common.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\in_rtp.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\isoffin.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\gpac\crypt_tools.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -795,9 +805,6 @@
     <ClCompile Include="..\..\src\media_tools\img.c">
       <Filter>media_tools</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\ismacryp.c">
-      <Filter>media_tools</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\media_tools\isom_hinter.c">
       <Filter>media_tools</Filter>
     </ClCompile>
@@ -1083,8 +1090,8 @@
     <ClCompile Include="..\..\src\isomedia\iff.c">
       <Filter>isomedia</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\utils\constants.c">
-      <Filter>utils</Filter>
+    <ClCompile Include="..\..\src\media_tools\atsc_dmx.c">
+      <Filter>media_tools</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\compositor\clock.c">
       <Filter>compositor</Filter>
@@ -1119,8 +1126,8 @@
     <ClCompile Include="..\..\src\compositor\svg_external.c">
       <Filter>compositor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\atsc_dmx.c">
-      <Filter>media_tools</Filter>
+    <ClCompile Include="..\..\src\utils\constants.c">
+      <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filter_core\filter.c">
       <Filter>filter_core</Filter>
@@ -1272,9 +1279,6 @@
     <ClCompile Include="..\..\src\filters\in_rtp_stream.c">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\filters\in_udp.c">
-      <Filter>filters</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\filters\inspect.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1383,10 +1387,37 @@
     <ClCompile Include="..\..\src\filters\write_vtt.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c" />
+    <ClCompile Include="..\..\src\filters\tileagg.c" />
+    <ClCompile Include="..\..\src\media_tools\crypt_tools.c" />
+    <ClCompile Include="..\..\src\filters\dasher.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dmx_gsf.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_pipe.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_sock.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\mux_gsf.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\mux_ts.c">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\filters\dasher.c">
+    <ClCompile Include="..\..\src\filters\out_pipe.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_sock.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_av1.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewrite_obu.c">
       <Filter>filters</Filter>
     </ClCompile>
   </ItemGroup>

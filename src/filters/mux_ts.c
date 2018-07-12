@@ -328,7 +328,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				diff *= 1000000;
 				diff /= tspid->esi.timescale;
 				assert(tspid->prog->cts_offset < diff);
-				tspid->prog->cts_offset = diff;
+				tspid->prog->cts_offset = (u32) diff;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
 
@@ -685,7 +685,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		diff *= 1000000;
 		diff /= tspid->esi.timescale;
 		if (diff > tspid->prog->cts_offset)
-			tspid->prog->cts_offset = diff;
+			tspid->prog->cts_offset = (u32) diff;
 	}
 	return GF_OK;
 }

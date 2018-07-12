@@ -623,7 +623,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
-				memcpy(pck_data, start, size);
+				memcpy(pck_data, start, (size_t) size);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 
 				if (byte_offset != GF_FILTER_NO_BO) {
@@ -708,7 +708,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 						ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);
 						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
 					}
-					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, sizeof(char)*(pck_size - vosh_start) );
+					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 					ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					gf_filter_pid_drop_packet(ctx->ipid);
 					return GF_OK;
@@ -747,7 +747,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 						ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);
 						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
 					}
-					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, sizeof(char)*(pck_size - vosh_start) );
+					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 					ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					gf_filter_pid_drop_packet(ctx->ipid);
 					return GF_OK;
@@ -889,10 +889,10 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			if (byte_offset != GF_FILTER_NO_BO) {
 				gf_filter_pck_set_byte_offset(dst_pck, byte_offset - bytes_from_store);
 			}
-			memcpy(pck_data + bytes_from_store, start, size);
+			memcpy(pck_data + bytes_from_store, start, (size_t) size);
 		} else {
 			//bytes only come the data packet
-			memcpy(pck_data, start, size);
+			memcpy(pck_data, start, (size_t) size);
 			if (byte_offset != GF_FILTER_NO_BO) {
 				gf_filter_pck_set_byte_offset(dst_pck, byte_offset + start - (u8 *) data);
 			}

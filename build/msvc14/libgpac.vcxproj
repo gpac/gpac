@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug - MP4Box_only|Win32">
       <Configuration>Debug - MP4Box_only</Configuration>
@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\gpac\ait.h" />
+    <ClInclude Include="..\..\include\gpac\atsc.h" />
     <ClInclude Include="..\..\include\gpac\avparse.h" />
     <ClInclude Include="..\..\include\gpac\base_coding.h" />
     <ClInclude Include="..\..\include\gpac\bifs.h" />
@@ -87,6 +88,7 @@
     <ClInclude Include="..\..\include\gpac\laser.h" />
     <ClInclude Include="..\..\include\gpac\list.h" />
     <ClInclude Include="..\..\include\gpac\map.h" />
+    <ClInclude Include="..\..\include\gpac\math.h" />
     <ClInclude Include="..\..\include\gpac\mediaobject.h" />
     <ClInclude Include="..\..\include\gpac\media_tools.h" />
     <ClInclude Include="..\..\include\gpac\module.h" />
@@ -241,6 +243,7 @@
     <ClCompile Include="..\..\src\filters\compose.c" />
     <ClCompile Include="..\..\src\filters\dasher.c" />
     <ClCompile Include="..\..\src\filters\decrypt_cenc_isma.c" />
+    <ClCompile Include="..\..\src\filters\dmx_gsf.c" />
     <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c" />
     <ClCompile Include="..\..\src\filters\dec_ac52.c" />
     <ClCompile Include="..\..\src\filters\dec_bifs.c" />
@@ -279,12 +282,13 @@
     <ClCompile Include="..\..\src\filters\in_dvb4linux.c" />
     <ClCompile Include="..\..\src\filters\in_file.c" />
     <ClCompile Include="..\..\src\filters\in_http.c" />
+    <ClCompile Include="..\..\src\filters\in_pipe.c" />
     <ClCompile Include="..\..\src\filters\in_rtp.c" />
     <ClCompile Include="..\..\src\filters\in_rtp_rtsp.c" />
     <ClCompile Include="..\..\src\filters\in_rtp_sdp.c" />
     <ClCompile Include="..\..\src\filters\in_rtp_signaling.c" />
     <ClCompile Include="..\..\src\filters\in_rtp_stream.c" />
-    <ClCompile Include="..\..\src\filters\in_udp.c" />
+    <ClCompile Include="..\..\src\filters\in_sock.c" />
     <ClCompile Include="..\..\src\filters\isoffin_load.c" />
     <ClCompile Include="..\..\src\filters\isoffin_read.c" />
     <ClCompile Include="..\..\src\filters\isoffin_read_ch.c" />
@@ -292,15 +296,19 @@
     <ClCompile Include="..\..\src\filters\load_svg.c" />
     <ClCompile Include="..\..\src\filters\load_text.c" />
     <ClCompile Include="..\..\src\filters\mux_avi.c" />
+    <ClCompile Include="..\..\src\filters\mux_gsf.c" />
     <ClCompile Include="..\..\src\filters\mux_isom.c" />
     <ClCompile Include="..\..\src\filters\mux_ts.c" />
     <ClCompile Include="..\..\src\filters\out_audio.c" />
     <ClCompile Include="..\..\src\filters\out_file.c" />
+    <ClCompile Include="..\..\src\filters\out_pipe.c" />
+    <ClCompile Include="..\..\src\filters\out_sock.c" />
     <ClCompile Include="..\..\src\filters\out_video.c" />
     <ClCompile Include="..\..\src\filters\reframer.c" />
     <ClCompile Include="..\..\src\filters\reframe_ac3.c" />
     <ClCompile Include="..\..\src\filters\reframe_adts.c" />
     <ClCompile Include="..\..\src\filters\reframe_amr.c" />
+    <ClCompile Include="..\..\src\filters\reframe_av1.c" />
     <ClCompile Include="..\..\src\filters\reframe_h263.c" />
     <ClCompile Include="..\..\src\filters\reframe_img.c" />
     <ClCompile Include="..\..\src\filters\reframe_mp3.c" />
@@ -314,6 +322,7 @@
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mp4v.c" />
     <ClCompile Include="..\..\src\filters\rewrite_nalu.c" />
+    <ClCompile Include="..\..\src\filters\rewrite_obu.c" />
     <ClCompile Include="..\..\src\filters\tileagg.c" />
     <ClCompile Include="..\..\src\filters\unit_test_filter.c" />
     <ClCompile Include="..\..\src\filters\vcrop.c" />
@@ -492,20 +501,20 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{233014D5-F6E5-419D-8757-FA9CE7337088}</ProjectGuid>
     <RootNamespace>libgpac</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -523,13 +532,13 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -597,26 +606,10 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">libgpac_static</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libgpac_static</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">libgpac_static</TargetName>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>$(LibraryPath)</LibraryPath>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>C:\Program Files (x86)\Microsoft Visual Studio 14.0\Team Tools\Static Analysis Tools\Rule Sets\NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir)lib\x64;</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir)lib\x64;</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
@@ -717,8 +710,6 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsC</CompileAs>
-      <OmitFramePointers>false</OmitFramePointers>
-      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -836,6 +827,7 @@
     <Lib>
       <OutputFile>../../bin/$(Platform)/$(Configuration)/libgpac_static.lib</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalOptions> /ignore:4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -906,6 +898,7 @@
       <OutputFile>../../bin/$(Platform)/$(Configuration)/libgpac_static.lib</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalOptions> /ignore:4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>

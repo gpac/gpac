@@ -53,7 +53,10 @@ typedef struct
 	//only one input pid
 	GF_FilterPid *pid;
 
+#ifdef WIN32
+#else
 	int fd;
+#endif
 
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
@@ -70,8 +73,11 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 
 	if (!filename) {
+#ifdef WIN32
+#else
 		if (ctx->fd>=0) close(ctx->fd);
 		ctx->fd = -1;
+#endif
 		return GF_OK;
 	}
 
@@ -90,10 +96,18 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	}
 	gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx);
 
-	if (!strcmp(szFinalName, ctx->szFileName) && ctx->fd>=0) return GF_OK;
+	if (!strcmp(szFinalName, ctx->szFileName) 
+#ifdef WIN32
+#else
+		&& ctx->fd>=0
+#endif
+		) return GF_OK;
 
+#ifdef WIN32
+#else
 	if (ctx->fd>=0) close(ctx->fd);
 	ctx->fd = -1;
+#endif
 
 	if (!gf_file_exists(szFinalName) && ctx->mkp) {
 #ifdef WIN32
@@ -105,13 +119,17 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 		ctx->owns_pipe = GF_TRUE;
 	}
 
+#ifdef WIN32
+#else
 	ctx->fd = open(szFinalName, O_WRONLY );
-	strcpy(ctx->szFileName, szFinalName);
 
 	if (ctx->fd<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_str(errno)));
 		return GF_IO_ERR;
 	}
+#endif
+
+	strcpy(ctx->szFileName, szFinalName);
 	return GF_OK;
 }
 
@@ -178,7 +196,10 @@ static GF_Err pipeout_initialize(GF_Filter *filter)
 		if (ext) ext++;
 	}
 
+#ifdef WIN32
+#else
 	ctx->fd = -1;
+#endif
 	if (!ext && !ctx->mime) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] No extension provided nor mime type for output file %s, cannot infer format\n", ctx->dst));
 		return GF_NOT_SUPPORTED;
@@ -255,16 +276,31 @@ static GF_Err pipeout_process(GF_Filter *filter)
 
 		if (name) {
 			pipeout_open_close(ctx, name, fext ? fext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite);
-		} else if (ctx->fd<0) {
+		} else if (
+#ifdef WIN32
+			1
+#else
+			ctx->fd<0
+#endif
+			) {
 			pipeout_setup_file(ctx, explicit_overwrite);
 		}
 	}
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
-	if (ctx->fd>=0) {
+	if (
+#ifdef WIN32
+		0
+#else
+		ctx->fd>=0
+#endif
+		) {
 		GF_FilterHWFrame *hwf = gf_filter_pck_get_hw_frame(pck);
 		if (pck_data) {
+#ifdef WIN32
+#else
 			nb_write = (s32) write(ctx->fd, pck_data, pck_size);
+#endif
 			if (nb_write != pck_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, pck_size, gf_errno_str(errno) ));
 			}
@@ -297,7 +333,10 @@ static GF_Err pipeout_process(GF_Filter *filter)
 					if (i) write_h = uv_height;
 					lsize = bpp * (i ? stride : stride_uv);
 					for (j=0; j<write_h; j++) {
+#ifdef WIN32
+#else
 						nb_write = (s32) write(ctx->fd, out_ptr, lsize);
+#endif
 						if (nb_write != lsize) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, lsize, gf_errno_str(errno) ));
 						}

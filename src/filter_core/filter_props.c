@@ -257,7 +257,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		} else if (!strnicmp(value, "0x", 2) ) {
 			u32 i;
 			value += 2;
-			p.value.data.size = strlen(value) / 2;
+			p.value.data.size = (u32) strlen(value) / 2;
 			p.value.data.ptr = gf_malloc(sizeof(char)*p.value.data.size);
 			for (i=0; i<p.value.data.size; i++) {
 				char szV[3];

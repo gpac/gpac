@@ -737,7 +737,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			goto exit;
 		if (is_cenc) {
 			GF_CENCSampleAuxInfo *sai;
-			u32 container_type, len, j, Is_Encrypted;
+			u32 container_type, len, j;
+			Bool Is_Encrypted;
 			u8 IV_size;
 			bin128 KID;
 			u8 crypt_byte_block, skip_byte_block;

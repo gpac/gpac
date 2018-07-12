@@ -2512,7 +2512,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs)
 
 	pos = gf_bs_get_position(bs);
 
-	ptr->config = gf_odf_av1_cfg_read_bs_size(bs, ptr->size);
+	ptr->config = gf_odf_av1_cfg_read_bs_size(bs, (u32) ptr->size);
 
 	read = gf_bs_get_position(bs) - pos;
 

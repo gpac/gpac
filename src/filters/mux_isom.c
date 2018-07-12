@@ -1293,7 +1293,7 @@ multipid_stsd_setup:
 		/*todo !*/
 		const char *oma_contentID=0;
 		u32 oma_encryption_type=0;
-		u32 oma_plainTextLength=0;
+		u64 oma_plainTextLength=0;
 		const char *oma_textual_headers=NULL;
 		u32 textual_headers_len=0;
 
@@ -1324,7 +1324,7 @@ multipid_stsd_setup:
 			if (p) oma_contentID = p->value.string;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_TXT_HDR);
 			if (p) oma_textual_headers = p->value.string;
-			if (oma_textual_headers) textual_headers_len = strlen(oma_textual_headers);
+			if (oma_textual_headers) textual_headers_len = (u32) strlen(oma_textual_headers);
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_OMA_CLEAR_LEN);
 			if (p) oma_plainTextLength = p->value.longuint;
 			gf_isom_set_oma_protection(ctx->file, tkw->track_num, tkw->stsd_idx, (char *) oma_contentID, (char*) kms_uri, oma_encryption_type, oma_plainTextLength, (char*)oma_textual_headers, textual_headers_len,
@@ -2488,7 +2488,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 	//compute min dts of first packet on each track
 	ctx->first_ts_min = (u32) -1;
 	for (i=0; i<count; i++) {
-		s64 ts, dts_min;
+		u64 ts, dts_min;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) return;
@@ -2501,7 +2501,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		dts_min /= tkw->timescale;
 
 		if (ctx->first_ts_min > dts_min) {
-			ctx->first_ts_min = dts_min;
+			ctx->first_ts_min = (u32) dts_min;
 		}
 		tkw->ts_shift = ts;
 	}
@@ -2821,7 +2821,7 @@ static void mp4_mux_done(GF_MP4MuxCtx *ctx)
 		if (tkw->min_neg_ctts<0) {
 			//use ctts v1 negative offsets
 			if (ctx->ctmode==MP4MX_CT_NEGCTTS) {
-				gf_isom_set_ctts_v1(ctx->file, tkw->track_num, -tkw->min_neg_ctts);
+				gf_isom_set_ctts_v1(ctx->file, tkw->track_num, (u32) -tkw->min_neg_ctts);
 			}
 			//ctts v0
 			else {

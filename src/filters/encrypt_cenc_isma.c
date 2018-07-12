@@ -216,7 +216,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 			char *szPreview;
 
 			sprintf(szSTR, "PreviewRange:%d", cstr->tci->sel_enc_range);
-			len = strlen(szSTR) + ( cstr->tci->TextualHeaders ? strlen(cstr->tci->TextualHeaders) : 0 ) + 1;
+			len = (u32) strlen(szSTR) + ( cstr->tci->TextualHeaders ? (u32) strlen(cstr->tci->TextualHeaders) : 0 ) + 1;
 			szPreview = gf_malloc(sizeof(char) * len);
 			strcpy(szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "");
 			strcat(szPreview, szSTR);
@@ -333,7 +333,7 @@ static GF_Err adobe_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	memcpy(cstr->key, cstr->tci->keys[0], 16);
 
 	if (cstr->tci->metadata)
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA(cstr->tci->metadata, strlen(cstr->tci->metadata) ) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA(cstr->tci->metadata, (u32) strlen(cstr->tci->metadata) ) );
 
 	cstr->is_adobe = GF_TRUE;
 
@@ -500,7 +500,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 	if (nb_pssh) {
 		char *pssh=NULL;
 		u32 pssh_size=0;
-		u32 pos = gf_bs_get_position(pssh_bs);
+		u32 pos = (u32) gf_bs_get_position(pssh_bs);
 		gf_bs_seek(pssh_bs, 0);
 		gf_bs_write_u32(pssh_bs, nb_pssh);
 		gf_bs_seek(pssh_bs, pos);
@@ -1195,7 +1195,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 
 	while (gf_bs_available(ctx->bs_r)) {
 		GF_Err e=GF_OK;
-		u32 cur_pos = gf_bs_get_position(ctx->bs_r);
+		u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 		if (cstr->is_nalu_video) {
 			u32 clear_bytes = 0;
@@ -1233,7 +1233,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 			//read data to encrypt
 			if (nalu_size > clear_bytes) {
 				/*get encrypted data start*/
-				cur_pos = gf_bs_get_position(ctx->bs_r);
+				cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 				/*skip bytes of encrypted data*/
 				gf_bs_skip_bytes(ctx->bs_r, nalu_size - clear_bytes);
 
@@ -1293,7 +1293,7 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 
 	if (sai_size) {
 		char *sai=NULL;
-		sai_size = gf_bs_get_position(sai_bs);
+		sai_size = (u32) gf_bs_get_position(sai_bs);
 		gf_bs_seek(sai_bs, cstr->tci->IV_size);
 		gf_bs_write_u16(sai_bs, nb_subsamples);
 		gf_bs_seek(sai_bs, sai_size);
@@ -1456,7 +1456,7 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 
 	if (sai_size) {
 		char *sai=NULL;
-		sai_size = gf_bs_get_position(sai_bs);
+		sai_size = (u32) gf_bs_get_position(sai_bs);
 		gf_bs_seek(sai_bs, cstr->tci->IV_size);
 		gf_bs_write_u16(sai_bs, nb_subsamples);
 		gf_bs_seek(sai_bs, sai_size);
