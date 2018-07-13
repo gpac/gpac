@@ -625,12 +625,12 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 	}
 }
 
-GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck, u32 pck_len, GF_BitStream *bs)
+GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck, u32 pck_len, Bool full_pck, GF_BitStream *bs)
 {
 	u64 dts, cts, bo;
 	u32 copy_size, consummed, dur, dep_flags, tsmodebits, durmodebits, spos;
-	s16 roll;
-	u8 carv;
+	s16 roll=0;
+	u8 carv=0;
 
 	//not yet setup
 	if (!gst || !gpck) return GF_NOT_FOUND;
@@ -640,50 +640,82 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 
 	spos = (u32) gf_bs_get_position(bs);
 
+	//flags first byte: 1(has_dts) 1(has_cts) 1(has_dur) 1(cts_diff_neg) 2(ts_mode) 2(ts_diff_mode)
+	//flags second byte: 3(sap) 2(encrypted) 1(has_sample_deps) 1(has builtin props) 1(has_ext)
+	//if (ext) {
+	// 	flags third byte: 1(has_byteoffset) 1(corrupted) 1(seek) 1(has_carousel) 2(ilaced) 2(cktype)
+	// 	flags fourth byte: 1(au start) 1(au end) 1(has props) reserved(5)
+	//}
+	//if has_dts, dts on tsmodebits
+	//if has_cts, has_dts ? cts_diff on ts_diff_mode : cts on tsmodebits
+	//if durmode>0, dur on ts_diff_mode
+	//if sap==4, roll on signed 16 bits
+	//if (has sample deps) sample_deps_flags on 8 bits
+	//if has_carousel, carrousel version on 8 bits
+	//if has_byteoffset, byte offset on 64 bits
+	//if (has builtin) vlen nb builtin_props then props[builtin_props]
+	//if (has props) vlen nb_str_props then props[nb_str_props]
+
 	//first flags byte
 	u8 has_dts = gf_bs_read_int(bs, 1);
 	u8 has_cts = gf_bs_read_int(bs, 1);
-	u8 has_bo = gf_bs_read_int(bs, 1);
-	u8 corr = gf_bs_read_int(bs, 1);
-	u8 seek = gf_bs_read_int(bs, 1);
-	u8 crypt = gf_bs_read_int(bs, 2);
-	u8 has_carv = gf_bs_read_int(bs, 1);
-
-	//second flags byte
-	u8 interl = gf_bs_read_int(bs, 2);
-	u8 cktype = gf_bs_read_int(bs, 2);
-	u8 sap = gf_bs_read_int(bs, 3);
-	u8 has_dep = gf_bs_read_int(bs, 1);
-
-	//third flags byte
+	u8 has_dur = gf_bs_read_int(bs, 1);
+	u8 cts_diff_neg = gf_bs_read_int(bs, 1);
 	u8 tsmode = gf_bs_read_int(bs, 2);
-	u8 durmode = gf_bs_read_int(bs, 2);
-	u8 is_start = gf_bs_read_int(bs, 1);
-	u8 is_end = gf_bs_read_int(bs, 1);
-	u8 has_4cc_props = gf_bs_read_int(bs, 1);
-	u8 has_str_props = gf_bs_read_int(bs, 1);
+	u8 tsdiffmode = gf_bs_read_int(bs, 2);
 
+	u8 sap = gf_bs_read_int(bs, 3);
+	u8 crypt = gf_bs_read_int(bs, 2);
+	u8 has_dep = gf_bs_read_int(bs, 1);
+	u8 has_4cc_props = gf_bs_read_int(bs, 1);
+	u8 has_ext = gf_bs_read_int(bs, 1);
+
+	//default field values without ext
+	u8 has_bo = 0, corr = 0, seek = 0, has_carv = 0, interl = 0, cktype = 0, has_str_props = 0;
+	u8 is_start = 1, is_end = 1;
+	if (has_ext) {
+		has_bo = gf_bs_read_int(bs, 1);
+		corr = gf_bs_read_int(bs, 1);
+		seek = gf_bs_read_int(bs, 1);
+		has_carv = gf_bs_read_int(bs, 1);
+		interl = gf_bs_read_int(bs, 2);
+		cktype = gf_bs_read_int(bs, 2);
+
+		is_start = gf_bs_read_int(bs, 1);
+		is_end = gf_bs_read_int(bs, 1);
+		has_str_props = gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 5); //reserved
+	}
 
 	if (tsmode==3) tsmodebits = 64;
 	else if (tsmode==2) tsmodebits = 32;
 	else if (tsmode==1) tsmodebits = 24;
 	else tsmodebits = 16;
 
+	if (tsdiffmode==3) durmodebits = 32;
+	else if (tsdiffmode==2) durmodebits = 24;
+	else if (tsdiffmode==1) durmodebits = 16;
+	else durmodebits = 8;
+
 	if (has_dts) {
 		if (tsmode==3) dts = gf_bs_read_long_int(bs, tsmodebits);
 		else dts = gf_bs_read_int(bs, tsmodebits);
 	}
 	if (has_cts) {
-		if (tsmode==3) cts = gf_bs_read_long_int(bs, tsmodebits);
-		else cts = gf_bs_read_int(bs, tsmodebits);
+		if (has_dts) {
+			s32 cts_diff = gf_bs_read_int(bs, durmodebits);
+			if (cts_diff_neg) {
+				cts = dts - cts_diff;
+			} else {
+				cts = dts + cts_diff;
+			}
+		} else {
+			if (tsmode==3) cts = gf_bs_read_long_int(bs, tsmodebits);
+			else cts = gf_bs_read_int(bs, tsmodebits);
+		}
 	}
 
-	if (durmode==3) durmodebits = 32;
-	else if (durmode==2) durmodebits = 16;
-	else if (durmode==1) durmodebits = 8;
-	else durmodebits = 0;
-
-	if (durmode) {
+	if (has_dur) {
 		dur = gf_bs_read_int(bs, durmodebits);
 	}
 
@@ -759,6 +791,12 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 
 	consummed = (u32) gf_bs_get_position(bs) - spos;
 	pck_len -= consummed;
+	if (full_pck) {
+		assert(gpck->full_block_size > consummed);
+		gpck->full_block_size -= consummed;
+		assert(gpck->full_block_size == pck_len);
+		gf_filter_pck_truncate(gpck->pck, gpck->full_block_size);
+	}
 	copy_size = gpck->full_block_size;
 	if (copy_size > pck_len)
 		copy_size = pck_len;
@@ -768,7 +806,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	gf_filter_pck_set_framing(gpck->pck, is_start, is_end);
 	if (has_dts) gf_filter_pck_set_dts(gpck->pck, dts);
 	if (has_cts) gf_filter_pck_set_cts(gpck->pck, cts);
-	if (durmode) gf_filter_pck_set_duration(gpck->pck, dur);
+	if (has_dur) gf_filter_pck_set_duration(gpck->pck, dur);
 	if (has_bo) gf_filter_pck_set_byte_offset(gpck->pck, bo);
 	if (corr) gf_filter_pck_set_corrupted(gpck->pck, corr);
 	if (interl) gf_filter_pck_set_interlaced(gpck->pck, interl);
@@ -919,8 +957,8 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		GF_Err e = GF_OK;
 		u32 payload_start, pck_len, block_size, block_offset;
 		u32 hdr_pos = (u32) gf_bs_get_position(ctx->bs_r);
-		/*Bool reserved =*/ gf_bs_read_int(ctx->bs_r, 2);
-		Bool pck_frag = gf_bs_read_int(ctx->bs_r, 1);
+		/*Bool reserved =*/ gf_bs_read_int(ctx->bs_r, 1);
+		u32 frag_flags = gf_bs_read_int(ctx->bs_r, 2);
 		Bool is_crypted = gf_bs_read_int(ctx->bs_r, 1);
 		u32 pck_type = gf_bs_read_int(ctx->bs_r, 4);
 		u16 sn = 0;
@@ -929,18 +967,27 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		u16 frame_sn = 0;
 		Bool has_sn = (pck_type==GFS_PCKTYPE_HDR) ? GF_FALSE : ctx->use_seq_num;
 
+		Bool full_pck = (frag_flags==0) ? GF_TRUE : GF_FALSE;
+		Bool pck_frag = (frag_flags>=2) ? GF_TRUE : GF_FALSE;
+
 		st_idx = gsfdmx_read_vlen(ctx->bs_r);
 		if (has_sn) {
 			frame_sn = gf_bs_read_u16(ctx->bs_r);
 		}
 
-		block_size = gsfdmx_read_vlen(ctx->bs_r);
-		block_offset = 0;
-		if (pck_frag) block_offset = gsfdmx_read_vlen(ctx->bs_r);
+		if (!full_pck) {
+			block_size = gsfdmx_read_vlen(ctx->bs_r);
+			block_offset = 0;
+			if (pck_frag) block_offset = gsfdmx_read_vlen(ctx->bs_r);
+		}
 
 		pck_len = gsfdmx_read_vlen(ctx->bs_r);
 		if (pck_len > gf_bs_available(ctx->bs_r)) {
 			break;
+		}
+		if (full_pck) {
+			block_size = pck_len;
+			block_offset = 0;
 		}
 
 		if ( (pck_type==GFS_PCKTYPE_PCK) && !ctx->nb_playing && ctx->tuned && gf_list_count(ctx->streams) ) {
@@ -1001,7 +1048,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 						}
 						if (!pck_frag) {
 							gf_bs_reassign_buffer(ctx->bs_pck, ctx->buffer + cur_pos, pck_len);
-							e = gsfdmx_read_data_pck(ctx, gst, gpck, pck_len, ctx->bs_pck);
+							e = gsfdmx_read_data_pck(ctx, gst, gpck, pck_len, full_pck, ctx->bs_pck);
 	 						append = GF_FALSE;
 						}
 					} else {
