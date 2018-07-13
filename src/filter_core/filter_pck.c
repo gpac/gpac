@@ -468,6 +468,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		return GF_OK;
 	}
 
+	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
+
 	if (!pck->info.clock_type)
 		gf_filter_forward_clock(pck->pid->filter);
 
@@ -516,6 +518,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			pck->pid->filter->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
 		}
 #endif
+		gf_rmt_end();
 		return GF_OK;
 	}
 	//now dispatched
@@ -807,6 +810,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 		gf_filter_packet_destroy(pck);
 	}
+	gf_rmt_end();
 	return GF_OK;
 }
 

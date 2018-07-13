@@ -1310,6 +1310,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (task->filter->nb_caps_renegociate) {
 		gf_filter_renegociate_output(task->filter);
 	}
+	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)
@@ -1317,6 +1318,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	else
 #endif
 		e = filter->freg->process(filter);
+
+	gf_rmt_end();
 
 	//flush all pending pid init requests following the call to init
 	if (filter->has_pending_pids) {

@@ -3109,6 +3109,8 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to discard a packet already discarded in filter %s\n", pid->filter->name));
 		return;
 	}
+
+	gf_rmt_begin(pck_drop, GF_RMT_AGGREGATE);
 	pck = pcki->pck;
 	//move to source pid
 	pid = pid->pid;
@@ -3173,6 +3175,8 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	if (pidinst->filter)
 		gf_filter_forward_clock(pidinst->filter);
+
+	gf_rmt_end();
 }
 
 Bool gf_filter_pid_is_eos(GF_FilterPid *pid)

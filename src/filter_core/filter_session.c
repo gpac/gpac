@@ -175,7 +175,9 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_data_alloc_reservoir = gf_fq_new(fsess->props_mx);
 
-
+#ifndef GPAC_DISABLE_REMOTERY
+	sprintf(fsess->main_th.rmt_name, "FSThread0");
+#endif
 
 	if (!fsess->filters || !fsess->tasks || !fsess->tasks_reservoir) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
@@ -188,6 +190,9 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		GF_SessionThread *sess_thread;
 		GF_SAFEALLOC(sess_thread, GF_SessionThread);
 		if (!sess_thread) continue;
+#ifndef GPAC_DISABLE_REMOTERY
+		sprintf(sess_thread->rmt_name, "FSThread%d", i+1);
+#endif
 		sess_thread->th = gf_th_new("MediaSessionThread");
 		if (!sess_thread->th) {
 			gf_free(sess_thread);
@@ -639,8 +644,16 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	//main thread not using this thread proc, don't wait for notifications
 	Bool do_use_sema = (!thid && fsess->no_main_thread) ? GF_FALSE : GF_TRUE;
 	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
+
 	GF_Filter *current_filter = NULL;
 	sess_thread->th_id = gf_th_id();
+
+#ifndef GPAC_DISABLE_REMOTERY
+	sess_thread->rmt_tasks=40;
+	gf_rmt_set_thread_name(sess_thread->rmt_name);
+#endif
+
+	gf_rmt_begin(fs_thread, 0);
 
 	while (1) {
 		Bool notified;
@@ -652,12 +665,22 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		GF_Filter *prev_current_filter = NULL;
 #endif
 
+#ifndef GPAC_DISABLE_REMOTERY
+		sess_thread->rmt_tasks--;
+		if (!sess_thread->rmt_tasks) {
+			gf_rmt_end();
+			gf_rmt_begin(fs_thread, 0);
+			sess_thread->rmt_tasks=40;
+		}
+#endif
+
 		if (do_use_sema && (current_filter==NULL)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", thid, use_main_sema ? "main" : "secondary"));
 			//wait for something to be done
 			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
 			consecutive_filter_tasks = 0;
 		}
+
 
 		active_start = gf_sys_clock_high_res();
 
@@ -1023,9 +1046,13 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		//no main thread, return
 		if (!thid && fsess->no_main_thread && !current_filter && !fsess->pid_connect_tasks_pending) {
+			gf_rmt_end();
 			return 0;
 		}
 	}
+
+	gf_rmt_end();
+
 	//no main thread, return
 	if (!thid && fsess->no_main_thread) {
 		return 0;

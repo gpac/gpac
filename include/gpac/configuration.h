@@ -129,6 +129,7 @@
 #define GPAC_HAS_GLU
 
 #define GPAC_MEMORY_TRACKING
+
 /*Configuration for XCode iOS*/
 #elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
 

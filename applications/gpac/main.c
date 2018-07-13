@@ -40,6 +40,8 @@ static u32 print_filter_info = 0;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
+static Bool enable_profiling = GF_FALSE;
+
 
 //the default set of separators
 static char separator_set[7] = ":=#,!@";
@@ -348,6 +350,8 @@ static void gpac_usage(void)
 			"                   (filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)\n"
 			"					Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually\n"
 			"-ltf            : load test-unit filters (used for for unit tests only).\n"
+			"-rmt[=PORT]     : enables profiling through remotery. Port can be optionnaly specified\n"
+
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
@@ -499,6 +503,8 @@ static int gpac_main(int argc, char **argv)
 			dump_graph = GF_TRUE;
 		} else if (!strcmp(arg, "-info")) {
 			print_filter_info = 1;
+		} else if (!strcmp(arg, "-rmt")) {
+			enable_profiling = GF_TRUE;
 		} else if (!strcmp(arg, "-nb")) {
 			disable_blocking = GF_TRUE;
 		} else if (strstr(arg, ":*") && list_filters) {
@@ -530,6 +536,7 @@ static int gpac_main(int argc, char **argv)
 			if (nb_threads<0) nb_threads=0;
 		}
 	}
+	if (enable_profiling) gf_sys_enable_profiling(GF_TRUE);
 
 	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_meta_filters || dump_codecs) ? GF_TRUE : GF_FALSE, disable_blocking, blacklist);
 	if (!session) {
