@@ -51,13 +51,15 @@ typedef struct
 	char *ext;
 	char *mime;
 	u32 block_size;
-	Bool blk, nc, mkp;
+	Bool blk, ka, mkp;
 
 	//only one output pid declared
 	GF_FilterPid *pid;
 
 #ifdef WIN32
 	HANDLE pipe;
+	HANDLE event;
+	OVERLAPPED overlap;
 #else
 	int fd;
 #endif
@@ -121,37 +123,39 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 		if (!ctx->mkp) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %d\n", szNamedPipe, GetLastError()));
 			e = GF_URL_ERROR;
+			goto err_exit;
+		}
+		DWORD pflags = PIPE_ACCESS_INBOUND;
+		DWORD flags = PIPE_TYPE_BYTE | PIPE_READMODE_BYTE;
+		if (ctx->blk) flags |= PIPE_WAIT;
+		else {
+			flags |= PIPE_NOWAIT;
+			pflags |= FILE_FLAG_OVERLAPPED;
+			if (!ctx->event) ctx->event = CreateEvent(NULL, TRUE, FALSE, NULL);
+			if (!ctx->event) {
+				e = GF_IO_ERR;
+				goto err_exit;
+			}
+			ctx->overlap.hEvent = ctx->event;
+		}
+		ctx->pipe = CreateNamedPipe(szNamedPipe, pflags, flags, 10, ctx->block_size, ctx->block_size, 0, NULL);
+
+		if (ctx->pipe == INVALID_HANDLE_VALUE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to create named pipe %s: %d\n", szNamedPipe, GetLastError()));
+			e = GF_URL_ERROR;
+			goto err_exit;
+		}
+		if (ctx->blk) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] Waiting for client connection for %s, blocking\n", szNamedPipe));
+		}
+		if (!ConnectNamedPipe(ctx->pipe, ctx->blk ? NULL : &ctx->overlap) && (GetLastError() != ERROR_PIPE_CONNECTED) && (GetLastError() != ERROR_PIPE_LISTENING)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to connect named pipe %s: %d\n", szNamedPipe, GetLastError()));
+			e = GF_IO_ERR;
+			CloseHandle(ctx->pipe);
+			ctx->pipe = INVALID_HANDLE_VALUE;
 		}
 		else {
-			DWORD flags = PIPE_TYPE_BYTE | PIPE_READMODE_BYTE;
-			if (ctx->blk) flags |= PIPE_WAIT;
-			else flags |= PIPE_NOWAIT;
-
-
-			ctx->pipe = CreateNamedPipe(szNamedPipe, PIPE_ACCESS_INBOUND,       // read/write access
-				flags,
-				10,
-				ctx->block_size,
-				ctx->block_size,
-				0,
-				NULL);
-
-			if (ctx->pipe == INVALID_HANDLE_VALUE) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to create named pipe %s: %d\n", szNamedPipe, GetLastError()));
-				e = GF_URL_ERROR;
-			}
-			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] Waiting for client connection for %s, blocking\n", szNamedPipe));
-				if (!ConnectNamedPipe(ctx->pipe, NULL) && (GetLastError() != ERROR_PIPE_CONNECTED)) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to connect named pipe %s: %d\n", szNamedPipe, GetLastError()));
-					e = GF_IO_ERR;
-					CloseHandle(ctx->pipe);
-					ctx->pipe = INVALID_HANDLE_VALUE;
-				}
-				else {
-					ctx->owns_pipe = GF_TRUE;
-				}
-			}
+			ctx->owns_pipe = GF_TRUE;
 		}
 	}
 	else {
@@ -180,6 +184,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	}
 #endif
 
+err_exit:
 	if (e) {
 		if (frag_par) frag_par[0] = '#';
 		if (cgi_par) cgi_par[0] = '?';
@@ -293,21 +298,51 @@ static GF_Err pipein_process(GF_Filter *filter)
 	errno = 0;
 #ifdef WIN32
 	nb_read = -1;
-	if (! ReadFile(ctx->pipe, ctx->buffer, to_read, &nb_read, NULL) ) {
+	if (!ctx->blk) {
+		DWORD res = WaitForMultipleObjects(1, &ctx->event, FALSE, 1);
+		ResetEvent(ctx->event);
+		if (res == WAIT_FAILED) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] WaitForMultipleObjects failed!\n"));
+			return GF_IO_ERR;
+		}
+		if (GetOverlappedResult(ctx->pipe, &ctx->overlap, &res, FALSE) == 0) {
+			if (GetLastError() == ERROR_IO_INCOMPLETE) {
+			}
+			else {
+				CloseHandle(ctx->pipe);
+				ctx->pipe = INVALID_HANDLE_VALUE;
+				if (!ctx->ka) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
+					gf_filter_pid_set_eos(ctx->pid);
+					return GF_EOS;
+				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
+				return pipein_initialize(filter);
+			}
+		}
+	}
+	if (! ReadFile(ctx->pipe, ctx->buffer, to_read, &nb_read, ctx->blk ? NULL : &ctx->overlap) ) {
 		s32 error = GetLastError();
-		if ((error == ERROR_IO_PENDING) || (error== ERROR_MORE_DATA)) {
+		if (error == ERROR_PIPE_LISTENING) return GF_OK;
+		else if ((error == ERROR_IO_PENDING) || (error== ERROR_MORE_DATA)) {
 			//non blocking pipe with writers active
 		}
 		else if (nb_read<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %d\n", error));
 			return GF_IO_ERR;
 		}
-		else if (!ctx->nc) {
+		else if (!ctx->ka) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
 			gf_filter_pid_set_eos(ctx->pid);
 			CloseHandle(ctx->pipe);
 			ctx->pipe = INVALID_HANDLE_VALUE;
 			return GF_EOS;
+		}
+		else if (error = ERROR_BROKEN_PIPE) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
+			CloseHandle(ctx->pipe);
+			ctx->pipe = INVALID_HANDLE_VALUE;
+			return pipein_initialize(filter);
 		}
 		return GF_OK;
 	}
@@ -320,7 +355,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 		} else if (nb_read<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
 			return GF_IO_ERR;
-		} else if (!ctx->nc) {
+		} else if (!ctx->ka) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
 			gf_filter_pid_set_eos(ctx->pid);
 			close(ctx->fd);
@@ -365,12 +400,12 @@ static GF_Err pipein_process(GF_Filter *filter)
 static const GF_FilterArgs PipeInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "buffer size used to read file", GF_PROP_UINT, "5000", NULL, GF_FALSE},
+	{ OFFS(block_size), "buffer size used to read pipe", GF_PROP_UINT, "5000", NULL, GF_FALSE},
 	{ OFFS(ext), "indicates file extension of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(blk), "opens pipe in block mode", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(nc), "do not close pipe if nothing is read - end of stream will never be triggered", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(mkp), "create pipe if not found - this will delete the pipe file upon destruction", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(blk), "opens pipe in block mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(ka), "keep-alive pipe when end of input is detected - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{0}
 };
 
@@ -393,7 +428,17 @@ GF_FilterRegister PipeInRegister = {
 		"\tEX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
 		"\tEX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
 		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
-		"",
+		"\n"\
+		"Input pipes are created by default in non-blocking mode\n"\
+		"\n"\
+		"The pipe input can create the pipe if not found using mkp option. On windows hosts, this will create a pipe server.\n"\
+		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction\n"\
+		"\n"\
+		"Input pipes can be setup to run forever using the ka option. In this case, end of stream will never be triggered\n"\
+		"This can be usefull to pipe raw streams from different process into gpac:\n"\
+		"Demux side: gpac -i pipe://mypipe:ext=.264:mkp:ka\n"\
+		"Client side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264\n"\
+	"",
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,
 	SETCAPS(PipeInCaps),

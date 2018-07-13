@@ -50,6 +50,7 @@ typedef struct
 	Double start, speed;
 	char *dst, *mime, *ext;
 	Bool dynext, mkp;
+	u32 block_size;
 
 
 	//only one input pid
@@ -138,8 +139,8 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 			ctx->pipe = CreateNamedPipe(szNamedPipe, PIPE_ACCESS_OUTBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE,
 				PIPE_TYPE_BYTE | PIPE_WAIT,
 				10,
-				1024,
-				1024,
+				ctx->block_size,
+				ctx->block_size,
 				0,
 				NULL);
 
@@ -189,29 +190,31 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 		e = ctx->owns_pipe ? GF_IO_ERR : GF_URL_ERROR;
 	}
 #endif
-	if (e) return e;
-
+	if (e) {
+		return e;
+	}
 	strcpy(ctx->szFileName, szFinalName);
 	return GF_OK;
 }
 
-static void pipeout_setup_file(GF_PipeOutCtx *ctx, Bool explicit_overwrite)
+static GF_Err pipeout_setup_file(GF_PipeOutCtx *ctx, Bool explicit_overwrite)
 {
 	const GF_PropertyValue *p;
 	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
 	if (p && p->value.string) {
-		pipeout_open_close(ctx, p->value.string, NULL, 0, explicit_overwrite);
+		return pipeout_open_close(ctx, p->value.string, NULL, 0, explicit_overwrite);
 	} else if (ctx->dynext) {
 		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
 		if (!p) {
 			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 			if (p && p->value.string) {
-				pipeout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
+				return pipeout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
 			}
 		}
 	} else {
-		pipeout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite);
+		return pipeout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite);
 	}
+	return GF_BAD_PARAM;
 }
 static GF_Err pipeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -346,7 +349,11 @@ static GF_Err pipeout_process(GF_Filter *filter)
 			ctx->fd<0
 #endif
 			) {
-			pipeout_setup_file(ctx, explicit_overwrite);
+			GF_Err e = pipeout_setup_file(ctx, explicit_overwrite);
+			if (e) {
+				gf_filter_setup_failure(filter, e);
+				return e;
+			}
 		}
 	}
 
@@ -363,7 +370,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 #ifdef WIN32
 			if (! WriteFile(ctx->pipe, pck_data, pck_size, &nb_write, NULL)) {
 				nb_write = 0;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %d\n", nb_write, pck_size, GetLastError() ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: error %d\n", nb_write, pck_size, GetLastError() ));
 			}
 #else
 			nb_write = (s32) write(ctx->fd, pck_data, pck_size);
@@ -446,7 +453,8 @@ static const GF_FilterArgs PipeOutArgs[] =
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{ OFFS(mkp), "create pipe if not found - this will delete the pipe file upon destruction", GF_PROP_BOOL, "false", NULL, GF_FALSE },
+	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE },
+	{ OFFS(block_size), "buffer size used to write to pipe, windows only", GF_PROP_UINT, "5000", NULL, GF_FALSE },
 	{0}
 };
 
@@ -473,6 +481,10 @@ GF_FilterRegister PipeOutRegister = {
 		"\tEX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"\
 		"\tEX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
 		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
+		"\n"\
+		"The pipe input can create the pipe if not found using mkp option. On windows hosts, this will create a pipe server.\n"\
+		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction\n"\
+		"\n"\
 	"",
 	.private_size = sizeof(GF_PipeOutCtx),
 	.args = PipeOutArgs,

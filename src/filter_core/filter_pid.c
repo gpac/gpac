@@ -225,7 +225,6 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 {
-	u64 dur;
 	GF_FilterPid *pid = task->pid;
 	GF_FilterPidInst *pidinst = task->udta;
 	GF_Filter *filter = pid->filter;
@@ -235,6 +234,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		TASK_REQUEUE(task)
 		return;
 	}
+
 	//reset PID instance buffers before checking number of output shared packets
 	//otherwise we may block because some of the shared packets are in the
 	//pid instance buffer (not consumed)
@@ -251,21 +251,34 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	gf_list_del_item(pid->destinations, pidinst);
 	pid->num_destinations = gf_list_count(pid->destinations);
 
-	dur = pidinst->buffer_duration;
 	if (pidinst->is_decoder_input) {
 		assert(pid->nb_decoder_inputs);
 		safe_int_dec(&pid->nb_decoder_inputs);
 	}
 	gf_filter_pid_inst_del(pidinst);
-
-	if (dur) {
+	//recompute max buf dur and nb units to update blocking state
+	if (pid->num_destinations) {
+		u32 i;
+		u32 nb_pck = 0;
+		s64 buf_dur = 0;
+		for (i = 0; i < pid->num_destinations; i++) {
+			GF_FilterPidInst *apidi = gf_list_get(pid->destinations, i);
+			u32 npck = gf_fq_count(apidi->packets);
+			if (npck > nb_pck) nb_pck = npck;
+			if (apidi->buffer_duration > buf_dur) buf_dur = apidi->buffer_duration;
+		}
+		pid->nb_buffer_unit = nb_pck;
+		pid->buffer_duration = buf_dur;
+	} else {
+		pid->nb_buffer_unit = 0;
 		pid->buffer_duration = 0;
-		//update blocking state
-		if (pid->would_block)
-			gf_filter_pid_check_unblock(pid);
-		else
-			gf_filter_pid_would_block(pid);
 	}
+
+	//update blocking state
+	if (pid->would_block)
+		gf_filter_pid_check_unblock(pid);
+	else
+		gf_filter_pid_would_block(pid);
 
 	//if filter still has input pids, another filter is still connected to it so we cannot destroy the pid
 	if (gf_list_count(filter->input_pids)) {

@@ -1546,12 +1546,29 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 
 void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 {
-	//don't accept twice a notif
-	if (filter->setup_notified) return;
-	filter->setup_notified = GF_TRUE;
+	//filter was already connected, trigger removal of all pid instances
+	if (filter->num_input_pids) {
+		filter->removed = GF_TRUE;
+		while (filter->num_input_pids) {
+			GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, 0);
+			GF_Filter *sfilter = pidinst->pid->filter;				
+			gf_list_del_item(filter->input_pids, pidinst);
+			pidinst->filter = NULL;
+			filter->num_input_pids = gf_list_count(filter->input_pids);
 
-	gf_filter_notification_failure(filter, reason, GF_TRUE);
+			//post a pid_delete task to also trigger removal of the filter if needed
+			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
+		}
+	}
+	else {
+		//don't accept twice a notif
+		if (filter->setup_notified) return;
+		filter->setup_notified = GF_TRUE;
+
+		gf_filter_notification_failure(filter, reason, GF_TRUE);
+	}
 }
+
 void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name)
 {
 	gf_fs_post_task(filter->session, task_fun, filter, NULL, task_name, udta);
