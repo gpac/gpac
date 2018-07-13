@@ -487,6 +487,9 @@
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
 		92DB148D1E4F05B500382A81 /* filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148B1E4F05B500382A81 /* filters.h */; };
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
+		92E164AB20F8EBAE0024A9CA /* dec_nvdec_sdk.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E164A820F8EBAE0024A9CA /* dec_nvdec_sdk.c */; };
+		92E164AC20F8EBAE0024A9CA /* dec_nvdec_sdk.h in Headers */ = {isa = PBXBuildFile; fileRef = 92E164A920F8EBAE0024A9CA /* dec_nvdec_sdk.h */; };
+		92E164AD20F8EBAE0024A9CA /* dec_nvdec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E164AA20F8EBAE0024A9CA /* dec_nvdec.c */; };
 		92E249902057B973002CC029 /* resample_audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E2498F2057B973002CC029 /* resample_audio.c */; };
 		92E318CF20645036007BE021 /* ff_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318CE20645036007BE021 /* ff_rescale.c */; };
 		92E318D120651834007BE021 /* vcrop.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318D020651834007BE021 /* vcrop.c */; };
@@ -1320,6 +1323,9 @@
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92DB148B1E4F05B500382A81 /* filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filters.h; path = ../include/gpac/filters.h; sourceTree = "<group>"; };
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
+		92E164A820F8EBAE0024A9CA /* dec_nvdec_sdk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_nvdec_sdk.c; path = filters/dec_nvdec_sdk.c; sourceTree = "<group>"; };
+		92E164A920F8EBAE0024A9CA /* dec_nvdec_sdk.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dec_nvdec_sdk.h; path = filters/dec_nvdec_sdk.h; sourceTree = "<group>"; };
+		92E164AA20F8EBAE0024A9CA /* dec_nvdec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_nvdec.c; path = filters/dec_nvdec.c; sourceTree = "<group>"; };
 		92E2498F2057B973002CC029 /* resample_audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = resample_audio.c; path = filters/resample_audio.c; sourceTree = "<group>"; };
 		92E318CE20645036007BE021 /* ff_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_rescale.c; path = filters/ff_rescale.c; sourceTree = "<group>"; };
 		92E318D020651834007BE021 /* vcrop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcrop.c; path = filters/vcrop.c; sourceTree = "<group>"; };
@@ -2408,6 +2414,16 @@
 			name = soft_raster;
 			sourceTree = "<group>";
 		};
+		92E164AE20F8EBB60024A9CA /* nvdec */ = {
+			isa = PBXGroup;
+			children = (
+				92E164A820F8EBAE0024A9CA /* dec_nvdec_sdk.c */,
+				92E164A920F8EBAE0024A9CA /* dec_nvdec_sdk.h */,
+				92E164AA20F8EBAE0024A9CA /* dec_nvdec.c */,
+			);
+			name = nvdec;
+			sourceTree = "<group>";
+		};
 		92F8D46F1F71641E00616F7C /* filter_core */ = {
 			isa = PBXGroup;
 			children = (
@@ -2483,6 +2499,7 @@
 				9206823320EA96AA0041169F /* mux_gsf.c */,
 				9290F5101FAB4C2C0038C30D /* mux_isom.c */,
 				9256B38A208662FB00088537 /* mux_ts.c */,
+				92E164AE20F8EBB60024A9CA /* nvdec */,
 				922E29822051940C00C8DCBB /* out_audio.c */,
 				9289D9F41FDEFFCD00C24F83 /* out_file.c */,
 				9206822D20EA69680041169F /* out_pipe.c */,
@@ -2619,6 +2636,7 @@
 				92B9A59B1F8660D700A24FE4 /* nodes_stacks.h in Headers */,
 				92BBFCFA1A7122AD006A7735 /* scene_manager.h in Headers */,
 				92BBFCB71A7122AD006A7735 /* dash.h in Headers */,
+				92E164AC20F8EBAE0024A9CA /* dec_nvdec_sdk.h in Headers */,
 				92BBFD0A1A7122AD006A7735 /* webvtt.h in Headers */,
 				9201015718D5A445003D1ACA /* mpeg2_ps.h in Headers */,
 				92BBFCD41A7122AD006A7735 /* scenegraph_dev.h in Headers */,
@@ -3012,6 +3030,7 @@
 				9257307F2056948D009DB328 /* rewrite_adts.c in Sources */,
 				9201013118D5A444003D1ACA /* lsr_enc.c in Sources */,
 				9201013218D5A445003D1ACA /* lsr_tables.c in Sources */,
+				92E164AB20F8EBAE0024A9CA /* dec_nvdec_sdk.c in Sources */,
 				924E805D206D357A00AB580F /* reframe_rawvid.c in Sources */,
 				9203644D20EE0F190087883E /* in_sock.c in Sources */,
 				92FA79432076687100AE005F /* rewind.c in Sources */,
@@ -3059,6 +3078,7 @@
 				9201015818D5A445003D1ACA /* mpegts.c in Sources */,
 				92B9A5AD1F8660D700A24FE4 /* clock.c in Sources */,
 				9234CF3D1FD7E00700CCDFA1 /* filter_register.c in Sources */,
+				92E164AD20F8EBAE0024A9CA /* dec_nvdec.c in Sources */,
 				9201015918D5A445003D1ACA /* reedsolomon.c in Sources */,
 				9201015A18D5A445003D1ACA /* saf.c in Sources */,
 				92B9A5B71F866D6500A24FE4 /* scene_node_init.c in Sources */,
