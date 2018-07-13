@@ -1079,7 +1079,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
 		//mux args, for now we only dump to file
-		sprintf(szArgs, "fileout:SID=2:dst=%s:dynext", dumper->out_name);
+		sprintf(szArgs, "fout:SID=2:dst=%s:dynext", dumper->out_name);
 		file_out = gf_fs_load_filter(fsess, szArgs);
 		if (!file_out) {
 			gf_fs_del(fsess);

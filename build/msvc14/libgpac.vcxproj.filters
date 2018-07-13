@@ -390,7 +390,6 @@
     <ClInclude Include="..\..\include\gpac\webvtt.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\atsc.h" />
     <ClInclude Include="..\..\src\filter_core\filter_session.h">
       <Filter>filter_core</Filter>
     </ClInclude>
@@ -403,7 +402,12 @@
     <ClInclude Include="..\..\src\filters\isoffin.h">
       <Filter>filters</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\crypt_tools.h" />
+    <ClInclude Include="..\..\include\gpac\atsc.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\gpac\crypt_tools.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -1387,9 +1391,6 @@
     <ClCompile Include="..\..\src\filters\write_vtt.c">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c" />
-    <ClCompile Include="..\..\src\filters\tileagg.c" />
-    <ClCompile Include="..\..\src\media_tools\crypt_tools.c" />
     <ClCompile Include="..\..\src\filters\dasher.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1419,6 +1420,15 @@
     </ClCompile>
     <ClCompile Include="..\..\src\filters\rewrite_obu.c">
       <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\tileagg.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\media_tools\crypt_tools.c">
+      <Filter>media_tools</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
