@@ -493,7 +493,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 		} else {
 			oh_select_active_layer(ctx->codec, 1);
-			oh_select_view_layer(ctx->codec, 0);
+			if (!ctx->avc_base_id)
+				oh_select_view_layer(ctx->codec, 0);
 		}
 
 #ifdef  OPENHEVC_HAS_AVC_BASE

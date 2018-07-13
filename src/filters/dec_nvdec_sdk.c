@@ -16,7 +16,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "cuda_sdk.h"
+
+#if defined(WIN32) || defined(GPAC_CONFIG_LINUX)
+
+#include "dec_nvdec_sdk.h"
 
 tcuInit                               *_cuInit;
 tcuDriverGetVersion                   *cuDriverGetVersion;
@@ -699,3 +702,5 @@ const char *cudaGetErrorEnum(CUresult error)
 	}
 	return "<unknown>";
 }
+
+#endif //WIN32

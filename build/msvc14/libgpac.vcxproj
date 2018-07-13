@@ -146,6 +146,7 @@
     <ClInclude Include="..\..\src\compositor\visual_manager.h" />
     <ClInclude Include="..\..\src\compositor\visual_manager_2d.h" />
     <ClInclude Include="..\..\src\compositor\visual_manager_3d.h" />
+    <ClInclude Include="..\..\src\filters\dec_nvdec_sdk.h" />
     <ClInclude Include="..\..\src\filters\ff_common.h" />
     <ClInclude Include="..\..\src\filters\in_rtp.h" />
     <ClInclude Include="..\..\src\filters\isoffin.h" />
@@ -243,6 +244,8 @@
     <ClCompile Include="..\..\src\filters\compose.c" />
     <ClCompile Include="..\..\src\filters\dasher.c" />
     <ClCompile Include="..\..\src\filters\decrypt_cenc_isma.c" />
+    <ClCompile Include="..\..\src\filters\dec_nvdec.c" />
+    <ClCompile Include="..\..\src\filters\dec_nvdec_sdk.c" />
     <ClCompile Include="..\..\src\filters\dmx_gsf.c" />
     <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c" />
     <ClCompile Include="..\..\src\filters\dec_ac52.c" />

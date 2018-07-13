@@ -55,6 +55,9 @@
     <Filter Include="filters">
       <UniqueIdentifier>{36bd8e9d-a6d6-4212-8659-33f6692fccaf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="filters\nvdec">
+      <UniqueIdentifier>{31cfbb94-a9c2-4ef2-b571-3f6887127e5b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\win32\inttypes.h">
@@ -407,6 +410,9 @@
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\crypt_tools.h">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\dec_nvdec_sdk.h">
+      <Filter>filters\nvdec</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1429,6 +1435,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\crypt_tools.c">
       <Filter>media_tools</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_nvdec.c">
+      <Filter>filters\nvdec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_nvdec_sdk.c">
+      <Filter>filters\nvdec</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
