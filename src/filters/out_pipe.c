@@ -186,7 +186,7 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 
 	if (ctx->fd<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_str(errno)));
-		e = ctx->owns_pipe ? GF_IO_ERR = GF_URL_ERROR;
+		e = ctx->owns_pipe ? GF_IO_ERR : GF_URL_ERROR;
 	}
 #endif
 	if (e) return e;
