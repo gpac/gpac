@@ -28,7 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#if defined(WIN32) || defined(GPAC_CONFIG_LINUX)
+#if defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
 
 #include "../compositor/gl_inc.h"
 
@@ -1042,7 +1042,7 @@ static void init_cuda_sdk()
 		nb_cuvid_inst++;
 		cuvid_load_state = 1;
 		if (res != CUDA_SUCCESS) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda %s\n", cudaGetErrorEnum(res) ) );
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] failed to init cuda %s\n", cudaGetErrorEnum(res) ) );
 		} else {
 			res = cuDeviceGetCount(&device_count);
 			if (res != CUDA_SUCCESS) {

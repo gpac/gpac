@@ -14,7 +14,7 @@
 
 #include <stdlib.h>
 
-#if defined(WIN32) || defined(GPAC_CONFIG_LINUX)
+#if defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
 
 #ifdef __cplusplus
 extern "C" {
