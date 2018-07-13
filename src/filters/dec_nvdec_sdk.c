@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <gpac/tools.h>
+
 #if defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
 
 #include "dec_nvdec_sdk.h"
@@ -173,6 +175,7 @@ tcuMemHostGetFlags                    *cuMemHostGetFlags;
 
 
 
+#if !defined(__APPLE__)
 tcuvidCreateVideoSource               *cuvidCreateVideoSource;
 tcuvidCreateVideoSourceW              *cuvidCreateVideoSourceW;
 tcuvidDestroyVideoSource              *cuvidDestroyVideoSource;
@@ -180,6 +183,7 @@ tcuvidSetVideoSourceState             *cuvidSetVideoSourceState;
 tcuvidGetVideoSourceState             *cuvidGetVideoSourceState;
 tcuvidGetSourceVideoFormat            *cuvidGetSourceVideoFormat;
 tcuvidGetSourceAudioFormat            *cuvidGetSourceAudioFormat;
+#endif
 
 tcuvidCreateVideoParser               *cuvidCreateVideoParser;
 tcuvidParseVideoData                  *cuvidParseVideoData;
@@ -206,8 +210,6 @@ tcuvidCtxUnlock                       *cuvidCtxUnlock;
 
 
 #define STRINGIFY(X) #X
-
-#include <gpac/tools.h>
 
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
 #include <Windows.h>
@@ -269,7 +271,6 @@ static char __CudaLibName[] = "libcuda.so";
 
 static char __CuvidLibName[] = "libnvcuvid.so";
 
-typedef void *CUDADRIVER;
 typedef void *CUVIDDRIVER;
 
 static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance)
@@ -614,6 +615,7 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
     CHECKED_CALL(LOAD_LIBRARY_CUVID(&CuvidDrvLib));
 
 	curr_lib = CuvidDrvLib;
+#if !defined(__APPLE__)
     // fetch all function pointers
     GET_PROC(cuvidCreateVideoSource);
     GET_PROC(cuvidCreateVideoSourceW);
@@ -622,6 +624,7 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
     GET_PROC(cuvidGetVideoSourceState);
     GET_PROC(cuvidGetSourceVideoFormat);
     GET_PROC(cuvidGetSourceAudioFormat);
+#endif
 
     GET_PROC(cuvidCreateVideoParser);
     GET_PROC(cuvidParseVideoData);

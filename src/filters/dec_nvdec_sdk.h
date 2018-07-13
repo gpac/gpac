@@ -2861,6 +2861,7 @@ typedef CUresult CUDAAPI tcuvidParseVideoData(CUvideoparser obj, CUVIDSOURCEDATA
  */
 typedef CUresult CUDAAPI tcuvidDestroyVideoParser(CUvideoparser obj);
 
+#if !defined(__APPLE__)
 extern tcuvidCreateVideoSource               *cuvidCreateVideoSource;
 extern tcuvidCreateVideoSourceW              *cuvidCreateVideoSourceW;
 extern tcuvidDestroyVideoSource              *cuvidDestroyVideoSource;
@@ -2868,6 +2869,8 @@ extern tcuvidSetVideoSourceState             *cuvidSetVideoSourceState;
 extern tcuvidGetVideoSourceState             *cuvidGetVideoSourceState;
 extern tcuvidGetSourceVideoFormat            *cuvidGetSourceVideoFormat;
 extern tcuvidGetSourceAudioFormat            *cuvidGetSourceAudioFormat;
+#endif
+
 
 extern tcuvidCreateVideoParser               *cuvidCreateVideoParser;
 extern tcuvidParseVideoData                  *cuvidParseVideoData;

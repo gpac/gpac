@@ -165,6 +165,9 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 			e = GF_URL_ERROR;
 		}
 	}
+
+err_exit:
+
 #else
 	if (!gf_file_exists(src) && ctx->mkp) {
 
@@ -184,7 +187,6 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	}
 #endif
 
-err_exit:
 	if (e) {
 		if (frag_par) frag_par[0] = '#';
 		if (cgi_par) cgi_par[0] = '?';
