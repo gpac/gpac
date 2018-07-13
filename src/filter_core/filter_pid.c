@@ -1135,7 +1135,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 			}
 			if (!prop_equal && !prop_excluded) {
 				all_caps_matched=GF_FALSE;
-			} else if (priority && ( (*priority) < cap->priority) ) {
+			} else if (priority && cap->priority) {
 				(*priority) = cap->priority;
 			}
 		}
@@ -1505,7 +1505,7 @@ static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegi
 		gf_list_add(original_filter_chain, (void *) filter_reg);
 		//and indicate its matching cap bundle
 		gf_list_add(original_filter_chain, (void *) &filter_reg->caps[filter_reg_bundle_idx]);
-		return 1;
+		return 1 + (255-priority);
 	}
 	bundle_idx=0;
 
