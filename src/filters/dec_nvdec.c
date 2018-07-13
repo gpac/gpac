@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2017-2018
  *					All rights reserved
  *
- *  This file is part of GPAC / codec pack module
+ *  This file is part of GPAC / NVidia Hardware decoder filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -24,13 +24,17 @@
  */
 
 #include <gpac/thread.h>
-#include <gpac/modules/codec.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
+#include <gpac/filters.h>
 
-#include "../../src/compositor/gl_inc.h"
+#if defined(WIN32) || defined(GPAC_CONFIG_LINUX)
 
-#include "cuda_sdk.h"
+#include "../compositor/gl_inc.h"
+
+
+
+#include "dec_nvdec_sdk.h"
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 #  pragma comment(lib, "opengl32")
@@ -38,35 +42,40 @@
 
 
 #ifdef LOAD_GL_1_5
-GLDECL_STATIC(glGenBuffers);
-GLDECL_STATIC(glBindBuffer);
-GLDECL_STATIC(glBufferData);
+GLDECL_EXTERN(glGenBuffers);
+GLDECL_EXTERN(glBindBuffer);
+GLDECL_EXTERN(glBufferData);
 #endif
 
 typedef struct _nv_dec_inst NVDecInstance;
 
 typedef struct _nv_dec_ctx
 {
-	GF_ESD *esd;
+	u32 unload;
+	u32 mode;
+	u32 num_surfaces;
+	u32 gl;
+
+	GF_FilterPid *ipid, *opid;
+	u32 codec_id;
 	Bool use_gl_texture;
 	u32 width, height, bpp_luma, bpp_chroma;
 	cudaVideoCodec codec_type;
 	cudaVideoChromaFormat chroma_fmt;
 	
-	u32 pixel_ar, out_size, stride, pix_fmt;
+	u32 out_size, stride, pix_fmt;
 	u32 reload_decoder_state;
 	Bool skip_next_frame;
 	CUresult decode_error, dec_create_error;
 	Bool frame_size_changed;
-	u32 num_surfaces;
 	Bool needs_resetup;
-	u32 unload_inactive_mode;
 	unsigned long prefer_dec_mode;
 
 	NVDecInstance *dec_inst;
 
 	GF_List *frames;
 	GF_List *frames_res;
+	GF_List *src_packets;
 
 	struct __nv_frame *pending_frame;
 
@@ -96,7 +105,7 @@ typedef struct __nv_frame
 {
 	CUVIDPARSERDISPINFO frame_info;
 	NVDecCtx *ctx;
-	GF_MediaDecoderFrame gframe;
+	GF_FilterHWFrame gframe;
 	Bool y_mapped, uv_mapped;
 } NVDecFrame;
 
@@ -293,6 +302,14 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 
 	update_pix_fmt(ctx, use_10bits);
 
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(ctx->bpp_luma));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_UV, &PROP_UINT(ctx->bpp_chroma));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt));
+
+
 	assert(ctx->out_size);
 	assert(ctx->stride);
 	ctx->dec_inst->stride = ctx->stride;
@@ -355,35 +372,34 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 	return 1;
 }
 
-static GF_Err NVDec_ConfigureStream(GF_BaseDecoder *ifcg)
+static GF_Err nvdec_configure_stream(GF_Filter *filter, NVDecCtx *ctx)
 {
 	CUresult res;
     CUVIDPARSERPARAMS oVideoParserParameters;
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
 
 	//create a video parser and a video decoder
     memset(&oVideoParserParameters, 0, sizeof(CUVIDPARSERPARAMS));
 	ctx->needs_resetup = GF_FALSE;
 
-	switch (ctx->esd->decoderConfig->objectTypeIndication) {
-	case GPAC_OTI_VIDEO_MPEG1: 
+	switch (ctx->codec_id) {
+	case GF_CODECID_MPEG1: 
 		ctx->codec_type = cudaVideoCodec_MPEG1;
 		break;
-	case GPAC_OTI_VIDEO_MPEG2_SIMPLE: 
-	case GPAC_OTI_VIDEO_MPEG2_MAIN: 
-	case GPAC_OTI_VIDEO_MPEG2_SNR: 
-	case GPAC_OTI_VIDEO_MPEG2_SPATIAL: 
-	case GPAC_OTI_VIDEO_MPEG2_HIGH: 
-	case GPAC_OTI_VIDEO_MPEG2_422: 
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_SPATIAL:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_422:
 		ctx->codec_type = cudaVideoCodec_MPEG2;
 		break;
-	case GPAC_OTI_VIDEO_MPEG4_PART2: 
+	case GF_CODECID_MPEG4_PART2:
 		ctx->codec_type = cudaVideoCodec_MPEG4;
 		break;
-	case GPAC_OTI_VIDEO_AVC: 
+	case GF_CODECID_AVC:
 		ctx->codec_type = cudaVideoCodec_H264;
 		break;
-	case GPAC_OTI_VIDEO_HEVC: 
+	case GF_CODECID_HEVC:
 		ctx->codec_type = cudaVideoCodec_HEVC;
 		break;
 	}
@@ -420,17 +436,64 @@ static GF_Err NVDec_ConfigureStream(GF_BaseDecoder *ifcg)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] video parser init OK\n") );
 
+	switch (ctx->codec_type) {
+	case cudaVideoCodec_MPEG1:
+		gf_filter_set_name(filter, ctx->use_gl_texture ? "NVidia HWGL MPEG-1" : "NVidia HW MPEG-1");
+		break;
+	case cudaVideoCodec_MPEG2:
+		gf_filter_set_name(filter, ctx->use_gl_texture ? "NVidia HWGLMPEG-2" : "NVidia HW MPEG-2");
+		break;
+	case cudaVideoCodec_MPEG4:
+		gf_filter_set_name(filter, ctx->use_gl_texture ? "NVidia HWGL MPEG-4 part2" : "NVidia HW MPEG-4 part2");
+		break;
+	case cudaVideoCodec_H264:
+		gf_filter_set_name(filter, ctx->use_gl_texture ? "NVidia HWGL AVC|H264" : "NVidia HW AVC|H264");
+		break;
+	case cudaVideoCodec_HEVC:
+		gf_filter_set_name(filter, ctx->use_gl_texture ? "NVidia HWGL HEVC" : "NVidia HW HEVC");
+		break;
+	case cudaVideoCodec_VC1:
+		gf_filter_set_name(filter, ctx->use_gl_texture ? "NVidia HWGL VC1" : "NVidia HW VC1");
+		break;
+	default:
+		break;
+	}
 	return GF_OK;
 }
 
-static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	const char *opt;
 	CUresult res;
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
-	
-	if (ctx->esd) return GF_NOT_SUPPORTED;
-	ctx->esd = esd;
+	NVDecCtx *ctx = (NVDecCtx *) gf_filter_get_udta(filter);
+
+	if (is_remove) {
+		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
+		ctx->opid = NULL;
+		ctx->ipid = NULL;
+
+		if (ctx->unload == 2) {
+			global_nb_loaded_nvdec--;
+			if (ctx->dec_inst) {
+				assert(global_unactive_decoders);
+				gf_mx_p(global_inst_mutex);
+				ctx->dec_inst->ctx = NULL;
+				gf_list_add(global_unactive_decoders, ctx->dec_inst);
+				ctx->dec_inst = NULL;
+				gf_mx_v(global_inst_mutex);
+			}
+		}
+	}
+	if (ctx->ipid && (ctx->ipid != pid)) return GF_REQUIRES_NEW_INSTANCE;
+
+	ctx->ipid = pid;
+	ctx->use_gl_texture = ctx->gl;
+
+	if (!ctx->opid) 
+		ctx->opid = gf_filter_pid_new(filter);
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 
 	if (! cuda_ctx) {
 	    int major, minor;
@@ -479,41 +542,17 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			}
 		}
 	}
+	
+	if (ctx->mode == 2) ctx->prefer_dec_mode = cudaVideoCreate_PreferDXVA;
+	else if (ctx->mode == 1) ctx->prefer_dec_mode = cudaVideoCreate_PreferCUDA;
+	else ctx->prefer_dec_mode = cudaVideoCreate_PreferCUVID;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "NumSurfaces");
-	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "NumSurfaces", "20");
-		ctx->num_surfaces = 20;
-	} else {
-		ctx->num_surfaces = atoi(opt);
-		if (!ctx->num_surfaces) ctx->num_surfaces = 20;
-	}
-
-	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive");
-	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive", "no");
-	} else if (!strcmp(opt, "destroy")) {
-		ctx->unload_inactive_mode = 1;
-	} else if (!strcmp(opt, "reuse")) {
-		ctx->unload_inactive_mode = 2;
-	}
-
-	if (ctx->unload_inactive_mode == 2) {
+	if (ctx->unload == 2) {
 		global_nb_loaded_nvdec++;
 		if (!global_inst_mutex ) global_inst_mutex  = gf_mx_new("NVDecGlobal");
 		gf_mx_p(global_inst_mutex);
 		if (!global_unactive_decoders) global_unactive_decoders = gf_list_new();
 		gf_mx_v(global_inst_mutex);
-	}
-
-    ctx->prefer_dec_mode = cudaVideoCreate_PreferCUVID;
-	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "PreferMode");
-	if (opt && !stricmp(opt, "dxva")) {
-	    ctx->prefer_dec_mode = cudaVideoCreate_PreferDXVA;
-	} else if (opt && !stricmp(opt, "cuda")) {
-	    ctx->prefer_dec_mode = cudaVideoCreate_PreferCUDA;
-	} else if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "PreferMode", "cuvid");
 	}
 
 
@@ -522,149 +561,27 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	return GF_OK;
 }
 
-static GF_Err NVDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
+static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
-	ctx->esd = NULL;
-	ctx->dec_create_error = 0;
-
-	if (ctx->unload_inactive_mode == 2) {
-		global_nb_loaded_nvdec--;
-		if (ctx->dec_inst) {
-			assert(global_unactive_decoders);
-			gf_mx_p(global_inst_mutex);
-			ctx->dec_inst->ctx = NULL;
-			gf_list_add(global_unactive_decoders, ctx->dec_inst);
-			ctx->dec_inst = NULL;
-			gf_mx_v(global_inst_mutex);
+	NVDecCtx *ctx = (NVDecCtx *)gf_filter_get_udta(filter);
+	if (evt->base.type == GF_FEVT_PLAY) {
+		while (gf_list_count(ctx->frames)) {
+			NVDecFrame *f = gf_list_pop_back(ctx->frames);
+			gf_list_add(ctx->frames_res, f);
 		}
 	}
-	return GF_OK;
+	return GF_FALSE;
 }
 
-static Bool NVDec_check_cuda_gl(NVDecCtx *ctx)
-{
-    int major, minor;
-    char deviceName[256];
-	CUresult res;
 
-	if (cuda_ctx) return cuda_ctx_gl;
-
-	res = cuDeviceGet(&cuda_dev, 0);
-	if (res != CUDA_SUCCESS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda device %s\n", cudaGetErrorEnum(res) ) );
-		return GF_IO_ERR;
-	}
-
-	cuDeviceComputeCapability(&major, &minor, cuda_dev);
-	cuDeviceGetName(deviceName, 256, cuda_dev);
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] GPU Device %s (idx 0) has SM %d.%d compute capability\n", deviceName, major, minor));
-
-	res = cuGLCtxCreate(&cuda_ctx, CU_CTX_BLOCKING_SYNC, cuda_dev);
-
-	if (res == CUDA_SUCCESS) {
-#ifdef LOAD_GL_1_5
-		GET_GLFUN(glGenBuffers);
-		GET_GLFUN(glBindBuffer);
-		GET_GLFUN(glBufferData);
-#endif
-		cuda_ctx_gl = GF_TRUE;
-	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] Couldn't initialize cuda OpenGL context %s\n\tcheck you started the player without compositor thread (-no-cthread option)\n\tDisabling OpenGL support\n", cudaGetErrorEnum(res) ) );
-	}
-	return cuda_ctx_gl;
-}
-
-static GF_Err NVDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
-{
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
-	const char *opt;
-	
-	switch (capability->CapCode) {
-	case GF_CODEC_RESILIENT:
-		capability->cap.valueInt = 1;
-		break;
-	case GF_CODEC_WIDTH:
-		capability->cap.valueInt = ctx->width;
-		break;
-	case GF_CODEC_HEIGHT:
-		capability->cap.valueInt = ctx->height;
-		break;
-	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = ctx->stride;
-		break;
-	case GF_CODEC_FPS:
-		capability->cap.valueFloat = 30.0;
-		break;
-	case GF_CODEC_PAR:
-		capability->cap.valueInt = ctx->pixel_ar;
-		break;
-	case GF_CODEC_OUTPUT_SIZE:
-		capability->cap.valueInt = ctx->out_size;
-		break;
-	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = ctx->pix_fmt;
-		break;
-	case GF_CODEC_BUFFER_MIN:
-		capability->cap.valueInt = 1;
-		break;
-	case GF_CODEC_BUFFER_MAX:
-		//since we do the temporal de-interleaving ask for more CUs to avoid displaying refs before reordered frames
-		capability->cap.valueInt = ctx->use_gl_texture ? 6 : 4;
-		break;
-	/*by default we use 4 bytes padding (otherwise it happens that XviD crashes on some videos...)*/
-	case GF_CODEC_PADDING_BYTES:
-		capability->cap.valueInt = 0;
-		break;
-	/*reorder is up to us*/
-	case GF_CODEC_REORDER:
-		capability->cap.valueInt = 0;
-		break;
-	case GF_CODEC_WANTS_THREAD:
-		capability->cap.valueInt = 0;
-		break;
-	case GF_CODEC_FRAME_OUTPUT:
-		opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "DisableGL");
-		capability->cap.valueInt = (!opt || strcmp(opt, "yes")) ? 1 : 0;
-		if (capability->cap.valueInt && !NVDec_check_cuda_gl(ctx)) {
-			capability->cap.valueInt = 0;
-		}
-		break;
-	case GF_CODEC_FORCE_ANNEXB:
-		capability->cap.valueInt = 1;
-		break;
-	/*not known at our level...*/
-	case GF_CODEC_CU_DURATION:
-	default:
-		capability->cap.valueInt = 0;
-		break;
-	}
-	return GF_OK;
-}
-
-static GF_Err NVDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
-{
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
-	
-	switch (capability.CapCode) {
-	case GF_CODEC_FRAME_OUTPUT:
-		if (capability.cap.valueInt == 2) {
-			ctx->use_gl_texture = GF_TRUE;
-		} else if (capability.cap.valueInt == 0) {
-			ctx->use_gl_texture = GF_FALSE;
-		} else {
-			return GF_NOT_SUPPORTED;
-		}
-		return GF_OK;
-
+#if 0
 	case GF_CODEC_ABORT:
 		while (gf_list_count(ctx->frames)) {
 			NVDecFrame *f = (NVDecFrame *) gf_list_pop_back(ctx->frames);
 			memset(f, 0, sizeof(NVDecFrame));
 			gf_list_add(ctx->frames_res, f);
 		}
-		if (ctx->unload_inactive_mode == 2) {
+		if (ctx->unload == 2) {
 			if (ctx->dec_inst) {
 				assert(global_unactive_decoders);
 				gf_mx_p(global_inst_mutex);
@@ -681,7 +598,7 @@ static GF_Err NVDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability cap
 			}
 			ctx->needs_resetup = GF_TRUE;
 			ctx->dec_create_error = CUDA_SUCCESS;
-		} else if (ctx->unload_inactive_mode == 1) {
+		} else if (ctx->unload == 1) {
 			if (ctx->dec_inst) {
 				nvdec_destroy_decoder(ctx->dec_inst);
 			}
@@ -690,46 +607,82 @@ static GF_Err NVDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability cap
 		}
 		return GF_OK;
 	}
+#endif
 
-	/*return unsupported to avoid confusion by the player (like color space changing ...) */
-	return GF_NOT_SUPPORTED;
+static GF_Err nvdec_send_hw_frame(NVDecCtx *ctx);
+
+static void nvdec_reset_pcks(NVDecCtx *ctx)
+{
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
 }
 
+static void nvdec_merge_pck_props(NVDecCtx *ctx, NVDecFrame *f,  GF_FilterPacket *dst_pck)
+{
+	u32 i, count;
+	GF_FilterPacket *src_pck = NULL;
+	count = gf_list_count(ctx->src_packets);
+	for (i = 0; i<count; i++) {
+		src_pck = gf_list_get(ctx->src_packets, i);
+		if (gf_filter_pck_get_cts(src_pck) == f->frame_info.timestamp) {
+			gf_filter_pck_merge_properties(src_pck, dst_pck);
+			gf_list_rem(ctx->src_packets, i);
+			gf_filter_pck_unref(src_pck);
+			return;
+		}
+	}
+	//not found !
+	gf_filter_pck_set_cts(dst_pck, f->frame_info.timestamp);
+	if (!gf_filter_pck_get_interlaced(dst_pck) && !f->frame_info.progressive_frame) {
+		gf_filter_pck_set_interlaced(dst_pck, f->frame_info.top_field_first ? 1 : 2);
+	}
+}
 
-static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
-                               char *inBuffer, u32 inBufferLength,
-                               u16 ES_ID, u32 *CTS,
-                               char *outBuffer, u32 *outBufferLength,
-                               u8 PaddingBits, u32 mmlevel)
+static GF_Err nvdec_process(GF_Filter *filter)
 {
 	NVDecFrame *f;
     CUdeviceptr map_mem = 0;
 	CUVIDPROCPARAMS params;
 	unsigned int pitch = 0;
 	GF_Err e;
+	u32 pck_size;
+	const char *data;
+	char *output;
+	GF_FilterPacket *ipck, *dst_pck;
     CUVIDSOURCEDATAPACKET cu_pkt;
 	CUresult res;
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
+	NVDecCtx *ctx = (NVDecCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->needs_resetup) {
-		NVDec_ConfigureStream((GF_BaseDecoder*)ifcg);
+		nvdec_configure_stream(filter, ctx);
 	}
+
+	ipck = gf_filter_pid_get_packet(ctx->ipid);
 
 	memset(&cu_pkt, 0, sizeof(CUVIDSOURCEDATAPACKET));
 	cu_pkt.flags = CUVID_PKT_TIMESTAMP;
-	if (!inBuffer) {
+	pck_size = 0;;
+	data = NULL;
+	if (!ipck) {
 		cu_pkt.flags |= CUVID_PKT_ENDOFSTREAM;
 		ctx->skip_next_frame = GF_FALSE;
+	} else {
+		data = gf_filter_pck_get_data(ipck, &pck_size);
 	}
 
 	if (ctx->dec_create_error) 
 		return GF_IO_ERR;
 	
-	cu_pkt.payload_size = inBufferLength;
-	cu_pkt.payload = inBuffer;
-	cu_pkt.timestamp = *CTS;
-	if (mmlevel == GF_CODEC_LEVEL_SEEK) 
-		cu_pkt.timestamp |= 0x1FFFFFFFFUL;
+	cu_pkt.payload_size = pck_size;
+	cu_pkt.payload = data;
+	if (ipck) {
+		cu_pkt.timestamp = gf_filter_pck_get_cts(ipck);
+
+		if (gf_filter_pck_get_seek_flag(ipck))
+			cu_pkt.timestamp |= 0x1FFFFFFFFUL;
+	}
 
 	assert(!ctx->dec_inst->th_id || (ctx->dec_inst->th_id == gf_th_id() ) );
 
@@ -746,7 +699,12 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	}
 	
-	*outBufferLength = 0;
+	//queue reference to source packet props
+	if (ipck) {
+		gf_filter_pck_ref_props(&ipck);
+		gf_list_add(ctx->src_packets, ipck);
+	}
+
 	e = GF_OK;
 	if (ctx->reload_decoder_state) {
 		if (ctx->reload_decoder_state==2) {
@@ -766,30 +724,35 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 			nvdec_init_decoder(ctx);
 		}
 		cuCtxPopCurrent(NULL);
-		*outBufferLength = ctx->out_size;
-		ctx->frame_size_changed = GF_TRUE;
-		return GF_BUFFER_TOO_SMALL;
+		return GF_OK;
 	}
-
+	//drop packet - TODO keep props
+	gf_filter_pid_drop_packet(ctx->ipid);
 
 	f = gf_list_pop_front(ctx->frames);
 	if (!f) {
 		cuCtxPopCurrent(NULL);
+		if (!ipck && gf_filter_pid_is_eos(ctx->ipid)) {
+			nvdec_reset_pcks(ctx);
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
 		return GF_OK;
 	}
 	if (ctx->use_gl_texture) {
-		*outBufferLength = ctx->out_size;
-		*CTS = (u32) f->frame_info.timestamp;
 		assert(!ctx->pending_frame);
 		ctx->pending_frame = f;
-		return GF_OK;
+		return nvdec_send_hw_frame(ctx);
 	}
 
 	assert(ctx->out_size);
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
+
 	memset(&params, 0, sizeof(params));
 	params.progressive_frame = f->frame_info.progressive_frame;
-	//params.second_field = 0;
 	params.top_field_first = f->frame_info.top_field_first;
+
+	nvdec_merge_pck_props(ctx, f, dst_pck);
 
 	e = GF_OK;
 	res = cuvidMapVideoFrame(ctx->dec_inst->cu_decoder, f->frame_info.picture_index, &map_mem , &pitch, &params);
@@ -801,7 +764,7 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 		mcpi.srcPitch = pitch;
 
 		mcpi.dstMemoryType = CU_MEMORYTYPE_HOST;
-		mcpi.dstHost = outBuffer;
+		mcpi.dstHost = output;
 		mcpi.dstPitch = ctx->stride;
 		mcpi.WidthInBytes = MIN(pitch, ctx->stride);
 		mcpi.Height = ctx->height;
@@ -813,22 +776,25 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 		} else {
 
 			mcpi.srcDevice = map_mem + ctx->height * pitch;
-			mcpi.dstHost = outBuffer + ctx->stride * ctx->height;
+			mcpi.dstHost = output + ctx->stride * ctx->height;
 			mcpi.Height = ctx->height/2;
 
 			res = cuMemcpy2D(&mcpi);
 			if (res != CUDA_SUCCESS) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to copy UV video plane from GPU to host mem %s\n", cudaGetErrorEnum(res) ) );
 				e = GF_IO_ERR;
-			} else {
-				*outBufferLength = ctx->out_size;
-				*CTS = (u32) f->frame_info.timestamp;
 			}
 		}
 		cuvidUnmapVideoFrame(ctx->dec_inst->cu_decoder, map_mem);
+
+		//TODO copy packet props
+		gf_filter_pck_set_cts(dst_pck, f->frame_info.timestamp);
+		gf_filter_pck_send(dst_pck);
+
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map video frame data %s\n", cudaGetErrorEnum(res) ) );
 		e = GF_IO_ERR;
+		gf_filter_pck_discard(dst_pck);
 	}
 	cuCtxPopCurrent(NULL);
 
@@ -838,15 +804,20 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 	return e;
 }
 
-void NVDecFrame_Release(GF_MediaDecoderFrame *frame)
+void nvframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	NVDecFrame *f = (NVDecFrame *)frame->user_data;
+	GF_FilterHWFrame *frame = gf_filter_pck_get_hw_frame(pck);
+	NVDecFrame *f = (NVDecFrame*) frame->user_data;
 	NVDecCtx *ctx = (NVDecCtx *)f->ctx;
+
 	memset(f, 0, sizeof(NVDecFrame));
 	gf_list_add(ctx->frames_res, f);
 }
 
-GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
+/*Define codec matrix*/
+typedef struct __matrix GF_NVCodecMatrix;
+
+GF_Err nvframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_NVCodecMatrix * texcoordmatrix)
 {
 	CUDA_MEMCPY2D mcpi;
 	CUVIDPROCPARAMS params;
@@ -1023,88 +994,41 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 	return e;
 }
 
-GF_Err NVDec_GetOutputFrame(struct _mediadecoder *dec, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize)
+GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 {
+	GF_FilterPacket *dst_pck;
 	NVDecFrame *f;
-	NVDecCtx *ctx = (NVDecCtx *)dec->privateStack;
-	
-	*needs_resize = GF_FALSE;
 	
 	if (!ctx->pending_frame) return GF_BAD_PARAM;
 	f = ctx->pending_frame;
 	ctx->pending_frame = NULL;
 
 	f->gframe.user_data = f;
-	f->gframe.Release = NVDecFrame_Release;
-	f->gframe.GetPlane = NULL;
-	f->gframe.GetGLTexture = NVDecFrame_GetGLTexture;
+	f->gframe.get_plane = NULL;
+	f->gframe.get_gl_texture = nvframe_get_gl_texture;
 
-	*frame = &f->gframe;
 	if (ctx->frame_size_changed) {
 		ctx->frame_size_changed = GF_FALSE;
-		*needs_resize = GF_TRUE;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt));
 	}
+
+
+	if (!gf_list_count(ctx->frames) && ctx->needs_resetup)
+		f->gframe.hardware_reset_pending = GF_TRUE;
+
+	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &f->gframe, nvframe_release);
+
+	nvdec_merge_pck_props(ctx, f, dst_pck);
+
+	gf_filter_pck_send(dst_pck);
+
 	return GF_OK;
 }
 
 
-static u32 NVDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
-{
-	const char *opt;
-	if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
-	/*media type query*/
-	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
-
-	opt = gf_modules_get_option((GF_BaseInterface *)dec, "NVDec", "Enabled");
-	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)dec, "NVDec", "Enabled", "no");
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] nvdec disabled by default, enable it in config file NVDec:Enabled=yes\n") );
-		return GF_CODEC_NOT_SUPPORTED;
-	} else if (!strcmp(opt, "no")) {
-		return GF_CODEC_NOT_SUPPORTED;
-	}
-
-	switch (esd->decoderConfig->objectTypeIndication) {
-	case GPAC_OTI_VIDEO_HEVC:
-		return GF_CODEC_SUPPORTED * 2;
-	case GPAC_OTI_VIDEO_AVC:
-		return GF_CODEC_SUPPORTED * 2;
-
-	case GPAC_OTI_VIDEO_MPEG4_PART2:
-		return GF_CODEC_SUPPORTED * 2;
-
-	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-	case GPAC_OTI_VIDEO_MPEG2_MAIN:
-	case GPAC_OTI_VIDEO_MPEG2_SNR:
-	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-	case GPAC_OTI_VIDEO_MPEG2_HIGH:
-	case GPAC_OTI_VIDEO_MPEG2_422:
-		return GF_CODEC_SUPPORTED * 2;
-	}
-	return GF_CODEC_NOT_SUPPORTED;
-}
-
-static const char *NVDec_GetCodecName(GF_BaseDecoder *dec)
-{
-	NVDecCtx *ctx = (NVDecCtx *)dec->privateStack;
-	switch (ctx->codec_type) {
-	case cudaVideoCodec_MPEG1:
-		return ctx->use_gl_texture ? "NVidia HWGL MPEG-1" :  "NVidia HW MPEG-1";
-	case cudaVideoCodec_MPEG2:
-		return ctx->use_gl_texture ? "NVidia HWGLMPEG-2" : "NVidia HW MPEG-2";
-	case cudaVideoCodec_MPEG4:
-		return ctx->use_gl_texture ? "NVidia HWGL MPEG-4 part2" : "NVidia HW MPEG-4 part2";
-	case cudaVideoCodec_H264:
-		return ctx->use_gl_texture ? "NVidia HWGL AVC|H264" : "NVidia HW AVC|H264";
-	case cudaVideoCodec_HEVC:
-		return ctx->use_gl_texture ? "NVidia HWGL HEVC" : "NVidia HW HEVC";
-	case cudaVideoCodec_VC1:
-		return ctx->use_gl_texture ? "NVidia HWGL VC1" : "NVidia HW VC1";
-	default:
-		break;
-	}
-	return ctx->use_gl_texture ? "NVidia HWGL unknown decoder" : "NVidia HW unknown decoder";
-}
 
 
 static u32 cuvid_load_state = 0;
@@ -1136,45 +1060,22 @@ static void init_cuda_sdk()
 	}
 }
 
-GF_BaseDecoder *NewNVDec()
+static GF_Err nvdec_initialize(GF_Filter *filter)
 {
-	GF_MediaDecoder *ifcd;
-	NVDecCtx *dec;
+	NVDecCtx *ctx = gf_filter_get_udta(filter);
 
-	init_cuda_sdk();
-
-	if (cuvid_load_state != 2) return NULL;
-
-	GF_SAFEALLOC(ifcd, GF_MediaDecoder);
-	if (!ifcd) return NULL;
-	GF_SAFEALLOC(dec, NVDecCtx);
-	if (!dec) {
-		gf_free(ifcd);
-		return NULL;
-	}
-	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "NVidia HW Decoder", "gpac distribution")
-
-	dec->frames = gf_list_new();
-	dec->frames_res = gf_list_new();
-	ifcd->privateStack = dec;
-
-	/*setup our own interface*/
-	ifcd->AttachStream = NVDec_AttachStream;
-	ifcd->DetachStream = NVDec_DetachStream;
-	ifcd->GetCapabilities = NVDec_GetCapabilities;
-	ifcd->SetCapabilities = NVDec_SetCapabilities;
-	ifcd->GetName = NVDec_GetCodecName;
-	ifcd->CanHandleStream = NVDec_CanHandleStream;
-
-	ifcd->ProcessData = NVDec_ProcessData;
-	ifcd->GetOutputFrame = NVDec_GetOutputFrame;
-
-	return (GF_BaseDecoder *) ifcd;
+	ctx->frames = gf_list_new();
+	ctx->frames_res = gf_list_new();
+	ctx->src_packets = gf_list_new();
+	return GF_OK;
 }
 
-void DeleteNVDec(GF_BaseDecoder *ifcg)
+static void nvdec_finalize(GF_Filter *filter)
 {
-	NVDecCtx *ctx= (NVDecCtx *)ifcg->privateStack;
+	NVDecCtx *ctx = gf_filter_get_udta(filter);
+
+	nvdec_reset_pcks(ctx);
+	gf_list_del(ctx->src_packets);
 
 	if (!global_nb_loaded_nvdec && global_unactive_decoders) {
 		while (gf_list_count(global_unactive_decoders)) {
@@ -1213,42 +1114,72 @@ void DeleteNVDec(GF_BaseDecoder *ifcg)
 		gf_free(f);
 	}
 	gf_list_del(ctx->frames_res);
-	gf_free(ctx);
-	gf_free(ifcg);
-
 }
 
 
-GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces()
+static const GF_FilterCapability NVDecCaps[] =
 {
-	static u32 si [] = {
-		GF_MEDIA_DECODER_INTERFACE,
-		0
-	};
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_MAIN),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SNR),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SPATIAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_HIGH),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_422),
+	//CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VC1),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
 
+#ifdef  OPENHEVC_HAS_AVC_BASE
+	CAP_UINT_PRIORITY(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC, 255),
+#endif
+
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW)
+};
+
+#define OFFS(_n)	#_n, offsetof(NVDecCtx, _n)
+
+static const GF_FilterArgs NVDecArgs[] =
+{
+	{ OFFS(num_surfaces), "Number of hardware surfaces to allocate", GF_PROP_UINT, "20", NULL, GF_FALSE },
+	{ OFFS(unload), "Unload inactive decoder.", GF_PROP_UINT, "no|destroy|reuse", NULL, GF_TRUE },
+	{ OFFS(mode), "Video decoder mode.", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_TRUE },
+	{ OFFS(gl), "Enables OpenGL texture ouput", GF_PROP_BOOL, "true", NULL, GF_TRUE },
+	
+	{ 0 }
+};
+
+GF_FilterRegister NVDecRegister = {
+	.name = "nvdec",
+	.description = "NVidia Hardware decoder",
+	.private_size = sizeof(NVDecCtx),
+	SETCAPS(NVDecCaps),
+	.initialize = nvdec_initialize,
+	.finalize = nvdec_finalize,
+	.args = NVDecArgs,
+	.configure_pid = nvdec_configure_pid,
+	.process = nvdec_process,
+	.process_event = nvdec_process_event
+};
+
+
+const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
+{
 	init_cuda_sdk();
-
 	if (cuvid_load_state != 2) return NULL;
 
-	return si;
+	return &NVDecRegister;
 }
 
-GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType)
+#else
+
+const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewNVDec();
 	return NULL;
 }
+#endif // defined(WIN32) || defined(GPAC_CONFIG_LINUX)
 
-GPAC_MODULE_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce)
-{
-	switch (ifce->InterfaceType) {
-	case GF_MEDIA_DECODER_INTERFACE:
-		DeleteNVDec((GF_BaseDecoder*)ifce);
-		break;
-	}
-}
 
-GPAC_MODULE_STATIC_DECLARATION( nvdec )

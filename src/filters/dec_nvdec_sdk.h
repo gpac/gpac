@@ -14,6 +14,8 @@
 
 #include <stdlib.h>
 
+#if defined(WIN32) || defined(GPAC_CONFIG_LINUX)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -2880,4 +2882,7 @@ const char *cudaGetErrorEnum(CUresult error);
 }
 #endif
 
+#endif // defined(WIN32) || defined(GPAC_CONFIG_LINUX)
+
 #endif //__cuda_tools_h__
+
