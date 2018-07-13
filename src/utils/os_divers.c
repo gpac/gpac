@@ -707,6 +707,54 @@ const char *gf_sys_get_arg(u32 arg)
 }
 
 
+#ifndef GPAC_DISABLE_REMOTERY
+Remotery *remotery_handle=NULL;
+
+//commented out as it put quite some load on the browser
+#if 0
+gf_log_cbk prev_default_logs = NULL;
+
+void rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
+{
+	char szMsg[4046];
+	vsprintf(szMsg, fmt, vlist);
+
+	rmt_LogText(szMsg);
+}
+#endif
+
+#endif
+
+
+GF_EXPORT
+Bool gf_sys_enable_profiling(Bool start)
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (start && !remotery_handle) {
+		rmtError rme = rmt_CreateGlobalInstance(&remotery_handle);
+		if (rme != RMT_ERROR_NONE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize Remotery profiler: error %d\n", rme));
+			return GF_FALSE;
+		}
+		rmt_BindOpenGL();
+#if 0
+		prev_default_logs = gf_log_set_callback(NULL, rmt_log_callback);
+#endif
+	} else if (!start && remotery_handle) {
+		rmt_UnbindOpenGL();
+		rmt_DestroyGlobalInstance(remotery_handle);
+		remotery_handle=NULL;
+#if 0
+		gf_log_set_callback(NULL, prev_default_logs);
+#endif
+	}
+	return GF_TRUE;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+
 GF_EXPORT
 void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 {
@@ -840,6 +888,8 @@ void gf_sys_close()
 		psapi_hinst = NULL;
 #endif
 	}
+
+	gf_sys_enable_profiling(GF_FALSE);
 }
 
 #ifdef GPAC_MEMORY_TRACKING

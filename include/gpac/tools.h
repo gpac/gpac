@@ -770,6 +770,16 @@ u32 gf_sys_get_argc();
 const char *gf_sys_get_arg(u32 arg);
 
 /*!
+ *	\brief enable or disable remotery profiler
+ *
+ *	Enable or disable remotery profiler.
+ *	\param start GF_TRUE to start profiler, GF_FALSE otherwise.
+ *	\return GF_TRUE if success, GF_FALSE if failure or GF_NOT_SUPPORTED if not built-in.
+ */
+Bool gf_sys_enable_profiling(Bool start);
+
+
+/*!
  *	\brief System clock query
  *
  *	Gets the system clock time.
@@ -1073,6 +1083,23 @@ void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
 void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA]);
 
 /*! @} */
+
+#ifdef GPAC_DISABLE_REMOTERY
+#define RMT_ENABLED 0
+#else
+#define RMT_USE_OPENGL	1
+#endif
+
+#include <gpac/Remotery.h>
+
+#define GF_RMT_AGGREGATE	RMTSF_Aggregate
+#define gf_rmt_begin rmt_BeginCPUSample
+#define gf_rmt_begin_hash rmt_BeginCPUSampleStore
+#define gf_rmt_end rmt_EndCPUSample
+#define gf_rmt_set_thread_name rmt_SetCurrentThreadName
+#define gf_rmt_log_text rmt_LogText
+#define gf_rmt_begin_gl rmt_BeginOpenGLSampleStore
+#define gf_rmt_end_g rmt_EndOpenGLSample
 
 
 /* \cond dummy */

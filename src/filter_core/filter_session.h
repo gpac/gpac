@@ -258,6 +258,12 @@ typedef struct __gf_fs_thread
 	u64 nb_tasks;
 	u64 run_time;
 	u64 active_time;
+
+#ifndef GPAC_DISABLE_REMOTERY
+	u32 rmt_tasks;
+	char rmt_name[20];
+#endif
+
 } GF_SessionThread;
 
 struct __gf_media_session
@@ -511,6 +517,10 @@ struct __gf_filter
 	Bool reconfigure_outputs;
 
 	Bool user_pid_props;
+
+#ifndef GPAC_DISABLE_REMOTERY
+	rmtU32 rmt_hash;
+#endif
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
