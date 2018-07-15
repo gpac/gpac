@@ -44,6 +44,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_args) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_argc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_arg) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_enable_profiling) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sleep) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mkdir) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmdir) )
@@ -2159,8 +2160,6 @@
 
 
 /*filter session exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_fs_add_event_listener) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_fs_remove_event_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
 
@@ -2214,9 +2213,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_abort ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_last_task ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_source ) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_fs_filter_print_possible_connections ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_all_connections ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_check_registry_cap ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_process_error ) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_event_listener ) )

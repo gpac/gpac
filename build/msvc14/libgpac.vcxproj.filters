@@ -414,6 +414,9 @@
     <ClInclude Include="..\..\src\filters\dec_nvdec_sdk.h">
       <Filter>filters\nvdec</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\gpac\Remotery.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -1441,6 +1444,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_nvdec_sdk.c">
       <Filter>filters\nvdec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\Remotery.c">
+      <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
