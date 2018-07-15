@@ -86,7 +86,7 @@ void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *messa
 //			term->nb_calls_in_event_proc--;
 		}
 	} else {
-		gf_fs_send_event(scene->compositor->fsess, &evt);
+		gf_filter_send_gf_event(scene->compositor->filter, &evt);
 	}
 }
 
@@ -174,7 +174,7 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 		GF_Event evt;
 		evt.type = GF_EVENT_SET_CAPTION;
 		evt.caption.caption = param->uri.url;
-		gf_fs_send_event(scene->compositor->fsess, &evt);
+		gf_filter_send_gf_event(scene->compositor->filter, &evt);
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_GET_SUBSCENE) {
@@ -262,7 +262,7 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 			evt.navigate.to_url = param->uri.url;
 			evt.navigate.parameters = param->uri.params;
 			evt.navigate.param_count = param->uri.nb_params;
-			return gf_fs_send_event(scene->compositor->fsess, &evt);
+			return gf_filter_send_gf_event(scene->compositor->filter, &evt);
 		} else {
 			/*TODO*/
 			return 0;

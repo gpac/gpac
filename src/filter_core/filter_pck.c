@@ -143,14 +143,14 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char 
 	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
 }
 
-GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, packet_destructor destruct)
+GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
 	if (pck) pck->destructor = destruct;
 	return pck;
 }
 
-GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct, Bool intern_pck)
+GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck)
 {
 	GF_FilterPacket *pck;
 
@@ -181,7 +181,7 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char
 	return pck;
 }
 
-GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct)
+GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct)
 {
 	return gf_filter_pck_new_shared_internal(pid, data, data_size, destruct, GF_FALSE);
 
@@ -205,7 +205,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	return pck;
 }
 
-GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, packet_destructor destruct)
+GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck;
 	if (!hw_frame) return NULL;
@@ -1076,7 +1076,7 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 	return pck->pck->info.seek_flag;
 }
 
-GF_Err gf_filter_pck_set_dependency_flag(GF_FilterPacket *pck, u8 dep_flags)
+GF_Err gf_filter_pck_set_dependency_flags(GF_FilterPacket *pck, u8 dep_flags)
 {
 	PCK_SETTER_CHECK("dependency_flags")
 	pck->info.dependency_flags = dep_flags;

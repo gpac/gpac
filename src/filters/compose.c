@@ -314,22 +314,26 @@ static void compose_finalize(GF_Filter *filter)
 
 GF_Err compose_initialize(GF_Filter *filter)
 {
+	GF_FilterSessionCaps sess_caps;
 	GF_FilterPid *pid;
 	GF_CompositorFilter *ctx = gf_filter_get_udta(filter);
 
 	ctx->magic = GF_4CC('c','o','m','p');
 	ctx->magic_ptr = ctx;
 
-	ctx->compositor = gf_sc_new( gf_fs_get_user( gf_filter_get_session(filter) ) );
+	ctx->compositor = gf_sc_new( gf_filter_get_user(filter) );
 	if (!ctx->compositor)
 		return GF_SERVICE_ERROR;
 	ctx->compositor->no_regulation = GF_TRUE;
 	ctx->compositor->filter = filter;
-	ctx->compositor->fsess = gf_filter_get_session(filter);
 
-	ctx->compositor->fsess->caps.max_screen_width = ctx->compositor->video_out->max_screen_width;
-	ctx->compositor->fsess->caps.max_screen_height = ctx->compositor->video_out->max_screen_height;
-	ctx->compositor->fsess->caps.max_screen_bpp = ctx->compositor->video_out->max_screen_bpp;
+	gf_filter_get_session_caps(filter, &sess_caps);
+
+	sess_caps.max_screen_width = ctx->compositor->video_out->max_screen_width;
+	sess_caps.max_screen_height = ctx->compositor->video_out->max_screen_height;
+	sess_caps.max_screen_bpp = ctx->compositor->video_out->max_screen_bpp;
+
+	gf_filter_set_session_caps(filter, &sess_caps);
 
 	//declare video output pid
 	pid = ctx->compositor->vout = gf_filter_pid_new(filter);

@@ -225,7 +225,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		evt.buffer_req.max_buffer_us = 100000;
 		gf_filter_pid_send_event(pid, &evt);
 
-		gf_filter_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
+		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
 		gf_filter_pid_send_event(pid, &evt);
 	}
 	ctx->pid = pid;
@@ -249,7 +249,7 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	const char *sOpt;
 	GF_Err e;
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
-	GF_User *user = gf_fs_get_user( gf_filter_get_session(filter) );
+	GF_User *user = gf_filter_get_user(filter);
 
 	if (!user) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] No user/modules defined, cannot load audio output\n"));

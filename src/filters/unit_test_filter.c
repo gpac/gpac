@@ -737,10 +737,10 @@ static const GF_FilterArgs UTFilterArgs[] =
 
 static const GF_FilterCapability UTFilterCaps[] =
 {
-	{ .name="cust", .val.type=GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_FILTER_CAPS_INPUT },
-	{ .name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_FILTER_CAPS_INPUT },
-	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_FILTER_CAPS_OUTPUT },
-	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_FILTER_CAPS_OUTPUT },
+	{ .name="cust", .val.type=GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_CAPFLAG_INPUT },
+	{ .name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_CAPFLAG_INPUT },
+	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_CAPFLAG_OUTPUT },
+	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_CAPFLAG_OUTPUT },
 };
 
 static const GF_FilterCapability UTSinkInputs[] =
@@ -750,12 +750,12 @@ static const GF_FilterCapability UTSinkInputs[] =
 
 static const GF_FilterCapability UTSink2Inputs[] =
 {
-	{ .name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_FILTER_CAPS_OUTPUT },
+	{ .name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_CAPFLAG_OUTPUT },
 };
 
 static const GF_FilterCapability UTSourceOutputs[] =
 {
-	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_FILTER_CAPS_OUTPUT },
+	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_CAPFLAG_OUTPUT },
 };
 
 

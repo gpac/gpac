@@ -392,7 +392,6 @@ static void isoffin_finalize(GF_Filter *filter)
 	read->mov = NULL;
 }
 
-
 void isor_set_crypt_config(ISOMChannel *ch)
 {
 	GF_ISOFile *mov = ch->owner->mov;
@@ -452,17 +451,22 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 		/*fill PSSH in the structure. We will free it in CENC_Setup*/
 		for (i=0; i<PSSH_count; i++) {
-			GF_CENCPSSHSysInfo info;
-			gf_isom_get_pssh_info(ch->owner->mov, i+1, info.SystemID, &info.version, &info.KID_count, (const bin128 **) & info.KIDs, (const u8 **) &info.private_data, &info.private_data_size);
+			bin128 SystemID;
+			u32 version;
+			u32 KID_count;
+			bin128 *KIDs;
+			u32 private_data_size;
+			u8 *private_data;
+			gf_isom_get_pssh_info(ch->owner->mov, i+1, SystemID, &version, &KID_count, (const bin128 **) & KIDs, (const u8 **) &private_data, &private_data_size);
 
-			gf_bs_write_data(pssh_bs, info.SystemID, 16);
-			gf_bs_write_u32(pssh_bs, info.version);
-			gf_bs_write_u32(pssh_bs, info.KID_count);
-			for (s=0; s<info.KID_count; s++) {
-				gf_bs_write_data(pssh_bs, info.KIDs[s], 16);
+			gf_bs_write_data(pssh_bs, SystemID, 16);
+			gf_bs_write_u32(pssh_bs, version);
+			gf_bs_write_u32(pssh_bs, KID_count);
+			for (s=0; s<KID_count; s++) {
+				gf_bs_write_data(pssh_bs, KIDs[s], 16);
 			}
-			gf_bs_write_u32(pssh_bs, info.private_data_size);
-			gf_bs_write_data(pssh_bs, info.private_data, info.private_data_size);
+			gf_bs_write_u32(pssh_bs, private_data_size);
+			gf_bs_write_data(pssh_bs, private_data, private_data_size);
 		}
 		gf_bs_get_content(pssh_bs, &psshd, &s);
 		gf_bs_del(pssh_bs);
@@ -881,10 +885,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				gf_filter_pck_set_dts(pck, ch->dts);
 				gf_filter_pck_set_cts(pck, ch->cts);
-				if (ch->sample->IsRAP==-1)
-					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_REDUNDANT);
-				else
+				if (ch->sample->IsRAP==-1) {
+					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+					ch->redundant = 1;
+				} else {
 					gf_filter_pck_set_sap(pck, (GF_FilterSAPType) ch->sample->IsRAP);
+				}
 
 				if (ch->sap_3)
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_3);
@@ -904,8 +910,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				dep_flags |= ch->dependedOn;
 				dep_flags <<= 2;
 				dep_flags |= ch->redundant;
+
 				if (dep_flags)
-					gf_filter_pck_set_dependency_flag(pck, dep_flags);
+					gf_filter_pck_set_dependency_flags(pck, dep_flags);
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 

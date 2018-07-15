@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1098,8 +1098,9 @@ void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA])
 #define gf_rmt_end rmt_EndCPUSample
 #define gf_rmt_set_thread_name rmt_SetCurrentThreadName
 #define gf_rmt_log_text rmt_LogText
-#define gf_rmt_begin_gl rmt_BeginOpenGLSampleStore
-#define gf_rmt_end_g rmt_EndOpenGLSample
+#define gf_rmt_begin_gl rmt_BeginOpenGLSample
+#define gf_rmt_begin_gl_hash rmt_BeginOpenGLSampleStore
+#define gf_rmt_end_gl rmt_EndOpenGLSample
 
 
 /* \cond dummy */

@@ -173,7 +173,7 @@ NOTE: This can only be used when the terminal runs without visual thread (GF_TER
 returns estimated time left until next frame should be drawn. If GF_TERM_NO_REGULATION is not set, the function will sleep
 for until next frame should be drawn before returning.
 */
-u32 gf_term_process_step(GF_Terminal *term);
+void gf_term_process_step(GF_Terminal *term);
 
 /*decodes all pending media and render frame until no scene changes are detected and no clocks is buffering.
 This does not flush the backbuffer to the front buffer, you have to call @gf_term_process_flush_video for this

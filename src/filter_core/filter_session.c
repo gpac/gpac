@@ -490,12 +490,6 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 }
 
 GF_EXPORT
-void *gf_fs_task_get_udta(GF_FSTask *task)
-{
-	return task->udta;
-}
-
-GF_EXPORT
 Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output)
 {
 	u32 j;
@@ -505,7 +499,7 @@ Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_Pro
 	u32 has_exclude_cid_out = 0;
 	for (j=0; j<f_reg->nb_caps; j++) {
 		const GF_FilterCapability *cap = &f_reg->caps[j];
-		if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			//CID not excluded, raw in present and CID explicit match or not included in excluded set
 			if (!exclude_cid_out && has_raw_in && (has_cid_match || has_exclude_cid_out) ) {
 				return GF_TRUE;
@@ -519,13 +513,13 @@ Bool gf_fs_check_registry_cap(const GF_FilterRegister *f_reg, u32 incode, GF_Pro
 			continue;
 		}
 
-		if ( (cap->flags & GF_FILTER_CAPS_INPUT) && (cap->code == incode) ) {
-			if (! (cap->flags & GF_FILTER_CAPS_EXCLUDED) && gf_props_equal(&cap->val, cap_input) ) {
+		if ( (cap->flags & GF_CAPFLAG_INPUT) && (cap->code == incode) ) {
+			if (! (cap->flags & GF_CAPFLAG_EXCLUDED) && gf_props_equal(&cap->val, cap_input) ) {
 				has_raw_in = (cap->flags & GF_CAPS_INPUT_STATIC) ? 2 : 1;
 			}
 		}
-		if ( (cap->flags & GF_FILTER_CAPS_OUTPUT) && (cap->code == outcode) ) {
-			if (! (cap->flags & GF_FILTER_CAPS_EXCLUDED)) {
+		if ( (cap->flags & GF_CAPFLAG_OUTPUT) && (cap->code == outcode) ) {
+			if (! (cap->flags & GF_CAPFLAG_EXCLUDED)) {
 				if (gf_props_equal(&cap->val, cap_output) ) {
 					has_cid_match = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
 				}
@@ -675,10 +669,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 
 		if (do_use_sema && (current_filter==NULL)) {
+			gf_rmt_begin(sema_wait, GF_RMT_AGGREGATE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", thid, use_main_sema ? "main" : "secondary"));
 			//wait for something to be done
 			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
 			consecutive_filter_tasks = 0;
+			gf_rmt_end();
 		}
 
 
@@ -1130,10 +1126,9 @@ GF_Err gf_fs_run(GF_FilterSession *fsess)
 	return fsess->run_status;
 }
 
-u32 gf_fs_run_step(GF_FilterSession *fsess)
+void gf_fs_run_step(GF_FilterSession *fsess)
 {
 	gf_fs_thread_proc(&fsess->main_th);
-	return 0;
 }
 
 GF_EXPORT
@@ -1503,61 +1498,61 @@ GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, cons
 
 
 GF_EXPORT
-GF_Err gf_fs_add_event_listener(GF_FilterSession *fsess, GF_FSEventListener *el)
+GF_Err gf_filter_add_event_listener(GF_Filter *filter, GF_FSEventListener *el)
 {
 	GF_Err e;
-	if (!fsess || !el || !el->on_event) return GF_BAD_PARAM;
-	while (fsess->in_event_listener) gf_sleep(1);
-	gf_mx_p(fsess->evt_mx);
-	if (!fsess->event_listeners) {
-		fsess->event_listeners = gf_list_new();
+	if (!filter || !filter->session || !el || !el->on_event) return GF_BAD_PARAM;
+	while (filter->session->in_event_listener) gf_sleep(1);
+	gf_mx_p(filter->session->evt_mx);
+	if (!filter->session->event_listeners) {
+		filter->session->event_listeners = gf_list_new();
 	}
-	e = gf_list_add(fsess->event_listeners, el);
-	gf_mx_v(fsess->evt_mx);
+	e = gf_list_add(filter->session->event_listeners, el);
+	gf_mx_v(filter->session->evt_mx);
 	return e;
 }
 
 GF_EXPORT
-GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FSEventListener *el)
+GF_Err gf_filter_remove_event_listener(GF_Filter *filter, GF_FSEventListener *el)
 {
-	if (!fsess || !el || !fsess->event_listeners) return GF_BAD_PARAM;
+	if (!filter || !filter->session || !el || !filter->session->event_listeners) return GF_BAD_PARAM;
 
-	while (fsess->in_event_listener) gf_sleep(1);
-	gf_mx_p(fsess->evt_mx);
-	gf_list_del_item(fsess->event_listeners, el);
-	if (!gf_list_count(fsess->event_listeners)) {
-		gf_list_del(fsess->event_listeners);
-		fsess->event_listeners=NULL;
+	while (filter->session->in_event_listener) gf_sleep(1);
+	gf_mx_p(filter->session->evt_mx);
+	gf_list_del_item(filter->session->event_listeners, el);
+	if (!gf_list_count(filter->session->event_listeners)) {
+		gf_list_del(filter->session->event_listeners);
+		filter->session->event_listeners=NULL;
 	}
-	gf_mx_v(fsess->evt_mx);
+	gf_mx_v(filter->session->evt_mx);
 	return GF_OK;
 }
 
 GF_EXPORT
-Bool gf_fs_forward_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, Bool forward_only)
+Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed, Bool skip_user)
 {
-	if (!fsess) return GF_FALSE;
+	if (!filter || !filter->session) return GF_FALSE;
 
-	if (fsess->event_listeners) {
+	if (filter->session->event_listeners) {
 		GF_FSEventListener *el;
 		u32 i=0;
 
-		gf_mx_p(fsess->evt_mx);
-		fsess->in_event_listener ++;
-		gf_mx_v(fsess->evt_mx);
-		while ((el = gf_list_enum(fsess->event_listeners, &i))) {
+		gf_mx_p(filter->session->evt_mx);
+		filter->session->in_event_listener ++;
+		gf_mx_v(filter->session->evt_mx);
+		while ((el = gf_list_enum(filter->session->event_listeners, &i))) {
 			if (el->on_event(el->udta, evt, consumed)) {
-				fsess->in_event_listener --;
+				filter->session->in_event_listener --;
 				return GF_TRUE;
 			}
 		}
-		fsess->in_event_listener --;
+		filter->session->in_event_listener --;
 	}
 
-	if (!forward_only && !consumed && fsess->user->EventProc) {
+	if (!skip_user && !consumed && filter->session->user->EventProc) {
 		Bool res;
 //		term->nb_calls_in_event_proc++;
-		res = fsess->user->EventProc(fsess->user->opaque, evt);
+		res = filter->session->user->EventProc(filter->session->user->opaque, evt);
 //		term->nb_calls_in_event_proc--;
 		return res;
 	}
@@ -1565,13 +1560,13 @@ Bool gf_fs_forward_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, 
 }
 
 GF_EXPORT
-Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt)
+Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 {
-	return gf_fs_forward_event(fsess, evt, 0, 0);
+	return gf_filter_forward_gf_event(filter, evt, GF_FALSE, GF_FALSE);
 }
 
 GF_EXPORT
-void gf_fs_filter_print_possible_connections(GF_FilterSession *session)
+void gf_fs_print_all_connections(GF_FilterSession *session)
 {
 	GF_CapsBundleStore capstore;
 	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
@@ -1627,6 +1622,15 @@ void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps)
 		} else {
 			memset(caps, 0, sizeof(GF_FilterSessionCaps));
 		}
+	}
+}
+
+GF_EXPORT
+void gf_filter_set_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps)
+{
+	if (caps && filter) {
+		filter->session->caps = (*caps);
+		//fire event
 	}
 }
 
@@ -1715,6 +1719,9 @@ typedef struct
 	GF_FilterSession *fsess;
 	void *callback;
 	Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms);
+#ifndef GPAC_DISABLE_REMOTERY
+	rmtU32 rmt_hash;
+#endif
 } GF_UserTask;
 
 static void gf_fs_user_task(GF_FSTask *task)
@@ -1722,7 +1729,12 @@ static void gf_fs_user_task(GF_FSTask *task)
 	u32 reschedule_ms=0;
 	GF_UserTask *utask = (GF_UserTask *)task->udta;
 	task->schedule_next_time = 0;
+
+#ifndef GPAC_DISABLE_REMOTERY
+	gf_rmt_begin_hash(task->log_name, GF_RMT_AGGREGATE, &utask->rmt_hash);
+#endif
 	task->requeue_request = utask->task_execute(utask->fsess, utask->callback, &reschedule_ms);
+	gf_rmt_end();
 	if (!task->requeue_request) {
 		gf_free(utask);
 		task->udta = NULL;

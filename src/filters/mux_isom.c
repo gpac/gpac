@@ -1737,15 +1737,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	}
 	if (tkw->sample.CTS_Offset < tkw->min_neg_ctts) tkw->min_neg_ctts = tkw->sample.CTS_Offset;
 
-	if (sap_type == GF_FILTER_SAP_REDUNDANT) {
-		tkw->sample.IsRAP = SAP_TYPE_1;
-		if (for_fragment) {
-			e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, tkw->stsd_idx, duration, 0, 0, GF_TRUE);
-		} else {
-			e = gf_isom_add_sample_shadow(ctx->file, tkw->track_num, &tkw->sample);
-		}
-	}
-	else if (tkw->use_dref) {
+	if (tkw->use_dref) {
 		u64 data_offset = gf_filter_pck_get_byte_offset(pck);
 		if (data_offset != GF_FILTER_NO_BO) {
 			e = gf_isom_add_sample_reference(ctx->file, tkw->track_num, tkw->stsd_idx, &tkw->sample, data_offset);

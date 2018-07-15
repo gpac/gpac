@@ -74,7 +74,7 @@ static Bool check_user(GF_User *user)
 GF_EXPORT
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 {
-	return gf_fs_send_event(term->fsess, evt);
+	return gf_filter_send_gf_event(term->compositor->filter, evt);
 }
 
 
@@ -1373,9 +1373,9 @@ u32 gf_term_get_clock(GF_Terminal *term)
 
 
 GF_EXPORT
-u32 gf_term_process_step(GF_Terminal *term)
+void gf_term_process_step(GF_Terminal *term)
 {
-	return gf_fs_run_step(term->fsess);
+	gf_fs_run_step(term->fsess);
 }
 
 GF_EXPORT

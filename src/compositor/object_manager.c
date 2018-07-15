@@ -227,7 +227,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = GF_FALSE;
-		gf_fs_forward_event(odm->parentscene->compositor->fsess, &evt, GF_FALSE, GF_TRUE);
+		gf_filter_forward_gf_event(odm->parentscene->compositor->filter, &evt, GF_FALSE, GF_TRUE);
 
 		gf_scene_remove_object(odm->parentscene, odm, do_remove);
 		if (odm->subscene) gf_scene_del(odm->subscene);
@@ -420,7 +420,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		if (odm->pid && (odm->pid==for_pid)) {
 			evt.type = GF_EVENT_CONNECT;
 			evt.connect.is_connected = GF_TRUE;
-			gf_fs_forward_event(odm->parentscene->compositor->fsess, &evt, GF_FALSE, GF_TRUE);
+			gf_filter_forward_gf_event(odm->parentscene->compositor->filter, &evt, GF_FALSE, GF_TRUE);
 		}
 	} else if (odm->pid==for_pid) {
 		/*othewise send a connect ack for top level*/

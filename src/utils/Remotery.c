@@ -5043,8 +5043,8 @@ RMT_API rmtSettings* _rmt_Settings(void)
         g_Settings.reuse_open_port = RMT_FALSE;
         g_Settings.limit_connections_to_localhost = RMT_FALSE;
         g_Settings.msSleepBetweenServerUpdates = 10;
-        g_Settings.messageQueueSizeInBytes = 512 * 1024;
-        g_Settings.maxNbMessagesPerUpdate = 100;
+        g_Settings.messageQueueSizeInBytes = 128 * 1024;
+        g_Settings.maxNbMessagesPerUpdate = 10;
         g_Settings.malloc = CRTMalloc;
         g_Settings.free = CRTFree;
         g_Settings.realloc = CRTRealloc;
@@ -6771,7 +6771,7 @@ static void UpdateOpenGLFrame(void)
     opengl = g_Remotery->opengl;
     assert(opengl != NULL);
 
-    rmt_BeginCPUSample(rmt_UpdateOpenGLFrame, 0);
+    rmt_BeginCPUSample(rmt_UpdateOpenGLFrame, RMTSF_Aggregate);
 
     // Process all messages in the OpenGL queue
     while (1)

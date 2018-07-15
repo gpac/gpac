@@ -4195,6 +4195,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//prev packet was split
 			else if (is_split) {
 				u64 diff;
+				u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 				u64 ts = gf_filter_pck_get_cts(pck);
 				assert (ts != GF_FILTER_NO_TS);
 				cts += ds->first_cts;
@@ -4207,7 +4208,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (ts != GF_FILTER_NO_TS)
 					gf_filter_pck_set_dts(dst, ts + diff + ds->ts_offset);
 
-				gf_filter_pck_set_sap(dst, GF_FILTER_SAP_REDUNDANT);
+				//add sample is redundant flag
+				dep_flags |= 0x1;
+				gf_filter_pck_set_dependency_flags(dst, dep_flags);
 				gf_filter_pck_set_duration(dst, dur);
 			}
 

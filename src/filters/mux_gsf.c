@@ -278,7 +278,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		}
 
 		if (is_redundant) {
-			gf_filter_pck_set_dependency_flag(dst_pck, 1);
+			gf_filter_pck_set_dependency_flags(dst_pck, 1);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 		} else if (first_frag && bytes_remain) {
 			gf_filter_pck_set_framing(dst_pck, ctx->is_start, GF_FALSE);

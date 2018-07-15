@@ -1034,7 +1034,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 		const GF_PropertyValue *pid_cap=NULL;
 		const GF_FilterCapability *cap = &in_caps[i];
 
-		if (i && !(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+		if (i && !(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 			if (all_caps_matched && forced_cap_found) {
 				if (dst_bundle_idx)
 					(*dst_bundle_idx) = cap_bundle_idx;
@@ -1055,8 +1055,8 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 		}
 
 		//not an input cap
-		if (! (cap->flags & GF_FILTER_CAPS_INPUT) ) {
-			if (!skip_explicit_load && (cap->flags & GF_FILTER_CAPS_EXPLICIT) ) {
+		if (! (cap->flags & GF_CAPFLAG_INPUT) ) {
+			if (!skip_explicit_load && (cap->flags & GF_CAPFLAG_EXPLICIT) ) {
 				all_caps_matched = 0;
 			}
 			continue;
@@ -1074,7 +1074,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 		}
 
 		//optional cap
-		if (cap->flags & GF_FILTER_CAPS_OPTIONAL) continue;
+		if (cap->flags & GF_CAPFLAG_OPTIONAL) continue;
 
 		//try by name
 		if (!pid_cap && cap->name) pid_cap = gf_filter_pid_get_property_str(src_pid, cap->name);
@@ -1090,15 +1090,15 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 			for (j=0; j<nb_in_caps; j++) {
 				const GF_FilterCapability *a_cap = &in_caps[j];
 
-				if ((j>cur_bundle_start) && ! (a_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+				if ((j>cur_bundle_start) && ! (a_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 					break;
 				}
 				//not an input cap
-				if (! (a_cap->flags & GF_FILTER_CAPS_INPUT) ) continue;
+				if (! (a_cap->flags & GF_CAPFLAG_INPUT) ) continue;
 				//optional cap
-				if (a_cap->flags & GF_FILTER_CAPS_OPTIONAL) continue;
+				if (a_cap->flags & GF_CAPFLAG_OPTIONAL) continue;
 				//not a static and not in bundle
-				if (! (a_cap->flags & GF_FILTER_CAPS_STATIC)) {
+				if (! (a_cap->flags & GF_CAPFLAG_STATIC)) {
 					if (j<cur_bundle_start)
 						continue;
 				}
@@ -1108,7 +1108,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
 					continue;
 				}
-				if (!skip_explicit_load && (a_cap->flags & GF_FILTER_CAPS_EXPLICIT) ) {
+				if (!skip_explicit_load && (a_cap->flags & GF_CAPFLAG_EXPLICIT) ) {
 					if (!dst_filter || (dst_filter != src_pid->filter->dst_filter)) {
 						prop_equal = GF_FALSE;
 						break;
@@ -1122,7 +1122,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 				if (!prop_equal) {
 					prop_equal = gf_props_equal(pid_cap, &a_cap->val);
 					//excluded cap: if value match, don't match this cap at all
-					if (a_cap->flags & GF_FILTER_CAPS_EXCLUDED) {
+					if (a_cap->flags & GF_CAPFLAG_EXCLUDED) {
 						if (prop_equal) {
 							prop_equal = GF_FALSE;
 							prop_excluded = GF_FALSE;
@@ -1139,7 +1139,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 				(*priority) = cap->priority;
 			}
 		}
-		else if (!(cap->flags & GF_FILTER_CAPS_EXCLUDED) ) {
+		else if (!(cap->flags & GF_CAPFLAG_EXCLUDED) ) {
 			all_caps_matched=GF_FALSE;
 		}
 	}
@@ -1172,7 +1172,7 @@ u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps)
 	u32 i, nb_bundles = nb_caps ? 1 : 0;
 	for (i=0; i<nb_caps; i++) {
 		const GF_FilterCapability *cap = &caps[i];
-		if (! (cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+		if (! (cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			nb_bundles++;
 			continue;
 		}
@@ -1186,7 +1186,7 @@ Bool gf_filter_has_out_caps(const GF_FilterRegister *freg)
 	//check all input caps of dst filter, count bundles
 	for (i=0; i<freg->nb_caps; i++) {
 		const GF_FilterCapability *out_cap = &freg->caps[i];
-		if (out_cap->flags & GF_FILTER_CAPS_OUTPUT) {
+		if (out_cap->flags & GF_CAPFLAG_OUTPUT) {
 			return GF_TRUE;
 		}
 	}
@@ -1255,7 +1255,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		Bool already_tested = GF_FALSE;
 		const GF_FilterCapability *out_cap = &src->caps[i];
 
-		if (!(out_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+		if (!(out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 			all_caps_matched = GF_TRUE;
 			cur_bundle_start = i+1;
 			cur_bundle_idx++;
@@ -1266,12 +1266,12 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		}
 
 		//not our selected output and not static cap
-		if ((src_bundle_idx != cur_bundle_idx) && ! (out_cap->flags & GF_FILTER_CAPS_STATIC) ) {
+		if ((src_bundle_idx != cur_bundle_idx) && ! (out_cap->flags & GF_CAPFLAG_STATIC) ) {
 			continue;
 		}
 
 		//not an output cap
-		if (!(out_cap->flags & GF_FILTER_CAPS_OUTPUT) ) continue;
+		if (!(out_cap->flags & GF_CAPFLAG_OUTPUT) ) continue;
 
 		//no match possible for this cap, wait until next cap start
 		if (!all_caps_matched) continue;
@@ -1279,10 +1279,10 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		//check we didn't test a cap with same name/code before us
 		for (k=cur_bundle_start; k<i; k++) {
 			const GF_FilterCapability *an_out_cap = &src->caps[k];
-			if (! (an_out_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+			if (! (an_out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 				break;
 			}
-			if (! (an_out_cap->flags & GF_FILTER_CAPS_OUTPUT) ) {
+			if (! (an_out_cap->flags & GF_CAPFLAG_OUTPUT) ) {
 				continue;
 			}
 			if (out_cap->code && (out_cap->code==an_out_cap->code) ) {
@@ -1313,10 +1313,10 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			Bool exclude=GF_FALSE;
 			Bool prop_found=GF_FALSE;
 			const GF_FilterCapability *an_out_cap = &src->caps[k];
-			if (! (an_out_cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+			if (! (an_out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 				break;
 			}
-			if (! (an_out_cap->flags & GF_FILTER_CAPS_OUTPUT) ) {
+			if (! (an_out_cap->flags & GF_CAPFLAG_OUTPUT) ) {
 				continue;
 			}
 			if (out_cap->code && (out_cap->code!=an_out_cap->code) )
@@ -1325,7 +1325,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				continue;
 
 			//not our selected output and not static cap
-			if ((src_bundle_idx != cur_bundle_idx) && ! (an_out_cap->flags & GF_FILTER_CAPS_STATIC) ) {
+			if ((src_bundle_idx != cur_bundle_idx) && ! (an_out_cap->flags & GF_CAPFLAG_STATIC) ) {
 				continue;
 			}
 
@@ -1335,7 +1335,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				Bool prop_equal;
 				const GF_FilterCapability *in_cap = &dst_caps[j];
 
-				if (! (in_cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+				if (! (in_cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 					//we found a prop, excluded but with != value hence acceptable, default matching to true
 					if (!matched && prop_found) matched = GF_TRUE;
 					//not match, flag this bundle as not ok
@@ -1355,14 +1355,14 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					continue;
 				}
 				//not an input cap
-				if (!(in_cap->flags & GF_FILTER_CAPS_INPUT) )
+				if (!(in_cap->flags & GF_CAPFLAG_INPUT) )
 					continue;
 
 				//optionnal cap, ignore
-				if (in_cap->flags & GF_FILTER_CAPS_OPTIONAL)
+				if (in_cap->flags & GF_CAPFLAG_OPTIONAL)
 					continue;
 
-				if ((for_dst_bundle>=0) && (cur_dst_bundle < (u32)for_dst_bundle) && !(in_cap->flags & GF_FILTER_CAPS_STATIC))
+				if ((for_dst_bundle>=0) && (cur_dst_bundle < (u32)for_dst_bundle) && !(in_cap->flags & GF_CAPFLAG_STATIC))
 					continue;
 
 				//prop was excluded, cannot match in bundle
@@ -1378,7 +1378,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				nb_caps_tested++;
 				//we found a property of that type , check if equal equal
 				prop_equal = gf_props_equal(&in_cap->val, &an_out_cap->val);
-				if ((in_cap->flags & GF_FILTER_CAPS_EXCLUDED) && !(an_out_cap->flags & GF_FILTER_CAPS_EXCLUDED) ) {
+				if ((in_cap->flags & GF_CAPFLAG_EXCLUDED) && !(an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
 					//prop type matched, output includes it and input excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
@@ -1389,7 +1389,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 						// we will match unless we match an excluded value
 						prop_found = GF_TRUE;
 					}
-				} else if (!(in_cap->flags & GF_FILTER_CAPS_EXCLUDED) && (an_out_cap->flags&GF_FILTER_CAPS_EXCLUDED) ) {
+				} else if (!(in_cap->flags & GF_CAPFLAG_EXCLUDED) && (an_out_cap->flags&GF_CAPFLAG_EXCLUDED) ) {
 					//prop type matched, input includes it and output excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
@@ -1402,7 +1402,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					}
 				} else if (prop_equal) {
 					matched = GF_TRUE;
-//					if (an_out_cap->flags & GF_FILTER_CAPS_STATIC)
+//					if (an_out_cap->flags & GF_CAPFLAG_STATIC)
 //						static_matched = GF_TRUE;
 				}
 			}
@@ -1431,7 +1431,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			}
 		}
 		//not matched and not excluded, skip until next bundle
-		if (!nb_matched && !(out_cap->flags & GF_FILTER_CAPS_EXCLUDED)) {
+		if (!nb_matched && !(out_cap->flags & GF_CAPFLAG_EXCLUDED)) {
 			all_caps_matched = GF_FALSE;
 		}
 	}
@@ -1670,17 +1670,17 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 	for (i=0; i<freg->nb_caps; i++) {
 		u32 nb_caps = 0;
 		const GF_FilterCapability *cap = &freg->caps[i];
-		if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			cur_bundle_idx++;
 			if (cur_bundle_idx>bundle_idx) return GF_FALSE;
 		}
-		if (!(cap->flags & GF_FILTER_CAPS_STATIC) && (bundle_idx>cur_bundle_idx)) continue;
-		if (!(cap->flags & GF_FILTER_CAPS_OUTPUT)) continue;
+		if (!(cap->flags & GF_CAPFLAG_STATIC) && (bundle_idx>cur_bundle_idx)) continue;
+		if (!(cap->flags & GF_CAPFLAG_OUTPUT)) continue;
 		for (k=0; k<freg->nb_caps; k++) {
 			const GF_FilterCapability *acap = &freg->caps[k];
-			if (!(acap->flags & GF_FILTER_CAPS_IN_BUNDLE)) break;
-			if (!(acap->flags & GF_FILTER_CAPS_OUTPUT)) continue;
-			if (!(acap->flags & GF_FILTER_CAPS_STATIC) && (k<i) ) continue;
+			if (!(acap->flags & GF_CAPFLAG_IN_BUNDLE)) break;
+			if (!(acap->flags & GF_CAPFLAG_OUTPUT)) continue;
+			if (!(acap->flags & GF_CAPFLAG_STATIC) && (k<i) ) continue;
 
 			if (cap->code && (acap->code==cap->code)) {
 				nb_caps++;
@@ -1975,7 +1975,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 					cap_idx = k;
 					break;
 				}
-				if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) {
+				if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 					cur_bundle++;
 				}
 			}
@@ -3832,10 +3832,10 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 		dst = pid->filter->dst_filter;
 		for (k=dst->cap_idx_at_resolution; k<dst->freg->nb_caps; k++) {
 			const GF_FilterCapability *cap = &dst->freg->caps[k];
-			if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE)) return NULL;
+			if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) return NULL;
 
-			if (!(cap->flags & GF_FILTER_CAPS_INPUT)) continue;
-			if (cap->flags & GF_FILTER_CAPS_OPTIONAL) continue;
+			if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
+			if (cap->flags & GF_CAPFLAG_OPTIONAL) continue;
 			if (cap->code == prop_4cc) return &cap->val;
 		}
 		return NULL;

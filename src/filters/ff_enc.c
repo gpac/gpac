@@ -333,7 +333,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_set_sap(dst_pck, 0);
 
 	if (pkt.flags & AV_PKT_FLAG_DISPOSABLE) {
-		gf_filter_pck_set_dependency_flag(dst_pck, 0x8);
+		gf_filter_pck_set_dependency_flags(dst_pck, 0x8);
 	}
 	gf_filter_pck_send(dst_pck);
 
