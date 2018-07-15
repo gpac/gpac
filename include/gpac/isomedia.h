@@ -351,6 +351,12 @@ enum
 	GF_ISOM_SUBTYPE_PNG 		= GF_4CC( 'p', 'n', 'g', ' ' ),
 	GF_ISOM_SUBTYPE_MJP2 		= GF_4CC( 'm', 'j', 'p', '2' ),
 
+	GF_ISOM_SUBTYPE_MH3D_MHA1	= GF_4CC( 'm', 'h', 'a', '1' ),
+	GF_ISOM_SUBTYPE_MH3D_MHA2	= GF_4CC( 'm', 'h', 'a', '2' ),
+	GF_ISOM_SUBTYPE_MH3D_MHM1	= GF_4CC( 'm', 'h', 'm', '1' ),
+	GF_ISOM_SUBTYPE_MH3D_MHM2	= GF_4CC( 'm', 'h', 'm', '2' ),
+
+
 	/* on-screen colours */
 	GF_ISOM_SUBTYPE_NCLX 		= GF_4CC( 'n', 'c', 'l', 'x' ),
 	GF_ISOM_SUBTYPE_PROF 		= GF_4CC( 'p', 'r', 'o', 'f' ),
