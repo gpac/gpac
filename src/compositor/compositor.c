@@ -43,7 +43,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node);
 GF_EXPORT
 Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt)
 {
-	return gf_fs_forward_event(compositor->fsess, evt, 0, 0);
+	return gf_filter_forward_gf_event(compositor->filter, evt, GF_FALSE, GF_FALSE);
 }
 
 

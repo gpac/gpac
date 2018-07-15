@@ -90,7 +90,7 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 	iopid->is_eos = GF_FALSE;
 
 	//if we reattached the input, we must send a play request
-	gf_filter_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
+	gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
 	gf_filter_pid_send_event(iopid->ipid, &evt);
 
 	//and convert back cts/dts offsets from 1Mhs to OLD timescale (since we dispatch in this timescale)
@@ -212,7 +212,7 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!iopid->ipid) continue;
 
 		if (evt->base.type==GF_FEVT_PLAY) {
-			gf_filter_init_play_event(iopid->ipid, &fevt, ctx->start, 1.0, "FileList");
+			gf_filter_pid_init_play_event(iopid->ipid, &fevt, ctx->start, 1.0, "FileList");
 		} else {
 			fevt.base.on_pid = iopid->ipid;
 		}

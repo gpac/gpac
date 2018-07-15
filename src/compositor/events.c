@@ -1965,7 +1965,7 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 
 static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
 {
-	Bool ret = gf_fs_forward_event(compositor->fsess, ev, consumed, GF_FALSE);
+	Bool ret = gf_filter_forward_gf_event(compositor->filter, ev, consumed, GF_FALSE);
 
 	if (consumed) return GF_FALSE;
 

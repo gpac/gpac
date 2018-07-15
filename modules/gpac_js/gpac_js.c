@@ -1980,7 +1980,7 @@ static JSBool SMJS_FUNCTION(gpac_set_event_filter)
 	gjs->evt_filter.udta = gjs;
 	gjs->evt_filter.on_event = gjs_event_filter;
 
-	gf_fs_add_event_listener(gjs->compositor->fsess, &gjs->evt_filter);
+	gf_filter_add_event_listener(gjs->compositor->filter, &gjs->evt_filter);
 	return JS_TRUE;
 }
 
@@ -2353,7 +2353,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		gjs->nb_loaded--;
 		/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 		if ((gjs->c==c) && gjs->evt_filter.udta) {
-			gf_fs_remove_event_listener(gjs->compositor->fsess, &gjs->evt_filter);
+			gf_filter_remove_event_listener(gjs->compositor->filter, &gjs->evt_filter);
 			gjs->evt_filter.udta = NULL;
 		}
 		return;

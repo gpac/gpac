@@ -614,7 +614,7 @@ struct __tag_compositor
 	Bool use_step_mode;
 	//associated filter, used to load input filters
 	GF_Filter *filter;
-	GF_FilterSession *fsess;
+//	GF_FilterSession *fsess;
 	GF_FilterPid *vout;
 	GF_FilterHWFrame hwframe;
 	GF_VideoSurface fb;

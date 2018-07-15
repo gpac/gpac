@@ -101,6 +101,8 @@ u64 gf_sys_clock_high_res()
 GF_EXPORT
 void gf_sleep(u32 ms)
 {
+	gf_rmt_begin(sleep, GF_RMT_AGGREGATE);
+
 #ifdef WIN32
 	Sleep(ms);
 #else
@@ -136,6 +138,9 @@ void gf_sleep(u32 ms)
 		sel_err = select(0, NULL, NULL, NULL, &tv);
 	} while ( sel_err && (errno == EINTR) );
 #endif
+
+	gf_rmt_end();
+
 }
 
 #ifndef gettimeofday

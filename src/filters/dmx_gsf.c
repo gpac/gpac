@@ -811,7 +811,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	if (corr) gf_filter_pck_set_corrupted(gpck->pck, corr);
 	if (interl) gf_filter_pck_set_interlaced(gpck->pck, interl);
 	if (has_carv) gf_filter_pck_set_carousel_version(gpck->pck, carv);
-	if (has_dep) gf_filter_pck_set_dependency_flag(gpck->pck, dep_flags);
+	if (has_dep) gf_filter_pck_set_dependency_flags(gpck->pck, dep_flags);
 	if (cktype) gf_filter_pck_set_clock_type(gpck->pck, cktype);
 	if (seek) gf_filter_pck_set_seek_flag(gpck->pck, seek);
 	if (crypt) gf_filter_pck_set_crypt_flags(gpck->pck, crypt);

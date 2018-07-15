@@ -147,7 +147,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	if (filter && args) filter->orig_args = gf_strdup(args);
 
 	for (i=0; i<registry->nb_caps; i++) {
-		if (registry->caps[i].flags & GF_FILTER_CAPS_OUTPUT) {
+		if (registry->caps[i].flags & GF_CAPFLAG_OUTPUT) {
 			filter->has_out_caps = GF_TRUE;
 			break;
 		}
@@ -1449,9 +1449,9 @@ GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx)
 	return gf_list_get(filter->output_pids, idx);
 }
 
-GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
+GF_User *gf_filter_get_user(GF_Filter *filter)
 {
-	if (filter) return filter->session;
+	if (filter) return gf_fs_get_user(filter->session);
 	return NULL;
 }
 
@@ -1939,7 +1939,7 @@ GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *cap
 	return GF_OK;
 }
 
-void gf_filter_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name)
+void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name)
 {
 	u32 pmode = GF_PLAYBACK_MODE_NONE;
 	const GF_PropertyValue *p;

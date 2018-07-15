@@ -1166,10 +1166,11 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			memcpy(data, ctx->samp_buffer, ctx->samp_buffer_size);
 			gf_filter_pck_set_framing(pck, append ? GF_FALSE : GF_TRUE, nb_subsamples ? GF_FALSE : GF_TRUE);
 			if (!append) {
-				if (redundant_rap && !ctx->is_dims) sap_type = GF_FILTER_SAP_REDUNDANT;
 				gf_filter_pck_set_sap(pck, sap_type);
 				gf_filter_pck_set_dts(pck, dts);
 				gf_filter_pck_set_cts(pck, dts+cts_offset);
+				if (redundant_rap && !ctx->is_dims) gf_filter_pck_set_dependency_flags(pck, 0x1);
+
 				if (sample_duration || ctx->dts_inc)
 					gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
 
@@ -1227,10 +1228,11 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						if (first_subsample_is_first) {
 							gf_filter_pck_set_framing(pck, append ? GF_FALSE : GF_TRUE, nb_subsamples ? GF_FALSE : GF_TRUE);
 							if (!append) {
-								if (redundant_rap && !ctx->is_dims) sap_type = GF_FILTER_SAP_REDUNDANT;
 								gf_filter_pck_set_sap(pck, sap_type);
 								gf_filter_pck_set_dts(pck, dts);
 								gf_filter_pck_set_cts(pck, dts+cts_offset);
+								if (redundant_rap && !ctx->is_dims) gf_filter_pck_set_dependency_flags(pck, 0x1);
+
 								if (sample_duration || ctx->dts_inc)
 									gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
 

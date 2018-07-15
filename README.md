@@ -74,6 +74,7 @@ Remaining before release
 - [x] add pipe source and sink
 - [x] add  tcp source and sink
 - [x] add generic serializer/reader for all events/packets in filter arch
+- [x] filter API documentation
 - [ ] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
 - [ ] pass all test suite
@@ -81,7 +82,6 @@ Remaining before release
 ## V1.0.0
 Targets:
 - [ ] freeze filter API
-- [ ] filter API documentation
 - [ ] add ffmpeg muxer support
 - [ ] add ffmpeg simple avfilter support
 - [ ] filters scriptable through JS

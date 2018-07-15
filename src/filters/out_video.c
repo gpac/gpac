@@ -536,7 +536,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		fevt.buffer_req.max_buffer_us = 100000;
 		gf_filter_pid_send_event(pid, &fevt);
 
-		gf_filter_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
+		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(pid, &fevt);
 
 		memset(&evt, 0, sizeof(GF_Event));
@@ -979,7 +979,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	const char *sOpt;
 	GF_Err e;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
-	ctx->user = gf_fs_get_user( gf_filter_get_session(filter) );
+	ctx->user = gf_filter_get_user(filter);
 
 	if (!ctx->user) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] No user/modules defined, cannot load video output\n"));
@@ -1706,7 +1706,9 @@ static GF_Err vout_process(GF_Filter *filter)
 	if (ctx->pfmt) {
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp < MODE_2D) {
+			gf_rmt_begin_gl(vout_draw_gl);
 			vout_draw_gl(ctx, pck);
+			gf_rmt_end_gl();
 		} else
 #endif
 		{

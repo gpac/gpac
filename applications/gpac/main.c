@@ -555,7 +555,7 @@ static int gpac_main(int argc, char **argv)
 		goto exit;
 	}
 	if (view_filter_conn) {
-		gf_fs_filter_print_possible_connections(session);
+		gf_fs_print_all_connections(session);
 		goto exit;
 	}
 	if (dump_codecs) {
@@ -679,9 +679,9 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		const char *szVal;
 		char szDump[GF_PROP_DUMP_ARG_SIZE];
 		const GF_FilterCapability *cap = &caps[i];
-		if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) && i+1==nb_caps) break;
+		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) && i+1==nb_caps) break;
 		if (!i) fprintf(stderr, "Capabilities Bundle:\n");
-		else if (!(cap->flags & GF_FILTER_CAPS_IN_BUNDLE) ) {
+		else if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 			fprintf(stderr, "Capabilities Bundle:\n");
 			continue;
 		}
@@ -689,10 +689,10 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		szName = cap->name ? cap->name : gf_props_4cc_get_name(cap->code);
 		if (!szName) szName = gf_4cc_to_str(cap->code);
 		fprintf(stderr, "\t Flags:");
-		if (cap->flags & GF_FILTER_CAPS_INPUT) fprintf(stderr, " Input");
-		if (cap->flags & GF_FILTER_CAPS_OUTPUT) fprintf(stderr, " Output");
-		if (cap->flags & GF_FILTER_CAPS_EXCLUDED) fprintf(stderr, " Exclude");
-		if (cap->flags & GF_FILTER_CAPS_EXPLICIT) fprintf(stderr, " ExplicitOnly");
+		if (cap->flags & GF_CAPFLAG_INPUT) fprintf(stderr, " Input");
+		if (cap->flags & GF_CAPFLAG_OUTPUT) fprintf(stderr, " Output");
+		if (cap->flags & GF_CAPFLAG_EXCLUDED) fprintf(stderr, " Exclude");
+		if (cap->flags & GF_CAPFLAG_EXPLICIT) fprintf(stderr, " ExplicitOnly");
 
 		//dump some interesting predefined ones which are not mapped to types
 		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);

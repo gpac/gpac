@@ -83,7 +83,7 @@ static GF_Err sockout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (!ctx->pid && (!ctx->listen || gf_list_count(ctx->clients) ) ) {
 		GF_FilterEvent evt;
-		gf_filter_init_play_event(pid, &evt, ctx->start, ctx->speed, "SockOut");
+		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "SockOut");
 		gf_filter_pid_send_event(pid, &evt);
 		ctx->pid_started = GF_TRUE;
 	}
@@ -344,7 +344,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 			ctx->had_clients = GF_TRUE;
 			if (!ctx->pid_started && ctx->pid) {
 				GF_FilterEvent evt;
-				gf_filter_init_play_event(ctx->pid, &evt, ctx->start, ctx->speed, "SockOut");
+				gf_filter_pid_init_play_event(ctx->pid, &evt, ctx->start, ctx->speed, "SockOut");
 				gf_filter_pid_send_event(ctx->pid, &evt);
 				ctx->pid_started = GF_TRUE;
 			}

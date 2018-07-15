@@ -1020,7 +1020,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		} else {
 			validator->evt_filter.on_event = validator_on_event_record;
 		}
-		gf_fs_add_event_listener(validator->compositor->fsess, &validator->evt_filter);
+		gf_filter_add_event_listener(validator->compositor->filter, &validator->evt_filter);
 		validator->video_listener.udta = validator;
 		validator->video_listener.on_video_frame = validator_on_video_frame;
 		validator->video_listener.on_video_reconfig = validator_on_video_reconfig;
@@ -1035,7 +1035,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 	and free all validator data (the validator will be destroyed when the module is unloaded)
 	Note: we don't need to disconnect the terminal since it's already stopping */
 	case GF_COMPOSITOR_EXT_STOP:
-		gf_fs_remove_event_listener(validator->compositor->fsess, &validator->evt_filter);
+		gf_filter_remove_event_listener(validator->compositor->filter, &validator->evt_filter);
 		validator_xvs_close(validator);
 		validator_xvl_close(validator);
 		validator->compositor = NULL;

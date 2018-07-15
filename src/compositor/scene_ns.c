@@ -79,7 +79,7 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 				GF_Event evt;
 				evt.type = GF_EVENT_CONNECT;
 				evt.connect.is_connected = 0;
-				gf_fs_send_event(scene->compositor->fsess, &evt);
+				gf_filter_send_gf_event(scene->compositor->filter, &evt);
 			} else {
 				/*try to reinsert OD for VRML/X3D with multiple URLs:
 				1- first remove from parent scene without destroying object, this will trigger a re-setup

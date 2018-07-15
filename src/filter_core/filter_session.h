@@ -206,7 +206,7 @@ struct __gf_filter_pck
 	u32 alloc_size;
 	//for shared memory packets
 	Bool filter_owns_mem;
-	packet_destructor destructor;
+	gf_fsess_packet_destructor destructor;
 	//for packet reference  packets (sharing data from other packets)
 	struct __gf_filter_pck *reference;
 
@@ -723,7 +723,9 @@ void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
 
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections);
 
-GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct, Bool intern_pck);
+GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck);
+
+void gf_props_reset_single(GF_PropertyValue *p);
 
 #endif //_GF_FILTER_SESSION_H_
 

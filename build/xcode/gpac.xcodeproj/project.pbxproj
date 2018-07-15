@@ -491,7 +491,6 @@
 		92E164AC20F8EBAE0024A9CA /* dec_nvdec_sdk.h in Headers */ = {isa = PBXBuildFile; fileRef = 92E164A920F8EBAE0024A9CA /* dec_nvdec_sdk.h */; };
 		92E164AD20F8EBAE0024A9CA /* dec_nvdec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E164AA20F8EBAE0024A9CA /* dec_nvdec.c */; };
 		92E164BC20F8F2860024A9CA /* Remotery.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E164BA20F8F2860024A9CA /* Remotery.c */; };
-		92E164BD20F8F2860024A9CA /* Remotery.h in Headers */ = {isa = PBXBuildFile; fileRef = 92E164BB20F8F2860024A9CA /* Remotery.h */; };
 		92E249902057B973002CC029 /* resample_audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E2498F2057B973002CC029 /* resample_audio.c */; };
 		92E318CF20645036007BE021 /* ff_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318CE20645036007BE021 /* ff_rescale.c */; };
 		92E318D120651834007BE021 /* vcrop.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318D020651834007BE021 /* vcrop.c */; };
@@ -1329,7 +1328,6 @@
 		92E164A920F8EBAE0024A9CA /* dec_nvdec_sdk.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dec_nvdec_sdk.h; path = filters/dec_nvdec_sdk.h; sourceTree = "<group>"; };
 		92E164AA20F8EBAE0024A9CA /* dec_nvdec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_nvdec.c; path = filters/dec_nvdec.c; sourceTree = "<group>"; };
 		92E164BA20F8F2860024A9CA /* Remotery.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Remotery.c; sourceTree = "<group>"; };
-		92E164BB20F8F2860024A9CA /* Remotery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Remotery.h; sourceTree = "<group>"; };
 		92E2498F2057B973002CC029 /* resample_audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = resample_audio.c; path = filters/resample_audio.c; sourceTree = "<group>"; };
 		92E318CE20645036007BE021 /* ff_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_rescale.c; path = filters/ff_rescale.c; sourceTree = "<group>"; };
 		92E318D020651834007BE021 /* vcrop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcrop.c; path = filters/vcrop.c; sourceTree = "<group>"; };
@@ -1555,7 +1553,6 @@
 			isa = PBXGroup;
 			children = (
 				92E164BA20F8F2860024A9CA /* Remotery.c */,
-				92E164BB20F8F2860024A9CA /* Remotery.h */,
 				92F930801A5ADB870072A85C /* os_divers.c */,
 				92F930811A5ADB870072A85C /* os_file.c */,
 				922B48781A5ADAB3006CBBBA /* os_module.c */,
@@ -2614,7 +2611,6 @@
 				92BBFCB01A7122AD006A7735 /* cache.h in Headers */,
 				92BBFCFE1A7122AD006A7735 /* setup.h in Headers */,
 				92BBFCFB1A7122AD006A7735 /* scenegraph_svg.h in Headers */,
-				92E164BD20F8F2860024A9CA /* Remotery.h in Headers */,
 				92BBFCC01A7122AD006A7735 /* html5_mse.h in Headers */,
 				92B9A5AF1F8660D700A24FE4 /* visual_manager_2d.h in Headers */,
 				92BBFCE11A7122AD006A7735 /* mediaobject.h in Headers */,
