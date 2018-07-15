@@ -50,7 +50,7 @@ MP42TS is a TS multiplexer from MP4 and RTP sources.
 
 ## gpac 
 As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC. For API backward compatibility, old apps (MP4Box, MP4Client, ...) have been kept but rewritten to match the new filter architecture.
-They do not however expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details.
+They do not however expose all possible filter connections. The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filers not enabled by other apps. See gpac -h for more details, and check libgpac filter documentation.
 
 
 # Roadmap
@@ -74,6 +74,7 @@ Remaining before release
 - [x] add pipe source and sink
 - [x] add  tcp source and sink
 - [x] add generic serializer/reader for all events/packets in filter arch
+- [x] add remotery support
 - [x] filter API documentation
 - [ ] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
