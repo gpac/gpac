@@ -111,6 +111,7 @@
     <ClInclude Include="..\..\include\gpac\nodes_xbl.h" />
     <ClInclude Include="..\..\include\gpac\options.h" />
     <ClInclude Include="..\..\include\gpac\path2d.h" />
+    <ClInclude Include="..\..\include\gpac\Remotery.h" />
     <ClInclude Include="..\..\include\gpac\revision.h" />
     <ClInclude Include="..\..\include\gpac\ringbuffer.h" />
     <ClInclude Include="..\..\include\gpac\rtp_streamer.h" />
@@ -489,6 +490,7 @@
     <ClCompile Include="..\..\src\utils\os_thread.c" />
     <ClCompile Include="..\..\src\utils\path2d.c" />
     <ClCompile Include="..\..\src\utils\path2d_stroker.c" />
+    <ClCompile Include="..\..\src\utils\Remotery.c" />
     <ClCompile Include="..\..\src\utils\ringbuffer.c" />
     <ClCompile Include="..\..\src\utils\sha1.c" />
     <ClCompile Include="..\..\src\utils\token.c" />
