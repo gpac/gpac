@@ -3897,6 +3897,12 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_DEC3:
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
 		break;
+	case GF_ISOM_BOX_TYPE_MHA1:
+	case GF_ISOM_BOX_TYPE_MHA2:
+	case GF_ISOM_BOX_TYPE_MHM1:
+	case GF_ISOM_BOX_TYPE_MHM2:
+		ptr->cfg_mha = (GF_MHAConfigBox *) a;
+		break;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -5573,61 +5579,10 @@ GF_Err stsd_AddBox(GF_Box *s, GF_Box *a)
 	GF_SampleDescriptionBox *ptr = (GF_SampleDescriptionBox *)s;
 	if (!a) return GF_OK;
 
-	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_MP4S:
-	case GF_ISOM_BOX_TYPE_ENCS:
-	case GF_ISOM_BOX_TYPE_MP4A:
-	case GF_ISOM_BOX_TYPE_ENCA:
-	case GF_ISOM_BOX_TYPE_MP4V:
-	case GF_ISOM_BOX_TYPE_ENCV:
-	case GF_ISOM_BOX_TYPE_RESV:
-	case GF_ISOM_BOX_TYPE_GHNT:
-	case GF_ISOM_BOX_TYPE_RTP_STSD:
-	case GF_ISOM_BOX_TYPE_SRTP_STSD:
-	case GF_ISOM_BOX_TYPE_FDP_STSD:
-	case GF_ISOM_BOX_TYPE_RRTP_STSD:
-	case GF_ISOM_BOX_TYPE_RTCP_STSD:
-	case GF_ISOM_BOX_TYPE_AVC1:
-	case GF_ISOM_BOX_TYPE_AVC2:
-	case GF_ISOM_BOX_TYPE_AVC3:
-	case GF_ISOM_BOX_TYPE_AVC4:
-	case GF_ISOM_BOX_TYPE_SVC1:
-	case GF_ISOM_BOX_TYPE_MVC1:
-	case GF_ISOM_BOX_TYPE_HVC1:
-	case GF_ISOM_BOX_TYPE_HEV1:
-	case GF_ISOM_BOX_TYPE_HVC2:
-	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_HVT1:
-	case GF_ISOM_BOX_TYPE_LHV1:
-	case GF_ISOM_BOX_TYPE_LHE1:
-	case GF_ISOM_BOX_TYPE_AV01:
-	case GF_ISOM_BOX_TYPE_AV1C:
-	case GF_ISOM_BOX_TYPE_TX3G:
-	case GF_ISOM_BOX_TYPE_TEXT:
-	case GF_ISOM_BOX_TYPE_ENCT:
-	case GF_ISOM_BOX_TYPE_METX:
-	case GF_ISOM_BOX_TYPE_METT:
-	case GF_ISOM_BOX_TYPE_STXT:
-	case GF_ISOM_BOX_TYPE_DIMS:
-	case GF_ISOM_BOX_TYPE_AC3:
-	case GF_ISOM_BOX_TYPE_EC3:
-	case GF_ISOM_BOX_TYPE_LSR1:
-	case GF_ISOM_BOX_TYPE_WVTT:
-	case GF_ISOM_BOX_TYPE_STPP:
-	case GF_ISOM_BOX_TYPE_SBTT:
-	case GF_ISOM_BOX_TYPE_ELNG:
-	case GF_ISOM_BOX_TYPE_MP3:
-	case GF_ISOM_BOX_TYPE_JPEG:
-	case GF_ISOM_BOX_TYPE_JP2K:
-	case GF_ISOM_BOX_TYPE_PNG:
-	case GF_ISOM_SUBTYPE_3GP_AMR:
-	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
-	case GF_ISOM_SUBTYPE_3GP_EVRC:
-	case GF_ISOM_SUBTYPE_3GP_QCELP:
-	case GF_ISOM_SUBTYPE_3GP_SMV:
-	case GF_ISOM_SUBTYPE_3GP_H263:
+	if (gf_box_valid_in_parent(a, "stsd")) {
 		return gf_isom_box_add_default((GF_Box*)ptr, a);
-
+	}
+	switch (a->type) {
 	//unknown sample description: we need a specific box to handle the data ref index
 	//rather than a default box ...
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
@@ -6871,7 +6826,12 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_JPEG:
 		case GF_ISOM_BOX_TYPE_PNG:
 		case GF_ISOM_BOX_TYPE_JP2K:
+		case GF_ISOM_BOX_TYPE_MHA1:
+		case GF_ISOM_BOX_TYPE_MHA2:
+		case GF_ISOM_BOX_TYPE_MHM1:
+		case GF_ISOM_BOX_TYPE_MHM2:
 			continue;
+			
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
 			break;
 		default:
@@ -11273,6 +11233,67 @@ GF_Err ainf_Size(GF_Box *s)
 {
 	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
 	s->size += 4 +  strlen(ptr->APID) + 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void mhac_del(GF_Box *s)
+{
+	GF_MHAConfigBox *ptr = (GF_MHAConfigBox *) s;
+	if (ptr->mha_config) gf_free(ptr->mha_config);
+	gf_free(s);
+}
+
+GF_Err mhac_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_MHAConfigBox *ptr = (GF_MHAConfigBox *) s;
+
+	ISOM_DECREASE_SIZE(s, 5)
+	ptr->configuration_version = gf_bs_read_u8(bs);
+	ptr->mha_pl_indication = gf_bs_read_u8(bs);
+	ptr->reference_channel_layout = gf_bs_read_u8(bs);
+	ptr->mha_config_size = gf_bs_read_u16(bs);
+	if (ptr->mha_config_size) {
+		ISOM_DECREASE_SIZE(s, ptr->mha_config_size)
+		ptr->mha_config = gf_malloc(sizeof(char)*ptr->mha_config_size);
+		gf_bs_read_data(bs, ptr->mha_config, ptr->mha_config_size);
+	}
+	return GF_OK;
+}
+
+GF_Box *mhac_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MHAConfigBox, GF_ISOM_BOX_TYPE_MHAC);
+	tmp->configuration_version = 1;
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err mhac_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_MHAConfigBox *ptr = (GF_MHAConfigBox *) s;
+
+	e = gf_isom_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->configuration_version);
+	gf_bs_write_u8(bs, ptr->mha_pl_indication);
+	gf_bs_write_u8(bs, ptr->reference_channel_layout);
+	gf_bs_write_u16(bs, ptr->mha_config ? ptr->mha_config_size : 0);
+	if (ptr->mha_config && ptr->mha_config_size)
+		gf_bs_write_data(bs, ptr->mha_config, ptr->mha_config_size);
+
+	return GF_OK;
+}
+
+GF_Err mhac_Size(GF_Box *s)
+{
+	GF_MHAConfigBox *ptr = (GF_MHAConfigBox *) s;
+	s->size += 5;
+	if (ptr->mha_config_size && ptr->mha_config) s->size += ptr->mha_config_size;
 	return GF_OK;
 }
 

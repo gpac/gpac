@@ -646,38 +646,59 @@ void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)
 {
 	char *szName;
+	const char *error=NULL;
 	Bool is_3gpp = GF_FALSE;
+	Bool is_mp4a = GF_FALSE;
 	GF_MPEGAudioSampleEntryBox *p = (GF_MPEGAudioSampleEntryBox *)a;
 
 	switch (p->type) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 		szName = "AMRSampleDescriptionBox";
-		is_3gpp = GF_TRUE;
+		if (!p->cfg_3gpp)
+		 	error = "<!-- INVALID 3GPP FILE: Config not present in Sample Description-->";
 		break;
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 		szName = "AMR_WB_SampleDescriptionBox";
-		is_3gpp = GF_TRUE;
+		if (!p->cfg_3gpp)
+		 	error = "<!-- INVALID 3GPP FILE: Config not present in Sample Description-->";
 		break;
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 		szName = "EVRCSampleDescriptionBox";
-		is_3gpp = GF_TRUE;
+		if (!p->cfg_3gpp)
+		 	error = "<!-- INVALID 3GPP FILE: Config not present in Sample Description-->";
 		break;
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 		szName = "QCELPSampleDescriptionBox";
-		is_3gpp = GF_TRUE;
+		if (!p->cfg_3gpp)
+		 	error = "<!-- INVALID 3GPP Entry: Config not present in Audio Sample Description-->";
 		break;
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 		szName = "SMVSampleDescriptionBox";
-		is_3gpp = GF_TRUE;
+		if (!p->cfg_3gpp)
+		 	error = "<!-- INVALID 3GPP Entry: Config not present in Audio Sample Description-->";
 		break;
 	case GF_ISOM_BOX_TYPE_MP4A:
 		szName = "MPEGAudioSampleDescriptionBox";
+		if (!p->esd)
+		 	error = "<!--INVALID MP4 Entry: ESDBox not present in Audio Sample Description or corrupted-->";
 		break;
 	case GF_ISOM_BOX_TYPE_AC3:
 		szName = "AC3SampleEntryBox";
+		if (!p->cfg_ac3)
+		 	error = "<!--INVALID AC3 Entry: AC3Config not present in Audio Sample Description or corrupted-->";
 		break;
 	case GF_ISOM_BOX_TYPE_EC3:
 		szName = "EC3SampleEntryBox";
+		if (!p->cfg_ac3)
+		 	error = "<!--INVALID AC3 Entry: AC3Config not present in Audio Sample Description or corrupted-->";
+		break;
+	case GF_ISOM_BOX_TYPE_MHA1:
+	case GF_ISOM_BOX_TYPE_MHA2:
+		if (!p->cfg_mha)
+		 	error = "<!--INVALID MPEG-H 3D Audio Entry: MHA config not present in Audio Sample Description or corrupted-->";
+	case GF_ISOM_BOX_TYPE_MHM1:
+	case GF_ISOM_BOX_TYPE_MHM2:
+		szName = "MHASampleEntry";
 		break;
 	default:
 		szName = "AudioSampleDescriptionBox";
@@ -688,22 +709,22 @@ GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)
 	base_audio_entry_dump((GF_AudioSampleEntryBox *)p, trace);
 	fprintf(trace, ">\n");
 
-	if (p->esd) {
-		gf_isom_box_dump(p->esd, trace);
-	} else if (p->cfg_3gpp) {
-		gf_isom_box_dump(p->cfg_3gpp, trace);
+	if (error) {
+		fprintf(trace, "%s\n", error);
+	} else {
+		if (p->esd)
+			gf_isom_box_dump(p->esd, trace);
 
-	} else if (p->cfg_ac3) {
-		if (p->size)
+		if (p->cfg_3gpp)
+			gf_isom_box_dump(p->cfg_3gpp, trace);
+
+		if (p->cfg_ac3)
 			gf_isom_box_dump(p->cfg_ac3, trace);
 
-	} else if (p->size) {
-		if (is_3gpp) {
-			fprintf(trace, "<!-- INVALID 3GPP FILE: Config not present in Sample Description-->\n");
-		} else {
-			fprintf(trace, "<!--INVALID MP4 FILE: ESDBox not present in MPEG Sample Description or corrupted-->\n");
-		}
+		if (p->cfg_mha)
+			gf_isom_box_dump(p->cfg_mha, trace);
 	}
+
 	if (a->type == GF_ISOM_BOX_TYPE_ENCA) {
 		gf_isom_box_array_dump(p->protections, trace);
 	}
@@ -5219,6 +5240,18 @@ GF_Err ainf_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "profile_version=\"%d\" APID=\"%s\">\n", p->profile_version, p->APID);
 	gf_isom_box_dump_done("AssetInformationBox", a, trace);
+	return GF_OK;
+}
+
+
+GF_Err mhac_dump(GF_Box *a, FILE * trace)
+{
+	GF_MHAConfigBox *p = (GF_MHAConfigBox *) a;
+
+	gf_isom_box_dump_start(a, "MHAConfigurationBox", trace);
+
+	fprintf(trace, "configurationVersion=\"%d\" mpegh3daProfileLevelIndication=\"%d\" referenceChannelLayout=\"%d\">\n", p->configuration_version, p->mha_pl_indication, p->reference_channel_layout);
+	gf_isom_box_dump_done("MHAConfigurationBox", a, trace);
 	return GF_OK;
 }
 
