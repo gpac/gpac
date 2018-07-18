@@ -581,7 +581,7 @@ static const GF_FilterArgs RTPInArgs[] =
 {
 	{ OFFS(src), "RTSP location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(firstport), "default first port number to use. 0 lets the filter decide", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(mcast_ifce), "IP of the default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FALSE},
+	{ OFFS(ifce), "IP of the default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(mcast_ttl), "Sets multicast TTL", GF_PROP_UINT, "127", "0-127", GF_FALSE},
 	{ OFFS(reorder_len), "RTP reorder length in packets", GF_PROP_UINT, "1000", NULL, GF_FALSE},
 	{ OFFS(reorder_delay), "Max delay in RTP reorderer, packets will be dispatched after that", GF_PROP_UINT, "200", NULL, GF_FALSE},

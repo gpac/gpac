@@ -48,7 +48,7 @@ typedef struct
 	//opts
 	char *src;
 	u32 firstport, mcast_ttl, satip_port;
-	const char *mcast_ifce, *force_mcast, *user_agent, *languages;
+	const char *ifce, *force_mcast, *user_agent, *languages;
 	Bool use_client_ports;
 	u32 bandwidth, reorder_len, reorder_delay, nat_keepalive, block_size;
 	Bool disable_rtcp;

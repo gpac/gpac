@@ -36,7 +36,7 @@ static GF_SystemRTInfo rti;
 static u32 list_filters = 0;
 static Bool dump_stats = GF_FALSE;
 static Bool dump_graph = GF_FALSE;
-static u32 print_filter_info = 0;
+static Bool print_filter_info = GF_FALSE;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
@@ -166,18 +166,25 @@ static void gpac_filter_help(void)
 "\tname#TYPEN: accepts only Nth pid of matching type from source\n"
 "\tname#P4CC=VAL: accepts only pids with property matching VAL.\n"
 "\tname#PName=VAL: same as above, using the builtin name corresponding to the property.\n"
+"\tname#AnyName=VAL: same as above, using the name of a non built-in property.\n"
+"\n"
+"If the property is not defined on the pid, the property is matched. Otherwise, its value is checked agains the given value\n"
+"\n"
+"The following modifiers for comparisons are allowed (for both P4CC=, PName= and AnyName=):\n"
+"\tname#P4CC=!VAL: accepts only pids with property NOT matching VAL.\n"
 "\tname#P4CC-VAL: accepts only pids with property strictly less than VAL (only for 1-dimension number properties).\n"
 "\tname#P4CC+VAL: accepts only pids with property strictly greater than VAL (only for 1-dimension number properties).\n"
 "\n"
-"NOTE: if the property is not defined on the pid, the pid is matched.\n"
-"NOTE: named properties (not using internally defined 4CC) cannot currently be used for pid adressing\n"
+"Note that these extensions also work with the LINK shortcut:\n"
+"\tEX: \"fA fB @1#video fC\" indicates to direct fA video outputs to fC\n"
+"\n"
 "\tEX: \"src=img.heif @#ItemID=200 vout\" indicates to connect to vout only pids with ItemID property equal to 200\n"
 "\tEX: \"src=vid.mp4 @#PID=1 vout\" indicates to connect to vout only pids with ID property equal to 1\n"
 "\tEX: \"src=vid.mp4 @#Width=640 vout\" indicates to connect to vout only pids with Width property equal to 640\n"
 "\tEX: \"src=vid.mp4 @#Width-640 vout\" indicates to connect to vout only pids with Width property less than 640\n"
 "\n"
-"Note that these extensions also work with the LINK shortcut:\n"
-"\tEX: \"fA fB @1#video fC\" indicates to direct fA video outputs to fC\n"
+"Multiple fragment can be specified to check for multiple pid properties\n"
+"\tEX: \"src=vid.mp4 @#Width=640#Height+380 vout\" indicates to connect to vout only pids with Width property equal to 640 and Height greater than 380\n"
 "\n"
 "Note that if a filter pid gets connected to a loaded filter, no further dynamic link resolution will "
 "be done to connect it to other filters. Link directives should be carfully setup\n"
@@ -249,7 +256,14 @@ static void gpac_filter_help(void)
 
 static void gf_log_usage(void)
 {
-	fprintf(stderr, "You can independently log different tools involved in a session by using -logs=log_args option.\n"
+	fprintf(stderr, "The following log options are available:\n"
+	        "-log-file=file  : set output log file. Also works with -lf\n"
+	        "-logs=log_args  : set log tools and levels, see -h logs\n"
+	        "-lc             : log time in micro sec since start time of GPAC before each log line (same as -log-clock).\n"
+	        "-lu             : log UTC time in ms before each log line (same as -log-utc).\n"
+			"-logs=log_args  : set the subsystem(s) to log"
+			"\n"
+			"You can independently log different tools involved in a session.\n"
 			"log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "levelX can be one of:\n"
 	        "\t        \"quiet\"      : skip logs\n"
@@ -280,15 +294,13 @@ static void gf_log_usage(void)
 #ifdef GPAC_MEMORY_TRACKING
 	        "\t        \"mem\"        : GPAC memory tracker\n"
 #endif
-#ifndef GPAC_DISABLE_DASH_CLIENT
 	        "\t        \"dash\"       : HTTP streaming logs\n"
-#endif
-	        "\t        \"module\"     : GPAC modules debugging\n"
+	        "\t        \"module\"     : GPAC modules (av out, font engine, 2D rasterizer))\n"
 	        "\t        \"filter\"     : filters debugging\n"
 	        "\t        \"sched\"      : filter session scheduler debugging\n"
-	        "\t        \"mutex\"      : mutex\n"
+	        "\t        \"mutex\"      : log all mutex calls\n"
 	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
-	        "A special keyword ncl can be set to disable color logs.\n"
+	        "A special keyword \"ncl\" can be set to disable color logs.\n"
 	        "\tEX: -logs all@info:dash@debug:ncl moves all log to info level, dash to debug level and disable color logs.\n"
 	        "\n"
 	);
@@ -312,30 +324,24 @@ static void gpac_usage(void)
 			"                   The fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"
 			"                   The fifth char, if present, is used for boolean negation\n"
 			"                   The sixth char, if present, is used for LINK directives (cf -h doc)\n"
-			"-list           : list all supported filters.\n"
-			"-listm          : list all supported filters including meta-filters (ffmpeg & co).\n"
-			"-info NAME      : print info on filter NAME (multiple NAME can be given). For meta-filters, use NAME:INST, eg ffavin:avfoundation\n"
-			"                    Use * to print info on all filters (warning, big output!)\n"
-			"                    Use *:* to print info on all filters including meta-filters (warning, big big output!)\n"
 			"-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
-			"-graph          : print stats after  Graph can be viewed at runtime by typing 'g' in the prompt\n"
+			"-graph          : print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt\n"
 	        "-threads=N      : set N extra thread for the session. -1 means use all available cores\n"
 			"\n"
 	        "-strict-error   : exit at first error\n"
-	        "-log-file=file  : set output log file. Also works with -lf\n"
-	        "-logs=log_args  : set log tools and levels, see -h logs\n"
-	        "-lc             : log time in micro sec since start time of GPAC before each log line (same as -log-clock).\n"
-	        "-lu             : log UTC time in ms before each log line (same as -log-utc).\n"
 			"-quiet          : quiet mode\n"
 			"-noprog         : disable progress messages if any\n"
 			"-h [ARG]        : print help (works with -help as well). ARG can be:\n"
 			"                  not given: prints command line options help (this screen).\n"
 			"                  'doc': prints the general filter info.\n"
 			"                  'log': prints the log system help.\n"
+			"                  'filters': prints name of all available filters.\n"
+			"                  'filters:*': prints name of all available filters, including meta filters.\n"
 			"                  'codecs': prints the supported builtin codecs.\n"
 			"                  'props': prints the supported builtin pid properties.\n"
 			"                  'links': prints possible connections between each supported filters.\n"
-			"                  FNAME: prints filter FNAME info and options (for viewing all details, use -info).\n"
+			"                  FNAME: prints filter FNAME info (multiple NAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation\n"
+			"                    Use * to print info on all filters (warning, big output!)\n"
 			"\n"
 			"Expert options\n"
 			"-nb             : disable blocking mode of filters\n"
@@ -432,8 +438,14 @@ static int gpac_main(int argc, char **argv)
 			} else if (!strcmp(argv[i+1], "links")) {
 				view_filter_conn = GF_TRUE;
 				i++;
+			} else if (!strcmp(argv[i+1], "filters")) {
+				list_filters = 1;
+				i++;
+			} else if (!strcmp(argv[i+1], "filters:*")) {
+				list_filters = 2;
+				i++;
 			} else {
-				print_filter_info = 2;
+				print_filter_info = 1;
 			}
 		} else if (!strncmp(arg, "-s=", 3)) {
 			u32 len;
@@ -493,16 +505,10 @@ static int gpac_main(int argc, char **argv)
 			else if (!strcmp(arg_val, "freex")) sched_type = GF_FS_SCHEDULER_LOCK_FREE_X;
 		} else if (!strcmp(arg, "-ltf")) {
 			load_test_filters = GF_TRUE;
-		} else if (!strcmp(arg, "-list")) {
-			list_filters = 1;
-		} else if (!strcmp(arg, "-listm")) {
-			list_filters = 2;
 		} else if (!strcmp(arg, "-stats")) {
 			dump_stats = GF_TRUE;
 		} else if (!strcmp(arg, "-graph")) {
 			dump_graph = GF_TRUE;
-		} else if (!strcmp(arg, "-info")) {
-			print_filter_info = 1;
 		} else if (!strcmp(arg, "-rmt")) {
 			enable_profiling = GF_TRUE;
 		} else if (!strcmp(arg, "-nb")) {
@@ -538,7 +544,7 @@ static int gpac_main(int argc, char **argv)
 	}
 	if (enable_profiling) gf_sys_enable_profiling(GF_TRUE);
 
-	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_meta_filters || dump_codecs) ? GF_TRUE : GF_FALSE, disable_blocking, blacklist);
+	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) ? GF_TRUE : GF_FALSE, disable_blocking, blacklist);
 	if (!session) {
 		return 1;
 	}
@@ -594,8 +600,14 @@ static int gpac_main(int argc, char **argv)
 					link_prev_filter_ext = ext+1;
 				}
 				link_prev_filter = 0;
-				if (strlen(arg)>1)
+				if (strlen(arg)>1) {
 					link_prev_filter = atoi(arg+1);
+					if (link_prev_filter<0) {
+						fprintf(stderr, "Wrong filter index %d, must be positive\n", link_prev_filter);
+						e = GF_BAD_PARAM;
+						goto exit;
+					}
+				}
 
 				if (ext) ext[0] = separator_set[SEP_FRAG];
 				continue;
@@ -692,7 +704,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		if (cap->flags & GF_CAPFLAG_INPUT) fprintf(stderr, " Input");
 		if (cap->flags & GF_CAPFLAG_OUTPUT) fprintf(stderr, " Output");
 		if (cap->flags & GF_CAPFLAG_EXCLUDED) fprintf(stderr, " Exclude");
-		if (cap->flags & GF_CAPFLAG_EXPLICIT) fprintf(stderr, " ExplicitOnly");
+		if (cap->flags & GF_CAPFLAG_LOADED_FILTER) fprintf(stderr, " LoadedFilterOnly");
 
 		//dump some interesting predefined ones which are not mapped to types
 		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);
@@ -707,23 +719,22 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 
 static void print_filter(const GF_FilterRegister *reg)
 {
-	Bool small_info = (print_filter_info==2) ? GF_TRUE : GF_FALSE;
 	fprintf(stderr, "Name: %s\n", reg->name);
 	if (reg->description) fprintf(stderr, "Description: %s\n", reg->description);
 	if (reg->author) fprintf(stderr, "Author: %s\n", reg->author);
-	if (reg->comment) fprintf(stderr, "%s%s\n", small_info ? "\n" : "Comment:\n", reg->comment);
+	if (reg->comment) fprintf(stderr, "\n%s\n\n", reg->comment);
 
-	if (!small_info) {
-		if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
-		else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
+	if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
+	else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
 
-		fprintf(stderr, "Flags:");
-		if (reg->explicit_only) fprintf(stderr, " ExplicitOnly");
-		if (reg->requires_main_thread) fprintf(stderr, "MainThread");
-		if (reg->probe_url) fprintf(stderr, " IsSource");
-		if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
-		fprintf(stderr, "\nPriority %d", reg->priority);
-	}
+	fprintf(stderr, "Flags:");
+	if (reg->explicit_only) fprintf(stderr, " ExplicitOnly");
+	if (reg->requires_main_thread) fprintf(stderr, "MainThread");
+	if (reg->probe_url) fprintf(stderr, " IsSource");
+	if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
+	if (reg->probe_data) fprintf(stderr, " DataProber");
+	fprintf(stderr, "\nPriority %d", reg->priority);
+
 	fprintf(stderr, "\n");
 
 	if (reg->args) {
@@ -750,7 +761,7 @@ static void print_filter(const GF_FilterRegister *reg)
 		fprintf(stderr, "No options\n");
 	}
 
-	if (!small_info && reg->nb_caps) {
+	if (reg->nb_caps) {
 		dump_caps(reg->nb_caps, reg->caps);
 	}
 	fprintf(stderr, "\n");
@@ -777,7 +788,7 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 					char *sep = strchr(arg, ':');
 					if (!strcmp(arg, "*:*")
 						|| (!sep && !strcmp(arg, "*"))
-					 	|| (sep && !strncmp(reg->name, arg, sep - arg) && !strcmp(sep, ":*") )
+					 	|| (sep && !strcmp(sep, ":*") && !strncmp(reg->name, arg, 1+sep - arg) )
 					) {
 						print_filter(reg);
 						found = GF_TRUE;

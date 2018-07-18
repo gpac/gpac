@@ -1217,7 +1217,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	flag = 1;
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
 	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disale multicast loop: %s\n", gf_errno_str(LASTSOCKERROR) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disable multicast loop: %s\n", gf_errno_str(LASTSOCKERROR) ));
 	}
 
 #ifdef GPAC_HAS_IPV6
@@ -1290,7 +1290,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = usec_wait;
 	}
-	ready = select((int) max_fd+1, &sg->group, &sg->group, NULL, &timeout);
+	ready = select((int) max_fd+1, &sg->group, NULL, NULL, &timeout);
 
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
@@ -1370,7 +1370,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 sta
 	}
 #endif
 	if (sock->flags & GF_SOCK_HAS_PEER)
-		res = (s32) recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, NULL, NULL);
+		res = (s32) recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {
 		res = (s32) recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
 		if (res == 0)

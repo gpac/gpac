@@ -117,6 +117,7 @@ const GF_FilterRegister *sockout_register(GF_FilterSession *session);
 const GF_FilterRegister *av1dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *obumx_register(GF_FilterSession *session);
 const GF_FilterRegister *nvdec_register(GF_FilterSession *session);
+const GF_FilterRegister *atscin_register(GF_FilterSession *session);
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
@@ -201,6 +202,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, av1dmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, obumx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, nvdec_register(a_sess));
+	gf_fs_add_filter_registry(fsess, atscin_register(a_sess));
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );

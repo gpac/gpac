@@ -340,8 +340,8 @@ static GF_FilterArgs FFSWSArgs[] =
 	{ OFFS(size), "size of output video. When not set, input size is used", GF_PROP_VEC2I, NULL, NULL, GF_FALSE},
 	{ OFFS(pfmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
 	{ OFFS(scale), "scaling mode", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FALSE},
-	{ OFFS(p1), "scaling algo param1. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
-	{ OFFS(p2), "scaling algo param2. See filter info and ffmpeg doc", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
+	{ OFFS(p1), "scaling algo param1 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
+	{ OFFS(p2), "scaling algo param2 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FALSE},
 	{0}
 };
 
@@ -357,7 +357,8 @@ GF_FilterRegister FFSWSRegister = {
 	.description = "FFMPEG video rescaler "LIBSWSCALE_IDENT,
 	.comment = "For bicubic, to tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)\n"\
 				"For gauss p1 tunes the exponent and thus cutoff frequency\n"\
-				"For lanczos p1 tunes the width of the window function",
+				"For lanczos p1 tunes the width of the window function"\
+				"\nSee FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on rescaler options",
 
 	.private_size = sizeof(GF_FFSWScaleCtx),
 	.args = FFSWSArgs,

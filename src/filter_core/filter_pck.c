@@ -519,7 +519,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 #endif
 		gf_rmt_end();
-		return GF_OK;
+		return GF_PENDING_PACKET;
 	}
 	//now dispatched
 	pck->src_filter = NULL;

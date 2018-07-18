@@ -33,7 +33,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *fext;
-	Bool append, dynext;
+	Bool append, dynext, cat;
 
 	//only one input pid
 	GF_FilterPid *pid;
@@ -47,6 +47,7 @@ typedef struct
 	char szFileName[GF_MAX_PATH];
 
 	Bool patch_blocks;
+	Bool is_null;
 } GF_FileOutCtx;
 
 
@@ -67,6 +68,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	if (ctx->is_std) {
 		ctx->file = stdout;
 	} else {
+		Bool append = ctx->append;
 		if (ctx->dynext) {
 			Bool has_ext = (strchr(filename, '.')==NULL) ? GF_FALSE : GF_TRUE;
 
@@ -79,7 +81,10 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 			strcpy(szName, filename);
 		}
 		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx);
-		ctx->file = gf_fopen(szFinalName, ctx->append ? "a+b" : "w");
+
+		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
+
+		ctx->file = gf_fopen(szFinalName, append ? "a+b" : "w");
 
 		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write && !explicit_overwrite) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", filename));
@@ -147,12 +152,16 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
 	}
+	if (!stricmp(ctx->dst, "null")) {
+		ctx->is_null = GF_TRUE;
+		return GF_OK;
+	}
 	if (ctx->dynext) return GF_OK;
 
 	if (ctx->fext) ext = ctx->fext;
 	else {
 		ext = strrchr(ctx->dst, '.');
-		if (!ext) ext = "*";
+		if (!ext) ext = ".*";
 	}
 
 	if (!ext && !ctx->mime) {
@@ -204,6 +213,11 @@ static GF_Err fileout_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
+	if (ctx->is_null) {
+		gf_filter_pid_drop_packet(ctx->pid);
+		return GF_OK;
+	}
+
 	gf_filter_pck_get_framing(pck, &start, &end);
 	dep_flags = gf_filter_pck_get_dependency_flags(pck);
 	//redundant packet, do not store
@@ -211,6 +225,9 @@ static GF_Err fileout_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->pid);
 		return GF_OK;
 	}
+
+	if (ctx->file && start && ctx->cat)
+		start = GF_FALSE;
 
 	if (start) {
 		Bool explicit_overwrite = GF_FALSE;
@@ -311,7 +328,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] output file handle is not opened, discarding %d bytes\n", pck_size));
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
-	if (end) {
+	if (end && !ctx->cat) {
 		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 	}
 	return GF_OK;
@@ -330,13 +347,13 @@ static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterArgs FileOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(dst), "location of destination file - \"null\" means drop all packets ", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
+	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{ OFFS(fext), "Sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-
+	{ OFFS(fext), "sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(cat), "cats each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{0}
 };
 

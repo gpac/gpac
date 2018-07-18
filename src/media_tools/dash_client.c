@@ -138,6 +138,7 @@ struct __dash_client
 	u32 probe_times_before_switch;
 	Bool agressive_switching;
 	u32 min_wait_ms_before_next_request;
+	u32 min_wait_sys_clock;
 
 	Bool force_mpd_update;
 
@@ -158,6 +159,7 @@ struct __dash_client
 	s32 debug_group_index;
 	Bool disable_speed_adaptation;
 
+	Bool period_groups_setup;
 	u32 tile_rate_decrease;
 	GF_DASHTileAdaptationMode tile_adapt_mode;
 
@@ -236,6 +238,8 @@ struct __dash_group
 	Double segment_duration;
 
 	Double start_playback_range;
+
+	Bool group_setup;
 
 	Bool was_segment_base;
 	/*local file playback, do not delete them*/
@@ -2537,6 +2541,8 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 		bitrate = 8*group->total_size;
 		bitrate /= group->current_downloaded_segment_duration;
 	}
+	rep->playback.broadcast_flag = is_broadcast;
+
 	if (bytes_per_sec) {
 		time = group->total_size;
 		time /= bytes_per_sec;
@@ -5224,6 +5230,13 @@ typedef enum
 
 static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group, Bool has_dep_following);
 
+static GFINLINE void dash_set_min_wait(GF_DashClient *dash, u32 min_wait)
+{
+	if (!dash->min_wait_ms_before_next_request || (min_wait < dash->min_wait_ms_before_next_request)) {
+		dash->min_wait_ms_before_next_request = min_wait;
+		dash->min_wait_sys_clock = gf_sys_clock();
+	}
+}
 
 /*TODO decide what is the best, fetch from another representation or ignore ...*/
 static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group, GF_Err e, GF_MPD_Representation *rep, char *new_base_seg_url, char *key_url, Bool has_dep_following)
@@ -5231,8 +5244,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	u32 clock_time = gf_sys_clock();
 	Bool will_retry = GF_FALSE;
 
-	if (!dash->min_wait_ms_before_next_request || (dash->min_timeout_between_404 < dash->min_wait_ms_before_next_request))
-		dash->min_wait_ms_before_next_request = dash->min_timeout_between_404;
+	dash_set_min_wait(dash, dash->min_timeout_between_404);
 
 	group->retry_after_utc = dash->min_timeout_between_404 + gf_net_get_utc();
 
@@ -5297,7 +5309,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			}
 		}
 		if (group->prev_segment_ok) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment %s: %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
 			group->time_at_first_failure = 0;
 			group->prev_segment_ok = GF_FALSE;
 		}
@@ -5306,11 +5318,10 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		//we are lost ....
 		if (group->nb_consecutive_segments_lost == 20) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
-			if (dash->min_wait_ms_before_next_request || (dash->min_wait_ms_before_next_request > 1000))
-				dash->min_wait_ms_before_next_request = 1000;
+			dash_set_min_wait(dash, 1000);
 			group->maybe_end_of_stream = 1;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment %s: %s\n", new_base_seg_url, gf_error_to_string(e)));
 			if (dash->speed >= 0) {
 				group->download_segment_index++;
 			} else if (group->download_segment_index) {
@@ -5464,8 +5475,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 		if (group->retry_after_utc > (u64) now) {
 			to_wait = (u32) (group->retry_after_utc - (u64) now);
-			if (!dash->min_wait_ms_before_next_request || ((u32) to_wait < dash->min_wait_ms_before_next_request))
-				dash->min_wait_ms_before_next_request = to_wait;
+			dash_set_min_wait(dash, (u32) to_wait);
 
 			return GF_DASH_DownloadCancel;
 		}
@@ -5480,8 +5490,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			if (group->last_segment_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 			}
-			if (!dash->min_wait_ms_before_next_request || ((u32) to_wait < dash->min_wait_ms_before_next_request))
-				dash->min_wait_ms_before_next_request = to_wait;
+
+			dash_set_min_wait(dash, (u32) to_wait);
 
 			return GF_DASH_DownloadCancel;
 		} else {
@@ -5998,15 +6008,21 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 	u32 i, group_count;
 	GF_Err e;
 
-	/*setup period*/
-	e = gf_dash_setup_period(dash);
-	if (e) {
-		//move to stop state before sending the error event otherwise we might deadlock when disconnecting the dash client
-		dash->dash_state = GF_DASH_STATE_STOPPED;
-		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, -1, e);
-		return e;
+	//don't resetup the entire period, only the broken group(s) ...
+	if (!dash->period_groups_setup) {
+		/*setup period*/
+		e = gf_dash_setup_period(dash);
+		if (e) {
+			//move to stop state before sending the error event otherwise we might deadlock when disconnecting the dash client
+			dash->dash_state = GF_DASH_STATE_STOPPED;
+			dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, -1, e);
+			return e;
+		}
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SELECT_GROUPS, -1, GF_OK);
+
+		dash->period_groups_setup = GF_TRUE;
 	}
-	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SELECT_GROUPS, -1, GF_OK);
+
 
 	e = GF_OK;
 	group_count = gf_list_count(dash->groups);
@@ -6014,6 +6030,8 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE)
 			continue;
+
+		if (group->group_setup) continue;
 
 		//by default all groups are started (init seg download and buffering). They will be (de)selected by the user
 		if (dash->first_period_in_mpd) {
@@ -6028,9 +6046,9 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 			gf_dash_buffer_off(group);
 			if (dash->mpd_stop_request)
 				return GF_OK;
-			//FILTERS FIXME - don't resetup the entire period, only the broken group(s) ...
 			return e;
 		}
+		group->group_setup = GF_TRUE;
 		if (e) break;
 	}
 	dash->first_period_in_mpd = 0;
@@ -6108,9 +6126,13 @@ static void dash_do_groups(GF_DashClient *dash)
 		}
 		if (all_done)
 			break;
-		gf_sleep(1);
+
+		if (dash->thread_mode)
+			gf_sleep(1);
 	}
-	dash_global_rate_adaptation(dash, GF_FALSE);
+	//in non threaded mode we need to wait for the stats
+	if (dash->thread_mode)
+		dash_global_rate_adaptation(dash, GF_FALSE);
 }
 
 static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_is_full)
@@ -6152,9 +6174,16 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 
 		/*wait if nothing is ready to be downloaded*/
 		if (dash->min_wait_ms_before_next_request > 1) {
-			u32 sleep_for = MIN(dash->min_wait_ms_before_next_request/2, 1000);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep for %d ms\n", dash->min_wait_ms_before_next_request, sleep_for));
-			gf_sleep(sleep_for);
+			if (dash->thread_mode) {
+				u32 sleep_for = MIN(dash->min_wait_ms_before_next_request/2, 1000);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep for %d ms\n", dash->min_wait_ms_before_next_request, sleep_for));
+				gf_sleep(sleep_for);
+			} else {
+				if (gf_sys_clock() < dash->min_wait_sys_clock + dash->min_wait_ms_before_next_request) {
+					return GF_EOS;
+				}
+				dash->min_wait_ms_before_next_request = 0;
+			}
 		}
 
 		/*check if cache is not full*/
@@ -6281,8 +6310,9 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 		return GF_OK;
 	case GF_DASH_STATE_RUNNING:
 		e = dash_check_mpd_update_and_cache(dash, &cache_is_full);
-		if (e || cache_is_full) return GF_OK;
-
+		if (e || cache_is_full) {
+			return GF_OK;
+		}
 		if (dash->dash_state == GF_DASH_STATE_SETUP)
 			return GF_OK;
 
@@ -6318,6 +6348,7 @@ restart_period:
 	/* Setting the download status in exclusive code */
 	if (dash->dash_mutex) gf_mx_p(dash->dash_mutex);
 	dash->dash_state = GF_DASH_STATE_SETUP;
+	dash->period_groups_setup = GF_FALSE;
 	if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
 
 	//period setup state
@@ -8532,20 +8563,37 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, GF_Err err)
 	key_url = group->cached[0].key_url;
 	url = group->cached[0].url;
 	gf_free(group->cached[0].cache);
-	group->nb_cached_segments = 0;
+	group->nb_cached_segments --;
+
 	on_group_download_error(dash, group, NULL, err, rep, url, key_url, has_dep_following);
+
+	if (dash->speed>=0) group->download_segment_index--;
+	else group->download_segment_index++;
 }
 
-void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done)
+void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (dash->thread_mode) return;
 	if (!group) return;
 	if (!group->nb_cached_segments) return;
 
-	dash_store_stats(dash, group, bytes_per_sec, file_size, bytes_done);
+	dash_store_stats(dash, group, bytes_per_sec, file_size, is_broadcast);
+
+	if (file_size==bytes_done) {
+		dash_global_rate_adaptation(dash, GF_FALSE);
+	}
 }
 
-
+u32 gf_dash_get_min_wait_ms(GF_DashClient *dash)
+{
+	if (dash && dash->min_wait_ms_before_next_request) {
+		u32 ellapsed = gf_sys_clock() - dash->min_wait_sys_clock;
+		if (ellapsed < dash->min_wait_ms_before_next_request) dash->min_wait_ms_before_next_request -= ellapsed;
+		else dash->min_wait_ms_before_next_request = 0;
+		return dash->min_wait_ms_before_next_request;
+	}
+	return 0;
+}
 #endif //GPAC_DISABLE_DASH_CLIENT
 

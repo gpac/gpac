@@ -804,6 +804,161 @@ void *gf_filter_pid_get_udta(GF_FilterPid *pid)
 	}
 }
 
+static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bool *pid_excluded)
+{
+	char *psep;
+	u32 comp_type=0;
+	const GF_PropertyValue *prop;
+
+	//special case for stream types filters
+	prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
+	if (prop) {
+		u32 matched=0;
+		u32 type=0;
+		if (!strnicmp(frag_name, "audio", 5)) {
+			matched=5;
+			type=GF_STREAM_AUDIO;
+		} else if (!strnicmp(frag_name, "video", 5)) {
+			matched=5;
+			type=GF_STREAM_VISUAL;
+		} else if (!strnicmp(frag_name, "scene", 5)) {
+			matched=5;
+			type=GF_STREAM_SCENE;
+		} else if (!strnicmp(frag_name, "font", 4)) {
+			matched=4;
+			type=GF_STREAM_FONT;
+		} else if (!strnicmp(frag_name, "text", 4)) {
+			matched=4;
+			type=GF_STREAM_TEXT;
+		}
+		if (matched && (type != prop->value.uint)) {
+			//special case: if we request a non-file stream but the pid is a file, we will need a demux to
+			//move from file to A/V/... streams, so we accept any #MEDIA from file streams
+			if (prop->value.uint == GF_STREAM_FILE) {
+				return GF_TRUE;
+			}
+			matched = 0;
+		}
+
+		if (matched) {
+			u32 idx=0;
+			u32 k, count_pid;
+			if (strlen(frag_name)==matched) return GF_TRUE;
+			idx = atoi(frag_name+matched);
+			count_pid = src_pid->filter->num_output_pids;
+			for (k=0; k<count_pid; k++) {
+				GF_FilterPid *p = gf_list_get(src_pid->filter->output_pids, k);
+				prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
+				if (prop && prop->value.uint==type) {
+					idx--;
+					if (!idx) {
+						if (p==src_pid) return GF_TRUE;
+						break;
+					}
+				}
+			}
+			*pid_excluded = GF_TRUE;
+			return GF_FALSE;
+		}
+	}
+
+	//generic property adressing code(or builtin name)=val
+	psep = strchr(frag_name, src_pid->filter->session->sep_name);
+	if (!psep) {
+		psep = strchr(frag_name, '-');
+		if (psep) comp_type = 1;
+		else {
+			psep = strchr(frag_name, '+');
+			if (psep) comp_type = 2;
+		}
+	}
+
+	if (!psep) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing %s not recognized, ignoring and assuming match\n", frag_name ));
+		return GF_TRUE;
+	}
+
+	Bool is_equal = GF_FALSE;
+	Bool use_not_equal = GF_FALSE;
+	GF_PropertyValue prop_val;
+	u32 p4cc = 0;
+	char c=psep[0];
+	psep[0] = 0;
+	prop=NULL;
+
+	//check for built-in property
+	p4cc = gf_props_get_id(frag_name);
+	if (!p4cc && (strlen(frag_name)==4))
+		p4cc = GF_4CC(frag_name[0], frag_name[1], frag_name[2], frag_name[3]);
+
+	if (p4cc) prop = gf_filter_pid_get_property(src_pid, p4cc);
+	//not a built-in property, find prop by name
+	if (!prop) {
+		prop = gf_filter_pid_get_property_str(src_pid, frag_name);
+	}
+
+	psep[0] = c;
+
+	//if the property is not found, we accept the connection
+	if (!prop) {
+		return GF_TRUE;
+	}
+
+	//check for negation
+	if ( (psep[0]==src_pid->filter->session->sep_name) && (psep[1]==src_pid->filter->session->sep_neg) ) {
+		psep++;
+		use_not_equal = GF_TRUE;
+	}
+	//parse the property, based on its property type
+	prop_val = gf_props_parse_value(prop->type, frag_name, psep+1, NULL, src_pid->filter->session->sep_list);
+	if (!comp_type) {
+		is_equal = gf_props_equal(prop, &prop_val);
+		if (use_not_equal) is_equal = !is_equal;
+	} else {
+		switch (prop_val.type) {
+		case GF_PROP_SINT:
+			if (prop->value.sint<prop_val.value.sint) is_equal = GF_TRUE;
+			if (comp_type==2) is_equal = !is_equal;
+			break;
+		case GF_PROP_UINT:
+			if (prop->value.uint<prop_val.value.uint) is_equal = GF_TRUE;
+			if (comp_type==2) is_equal = !is_equal;
+			break;
+		case GF_PROP_LSINT:
+			if (prop->value.longsint<prop_val.value.longsint) is_equal = GF_TRUE;
+			if (comp_type==2) is_equal = !is_equal;
+			break;
+		case GF_PROP_LUINT:
+			if (prop->value.longuint<prop_val.value.longuint) is_equal = GF_TRUE;
+			if (comp_type==2) is_equal = !is_equal;
+			break;
+		case GF_PROP_FLOAT:
+			if (prop->value.fnumber<prop_val.value.fnumber) is_equal = GF_TRUE;
+			if (comp_type==2) is_equal = !is_equal;
+			break;
+		case GF_PROP_DOUBLE:
+			if (prop->value.number<prop_val.value.number) is_equal = GF_TRUE;
+			if (comp_type==2) is_equal = !is_equal;
+			break;
+		case GF_PROP_FRACTION:
+			if (prop->value.frac.num * prop_val.value.frac.den < prop->value.frac.den * prop_val.value.frac.num) is_equal = GF_TRUE;
+			if (comp_type == 2) is_equal = !is_equal;
+			break;
+		case GF_PROP_FRACTION64:
+			if (prop->value.lfrac.num * prop_val.value.lfrac.den < prop->value.lfrac.den * prop_val.value.lfrac.num) is_equal = GF_TRUE;
+			if (comp_type == 2) is_equal = !is_equal;
+			break;
+		default:
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal=true\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
+			is_equal = GF_TRUE;
+			break;
+		}
+	}
+	gf_props_reset_single(&prop_val);
+	if (!is_equal) *pid_excluded = GF_TRUE;
+
+	return is_equal;
+}
 
 static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const char *source_ids, Bool *pid_excluded)
 {
@@ -813,10 +968,11 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 	if (!id)
 		return GF_FALSE;
 	while (source_ids) {
+		Bool all_matched = GF_TRUE;
 		u32 len, sublen;
 		Bool last=GF_FALSE;
 		char *sep = strchr(source_ids, src_pid->filter->session->sep_list);
-		char *pid_name;
+		char *frag_name;
 		if (sep) {
 			len = (u32) (sep - source_ids);
 		} else {
@@ -824,160 +980,36 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 			last=GF_TRUE;
 		}
 
-		pid_name = strchr(source_ids, src_pid->filter->session->sep_frag);
-		if (pid_name > source_ids + len) pid_name = NULL;
-		sublen = pid_name ? (u32) (pid_name - source_ids) : len;
+		frag_name = strchr(source_ids, src_pid->filter->session->sep_frag);
+		if (frag_name > source_ids + len) frag_name = NULL;
+		sublen = frag_name ? (u32) (frag_name - source_ids) : len;
 		//skip frag char
-		if (pid_name) pid_name++;
+		if (frag_name) frag_name++;
 
-		//match id
-		if (!strncmp(id, source_ids, sublen)) {
-			char *psep;
-			u32 comp_type=0;
-			const GF_PropertyValue *prop;
-			if (!pid_name) return GF_TRUE;
-
-			//match pid name
-			if (!strcmp(src_pid->name, pid_name)) return GF_TRUE;
-
-			//generic property adressing code(or builtin name)=val
-			psep = strchr(pid_name, src_pid->filter->session->sep_name);
-			if (!psep) {
-				psep = strchr(pid_name, '-');
-				if (psep) comp_type = 1;
-				else {
-					psep = strchr(pid_name, '+');
-					if (psep) comp_type = 2;
-				}
-			}
-			if (psep) {
-				Bool is_equal = GF_FALSE;
-				GF_PropertyValue prop_val;
-				u32 p4cc = 0;
-				char c=psep[0];
-				psep[0] = 0;
-				prop=NULL;
-				p4cc = gf_props_get_id(pid_name);
-				if (!p4cc && (strlen(pid_name)==4))
-					p4cc = GF_4CC(pid_name[0], pid_name[1], pid_name[2], pid_name[3]);
-
-				psep[0] = c;
-				if (p4cc) {
-					prop = gf_filter_pid_get_property(src_pid, p4cc);
-
-					if (prop) {
-						prop_val = gf_props_parse_value(prop->type, pid_name, psep+1, NULL, src_pid->filter->session->sep_list);
-						if (!comp_type) {
-							is_equal = gf_props_equal(prop, &prop_val);
-						} else {
-							switch (prop_val.type) {
-							case GF_PROP_SINT:
-								if (prop->value.sint<prop_val.value.sint) is_equal = GF_TRUE;
-								if (comp_type==2) is_equal = !is_equal;
-								break;
-							case GF_PROP_UINT:
-								if (prop->value.uint<prop_val.value.uint) is_equal = GF_TRUE;
-								if (comp_type==2) is_equal = !is_equal;
-								break;
-							case GF_PROP_LSINT:
-								if (prop->value.longsint<prop_val.value.longsint) is_equal = GF_TRUE;
-								if (comp_type==2) is_equal = !is_equal;
-								break;
-							case GF_PROP_LUINT:
-								if (prop->value.longuint<prop_val.value.longuint) is_equal = GF_TRUE;
-								if (comp_type==2) is_equal = !is_equal;
-								break;
-							case GF_PROP_FLOAT:
-								if (prop->value.fnumber<prop_val.value.fnumber) is_equal = GF_TRUE;
-								if (comp_type==2) is_equal = !is_equal;
-								break;
-							case GF_PROP_DOUBLE:
-								if (prop->value.number<prop_val.value.number) is_equal = GF_TRUE;
-								if (comp_type==2) is_equal = !is_equal;
-								break;
-							case GF_PROP_FRACTION:
-								if (prop->value.frac.num * prop_val.value.frac.den < prop->value.frac.den * prop_val.value.frac.num) is_equal = GF_TRUE;
-								if (comp_type == 2) is_equal = !is_equal;
-								break;
-							case GF_PROP_FRACTION64:
-								if (prop->value.lfrac.num * prop_val.value.lfrac.den < prop->value.lfrac.den * prop_val.value.lfrac.num) is_equal = GF_TRUE;
-								if (comp_type == 2) is_equal = !is_equal;
-								break;
-							default:
-								GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal=true\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
-								is_equal = GF_TRUE;
-								break;
-							}
-						}
-						gf_props_reset_single(&prop_val);
-						if (!is_equal) *pid_excluded = GF_TRUE;
-					} else {
-						//if the property is not found, we accept the connection
-						is_equal = GF_TRUE;
-					}
-					return is_equal;
-				}
-			}
-
-			//special case for stream types filters
-			prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
-			if (prop) {
-				u32 matched=0;
-				u32 type=0;
-				if (!strnicmp(pid_name, "audio", 5)) {
-					matched=5;
-					type=GF_STREAM_AUDIO;
-				} else if (!strnicmp(pid_name, "video", 5)) {
-					matched=5;
-					type=GF_STREAM_VISUAL;
-				} else if (!strnicmp(pid_name, "scene", 5)) {
-					matched=5;
-					type=GF_STREAM_SCENE;
-				} else if (!strnicmp(pid_name, "font", 4)) {
-					matched=4;
-					type=GF_STREAM_FONT;
-				} else if (!strnicmp(pid_name, "text", 4)) {
-					matched=4;
-					type=GF_STREAM_TEXT;
-				}
-				if (matched && (type != prop->value.uint)) {
-					//special case: if we request a non-file stream but the pid is a file, we will need a demux to
-					//move from file to A/V/... streams, so we accept any #MEDIA from file streams
-					if (prop->value.uint == GF_STREAM_FILE) {
-						return GF_TRUE;
-					}
-					matched = 0;
-				}
-
-				if (matched) {
-					u32 idx=0;
-					u32 k, count_pid;
-					if (strlen(pid_name)==matched) return GF_TRUE;
-					idx = atoi(pid_name+matched);
-					count_pid = src_pid->filter->num_output_pids;
-					for (k=0; k<count_pid; k++) {
-						GF_FilterPid *p = gf_list_get(src_pid->filter->output_pids, k);
-						prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
-						if (prop && prop->value.uint==type) {
-							idx--;
-							if (!idx) {
-								if (p==src_pid) return GF_TRUE;
-								break;
-							}
-						}
-					}
-					*pid_excluded = GF_TRUE;
-				}
-			}
-
-			if (!prop) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unsupported PID adressing %c%s in filter %s\n", src_pid->filter->session->sep_frag, pid_name, src_pid->filter->name));
-			}
+		// id does not match
+		if (strncmp(id, source_ids, sublen)) {
+			source_ids += len;
+			if (last) break;
 		}
+		if (!frag_name) return GF_TRUE;
 
+		//match pid name
+		if (!strcmp(src_pid->name, frag_name)) return GF_TRUE;
 
-		source_ids += len;
-		if (last) break;
+		//for all listed fragment extensions
+		while (frag_name && all_matched) {
+			char *next_frag = strchr(frag_name, src_pid->filter->session->sep_frag);
+			if (next_frag) next_frag[0] = 0;
+
+			if (! filter_pid_check_fragment(src_pid, frag_name, pid_excluded))
+				all_matched = GF_FALSE;
+
+			if (!next_frag) break;
+
+			next_frag[0] = src_pid->filter->session->sep_frag;
+			frag_name = next_frag+1;
+		}
+		return all_matched;
 	}
 	return GF_FALSE;
 }
@@ -1007,6 +1039,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 	Bool forced_cap_found = src_pid->forced_cap ? GF_FALSE : GF_TRUE;
 	const GF_FilterCapability *in_caps;
 	u32 nb_in_caps;
+
 	if (!freg) {
 		assert(dst_filter);
 		freg = dst_filter->freg;
@@ -1056,7 +1089,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 
 		//not an input cap
 		if (! (cap->flags & GF_CAPFLAG_INPUT) ) {
-			if (!skip_explicit_load && (cap->flags & GF_CAPFLAG_EXPLICIT) ) {
+			if (!skip_explicit_load && (cap->flags & GF_CAPFLAG_LOADED_FILTER) ) {
 				all_caps_matched = 0;
 			}
 			continue;
@@ -1108,7 +1141,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
 					continue;
 				}
-				if (!skip_explicit_load && (a_cap->flags & GF_CAPFLAG_EXPLICIT) ) {
+				if (!skip_explicit_load && (a_cap->flags & GF_CAPFLAG_LOADED_FILTER) ) {
 					if (!dst_filter || (dst_filter != src_pid->filter->dst_filter)) {
 						prop_equal = GF_FALSE;
 						break;
@@ -2723,7 +2756,8 @@ const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4
 const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const char *prop_name)
 {
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
-	assert(map);
+	if (!map)
+		return NULL;
 	return gf_props_get_property(map, 0, prop_name);
 }
 
@@ -2732,9 +2766,10 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 	u32 i, count;
 	const GF_PropertyValue * prop;
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
-	assert(map);
-	prop = gf_props_get_property(map, prop_4cc, prop_name);
-	if (prop) return prop;
+	if (map) {
+		prop = gf_props_get_property(map, prop_4cc, prop_name);
+		if (prop) return prop;
+	}
 
 	count = gf_list_count(pid->filter->input_pids);
 	for (i=0; i<count; i++) {
@@ -3970,7 +4005,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		} else {
 			char *next_eq = strchr(name, '=');
 			char *next_sep = strchr(name, '$');
-			if (next_eq - name < next_sep - name) {
+			if (!next_eq || (next_eq - name < next_sep - name)) {
 				prop_4cc = gf_props_get_id(name);
 				//not matching, try with name
 				if (!prop_4cc) {

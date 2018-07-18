@@ -40,7 +40,7 @@ typedef struct
 {
 	//options
 	Double start, speed;
-	char *dst, *mime, *ext, *mcast_ifce;
+	char *dst, *mime, *ext, *ifce;
 	Bool listen;
 	u32 maxc, port, sockbuf, ka, kp, rate;
 	GF_Fraction pckr, pckd;
@@ -191,14 +191,14 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	}
 
 	if (gf_sk_is_multicast_address(url)) {
-		e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->mcast_ifce);
+		e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->ifce);
 		ctx->listen = GF_FALSE;
 	} else if ((sock_type == GF_SOCK_TYPE_UDP)
 #ifdef GPAC_HAS_SOCK_UN 
 		|| (sock_type == GF_SOCK_TYPE_UDP_UN)
 #endif
 	) {
-		e = gf_sk_bind(ctx->socket, ctx->mcast_ifce, port, url, port, GF_SOCK_REUSE_PORT);
+		e = gf_sk_bind(ctx->socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT);
 		ctx->listen = GF_FALSE;
 	} else if (ctx->listen) {
 		e = gf_sk_bind(ctx->socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
@@ -208,7 +208,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 			gf_sk_server_mode(ctx->socket, GF_TRUE);
 		}
 	} else {
-		e = gf_sk_connect(ctx->socket, url, port, ctx->mcast_ifce);
+		e = gf_sk_connect(ctx->socket, url, port, ctx->ifce);
 	}
 
 	if (str) str[0] = ':';
@@ -501,7 +501,7 @@ static const GF_FilterArgs SockOutArgs[] =
 	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(sockbuf), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FALSE},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, GF_FALSE},
-	{ OFFS(mcast_ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(ext), "indicates file extension of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
 	{ OFFS(listen), "indicates the output socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},

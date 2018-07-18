@@ -115,8 +115,9 @@ void gf_atsc3_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char 
 /*! Removes the first object loaded in the service
  \param atscd the ATSC demultiplexer
  \param service_id ID of the service to query
+ \return GF_TRUE if success, GF_FALSE if error
  */
-void gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
+Bool gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
 
 /*! Checks existence of a service
  \param atscd the ATSC demultiplexer

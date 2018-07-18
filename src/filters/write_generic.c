@@ -916,7 +916,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	{0},
 
 	//anything else: only for explicit dump (filter loaded on purpose), otherwise don't load for filter link resolution
-	CAP_UINT(GF_CAPS_OUTPUT_EXPLICIT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "*"),
 	//for the rest, we include everything, only specifies excluded ones from above and non-handled ones
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
