@@ -325,6 +325,11 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, ptr->lsr_config->hdr, sizeof(char)*ptr->lsr_config->hdr_size);
 			break;
 		}
+	case GF_ISOM_SUBTYPE_MH3D_MHA1:
+	case GF_ISOM_SUBTYPE_MH3D_MHA2:
+	case GF_ISOM_SUBTYPE_MH3D_MHM1:
+	case GF_ISOM_SUBTYPE_MH3D_MHM2:
+		break;
 
 	default:
 		return GF_ISOM_INVALID_MEDIA;

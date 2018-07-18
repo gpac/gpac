@@ -685,6 +685,7 @@ ISOM_BOX_IMPL_DECL(tols)
 ISOM_BOX_IMPL_DECL(trik)
 ISOM_BOX_IMPL_DECL(bloc)
 ISOM_BOX_IMPL_DECL(ainf)
+ISOM_BOX_IMPL_DECL(mhac)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
@@ -1014,6 +1015,13 @@ static const struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LHE1, video_sample_entry, "stsd", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HVT1, video_sample_entry, "stsd", "p15"),
 
+	//mpegh 3D audio boxes
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHA1, audio_sample_entry, "stsd", "mpegh3Daudio"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHA2, audio_sample_entry, "stsd", "mpegh3Daudio"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM1, audio_sample_entry, "stsd", "mpegh3Daudio"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM2, audio_sample_entry, "stsd", "mpegh3Daudio"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHAC, mhac, "mha1 mha2 mhm1 mhm2", "mpegh3Daudio"),
+
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),
 	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv", 0, 0, "av1"),
@@ -1181,6 +1189,13 @@ static const struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2K, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_PNG, video_sample_entry, "stsd", "apple")
 };
+
+Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc)
+{
+	if (!a || !a->registry || !a->registry->parents_4cc) return GF_FALSE;
+	if (strstr(a->registry->parents_4cc, parent_4cc) != NULL) return GF_TRUE;
+	return GF_FALSE;
+}
 
 GF_EXPORT
 u32 gf_isom_get_num_supported_boxes()

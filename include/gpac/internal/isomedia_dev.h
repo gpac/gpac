@@ -447,6 +447,14 @@ enum
 	GF_ISOM_BOX_TYPE_265B 	= GF_4CC('2','6','5','b'),
 	GF_ISOM_BOX_TYPE_AV1B 	= GF_4CC('a','v','1','b'),
 
+	/*MPEG-H 3D audio*/
+	GF_ISOM_BOX_TYPE_MHA1 	= GF_4CC('m','h','a','1'),
+	GF_ISOM_BOX_TYPE_MHA2 	= GF_4CC('m','h','a','2'),
+	GF_ISOM_BOX_TYPE_MHM1 	= GF_4CC('m','h','m','1'),
+	GF_ISOM_BOX_TYPE_MHM2 	= GF_4CC('m','h','m','2'),
+	GF_ISOM_BOX_TYPE_MHAC 	= GF_4CC('m','h','a','C'),
+
+
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
@@ -545,6 +553,8 @@ GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
 void gf_isom_box_array_del(GF_List *other_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
+
+Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc);
 
 
 typedef struct
@@ -1227,6 +1237,17 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_BOX
+	u8 configuration_version;
+	u8 mha_pl_indication;
+	u8 reference_channel_layout;
+	u16 mha_config_size;
+	char *mha_config;
+} GF_MHAConfigBox;
+
+
+typedef struct
+{
 	GF_ISOM_AUDIO_SAMPLE_ENTRY
 	//for MPEG4 audio
 	GF_ESDBox *esd;
@@ -1236,6 +1257,9 @@ typedef struct
 
 	//for AC3/EC3 audio
 	GF_AC3ConfigBox *cfg_ac3;
+
+	//for MPEG-H audio
+	GF_MHAConfigBox *cfg_mha;
 } GF_MPEGAudioSampleEntryBox;
 
 /*this is the default visual sdst (to handle unknown media)*/
