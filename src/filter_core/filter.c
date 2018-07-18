@@ -661,6 +661,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 					|| !strncmp(args+4, "pipe://", 7)
 					|| !strncmp(args+4, "tcpu://", 7)
 					|| !strncmp(args+4, "udpu://", 7)
+					|| !strncmp(args+4, "atsc://", 7)
 					)
 				) {
 					internal_url = GF_TRUE;
@@ -1296,7 +1297,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (task->filter->postponed_packets) {
 		while (gf_list_count(task->filter->postponed_packets)) {
 			GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
-			gf_filter_pck_send(pck);
+			GF_Err e = gf_filter_pck_send(pck);
+			if (e==GF_PENDING_PACKET) break;
 		}
 		gf_list_del(task->filter->postponed_packets);
 		task->filter->postponed_packets = NULL;
@@ -1998,13 +2000,17 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 }
 
 GF_EXPORT
-GF_FilterPid *gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_Err *err)
+GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_FilterPid **out_pid)
 {
 	char *sep;
-	GF_FilterPid *pid = gf_filter_pid_new(filter);
+	GF_FilterPid *pid = *out_pid;
 	if (!pid) {
-		if (err) *err = GF_OUT_OF_MEM;
-		return NULL;
+		pid = gf_filter_pid_new(filter);
+		if (!pid) {
+			return GF_OUT_OF_MEM;
+		}
+		pid->max_buffer_unit = 1;
+		*out_pid = pid;
 	}
 
 	if (local_file)
@@ -2062,10 +2068,8 @@ GF_FilterPid *gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const ch
 	}
 	if (mime_type)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( mime_type));
-	if (err) *err = GF_OK;
 
-	pid->max_buffer_unit = 1;
-	return pid;
+	return GF_OK;
 }
 
 

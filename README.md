@@ -60,7 +60,7 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 ## V0.9.0
 Remaining before release
 - [x] move encrypter to filter
-- [ ] move ATSC demux to filter
+- [x] move ATSC demux to filter
 - [ ] move NVDec to filter
 - [ ] move MediaCodec to filter
 - [ ] move DekTec output to filter

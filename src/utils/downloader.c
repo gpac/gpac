@@ -1676,15 +1676,18 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 				}
 			}
 		}
-		sess->status = sess->sock ? GF_NETIO_CONNECTED : GF_NETIO_SETUP;
-		sess->num_retry = SESSION_RETRY_COUNT;
-		if (!discontinue_cache) {
-			gf_cache_set_end_range(sess->cache_entry, end_range);
-			/*remember this in case we get disconnected*/
-			sess->is_range_continuation = GF_TRUE;
-		} else {
-			sess->needs_cache_reconfig = 1;
-			sess->reused_cache_entry = GF_FALSE;
+		if (!sess->local_cache_only) {
+			sess->status = sess->sock ? GF_NETIO_CONNECTED : GF_NETIO_SETUP;
+			sess->num_retry = SESSION_RETRY_COUNT;
+
+			if (!discontinue_cache) {
+				gf_cache_set_end_range(sess->cache_entry, end_range);
+				/*remember this in case we get disconnected*/
+				sess->is_range_continuation = GF_TRUE;
+			} else {
+				sess->needs_cache_reconfig = 1;
+				sess->reused_cache_entry = GF_FALSE;
+			}
 		}
 	} else {
 		if (sess->status != GF_NETIO_SETUP) return GF_BAD_PARAM;

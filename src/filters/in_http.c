@@ -176,7 +176,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_SOURCE_SWITCH:
 		assert(ctx->sess);
 		if (evt->seek.source_switch) {
-			if ((ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
+			if (ctx->src && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src);
 			}
 			if (ctx->src) gf_free(ctx->src);
@@ -196,13 +196,18 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->last_state = GF_OK;
 			return GF_TRUE;
 		}
-
+		ctx->last_state = GF_OK;
 		assert(ctx->is_end);
 		assert(!ctx->pck_out);
 		e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration);
 		if (!e) e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
 			httpin_notify_error(filter, ctx, e);
+			ctx->is_end = GF_TRUE;
+			if (ctx->src) gf_free(ctx->src);
+			ctx->src = NULL;
+			return GF_TRUE;
 		}
 		ctx->nb_read = ctx->file_size = 0;
 		ctx->do_reconfigure = GF_TRUE;
@@ -302,7 +307,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			}
 			ctx->file_size = total_size;
 			ctx->block[nb_read] = 0;
-			ctx->pid = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, &e);
+			e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, &ctx->pid);
 			if (e) return e;
 			if (!ctx->initial_ack_done) {
 				ctx->initial_ack_done = GF_TRUE;
@@ -313,13 +318,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 			idx = 0;
 			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
-				if (!strcmp(hname, "icy-name")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-name", & PROP_STRING(hval));
-				} else if (!strcmp(hname, "icy-genre")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-genre", & PROP_STRING(hval));
-				} else if (!strcmp(hname, "icy-meta")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-meta", & PROP_STRING(hval));
-				}
+				gf_filter_pid_set_info_str(ctx->pid, hname, & PROP_STRING(hval));
 			}
 		}
 

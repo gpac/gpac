@@ -245,6 +245,7 @@
 		928E7AC71FB9FCDD00D2470E /* dmx_nhml.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */; };
 		9290F5111FAB4C2C0038C30D /* mux_isom.c in Sources */ = {isa = PBXBuildFile; fileRef = 9290F5101FAB4C2C0038C30D /* mux_isom.c */; };
 		92A08DBD20D946B7003589FF /* tileagg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A08DBC20D946B6003589FF /* tileagg.c */; };
+		92A505BA20FC833800049B29 /* in_atsc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A505B920FC833800049B29 /* in_atsc.c */; };
 		92A5CBE51F66ED2A005D2A6A /* gpac_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A5CBE41F66ED2A005D2A6A /* gpac_js.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
@@ -1079,6 +1080,7 @@
 		928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_nhml.c; path = filters/dmx_nhml.c; sourceTree = "<group>"; };
 		9290F5101FAB4C2C0038C30D /* mux_isom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_isom.c; path = filters/mux_isom.c; sourceTree = "<group>"; };
 		92A08DBC20D946B6003589FF /* tileagg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tileagg.c; path = filters/tileagg.c; sourceTree = "<group>"; };
+		92A505B920FC833800049B29 /* in_atsc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_atsc.c; path = filters/in_atsc.c; sourceTree = "<group>"; };
 		92A5CBE41F66ED2A005D2A6A /* gpac_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gpac_js.c; path = ../modules/gpac_js/gpac_js.c; sourceTree = "<group>"; };
 		92A7E95C2003BAAA000C22DE /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		92A7E95E2003BACB000C22DE /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
@@ -2484,6 +2486,7 @@
 				92E9167B2073F1DB00EE92FB /* ff_enc.c */,
 				92E318CE20645036007BE021 /* ff_rescale.c */,
 				92754D5F207D24F600170383 /* filelist.c */,
+				92A505B920FC833800049B29 /* in_atsc.c */,
 				92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */,
 				92BB855A1F7BFB61009BC9C8 /* in_file.c */,
 				92BB855E1F7BFB61009BC9C8 /* in_http.c */,
@@ -3005,6 +3008,7 @@
 				9201012018D5A444003D1ACA /* hint_track.c in Sources */,
 				92BB857D1F7BFD80009BC9C8 /* dec_xvid.c in Sources */,
 				9201012118D5A444003D1ACA /* hinting.c in Sources */,
+				92A505BA20FC833800049B29 /* in_atsc.c in Sources */,
 				92B9A5871F8660D700A24FE4 /* mpeg4_timesensor.c in Sources */,
 				9201012218D5A444003D1ACA /* isom_intern.c in Sources */,
 				9201012318D5A444003D1ACA /* isom_read.c in Sources */,

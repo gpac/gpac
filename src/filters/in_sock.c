@@ -55,7 +55,7 @@ typedef struct
 	const char *src;
 	u32 block_size, sockbuf;
 	u32 port, maxc;
-	char *mcast_ifce;
+	char *ifce;
 	const char *ext;
 	const char *mime;
 	Bool np, listen, ka, block;
@@ -128,14 +128,14 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 
 	/*do we have a source ?*/
 	if (gf_sk_is_multicast_address(url)) {
-		e = gf_sk_setup_multicast(ctx->sock_c.socket, url, port, 0, 0, ctx->mcast_ifce);
+		e = gf_sk_setup_multicast(ctx->sock_c.socket, url, port, 0, 0, ctx->ifce);
 		ctx->listen = GF_FALSE;
 	} else if ((sock_type==GF_SOCK_TYPE_UDP) 
 #ifdef GPAC_HAS_SOCK_UN 
 		|| (sock_type==GF_SOCK_TYPE_UDP_UN)
 #endif
 		) {
-		e = gf_sk_bind(ctx->sock_c.socket, ctx->mcast_ifce, port, url, port, GF_SOCK_REUSE_PORT);
+		e = gf_sk_bind(ctx->sock_c.socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT);
 		ctx->listen = GF_FALSE;
 		e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
 	} else if (ctx->listen) {
@@ -147,7 +147,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		}
 
 	} else {
-		e = gf_sk_connect(ctx->sock_c.socket, url, port, ctx->mcast_ifce);
+		e = gf_sk_connect(ctx->sock_c.socket, url, port, ctx->ifce);
 	}
 
 	if (str) str[0] = ':';
@@ -294,7 +294,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 			}
 		}
 
-		sock_c->pid = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, mime, ctx->ext, ctx->buffer, nb_read, &e);
+		e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, mime, ctx->ext, ctx->buffer, nb_read, &sock_c->pid);
 		if (e) return e;
 		if (!mime) {
 			const GF_PropertyValue *p = gf_filter_pid_get_property(sock_c->pid, GF_PROP_PID_MIME);
@@ -433,7 +433,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(block_size), "block size used to read socket", GF_PROP_UINT, "10000", NULL, GF_FALSE},
 	{ OFFS(sockbuf), "socket max buffer size", GF_PROP_UINT, "65536", NULL, GF_FALSE},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, GF_FALSE},
-	{ OFFS(mcast_ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FALSE},
@@ -464,7 +464,11 @@ GF_FilterRegister SockInRegister = {
 		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
 		"\n"
 #ifdef GPAC_HAS_SOCK_UN
-		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME",
+		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME"
+#ifdef GPAC_CONFIG_DARWIN
+		"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
+#endif
+		"",
 #else
 		"Oops, your platform does not supports unix domain sockets",
 #endif

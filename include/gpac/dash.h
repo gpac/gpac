@@ -538,10 +538,12 @@ void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo);
 void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, GF_Err err);
 
 //sets group download statistics for non threaded modes
-void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done);
+void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast);
 
 //sets availabilityStartTime shift for ATSC
 void gf_dash_set_atsc_ast_shift(GF_DashClient *dash, u32 ast_shift);
+
+u32 gf_dash_get_min_wait_ms(GF_DashClient *dash);
 
 
 #endif //GPAC_DISABLE_DASH_CLIENT

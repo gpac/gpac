@@ -45,7 +45,7 @@ GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly)
 	if (!ResetOnly) {
 		const char *ip_ifce = NULL;
 		if (!stream->rtpin->interleave) {
-			ip_ifce = stream->rtpin->mcast_ifce;
+			ip_ifce = stream->rtpin->ifce;
 		}
 		return gf_rtp_initialize(stream->rtp_ch, stream->rtpin->block_size, GF_FALSE, 0, stream->rtpin->reorder_len, stream->rtpin->reorder_delay, (char *)ip_ifce);
 	}

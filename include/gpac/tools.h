@@ -204,9 +204,8 @@ typedef enum
 {
 	/*!Message from any scripting engine used in the presentation (ECMAScript, MPEG-J, ...) (Info).*/
 	GF_SCRIPT_INFO                                          = 3,
-	/*!Indicates an data frame has several AU packed (not MPEG-4 compliant). This is used by decoders to force
-	multiple decoding of the same data frame (Info).*/
-	GF_PACKED_FRAMES					= 2,
+	/*!Indicates a send packet i snot dispatched due to pending connections.*/
+	GF_PENDING_PACKET					= 2,
 	/*!Indicates the end of a stream or of a file (Info).*/
 	GF_EOS								= 1,
 	/*!

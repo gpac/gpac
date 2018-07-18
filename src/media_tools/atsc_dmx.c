@@ -466,6 +466,10 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 				}
 			}
 			if (atscd->service_autotune==0xFFFFFFFF) service->tune_mode = GF_ATSC_TUNE_ON;
+			else if (atscd->service_autotune==0xFFFFFFFE) {
+				service->tune_mode = GF_ATSC_TUNE_ON;
+				atscd->service_autotune -= 1;
+			}
 			else if (atscd->service_autotune==service_id) service->tune_mode = GF_ATSC_TUNE_ON;
 			else if (atscd->tune_all_sls) service->tune_mode = GF_ATSC_TUNE_SLS_ONLY;
 
@@ -954,7 +958,7 @@ static GF_Err gf_atsc3_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 	else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[ATSC] Service %d received MPD file %s content:\n%s\n", s->service_id, content_location, content ));
 	}
-	return GF_NOT_SUPPORTED;
+	return GF_OK;
 }
 
 static GF_Err gf_atsc3_service_parse_mbms_enveloppe(GF_ATSCDmx *atscd, GF_ATSCService *s, char *content, char *content_location, u32 *stsid_version, u32 *mpd_version)
@@ -1746,7 +1750,7 @@ void gf_atsc3_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char 
 
 
 GF_EXPORT
-void gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id)
+Bool gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id)
 {
 	u32 i=0;
 	GF_ATSCService *s=NULL;
@@ -1755,13 +1759,16 @@ void gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id)
 		if (s->service_id == service_id) break;
 		s = NULL;
 	}
-	if (!s) return;
+	if (!s) return GF_FALSE;
 
 	obj = gf_list_get(s->objects, 0);
 	if (obj) {
-		assert(obj != s->last_active_obj);
-		gf_atsc3_obj_to_reservoir(atscd, s, obj);
+		if (obj != s->last_active_obj) {
+			gf_atsc3_obj_to_reservoir(atscd, s, obj);
+			return GF_TRUE;
+		}
 	}
+	return GF_FALSE;
 }
 
 GF_EXPORT

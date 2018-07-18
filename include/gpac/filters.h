@@ -642,6 +642,7 @@ enum
 	GF_PROP_PID_CAN_DATAREF = GF_4CC('D','R','E','F'),
 	GF_PROP_PID_URL = GF_4CC('F','U','R','L'),
 	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
+	GF_PROP_PID_REDIRECT_URL = GF_4CC('R','E','L','O'),
 	GF_PROP_PID_FILEPATH = GF_4CC('F','S','R','C'),
 	GF_PROP_PID_MIME = GF_4CC('M','I','M','E'),
 	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
@@ -1142,7 +1143,7 @@ enum
 	/*!  when set, the cap is valid if the value does not match. If an excluded cap is not found in the destination pid, it is assumed to match*/
 	GF_CAPFLAG_EXCLUDED = 1<<3,
 	/*! when set, the cap is validated only for filter loaded for this destination filter*/
-	GF_CAPFLAG_EXPLICIT = 1<<4,
+	GF_CAPFLAG_LOADED_FILTER = 1<<4,
 	/*! Only used for output caps, indicates that this cap applies to all bundles This avoids repeating caps common to all bundles by setting them only in the first*/
 	GF_CAPFLAG_STATIC = 1<<5,
 	/*! Only used for input caps, indicates that this cap is optionnal in the input pid */
@@ -1155,9 +1156,9 @@ enum
 #define GF_CAPS_INPUT_STATIC	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_STATIC)
 #define GF_CAPS_INPUT_STATIC_OPT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_STATIC|GF_CAPFLAG_OPTIONAL)
 #define GF_CAPS_INPUT_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_EXCLUDED)
-#define GF_CAPS_INPUT_EXCPLICIT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_EXPLICIT)
+#define GF_CAPS_INPUT_LOADED_FILTER	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_LOADED_FILTER)
 #define GF_CAPS_OUTPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT)
-#define GF_CAPS_OUTPUT_EXPLICIT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_EXPLICIT)
+#define GF_CAPS_OUTPUT_LOADED_FILTER	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_LOADED_FILTER)
 #define GF_CAPS_OUTPUT_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_EXCLUDED)
 #define GF_CAPS_OUTPUT_STATIC	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_STATIC)
 #define GF_CAPS_INPUT_OUTPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT)
@@ -1685,10 +1686,10 @@ void gf_filter_pid_remove(GF_FilterPid *pid);
 \param fext file extension of the content. If NULL, will be extracted from URL
 \param probe_data data of the stream to probe in order to solve its mime type
 \param probe_size size of the probe data
-\param err set to error code if any
-\return the new output pid or NULL if error
+\param out_pid the output pid to create or update. If no referer pid, a new pid will be created otherwise the pid will be updated
+\return error code if any
 */
-GF_FilterPid *gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_Err *err);
+GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_FilterPid **out_pid);
 
 /*! set a new property on an output pid for built-in property names.
 Previous properties (ones set before last packet dispatch) will still be valid.

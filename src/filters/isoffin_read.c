@@ -250,7 +250,8 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		ch->last_state = GF_OK;
-		if (ch->play_state) ch->play_state = 1;
+		if (ch->play_state)
+			ch->play_state = 1;
 		
 		if (ch->base_track) {
 #ifdef FILTER_FIXME
@@ -319,6 +320,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	//we must have a file path for now
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (!prop || ! prop->value.string) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Reconfiguring pid but no file path property on PID\n\n"));
 		return GF_NOT_SUPPORTED;
 	}
 
