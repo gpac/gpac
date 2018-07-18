@@ -323,9 +323,11 @@ static GF_Err atscin_initialize(GF_Filter *filter)
 	if (!ctx->src) return GF_BAD_PARAM;
 	if (strcmp(ctx->src, "atsc://")) return GF_BAD_PARAM;
 
-	ctx->dm = gf_filter_get_download_manager(filter);
-	if (!ctx->dm) return GF_SERVICE_ERROR;
-	gf_dm_set_localcache_provider(ctx->dm, atscin_local_cache_probe, ctx);
+	if (ctx->cache) {
+		ctx->dm = gf_filter_get_download_manager(filter);
+		if (!ctx->dm) return GF_SERVICE_ERROR;
+		gf_dm_set_localcache_provider(ctx->dm, atscin_local_cache_probe, ctx);
+	}
 
 	ctx->atsc_dmx = gf_atsc3_dmx_new(ctx->ifce, NULL, ctx->buffer);
 
