@@ -1715,8 +1715,8 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 
 	frame_width_bits_minus_1 = gf_bs_read_int(bs, 4);
 	frame_height_bits_minus_1 = gf_bs_read_int(bs, 4);
-	/*const u32 max_frame_width_minus_1 = */gf_bs_read_int(bs, frame_width_bits_minus_1 + 1);
-	/*const u32 max_frame_height_minus_1 = */gf_bs_read_int(bs, frame_height_bits_minus_1 + 1);
+	state->width = gf_bs_read_int(bs, frame_width_bits_minus_1 + 1) + 1;
+	state->height = gf_bs_read_int(bs, frame_height_bits_minus_1 + 1) + 1;
 	state->frame_id_numbers_present_flag = GF_FALSE;
 	if (!state->reduced_still_picture_header) {
 		state->frame_id_numbers_present_flag = gf_bs_read_int(bs, 1);
