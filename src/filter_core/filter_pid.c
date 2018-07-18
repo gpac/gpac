@@ -2886,17 +2886,20 @@ u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_FilterPacketInstance *pcki)
 {
 	Bool is_internal = GF_FALSE;
-	if (pcki->pck->info.internal_command==1) {
+	u32 ctype = (pcki->pck->info.flags & GF_PCK_CMD_MASK);
+	if (ctype == GF_PCK_CMD_PID_EOS ) {
 		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pidi->pid->name, pidi->filter->name, pcki->pid->pid->has_seen_eos));
 		safe_int_dec(&pcki->pid->nb_eos_signaled);
 		is_internal = GF_TRUE;
-	} else if (pcki->pck->info.internal_command==2) {
+	} else if (ctype == GF_PCK_CMD_PID_REM) {
 		gf_fs_post_task(pidi->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pidi->pid, "pidinst_disconnect", NULL);
 
 		is_internal = GF_TRUE;
 	}
-	if (pcki->pck->info.clock_type) {
+	ctype = (pcki->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
+
+	if (ctype) {
 		if (pcki->pid->handles_clock_references) return GF_FALSE;
 		safe_int_dec(&pcki->pid->nb_clocks_signaled);
 		//signal destination
@@ -2904,15 +2907,15 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 
 		pcki->pid->filter->next_clock_dispatch = pcki->pck->info.cts;
 		pcki->pid->filter->next_clock_dispatch_timescale = pcki->pck->pid_props->timescale;
-		pcki->pid->filter->next_clock_dispatch_type = pcki->pck->info.clock_type;
+		pcki->pid->filter->next_clock_dispatch_type = ctype;
 
 		//keep clock values but only override clock type if no discontinuity is pending
 		pcki->pid->last_clock_value = pcki->pck->info.cts;
 		pcki->pid->last_clock_timescale = pcki->pck->pid_props->timescale;
 		if (pcki->pid->last_clock_type != GF_FILTER_CLOCK_PCR_DISC)
-			pcki->pid->last_clock_type = pcki->pck->info.clock_type;
+			pcki->pid->last_clock_type = ctype;
 
-		if (pcki->pck->info.clock_type == GF_FILTER_CLOCK_PCR_DISC) {
+		if (ctype == GF_FILTER_CLOCK_PCR_DISC) {
 			assert(pcki->pid->last_clock_type == GF_FILTER_CLOCK_PCR_DISC);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Internal clock reference packet filtered - PID %s clock ref "LLU"/%d - type %d\n", pcki->pid->pid->name, pcki->pid->last_clock_value, pcki->pid->last_clock_timescale, pcki->pid->last_clock_type));
@@ -2947,7 +2950,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
 
-	if (pcki->pck->info.pid_props_changed && !pcki->pid_props_change_done) {
+	if ( (pcki->pck->info.flags & GF_PCKF_PROPS_CHANGED) && !pcki->pid_props_change_done) {
 		GF_Err e;
 		Bool skip_props = GF_FALSE;
 
@@ -2985,7 +2988,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 				return NULL;
 		}
 	}
-	if (pcki->pck->info.pid_info_changed && !pcki->pid_info_change_done && pidinst->filter->freg->process_event) {
+	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) && !pcki->pid_info_change_done && pidinst->filter->freg->process_event) {
 		GF_FilterEvent evt;
 		//it may happen that this filter pid is pulled from another thread than ours (eg audio callback), in which case
 		//we cannot go reentrant, we have to wait until the filter is not in use ...
@@ -3024,7 +3027,7 @@ Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 		return gf_filter_pid_get_first_packet_cts(pid, cts);
 	}
 
-	if (pidinst->requires_full_data_block && !pcki->pck->info.data_block_end)
+	if (pidinst->requires_full_data_block && !(pcki->pck->info.flags & GF_PCKF_BLOCK_END))
 		return GF_FALSE;
 	*cts = pcki->pck->info.cts;
 	return GF_TRUE;
@@ -3047,10 +3050,10 @@ Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 	}
 	assert(pcki->pck);
 
-	if (pcki->pck->info.internal_command || pcki->pck->info.clock_type) {
+	if (pcki->pck->info.flags & (GF_PCK_CMD_MASK|GF_PCK_CKTYPE_MASK)) {
 		return GF_TRUE;
 	}
-	if (pidinst->requires_full_data_block && !pcki->pck->info.data_block_end)
+	if (pidinst->requires_full_data_block && !(pcki->pck->info.flags & GF_PCKF_BLOCK_END))
 		return GF_TRUE;
 	return (pcki->pck->data_length || pcki->pck->hw_frame) ? GF_FALSE : GF_TRUE;
 }
@@ -3060,7 +3063,7 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 {
 	u64 now = gf_sys_clock_high_res();
 	u64 dec_time = now - pidi->last_pck_fetch_time;
-	if (pck->info.internal_command) return;
+	if (pck->info.flags & GF_PCK_CMD_MASK) return;
 	if (pidi->pid->filter->removed) return;
 
 	pidi->filter->nb_pck_processed++;
@@ -3072,7 +3075,7 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 	}
 
 	pidi->nb_processed++;
-	if (pck->info.sap_type) {
+	if (pck->info.flags & GF_PCK_SAP_MASK) {
 		pidi->nb_sap_processed ++;
 		if (dec_time > pidi->max_sap_process_time) pidi->max_sap_process_time = dec_time;
 		pidi->total_sap_process_time += dec_time;
@@ -3161,7 +3164,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	if (!nb_pck) {
 		safe_int64_sub(&pidinst->buffer_duration, pidinst->buffer_duration);
-	} else if (pck->info.duration && pck->info.data_block_start && pck->pid_props->timescale) {
+	} else if (pck->info.duration && (pck->info.flags & GF_PCKF_BLOCK_START)  && pck->pid_props->timescale) {
 		s64 d = ((u64)pck->info.duration) * 1000000;
 		d /= pck->pid_props->timescale;
 		if (d > pidinst->buffer_duration) {
@@ -3180,14 +3183,17 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
+		u8 sap_type = (pck->info.flags & GF_PCK_SAP_MASK) >> GF_PCK_SAP_POS;
+		Bool seek_flag = pck->info.flags & GF_PCKF_SEEK;
+
 		if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.cts, sap_type, seek_flag, nb_pck, pidinst->buffer_duration));
 		} else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.cts, sap_type, seek_flag, nb_pck, pidinst->buffer_duration));
 		} else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, sap_type, seek_flag, nb_pck, pidinst->buffer_duration));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.sap_type, pck->info.seek_flag, nb_pck, pidinst->buffer_duration));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, sap_type, seek_flag, nb_pck, pidinst->buffer_duration));
 		}
 	}
 #endif
@@ -3248,7 +3254,7 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	//we create a fake packet for eos signaling
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-	pck->pck->info.internal_command = 1;
+	pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
 	pid->pid->has_seen_eos = GF_TRUE;
 	gf_filter_pck_send(pck);
 }
@@ -3752,7 +3758,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	safe_int_dec(&pid->nb_shared_packets_out);
-	pck->pck->info.internal_command = 2;
+	pck->pck->info.flags |= GF_PCK_CMD_PID_REM;
 	gf_filter_pck_send(pck);
 }
 

@@ -156,34 +156,64 @@ typedef struct __gf_filter_pck_inst
 } GF_FilterPacketInstance;
 
 
+//packet flags
+enum
+{
+	GF_PCKF_BLOCK_START = 1<<31,
+	GF_PCKF_BLOCK_END = 1<<30,
+	GF_PCKF_PROPS_CHANGED = 1<<29,
+	GF_PCKF_INFO_CHANGED = 1<<28,
+	GF_PCKF_CORRUPTED = 1<<27,
+	GF_PCKF_SEEK = 1<<26,
+	GF_PCKF_DUR_SET = 1<<25,
+	GF_PCKF_PROPS_REF = 1<<24,
+	//3 bits for SAP
+	GF_PCK_SAP_POS = 21,
+	GF_PCK_SAP_MASK = 0x7 << GF_PCK_SAP_POS,
+	//2 bits for interlaced
+	GF_PCK_ILACE_POS = 19,
+	GF_PCK_ILACE_MASK = 0x3 << GF_PCK_ILACE_POS,
+	//2 bits for clock type
+	GF_PCK_CKTYPE_POS = 17,
+	GF_PCK_CKTYPE_MASK = 0x3 << GF_PCK_CKTYPE_POS,
+	//2 bits for crypt type
+	GF_PCK_CRYPT_POS = 15,
+	GF_PCK_CRYPT_MASK = 0x3 << GF_PCK_CRYPT_POS,
+	//2 bits for crypt type
+	GF_PCK_CMD_POS = 13,
+	GF_PCK_CMD_MASK = 0x3 << GF_PCK_CMD_POS,
+	//RESERVED bits [9,12]
+	//2 bits for is_leading
+	GF_PCK_ISLEADING_POS = 6,
+	GF_PCK_ISLEADING_MASK = 0x3 << GF_PCK_ISLEADING_POS,
+	//2 bits for depends_on
+	GF_PCK_DEPENDS_ON_POS = 4,
+	GF_PCK_DEPENDS_ON_MASK = 0x3 << GF_PCK_DEPENDS_ON_POS,
+	//2 bits for depended_on
+	GF_PCK_DEPENDED_ON_POS = 2,
+	GF_PCK_DEPENDED_ON_MASK = 0x3 << GF_PCK_DEPENDED_ON_POS,
+	//2 bits for redundant
+	GF_PCK_REDUNDANT_MASK = 0x3,
+
+	//quick defs
+	GF_PCK_CMD_NONE = 0<<GF_PCK_CMD_POS,
+	GF_PCK_CMD_PID_EOS = 1<<GF_PCK_CMD_POS,
+	GF_PCK_CMD_PID_REM = 2<<GF_PCK_CMD_POS,
+};
+
 typedef struct __gf_filter_pck_info
 {
-	//framing info is not set as a property but directly in packet
-	Bool data_block_start;
-	Bool data_block_end;
-
-	Bool pid_props_changed;
-	Bool pid_info_changed;
+	/*! packet flags */
+	u32 flags;
 
 	//packet timing in pid_props->timescale units
 	u64 dts, cts;
 	u32 duration;
 
-	u8 sap_type;
-	u8 interlaced;
-	u8 corrupted;
-	u8 internal_command; //0: nothing (regular packet), 1: eos, 2: pid remove
-	u8 clock_type;
-	u8 seek_flag;
-	u8 duration_set;
-	u8 carousel_version_number;
-	u8 dependency_flags;
-	u8 crypt_flags;
-
-	s16 roll;
 	u64 byte_offset;
+	s16 roll;
+	u8 carousel_version_number;
 
-	Bool props_ref_only;
 } GF_FilterPckInfo;
 
 struct __gf_filter_pck
@@ -330,7 +360,6 @@ struct __gf_media_session
 	u32 in_event_listener;
 
 	GF_DownloadManager *download_manager;
-	volatile u32 nb_dm_users;
 
 	u32 default_pid_buffer_max_us, decoder_pid_buffer_max_us;
 	u32 default_pid_buffer_max_units;

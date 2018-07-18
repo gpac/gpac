@@ -1657,7 +1657,6 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 	if (!fsess->download_manager) {
 		fsess->download_manager = gf_dm_new(NULL);
 	}
-	safe_int_inc(&fsess->nb_dm_users);
 	return fsess->download_manager;
 }
 
