@@ -449,11 +449,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		} else if(gf_isom_is_cenc_media(movie, track, 1)) {
 			e = gf_isom_get_cenc_info(movie, track, 1, &originalFormat, NULL, NULL, NULL);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Unkown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
 			e = gf_isom_get_original_format_type(movie, track, 1, &originalFormat);
 		}
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOM Tools] Error fecthing protection information\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOM Tools] Error fetching protection information\n"));
 			return e;
 		}
 
@@ -467,8 +467,16 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_AUDIO:
 				if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+					if (esd->decoderConfig->decoderSpecificInfo->dataLength < 2) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381-AAC] invalid DSI size %u < 2\n", esd->decoderConfig->decoderSpecificInfo->dataLength));
+						return GF_NON_COMPLIANT_BITSTREAM;
+					}
 					/*5 first bits of AAC config*/
 					u8 audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
+					if (audio_object_type == 31) { /*escape code*/
+						const u8 audio_object_type_ext = ((esd->decoderConfig->decoderSpecificInfo->data[0] & 0x07) << 3) + ((esd->decoderConfig->decoderSpecificInfo->data[1] & 0xE0) >> 5);
+						audio_object_type = 32 + audio_object_type_ext;
+					}
 	#ifndef GPAC_DISABLE_AV_PARSERS
 					if (force_sbr && (audio_object_type==2) ) {
 						GF_M4ADecSpecInfo a_cfg;
