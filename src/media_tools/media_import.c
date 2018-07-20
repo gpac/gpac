@@ -643,6 +643,18 @@ typedef struct
 	u32 profile, sr_idx, nb_ch, frame_size;
 } ADTSHeader;
 
+static SAPType xHEAAC_isRAP(u32 profile, char *data, u32 dataLength)
+{
+	if (profile == 42) { /*xHE-AAC*/
+		if (dataLength > 0 && (data[0] & 0x80))
+			return RAP;
+		else
+			return RAP_NO;
+	}
+
+	return RAP;
+}
+
 static Bool ADTS_SyncFrame(GF_BitStream *bs, ADTSHeader *hdr, u32 *frame_skipped)
 {
 	u32 val, hdr_size;
@@ -657,18 +669,21 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, ADTSHeader *hdr, u32 *frame_skipped
 			continue;
 		}
 		hdr->is_mp2 = (Bool)gf_bs_read_int(bs, 1);
-		gf_bs_read_int(bs, 2);
+		/*layer*/ gf_bs_read_int(bs, 2);
 		hdr->no_crc = (Bool)gf_bs_read_int(bs, 1);
 		pos = gf_bs_get_position(bs) - 2;
 
 		hdr->profile = 1 + gf_bs_read_int(bs, 2);
 		hdr->sr_idx = gf_bs_read_int(bs, 4);
-		gf_bs_read_int(bs, 1);
+		/*private_bit*/ gf_bs_read_int(bs, 1);
 		hdr->nb_ch = gf_bs_read_int(bs, 3);
-		gf_bs_read_int(bs, 4);
+		/*original_copy*/ gf_bs_read_int(bs, 1);
+		/*home*/ gf_bs_read_int(bs, 1);
+		/*copyright_identification_bit*/gf_bs_read_int(bs, 1);
+		/*copyright_identification_start*/gf_bs_read_int(bs, 1);
 		hdr->frame_size = gf_bs_read_int(bs, 13);
-		gf_bs_read_int(bs, 11);
-		gf_bs_read_int(bs, 2);
+		/*adts_buffer_fullness*/gf_bs_read_int(bs, 11);
+		/*number_of_raw_data_blocks_in_frame*/gf_bs_read_int(bs, 2);
 		hdr_size = hdr->no_crc ? 7 : 9;
 		if (!hdr->no_crc) gf_bs_read_int(bs, 16);
 		if (hdr->frame_size < hdr_size) {
@@ -799,6 +814,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	u32 timescale;
 	GF_BitStream *bs, *dsi;
 	GF_M4ADecSpecInfo acfg;
+	u32 base_object_type = 0;
 	FILE *in;
 	u32 nbbytes=0;
 	u8 aac_buf[4096];
@@ -831,6 +847,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 	dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_m4a_write_config_bs(dsi, &acfg);
+	base_object_type = acfg.base_object_type;
 
 	if (import->flags & GF_IMPORT_PS_EXPLICIT) {
 		import->flags &= ~GF_IMPORT_PS_IMPLICIT;
@@ -872,9 +889,9 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
-	samp->IsRAP = RAP;
 	samp->dataLength = nbbytes;
 	samp->data = (char *) aac_buf;
+	samp->IsRAP = xHEAAC_isRAP(acfg.base_object_type, samp->data, samp->dataLength);
 
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	if (e) goto exit;
@@ -892,6 +909,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 		samp->data = (char*)aac_buf;
 		samp->dataLength = nbbytes;
+		samp->IsRAP = xHEAAC_isRAP(base_object_type, samp->data, samp->dataLength);
 
 		e = gf_isom_add_sample(import->dest, track, di, samp);
 		if (e) break;
@@ -1115,11 +1133,11 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
-	samp->IsRAP = RAP;
 	max_size = samp->dataLength = hdr.frame_size;
 	samp->data = (char*)gf_malloc(sizeof(char)*hdr.frame_size);
 	offset = gf_bs_get_position(bs);
 	gf_bs_read_data(bs, samp->data, hdr.frame_size);
+	samp->IsRAP = RAP;
 
 	if (import->flags & GF_IMPORT_USE_DATAREF) {
 		e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
@@ -10156,7 +10174,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".mp2", 4) || !strnicmp(ext, ".mp3", 4) || !strnicmp(ext, ".m1a", 4) || !strnicmp(ext, ".m2a", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") )
 		return gf_import_mp3(importer);
 	/*MPEG-2/4 AAC*/
-	if (!strnicmp(ext, ".aac", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") )
+	if (!strnicmp(ext, ".aac", 4) || !strnicmp(ext, ".xhe", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") )
 		return gf_import_aac_adts(importer);
 	/*MPEG-4 video*/
 	if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4) || !stricmp(fmt, "CMP") || !stricmp(fmt, "MPEG4-Video") )
