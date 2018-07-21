@@ -1631,11 +1631,17 @@ static u32 uvlc(GF_BitStream *bs) {
 	return gf_bs_read_int(bs, leadingZeros) + (1 << leadingZeros) - 1;
 }
 
-static void timing_info(GF_BitStream *bs) {
-	/*num_units_in_display_tick =*/ gf_bs_read_int(bs, 32);
-	/*time_scale =*/ gf_bs_read_int(bs, 32);
-	if (gf_bs_read_int(bs, 3) /*equal_picture_interval*/)
-		/*num_ticks_per_picture_minus_1 =*/ uvlc(bs);
+static void timing_info(GF_BitStream *bs, AV1State *state) {
+	u32 num_ticks_per_picture_minus_1 = 0, time_scale = 0;
+	/*num_units_in_display_tick*/ gf_bs_read_int(bs, 32);
+	time_scale = gf_bs_read_int(bs, 32);
+	if (gf_bs_read_int(bs, 3) /*equal_picture_interval*/) {
+		num_ticks_per_picture_minus_1 = uvlc(bs);
+		state->FPS = (num_ticks_per_picture_minus_1 + 1) / (double)time_scale;
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] VFR not supported.\n"));
+		//TODO: upload num_units_in_display_tick (eq. to the POC in H264), compute delta between frames, set it as dts_inc in gf_import_aom_av1()
+	}
 }
 
 static void decoder_model_info(GF_BitStream *bs, u8 *buffer_delay_length_minus_1) {
@@ -1670,7 +1676,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		u8 i = 0;
 		timing_info_present_flag = gf_bs_read_int(bs, 1);
 		if (timing_info_present_flag) {
-			timing_info(bs);
+			timing_info(bs, state);
 			decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
 			if (decoder_model_info_present_flag) {
 				decoder_model_info(bs, &buffer_delay_length_minus_1);
@@ -1813,8 +1819,7 @@ GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 	state->width = state->width < dw ? dw : state->width;
 	dw = gf_bs_read_u16_le(bs);
 	state->height = state->height < dw ? dw : state->height;
-	dw = gf_bs_read_u32_le(bs); //time_base.numerator
-	dw = gf_bs_read_u32_le(bs); //time_base.denominator
+	state->FPS = gf_bs_read_u32_le(bs) / (double)gf_bs_read_u32_le(bs); //time_base.numerator / time_base.denominator
 
 	gf_bs_read_u64(bs); //skip
 

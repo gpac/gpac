@@ -505,6 +505,7 @@ typedef struct
 	Bool reduced_still_picture_header;
 	u16 OperatingPointIdc;
 	u32 width, height;
+	double FPS;
 	AV1StateFrame frame_state;
 	GF_AV1Config *config;
 

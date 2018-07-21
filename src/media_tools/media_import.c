@@ -4763,9 +4763,9 @@ static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 		FPS = GF_IMPORT_DEFAULT_FPS;
 	} else {
 		if (import->video_fps == GF_IMPORT_AUTO_FPS)
-			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
+			import->video_fps = GF_IMPORT_DEFAULT_FPS; /*fps=auto is handled as auto-detection in h264*/
 		else
-			detect_fps = GF_FALSE;								/*fps is forced by the caller*/
+			detect_fps = GF_FALSE;                     /*fps is forced by the caller*/
 	}
 	get_video_timing(FPS, &timescale, &dts_inc);
 
@@ -5975,7 +5975,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 		FPS = GF_IMPORT_DEFAULT_FPS;
 	} else {
 		if (import->video_fps == GF_IMPORT_AUTO_FPS) {
-			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
+			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection in h264*/
 		} else {
 			/*fps is forced by the caller*/
 			detect_fps = GF_FALSE;
@@ -7100,7 +7100,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		FPS = GF_IMPORT_DEFAULT_FPS;
 	} else {
 		if (import->video_fps == GF_IMPORT_AUTO_FPS) {
-			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection is h264*/
+			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection in h264*/
 		} else {
 			/*fps is forced by the caller*/
 			detect_fps = GF_FALSE;
@@ -7110,6 +7110,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
+restart_import:
 	track_id = 0;
 	if (import->esd) track_id = import->esd->ESID;
 	track_num = gf_isom_new_track(import->dest, track_id, GF_ISOM_MEDIA_VISUAL, timescale);
@@ -7141,6 +7142,14 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		if (!e) {
 			gf_import_message(import, GF_OK, "Detected IVF.");
 			av1_bs_syntax = IVF;
+			if (state.FPS != FPS) {
+				gf_import_message(import, GF_OK, "Detected new frame rate of %lf FPS.", state.FPS);
+				import->video_fps = FPS = state.FPS;
+				get_video_timing(FPS, &timescale, &dts_inc);
+				gf_isom_remove_track(import->dest, track_num);
+				gf_bs_seek(bs, 0);
+				goto restart_import;
+			}
 			pos = gf_bs_get_position(bs);
 		} else {
 			gf_bs_seek(bs, pos);
