@@ -3142,7 +3142,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	char szArgs[1024];
 	GF_Err e = GF_OK;
 	GF_Filter *f;
-	GF_FilterSession *fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_FALSE, NULL);
+	GF_FilterSession *fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, 0, NULL);
 
 	sprintf(szArgs, "mp4dmx:mov=%p", input);
 	f = gf_fs_load_filter(fsess, szArgs);

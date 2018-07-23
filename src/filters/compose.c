@@ -335,6 +335,21 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_set_session_caps(filter, &sess_caps);
 
+	//declare audio output pid first
+	if (! (ctx->compositor->user->init_flags & GF_TERM_NO_AUDIO) && ctx->compositor->audio_renderer) {
+		GF_AudioRenderer *ar = ctx->compositor->audio_renderer;
+		pid = ar->aout = gf_filter_pid_new(filter);
+		gf_filter_pid_set_udta(pid, ctx->compositor);
+		gf_filter_pid_set_name(pid, "aout");
+		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(44100) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
+		gf_filter_pid_set_max_buffer(ar->aout, 1000*ar->total_duration);
+	}
+	
 	//declare video output pid
 	pid = ctx->compositor->vout = gf_filter_pid_new(filter);
 	gf_filter_pid_set_name(pid, "vout");
@@ -351,20 +366,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT((s32)(ctx->compositor->frame_rate*1000), 1000) );
 
-	//declare audio output pid
-	if (! (ctx->compositor->user->init_flags & GF_TERM_NO_AUDIO) && ctx->compositor->audio_renderer) {
-		GF_AudioRenderer *ar = ctx->compositor->audio_renderer;
-		pid = ar->aout = gf_filter_pid_new(filter);
-		gf_filter_pid_set_udta(pid, ctx->compositor);
-		gf_filter_pid_set_name(pid, "aout");
-		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(44100) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
-		gf_filter_pid_set_max_buffer(ar->aout, 1000*ar->total_duration);
-	}
+
 	return GF_OK;
 }
 

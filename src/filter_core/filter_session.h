@@ -166,7 +166,7 @@ enum
 	GF_PCKF_CORRUPTED = 1<<27,
 	GF_PCKF_SEEK = 1<<26,
 	GF_PCKF_DUR_SET = 1<<25,
-	GF_PCKF_PROPS_REF = 1<<24,
+	GF_PCKF_PROPS_REFERENCE = 1<<24,
 	//3 bits for SAP
 	GF_PCK_SAP_POS = 21,
 	GF_PCK_SAP_MASK = 0x7 << GF_PCK_SAP_POS,
@@ -377,8 +377,14 @@ struct __gf_media_session
 	//max filter chain allowed in the link resolution process
 	u32 max_resolve_chain_len;
 
+	//protect access to link bank
+	GF_Mutex *links_mx;
+	GF_List *links;
+
+
 	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
 	const char *blacklist;
+	Bool init_done;
 };
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
@@ -734,7 +740,7 @@ typedef struct
 	u32 nb_allocs;
 } GF_CapsBundleStore;
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, GF_CapsBundleStore *capstore);
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, Bool check_explicit, GF_CapsBundleStore *capstore);
 Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
 
 void gf_filter_check_output_reconfig(GF_Filter *filter);
@@ -755,6 +761,9 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck);
 
 void gf_props_reset_single(GF_PropertyValue *p);
+
+void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
+void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 
 #endif //_GF_FILTER_SESSION_H_
 

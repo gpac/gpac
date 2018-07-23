@@ -1227,7 +1227,7 @@ Bool gf_filter_has_out_caps(const GF_FilterRegister *freg)
 }
 
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, GF_CapsBundleStore *capstore)
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, Bool check_explicit, GF_CapsBundleStore *capstore)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
@@ -1360,6 +1360,11 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			//not our selected output and not static cap
 			if ((src_bundle_idx != cur_bundle_idx) && ! (an_out_cap->flags & GF_CAPFLAG_STATIC) ) {
 				continue;
+			}
+
+			if (check_explicit && (an_out_cap->flags & GF_CAPFLAG_LOADED_FILTER)) {
+				bundles_cap_found[cur_dst_bundle] = 0;
+				break;
 			}
 
 			nb_matched = 0;
@@ -1497,184 +1502,6 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 }
 
 
-/*
-	Check the PID output matches the filter registry input for the given caps bundle. This will
-	recursevely be called until a registry input matches the PID output, or until the mac chain length
-	is reached, in which case 0 is returned. The \original_filter_chain is filled, starting from the filter
-	matching the destination filter, with:
-	* even entries: the matched registry
-	* even entries+1: the cap of the registry located at the index of the cap bundle in that registry.
-	to get the cap bundle index, locate the index of that cap in the registry. This avoids allocating integers
-
-\param fsess the filter session
-\param filter_reg the filter registry to check the PID against
-\param src_bundle_idx the caps bundle index in the registry to connect to
-\param black_list the list of blacklisted filters for the source pid
-\param original_filter_chain the filter chain description to fill
-\param filter_stack the current stack of filters, used to break loops in recursion (eg imgdec->imgenc->imgdec->...
-\param tested_filters the list of tested filters that should not be retested again
-\param dst destination filter
-\param rlevel recursion level, used to stop recursion when chains are longer than maximum chain
-\param max_chain_len the maximum length of accepted chains, or 0 if not bound
-\param pid the pid we are connecting
-\return the weight of the path found (number of caps matched at each level)
-*/
-
-static u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *filter_reg, u32 filter_reg_bundle_idx, GF_List *black_list, GF_List *original_filter_chain, GF_List *filter_stack, GF_List *tested_filters, GF_Filter *dst, u32 rlevel, u32 max_chain_len, GF_FilterPid *pid, GF_CapsBundleStore *capstore, GF_List *list_res )
-{
-	u32 nb_matched = 0;
-	u32 bundle_idx;
-	u32 subchain_len=0;
-	const GF_FilterRegister *candidate = NULL;
-	//browse all our registered filters
-	u32 i, count=gf_list_count(fsess->registry);
-	u32 count_at_input = gf_list_count(original_filter_chain);
-	u8 priority;
-	GF_List *current_filter_chain;
-
-	//no match of pid caps for this filter
-	if (gf_filter_pid_caps_match(pid, filter_reg, dst, &priority, &bundle_idx, pid->filter->dst_filter, filter_reg_bundle_idx) ) {
-		//add filter
-		gf_list_add(original_filter_chain, (void *) filter_reg);
-		//and indicate its matching cap bundle
-		gf_list_add(original_filter_chain, (void *) &filter_reg->caps[filter_reg_bundle_idx]);
-		return 1 + (255-priority);
-	}
-	bundle_idx=0;
-
-
-	if (max_chain_len && (rlevel+1>=max_chain_len) )
-		return 0;
-
-	if ((rlevel+1>= fsess->max_resolve_chain_len) )
-		return 0;
-
-	//already being tested for this chain
-	if (gf_list_find(tested_filters, (void *) filter_reg)>=0)
-		return 0;
-
-	//create new temp chain, init with this filter as root
-	current_filter_chain = gf_list_pop_back(list_res);
-	if (!current_filter_chain) current_filter_chain = gf_list_new();
-
-	gf_list_add(current_filter_chain, (void *) filter_reg);
-	//add ourselves to the filter stack to break loops
-	gf_list_add(filter_stack, (void *) filter_reg);
-
-	//and indicate its matching cap bundle
-	gf_list_add(current_filter_chain, (void *) &filter_reg->caps[filter_reg_bundle_idx]);
-
-	for (i=0; i<count; i++) {
-		u32 path_weight=0;
-		u32 sub_weight, orig_chain_len, cur_chain_len, k, nb_in_caps, dst_bundle_idx;
-		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
-		if (freg==filter_reg) continue;
-		//filter shall be explicitly loaded
-		if (freg->explicit_only) continue;
-
-		//freg already being tested for another chain
-		if (gf_list_find(tested_filters, (void *) freg)>=0)
-			continue;
-
-		//freg already in our chain, break loop
-		if (gf_list_find(filter_stack, (void *) freg)>=0)
-			continue;
-
-		//source filter, can't add pid
-		if (!freg->configure_pid) continue;
-		
-		//blacklisted filter, can't add pid
-		if (gf_list_find(black_list, (void *) freg)>=0)
-			continue;
-
-		//no output caps, don't resolve
-		if (! gf_filter_has_out_caps(freg))
-			continue;
-
-		//resulting chain would be too big, don't look any further
-		if (max_chain_len && (rlevel+2>=max_chain_len) )
-			continue;
-
-		//for each cap bundle check if we have a valid path
-		nb_in_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
-		for (k=0; k<nb_in_caps; k++) {
-			path_weight = gf_filter_caps_to_caps_match(freg, k, (const GF_FilterRegister *) filter_reg, NULL, &dst_bundle_idx, filter_reg_bundle_idx, capstore);
-			//we don't match our target bundle
-			if (dst_bundle_idx != filter_reg_bundle_idx) continue;
-			if (! path_weight) continue;
-
-			bundle_idx = k;
-
-			path_weight *= (255-freg->priority);
-
-			//check this filter
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s outputs caps bundle %d match filter %s input caps bundle %d, checking filter chain\n", rlevel, freg->name, bundle_idx, filter_reg->name, filter_reg_bundle_idx));
-
-			gf_list_add(filter_stack, (void *) freg);
-
-			//we pass the original filter chain with the new root inserted to break loops
-			//note that of the max_chain_length is not supported and we have a local solution, don't allow
-			//longer chains than the local one
-			sub_weight = gf_filter_check_dst_caps(fsess, freg, bundle_idx, black_list, current_filter_chain, filter_stack, tested_filters, NULL, rlevel+1, max_chain_len ? max_chain_len : subchain_len, pid, capstore, list_res);
-
-			gf_list_rem_last(filter_stack);
-
-			if (!sub_weight) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d No valid shorter chain to filter %s input\n", rlevel, freg->name));
-				//gf_list_add(tested_filters, (void *) freg);
-				continue;
-			}
-			path_weight += sub_weight;
-
-			orig_chain_len = gf_list_count(original_filter_chain) - count_at_input;
-			cur_chain_len = gf_list_count(current_filter_chain);
-			//the filter chain contain for each filter the registry and the cap
-			orig_chain_len/=2;
-			cur_chain_len/=2;
-
-			if (!orig_chain_len || (orig_chain_len>cur_chain_len)
-				|| ((orig_chain_len==cur_chain_len) && (path_weight>nb_matched) )
-			) {
-				//remove all entries added in recursive gf_filter_check_dst_caps
-				while (gf_list_count(original_filter_chain)>count_at_input) {
-					gf_list_rem_last(original_filter_chain);
-				}
-				if (candidate) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s has lower priority/pid matching (%d) than filter %s (%d), replacing it in filter chain\n", rlevel, candidate->name, nb_matched, freg->name, path_weight));
-				}
-				nb_matched = path_weight;
-				candidate = freg;
-
-				//store our filter chain in original one
-				gf_list_transfer(original_filter_chain, current_filter_chain);
-				subchain_len = gf_list_count(original_filter_chain) - count_at_input;
-				//the filter chain contain for each filter the registry and the cap
-				subchain_len /= 2;
-
-				//and reinit test chain
-				gf_list_add(current_filter_chain, (void *) filter_reg);
-				//and indicate its matching cap bundle
-				gf_list_add(current_filter_chain, (void *) &filter_reg->caps[filter_reg_bundle_idx]);
-
-			} else {
-				assert(candidate);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("L%d Filter %s has lower priority/pid matching (%d) than filter %s (%d), ignoring\n", rlevel, freg->name, path_weight, candidate->name, nb_matched));
-
-				//and reinit current chain
-				gf_list_reset(current_filter_chain);
-				gf_list_add(current_filter_chain, (void *) filter_reg);
-				//and indicate its matching cap bundle
-				gf_list_add(current_filter_chain, (void *) &filter_reg->caps[filter_reg_bundle_idx]);
-			}
-
-		}
-	}
-	gf_list_pop_back(filter_stack);
-	gf_list_reset(current_filter_chain);
-	gf_list_add(list_res, current_filter_chain);
-	return nb_matched;
-}
-
 static void concat_reg(GF_FilterSession *sess, char prefRegistry[1001], const char *reg_key, const char *args)
 {
 	u32 len;
@@ -1728,6 +1555,507 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 	return GF_FALSE;
 }
 
+enum
+{
+	EDGE_STATUS_NONE=0,
+	EDGE_STATUS_ENABLED,
+	EDGE_STATUS_DISABLED,
+};
+
+typedef struct
+{
+	struct __freg_desc *src_reg;
+	u16 src_cap_idx;
+	u16 dst_cap_idx;
+	u8 weight;
+	u8 status;
+	u8 priority;
+} GF_FilterRegEdge;
+
+typedef struct __freg_desc
+{
+	const GF_FilterRegister *freg;
+	u32 nb_edges, nb_alloc_edges;
+	GF_FilterRegEdge *edges;
+	u32 dist;
+	u32 priority;
+	Bool edges_marked;
+
+	struct __freg_desc *destination;
+	u32 cap_idx;
+} GF_FilterRegDesc;
+
+
+static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel)
+{
+	u32 i;
+	Bool break_loop = reg_desc->edges_marked ? GF_TRUE: GF_FALSE;
+	if (src_freg == reg_desc->freg)
+		return;
+
+	if (rlevel > fsess->max_resolve_chain_len)
+		return;
+
+	reg_desc->edges_marked = GF_TRUE;
+
+	for (i=0; i<reg_desc->nb_edges; i++) {
+		GF_FilterRegEdge *edge = &reg_desc->edges[i];
+		if (!break_loop) {
+			if (edge->dst_cap_idx == src_cap_idx) {
+				if (edge->status == EDGE_STATUS_NONE) {
+					edge->status = EDGE_STATUS_ENABLED;
+					gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1);
+				}
+			}
+		}
+	}
+}
+
+
+static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_CapsBundleStore *capstore, GF_FilterPid *src_pid, GF_Filter *dst_filter)
+{
+	u32 nb_dst_caps, nb_regs, i;
+	GF_FilterRegDesc *reg_desc = NULL;
+
+	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
+	reg_desc->freg = freg;
+
+	nb_dst_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
+
+	//setup all connections
+	nb_regs = gf_list_count(links);
+	for (i=0; i<nb_regs; i++) {
+		u32 nb_src_caps, k, l;
+		u32 path_weight;
+
+		GF_FilterRegDesc *a_reg = gf_list_get(links, i);
+
+
+		//check which cap of this filter matches our destination
+		nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
+		for (k=0; k<nb_src_caps; k++) {
+			for (l=0; l<nb_dst_caps; l++) {
+				s32 bundle_idx;
+
+				if ( gf_filter_has_out_caps(a_reg->freg)) {
+
+					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, GF_TRUE, capstore);
+
+					if (path_weight && (bundle_idx == l)) {
+
+						if (reg_desc->nb_edges==reg_desc->nb_alloc_edges) {
+							reg_desc->nb_alloc_edges += 10;
+							reg_desc->edges = gf_realloc(reg_desc->edges, sizeof(GF_FilterRegEdge) * reg_desc->nb_alloc_edges);
+						}
+						assert(path_weight<0xFF);
+						assert(k<0xFFFF);
+						assert(l<0xFFFF);
+						reg_desc->edges[reg_desc->nb_edges].src_reg = a_reg;
+						reg_desc->edges[reg_desc->nb_edges].weight = path_weight;
+						reg_desc->edges[reg_desc->nb_edges].src_cap_idx = k;
+						reg_desc->edges[reg_desc->nb_edges].dst_cap_idx = l;
+						reg_desc->edges[reg_desc->nb_edges].priority = 0;
+						reg_desc->nb_edges++;
+					}
+				}
+
+				if ( gf_filter_has_out_caps(freg)) {
+					path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, GF_TRUE, capstore);
+
+					if (path_weight && (bundle_idx == k)) {
+
+						if (a_reg->nb_edges==a_reg->nb_alloc_edges) {
+							a_reg->nb_alloc_edges += 10;
+							a_reg->edges = gf_realloc(a_reg->edges, sizeof(GF_FilterRegEdge) * a_reg->nb_alloc_edges);
+						}
+						a_reg->edges[a_reg->nb_edges].src_reg = reg_desc;
+						a_reg->edges[a_reg->nb_edges].weight = (u8) path_weight;
+						a_reg->edges[a_reg->nb_edges].src_cap_idx = (u16) l;
+						a_reg->edges[a_reg->nb_edges].dst_cap_idx = (u16) k;
+						a_reg->edges[a_reg->nb_edges].priority = 0;
+						a_reg->nb_edges++;
+					}
+				}
+			}
+		}
+	}
+	return reg_desc;
+}
+
+void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister *for_reg)
+{
+	u32 i, count;
+	GF_CapsBundleStore capstore;
+	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
+
+	if (!fsess->links) fsess->links = gf_list_new();
+
+	if (for_reg) {
+		GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, for_reg, &capstore, NULL, NULL);
+		if (!freg_desc) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to build graph entry for filter %s\n", for_reg->name));
+		} else {
+			gf_list_add(fsess->links, freg_desc);
+		}
+	} else {
+		count = gf_list_count(fsess->registry);
+		for (i=0; i<count; i++) {
+			const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
+			GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, freg, &capstore, NULL, NULL);
+			if (!freg_desc) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to build graph entry for filter %s\n", freg->name));
+			} else {
+				gf_list_add(fsess->links, freg_desc);
+			}
+		}
+	}
+	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
+	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
+	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+}
+
+void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg)
+{
+	gf_mx_p(fsess->links_mx);
+	if (freg) {
+		s32 reg_idx=-1;
+		u32 i, count = gf_list_count(fsess->links);
+		for (i=0; i<count; i++) {
+			u32 j;
+			GF_FilterRegDesc *rdesc = gf_list_get(fsess->links, i);
+			if (rdesc->freg == freg) {
+				reg_idx = i;
+				continue;
+			}
+			for (j=0; j<rdesc->nb_edges; j++) {
+				if (rdesc->edges[j].src_reg->freg == freg) {
+					if (rdesc->nb_edges > j + 1) {
+						memmove(&rdesc->edges[j], &rdesc->edges[j+1], sizeof (GF_FilterRegEdge) * (rdesc->nb_edges - j - 1));
+					}
+					j--;
+					rdesc->nb_edges--;
+				}
+			}
+		}
+		if (reg_idx>=0) {
+			GF_FilterRegDesc *rdesc = gf_list_get(fsess->links, reg_idx);
+			gf_list_rem(fsess->links, reg_idx);
+			gf_free(rdesc->edges);
+			gf_free(rdesc);
+		}
+	} else {
+		while (gf_list_count(fsess->links)) {
+			GF_FilterRegDesc *rdesc = gf_list_pop_back(fsess->links);
+			gf_free(rdesc->edges);
+			gf_free(rdesc);
+		}
+	}
+	gf_mx_v(fsess->links_mx);
+}
+
+static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegistry, Bool reconfigurable_only, GF_List *out_reg_chain)
+{
+	GF_FilterRegDesc *reg_dst, *result;
+	GF_List *dijkstra_nodes;
+	GF_FilterSession *fsess = pid->filter->session;
+	//build all edges
+	u32 i, count = gf_list_count(fsess->registry);
+	GF_CapsBundleStore capstore;
+	Bool first;
+	u32 path_weight, max_weight=0;
+	u64 dijkstra_time_us, sort_time_us, start_time_us = gf_sys_clock_high_res();
+
+	if (!fsess->links || ! gf_list_count( fsess->links))
+	 	gf_filter_sess_build_graph(fsess, NULL);
+
+	dijkstra_nodes = gf_list_new();
+
+	result = NULL;
+
+	//1: select all elligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
+	count = gf_list_count( fsess->links);
+	for (i=0; i<count; i++) {
+		u32 j;
+		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
+		const GF_FilterRegister *freg = reg_desc->freg;
+
+		//reset node state
+		reg_desc->destination = NULL;
+		reg_desc->cap_idx = 0;
+		reg_desc->edges_marked = GF_FALSE;
+		reg_desc->dist = -1;
+		reg_desc->priority = -1;
+
+		//remember our source descriptor - it may be absent of the final node set in case we want reconfigurable only filters
+		//and the source is not reconfigurable
+		if (freg == pid->filter->freg)
+			result = reg_desc;
+
+		//don't add source filters except if PID is from source
+		if (!freg->configure_pid && (freg!=pid->filter->freg)) {
+			assert(freg != dst->freg);
+			continue;
+		}
+
+		//freg shall be instantiated
+		if (freg->explicit_only && (freg != pid->filter->freg) && (freg != dst->freg) ) {
+			assert(freg != dst->freg);
+			continue;
+		}
+
+		//no output caps, cannot add
+		if ((freg != dst->freg) && !gf_filter_has_out_caps(freg)) {
+			assert(freg != dst->freg);
+			assert(freg != pid->filter->freg);
+			continue;
+		}
+
+		//we only want reconfigurable output filters
+		if (reconfigurable_only && !freg->reconfigure_output && (freg != dst->freg)) {
+			assert(freg != dst->freg);
+			continue;
+		}
+
+		//blacklisted filter, can't add pid
+		if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0) {
+			assert(freg != dst->freg);
+			assert(freg != pid->filter->freg);
+			continue;
+		}
+
+		if (pid->adapters_blacklist && (gf_list_find(pid->adapters_blacklist, (void *) freg)>=0)) {
+			assert(freg != dst->freg);
+			continue;
+		}
+
+		//reset edge status - if source is our origin, disable edge if cap is not matched
+		for (j=0; j<reg_desc->nb_edges; j++) {
+			GF_FilterRegEdge *edge = &reg_desc->edges[j];
+			edge->status = EDGE_STATUS_NONE;
+			//connection from source, disable edge if pid caps mismatch
+			if (edge->src_reg->freg == pid->filter->freg) {
+				u8 priority=0;
+				u32 dst_bundle_idx;
+				path_weight = gf_filter_pid_caps_match(pid, freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, -1);
+				if (!path_weight)
+					continue;
+
+				if (dst_bundle_idx != edge->dst_cap_idx) {
+					edge->status = EDGE_STATUS_DISABLED;
+					continue;
+				}
+			}
+			if (edge->weight + 1 > max_weight)
+				max_weight = edge->weight + 1;
+		}
+
+		//do not add destination filter
+		if (dst->freg == reg_desc->freg) {
+			reg_desc->dist = 0;
+			reg_desc->priority = 0;
+		} else {
+			gf_list_add(dijkstra_nodes, reg_desc);
+		}
+	}
+
+	//create a new node for the destination based on elligible filters in the graph
+	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
+
+	//create on the set of nodes elligible
+	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst);
+	reg_dst->dist = 0;
+	reg_dst->priority = 0;
+	reg_dst->edges_marked = GF_TRUE;
+	//enable edges of destination, potentially disabling edges from source filters to dest
+	for (i=0; i<reg_dst->nb_edges; i++) {
+		u32 j;
+		GF_FilterRegEdge *edge = &reg_dst->edges[i];
+		edge->status = EDGE_STATUS_NONE;
+		//connection from source, disable edge if pid caps mismatch
+		if (edge->src_reg->freg == pid->filter->freg) {
+			u8 priority=0;
+			u32 dst_bundle_idx;
+			path_weight = gf_filter_pid_caps_match(pid, dst->freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, -1);
+			if (!path_weight)
+				continue;
+
+			if (dst_bundle_idx != edge->dst_cap_idx) {
+				edge->status = EDGE_STATUS_DISABLED;
+				continue;
+			}
+		}
+		if (edge->weight + 1 > max_weight)
+			max_weight = edge->weight + 1;
+		//enable edge and propagate down the graph
+		edge->status = EDGE_STATUS_ENABLED;
+		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1);
+
+		//reset the node visited flag for each top-level edge: we want to break loops within one subgraph (src->a->b->a->dst), but not across subgraphs
+		//otherwise edges for src->f1->dst || for src->f2->dst will result in src->f2 never being set
+		if (i+1<reg_dst->nb_edges) {
+			count = gf_list_count(dijkstra_nodes);
+			for (j=0; j<count; j++) {
+				GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, j);
+				rdesc->edges_marked = GF_FALSE;
+			}
+		}
+	}
+
+	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
+	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
+	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+
+	//remove all filters not used for this resolution (no enabled edges)
+	count = gf_list_count(dijkstra_nodes);
+	for (i=0; i<count; i++) {
+		u32 j, nb_edges;
+		GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
+
+		nb_edges = 0;
+		for (j=0; j<rdesc->nb_edges; j++) {
+			GF_FilterRegEdge *edge = &rdesc->edges[j];
+			if (edge->status == EDGE_STATUS_ENABLED) {
+				nb_edges++;
+				break;
+			}
+		}
+
+		//remove from registries if no edge enabled, unless our source
+		if (!nb_edges && (rdesc->freg != pid->filter->freg)) {
+			gf_list_rem(dijkstra_nodes, i);
+			i--;
+			count--;
+		}
+	}
+
+	sort_time_us = gf_sys_clock_high_res();
+
+	//kept for debug
+#if 0
+	fprintf(stderr, "Filter %s sources: ", reg_dst->freg->name);
+	for (i=0; i<reg_dst->nb_edges; i++) {
+		GF_FilterRegEdge *edge = &reg_dst->edges[i];
+		fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
+	}
+	fprintf(stderr, "\n");
+
+	count = gf_list_count(dijkstra_nodes);
+	for (i=0; i<count; i++) {
+		u32 j;
+		GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
+		fprintf(stderr, "Filter %s sources: ", rdesc->freg->name);
+		for (j=0; j<rdesc->nb_edges; j++) {
+			GF_FilterRegEdge *edge = &rdesc->edges[j];
+//			if (edge->status == EDGE_STATUS_ENABLED)
+				fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
+		}
+		fprintf(stderr, "\n");
+	}
+#endif
+
+	first = GF_TRUE;
+	//OK we have the weighted graph, perform a dijkstra on the graph - we assign by weight, and if same weight we check the priority
+	while (1) {
+		GF_FilterRegDesc *current_node = NULL;
+		u32 reg_idx = -1;
+		u32 min_dist = -1;
+
+		count = gf_list_count(dijkstra_nodes);
+		if (!count) break;
+
+		if (first) {
+			current_node = reg_dst;
+			first = GF_FALSE;
+		} else {
+			//pick up shortest distance
+			for (i=0; i<count; i++) {
+				GF_FilterRegDesc *reg_desc = gf_list_get(dijkstra_nodes, i);
+				if (reg_desc->dist < min_dist) {
+					min_dist = reg_desc->dist;
+					current_node = reg_desc;
+					reg_idx = i;
+				}
+			}
+			//remove current
+			if (!current_node)
+				break;
+			gf_list_rem(dijkstra_nodes, reg_idx);
+		}
+
+
+		if (current_node->freg == pid->filter->freg) {
+			result = current_node;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] testing filter %s\n", current_node->freg->name));
+		
+		//compute distances
+		for (i=0; i<current_node->nb_edges; i++) {
+			u8 priority=0;
+			GF_FilterRegEdge *redge = &current_node->edges[i];
+			u32 dist;
+			Bool do_switch = GF_FALSE;
+
+			if (redge->status != EDGE_STATUS_ENABLED)
+				continue;
+
+			dist = current_node->dist + (max_weight - redge->weight);
+
+			priority = redge->priority;
+			if (redge->src_reg->freg == pid->filter->freg) {
+				s32 dst_bundle_idx;
+				if (gf_filter_pid_caps_match(pid, current_node->freg, NULL, &priority, &dst_bundle_idx, dst, redge->dst_cap_idx)) {
+
+				} else {
+					continue;
+				}
+			}
+
+			if (dist < redge->src_reg->dist) do_switch = GF_TRUE;
+			else if (dist == redge->src_reg->dist) {
+				if (prefRegistry[0] && (redge->src_reg->destination != current_node) && strstr(prefRegistry, current_node->freg->name)) {
+					do_switch = GF_TRUE;
+					priority = 0;
+				} else if ( (dist == redge->src_reg->dist) && (redge->priority < redge->src_reg->priority) )
+					do_switch = GF_TRUE;
+			}
+
+			if (do_switch) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] assign filter %s distance %d destination to %s priority %d (previous destination %s distance %d priority %d)\n", redge->src_reg->freg->name, dist, current_node->freg->name, redge->priority, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->src_reg->dist, redge->src_reg->priority ));
+				redge->src_reg->dist = dist;
+				redge->src_reg->priority = priority;
+				redge->src_reg->destination = current_node;
+				redge->src_reg->cap_idx = redge->src_cap_idx;
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] no shorter path from filter %s distance %d from destination %s priority %d (tested %s dist %d priority %d)\n", redge->src_reg->freg->name, redge->src_reg->dist, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->priority, current_node->freg->name, dist, redge->src_reg->priority));
+
+			}
+		}
+	}
+
+	sort_time_us -= start_time_us;
+	dijkstra_time_us = gf_sys_clock_high_res() - start_time_us;
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Dijkstra] sorted filters in "LLU" us, Dijkstra done in "LLU" us\n", sort_time_us, dijkstra_time_us));
+
+	if (result && result->destination) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] result: %s", result->freg->name));
+		result = result->destination;
+		while (result->destination) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s", result->freg->name ));
+			gf_list_add(out_reg_chain, (void *) result->freg);
+			gf_list_add(out_reg_chain, (void *) &result->freg->caps[result->cap_idx]);
+			result = result->destination;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s\n", result->freg->name));
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Dijkstra] no results found!\n"));
+	}
+	gf_list_del(dijkstra_nodes);
+
+	gf_free(reg_dst->edges);
+	gf_free(reg_dst);
+}
+
+
 /*
 	!Resolves a link between a PID and a destination filter
 
@@ -1741,24 +2069,15 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 {
 	GF_Filter *chain_input = NULL;
 	GF_FilterSession *fsess = pid->filter->session;
-	GF_List *filter_chain, *filter_stack, *tested_filters, *list_reservoir;
-	u32 max_weight=0;
-	u32 min_length=GF_INT_MAX;
+	GF_List *filter_chain;
 	u32 i, count;
 	const GF_FilterRegister *dst_filter = dst->freg;
 	char prefRegistry[1001];
 	char szForceReg[20];
-	GF_CapsBundleStore capstore;
 
 	if (!fsess->max_resolve_chain_len) return NULL;
 
 	filter_chain = gf_list_new();
-	filter_stack = gf_list_new();
-	tested_filters = gf_list_new();
-	list_reservoir = gf_list_new();
-
-
-	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
 
 	if (filter_reassigned)
 		*filter_reassigned = GF_FALSE;
@@ -1773,156 +2092,9 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	concat_reg(pid->filter->session, prefRegistry, szForceReg, dst->src_args);
 	concat_reg(pid->filter->session, prefRegistry, szForceReg, dst->dst_args);
 
-	gf_list_reset(filter_chain);
-	gf_list_reset(filter_stack);
-	gf_list_reset(tested_filters);
-	gf_list_add(filter_stack, (void *)pid->filter->freg);
-
-	max_weight=0;
-	min_length=0;
-
-	//browse all our registered filters
-	count=gf_list_count(fsess->registry);
-	for (i=0; i<count; i++) {
-		u32 chain_priority=0;
-		u32 path_weight=0;
-		u32 path_len=0;
-		u32 chain_len=0;
-		u32 cap_bundle_idx=0;
-		u32 bundle_idx=0;
-		Bool tested = GF_FALSE;
-		u32 k, nb_filters, nb_in_caps;
-		Bool force_registry = GF_FALSE;
-		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
-
-		//source filter, can't add pid
-		if (!freg->configure_pid) continue;
-
-		//freg shall be instantiated 
-		if (freg->explicit_only)
-			continue;
-
-		//we only want reconfigurable output filters
-		if (reconfigurable_only && !freg->reconfigure_output) continue;
-
-		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
-		if (pid->filter->freg == freg)
-			continue;
-
-		//blacklisted filter, can't add pid
-		if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0)
-			continue;
-
-		if (pid->adapters_blacklist && (gf_list_find(pid->adapters_blacklist, (void *) freg)>=0))
-			continue;
-
-		if (!gf_filter_has_out_caps(freg))
-			continue;
-
-		//check which cap of this filter matches ou destination
-		nb_in_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
-		for (k=0; k<nb_in_caps; k++) {
-			path_weight = gf_filter_caps_to_caps_match(freg, k, (const GF_FilterRegister *) dst_filter, dst, &bundle_idx, -1, &capstore);
-			if (!path_weight) continue;
-
-			//remember it
-			cap_bundle_idx = k;
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s output caps bundle %d match from %s input caps bundle %d checking filter chain\n", freg->name, cap_bundle_idx, dst_filter->name, bundle_idx));
-
-			//we have a target destination filter match, keep solving filter until done
-			path_len = gf_list_count(filter_chain);
-
-			//min_length/2 because the filter chain contain for each filter the registry and the cap
-			path_weight = gf_filter_check_dst_caps(fsess, freg, cap_bundle_idx, pid->filter->blacklisted, filter_chain, filter_stack, tested_filters, dst, 0, min_length/2, pid, &capstore, list_reservoir);
-
-			tested = GF_TRUE;
-
-			if (path_weight) break;
-
-			while (gf_list_count(filter_chain) > path_len) {
-				gf_list_rem_last(filter_chain);
-			}
-		}
-		//not our candidate, remove all added entries
-		if (!path_weight) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Cannot find a valid filter chain from filter %s to filter %s, ignoring filter\n", freg->name, dst_filter->name));
-			//skip further attempts with this filter
-			if (tested)
-				gf_list_add(tested_filters, (void *) freg);
-			continue;
-		}
-
-		//we keep track of all filters in possible chain, whether we keep the chain or not
-		//this allows calls to gf_filter_check_dst_caps to abort when trying to test an already tested filter
-		//this might need refinements in case the filter was first tested in a longer chain ...
-		chain_priority = 0;
-		nb_filters = gf_list_count(filter_chain);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Possible %sfilter chain from filter %s PID %s to filter %s:\n", reconfigurable_only ? "adaptation " : "", pid->filter->name, pid->name, dst_filter->name));
-		for (k=path_len; k<nb_filters; k++) {
-			const GF_FilterRegister *areg;
-			u32 for_bundle_idx = 0;
-			u32 j;
-			const GF_FilterCapability *cap;
-			s32 idx = nb_filters+path_len - k-2;
-			if (k%2) continue;
-			assert(idx>=0);
-			areg = gf_list_get(filter_chain, idx);
-			cap = gf_list_get(filter_chain, idx + 1);
-
-			//get the cap bundle index - the cap added to the list is the cap with the same index as the bundle start we want
-			//(this avoids allocating integers to store the bundle)
-			for (j=0; j<areg->nb_caps; j++) {
-				if (&areg->caps[j]==cap) {
-					for_bundle_idx = j;
-					break;
-				}
-			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n", areg->name));
-
-			chain_priority += (255 - areg->priority);
-
-			if (prefRegistry[0] && strstr(prefRegistry, areg->name)) {
-				force_registry = GF_TRUE;
-			}
-			//if filter caps need connection to resolve, don't try loading this filter in another test
-			if (gf_filter_out_caps_solved_by_connection(areg, for_bundle_idx)) {
-				gf_list_add(tested_filters, (void *) areg);
-			}
-		}
-		//
-		chain_len = gf_list_count(filter_chain) - path_len;
-
-		//if same chain length, use max path weight
- 		if ( ( (chain_len==min_length) && (path_weight+chain_priority > max_weight) )
- 		//otherwise use chorter chain
-			|| (chain_len<min_length)
-			|| !min_length || force_registry
-		) {
-			//remove initial entries
-			while (path_len) {
-				gf_list_rem(filter_chain, 0);
-				path_len--;
-			}
-			max_weight = path_weight+chain_priority;
-			min_length = gf_list_count(filter_chain);
-		} else {
-			//remove all added entries
-			while (gf_list_count(filter_chain) > path_len) {
-				gf_list_rem_last(filter_chain);
-			}
-		}
-		if (force_registry) break;
-	}
-
-	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
-	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
-	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
-	while (gf_list_count(list_reservoir)) {
-		GF_List *al = gf_list_pop_back(list_reservoir);
-		gf_list_del(al);
-	}
-	gf_list_del(list_reservoir);
+	gf_mx_p(fsess->links_mx);
+	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegistry, reconfigurable_only, filter_chain);
+	gf_mx_v(fsess->links_mx);
 
 	count = gf_list_count(filter_chain);
 	if (min_chain_len) {
@@ -1991,8 +2163,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			const GF_FilterCapability *cap = NULL;
 			u32 k, cur_bundle, bundle_idx=0;
 			if (i%2) continue;
-			freg = gf_list_get(filter_chain, count - i - 2);
-			cap = gf_list_get(filter_chain, count - i - 1);
+			freg = gf_list_get(filter_chain, i);
+			cap = gf_list_get(filter_chain, i + 1);
 			//get the cap bundle index - the cap added to the list is the cap with the same index as the bundle start we want
 			//(this avoids allocating integers to store the bundle)
 			for (k=0; k<freg->nb_caps; k++) {
@@ -2057,8 +2229,6 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 exit:
 	gf_list_del(filter_chain);
-	gf_list_del(filter_stack);
-	gf_list_del(tested_filters);
 	return chain_input;
 }
 

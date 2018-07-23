@@ -1074,7 +1074,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 
-	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_FALSE, NULL);
+	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, 0, NULL);
 
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {

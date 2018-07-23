@@ -1606,6 +1606,11 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
+	if (!ctx->width || !ctx->height) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] pid display size unknown, discarding packet\n"));
+		gf_filter_pid_drop_packet(ctx->pid);
+		return GF_OK;
+	}
 
 	if (ctx->vsync) {
 		u64 ref_clock = 0;
