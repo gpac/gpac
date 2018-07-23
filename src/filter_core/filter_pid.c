@@ -4114,6 +4114,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		const char *str_val = NULL;
 		s64 value = 0;
 		Bool is_ok = GF_TRUE;
+		Bool do_skip = GF_FALSE;
 		Bool has_val = GF_FALSE;
 		Bool is_file_str = GF_FALSE;
 		u32 prop_4cc = 0;
@@ -4178,6 +4179,16 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] no pid property named %s\n", name+6));
 				is_ok = GF_FALSE;
 			}
+		} else if (!strncmp(name, "Number", 6)) {
+			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "Time", 4)) {
+			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "RepresentationID", 16)) {
+			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "Bandwidth", 9)) {
+			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "SubNumber", 9)) {
+			do_skip = GF_TRUE;
 		} else {
 			char *next_eq = strchr(name, '=');
 			char *next_sep = strchr(name, '$');
@@ -4213,6 +4224,25 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				continue;
 			}
 		}
+		if (do_skip) {
+			if (fsep) fsep[0] = '%';
+			if (sep) sep[0] = '$';
+			szFinalName[k] = '$';
+			k++;
+			while (name[0] && (name[0] != '$')) {
+				szFinalName[k] = name[0];
+				k++;
+				name++;
+			}
+			szFinalName[k] = '$';
+			k++;
+			name++;
+
+
+			continue;
+
+		}
+
 
 		if (!is_ok && !prop_val && prop_4cc) {
 			if (prop_4cc==GF_PROP_PID_CROP_POS) {
