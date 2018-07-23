@@ -647,8 +647,8 @@ GF_Err audio_sample_entry_dump(GF_Box *a, FILE * trace)
 {
 	char *szName;
 	const char *error=NULL;
-	Bool is_3gpp = GF_FALSE;
-	Bool is_mp4a = GF_FALSE;
+	/*Bool is_3gpp = GF_FALSE;
+	Bool is_mp4a = GF_FALSE;*/
 	GF_MPEGAudioSampleEntryBox *p = (GF_MPEGAudioSampleEntryBox *)a;
 
 	switch (p->type) {
