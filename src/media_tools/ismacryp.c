@@ -1035,7 +1035,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
 	GF_CENCSubSampleEntry *prev_entry=NULL;
 	char *buffer;
-	u32 max_size, nalu_size;
+	u32 max_size, nalu_size=0;
 	GF_Err e = GF_OK;
 	GF_List *subsamples;
 
@@ -1073,7 +1073,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				if (e) return e;
 				gf_bs_seek(plaintext_bs, pos);
 
-				nalu_size = obu_size;
+				nalu_size = (u32)obu_size;
 				switch (obut) {
 				case OBU_TEMPORAL_DELIMITER:
 				case OBU_SEQUENCE_HEADER:
@@ -1283,7 +1283,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
 				gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
 			}
-			
+
 			if (nal_size - clear_bytes) {
 				//read the bytes to be encrypted
 				gf_bs_read_data(plaintext_bs, buffer, nal_size - clear_bytes);

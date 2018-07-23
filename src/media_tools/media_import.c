@@ -7044,7 +7044,7 @@ void av1_reset_frame_state(AV1StateFrame *frame_state) {
 		}
 		gf_list_del(frame_state->header_obus);
 	}
-	
+
 	if (frame_state->frame_obus) {
 		while (gf_list_count(frame_state->frame_obus)) {
 			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(frame_state->frame_obus, 0);
@@ -7069,7 +7069,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	FILE *mdia = NULL;
 	GF_BitStream *bs = NULL;
 	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0;
-	Bool detect_fps;
+	/*Bool detect_fps;*/
 	Double FPS = 0.0;
 	u64 pos = 0;
 	typedef enum {
@@ -7094,7 +7094,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	mdia = gf_fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
-	detect_fps = GF_TRUE;
+	/*detect_fps = GF_TRUE;*/
 	FPS = (Double)import->video_fps;
 	if (!FPS) {
 		FPS = GF_IMPORT_DEFAULT_FPS;
@@ -7103,7 +7103,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			import->video_fps = GF_IMPORT_DEFAULT_FPS;	/*fps=auto is handled as auto-detection in h264*/
 		} else {
 			/*fps is forced by the caller*/
-			detect_fps = GF_FALSE;
+			/*detect_fps = GF_FALSE;*/
 		}
 	}
 	get_video_timing(FPS, &timescale, &dts_inc);

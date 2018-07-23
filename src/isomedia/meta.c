@@ -739,7 +739,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] reading ICC colour profile from file %s\n", &image_props->iccPath));
 			colr->colour_type = GF_ISOM_SUBTYPE_PROF;
 			fseek(fp,0,SEEK_END);
-			colr->opaque_size = ftell(fp);
+			colr->opaque_size = (u32)ftell(fp);
 			fseek(fp,0,SEEK_SET);
 			colr->opaque = malloc(colr->opaque_size);
 			read = gf_fread(colr->opaque, 1, colr->opaque_size, fp);
