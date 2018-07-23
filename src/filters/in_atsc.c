@@ -64,8 +64,8 @@ typedef struct
 
 static GF_FilterProbeScore atscin_probe_url(const char *url, const char *mime)
 {
-	if (!strnicmp(url, "atsc://", 7)) return GF_TRUE;
-	return GF_FALSE;
+	if (!strnicmp(url, "atsc://", 7)) return GF_FPROBE_SUPPORTED;
+	return GF_FPROBE_NOT_SUPPORTED;
 }
 
 

@@ -68,6 +68,10 @@ void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister 
 		}
 	}
 	gf_list_add(fsess->registry, (void *) freg);
+
+	if (fsess->init_done) {
+		gf_filter_sess_build_graph(fsess, freg);
+	}
 }
 
 
@@ -82,7 +86,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 }
 
 GF_EXPORT
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, Bool load_meta_filters, Bool disable_blocking, const char *blacklist)
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, u32 flags, const char *blacklist)
 {
 	u32 i;
 	GF_FilterSession *fsess, *a_sess;
@@ -206,20 +210,26 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 
 	fsess->registry = gf_list_new();
 	fsess->blacklist = blacklist;
-	a_sess = load_meta_filters ? fsess : NULL;
+	a_sess = (flags & GF_FS_FLAG_LOAD_META) ? fsess : NULL;
 	gf_fs_reg_all(fsess, a_sess);
 	fsess->blacklist = NULL;
 
 	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
 
-	fsess->disable_blocking = disable_blocking;
+	fsess->disable_blocking = (flags & GF_FS_FLAG_NO_BLOCKING) ? GF_TRUE : GF_FALSE;
 	fsess->run_status = GF_EOS;
 	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;
 	fsess->decoder_pid_buffer_max_us = 1000000;
 	fsess->default_pid_buffer_max_units = 1;
 	fsess->max_resolve_chain_len = 6;
+
+	fsess->links_mx = gf_mx_new("DijsktraSet");
+	fsess->links = gf_list_new();
+	gf_filter_sess_build_graph(fsess, NULL);
+
+	fsess->init_done = GF_TRUE;
 	return fsess;
 }
 
@@ -257,6 +267,7 @@ GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)
 {
 	gf_list_del_item(session->registry, freg);
+	gf_filter_sess_reset_graph(session, freg);
 }
 
 void gf_propalloc_del(void *it)
@@ -379,6 +390,13 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 	if (fsess->evt_mx) gf_mx_del(fsess->evt_mx);
 	if (fsess->event_listeners) gf_list_del(fsess->event_listeners);
+
+	if (fsess->links) {
+		gf_filter_sess_reset_graph(fsess, NULL);
+		gf_list_del(fsess->links);
+	}
+	if (fsess->links_mx) gf_mx_del(fsess->links_mx);
+
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
 }
@@ -1592,7 +1610,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session)
 
 			nb_connect = 0;
 			for (k=0; k<src_bundle_count; k++) {
-				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx, -1, &capstore);
+				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx, -1, GF_FALSE, &capstore);
 			}
 			if (nb_connect) {
 				if (first) {

@@ -155,7 +155,23 @@ typedef struct __gf_prop_val GF_PropertyValue;
 
  The GPAC filter session object allows building media pipelines using multiple sources and destinations and arbitrary filter chains.
 
+ Filters are descibed through a \ref GF_FilterRegister structure. A set of built-in filters are available, and user-defined filters can be added or removed at run time.
 
+ The filter session keeps an internal graph representation of all available filters and their possible input connections, which is used when resolving connections between filters.
+
+ The number of \ref GF_FilterCapability macthed between registries defines the weight of the connection.
+
+ Paths from an instantiated filter are enabled/disabled based on the source pid capabilities.
+
+ Paths to destination are recomputed for each destination, based on the instantiated destination filter capabilities.
+
+ The graph edges are then enabled in the possible subgraphs allowed by the destination capabilities, and unused filter registries (without enabled input connections) are removed from the graph.
+
+ The resulting weighted graph is then solved using Dijkstra's algorithm, using filter priority in case of weight equality.
+
+ The filter session works by default in a semi-blocking state. Whenever output pid buffers on a filter are all full, the filter is marked as blocked and not scheduled for processing. Whenever one output pid buffer is not full, the filter unblocks.
+
+ This implies that pid buffers may grow quite large if a filter is consuming data from a pid at a much faster rate than another filter consuming from that same pid.
  *	@{
  */
 
@@ -175,17 +191,23 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT
 } GF_FilterSchedulerType;
 
+/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various subfilters. The subfilters are usually not exposed as filters, only the parent one is.
+When set, all sub filters are exposed. This should only be set when inspecting filters help.*/
+#define GF_FS_FLAG_LOAD_META	1<<1
+/*! Flag set to disable the blocking mode of the filter session. The default is a semi-blocking mode, cf \ref gf_filter_pid_would_block*/
+#define GF_FS_FLAG_NO_BLOCKING	1<<2
+/*! Flag set to disable internal caching of filter graph connections. If diabled, the graph will be recomputed at each link resolution (less memory ungry but slower)*/
+#define GF_FS_FLAG_NO_GRAPH_CACHE	1<<3
+
 /*! Creates a new filter session. This will also load all available filters not blacklisted.
 \param nb_threads number of extra threads to allocate
 \param type scheduler type
 \param user GPAC user for config, callback proc and flags. Can be NULL, see \ref gf_fs_get_user
-\param load_meta_filters loads meta filters. A meta filter is a filter providing various subfilters. The subfilters are usually not exposed as filters, only the parent one is. 
-When set, all sub filters are exposed. This should only be set when inspecting filters help.
-\param disable_blocking disable blocking mode of the session
-\param blacklist string containing comma-separated names of filters to disable 
+\param flags set of above flags for the session. Modes set by flags cannot be changed at runtime
+\param blacklist string containing comma-separated names of filters to disable
 \return the created filter session
 */
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, GF_User *user, Bool load_meta_filters, Bool disable_blocking, const char *blacklist);
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, GF_User *user, u32 flags, const char *blacklist);
 /*! Destructs the filter session
 \param session the filter session to destruct
 */
@@ -2042,6 +2064,7 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid);
 
 /*! checks if the pid would enter a blocking state if a new packet is sent.
 This function should be called by eg demuxers to regulate the rate at which they send packets
+
 Note: pids are never fully blocking in GPAC, a filter requesting an output packet should usually get one unless something goes wrong
 \param pid the target filter pid
 \return GF_TRUE if pid would enter blocking state , GF_FALSE otherwise

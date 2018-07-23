@@ -47,7 +47,7 @@ GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_Filter
 	pck_dst=pck_dst->pck;
 
 	pck_dst->info = pck_src->info;
-	pck_dst->info.flags &= ~GF_PCKF_PROPS_REF;
+	pck_dst->info.flags &= ~GF_PCKF_PROPS_REFERENCE;
 
 	if (!pck_src->props) {
 		return GF_OK;
@@ -245,7 +245,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 
 	if (!is_filter_destroyed) {
 		assert(pck->pid);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REF) ? " property reference" : "", pck->info.cts));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : "", pck->info.cts));
 	}
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
 
@@ -290,7 +290,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	if (is_filter_destroyed) {
 		if (!pck->filter_owns_mem && pck->data) gf_free(pck->data);
 		gf_free(pck);
-	} else if (pck->filter_owns_mem || (pck->info.flags & GF_PCKF_PROPS_REF) ) {
+	} else if (pck->filter_owns_mem || (pck->info.flags & GF_PCKF_PROPS_REFERENCE) ) {
 		gf_fq_add(pid->filter->pcks_shared_reservoir, pck);
 	} else {
 		gf_fq_add(pid->filter->pcks_alloc_reservoir, pck);
@@ -468,12 +468,12 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	pid->has_seen_eos = ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) ? GF_TRUE : GF_FALSE;
 
 	//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
-	pck->info.flags &= ~GF_PCKF_PROPS_REF;
+	pck->info.flags &= ~GF_PCKF_PROPS_CHANGED;
 
 	if (!pid->request_property_map && !(pck->info.flags & GF_PCK_CMD_MASK) && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
-		pck->info.flags |= GF_PCKF_PROPS_REF;
+		pck->info.flags |= GF_PCKF_PROPS_CHANGED;
 		pid->pid_info_changed = GF_FALSE;
 	}
 	//any new pid_set_property after this packet will trigger a new property map
@@ -845,7 +845,7 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	npck->destructor = NULL;
 	gf_filter_pck_reset_props(npck, pid);
 	npck->info = srcpck->info;
-	npck->info.flags |= GF_PCKF_PROPS_REF;
+	npck->info.flags |= GF_PCKF_PROPS_REFERENCE;
 
 	if (srcpck->props) {
 		npck->props = srcpck->props;

@@ -397,6 +397,7 @@ static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
 	int i;
+	u32 sflags=0;
 	Bool override_seps=GF_FALSE;
 	s32 link_prev_filter = -1;
 	char *link_prev_filter_ext=NULL;
@@ -544,7 +545,9 @@ static int gpac_main(int argc, char **argv)
 	}
 	if (enable_profiling) gf_sys_enable_profiling(GF_TRUE);
 
-	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) ? GF_TRUE : GF_FALSE, disable_blocking, blacklist);
+	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
+	if (disable_blocking) sflags |= GF_FS_FLAG_NO_BLOCKING;
+	session = gf_fs_new(nb_threads, sched_type, NULL, sflags, blacklist);
 	if (!session) {
 		return 1;
 	}

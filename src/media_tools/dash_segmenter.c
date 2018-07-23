@@ -516,7 +516,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		return GF_OUT_OF_MEM;
 	}
 
-	dasher->fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE, GF_FALSE, NULL);
+	dasher->fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, 0, NULL);
 	if (!dasher->fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create filter session\n"));
 		return GF_OUT_OF_MEM;

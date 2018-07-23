@@ -86,7 +86,7 @@ Targets:
 - [ ] add ffmpeg muxer support
 - [ ] add ffmpeg simple avfilter support
 - [ ] filters scriptable through JS
-- [ ] improve filter graph resolver ?
+- [x] improve filter graph resolver
 - [ ] improve filter scheduler ?
 - [ ] move input sensors to filter ?
 - [ ] filters scriptable through other languages ?
