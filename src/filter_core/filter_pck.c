@@ -1013,7 +1013,7 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return (GF_FilterSAPType) ( (pck->info.flags & GF_PCK_SAP_MASK) >> GF_PCK_SAP_POS);
+	return (GF_FilterSAPType) ( (pck->pck->info.flags & GF_PCK_SAP_MASK) >> GF_PCK_SAP_POS);
 }
 
 GF_Err gf_filter_pck_set_roll_info(GF_FilterPacket *pck, s16 roll_count)
@@ -1121,6 +1121,7 @@ GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset)
 u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 {
 	assert(pck);
+	//get true packet pointer
 	return pck->pck->info.byte_offset;
 }
 
@@ -1133,6 +1134,7 @@ GF_Err gf_filter_pck_set_crypt_flags(GF_FilterPacket *pck, u8 crypt_flag)
 }
 u8 gf_filter_pck_get_crypt_flags(GF_FilterPacket *pck)
 {
+	//get true packet pointer
 	return (pck->pck->info.flags & GF_PCK_CRYPT_MASK) >> GF_PCK_CRYPT_POS;
 }
 
@@ -1147,6 +1149,7 @@ GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType cty
 
 GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck)
 {
+	//get true packet pointer
 	return (pck->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
 }
 
