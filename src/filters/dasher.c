@@ -1995,6 +1995,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		e = gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0);
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot resolve template name, cannot derive output segment names, disabling rep %s\n", ds->src_url));
+			gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
 			ds->done = 1;
 			continue;
 		}
