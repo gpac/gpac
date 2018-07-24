@@ -1083,15 +1083,15 @@ enum
 {
 	GF_ESI_DATA_AU_START	=	1,
 	GF_ESI_DATA_AU_END		=	1<<1,
-	GF_ESI_DATA_AU_RAP		=	1<<2,
-	GF_ESI_DATA_HAS_CTS		=	1<<3,
-	GF_ESI_DATA_HAS_DTS		=	1<<4,
-	GF_ESI_DATA_REPEAT		=	1<<5,
+	GF_ESI_DATA_HAS_CTS		=	1<<2,
+	GF_ESI_DATA_HAS_DTS		=	1<<3,
+	GF_ESI_DATA_REPEAT		=	1<<4,
 };
 
 typedef struct __data_packet_ifce
 {
-	u32 flags;
+	u16 flags;
+	u8 sap_type;
 	char *data;
 	u32 data_len;
 	/*DTS, CTS/PTS and duration expressed in media timescale*/
@@ -1214,7 +1214,8 @@ typedef struct __m2ts_mux_pck
 	struct __m2ts_mux_pck *next;
 	char *data;
 	u32 data_len;
-	u32 flags;
+	u16 flags;
+	u8 sap_type;
 	u64 cts, dts;
 	u32 duration;
 
@@ -1274,7 +1275,8 @@ typedef struct __m2ts_mux_stream {
 	Bool force_new;
 	Bool discard_data;
 
-	u32 next_pck_flags;
+	u16 next_pck_flags;
+	u8 next_pck_sap;
 	u64 next_pck_cts, next_pck_dts;
 
 	u32 reframe_overhead;
@@ -1301,6 +1303,10 @@ typedef struct __m2ts_mux_stream {
 	u32 last_aac_time;
 	/*list of GF_M2TSDescriptor to add to the MPEG-2 stream. By default set to NULL*/
 	GF_List *loop_descriptors;
+
+	//used when dashing
+	u32 pck_sap_type;
+	u64 pck_sap_time; //=pts
 } GF_M2TS_Mux_Stream;
 
 enum {
@@ -1432,6 +1438,12 @@ struct __m2ts_mux {
 
 
 	GF_BitStream *pck_bs;
+	//used when dashing, set to TRUE if the packet output is the first packet of a SAP AU
+	Bool sap_inserted;
+	u64 sap_time;
+	u32 sap_type;
+	u64 last_pts;
+	u32 last_pid;
 };
 
 

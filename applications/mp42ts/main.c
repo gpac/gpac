@@ -358,7 +358,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		memset(&pck, 0, sizeof(GF_ESIPacket));
 
 		pck.flags = GF_ESI_DATA_AU_START | GF_ESI_DATA_HAS_CTS;
-		if (priv->sample->IsRAP) pck.flags |= GF_ESI_DATA_AU_RAP;
+		if (priv->sample->IsRAP) pck.sap_type = priv->sample->IsRAP;
 		pck.cts = priv->sample->DTS + priv->ts_offset;
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
@@ -792,9 +792,9 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	rtp->pck.flags = 0;
 	if (hdr->compositionTimeStampFlag) rtp->pck.flags |= GF_ESI_DATA_HAS_CTS;
 	if (hdr->decodingTimeStampFlag) rtp->pck.flags |= GF_ESI_DATA_HAS_DTS;
-	if (hdr->randomAccessPointFlag) rtp->pck.flags |= GF_ESI_DATA_AU_RAP;
 	if (hdr->accessUnitStartFlag) rtp->pck.flags |= GF_ESI_DATA_AU_START;
 	if (hdr->accessUnitEndFlag) rtp->pck.flags |= GF_ESI_DATA_AU_END;
+	if (hdr->randomAccessPointFlag) rtp->pck.sap_type = 1;
 
 	if (rtp->use_carousel) {
 		if ((hdr->AU_sequenceNumber==rtp->au_sn) && hdr->randomAccessPointFlag) rtp->pck.flags |= GF_ESI_DATA_REPEAT;
@@ -1140,7 +1140,7 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 				if (ts) pck.cts = pck.dts = ts;
 
 				if (priv->rap)
-					pck.flags |= GF_ESI_DATA_AU_RAP;
+					pck.sap_type = 1;
 				if (source->repeat || !priv->vers_inc) {
 					pck.flags |= GF_ESI_DATA_REPEAT;
 					fprintf(stderr, "RAP carousel from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts);
