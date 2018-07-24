@@ -595,8 +595,8 @@ void ffdmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 
 static const GF_FilterArgs FFDemuxArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
+	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
@@ -627,7 +627,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
 	memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
 	FFDemuxRegister.args = args;
-	args[0] = (GF_FilterArgs){ OFFS(src), "Source URL", GF_PROP_STRING, NULL, NULL, GF_FALSE} ;
+	args[0] = (GF_FilterArgs){ OFFS(src), "Source URL", GF_PROP_STRING, NULL, NULL, 0} ;
 	i=0;
 	while (dmx_ctx->av_class->option) {
 		opt = &dmx_ctx->av_class->option[i];
@@ -865,15 +865,15 @@ GF_FilterRegister FFAVInRegister = {
 
 static const GF_FilterArgs FFAVInArgs[] =
 {
-	{ OFFS(src), "url of device, video:// audio:// or av://", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(fmt), "name of device class - see filter help. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(dev), "name of device or index of device - see filter help", GF_PROP_STRING, "0", NULL, GF_FALSE},
-	{ OFFS(copy), "Copy raw frames rather instead of sharing them", GF_PROP_UINT, "A", "NO|A|V|AV", GF_FALSE},
-	{ OFFS(sclock), "Use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(probes), "Probes a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FALSE},
+	{ OFFS(src), "url of device, video:// audio:// or av://", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(fmt), "name of device class - see filter help. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(dev), "name of device or index of device - see filter help", GF_PROP_STRING, "0", NULL, 0},
+	{ OFFS(copy), "Copy raw frames rather instead of sharing them", GF_PROP_UINT, "A", "NO|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sclock), "Use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(probes), "Probes a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
 
 
-	{ "*", -1, "Any possible args defined for AVInputFormat and AVFormatContext", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
+	{ "*", -1, "Any possible args defined for AVInputFormat and AVFormatContext", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 

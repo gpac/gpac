@@ -1811,7 +1811,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 
 		//freg shall be instantiated
-		if (freg->explicit_only && (freg != pid->filter->freg) && (freg != dst->freg) ) {
+		if ((freg->flags & GF_FS_REG_EXPLICIT_ONLY) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
 			assert(freg != dst->freg);
 			continue;
 		}
@@ -2016,9 +2016,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				continue;
 
 			dist = current_node->dist + (max_weight - redge->weight);
-			if (current_node->freg->adjust_weight) {
-				assert(dist);
-				dist--;
+			if (current_node->freg->flags & GF_FS_REG_HIDE_WEIGHT) {
+				dist = current_node->dist;
 			}
 
 			priority = redge->priority;
@@ -3891,7 +3890,7 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
 	//filter is being shut down, prevent any event posting
 	if (pid->pid->filter->finalized) return;
-	assert (pid->pid->filter->freg->requires_main_thread==1);
+	assert (pid->pid->filter->freg->flags &	GF_FS_REG_MAIN_THREAD);
 
 	if (pid->pid->filter->freg->process_event) {
 		if (evt->base.on_pid) evt->base.on_pid = evt->base.on_pid->pid;

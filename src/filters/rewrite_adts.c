@@ -184,7 +184,7 @@ static const GF_FilterCapability ADTSMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_ADTSMxCtx, _n)
 static const GF_FilterArgs ADTSMxArgs[] =
 {
-	{ OFFS(mpeg2), "Signals as MPEG2 AAC", GF_PROP_UINT, "auto", "auto|no|yes", GF_FALSE},
+	{ OFFS(mpeg2), "Signals as MPEG2 AAC", GF_PROP_UINT, "auto", "auto|no|yes", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

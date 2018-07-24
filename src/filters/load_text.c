@@ -2790,18 +2790,18 @@ static const GF_FilterCapability TXTInCaps[] =
 
 static const GF_FilterArgs TXTInArgs[] =
 {
-	{ OFFS(webvtt), "force WebVTT import of SRT files", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(nodefbox), "skip default text box", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(noflush), "skip final sample flush for srt", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(fontname), "default font to use", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(fontsize), "default font size", GF_PROP_UINT, "18", NULL, GF_FALSE},
-	{ OFFS(lang), "default language to use", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(width), "default width of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(height), "default height of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(x), "default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(y), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FALSE},
-	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FALSE},
+	{ OFFS(webvtt), "force WebVTT import of SRT files", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(nodefbox), "skip default text box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noflush), "skip final sample flush for srt", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fontname), "default font to use", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(fontsize), "default font size", GF_PROP_UINT, "18", NULL, 0},
+	{ OFFS(lang), "default language to use", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(width), "default width of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(height), "default height of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(x), "default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(y), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -2809,7 +2809,7 @@ GF_FilterRegister TXTInRegister = {
 	.name = "txtplay",
 	.description = "Timed text  SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG loader for playback",
 	.private_size = sizeof(GF_TXTIn),
-	.requires_main_thread = GF_TRUE,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = TXTInArgs,
 	SETCAPS(TXTInCaps),
 	.process = txtin_process,

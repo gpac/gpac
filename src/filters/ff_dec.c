@@ -851,7 +851,7 @@ GF_FilterRegister FFDecodeRegister = {
 
 static const GF_FilterArgs FFDecodeArgs[] =
 {
-	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
+	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 

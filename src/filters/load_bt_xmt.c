@@ -830,8 +830,8 @@ static const GF_FilterCapability CTXLoadCaps[] =
 
 static const GF_FilterArgs CTXLoadArgs[] =
 {
-	{ OFFS(progressive), "enable progressive loading", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(sax_dur), "SAX loading duration", GF_PROP_UINT, "1000", NULL, GF_TRUE},
+	{ OFFS(progressive), "enable progressive loading", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sax_dur), "SAX loading duration", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -839,7 +839,7 @@ GF_FilterRegister CTXLoadRegister = {
 	.name = "btplay",
 	.description = "Textual BT/XMT/X3D loader for playback",
 	.private_size = sizeof(CTXLoadPriv),
-	.requires_main_thread = GF_TRUE,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = CTXLoadArgs,
 	SETCAPS(CTXLoadCaps),
 	.finalize = ctxload_finalize,

@@ -421,14 +421,14 @@ static const GF_FilterCapability SVGInCaps[] =
 
 static const GF_FilterArgs SVGInArgs[] =
 {
-	{ OFFS(sax_dur), "SAX loading duration, 0 disables SAX parsing", GF_PROP_UINT, "0", NULL, GF_TRUE},
+	{ OFFS(sax_dur), "SAX loading duration, 0 disables SAX parsing", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 GF_FilterRegister SVGInRegister = {
 	.name = "svgplay",
 	.description = "SVG loader for playback",
 	.private_size = sizeof(SVGIn),
-	.requires_main_thread = GF_TRUE,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = SVGInArgs,
 	SETCAPS(SVGInCaps),
 	.process = svgin_process,

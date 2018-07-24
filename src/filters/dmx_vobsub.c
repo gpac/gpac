@@ -416,7 +416,7 @@ void vobsubdmx_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_VOBSubDmxCtx, _n)
 static const GF_FilterArgs GF_VOBSubDmxArgs[] =
 {
-	{ OFFS(blankframe), "force inserting a blank frame if first subpic is not at 0", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(blankframe), "force inserting a blank frame if first subpic is not at 0", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

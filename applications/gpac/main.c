@@ -369,7 +369,7 @@ static void gpac_usage(void)
 
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
-	if (0 && gf_prompt_has_input()) {
+	if (gf_prompt_has_input()) {
 		char c = gf_prompt_get_char();
 		switch (c) {
 		case 'q':
@@ -731,8 +731,10 @@ static void print_filter(const GF_FilterRegister *reg)
 	else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
 
 	fprintf(stderr, "Flags:");
-	if (reg->explicit_only) fprintf(stderr, " ExplicitOnly");
-	if (reg->requires_main_thread) fprintf(stderr, "MainThread");
+	if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) fprintf(stderr, " ExplicitOnly");
+	if (reg->flags & GF_FS_REG_MAIN_THREAD) fprintf(stderr, "MainThread");
+	if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) fprintf(stderr, "ConfigureMainThread");
+	if (reg->flags & GF_FS_REG_HIDE_WEIGHT) fprintf(stderr, "HideWeight");
 	if (reg->probe_url) fprintf(stderr, " IsSource");
 	if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
 	if (reg->probe_data) fprintf(stderr, " DataProber");
@@ -757,7 +759,8 @@ static void print_filter(const GF_FilterRegister *reg)
 			if (a->min_max_enum) {
 				fprintf(stderr, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
 			}
-			if (a->updatable) fprintf(stderr, " Updatable attribute.");
+			if (a->flags & GF_FS_ARG_UPDATE) fprintf(stderr, " Updatable");
+			if (a->flags & GF_FS_ARG_META) fprintf(stderr, " Meta");
 			fprintf(stderr, "\n");
 		}
 	} else {

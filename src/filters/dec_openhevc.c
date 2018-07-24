@@ -1151,12 +1151,12 @@ static const GF_FilterCapability OHEVCDecCaps[] =
 
 static const GF_FilterArgs OHEVCDecArgs[] =
 {
-	{ OFFS(threading), "Set threading mode", GF_PROP_UINT, "frame", "frameslice|frame|slice", GF_FALSE},
-	{ OFFS(nb_threads), "Set number of threads. If 0, uses number of cores minus one", GF_PROP_UINT, "0", NULL, GF_TRUE},
-	{ OFFS(no_copy), "Directly dispatch internal decoded frame without copy", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(pack_hfr), "Packs 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(seek_reset), "Resets decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(force_stereo), "Forces stereo output for multiview (top-bottom only)", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(threading), "Set threading mode", GF_PROP_UINT, "frame", "frameslice|frame|slice", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(nb_threads), "Set number of threads. If 0, uses number of cores minus one", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(no_copy), "Directly dispatch internal decoded frame without copy", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pack_hfr), "Packs 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(seek_reset), "Resets decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(force_stereo), "Forces stereo output for multiview (top-bottom only)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

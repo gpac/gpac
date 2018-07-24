@@ -1038,19 +1038,19 @@ static const GF_FilterCapability GSFMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GSFMxCtx, _n)
 static const GF_FilterArgs GSFMxArgs[] =
 {
-	{ OFFS(sigsn), "signal packet sequence number after header field and before size field. Sequence number is per PID, encoded on 16 bits. Header packet does not have a SN", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(sigdur), "signal duration", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(sigbo), "signal byte offset", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(sigdts), "signal decoding timestamp", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(dbg), "debug mode, skips packet or force packet size to 0", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FALSE},
-	{ OFFS(key), "encrypts packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, GF_FALSE},
-	{ OFFS(IV), "sets IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, GF_FALSE},
-	{ OFFS(pattern), "sets nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FALSE},
-	{ OFFS(mpck), "sets max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(skp), "comma separated list of pid property names to skip - see filter help", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(minp), "includes only the minimum set of properties required for stream processing - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(crate), "carousel period for tune-in info in seconds - see filter help", GF_PROP_DOUBLE, "0", NULL, GF_FALSE},
+	{ OFFS(sigsn), "signal packet sequence number after header field and before size field. Sequence number is per PID, encoded on 16 bits. Header packet does not have a SN", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(sigdur), "signal duration", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigbo), "signal byte offset", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigdts), "signal decoding timestamp", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dbg), "debug mode, skips packet or force packet size to 0", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(key), "encrypts packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
+	{ OFFS(IV), "sets IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
+	{ OFFS(pattern), "sets nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mpck), "sets max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(skp), "comma separated list of pid property names to skip - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(minp), "includes only the minimum set of properties required for stream processing - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(crate), "carousel period for tune-in info in seconds - see filter help", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

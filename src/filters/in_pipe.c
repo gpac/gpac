@@ -401,13 +401,13 @@ static GF_Err pipein_process(GF_Filter *filter)
 
 static const GF_FilterArgs PipeInArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "buffer size used to read pipe", GF_PROP_UINT, "5000", NULL, GF_FALSE},
-	{ OFFS(ext), "indicates file extension of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(blk), "opens pipe in block mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(ka), "keep-alive pipe when end of input is detected - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(block_size), "buffer size used to read pipe", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ext), "indicates file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mime), "indicates mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(blk), "opens pipe in block mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ka), "keep-alive pipe when end of input is detected - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

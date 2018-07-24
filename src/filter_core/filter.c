@@ -517,7 +517,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 			continue;
 
 		found = GF_TRUE;
-		if (!a->updatable) {
+		if (! (a->flags & GF_FS_ARG_UPDATE) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, task->filter->name));
 			break;
 		}
@@ -619,7 +619,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		const GF_FilterArgs *a = &filter->freg->args[i];
 		i++;
 		if (!a || !a->arg_name) break;
-		if (a->meta_arg) {
+		if (a->flags & GF_FS_ARG_META) {
 			has_meta_args = GF_TRUE;
 			continue;
 		}
@@ -797,7 +797,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				GF_PropertyValue argv;
 				found=GF_TRUE;
 
-				argv = gf_filter_parse_prop_solve_env_var(filter, a->meta_arg ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
+				argv = gf_filter_parse_prop_solve_env_var(filter, (a->flags & GF_FS_ARG_META) ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
 
 				if (reverse_bool && (argv.type==GF_PROP_BOOL))
 					argv.value.boolean = !argv.value.boolean;

@@ -429,22 +429,22 @@ static GF_Err sockin_process(GF_Filter *filter)
 
 static const GF_FilterArgs SockInArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "block size used to read socket", GF_PROP_UINT, "10000", NULL, GF_FALSE},
-	{ OFFS(sockbuf), "socket max buffer size", GF_PROP_UINT, "65536", NULL, GF_FALSE},
-	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, GF_FALSE},
-	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FALSE},
-	{ OFFS(np), "disables TS probe on input data. Implied if mime or ext are given", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(ext), "indicates file extension of udp data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(mime), "indicates mime type of udp data", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(block_size), "block size used to read socket", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sockbuf), "socket max buffer size", GF_PROP_UINT, "65536", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, 0},
+	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, 0},
+	{ OFFS(np), "disables TS probe on input data. Implied if mime or ext are given", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ext), "indicates file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mime), "indicates mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_STREAMING
-	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FALSE},
-	{ OFFS(reorder_delay), "number of ms delay for RTP reordering (M2TS over RTP)", GF_PROP_UINT, "10", NULL, GF_FALSE},
+	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(reorder_delay), "number of ms delay for RTP reordering (M2TS over RTP)", GF_PROP_UINT, "10", NULL, GF_FS_ARG_HINT_ADVANCED},
 #endif
 	{0}
 };

@@ -420,7 +420,7 @@ void vttd_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_VTTDec, _n)
 static const GF_FilterArgs VTTDecArgs[] =
 {
-	{ OFFS(script), "Location of WebVTT SVG JS renderer", GF_PROP_STRING, "$GPAC_SHARED/webvtt-renderer.js", NULL, GF_FALSE},
+	{ OFFS(script), "Location of WebVTT SVG JS renderer", GF_PROP_STRING, "$GPAC_SHARED/webvtt-renderer.js", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -437,7 +437,7 @@ GF_FilterRegister VTTDecRegister = {
 	.name = "vttdec",
 	.description = "WebVTT decoder",
 	.private_size = sizeof(GF_VTTDec),
-	.requires_main_thread = GF_TRUE,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,
 	SETCAPS(VTTDecCaps),
 	.initialize = vttd_initialize,

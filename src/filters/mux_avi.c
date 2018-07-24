@@ -391,9 +391,9 @@ static GF_Err avimux_initialize(GF_Filter *filter);
 
 static const GF_FilterArgs AVIMuxArgs[] =
 {
-	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(fps), "default framerate if none indicated in stream", GF_PROP_FRACTION, "25/1", NULL, GF_FALSE},
-	{ OFFS(noraw), "disables raw output in AVI, only compressed ones allowed", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(fps), "default framerate if none indicated in stream", GF_PROP_FRACTION, "25/1", NULL, 0},
+	{ OFFS(noraw), "disables raw output in AVI, only compressed ones allowed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

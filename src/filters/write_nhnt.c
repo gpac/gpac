@@ -290,8 +290,8 @@ static const GF_FilterCapability NHNTDumpCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_NHNTDumpCtx, _n)
 static const GF_FilterArgs NHNTDumpArgs[] =
 {
-	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(large), "Uses large file mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(large), "Uses large file mode", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
@@ -300,8 +300,6 @@ GF_FilterRegister NHNTDumpRegister = {
 	.name = "writenhnt",
 	.description = "NHNT file writer",
 	.private_size = sizeof(GF_NHNTDumpCtx),
-	//NHNT output is explicit only, so we don't load the filter during resolution process
-	.explicit_only = 1,
 	.args = NHNTDumpArgs,
 	.finalize = nhntdump_finalize,
 	SETCAPS(NHNTDumpCaps),

@@ -299,11 +299,11 @@ static GF_Err filein_process(GF_Filter *filter)
 
 static const GF_FilterArgs FileInArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FALSE},
-	{ OFFS(range), "byte range", GF_PROP_FRACTION, "0-0", NULL, GF_FALSE},
-	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(range), "byte range", GF_PROP_FRACTION, "0-0", NULL, 0},
+	{ OFFS(ext), "overrides file extension", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(mime), "sets file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{0}
 };
 

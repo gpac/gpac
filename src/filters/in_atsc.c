@@ -349,15 +349,15 @@ static GF_Err atscin_initialize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(ATSCInCtx, _n)
 static const GF_FilterArgs ATSCInArgs[] =
 {
-	{ OFFS(src), "location of source content - see filter help", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(ifce), "IP of the default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(cache), "indicates the files should populate GPAC HTTP cache - see filter help", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(service), "ID of service to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, GF_FALSE},
-	{ OFFS(buffer), "UDP socket receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FALSE},
-	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, GF_FALSE},
-	{ OFFS(kc), "keeps corrupted file", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(sr), "skips repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(stsi), "defines one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(src), "location of source content - see filter help", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(ifce), "IP of the default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(cache), "indicates the files should populate GPAC HTTP cache - see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(service), "ID of service to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
+	{ OFFS(buffer), "UDP socket receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
+	{ OFFS(kc), "keeps corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sr), "skips repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(stsi), "defines one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

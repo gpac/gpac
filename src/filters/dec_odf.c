@@ -421,7 +421,7 @@ GF_FilterRegister ODFDecRegister = {
 	.name = "odfdec",
 	.description = "MPEG-4 OD decoder",
 	.private_size = sizeof(GF_ODFDecCtx),
-	.requires_main_thread = GF_TRUE,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	SETCAPS(ODFDecCaps),
 	.process = odf_dec_process,
 	.configure_pid = odf_dec_configure_pid,

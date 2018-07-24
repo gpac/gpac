@@ -284,8 +284,8 @@ static const GF_FilterCapability WebVTTMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_WebVTTMxCtx, _n)
 static const GF_FilterArgs WebVTTMxArgs[] =
 {
-	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(merge), "merges VTT cue if needed", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(merge), "merges VTT cue if needed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

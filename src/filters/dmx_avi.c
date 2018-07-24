@@ -479,8 +479,8 @@ static const GF_FilterCapability AVIDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_AVIDmxCtx, _n)
 static const GF_FilterArgs AVIDmxArgs[] =
 {
-	{ OFFS(fps), "import frame rate, default is AVI one", GF_PROP_FRACTION, "1/0", NULL, GF_FALSE},
-	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(fps), "import frame rate, default is AVI one", GF_PROP_FRACTION, "1/0", NULL, 0},
+	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

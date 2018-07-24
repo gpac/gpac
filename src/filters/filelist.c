@@ -638,11 +638,11 @@ void filelist_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_FileListCtx, _n)
 static const GF_FilterArgs GF_FileListArgs[] =
 {
-	{ OFFS(loop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, GF_FALSE},
-	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, GF_FALSE},
-	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(timescale), "forces output timescal on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(loop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(in), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
+	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
+	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timescale), "forces output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

@@ -1262,9 +1262,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_DASHDmxCtx, _n)
 static const GF_FilterArgs DASHDmxArgs[] =
 {
-	{ OFFS(max_buffer), "max content buffer in ms. If 0 uses default player settings", GF_PROP_UINT, "10000", NULL, GF_FALSE},
-	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(store), "enables file caching", GF_PROP_UINT, "mem", "mem|file|cache", GF_FALSE},
+	{ OFFS(max_buffer), "max content buffer in ms. If 0 uses default player settings", GF_PROP_UINT, "10000", NULL, 0},
+	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(store), "enables file caching", GF_PROP_UINT, "mem", "mem|file|cache", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(algo), "adaptation algorithm to use. The following algorithms are defined:\n\
 					\tnone: no adaptation logic\n\
 					\tgrate: GAPC legacy algo based on available rate\n\
@@ -1274,25 +1274,25 @@ static const GF_FilterArgs DASHDmxArgs[] =
 					\tbolab: BOLA Basic\n\
 					\tbolau: BOLA-U\n\
 					\tbolao: BOLA-O\n\
-					", GF_PROP_UINT, "gbuf", "none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao", GF_FALSE},
+					", GF_PROP_UINT, "gbuf", "none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(start_with), "specifies the initial representation criteria:\n\
 						min_q: start with lowest quality\n\
 						max_q: start with highest quality\n\
 						min_bw: start with lowest bitrate\n\
 						max_bw: start with highest bitrate; for tiles are used, all low priority tiles will have the lower (below max) bandwidth selected\n\
 						max_bw_tiles: start with highest bitrate; for tiles all low priority tiles will have their lowest bandwidth selected\n\
-						", GF_PROP_UINT, "min_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", GF_FALSE},
+						", GF_PROP_UINT, "min_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", 0},
 
-	{ OFFS(max_res), "use max media resolution to configure display", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(immediate), "when interactive switching is requested and immediate is set, the buffer segments are trashed", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(abort), "allow abort during a segment download", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(use_bmin), "Uses the indicated min buffer time of the MPD if true, otherwise uses default player settings", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(max_res), "use max media resolution to configure display", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(immediate), "when interactive switching is requested and immediate is set, the buffer segments are trashed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(abort), "allow abort during a segment download", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(use_bmin), "Uses the indicated min buffer time of the MPD if true, otherwise uses default player settings", GF_PROP_BOOL, "false", NULL, 0},
 
-	{ OFFS(shift_utc), "shifts DASH UTC clock", GF_PROP_SINT, "0", NULL, GF_FALSE},
-	{ OFFS(atsc_shift), "shifts ATSC requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FALSE},
-	{ OFFS(server_utc), "Uses ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FALSE},
-	{ OFFS(screen_res), "Uses screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FALSE},
-	{ OFFS(timeshift), "Sets initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(shift_utc), "shifts DASH UTC clock", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(atsc_shift), "shifts ATSC requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(server_utc), "Uses ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(screen_res), "Uses screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeshift), "Sets initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tile_mode), "Sets tile adaptiaion mode:\
 						none: bitrate is shared equaly accross all tiles\n\
 						rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row\n\
@@ -1303,14 +1303,14 @@ static const GF_FilterArgs DASHDmxArgs[] =
 						mcols: bitrate decreased for left and right columns only, same rate for each tile on the columns\n\
 						center: bitrate decreased for all tiles on the edge of the picture\n\
 						edges: bitrate decreased for all tiles on the center of the picture\n\
-						", GF_PROP_UINT, "none", "none|rows|rrows|mrows|cols|rcols|mcols|center|edges", GF_FALSE},
-	{ OFFS(tiles_rate), "Indicates the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.", GF_PROP_UINT, "100", NULL, GF_FALSE},
-	{ OFFS(delay40X), "Delay in millisconds to wait between two 40X on the same segment", GF_PROP_UINT, "500", NULL, GF_FALSE},
-	{ OFFS(exp_threshold), "Delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost", GF_PROP_UINT, "100", NULL, GF_FALSE},
-	{ OFFS(switch_count), "Indicates how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations", GF_PROP_UINT, "1", NULL, GF_FALSE},
-	{ OFFS(aggressive), "If enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FALSE},
-	{ OFFS(debug_as), "Plays only the adaptation set indicated by its index in the MPD; if negative, all sets are used", GF_PROP_UINT, "-1", NULL, GF_FALSE},
-	{ OFFS(speed), "Enables adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FALSE},
+						", GF_PROP_UINT, "none", "none|rows|rrows|mrows|cols|rcols|mcols|center|edges", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tiles_rate), "Indicates the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(delay40X), "Delay in millisconds to wait between two 40X on the same segment", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(exp_threshold), "Delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(switch_count), "Indicates how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(aggressive), "If enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(debug_as), "Plays only the adaptation set indicated by its index in the MPD; if negative, all sets are used", GF_PROP_UINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(speed), "Enables adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

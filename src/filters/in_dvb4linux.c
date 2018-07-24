@@ -392,9 +392,9 @@ static GF_Err dvblin_process(GF_Filter *filter)
 
 static const GF_FilterArgs DVBLinuxArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FALSE},
-	{ OFFS(chcfg), "path to channels.conf file", GF_PROP_NAME, NULL, NULL, GF_FALSE},
+	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(chcfg), "path to channels.conf file", GF_PROP_NAME, NULL, NULL, 0},
 	{}
 };
 

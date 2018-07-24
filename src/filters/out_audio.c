@@ -405,14 +405,14 @@ static Bool aout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static const GF_FilterArgs AudioOutArgs[] =
 {
-	{ OFFS(drv), "audio driver name", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(bnum), "number of audio buffers - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
-	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(speed), "Sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
+	{ OFFS(drv), "audio driver name", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(bnum), "number of audio buffers - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(speed), "Sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{0}
 };
 

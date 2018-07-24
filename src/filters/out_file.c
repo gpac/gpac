@@ -347,13 +347,13 @@ static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterArgs FileOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file - \"null\" means drop all packets ", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
-	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{ OFFS(fext), "sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(cat), "cats each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(dst), "location of destination file - \"null\" means drop all packets ", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(fext), "sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(cat), "cats each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

@@ -1117,6 +1117,22 @@ it must match the capability requirement (equal, excluded). If no property exist
  *	@{
  */
 
+
+/*! structure holding arguments for a filter*/
+typedef enum
+{
+	/*! if set indicates that the argument is updatable. If so, the value will be changed if \ref offset_in_private is valid, and the update_args function will be called if not NULL*/
+	GF_FS_ARG_UPDATE = 1<<1,
+	/*! used by meta filters (ffmpeg & co) to indicate the parsing is handled by the filter in which case the type is overloaded to string and passed to the update_args function*/
+	GF_FS_ARG_META = 1<<2,
+	/*! used for GUI config: advanced argument type */
+	GF_FS_ARG_HINT_ADVANCED = 1<<3,
+	/*! used for GUI config: expert argument type */
+	GF_FS_ARG_HINT_EXPERT = 1<<4,
+	/*! used for GUI config: hidden argument type */
+	GF_FS_ARG_HINT_HIDE = 1<<5,
+} GF_FSArgumentFlags;
+
 /*! structure holding arguments for a filter*/
 typedef struct
 {
@@ -1135,10 +1151,8 @@ typedef struct
 		For min/max, the syntax is "min,max", with -I = -infinity and +I = +infinity
 		For enum, the syntax is "a|b|...", resoling in a=0, b=1,... To skip a value insert '|' eg "|a|b" resolves to a=1, b=2, "a||b" resolves to a=0, b=2*/
 	const char *min_max_enum;
-	/*! inidcats if the argument is updatable. If so, the value will be changed if \ref offset_in_private is valid, and the update_args function will be called if not NULL*/
-	Bool updatable;
-	/*! used by meta filters (ffmpeg & co) to indicate the parsing is handled by the filter in which case the type is overloaded to string and passed to the update_args function*/
-	Bool meta_arg;
+	/*! set of argument flags*/
+	GF_FSArgumentFlags flags;
 } GF_FilterArgs;
 
 /*! Some macros for assigning filter caps types quicly*/
@@ -1242,6 +1256,22 @@ typedef enum
 /*! quick macro for assigning the caps object to the registry structure*/
 #define SETCAPS( __struct ) .caps = __struct, .nb_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
 
+/*! filter registry flags*/
+typedef enum
+{
+	/*! when set indicates all calls shall take place in fthe main thread (running GL output) - to be refined*/
+	GF_FS_REG_MAIN_THREAD = 1<<1,
+	/*! when set indicates the initial call to configure_pid will happen in the main thread. This is typically called by decoders requiring
+	a GL context (currently only in main thread) upon init, but not requiring it for the decode. Such decoders get their GL frames mapped
+	(through \ref get_gl_texture callback) in the main GL thread*/
+	GF_FS_REG_CONFIGURE_MAIN_THREAD = 1<<2,
+	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter*/
+	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
+	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing
+	e.g. nvdec wants annex B format, so that the weoght of the reframer+decoder is the same as the weight of other decoders*/
+	GF_FS_REG_HIDE_WEIGHT = 1<<4
+} GF_FSRegistryFlags;
+
 /*! The filter registry. Registries are loaded once at the start of the session and shall never be modified after that.
 If caps need to be changed for a specific filter, use \ref gf_filter_override_caps*/
 struct __gf_filter_register
@@ -1256,14 +1286,10 @@ struct __gf_filter_register
 	const char *comment;
 	/*! optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions*/
 	u32 private_size;
-	/*! indicates all calls shall take place in fthe main thread (running GL output) - to be refined*/
-	u8 requires_main_thread;
-	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter*/
-	u8 explicit_only;
-	/*! when set ignores the preceeding filter weight during link resolution*/
-	u8 adjust_weight;
 	/*! indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1. A value of 0 implies the filter can only handle one PID*/
 	u32 max_extra_pids;
+	/*! set of registry flags*/
+	GF_FSRegistryFlags flags;
 
 	/*! list of pid capabilities*/
 	const GF_FilterCapability *caps;
