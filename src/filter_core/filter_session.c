@@ -427,9 +427,10 @@ static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 #endif
 
 
-void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure)
 {
 	GF_FSTask *task;
+	Bool force_main_thread = GF_FALSE;
 
 	assert(fsess);
 	assert(task_fun);
@@ -472,17 +473,29 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 	task->log_name = log_name;
 	task->udta = udta;
 
+	if (filter && is_configure) {
+		if (filter->freg->requires_main_thread == 2)
+			force_main_thread = GF_TRUE;
+	}
+
 	if (filter) {
 	
 		gf_mx_p(filter->tasks_mx);
 		if (! filter->scheduled_for_next_task && (gf_fq_count(filter->tasks) == 0)) {
 			task->notified = GF_TRUE;
+			if (!force_main_thread) 
+				force_main_thread = (filter->freg->requires_main_thread == 1) ? GF_TRUE : GF_FALSE;
+		} else if (force_main_thread) {
+			force_main_thread = GF_FALSE;
+			if (filter->process_th_id && (fsess->main_th.th_id != filter->process_th_id)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Cannot post task to main thread, filter is already scheduled\n"));
+			}
 		}
 		assert(!task->in_main_task_list_only);
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted task %p Filter %s::%s (%d pending) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, task->notified ? (filter->freg->requires_main_thread ? "main" : "secondary") : "filter"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted task %p Filter %s::%s (%d pending) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, task->notified ? (force_main_thread ? "main" : "secondary") : "filter"));
 	} else {
 		task->notified = GF_TRUE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted filter-less task %s (%d pending) on secondary task list\n", gf_th_id(), task->log_name, fsess->tasks_pending));
@@ -496,15 +509,19 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 
 		//only notify/count tasks posted on the main task lists, the other ones don't use sema_wait
 		safe_int_inc(&fsess->tasks_pending);
-		if (filter && filter->freg->requires_main_thread) {
+		if (filter && force_main_thread) {
 			gf_fq_add(fsess->main_thread_tasks, task);
 			gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 		} else {
 			gf_fq_add(fsess->tasks, task);
 			gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
 		}
-
 	}
+}
+
+void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
+{
+	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, udta, GF_FALSE);
 }
 
 GF_EXPORT
@@ -884,7 +901,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					}
 					if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
 						current_filter->in_process = GF_FALSE;
-						if (current_filter->freg->requires_main_thread) {
+						if (current_filter->freg->requires_main_thread==1) {
 							if (do_use_sema) {
 								gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 							}
@@ -999,7 +1016,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_fq_add(current_filter->tasks, task);
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in %s tasks (%d pending)\n", thid, task->filter ? task->filter->name : "none", task->log_name, (task->filter && task->filter->freg->requires_main_thread) ? "main" : "secondary", fsess->tasks_pending));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in %s tasks (%d pending)\n", thid, task->filter ? task->filter->name : "none", task->log_name, (task->filter && (task->filter->freg->requires_main_thread==1)) ? "main" : "secondary", fsess->tasks_pending));
 
 				task->notified = GF_TRUE;
 				safe_int_inc(&fsess->tasks_pending);
@@ -1009,7 +1026,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 				task->in_main_task_list_only = GF_TRUE;
 				//main thread
-				if (task->filter && task->filter->freg->requires_main_thread) {
+				if (task->filter && (task->filter->freg->requires_main_thread==1)) {
 					gf_fq_add(fsess->main_thread_tasks, task);
 				} else {
 					gf_fq_add(fsess->tasks, task);

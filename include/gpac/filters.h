@@ -1260,6 +1260,8 @@ struct __gf_filter_register
 	u8 requires_main_thread;
 	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter*/
 	u8 explicit_only;
+	/*! when set ignores the preceeding filter weight during link resolution*/
+	u8 adjust_weight;
 	/*! indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1. A value of 0 implies the filter can only handle one PID*/
 	u32 max_extra_pids;
 
