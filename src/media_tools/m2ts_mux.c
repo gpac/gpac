@@ -1070,6 +1070,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		stream->curr_pck.dts = curr_pck->dts;
 		stream->curr_pck.duration = curr_pck->duration;
 		stream->curr_pck.flags = curr_pck->flags;
+		stream->curr_pck.sap_type = curr_pck->sap_type;
 		stream->curr_pck.mpeg2_af_descriptors = curr_pck->mpeg2_af_descriptors;
 		stream->curr_pck.mpeg2_af_descriptors_size = curr_pck->mpeg2_af_descriptors_size;
 
@@ -1122,7 +1123,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		assert(stream->sl_header.accessUnitLength + stream->curr_pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
 		stream->sl_header.accessUnitLength += stream->curr_pck.data_len;
 #endif
-		stream->sl_header.randomAccessPointFlag = (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ? 1: 0;
+		stream->sl_header.randomAccessPointFlag = (stream->curr_pck.sap_type) ? 1: 0;
 		stream->sl_header.compositionTimeStampFlag = (stream->curr_pck.flags & GF_ESI_DATA_HAS_CTS) ? 1 : 0;
 		stream->sl_header.compositionTimeStamp = stream->curr_pck.cts;
 		stream->sl_header.decodingTimeStampFlag = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? 1: 0;
@@ -1152,7 +1153,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		assert(stream->sl_header.accessUnitLength + stream->curr_pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
 		stream->sl_header.accessUnitLength += stream->curr_pck.data_len;
 #endif
-		stream->sl_header.randomAccessPointFlag = (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ? 1: 0;
+		stream->sl_header.randomAccessPointFlag = (stream->curr_pck.sap_type) ? 1: 0;
 		stream->sl_header.compositionTimeStampFlag = (stream->curr_pck.flags & GF_ESI_DATA_HAS_CTS) ? 1 : 0;
 		stream->sl_header.compositionTimeStamp = stream->curr_pck.cts;
 		stream->sl_header.decodingTimeStampFlag = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? 1: 0;
@@ -1276,7 +1277,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	break;
 	}
 
-	if (stream->start_pes_at_rap && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)
+	if (stream->start_pes_at_rap && (stream->curr_pck.sap_type)
 	   ) {
 		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_FORCE_PAT;
 		stream->program->mux->force_pat = GF_TRUE;
@@ -1349,6 +1350,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 	stream->next_next_payload_size = 0;
 
 	stream->next_pck_flags = 0;
+	stream->next_pck_sap = 0;
 	stream->copy_from_next_packets = 0;
 
 	//AU packing in single PES is disabled
@@ -1362,6 +1364,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 		if (test_pck.data_len) {
 			stream->next_payload_size = test_pck.data_len;
 			stream->next_pck_flags = test_pck.flags;
+			stream->next_pck_sap = test_pck.sap_type;
 			stream->next_pck_cts = test_pck.cts;
 			stream->next_pck_dts = test_pck.dts;
 		}
@@ -1373,6 +1376,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 			stream->next_pck_cts = stream->pck_first->cts;
 			stream->next_pck_dts = stream->pck_first->dts;
 			stream->next_pck_flags = stream->pck_first->flags;
+			stream->next_pck_sap = stream->pck_first->sap_type;
 
 			if (!stream->pck_first->next && stream->ifce->input_ctrl) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
 			if (stream->pck_first->next) {
@@ -1383,7 +1387,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 	}
 	/*consider we don't have the next AU if:
 	1- we are asked to start new PES at RAP, just consider we don't have the next AU*/
-	if (stream->start_pes_at_rap && (stream->next_pck_flags & GF_ESI_DATA_AU_RAP) ) {
+	if (stream->start_pes_at_rap && stream->next_pck_sap) {
 		ignore_next = GF_TRUE;
 //		stream->program->mux->force_pat_pmt_state = GF_SEG_BOUNDARY_START;
 	}
@@ -1397,6 +1401,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 		stream->next_pck_cts = 0;
 		stream->next_pck_dts = 0;
 		stream->next_pck_flags = 0;
+		stream->next_pck_sap = 0;
 	}
 
 	if (stream->next_payload_size) {
@@ -1472,6 +1477,7 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 				stream->copy_from_next_packets = 0;
 				stream->next_payload_size = 0;
 				stream->next_pck_flags = 0;
+				stream->next_pck_sap = 0;
 				return GF_FALSE;
 			}
 			/*if what will remain after copying next AU is less than the minimum safety copy only copy next AU and
@@ -1487,6 +1493,7 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 			stream->copy_from_next_packets = 0;
 			stream->next_payload_size = 0;
 			stream->next_pck_flags = 0;
+			stream->next_pck_sap = 0;
 			return GF_FALSE;
 		}
 
@@ -1800,7 +1807,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			stream->program->last_dts = stream->curr_pck.dts;
 			stream->program->nb_pck_last_pcr = stream->program->mux->tot_pck_sent;
 		}
-		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? GF_TRUE : GF_FALSE;
+		is_rap = (hdr_len && (stream->curr_pck.sap_type) ) ? GF_TRUE : GF_FALSE;
 		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length, hdr_len ? stream->curr_pck.mpeg2_af_descriptors : NULL, hdr_len ? stream->curr_pck.mpeg2_af_descriptors_size : 0, stream->set_initial_disc);
 		stream->set_initial_disc = GF_FALSE;
 
@@ -1813,7 +1820,15 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		if (padding_length)
 			stream->program->mux->tot_pes_pad_bytes += padding_length;
 	}
-	if (hdr_len) gf_m2ts_stream_add_pes_header(bs, stream);
+	stream->pck_sap_type = 0;
+	stream->pck_sap_time = 0;
+	if (hdr_len) {
+		gf_m2ts_stream_add_pes_header(bs, stream);
+		if (stream->curr_pck.sap_type) {
+			stream->pck_sap_type = 1;
+			stream->pck_sap_time = stream->curr_pck.cts;
+		}
+	}
 
 	pos = (u32) gf_bs_get_position(bs);
 
@@ -1994,6 +2009,7 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 		stream->pck_reassembler->data_len += esi_pck->data_len;
 
 		stream->pck_reassembler->flags |= esi_pck->flags;
+		if (esi_pck->sap_type) stream->pck_reassembler->sap_type = esi_pck->sap_type;
 		if (stream->force_new) {
 			if (stream->mx) gf_mx_p(stream->mx);
 			if (!stream->pck_first) {
@@ -2689,6 +2705,9 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 	nb_streams = nb_streams_done = 0;
 	*status = GF_M2TS_STATE_IDLE;
 
+	muxer->sap_inserted = GF_FALSE;
+	muxer->last_pid = 0;
+
 	now_us = gf_sys_clock_high_res();
 	if (muxer->real_time) {
 		if (!muxer->init_sys_time) {
@@ -2894,6 +2913,13 @@ send_pck:
 			gf_m2ts_mux_table_get_next_packet(muxer, stream_to_process, muxer->dst_pck);
 		} else {
 			gf_m2ts_mux_pes_get_next_packet(stream_to_process, muxer->dst_pck);
+			if (stream_to_process->pck_sap_type) {
+				muxer->sap_inserted = GF_TRUE;
+				muxer->sap_type = stream_to_process->pck_sap_type;
+				muxer->sap_time = stream_to_process->pck_sap_time;
+			}
+			muxer->last_pts = stream_to_process->curr_pck.cts;
+			muxer->last_pid = stream_to_process->pid;
 		}
 
 		ret = muxer->dst_pck;

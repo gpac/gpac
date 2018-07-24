@@ -659,6 +659,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		if (!strcmp(att->name, "done")) dasher->done = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "init")) dasher->init_seg = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "template")) dasher->template_seg = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "index")) dasher->template_idx = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "url")) dasher->src_url = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "periodID")) dasher->period_id = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "segNumber")) dasher->seg_number = gf_mpd_parse_int(att->value);
@@ -1181,6 +1182,7 @@ void gf_mpd_representation_free(void *_item)
 			gf_free(ptr->dasher_ctx->period_id);
 		gf_free(ptr->dasher_ctx->src_url);
 		gf_free(ptr->dasher_ctx->template_seg);
+		if (ptr->dasher_ctx->template_idx) gf_free(ptr->dasher_ctx->template_idx);
 		if (ptr->dasher_ctx->mux_pids) gf_free(ptr->dasher_ctx->mux_pids);
 		gf_free(ptr->dasher_ctx);
 	}
@@ -2532,6 +2534,8 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 	fprintf(out, "done=\"%s\" ", dasher->done ? "true" : "false");
 	fprintf(out, "init=\"%s\" ", dasher->init_seg);
 	fprintf(out, "template=\"%s\" ", dasher->template_seg);
+	if (dasher->template_idx)
+		fprintf(out, "index=\"%s\" ", dasher->template_idx);
 	fprintf(out, "segNumber=\"%d\" ", dasher->seg_number);
 	fprintf(out, "url=\"%s\" ", dasher->src_url);
 	fprintf(out, "lastPacketIdx=\""LLU"\" ", dasher->last_pck_idx);
@@ -4236,12 +4240,16 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	Bool is_init = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION) ? GF_TRUE : GF_FALSE;
 	Bool is_template = (seg_type==GF_DASH_TEMPLATE_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool is_init_template = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE) ? GF_TRUE : GF_FALSE;
+	Bool is_index_template = (seg_type==GF_DASH_TEMPLATE_REPINDEX_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool needs_init=((is_init || is_init_template) && !is_bs_switching) ? GF_TRUE : GF_FALSE;
 	Bool has_init_keyword = GF_FALSE;
+	Bool needs_index = GF_FALSE;
 	u32 char_template = 0;
 	char tmp[100];
 	strcpy(segment_name, "");
 
+	if (is_index_template) is_template = GF_TRUE;
+	
 	if (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT) {
 		seg_type = GF_DASH_TEMPLATE_INITIALIZATION;
 		needs_init = GF_FALSE;
@@ -4252,6 +4260,10 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		is_init_template = GF_TRUE;
 		needs_init = GF_FALSE;
 	}
+	if ( (is_index || is_index_template) && !strstr(seg_rad_name, "$Index")) {
+		needs_index = GF_TRUE;
+	}
+
 
 	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$")))
 		needs_init = GF_FALSE;

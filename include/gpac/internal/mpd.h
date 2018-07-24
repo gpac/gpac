@@ -39,6 +39,7 @@ typedef enum
 	GF_DASH_TEMPLATE_TEMPLATE,
 	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE,
 	GF_DASH_TEMPLATE_REPINDEX,
+	GF_DASH_TEMPLATE_REPINDEX_TEMPLATE,
 	//same as GF_DASH_TEMPLATE_INITIALIZATION but skip default "init" concatenation
 	GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT,
 	//same as GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE but skip default "init" concatenation
@@ -303,6 +304,7 @@ typedef struct
 	char *src_url;
 	char *init_seg;
 	char *template_seg;
+	char *template_idx;
 	u32 pid_id, source_pid, dep_pid_id;
 	Bool owns_set;
 	Bool multi_pids;

@@ -76,7 +76,7 @@ Remaining before release
 - [x] add generic serializer/reader for all events/packets in filter arch
 - [x] add remotery support
 - [x] filter API documentation
-- [ ] add segmentation handling in TS muxer
+- [x] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
 - [ ] pass all test suite
 
