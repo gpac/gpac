@@ -369,7 +369,7 @@ static void gpac_usage(void)
 
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
-	if (gf_prompt_has_input()) {
+	if (0 && gf_prompt_has_input()) {
 		char c = gf_prompt_get_char();
 		switch (c) {
 		case 'q':

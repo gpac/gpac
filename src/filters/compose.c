@@ -285,6 +285,13 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	//event(s) we trigger on ourselves to go up the filter chain
 	case GF_FEVT_CAPS_CHANGE:
 		return GF_FALSE;
+	case GF_FEVT_CONNECT_FAIL:
+	{
+		GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
+		if (ctx->compositor->audio_renderer && (evt->base.on_pid == ctx->compositor->audio_renderer->aout))
+			ctx->compositor->audio_renderer->non_rt_output = GF_FALSE;
+	}
+		return GF_FALSE;
 	default:
 		break;
 	}
@@ -382,6 +389,7 @@ static const GF_FilterCapability CompositorFilterCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),

@@ -164,8 +164,6 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	gf_filter_parse_args(filter, args, arg_type);
 
 	filter->skip_process_trigger_on_tasks = GF_FALSE;
-	if (!strcmp(filter->freg->name, "compositor"))
-		filter->skip_process_trigger_on_tasks = GF_TRUE;
 
 	if (filter->freg->initialize) {
 		GF_Err e;
@@ -182,6 +180,11 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 		}
 	}
 	return GF_OK;
+}
+
+void gf_filter_disable_process_trigger(GF_Filter *filter, Bool disable)
+{
+	if (filter) filter->skip_process_trigger_on_tasks = disable;
 }
 
 

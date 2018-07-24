@@ -923,6 +923,8 @@ typedef enum
 	GF_FEVT_BUFFER_REQ,
 	/*! filter session capability change, sent whenever globacl caps (max width, max heoght, ... ) are changed*/
 	GF_FEVT_CAPS_CHANGE,
+	/*! inidicates the PID could not be connected - the pid passed is an output pid of the filter, no specific event structure is associated*/
+	GF_FEVT_CONNECT_FAIL,
 	/*mouse move event, send from compositor down to filters*/
 	GF_FEVT_MOUSE,
 } GF_FEventType;
@@ -1657,6 +1659,13 @@ Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed,
 \return the error code if any
 */
 Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt);
+
+
+/*! disables automatic filter triggers when an input packet is received ion its pid. Mostly used by old APIs in GPAC.
+\param filter filter object
+\param disable if GF_TRUE, disable waking the filter whenever a new packet is received on its inputs
+*/
+void gf_filter_disable_process_trigger(GF_Filter *filter, Bool disable);
 
 /*! @} */
 

@@ -205,7 +205,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 				}
 			}
 		} else {
-			assert(ns->nb_odm_users);
+//			assert(ns->nb_odm_users);
 		}
 		scene = scene ? gf_scene_get_root_scene(scene) : NULL;
 		odm->scene_ns = NULL;
@@ -1667,7 +1667,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	GF_ObjectManager *an_odm;
 	GF_FilterPid *pid;
 
-	if (!odm || !info) return GF_BAD_PARAM;
+	if (!odm || !odm->parentscene || !info) return GF_BAD_PARAM;
 	memset(info, 0, sizeof(GF_MediaInfo));
 
 	info->ODID = odm->ID;
@@ -1697,13 +1697,13 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 		info->current_time /= 1000;
 		info->nb_dropped = odm->nb_dropped;
 	} else if (odm->subscene) {
-		if (odm->subscene->root_od->ck) {
+		if (odm->subscene->root_od && odm->subscene->root_od->ck) {
 			info->current_time = gf_clock_media_time(odm->subscene->root_od->ck);
 			info->current_time /= 1000;
 		}
 		info->duration = (Double) (s64)odm->subscene->duration;
 		info->duration /= 1000;
-		info->nb_dropped = odm->subscene->root_od->nb_dropped;
+		info->nb_dropped = odm->subscene->root_od ? odm->subscene->root_od->nb_dropped : 0;
 		info->generated_scene = odm->subscene->is_dynamic_scene;
 	}
 	if (info->duration && info->current_time>info->duration)
