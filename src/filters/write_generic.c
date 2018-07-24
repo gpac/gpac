@@ -954,14 +954,14 @@ static GF_FilterCapability GenDumpCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_GenDumpCtx, _n)
 static GF_FilterArgs GenDumpArgs[] =
 {
-	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(pfmt), "Pixel format for raw extract. If not set, derived from extension", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
-	{ OFFS(afmt), "Audio format for raw extract. If not set, derived from extension", GF_PROP_PCMFMT, "none", NULL, GF_FALSE},
-	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(split), "Force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(sstart), "Start number of frame to dump", GF_PROP_UINT, "0", NULL, GF_FALSE},
-	{ OFFS(send), "End number of frame to dump. If start<end, all samples after start are dumped", GF_PROP_UINT, "0", NULL, GF_FALSE},
+	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pfmt), "Pixel format for raw extract. If not set, derived from extension", GF_PROP_PIXFMT, "none", NULL, 0},
+	{ OFFS(afmt), "Audio format for raw extract. If not set, derived from extension", GF_PROP_PCMFMT, "none", NULL, 0},
+	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(split), "Force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(sstart), "Start number of frame to dump", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(send), "End number of frame to dump. If start<end, all samples after start are dumped", GF_PROP_UINT, "0", NULL, 0},
 	{0}
 };
 

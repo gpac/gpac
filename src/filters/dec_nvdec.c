@@ -1172,10 +1172,10 @@ static const GF_FilterCapability NVDecCaps[] =
 
 static const GF_FilterArgs NVDecArgs[] =
 {
-	{ OFFS(num_surfaces), "Number of hardware surfaces to allocate", GF_PROP_UINT, "20", NULL, GF_FALSE },
-	{ OFFS(unload), "Unload inactive decoder.", GF_PROP_UINT, "no", "no|destroy|reuse", GF_TRUE },
-	{ OFFS(mode), "Video decoder mode.", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_TRUE },
-	{ OFFS(gl), "Enables OpenGL texture ouput", GF_PROP_BOOL, "true", NULL, GF_TRUE },
+	{ OFFS(num_surfaces), "Number of hardware surfaces to allocate", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(unload), "Unload inactive decoder.", GF_PROP_UINT, "no", "no|destroy|reuse", GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(mode), "Video decoder mode.", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(gl), "Enables OpenGL texture output", GF_PROP_BOOL, "true", NULL, 0 },
 	
 	{ 0 }
 };
@@ -1185,8 +1185,7 @@ GF_FilterRegister NVDecRegister = {
 	.description = "NVidia Hardware decoder",
 	.private_size = sizeof(NVDecCtx),
 	SETCAPS(NVDecCaps),
-	.adjust_weight = 1,
-	.requires_main_thread = 2,
+	.flags = GF_FS_REG_CONFIGURE_MAIN_THREAD | GF_FS_REG_HIDE_WEIGHT,
 	.initialize = nvdec_initialize,
 	.finalize = nvdec_finalize,
 	.args = NVDecArgs,

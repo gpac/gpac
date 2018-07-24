@@ -1859,9 +1859,9 @@ static const GF_FilterCapability VTBDecCaps[] =
 
 static const GF_FilterArgs VTBDecArgs[] =
 {
-	{ OFFS(reorder), "number of frames to wait for temporal re-ordering", GF_PROP_UINT, "6", NULL, GF_TRUE},
-	{ OFFS(no_copy), "dispatch VTB frames into filter chain (no copy)", GF_PROP_BOOL, "true", NULL, GF_TRUE},
-	{ OFFS(disable_hw), "Disables hardware decoding", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(reorder), "number of frames to wait for temporal re-ordering", GF_PROP_UINT, "6", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(no_copy), "dispatch VTB frames into filter chain (no copy)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(disable_hw), "Disables hardware decoding", GF_PROP_BOOL, "false", NULL, 0},
 	{}
 };
 

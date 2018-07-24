@@ -408,12 +408,12 @@ static const GF_FilterCapability XVIDCaps[] =
 
 static const GF_FilterArgs XVIDArgs[] =
 {
-	{ OFFS(deblock_y), "enable Y deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(deblock_uv), "enable UV deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(deblock_y), "enable Y deblocking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(deblock_uv), "enable UV deblocking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 #ifndef XVID_USE_OLD_API
-	{ OFFS(film_effect), "enable film effect", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(dering_y), "enable Y deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(dering_uv), "enable UV deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(film_effect), "enable film effect", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dering_y), "enable Y deblocking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dering_uv), "enable UV deblocking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 #endif
 	{0}
 };

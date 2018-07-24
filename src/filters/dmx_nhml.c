@@ -1346,8 +1346,8 @@ void nhmldmx_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_NHMLDmxCtx, _n)
 static const GF_FilterArgs GF_NHMLDmxArgs[] =
 {
-	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

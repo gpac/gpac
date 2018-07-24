@@ -448,14 +448,14 @@ GF_Err inspect_initialize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "Sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", GF_FALSE},
-	{ OFFS(mode), "Dump mode: au dumps full frame, pck dumps packets before AU reconstruction, raw dumps source packets without demuxing", GF_PROP_UINT, "au", "au|pck|raw", GF_FALSE},
-	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(pck), "Dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(props), "Dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(dump_data), "Enables full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(fmt), "sets packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_TRUE},
-	{ OFFS(hdr), "prints a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(log), "Sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
+	{ OFFS(mode), "Dump mode: au dumps full frame, pck dumps packets before AU reconstruction, raw dumps source packets without demuxing", GF_PROP_UINT, "au", "au|pck|raw", 0},
+	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pck), "Dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(props), "Dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dump_data), "Enables full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fmt), "sets packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hdr), "prints a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -505,7 +505,7 @@ const GF_FilterRegister InspectRegister = {
 	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order\n"\
 	 			"since the inspector fetches one packet at a time on each PID\n",
 	.private_size = sizeof(GF_InspectCtx),
-	.explicit_only = 1,
+	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
 	.args = InspectArgs,
 	SETCAPS(InspectCaps),
@@ -531,7 +531,7 @@ const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
 	.description = "Inspect packets on demux pids (not file)",
 	.private_size = sizeof(GF_InspectCtx),
-	.explicit_only = 1,
+	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
 	.args = InspectArgs,
 	.initialize = inspect_initialize,

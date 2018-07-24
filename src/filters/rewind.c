@@ -239,7 +239,7 @@ static const GF_FilterCapability RewinderCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_RewindCtx, _n)
 static const GF_FilterArgs RewinderArgs[] =
 {
-	{ OFFS(rbuffer), "size of video rewind buffer in frames. If more frames than this, flush is performed", GF_PROP_UINT, "100", NULL, GF_FALSE},
+	{ OFFS(rbuffer), "size of video rewind buffer in frames. If more frames than this, flush is performed", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

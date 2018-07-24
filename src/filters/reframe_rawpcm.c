@@ -279,10 +279,10 @@ static GF_FilterCapability PCMReframeCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_PCMReframeCtx, _n)
 static GF_FilterArgs PCMReframeArgs[] =
 {
-	{ OFFS(samplerate), "Audio sample rate", GF_PROP_UINT, "44100", NULL, GF_FALSE},
-	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "s16", NULL, GF_FALSE},
-	{ OFFS(channels), "Number of audio channels", GF_PROP_UINT, "2", NULL, GF_FALSE},
-	{ OFFS(framelen), "Number of audio samples to put in one audio frame", GF_PROP_UINT, "1024", NULL, GF_FALSE},
+	{ OFFS(samplerate), "Audio sample rate", GF_PROP_UINT, "44100", NULL, 0},
+	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "s16", NULL, 0},
+	{ OFFS(channels), "Number of audio channels", GF_PROP_UINT, "2", NULL, 0},
+	{ OFFS(framelen), "Number of audio samples to put in one audio frame", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

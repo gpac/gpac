@@ -229,7 +229,7 @@ GF_FilterRegister LSRDecRegister = {
 	.name = "lsrdec",
 	.description = "MPEG-4 LASeR decoder",
 	.private_size = sizeof(GF_LSRDecCtx),
-	.requires_main_thread = GF_TRUE,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	SETCAPS(LSRDecCaps),
 	.finalize = lsrdec_finalize,
 	.process = lsrdec_process,

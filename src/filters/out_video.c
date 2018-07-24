@@ -1790,19 +1790,19 @@ static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static const GF_FilterArgs VideoOutArgs[] =
 {
-	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(disp), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FALSE},
-	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FALSE},
-	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
-	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
-	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FALSE},
-	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
-	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FALSE},
-	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(vsync), "enables video screen sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(drop), "enables droping late frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(disp), "Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
@@ -1817,7 +1817,7 @@ GF_FilterRegister VideoOutRegister = {
 	.name = "vout",
 	.description = "Video graphics card output",
 	.private_size = sizeof(GF_VideoOutCtx),
-	.requires_main_thread = GF_TRUE,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VideoOutArgs,
 	SETCAPS(VideoOutCaps),
 	.initialize = vout_initialize,

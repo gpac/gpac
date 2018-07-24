@@ -325,7 +325,7 @@ static const GF_FilterCapability QCPMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_QCPMxCtx, _n)
 static const GF_FilterArgs QCPMxArgs[] =
 {
-	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

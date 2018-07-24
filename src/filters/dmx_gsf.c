@@ -1187,10 +1187,10 @@ static const GF_FilterCapability GSFDemuxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GSF_DemuxCtx, _n)
 static const GF_FilterArgs GSFDemuxArgs[] =
 {
-	{ OFFS(key), "key for decrypting packets", GF_PROP_DATA, NULL, NULL, GF_FALSE},
-	{ OFFS(magic), "magic string to check in setup packet", GF_PROP_STRING, NULL, NULL, GF_FALSE},
-	{ OFFS(mq), "sets max packet queue length for loss detection. 0 will flush incomplete packet when a new one starts", GF_PROP_UINT, "4", NULL, GF_FALSE},
-	{ OFFS(pad), "byte value used to pad lost packets", GF_PROP_UINT, "0", "0-255", GF_FALSE},
+	{ OFFS(key), "key for decrypting packets", GF_PROP_DATA, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(magic), "magic string to check in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mq), "sets max packet queue length for loss detection. 0 will flush incomplete packet when a new one starts", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pad), "byte value used to pad lost packets", GF_PROP_UINT, "0", "0-255", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

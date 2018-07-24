@@ -136,7 +136,7 @@ static const GF_FilterCapability M4VMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_M4VMxCtx, _n)
 static const GF_FilterArgs M4VMxArgs[] =
 {
-	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
 	{0}
 };
 

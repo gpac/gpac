@@ -361,7 +361,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	arg.arg_name = opt->name;
 	arg.arg_desc = opt->help;
 	arg.offset_in_private=-1;
-	arg.meta_arg = GF_TRUE;
+	arg.flags = GF_FS_ARG_META;
 
 	switch (opt->type) {
 	case AV_OPT_TYPE_INT64:

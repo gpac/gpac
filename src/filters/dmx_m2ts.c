@@ -961,8 +961,8 @@ static const GF_FilterCapability M2TSDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_M2TSDmxCtx, _n)
 static const GF_FilterArgs M2TSDmxArgs[] =
 {
-	{ OFFS(temi_url), "force TEMI URL", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FALSE},
+	{ OFFS(temi_url), "force TEMI URL", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

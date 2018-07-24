@@ -395,9 +395,9 @@ static const GF_FilterCapability NALUMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_NALUMxCtx, _n)
 static const GF_FilterArgs NALUMxArgs[] =
 {
-	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, GF_FALSE},
-	{ OFFS(extract), "Extracts full, base or layer only", GF_PROP_UINT, "all", "all|base|layer", GF_FALSE},
-	{ OFFS(skip_delim), "Skip AU NAL Delimiter insertion", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(extract), "Extracts full, base or layer only", GF_PROP_UINT, "all", "all|base|layer", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(skip_delim), "Skip AU NAL Delimiter insertion", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

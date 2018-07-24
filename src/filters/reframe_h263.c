@@ -604,8 +604,8 @@ static const GF_FilterCapability H263DmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_H263DmxCtx, _n)
 static const GF_FilterArgs H263DmxArgs[] =
 {
-	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "15000/1000", NULL, GF_FALSE},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "15000/1000", NULL, 0},
+	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

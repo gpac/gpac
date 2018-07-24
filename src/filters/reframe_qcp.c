@@ -669,7 +669,7 @@ static const GF_FilterCapability QCPDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_QCPDmxCtx, _n)
 static const GF_FilterArgs QCPDmxArgs[] =
 {
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

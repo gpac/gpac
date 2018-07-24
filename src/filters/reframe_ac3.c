@@ -537,7 +537,7 @@ static const GF_FilterCapability AC3DmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_AC3DmxCtx, _n)
 static const GF_FilterArgs AC3DmxArgs[] =
 {
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };
 

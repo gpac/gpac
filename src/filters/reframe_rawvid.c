@@ -271,9 +271,9 @@ static GF_FilterCapability RawVidReframeCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_RawVidReframeCtx, _n)
 static GF_FilterArgs RawVidReframeArgs[] =
 {
-	{ OFFS(size), "video resolution", GF_PROP_VEC2I, "0x0", NULL, GF_FALSE},
-	{ OFFS(pfmt), "pixel format", GF_PROP_PIXFMT, "none", NULL, GF_FALSE},
-	{ OFFS(fps), "Video frames per second", GF_PROP_FRACTION, "25/1", NULL, GF_FALSE},
+	{ OFFS(size), "video resolution", GF_PROP_VEC2I, "0x0", NULL, 0},
+	{ OFFS(pfmt), "pixel format", GF_PROP_PIXFMT, "none", NULL, 0},
+	{ OFFS(fps), "Video frames per second", GF_PROP_FRACTION, "25/1", NULL, 0},
 	{0}
 };
 

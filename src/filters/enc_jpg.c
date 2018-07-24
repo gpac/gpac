@@ -341,8 +341,8 @@ static const GF_FilterCapability JPGEncCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_JPGEncCtx, _n)
 static GF_FilterArgs JPGEncArgs[] =
 {
-	{ OFFS(dctmode), "DCT mode", GF_PROP_UINT, "fast", "slow|fast|float", GF_FALSE},
-	{ OFFS(quality), "Quality, between 0 and 100", GF_PROP_UINT, "100", NULL, GF_FALSE},
+	{ OFFS(dctmode), "DCT mode", GF_PROP_UINT, "fast", "slow|fast|float", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(quality), "Quality, between 0 and 100", GF_PROP_UINT, "100", NULL, GF_FS_ARG_UPDATE},
 	{0}
 };
 
