@@ -887,10 +887,10 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 
 			gf_bs_write_int(ctx->idx_bs, 0, 1);
 			gf_bs_write_int(ctx->idx_bs, ctx->sidx_entries[i].nb_pck * 188, 31);
-			gf_bs_write_int(ctx->idx_bs, duration, 32);
+			gf_bs_write_int(ctx->idx_bs, (u32) duration, 32);
 			gf_bs_write_int(ctx->idx_bs, ctx->sidx_entries[i].sap_type ? 1 : 0, 1);
 			gf_bs_write_int(ctx->idx_bs, ctx->sidx_entries[i].sap_type, 3);
-			gf_bs_write_int(ctx->idx_bs, ctx->sidx_entries[i].sap_time - (ctx->sidx_entries[i].min_pts_plus_one-1) , 28);
+			gf_bs_write_int(ctx->idx_bs, (u32) (ctx->sidx_entries[i].sap_time - (ctx->sidx_entries[i].min_pts_plus_one-1) ), 28);
 		}
 		gf_filter_pck_set_property(idx_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->idx_file_name) );
 

@@ -1858,8 +1858,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 					continue;
 				}
 			}
-			if (edge->weight + 1 > max_weight)
-				max_weight = edge->weight + 1;
+			if ((u32) edge->weight + 1 > max_weight)
+				max_weight = (u32) edge->weight + 1;
 		}
 
 		//do not add destination filter
@@ -1897,7 +1897,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				continue;
 			}
 		}
-		if (edge->weight + 1 > max_weight)
+		if ((u32) edge->weight + 1 > max_weight)
 			max_weight = edge->weight + 1;
 		//enable edge and propagate down the graph
 		edge->status = EDGE_STATUS_ENABLED;
@@ -2016,6 +2016,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				continue;
 
 			dist = current_node->dist + (max_weight - redge->weight);
+			if (current_node->freg->adjust_weight) {
+				assert(dist);
+				dist--;
+			}
 
 			priority = redge->priority;
 			if (redge->src_reg->freg == pid->filter->freg) {
@@ -2661,7 +2665,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
-	gf_fs_post_task(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_init", NULL);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_init", NULL, GF_TRUE);
 }
 
 
@@ -3887,7 +3891,7 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
 	//filter is being shut down, prevent any event posting
 	if (pid->pid->filter->finalized) return;
-	assert (pid->pid->filter->freg->requires_main_thread);
+	assert (pid->pid->filter->freg->requires_main_thread==1);
 
 	if (pid->pid->filter->freg->process_event) {
 		if (evt->base.on_pid) evt->base.on_pid = evt->base.on_pid->pid;

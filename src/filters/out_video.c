@@ -460,6 +460,7 @@ typedef struct
 	u32 num_textures;
 	u32 bytes_per_pix;
 	GLint pixel_format;
+	Bool internal_textures;
 #endif // GPAC_DISABLE_3D
 
 	u32 uv_w, uv_h, uv_stride, bit_depth;
@@ -768,9 +769,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->pbo_V) glDeleteBuffers(1, &ctx->pbo_V);
 	ctx->pbo_Y = ctx->pbo_U = ctx->pbo_V = 0;
 
-	if (ctx->num_textures && ctx->txid[0])
+	if (ctx->internal_textures && ctx->num_textures && ctx->txid[0])
 		glDeleteTextures(ctx->num_textures, ctx->txid);
 	ctx->num_textures = 0;
+	ctx->internal_textures = GF_FALSE;
 
 	if (ctx->disp<MODE_2D) {
 		u32 i;
@@ -807,6 +809,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		glAttachShader(ctx->glsl_program, ctx->fragment_shader);
 		glLinkProgram(ctx->glsl_program);
 
+		ctx->internal_textures = GF_TRUE;
 		glGenTextures(ctx->num_textures, ctx->txid);
 		for (i=0; i<ctx->num_textures; i++) {
 
@@ -1057,6 +1060,19 @@ static GF_Err vout_initialize(GF_Filter *filter)
 			ctx->disp = MODE_2D;
 		}
 	}
+#ifndef GPAC_DISABLE_3D
+	if (ctx->disp <= MODE_GL_PBO) {
+		GF_Event evt;
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_VIDEO_SETUP;
+		evt.setup.width = 320;
+		evt.setup.height = 240;
+		evt.setup.opengl_mode = 1;
+		evt.setup.back_buffer = 1;
+		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	}
+#endif
+
 	return GF_OK;
 }
 
@@ -1086,10 +1102,109 @@ static void vout_finalize(GF_Filter *filter)
 }
 
 #ifndef GPAC_DISABLE_3D
+
+static void vout_draw_gl_quad(GF_VideoOutCtx *ctx)
+{
+	Float dw, dh;
+	glUseProgram(ctx->glsl_program);
+
+	if (ctx->num_textures>2) {
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(TEXTURE_TYPE, ctx->txid[2]);
+	}
+	if (ctx->num_textures>1) {
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(TEXTURE_TYPE, ctx->txid[1]);
+	}
+	if (ctx->num_textures) {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(TEXTURE_TYPE, ctx->txid[0]);
+
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		glClientActiveTexture(GL_TEXTURE0);
+	}
+
+	dw = ((Float)ctx->dw) / 2;
+	dh = ((Float)ctx->dh) / 2;
+
+
+	GLfloat squareVertices[] = {
+		dw, dh,
+		dw, -dh,
+		-dw,  -dh,
+		-dw,  dh,
+	};
+
+	GLfloat textureVertices[] = {
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f,  1.0f,
+		0.0f,  0.0f,
+	};
+
+	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
+	if (loc >= 0) {
+		glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, squareVertices);
+		glEnableVertexAttribArray(loc);
+
+		//setup texcoord location
+		loc = glGetAttribLocation(ctx->glsl_program, "gfTexCoord");
+		if (loc >= 0) {
+			glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, textureVertices);
+			glEnableVertexAttribArray(loc);
+
+			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfTexCoord uniform in shader\n"));
+		}
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfVertex uniform in shader\n"));
+	}
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(TEXTURE_TYPE, 0);
+	glDisable(TEXTURE_TYPE);
+	glUseProgram(0);
+
+	ctx->video_out->Flush(ctx->video_out, NULL);
+}
+static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterHWFrame *hwf)
+{
+	u32 gl_format;
+	GF_Matrix txmx;
+
+	if (ctx->internal_textures) {
+		glDeleteTextures(ctx->num_textures, ctx->txid);
+		ctx->txid[0] = ctx->txid[1] = ctx->txid[2] = 0;
+		ctx->internal_textures = GF_FALSE;
+		ctx->num_textures = 2;
+	}
+
+	if (hwf->get_gl_texture(hwf, 0, &gl_format, &ctx->txid[0], &txmx) != GF_OK) {
+		return;
+	}
+	glBindTexture(gl_format, ctx->txid[0]);
+	glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+
+	if (hwf->get_gl_texture(hwf, 1, &gl_format, &ctx->txid[1], &txmx) != GF_OK) {
+		return;
+	}
+
+	glBindTexture(gl_format, ctx->txid[1]);
+	glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, ctx->linear ? GL_LINEAR : GL_NEAREST);
+	//and draw
+	vout_draw_gl_quad(ctx);
+}
+
 static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 {
 	Bool use_stride = GF_FALSE;
-	Float dw, dh;
 	char *data;
 	GF_Event evt;
 	u32 size, stride_luma, stride_chroma;
@@ -1150,7 +1265,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		GF_Err e;
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
 		if (! hw_frame->get_plane) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Hardware GL texture blit not yet implemented\n"));
+			vout_draw_gl_hw_textures(ctx, hw_frame);
 			return;
 		}
 		e = hw_frame->get_plane(hw_frame, 0, (const u8 **) &pY, &stride_luma);
@@ -1397,68 +1512,8 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 #endif
 
 	}
-
-	glUseProgram(ctx->glsl_program);
-
-	if (ctx->num_textures>2) {
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(TEXTURE_TYPE, ctx->txid[2]);
-	}
-	if (ctx->num_textures>1) {
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(TEXTURE_TYPE, ctx->txid[1]);
-	}
-	if (ctx->num_textures) {
-		glActiveTexture(GL_TEXTURE0 );
-		glBindTexture(TEXTURE_TYPE, ctx->txid[0]);
-
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glClientActiveTexture(GL_TEXTURE0);
-	}
-
-	dw = ((Float)ctx->dw)/2;
-	dh = ((Float)ctx->dh)/2;
-
-
-	GLfloat squareVertices[] = {
-        dw, dh,
-        dw, -dh,
-        -dw,  -dh,
-        -dw,  dh,
-    };
-
-    GLfloat textureVertices[] = {
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f,  1.0f,
-        0.0f,  0.0f,
-    };
-
-	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
-	if (loc >= 0) {
-		glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, squareVertices);
-		glEnableVertexAttribArray(loc);
-
-		//setup texcoord location
-		loc = glGetAttribLocation(ctx->glsl_program, "gfTexCoord");
-		if (loc>=0) {
-			glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, textureVertices);
-			glEnableVertexAttribArray(loc);
-
-			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfTexCoord uniform in shader\n"));
-		}
-	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfVertex uniform in shader\n"));
-	}
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(TEXTURE_TYPE, 0);
-	glDisable(TEXTURE_TYPE);
-	glUseProgram(0);
-
-	ctx->video_out->Flush(ctx->video_out, NULL);
+	//and draw
+	vout_draw_gl_quad(ctx);
 }
 #endif
 
