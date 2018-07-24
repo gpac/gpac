@@ -167,9 +167,10 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	//by default all buffers are 1ms max
 	pid->max_buffer_time = pid->filter->session->default_pid_buffer_max_us;
 	pid->max_buffer_unit = pid->filter->session->default_pid_buffer_max_units;
+	pid->raw_media = GF_FALSE;
+
 	if (codecid!=GF_CODECID_RAW)
 		return;
-	pid->raw_media = GF_TRUE;
 
 	if (pid->user_max_buffer_time) {
 		pid->max_buffer_time = pid->user_max_buffer_time;
@@ -199,6 +200,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 				pidi->pid->max_buffer_time = pidi->pid->user_max_buffer_time;
 			else
 				pidi->pid->max_buffer_time = pidi->pid->filter->session->decoder_pid_buffer_max_us;
+			pidi->pid->max_buffer_unit = 0;
 
 
 			if (mtype==GF_STREAM_VISUAL) {
@@ -215,6 +217,10 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 				if ((i_type == GF_STREAM_AUDIO) || (i_type == GF_STREAM_VISUAL))
 					gf_filter_pid_inst_check_dependencies(pidi);
 			}
+		}
+		//same media type, different codec if is raw stream
+		 else if (mtype==i_type) {
+			pid->raw_media = GF_TRUE;
 		}
 	}
 }
@@ -1604,6 +1610,7 @@ static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc
 			if (edge->dst_cap_idx == src_cap_idx) {
 				if (edge->status == EDGE_STATUS_NONE) {
 					edge->status = EDGE_STATUS_ENABLED;
+					//fprintf(stderr, "enable edge from %s to %s\n", edge->src_reg->freg->name, reg_desc->freg->name);
 					gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1);
 				}
 			}
@@ -1615,12 +1622,16 @@ static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc
 static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_CapsBundleStore *capstore, GF_FilterPid *src_pid, GF_Filter *dst_filter)
 {
 	u32 nb_dst_caps, nb_regs, i;
+	Bool freg_has_output = gf_filter_has_out_caps(freg);
 	GF_FilterRegDesc *reg_desc = NULL;
 
 	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
 	reg_desc->freg = freg;
 
 	nb_dst_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
+
+	//we are building a registry descriptor acting as destination, ignore any output caps
+	if (src_pid || dst_filter) freg_has_output = GF_FALSE;
 
 	//setup all connections
 	nb_regs = gf_list_count(links);
@@ -1644,7 +1655,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 					if (path_weight && (bundle_idx == l)) {
 
 						if (reg_desc->nb_edges==reg_desc->nb_alloc_edges) {
-							reg_desc->nb_alloc_edges += 10;
+							reg_desc->nb_alloc_edges += 20;
 							reg_desc->edges = gf_realloc(reg_desc->edges, sizeof(GF_FilterRegEdge) * reg_desc->nb_alloc_edges);
 						}
 						assert(path_weight<0xFF);
@@ -1659,13 +1670,13 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 					}
 				}
 
-				if ( gf_filter_has_out_caps(freg)) {
+				if ( freg_has_output ) {
 					path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, GF_TRUE, capstore);
 
 					if (path_weight && (bundle_idx == k)) {
 
 						if (a_reg->nb_edges==a_reg->nb_alloc_edges) {
-							a_reg->nb_alloc_edges += 10;
+							a_reg->nb_alloc_edges += 20;
 							a_reg->edges = gf_realloc(a_reg->edges, sizeof(GF_FilterRegEdge) * a_reg->nb_alloc_edges);
 						}
 						a_reg->edges[a_reg->nb_edges].src_reg = reg_desc;
@@ -1698,6 +1709,7 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 			gf_list_add(fsess->links, freg_desc);
 		}
 	} else {
+		u64 start_time = gf_sys_clock_high_res();
 		count = gf_list_count(fsess->registry);
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
@@ -1708,6 +1720,7 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 				gf_list_add(fsess->links, freg_desc);
 			}
 		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Build filter graph in "LLU" us\n", gf_sys_clock_high_res() - start_time));
 	}
 	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
 	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
@@ -1759,7 +1772,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	GF_List *dijkstra_nodes;
 	GF_FilterSession *fsess = pid->filter->session;
 	//build all edges
-	u32 i, count = gf_list_count(fsess->registry);
+	u32 i, dijsktra_node_count, dijsktra_edge_count, count = gf_list_count(fsess->registry);
 	GF_CapsBundleStore capstore;
 	Bool first;
 	u32 path_weight, max_weight=0;
@@ -1857,7 +1870,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			gf_list_add(dijkstra_nodes, reg_desc);
 		}
 	}
-
 	//create a new node for the destination based on elligible filters in the graph
 	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
 
@@ -1866,6 +1878,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	reg_dst->dist = 0;
 	reg_dst->priority = 0;
 	reg_dst->edges_marked = GF_TRUE;
+
 	//enable edges of destination, potentially disabling edges from source filters to dest
 	for (i=0; i<reg_dst->nb_edges; i++) {
 		u32 j;
@@ -1904,6 +1917,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
 	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
 	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+
 
 	//remove all filters not used for this resolution (no enabled edges)
 	count = gf_list_count(dijkstra_nodes);
@@ -1953,6 +1967,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	}
 #endif
 
+	dijsktra_edge_count = 0;
+	dijsktra_node_count = gf_list_count(dijkstra_nodes)+1;
 	first = GF_TRUE;
 	//OK we have the weighted graph, perform a dijkstra on the graph - we assign by weight, and if same weight we check the priority
 	while (1) {
@@ -1994,6 +2010,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			GF_FilterRegEdge *redge = &current_node->edges[i];
 			u32 dist;
 			Bool do_switch = GF_FALSE;
+			dijsktra_edge_count++;
 
 			if (redge->status != EDGE_STATUS_ENABLED)
 				continue;
@@ -2034,7 +2051,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 	sort_time_us -= start_time_us;
 	dijkstra_time_us = gf_sys_clock_high_res() - start_time_us;
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Dijkstra] sorted filters in "LLU" us, Dijkstra done in "LLU" us\n", sort_time_us, dijkstra_time_us));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Dijkstra] sorted filters in "LLU" us, Dijkstra done in "LLU" us on %d nodes %d edges\n", sort_time_us, dijkstra_time_us, dijsktra_node_count, dijsktra_edge_count));
 
 	if (result && result->destination) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] result: %s", result->freg->name));
@@ -2620,6 +2637,12 @@ restart:
 	} else {
 		//no filter found for this pid !
 		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
+
+		if (pid->filter->freg->process_event) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+			pid->filter->freg->process_event(filter, &evt);
+		}
 
 		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;

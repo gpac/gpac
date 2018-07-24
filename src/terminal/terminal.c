@@ -369,6 +369,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 		return NULL;
 	}
 	gf_filter_make_sticky(comp_filter);
+	gf_filter_disable_process_trigger(comp_filter, GF_TRUE);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
 	gf_sc_set_fps(tmp->compositor, 30.0);
