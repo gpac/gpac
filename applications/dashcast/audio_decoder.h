@@ -32,7 +32,7 @@
 #include "libavutil/fifo.h"
 #ifdef DC_AUDIO_RESAMPLER
 #include "libavutil/opt.h"
-#include "libavresample/avresample.h"
+#include "libswresample/swresample.h"
 #endif
 
 
@@ -57,7 +57,7 @@ typedef struct {
 	AVFifoBuffer *fifo;
 #ifdef DC_AUDIO_RESAMPLER
 	/* Optional audio resampling between the decoder and the encoder */
-	AVAudioResampleContext *aresampler;
+	SwrContext *aresampler;
 #endif
 
 	LockMode mode;

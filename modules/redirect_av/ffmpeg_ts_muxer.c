@@ -201,7 +201,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 		c->time_base.den = 1000;
 		// some formats want stream headers to be separate
 		if (ts->oc->oformat->flags & AVFMT_GLOBALHEADER)
-			c->flags |= CODEC_FLAG_GLOBAL_HEADER;
+			c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 	}
 #endif
 
@@ -240,7 +240,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 		}
 		// some formats want stream headers to be separate
 		if (ts->oc->oformat->flags & AVFMT_GLOBALHEADER)
-			c->flags |= CODEC_FLAG_GLOBAL_HEADER;
+			c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
 	}
 	//av_set_pts_info(ts->audio_st, 33, 1, audioBitRateInBitsPerSec);
