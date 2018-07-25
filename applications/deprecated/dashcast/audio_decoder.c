@@ -150,21 +150,21 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 static int ensure_resampler(AudioInputFile *audio_input_file, int sample_rate, int num_channels, u64 channel_layout, enum AVSampleFormat sample_format)
 {
 	if (!audio_input_file->aresampler) {
-		audio_input_file->aresampler = avresample_alloc_context();
+		audio_input_file->aresampler = swr_alloc();
 		if (!audio_input_file->aresampler) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate the audio resampler. Aborting.\n"));
 			return -1;
 		}
-		av_opt_set_int(audio_input_file->aresampler, "in_channel_layout", channel_layout, 0);
-		av_opt_set_int(audio_input_file->aresampler, "out_channel_layout", DC_AUDIO_CHANNEL_LAYOUT, 0);
-		av_opt_set_int(audio_input_file->aresampler, "in_sample_fmt", sample_format, 0);
-		av_opt_set_int(audio_input_file->aresampler, "out_sample_fmt", DC_AUDIO_SAMPLE_FORMAT, 0);
+		av_opt_set_channel_layout(audio_input_file->aresampler, "in_channel_layout", channel_layout, 0);
+		av_opt_set_channel_layout(audio_input_file->aresampler, "out_channel_layout", DC_AUDIO_CHANNEL_LAYOUT, 0);
+		av_opt_set_sample_fmt(audio_input_file->aresampler, "in_sample_fmt", sample_format, 0);
+		av_opt_set_sample_fmt(audio_input_file->aresampler, "out_sample_fmt", DC_AUDIO_SAMPLE_FORMAT, 0);
 		av_opt_set_int(audio_input_file->aresampler, "in_sample_rate", sample_rate, 0);
 		av_opt_set_int(audio_input_file->aresampler, "out_sample_rate", DC_AUDIO_SAMPLE_RATE, 0);
 		av_opt_set_int(audio_input_file->aresampler, "in_channels", num_channels, 0);
 		av_opt_set_int(audio_input_file->aresampler, "out_channels", DC_AUDIO_NUM_CHANNELS, 0);
 
-		if (avresample_open(audio_input_file->aresampler)) {
+		if (swr_init(audio_input_file->aresampler)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not open the audio resampler. Aborting.\n"));
 			return -1;
 		}
@@ -183,7 +183,7 @@ static int resample_audio(AudioInputFile *audio_input_file, AudioInputData *audi
 		(*output) [i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE); //FIXME: fix using size below av_samples_get_buffer_size()
 	}
 
-	i = avresample_convert(audio_input_file->aresampler, *output, DC_AUDIO_MAX_CHUNCK_SIZE, audio_input_data->aframe->nb_samples, audio_input_data->aframe->extended_data, audio_input_data->aframe->linesize[0], audio_input_data->aframe->nb_samples);
+	i = swr_convert(audio_input_file->aresampler, *output, audio_input_data->aframe->nb_samples, audio_input_data->aframe->extended_data, audio_input_data->aframe->nb_samples);
 	if (i < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
 		return -1;
@@ -441,6 +441,6 @@ void dc_audio_decoder_close(AudioInputFile *audio_input_file)
 	av_fifo_free(audio_input_file->fifo);
 
 #ifdef DC_AUDIO_RESAMPLER
-	avresample_free(&audio_input_file->aresampler);
+	swr_free(&audio_input_file->aresampler);
 #endif
 }

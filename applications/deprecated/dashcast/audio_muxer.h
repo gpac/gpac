@@ -32,7 +32,7 @@
 #include "libavformat/avformat.h"
 #include "libavdevice/avdevice.h"
 #ifdef DC_AUDIO_RESAMPLER
-#include "libavresample/avresample.h"
+#include "libswresample/swresample.h"
 #endif
 #include "libavutil/mathematics.h"
 #include "libavutil/opt.h"
@@ -79,7 +79,7 @@ typedef struct {
 
 #ifdef DC_AUDIO_RESAMPLER
 	/* Optional audio resampling between the decoder and the encoder */
-	AVAudioResampleContext *aresampler;
+	SwrContext *aresampler;
 #endif
 
 	/* Variables that encoder needs to encode data */
