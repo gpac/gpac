@@ -356,7 +356,8 @@ static void gpac_usage(void)
 			"                   (filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)\n"
 			"					Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually\n"
 			"-ltf            : load test-unit filters (used for for unit tests only).\n"
-			"-rmt[=PORT]     : enables profiling through remotery. Port can be optionnaly specified\n"
+			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
+			"					A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
 
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
