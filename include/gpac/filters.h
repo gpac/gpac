@@ -377,7 +377,6 @@ void gf_fs_print_all_connections(GF_FilterSession *session);
 */
 Bool gf_fs_check_registry_cap(const GF_FilterRegister *filter_reg, u32 in_cap_code, GF_PropertyValue *in_cap, u32 out_cap_code, GF_PropertyValue *out_cap);
 
-
 /*! @} */
 
 

@@ -51,6 +51,7 @@ static char separator_set[7] = ":=#,!@";
 static void print_filters(int argc, char **argv, GF_FilterSession *session);
 static void dump_all_props(void);
 static void dump_all_codec(GF_FilterSession *session);
+void write_filters_options(GF_FilterSession *fsess);
 
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
@@ -379,6 +380,7 @@ static void gpac_usage(void)
 			"-ltf            : load test-unit filters (used for for unit tests only).\n"
 			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
 			"					A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
+			"-wp             : writes all filter options in config file.\n"
 
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
@@ -421,6 +423,7 @@ static int gpac_main(int argc, char **argv)
 	int i;
 	u32 sflags=0;
 	Bool override_seps=GF_FALSE;
+	Bool write_profile=GF_FALSE;
 	s32 link_prev_filter = -1;
 	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
@@ -542,6 +545,8 @@ static int gpac_main(int argc, char **argv)
 			blacklist = arg_val;
 		} else if (strstr(arg, ":*")) {
 			print_meta_filters = GF_TRUE;
+		} else if (!strcmp(arg, "-wp")) {
+			write_profile = GF_TRUE;
 		}
 		if (arg_val) {
 			arg_val--;
@@ -591,7 +596,11 @@ static int gpac_main(int argc, char **argv)
 	}
 	if (dump_codecs) {
 		dump_all_codec(session);
-		return 0;
+		goto exit;
+	}
+	if (write_profile) {
+		write_filters_options(session);
+		goto exit;
 	}
 
 	//all good to go, load filters
@@ -894,3 +903,26 @@ static void dump_all_codec(GF_FilterSession *session)
 	fprintf(stderr, "\n");
 }
 
+void write_filters_options(GF_FilterSession *fsess)
+{
+	u32 i, count;
+	GF_User *user = gf_fs_get_user(fsess);
+	if (!user) return;
+	count = gf_fs_filters_registry_count(fsess);
+	for (i=0; i<count; i++) {
+		u32 j=0;
+		char szSecName[200];
+
+		const GF_FilterRegister *freg = gf_fs_get_filter_registry(fsess, i);
+		sprintf(szSecName, "filter:%s", freg->name);
+		while (freg->args) {
+			const GF_FilterArgs *arg = &freg->args[j];
+			if (!arg || !arg->arg_name) break;
+			j++;
+
+			if (arg->arg_default_val) {
+				gf_cfg_set_key(user->config, szSecName, arg->arg_name, arg->arg_default_val);
+			}
+		}
+	}
+}

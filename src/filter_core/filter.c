@@ -585,12 +585,24 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg);
 }
 
+static const char *gf_filter_load_arg_config(GF_User *user, const char *sec_name, const char *arg_name, const char *arg_val)
+{
+	const char *opt;
+	if (!user) return arg_val;
+	opt = gf_cfg_get_key(user->config, sec_name, arg_name);
+	if (opt)
+		return opt;
+	return arg_val;
+}
+
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
 {
 	u32 i=0;
+	char szSecName[200];
 	char szEscape[7];
 	char szSrc[5], szDst[5];
 	Bool has_meta_args = GF_FALSE;
+	GF_User *user;
 	char *szArg=NULL;
 	u32 alloc_len=1024;
 	if (!filter) return;
@@ -612,10 +624,14 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	sprintf(szSrc, "src%c", filter->session->sep_name);
 	sprintf(szDst, "dst%c", filter->session->sep_name);
 
-	//instantiate all others with defauts value
+	user = gf_fs_get_user(filter->session);
+	snprintf(szSecName, 200, "filter:%s", filter->freg->name);
+
+	//instantiate all args with defauts value
 	i=0;
 	while (filter->freg->args) {
 		GF_PropertyValue argv;
+		const char *def_val;
 		const GF_FilterArgs *a = &filter->freg->args[i];
 		i++;
 		if (!a || !a->arg_name) break;
@@ -623,9 +639,11 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			has_meta_args = GF_TRUE;
 			continue;
 		}
-		if (!a->arg_default_val) continue;
+		def_val = gf_filter_load_arg_config(user, szSecName, a->arg_name, a->arg_default_val);
 
-		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, a->arg_default_val, a->min_max_enum);
+		if (!def_val) continue;
+
+		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, def_val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			if (a->offset_in_private>=0) {
