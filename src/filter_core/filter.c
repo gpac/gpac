@@ -595,6 +595,37 @@ static const char *gf_filter_load_arg_config(GF_User *user, const char *sec_name
 	return arg_val;
 }
 
+static Bool gf_filter_has_arg(GF_Filter *filter, const char *arg_name)
+{
+	u32 i=0;
+	while (filter->freg->args) {
+		const GF_FilterArgs *a = &filter->freg->args[i];
+		if (!a || !a->arg_name) break;
+		i++;
+		if (!strcmp(a->arg_name, arg_name)) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static void gf_filter_load_meta_args_config(GF_User *user, const char *sec_name, GF_Filter *filter)
+{
+	u32 i, key_count = gf_cfg_get_key_count(user->config, sec_name);
+	for (i=0; i<key_count; i++) {
+		GF_PropertyValue argv;
+		const char *arg_val, *arg_name = gf_cfg_get_key_name(user->config, sec_name, i);
+		if (gf_filter_has_arg(filter, arg_name)) continue;
+
+		arg_val = gf_cfg_get_key(user->config, sec_name, arg_name);
+		if (!arg_val) continue;
+
+		memset(&argv, 0, sizeof(GF_PropertyValue));
+		argv.type = GF_PROP_STRING;
+		argv.value.string = (char *) arg_val;
+		FSESS_CHECK_THREAD(filter)
+		filter->freg->update_arg(filter, arg_name, &argv);
+	}
+}
+
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
 {
 	u32 i=0;
@@ -656,6 +687,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
 		}
 	}
+	//handle meta filter options, not exposed in registry
+	if (has_meta_args && filter->freg->update_arg)
+		gf_filter_load_meta_args_config(user, szSecName, filter);
+
 
 	if (args)
 		szArg = gf_malloc(sizeof(char)*1024);
