@@ -380,7 +380,7 @@ static void gpac_usage(void)
 			"-ltf            : load test-unit filters (used for for unit tests only).\n"
 			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
 			"					A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
-			"-wp             : writes all filter options in config file.\n"
+			"-wp[x]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
 
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
@@ -547,6 +547,9 @@ static int gpac_main(int argc, char **argv)
 			print_meta_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-wp")) {
 			write_profile = GF_TRUE;
+		} else if (!strcmp(arg, "-wpx")) {
+			write_profile = GF_TRUE;
+			sflags |= GF_FS_FLAG_LOAD_META;
 		}
 		if (arg_val) {
 			arg_val--;
@@ -910,11 +913,15 @@ void write_filters_options(GF_FilterSession *fsess)
 	if (!user) return;
 	count = gf_fs_filters_registry_count(fsess);
 	for (i=0; i<count; i++) {
+		char *meta_sep;
 		u32 j=0;
 		char szSecName[200];
 
 		const GF_FilterRegister *freg = gf_fs_get_filter_registry(fsess, i);
 		sprintf(szSecName, "filter:%s", freg->name);
+		meta_sep = strchr(szSecName + 7, ':');
+		if (meta_sep) meta_sep[0] = 0;
+
 		while (freg->args) {
 			const GF_FilterArgs *arg = &freg->args[j];
 			if (!arg || !arg->arg_name) break;
