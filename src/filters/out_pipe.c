@@ -471,7 +471,7 @@ static const GF_FilterCapability PipeOutCaps[] =
 GF_FilterRegister PipeOutRegister = {
 	.name = "pout",
 	.description = "pipe output",
-	.comment = "This filter handles generic output pipes (mono-directionnal) in blocking mode only.\n"\
+	.help = "This filter handles generic output pipes (mono-directionnal) in blocking mode only.\n"\
 		"Output pipes don't currently support non blocking mode\n"\
 		"The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -o pipe://URL where URL is a relative or absolute pipe name)\n"\
 		"Data format of the pipe must currently be specified using extension (either in filename or through ext option) or mime type\n"\

@@ -1345,6 +1345,7 @@ int mp4client_main(int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-ifce")) {
+			fprintf(stderr, "-ifce NOT YET BACKPORTED\n");
 			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
 			i++;
 		}
@@ -1611,11 +1612,8 @@ int mp4client_main(int argc, char **argv)
 	if (bench_mode) {
 		gf_cfg_discard_changes(user.config);
 		auto_exit = GF_TRUE;
-		gf_cfg_set_key(user.config, "Audio", "DriverName", "Raw Audio Output");
 		if (bench_mode!=2) {
-			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
-			gf_cfg_set_key(user.config, "RAWVideo", "RawOutput", "null");
-			gf_cfg_set_key(user.config, "Compositor", "OpenGLMode", "disable");
+			user.init_flags |= GF_TERM_NO_VIDEO;
 		} else {
 			gf_cfg_set_key(user.config, "Video", "DisableVSync", "yes");
 		}
@@ -1624,9 +1622,9 @@ int mp4client_main(int argc, char **argv)
 	{
 		char dim[50];
 		sprintf(dim, "%d", forced_width);
-		gf_cfg_set_key(user.config, "Compositor", "DefaultWidth", forced_width ? dim : NULL);
+		gf_cfg_set_key(user.config, "Temp", "DefaultWidth", forced_width ? dim : NULL);
 		sprintf(dim, "%d", forced_height);
-		gf_cfg_set_key(user.config, "Compositor", "DefaultHeight", forced_height ? dim : NULL);
+		gf_cfg_set_key(user.config, "Temp", "DefaultHeight", forced_height ? dim : NULL);
 	}
 
 	fprintf(stderr, "Loading GPAC Terminal\n");

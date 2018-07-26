@@ -50,6 +50,7 @@ typedef struct
 	char *sap;
 	u32 rt;
 	Double speed;
+	Bool raw;
 
 	//internal
 	Bool filter_sap1;
@@ -213,6 +214,15 @@ GF_Err reframer_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static const GF_FilterCapability ReframerRAWCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
+};
+
 static GF_Err reframer_initialize(GF_Filter *filter)
 {
 	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
@@ -220,6 +230,10 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 		gf_filter_sep_max_extra_input_pids(filter, (u32) -1);
 
 	ctx->streams = gf_list_new();
+
+	if (ctx->raw) {
+		gf_filter_override_caps(filter, ReframerRAWCaps, sizeof(ReframerRAWCaps) / sizeof(GF_FilterCapability) );
+	}
 	return GF_OK;
 }
 
@@ -254,13 +268,14 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(sap), "Drops non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding ...", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "real-time regulation mode of input. off disables it, on enables it on each pid, sync enables it on all pid", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(raw), "forces input streams to be in raw format (i.e. forces decoding of input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
-	.description = "Passthrough filter ensuring reframing",
-	.comment = "This filter forces input pids to be properly frames (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
+	.description = "Passthrough filter ensuring reframing, and optionnally decoding, of inputs",
+	.help = "This filter forces input pids to be properly frames (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
 		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video\n"\
 		"The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:\n"\
 		"\tEX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\

@@ -4654,9 +4654,9 @@ static const GF_FilterCapability DasherCaps[] =
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8"),
 	{0},
 	//anything else (not file and framed) result in media pids not file
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 
 };
 
@@ -4724,7 +4724,7 @@ static const GF_FilterArgs DasherArgs[] =
 GF_FilterRegister DasherRegister = {
 	.name = "dasher",
 	.description = "MPEG-DASH and HLS segmenter",
-	.comment = "GPAC DASH and HLS segmenter\n"\
+	.help = "GPAC DASH and HLS segmenter\n"\
 			"The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)\n"\
 			"The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
 			"\tEX: template=Great_$File$_$Width$_$Number$ on 640x360 foo.mp4 source will resolve in Great_foo_640_$Number$ for the DASH template\n"\

@@ -86,6 +86,9 @@ enum
 	/*initializes client without a default audio out - used for dump modes where audio plauback is not needed*/
 	GF_TERM_NO_DEF_AUDIO_OUT = 1<<6,
 
+	/*disables video output module - used for bench mode without video*/
+	GF_TERM_NO_VIDEO = 1<<7,
+
 	/*works without window thread*/
 	GF_TERM_WINDOW_NO_THREAD = 1<<10,
 	/*lets the main user handle window events (needed for browser plugins)*/

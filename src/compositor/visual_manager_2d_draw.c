@@ -153,7 +153,7 @@ static void visual_2d_set_options(GF_Compositor *compositor, GF_SURFACE rend, Bo
 	if (no_antialias) {
 		raster->surface_set_raster_level(rend, GF_RASTER_HIGH_SPEED);
 	} else {
-		switch (compositor->antiAlias) {
+		switch (compositor->aa) {
 		case GF_ANTIALIAS_NONE:
 			raster->surface_set_raster_level(rend, GF_RASTER_HIGH_SPEED);
 			break;
@@ -161,7 +161,7 @@ static void visual_2d_set_options(GF_Compositor *compositor, GF_SURFACE rend, Bo
 			if (forText) {
 				raster->surface_set_raster_level(rend, GF_RASTER_HIGH_QUALITY);
 			} else {
-				raster->surface_set_raster_level(rend, compositor->high_speed ? GF_RASTER_HIGH_QUALITY : GF_RASTER_MID);
+				raster->surface_set_raster_level(rend, compositor->fast ? GF_RASTER_HIGH_QUALITY : GF_RASTER_MID);
 			}
 			break;
 		case GF_ANTIALIAS_FULL:
@@ -628,7 +628,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 	if (! visual->CheckAttached(visual) ) return;
 
 	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
-		if (visual->compositor->draw_bvol) draw_clipper(visual, ctx);
+		if (visual->compositor->bvol) draw_clipper(visual, ctx);
 		return;
 	}
 
@@ -701,7 +701,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 		}
 	}
 
-	if (visual->compositor->draw_bvol) draw_clipper(visual, ctx);
+	if (visual->compositor->bvol) draw_clipper(visual, ctx);
 }
 
 void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen, GF_TraverseState *tr_state)
@@ -723,7 +723,7 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 	if (!color && !strike_color) return;
 
 	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
-		if (visual->compositor->draw_bvol) draw_clipper(visual, ctx);
+		if (visual->compositor->bvol) draw_clipper(visual, ctx);
 		return;
 	}
 

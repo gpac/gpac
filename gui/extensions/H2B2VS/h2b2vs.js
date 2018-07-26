@@ -261,9 +261,9 @@ extension = {
 
         wnd.dbg_addon = gw_new_checkbox(wnd.area, 'Debug PVR addon');
         wnd.dbg_addon.on_check = function (value) {
-            gpac.set_option('Systems', 'DebugPVRScene', value ? 'yes' : 'no');
+            gpac.set_option('Compositor', 'dbgpvr', value ? 'yes' : 'no');
         }
-        do_sel = gpac.get_option('Systems', 'DebugPVRScene');
+        do_sel = gpac.get_option('Compositor', 'dbgpvr');
         wnd.dbg_addon.set_checked((do_sel == 'yes') ? true : false);
 
         gw_new_separator(wnd.area);

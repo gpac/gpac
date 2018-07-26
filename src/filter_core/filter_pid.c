@@ -2407,6 +2407,31 @@ void gf_filter_pid_retry_caps_negotiate(GF_FilterPid *src_pid, GF_FilterPid *pid
 	gf_fs_post_task(src_pid->filter->session, gf_filter_pid_disconnect_task, pid->filter, src_pid, "pidinst_disconnect", NULL);
 }
 
+
+static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter *dst)
+{
+	u32 i;
+	const GF_FilterCapability *caps;
+	u32 nb_caps;
+	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	if (!p) return GF_TRUE;
+
+	if (p->value.uint==GF_STREAM_FILE) return GF_FALSE;
+
+	caps = dst->forced_caps ? dst->forced_caps : dst->freg->caps;
+	nb_caps = dst->forced_caps ? dst->nb_forced_caps : dst->freg->nb_caps;
+	for (i=0; i<nb_caps; i++) {
+		const GF_FilterCapability *cap = &caps[i];
+		if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
+
+		if (cap->code != GF_PROP_PID_STREAM_TYPE) continue;
+		//output type is file or same media type, allow looking for filter chains
+		if ((cap->val.value.uint==GF_STREAM_FILE) || (cap->val.value.uint==p->value.uint)) return GF_FALSE;
+	}
+	//no mathing type found, we will need an explicit filter to solve this link (ie the link will be to the explicit filter)
+	return GF_TRUE;
+}
+
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 i, count;
@@ -2527,11 +2552,18 @@ restart:
 			continue;
 		}
 
+
 		//we have a match, check if caps are OK
 		if (!gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1)) {
 			Bool reassigned=GF_FALSE;
 			u32 j, nb_loaded;
 			GF_Filter *new_f, *reuse_f=NULL;
+
+			//we don't load filter chains if we have a change of media type from anything except file to anything except file
+			//i.e. transmodality (eg video->audio) can only be done through explicit filters
+			if (gf_filter_pid_needs_explicit_resolution(pid, filter_dst))
+				continue;
+
 			//we had a destination set during link resolve, and we don't match that filter, consider the link resolution wrong
 			if (pid->filter->dst_filter && (filter_dst == pid->filter->dst_filter)) {
 				GF_Filter *old_dst = pid->filter->dst_filter;
@@ -3280,28 +3312,48 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 	if (dec_time > pidi->max_process_time) pidi->max_process_time = dec_time;
 
 	if (pck->data_length) {
+		Bool has_ts = GF_TRUE;
 		u64 ts = (pck->info.dts != GF_FILTER_NO_TS) ? pck->info.dts : pck->info.cts;
-		if (pck->pid_props->timescale) {
+		if ((ts != GF_FILTER_NO_TS) && (pck->pid_props->timescale)) {
 			ts *= 1000000;
 			ts /= pck->pid_props->timescale;
+		} else {
+			has_ts = GF_FALSE;
 		}
 		
-		if (!pidi->cur_bit_size || (pidi->stats_start_ts > ts)) {
+		if (!pidi->cur_bit_size) {
 			pidi->stats_start_ts = ts;
 			pidi->stats_start_us = now;
 			pidi->cur_bit_size = 8*pck->data_length;
 		} else {
-			if (pidi->stats_start_ts + 1000000 >= ts) {
-				pidi->avg_bit_rate = (u32) (pidi->cur_bit_size * (1000000.0 / (ts - pidi->stats_start_ts) ) );
-				if (pidi->avg_bit_rate > pidi->max_bit_rate) pidi->max_bit_rate = pidi->avg_bit_rate;
+			Bool flush_stats = GF_FALSE;
+			pidi->cur_bit_size += 8*pck->data_length;
 
-				pidi->avg_process_rate = (u32) (pidi->cur_bit_size * (1000000.0 / (now - pidi->stats_start_us) ) );
+			if (has_ts) {
+				if (pidi->stats_start_ts + 1000000 <= ts) flush_stats = GF_TRUE;
+			} else {
+				if (pidi->stats_start_us + 1000000 <= now) flush_stats = GF_TRUE;
+			}
+
+			if (flush_stats) {
+				u64 rate;
+				if (has_ts) {
+					rate = pidi->cur_bit_size;
+					rate *= 1000000;
+					rate /= (ts - pidi->stats_start_ts);
+					pidi->avg_bit_rate = (u32) rate;
+					if (pidi->avg_bit_rate > pidi->max_bit_rate) pidi->max_bit_rate = pidi->avg_bit_rate;
+				}
+
+				rate = pidi->cur_bit_size;
+				rate *= 1000000;
+				rate /= (now - pidi->stats_start_us);
+				pidi->avg_process_rate = (u32) rate;
 				if (pidi->avg_process_rate > pidi->max_process_rate) pidi->max_process_rate = pidi->avg_process_rate;
 
-				pidi->stats_start_ts = ts;
+				//reset stats
 				pidi->cur_bit_size = 0;
 			}
-			pidi->cur_bit_size += 8*pck->data_length;
 		}
 	}
 }
@@ -3908,29 +3960,58 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
 }
 
 
-GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats)
+GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, Bool for_inputs)
 {
+	u32 i;
+	GF_Filter *filter;
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
 	if (PID_IS_OUTPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Sending filter events upstream not yet implemented (PID %s in filter %s)\n", pid->pid->name, pid->filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Getting statistics on output pids is not supported (PID %s in filter %s)\n", pid->pid->name, pid->filter->name));
 		return GF_BAD_PARAM;
 	}
 	memset(stats, 0, sizeof(GF_FilterPidStatistics) );
-	stats->avgerage_bitrate = pidi->avg_bit_rate;
-	stats->first_process_time = pidi->first_frame_time;
-	stats->last_process_time = pidi->last_pck_fetch_time;
-	stats->max_bitrate = pidi->max_bit_rate;
-	stats->max_process_time = (u32) pidi->max_process_time;
-	stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
-	stats->min_frame_dur = pidi->pid->min_pck_duration;
-	stats->nb_processed = pidi->nb_processed;
-	stats->nb_saps = pidi->nb_sap_processed;
-	stats->total_process_time = pidi->total_process_time;
-	stats->total_sap_process_time = pidi->total_sap_process_time;
+	if (!for_inputs) {
+		stats->avgerage_bitrate = pidi->avg_bit_rate;
+		stats->first_process_time = pidi->first_frame_time;
+		stats->last_process_time = pidi->last_pck_fetch_time;
+		stats->max_bitrate = pidi->max_bit_rate;
+		stats->max_process_time = (u32) pidi->max_process_time;
+		stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
+		stats->min_frame_dur = pidi->pid->min_pck_duration;
+		stats->nb_processed = pidi->nb_processed;
+		stats->nb_saps = pidi->nb_sap_processed;
+		stats->total_process_time = pidi->total_process_time;
+		stats->total_sap_process_time = pidi->total_sap_process_time;
 
-	stats->average_process_rate = pidi->avg_process_rate;
-	stats->max_process_rate = pidi->max_process_rate;
+		stats->average_process_rate = pidi->avg_process_rate;
+		stats->max_process_rate = pidi->max_process_rate;
+		return GF_OK;
+	}
+	filter = pidi->pid->filter;
+	for (i=0; i < filter->num_input_pids; i++) {
+		pidi = (GF_FilterPidInst *) gf_list_get(filter->input_pids, i);
 
+		stats->avgerage_bitrate += pidi->avg_bit_rate;
+		if (!stats->first_process_time || (stats->first_process_time > pidi->first_frame_time))
+			stats->first_process_time = pidi->first_frame_time;
+		if (stats->last_process_time < pidi->last_pck_fetch_time)
+			stats->last_process_time = pidi->last_pck_fetch_time;
+
+		stats->max_bitrate += pidi->max_bit_rate;
+
+		if (stats->max_process_time < (u32) pidi->max_process_time)
+			stats->max_process_time = (u32) pidi->max_process_time;
+		if (stats->max_sap_process_time < (u32) pidi->max_sap_process_time)
+			stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
+		if (!stats->min_frame_dur || (stats->min_frame_dur > pidi->pid->min_pck_duration))
+			stats->min_frame_dur = pidi->pid->min_pck_duration;
+		stats->nb_processed += pidi->nb_processed;
+		stats->nb_saps += pidi->nb_sap_processed;
+		stats->total_process_time += pidi->total_process_time;
+		stats->total_sap_process_time += pidi->total_sap_process_time;
+		stats->average_process_rate += pidi->avg_process_rate;
+		stats->max_process_rate += pidi->max_process_rate;
+	}
 	return GF_OK;
 }
 
@@ -3966,7 +4047,7 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid)
 	}
 	pid = pid->pid;
 	if (pid->filter->session->threads) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter pull in multithread mode not yet implementing - defaulting to 1 ms sleep\n", pid->pid->name, pid->filter->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter pull in multithread mode not yet implementing - defaulting to 1 ms sleep\n", pid->pid->name, pid->filter->name));
 		gf_sleep(1);
 		return;
 	}
@@ -4302,7 +4383,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				value = prop_val->value.uint;
 				has_val = GF_TRUE;
 			} else {
-				str_val = gf_prop_dump_val(prop_val, szPropVal, GF_FALSE);
+				str_val = gf_prop_dump_val(prop_val, szPropVal, GF_FALSE, NULL);
 			}
 		}
 		szTemplateVal[0]=0;

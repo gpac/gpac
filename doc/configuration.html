@@ -26,32 +26,18 @@ The config file is ordered by sections and keys.
 <br/>
 <b><a href="#General" style="text-decoration: underline;">General</a></b>
 <b><a href="#RecentFiles" style="text-decoration: underline;">RecentFiles</a></b>
-<b><a href="#Systems" style="text-decoration: underline;">Systems</a></b>
-<b><a href="#Compositor" style="text-decoration: underline;">Compositor</a></b>
+<b><a href="#Core" style="text-decoration: underline;">Core</a></b>
 <b><a href="#Audio" style="text-decoration: underline;">Audio</a></b>
 <b><a href="#Video" style="text-decoration: underline;">Video</a></b>
 <b><a href="#Network" style="text-decoration: underline;">Network</a></b>
 <b><a href="#FontEngine" style="text-decoration: underline;">FontEngine</a></b>
 <b><a href="#Downloader" style="text-decoration: underline;">Downloader</a></b>
 <b><a href="#HTTPProxy" style="text-decoration: underline;">HTTPProxy</a></b>
-<b><a href="#Streaming" style="text-decoration: underline;">Streaming</a></b>
 <b><a href="#MimeTypes" style="text-decoration: underline;">MimeTypes</a></b>
-<b><a href="#StreamingCache" style="text-decoration: underline;">StreamingCache</a></b>
-<b><a href="#SAXLoader" style="text-decoration: underline;">SAXLoader</a></b>
-<b><a href="#XviD" style="text-decoration: underline;">XviD</a></b>
-<b><a href="#FFMPEG" style="text-decoration: underline;">FFMPEG</a></b>
-<b><a href="#ISOReader" style="text-decoration: underline;">ISOReader</a></b>
-<b><a href="#DVB" style="text-decoration: underline;">DVB</a></b>
-<b><a href="#DASH" style="text-decoration: underline;">DASH</a></b>
 <b><a href="#ALSA" style="text-decoration: underline;">ALSA</a></b>
 <b><a href="#SHORTCUTS" style="text-decoration: underline;">Shortcuts</a></b>
-<b><a href="#DSMCC" style="text-decoration: underline;">DSMCC</a></b>
-<b><a href="#OpenHEVC" style="text-decoration: underline;">OpenHEVC</a></b>
 <b><a href="#DirectFB" style="text-decoration: underline;">DirectFB</a></b>
 <b><a href="#DektecVideo" style="text-decoration: underline;">DektecVideo</a></b>
-<b><a href="#M2TS" style="text-decoration: underline;">M2TS</a></b>
-<b><a href="#RAW" style="text-decoration: underline;">RAWVideo</a></b>
-<b><a href="#NVDec" style="text-decoration: underline;">NVDec</a></b>
 
 </p>
 <br/><br/>
@@ -209,10 +195,10 @@ The "RecentFiles" section of the config file holds last accessed files (hardcode
 the file names and no value is used. This section is only used by GUI clients (osmo4/wxOsmo4)
 </p>
 
-<a name="Systems"></a>
-<span style="text-decoration: underline;"><b>Section "Systems"</b></span> <i><a href="#Overview">Back to top</a></i>
+<a name="Core"></a>
+<span style="text-decoration: underline;"><b>Section "Core"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>
-The "Systems" section of the config file holds all configuration options for the MPEG-4 Systems engine.
+The "Core" section of the config file holds all configuration options for GPAC core.
 </p>
 <b>LanguageName</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
@@ -226,222 +212,11 @@ Specifies the user prefered language as expressed in ISO 639-2. This is used to 
 <p style="text-indent: 5%">
 Specifies the user prefered language as expressed in ISO 639-1. This is used to select streams in case of alternate content in an audio object.
 </p>
-<b>ThreadingPolicy</b> [value: <i>"Free" "Single" "Multi"</i>]
-<p style="text-indent: 5%">
-Specifies how media decoders are to be threaded. "Free" lets decoders decide of their threading, "Single" means that all decoders are managed in a single thread performing scheduling and priority
-handling and "Multi" means that each decoder runs in its own thread.
-</p>
-<b>Priority</b> [value: <i>"low" "normal" "high" "real-time"</i>]
-<p style="text-indent: 5%">
-Specifies the priority of the decoders (priority is applied to decoder thread(s) regardless of threading mode).
-</p>
-<b>TimeSlice</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Specifies the target maximum time (in ms) of one cycle of the media manager (the media manager will attempts to call all the active decoders within this time. Depending on the threading mode this option can be ignored;
-</p>
+
 <b>ModuleUnload</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies whether modules should be unloaded if not used or not. Default: "yes".
 </p>
-<b>ResyncLateClock</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Specifies the threshold after which late clocks are resynchronized to timestamps for OCR streams. By default, no threashold (0) is used and clocks are never resynchronized. This allows to 
-resync clocks to the media owning the clock when the decoding is really too slow, and should only be used for debugging purposes.
-</p>
-<b>NoVisualThread</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether the visual rendering is done in the main codec manager or in a dedicated thread.
-</p>
-<b>DefAudioDec</b> , <b>DefVideoDec</b> and <b>DefImageDec</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies which module to use by default for audio/video/image decoding. The string is the name of the module to be used (same considerations as other modules, cf introduction).
-</p>
-<b>codec_<i>XX</i>_<i>XX</i></b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Allows to specify default media module (audio/video) per stream type and object type. This is usefull if you have more than one decoder for a given type (ex, XviD and FFMPEG for MPEG-4 visual SP). The syntax is:
-<br/>codec_<i>AA</i>_<i>BB</i>=<i>modulename</i><br/>
-where <i>AA</i> is the hexadecimal MPEG-4 streamType value for the codec (04=visual, 05=audio) and <i>BB</i> is the hexadecimal MPEG-4 objectTypeIndication of the media (0x20 = MPEG-4 video, 0x40=MPEG-4 Audio, ...).
-The string is the name of the module to be used (same considerations as other modules, cf introduction).
-</p>
-
-<a name="Compositor"></a>
-<span style="text-decoration: underline;"><b>Section "Compositor"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The "Compositor" section of the config file holds all configuration options for the compositor (logical rendering engine).
-</p>
-<b>Raster2D</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the 2D rasterizer to use for vectorial drawing. Same as above, this module cannot be reloaded during a presentation.</p>
-<b>FrameRate</b> [value: <i>float</i>]
-<p style="text-indent: 5%">
-Specifies the simulation frame-rate of the presentation - this value is also used by the MPEG-4 Systems engine to determine when a BIFS frame is mature for decoding.</p>
-<b>AntiAlias</b> [value: <i>"None" "All" "Text"</i>]
-<p style="text-indent: 5%">
-Specifies antialiasing settings - whether the setting is applied or not depends on the graphics module / graphic card.
-</p>
-<ul>
-<li><i>"None"</i>: no anti-aliasing</li>
-<li><i>"Text"</i>: anti-aliasing for text only</li>
-<li><i>"All"</i>: complete anti-aliasing</li>
-</ul>
-<b>HighSpeed</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether rendering should target speed or quality - whether the setting is applied or not depends on the renderer, graphics module / graphic card.</p>
-<b>ForceSceneSize</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration.</p>
-<b>StressMode</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies that the renderer runs in worst case scenario, recomputing display lists and reloading textures (sending them to graphics card) at each frame even when no change has occured.</p>
-<b>BoundingVolume</b> [value: <i>"None" "Box" "AABB"</i>]
-<p style="text-indent: 5%">
-Specifies whether the bounding volume of an object shall be drawn or not. Note that the 2D renderer only uses rectangles as bounding volumes. The "AABB" value is used by the 
-3D renderer only, and specifies the object bounding-box tree shall be drawn.</p>
-<b>ColorKey</b> [value: <i>unsigned hexadecimal integer, formated as AARRGGBB</i>]
-<p style="text-indent: 5%">
-Specifies the color key to use for windowless rendering. GPAC currently doesn't support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of GPAC's output, if supported.
-</p>
-<b>BackColor</b> [value: <i>unsigned hexadecimal integer, formated as AARRGGBB</i>]
-<p style="text-indent: 5%">
-Specifies the background color to use when displaying transparent images or video with no scene compoistion instructions.
-</p>
-<b>DrawMode</b> [value: <i>"immediate" "defer" "defer-debug"</i>]
-<p style="text-indent: 5%">
-Specifies whether immediate drawing should be used or not. In immediate mode, the screen is completely redrawn at each frame. In defer mode
-object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer. Whether 
-the  setting is applied or not depends on the graphics module (currently all modules handle both mode). Defer Debug mode only renders changed areas.</p>
-<b>ScalableZoom</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether scalable zoom should be used or not. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.</p>
-<b>DisableYUV</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Disables YUV hardware support (YUV hardware support may not be available for the current video output module).</p>
-<b>TextureFromDecoderMemory</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Allows video textures to be build directly from video decoder internal buffers. This may increase performances on some systems. Default is no.</p>
-<b>ForceOpenGL</b> [value: <i>"always", "disable", "hybrid", "raster"</i>]
-<p style="text-indent: 5%">
-Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not loo as nice as 2D mode. The hybrid mode performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).</p>
-<b>EnablePBO</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Uses PixelBufferObjects to push YUV textures to GPU in OpenGL Mode.. This may slightly increase the performances of the playback.</p>
-<b>DefaultNavigationMode</b> [value: <i>"Walk", "Fly", "Examine"</i>]
-<p style="text-indent: 5%">
-Overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine).</p>
-<b>RasterOutlines</b> [value: <i>"yes"  "no"</i>]
-<p style="text-indent: 5%">
-Specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining.</p>
-<b>PolygonAA</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.</p>
-<b>DisableBackFaceCulling</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether backface culling shall be disable or not. If not set, backface culling is performed.</p>
-<b>Wireframe</b> [value: <i>"WireNone" "WireOnly" "WireOnSolid"</i>]
-<p style="text-indent: 5%">
-Specifies wireframe drawing options:</p>
-<ul>
-<li><i>"WireNone"</i>: objects are drawn as solid</li>
-<li><i>"WireOnly"</i>: objects are drawn as wireframe only</li>
-<li><i>"WireOnSolid"</i>: objects are drawn as solid and wireframe is then drawn</li>
-</ul>
-<b>DisableRectExt</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether OpenGL rectangular texture extension (GL_EXT_texture_rectangle or GL_NV_texture_rectangle) shall be used or not.</p>
-<ul>
-<li>"yes": textures whose dimensions are not power of two are rescaled except if hardware support non-power-of-two textures (GL_ARB_texture_non_power_of_two) natively.</li>
-<li>"no": if extension is available, textures are used without rescaling. Note that in this case texture transformations are disabled.</li>
-</ul>
-<b>EmulatePOW2</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Enables power of 2 emulation. Ignored if openGL rectangular texture extension is enabled.</p>
-<ul>
-<li>"yes": video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations.</li>
-<li>"no": video is resized to a power of 2 texture when mapping to a shape.</li>
-</ul>
-<b>DisableGLUScale</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Disables usage of gluScaleImage, which may be slower but nicer than GPAC's software stretch routines.</p>
-<b>TextureTextMode</b> (value: <i>"Default", "Never", "Always"</i>]
-<p style="text-indent: 5%">
-Specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Default value will use texturing for OpenGL rendering. </p>
-<b>OpenGLExtensions</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
-</p>
-<b>StereoType</b> [value: <i>"None", "SideBySide", "StereoHeadset", "TopToBottom", "Anaglyph", "Columns", "Rows", "SPV19", "Custom"</i>]
-<p style="text-indent: 5%">
-Specifies the stereo output type (default "None"). If your graphic card does not support OpenGL shaders, only <i>SideBySide</i> and <i>TopToBottom</i> modes will be available.</p>
-<ul>
-<li>"SideBySide": images are displayed side by side from left to right.</li>
-<li>"TopToBottom": images are displayed from top (laft view) to bottom (right view).</li>
-<li>"StereoHeadset": same as SideBySide except that view aspect ratio is not changed.</li>
-<li>"Anaglyph": Standard color anaglyph (red for left view, green and blue for right view) is used.</li>
-<li>"Columns": images are interleaved by columns, left view on even columns and left view on odd columns.</li>
-<li>"Rows": images are interleaved by columns, left view on even rows and left view on odd rows.</li>
-<li>"SPV19": images are interleaved by for SpatialView 19'' 5 views display, fullscreen mode.</li>
-<li>"Custom": images are interleaved according to the shader specified by <i>InterleaverShader</i>
-</ul>
-
-<b>NumViews</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Specifies the number of views to use in stereo mode. If mode is "Anaglyph", "Columns" or "Rows", the number of views is forced to 2.</p>
-
-<b>InterleaverShader</b> [value: <i>path to fragment shader file</i>]
-<p style="text-indent: 5%">
-Specifies the fragment shader file to use for view interleaving. Each view is rendered in its own texture. The shader is exposed each view as <i>uniform sampler2D gfViewX</i>, where X is the view number starting from the left (<i>gfView1</i>).</p>
-
-<b>ReverseViews</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Specifies if the view order should be reversed (from right to left) or not.</p>
-<b>EyeSeparation</b> [value: <i>float</i>]
-<p style="text-indent: 5%">
-Specifies the eye separation in cm (distance between the cameras). Default: 6.3 cm.</p>
-<b>CameraLayout</b> [value: <i>"OffAxis", Linear", "Circular"</i>]
-<p style="text-indent: 5%">
-Specifies the camera layout. The default value is OffAxis in (auto-)stereo modes, ignored in mono mode.</p>
-<b>ViewDistance</b> [value: <i>integer</i>]
-<p style="text-indent: 5%">
-Specifies the distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC.</p>
-
-<b>Output8bit</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether 10 bit textures should be converted to 8 bit before GPU upload or use as is. Default is no if screen supports 10 bpp, yes otherwise.</p>
-
-</p>
-<b>ForceSingleClock</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-One big problem with MP4 files is that the notion of "duration" has been unclear for a long time, and  most content available (audio-video files) specifiy a 
-wrong BIFS duration. In such a case the movie cannot be controled/seeked into. Another problem with ISMA streaming is that BIFS/OD don't use the same clock as 
-audio/video, thus seeking the main timeline does not seek AV media. Setting the ForceSingleClock will handle both cases by using a single timeline for all media 
-streams and setting the duration to the one of the longest stream.
-</p>
-<b>DrawLateFrames</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-If set, late frames will still be drawn. If not set, the late frames are droped (or executed for systems decoders) untill the decoder output is back in sync. This is by default on to keep better testing heavy content or slow renderers, but should be set to off when needing a better sync or monitoring skipped frames.
-</p>
-
-<b>VRDefaultFOV</b> [value: <i>float</i>]
-<p style="text-indent: 5%">
-Default field of view for VR 360. Default is PI/2.</p>
-
-<b>TileVisibilityTest</b> [value: <i>int1-int2</i>]
-<p style="text-indent: 5%">
-Sets the number of points to test for tile visibility to int1, and consider the tile visible if more than int2 points are visible. Default is 30-0.</p>
-
-<b>SimulateGaze</b> [value: <i>yes,no</i>]
-<p style="text-indent: 5%">
-Uses the mouse to simulate gazing direction on the display for quality adaptation. Default is no.</p>
-
-<b>TileVisibilityDebug</b> [value: <i>yes,no</i>]
-<p style="text-indent: 5%">
-Enables tiles visibility debugging. This disables the tile having full coverage of the SRD, only displaying sub tiles. Default is no.</p>
-
-<b>TileVisibilityForced</b> [value: <i>yes,no</i>]
-<p style="text-indent: 5%">
-Forces tiles visibility. All tiles will be considered as visible, regardless the current viewpoint. Default is no.</p>
-
-<br/><br/>
 
 <a name="Audio"></a>
 <span style="text-decoration: underline;"><b>Section "Audio"</b></span> <i><a href="#Overview">Back to top</a></i>
@@ -449,48 +224,10 @@ Forces tiles visibility. All tiles will be considered as visible, regardless the
 <b>DriverName</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies the driver to use for audio rendering. This driver cannot be reloaded at run-time, the complete system must be restarted.</p>
-<b>ForceConfig</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Forces a given sound card configuration to be used. If not set the sound card will be setup to use 2 audio buffers of 1024 samples each. 
-This may not work properly on some audio cards due to hardware latency, therefore forcing the config may be very usefull.</p>
-<b>NumBuffers</b> [value: <i>positive integer, 0 forbidden</i>]
-<p style="text-indent: 5%">
-When config is forced, specifies the number of audio buffers to allocate (audio buffers are played in ring).</p>
-<b>TotalDuration</b> [value: <i>positive integer, 0 forbidden</i>]
-<p style="text-indent: 5%">
-When config is forced, specifies the total audio buffer size in milliseconds. Be aware that the longer the audio buffer is, the longer the audio latency will be when pausing an 
-audio object. The quality of fast forward audio playback will also be degradated when using large audio buffers.</p>
-<b>NoResync</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Disables audio resynchronization: audio data is never dropped but may get out of sync.</p>
-<b>DisableMultiChannel</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Disables audio multichannel output and always downmix to stereo. This may be usefull if the multichannel output behaves weirdly.</p>
+
 <b>DisableNotification</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Disables usage of audio buffer notifications when supported (currently only DirectSound supports it). If DirectSound audio sounds weird try without notifications.</p>
-<b>Volume</b> [value: integer (0-100)]
-<p style="text-indent: 5%">
-Default audio volume used when launching GPAC.</p>
-<b>Pan</b> [value: integer (0-100)]
-<p style="text-indent: 5%">
-Default audio stereo balance used when launching GPAC - 0 for full left, 100 for full right, 50 for balanced.</p>
-<b>Filter</b> [value: string]
-<p style="text-indent: 5%">
-Defines a set of audio filters. Audio filters are declared as a list of strings separated with ";;". The exact syntax of the string is filter specific.</p>
-
-<b>ForceFrequency</b> [value: integer]
-<p style="text-indent: 5%">
-Force audio output frequency. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
-<b>ForceChannels</b> [value: integer]
-<p style="text-indent: 5%">
-Force audio output channels. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
-<b>ForceLayout</b> [value: hexa integer]
-<p style="text-indent: 5%">
-Force audio output frequency. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
-<b>ForceBPS</b> [value: integer]
-<p style="text-indent: 5%">
-Force audio output bits per sample. Set to 0 (default) for dynamic reconfiguration of all params (freq, ch, layout and bps).</p>
 
 <br/><br/>
 
@@ -500,6 +237,16 @@ Force audio output bits per sample. Set to 0 (default) for dynamic reconfigurati
 <b>DriverName</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies the driver to use for video memory access. This driver cannot be reloaded at run-time, the complete system must be restarted.</p>
+
+<b>Raster2D</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies the 2D rasterizer to use for vectorial drawing. Same as above, this module cannot be reloaded during a presentation.</p>
+
+<b>OpenGLExtensions</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
+</p>
+
 <b>SwitchResolution</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies fullscreen resolution mode. If enabled, selects smallest video resolution larger than scene size, otherwise use current video resolution.</p>
@@ -532,52 +279,16 @@ Specifies the type of OpenGL offscreen rendering in X11. Default mode is "Pixmap
 <a name="Network"></a>
 <span style="text-decoration: underline;"><b>Section "Network"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>The "Network" section of the config file holds all configuration options for the network used by modules and systems engine.</p>
-<b>AutoReconfigUDP</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies if network manager shall reconnect a scene if UDP is not present.</p>
-<b>DataTimeout</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies timeout in ms befor initial media buffering aborts. Default terminal value is 20000 (20 seconds).</p>
-<b>UDPNotAvailable</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies if UDP traffic is not available. This is automatically set by GPAC if <i>AutoReconfigUDP</i> is set.</p>
-<b>UDPTimeout</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies timeout in ms for initial UDP detection. Once a UDP packet is recieved the timeout is ignored.</p>
-<b>BufferLength</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the length of the decoding buffer in milliseconds. The client will wait for the buffer to be filled before starting decoding. A module may decide to use a different value based on protocol and network jitters. </p>
-<b>RebufferLength</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies rebuffering length of the decoding buffer in milliseconds. Whenever the decoding buffer fullness is less than this value, the object clock is paused and 
-the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffering. A module may decide to use a different value based on protocol and network jitters.
-</p>
-<b>BufferMaxOccupancy</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies maximum buffer occupancy for buffer regulation. Corresponds to the max amount of data to be prefetch. Any value less than BufferLength will be forced to BufferLength.
-</p>
 
-<b>LowLatencyBufferMax</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the maximum buffer level for low latency mode, in ms. If media buffer max is above this value, full buffering will be done (clock resume at first frame displayed). Default value is 500 ms.</p>
-</p>
 <b>MobileIP</b> [value: <i>IP Address</i>]
 <p style="text-indent: 5%">
 Specifies a Mobile IP interface overriding the default IP. If set, all sockets will be locally bound to this IP address.</p>
 </p>
+
 <b>DefaultMCastInterface</b> [value: <i>IP Address</i>]
 <p style="text-indent: 5%">
 Specifies a default IP interface for Multicast overriding the default IP.If not set, the multicast will be setup using the default IP. </p>
 </p>
-<b>HTTPRebuffer</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the default HTTP rebuffer time in ms. When playback position reaches download position, playback will be paused if this integer is not zero. Playback will resume once the HTTPRebuffer ms of playback are available. Default value is 5000 ms.</p>
-</p>
-<b>HTTPAutoRebuffer</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether auto rebuffering is used. When auto-rebuffering is used, playback only resumes when estimated time to download the rest of the movie is less than remaining time of the playback. Default value is no.</p>
-</p>
-
 
 
 <br/><br/>
@@ -588,9 +299,7 @@ integrate text rendering which is always heavy work.</p>
 <b>FontReader</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies the module to use for font handling. This module cannot be reloaded at run-time, GPAC must be restarted.</p>
-<b>WaitForFontLoad</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Forces to wait for SVG fonts to be loaded before displaying frames - default is "no".</p>
+
 <b>FontDirectory</b> (value: <i>path to TrueType (*.ttf, *.ttc) font directory</i>]
 <p style="text-indent: 5%">
 Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).
@@ -645,44 +354,6 @@ Specifies the proxy name (IP address or resolved name) without protocol identifi
 <p style="text-indent: 5%">
 Specifies the port to use with the proxy. If no port is specified, the default HTTP port (80) is used.</p>
 
-<br/><br/>
-<a name="Streaming"></a>
-<span style="text-decoration: underline;"><b>Section "Streaming"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Streaming" section of the config file holds all configuration options for real-time streaming using IETF SDP/RTSP/RTP/RTCP protocols.</p>
-<b>DefaultPort</b> [value: <i>unsigned short</i>]
-<p style="text-indent: 5%">
-Specifies the default port to use when connecting to a server (ignored if a port is specified in the url) if the port is 80 or 8080 (HTTP), the client will connect to the 
-RTSP server through an HTTP tunnel, and transport will take place on the RTSP connection.</p>
-<b>ReorderSize</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Size of the RTP reordering buffer - 0 means no reordering. Ignored when transport takes place on the RTSP connection. The bigger this value, the longer the reordering delay will be.</p>
-<b>RTPoverRTSP</b> [value: <i>"yes" "no" "OnlyCritical"</i>]
-<p style="text-indent: 5%">
-Specifies whether RTP packets should be carried on the RTSP connection (TCP or UDP), or carried on UDP. If the connection port is an HTTP port, this value is assumed to be true. If set to <i>OnlyCritical</i>, transport will take place on TCP only if a critical media (eg, neither audio nor video) is found in the session.</p>
-<b>RTSPTimeout</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies connection timeout with the server: an RTSP request is considered as failed when the timeout expires.</p>
-<b>ForceFirstPort</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies first port for RTP channels. If not set, the default first port used by GPAC is 7040.</p>
-<b>NATKeepAlive</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the maximum inactivity period in milliseconds for RTP sockets. If no data is received after this period, an empty RTP packet will be sent in order to keep any NAT alive. If 0 (default), disables NAT keep-alive packets.</p>
-<b>ForceMulticastIP</b> [value: <i>IP4 or IP6 address</i>]
-<p style="text-indent: 5%">
-Forces the specified multicast address to be used instead of the regular unicast. Note that some servers may not support multicast initiation by the client.</p>
-<b>ForceMulticastTTL</b> [value: <i>Positive integer</i>]
-<p style="text-indent: 5%">
-Indicates the TTL to use when the client initiates the multicast. Default value is 127.</p>
-<b>FirstPacketDrop</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the sequence number of the first RTP packet to be droped - 0 means no packet drop. Used for packet drop simulation tests.</p>
-<b>PacketDropFrequency</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the frequency at which SL packets are droped. If value is 20, one packet every 20 recieved packets will be droped. Used for packet drop simulation tests.</p>
-
-<br/><br/>
-
 <a name="MimeTypes"></a>
 <span style="text-decoration: underline;"><b>Section "MimeTypes"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>This section is used to keep MIME types and file associations for GPAC modules.
@@ -696,216 +367,12 @@ If MIME type is not available, provided extensions are first checked, then all i
 
 <br/><br/>
 
-<a name="StreamingCache"></a>
-<span style="text-decoration: underline;"><b>Section "StreamingCache"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "StreamingCache" section of the config file holds all configuration options for the streaming cache. Streaming cache allows for recording of 
-live sources such as RTP/RTSP sessions and internet radios. This is currently just an experimental feature in GPAC.</p>
-<b>RecordDirectory</b> [value: <i>path</i>]
-<p style="text-indent: 5%">
-Specifies path for recorded files. Cached data is written directly to disk (no re-interleaving or similar processes).
-If not specified, the default cache directory (cf <a href="#General">General</a>) is used.</p>
-<b>BaseFileName</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the base name for recorded files. If not present in configuration file, the service name (URL) is used.</p>
-<b>KeepExistingFiles</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies if cached files with same name should be kept or not. If not, an integer number is added to the cached file name, the higest number for the latest file.</p>
-	
-<br/><br/>
-
-<a name="SAXLoader"></a>
-<span style="text-decoration: underline;"><b>Section "SAXLoader"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "SAXLoader" section of the config file holds all configuration options for XML SAX parsing of SVG, XMT and X3D files.</p>
-<b>Progressive</b> [value: <i>"yes" "no" "DOM"</i>]
-<p style="text-indent: 5%">Specifies XML parsing mode used by different file loaders using the SAX parser.</p>
-<ul>
-<li><i>"yes"</i>: SAX parsing is used with progressive loading of the document.</li>
-<li><i>"no"</i>: SAX parsing is used, document will first be completely downloaded.</li>
-<li><i>"DOM"</i>: DOM parsing is used, document will first be completely downloaded. Only supported by libXML2 plugin, otherwise handled as "no".</li>
-</ul>
-<b>MaxDuration</b> [value <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the maximum amount of time the SAX parser should spent loading a portion of the document. Only used with SAX Progressive mode</p>
-	
-<br/><br/>
-
-<a name="XviD"></a>
-<span style="text-decoration: underline;"><b>Section "XviD"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "XviD" section of the config file holds all configuration options for the XviD codec.</p>
-<b>PostProc</b> [value: <i>"FilmEffect" "Deblock_Y" "Deblock_UV"</i>]
-<p style="text-indent: 5%">
-Specifies filters to apply when decoding video. The string is a list of filters separated with a space character.</p>
-<ul>
-<li><i>"FilmEffect"</i>: xvid 1.0.0 filmEffect.</li>
-<li><i>"Deblock_Y"</i>: Y plane deblocking filter.</li>
-<li><i>"Deblock_UV"</i>: UV plane deblocking filter.</li>
-</ul>
-<b>Threaded</b> [value <i>"yes" "no"</i>]
-<p style="text-indent: 5%">Specifies whether the decoder should run in its own thread or not.</p>
-	
-<br/><br/>
-
-<a name="FFMPEG"></a>
-<span style="text-decoration: underline;"><b>Section "FFMPEG"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "FFMPEG" section of the config file holds all configuration options for the FFMPEG demuxer and decoder.</p>
-<b>DataBufferMS</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the amount of video/audio data (in milliseconds) to be bufferer before starting decoding. For developpers only.</p>
-<b>IOBufferSize</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the size (in bytes) of the buffer used to fecth data from network (http playback only). Default size is 8192 bytes.</p>
-
-<br/><br/>
-
-<a name="ISOReader"></a>
-<span style="text-decoration: underline;"><b>Section "ISOReader"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "ISOReader" section of the config file holds all configuration options for the ISO Media File demuxer.</p>
-<b>IgnoreMPEG-4ForBrands</b> [value: <i>Full 4CC or 4CC pattern (abc* ab*)</i>]
-<p style="text-indent: 5%">
-Ignores all MPEG-4 systems tracks and IOD for files showing the listed brands in their compatible brand list.</p>
-
-<br/><br/>
-
-<a name="DVB"></a>
-<span style="text-decoration: underline;"><b>Section "DVB"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "DVB" section of the config file holds all configuration options for DVB playback on GNU/Linux systems.</p>
-<b>ChannelsFile</b> [value: <i>Absolute file path</i>]
-<p style="text-indent: 5%">
-Specifies the DVB channels configuration file as produced by dvbtools' scan util.</p>
-
-<br/><br/>
-
-<a name="DASH"></a>
-<span style="text-decoration: underline;"><b>Section "DASH"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "DASH" section of the config file holds all configuration options for DASH or HLS/M3U8 playback.</p>
-<b>KeepFiles</b> [value: <i>yes, no</i>]
-<p style="text-indent: 5%">
-Specifies whether downloaded files should not be deleted.</p>
-<b>AutoSwitchCount</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-For debug purposes, instructs the player to switch representation every N segments. If 0 (default), switching is disabled.</p>
-<b>BufferingMode</b> [value: <i>segments, minBuffer, none</i>]
-<p style="text-indent: 5%">
-Selects buffer mode:
-<ul> 
-<li>segments: buffers complete segments as indicated in MPD before handing them to the player.</li>
-<li>minBuffer: asks the player to buffer media for the time indicated in the MPD, but segments are not pre-buffered. Default mode.</li> 
-<li>none: uses the  player settings for buffering.</li> 
-</ul>
-</p>
-<b>NetworkAdaptation</b> [value: <i>disabled, bandwidth, buffer</i>]
-<p style="text-indent: 5%">
-Sets automatic adaptation logic mode:
-<ul>
-<li>disabled: no adaptation to network condition is used.</li>
-<li>bandwidth: network adaptation is based only on available download rate.</li> 
-<li>buffer: network adaptation is based on available download rate for quality increase and buffer levels for quality drops. Default mode.</li> 
-</ul>
-
-</p>
-<b>MemoryStorage</b> [value: <i>yes, no</i>]
-<p style="text-indent: 5%">
-Files are only stored in memory and destroyed after playback, no disk IO is used. Default is yes</p>
-<b>UseMaxResolution</b> [value: <i>yes, no</i>]
-<p style="text-indent: 5%">
-Forces the player to set the output video resolution to the max resolution available instead of resizing the window. Default is yes</p>
-<b>UseScreenResolution</b> [value: <i>yes, no</i>]
-<p style="text-indent: 5%">
-Disables all resolutions that are higher than the screen resolution. Default is yes</p>
-<b>StartRepresentation</b> [value: <i>minBandwidth, maxBandwidth, maxBandwidthTiles, minQuality, maxQuality</i>]
-<p style="text-indent: 5%">
-Instructs the DASH client to start playing the indicated representation before doing any switching. Default is minBandwidth.
-<i>maxBandwidthTiles</i> selects the highest bandwidth for tiles with high priority and lowest for other tiles, whereas <i>maxBandwidth</i> selects the highest bandwidth for tiles with high priority and closest lower bandwidth for other tiles.
-</p>
-<b>InitialTimeshift</b> [value: <i>positive integer </i> ]
-<p style="text-indent: 5%">
-If between 0 and 100, indicates the percentage of the timeshift buffer when starting playback.<br/> 
-If more than 100, indicates the number of milliseconds to rewind in the timeshift buffer when starting playback. <br/>
-Default is 0 to tune to the live point.</p>
-<b>LowLatency</b> [value: <i>always, chunk, no</i>]
-<p style="text-indent: 5%">
-Sets low-latency mode enabled. In low-latency mode, media data is parsed as soon as possible while segment is being downloaded. Default is no.
-If chunk is selected, media data is re-parsed at each HTTP 1.1 chunk end. If always is selected, media data is re-parsed as soon as HTTP data is received.</p> 
-<b>AllowAbort</b> [value: <i>yes, no</i>]
-<p style="text-indent: 5%">
-Enables aborts of HTTP transfer when rate gets too low. This imply data loss and may also result in a connection loss. Default is no.</p>
-<b>UseServerUTC</b> [value: <i>yes, no</i>]
-<p style="text-indent: 5%">
-Enables using <i>Server-UTC</i> HTTP header to compensate any drift between client and server. Default is yes.</p>
-<b>DebugAdaptationSet</b> [value: <i>integer</i>]
-<p style="text-indent: 5%">
-Plays only the adaptation set indicated by its index in the MPD. If index is negative, all sets are used (default mode).
-</p>
-<b>TimeBetween404</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Sets how many millisconds to wait between two 404 on the same segment. Default is 500. 
-</p>
-<b>SegmentExpirationThreshold</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Sets how many millisconds to wait after the segment AvailabilityEndDate before considering the segment lost. Default is 100. 
-</p>
-<b>ThreadedDownload</b> [value: <i>yes no</i>]
-<p style="text-indent: 5%">
-Enables threade download of media segments. When low latency mode is used, this option is forced to yes. Default is no. 
-</p>
-<b>SpeedAdaptation</b> [value: <i>yes no</i>]
-<p style="text-indent: 5%">
-Enables adaptation based on playback speed. Default is no. 
-</p>
-<b>SwitchProbeCount</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Sets how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations. 
-Default value is 1.
-</p>
-<b>AgressiveSwitching</b> [value: <i>yes no</i>]
-<p style="text-indent: 5%">
-If yes, switching targets to the closest bandwidth fitting the available download rate. If no, switching targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth). Default value is no.
-</p>
-<b>TileAdaptation</b> [value: <i>none, rows, reverseRows, middleRows, columns, reverseColumns, middleColumns, center</i>]
-<p style="text-indent: 5%">
-Selects how bitrate is shared across tiles of a video:
-<ul> 
-<li>none: bitrate is shared equaly accross all tiles (default).</li>
-<li>rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row.</li> 
-<li>reverseRows: bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row.</li> 
-<li>middleRows: bitrate decreased for top and bottom rows only, same rate for each tile on the row.</li> 
-<li>columns: bitrate decreases for each columns of tiles starting from the left, same rate for each tile on the columns.</li> 
-<li>reverseColumns: bitrate decreases for each columns of tiles starting from the right, same rate for each tile on the columns.</li> 
-<li>middleColumns: bitrate decreased for left and right columns only, same rate for each tile on the columns.</li> 
-<li>center: bitrate decreased for all tiles on the edge of the picture.</li> 
-<li>edges: bitrate decreased for all tiles on the center of the picture.</li> 
-</ul>
-</p>
-<b>TileRateDecrease</b> [value: <i>percentage</i>]
-<p style="text-indent: 5%">
-Indicates the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. 
-If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.
-Default is 100.</p>
-
-<b>UTCShiftATSC</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Indicates the amount of ms to delay requests for ATSC broadcast. Default value is 1000.</p>
-
-<br/><br/>
-
 <a name="ALSA"></a>
 <span style="text-decoration: underline;"><b>Section "ALSA"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>The "ALSA" section of the config file holds all configuration options of the ALSA audio output module on GNU/Linux systems.</p>
 <b>DeviceName</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies the ALSA device to use. Default device is "hw:0,0".</p>
-
-<br/><br/>
-
-<a name="StreamingText"></a>
-<span style="text-decoration: underline;"><b>Section "StreamingText"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "StreamingText" section of the config file holds all configuration options for the 3GPP/MPEG-4 Streaming Text decoder.</p>
-<b>UseTexturing</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether the text shall be drawn using an intermediate texture or not.<<b>OutlineText</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether the text shall be drawn with a black thin outline or not.</p>
-
 
 <br/><br/>
 
@@ -934,43 +401,6 @@ Currently defined actions are as follows:</p>
 <b>SlowRewind</b> <br/>
 <b>Next</b> <br/>
 <b>Previous</b> <br/>
-
-<br/><br/>
-
-<a name="DSMCC"></a>
-<span style="text-decoration: underline;"><b>Section "DSMCC"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The "DSMCC" section of the config file holds the configuration option for the processing of DSMCC data.
-</p>
-<b>Activated</b> [value: <i>"true"</i> <i>"false"</i>]
-<p style="text-indent: 5%">
-Specifies if the DSMCC data will be processed (true). It implies creations of directories and files in the temp directory.</p>
-
-
-<br/><br/>
-
-<a name="OpenHEVC"></a>
-<span style="text-decoration: underline;"><b>Section "OpenHEVC"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The openHEVC section of the config file holds the configuration option for the OpenHEVC decoder.
-</p>
-<b>NumThreads</b> [value: unsigned integer]
-<p style="text-indent: 5%">
-Specifies the number of threads to allocate to the OpenHEVC decoder. Default is the number of detected cores minus one, or one if core detection fails.</p>
-<b>ThreadingType</b> [value: <i>frame</i> , <i>wpp</i> , <i>frame+wpp</i> ]
-<p style="text-indent: 5%">
-Specifies the threading type for the openHEVC decoder. Default is frame (wpp disabled).</p>
-<b>CBUnits</b> [value: <i>unsigned integer</i> ]
-<p style="text-indent: 5%">
-Specifies the number of decoded frames in memory before display. Default value is 4.</p>
-<b>PackHFR</b> [value: <i>yes</i>, <i>no</i> ]
-<p style="text-indent: 5%">
-Packs 4 consecutive frames in a single 4x frame.</p>
-
-<b>ResetAtReinit</b> [value: <i>yes</i>, <i>no</i> ]
-<p style="text-indent: 5%">
-Destroys and recreates the decoder whenever a layer is restarted (base or enhancement). Default is no, but openHevc may need this depending on version/branch/platform.</p>
-
 
 <br/><br/>
 
@@ -1018,50 +448,6 @@ Indicates if YUV data shall be clipped to valid SDI range or left untouched. Def
 
 <br/><br/>
 
-<a name="M2TS"></a>
-<span style="text-decoration: underline;"><b>Section "M2TS"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The "M2TS" section of the config file holds configuration options for MPEG-2 TS demultiplexer module.</a>
-</p>
-<b>ForceTEMILocation</b> [value: <i>URL string</i>]
-<p style="text-indent: 5%">
-Overrides the URL in TEMI location descriptor with the specified value.</p>
-<b>RecordTo</b> [value: <i>file path</i>]
-<p style="text-indent: 5%">
-Records the TS content to the specified file.</p>
-<b>UDPBufferSize</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-UDP buffer size for the socket. Default value is a few hundred kilobytes depending on the platform.</p>
-
-<a name="RAW"></a>
-<span style="text-decoration: underline;"><b>Section "RAWVideo"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The "RAWVideo" section of the config file holds configuration options for Raw video and audio output module.</a>
-</p>
-<b>RawOutput</b> [value: <i>"null" or any string</i>]
-<p style="text-indent: 5%">
-If set to <i>null</i> string, the raw output does nothing (no bliting calls, no backbuffer) - used for bench mode only.</p>
-<b>PixelFormat</b> [value: <i>555, 565, rgb, bgr, rgb32, bgr32, rgba, argb</i>]
-<p style="text-indent: 5%">
-Sets the output video format of the raw module, mostly used for testing. The default format is rgb.</p>
-
-<a name="NVDec"></a>
-<span style="text-decoration: underline;"><b>Section "NVDec"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The "NVDec" section of the config file holds configuration options for NVidia hardware decoding module.</a>
-</p>
-<b>NumSurfaces</b> [value: <i>integer</i>]
-<p style="text-indent: 5%">
-Sets the number of decoded surface for the decoder. Default is 20.</p>
-<b>DisableGL</b> [value: <i>yes, no</i>]
-<p style="text-indent: 5%">
-Disables hardware decoder to opengl transfer on GPU (and forces GPU->CPU->GPU memory). Default is no.</p>
-<b>UnloadInactive</b> [value: <i>no, destroy, reuse</i>]
-<p style="text-indent: 5%">
-Enables unloading inactive decoders to free GPU resources (usefull for tiling VR). <i>no</i> disables unloading, <i>destroy</i> kills the decoder, <i>reuse</i> reassigns the HW decoder to another object (still buggy). Default is no.</p>
-<b>PreferMode</b> [value: <i>cuvid, dxva, cuda</i>]
-<p style="text-indent: 5%">
-Sets prefered mode for harware decoder. cuda should only be used for MPEG-1 and MPEG-2 video. Default is cuvid.</p>
 
 </body>
 </html>

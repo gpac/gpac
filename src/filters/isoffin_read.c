@@ -655,7 +655,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK) com->info.name = tag;
 		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK) com->info.artist = tag;
 		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK) com->info.album = tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK) com->info.comment = tag;
+		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK) com->info.help = tag;
 		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) {
 			com->info.track_info = (((tag[2]<<8)|tag[3]) << 16) | ((tag[4]<<8)|tag[5]);
 		}
@@ -947,7 +947,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			}
 		}
 	}
-	return is_active ? GF_OK : GF_EOS;
+	if (!is_active)
+		return GF_EOS;
+	if (in_is_eos) gf_filter_ask_rt_reschedule(filter, 100);
+	return GF_OK;
+
 }
 
 static const char *isoffin_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -990,7 +994,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
 	.description = "ISOBMFF demuxer",
-	.comment = "When scalable tracks are present in a file, the reader can operate in 3 modes using smode option:\n"\
+	.help = "When scalable tracks are present in a file, the reader can operate in 3 modes using smode option:\n"\
 	 	"\tsmode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
 	 	"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"\
 	 	"\tsmode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"

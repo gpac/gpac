@@ -362,6 +362,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 				if (!mo->is_eos) {
 					mo->is_eos = GF_TRUE;
 					mediasensor_update_timing(mo->odm, GF_TRUE);
+					gf_odm_on_eos(mo->odm, mo->odm->pid);
 					gf_odm_signal_eos_reached(mo->odm);
 				}
 			}
@@ -411,7 +412,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 				if (!mo->is_eos) {
 					mo->is_eos = GF_TRUE;
 					mediasensor_update_timing(mo->odm, GF_TRUE);
-					gf_odm_signal_eos_reached(mo->odm);
+					gf_odm_on_eos(mo->odm, mo->odm->pid);
+					force_decode_mode=0;
 				}
 				break;
 			}
@@ -455,15 +457,16 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		}
 	}
 
-	skip_resync = GF_FALSE;
+	skip_resync = mo->odm->parentscene->compositor->bench_mode ? GF_TRUE : GF_FALSE;
 	//no drop mode, only for speed = 1: all frames are presented, we discard the current output only if already presented and next frame time is mature
 	if ((mo->odm->ck->speed == FIX_ONE)
 		&& (mo->type==GF_MEDIA_OBJECT_VIDEO)
-		&& ! mo->odm->low_latency_mode
+		//if no buffer playout we are in low latency configuration, don"t skip resync
+		&& mo->odm->buffer_playout_us
 	) {
 		assert(mo->odm->parentscene);
 
-		if (! mo->odm->parentscene->compositor->drop_late_frames) {
+		if (! mo->odm->parentscene->compositor->drop) {
 			if (mo->odm->parentscene->compositor->force_late_frame_draw) {
 				mo->flags |= GF_MO_IN_RESYNC;
 			}

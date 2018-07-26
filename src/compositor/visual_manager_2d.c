@@ -193,7 +193,7 @@ void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_s
 	/*setup clipper*/
 	if (visual->center_coords) {
 		if (!visual->offscreen) {
-			if (visual->compositor->scalable_zoom)
+			if (visual->compositor->sz)
 				rc = gf_rect_center(INT2FIX(visual->compositor->display_width), INT2FIX(visual->compositor->display_height));
 			else
 				rc = gf_rect_center(INT2FIX(visual->compositor->output_width + 2*visual->compositor->vp_x), INT2FIX(visual->compositor->output_height + 2*visual->compositor->vp_y));
@@ -257,7 +257,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	DrawableContext *ctx;
 	M_Background2D *bck;
 #endif
-	u32 draw_mode;
+	u32 mode2d;
 
 	/*reset display list*/
 	visual->cur_context = visual->context;
@@ -278,15 +278,15 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 		return e;
 
 	tr_state->immediate_for_defer = GF_FALSE;
-	draw_mode = 0;
+	mode2d = 0;
 	if (tr_state->immediate_draw) {
-		draw_mode = 1;
+		mode2d = 1;
 	}
 	/*if we're requested to invalidate everything, switch to direct drawing but don't reset bounds*/
 	else if (tr_state->invalidate_all) {
 		tr_state->immediate_draw = 1;
 		tr_state->immediate_for_defer = GF_TRUE;
-		draw_mode = 2;
+		mode2d = 2;
 	}
 	tr_state->invalidate_all = 0;
 
@@ -296,7 +296,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	it = visual->prev_nodes;
 	while (it) {
 		/*node was not drawn on this visual*/
-		if (!drawable_flush_bounds(it->drawable, visual, draw_mode)) {
+		if (!drawable_flush_bounds(it->drawable, visual, mode2d)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Unregistering previously drawn node %s from visual\n", gf_node_get_class_name(it->drawable->node)));
 
 			/*remove all bounds info related to this visual and unreg node */
@@ -316,8 +316,8 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 			count++;
 		}
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Top visual initialized - %d nodes registered and %d removed - using %s rendering\n", count, rem, draw_mode ? "direct" : "dirty-rect"));
-	if (!draw_mode) return GF_OK;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Top visual initialized - %d nodes registered and %d removed - using %s rendering\n", count, rem, mode2d ? "direct" : "dirty-rect"));
+	if (!mode2d) return GF_OK;
 
 #ifndef GPAC_DISABLE_VRML
 	/*direct mode, draw background*/

@@ -363,19 +363,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		GF_FilterEvent evt;
 		const GF_PropertyValue *prop;
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
-		const char *opt;
 
-		opt = gf_cfg_get_key(scene->compositor->user->config, "Network", "BufferLength");
-		if (opt) odm->buffer_playout_us = (u32) (1000*atof(opt));
-		else odm->buffer_playout_us = 3000000;
-
-		opt = gf_cfg_get_key(scene->compositor->user->config, "Network", "RebufferLength");
-		if (opt) odm->buffer_min_us = (u32) (1000*atof(opt));
-		else odm->buffer_min_us = 0;
-
-		opt = gf_cfg_get_key(scene->compositor->user->config, "Network", "BufferMaxOccupancy");
-		if (opt) odm->buffer_max_us = (u32) (1000*atof(opt));
-		else odm->buffer_max_us = odm->buffer_playout_us;
+		odm->buffer_playout_us = scene->compositor->buf * 1000;
+		odm->buffer_min_us = scene->compositor->rbuf * 1000;
+		odm->buffer_max_us = scene->compositor->mbuf * 1000;
 
 		//check the same on the pid
 		prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "BufferLength");
@@ -385,9 +376,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "BufferMaxOccupancy");
 		if (prop) odm->buffer_max_us = prop->value.uint;
 
+		if (odm->buffer_playout_us > odm->buffer_max_us) odm->buffer_max_us = odm->buffer_playout_us;
+
 		prop = gf_filter_pid_get_info(for_pid ? for_pid : odm->pid, GF_PROP_PID_FILE_CACHED);
 		if (prop) {
-			odm->buffer_playout_us = odm->buffer_max_us = 1000000;
+			odm->buffer_playout_us = odm->buffer_max_us = 1000;
 			odm->buffer_min_us = 0;
 		}
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, for_pid ? for_pid : odm->pid);
@@ -616,7 +609,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	}
 
 	/*override clock dependencies if specified*/
-	if (scene->compositor->force_single_clock) {
+	if (scene->compositor->sclock) {
 		GF_Scene *parent = gf_scene_get_root_scene(scene);
 		clockID = scene->root_od->ck->clock_id;
 		ck_namespace = parent->root_od->scene_ns->Clocks;
@@ -1077,6 +1070,9 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 		gf_filter_remove(odm->scene_ns->source_filter, odm->subscene->compositor->filter);
 		odm->scene_ns->source_filter = NULL;
 	}
+
+	gf_odm_signal_eos_reached(odm);
+
 }
 
 void gf_odm_signal_eos_reached(GF_ObjectManager *odm)
@@ -1643,16 +1639,16 @@ void gf_odm_stop_or_destroy(GF_ObjectManager *odm)
 static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info)
 {
 	GF_FilterPidStatistics stats;
-	gf_filter_pid_get_statistics(pid, &stats);
+	gf_filter_pid_get_statistics(pid, &stats, GF_TRUE);
 
 	info->avg_bitrate = stats.avgerage_bitrate;
 	info->max_bitrate = stats.max_bitrate;
 	info->nb_dec_frames = stats.nb_processed;
 	info->max_dec_time = stats.max_process_time;
 	info->total_dec_time = stats.total_process_time;
-	info->first_frame_time = (u32) stats.first_process_time;
-	info->last_frame_time = (u32) stats.last_process_time;
-	info->au_duration = (u32) stats.min_frame_dur;
+	info->first_frame_time = (u32) stats.first_process_time/1000;
+	info->last_frame_time = (u32) stats.last_process_time/1000;
+	info->au_duration = (u32) stats.min_frame_dur/1000;
 	info->nb_iraps = stats.nb_saps;
 	info->irap_max_dec_time = stats.max_sap_process_time;
 	info->irap_total_dec_time = stats.total_sap_process_time;

@@ -186,8 +186,21 @@ enum
 	GF_SC_DEPTH_GL_VBO,
 };
 
+
+enum
+{
+	GF_SC_GLMODE_AUTO=0,
+	GF_SC_GLMODE_OFF,
+	GF_SC_GLMODE_HYBRID,
+	GF_SC_GLMODE_ON,
+	GF_SC_GLMODE_RASTER
+};
+
 struct __tag_compositor
 {
+	u32 magic;	//must be "comp"
+	void *magic_ptr; //must point to this structure
+
 	/*the main user*/
 	GF_User *user;
 
@@ -205,6 +218,9 @@ struct __tag_compositor
 
 	/*compositor exclusive access to the scene and display*/
 	GF_Mutex *mx;
+
+	//args have been updated
+	Bool reload_config;
 
 	//list of pids we need to monitor at each render pass. For now BIFS and OD only
 	GF_List *systems_pids;
@@ -236,6 +252,9 @@ struct __tag_compositor
 
 	Bool video_setup_failed;
 
+	//fps config option
+	Double fps;
+
 	/*simulation frame rate*/
 	Double frame_rate;
 	Bool bench_mode;
@@ -257,6 +276,13 @@ struct __tag_compositor
 	Bool video_frame_pending;
 	Bool fullscreen_postponed;
 
+	Bool amc, async;
+	u32 asr, ach, alayout, afmt, asize, avol, apan, abuf;
+
+	u32 buf, rbuf, mbuf;
+	
+	u32 ogl, mode2d;
+
 	/*display size*/
 	u32 display_width, display_height;
 
@@ -269,7 +295,7 @@ struct __tag_compositor
 	u32 vp_x, vp_y, vp_width, vp_height;
 	/*backbuffer size - in scalable mode, matches display size, otherwise matches scene size*/
 	u32 output_width, output_height;
-	Bool output_as_8bit;
+	Bool out8b;
 	u8 multiview_mode;
 	/*scene size if any*/
 	u32 scene_width, scene_height;
@@ -299,11 +325,12 @@ struct __tag_compositor
 	GF_FontManager *font_manager;
 	/*set whenever a new font has been received*/
 	Bool reset_fonts;
+	Bool wfont;
 	s32 fonts_pending;
 
 	/*options*/
-	u32 aspect_ratio, antiAlias, texture_text_mode;
-	Bool high_speed, stress_mode;
+	u32 aspect_ratio, aa, textxt;
+	Bool fast, stress;
 	Bool is_opengl;
 	Bool autoconfig_opengl;
 	u32 force_opengl_2d;
@@ -314,6 +341,8 @@ struct __tag_compositor
 	//in this mode all 2D raster is done through and RGBA canvas except background IO and textures which are done by the GPU. The canvas is then flushed to GPU.
 	//the mode supports defer and immediate rendering
 	Bool hybrid_opengl;
+
+	Bool fsize;
 
 	/*key modif*/
 	u32 key_states;
@@ -331,11 +360,10 @@ struct __tag_compositor
 	u32 new_width, new_height;
 
 	/*current background color*/
-	u32 back_color, default_back_color;
+	u32 back_color, bc, ckey;
 
 	/*bounding box draw type: none, unit box/rect and sphere (3D only)*/
-	u32 draw_bvol;
-
+	u32 bvol;
 	/*list of system colors*/
 	u32 sys_colors[28];
 
@@ -354,6 +382,13 @@ struct __tag_compositor
 		2: AR changed and root visual type changed between 2D and 3D
 	*/
 	u32 recompute_ar;
+
+	/*to copy!*/
+	u32 views, stereo, camlay;
+	Bool rview;
+	Fixed dispdist;
+
+	GF_PropVec2i defsz, dpi;
 
 	Bool zoom_changed;
 
@@ -402,10 +437,11 @@ struct __tag_compositor
 	GF_RasterCallback raster_callbacks;
 
 	/*options*/
-	Bool scalable_zoom;
-	Bool enable_yuv_hw;
+	Bool sz;
+
+	Bool yuvhw;
 	/*disables partial hardware blit (eg during dirty rect) to avoid artefacts*/
-	Bool disable_partial_hw_blit;
+	Bool blitp;
 
 	/*user navigation mode*/
 	u32 navigate_mode;
@@ -445,8 +481,8 @@ struct __tag_compositor
 	/*a dedicated drawable for focus highlight */
 	struct _drawable *focus_highlight;
 	/*highlight fill and stroke colors (ARGB)*/
-	u32 highlight_fill, highlight_stroke;
-	Fixed highlight_stroke_width;
+	u32 hlfill, hlline;
+	Fixed hllinew;
 	Bool disable_focus_highlight;
 
 	/*picking info*/
@@ -503,33 +539,33 @@ struct __tag_compositor
 	is applied to this texture, black stripes will appear on the borders.
 	If not set video is written through glDrawPixels with bitmap (slow scaling), or converted to
 	po2 texture*/
-	Bool emul_pow2;
+	Bool epow2;
 	/*use openGL for outline rather than vectorial ones*/
-	Bool raster_outlines;
+	Bool linegl;
 	/*disable RECT extensions (except for Bitmap...)*/
-	Bool disable_rect_ext;
+	Bool rext;
 	/*disable RECT extensions (except for Bitmap...)*/
-	u32 draw_normals;
+	u32 norms;
 	/*backface cull type: 0 off, 1: on, 2: on with transparency*/
-	u32 backcull;
+	u32 bcull;
 	/*polygon atialiasing*/
-	Bool poly_aa;
+	Bool paa;
 	/*disable gluScaleImage*/
-	Bool disable_glu_scale;
+	Bool glus;
 	/*wireframe/solid mode*/
-	u32 wiremode;
+	u32 wire;
 	/*collision detection mode*/
 	u32 collide_mode;
 	/*gravity enabled*/
 	Bool gravity_on;
 	/*AABB tree-based culling is disabled*/
-	Bool disable_gl_cull;
+	Bool cull;
 	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
-	Bool disable_yuvgl;
+	Bool yuvgl;
 	//use PBO to start pushing textures at the beginning of the render pass
-	Bool enable_pbo;
+	Bool pbo;
 
-	u32 default_navigation_mode;
+	u32 nav;
 
 	/*unit box (1.0 size) and unit sphere (1.0 radius)*/
 	GF_Mesh *unit_bbox;
@@ -546,7 +582,7 @@ struct __tag_compositor
 #endif
 
 	//force video frame packing (0=no packing or GF_3D_STEREO_SIDE or GF_3D_STEREO_TOP)
-	u32 frame_packing;
+	u32 fpack;
 
 #ifdef GPAC_USE_TINYGL
 	void *tgl_ctx;
@@ -554,11 +590,11 @@ struct __tag_compositor
 
 	Fixed depth_gl_scale, depth_gl_strips_filter;
 	u32 depth_gl_type;
-	Fixed interoccular_distance;
+	Fixed iod;
 	/*increase/decrease the standard interoccular offset by the specified distance in cm*/
 	Fixed interoccular_offset;
 	/*specifies distance the camera focal point and the screen plane : <0 is behind the screen, >0 is in front*/
-	Fixed focus_distance;
+	Fixed focdist;
 
 	struct _gf_sc_texture_handler *hybgl_txh;
 	GF_Mesh *hybgl_mesh;
@@ -568,9 +604,10 @@ struct __tag_compositor
 	char *screen_buffer;
 	u32 screen_buffer_alloc_size;
 
-	u32 tile_visibility_nb_tests, tile_visibility_threshold;
-	Bool tile_visibility_debug, force_all_tiles_visible;
+	u32 tvtn, tvtt;
+	Bool tvtd, tvtf;
 	u32 vrhud_mode;
+	Fixed fov;
 #endif
 
 	Bool orientation_sensors_active;
@@ -588,8 +625,8 @@ struct __tag_compositor
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	/*video cache size / max size in kbytes*/
-	u32 video_cache_current_size, video_cache_max_size;
-	u32 cache_scale, cache_tolerance;
+	u32 video_cache_current_size, vcsize;
+	u32 vcscale, vctol;
 	/*sorted list (by cache priority) of cached groups - permanent for the lifetime of the scene/cache object*/
 	GF_List *cached_groups;
 	/*list of groups being cached in one frame */
@@ -597,19 +634,19 @@ struct __tag_compositor
 #endif
 
 #ifdef GF_SR_USE_DEPTH
-	Bool auto_calibration;
+	Bool autocal;
 	/*display depth in pixels - if -1, it is the height of the display area*/
-	s32 display_depth;
+	s32 dispdepth;
 #endif
 
-	Bool gazer_enabled, simulate_gaze;
+	Bool gazer_enabled, sgaze;
 	s32 gaze_x, gaze_y;
 
 	//moved from old GF_Terminal
 	struct _gf_scene *root_scene;
-	Bool drop_late_frames;
-	Bool force_single_clock;
-	u32 net_data_timeout;
+	Bool drop;
+	Bool sclock;
+	u32 timeout;
 	u32 play_state;
 	Bool use_step_mode;
 	//associated filter, used to load input filters
@@ -618,6 +655,8 @@ struct __tag_compositor
 	GF_FilterPid *vout;
 	GF_FilterHWFrame hwframe;
 	GF_VideoSurface fb;
+
+	Bool dbgpvr;
 
 	/*all X3D key/mouse/string sensors*/
 	GF_List *x3d_sensors;
@@ -1121,7 +1160,9 @@ Bool gf_mixer_buffering(GF_AudioMixer *am);
 /*the audio renderer*/
 typedef struct _audio_render
 {
-	u32 total_duration, max_bytes_out, samplerate, bytes_per_samp, nb_bytes_out, buffer_size, nb_buffers;
+	GF_Compositor *compositor;
+	
+	u32 max_bytes_out, samplerate, bytes_per_samp, nb_bytes_out, buffer_size, nb_buffers;
 	u64 current_time_sr, time_at_last_config_sr;
 	GF_FilterPid *aout;
 	u32 video_ts;
@@ -1133,9 +1174,9 @@ typedef struct _audio_render
 	/*freeze time, used when no audio output is set*/
 	u64 freeze_time;
 
-	Bool disable_resync;
+/*	Bool disable_resync;
 	Bool disable_multichannel;
-
+*/
 	/*frozen time counter if set*/
 	Bool Frozen;
 
@@ -1147,8 +1188,7 @@ typedef struct _audio_render
 	/*final output*/
 	GF_AudioMixer *mixer;
 	Bool need_reconfig;
-	/*client*/
-	GF_User *user;
+
 	u32 config_forced, wait_for_rcfg;
 
 	u32 audio_delay, volume, pan, mute;
@@ -1161,7 +1201,7 @@ typedef struct _audio_render
 } GF_AudioRenderer;
 
 /*creates audio renderer*/
-GF_AudioRenderer *gf_sc_ar_load(GF_User *user);
+GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor);
 /*deletes audio renderer*/
 void gf_sc_ar_del(GF_AudioRenderer *ar);
 
@@ -1442,7 +1482,7 @@ typedef struct __text_span
 	GF_Node *user;
 } GF_TextSpan;
 
-GF_FontManager *gf_font_manager_new(GF_User *user);
+GF_FontManager *gf_font_manager_new(GF_User *user, Bool wait_for_fonts);
 void gf_font_manager_del(GF_FontManager *fm);
 
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
@@ -1536,6 +1576,7 @@ typedef struct
 
 	/*service url*/
 	char *url;
+	char *url_frag;
 	GF_Filter *source_filter;
 
 	/*number of attached remote channels ODM (ESD URLs)*/
@@ -1851,7 +1892,6 @@ struct _object_clock
 	//whenever speed is changed we store the time at this instant
 	u32 speed_set_time;
 	s32 drift;
-	u32 data_timeout;
 
 	u32 last_ts_rendered;
 	u32 service_id;
@@ -1991,7 +2031,6 @@ struct _od_manager
 	u32 prev_clock_at_discontinuity_plus_one;
 
 	u32 nb_dropped;
-	Bool low_latency_mode;
 
 	GF_FilterPid *pid;
 	//object ID for linking with mediaobjects

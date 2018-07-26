@@ -155,7 +155,7 @@ void drawable_reset_group_highlight(GF_TraverseState *tr_state, GF_Node *n);
 
 /*move current bounds to previous bounds for given target visual manager - called BEFORE updating the visual manager
 returns 1 if nod was draw last frame on this visual manager, 0 otherwise*/
-Bool drawable_flush_bounds(Drawable *node, GF_VisualManager *on_visual, u32 draw_mode);
+Bool drawable_flush_bounds(Drawable *node, GF_VisualManager *on_visual, u32 mode2d);
 
 /*
 	return 1 if same bound is found in previous list (and remove it from the list)

@@ -1493,29 +1493,28 @@ extension = {
         if (this.view_stereo==extension.GF_VIEW_MONO) {
             wnd.add_menu_item("Stereo", function () {
                 extension.view_stereo = extension.GF_VIEW_STEREO; 
-                gpac.set_option("Compositor", "FramePacking", "None"); 
-                gpac.set_option("Compositor", "StereoType", "StereoHeadset"); 
+                gpac.set_option("Compositor", "stereo", "hmd"); 
               }
              );
         } else if (this.view_stereo==extension.GF_VIEW_STEREO) {
             wnd.add_menu_item("Stereo Side", function () {
                extension.view_stereo = extension.GF_VIEW_STEREO_SIDE;
-               gpac.set_option("Compositor", "Framepacking", "Side");
-               gpac.set_option("Compositor", "StereoType", "StereoHeadset");
+               gpac.set_option("Compositor", "fpack", "side");
+               gpac.set_option("Compositor", "stereo", "hmd");
               }
              );
         } else if (this.view_stereo==extension.GF_VIEW_STEREO_SIDE) {
             wnd.add_menu_item("Stereo Top", function () {
                  extension.view_stereo = extension.GF_VIEW_STEREO_TOP;
-                 gpac.set_option("Compositor", "FramePacking", "Top");  
-                 gpac.set_option("Compositor", "StereoType", "StereoHeadset");  
+                 gpac.set_option("Compositor", "fpack", "top");  
+                 gpac.set_option("Compositor", "stereo", "hmd");  
                 }
             );
         } else {
             wnd.add_menu_item("Mono", function () {
                 extension.view_stereo = extension.GF_VIEW_MONO;
-                gpac.set_option("Compositor", "FramePacking", "None");  
-                gpac.set_option("Compositor", "StereoType", "None");  
+                gpac.set_option("Compositor", "fpack", "none");  
+                gpac.set_option("Compositor", "stereo", "none");  
             }
             );
         }

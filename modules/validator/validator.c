@@ -36,8 +36,6 @@ typedef struct __validation_module
 
 	Bool is_recording;
 	Bool trace_mode;
-	char *prev_fps;
-	char *prev_alias;
 
 	/* Clock used to synchronize events in recording and playback*/
 	GF_Clock *ck;
@@ -935,13 +933,6 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 	case GF_COMPOSITOR_EXT_START:
 		validator->compositor = (GF_Compositor *) param;
 
-		/* if the validator is loaded, we switch off anti-aliasing for image comparison and we put a low framerate,
-		but we store the previous value to restore it upon termination of the validator */
-		opt = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Compositor", "FrameRate");
-		if (opt) validator->prev_fps = gf_strdup(opt);
-		opt = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias");
-		if (opt) validator->prev_alias = gf_strdup(opt);
-
 		/* Check if the validator should be loaded and in which mode */
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "Mode");
 		if (!opt) {
@@ -981,11 +972,6 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator using scenario playlist: %s\n", validator->xvl_filename));
 		}
-
-		/* since we changed parameters of the compositor, we need to trigger a reconfiguration */
-//		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", "5.0");
-//		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", "None");
-//		gf_term_set_option(validator->compositor, GF_OPT_RELOAD_CONFIG, 1);
 
 		/* TODO: if start returns 0, the module is not loaded, so the above init (filter registration) is not removed,
 		   should probably return 1 all the time, to make sure stop is called */
@@ -1052,16 +1038,6 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 			}
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Stopping validator\n"));
-		if (validator->prev_fps) {
-			gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", validator->prev_fps);
-			gf_free(validator->prev_fps);
-			validator->prev_fps = NULL;
-		}
-		if (validator->prev_alias) {
-			gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", validator->prev_alias);
-			gf_free(validator->prev_alias);
-			validator->prev_alias = NULL;
-		}
 		break;
 
 	/* When called in the main loop of the terminal, we don't do anything in the recording mode.
@@ -1130,8 +1106,6 @@ void validator_delete(GF_BaseInterface *ifce)
 {
 	GF_CompositorExt *dr = (GF_CompositorExt *) ifce;
 	GF_Validator *validator = (GF_Validator*)dr->udta;
-	if (validator->prev_fps) gf_free(validator->prev_fps);
-	if (validator->prev_alias) gf_free(validator->prev_alias);
 	gf_free(validator);
 	gf_free(dr);
 }

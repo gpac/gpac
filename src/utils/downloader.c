@@ -1422,12 +1422,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 
 	if (sess->dm && sess->dm->cfg) {
-		ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIPEnabled");
-		if (ip && !strcmp(ip, "yes")) {
-			ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIP");
-		} else {
-			ip = NULL;
-		}
+		ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIP");
 	} else {
 		ip = NULL;
 	}
@@ -2578,7 +2573,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		const char *opt;
 
 		if (sess->dm && sess->dm->cfg)
-			opt = gf_cfg_get_key(sess->dm->cfg, "Systems", "Language2CC");
+			opt = gf_cfg_get_key(sess->dm->cfg, "Core", "Language2CC");
 		else
 			opt = NULL;
 		if (opt) {

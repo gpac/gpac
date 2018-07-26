@@ -460,7 +460,7 @@ static const GF_FilterCapability SockInCaps[] =
 GF_FilterRegister SockInRegister = {
 	.name = "sockin",
 	.description = "UDP / TCP socket input",
-	.comment = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
+	.help = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
 		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
 		"\n"
 #ifdef GPAC_HAS_SOCK_UN

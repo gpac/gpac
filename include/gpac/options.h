@@ -64,15 +64,6 @@ enum
 	GF_ANTIALIAS_FULL /*full antialiasing*/
 };
 
-/*GF_StreamingCache settings*/
-enum
-{
-	GF_MEDIA_CACHE_ENABLED = 0, /*cache on (with SET option, turns it on if possible)*/
-	GF_MEDIA_CACHE_DISABLED, /*cache off (with SET option saves current cache if any)*/
-	GF_MEDIA_CACHE_DISCARD, /*only used for SET option: turns cache off and discards current cache if any*/
-	GF_MEDIA_CACHE_RUNNING,	/*only used in GET option: caching is enabled and currently running*/
-};
-
 /*PlayState settings*/
 enum
 {
@@ -196,8 +187,8 @@ enum
 enum
 {
 	GF_DRAW_MODE_DEFER=0,
-	GF_DRAW_MODE_DEFER_DEBUG,
 	GF_DRAW_MODE_IMMEDIATE,
+	GF_DRAW_MODE_DEFER_DEBUG,
 };
 
 /*high-level options*/

@@ -160,10 +160,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	if (compositor->visual->type_3d || compositor->hybrid_opengl)
 		ext = (const char *) glGetString(GL_EXTENSIONS);
 
-	if (!ext) ext = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions");
+	if (!ext) ext = gf_cfg_get_key(compositor->user->config, "Video", "OpenGLExtensions");
 	/*store OGL extension to config for app usage*/
-	else if (gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions")==NULL)
-		gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLExtensions", ext ? ext : "None");
+	else if (gf_cfg_get_key(compositor->user->config, "Video", "OpenGLExtensions")==NULL)
+		gf_cfg_set_key(compositor->user->config, "Video", "OpenGLExtensions", ext ? ext : "None");
 
 	if (!ext) return;
 
@@ -324,12 +324,12 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
 		compositor->visual->nb_views=1;
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
-		compositor->visual->camera_layout = GF_3D_CAMERA_STRAIGHT;
+		compositor->visual->camlay = GF_3D_CAMERA_STRAIGHT;
 	}
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (compositor->shader_only_mode) {
-		const char *shader = gf_cfg_get_key(compositor->user->config, "Compositor", "VertexShader");
+		const char *shader = gf_cfg_get_key(compositor->user->config, "Video", "VertexShader");
 		FILE *t = shader ? gf_fopen(shader, "rt") : NULL;
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Vertex shader not found, disabling shaders\n"));
@@ -337,7 +337,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		}
 		if (t) gf_fclose(t);
 
-		shader = gf_cfg_get_key(compositor->user->config, "Compositor", "FragmentShader");
+		shader = gf_cfg_get_key(compositor->user->config, "Video", "FragmentShader");
 		t = shader ? gf_fopen(shader, "rt") : NULL;
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Fragment shader not found, disabling shaders\n"));
@@ -733,7 +733,7 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 
 		case GF_3D_STEREO_CUSTOM:
 		{
-			const char *sOpt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "InterleaverShader");
+			const char *sOpt = gf_cfg_get_key(visual->compositor->user->config, "Video", "InterleaverShader");
 			if (sOpt) {
 				visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(sOpt, GL_FRAGMENT_SHADER);
 				if (visual->autostereo_glsl_fragment) res = GF_TRUE;
@@ -1009,7 +1009,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	visual->glsl_has_shaders = GF_TRUE;
 	GL_CHECK_ERR
 
-	shader_file =(char *) gf_cfg_get_key(cfg, "Compositor", "VertexShader");
+	shader_file =(char *) gf_cfg_get_key(cfg, "Video", "VertexShader");
 	if (!shader_file) return GF_FALSE;
 
 	for (i=0; i<GF_GL_NB_VERT_SHADERS; i++) {
@@ -1021,7 +1021,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		}
 	}
 
-	shader_file =(char *) gf_cfg_get_key(cfg, "Compositor", "FragmentShader");
+	shader_file =(char *) gf_cfg_get_key(cfg, "Video", "FragmentShader");
 	if (!shader_file) return GF_FALSE;
 
 	for (i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
@@ -1409,7 +1409,7 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 {
 #ifndef GPAC_USE_GLES2
 
-	if (visual->compositor->high_speed) {
+	if (visual->compositor->fast) {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
@@ -1425,10 +1425,10 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 #endif
 	}
 
-	if (visual->compositor->antiAlias == GF_ANTIALIAS_FULL) {
+	if (visual->compositor->aa == GF_ANTIALIAS_FULL) {
 		glEnable(GL_LINE_SMOOTH);
 #ifndef GPAC_USE_GLES1X
-		if (visual->compositor->poly_aa)
+		if (visual->compositor->paa)
 			glEnable(GL_POLYGON_SMOOTH);
 		else
 			glDisable(GL_POLYGON_SMOOTH);
@@ -1546,7 +1546,7 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 	if (bOn) {
 		glEnable(GL_LINE_SMOOTH);
 #ifndef GPAC_USE_GLES1X
-		if (visual->compositor->poly_aa)
+		if (visual->compositor->paa)
 			glEnable(GL_POLYGON_SMOOTH);
 		else
 			glDisable(GL_POLYGON_SMOOTH);
@@ -2015,7 +2015,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 	vals[2] = visual->fog_color.blue;
 	vals[3] = FIX_ONE;
 	glFogxv(GL_FOG_COLOR, vals);
-	glHint(GL_FOG_HINT, visual->compositor->high_speed ? GL_FASTEST : GL_NICEST);
+	glHint(GL_FOG_HINT, visual->compositor->fast ? GL_FASTEST : GL_NICEST);
 #else
 	Float vals[4];
 	glEnable(GL_FOG);
@@ -2038,7 +2038,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 	vals[2] = FIX2FLT(visual->fog_color.blue);
 	vals[3] = 1;
 	glFogfv(GL_FOG_COLOR, vals);
-	glHint(GL_FOG_HINT, visual->compositor->high_speed ? GL_FASTEST : GL_NICEST);
+	glHint(GL_FOG_HINT, visual->compositor->fast ? GL_FASTEST : GL_NICEST);
 #endif
 
 #endif
@@ -2077,7 +2077,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 
 	/*if inside or no aabb for the mesh draw vertex array*/
-	if (tr_state->visual->compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
+	if (!tr_state->visual->compositor->cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, idx_addr);
 #else
@@ -2699,8 +2699,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 #endif
 
 	} else {
-		if (visual->compositor->backcull
-		        && (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
+		if (visual->compositor->bcull
+		        && (!tr_state->mesh_is_transparent || (visual->compositor->bcull ==GF_BACK_CULL_ALPHA) )
 		        && (mesh->flags & MESH_IS_SOLID)) {
 			glEnable(GL_CULL_FACE);
 			if (tr_state->reverse_backface) {
@@ -2927,7 +2927,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 				//disable blending only if no texture !
 				if (!tr_state->mesh_num_textures)
 					glDisable(GL_BLEND);
-				visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
+				visual_3d_enable_antialias(visual, visual->compositor->aa ? 1 : 0);
 			}
 #ifdef GPAC_USE_GLES1X
 			glColor4x( FIX2INT(visual->mat_2d.red * 255), FIX2INT(visual->mat_2d.green * 255), FIX2INT(visual->mat_2d.blue * 255), FIX2INT(visual->mat_2d.alpha * 255));
@@ -3154,8 +3154,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glNormalPointer(normal_type, sizeof(GF_Vertex), ((char *)base_address + MESH_NORMAL_OFFSET));
 
 		if (mesh->mesh_type==MESH_TRIANGLES) {
-			if (compositor->backcull
-			        && (!tr_state->mesh_is_transparent || (compositor->backcull ==GF_BACK_CULL_ALPHA) )
+			if (compositor->bcull
+			        && (!tr_state->mesh_is_transparent || (compositor->bcull ==GF_BACK_CULL_ALPHA) )
 			        && (mesh->flags & MESH_IS_SOLID)) {
 				glEnable(GL_CULL_FACE);
 				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
@@ -3242,7 +3242,7 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	visual_3d_set_debug_color(0);
 
-	if (tr_state->visual->compositor->draw_normals==GF_NORMALS_VERTEX) {
+	if (tr_state->visual->compositor->norms==GF_NORMALS_VERTEX) {
 		IDX_TYPE *idx = mesh->indices;
 		for (i=0; i<mesh->i_count; i+=3) {
 			for (j=0; j<3; j++) {
@@ -3328,7 +3328,7 @@ void visual_3d_draw_bbox_ex(GF_TraverseState *tr_state, GF_BBox *box, Bool is_de
 	SFVec3f c, s;
 
 	if (! is_debug) {
-		visual_3d_set_debug_color(tr_state->visual->compositor->highlight_stroke);
+		visual_3d_set_debug_color(tr_state->visual->compositor->hlline);
 	}
 
 	gf_vec_diff(s, box->max_edge, box->min_edge);
@@ -3353,7 +3353,7 @@ static void visual_3d_draw_bounds(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	visual_3d_set_debug_color(0);
 
-	if (mesh->aabb_root && (tr_state->visual->compositor->draw_bvol==GF_BOUNDS_AABB)) {
+	if (mesh->aabb_root && (tr_state->visual->compositor->bvol==GF_BOUNDS_AABB)) {
 		visual_3d_draw_aabb_nodeBounds(tr_state, mesh->aabb_root);
 	} else {
 		visual_3d_draw_bbox_ex(tr_state, &mesh->bounds, 1);
@@ -3366,7 +3366,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	Bool mesh_drawn = 0;
 #endif
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
-	if (tr_state->visual->compositor->wiremode != GF_WIREFRAME_ONLY) {
+	if (tr_state->visual->compositor->wire != GF_WIREFRAME_ONLY) {
 		visual_3d_draw_mesh(tr_state, mesh);
 #if !defined(GPAC_USE_GLES2)
 		mesh_drawn = 1;
@@ -3374,7 +3374,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 
 #if !defined(GPAC_USE_GLES2)
-	if (tr_state->visual->compositor->draw_normals) {
+	if (tr_state->visual->compositor->norms) {
 		if (!mesh_drawn) {
 			visual_3d_update_matrices(tr_state);
 			mesh_drawn=1;
@@ -3382,7 +3382,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		visual_3d_draw_normals(tr_state, mesh);
 	}
 
-	if ((mesh->mesh_type==MESH_TRIANGLES) && (tr_state->visual->compositor->wiremode != GF_WIREFRAME_NONE)) {
+	if ((mesh->mesh_type==MESH_TRIANGLES) && (tr_state->visual->compositor->wire != GF_WIREFRAME_NONE)) {
 		glDisable(GL_LIGHTING);
 		visual_3d_set_debug_color(0xFFFFFFFF);
 
@@ -3403,7 +3403,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #endif
 
-	if (tr_state->visual->compositor->draw_bvol)
+	if (tr_state->visual->compositor->bvol)
 		visual_3d_draw_bounds(tr_state, mesh);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));

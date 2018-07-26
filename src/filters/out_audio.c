@@ -260,7 +260,7 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	if (ctx->drv) {
 		ctx->audio_out = (GF_AudioOutput *) gf_modules_load_interface_by_name(user->modules, ctx->drv, GF_AUDIO_OUTPUT_INTERFACE);
 	}
-	/*get a prefered compositor*/
+	/*get a prefered audio output*/
 	if (!ctx->audio_out) {
 		sOpt = gf_cfg_get_key(user->config, "Audio", "DriverName");
 		if (sOpt) {
@@ -302,15 +302,8 @@ static GF_Err aout_initialize(GF_Filter *filter)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Setting up audio module %s\n", ctx->audio_out->module_name));
 
-
-	sOpt = gf_cfg_get_key(user->config, "Audio", "ForceConfig");
-	if (sOpt && !stricmp(sOpt, "yes") && (!ctx->bnum || !ctx->bdur) ) {
-		sOpt = gf_cfg_get_key(user->config, "Audio", "NumBuffers");
-		ctx->bnum = sOpt ? atoi(sOpt) : 6;
-		sOpt = gf_cfg_get_key(user->config, "Audio", "TotalDuration");
-		ctx->bdur = sOpt ? atoi(sOpt) : 400;
-	}
-
+	if (!ctx->bnum || !ctx->bdur) ctx->bnum = ctx->bdur = 0;
+	
 	e = ctx->audio_out->Setup(ctx->audio_out, user->os_window_handler, ctx->bnum, ctx->bdur);
 
 	if (e != GF_OK) {
@@ -406,8 +399,8 @@ static Bool aout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static const GF_FilterArgs AudioOutArgs[] =
 {
 	{ OFFS(drv), "audio driver name", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(bnum), "number of audio buffers - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(bnum), "number of audio buffers - 0 for auto", GF_PROP_UINT, "2", NULL, 0},
+	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

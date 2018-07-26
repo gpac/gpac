@@ -89,7 +89,7 @@ void compositor_init_box(GF_Compositor *compositor, GF_Node *node)
 static void build_shape_cone(GF_Node *n, Drawable3D *stack, GF_TraverseState *tr_state)
 {
 	M_Cone *co = (M_Cone *)n;
-	mesh_new_cone(stack->mesh, co->height, co->bottomRadius, co->bottom, co->side, tr_state->visual->compositor->high_speed);
+	mesh_new_cone(stack->mesh, co->height, co->bottomRadius, co->bottom, co->side, tr_state->visual->compositor->fast);
 }
 
 static void TraverseCone(GF_Node *n, void *rs, Bool is_destroy)
@@ -106,7 +106,7 @@ void compositor_init_cone(GF_Compositor *compositor, GF_Node *node)
 static void build_shape_cylinder(GF_Node *n, Drawable3D *stack, GF_TraverseState *tr_state)
 {
 	M_Cylinder *cy = (M_Cylinder *)n;
-	mesh_new_cylinder(stack->mesh, cy->height, cy->radius, cy->bottom, cy->side, cy->top, tr_state->visual->compositor->high_speed);
+	mesh_new_cylinder(stack->mesh, cy->height, cy->radius, cy->bottom, cy->side, cy->top, tr_state->visual->compositor->fast);
 }
 
 static void TraverseCylinder(GF_Node *n, void *rs, Bool is_destroy)
@@ -123,7 +123,7 @@ void compositor_init_cylinder(GF_Compositor *compositor, GF_Node *node)
 static void build_shape_sphere(GF_Node *n, Drawable3D *stack, GF_TraverseState *tr_state)
 {	
 	M_Sphere *sp = (M_Sphere *)n;
-	mesh_new_sphere(stack->mesh, sp->radius, tr_state->visual->compositor->high_speed, NULL);
+	mesh_new_sphere(stack->mesh, sp->radius, tr_state->visual->compositor->fast, NULL);
 }
 
 static void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandler *txh, Bool horizontal, u32 *min_coord, u32 *max_coord)

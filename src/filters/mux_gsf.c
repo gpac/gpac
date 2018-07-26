@@ -1058,7 +1058,7 @@ static const GF_FilterArgs GSFMxArgs[] =
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfm",
 	.description = "GPAC Super/Simple/Serialized/Stream/State Format writer",
-	.comment = "This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. "\
+	.help = "This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. "\
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "\
 			"using either pipes or sockets. Upstream events are not serialized.\n"\
 			"\n"\

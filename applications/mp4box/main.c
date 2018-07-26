@@ -2816,7 +2816,7 @@ else if (!stricmp(arg, "-v")) verbose++;
 else if (!stricmp(arg, "-tag-list")) {
 	fprintf(stderr, "Supported iTunes tag modifiers:\n");
 	for (i = 0; i < nb_itunes_tags; i++) {
-		fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
+		fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].help);
 	}
 	return 1;
 }

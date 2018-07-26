@@ -54,10 +54,10 @@ extern "C" {
 
 typedef struct __tag_compositor GF_Compositor;
 
-/*creates default compositor
-*/
-GF_Compositor *gf_sc_new(GF_User *user_interface);
-void gf_sc_del(GF_Compositor *sr);
+/*loads compositor, structure being already allocated*/
+GF_Err gf_sc_load(GF_Compositor *sc, GF_User *user_interface);
+/*unloads compositor, structure is not freed*/
+void gf_sc_unload(GF_Compositor *sr);
 
 /*sets simulation frame rate*/
 void gf_sc_set_fps(GF_Compositor *sr, Double fps);

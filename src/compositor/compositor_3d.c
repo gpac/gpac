@@ -106,6 +106,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.width = compositor->display_width;
 	evt.setup.height = compositor->display_height;
 	evt.setup.back_buffer = GF_TRUE;
+	evt.setup.disable_vsync = compositor->bench_mode ? GF_TRUE : GF_FALSE;
 #ifdef GPAC_USE_TINYGL
 	evt.setup.opengl_mode = 0;
 #else
@@ -232,7 +233,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 			if (tr_state->depth_offset) {
 				GF_Matrix mx;
 				Fixed offset;
-				Fixed disp_depth = (compositor->display_depth<0) ? INT2FIX(tr_state->visual->height) : INT2FIX(compositor->display_depth);
+				Fixed disp_depth = (compositor->dispdepth<0) ? INT2FIX(tr_state->visual->height) : INT2FIX(compositor->dispdepth);
 				if (disp_depth) {
 					GF_Matrix bck_mx;
 					if (!tr_state->pixel_metrics) disp_depth = gf_divfix(disp_depth, tr_state->min_hsize);

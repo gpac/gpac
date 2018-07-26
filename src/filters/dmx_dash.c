@@ -820,7 +820,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		}
 
 		if (e!= GF_OK || !com->info.name || 2 > strlen(com->info.name)) {
-			gf_dash_get_info(ctx->dash, &com->info.name, &com->info.comment);
+			gf_dash_get_info(ctx->dash, &com->info.name, &com->info.help);
 		}
 		idx = MPD_GetGroupIndexForChannel(ctx, com->play.on_channel);
 		if (idx>=0) {

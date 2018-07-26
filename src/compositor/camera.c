@@ -210,7 +210,7 @@ void camera_set_2d(GF_Camera *cam)
 #endif
 }
 
-void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, Fixed view_distance_offset, u32 camera_layout)
+void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, Fixed view_distance_offset, u32 camlay)
 {
 	Fixed vlen, h, w, ar;
 	SFVec3f corner, center;
@@ -223,7 +223,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 
 	if (cam->is_3D) {
 		/*setup perspective*/
-		if (camera_layout==GF_3D_CAMERA_OFFAXIS) {
+		if (camlay==GF_3D_CAMERA_OFFAXIS) {
 			Fixed left, right, top, bottom, shift, wd2, ndfl, viewing_distance;
 			SFVec3f eye, pos, tar, disp;
 
@@ -338,11 +338,11 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		cam->center = b.center;
 		cam->radius = b.radius;
 
-		if (camera_layout==GF_3D_CAMERA_OFFAXIS)
-			camera_layout=GF_3D_CAMERA_LINEAR;
+		if (camlay==GF_3D_CAMERA_OFFAXIS)
+			camlay=GF_3D_CAMERA_LINEAR;
 	}
 
-	if (camera_layout == GF_3D_CAMERA_CIRCULAR) {
+	if (camlay == GF_3D_CAMERA_CIRCULAR) {
 		GF_Matrix mx;
 		Fixed viewing_distance = nominal_view_distance;
 		SFVec3f pos, target;
@@ -367,7 +367,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		gf_mx_apply_vec(&mx, &pos);
 
 		gf_mx_lookat(&cam->modelview, pos, target, cam->up);
-	} else if (camera_layout == GF_3D_CAMERA_LINEAR) {
+	} else if (camlay == GF_3D_CAMERA_LINEAR) {
 		Fixed viewing_distance = nominal_view_distance + view_distance_offset;
 		GF_Vec eye, disp, pos, tar;
 

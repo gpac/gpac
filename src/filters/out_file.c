@@ -154,6 +154,11 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	}
 	if (!stricmp(ctx->dst, "null")) {
 		ctx->is_null = GF_TRUE;
+		//null, we accept any kind
+		ctx->in_caps[0].code = GF_PROP_PID_STREAM_TYPE;
+		ctx->in_caps[0].val = PROP_UINT(GF_STREAM_UNKNOWN);
+		ctx->in_caps[0].flags = GF_CAPS_INPUT_EXCLUDED;
+		gf_filter_override_caps(filter, ctx->in_caps, 1);
 		return GF_OK;
 	}
 	if (ctx->dynext) return GF_OK;
@@ -347,11 +352,11 @@ static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterArgs FileOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file - \"null\" means drop all packets ", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dynext), "indicates the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fext), "sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cat), "cats each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
@@ -370,6 +375,9 @@ static const GF_FilterCapability FileOutCaps[] =
 GF_FilterRegister FileOutRegister = {
 	.name = "fout",
 	.description = "Generic file output",
+	.help = "The file output filter can work as a null sink when its destination is \"null\", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"\
+	"In regular mode, the filter will dump to file incomming packets (stream type \"file\", starting a new file for each packet having a start block set, unless operating in cat mode.\n"\
+	"The ouput file name can use gpac templating mechanism, see gpac help.",
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
 	SETCAPS(FileOutCaps),

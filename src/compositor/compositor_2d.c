@@ -876,13 +876,13 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			break;
 		}
 		/*disable based on settings*/
-		if (!visual->compositor->enable_yuv_hw
+		if (!visual->compositor->yuvhw
 		        || (ctx->col_mat || !visual->compositor->video_out->Blit)
 		   ) {
 			use_soft_stretch = GF_TRUE;
 			overlay_type = 0;
 		}
-		if (visual->compositor->disable_partial_hw_blit && ((src_wnd.w!=txh->width) || (src_wnd.h!=txh->height) )) {
+		if (!visual->compositor->blitp && ((src_wnd.w!=txh->width) || (src_wnd.h!=txh->height) )) {
 			use_soft_stretch = GF_TRUE;
 		}
 
@@ -1269,7 +1269,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		scaleY = gf_divfix(INT2FIX(compositor->vp_height), INT2FIX(compositor->scene_height));
 		if (!scaleY) scaleY = FIX_ONE;
 
-		if (!compositor->scalable_zoom) {
+		if (!compositor->sz) {
 			compositor->output_width = compositor->scene_width;
 			compositor->output_height = compositor->scene_height;
 			compositor->vp_width = FIX2INT(gf_divfix(INT2FIX(compositor->display_width), scaleX));
@@ -1295,6 +1295,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.width = compositor->vp_width;
 	evt.setup.height = compositor->vp_height;
 	evt.setup.opengl_mode = 0;
+	evt.setup.disable_vsync = compositor->bench_mode ? GF_TRUE : GF_FALSE;
 	/*copy over settings*/
 	evt.setup.system_memory = compositor->video_memory ? GF_FALSE : GF_TRUE;
 	if (compositor->request_video_memory) evt.setup.system_memory = GF_FALSE;

@@ -325,6 +325,9 @@ GF_Terminal *gf_term_new(GF_User *user)
 	Bool force_single_thread = GF_FALSE;
 	GF_Terminal *tmp;
 	GF_Filter *comp_filter;
+	u32 def_w, def_h;
+	const char *opt;
+	char szArgs[200];
 
 	if (!check_user(user)) return NULL;
 
@@ -360,7 +363,18 @@ GF_Terminal *gf_term_new(GF_User *user)
 		return NULL;
 	}
 
-	comp_filter = gf_fs_load_filter(tmp->fsess, "compositor:FID=compose");
+	opt = gf_cfg_get_key(user->config, "Temp", "DefaultWidth");
+	def_w = opt ? atoi(opt) : 0;
+	opt = gf_cfg_get_key(user->config, "Temp", "DefaultHeight");
+	def_h = opt ? atoi(opt) : 0;
+
+	if (def_w && def_h) {
+		sprintf(szArgs, "compositor:FID=compose:def_size=%dx%d", def_w, def_h);
+	} else {
+		strcpy(szArgs, "compositor:FID=compose");
+	}
+
+	comp_filter = gf_fs_load_filter(tmp->fsess, szArgs);
 	tmp->compositor = comp_filter ? gf_sc_from_filter(comp_filter) : NULL;
 	if (!tmp->compositor) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load compositor filter.\n"));
@@ -1076,7 +1090,6 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 {
 	Double fps;
 	u32 i, j;
-	const char *opt;
 	GF_SceneNamespace *ns;
 	Bool restart = 0;
 	u32 scene_time = gf_term_get_time_in_ms(term);
@@ -1134,12 +1147,10 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	if (speed<0)
 		speed = -speed;
 
-	opt = gf_cfg_get_key(term->user->config, "Compositor", "FrameRate");
-	fps = atoi(opt);
+	fps = term->compositor->fps;
 	fps *= FIX2FLT(speed);
 	if (fps>100) fps = 1000;
 	gf_sc_set_fps(term->compositor, fps);
-
 	return GF_OK;
 }
 
