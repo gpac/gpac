@@ -1993,7 +1993,7 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	Bool switch_coords = GF_FALSE;
 	Bool ret = GF_FALSE;
 	if (evt->type<=GF_EVENT_MOUSEWHEEL) {
-		if (compositor->simulate_gaze) {
+		if (compositor->sgaze) {
 			compositor->gaze_x = evt->mouse.x;
 			compositor->gaze_y = evt->mouse.y;
 		}

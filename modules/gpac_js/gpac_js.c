@@ -189,6 +189,7 @@ enum {
 	GJS_GPAC_PROP_DPI_Y = -35,
 	GJS_GPAC_PROP_SENSORS_ACTIVE = -36,
 	GJS_GPAC_PROP_SIM_FPS = -37,
+	GJS_GPAC_PROP_HAS_OPENGL = -38,
 
 };
 
@@ -382,6 +383,10 @@ case GJS_GPAC_PROP_SIM_FPS:
 	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, compositor->frame_rate) );
 	break;
 
+case GJS_GPAC_PROP_HAS_OPENGL:
+	*vp = BOOLEAN_TO_JSVAL( (compositor->ogl != GF_SC_GLMODE_OFF) ? JS_TRUE : JS_FALSE);
+	break;
+
 case GJS_GPAC_PROP_CPU:
 {
 	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
@@ -534,6 +539,7 @@ static JSBool SMJS_FUNCTION(gpac_get_option)
 {
 	const char *opt = NULL;
 	char *sec_name, *key_name;
+	char arg_val[GF_PROP_DUMP_ARG_SIZE];
 	s32 idx = -1;
 	JSString *s;
 	SMJS_OBJ
@@ -555,12 +561,17 @@ static JSBool SMJS_FUNCTION(gpac_get_option)
 	}
 
 	if (key_name) {
-		opt = gf_cfg_get_key(compositor->user->config, sec_name, key_name);
+		if (!strcmp(sec_name, "Compositor")) {
+			opt = gf_filter_get_arg(compositor->filter, key_name, arg_val);
+		} else {
+			opt = gf_cfg_get_key(compositor->user->config, sec_name, key_name);
+		}
 	} else if (idx>=0) {
 		opt = gf_cfg_get_key_name(compositor->user->config, sec_name, idx);
 	} else {
 		opt = NULL;
 	}
+
 	if (key_name) {
 		SMJS_FREE(c, key_name);
 	}
@@ -593,10 +604,10 @@ static JSBool SMJS_FUNCTION(gpac_set_option)
 	if (JSVAL_IS_STRING(argv[2]))
 		key_val = SMJS_CHARS(c, argv[2]);
 
-	gf_cfg_set_key(compositor->user->config, sec_name, key_name, key_val);
-	if (!strcmp(sec_name, "Compositor") && !strcmp(key_name, "StereoType")) {
-		gf_sc_reload_config(compositor);
+	if (!strcmp(sec_name, "Compositor")) {
+		gf_filter_send_update(compositor->filter, NULL, key_name, key_val, 0);
 	}
+	gf_cfg_set_key(compositor->user->config, sec_name, key_name, key_val);
 
 	SMJS_FREE(c, sec_name);
 	SMJS_FREE(c, key_name);
@@ -657,7 +668,7 @@ static JSBool SMJS_FUNCTION(gpac_set_back_color)
 		else if (i==2) b = v;
 		else if (i==3) a = v;
 	}
-	compositor->back_color = compositor->default_back_color = GF_COL_ARGB(a, r, g, b);
+	compositor->back_color = compositor->bc = GF_COL_ARGB(a, r, g, b);
 	gf_sc_invalidate(compositor, NULL);
 	return JS_TRUE;
 }
@@ -2220,6 +2231,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("http_bitrate",				GJS_GPAC_PROP_HTTP_RATE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("fps",						GJS_GPAC_PROP_FPS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("sim_fps",					GJS_GPAC_PROP_SIM_FPS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("has_opengl",				GJS_GPAC_PROP_HAS_OPENGL, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("cpu_load",					GJS_GPAC_PROP_CPU, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("cpu",						GJS_GPAC_PROP_CPU, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("nb_cores",					GJS_GPAC_PROP_NB_CORES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),

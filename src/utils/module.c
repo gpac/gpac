@@ -173,7 +173,7 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 		return NULL;
 	}
 
-	opt = gf_cfg_get_key(config, "Systems", "ModuleUnload");
+	opt = gf_cfg_get_key(config, "Core", "ModuleUnload");
 	if (opt && !strcmp(opt, "no")) {
 		tmp->no_unload = GF_TRUE;
 	}

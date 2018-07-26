@@ -419,7 +419,7 @@ static const GF_FilterCapability PipeInCaps[] =
 GF_FilterRegister PipeInRegister = {
 	.name = "pin",
 	.description = "pipe input",
-	.comment = "This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.\n"\
+	.help = "This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.\n"\
 		"Input pipes cannot seek\n"\
 		"The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)\n"\
 		"It can be set to run forever (until the session is closed), ignoring any potential pipe close on the writing side\n"\

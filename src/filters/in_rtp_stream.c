@@ -645,9 +645,10 @@ void rtpin_stream_read(GF_RTPInStream *stream)
 			if (diff >= stream->rtpin->udp_timeout) {
 				char szMessage[1024];
 				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms\n", diff));
-				sprintf(szMessage, "No data received in %d ms, retrying using TCP", diff);
+				sprintf(szMessage, "No data received in %d ms%s", diff, stream->rtpin->autortsp ? ", retrying using TCP" : "");
 				rtpin_send_message(stream->rtpin, GF_IP_UDP_TIMEOUT, szMessage);
-				stream->rtpin->retry_tcp = GF_TRUE;
+				if (stream->rtpin->autortsp)
+					stream->rtpin->retry_tcp = GF_TRUE;
 			}
 		}
 	}

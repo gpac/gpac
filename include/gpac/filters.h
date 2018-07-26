@@ -787,9 +787,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 \param att property value
 \param dump buffer holding the resulting value for types requiring string conversions (integers, ...)
 \param dump_data if set data will be dumped in hexa. Otherwise, data buffer is not dumped
+\param min_max_enum optionnal, gives the min/max or enum string when the property is a filter argument
 \return readable  name
 */
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum);
 
 /*! dumps a property value to string, resolving any builtin types (pix formats, codec id, ...)
 \param p4cc property 4CC
@@ -1282,8 +1283,8 @@ struct __gf_filter_register
 	const char *author;
 	/*! mandatory - description of the filter*/
 	const char *description;
-	/*! optionnal - comment for the filter*/
-	const char *comment;
+	/*! optionnal - help of the filter*/
+	const char *help;
 	/*! optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions*/
 	u32 private_size;
 	/*! indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1. A value of 0 implies the filter can only handle one PID*/
@@ -1695,6 +1696,14 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt);
 */
 void gf_filter_disable_process_trigger(GF_Filter *filter, Bool disable);
 
+/*! gets a filter argument value as string for a given argument name..
+\param filter filter object
+\param arg_name name of the filter argument
+\param dump buffer in which any formating of argument value will take place
+\return the string value of the argument, or NULL if argument is not found or is invalid
+*/
+const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE]);
+
 /*! @} */
 
 
@@ -1852,16 +1861,16 @@ const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid);
 */
 const char *gf_filter_pid_get_args(GF_FilterPid *pid);
 
-/*! sets max buffer occupancy in microsenconds of the pid, and only that pid.
-This is different from the GF_FEVT_BUFFER_REQ event which travels down the chain for seting up decoder buffer.
+/*! sets max buffer requirement of an output pid. Typically used by audio to make sure several packets can be dispatched on a pid
+that would otherwise block after one packet
 \param pid the target filter pid
 \param total_duration_us buffer max occupancy in us
 */
 void gf_filter_pid_set_max_buffer(GF_FilterPid *pid, u32 total_duration_us);
 
-/*! returns max buffer occupancy of a pid.
+/*! returns max buffer requirement of a pid.
 \param pid the target filter pid
-\return buffer max occupancy in us
+\return buffer max in us
 */
 u32 gf_filter_pid_get_max_buffer(GF_FilterPid *pid);
 
@@ -1968,9 +1977,10 @@ typedef struct
 /*! gets statistics for the pid
 \param pid the target filter pid
 \param stats the retrieved statistics
+\param for_inputs indicates to fetch stats for all input pids of the parent filter - mostly usefull for decoders
 \return error code if any
 */
-GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats);
+GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, Bool for_inputs);
 
 /*! resets current properties of the pid
 \param pid the target filter pid

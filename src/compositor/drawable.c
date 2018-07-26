@@ -320,7 +320,7 @@ void drawable_mark_modified(Drawable *drawable, GF_TraverseState *tr_state)
 }
 
 /*move current bounds to previous bounds*/
-Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 draw_mode)
+Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 mode2d)
 {
 	Bool was_drawn;
 	DRInfo *dri;
@@ -342,9 +342,9 @@ Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 
 
 	was_drawn = (dri->current_bounds && dri->current_bounds->clip.width) ? 1 : 0;
 
-	if (draw_mode) {
+	if (mode2d) {
 		/*permanent direct drawing mode, destroy previous bounds*/
-		if (draw_mode==1) {
+		if (mode2d==1) {
 			if (dri->previous_bounds) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Destroying previous bounds info for drawable %s\n", gf_node_get_class_name(drawable->node)));
 				while (dri->previous_bounds) {
@@ -1031,10 +1031,10 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	}
 	hl_ctx = visual_2d_get_drawable_context(tr_state->visual);
 	hl_ctx->drawable = hlight;
-	hl_ctx->aspect.fill_color = compositor->highlight_fill;
-	hl_ctx->aspect.line_color = compositor->highlight_stroke;
+	hl_ctx->aspect.fill_color = compositor->hlfill;
+	hl_ctx->aspect.line_color = compositor->hlline;
 	hl_ctx->aspect.line_scale = 0;
-	hl_ctx->aspect.pen_props.width = compositor->highlight_stroke_width;
+	hl_ctx->aspect.pen_props.width = compositor->hllinew;
 	hl_ctx->aspect.pen_props.join = GF_LINE_JOIN_BEVEL;
 	hl_ctx->aspect.pen_props.dash = GF_DASH_STYLE_DOT;
 
@@ -1042,7 +1042,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	if (compositor->edited_text) {
 		hl_ctx->aspect.pen_props.width = 2*FIX_ONE;
 		hl_ctx->aspect.pen_props.dash = 1;
-		hl_ctx->aspect.line_color = compositor->highlight_stroke;
+		hl_ctx->aspect.line_color = compositor->hlline;
 	}
 
 

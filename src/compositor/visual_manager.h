@@ -195,8 +195,7 @@ struct _visual_manager
 	GF_RectArray hybgl_drawn;
 	u32 nb_objects_on_canvas_since_last_ogl_flush;
 
-	u32 nb_views, current_view, autostereo_type, camera_layout;
-	Bool reverse_views;
+	u32 nb_views, current_view, autostereo_type, camlay;
 
 	GF_SHADERID base_glsl_vertex;
 

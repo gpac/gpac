@@ -492,7 +492,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 	//still some data to decode in packet, don't drop it
 	//todo: check if frame->pkt_pts or frame->pts is updated by ffmpeg, otherwise do it ourselves !
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Code not yet tested  - frame PTS was "LLU" - nb samples dec %[FFDec]\n", frame->pkt_pts, frame->nb_samples));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Code not yet tested  - frame PTS was "LLU" - nb samples dec %d\n", frame->pkt_pts, frame->nb_samples));
 	ctx->nb_samples_already_in_frame += frame->nb_samples;
 	frame->nb_samples = 0;
 
@@ -721,7 +721,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->decoder->pix_fmt>=0) {
 			pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
 			if (!pix_fmt) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %[FFDec], defaulting to RGB\n", pix_fmt));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", pix_fmt));
 				pix_fmt = GF_PIXEL_RGB;
 			}
 			FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
@@ -794,7 +794,7 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 			}
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Failed to set option %s:%s, unrecognized type %[FFDec]\n", arg_name, arg_val, arg_val->type ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
@@ -806,15 +806,15 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 static const GF_FilterCapability FFDecodeCaps[] =
 {
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_SVC),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_LHVC),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_TILE_BASE, GF_TRUE),
 	{0},
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 
 #ifdef FF_SUB_SUPPORT
@@ -834,7 +834,7 @@ static const GF_FilterCapability FFDecodeCaps[] =
 GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
 	.description = "FFMPEG decoder "LIBAVCODEC_IDENT,
-	.comment = "See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on decoder options",
+	.help = "See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on decoder options",
 	.private_size = sizeof(GF_FFDecodeCtx),
 	SETCAPS(FFDecodeCaps),
 	.initialize = ffdec_initialize,

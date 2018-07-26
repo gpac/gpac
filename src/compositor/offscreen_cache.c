@@ -230,8 +230,8 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 		/*use current surface coordinate scaling to compute the cache*/
 #ifdef GF_SR_USE_VIDEO_CACHE
-		scale_x = tr_state->visual->compositor->cache_scale * scale_x / 100;
-		scale_y = tr_state->visual->compositor->cache_scale * scale_y / 100;
+		scale_x = tr_state->visual->compositor->vcscale * scale_x / 100;
+		scale_y = tr_state->visual->compositor->vcscale * scale_y / 100;
 #endif
 
 		if (scale_x<0) scale_x = -scale_x;
@@ -448,7 +448,7 @@ static void group_cache_insert_entry(GF_Node *node, GroupingNode2D *group, GF_Tr
 	                                    group->traverse_time));
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Status (KB): Max: %d\tUsed: %d\tNb Groups: %d\n",
-	                                    tr_state->visual->compositor->video_cache_max_size,
+	                                    tr_state->visual->compositor->vcsize,
 	                                    tr_state->visual->compositor->video_cache_current_size,
 	                                    gf_list_count(tr_state->visual->compositor->cached_groups)
 	                                   ));
@@ -500,7 +500,7 @@ static Bool gf_cache_remove_entry(GF_Compositor *compositor, GF_Node *node, Grou
 	                                    FIX2FLT(group->traverse_time)));
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Status (B): Max: %d\tUsed: %d\tNb Groups: %d\n",
-	                                    compositor->video_cache_max_size,
+	                                    compositor->vcsize,
 	                                    compositor->video_cache_current_size,
 	                                    gf_list_count(compositor->cached_groups)
 	                                   ));
@@ -605,9 +605,9 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 		else if (group->cache) {
 			Fixed scale = MAX(tr_state->transform.m[0], tr_state->transform.m[4]);
 
-			if (100*scale >= group->cache->scale*(100 + tr_state->visual->compositor->cache_tolerance))
+			if (100*scale >= group->cache->scale*(100 + tr_state->visual->compositor->vctol))
 				zoom_changed = 1;
-			else if ((100+tr_state->visual->compositor->cache_tolerance)*scale <= 100*group->cache->scale)
+			else if ((100+tr_state->visual->compositor->vctol)*scale <= 100*group->cache->scale)
 				zoom_changed = 1;
 			else
 				zoom_changed = 0;
@@ -648,7 +648,7 @@ Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_Traverse
 	DrawableContext *ctx;
 	u32 nb_segments, nb_objects;
 	u32 alpha_pixels, opaque_pixels, area_world;
-	u32 video_cache_max_size, cache_size, prev_cache_size;
+	u32 vcsize, cache_size, prev_cache_size;
 	u32 i;
 	GF_RectArray ra;
 
@@ -659,7 +659,7 @@ Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_Traverse
 	prev_cache_size = group->cached_size;
 	/*reset bounds*/
 	group_bounds.width = group_bounds.height = 0;
-	video_cache_max_size = tr_state->visual->compositor->video_cache_max_size;
+	vcsize = tr_state->visual->compositor->vcsize;
 
 	/*never cache root node - this should be refined*/
 	if (gf_node_get_parent(node, 0) == NULL) goto group_reject;
@@ -726,14 +726,14 @@ Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_Traverse
 	if (10*opaque_pixels < 7*area_world) goto group_reject;
 
 	/*the memory size allocated for the cache - cache is drawn in final coordinate system !!*/
-	group_bounds.width = tr_state->visual->compositor->cache_scale * group_bounds.width / 100;
-	group_bounds.height = tr_state->visual->compositor->cache_scale * group_bounds.height / 100;
+	group_bounds.width = tr_state->visual->compositor->vcscale * group_bounds.width / 100;
+	group_bounds.height = tr_state->visual->compositor->vcscale * group_bounds.height / 100;
 	cache_size = FIX2INT(group_bounds.width) * FIX2INT(group_bounds.height) * 4 /* pixelFormat is ARGB*/;
 
 	/*TEST 5: cache is less than 10x10 pixels: discard*/
 	if (cache_size < 400) goto group_reject;
 	/*TEST 6: cache is larger than our allowed memory: discard*/
-	if (cache_size>=video_cache_max_size) {
+	if (cache_size>=vcsize) {
 		tr_state->cache_too_small = 1;
 		goto group_reject;
 	}
@@ -795,7 +795,7 @@ group_reject:
 	                                   ));
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Status (B): Max: %d\tUsed: %d\tNb Groups: %d\n",
-	                                    tr_state->visual->compositor->video_cache_max_size,
+	                                    tr_state->visual->compositor->vcsize,
 	                                    tr_state->visual->compositor->video_cache_current_size,
 	                                    gf_list_count(tr_state->visual->compositor->cached_groups)
 	                                   ));
@@ -812,7 +812,7 @@ void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 
 	/*first frame is unusable for stats because lot of time is being spent building the path and allocating
 	the drawable contexts*/
-	if (!compositor->video_cache_max_size || !compositor->frame_number || group->changed || tr_state->in_group_cache) {
+	if (!compositor->vcsize || !compositor->frame_number || group->changed || tr_state->in_group_cache) {
 		group->traverse_time = 0;
 		return;
 	}
@@ -855,7 +855,7 @@ void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 		priority = INT2FIX (group->nb_objects*1024*1024*avg_time) / group->cached_size;
 
 		/*when the memory exceeds the constraint, remove the subgroups that have the lowest deltas*/
-		while (compositor->video_cache_current_size > compositor->video_cache_max_size)	{
+		while (compositor->video_cache_current_size > compositor->vcsize)	{
 			gf_cache_remove_entry(compositor, node, NULL);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Removing low priority cache - current total size %d\n", compositor->video_cache_current_size));
 		}
@@ -868,7 +868,7 @@ void compositor_set_cache_memory(GF_Compositor *compositor, u32 memory)
 	while (compositor->video_cache_current_size) {
 		gf_cache_remove_entry(compositor, NULL, NULL);
 	}
-	compositor->video_cache_max_size = memory;
+	compositor->vcsize = memory;
 	/*and force recompute*/
 	compositor->zoom_changed = 1;
 }

@@ -45,7 +45,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			unit_char = unit_sep[0];
 			if ((unit_char=='k') || (unit_char=='K')) unit = 1000;
 			else if ((unit_char=='m') || (unit_char=='M')) unit = 1000000;
-			if ((unit_char=='G') || (unit_char=='g')) unit = 1000000;
+			if ((unit_char=='G') || (unit_char=='g')) unit = 1000000000;
 		}
 	}
 
@@ -1096,14 +1096,40 @@ Bool gf_props_4cc_check_props()
 }
 
 GF_EXPORT
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum)
 {
 	switch (att->type) {
 	case GF_PROP_SINT:
 		sprintf(dump, "%d", att->value.sint);
 		break;
 	case GF_PROP_UINT:
-		sprintf(dump, "%u", att->value.uint);
+		if (min_max_enum && strchr(min_max_enum, '|') ) {
+			u32 enum_val = 0;
+			char *str_start = (char *) min_max_enum;
+			while (str_start) {
+				u32 len;
+				char *sep = strchr(str_start, '|');
+				if (sep) {
+					len = (u32) (sep - str_start);
+				} else {
+					len = (u32) strlen(str_start);
+				}
+				if (att->value.uint == enum_val) {
+					strncpy(dump, str_start, len);
+					dump[len]=0;
+					break;
+				}
+				if (!sep) break;
+				str_start = sep+1;
+				enum_val++;
+			}
+			if (!str_start) {
+				sprintf(dump, "%u", att->value.uint);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %d not found in enums %s - using integer dump\n", att->value.uint_list, min_max_enum));
+			}
+		} else {
+			sprintf(dump, "%u", att->value.uint);
+		}
 		break;
 	case GF_PROP_LSINT:
 		sprintf(dump, ""LLD, att->value.longsint);
@@ -1253,7 +1279,7 @@ const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PRO
 		else return "none";
 
 	default:
-		return gf_prop_dump_val(att, dump, dump_data);
+		return gf_prop_dump_val(att, dump, dump_data, NULL);
 	}
 	return "";
 }

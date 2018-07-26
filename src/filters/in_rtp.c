@@ -597,6 +597,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(udp_timeout), "Default timeout before considering UDP is down", GF_PROP_UINT, "10000", NULL, 0},
 	{ OFFS(rtsp_timeout), "Default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, 0},
 	{ OFFS(rtcp_timeout), "Default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(autortsp), "Automatically reconfig RTSP interleaving if UDP timeout", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(first_packet_drop), "Sets number of first RTP packet to drop - 0 if no drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(frequency_drop), "Drop 1 out of N packet - 0 disable droping", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(user_agent), "User agent string", GF_PROP_STRING, "GPAC " GPAC_VERSION " RTSP Client", NULL, 0},

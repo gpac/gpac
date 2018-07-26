@@ -536,10 +536,7 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "General", "DeviceType", "Desktop");
 #endif
 
-	gf_cfg_set_key(cfg, "Compositor", "Raster2D", "GPAC 2D Raster");
-	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
-	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
-	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
+	gf_cfg_set_key(cfg, "Video", "Raster2D", "GPAC 2D Raster");
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
 
 	/*Setup font engine to FreeType by default, and locate TrueType font directory on the system*/
@@ -570,11 +567,6 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "200M");
-	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
-	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30.0");
-	/*use power-of-2 emulation in OpenGL if no rectangular texture extension*/
-	gf_cfg_set_key(cfg, "Compositor", "EmulatePOW2", "yes");
-	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
 
 #if defined(_WIN32_WCE)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "GAPI Video Output");
@@ -589,16 +581,9 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
 #endif
-#ifdef GPAC_IPHONE
-	gf_cfg_set_key(cfg, "Compositor", "DisableGLUScale", "yes");
-#endif
 
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
 	gf_cfg_set_key(cfg, "Video", "HardwareMemory", "Auto");
-	gf_cfg_set_key(cfg, "Network", "AutoReconfigUDP", "yes");
-	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
-	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
-	gf_cfg_set_key(cfg, "Network", "BufferMaxOccupancy", "10000");
 
 
 	/*locate GUI*/
@@ -616,9 +601,9 @@ static GF_Config *create_default_config(char *file_path)
 		assert(sep);
 		sep[0] = 0;
 		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Compositor", "VertexShader", gui_path);
+		gf_cfg_set_key(cfg, "Video", "VertexShader", gui_path);
 		sprintf(gui_path, "%s%cshaders%cfragment.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Compositor", "FragmentShader", gui_path);
+		gf_cfg_set_key(cfg, "Video", "FragmentShader", gui_path);
 	}
 
 	/*store and reload*/
@@ -646,9 +631,9 @@ static void check_modules_dir(GF_Config *cfg)
 		sep[0] = 0;
 
 		sprintf(shader_path, "%s%cshaders%cvertex.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Compositor", "VertexShader", shader_path);
+		gf_cfg_set_key(cfg, "Video", "VertexShader", shader_path);
 		sprintf(shader_path, "%s%cshaders%cfragment.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Compositor", "FragmentShader", shader_path);
+		gf_cfg_set_key(cfg, "Video", "FragmentShader", shader_path);
 	}
 	cfg_path = gf_cfg_get_filename(cfg);
 	gf_ios_refresh_cache_directory(cfg, cfg_path);
@@ -670,7 +655,7 @@ static void check_modules_dir(GF_Config *cfg)
 			gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
 		} else  {
 			Bool erase_modules_dir = GF_FALSE;
-			const char *opt64 = gf_cfg_get_key(cfg, "Systems", "64bits");
+			const char *opt64 = gf_cfg_get_key(cfg, "Core", "64bits");
 			if (!opt64) {
 				//first run or old versions, erase
 				erase_modules_dir = GF_TRUE;
@@ -689,7 +674,7 @@ static void check_modules_dir(GF_Config *cfg)
 #else
 			opt64 = "no";
 #endif
-			gf_cfg_set_key(cfg, "Systems", "64bits", opt64);
+			gf_cfg_set_key(cfg, "Core", "64bits", opt64);
 
 			if (erase_modules_dir) {
 				gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);

@@ -504,9 +504,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 				compositor->visual->camera.start_zoom = compositor->zoom;
 				compositor->zoom = FIX_ONE;
 				compositor->interoccular_offset = 0;
-				compositor->focus_distance = 0;
+				compositor->focdist = 0;
 				compositor->interoccular_offset = 0;
-				compositor->focus_distance = 0;
+				compositor->focdist = 0;
 				compositor_3d_reset_camera(compositor);
 			}
 			break;
@@ -523,9 +523,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			if (keys & GF_KEY_MOD_ALT) {
 				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
 					/*+ or - 10 cm*/
-					compositor->focus_distance += INT2FIX(key_inv);
+					compositor->focdist += INT2FIX(key_inv);
 					cam->flags |= CAM_IS_DIRTY;
-					fprintf(stderr, "AutoStereo view distance %f - focus %f\n", FIX2FLT(compositor->video_out->view_distance)/100, FIX2FLT(compositor->focus_distance)/100);
+					fprintf(stderr, "AutoStereo view distance %f - focus %f\n", FIX2FLT(compositor->video_out->dispdist)/100, FIX2FLT(compositor->focdist)/100);
 					gf_sc_invalidate(compositor, NULL);
 					return 1;
 				}
@@ -565,7 +565,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			if (keys & GF_KEY_MOD_ALT) {
 				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
 					compositor->interoccular_offset += FLT2FIX(0.5) * key_inv;
-					fprintf(stderr, "AutoStereo interoccular distance %f\n", FIX2FLT(compositor->interoccular_distance + compositor->interoccular_offset));
+					fprintf(stderr, "AutoStereo interoccular distance %f\n", FIX2FLT(compositor->iod + compositor->interoccular_offset));
 					cam->flags |= CAM_IS_DIRTY;
 					gf_sc_invalidate(compositor, NULL);
 					return 1;
@@ -618,7 +618,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			break;
 		case GF_KEY_D:
 			if (keys & GF_KEY_MOD_CTRL) {
-				compositor->tile_visibility_debug = !compositor->tile_visibility_debug;
+				compositor->tvtd = !compositor->tvtd;
 				gf_sc_invalidate(compositor, NULL);
 				return 1;
 			}
@@ -633,7 +633,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			break;
 		case GF_KEY_A:
 			if (keys & GF_KEY_MOD_CTRL) {
-				compositor->force_all_tiles_visible = !compositor->force_all_tiles_visible;
+				compositor->tvtf = !compositor->tvtf;
 				gf_sc_invalidate(compositor, NULL);
 				return 1;
 			}

@@ -96,6 +96,24 @@ static void gpac_filter_help(void)
 "(eg unload a video decoder when switching from compressed to uncompressed sources).\n"
 "Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values "
 "that must be matched or excluded in connecting pids.\n"
+"Each filter also exposes a set of argument to configure itself, using property types and string values.\n"
+"\n"
+"Property format\n"
+"\n"
+"boolean properties are formatted as yes/true/1 or no/false/0\n"
+"Enum properties (for arguments) must use the syntax given in the argument description, otherwise value 0 (first in enum) is assumed.\n"
+"1-dimension properties (numbers, floats, ints...) are formatted as value[unit], where unit can be k/K (x1000) or m/M (x1000000) or g/G (x1000000000).\n"
+"For such properties, value +I means maximum possible value, -I minimum possible value.\n"
+"Fraction properties are formatted as num/den or num-den or num, in which case the denominator is 1.\n"
+"Unsigned 32 bit integer properties can be specified in hexadecimal using the format 0xAABBCCDD.\n"
+"N-dimension properties (vectors) are formatted as DIM1xDIM2[xDIM3[xDIM4]] values, without multiplier.\n"
+"Data properties are formatted as:\n"
+"\t\"size@address\": constant data block, not internally copied; size gives the size of the block, adress the data pointer.\n"
+"\t\"0xBYTESTRING\": data block specified in hexadecimal, internally copied.\n"
+"Pointer properties are formatted as \"adress\", adress giving the pointer adress (32 or 64 bit depending on platforms).\n"
+"String and interget lists are formatted as val1,val2[,...]\n"
+"\n"
+"Note: Special characters in property formats (0x,/,-,+I,-I,x) cannot be configured.\n"
 "\n"
 "Filter declaration [FILTER_DECL]\n"
 "\n"
@@ -137,8 +155,11 @@ static void gpac_filter_help(void)
 "\tall_intra=BOOL indicates all frames should be intra frames, if supported by codec\n"
 
 "Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).\n"
-"\tEX: \"src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264 creates a 25 fps AVC\n"
+"\tEX: \"src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264\" creates a 25 fps AVC\n"
 "at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg\n"
+"\n"
+"Note that the inverse operation (forcing a decode to happen) is possible using the reframer filter:\n"
+"\tEX: \"src=file.mp4 reframer:raw @ -o null\" will force decoding media from file and trash the result (for example, decoder benchmark)\n"
 "\n"
 "Expliciting links between filters [LINK]\n"
 "\n"
@@ -713,7 +734,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		//dump some interesting predefined ones which are not mapped to types
 		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);
 		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
-		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE);
+		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE, NULL);
 
 		fprintf(stderr, " Type=%s, value=%s", szName,  szVal);
 		if (cap->priority) fprintf(stderr, ", priority=%d", cap->priority);
@@ -726,7 +747,7 @@ static void print_filter(const GF_FilterRegister *reg)
 	fprintf(stderr, "Name: %s\n", reg->name);
 	if (reg->description) fprintf(stderr, "Description: %s\n", reg->description);
 	if (reg->author) fprintf(stderr, "Author: %s\n", reg->author);
-	if (reg->comment) fprintf(stderr, "\n%s\n\n", reg->comment);
+	if (reg->help) fprintf(stderr, "\n%s\n\n", reg->help);
 
 	if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
 	else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);

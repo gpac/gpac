@@ -513,7 +513,7 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 		nhml[0] = 0;
 		break;
 	default:
-		sprintf(nhml, "%s", gf_prop_dump_val(att, pval, GF_FALSE) );
+		sprintf(nhml, "%s", gf_prop_dump_val(att, pval, GF_FALSE, NULL) );
 		break;
 	}
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));

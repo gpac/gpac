@@ -1844,7 +1844,7 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 	        (locales_parent_path && (locales_parent_path[0] != '/') && strstr(locales_parent_path, "://") && strnicmp(locales_parent_path, "file://", 7))) {
 		return 0;
 	}
-	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
+	opt = gf_cfg_get_key(loc->term->user->config, "Core", "Language2CC");
 	if (opt) {
 		if (!strcmp(opt, "*") || !strcmp(opt, "un") )
 			opt = NULL;

@@ -349,6 +349,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 
 GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, const char *url, const char *parent_url)
 {
+	char *frag;
 	GF_SceneNamespace *sns;
 
 	GF_SAFEALLOC(sns, GF_SceneNamespace);
@@ -359,6 +360,11 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 	sns->owner = owner;
 	sns->url = gf_url_concatenate(parent_url, url);
 	sns->Clocks = gf_list_new();
+	frag = strchr(sns->url, '#');
+	if (frag) {
+		sns->url_frag = gf_strdup(frag+1);
+		frag[0] = frag;
+	}
 
 	//move to top scene
 	scene = gf_scene_get_root_scene(scene);
@@ -383,6 +389,7 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 	}
 	gf_list_del(sns->Clocks);
 	if (sns->url) gf_free(sns->url);
+	if (sns->url_frag) gf_free(sns->url_frag);
 	gf_free(sns);
 }
 
@@ -392,9 +399,9 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 {
 #if FILTER_FIXME
 	GF_SceneNamespace *ns;
-	u32 i, count;
 #endif
 	GF_Err e;
+	char *frag;
 	Bool reloc_result=GF_FALSE;
 	
 #if FILTER_FIXME
@@ -404,29 +411,31 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	/*try to relocate the url*/
 	reloc_result = gf_term_relocate_url(term, serviceURL, parent_url, relocated_url, localized_url);
 	if (reloc_result) serviceURL = (char *) relocated_url;
+#endif
 
 	/*check cache*/
 	if (parent_url) {
-		count = gf_cfg_get_section_count(term->user->config);
+		u32 i, count;
+		count = gf_cfg_get_section_count(scene->compositor->user->config);
 		for (i=0; i<count; i++) {
 			u32 exp, sec, frac;
 			const char *opt, *service_cache;
-			const char *name = gf_cfg_get_section_name(term->user->config, i);
+			const char *name = gf_cfg_get_section_name(scene->compositor->user->config, i);
 			if (strncmp(name, "@cache=", 7)) continue;
-			opt = gf_cfg_get_key(term->user->config, name, "serviceURL");
+			opt = gf_cfg_get_key(scene->compositor->user->config, name, "serviceURL");
 			if (!opt || stricmp(opt, parent_url)) continue;
-			opt = gf_cfg_get_key(term->user->config, name, "cacheName");
+			opt = gf_cfg_get_key(scene->compositor->user->config, name, "cacheName");
 			if (!opt || stricmp(opt, serviceURL)) continue;
 
-			service_cache = (char*)gf_cfg_get_key(term->user->config, name, "cacheFile");
-			opt = gf_cfg_get_key(term->user->config, name, "expireAfterNTP");
+			service_cache = (char*)gf_cfg_get_key(scene->compositor->user->config, name, "cacheFile");
+			opt = gf_cfg_get_key(scene->compositor->user->config, name, "expireAfterNTP");
 			if (opt) {
 				sscanf(opt, "%u", &exp);
 				gf_net_get_ntp(&sec, &frac);
 				if (exp && (exp<sec)) {
-					opt = gf_cfg_get_key(term->user->config, name, "cacheFile");
+					opt = gf_cfg_get_key(scene->compositor->user->config, name, "cacheFile");
 					if (opt) gf_delete_file((char*) opt);
-					gf_cfg_del_section(term->user->config, name);
+					gf_cfg_del_section(scene->compositor->user->config, name);
 					i--;
 					count--;
 					service_cache = NULL;
@@ -437,6 +446,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		}
 	}
 
+#if FILTER_FIXME
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used
 	net mutex may be locked at this time (if another service sends a connect OK)*/
 	net_locked = gf_mx_try_lock(term->net_mx);
@@ -489,7 +499,12 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	odm->scene_ns->nb_odm_users++;
 	assert(odm->scene_ns->owner == odm);
 
+	frag = strchr(serviceURL, '#');
+	if (frag) frag[0] = 0;
+
 	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, serviceURL, parent_url, &e);
+
+	if (frag) frag[0] = '#';
 	if (!odm->scene_ns->source_filter) {
 		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, e, GF_TRUE);
 		gf_scene_message(scene, serviceURL, "Cannot find filter for service", e);

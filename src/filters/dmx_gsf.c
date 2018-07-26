@@ -1198,7 +1198,7 @@ static const GF_FilterArgs GSFDemuxArgs[] =
 GF_FilterRegister GSFDemuxRegister = {
 	.name = "gsfd",
 	.description = "GPAC stream format demultiplexer",
-	.comment = "This filter deserialize the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
+	.help = "This filter deserialize the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC\n"\
 			"using either pipes or sockets\n"\
 			"\n"\

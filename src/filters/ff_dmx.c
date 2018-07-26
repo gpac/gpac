@@ -575,7 +575,7 @@ static const GF_FilterCapability FFDmxCaps[] =
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.description = "FFMPEG demuxer "LIBAVFORMAT_IDENT,
-	.comment = "See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options",
+	.help = "See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options",
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFDmxCaps),
 	.initialize = ffdmx_initialize,
@@ -844,7 +844,7 @@ static const GF_FilterCapability FFAVInCaps[] =
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.description = "FFMPEG Audio Video Capture "LIBAVDEVICE_IDENT,
-	.comment = "Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux\n\n"\
+	.help = "Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux\n\n"\
 	"Typical device name can be the webcam name:\n"\
 		"'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux\n"\
 		"'screen-capture-recorder', see http://screencapturer.sf.net/ on windows\n"\

@@ -34,7 +34,6 @@ GF_Clock *NewClock(GF_Compositor *compositor)
 	tmp->compositor = compositor;
 	tmp->speed = FIX_ONE;
 	tmp->timeline_id = 1;
-	tmp->data_timeout = compositor->net_data_timeout;
 	return tmp;
 }
 

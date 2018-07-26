@@ -222,7 +222,7 @@ typedef struct _video_out
 	/*maximum pixel disparity*/
 	u32 disparity;
 	/*nominal display viewing distance in cm*/
-	Fixed view_distance;
+	Fixed dispdist;
 
 	/*driver private*/
 	void *opaque;

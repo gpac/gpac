@@ -947,7 +947,7 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 GF_FilterRegister CENCDecRegister = {
 	.name = "cdcrypt",
 	.description = "CENC and ISMA decryptor",
-	.comment = "The CENC/ISMA decryptor uses a configuration file for retrieving keys. The syntax is available at:\n"\
+	.help = "The CENC/ISMA decryptor uses a configuration file for retrieving keys. The syntax is available at:\n"\
 			"https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/\n"\
 			"The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority)\n"\
 			 "or set at the filter option level (lowest priority).\n"\

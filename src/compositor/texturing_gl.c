@@ -112,7 +112,7 @@ GF_Err gf_sc_texture_allocate(GF_TextureHandler *txh)
 
 GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 {
-	if (txh->compositor->output_as_8bit) {
+	if (txh->compositor->out8b) {
 
 		if (txh->pixelformat == GF_PIXEL_YUV_10) {
 			txh->stride /= 2;
@@ -456,7 +456,7 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 
 //	compositor->gl_caps.yuv_texture = 0;
 	if (!compositor->gl_caps.rect_texture) return 0;
-	if (!compositor->disable_rect_ext) return 1;
+	if (compositor->rext) return 1;
 	/*this happens ONLY with text texturing*/
 	if (!txh->owner) return 0;
 
@@ -579,7 +579,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			break;
 		}
 #ifndef GPAC_USE_GLES2
-		else if (!compositor->disable_yuvgl && compositor->gl_caps.yuv_texture && !(txh->tx_io->flags & TX_MUST_SCALE) ) {
+		else if (compositor->yuvgl && compositor->gl_caps.yuv_texture && !(txh->tx_io->flags & TX_MUST_SCALE) ) {
 			txh->tx_io->gl_format = compositor->gl_caps.yuv_texture;
 			txh->tx_io->nb_comp = 3;
 			txh->tx_io->gl_dtype = UNSIGNED_SHORT_8_8_MESA;
@@ -597,7 +597,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		} else
 #endif
 		{
-			if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
+			if (!use_rect && compositor->epow2) txh->tx_io->flags = TX_EMULE_POW2;
 			txh->tx_io->gl_format = GL_RGB;
 			txh->tx_io->nb_comp = 3;
 		}
@@ -605,7 +605,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGB_DEPTH:
-		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
+		if (!use_rect && compositor->epow2) txh->tx_io->flags = TX_EMULE_POW2;
 		txh->tx_io->gl_format = GL_RGB;
 		txh->tx_io->nb_comp = 3;
 		break;
@@ -636,7 +636,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 #endif
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-	if (txh->compositor->gl_caps.pbo && txh->compositor->enable_pbo) {
+	if (txh->compositor->gl_caps.pbo && txh->compositor->pbo) {
 		u32 size = txh->stride*txh->height;
 
 		if (!txh->tx_io->pbo_id && txh->tx_io->id) {
@@ -709,8 +709,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		}
 
 		if (is_pow2 && txh->tx_io->gl_type == GL_TEXTURE_2D) {
-			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
 		} else {
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -730,8 +730,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		}
 
 		if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
-			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
 		} else {
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1179,8 +1179,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				glBindTexture(gl_format, txh->tx_io->id);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
 
 #ifdef GPAC_ANDROID
 				if ( gl_format == GL_TEXTURE_EXTERNAL_OES) {
@@ -1197,8 +1197,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				glBindTexture(gl_format, txh->tx_io->u_id);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
 
 				goto push_exit;
 			}
@@ -1343,7 +1343,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	} else {
 
 #ifdef GPAC_HAS_GLU
-		if (!txh->compositor->disable_glu_scale) {
+		if (txh->compositor->glus) {
 			gluScaleImage(txh->tx_io->gl_format, txh->width, txh->height, txh->tx_io->gl_dtype, data, txh->tx_io->rescale_width, txh->tx_io->rescale_height, txh->tx_io->gl_dtype, txh->tx_io->scale_data);
 		} else
 #endif
@@ -1557,7 +1557,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		ret = 1;
 	}
 
-	if (txh->stream && (txh->compositor->frame_packing==GF_3D_STEREO_TOP)) {
+	if (txh->stream && (txh->compositor->fpack==GF_3D_STEREO_TOP)) {
 		if ((txh->compositor->visual->current_view % 2 != 0) && !txh->compositor->multiview_mode) {
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
 		}

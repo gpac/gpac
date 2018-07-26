@@ -293,9 +293,9 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	count = atts->systemLanguage ? gf_list_count(*atts->systemLanguage) : 0;
 	if (count) {
 		found = GF_FALSE;
-		lang_3cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language3CC");
+		lang_3cc = gf_cfg_get_key(compositor->user->config, "Core", "Language3CC");
 		if (!lang_3cc) lang_3cc = "und";
-		lang_2cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language2CC");
+		lang_2cc = gf_cfg_get_key(compositor->user->config, "Core", "Language2CC");
 		if (!lang_2cc) lang_2cc = "un";
 	} else {
 		lang_3cc = "und";

@@ -44,7 +44,7 @@ struct _gf_ft_mgr
 };
 
 
-GF_FontManager *gf_font_manager_new(GF_User *user)
+GF_FontManager *gf_font_manager_new(GF_User *user, Bool wait_for_fonts)
 {
 	char *def_font = "SERIF";
 	u32 i, count;
@@ -96,9 +96,8 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 	gf_path_add_line_to(font_mgr->line_path, -FIX_ONE/2, -FIX_ONE/2);
 	gf_path_close(font_mgr->line_path);
 
-	opt = gf_cfg_get_key(user->config, "FontEngine", "WaitForFontLoad");
-	if (!opt) gf_cfg_set_key(user->config, "FontEngine", "WaitForFontLoad", "no");
-	if (opt && !strcmp(opt, "yes")) font_mgr->wait_font_load = 1;
+
+	font_mgr->wait_font_load = wait_for_fonts;
 
 	return font_mgr;
 }
@@ -862,7 +861,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 	Bool fill_2d, vect_outline, can_texture_text;
 	GF_Compositor *compositor = (GF_Compositor*)tr_state->visual->compositor;
 
-	vect_outline = !compositor->raster_outlines;
+	vect_outline = !compositor->linegl;
 
 	visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
 
@@ -926,7 +925,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 	can_texture_text = 0;
 	if (fill_2d || !asp) {
 		/*check if we can use text texturing*/
-		if (force_texturing || (compositor->texture_text_mode != GF_TEXTURE_TEXT_NEVER) ) {
+		if (force_texturing || (compositor->textxt != GF_TEXTURE_TEXT_NEVER) ) {
 			if (fill_2d && asp->pen_props.width) {
 				can_texture_text = 0;
 			} else {
@@ -935,7 +934,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 		}
 	}
 
-	visual_3d_enable_antialias(tr_state->visual, compositor->antiAlias);
+	visual_3d_enable_antialias(tr_state->visual, compositor->aa);
 	if (fill_2d || !asp || tr_state->mesh_num_textures) {
 		if (fill_2d) visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
 
@@ -1305,7 +1304,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 	GF_Rect rc;
 
 	use_texture_text = 0;
-	if (force_texture_text || (compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) ) {
+	if (force_texture_text || (compositor->textxt==GF_TEXTURE_TEXT_ALWAYS) ) {
 		use_texture_text = !ctx->aspect.fill_texture && !ctx->aspect.pen_props.width;
 	}
 

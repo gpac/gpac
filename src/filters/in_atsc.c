@@ -365,7 +365,7 @@ static const GF_FilterArgs ATSCInArgs[] =
 GF_FilterRegister ATSCInRegister = {
 	.name = "atscin",
 	.description = "ATSC input",
-	.comment = "This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.\n"\
+	.help = "This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.\n"\
 	 "The default behaviour is to populate GPAC HTTP cache with the recieved files, using \"http://gpatsc/serviceN/\" as service root, N being the ATSC service ID.\n"\
 	 "In cache mode, repeated files are always send.\n"\
 	"The cached MPD is assigned the following headers:\n"\

@@ -466,7 +466,10 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		gf_filter_forward_clock(pck->pid->filter);
 
 	pid->has_seen_eos = ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) ? GF_TRUE : GF_FALSE;
-
+	if (pid->has_seen_eos) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s has seen EOS\n", pck->pid->filter->name, pck->pid->name));
+	}
+	
 	//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
 	pck->info.flags &= ~GF_PCKF_PROPS_CHANGED;
 

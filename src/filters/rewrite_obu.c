@@ -339,7 +339,7 @@ static const GF_FilterArgs OBUMxArgs[] =
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
 	.description = "OBU to IVF/OBU/annexB writer",
-	.comment = "The OBU rewrite filter is used to rewrite the OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU",
+	.help = "The OBU rewrite filter is used to rewrite the OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU",
 	.private_size = sizeof(GF_OBUMxCtx),
 	.args = OBUMxArgs,
 	SETCAPS(OBUMxCaps),

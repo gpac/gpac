@@ -1198,8 +1198,8 @@ static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 	}
 #ifndef GPAC_DISABLE_3D
 	if (mo->odm) {
-		if (mo->odm->parentscene->compositor->frame_packing==GF_3D_STEREO_TOP) *h /= 2;
-		else if (mo->odm->parentscene->compositor->frame_packing==GF_3D_STEREO_SIDE) *w /= 2;
+		if (mo->odm->parentscene->compositor->fpack==GF_3D_STEREO_TOP) *h /= 2;
+		else if (mo->odm->parentscene->compositor->fpack==GF_3D_STEREO_SIDE) *w /= 2;
 	}
 #endif
 }
@@ -1515,17 +1515,11 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		//create VP info regardless of VR type
 		if (scene->vr_type) {
-			const char *opt;
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
 			((M_Viewpoint *)n2)->fieldOfView = GF_PI/2;
 
-			opt = gf_cfg_get_key(scene->compositor->user->config, "Compositor", "VRDefaultFOV");
-			if (!opt) {
-				opt="1.570796326794897";
-				gf_cfg_set_key(scene->compositor->user->config, "Compositor", "VRDefaultFOV", opt);
-			}
-			((M_Viewpoint *)n2)->fieldOfView = FLT2FIX( atof(opt) );
+			((M_Viewpoint *)n2)->fieldOfView = scene->compositor->fov;
 
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);
@@ -2038,8 +2032,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time)
 {
 	GF_DOM_Event devt;
-	const char *opt = gf_cfg_get_key(scene->compositor->user->config, "Systems", "DebugPVRScene");
-	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, (opt && !strcmp(opt, "yes")) ? "ADDON_SCENE" : "PVR_SCENE");
+	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, scene->compositor->dbgpvr ? "ADDON_SCENE" : "PVR_SCENE");
 
 	if (scene->main_addon_selected==set_on) return;
 	scene->main_addon_selected = set_on;

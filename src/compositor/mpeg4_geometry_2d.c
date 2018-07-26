@@ -181,7 +181,7 @@ static void TraverseCircle(GF_Node *node, void *rs, Bool is_destroy)
 		if (!stack->mesh) {
 			Fixed a = ((M_Circle *) node)->radius * 2;
 			stack->mesh = new_mesh();
-			mesh_new_ellipse(stack->mesh, a, a, tr_state->visual->compositor->high_speed);
+			mesh_new_ellipse(stack->mesh, a, a, tr_state->visual->compositor->fast);
 		}
 		visual_3d_draw_2d(stack, tr_state);
 		return;
@@ -236,7 +236,7 @@ static void TraverseEllipse(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_DRAW_3D:
 		if (!stack->mesh) {
 			stack->mesh = new_mesh();
-			mesh_new_ellipse(stack->mesh, ((M_Ellipse *) node)->radius.x * 2, ((M_Ellipse *) node)->radius.y * 2, tr_state->visual->compositor->high_speed);
+			mesh_new_ellipse(stack->mesh, ((M_Ellipse *) node)->radius.x * 2, ((M_Ellipse *) node)->radius.y * 2, tr_state->visual->compositor->fast);
 		}
 		visual_3d_draw_2d(stack, tr_state);
 		return;
@@ -478,7 +478,7 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 	if (!coord) return;
 
 	stack->path->fineness = c2D->fineness;
-	if (tr_state->visual->compositor->high_speed)  stack->path->fineness /= 2;
+	if (tr_state->visual->compositor->fast)  stack->path->fineness /= 2;
 
 
 	pts = coord->point.vals;

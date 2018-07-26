@@ -41,38 +41,21 @@ void gf_ar_rcfg_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 
 static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 {
-	const char *opt;
 	u32 freq, a_fmt, nb_chan, ch_cfg;
 	u32 bsize;
 
-	freq = a_fmt = nb_chan = ch_cfg = 0;
-	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceFrequency");
-	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceFrequency", "0");
-	else freq = atoi(opt);
-	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceChannels");
-	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceChannels", "0");
-	else nb_chan = atoi(opt);
-	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceLayout");
-	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceLayout", "0");
-	else {
-		if (!strnicmp(opt, "0x", 2)) sscanf(opt+2, "%x", &ch_cfg);
-		else sscanf(opt, "%x", &ch_cfg);
-    }
-	opt = gf_cfg_get_key(ar->user->config, "Audio", "ForceFMT");
-	if (!opt) gf_cfg_set_key(ar->user->config, "Audio", "ForceFMT", "0");
-	else {
-		a_fmt = gf_audio_fmt_parse(opt);
-		if (!a_fmt) a_fmt = GF_AUDIO_FMT_S16;
-	}
-
-	opt = gf_cfg_get_key(ar->user->config, "Audio", "BufferSize");
-	bsize = opt ? atoi(opt) : 1024;
+	freq = ar->compositor->asr;
+	a_fmt = ar->compositor->afmt;
+	nb_chan = ar->compositor->ach;
+	ch_cfg = ar->compositor->alayout;
+	bsize = ar->compositor->asize;
+	if (!bsize) bsize = 1024;
 
 	if (!freq || !a_fmt || !nb_chan || !ch_cfg) {
 		gf_mixer_get_config(ar->mixer, &freq, &nb_chan, &a_fmt, &ch_cfg);
 
 		/*user disabled multichannel audio*/
-		if (ar->disable_multichannel && (nb_chan>2) ) nb_chan = 2;
+		if (!ar->compositor->amc && (nb_chan>2) ) nb_chan = 2;
 	} else {
 		if (!ar->config_forced) ar->config_forced++;
 	}
@@ -83,10 +66,11 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	if (ar->samplerate) {
 		ar->time_at_last_config_sr = ar->current_time_sr * freq / ar->samplerate;
 	}
+	if (!ar->compositor->abuf) ar->compositor->abuf = 100;
 	ar->samplerate = freq;
 	ar->bytes_per_samp = nb_chan * gf_audio_fmt_bit_depth(a_fmt) / 8;
 	ar->bytes_per_second = freq * ar->bytes_per_samp;
-	ar->max_bytes_out = ar->bytes_per_second * ar->total_duration / 1000;
+	ar->max_bytes_out = ar->bytes_per_second * ar->compositor->abuf / 1000;
 	while (ar->max_bytes_out % (2*ar->bytes_per_samp) ) ar->max_bytes_out++;
 	ar->buffer_size = ar->bytes_per_samp * bsize;
 
@@ -101,7 +85,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
 		gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
 
-		gf_filter_pid_set_max_buffer(ar->aout, 1000*ar->total_duration);
+		gf_filter_pid_set_max_buffer(ar->aout, 1000*ar->compositor->abuf);
 	}
 
 	ar->time_at_last_config = ar->current_time;
@@ -147,42 +131,19 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 }
 
 
-GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
+GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor)
 {
-	const char *sOpt;
-	u32 total_duration;
 	GF_AudioRenderer *ar;
 	ar = (GF_AudioRenderer *) gf_malloc(sizeof(GF_AudioRenderer));
 	memset(ar, 0, sizeof(GF_AudioRenderer));
 
-	total_duration = 200;
-	sOpt = gf_cfg_get_key(user->config, "Audio", "ForceConfig");
-	if (sOpt && !stricmp(sOpt, "yes")) {
-		sOpt = gf_cfg_get_key(user->config, "Audio", "TotalDuration");
-		total_duration = sOpt ? atoi(sOpt) : 400;
-	}
-
-	sOpt = gf_cfg_get_key(user->config, "Audio", "NoResync");
-	ar->disable_resync = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
-	sOpt = gf_cfg_get_key(user->config, "Audio", "DisableMultiChannel");
-	ar->disable_multichannel = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
+	ar->compositor = compositor;
 
 	ar->mixer = gf_mixer_new(ar);
-	ar->user = user;
 	ar->non_rt_output = GF_TRUE;
-
-	ar->volume = 100;
-	sOpt = gf_cfg_get_key(user->config, "Audio", "Volume");
-	if (!sOpt) gf_cfg_set_key(user->config, "Audio", "Volume", "100");
-	else ar->volume = atoi(sOpt);
-	if (ar->volume >= 98) ar->volume = 100;
-
-	sOpt = gf_cfg_get_key(user->config, "Audio", "Pan");
-	ar->pan = sOpt ? atoi(sOpt) : 50;
-
-
-	if (! (user->init_flags & GF_TERM_NO_AUDIO) ) {
-		ar->total_duration = total_duration;
+	ar->volume = MIN(100, compositor->avol);
+	ar->pan = MIN(100, compositor->apan);
+	if (! (compositor->user->init_flags & GF_TERM_NO_AUDIO) ) {
 		gf_ar_setup_output_format(ar);
 	}
 
@@ -223,31 +184,23 @@ void gf_sc_ar_control(GF_AudioRenderer *ar, u32 PauseType)
 
 void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume)
 {
-	char sOpt[10];
-	gf_mixer_lock(ar->mixer, GF_TRUE);
-	ar->volume = MIN(Volume, 100);
+	if (Volume>100) Volume=100;
+	if (ar->volume==Volume) return;
 	if (ar->aout) gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
-
-	sprintf(sOpt, "%d", ar->volume);
-	gf_cfg_set_key(ar->user->config, "Audio", "Volume", sOpt);
-
-	gf_mixer_lock(ar->mixer, GF_FALSE);
 }
 
 void gf_sc_ar_mute(GF_AudioRenderer *ar, Bool mute)
 {
-	gf_mixer_lock(ar->mixer, GF_TRUE);
 	ar->mute = mute;
 	if (ar->aout) gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(mute ? 0 : ar->volume) );
-	gf_mixer_lock(ar->mixer, GF_FALSE);
 }
 
 void gf_sc_ar_set_pan(GF_AudioRenderer *ar, u32 Balance)
 {
-	gf_mixer_lock(ar->mixer, GF_TRUE);
-	ar->pan = MIN(Balance, 100);
+	if (Balance>100) Balance = 100;
+	if (ar->pan == Balance) return;
+	ar->pan = Balance;
 	if (ar->aout) gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
-	gf_mixer_lock(ar->mixer, GF_FALSE);
 }
 
 
@@ -329,24 +282,20 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 			return;
 		}
 	}
-
+	//this is a safety for non blocking mode, otherwise the pid_would_block is enough
 	while (max_send && (ar->nb_bytes_out < ar->max_bytes_out)) {
 		char *data;
 		u32 dur;
 		u32 delay_ms = 0;
 		GF_FilterPacket *pck;
 
-		//FIXME - find a better regulation algo if needed, this breaks audio-only playback
-#if 0
-		//if audio output is too ahead of video time, don't push packets
-		if (ar->current_time > 5*ar->total_duration + ar->video_ts)
+		if (gf_filter_pid_would_block(ar->aout))
 			break;
-#endif
 
 		pck = gf_filter_pck_new_alloc_destructor(ar->aout, ar->buffer_size, &data, gf_ar_pck_done);
 		if (!pck) break;
 
-		if (!ar->disable_resync) {
+		if (ar->compositor->async) {
 			delay_ms = (1000*ar->nb_bytes_out) / ar->bytes_per_second;
 		}
 

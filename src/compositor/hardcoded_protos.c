@@ -1350,15 +1350,15 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;
 			}
-			else if (txh->compositor->force_all_tiles_visible) {
+			else if (txh->compositor->tvtf) {
 				visible = GF_TRUE;
 			//estimate visibility asap, even if texture not yet ready (we have SRD info):
 			//this allows sending stop commands which will free inactive decoder HW context
 			} else {
 				u32 i, j;
 				u32 nb_visible=0;
-				u32 nb_tests = tr_state->visual->compositor->tile_visibility_nb_tests;
-				u32 min_visible_threshold = tr_state->visual->compositor->tile_visibility_threshold;
+				u32 nb_tests = tr_state->visual->compositor->tvtn;
+				u32 min_visible_threshold = tr_state->visual->compositor->tvtt;
 				u32 stride;
 
 				//pick nb_tests vertices spaced every stride in the mesh
@@ -1426,7 +1426,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					if (txh->data) {
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 						visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
-						if (!tr_state->visual->compositor->tile_visibility_debug || (vrinfo.srd_w != vrinfo.srd_max_x)) {
+						if (!tr_state->visual->compositor->tvtd || (vrinfo.srd_w != vrinfo.srd_max_x)) {
 							visual_3d_draw(tr_state, stack->mesh);
 						}
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);

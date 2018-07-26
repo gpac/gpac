@@ -997,7 +997,7 @@ function gwlib_init(root_node) {
     gw_event_filters = [];
 
     gpac.set_event_filter(gwlib_filter_event);
-    gwskin.has_opengl = (gpac.get_option('Compositor', 'OpenGLMode') != 'disable') ? true : false;
+    gwskin.has_opengl = gpac.has_opengl;
 
     gwskin.browser_mode = (gpac.get_option('Temp', 'BrowserMode') == 'yes') ? true : false;
 

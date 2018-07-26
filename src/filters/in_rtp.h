@@ -56,6 +56,7 @@ typedef struct
 	u32 rtsp_timeout, udp_timeout, rtcp_timeout, stats;
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
 	u32 interleave;
+	Bool autortsp;
 
 	//internal
 
