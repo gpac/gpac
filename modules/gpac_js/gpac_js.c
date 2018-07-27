@@ -224,8 +224,14 @@ prop_id = SMJS_ID_TO_INT(id);
 
 switch (prop_id) {
 case GJS_GPAC_PROP_LAST_WORK_DIR:
-	res = gf_cfg_get_key(compositor->user->config, "General", "LastWorkingDir");
-	if (!res) res = gf_cfg_get_key(compositor->user->config, "General", "ModulesDirectory");
+	res = gf_opts_get_key("General", "LastWorkingDir");
+#ifdef WIN32
+	if (!res) res = "C:\\";
+#elif defined(GPAC_CONFIG_DARWIN)
+	if (!res) res = "/Users";
+#else
+	if (!res) res = "/home/";
+#endif
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res));
 	break;
 
@@ -456,7 +462,7 @@ case GJS_GPAC_PROP_LAST_WORK_DIR:
 		return JS_FALSE;
 	}
 	prop_val = SMJS_CHARS(c, *vp);
-	gf_cfg_set_key(compositor->user->config, "General", "LastWorkingDir", prop_val);
+	gf_opts_set_key("General", "LastWorkingDir", prop_val);
 	SMJS_FREE(c, prop_val);
 	break;
 case GJS_GPAC_PROP_CAPTION:
@@ -564,10 +570,10 @@ static JSBool SMJS_FUNCTION(gpac_get_option)
 		if (!strcmp(sec_name, "Compositor")) {
 			opt = gf_filter_get_arg(compositor->filter, key_name, arg_val);
 		} else {
-			opt = gf_cfg_get_key(compositor->user->config, sec_name, key_name);
+			opt = gf_opts_get_key(sec_name, key_name);
 		}
 	} else if (idx>=0) {
-		opt = gf_cfg_get_key_name(compositor->user->config, sec_name, idx);
+		opt = gf_opts_get_key_name(sec_name, idx);
 	} else {
 		opt = NULL;
 	}
@@ -607,7 +613,7 @@ static JSBool SMJS_FUNCTION(gpac_set_option)
 	if (!strcmp(sec_name, "Compositor")) {
 		gf_filter_send_update(compositor->filter, NULL, key_name, key_val, 0);
 	}
-	gf_cfg_set_key(compositor->user->config, sec_name, key_name, key_val);
+	gf_opts_set_key(sec_name, key_name, key_val);
 
 	SMJS_FREE(c, sec_name);
 	SMJS_FREE(c, key_name);
@@ -703,7 +709,7 @@ static JSBool SMJS_FUNCTION(gpac_reload)
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_RELOAD;
-	compositor->user->EventProc(compositor->user->opaque, &evt);
+	gf_filter_ui_event(compositor->filter, &evt);
 	return JS_TRUE;
 }
 
@@ -899,7 +905,7 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 			compositor->has_size_info = 1;
 			return JS_TRUE;
 		}
-		if (compositor->user->os_window_handler) {
+		if (compositor->os_wnd) {
 			evt.type = GF_EVENT_SCENE_SIZE;
 			evt.size.width = w;
 			evt.size.height = h;
@@ -1804,18 +1810,16 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 		count = gf_list_count(gjs->storages);
 		for (i=0; i<count; i++) {
 			GF_Config *a_cfg = gf_list_get(gjs->storages, i);
-			char *cfg_name = gf_cfg_get_filename(a_cfg);
+			const char *cfg_name = gf_cfg_get_filename(a_cfg);
 
 			if (strstr(cfg_name, szFile)) {
 				storage = a_cfg;
-				gf_free(cfg_name);
 				break;
 			}
-			gf_free(cfg_name);
 		}
 
 		if (!storage) {
-			const char *storage_dir = gf_cfg_get_key(gjs->compositor->user->config, "General", "StorageDirectory");
+			const char *storage_dir = gf_opts_get_key("Core", "StorageDirectory");
 
 			storage = gf_cfg_force_new(storage_dir, szFile);
 			if (storage) {

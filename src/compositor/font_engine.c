@@ -44,40 +44,16 @@ struct _gf_ft_mgr
 };
 
 
-GF_FontManager *gf_font_manager_new(GF_User *user, Bool wait_for_fonts)
+GF_FontManager *gf_font_manager_new(Bool wait_for_fonts)
 {
 	char *def_font = "SERIF";
-	u32 i, count;
 	GF_FontManager *font_mgr;
 	GF_FontReader *ifce;
-	const char *opt;
 
-	ifce = NULL;
-	opt = gf_cfg_get_key(user->config, "FontEngine", "FontReader");
-	if (opt) {
-		ifce = (GF_FontReader *) gf_modules_load_interface_by_name(user->modules, opt, GF_FONT_READER_INTERFACE);
-		if (ifce && ifce->init_font_engine(ifce) != GF_OK) {
-			gf_modules_close_interface((GF_BaseInterface *)ifce);
-			ifce = NULL;
-		}
-	}
+	ifce = (GF_FontReader *) gf_module_load(GF_FONT_READER_INTERFACE, NULL);
+	if (ifce) ifce->init_font_engine(ifce);
 
-	if (!ifce) {
-		count = gf_modules_get_count(user->modules);
-		for (i=0; i<count; i++) {
-			ifce = (GF_FontReader *) gf_modules_load_interface(user->modules, i, GF_FONT_READER_INTERFACE);
-			if (!ifce) continue;
 
-			if (ifce->init_font_engine(ifce) != GF_OK) {
-				gf_modules_close_interface((GF_BaseInterface *)ifce);
-				ifce = NULL;
-				continue;
-			}
-
-			gf_cfg_set_key(user->config, "FontEngine", "FontReader", ifce->module_name);
-			break;
-		}
-	}
 	GF_SAFEALLOC(font_mgr, GF_FontManager);
 	if (!font_mgr) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate font manager\n"));

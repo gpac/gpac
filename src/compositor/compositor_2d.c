@@ -142,7 +142,7 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 	if (!visual->is_attached) return;
 
 	if (!BackColor && !visual->offscreen && !is_offscreen_clear) {
-		if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+		if ( !(visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
 			BackColor = visual->compositor->back_color & 0x00FFFFFF;
 		}
 	}
@@ -567,7 +567,7 @@ void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 Bac
 		GF_Window src_wnd, dst_wnd;
 
 		if (!BackColor && !visual->offscreen) {
-			if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+			if ( !(visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
 				BackColor = visual->compositor->back_color;
 			}
 		}

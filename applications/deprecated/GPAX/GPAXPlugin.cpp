@@ -343,7 +343,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
 
 
-	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	str = gf_cfg_get_key(m_user.config, "Core", "ModulesDirectory");
 	m_user.modules = gf_modules_new(NULL, m_user.config);
 	if(!gf_modules_get_count(m_user.modules)) goto err_exit;
 

@@ -2816,7 +2816,7 @@ else if (!stricmp(arg, "-v")) verbose++;
 else if (!stricmp(arg, "-tag-list")) {
 	fprintf(stderr, "Supported iTunes tag modifiers:\n");
 	for (i = 0; i < nb_itunes_tags; i++) {
-		fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].help);
+		fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
 	}
 	return 1;
 }
@@ -3603,7 +3603,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 
 	/*init libgpac*/
-	gf_sys_init(mem_track);
+	gf_sys_init(mem_track, NULL);
 	if (argc < 2) {
 		PrintUsage();
 		gf_sys_close();

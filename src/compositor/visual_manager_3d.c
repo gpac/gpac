@@ -444,7 +444,7 @@ static void visual_3d_draw_background(GF_TraverseState *tr_state, u32 layer_type
 			/*if composite visual, clear with alpha = 0*/
 			if (tr_state->visual==tr_state->visual->compositor->visual) {
 				alpha = FIX_ONE;
-				if (tr_state->visual->compositor->user && (tr_state->visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) ) {
+				if (tr_state->visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT) {
 					alpha = 0;
 				}
 			}

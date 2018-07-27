@@ -631,9 +631,9 @@ BOOL COptHTTP::OnInitDialog()
 	TCHAR wTmp[500];
 	const char *sOpt;
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "CleanCache");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "CleanCache");
 	m_CleanCache.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "RestartFiles");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "RestartFiles");
 	m_RestartFile.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "SAXLoader", "Progressive");
 	m_Progressive.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -646,7 +646,7 @@ BOOL COptHTTP::OnInitDialog()
 		m_SaxDuration.SetWindowText( _T("30") );
 	}
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "CacheDirectory");
 	CE_CharToWide((char *) sOpt, (u16 *)wTmp);
 	if (sOpt) m_CacheDir.SetWindowText(wTmp);
 
@@ -665,8 +665,8 @@ void COptHTTP::SaveOptions()
 	char szCacheDir[500];
 	COsmo4 *gpac = GetApp();
 
-	gf_cfg_set_key(gpac->m_user.config, "Downloader", "CleanCache", m_CleanCache.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Downloader", "RestartFiles", m_RestartFile.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Core", "CleanCache", m_CleanCache.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Core", "RestartFiles", m_RestartFile.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "Progressive", m_Progressive.GetCheck() ? "yes" : "no");
 
 	m_SaxDuration.GetWindowText(wTmp, MAX_PATH);
@@ -675,7 +675,7 @@ void COptHTTP::SaveOptions()
 
 	m_CacheDir.GetWindowText(wTmp, MAX_PATH);
 	CE_WideToChar((u16 *)wTmp, szCacheDir);
-	gf_cfg_set_key(gpac->m_user.config, "General", "CacheDirectory", szCacheDir);
+	gf_cfg_set_key(gpac->m_user.config, "Core", "CacheDirectory", szCacheDir);
 }
 
 

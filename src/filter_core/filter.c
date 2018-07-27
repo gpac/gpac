@@ -585,13 +585,20 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg);
 }
 
-static const char *gf_filter_load_arg_config(GF_User *user, const char *sec_name, const char *arg_name, const char *arg_val)
+static const char *gf_filter_load_arg_config(const char *sec_name, const char *arg_name, const char *arg_val)
 {
 	const char *opt;
-	if (!user) return arg_val;
-	opt = gf_cfg_get_key(user->config, sec_name, arg_name);
+	opt = gf_opts_get_key(sec_name, arg_name);
 	if (opt)
 		return opt;
+
+	//keep MP4Client behaviour: some options are set in MP4Client main apply them
+	if (!strcmp(arg_name, "ifce")) {
+		opt = gf_opts_get_key("Core", "DefaultMCastInterface");
+		if (opt)
+			return opt;
+	}
+
 	return arg_val;
 }
 
@@ -607,15 +614,15 @@ static Bool gf_filter_has_arg(GF_Filter *filter, const char *arg_name)
 	return GF_FALSE;
 }
 
-static void gf_filter_load_meta_args_config(GF_User *user, const char *sec_name, GF_Filter *filter)
+static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *filter)
 {
-	u32 i, key_count = gf_cfg_get_key_count(user->config, sec_name);
+	u32 i, key_count = gf_opts_get_key_count(sec_name);
 	for (i=0; i<key_count; i++) {
 		GF_PropertyValue argv;
-		const char *arg_val, *arg_name = gf_cfg_get_key_name(user->config, sec_name, i);
+		const char *arg_val, *arg_name = gf_opts_get_key_name(sec_name, i);
 		if (gf_filter_has_arg(filter, arg_name)) continue;
 
-		arg_val = gf_cfg_get_key(user->config, sec_name, arg_name);
+		arg_val = gf_opts_get_key(sec_name, arg_name);
 		if (!arg_val) continue;
 
 		memset(&argv, 0, sizeof(GF_PropertyValue));
@@ -633,7 +640,6 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	char szEscape[7];
 	char szSrc[5], szDst[5];
 	Bool has_meta_args = GF_FALSE;
-	GF_User *user;
 	char *szArg=NULL;
 	u32 alloc_len=1024;
 	if (!filter) return;
@@ -655,7 +661,6 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	sprintf(szSrc, "src%c", filter->session->sep_name);
 	sprintf(szDst, "dst%c", filter->session->sep_name);
 
-	user = gf_fs_get_user(filter->session);
 	snprintf(szSecName, 200, "filter:%s", filter->freg->name);
 
 	//instantiate all args with defauts value
@@ -670,7 +675,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			has_meta_args = GF_TRUE;
 			continue;
 		}
-		def_val = gf_filter_load_arg_config(user, szSecName, a->arg_name, a->arg_default_val);
+		def_val = gf_filter_load_arg_config(szSecName, a->arg_name, a->arg_default_val);
 
 		if (!def_val) continue;
 
@@ -689,7 +694,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	}
 	//handle meta filter options, not exposed in registry
 	if (has_meta_args && filter->freg->update_arg)
-		gf_filter_load_meta_args_config(user, szSecName, filter);
+		gf_filter_load_meta_args_config(szSecName, filter);
 
 
 	if (args)
@@ -1472,6 +1477,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 	if (e) filter->session->last_process_error = e;
 }
 
+GF_EXPORT
 void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val, u32 propagate_mask)
 {
 	if (filter) gf_fs_send_update(filter->session, fid, fid ? NULL : filter, name, val, propagate_mask);
@@ -1505,12 +1511,6 @@ u32 gf_filter_get_opid_count(GF_Filter *filter)
 GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx)
 {
 	return gf_list_get(filter->output_pids, idx);
-}
-
-GF_User *gf_filter_get_user(GF_Filter *filter)
-{
-	if (filter) return gf_fs_get_user(filter->session);
-	return NULL;
 }
 
 void gf_filter_post_process_task(GF_Filter *filter)
@@ -2128,7 +2128,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	return GF_OK;
 }
 
-
+GF_EXPORT
 const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE])
 {
 	u32 i=0;
@@ -2221,4 +2221,16 @@ const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump
 		return gf_prop_dump_val(&p, dump, GF_FALSE, arg->min_max_enum);
 	}
 	return NULL;
+}
+
+GF_EXPORT
+Bool gf_filter_is_supported_mime(GF_Filter *filter, const char *mime)
+{
+	return gf_fs_mime_supported(filter->session, mime);
+}
+
+GF_EXPORT
+Bool gf_filter_ui_event(GF_Filter *filter, GF_Event *uievt)
+{
+	return gf_fs_ui_event(filter->session, uievt);
 }

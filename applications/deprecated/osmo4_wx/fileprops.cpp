@@ -625,7 +625,7 @@ void wxFileProps::OnViewSG(wxCommandEvent &WXUNUSED(event))
 	char szOutFile[GF_MAX_PATH];
 	wxString fname;
 
-	sOpt = gf_cfg_get_key(m_pApp->m_user.config, "General", "CacheDirectory");
+	sOpt = gf_cfg_get_key(m_pApp->m_user.config, "Core", "CacheDirectory");
 	out_file.AssignDir(wxString(sOpt, wxConvUTF8) );
 
 	sOpt = gf_cfg_get_key(m_pApp->m_user.config, "General", "ViewXMT");

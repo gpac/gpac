@@ -245,7 +245,7 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 			return e;
 		}
 		ctx->is_tx3g = GF_FALSE;
-	} else if (codecid == GF_ISOM_SUBTYPE_TX3G) {
+	} else if (codecid == GF_CODECID_TX3G) {
 		GF_TextSampleDescriptor * sd = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
 		if (!sd) {
 			gf_odf_desc_del((GF_Descriptor *) ctx->cfg);

@@ -772,7 +772,6 @@ static void ctxload_finalize(GF_Filter *filter)
 	if (priv->files_to_delete)
 		gf_list_del(priv->files_to_delete);
 	priv->files_to_delete = NULL;
-	if (priv->load.localPath) gf_free((char *)priv->load.localPath);
 }
 
 static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterProbeScore *score)

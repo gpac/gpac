@@ -271,6 +271,12 @@ static void gpac_filter_help(void)
 "properties such as width/height/samplerate/... !\n"
 "\tEX: -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
 "This will mux the streams in dump.ts, using ServiceID 4 for pids from v1.mp4 and ServiceID 1 for pids from v2.mp4\n"
+"\n"
+"External filters\n"
+"GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in\n"
+"folders listed in GPAC config file section \"Core\" key \"ModulesDirectory\". The files have to be named gf_* and export a single function\n"
+"returning a filter register - see libgpac documentation for more details.\n"
+"\n"
 	);
 }
 
@@ -381,6 +387,7 @@ static void gpac_usage(void)
 			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
 			"					A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
 			"-wp[x]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
+			"-p=NAME         : uses profile NAME for the global GPAC config. If not found, config file is created. If NAME is a path, tries to load profile from that file.\n"
 
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
@@ -421,6 +428,7 @@ static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
 	int i;
+	const char *profile=NULL;
 	u32 sflags=0;
 	Bool override_seps=GF_FALSE;
 	Bool write_profile=GF_FALSE;
@@ -489,9 +497,11 @@ static int gpac_main(int argc, char **argv)
 			if (!quiet) quiet = 1;
 		} else if (!strcmp(arg, "-quiet")) {
 			quiet = 2;
+		} else if (!strncmp(arg, "-p=", 3)) {
+			profile = arg+3;
 		}
 	}
-	gf_sys_init(mem_track);
+	gf_sys_init(mem_track, profile);
 	gf_sys_set_args(argc, (const char **) argv);
 
 	for (i=1; i<argc; i++) {
@@ -551,6 +561,7 @@ static int gpac_main(int argc, char **argv)
 			write_profile = GF_TRUE;
 			sflags |= GF_FS_FLAG_LOAD_META;
 		}
+
 		if (arg_val) {
 			arg_val--;
 			arg_val[0]='=';
@@ -577,7 +588,7 @@ static int gpac_main(int argc, char **argv)
 
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 	if (disable_blocking) sflags |= GF_FS_FLAG_NO_BLOCKING;
-	session = gf_fs_new(nb_threads, sched_type, NULL, sflags, blacklist);
+	session = gf_fs_new(nb_threads, sched_type, sflags, blacklist);
 	if (!session) {
 		return 1;
 	}
@@ -909,8 +920,6 @@ static void dump_all_codec(GF_FilterSession *session)
 void write_filters_options(GF_FilterSession *fsess)
 {
 	u32 i, count;
-	GF_User *user = gf_fs_get_user(fsess);
-	if (!user) return;
 	count = gf_fs_filters_registry_count(fsess);
 	for (i=0; i<count; i++) {
 		char *meta_sep;
@@ -928,7 +937,7 @@ void write_filters_options(GF_FilterSession *fsess)
 			j++;
 
 			if (arg->arg_default_val) {
-				gf_cfg_set_key(user->config, szSecName, arg->arg_name, arg->arg_default_val);
+				gf_opts_set_key(szSecName, arg->arg_name, arg->arg_default_val);
 			}
 		}
 	}

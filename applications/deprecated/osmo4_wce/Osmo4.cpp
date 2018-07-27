@@ -257,7 +257,7 @@ BOOL COsmo4::InitInstance()
 	}
 
 
-	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	str = gf_cfg_get_key(m_user.config, "Core", "ModulesDirectory");
 	m_user.modules = gf_modules_new(str, m_user.config);
 	if (!m_user.modules || ! gf_modules_get_count(m_user.modules) ) {
 		MessageBox(NULL, _T("No plugins available - system cannot work"), _T("Fatal Error"), MB_OK);

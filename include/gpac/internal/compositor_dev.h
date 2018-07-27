@@ -201,8 +201,8 @@ struct __tag_compositor
 	u32 magic;	//must be "comp"
 	void *magic_ptr; //must point to this structure
 
-	/*the main user*/
-	GF_User *user;
+	u32 init_flags;
+	void *os_wnd;
 
 	/*audio renderer*/
 	struct _audio_render *audio_renderer;
@@ -1201,7 +1201,7 @@ typedef struct _audio_render
 } GF_AudioRenderer;
 
 /*creates audio renderer*/
-GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor);
+GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor, u32 init_flags);
 /*deletes audio renderer*/
 void gf_sc_ar_del(GF_AudioRenderer *ar);
 
@@ -1482,7 +1482,7 @@ typedef struct __text_span
 	GF_Node *user;
 } GF_TextSpan;
 
-GF_FontManager *gf_font_manager_new(GF_User *user, Bool wait_for_fonts);
+GF_FontManager *gf_font_manager_new(Bool wait_for_fonts);
 void gf_font_manager_del(GF_FontManager *fm);
 
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);

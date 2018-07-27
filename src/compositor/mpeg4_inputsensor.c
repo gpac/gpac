@@ -211,9 +211,9 @@ GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd)
 	else {
 		GF_InputSensorDevice *ifce;
 		/*not found, check all modules*/
-		u32 plugCount = gf_modules_get_count(scene->compositor->user->modules);
+		u32 plugCount = gf_modules_count();
 		for (i = 0; i < plugCount ; i++) {
-			ifce = (GF_InputSensorDevice *) gf_modules_load_interface(scene->compositor->user->modules, i, GF_INPUT_DEVICE_INTERFACE);
+			ifce = (GF_InputSensorDevice *) gf_modules_load(i, GF_INPUT_DEVICE_INTERFACE);
 			if (!ifce) continue;
 			ifce->input_stream_context = is_ctx;
 			if (ifce->RegisterDevice && ifce->RegisterDevice(ifce, devName, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, isdev_add_field) ) {

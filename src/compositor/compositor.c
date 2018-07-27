@@ -254,7 +254,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			u32 k=0;
 			GF_VideoListener *l;
 			while ((l = gf_list_enum(compositor->video_listeners, &k))) {
-				if ( compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) )
+				if (compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)
 					l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 4);
 				else
 					l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 3);
@@ -359,17 +359,6 @@ static void gf_sc_reset_framerate(GF_Compositor *compositor)
 
 static Bool gf_sc_on_event(void *cbck, GF_Event *event);
 
-static Bool gf_sc_set_check_raster2d(GF_Compositor *compositor, GF_Raster2D *ifce)
-{
-	/*check base*/
-	if (!ifce->stencil_new || !ifce->surface_new) return 0;
-	/*if these are not set we cannot draw*/
-	if (!ifce->surface_clear || !ifce->surface_set_path || !ifce->surface_fill) return 0;
-	/*check we can init a surface with the current driver (the rest is optional)*/
-	if (ifce->surface_attach_to_buffer) return 1;
-	return GF_FALSE;
-}
-
 enum
 {
 	GF_COMPOSITOR_THREAD_START = 0,
@@ -420,122 +409,69 @@ GF_VideoOutput null_vout = {
 };
 
 
-GF_Err gf_sc_load(GF_Compositor *compositor, GF_User *user)
+GF_Err gf_sc_load(GF_Compositor *compositor)
 {
 	u32 i;
 	const char *sOpt;
+	void *os_disp;
 
-	compositor->user = user;
 	compositor->mx = gf_mx_new("Compositor");
 	if (!compositor->mx) return GF_OUT_OF_MEM;
 
 	/*load proto modules*/
-	if (user) {
-		u32 i;
-		compositor->proto_modules = gf_list_new();
-		if (!compositor->proto_modules) return GF_OUT_OF_MEM;
-		for (i=0; i< gf_modules_get_count(user->modules); i++) {
-			GF_HardcodedProto *ifce = (GF_HardcodedProto *) gf_modules_load_interface(user->modules, i, GF_HARDCODED_PROTO_INTERFACE);
-			if (ifce) gf_list_add(compositor->proto_modules, ifce);
-		}
+	compositor->proto_modules = gf_list_new();
+	if (!compositor->proto_modules) return GF_OUT_OF_MEM;
+	for (i=0; i< gf_modules_count(); i++) {
+		GF_HardcodedProto *ifce = (GF_HardcodedProto *) gf_modules_load(i, GF_HARDCODED_PROTO_INTERFACE);
+		if (ifce) gf_list_add(compositor->proto_modules, ifce);
 	}
+
+	compositor->init_flags = 0;
+	compositor->os_wnd = os_disp = NULL;
+	sOpt = gf_opts_get_key("Temp", "OSWnd");
+	if (sOpt) sscanf(sOpt, "%p", &compositor->os_wnd);
+	sOpt = gf_opts_get_key("Temp", "OSDisp");
+	if (sOpt) sscanf(sOpt, "%p", &os_disp);
+	sOpt = gf_opts_get_key("Temp", "InitFlags");
+	if (sOpt) compositor->init_flags = atoi(sOpt);
+
 
 	/*force initial for 2D/3D setup*/
 	compositor->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
 	/*set default size if owning output*/
-	if (user && !user->os_window_handler) {
+	if (!compositor->os_wnd) {
 		compositor->new_width = compositor->defsz.x>0 ? compositor->defsz.x : SC_DEF_WIDTH;
 		compositor->new_height = compositor->defsz.y>0 ? compositor->defsz.y : SC_DEF_HEIGHT;
 		compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 	}
 
-	if (compositor->user->init_flags & GF_TERM_NO_VIDEO) {
+	if (compositor->init_flags & GF_TERM_NO_VIDEO) {
 		compositor->video_out = &null_vout;
 		compositor->ogl = GF_SC_GLMODE_OFF;
 	} else {
+		GF_Err e;
+		compositor->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, NULL);
 
-		/*load video out*/
-		sOpt = gf_cfg_get_key(compositor->user->config, "Video", "DriverName");
-		if (sOpt) {
-			compositor->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(compositor->user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE);
-			if (compositor->video_out) {
-				compositor->video_out->evt_cbk_hdl = compositor;
-				compositor->video_out->on_event = gf_sc_on_event;
-				/*init hw*/
-				if (!compositor->video_out->Setup || compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags) != GF_OK) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Failed to Setup Video Driver %s!\n", sOpt));
-					gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
-					compositor->video_out = NULL;
-				}
-			}
+		if (!compositor->video_out ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Failed to load a video output module.\n"));
+			return GF_IO_ERR;
 		}
-
-		if (!compositor->video_out) {
-			GF_VideoOutput *raw_out = NULL;
-			u32 i, count = gf_modules_get_count(compositor->user->modules);
-			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to find a suitable video driver amongst %d modules...\n", count));
-			for (i=0; i<count; i++) {
-				compositor->video_out = (GF_VideoOutput *) gf_modules_load_interface(compositor->user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
-				if (!compositor->video_out) continue;
-				compositor->video_out->evt_cbk_hdl = compositor;
-				compositor->video_out->on_event = gf_sc_on_event;
-				//in enum mode, only use raw out if everything else failed ...
-				if (!stricmp(compositor->video_out->module_name, "Raw Video Output")) {
-					raw_out = compositor->video_out;
-					compositor->video_out = NULL;
-					continue;
-				}
-
-				/*init hw*/
-				if (compositor->video_out->Setup && compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags)==GF_OK) {
-					gf_cfg_set_key(compositor->user->config, "Video", "DriverName", compositor->video_out->module_name);
-					break;
-				}
-				gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
-				compositor->video_out = NULL;
-			}
-			if (raw_out) {
-				if (compositor->video_out) gf_modules_close_interface((GF_BaseInterface *)raw_out);
-				else {
-					compositor->video_out = raw_out;
-					compositor->video_out ->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags);
-				}
-			}
+		compositor->video_out->evt_cbk_hdl = compositor;
+		compositor->video_out->on_event = gf_sc_on_event;
+		/*init hw*/
+		e = compositor->video_out->Setup(compositor->video_out, compositor->os_wnd, os_disp, compositor->init_flags);
+		if (e != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Error setuing up video output: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+		if (!gf_opts_get_key("Video", "DriverName")) {
+			gf_opts_set_key("Video", "DriverName", compositor->video_out->module_name);
 		}
 	}
 
-	if (!compositor->video_out ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to create compositor->video_out, did not find any suitable driver.\n"));
-		return GF_IO_ERR;
-	}
-
-
-	/*try to load a raster driver*/
-	sOpt = gf_cfg_get_key(compositor->user->config, "Video", "Raster2D");
-	if (sOpt) {
-		compositor->rasterizer = (GF_Raster2D *) gf_modules_load_interface_by_name(compositor->user->modules, sOpt, GF_RASTER_2D_INTERFACE);
-		if (!compositor->rasterizer) {
-			sOpt = NULL;
-		} else if (!gf_sc_set_check_raster2d(compositor, compositor->rasterizer)) {
-			gf_modules_close_interface((GF_BaseInterface *)compositor->rasterizer);
-			compositor->rasterizer = NULL;
-			sOpt = NULL;
-		}
-	}
-
+	compositor->rasterizer = (GF_Raster2D *) gf_module_load(GF_RASTER_2D_INTERFACE, NULL);
 	if (!compositor->rasterizer) {
-		u32 i, count;
-		count = gf_modules_get_count(compositor->user->modules);
-		for (i=0; i<count; i++) {
-			compositor->rasterizer = (GF_Raster2D *) gf_modules_load_interface(compositor->user->modules, i, GF_RASTER_2D_INTERFACE);
-			if (!compositor->rasterizer) continue;
-			if (gf_sc_set_check_raster2d(compositor, compositor->rasterizer)) break;
-			gf_modules_close_interface((GF_BaseInterface *)compositor->rasterizer);
-			compositor->rasterizer = NULL;
-		}
-		if (compositor->rasterizer) gf_cfg_set_key(compositor->user->config, "Video", "Raster2D", compositor->rasterizer->module_name);
-	}
-	if (!compositor->rasterizer) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Failed to load rasterizer\n"));
 		if (compositor->video_out->Shutdown) compositor->video_out->Shutdown(compositor->video_out);
 		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 		compositor->video_out = NULL;
@@ -647,10 +583,10 @@ GF_Err gf_sc_load(GF_Compositor *compositor, GF_User *user)
 
 	/*load audio renderer*/
 	if (!compositor->audio_renderer)
-		compositor->audio_renderer = gf_sc_ar_load(compositor);
+		compositor->audio_renderer = gf_sc_ar_load(compositor, compositor->init_flags);
 
 	gf_sc_reset_framerate(compositor);
-	compositor->font_manager = gf_font_manager_new(compositor->user, compositor->wfont);
+	compositor->font_manager = gf_font_manager_new(compositor->wfont);
 	if (!compositor->font_manager) return GF_OUT_OF_MEM;
 
 	compositor->extra_scenes = gf_list_new();
@@ -665,8 +601,8 @@ GF_Err gf_sc_load(GF_Compositor *compositor, GF_User *user)
 	if (!compositor->extensions) return GF_OUT_OF_MEM;
 	compositor->unthreaded_extensions = gf_list_new();
 	if (!compositor->unthreaded_extensions) return GF_OUT_OF_MEM;
-	for (i=0; i< gf_modules_get_count(compositor->user->modules); i++) {
-		GF_CompositorExt *ifce = (GF_CompositorExt *) gf_modules_load_interface(compositor->user->modules, i, GF_COMPOSITOR_EXT_INTERFACE);
+	for (i=0; i< gf_modules_count(); i++) {
+		GF_CompositorExt *ifce = (GF_CompositorExt *) gf_modules_load(i, GF_COMPOSITOR_EXT_INTERFACE);
 		if (ifce) {
 
 			if (!ifce->process(ifce, GF_COMPOSITOR_EXT_START, compositor)) {
@@ -697,7 +633,7 @@ GF_Err gf_sc_load(GF_Compositor *compositor, GF_User *user)
 	gf_sc_load_opengl_extensions(compositor, GF_FALSE);
 #endif
 
-	if (user->init_flags & GF_TERM_NO_REGULATION )
+	if (compositor->init_flags & GF_TERM_NO_REGULATION )
 		compositor->no_regulation = GF_TRUE;
 
 
@@ -1096,7 +1032,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 #endif
 
 		/*default back color is black*/
-		if (! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) {
+		if (! (compositor->init_flags & GF_TERM_WINDOWLESS)) {
 			if (compositor->bc) {
 				compositor->back_color = compositor->bc;
 			} else {
@@ -1122,7 +1058,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 				vb = info.far_ptr;
 		}
 		/*default back color is white*/
-		if (is_svg && ! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFFFFFFFF;
+		if (is_svg && ! (compositor->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFFFFFFFF;
 
 		/*hack for SVG where size is set in % - negotiate a canvas size*/
 		if (!compositor->has_size_info && w && h && vb) {
@@ -1156,7 +1092,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		}
 
 		/*default back color is key color*/
-		if (compositor->user->init_flags & GF_TERM_WINDOWLESS) {
+		if (compositor->init_flags & GF_TERM_WINDOWLESS) {
 			if (compositor->ckey) compositor->back_color = compositor->ckey;
 		}
 
@@ -1169,7 +1105,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			width = compositor->scene_width;
 			height = compositor->scene_height;
 
-			if (!compositor->user->os_window_handler) {
+			if (!compositor->os_wnd) {
 				/*only notify user if we are attached to a window*/
 				//do_notif = 0;
 				if (compositor->video_out->max_screen_width && (width > compositor->video_out->max_screen_width))
@@ -2568,7 +2504,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		flush_time = gf_sys_clock();
 #endif
 
-		if (compositor->user->init_flags & GF_TERM_INIT_HIDE)
+		if (compositor->init_flags & GF_TERM_INIT_HIDE)
 			compositor->skip_flush = 1;
 
 		//if no overlays, release textures before flushing, otherwise we might loose time waiting for vsync
@@ -2988,7 +2924,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			return GF_TRUE;
 
 		/*not consummed and compositor "owns" the output window (created by the output module), resize*/
-		if (!compositor->user->os_window_handler) {
+		if (!compositor->os_wnd) {
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the compositor one, and the
 			compositor may be locked on the video output (flush or whatever)!!
 			*/

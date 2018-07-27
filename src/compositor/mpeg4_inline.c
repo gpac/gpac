@@ -476,13 +476,6 @@ void gf_init_inline(GF_Scene *scene, GF_Node *node)
 	gf_node_set_callback_function(node, gf_inline_traverse);
 }
 
-static GF_Config *storage_get_cfg(M_Storage *storage)
-{
-	GF_Scene *scene;
-	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
-	return scene->compositor->user->config;
-}
-
 static char *storage_get_section(M_Storage *storage)
 {
 	GF_Scene *scene;
@@ -555,26 +548,25 @@ static void gf_storage_load(M_Storage *storage)
 	char szID[20];
 	u32 i, count;
 	u32 sec, exp, frac;
-	GF_Config *cfg = storage_get_cfg(storage);
 	char *section = storage_get_section(storage);
-	if (!cfg || !section) return;
+	if (!section) return;
 
-	if (!gf_cfg_get_key_count(cfg, section)) {
+	if (!gf_opts_get_key_count(section)) {
 		gf_free(section);
 		return;
 	}
-	opt = gf_cfg_get_key(cfg, section, "expireAfterNTP");
+	opt = gf_opts_get_key(section, "expireAfterNTP");
 	gf_net_get_ntp(&sec, &frac);
 	sscanf(opt, "%u", &exp);
 	if (exp && (exp<=sec)) {
-		gf_cfg_del_section(cfg, section);
+		gf_opts_del_section(section);
 		gf_free(section);
 		return;
 	}
 
-	count = gf_cfg_get_key_count(cfg, section)-1;
+	count = gf_opts_get_key_count(section)-1;
 	if (!count || (count!=storage->storageList.count)) {
-		gf_cfg_del_section(cfg, section);
+		gf_opts_del_section(section);
 		gf_free(section);
 		return;
 	}
@@ -582,7 +574,7 @@ static void gf_storage_load(M_Storage *storage)
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		sprintf(szID, "%d", i);
-		opt = gf_cfg_get_key(cfg, section, szID);
+		opt = gf_opts_get_key(section, szID);
 		if (!opt) break;
 		if (!storage->storageList.vals[i].node) break;
 		if (gf_node_get_field(storage->storageList.vals[i].node, storage->storageList.vals[i].fieldIndex, &info) != GF_OK) break;
@@ -646,11 +638,10 @@ void gf_storage_save(M_Storage *storage)
 {
 	char szID[20];
 	u32 i, j;
-	GF_Config *cfg = storage_get_cfg(storage);
 	char *section = storage_get_section(storage);
-	if (!cfg || !section) return;
+	if (!section) return;
 
-	gf_cfg_del_section(cfg, section);
+	gf_opts_del_section(section);
 
 	if (storage->expireAfter) {
 		u32 sec, frac;
@@ -658,9 +649,9 @@ void gf_storage_save(M_Storage *storage)
 		gf_net_get_ntp(&sec, &frac);
 		sec += storage->expireAfter;
 		sprintf(szNTP, "%u", sec);
-		gf_cfg_set_key(cfg, section, "expireAfterNTP", szNTP);
+		gf_opts_set_key(section, "expireAfterNTP", szNTP);
 	} else {
-		gf_cfg_set_key(cfg, section, "expireAfterNTP", "0");
+		gf_opts_set_key(section, "expireAfterNTP", "0");
 	}
 
 	for (i=0; i<storage->storageList.count; i++) {
@@ -695,7 +686,7 @@ void gf_storage_save(M_Storage *storage)
 			}
 		}
 		if (val) {
-			gf_cfg_set_key(cfg, section, szID, val);
+			gf_opts_set_key(section, szID, val);
 			gf_free(val);
 		}
 	}

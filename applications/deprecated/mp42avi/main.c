@@ -261,7 +261,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 			return;
 		}
 
-		test = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
+		test = gf_cfg_get_key(user.config, "Core", "ModulesDirectory");
 		user.modules = gf_modules_new((const unsigned char *) test, user.config);
 		strcpy(old_driv, "raw_out");
 		if (!gf_modules_get_count(user.modules)) {
@@ -481,7 +481,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	conv_buf = NULL;
 	esd = NULL;
 	needs_raw = 0;
-	test = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
+	test = gf_cfg_get_key(user.config, "Core", "ModulesDirectory");
 	user.modules = gf_modules_new((const unsigned char *) test, user.config);
 	strcpy(old_driv, "raw_out");
 	if (!gf_modules_get_count(user.modules)) {

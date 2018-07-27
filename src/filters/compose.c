@@ -327,7 +327,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 	ctx->magic = GF_4CC('c','o','m','p');
 	ctx->magic_ptr = ctx;
 
-	e = gf_sc_load(ctx, gf_filter_get_user(filter) );
+	e = gf_sc_load(ctx);
 	if (e) return e;
 	ctx->no_regulation = GF_TRUE;
 	ctx->filter = filter;
@@ -341,9 +341,8 @@ GF_Err compose_initialize(GF_Filter *filter)
 	gf_filter_set_session_caps(filter, &sess_caps);
 
 	//declare audio output pid first
-	if (! (ctx->user->init_flags & GF_TERM_NO_AUDIO) && ctx->audio_renderer) {
-		GF_AudioRenderer *ar = ctx->audio_renderer;
-		pid = ar->aout = gf_filter_pid_new(filter);
+	if (! (ctx->init_flags & GF_TERM_NO_AUDIO) && ctx->audio_renderer) {
+		pid = ctx->audio_renderer->aout = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, ctx);
 		gf_filter_pid_set_name(pid, "aout");
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
@@ -352,14 +351,14 @@ GF_Err compose_initialize(GF_Filter *filter)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(44100) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
-		gf_filter_pid_set_max_buffer(ar->aout, 1000*ctx->abuf);
+		gf_filter_pid_set_max_buffer(ctx->audio_renderer->aout, 1000*ctx->abuf);
 	}
 	
 	//declare video output pid
 	pid = ctx->vout = gf_filter_pid_new(filter);
 	gf_filter_pid_set_name(pid, "vout");
 	//compositor initiated for RT playback, vout pid may not be connected
-	if (! (ctx->user->init_flags & GF_TERM_NO_DEF_AUDIO_OUT))
+	if (! (ctx->init_flags & GF_TERM_NO_DEF_AUDIO_OUT))
 		gf_filter_pid_set_loose_connect(pid);
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
@@ -371,7 +370,8 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT((s32)(ctx->frame_rate*1000), 1000) );
 
-
+	//always request a process task since we don't depend on input packets arrival (animations, pure scene presentations)
+	gf_filter_post_process_task(filter);
 	return GF_OK;
 }
 
@@ -418,7 +418,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). Overriden by \"BufferMaxOccupancy\" property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 
 #ifndef GPAC_DISABLE_3D
-	{ OFFS(ogl), "specifies 2D rendering mode. When on, this will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not look as nice as 2D mode. In hybrid mode, the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).", GF_PROP_BOOL, "auto", "auto|off|hybrid|on|raster", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ogl), "specifies 2D rendering mode. When on, this will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not look as nice as 2D mode. In hybrid mode, the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).", GF_PROP_UINT, "auto", "auto|off|hybrid|on|raster", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pbo), "enables PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nav), "overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)", GF_PROP_UINT, "none", "none|walk|fly|pan|game|slide|exam|orbit|vr", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(linegl), "specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},

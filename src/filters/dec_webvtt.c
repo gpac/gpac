@@ -420,7 +420,7 @@ void vttd_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_VTTDec, _n)
 static const GF_FilterArgs VTTDecArgs[] =
 {
-	{ OFFS(script), "Location of WebVTT SVG JS renderer", GF_PROP_STRING, "$GPAC_SHARED/webvtt-renderer.js", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(script), "Location of WebVTT SVG JS renderer", GF_PROP_STRING, "$GPAC_SHARED/scripts/webvtt-renderer.js", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

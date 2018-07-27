@@ -745,11 +745,11 @@ WARN_LOGFILE           = doxygen_warnings.txt
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = ../applications/mp4box \
-						 ../applications/mp4client \
-						 ../include  \
-						 ../src \
-						 ../modules
+INPUT                  = ../../applications/mp4box \
+						 ../../applications/mp4client \
+						 ../../include  \
+						 ../../src \
+						 ../../modules
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1948,7 +1948,7 @@ SEARCH_INCLUDES        = YES
 # preprocessor.
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
-INCLUDE_PATH           = ../include
+INCLUDE_PATH           = ../../include
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the

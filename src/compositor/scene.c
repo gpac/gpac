@@ -80,11 +80,7 @@ void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *messa
 	evt.message.error = error;
 
 	if (no_filtering) {
-		if (scene->compositor->user->EventProc) {
-//			term->nb_calls_in_event_proc++;
-			scene->compositor->user->EventProc(scene->compositor->user->opaque, &evt);
-//			term->nb_calls_in_event_proc--;
-		}
+		gf_filter_ui_event(scene->compositor->filter, &evt);
 	} else {
 		gf_filter_send_gf_event(scene->compositor->filter, &evt);
 	}
@@ -159,11 +155,11 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 #endif
 	}
 	if (type==GF_JSAPI_OP_GET_OPT) {
-		param->gpac_cfg.key_val = gf_cfg_get_key(scene->compositor->user->config, param->gpac_cfg.section, param->gpac_cfg.key);
+		param->gpac_cfg.key_val = gf_opts_get_key(param->gpac_cfg.section, param->gpac_cfg.key);
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_SET_OPT) {
-		gf_cfg_set_key(scene->compositor->user->config, param->gpac_cfg.section, param->gpac_cfg.key, param->gpac_cfg.key_val);
+		gf_opts_set_key(param->gpac_cfg.section, param->gpac_cfg.key, param->gpac_cfg.key_val);
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_GET_DOWNLOAD_MANAGER) {
@@ -1106,7 +1102,7 @@ void gf_scene_set_duration(GF_Scene *scene)
 	}
 #endif
 
-	if (!scene->root_od->parentscene && scene->compositor->user->EventProc) {
+	if (!scene->root_od->parentscene) {
 		GF_Event evt;
 		evt.type = GF_EVENT_DURATION;
 		evt.duration.duration = dur;
@@ -2417,8 +2413,7 @@ Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt)
 	/*if main scene forward to user. If no params or first one not "self" forward to user*/
 	if (! scene->root_od->parentscene || !evt->navigate.parameters || !evt->navigate.param_count || (stricmp(evt->navigate.parameters[0], "self") && stricmp(evt->navigate.parameters[0], "_self"))) {
 
-		if (scene->compositor->user->EventProc) return gf_sc_send_event(scene->compositor, evt);
-		return 1;
+		return gf_filter_ui_event(scene->compositor->filter, evt);
 	}
 
 	if (!scene->root_od->mo) return 1;

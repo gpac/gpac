@@ -122,10 +122,12 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	inst->query_func = (QueryInterfaces) GetProcAddress(inst->lib_handle, _T("QueryInterfaces"));
 	inst->load_func = (LoadInterface) GetProcAddress(inst->lib_handle, _T("LoadInterface"));
 	inst->destroy_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, _T("ShutdownInterface"));
+	inst->filterreg_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, _T("RegisterFilter"));
 #else
 	inst->query_func = (QueryInterfaces) GetProcAddress((HMODULE)inst->lib_handle, "QueryInterfaces");
 	inst->load_func = (LoadInterface) GetProcAddress((HMODULE)inst->lib_handle, "LoadInterface");
 	inst->destroy_func = (ShutdownInterface) GetProcAddress((HMODULE)inst->lib_handle, "ShutdownInterface");
+	inst->filterreg_func = (LoadFilterRegistry) GetProcAddress((HMODULE)inst->lib_handle, "RegisterFilter");
 #endif
 
 #else
@@ -144,19 +146,17 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	if (error)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Cleaning up previous dlerror %s\n", error));
 	inst->query_func = (QueryInterfaces) dlsym(inst->lib_handle, "QueryInterfaces");
-	error = dlerror();
-	if (error)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol QueryInterfaces in module file %s, error is %s\n", path, error));
 	inst->load_func = (LoadInterface) dlsym(inst->lib_handle, "LoadInterface");
-	error = dlerror();
-	if (error)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol LoadInterface in module file %s, error is %s\n", path, error));
 	inst->destroy_func = (ShutdownInterface) dlsym(inst->lib_handle, "ShutdownInterface");
-	error = dlerror();
-	if (error)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol ShutdownInterface in module file %s, error is %s\n", path, error));
+	inst->filterreg_func = (LoadFilterRegistry) dlsym(inst->lib_handle, "RegisterFilter");
 #endif
-	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s : DONE\n", inst->name));
+	if (!inst->filterreg_func && (!inst->load_func || !inst->query_func || !inst->destroy_func) ) {
+
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Invalid module file %s, missing %s function\n", inst->name, !inst->query_func ? "QueryInterface" :  !inst->load_func ? "LoadInterface" : "ShutdownInterface"));
+		return GF_TRUE;
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s OK\n", inst->name));
 	return GF_TRUE;
 }
 
@@ -187,6 +187,7 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	QueryInterface query_func;
 	LoadInterface load_func;
 	ShutdownInterface del_func;
+	LoadFilterRegistry filterreg_func;
 #ifdef WIN32
 	HMODULE ModuleLib;
 #else
@@ -199,7 +200,7 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	GF_ModuleManager *pm = (GF_ModuleManager*)cbck;
 
 	if (strstr(item_name, "nposmozilla")) return GF_FALSE;
-	if (strncmp(item_name, "gm_", 3) && strncmp(item_name, "libgm_", 6)) return GF_FALSE;
+	if (strncmp(item_name, "gf_", 3) && strncmp(item_name, "gm_", 3) && strncmp(item_name, "libgm_", 6)) return GF_FALSE;
 	if (gf_module_is_loaded(pm, item_name) ) return GF_FALSE;
 
 #if CHECK_MODULE
@@ -215,10 +216,13 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	query_func = (QueryInterface) GetProcAddress(ModuleLib, _T("QueryInterface"));
 	load_func = (LoadInterface) GetProcAddress(ModuleLib, _T("LoadInterface"));
 	del_func = (ShutdownInterface) GetProcAddress(ModuleLib, _T("ShutdownInterface"));
+	filterreg_func = (LoadFilterRegistry) GetProcAddress(ModuleLib, _T("RegisterFilter"));
+
 #else
 	query_func = (QueryInterface) GetProcAddress(ModuleLib, "QueryInterface");
 	load_func = (LoadInterface) GetProcAddress(ModuleLib, "LoadInterface");
 	del_func = (ShutdownInterface) GetProcAddress(ModuleLib, "ShutdownInterface");
+	filterreg_func = (LoadFilterRegistry) GetProcAddress(ModuleLib, "RegisterFilter");
 #endif
 	FreeLibrary(ModuleLib);
 
@@ -239,10 +243,11 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	query_func = (QueryInterface) dlsym(ModuleLib, "QueryInterface");
 	load_func = (LoadInterface) dlsym(ModuleLib, "LoadInterface");
 	del_func = (ShutdownInterface) dlsym(ModuleLib, "ShutdownInterface");
+	filterreg_func = (LoadFilterRegistry) dlsym(ModuleLib, "RegisterFilter");
 	dlclose(ModuleLib);
 #endif
 
-	if (!load_func || !query_func || !del_func) {
+	if (!filterreg_func && (!load_func || !query_func || !del_func) ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE,
 		       ("[Core] Could not find some signatures in module %s: QueryInterface=%p, LoadInterface=%p, ShutdownInterface=%p\n",
 		        item_name, load_func, query_func, del_func));

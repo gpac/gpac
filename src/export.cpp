@@ -312,7 +312,6 @@
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_modules_refresh) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_module_directories) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_file_name) )

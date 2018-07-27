@@ -1584,9 +1584,8 @@ typedef struct __freg_desc
 	u32 nb_edges, nb_alloc_edges;
 	GF_FilterRegEdge *edges;
 	u32 dist;
-	u32 priority;
-	Bool edges_marked;
-
+	u8 priority;
+	u8 edges_marked_rlevel;
 	struct __freg_desc *destination;
 	u32 cap_idx;
 } GF_FilterRegDesc;
@@ -1595,14 +1594,14 @@ typedef struct __freg_desc
 static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel)
 {
 	u32 i;
-	Bool break_loop = reg_desc->edges_marked ? GF_TRUE: GF_FALSE;
+	Bool break_loop = (reg_desc->edges_marked_rlevel < rlevel) ? GF_TRUE: GF_FALSE;
 	if (src_freg == reg_desc->freg)
 		return;
 
 	if (rlevel > fsess->max_resolve_chain_len)
 		return;
 
-	reg_desc->edges_marked = GF_TRUE;
+	reg_desc->edges_marked_rlevel = rlevel;
 
 	for (i=0; i<reg_desc->nb_edges; i++) {
 		GF_FilterRegEdge *edge = &reg_desc->edges[i];
@@ -1766,6 +1765,7 @@ void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister
 	gf_mx_v(fsess->links_mx);
 }
 
+
 static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegistry, Bool reconfigurable_only, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
@@ -1795,9 +1795,9 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//reset node state
 		reg_desc->destination = NULL;
 		reg_desc->cap_idx = 0;
-		reg_desc->edges_marked = GF_FALSE;
+		reg_desc->edges_marked_rlevel = fsess->max_resolve_chain_len;
 		reg_desc->dist = -1;
-		reg_desc->priority = -1;
+		reg_desc->priority = 0xFF;
 
 		//remember our source descriptor - it may be absent of the final node set in case we want reconfigurable only filters
 		//and the source is not reconfigurable
@@ -1840,7 +1840,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			assert(freg != dst->freg);
 			continue;
 		}
-
+		if (!strcmp(reg_desc->freg->name, "txtplay"))
+			j=0;
 		//reset edge status - if source is our origin, disable edge if cap is not matched
 		for (j=0; j<reg_desc->nb_edges; j++) {
 			GF_FilterRegEdge *edge = &reg_desc->edges[j];
@@ -1877,11 +1878,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst);
 	reg_dst->dist = 0;
 	reg_dst->priority = 0;
-	reg_dst->edges_marked = GF_TRUE;
+	reg_dst->edges_marked_rlevel = fsess->max_resolve_chain_len;
 
 	//enable edges of destination, potentially disabling edges from source filters to dest
 	for (i=0; i<reg_dst->nb_edges; i++) {
-		u32 j;
 		GF_FilterRegEdge *edge = &reg_dst->edges[i];
 		edge->status = EDGE_STATUS_NONE;
 		//connection from source, disable edge if pid caps mismatch
@@ -1901,23 +1901,13 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			max_weight = edge->weight + 1;
 		//enable edge and propagate down the graph
 		edge->status = EDGE_STATUS_ENABLED;
-		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1);
 
-		//reset the node visited flag for each top-level edge: we want to break loops within one subgraph (src->a->b->a->dst), but not across subgraphs
-		//otherwise edges for src->f1->dst || for src->f2->dst will result in src->f2 never being set
-		if (i+1<reg_dst->nb_edges) {
-			count = gf_list_count(dijkstra_nodes);
-			for (j=0; j<count; j++) {
-				GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, j);
-				rdesc->edges_marked = GF_FALSE;
-			}
-		}
+		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1);
 	}
 
 	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
 	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
 	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
-
 
 	//remove all filters not used for this resolution (no enabled edges)
 	count = gf_list_count(dijkstra_nodes);
@@ -1944,28 +1934,27 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 	sort_time_us = gf_sys_clock_high_res();
 
-	//kept for debug
-#if 0
-	fprintf(stderr, "Filter %s sources: ", reg_dst->freg->name);
-	for (i=0; i<reg_dst->nb_edges; i++) {
-		GF_FilterRegEdge *edge = &reg_dst->edges[i];
-		fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
-	}
-	fprintf(stderr, "\n");
-
-	count = gf_list_count(dijkstra_nodes);
-	for (i=0; i<count; i++) {
-		u32 j;
-		GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
-		fprintf(stderr, "Filter %s sources: ", rdesc->freg->name);
-		for (j=0; j<rdesc->nb_edges; j++) {
-			GF_FilterRegEdge *edge = &rdesc->edges[j];
-//			if (edge->status == EDGE_STATUS_ENABLED)
-				fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
+	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
+		fprintf(stderr, "Filter %s sources: ", reg_dst->freg->name);
+		for (i=0; i<reg_dst->nb_edges; i++) {
+			GF_FilterRegEdge *edge = &reg_dst->edges[i];
+			fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
 		}
 		fprintf(stderr, "\n");
+
+		count = gf_list_count(dijkstra_nodes);
+		for (i=0; i<count; i++) {
+			u32 j;
+			GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
+			fprintf(stderr, "Filter %s sources: ", rdesc->freg->name);
+			for (j=0; j<rdesc->nb_edges; j++) {
+				GF_FilterRegEdge *edge = &rdesc->edges[j];
+	//			if (edge->status == EDGE_STATUS_ENABLED)
+					fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
+			}
+			fprintf(stderr, "\n");
+		}
 	}
-#endif
 
 	dijsktra_edge_count = 0;
 	dijsktra_node_count = gf_list_count(dijkstra_nodes)+1;
@@ -1981,7 +1970,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 		if (first) {
 			current_node = reg_dst;
-			first = GF_FALSE;
 		} else {
 			//pick up shortest distance
 			for (i=0; i<count; i++) {
@@ -2015,7 +2003,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			if (redge->status != EDGE_STATUS_ENABLED)
 				continue;
 
-			dist = current_node->dist + (max_weight - redge->weight);
+			dist = current_node->dist + 1;//(max_weight - redge->weight);
 			if (current_node->freg->flags & GF_FS_REG_HIDE_WEIGHT) {
 				dist = current_node->dist;
 			}
@@ -2050,6 +2038,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 			}
 		}
+		first = GF_FALSE;
 	}
 
 	sort_time_us -= start_time_us;

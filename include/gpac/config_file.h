@@ -52,18 +52,6 @@ extern "C" {
 typedef struct __tag_config GF_Config;
 
 /*!
- *	\brief configuration file initialization
- *
- * Constructs a configuration file from fileName. If fileName is NULL, the default GPAC configuration file is loaded with the
- * proper module directory, font directory and other default options. If fileName is non-NULL no configuration file is found,
- * a "light" default configuration file is created.
- *\param file name of the configuration file, or NULL for default file
- *\param new_cfg Boolean set to true if a new configuration file has been created
- *\return the configuration file object, NULL if the file could not be created
- */
-GF_Config *gf_cfg_init(const char *file, Bool *new_cfg);
-
-/*!
  *	\brief configuration file constructor
  *
  * Constructs a configuration file.
@@ -202,11 +190,10 @@ const char *gf_cfg_get_sub_key(GF_Config *cfgFile, const char *secName, const ch
 
 /*!
  * Get the full filename associated with this config file
- * The caller is responsible for freeing memory
  * \param iniFile The Configuration
- * \return a newly allocated filename
+ * \return the associated filename
  */
-char * gf_cfg_get_filename(GF_Config *iniFile);
+const char * gf_cfg_get_filename(GF_Config *iniFile);
 
 /*!
  * Set the full filename associated with this config file

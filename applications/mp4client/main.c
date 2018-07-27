@@ -79,11 +79,10 @@ Bool no_prog = 0;
 #define VK_MOD  GF_KEY_MOD_CTRL
 #endif
 
-//with the new API threading flags always have GF_TERM_NO_COMPOSITOR_THREAD set to flush the prompt
-static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD;
+//number of extra threads
+static u32 nb_threads = 1;
 
 static Bool no_audio = GF_FALSE;
-static Bool term_step = GF_FALSE;
 static Bool no_regulation = GF_FALSE;
 static u32 bench_mode = 0;
 static u32 bench_mode_start = 0;
@@ -104,7 +103,6 @@ static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
 static Bool readonly_playlist = GF_FALSE;
 
-static GF_Config *cfg_file;
 static u32 display_rti = 0;
 static Bool Run;
 static Bool CanSeek = GF_FALSE;
@@ -182,7 +180,6 @@ void send_open_url(const char *url)
 void PrintUsage()
 {
 	fprintf(stderr, "Usage MP4Client [options] [filename]\n"
-	        "\t-c fileName:    user-defined configuration file. Also works with -cfg\n"
 #ifdef GPAC_MEMORY_TRACKING
             "\t-mem-track:  enables memory tracker\n"
             "\t-mem-track-stack:  enables memory tracker with stack dumping\n"
@@ -238,8 +235,8 @@ void PrintUsage()
 	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
 	        "\t-ifce IPIFCE           : Sets default Multicast interface\n"
 	        "\t-size WxH:      specifies visual size (default: scene size)\n"
+	        "\t-nb-threads N:  sets number of extra thread to N (default is N=%d)\n"
 	        "\t-no-thread:     disables thread usage (except for depending on driver audio)\n"
-	        "\t-no-cthread:    disables compositor thread (iOS and Android mode)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
@@ -295,12 +292,14 @@ void PrintUsage()
 	        "\n"
 	        "\t-uncache:       Revert all cached items to their original name and location. Does not start player.\n"
 	        "\n"
+	        "\t-p profile:    user-defined profile, either a name or path to an existing GPAC config file.\n"
 	        "\t-help:          shows this screen\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
 	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n",
+	        nb_threads,
 	        GF_IMPORT_DEFAULT_FPS,
 	        gpac_features()
 	       );
@@ -970,12 +969,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 }
 
 
-void list_modules(GF_ModuleManager *modules)
+void list_modules()
 {
 	u32 i;
 	fprintf(stderr, "\rAvailable modules:\n");
-	for (i=0; i<gf_modules_get_count(modules); i++) {
-		char *str = (char *) gf_modules_get_file_name(modules, i);
+	for (i=0; i<gf_modules_count(); i++) {
+		char *str = (char *) gf_modules_get_file_name(i);
 		if (str) fprintf(stderr, "\t%s\n", str);
 	}
 	fprintf(stderr, "\n");
@@ -1137,14 +1136,14 @@ void set_cfg_option(char *opt_string)
 			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
 			return;
 		}
-		gf_cfg_del_section(cfg_file, szSec);
+		gf_opts_del_section(szSec);
 		return;
 	}
 
 	if (!stricmp(szVal, "null")) {
 		szVal[0]=0;
 	}
-	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
+	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
 Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
@@ -1229,7 +1228,7 @@ int mp4client_main(int argc, char **argv)
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible, do_uncache, has_command;
-	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *mosaic;
+	char *url_arg, *out_arg, *profile, *rti_file, *views, *mosaic;
 	FILE *logfile = NULL;
 #ifndef WIN32
 	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
@@ -1241,15 +1240,15 @@ int mp4client_main(int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	fill_ar = visible = do_uncache = has_command = GF_FALSE;
-	url_arg = out_arg = the_cfg = rti_file = views = mosaic = NULL;
+	url_arg = out_arg = profile = rti_file = views = mosaic = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
 	/*first locate config file if specified*/
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
-		if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
-			the_cfg = argv[i+1];
+		if (!strcmp(arg, "-p")) {
+			profile = argv[i+1];
 			i++;
 		}
 		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
@@ -1269,28 +1268,23 @@ int mp4client_main(int argc, char **argv)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	gf_sys_init(mem_track);
+	gf_sys_init(mem_track, profile);
 #else
-	gf_sys_init(GF_MemTrackerNone);
+	gf_sys_init(GF_MemTrackerNone, profile);
 #endif
 	gf_sys_set_args(argc, (const char **) argv);
 
-	cfg_file = gf_cfg_init(the_cfg, NULL);
-	if (!cfg_file) {
-		fprintf(stderr, "Error: Configuration File not found\n");
-		return 1;
-	}
 	/*if logs are specified, use them*/
-	if (gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") ) != GF_OK) {
+	if (gf_log_set_tools_levels( gf_opts_get_key("General", "Logs") ) != GF_OK) {
 		return 1;
 	}
 
-	if( gf_cfg_get_key(cfg_file, "General", "Logs") != NULL ) {
+	if( gf_opts_get_key("General", "Logs") != NULL ) {
 		logs_set = GF_TRUE;
 	}
 
 	if (!gui_mode) {
-		str = gf_cfg_get_key(cfg_file, "General", "ForceGUI");
+		str = gf_opts_get_key("General", "ForceGUI");
 		if (str && !strcmp(str, "yes")) gui_mode = 1;
 	}
 
@@ -1329,9 +1323,11 @@ int mp4client_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
 			log_utc_time = 1;
 		}
-		else if (!strcmp(arg, "-no-thread"))
-			threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
-		else if (!strcmp(arg, "-no-cthread") || !strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
+		else if (!strcmp(arg, "-no-thread")) nb_threads = 0;
+		else if (!strcmp(arg, "-nb-threads")) {
+			nb_threads = atoi(argv[i+1]);
+			i++;
+		}
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
@@ -1345,8 +1341,7 @@ int mp4client_main(int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-ifce")) {
-			fprintf(stderr, "-ifce NOT YET BACKPORTED\n");
-			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
+			gf_opts_set_key("Core", "DefaultMCastInterface", argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-help")) {
@@ -1414,7 +1409,7 @@ int mp4client_main(int argc, char **argv)
 			sscanf(argv[i+1], "%f", &scale);
 			i++;
 		}
-		else if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
+		else if (!strcmp(arg, "-p")) {
 			/* already parsed */
 			i++;
 		}
@@ -1484,21 +1479,19 @@ int mp4client_main(int argc, char **argv)
 		}
 	}
 	if (is_cfg_only) {
-		gf_cfg_del(cfg_file);
 		fprintf(stderr, "GPAC Config updated\n");
 		return 0;
 	}
 	if (do_uncache) {
-		const char *cache_dir = gf_cfg_get_key(cfg_file, "General", "CacheDirectory");
+		const char *cache_dir = gf_opts_get_key("Core", "CacheDirectory");
 		do_flatten_cache(cache_dir);
 		fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
-		gf_cfg_del(cfg_file);
 		return 0;
 	}
 
 	if (dump_mode && !url_arg ) {
 		FILE *test;
-		url_arg = (char *)gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		url_arg = (char *)gf_opts_get_key("General", "StartupFile");
 		test = url_arg ? gf_fopen(url_arg, "rt") : NULL;
 		if (!test) url_arg = NULL;
 		else gf_fclose(test);
@@ -1511,7 +1504,7 @@ int mp4client_main(int argc, char **argv)
 		}
 	}
 
-	if (!gui_mode && !url_arg && (gf_cfg_get_key(cfg_file, "General", "StartupFile") != NULL)) {
+	if (!gui_mode && !url_arg && (gf_opts_get_key("General", "StartupFile") != NULL)) {
 		gui_mode=1;
 	}
 
@@ -1521,7 +1514,7 @@ int mp4client_main(int argc, char **argv)
 		TCHAR buffer[1024];
 		DWORD res = GetCurrentDirectory(1024, buffer);
 		buffer[res] = 0;
-		opt = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
+		opt = gf_cfg_get_key(cfg_file, "Core", "ModulesDirectory");
 		if (strstr(opt, buffer)) {
 			gui_mode=1;
 		} else {
@@ -1566,65 +1559,40 @@ int mp4client_main(int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.init_flags |= GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION;
+		user.threads = 0;
+		user.init_flags |= GF_TERM_NO_REGULATION;
 		if (!visible)
 			user.init_flags |= GF_TERM_INIT_HIDE;
-
-		gf_cfg_set_key(cfg_file, "Audio", "DriverName", "Raw Audio Output");
 		no_cfg_save=GF_TRUE;
 	} else {
 		init_w = forced_width;
 		init_h = forced_height;
+		user.threads = nb_threads;
 	}
 
-	user.modules = gf_modules_new(NULL, cfg_file);
-	if (user.modules) i = gf_modules_get_count(user.modules);
-	if (!i || !user.modules) {
-		fprintf(stderr, "Error: no modules found - exiting\n");
-		if (user.modules) gf_modules_del(user.modules);
-		gf_cfg_del(cfg_file);
-		gf_sys_close();
-		if (logfile) gf_fclose(logfile);
-		return 1;
-	}
-	fprintf(stderr, "Modules Found : %d \n", i);
-
-	str = gf_cfg_get_key(cfg_file, "General", "GPACVersion");
-	if (!str || strcmp(str, GPAC_FULL_VERSION)) {
-		gf_cfg_del_section(cfg_file, "PluginsCache");
-		gf_cfg_set_key(cfg_file, "General", "GPACVersion", GPAC_FULL_VERSION);
-	}
-
-	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
-	user.opaque = user.modules;
-	if (threading_flags) user.init_flags |= threading_flags;
+	user.opaque = &user;
+
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 	
-
-	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = GF_TRUE;
 
 	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
 	if (dump_mode) user.init_flags |= GF_TERM_NO_DEF_AUDIO_OUT;
 
 	if (bench_mode) {
-		gf_cfg_discard_changes(user.config);
+		gf_opts_discard_changes();
 		auto_exit = GF_TRUE;
-		if (bench_mode!=2) {
-			user.init_flags |= GF_TERM_NO_VIDEO;
-		} else {
-			gf_cfg_set_key(user.config, "Video", "DisableVSync", "yes");
-		}
+		if (bench_mode!=2) user.init_flags |= GF_TERM_NO_VIDEO;
 	}
 
-	{
+	if (forced_width && forced_height) {
 		char dim[50];
 		sprintf(dim, "%d", forced_width);
-		gf_cfg_set_key(user.config, "Temp", "DefaultWidth", forced_width ? dim : NULL);
+		gf_opts_set_key("Temp", "DefaultWidth", dim);
 		sprintf(dim, "%d", forced_height);
-		gf_cfg_set_key(user.config, "Temp", "DefaultHeight", forced_height ? dim : NULL);
+		gf_opts_set_key("Temp", "DefaultHeight", dim);
 	}
 
 	fprintf(stderr, "Loading GPAC Terminal\n");
@@ -1633,10 +1601,8 @@ int mp4client_main(int argc, char **argv)
 	term = gf_term_new(&user);
 	if (!term) {
 		fprintf(stderr, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
-		list_modules(user.modules);
-		gf_modules_del(user.modules);
-		gf_cfg_discard_changes(cfg_file);
-		gf_cfg_del(cfg_file);
+		list_modules();
+		gf_opts_discard_changes();
 		gf_sys_close();
 		if (logfile) gf_fclose(logfile);
 		return 1;
@@ -1653,29 +1619,22 @@ int mp4client_main(int argc, char **argv)
 //		gf_term_set_option(term, GF_OPT_VISIBLE, 0);
 		if (fill_ar) gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
 	} else {
-		/*check video output*/
-		str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
-		if (!bench_mode && !strcmp(str, "Raw Video Output")) fprintf(stderr, "WARNING: using raw output video (memory only) - no display used\n");
-		/*check audio output*/
-		str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
-		if (!str || !strcmp(str, "No Audio Output Available")) fprintf(stderr, "WARNING: no audio output available - make sure no other program is locking the sound card\n");
-
-		str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
+		str = gf_opts_get_key("General", "NoMIMETypeFetch");
 		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 	}
 
-	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
+	str = gf_opts_get_key("Core", "HTTPProxyEnabled");
 	if (str && !strcmp(str, "yes")) {
-		str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Name");
+		str = gf_opts_get_key("Core", "HTTPProxyName");
 		if (str) fprintf(stderr, "HTTP Proxy %s enabled\n", str);
 	}
 
 	if (rti_file) {
-		str = gf_cfg_get_key(cfg_file, "General", "RTIRefreshPeriod");
+		str = gf_opts_get_key("General", "RTIRefreshPeriod");
 		if (str) {
 			rti_update_time_ms = atoi(str);
 		} else {
-			gf_cfg_set_key(cfg_file, "General", "RTIRefreshPeriod", "200");
+			gf_opts_set_key("General", "RTIRefreshPeriod", "200");
 		}
 		UpdateRTInfo("At GPAC load time\n");
 	}
@@ -1734,7 +1693,7 @@ int mp4client_main(int argc, char **argv)
 		}
 	} else {
 		fprintf(stderr, "Hit 'h' for help\n\n");
-		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		str = gf_opts_get_key("General", "StartupFile");
 		if (str) {
 			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
 			gf_term_connect(term, str);
@@ -1769,7 +1728,7 @@ int mp4client_main(int argc, char **argv)
 			if (reload) {
 				reload = 0;
 				gf_term_disconnect(term);
-				gf_term_connect(term, startup_file ? gf_cfg_get_key(cfg_file, "General", "StartupFile") : the_url);
+				gf_term_connect(term, startup_file ? gf_opts_get_key("General", "StartupFile") : the_url);
 			}
 			if (restart && gf_term_get_option(term, GF_OPT_IS_OVER)) {
 				restart = 0;
@@ -1799,11 +1758,10 @@ int mp4client_main(int argc, char **argv)
 			}
 
 			if (!use_rtix || display_rti) UpdateRTInfo(NULL);
-			if (term_step) {
-				gf_term_process_step(term);
-			} else {
-				gf_sleep(rti_update_time_ms);
-			}
+
+
+			gf_term_process_step(term);
+
 			if (auto_exit && eos_seen && gf_term_get_option(term, GF_OPT_IS_OVER)) {
 				Run = GF_FALSE;
 			}
@@ -2025,7 +1983,7 @@ force_input:
 			break;
 
 		case 'l':
-			list_modules(user.modules);
+			list_modules();
 			break;
 
 		case 'n':
@@ -2345,12 +2303,9 @@ force_input:
 	fprintf(stderr, "done (in %d ms) - ran for %d ms\n", gf_sys_clock() - i, gf_sys_clock());
 
 	fprintf(stderr, "GPAC cleanup ...\n");
-	gf_modules_del(user.modules);
 
 	if (no_cfg_save)
-		gf_cfg_discard_changes(cfg_file);
-
-	gf_cfg_del(cfg_file);
+		gf_opts_discard_changes();
 
 	gf_sys_close();
 
@@ -2989,21 +2944,20 @@ void PrintGPACConfig()
 
 	fprintf(stderr, "\n\n*** GPAC Configuration ***\n\n");
 
-	cfg_count = gf_cfg_get_section_count(cfg_file);
+	cfg_count = gf_opts_get_section_count();
 	for (i=0; i<cfg_count; i++) {
-		const char *sec = gf_cfg_get_section_name(cfg_file, i);
+		const char *sec = gf_opts_get_section_name(i);
 		if (secName) {
 			if (stricmp(sec, secName)) continue;
 		} else {
 			if (!stricmp(sec, "General")) continue;
 			if (!stricmp(sec, "MimeTypes")) continue;
-			if (!stricmp(sec, "RecentFiles")) continue;
 		}
 		fprintf(stderr, "[%s]\n", sec);
-		key_count = gf_cfg_get_key_count(cfg_file, sec);
+		key_count = gf_opts_get_key_count(sec);
 		for (j=0; j<key_count; j++) {
-			const char *key = gf_cfg_get_key_name(cfg_file, sec, j);
-			const char *val = gf_cfg_get_key(cfg_file, sec, key);
+			const char *key = gf_opts_get_key_name(sec, j);
+			const char *val = gf_opts_get_key(sec, key);
 			fprintf(stderr, "%s=%s\n", key, val);
 		}
 		fprintf(stderr, "\n");

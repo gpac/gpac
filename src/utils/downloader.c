@@ -1393,7 +1393,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 	/*PROXY setup*/
 	if (sess->proxy_enabled!=2 && sess->dm && sess->dm->cfg) {
-		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Enabled");
+		proxy = gf_cfg_get_key(sess->dm->cfg, "Core", "HTTPProxyEnabled");
 		if (proxy && !strcmp(proxy, "yes")) {
 			u32 i;
 			Bool use_proxy=GF_TRUE;
@@ -1405,9 +1405,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				}
 			}
 			if (use_proxy) {
-				proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Port");
+				proxy = gf_cfg_get_key(sess->dm->cfg, "Core", "HTTPProxyPort");
 				proxy_port = proxy ? atoi(proxy) : 80;
-				proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Name");
+				proxy = gf_cfg_get_key(sess->dm->cfg, "Core", "HTTPProxyName");
 				sess->proxy_enabled = 1;
 			} else {
 				proxy = NULL;
@@ -1422,7 +1422,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 
 	if (sess->dm && sess->dm->cfg) {
-		ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIP");
+		ip = gf_cfg_get_key(sess->dm->cfg, "Core", "MobileIP");
 	} else {
 		ip = NULL;
 	}
@@ -1820,7 +1820,7 @@ GF_EXPORT
 GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 {
 	const char *opt;
-	char * default_cache_dir;
+	const char * default_cache_dir;
 	GF_DownloadManager *dm;
 	GF_SAFEALLOC(dm, GF_DownloadManager);
 	if (!dm) {
@@ -1837,7 +1837,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 	default_cache_dir = NULL;
 	gf_mx_p( dm->cache_mx );
 	if (cfg)
-		opt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
+		opt = gf_cfg_get_key(cfg, "Core", "CacheDirectory");
 	else
 		opt = NULL;
 
@@ -1877,12 +1877,12 @@ retry_cache:
 		}
 	}
 
-	opt = cfg ? gf_cfg_get_key(cfg, "Downloader", "MaxRate") : NULL;
+	opt = cfg ? gf_cfg_get_key(cfg, "Core", "MaxRate") : NULL;
 	/*use it in in BYTES per second*/
 	if (opt)
 		dm->limit_data_rate = 1000 * atoi(opt) / 8;
 	else
-		gf_cfg_set_key(cfg, "Downloader", "MaxRate", "0");
+		gf_cfg_set_key(cfg, "Core", "MaxRate", "0");
 
 
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
@@ -1892,14 +1892,14 @@ retry_cache:
 	}
 
 	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Downloader", "DisableCache");
-		if (!opt) gf_cfg_set_key(cfg, "Downloader", "DisableCache", "no");
+		opt = gf_cfg_get_key(cfg, "Core", "DisableCache");
+		if (!opt) gf_cfg_set_key(cfg, "Core", "DisableCache", "no");
 		if (opt && !strcmp(opt, "yes")) dm->disable_cache = GF_TRUE;
 	}
 
 	dm->allow_offline_cache = GF_FALSE;
 	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Downloader", "AllowOfflineCache");
+		opt = gf_cfg_get_key(cfg, "Core", "AllowOfflineCache");
 		if (opt && !strcmp(opt, "yes") )
 			dm->allow_offline_cache = GF_TRUE;
 	}
@@ -1907,7 +1907,7 @@ retry_cache:
 	dm->clean_cache = GF_FALSE;
 	dm->allow_broken_certificate = GF_FALSE;
 	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Downloader", "CleanCache");
+		opt = gf_cfg_get_key(cfg, "Core", "CleanCache");
 		if (opt) {
 			if (!strcmp(opt, "yes") ) {
 				dm->clean_cache = GF_TRUE;
@@ -1922,9 +1922,9 @@ retry_cache:
 				gf_dm_clean_cache(dm);
 			}
 		}
-		opt = gf_cfg_get_key(cfg, "Downloader", "AllowBrokenCertificate");
+		opt = gf_cfg_get_key(cfg, "Core", "AllowBrokenCertificate");
 		if (!opt) {
-			gf_cfg_set_key(cfg, "Downloader", "AllowBrokenCertificate", "no");
+			gf_cfg_set_key(cfg, "Core", "AllowBrokenCertificate", "no");
 		} else if (!strcmp(opt, "yes")) {
 			dm->allow_broken_certificate = GF_TRUE;
 		}
@@ -1933,22 +1933,21 @@ retry_cache:
 
 	dm->head_timeout = 5000;
 	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Downloader", "HTTPHeadTimeout");
+		opt = gf_cfg_get_key(cfg, "Core", "HTTPHeadTimeout");
 		if (opt) {
 			dm->head_timeout = atoi(opt);
 		}
 	}
 	dm->request_timeout = 20000;
 	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Downloader", "HTTPRequestTimeout");
+		opt = gf_cfg_get_key(cfg, "Core", "HTTPRequestTimeout");
 		if (opt) {
 			dm->request_timeout = atoi(opt);
 		}
 	}
 
 	gf_mx_v( dm->cache_mx );
-	if (default_cache_dir)
-		gf_free(default_cache_dir);
+
 #ifdef GPAC_HAS_SSL
 	dm->ssl_ctx = NULL;
 #endif
@@ -2493,7 +2492,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		sprintf(pass_buf, "Authorization: Basic %s", sess->creds->digest);
 	}
 	if (sess->dm && sess->dm->cfg)
-		user_agent = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserAgent");
+		user_agent = gf_cfg_get_key(sess->dm->cfg, "Core", "UserAgent");
 	else
 		user_agent = NULL;
 	if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
@@ -2517,7 +2516,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 	url = (sess->proxy_enabled==1) ? sess->orig_url : sess->remote_path;
 	if (sess->dm && sess->dm->cfg)
-		param_string = gf_cfg_get_key(sess->dm->cfg, "Downloader", "ParamString");
+		param_string = gf_cfg_get_key(sess->dm->cfg, "Core", "ParamString");
 	else
 		param_string = NULL;
 	if (param_string) {
@@ -2596,7 +2595,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	/*check if we have personalization info*/
 	send_profile = GF_FALSE;
 	if (sess->dm && sess->dm->cfg)
-		user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfileID");
+		user_profile = gf_cfg_get_key(sess->dm->cfg, "Core", "UserProfileID");
 	else
 		user_profile = NULL;
 	if (user_profile) {
@@ -2605,7 +2604,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		strcat(sHTTP, "\r\n");
 	} else {
 		if (sess->dm && sess->dm->cfg)
-			user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
+			user_profile = gf_cfg_get_key(sess->dm->cfg, "Core", "UserProfile");
 		else
 			user_profile = NULL;
 		if (user_profile) {
@@ -2656,7 +2655,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			FILE *profile;
 			assert( sess->dm );
 			assert( sess->dm->cfg );
-			user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
+			user_profile = gf_cfg_get_key(sess->dm->cfg, "Core", "UserProfile");
 			assert (user_profile);
 			profile = gf_fopen(user_profile, "rt");
 			if (profile) {
@@ -3109,7 +3108,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 		else if (!stricmp(hdrp->name, "X-UserProfileID") ) {
 			if (sess->dm && sess->dm->cfg)
-				gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdrp->value);
+				gf_cfg_set_key(sess->dm->cfg, "Core", "UserProfileID", hdrp->value);
 		}
 		else if (!stricmp(hdrp->name, "Connection") ) {
 			if (strstr(hdrp->value, "close"))
@@ -3840,7 +3839,7 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 		if (dm->cfg) {
 			char opt[100];
 			sprintf(opt, "%d", rate_in_bits_per_sec / 1024);
-			gf_cfg_set_key(dm->cfg, "Downloader", "MaxRate", opt);
+			gf_cfg_set_key(dm->cfg, "Core", "MaxRate", opt);
 		}
 
 		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;

@@ -383,7 +383,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 
-	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, 0, NULL);
+	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, 0, NULL);
 
 	src_url = gf_isom_get_filename(mp4);
 	src = gf_fs_load_source(fsess, src_url, NULL, NULL, &e);
@@ -426,7 +426,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 
-	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, 0, NULL);
+	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, 0, NULL);
 
 	src_url = gf_isom_get_filename(mp4);
 	src = gf_fs_load_source(fsess, src_url, NULL, NULL, &e);

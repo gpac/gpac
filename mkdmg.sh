@@ -44,6 +44,7 @@ cp bin/gcc/gm* tmpdmg/GPAC.app/Contents/MacOS/modules
 cp bin/gcc/libgpac.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
 cp bin/gcc/MP4Client tmpdmg/GPAC.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/GPAC.app/Contents/MacOS/MP4Box
+cp bin/gcc/gpac tmpdmg/GPAC.app/Contents/MacOS/gpac
 cp bin/gcc/MP42TS tmpdmg/GPAC.app/Contents/MacOS/MP42TS
 if [ -f bin/gcc/DashCast ]
 then
@@ -68,21 +69,18 @@ echo rewriting APPS dependencies
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
+install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib gpac
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
-
-if [ -f DashCast ]
-then
-install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib DashCast
-install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib DashCast
-fi
+install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib gpac
 
 cd ../../../..
 
 echo Copying GUI
-rsync -r --exclude=.git $source_path/gui ./tmpdmg/GPAC.app/Contents/MacOS/
-rsync -r --exclude=.git $source_path/shaders ./tmpdmg/GPAC.app/Contents/MacOS/
+rsync -r --exclude=.git $source_path/share/gui ./tmpdmg/GPAC.app/Contents/MacOS/share/
+rsync -r --exclude=.git $source_path/share/shaders ./tmpdmg/GPAC.app/Contents/MacOS/share/
+rsync -r --exclude=.git $source_path/share/scripts ./tmpdmg/GPAC.app/Contents/MacOS/share/
 
 echo Building DMG
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`

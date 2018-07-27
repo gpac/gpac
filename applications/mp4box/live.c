@@ -121,7 +121,7 @@ int stream_file_rtp(int argc, char **argv)
         else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
 	}
 
-	gf_sys_init(mem_track);
+	gf_sys_init(mem_track, NULL);
 	if (logs)
 		gf_log_set_tools_levels(logs);
 	else
@@ -501,7 +501,7 @@ int live_session(int argc, char **argv)
 	aggregate_au = 1;
 	es_id = 0;
 	no_rap = 0;
-	gf_sys_init(GF_MemTrackerNone);
+	gf_sys_init(GF_MemTrackerNone, NULL);
 
 	memset(&livesess, 0, sizeof(LiveSession));
 

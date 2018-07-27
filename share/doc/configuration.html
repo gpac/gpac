@@ -22,43 +22,47 @@ GPAC Version 0.7.2-DEV
 Some applications in the GPAC framework use a configuration file shared among modules and reloadable at run time. Modules may use the configuration file as well (to avoid multiple config files). This doc attempts to provide explanations for the different options.
 <br/><br/>
 The config file is ordered by sections and keys.
-<br/>A section is declared as <b><i>SectionName</i></b>. Defined sections are:
+<br/>A section is declared as <b><i>[SectionName]</i></b>. Defined sections are:
 <br/>
 <b><a href="#General" style="text-decoration: underline;">General</a></b>
-<b><a href="#RecentFiles" style="text-decoration: underline;">RecentFiles</a></b>
 <b><a href="#Core" style="text-decoration: underline;">Core</a></b>
 <b><a href="#Audio" style="text-decoration: underline;">Audio</a></b>
 <b><a href="#Video" style="text-decoration: underline;">Video</a></b>
-<b><a href="#Network" style="text-decoration: underline;">Network</a></b>
 <b><a href="#FontEngine" style="text-decoration: underline;">FontEngine</a></b>
-<b><a href="#Downloader" style="text-decoration: underline;">Downloader</a></b>
-<b><a href="#HTTPProxy" style="text-decoration: underline;">HTTPProxy</a></b>
-<b><a href="#MimeTypes" style="text-decoration: underline;">MimeTypes</a></b>
-<b><a href="#ALSA" style="text-decoration: underline;">ALSA</a></b>
 <b><a href="#SHORTCUTS" style="text-decoration: underline;">Shortcuts</a></b>
 <b><a href="#DirectFB" style="text-decoration: underline;">DirectFB</a></b>
 <b><a href="#DektecVideo" style="text-decoration: underline;">DektecVideo</a></b>
 
 </p>
 <br/><br/>
-A key is declared as <b><i>keyName</i></b>=<i>value</i>. The key value is not interpreted and always handled as ASCII text.
-<br/><br/>
+A key is declared as <b><i>keyName</i></b>=<i>value</i>. The key value is not interpreted and always handled as ASCII text. The configuration file is called GPAC.cfg.
+<br/>
 <ul>
 <li>
-<span style="text-decoration: underline;">On Windows plateforms</span>, this config file is called "GPAC.cfg" and is <i>usually</i> located in C:\\Program Files\\GPAC. Note that Osmo4 will always create a config file in its own directory when none is found.
+<span style="text-decoration: underline;">On Windows plateforms</span>, this file is in C:\\Users\\FOO\\AppData\\Roaming\\GPAC, or in C:\\Program Files\\GPAC. Note that Osmo4 will always create a config file in its own directory when none is found.
 <br/><br/>
 </li>
 <li>
-<span style="text-decoration: underline;">On Windows CE plateform</span>, this config file is called "GPAC.cfg" and is <i>usually</i> located in \\Program Files\\GPAC. Note that Osmo4 / CE will always create a config file in its own directory when none is found.
-<br/><br/>
-</li>
-<li>
-<span style="text-decoration: underline;">On GNU/Linux plateforms</span>, this config file is called ".gpacrc" and is <i>always</i> located at the root of the user home directory (for ex, /home/jean/.gpacrc).
+<span style="text-decoration: underline;">On GNU/Linux plateforms</span>, this file is located in a .gpac folder in the user home directory (for ex, /home/foo/.gpac/ or /Users/foo/.gpac/).
 <br/><br/>
 </li>
 </ul>
+As of 0.9.0, GPAC can use different configuration profiles other than the default. Each profile <i>BAR</i> is located in a directory <i>profiles/BAR</i> in the same directory as the general config file. Profiles allow setting up GPAC with different default arguments. 
 <br/>
 
+<p>
+	As of 0.9.0, GPAC uses a filter-based architecture for all media stream processing. Each filter may have a set of options with predefine values. The config file can be used to hold a different default value for a filter option, using the section name [filter:FNAME] and setting a key name/value corresponding to the desired argument. 
+</p>
+For example:
+<br/>
+<i>
+[filter:vout]
+<br/>
+vsync=false
+</i>
+<p>
+will result in having the vout filter always loaded with a the vsync option disabled. See gpac -h for more info on filters, and gpac -wp to write all filter options to the config file.
+<br/>
 <br/><br/><i>Note on module names:</i>
 <br/>Module names as given in the config file are names exported by each interface and not name of the physical library file (<i>.dll, .so, ...</i>). The physical file name can however be used to identify a module - it will then be replaced by the module name.
 
@@ -69,14 +73,6 @@ A key is declared as <b><i>keyName</i></b>=<i>value</i>. The key value is not in
 <span style="text-decoration: underline;"><b>Section "General"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>
 The <b>General</b> section of the config file holds player specific options.
-</p>
-<b>ModulesDirectory</b> [value: <i>path to directory</i>]
-<p style="text-indent: 5%">
-Specifies the path to modules directory. The MPEG-4 Systems engine cannot be loaded without modules. This option is used by GPAC clients on all platforms.
-</p>
-<b>CacheDirectory</b> [value: <i>path to storage directory</i>]
-<p style="text-indent: 5%">
-Specifies location of temp files. The user must have write access to this location. Although not used by applications, this is used by several modules.
 </p>
 <b>StartupFile</b> [value: <i>filename</i>]
 <p style="text-indent: 5%">
@@ -130,75 +126,42 @@ Available tools are:
 <br/><br/>
 </p>
 
-<span style="text-decoration: underline;">Options defined for Osmo4 (Windows version and wxWidgets version):</span><br/><br/>
-<b>Loop</b> [value: <i>"yes" "no"</i>]
+
+<b>NoMIMETypeFetch</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
-Specifies whether the presentation has to be restarted when done playing.
+Specifies whether mime type should be fetched when checking a link to a new file (currently deprecated).
 </p>
-<b>ConsoleOff</b> [value: <i>"yes" "no"</i>]
+<b>LastWorkingDir</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
-Specifies whether application messages (script, buffering, download progress) are displayed in the console or not.
+Indicates the last directory from which a file was opened.
 </p>
-<b>SingleInstance</b> [value: <i>"yes", "no"</i>]
+<b>iOSDocumentsDir</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
-Specifies if the player should be a single instance application or not (Osmo4-Win32 only).
+Path to the iOS document directory for the client.
 </p>
-<b>LookForSubtitles</b> [value: <i>"yes" "no"</i>]
+<b>DeviceType</b> [value: <i>"iOS" "Android" "Desktop"</i>]
 <p style="text-indent: 5%">
-Specifies if Osmo4 shall look for subtitle files when opening a presentation.
+Quick indication of device type for the gui.
 </p>
-<b>ViewXMT</b> [value: <i>"yes" "no"</i>]
+<b>RTIRefreshPeriod</b> [value: <i>unsigned integer</i>]
 <p style="text-indent: 5%">
-Specifies if scene dumping shall be done in XML (XMT, X3D) or in VRML-like syntax (BT, WRL).
-</p>
-<b>ConfigPanel</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the latest config panel selected by user.
-</p>
-<b>NoMIMETypeFetch</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Specifies if the player has to check for mime type when following hyperlinks, or only follow links of known extensions.
-</p>
-<b>Loop</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Specifies if the playlist shall be restarted when playback is over.
-</p>
-<b>PLEntry</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Indicates active playlist entry when player was last closed. Playlist backup is:
-</p>
-<ul>
-<li>"gpac_pl.m3u" on win32 platforms, stored in same directory as application</li>
-<li>".gpac_pl.m3u" on other platforms, stored in user home directory</li>
-</ul>
-<b>FillScreen</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Specifies if the display area shall fill all available space on screen. WindowsMobile/Symbian only
-</p>
-<b>DisableBackLight</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Specifies if the screen backlighting shall be disabled while playing. WindowsMobile/Symbian only
-</p>
-<b>LastWorkingDir</b> [value: <i>"yes", "no"</i>]
-<p style="text-indent: 5%">
-Specifies the directory of the last local file opened. Smartphone Windows only
-</p>
-<b>Browser</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies prefered browser for WWW anchors and scene graph viewing - Only used by Osmo4/wxWidgets.
+Time in ms at which run time info (cpu, memory) is refreshed by MP4Client. Default is 200 ms.
 </p>
 
-<a name="RecentFiles"></a>
-<span style="text-decoration: underline;"><b>Section "RecentFiles"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>
-The "RecentFiles" section of the config file holds last accessed files (hardcoded to no more than 20) in the last access order. The keys are
-the file names and no value is used. This section is only used by GUI clients (osmo4/wxOsmo4)
-</p>
+
 
 <a name="Core"></a>
 <span style="text-decoration: underline;"><b>Section "Core"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>
 The "Core" section of the config file holds all configuration options for GPAC core.
+</p>
+<b>ModulesDirectory</b> [value: <i>path to directory</i>]
+<p style="text-indent: 5%">
+Specifies the path to modules directory. The MPEG-4 Systems engine cannot be loaded without modules. This option is used by GPAC clients on all platforms.
+</p>
+<b>CacheDirectory</b> [value: <i>path to storage directory</i>]
+<p style="text-indent: 5%">
+Specifies location of temp files. The user must have write access to this location. Although not used by applications, this is used by several modules.
 </p>
 <b>LanguageName</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
@@ -218,9 +181,57 @@ Specifies the user prefered language as expressed in ISO 639-1. This is used to 
 Specifies whether modules should be unloaded if not used or not. Default: "yes".
 </p>
 
+<b>CleanCache</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Specifies whether downloaded files shall be removed once used.</p>
+<b>DisableCache</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Specifies whether HTTP caching instructions are disabled or not.</p>
+<b>AllowOfflineCache</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+When enabled, allows HTTP request to use cached file if any when network is not available.</p>
+<b>MaxRate</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies a maximum data rate in kilo bits per seconds for file downloading. This is used for simulation purposes. A value of 0 means no rate restriction.</p>
+<b>UserAgent</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies an alternate user agent (default one is "GPAC $VERSION").</p>
+<b>HTTPHeadTimeout</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies timeout in milliseconds before considering HEAD request failed. 0 means no HEAD request is issued, only GET.</p>
+<b>AllowBrokenCertificate</b> [value: <i>yes no</i>]
+<p style="text-indent: 5%">
+If set to yes, ignores invalid certificates and process anyway. Default is no.</p>
+
+<b>HTTPProxyEnabled</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Specifies whether HTTP proxy should be used or not when downloading files.</p>
+<b>HTTPProxyName</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies the proxy name (IP address or resolved name) without protocol identifier (eg, no "http://"). If not present, the proxy is disabled.</p>
+<b>HTTPProxyPort</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies the port to use with the proxy. If no port is specified, the default HTTP port (80) is used.</p>
+
+<b>MobileIP</b> [value: <i>IP Address</i>]
+<p style="text-indent: 5%">
+Specifies a Mobile IP interface overriding the default IP. If set, all sockets will be locally bound to this IP address.</p>
+</p>
+
+<b>DefaultMCastInterface</b> [value: <i>IP Address</i>]
+<p style="text-indent: 5%">
+Specifies a default IP interface for Multicast overriding the default IP. If not set, the multicast will be setup using the default IP. 
+The default multicast interface overrides filter-specific default argument, but not any explicit filter argument.</p>
+</p>
+
+<b>PrintFilterEdges</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Prints filter graph edges before running dijkstra. For debug only.
+</p>
+
 <a name="Audio"></a>
 <span style="text-decoration: underline;"><b>Section "Audio"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Audio" section of the config file holds all configuration options for the audio rendering engine and hardware.</p>
+<p>The "Audio" section of the config file holds all configuration options for the specific audio hardware.</p>
 <b>DriverName</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies the driver to use for audio rendering. This driver cannot be reloaded at run-time, the complete system must be restarted.</p>
@@ -228,6 +239,14 @@ Specifies the driver to use for audio rendering. This driver cannot be reloaded 
 <b>DisableNotification</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Disables usage of audio buffer notifications when supported (currently only DirectSound supports it). If DirectSound audio sounds weird try without notifications.</p>
+
+<b>DeviceName</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies the ALSA device to use. Default device is "hw:0,0".</p>
+
+<b>ForceSampleRate</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Forces ALSA output sample rate. Default 0 uses source samplerate.</p>
 
 <br/><br/>
 
@@ -275,21 +294,6 @@ Specifies the type of OpenGL offscreen rendering in X11. Default mode is "Pixmap
 </ul>
 
 
-<br/><br/>
-<a name="Network"></a>
-<span style="text-decoration: underline;"><b>Section "Network"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Network" section of the config file holds all configuration options for the network used by modules and systems engine.</p>
-
-<b>MobileIP</b> [value: <i>IP Address</i>]
-<p style="text-indent: 5%">
-Specifies a Mobile IP interface overriding the default IP. If set, all sockets will be locally bound to this IP address.</p>
-</p>
-
-<b>DefaultMCastInterface</b> [value: <i>IP Address</i>]
-<p style="text-indent: 5%">
-Specifies a default IP interface for Multicast overriding the default IP.If not set, the multicast will be setup using the default IP. </p>
-</p>
-
 
 <br/><br/>
 <a name="FontEngine"></a>
@@ -314,46 +318,6 @@ The freetype module will scan the entire sub-directories for fonts.
 The FreeType module uses this section to cache familly names to font file name associations.
 
 
-<br/><br/>
-<a name="Downloader"></a>
-<span style="text-decoration: underline;"><b>Section "Downloader"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Downloader" section of the config file holds all configuration options for file downloading and caching.</p>
-<b>CleanCache</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether downloaded files shall be removed once used.</p>
-<b>DisableCache</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether HTTP caching instructions are disabled or not.</p>
-<b>AllowOfflineCache</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-When enabled, allows HTTP request to use cached file if any when network is not available.</p>
-<b>MaxRate</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies a maximum data rate in kilo bits per seconds for file downloading. This is used for simulation purposes. A value of 0 means no rate restriction.</p>
-<b>UserAgent</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies an alternate user agent (default one is "GPAC $VERSION").</p>
-<b>HTTPHeadTimeout</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies timeout in milliseconds before considering HEAD request failed. 0 means no HEAD request is issued, only GET.</p>
-<b>AllowBrokenCertificate</b> [value: <i>yes no</i>]
-<p style="text-indent: 5%">
-If set to yes, ignores invalid certificates and process anyway. Default is no.</p>
-
-<br/><br/>
-<a name="HTTPProxy"></a>
-<span style="text-decoration: underline;"><b>Section "HTTPProxy"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "HTTPProxy" section of the config file holds configuration option for HTTP proxy adressing. Currently only one proxy can be enabled, and no URI selection is done.</p>
-<b>Enabled</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether the proxy should be used or not when downloading files.</p>
-<b>Name</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the proxy name (IP address or resolved name) without protocol identifier (eg, no "http://"). If not present, the proxy is disabled.</p>
-<b>Port</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the port to use with the proxy. If no port is specified, the default HTTP port (80) is used.</p>
-
 <a name="MimeTypes"></a>
 <span style="text-decoration: underline;"><b>Section "MimeTypes"</b></span> <i><a href="#Overview">Back to top</a></i>
 <p>This section is used to keep MIME types and file associations for GPAC modules.
@@ -364,15 +328,6 @@ The description is used for GUI purposes (open file dialogs). You may modify the
 MIME Type is always checked when processing a remote ressource (eg http file) in order to load the appropriated modules. 
 If MIME type is not available, provided extensions are first checked, then all input modules are queried.
 </p>
-
-<br/><br/>
-
-<a name="ALSA"></a>
-<span style="text-decoration: underline;"><b>Section "ALSA"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "ALSA" section of the config file holds all configuration options of the ALSA audio output module on GNU/Linux systems.</p>
-<b>DeviceName</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the ALSA device to use. Default device is "hw:0,0".</p>
 
 <br/><br/>
 

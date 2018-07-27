@@ -428,11 +428,11 @@ typedef struct
 	GF_PropVec2i pos;
 	Double start;
 
+	GF_Filter *filter;
 	GF_FilterPid *pid;
 	u32 width, height, stride, pfmt, timescale;
 	GF_Fraction fps;
 
-	GF_User *user;
 	GF_VideoOutput *video_out;
 
 	u32 pck_offset;
@@ -973,76 +973,45 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 			ctx->display_changed = GF_TRUE;
 		}
 	}
-	if (ctx->user->EventProc) return ctx->user->EventProc(ctx->user->opaque, evt);
+	gf_filter_ui_event(ctx->filter, evt);
 	return GF_TRUE;
 }
 
 static GF_Err vout_initialize(GF_Filter *filter)
 {
 	const char *sOpt;
+	void *os_wnd_handler, *os_disp_handler;
+	u32 init_flags;
 	GF_Err e;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
-	ctx->user = gf_filter_get_user(filter);
 
-	if (!ctx->user) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] No user/modules defined, cannot load video output\n"));
-		return GF_IO_ERR;
-	}
-	if (ctx->drv) {
-		ctx->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(ctx->user->modules, ctx->drv, GF_VIDEO_OUTPUT_INTERFACE);
-		if (!ctx->video_out->Flush || !ctx->video_out->Setup) {
-			gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
-			ctx->video_out = NULL;
-		}
-	}
-	/*get a prefered compositor*/
-	if (!ctx->video_out) {
-		sOpt = gf_cfg_get_key(ctx->user->config, "Video", "DriverName");
-		if (sOpt) {
-			ctx->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(ctx->user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE);
+	ctx->filter = filter;
 
-			if (!ctx->video_out->Flush || !ctx->video_out->Setup) {
-				gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
-				ctx->video_out = NULL;
-			}
-		}
-	}
-	if (!ctx->video_out) {
-		u32 i, count = gf_modules_get_count(ctx->user->modules);
-		for (i=0; i<count; i++) {
-			ctx->video_out = (GF_VideoOutput *) gf_modules_load_interface(ctx->user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
-			if (!ctx->video_out) continue;
-
-			//no more support for raw out, deprecated
-			if (!stricmp(ctx->video_out->module_name, "Raw Video Output")
-				|| !ctx->video_out->Flush || !ctx->video_out->Setup) {
-				gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
-				ctx->video_out = NULL;
-				continue;
-			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] Audio output module %s loaded\n", ctx->video_out->module_name));
-
-			if (ctx->video_out->Flush) {
-				/*remember the module we use*/
-				gf_cfg_set_key(ctx->user->config, "Video", "DriverName", ctx->video_out->module_name);
-				break;
-			}
-			gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
-			ctx->video_out = NULL;
-		}
-	}
+	ctx->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, ctx->drv);
 
 	/*if not init we run with a NULL audio compositor*/
 	if (!ctx->video_out) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] No audio output modules found, cannot load audio output\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] No output modules found, cannot load video output\n"));
 		return GF_IO_ERR;
+	}
+	if (!gf_opts_get_key("Video", "DriverName")) {
+		gf_opts_set_key("Video", "DriverName", ctx->video_out->module_name);
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] Setting up video module %s\n", ctx->video_out->module_name));
 	ctx->video_out->on_event = vout_on_event;
 	ctx->video_out->evt_cbk_hdl = ctx;
 
-	e = ctx->video_out->Setup(ctx->video_out, ctx->user->os_window_handler, ctx->user->os_display, ctx->user->init_flags);
+	os_wnd_handler = os_disp_handler = NULL;
+	init_flags = 0;
+	sOpt = gf_opts_get_key("Temp", "OSWnd");
+	if (sOpt) sscanf(sOpt, "%p", &os_wnd_handler);
+	sOpt = gf_opts_get_key("Temp", "OSDisp");
+	if (sOpt) sscanf(sOpt, "%p", &os_disp_handler);
+	sOpt = gf_opts_get_key("Temp", "InitFlags");
+	if (sOpt) sscanf(sOpt, "%d", &init_flags);
+
+	e = ctx->video_out->Setup(ctx->video_out, os_wnd_handler, os_disp_handler, init_flags);
 	if (e!=GF_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("Failed to Setup Video Driver %s!\n", ctx->video_out->module_name));
 		gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
@@ -1096,9 +1065,11 @@ static void vout_finalize(GF_Filter *filter)
 #endif //GPAC_DISABLE_3D
 
 	/*stop and shutdown*/
-	ctx->video_out->Shutdown(ctx->video_out);
-	gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
-	ctx->video_out = NULL;
+	if (ctx->video_out) {
+		ctx->video_out->Shutdown(ctx->video_out);
+		gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
+		ctx->video_out = NULL;
+	}
 }
 
 #ifndef GPAC_DISABLE_3D

@@ -32,6 +32,10 @@
 #include <gpac/user.h>
 
 
+/*! Flag set to print enabled/disabled edges for debug of pid resolution*/
+#define GF_FS_FLAG_PRINT_CONNECTIONS	1<<31
+
+
  //atomic ref_count++ / ref_count--
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <Windows.h>
@@ -281,7 +285,7 @@ typedef struct __gf_fs_thread
 {
 	//NULL for main thread
 	GF_Thread *th;
-	struct __gf_media_session *fsess;
+	struct __gf_filter_session *fsess;
 	u32 th_id;
 	
 	Bool has_seen_eot; //set when no more tasks in global queue
@@ -297,8 +301,9 @@ typedef struct __gf_fs_thread
 
 } GF_SessionThread;
 
-struct __gf_media_session
+struct __gf_filter_session
 {
+	u32 flags;
 	Bool use_locks;
 	Bool direct_mode;
 	Bool task_in_process;
@@ -350,9 +355,12 @@ struct __gf_media_session
 	GF_Err run_status;
 	Bool disable_blocking;
 
-	//FIXME, we should get rid of GF_User
-	Bool user_init;
-	GF_User static_user, *user;
+	/*user defined callback for all functions - cannot be NULL*/
+	void *ui_opaque;
+	/*the event proc. Return value depend on the event type, usually 0
+	cannot be NULL if os_window_handler is specified and dont_override_window_proc is set
+	may be NULL otherwise*/
+	Bool (*ui_event_proc)(void *opaque, GF_Event *event);
 
 	volatile u32 pid_connect_tasks_pending;
 
@@ -765,6 +773,9 @@ void gf_props_reset_single(GF_PropertyValue *p);
 
 void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
+
+
+Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt);
 
 #endif //_GF_FILTER_SESSION_H_
 

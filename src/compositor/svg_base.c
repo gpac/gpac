@@ -293,9 +293,9 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	count = atts->systemLanguage ? gf_list_count(*atts->systemLanguage) : 0;
 	if (count) {
 		found = GF_FALSE;
-		lang_3cc = gf_cfg_get_key(compositor->user->config, "Core", "Language3CC");
+		lang_3cc = gf_opts_get_key("Core", "Language3CC");
 		if (!lang_3cc) lang_3cc = "und";
-		lang_2cc = gf_cfg_get_key(compositor->user->config, "Core", "Language2CC");
+		lang_2cc = gf_opts_get_key("Core", "Language2CC");
 		if (!lang_2cc) lang_2cc = "un";
 	} else {
 		lang_3cc = "und";
@@ -324,13 +324,13 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	count = atts->requiredFormats ? gf_list_count(*atts->requiredFormats) : 0;
 	if (count) {
 		for (i=0; i<count; i++) {
-			const char *opt;
+			Bool mime_ok;
 			char *mime = (char*)gf_list_get(*atts->requiredFormats, i);
 			char *sep = strchr(mime, ';');
 			if (sep) sep[0] = 0;
-			opt = gf_cfg_get_key(compositor->user->config, "MimeTypes", mime);
+			mime_ok = gf_filter_is_supported_mime(compositor->filter, mime);
 			if (sep) sep[0] = ';';
-			if (!opt) return GF_FALSE;
+			if (!mime_ok) return GF_FALSE;
 		}
 	}
 

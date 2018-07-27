@@ -591,11 +591,11 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	else m_texturemode->SetSelection(0);
 
 	/*downloader*/
-	sOpt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
+	sOpt = gf_cfg_get_key(cfg, "Core", "CacheDirectory");
 	if (sOpt) m_cachedir->SetLabel(wxString(sOpt, wxConvUTF8) );
-	sOpt = gf_cfg_get_key(cfg, "Downloader", "CleanCache");
+	sOpt = gf_cfg_get_key(cfg, "Core", "CleanCache");
 	m_cleancache->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Downloader", "RestartFiles");
+	sOpt = gf_cfg_get_key(cfg, "Core", "RestartFiles");
 	m_restartcache->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "SAXLoader", "Progressive");
 	m_progressive->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -603,14 +603,14 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_sax_duration->SetValue(sOpt ? wxString(sOpt, wxConvUTF8) : wxT("30"));
 	if (! m_progressive->GetValue()) m_sax_duration->Enable(0);
 
-	sOpt = gf_cfg_get_key(cfg, "HTTPProxy", "Enabled");
+	sOpt = gf_cfg_get_key(cfg, "Core", "HTTPProxyEnabled");
 	m_use_proxy->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	char szProxy[GF_MAX_PATH];
 	strcpy(szProxy, "");
-	sOpt = gf_cfg_get_key(cfg, "HTTPProxy", "Name");
+	sOpt = gf_cfg_get_key(cfg, "Core", "HTTPProxyName");
 	if (sOpt) {
 		strcat(szProxy, sOpt);
-		sOpt = gf_cfg_get_key(cfg, "HTTPProxy", "Port");
+		sOpt = gf_cfg_get_key(cfg, "Core", "HTTPProxyPort");
 		if (sOpt) {
 			strcat(szProxy, ":");
 			strcat(szProxy, sOpt);
@@ -683,7 +683,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	RTPoverRTSP(event);
 
 	sOpt = gf_cfg_get_key(cfg, "StreamingCache", "RecordDirectory");
-	if (!sOpt) sOpt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
+	if (!sOpt) sOpt = gf_cfg_get_key(cfg, "Core", "CacheDirectory");
 	if (sOpt) m_recdir->SetLabel(wxString(sOpt, wxConvUTF8));
 	sOpt = gf_cfg_get_key(cfg, "StreamingCache", "KeepExistingFiles");
 	m_overwrite->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 0 : 1);
@@ -998,11 +998,11 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 		break;
 	}
 
-	gf_cfg_set_key(cfg, "Downloader", "CleanCache", m_cleancache->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Downloader", "RestartFiles", m_restartcache->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Core", "CleanCache", m_cleancache->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Core", "RestartFiles", m_restartcache->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "SAXLoader", "Progressive", m_progressive->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "SAXLoader", "MaxDuration", m_sax_duration->GetLabel().mb_str(wxConvUTF8));
-	gf_cfg_set_key(cfg, "General", "CacheDirectory", m_cachedir->GetLabel().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "Core", "CacheDirectory", m_cachedir->GetLabel().mb_str(wxConvUTF8));
 
 
 	Bool force_rtsp = 0;

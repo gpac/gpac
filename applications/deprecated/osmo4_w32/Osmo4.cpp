@@ -393,7 +393,6 @@ BOOL Osmo4::InitInstance()
 	if (sep) sep[0] = 0;
 	strcpy(szUserPath, name);
 	if (sep) sep[0] = '\\';
-	gf_free(name);
 
 	const char *opt = gf_cfg_get_key(m_user.config, "General", "SingleInstance");
 	m_SingleInstance = (opt && !stricmp(opt, "yes")) ? GF_TRUE : GF_FALSE;

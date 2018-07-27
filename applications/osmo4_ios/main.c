@@ -508,7 +508,7 @@ int main (int argc, char *argv[])
 	init_h = forced_height;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading modules\n" ));
-	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
+	str = gf_cfg_get_key(cfg_file, "Core", "ModulesDirectory");
 
 	user.modules = gf_modules_new((const char *) str, cfg_file);
 	if (user.modules) i = gf_modules_get_count(user.modules);
@@ -544,10 +544,8 @@ int main (int argc, char *argv[])
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
-//	user.init_flags |= GF_TERM_NO_DECODER_THREAD;
 
 	if (bench_mode) {
 		gf_cfg_discard_changes(user.config);
@@ -595,9 +593,9 @@ int main (int argc, char *argv[])
 	str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
 	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 
-	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
+	str = gf_cfg_get_key(cfg_file, "Core", "HTTPProxyEnabled");
 	if (str && !strcmp(str, "yes")) {
-		str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Name");
+		str = gf_cfg_get_key(cfg_file, "Core", "HTTPProxyName");
 		if (str) GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("HTTP Proxy %s enabled\n", str));
 	}
 

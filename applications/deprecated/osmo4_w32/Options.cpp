@@ -1231,13 +1231,13 @@ BOOL COptHTTP::OnInitDialog()
 	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "CacheDirectory");
 	if (sOpt) m_CacheDir.SetWindowText(sOpt);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "CleanCache");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "CleanCache");
 	m_CleanCache.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "DisableCache");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "DisableCache");
 	m_DisableCache.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "SAXLoader", "Progressive");
@@ -1252,14 +1252,14 @@ BOOL COptHTTP::OnInitDialog()
 	}
 	//if (m_Progressive.GetCheck()) m_SAXDuration.EnableWindow(1);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "HTTPProxy", "Enabled");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "HTTPProxyEnabled");
 	m_useProxy.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	OnUseProxy();
 	strcpy(proxy, "");
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "HTTPProxy", "Name");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "HTTPProxyName");
 	if (sOpt) {
 		strcpy(proxy, sOpt);
-		sOpt = gf_cfg_get_key(gpac->m_user.config, "HTTPProxy", "Port");
+		sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "HTTPProxyPort");
 		if (sOpt) {
 			strcat(proxy, ":");
 			strcat(proxy, sOpt);
@@ -1292,27 +1292,27 @@ void COptHTTP::SaveOptions()
 {
 	Osmo4 *gpac = GetApp();
 
-	gf_cfg_set_key(gpac->m_user.config, "Downloader", "CleanCache", m_CleanCache.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Downloader", "DisableCache", m_DisableCache.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Core", "CleanCache", m_CleanCache.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Core", "DisableCache", m_DisableCache.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "Progressive", m_Progressive.GetCheck() ? "yes" : "no");
 
 	m_SAXDuration.GetWindowText(szCacheDir, MAX_PATH);
 	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "MaxDuration", szCacheDir);
 
-	gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Enabled", m_useProxy.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Core", "HTTPProxyEnabled", m_useProxy.GetCheck() ? "yes" : "no");
 	m_ProxyName.GetWindowText(szCacheDir, MAX_PATH);
 	char *sep = strrchr(szCacheDir, ':');
 	if (sep) {
 		sep[0] = 0;
-		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Name", szCacheDir);
+		gf_cfg_set_key(gpac->m_user.config, "Core", "HTTPProxyName", szCacheDir);
 		sep[0] = ':';
-		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Port", sep+1);
+		gf_cfg_set_key(gpac->m_user.config, "Core", "HTTPProxyPort", sep+1);
 	} else {
-		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Name", szCacheDir);
-		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Port", NULL);
+		gf_cfg_set_key(gpac->m_user.config, "Core", "HTTPProxyName", szCacheDir);
+		gf_cfg_set_key(gpac->m_user.config, "Core", "HTTPProxyPort", NULL);
 	}
 	m_CacheDir.GetWindowText(szCacheDir, MAX_PATH);
-	gf_cfg_set_key(gpac->m_user.config, "General", "CacheDirectory", szCacheDir);
+	gf_cfg_set_key(gpac->m_user.config, "Core", "CacheDirectory", szCacheDir);
 }
 
 
@@ -1621,7 +1621,7 @@ BOOL COptMCache::OnInitDialog()
 	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "StreamingCache", "RecordDirectory");
-	if (!sOpt) sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
+	if (!sOpt) sOpt = gf_cfg_get_key(gpac->m_user.config, "Core", "CacheDirectory");
 	if (sOpt) m_RecDir.SetWindowText(sOpt);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "StreamingCache", "KeepExistingFiles");

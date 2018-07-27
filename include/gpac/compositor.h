@@ -55,7 +55,7 @@ extern "C" {
 typedef struct __tag_compositor GF_Compositor;
 
 /*loads compositor, structure being already allocated*/
-GF_Err gf_sc_load(GF_Compositor *sc, GF_User *user_interface);
+GF_Err gf_sc_load(GF_Compositor *sc);
 /*unloads compositor, structure is not freed*/
 void gf_sc_unload(GF_Compositor *sr);
 

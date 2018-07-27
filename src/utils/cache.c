@@ -852,17 +852,15 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		entry->cache_filename = NULL;
 	}
 	if ( entry->properties ) {
-		char * propfile;
+		const char * propfile = NULL;
 		if (entry->deletableFilesOnDelete)
 			propfile = gf_cfg_get_filename(entry->properties);
-		else
-			propfile = NULL;
+
 		gf_cfg_del ( entry->properties );
 		entry->properties = NULL;
 		if (propfile) {
 			//this may fail because the prop file is not yet flushed to disk
 			gf_delete_file( propfile );
-			gf_free ( propfile );
 		}
 	}
 	entry->dm = NULL;

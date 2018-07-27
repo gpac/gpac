@@ -893,7 +893,6 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 
 	compositor = (GF_Compositor *)gf_node_get_private((GF_Node *)handler);
 
-	if (!compositor->user->EventProc) return;
 	if (!all_atts.xlink_href) return;
 
 	if (event->type==GF_EVENT_MOUSEOVER) {
@@ -924,11 +923,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 			}
 
 			if (evt.navigate.to_url[0] != '#') {
-				if (compositor->user->EventProc) {
-					gf_scene_process_anchor(handler, &evt);
-				} else {
-					gf_sc_send_event(compositor, &evt);
-				}
+				gf_scene_process_anchor(handler, &evt);
 				gf_free((char *)evt.navigate.to_url);
 				return;
 			}

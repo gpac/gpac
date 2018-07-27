@@ -304,7 +304,8 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	u32 do_dump_with_time = 1;
 #endif
 	u32 buffer_len;
-	char *cache_dir, *dump_name;
+	const char *cache_dir;
+	char *dump_name;
 
 	if (!data) return GF_BAD_PARAM;
 
@@ -452,7 +453,6 @@ start:
 	gf_bs_del(bs);
 
 exit:
-	if (!seng->dump_path) gf_free(cache_dir);
 	if (buffer) gf_free(buffer);
 	if (file) gf_fclose(file);
 	return e;

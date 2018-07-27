@@ -751,7 +751,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	gf_cfg_set_key(m_user.config, "Compositor", "VertexShader", vertex_path);
 	gf_cfg_set_key(m_user.config, "Compositor", "FragmentShader", fragment_path);
 	gf_cfg_set_key(m_user.config, "Compositor", "OpenGLMode", "hybrid");
-	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	opt = gf_cfg_get_key(m_user.config, "Core", "ModulesDirectory");
 	LOGI("loading modules in directory %s...", opt);
 	m_user.modules = gf_modules_new(opt, m_user.config);
 	if (!m_user.modules || !gf_modules_get_count(m_user.modules)) {
@@ -763,8 +763,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		return Quit(KErrGeneral);
 	}
 
-	/*we don't thread the visual compositor to be able to minimize the app and still have audio running*/
-	m_user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD;
+	m_user.init_flags = 0;
 	m_user.opaque = this;
 
 	m_user.os_window_handler = m_window;

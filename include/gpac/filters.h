@@ -91,6 +91,15 @@ The filter management in GPAC is built using the following core objects:
 - \ref GF_FilterEvent used to pass various events (play/stop/buffer requieremnts/...) up and dow the filter chain.
 	This part of the API will likely change in the future, being merged with the global GF_Event of GPAC.
 
+
+GPAC comes with a set of built-in filters in libgpac. It is also possible te define external filters in dynamic libraries. GPAC will look for such libraries
+ in folders listed in GPAC config file section General, key ModulesDirectory. The files SHALL  be named gf_* and export a function called RegisterFilter
+ with the following prototype:
+
+\param fsess is set to NULL uness meta filters are listed, in which case the filter registry should lost all possible meta filters it supports
+\return a GF_FilterRegister structure used for instantiating the filter.
+const GF_FilterRegister *RegisterFilter(GF_FilterSession *fsess);
+
 */
 
 /*! \hideinitializer
@@ -105,7 +114,7 @@ The filter management in GPAC is built using the following core objects:
 /*! \hideinitializer
  * Filter Session object
  */
-typedef struct __gf_media_session GF_FilterSession;
+typedef struct __gf_filter_session GF_FilterSession;
 
 /*! \hideinitializer
  *	Filter object
@@ -191,23 +200,27 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT
 } GF_FilterSchedulerType;
 
-/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various subfilters. The subfilters are usually not exposed as filters, only the parent one is.
-When set, all sub filters are exposed. This should only be set when inspecting filters help.*/
+/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various subfilters.
+The subfilters are usually not exposed as filters, only the parent one is.
+When set, all sub filters are exposed. This should only be set when inspecting filters help*/
 #define GF_FS_FLAG_LOAD_META	1<<1
 /*! Flag set to disable the blocking mode of the filter session. The default is a semi-blocking mode, cf \ref gf_filter_pid_would_block*/
 #define GF_FS_FLAG_NO_BLOCKING	1<<2
 /*! Flag set to disable internal caching of filter graph connections. If diabled, the graph will be recomputed at each link resolution (less memory ungry but slower)*/
 #define GF_FS_FLAG_NO_GRAPH_CACHE	1<<3
+/*! Flag set to disable main thread. Such sessions shall be run using \ref gf_fs_run_step*/
+#define GF_FS_FLAG_NO_MAIN_THREAD	1<<4
+/*! Flag set to disable session regulation (no sleep)*/
+#define GF_FS_FLAG_NO_REGULATION	1<<5
 
 /*! Creates a new filter session. This will also load all available filters not blacklisted.
 \param nb_threads number of extra threads to allocate
 \param type scheduler type
-\param user GPAC user for config, callback proc and flags. Can be NULL, see \ref gf_fs_get_user
 \param flags set of above flags for the session. Modes set by flags cannot be changed at runtime
 \param blacklist string containing comma-separated names of filters to disable
 \return the created filter session
 */
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, GF_User *user, u32 flags, const char *blacklist);
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
 /*! Destructs the filter session
 \param session the filter session to destruct
 */
@@ -252,7 +265,7 @@ Setting the value to 0 disables dynamic link resolution. You will have to specif
 GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_chain_length);
 
 /*! runs session in non blovking mode: process all tasks of oldest scheduled filter, process any pending pid connections and returns.
-This can only be used if a user was secified at session creation time, with the flag GF_TERM_NO_COMPOSITOR_THREAD set.
+This can only be used if the flag \ref GF_FS_FLAG_NO_MAIN_THREAD was secified at session creation time
 \param session filter session
 */
 void gf_fs_run_step(GF_FilterSession *session);
@@ -301,12 +314,6 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *session, const char *url, const c
 */
 GF_Filter *gf_fs_load_destination(GF_FilterSession *session, const char *url, const char *args, const char *parent_url, GF_Err *err);
 
-/*! returns the GPAC user object associated with the session. If no user was assigned during session creation, a default user object will be created
-\param session filter session
-\return the user object
-*/
-GF_User *gf_fs_get_user(GF_FilterSession *session);
-
 /*! returns the last error which happened during a pid connection
 \param session filter session
 \return the error code if any
@@ -351,6 +358,21 @@ GF_Err gf_fs_abort(GF_FilterSession *session);
 \return GF_TRUE if no more task, GF_FALSE otherwise
 */
 Bool gf_fs_is_last_task(GF_FilterSession *session);
+
+/*! checks if a given mime type is supported as input
+\param session filter session
+\param mime mime type to query
+\return GF_TRUE if mime is supported
+*/
+Bool gf_fs_mime_supported(GF_FilterSession *session, const char *mime);
+
+
+/*! sets ui callback event
+\param session filter session
+\param ui_event_proc the event proc callback funciton. Its return value depend on the event type, usually 0
+\param cbk_udta pointer passed pack to callback
+*/
+void gf_fs_set_ui_callback(GF_FilterSession *session, Bool (*ui_event_proc)(void *opaque, GF_Event *event), void *cbk_udta);
 
 /*! prints stats to stderr
 \param session filter session
@@ -1355,8 +1377,8 @@ struct __gf_filter_register
 	/*! required for source filters (filters having an "src" argument and for destination filters (filters having a "dst" argument) - probe the given URL, returning a score.
 	This function is called before opening the source (no data received yet)
 
-	\param url the url of the source to probe
-	\param mime the MIME type of the source to probe
+	\param url the url of the source to probe, never NULL.
+	\param mime the MIME type of the source to probe. Can be NULL if mime not available at probe type
 	\return probe score
 	*/
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
@@ -1481,12 +1503,6 @@ void gf_filter_sep_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids);
 \return GF_TRUE if blocking mode is enabled, GF_FALSE otherwise
 */
 Bool gf_filter_block_enabled(GF_Filter *filter);
-
-/*! gets the user defined for the parent filter session. THIS SHALL NOT BE DESTROYED/STOP. Mostly used by compositor/audio/video output
-\param filter the target filter
-\return the global GPAC user, or NULL if failure
-*/
-GF_User *gf_filter_get_user(GF_Filter *filter);
 
 
 /*! connects a source to this filter
@@ -1702,6 +1718,21 @@ void gf_filter_disable_process_trigger(GF_Filter *filter, Bool disable);
 \return the string value of the argument, or NULL if argument is not found or is invalid
 */
 const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE]);
+
+/*! checks if a given mime type is supported as input in the parent session
+\param filter querying filter
+\param mime mime type to query
+\return GF_TRUE if mime is supported
+*/
+Bool gf_filter_is_supported_mime(GF_Filter *filter, const char *mime);
+
+
+/*! sends UI event from video output into the session. For now only direct callback to global event handler is used, event is not forwarded down the chain
+\param filter triggering filter
+\param uievt event to send
+\return GF_TRUE if event has been cancelled, FALSE otherwise
+*/
+Bool gf_filter_ui_event(GF_Filter *filter, GF_Event *uievt);
 
 /*! @} */
 

@@ -217,11 +217,11 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 }
 
 GF_EXPORT
-char * gf_cfg_get_filename(GF_Config *iniFile)
+const char * gf_cfg_get_filename(GF_Config *iniFile)
 {
 	if (!iniFile)
 		return NULL;
-	return iniFile->fileName ? gf_strdup(iniFile->fileName) : NULL;
+	return iniFile->fileName;
 }
 
 GF_EXPORT

@@ -210,4 +210,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DECLARATION( osd )
+GPAC_MODULE_STATIC_DECLARATION( psvr )
