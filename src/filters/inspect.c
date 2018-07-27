@@ -110,20 +110,22 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		data = gf_filter_pck_get_data(pck, &size);
 
 	while (str) {
+		char csep;
 		char *sep, *key;
 		if (!str[0]) break;
 
-		if (str[0] != '$') {
+		if ((str[0] != '$') && (str[0] != '%') && (str[0] != '@')) {
 			fprintf(dump, "%c", str[0]);
 			str = str+1;
 			continue;
 		}
-		if (str[1] == '$') {
+		csep = str[0];
+		if (str[1] == csep) {
 			fprintf(dump, "%c", str[0]);
 			str = str+2;
 			continue;
 		}
-		sep = strchr(str+1, '$');
+		sep = strchr(str+1, csep);
 		if (!sep) {
 			fprintf(dump, "%c", str[0]);
 			str = str+1;
@@ -137,7 +139,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			else if (!strcmp(key, "cr")) fprintf(dump, "\r" );
 			else if (!strncmp(key, "pid.", 4)) fprintf(dump, "%s", key+4);
 			else fprintf(dump, "%s", key);
-			sep[0] = '$';
+			sep[0] = csep;
 			str = sep+1;
 			continue;
 		}
@@ -238,7 +240,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			}
 		}
 
-		sep[0] = '$';
+		sep[0] = csep;
 		str = sep+1;
 	}
 }
@@ -449,7 +451,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 static const GF_FilterArgs InspectArgs[] =
 {
 	{ OFFS(log), "Sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
-	{ OFFS(mode), "Dump mode: au dumps full frame, pck dumps packets before AU reconstruction, raw dumps source packets without demuxing", GF_PROP_UINT, "au", "au|pck|raw", 0},
+	{ OFFS(mode), "Dump mode: au dumps full frame, blk dumps packets before AU reconstruction, raw dumps source packets without demuxing", GF_PROP_UINT, "au", "au|blk|raw", 0},
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pck), "Dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(props), "Dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -470,7 +472,7 @@ const GF_FilterRegister InspectRegister = {
 	.description = "Inspect packets on pids",
 	.help = "The inspector filter can be used to dump pid and packets. Te default options load only pid changes.\n"\
 				"The packet inspector mode can be configured to dump specific properties of packets using the fmt option.\n"\
-	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed. TOKEN can be:\n"\
+	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN. TOKEN can be:\n"\
 				"\tpn: packet (frame in framed mode) number\n"\
 				"\tdts: decoding time stamp in stream timescale, N/A if not available\n"\
 				"\tcts: composition time stamp in stream timescale, N/A if not available\n"\

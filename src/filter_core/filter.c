@@ -834,7 +834,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			i++;
 			if (!a || !a->arg_name) break;
 
-			if (!strcmp(a->arg_name, szArg)) is_my_arg = GF_TRUE;
+			if (!strcmp(a->arg_name, szArg))
+				is_my_arg = GF_TRUE;
 			else if ( (szArg[0]==filter->session->sep_neg) && !strcmp(a->arg_name, szArg+1)) {
 				is_my_arg = GF_TRUE;
 				reverse_bool = GF_TRUE;
