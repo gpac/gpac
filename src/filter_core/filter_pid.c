@@ -1840,7 +1840,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			assert(freg != dst->freg);
 			continue;
 		}
-		if (!strcmp(reg_desc->freg->name, "txtplay"))
+		if (!strcmp(reg_desc->freg->name, "gsfm"))
 			j=0;
 		//reset edge status - if source is our origin, disable edge if cap is not matched
 		for (j=0; j<reg_desc->nb_edges; j++) {
@@ -1850,11 +1850,9 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			if (edge->src_reg->freg == pid->filter->freg) {
 				u8 priority=0;
 				u32 dst_bundle_idx;
-				path_weight = gf_filter_pid_caps_match(pid, freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, -1);
-				if (!path_weight)
-					continue;
-
-				if (dst_bundle_idx != edge->dst_cap_idx) {
+				//check path weight for the given dst cap - we MUST give the target cap otherwise we might get a default match to another cap
+				path_weight = gf_filter_pid_caps_match(pid, freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, edge->dst_cap_idx);
+				if (!path_weight) {
 					edge->status = EDGE_STATUS_DISABLED;
 					continue;
 				}
