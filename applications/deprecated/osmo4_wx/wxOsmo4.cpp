@@ -556,7 +556,6 @@ Bool wxOsmo4Frame::LoadTerminal()
 	if (sep) sep[0] = 0;
 	strcpy(szAppPath, gpac_cfg);
 	if (sep) sep[0] = '/';
-	gf_free(gpac_cfg);
 
 	/*check log file*/
 	const char *str = gf_cfg_get_key(m_user.config, "General", "LogFile");

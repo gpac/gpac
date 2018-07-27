@@ -3071,14 +3071,14 @@ void gf_m2ts_abort_parsing(GF_M2TS_Demuxer *ts, Bool force_reset_pes)
 GF_EXPORT
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 
-	char* temp_dir;
+	char temp_dir[GF_MAX_PATH];
 	u32 length;
 	GF_Err e;
 
 	ts->dsmcc_controler = gf_list_new();
 	ts->process_dmscc = 1;
 
-	temp_dir = gf_get_default_cache_directory();
+	strcpy(temp_dir, gf_get_default_cache_directory() );
 	length = (u32) strlen(temp_dir);
 	if(temp_dir[length-1] == GF_PATH_SEPARATOR) {
 		temp_dir[length-1] = 0;

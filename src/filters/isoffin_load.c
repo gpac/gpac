@@ -704,7 +704,7 @@ void isor_declare_objects(ISOMReader *read)
 #ifdef FILTER_FIXME
 	/*if cover art, extract it in cache*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
-		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(read->service), "General", "CacheDirectory");
+		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(read->service), "Core", "CacheDirectory");
 		if (cdir) {
 			char szName[GF_MAX_PATH];
 			const char *sep;

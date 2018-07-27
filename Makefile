@@ -56,13 +56,13 @@ distclean:
 	$(MAKE) -C src distclean
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean
-	rm -f config.mak config.h
+	rm -f config.mak config.h config.log
 	@find . -type f -name '*.gcno*' -delete
 	@find . -type f -name '*.gcda*' -delete
 	@rm -f coverage.info 2> /dev/null
 
-docs:
-	@cd $(SRC_PATH)/doc && doxygen
+doc:
+	@cd $(SRC_PATH)/share/doc && doxygen
 
 test_suite:
 	@cd $(SRC_PATH)/tests && ./make_tests.sh
@@ -130,32 +130,33 @@ ifneq ($(MP4BOX_STATIC),yes)
 endif
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/  
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/webvtt-renderer.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/extensions"
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders/"
-
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/scripts"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/include"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/  
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/scripts/webvtt-renderer.js "$(DESTDIR)$(prefix)/share/gpac/scripts/"
+
 
 ifeq ($(CONFIG_DARWIN),yes)
-	cp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/"
-	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/"
-	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/"
+	cp $(SRC_PATH)/share/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/"
+	cp -R $(SRC_PATH)/share/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/"
+	cp $(SRC_PATH)/share/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/"
 	cp -R $(SRC_PATH)/include/* "$(DESTDIR)$(prefix)/include/"
 else
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
-	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* $(DESTDIR)$(prefix)/share/gpac/shaders/
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/shaders/* $(DESTDIR)$(prefix)/share/gpac/shaders/
 	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/include/* $(DESTDIR)$(prefix)/include/
 endif
 

@@ -239,8 +239,8 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 			M_CacheTexture *ct = (M_CacheTexture*)node;
 
 			sprintf(section, "@cache=%p", ct);
-			file = gf_cfg_get_key(txh->compositor->user->config, section, "cacheFile");
-			opt = gf_cfg_get_key(txh->compositor->user->config, section, "expireAfterNTP");
+			file = gf_opts_get_key(section, "cacheFile");
+			opt = gf_opts_get_key(section, "expireAfterNTP");
 
 			if (opt) {
 				u32 sec, frac, exp;
@@ -250,7 +250,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 			}
 			if (delete_file) {
 				gf_delete_file((char*)file);
-				gf_cfg_del_section(txh->compositor->user->config, section);
+				gf_opts_del_section(section);
 			}
 
 			if (txh->data) gf_free(txh->data);
@@ -361,13 +361,11 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				u8 hash[20];
 				FILE *cached_texture;
 				char szExtractName[GF_MAX_PATH], section[64], *opt, *src_url;
-				opt = (char *) gf_cfg_get_key(txh->compositor->user->config, "General", "CacheDirectory");
+				opt = (char *) gf_opts_get_key("Core", "CacheDirectory");
 				if (opt) {
 					strcpy(szExtractName, opt);
 				} else {
-					opt = gf_get_default_cache_directory();
-					strcpy(szExtractName, opt);
-					gf_free(opt);
+					strcpy(szExtractName, gf_get_default_cache_directory());
 				}
 				strcat(szExtractName, "/");
 				src_url = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
@@ -391,9 +389,9 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				/*and write cache info*/
 				if (ct->expirationDate!=0) {
 					sprintf(section, "@cache=%p", ct);
-					gf_cfg_set_key(txh->compositor->user->config, section, "serviceURL", src_url);
-					gf_cfg_set_key(txh->compositor->user->config, section, "cacheFile", szExtractName);
-					gf_cfg_set_key(txh->compositor->user->config, section, "cacheName", ct->cacheURL.buffer);
+					gf_opts_set_key(section, "serviceURL", src_url);
+					gf_opts_set_key(section, "cacheFile", szExtractName);
+					gf_opts_set_key(section, "cacheName", ct->cacheURL.buffer);
 
 					if (ct->expirationDate>0) {
 						char exp[50];
@@ -401,9 +399,9 @@ static void imagetexture_update(GF_TextureHandler *txh)
 						gf_net_get_ntp(&sec, &frac);
 						sec += ct->expirationDate;
 						sprintf(exp, "%u", sec);
-						gf_cfg_set_key(txh->compositor->user->config, section, "expireAfterNTP", exp);
+						gf_opts_set_key(section, "expireAfterNTP", exp);
 					} else {
-						gf_cfg_set_key(txh->compositor->user->config, section, "expireAfterNTP", "0");
+						gf_opts_set_key(section, "expireAfterNTP", "0");
 					}
 				}
 			}
@@ -444,18 +442,18 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 
 		/*locate existing cache*/
 		url = gf_scene_get_service_url( gf_node_get_graph(node) );
-		count = gf_cfg_get_section_count(compositor->user->config);
+		count = gf_opts_get_section_count();
 		for (i=0; i<count; i++) {
 			const char *opt;
-			const char *name = gf_cfg_get_section_name(compositor->user->config, i);
+			const char *name = gf_opts_get_section_name(i);
 			if (strncmp(name, "@cache=", 7)) continue;
-			opt = gf_cfg_get_key(compositor->user->config, name, "serviceURL");
+			opt = gf_opts_get_key(name, "serviceURL");
 			if (!opt || stricmp(opt, url)) continue;
-			opt = gf_cfg_get_key(compositor->user->config, name, "cacheName");
+			opt = gf_opts_get_key(name, "cacheName");
 			if (opt && ct->cacheURL.buffer && !stricmp(opt, ct->cacheURL.buffer)) {
-				opt = gf_cfg_get_key(compositor->user->config, name, "cacheFile");
+				opt = gf_opts_get_key(name, "cacheFile");
 				if (opt) gf_delete_file((char*)opt);
-				gf_cfg_del_section(compositor->user->config, name);
+				gf_opts_del_section(name);
 				break;
 			}
 		}

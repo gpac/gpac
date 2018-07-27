@@ -363,7 +363,7 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 	frag = strchr(sns->url, '#');
 	if (frag) {
 		sns->url_frag = gf_strdup(frag+1);
-		frag[0] = frag;
+		frag[0] = 0;
 	}
 
 	//move to top scene
@@ -416,26 +416,26 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	/*check cache*/
 	if (parent_url) {
 		u32 i, count;
-		count = gf_cfg_get_section_count(scene->compositor->user->config);
+		count = gf_opts_get_section_count();
 		for (i=0; i<count; i++) {
 			u32 exp, sec, frac;
 			const char *opt, *service_cache;
-			const char *name = gf_cfg_get_section_name(scene->compositor->user->config, i);
+			const char *name = gf_opts_get_section_name(i);
 			if (strncmp(name, "@cache=", 7)) continue;
-			opt = gf_cfg_get_key(scene->compositor->user->config, name, "serviceURL");
+			opt = gf_opts_get_key(name, "serviceURL");
 			if (!opt || stricmp(opt, parent_url)) continue;
-			opt = gf_cfg_get_key(scene->compositor->user->config, name, "cacheName");
+			opt = gf_opts_get_key(name, "cacheName");
 			if (!opt || stricmp(opt, serviceURL)) continue;
 
-			service_cache = (char*)gf_cfg_get_key(scene->compositor->user->config, name, "cacheFile");
-			opt = gf_cfg_get_key(scene->compositor->user->config, name, "expireAfterNTP");
+			service_cache = (char*)gf_opts_get_key(name, "cacheFile");
+			opt = gf_opts_get_key(name, "expireAfterNTP");
 			if (opt) {
 				sscanf(opt, "%u", &exp);
 				gf_net_get_ntp(&sec, &frac);
 				if (exp && (exp<sec)) {
-					opt = gf_cfg_get_key(scene->compositor->user->config, name, "cacheFile");
+					opt = gf_opts_get_key(name, "cacheFile");
 					if (opt) gf_delete_file((char*) opt);
-					gf_cfg_del_section(scene->compositor->user->config, name);
+					gf_opts_del_section(name);
 					i--;
 					count--;
 					service_cache = NULL;

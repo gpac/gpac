@@ -60,47 +60,27 @@ typedef struct _tag_user GF_User;
 
 enum
 {
-	/*display should be hidden upon initialization*/
-	GF_TERM_INIT_HIDE = 1,
-	/*no audio renderer will be created*/
-	GF_TERM_NO_AUDIO = 1<<1,
-	/*terminal is used without visual threading:
-		* media codecs are not threaded
-		* all composition memories are filled before rendering
-		* rendering is done after media decoding
-		* the user is responsible for updating the terminal
-	*/
-	GF_TERM_NO_DECODER_THREAD = 1<<2,
-
-	/*works with no visual thread for the composition - compositor is driven by the media manager
-		if GF_TERM_NO_DECODER_THREAD, equivalent to GF_TERM_NO_COMPOSITOR_THREAD
-	*/
-	GF_TERM_NO_VISUAL_THREAD = 1<<3,
-
-	/*works with no visual thread for the composition - compositor is driven by gf_term_process*/
-	GF_TERM_NO_COMPOSITOR_THREAD = 1<<4,
-
 	/*disables frame-rate regulation (used when dumping content)*/
-	GF_TERM_NO_REGULATION = 1<<5,
-
-	/*initializes client without a default audio out - used for dump modes where audio plauback is not needed*/
-	GF_TERM_NO_DEF_AUDIO_OUT = 1<<6,
-
+	GF_TERM_NO_REGULATION = 1,
+	/*display should be hidden upon initialization*/
+	GF_TERM_INIT_HIDE = 1<<1,
+	/*no audio renderer will be created*/
+	GF_TERM_NO_AUDIO = 1<<2,
+	/*initializes client without a default audio out - used for dump modes where audio playback is not needed*/
+	GF_TERM_NO_DEF_AUDIO_OUT = 1<<3,
 	/*disables video output module - used for bench mode without video*/
-	GF_TERM_NO_VIDEO = 1<<7,
-
+	GF_TERM_NO_VIDEO = 1<<4,
 	/*works without window thread*/
-	GF_TERM_WINDOW_NO_THREAD = 1<<10,
+	GF_TERM_WINDOW_NO_THREAD = 1<<5,
 	/*lets the main user handle window events (needed for browser plugins)*/
-	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<11,
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<6,
 	/*works without title bar*/
-	GF_TERM_WINDOW_NO_DECORATION = 1<<12,
-
+	GF_TERM_WINDOW_NO_DECORATION = 1<<7,
 
 	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOW_TRANSPARENT = 1<<20,
+	GF_TERM_WINDOW_TRANSPARENT = 1<<8,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<21,
+	GF_TERM_WINDOWLESS = 1<<9,
 };
 
 /*user object for all callbacks*/
@@ -113,10 +93,6 @@ struct _tag_user
 	may be NULL otherwise*/
 	Bool (*EventProc)(void *opaque, GF_Event *event);
 
-	/*config file of client - cannot be NULL*/
-	GF_Config *config;
-	/*modules manager - cannot be NULL - owned by the user (to allow selection of module directory)*/
-	GF_ModuleManager *modules;
 	/*optional os window handler (HWND on win32/winCE, XWindow for X11)
 	if not set the video outut will create and manage the display window.*/
 	void *os_window_handler;
@@ -125,7 +101,8 @@ struct _tag_user
 
 	/*init flags bypassing GPAC config file	*/
 	u32 init_flags;
-
+	/*number of threads to use*/
+	u32 threads;
 	/*filter blacklist - temporary, should be moved to config ?*/
 	const char *blacklist;
 };

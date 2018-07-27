@@ -64,7 +64,7 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 	if (stream_id) return GF_OK;
 
 	if (!strncmp(iri->string, "data:", 5)) {
-		const char *cache_dir = gf_cfg_get_key(scene->compositor->user->config, "General", "CacheDirectory");
+		const char *cache_dir = gf_opts_get_key("Core", "CacheDirectory");
 		e = gf_node_store_embedded_data(iri, cache_dir, "embedded_");
 		if (e) return e;
 		sfurl->url = gf_strdup(iri->string);

@@ -729,11 +729,15 @@ typedef enum
 /*!
  *	\brief System setup
  *
- *	Inits the system high-resolution clock if any, and CPU usage manager. It is strongly recommended to call this
+ *	Inits the system high-resolution clock if any, CPU usage manager, random number and GPAC global config. It is strongly recommended to call this
  * function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
+ * The profile allows using a different global config file than the default, and may be a name (without / or \\) or point to an existing config file.
  *	\note This can be called several times but only the first call will result in system setup.
+ *	\param mem_tracker_type memory tracking mode
+ *	\param profile name of the profile to load, NULL for default.
+ *	\return Error code if any
  */
-void gf_sys_init(GF_MemTrackerType mem_tracker_type);
+GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile);
 /*!
  *	\brief System closing
  *
@@ -1004,7 +1008,7 @@ GF_Err gf_cleanup_dir(const char* DirPathName);
  * It is the responsibility of the caller to free the string.
  * \return a fully qualified path to the default cache directory
  */
-char * gf_get_default_cache_directory();
+const char * gf_get_default_cache_directory();
 
 /**
  * Gets the number of open file handles (gf_fopen/gf_fclose only).
@@ -1082,6 +1086,22 @@ void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
 void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA]);
 
 /*! @} */
+
+
+const char *gf_opts_get_key(const char *secName, const char *keyName);
+GF_Err gf_opts_set_key(const char *secName, const char *keyName, const char *keyValue);
+void gf_opts_del_section(const char *secName);
+u32 gf_opts_get_section_count();
+const char *gf_opts_get_section_name(u32 secIndex);
+u32 gf_opts_get_key_count(const char *secName);
+const char *gf_opts_get_key_name(const char *secName, u32 keyIndex);
+
+/*!
+ * Do not save modification to global options
+ * \return error code
+ */
+GF_Err gf_opts_discard_changes();
+
 
 #ifdef GPAC_DISABLE_REMOTERY
 #define RMT_ENABLED 0

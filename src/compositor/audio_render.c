@@ -131,7 +131,7 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 }
 
 
-GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor)
+GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor, u32 init_flags)
 {
 	GF_AudioRenderer *ar;
 	ar = (GF_AudioRenderer *) gf_malloc(sizeof(GF_AudioRenderer));
@@ -143,7 +143,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor)
 	ar->non_rt_output = GF_TRUE;
 	ar->volume = MIN(100, compositor->avol);
 	ar->pan = MIN(100, compositor->apan);
-	if (! (compositor->user->init_flags & GF_TERM_NO_AUDIO) ) {
+	if (! (init_flags & GF_TERM_NO_AUDIO) ) {
 		gf_ar_setup_output_format(ar);
 	}
 

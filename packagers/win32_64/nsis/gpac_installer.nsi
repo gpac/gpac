@@ -283,21 +283,25 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_BIN}\gm_ismacryp.dll"
 
   ;copy GUI
-  SetOutPath $INSTDIR\gui
-  File "${GPAC_ROOT}\gui\gui.bt"
-  File "${GPAC_ROOT}\gui\gui.js"
-  File "${GPAC_ROOT}\gui\gwlib.js"
-  File "${GPAC_ROOT}\gui\mpegu-core.js"
-  File "${GPAC_ROOT}\gui\webvtt-renderer.js"
-  SetOutPath $INSTDIR\gui\icons
+  SetOutPath $INSTDIR\share
+  SetOutPath $INSTDIR\share\gui
+  File "${GPAC_ROOT}\share\gui\gui.bt"
+  File "${GPAC_ROOT}\share\gui\gui.js"
+  File "${GPAC_ROOT}\share\gui\gwlib.js"
+  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
+  SetOutPath $INSTDIR\share\gui\icons
   File /r /x .git ${GPAC_ROOT}\gui\icons\*
-  SetOutPath $INSTDIR\gui\extensions
+  SetOutPath $INSTDIR\share\gui\extensions
   File /r /x .git ${GPAC_ROOT}\gui\extensions\*
 
+  ;copy scripts
+  SetOutPath $INSTDIR\share\scripts
+  File "${GPAC_ROOT}\share\scripts\webvtt-renderer.js"
+
   ;copy shaders
-  SetOutPath $INSTDIR\shaders
-  File "${GPAC_ROOT}\shaders\vertex.glsl"
-  File "${GPAC_ROOT}\shaders\fragment.glsl"
+  SetOutPath $INSTDIR\share\shaders
+  File "${GPAC_ROOT}\share\shaders\vertex.glsl"
+  File "${GPAC_ROOT}\share\shaders\fragment.glsl"
 
   SetOutPath $INSTDIR
 SectionEnd
@@ -501,6 +505,15 @@ Section "MP4Box" SecMP4B
   Call AddToPath
 SectionEnd
 
+Section "gpac" SecGPAC
+  SectionIn 1
+  SetOutPath $INSTDIR
+  File "${GPAC_BIN}\gpac.exe"
+  Push $INSTDIR
+  Call AddToPath
+SectionEnd
+
+
 Section "MP42TS" SecMP42TS
   SectionIn 1
   SetOutPath $INSTDIR
@@ -609,7 +622,8 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDecTek} "DekTek 3G SDI output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRAW} "RAW audio-video output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for various multimedia operations"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "gpac command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDC} "DashCast offline and live MPEG-DASH Encoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"

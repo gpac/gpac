@@ -247,54 +247,21 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 static GF_Err aout_initialize(GF_Filter *filter)
 {
 	const char *sOpt;
+	void *os_wnd_handler;
 	GF_Err e;
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
-	GF_User *user = gf_filter_get_user(filter);
 
-	if (!user) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] No user/modules defined, cannot load audio output\n"));
-		return GF_IO_ERR;
-	}
 	ctx->filter = filter;
 
-	if (ctx->drv) {
-		ctx->audio_out = (GF_AudioOutput *) gf_modules_load_interface_by_name(user->modules, ctx->drv, GF_AUDIO_OUTPUT_INTERFACE);
-	}
-	/*get a prefered audio output*/
-	if (!ctx->audio_out) {
-		sOpt = gf_cfg_get_key(user->config, "Audio", "DriverName");
-		if (sOpt) {
-			ctx->audio_out = (GF_AudioOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_AUDIO_OUTPUT_INTERFACE);
-		}
-	}
-	if (!ctx->audio_out) {
-		u32 i, count = gf_modules_get_count(user->modules);
-		for (i=0; i<count; i++) {
-			ctx->audio_out = (GF_AudioOutput *) gf_modules_load_interface(user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
-			if (!ctx->audio_out) continue;
 
-			//no more support for raw out, deprecated
-			if (!stricmp(ctx->audio_out->module_name, "Raw Audio Output")) {
-				gf_modules_close_interface((GF_BaseInterface *)ctx->audio_out);
-				ctx->audio_out = NULL;
-				continue;
-			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Audio output module %s loaded\n", ctx->audio_out->module_name));
-			/*check that's a valid audio compositor*/
-			if ((ctx->audio_out->SelfThreaded && ctx->audio_out->SetPriority) || ctx->audio_out->WriteAudio) {
-				/*remember the module we use*/
-				gf_cfg_set_key(user->config, "Audio", "DriverName", ctx->audio_out->module_name);
-				break;
-			}
-			gf_modules_close_interface((GF_BaseInterface *)ctx->audio_out);
-			ctx->audio_out = NULL;
-		}
-	}
-
+	ctx->audio_out = (GF_AudioOutput *) gf_module_load(GF_AUDIO_OUTPUT_INTERFACE, ctx->drv);
 	/*if not init we run with a NULL audio compositor*/
 	if (!ctx->audio_out) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] No audio output modules found, cannot load audio output\n"));
 		return GF_IO_ERR;
+	}
+	if (!gf_opts_get_key("Audio", "DriverName")) {
+		gf_opts_set_key("Audio", "DriverName", ctx->audio_out->module_name);
 	}
 
 	ctx->audio_out->FillBuffer = aout_fill_output;
@@ -303,8 +270,11 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Setting up audio module %s\n", ctx->audio_out->module_name));
 
 	if (!ctx->bnum || !ctx->bdur) ctx->bnum = ctx->bdur = 0;
-	
-	e = ctx->audio_out->Setup(ctx->audio_out, user->os_window_handler, ctx->bnum, ctx->bdur);
+
+	os_wnd_handler = NULL;
+	sOpt = gf_opts_get_key("Temp", "OSWnd");
+	if (sOpt) sscanf(sOpt, "%p", &os_wnd_handler);
+	e = ctx->audio_out->Setup(ctx->audio_out, os_wnd_handler, ctx->bnum, ctx->bdur);
 
 	if (e != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Could not setup module %s\n", ctx->audio_out->module_name));

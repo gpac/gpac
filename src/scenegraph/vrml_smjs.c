@@ -295,9 +295,9 @@ static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 
 	compositor = par.compositor;
 
-	count = gf_modules_get_count(compositor->user->modules);
+	count = gf_modules_count();
 	for (i=0; i<count; i++) {
-		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_modules_load_interface(compositor->user->modules, i, GF_JS_USER_EXT_INTERFACE);
+		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_modules_load(i, GF_JS_USER_EXT_INTERFACE);
 		if (!ext) continue;
 		gf_list_add(js_rt->extensions, ext);
 	}

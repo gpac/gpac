@@ -336,7 +336,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 	}
 
 	/*load modules*/
-	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	opt = gf_cfg_get_key(m_user.config, "Core", "ModulesDirectory");
 	m_user.modules = gf_modules_new(opt, m_user.config);
 	if (!m_user.modules || !gf_modules_get_count(m_user.modules)) {
 		MessageBox(m_user.modules ? "No modules available" : "Cannot create module manager", "Fatal Error");
@@ -359,7 +359,7 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 
 	/*we don't thread the terminal, ie appart from the audio renderer, media decoding and visual rendering is
 	handled by the app process*/
-	m_user.init_flags = GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;
+	m_user.init_flags = GF_TERM_NO_REGULATION;
 	m_user.EventProc = GPAC_EventProc;
 	m_user.opaque = this;
 	m_user.os_window_handler = (void *) &m_window;

@@ -86,9 +86,10 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 }
 
 GF_EXPORT
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, u32 flags, const char *blacklist)
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
 {
-	u32 i;
+	u32 i, count;
+	const char *opt;
 	GF_FilterSession *fsess, *a_sess;
 
 	//safety check: all built-in properties shall have unique 4CCs
@@ -100,6 +101,8 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
 		return NULL;
 	}
+	fsess->flags = flags;
+
 	fsess->filters = gf_list_new();
 	fsess->main_th.fsess = fsess;
 
@@ -132,19 +135,13 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		//force testing of mutex queues
 		//fsess->use_locks = GF_TRUE;
 	}
-	fsess->user = user;
+	fsess->ui_event_proc = fs_default_event_proc;
+	fsess->ui_opaque = fsess;
 
-	//setup our basic callbacks
-	if (!user) {
-		fsess->static_user.EventProc = fs_default_event_proc;
-		fsess->static_user.opaque = fsess;
-		fsess->user = &fsess->static_user;
-	}
-
-	if (fsess->user->init_flags & GF_TERM_NO_COMPOSITOR_THREAD)
+	if (flags & GF_FS_FLAG_NO_MAIN_THREAD)
 		fsess->no_main_thread = GF_TRUE;
 
-	if (fsess->user->init_flags & GF_TERM_NO_REGULATION)
+	if (flags & GF_FS_FLAG_NO_REGULATION)
 		fsess->no_regulation = GF_TRUE;
 
 
@@ -212,6 +209,14 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->blacklist = blacklist;
 	a_sess = (flags & GF_FS_FLAG_LOAD_META) ? fsess : NULL;
 	gf_fs_reg_all(fsess, a_sess);
+
+	//load external modules
+	count = gf_modules_count();
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *freg = gf_modules_load_filter(i, a_sess);
+		if (freg) gf_fs_add_filter_registry(fsess, freg);
+	}
+
 	fsess->blacklist = NULL;
 
 	//todo - find a way to handle events without mutex ...
@@ -227,7 +232,12 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 
 	fsess->links_mx = gf_mx_new("DijsktraSet");
 	fsess->links = gf_list_new();
+
+
 	gf_filter_sess_build_graph(fsess, NULL);
+
+	opt = gf_opts_get_key("Core", "PrintFilterEdges");
+	if (opt && !strcmp(opt, "yes")) fsess->flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
 	fsess->init_done = GF_TRUE;
 	return fsess;
@@ -268,6 +278,18 @@ void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *
 {
 	gf_list_del_item(session->registry, freg);
 	gf_filter_sess_reset_graph(session, freg);
+}
+
+void gf_fs_set_ui_callback(GF_FilterSession *fs, Bool (*ui_event_proc)(void *opaque, GF_Event *event), void *cbk_udta)
+{
+	if (fs) {
+		fs->ui_event_proc = ui_event_proc;
+		fs->ui_opaque = cbk_udta;
+		if (!fs->ui_event_proc) {
+			fs->ui_event_proc = fs_default_event_proc;
+			fs->ui_opaque = fs;
+		}
+	}
 }
 
 void gf_propalloc_del(void *it)
@@ -384,9 +406,6 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 	if (fsess->filters_mx)
 		gf_mx_del(fsess->filters_mx);
-
-	if (fsess->static_user.modules) gf_modules_del(fsess->static_user.modules);
-	if (fsess->static_user.config) gf_cfg_del(fsess->static_user.config);
 
 	if (fsess->evt_mx) gf_mx_del(fsess->evt_mx);
 	if (fsess->event_listeners) gf_list_del(fsess->event_listeners);
@@ -1106,33 +1125,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	return 0;
 }
 
-GF_User *gf_fs_get_user(GF_FilterSession *fsess)
-{
-	if (!fsess->user_init) {
-		u32 count=0;
-		fsess->user_init = GF_TRUE;
-
-		if (!fsess->user->config) {
-			assert(fsess->user == &fsess->static_user);
-
-			fsess->static_user.config = gf_cfg_init(NULL, NULL);
-			if (fsess->static_user.config)
-				fsess->static_user.modules = gf_modules_new(NULL, fsess->static_user.config);
-		}
-		if (!fsess->user->config) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error: no config file found - cannot load user object\n" ));
-			return NULL;
-		}
-
-		if (fsess->user->modules) count = gf_modules_get_count(fsess->user->modules);
-		if (!count) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error: no modules found - cannot load user object\n" ));
-			return NULL;
-		}
-	}
-	return fsess->user;
-}
-
 
 GF_EXPORT
 GF_Err gf_fs_run(GF_FilterSession *fsess)
@@ -1584,10 +1576,10 @@ Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed,
 		filter->session->in_event_listener --;
 	}
 
-	if (!skip_user && !consumed && filter->session->user->EventProc) {
+	if (!skip_user && !consumed && filter->session->ui_event_proc) {
 		Bool res;
 //		term->nb_calls_in_event_proc++;
-		res = filter->session->user->EventProc(filter->session->user->opaque, evt);
+		res = filter->session->ui_event_proc(filter->session->ui_opaque, evt);
 //		term->nb_calls_in_event_proc--;
 		return res;
 	}
@@ -1799,6 +1791,32 @@ Bool gf_fs_is_last_task(GF_FilterSession *fsess)
 	if (gf_fq_count(fsess->main_thread_tasks)) return GF_FALSE;
 	if (gf_fq_count(fsess->tasks)) return GF_FALSE;
 	return GF_TRUE;
+}
+
+GF_EXPORT
+Bool gf_fs_mime_supported(GF_FilterSession *fsess, const char *mime)
+{
+	u32 i, count;
+	//first pass on explicit mimes
+	count = gf_list_count(fsess->registry);
+	for (i=0; i<count; i++) {
+		u32 j;
+		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
+		for (j=0; j<freg->nb_caps; j++) {
+			const GF_FilterCapability *acap = &freg->caps[i];
+			if (!(acap->flags & GF_CAPFLAG_INPUT)) continue;
+			if (acap->code == GF_PROP_PID_MIME) {
+				if (acap->val.value.string && strstr(acap->val.value.string, mime)) return GF_TRUE;
+			}
+		}
+	}
+	return GF_FALSE;
+}
+
+
+Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
+{
+	return fs_default_event_proc(session, uievt);
 }
 
 

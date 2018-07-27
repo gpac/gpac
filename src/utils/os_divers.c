@@ -25,6 +25,7 @@
 
 #include <gpac/tools.h>
 #include <gpac/network.h>
+#include <gpac/config_file.h>
 
 #if defined(_WIN32_WCE)
 
@@ -759,9 +760,11 @@ Bool gf_sys_enable_profiling(Bool start)
 #endif
 }
 
+void gf_init_global_config(const char *profile);
+void gf_uninit_global_config();
 
 GF_EXPORT
-void gf_sys_init(GF_MemTrackerType mem_tracker_type)
+GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 {
 	if (!sys_init) {
 #if defined (WIN32)
@@ -858,6 +861,9 @@ void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 #ifndef _WIN32_WCE
 		setlocale( LC_NUMERIC, "C" );
 #endif
+
+
+		gf_init_global_config(profile);
 	}
 	sys_init += 1;
 
@@ -872,6 +878,8 @@ void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 			memory_at_gpac_startup = 0;
 		}
 	}
+
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -892,6 +900,8 @@ void gf_sys_close()
 		if (psapi_hinst) FreeLibrary(psapi_hinst);
 		psapi_hinst = NULL;
 #endif
+
+		gf_uninit_global_config();
 	}
 
 	gf_sys_enable_profiling(GF_FALSE);
@@ -1470,35 +1480,35 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	return res;
 }
 
+static char szCacheDir[GF_MAX_PATH];
 GF_EXPORT
-char * gf_get_default_cache_directory() {
-	char szPath[GF_MAX_PATH];
-	char* root_tmp;
+const char * gf_get_default_cache_directory()
+{
+	char root_tmp[GF_MAX_PATH];
 	size_t len;
 #ifdef _WIN32_WCE
-	strcpy(szPath, "\\windows\\temp" );
+	strcpy(szCacheDir, "\\windows\\temp" );
 #elif defined(WIN32)
-	GetTempPath(GF_MAX_PATH, szPath);
+	GetTempPath(GF_MAX_PATH, szCacheDir);
 #else
-	strcpy(szPath, "/tmp");
+	strcpy(szCacheDir, "/tmp");
 #endif
 
-	root_tmp = gf_strdup(szPath);
+	strcpy(root_tmp, szCacheDir);
 
-	len = strlen(szPath);
-	if (szPath[len-1] != GF_PATH_SEPARATOR) {
-		szPath[len] = GF_PATH_SEPARATOR;
-		szPath[len+1] = 0;
+	len = strlen(szCacheDir);
+	if (szCacheDir[len-1] != GF_PATH_SEPARATOR) {
+		szCacheDir[len] = GF_PATH_SEPARATOR;
+		szCacheDir[len+1] = 0;
 	}
 
-	strcat(szPath, "gpac_cache");
+	strcat(szCacheDir, "gpac_cache");
 
-	if ( !gf_dir_exists(szPath) && gf_mkdir(szPath)!=GF_OK ) {
-		return root_tmp;
+	if ( !gf_dir_exists(szCacheDir) && gf_mkdir(szCacheDir)!=GF_OK ) {
+		strcpy(szCacheDir, root_tmp);
+		return szCacheDir;
 	}
-
-	gf_free(root_tmp);
-	return gf_strdup(szPath);
+	return szCacheDir;
 }
 
 

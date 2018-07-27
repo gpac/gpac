@@ -1006,7 +1006,7 @@ extension = {
                 }
 
                 //MP4Client options taking 2 args
-                else if ((arg == '-rti') || (arg == '-rtix') || (arg == '-c') || (arg == '-cfg') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
+                else if ((arg == '-rti') || (arg == '-rtix') || (arg == '-p') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
                     || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-mosaic') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift')
                     || (arg == '-fps') || (arg == '-scale') || (arg == '-run-for') || (arg == '-bl')
                 ) {

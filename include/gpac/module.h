@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -65,8 +65,6 @@ extern "C" {
  */
 
 #include <gpac/config_file.h>
-
-typedef struct __tag_mod_man GF_ModuleManager;
 
 /*!
  *\brief common module interface
@@ -164,32 +162,13 @@ typedef struct
 #else
 #define GPAC_MODULE_STATIC_DECLARATION(__name)
 #endif
-/*!
- *\brief module manager construtcor
- *
- *Constructs a module manager object.
- *\param directory absolute path to the directory where the manager shall look for modules
- *\param cfgFile GPAC configuration file handle. If this is NULL, the modules won't be able to share the configuration
- *file with the rest of the GPAC framework.
- *\return the module manager object
-*/
-GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *cfgFile);
-
-/*!
- *\brief module manager destructor
- *
- *Destroys the module manager
- *\param pm the module manager
- */
-void gf_modules_del(GF_ModuleManager *pm);
 
 /*!
  *\brief load a static module given its interface function
  *
- *\param pm the module manager
  *\param register_module the register interface function
  */
-GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*register_module)());
+GF_Err gf_module_load_static(GF_InterfaceRegister *(*register_module)());
 
 /*!
  *\brief declare a module for loading
@@ -221,9 +200,9 @@ GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*regis
  *     ...
  *     user.modules = gf_modules_new("/data/gpac/modules", user.config);
  *
- *     GF_MODULE_LOAD_STATIC(user.modules, aac_in);
- *     GF_MODULE_LOAD_STATIC(user.modules, audio_filter);
- *     GF_MODULE_LOAD_STATIC(user.modules, ffmpeg);
+ *     GF_MODULE_LOAD_STATIC(aac_in);
+ *     GF_MODULE_LOAD_STATIC(audio_filter);
+ *     GF_MODULE_LOAD_STATIC(ffmpeg);
  *     ...
  *     gf_modules_refresh(user.modules);
  *    ...
@@ -249,47 +228,34 @@ GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*regis
  *\param _name the module name
  *\see GF_MODULE_STATIC_DECLARE() gf_modules_refresh()
  */
-#define GF_MODULE_LOAD_STATIC(_pm, _name)			\
-	gf_module_load_static(_pm,gf_register_module_##_name)
-
-
-/*!
- *\brief refreshes modules
- *
- *Refreshes all modules in the manager directory and load unloaded ones
- *\param pm the module manager
- *\return the number of loaded modules
- */
-u32 gf_modules_refresh(GF_ModuleManager *pm);
+#define GF_MODULE_LOAD_STATIC(_name)			\
+	gf_module_load_static(gf_register_module_##_name)
 
 /*!
  *\brief get module count
  *
  *Gets the number of modules found in the manager directory
- *\param pm the module manager
  *\return the number of loaded modules
  */
-u32 gf_modules_get_count(GF_ModuleManager *pm);
+u32 gf_modules_count();
 
 /*!
  *\brief get all modules directories
  *
  * Update module manager with all modules directories
- *\param pm the module manager
  *\param num_dirs the number of module directories
  *\return The list of modules directories
  */
-const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs);
+const char **gf_modules_get_module_directories(u32* num_dirs);
 
 /*!
  *\brief get module file name
  *
  *Gets a module shared library file name based on its index
- *\param pm the module manager
  *\param index the 0-based index of the module to query
  *\return the name of the shared library module
  */
-const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 index);
+const char *gf_modules_get_file_name(u32 index);
 
 /*!
  *\brief get module file name
@@ -304,23 +270,21 @@ const char *gf_module_get_file_name(GF_BaseInterface *ifce);
  *\brief loads an interface
  *
  *Loads an interface in the desired module.
- *\param pm the module manager
  *\param index the 0-based index of the module to load the interface from
  *\param InterfaceFamily type of the interface to load
  *\return the interface object if found and loaded, NULL otherwise.
  */
-GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 index, u32 InterfaceFamily);
+GF_BaseInterface *gf_modules_load(u32 index, u32 InterfaceFamily);
 
 /*!
  *\brief loads an interface by module name
  *
  *Loads an interface in the desired module
- *\param pm the module manager
  *\param mod_name the name of the module (shared library file) or of the interface as declared when registered.
  *\param InterfaceFamily type of the interface to load
  *\return the interface object if found and loaded, NULL otherwise.
  */
-GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const char *mod_name, u32 InterfaceFamily);
+GF_BaseInterface *gf_modules_load_by_name(const char *mod_name, u32 InterfaceFamily);
 
 /*!
  *\brief interface shutdown
@@ -330,6 +294,32 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
  *\param interface_obj the interface to close
  */
 GF_Err gf_modules_close_interface(GF_BaseInterface *interface_obj);
+
+
+/*!
+ *\brief module load
+ *
+ *Loads a module based on a prefered name.
+ *If not found, check for predefined names for the given interface type in fthe global config and loads by predefined name.
+ *If still not found, enumerate modules.
+
+ \param ifce_type type of module interface to load
+ \param name name of prefered module
+ \return the loaded module, or NULL if not found
+*/
+GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name);
+
+
+/*!
+ *\brief filter module load
+ *
+ *Loads a filter module (not using GF_BaseInterface) from its index. Returns NULL if no such filter.
+
+ \param index index of the filter module to load
+ \param fsess opaque handle passed to the filter loader
+ \return the loaded filter register, or NULL if not found
+*/
+void *gf_modules_load_filter(u32 index, void *fsess);
 
 /*!
  *\brief interface option query

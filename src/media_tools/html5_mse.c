@@ -322,7 +322,7 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
-			parser = (GF_InputService *) gf_modules_load_interface_by_name(sourcebuffer->mediasource->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
+			parser = (GF_InputService *) gf_modules_load_by_name(sPlug, GF_NET_CLIENT_INTERFACE);
 		}
 
 		if (param) {

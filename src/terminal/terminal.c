@@ -64,8 +64,6 @@ u32 gf_comp_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_a
 
 static Bool check_user(GF_User *user)
 {
-	if (!user->config) return 0;
-	if (!user->modules) return 0;
 	if (!user->opaque) return 0;
 	return 1;
 }
@@ -306,26 +304,16 @@ void gf_term_refresh_cache(GF_Config *cfg)
 
 Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime)
 {
-	if (mime) {
-		/* TODO: handle codecs and params */
-		const char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime);
-		if (sPlug) {
-			return 1;
-		} else {
-			return 0;
-		}
-	} else {
-		return 0;
-	}
+	return gf_fs_mime_supported(term->fsess, mime);
 }
 
 GF_EXPORT
 GF_Terminal *gf_term_new(GF_User *user)
 {
-	Bool force_single_thread = GF_FALSE;
 	GF_Terminal *tmp;
 	GF_Filter *comp_filter;
 	u32 def_w, def_h;
+	u32 session_flags;
 	const char *opt;
 	char szArgs[200];
 
@@ -341,31 +329,30 @@ GF_Terminal *gf_term_new(GF_User *user)
 	memset(tmp, 0, sizeof(GF_Terminal));
 
 	/*just for safety in case not done before*/
-	gf_sys_init(GF_MemTrackerNone);
+	gf_sys_init(GF_MemTrackerNone, NULL);
 
 	tmp->user = user;
 
-	if (user->init_flags & GF_TERM_NO_DECODER_THREAD) {
-		if (user->init_flags & GF_TERM_NO_VISUAL_THREAD) {
-			user->init_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
-			user->init_flags &= ~GF_TERM_NO_VISUAL_THREAD;
-		}
-	}
+	//for now we store the init_flags in the global config (used by compositor and AV output modules)
+	//cleaning this would need futher API rework and getting rid of the GF_User strcuture
+	sprintf(szArgs, "%d", user->init_flags);
+	gf_opts_set_key("Temp", "InitFlags", szArgs);
 
-	/*this is not changeable at runtime*/
-	if (user->init_flags & GF_TERM_NO_DECODER_THREAD)
-		force_single_thread = GF_TRUE;
+	session_flags = GF_FS_FLAG_NO_MAIN_THREAD;
+	if (user->init_flags & GF_TERM_NO_REGULATION) session_flags |= GF_FS_FLAG_NO_REGULATION;
 
-	tmp->fsess = gf_fs_new(force_single_thread ? 0 : 3, GF_FS_SCHEDULER_LOCK_FREE, user, 0, user->blacklist);
+	tmp->fsess = gf_fs_new(user->threads, GF_FS_SCHEDULER_LOCK_FREE, session_flags, user->blacklist);
 	if (!tmp->fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to create filter session.\n"));
 		gf_free(tmp);
 		return NULL;
 	}
 
-	opt = gf_cfg_get_key(user->config, "Temp", "DefaultWidth");
+	gf_fs_set_ui_callback(tmp->fsess, user->EventProc, user->opaque);
+
+	opt = gf_opts_get_key("Temp", "DefaultWidth");
 	def_w = opt ? atoi(opt) : 0;
-	opt = gf_cfg_get_key(user->config, "Temp", "DefaultHeight");
+	opt = gf_opts_get_key("Temp", "DefaultHeight");
 	def_h = opt ? atoi(opt) : 0;
 
 	if (def_w && def_h) {
@@ -412,8 +399,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 	if (0 == gf_cfg_get_key_count(user->config, "MimeTypes")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
 		/* No mime-types detected, probably the first launch */
-		for (i=0; i< gf_modules_get_count(user->modules); i++) {
-			GF_BaseInterface *ifce = gf_modules_load_interface(user->modules, i, GF_NET_CLIENT_INTERFACE);
+		for (i=0; i< gf_modules_count(); i++) {
+			GF_BaseInterface *ifce = gf_modules_load(i, GF_NET_CLIENT_INTERFACE);
 			if (ifce) {
 				GF_InputService * service = (GF_InputService*) ifce;
 				GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Asking mime types supported for new module %s...\n", ifce->module_name));
@@ -899,7 +886,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	}
 
 	memset(&load, 0, sizeof(GF_SceneLoader));
-	load.localPath = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
+	load.localPath = gf_opts_get_key("Core", "CacheDirectory");
 	load.flags = GF_SM_LOAD_FOR_PLAYBACK | GF_SM_LOAD_CONTEXT_READY;
 	load.type = GF_SM_LOAD_BT;
 
@@ -1394,7 +1381,6 @@ GF_EXPORT
 GF_Err gf_term_process_flush(GF_Terminal *term)
 {
 	u32 diff, now = gf_sys_clock();
-	if (!(term->user->init_flags  & GF_TERM_NO_COMPOSITOR_THREAD) ) return GF_BAD_PARAM;
 
 	/*update till frame mature*/
 	while (1) {
@@ -1426,7 +1412,6 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 GF_EXPORT
 GF_Err gf_term_process_flush_video(GF_Terminal *term)
 {
-	if (!(term->user->init_flags & GF_TERM_NO_COMPOSITOR_THREAD) ) return GF_BAD_PARAM;
 	gf_sc_flush_video(term->compositor, GF_FALSE);
 	return GF_OK;
 }
