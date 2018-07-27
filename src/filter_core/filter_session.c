@@ -1214,9 +1214,11 @@ static GFINLINE void print_filter_name(GF_Filter *f)
 {
 	fprintf(stderr, "%s", f->name);
 	if (f->id) fprintf(stderr, " ID %s", f->id);
+	if (f->dynamic_filter) return;
 	fprintf(stderr, " (");
 	if (f->src_args) fprintf(stderr, "%s", f->src_args);
-	if (f->dst_args) fprintf(stderr, "%s", f->dst_args);
+	else if (f->orig_args) fprintf(stderr, "%s", f->orig_args);
+	else if (f->dst_args) fprintf(stderr, "%s", f->dst_args);
 	fprintf(stderr, ")");
 }
 
