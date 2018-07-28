@@ -1448,6 +1448,9 @@
     <ClCompile Include="..\..\src\utils\Remotery.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_atsc.c">
+      <Filter>filters</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\filters\dec_vtb_glctx.m">
