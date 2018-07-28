@@ -174,7 +174,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	if (path_type==GF_PATH_APP) return GF_TRUE;
 
-	if (path_type==GF_PATH_GUI) {
+	if (path_type==GF_PATH_SHARE) {
 		char *sep;
 		strcat(file_path, "\\share");
 		if (check_file_exists("gui\\gui.bt", file_path, file_path)) return GF_TRUE;

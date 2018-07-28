@@ -290,7 +290,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_find) )
 
-#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_force_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del) )
@@ -309,16 +308,26 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_set_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_discard_changes) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_key) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_set_key) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_key_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_del_section) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_section_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_section_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_key_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_discard_changes) )
+
+
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_modules_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_module_directories) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_file_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_module_get_file_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_module_load_static) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_interface) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_interface_by_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_modules_load) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_close_interface) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_set_option) )
@@ -1813,8 +1822,8 @@
 
 #ifndef GPAC_DISABLE_PLAYER
 /*compositor.h exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_load) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_unload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_set_fps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_set_scene) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_draw_frame) )
@@ -2214,6 +2223,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_all_connections ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_check_registry_cap ) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_update ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_ui_event ) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )

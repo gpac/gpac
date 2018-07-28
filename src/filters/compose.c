@@ -486,7 +486,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(defsz), "default size", GF_PROP_VEC2I, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dpi), "default dpi if not indicated by video output", GF_PROP_VEC2I, "96x96", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dbgpvr), "debugs scene used by PVR addon", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{}
+	{0}
 };
 
 static const GF_FilterCapability CompositorCaps[] =

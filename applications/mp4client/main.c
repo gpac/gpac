@@ -1514,7 +1514,7 @@ int mp4client_main(int argc, char **argv)
 		TCHAR buffer[1024];
 		DWORD res = GetCurrentDirectory(1024, buffer);
 		buffer[res] = 0;
-		opt = gf_cfg_get_key(cfg_file, "Core", "ModulesDirectory");
+		opt = gf_opts_get_key("Core", "ModulesDirectory");
 		if (strstr(opt, buffer)) {
 			gui_mode=1;
 		} else {

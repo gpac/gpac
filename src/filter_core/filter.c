@@ -2145,75 +2145,75 @@ const char *gf_filter_get_arg(GF_Filter *filter, const char *arg_name, char dump
 		p.type = arg->arg_type;
 		switch (arg->arg_type) {
 		case GF_PROP_BOOL:
-			p.value.boolean = * (Bool *) (filter->filter_udta + arg->offset_in_private);
+			p.value.boolean = * (Bool *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_UINT:
-			p.value.uint = * (u32 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_SINT:
-			p.value.sint = * (s32 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.sint = * (s32 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_LUINT:
-			p.value.longuint = * (u64 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.longuint = * (u64 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_LSINT:
-			p.value.longsint = * (s64 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.longsint = * (s64 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_FLOAT:
-			p.value.fnumber = * (Fixed *) (filter->filter_udta + arg->offset_in_private);
+			p.value.fnumber = * (Fixed *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_DOUBLE:
-			p.value.number = * (Double *) (filter->filter_udta + arg->offset_in_private);
+			p.value.number = * (Double *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_VEC2I:
-			p.value.vec2i = * (GF_PropVec2i *) (filter->filter_udta + arg->offset_in_private);
+			p.value.vec2i = * (GF_PropVec2i *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_VEC2:
-			p.value.vec2 = * (GF_PropVec2 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.vec2 = * (GF_PropVec2 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_VEC3I:
-			p.value.vec3i = * (GF_PropVec3i *) (filter->filter_udta + arg->offset_in_private);
+			p.value.vec3i = * (GF_PropVec3i *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_VEC3:
-			p.value.vec3 = * (GF_PropVec3 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.vec3 = * (GF_PropVec3 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_VEC4I:
-			p.value.vec4i = * (GF_PropVec4i *) (filter->filter_udta + arg->offset_in_private);
+			p.value.vec4i = * (GF_PropVec4i *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_VEC4:
-			p.value.vec4 = * (GF_PropVec4 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.vec4 = * (GF_PropVec4 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_FRACTION:
-			p.value.frac = * (GF_Fraction *) (filter->filter_udta + arg->offset_in_private);
+			p.value.frac = * (GF_Fraction *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_FRACTION64:
-			p.value.lfrac = * (GF_Fraction64 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.lfrac = * (GF_Fraction64 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_DATA:
 		case GF_PROP_DATA_NO_COPY:
 		case GF_PROP_CONST_DATA:
-			p.value.data = * (GF_PropData *) (filter->filter_udta + arg->offset_in_private);
+			p.value.data = * (GF_PropData *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_POINTER:
-			p.value.ptr = * (void **) (filter->filter_udta + arg->offset_in_private);
+			p.value.ptr = * (void **) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_STRING_NO_COPY:
 		case GF_PROP_STRING:
 		case GF_PROP_NAME:
-			p.value.ptr = * (char **) (filter->filter_udta + arg->offset_in_private);
+			p.value.ptr = * (char **) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_STRING_LIST:
-			p.value.string_list = * (GF_List **) (filter->filter_udta + arg->offset_in_private);
+			p.value.string_list = * (GF_List **) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_UINT_LIST:
-			p.value.uint_list = * (GF_PropUIntList *) (filter->filter_udta + arg->offset_in_private);
+			p.value.uint_list = * (GF_PropUIntList *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_PIXFMT:
-			p.value.uint = * (u32 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			return gf_pixel_fmt_name(p.value.uint);
 			break;
 		case GF_PROP_PCMFMT:
-			p.value.uint = * (u32 *) (filter->filter_udta + arg->offset_in_private);
+			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			return gf_audio_fmt_name(p.value.uint);
 			break;
 		default:
