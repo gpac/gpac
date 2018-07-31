@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 	gf_set_progress("MPEG-2 TS Processing", fsize, fsize);
 
 exit:
-	gf_fclose(src);
+	if(src) gf_fclose(src);
 	gf_m2ts_demux_del(ts);
 	gf_th_del(th);
 	gf_sema_del(sender.sema);
