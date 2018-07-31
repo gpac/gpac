@@ -349,6 +349,8 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
+		896CBC872110598E00220377 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC862110598E00220377 /* Security.framework */; };
+		896CBC8921105A6900220377 /* libaom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC8821105A6900220377 /* libaom.a */; };
 		9212E8031CCA82310036F310 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212E8021CCA82300036F310 /* amr_in.c */; };
 		9214AD341D0181A5009D3CFD /* ac3_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9214AD321D0181A5009D3CFD /* ac3_in.c */; };
 		9214AD351D0181A5009D3CFD /* liba52_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9214AD331D0181A5009D3CFD /* liba52_dec.c */; };
@@ -902,6 +904,8 @@
 		71F2A45412830B1400C384DE /* libjs.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libjs.a; path = ../../extra_lib/lib/iOS/libjs.a; sourceTree = SOURCE_ROOT; };
 		71F2A45512830B1400C384DE /* libmad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmad.a; path = ../../extra_lib/lib/iOS/libmad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
+		896CBC862110598E00220377 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		896CBC8821105A6900220377 /* libaom.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libaom.a; path = ../../extra_lib/lib/iOS/libaom.a; sourceTree = "<group>"; };
 		9201D1101BD3FE11005E326A /* bifs_tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bifs_tests; sourceTree = "<group>"; };
 		9212E8021CCA82300036F310 /* amr_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = amr_in.c; path = ../../modules/amr_dec/amr_in.c; sourceTree = "<group>"; };
 		9214AD301D018197009D3CFD /* aac_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aac_in.c; path = ../../modules/aac_in/aac_in.c; sourceTree = "<group>"; };
@@ -1073,6 +1077,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				896CBC8921105A6900220377 /* libaom.a in Frameworks */,
+				896CBC872110598E00220377 /* Security.framework in Frameworks */,
 				9292BF031CFC94060070EB05 /* CoreMedia.framework in Frameworks */,
 				9292BF011CFC93D50070EB05 /* CoreVideo.framework in Frameworks */,
 				9292BEFF1CFC93C10070EB05 /* VideoToolbox.framework in Frameworks */,
@@ -1146,6 +1152,8 @@
 		7184780712785F7B00917298 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				896CBC8821105A6900220377 /* libaom.a */,
+				896CBC862110598E00220377 /* Security.framework */,
 				9292BF021CFC94060070EB05 /* CoreMedia.framework */,
 				9292BF001CFC93D50070EB05 /* CoreVideo.framework */,
 				9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */,
