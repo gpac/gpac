@@ -323,6 +323,8 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
+		896CBC872110598E00220377 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC862110598E00220377 /* Security.framework */; };
+		896CBC8921105A6900220377 /* libaom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC8821105A6900220377 /* libaom.a */; };
 		921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9E1CF8665900B437C2 /* CoreLocation.framework */; };
 		921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9C1CF8664800B437C2 /* CoreMotion.framework */; };
 		921FEBA51CF881DE00B437C2 /* sensors_def.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA21CF881DE00B437C2 /* sensors_def.h */; };
@@ -868,6 +870,8 @@
 		71F2A45412830B1400C384DE /* libjs.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libjs.a; path = ../../extra_lib/lib/iOS/libjs.a; sourceTree = SOURCE_ROOT; };
 		71F2A45512830B1400C384DE /* libmad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmad.a; path = ../../extra_lib/lib/iOS/libmad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
+		896CBC862110598E00220377 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		896CBC8821105A6900220377 /* libaom.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libaom.a; path = ../../extra_lib/lib/iOS/libaom.a; sourceTree = "<group>"; };
 		9201D1101BD3FE11005E326A /* bifs_tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bifs_tests; sourceTree = "<group>"; };
 		921FEB9C1CF8664800B437C2 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		921FEB9E1CF8665900B437C2 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
@@ -1135,6 +1139,8 @@
 				92EB6E4220E4ECD500A97A49 /* AVFoundation.framework in Frameworks */,
 				92EB6E4020E4EC9700A97A49 /* libavfilter.a in Frameworks */,
 				92EB6E3E20E4EC8600A97A49 /* libavdevice.a in Frameworks */,
+				896CBC8921105A6900220377 /* libaom.a in Frameworks */,
+				896CBC872110598E00220377 /* Security.framework in Frameworks */,
 				9292BF031CFC94060070EB05 /* CoreMedia.framework in Frameworks */,
 				9292BF011CFC93D50070EB05 /* CoreVideo.framework in Frameworks */,
 				9292BEFF1CFC93C10070EB05 /* VideoToolbox.framework in Frameworks */,
@@ -1200,6 +1206,8 @@
 				92EB6E4120E4ECD500A97A49 /* AVFoundation.framework */,
 				92EB6E3F20E4EC9700A97A49 /* libavfilter.a */,
 				92EB6E3C20E4EC5600A97A49 /* libavdevice.a */,
+				896CBC8821105A6900220377 /* libaom.a */,
+				896CBC862110598E00220377 /* Security.framework */,
 				9292BF021CFC94060070EB05 /* CoreMedia.framework */,
 				9292BF001CFC93D50070EB05 /* CoreVideo.framework */,
 				9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */,
