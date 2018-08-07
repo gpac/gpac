@@ -1391,7 +1391,7 @@ ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lavdevice $ffmpeg_ex
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
   if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libswresample ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice libswresample`
-    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
+    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil`
     has_ffmpeg="system"
   fi
 fi
@@ -1502,9 +1502,15 @@ int main(void) {
 }
 EOF
 
+<<<<<<< HEAD
 if docc $ffmpeg_cflags $ffmpeg_lflags -lavresample ; then
     has_libswresample="yes"
     ffmpeg_lflags="$ffmpeg_lflags -lavresample"
+=======
+if docc $ffmpeg_cflags $ffmpeg_lflags_dashcast -lswresample ; then
+    has_libswresample="yes"
+    ffmpeg_lflags_dashcast="$ffmpeg_lflags_dashcast -lswresample"
+>>>>>>> 65d7eeb0... replace libavresamble with libswresamble
 else
     has_libswresample="no"
 fi
@@ -3184,7 +3190,10 @@ else
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
     echo "CONFIG_LIBSWRESAMPLE=$has_libswresample" >> config.mak
+<<<<<<< HEAD
     echo "#define GPAC_HAS_FFMPEG" >> $TMPH
+=======
+>>>>>>> 65d7eeb0... replace libavresamble with libswresamble
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 

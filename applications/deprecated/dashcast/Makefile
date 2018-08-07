@@ -55,17 +55,17 @@ endif
 
 ifeq ($(CONFIG_DARWIN), yes)
 #fixme - use proper detection of libavdevice dependencies
-#LINKFLAGS+=-lavfilter -lswresample -lbz2 
+#LINKFLAGS+=-lavfilter -lswresample -lbz2
 endif
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 all: $(PROG)
 
 DashCast$(EXE): $(OBJS)
 	$(CC) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LDFLAGS) $(LINKFLAGS)
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 
 install: clean
@@ -77,7 +77,7 @@ uninstall:
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean
