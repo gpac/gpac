@@ -1151,9 +1151,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size-2);
 			}
 #else
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error: your version of GPAC was compile with no libz support. Abort."));
-			e = GF_NOT_SUPPORTED;
-			goto exit;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error: your version of GPAC was compiled with no libz support. Abort."));
+			return GF_NOT_SUPPORTED;
 #endif
 		}
 
@@ -1336,7 +1335,9 @@ void nhmldmx_finalize(GF_Filter *filter)
 	if (ctx->parser)
 		gf_xml_dom_del(ctx->parser);
 
+#ifndef GPAC_DISABLE_ZLIB
 	if (ctx->dictionary) gf_free(ctx->dictionary);
+#endif
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->samp_buffer) gf_free(ctx->samp_buffer);

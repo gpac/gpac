@@ -317,7 +317,9 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 
 	if (ctx->fmt == GF_TXTIN_MODE_SWF_SVG) {
 		u32 frame_count, frame_rate;
+#ifndef GPAC_DISABLE_SWF_IMPORT
 		gf_swf_get_duration(ctx->swf_parse, &frame_rate, &frame_count);
+#endif
 		if (frame_count) {
 			GF_Fraction dur;
 			dur.num = frame_count;
