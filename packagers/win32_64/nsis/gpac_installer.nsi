@@ -50,6 +50,7 @@ UninstallIcon "${GPAC_ROOT}\doc\osmo4.ico"
 Var DIALOG
 Var Label
 Var Confirm
+Var VSRedistSetupError
 
 LangString PAGE_TITLE ${LANG_ENGLISH} "Title"
 LangString PAGE_SUBTITLE ${LANG_ENGLISH} "Subtitle"
@@ -536,15 +537,31 @@ Section "GPAX" SecGPAX
 SectionEnd
 !endif
 
-Section "Windows Runtime Libraries" SecMSVCRT
-  SectionIn 1
+;Section "Windows Runtime Libraries" SecMSVCRT
+;  SectionIn 1
 ;  File "..\Microsoft.VC100.CRT.manifest"
 ;  File "..\Microsoft.VC100.MFC.manifest"
-  File "${GPAC_BIN}\msvcr100.dll"
-  File "${GPAC_BIN}\mfc100.dll"
+;  File "${GPAC_BIN}\msvcr100.dll"
+;  File "${GPAC_BIN}\mfc100.dll"
+;SectionEnd
+
+
+!ifdef IS_WIN64
+!define TARGET_ARCHITECTURE "x64"
+!else
+!define TARGET_ARCHITECTURE "x86"
+!endif
+
+Section "VS2015 C++ re-distributable Package (${TARGET_ARCHITECTURE})" SEC_VCREDIST1
+DetailPrint "Running VS2015 re-distributable setup..."
+  SectionIn 1
+  SetOutPath "$TEMP\vc2015"
+  File "${GPAC_ROOT}\packagers\win32_64\nsis\vc_redist.${TARGET_ARCHITECTURE}.exe"
+  ExecWait '"$TEMP\vc2015\vc_redist.${TARGET_ARCHITECTURE}.exe" /install /quiet /norestart' $VSRedistSetupError
+  RMDir /r "$TEMP\vc2015"
+  DetailPrint "Finished VS2015 re-distributable setup"
+  SetOutPath "$INSTDIR"
 SectionEnd
-
-
 
 
 SubSection "GPAC Shortcuts"
