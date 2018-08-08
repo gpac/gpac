@@ -205,7 +205,7 @@ LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
 ## libgpac objects gathering: 
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_FILTERS)
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_FILTERS_SVC)
 
 SCENEGRAPH_CFLAGS=
 MEDIATOOLS_CFLAGS=$(JS_FLAGS)
@@ -213,9 +213,17 @@ MEDIATOOLS_CFLAGS=$(JS_FLAGS)
 ##include static modules and other deps for libgpac
 include ../static.mak
 
-LIBGPAC_FILTERS+=filters/compose.o filters/dasher.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_nvdec.o filters/dec_nvdec_sdk.o filters/dec_odf.o filters/dec_openhevc.o filters/dec_opensvc.o filters/dec_theora.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_gsf.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/encrypt_cenc_isma.o filters/ff_common.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/filelist.o filters/in_atsc.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_pipe.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_sock.o filters/inspect.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_gsf.o filters/mux_isom.o filters/mux_ts.o filters/out_audio.o  filters/out_file.o filters/out_pipe.o filters/out_sock.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_amr.o filters/reframe_av1.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/resample_audio.o filters/tileagg.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/rewrite_obu.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_vtt.o
+LIBGPAC_FILTERS+=filters/compose.o filters/dasher.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_nvdec.o filters/dec_nvdec_sdk.o filters/dec_odf.o filters/dec_theora.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_gsf.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/encrypt_cenc_isma.o filters/ff_common.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/filelist.o filters/in_atsc.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_pipe.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_sock.o filters/inspect.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_gsf.o filters/mux_isom.o filters/mux_ts.o filters/out_audio.o  filters/out_file.o filters/out_pipe.o filters/out_sock.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_amr.o filters/reframe_av1.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/resample_audio.o filters/tileagg.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/rewrite_obu.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_vtt.o
 
 FILTERS_CFLAGS=$(JS_FLAGS)
+
+LIBGPAC_FILTERS_OHEVC+=filters/dec_openhevc.o
+
+FILTERS_OHEVC_CFLAGS=$(OHEVC_CFLAGS)
+
+LIBGPAC_FILTERS_SVC+=filters/dec_opensvc.o
+
+FILTERS_SVC_CFLAGS=$(OSVC_CFLAGS)
 
 ifneq ($(CONFIG_FFMPEG),no)
 FILTERS_CFLAGS+=$(ffmpeg_cflags)
@@ -251,11 +259,13 @@ EXTRALIBS+=-lopenjpeg
 endif
 
 ifeq ($(CONFIG_OPENHEVC),yes)
-EXTRALIBS+=-lopenhevc
+#EXTRALIBS+=-lopenhevc
+EXTRALIBS+=$(OHEVC_LDFLAGS)
 endif
 
 ifeq ($(CONFIG_OPENSVC),yes)
-EXTRALIBS+=-lOpenSVCDec
+#EXTRALIBS+=-lOpenSVCDec
+EXTRALIBS+=$(OSVC_LDFLAGS)
 endif
 
 ifeq ($(CONFIG_VTB),yes)
@@ -315,8 +325,16 @@ filters: $(LIBGPAC_FILTERS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 
+filters_ohevc: CFLAGS += $(FILTERS_OHEVC_CFLAGS)
+filters_ohevc: $(LIBGPAC_FILTERS_OHEVC)
+.deps/filters/dec_openhevc.dep: CFLAGS += $(FILTERS_OHEVC_CFLAGS)
 
-../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools crypto filters $(OBJS)
+filters_svc: CFLAGS += $(FILTERS_SVC_CFLAGS)
+filters_svc: $(LIBGPAC_FILTERS_SVC)
+.deps/filters/dec_opensvc.dep: CFLAGS += $(FILTERS_SVC_CFLAGS)
+
+
+../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools crypto filters filters_ohevc filters_svc $(OBJS)
 	@echo "OBJS $(OBJS)"
 	@echo "LIBS $(EXTRALIBS)"
 
