@@ -48,9 +48,9 @@ OBJS= dashcast.o audio_data.o audio_decoder.o audio_encoder.o audio_muxer.o circ
 
 LINKFLAGS+= $(ffmpeg_lflags_dashcast)
 
-ifneq ($(CONFIG_LIBAVRESAMPLE),no)
+ifneq ($(CONFIG_LIBSWRESAMPLE),no)
 CFLAGS+=-DDC_AUDIO_RESAMPLER
-LINKFLAGS+=-lavresample
+LINKFLAGS+=-lswresample
 endif
 
 ifeq ($(CONFIG_DARWIN), yes)

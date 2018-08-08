@@ -1389,8 +1389,8 @@ ffmpeg_cflags=""
 ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lavdevice $ffmpeg_extra_ldflags"
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libavresample ; then
-    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice libavresample`
+  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libswresample ; then
+    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice libswresample`
     ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
     has_ffmpeg="system"
   fi
@@ -1492,21 +1492,21 @@ EOF
     fi
 fi
 
-#detect libavresample (libav only, but ffmpeg backported with '--enable-avresample') for dashcast only
+#detect libswresample for dashcast only
 cat > $TMPC << EOF
-#include "libavresample/avresample.h"
+#include "libswresample/swresample.h"
 int main(void) {
-    AVAudioResampleContext *aresampler = avresample_alloc_context();
+    SwrContext *aresampler = swr_alloc();
     free(aresampler);
     return 0;
 }
 EOF
 
 if docc $ffmpeg_cflags $ffmpeg_lflags -lavresample ; then
-    has_libavresample="yes"
+    has_libswresample="yes"
     ffmpeg_lflags="$ffmpeg_lflags -lavresample"
 else
-    has_libavresample="no"
+    has_libswresample="no"
 fi
 
 
@@ -3183,7 +3183,7 @@ else
     echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
-    echo "CONFIG_LIBAVRESAMPLE=$has_libavresample" >> config.mak
+    echo "CONFIG_LIBSWRESAMPLE=$has_libswresample" >> config.mak
     echo "#define GPAC_HAS_FFMPEG" >> $TMPH
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
