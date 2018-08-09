@@ -381,14 +381,14 @@ void set_cfg_option(char *opt_string)
 			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
 			return;
 		}
-		gf_cfg_del_section(cfg_file, szSec);
+		gf_opts_del_section(szSec);
 		return;
 	}
 
 	if (!stricmp(szVal, "null")) {
 		szVal[0]=0;
 	}
-	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
+	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
 
@@ -434,16 +434,9 @@ int main (int argc, char *argv[])
 	}
 #endif
 
-	gf_sys_init(mem_track);
+	gf_sys_init(mem_track, NULL);
 	gf_set_progress_callback(NULL, on_progress_null);
-
-	cfg_file = gf_cfg_init(the_cfg, NULL);
-	if (!cfg_file) {
-		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");
-		if (logfile) gf_fclose(logfile);
-		return 1;
-	}
-
+    
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] != '-') {
@@ -487,12 +480,12 @@ int main (int argc, char *argv[])
 	}
 
 	if (!logs_set)
-		gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
+		gf_log_set_tools_levels( gf_opts_get_key("General", "Logs") );
 
-	gf_cfg_set_key(cfg_file, "Compositor", "OpenGLMode", "hybrid");
+	gf_opts_set_key("Compositor", "OpenGLMode", "hybrid");
 
 	if (!logfile) {
-		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
+		const char *opt = gf_opts_get_key("General", "LogFile");
 		if (opt) {
 			logfile = gf_fopen(opt, "wt");
 			if (logfile)
@@ -506,9 +499,9 @@ int main (int argc, char *argv[])
 
 	init_w = forced_width;
 	init_h = forced_height;
-
+/*
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading modules\n" ));
-	str = gf_cfg_get_key(cfg_file, "Core", "ModulesDirectory");
+	str = gf_opts_get_key("Core", "ModulesDirectory");
 
 	user.modules = gf_modules_new((const char *) str, cfg_file);
 	if (user.modules) i = gf_modules_get_count(user.modules);
@@ -521,13 +514,13 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Modules Loaded (%d found in %s)\n", i, str));
-
+*/
 //	url_arg="$IOS_DOCS/NBA_score_table_2_hd.mp4#LIVE360TV";
-	gf_cfg_set_key(cfg_file, "Compositor", "NumViews", "1");
-//	gf_cfg_set_key(cfg_file, "Compositor", "StereoType", "SideBySide");
+	gf_opts_set_key("Compositor", "NumViews", "1");
+//	gf_opts_set_key("Compositor", "StereoType", "SideBySide");
 
 	if (url_arg && !strncmp(url_arg, "$IOS_DOCS", 9)) {
-		char *path = (char *) gf_cfg_get_key(cfg_file, "General", "iOSDocumentsDir");
+		char *path = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
 		if (path) {
 			strcpy(the_url, path);
 			path = strchr(url_arg, '/');
@@ -540,23 +533,23 @@ int main (int argc, char *argv[])
 	}
 	gf_sys_set_args(argc, (const char **) argv);
 	
-	user.config = cfg_file;
+	//user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
-	user.opaque = user.modules;
+	//user.opaque = user.modules;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
 	if (bench_mode) {
-		gf_cfg_discard_changes(user.config);
+		//gf_cfg_discard_changes(user.config);
 		auto_exit = GF_TRUE;
-		gf_cfg_set_key(user.config, "Audio", "DriverName", "Raw Audio Output");
+		gf_opts_set_key("Audio", "DriverName", "Raw Audio Output");
 		if (bench_mode!=2) {
-			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
-			gf_cfg_set_key(user.config, "RAWVideo", "RawOutput", "null");
-			gf_cfg_set_key(user.config, "Compositor", "OpenGLMode", "disable");
+			gf_opts_set_key("Video", "DriverName", "Raw Video Output");
+			gf_opts_set_key("RAWVideo", "RawOutput", "null");
+			gf_opts_set_key("Compositor", "OpenGLMode", "disable");
 		} else {
-			gf_cfg_set_key(user.config, "Video", "DisableVSync", "yes");
+			gf_opts_set_key("Video", "DisableVSync", "yes");
 		}
 	}
 
@@ -565,8 +558,8 @@ int main (int argc, char *argv[])
 	term = gf_term_new(&user);
 	if (!term) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n"));
-		gf_modules_del(user.modules);
-		gf_cfg_del(cfg_file);
+		//gf_modules_del(user.modules);
+		//gf_cfg_del(cfg_file);
 		gf_sys_close();
 		if (logfile) gf_fclose(logfile);
 		return 1;
@@ -579,32 +572,32 @@ int main (int argc, char *argv[])
 		if (bench_mode==1) bench_mode=2;
 	} else {
 		/*check video output*/
-		str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
+		str = gf_opts_get_key("Video", "DriverName");
 		if (!strcmp(str, "Raw Video Output")) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: using raw output video (memory only) - no display used\n"));
 		}
 	}
 	
 	/*check audio output*/
-	str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
+	str = gf_opts_get_key("Audio", "DriverName");
 	if (!str || !strcmp(str, "No Audio Output Available")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: no audio output availble - make sure no other program is locking the sound card\n"));
 	}
-	str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
+	str = gf_opts_get_key("General", "NoMIMETypeFetch");
 	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 
-	str = gf_cfg_get_key(cfg_file, "Core", "HTTPProxyEnabled");
+	str = gf_opts_get_key("Core", "HTTPProxyEnabled");
 	if (str && !strcmp(str, "yes")) {
-		str = gf_cfg_get_key(cfg_file, "Core", "HTTPProxyName");
+		str = gf_opts_get_key("Core", "HTTPProxyName");
 		if (str) GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("HTTP Proxy %s enabled\n", str));
 	}
 
 	if (rti_file) {
-		str = gf_cfg_get_key(cfg_file, "General", "RTIRefreshPeriod");
+		str = gf_opts_get_key("General", "RTIRefreshPeriod");
 		if (str) {
 			rti_update_time_ms = atoi(str);
 		} else {
-			gf_cfg_set_key(cfg_file, "General", "RTIRefreshPeriod", "200");
+			gf_opts_set_key("General", "RTIRefreshPeriod", "200");
 		}
 		UpdateRTInfo("At GPAC load time\n");
 	}
@@ -645,7 +638,7 @@ int main (int argc, char *argv[])
 	} else if (!use_gui && url_arg) {
 		gf_term_connect(term, url_arg);
 	} else {
-		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		str = gf_opts_get_key("General", "StartupFile");
 		if (str) {
 			if (!url_arg)
 				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
@@ -717,8 +710,8 @@ int main (int argc, char *argv[])
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("OK\n"));
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("GPAC cleanup ...\n"));
-	gf_modules_del(user.modules);
-	gf_cfg_del(cfg_file);
+	//gf_modules_del(user.modules);
+	//gf_cfg_del(cfg_file);
 
 	if (gyro_dev) {
 		sensor_destroy(&gyro_dev);
