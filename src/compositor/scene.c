@@ -1515,7 +1515,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 			((M_Viewpoint *)n2)->position.z = 0;
 			((M_Viewpoint *)n2)->fieldOfView = GF_PI/2;
 
+#ifndef GPAC_DISABLE_3D
 			((M_Viewpoint *)n2)->fieldOfView = scene->compositor->fov;
+#endif
 
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);

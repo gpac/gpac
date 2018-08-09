@@ -272,12 +272,14 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 			}
 		}
 	}
+#ifndef GPAC_DISABLE_3D
 	else if (txh->tx_io->pbo_id && txh->hw_frame) {
 		u32 src_stride;
 		txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &p_y, &y_stride);
 		txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &p_u, &src_stride);
 		txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &src_stride);
 	}
+#endif
 
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
