@@ -251,11 +251,11 @@ uninstall-lib:
 
 ifeq ($(CONFIG_DARWIN),yes)
 dmg:
-	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
-		echo "Local revision and remote revision are not congruent; you may have local commit."; \
-		echo "Please consider pushing your commit before generating an installer"; \
-		exit 1; \
-	fi
+#	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
+#		echo "Local revision and remote revision are not congruent; you may have local commit."; \
+#		echo "Please consider pushing your commit before generating an installer"; \
+#		exit 1; \
+#	fi
 	rm "bin/gcc/MP4Client"
 	$(MAKE) -C applications/mp4client
 	./mkdmg.sh $(arch)
@@ -263,11 +263,11 @@ endif
 
 ifeq ($(CONFIG_LINUX),yes)
 deb:
-	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
-		echo "Local revision and remote revision are not congruent; you may have local commit."; \
-		echo "Please consider pushing your commit before generating an installer"; \
-		exit 1; \
-	fi
+#	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
+#		echo "Local revision and remote revision are not congruent; you may have local commit."; \
+#		echo "Please consider pushing your commit before generating an installer"; \
+#		exit 1; \
+#	fi
 	git checkout --	debian/changelog
 	fakeroot debian/rules clean
 	sed -i "s/-DEV/-DEV-rev$(VERSION)-$(BRANCH)/" debian/changelog
