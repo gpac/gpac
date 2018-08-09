@@ -421,7 +421,7 @@ start:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len));
 		if (e) goto exit;
 #else
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: your version of GPAC was compile with no libz support. Abort."));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: your version of GPAC was compiled with no libz support. Abort."));
 		e = GF_NOT_SUPPORTED;
 		goto exit;
 #endif
