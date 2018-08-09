@@ -233,10 +233,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	} else if (path_type==GF_PATH_CFG) {
 		strcpy(file_path, DEFAULT_ANDROID_PATH_CFG);
 		return 1;
-	} else if (path_type==GF_PATH_GUI) {
+	} else if (path_type==GF_PATH_SHARE) {
 		if (!get_default_install_path(file_path, GF_PATH_APP))
 			return 0;
-		strcat(file_path, "/gui");
+		strcat(file_path, "/share");
 		return 1;
 	} else if (path_type==GF_PATH_MODULES) {
 		if (!get_default_install_path(file_path, GF_PATH_APP))
@@ -626,10 +626,10 @@ static void check_modules_dir(GF_Config *cfg)
 
 #ifdef GPAC_IPHONE
 	char *cfg_path;
-	if ( get_default_install_path(path, GF_PATH_GUI) ) {
+	if ( get_default_install_path(path, GF_PATH_SHARE) ) {
 		char *sep;
 		char shader_path[GF_MAX_PATH];
-		strcat(path, "/gui.bt");
+		strcat(path, "/gui/gui.bt");
 		gf_cfg_set_key(cfg, "General", "StartupFile", path);
 		//get rid of "/gui/gui.bt"
 		sep = strrchr(path, '/');
