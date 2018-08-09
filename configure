@@ -1614,7 +1614,7 @@ fi
 #look for VideoToolBox support
 
 if test "$darwin" = "yes" ; then
-vtb_ldflags="-framework VideoToolBox"
+vtb_ldflags="-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolBox"
 	cat > $TMPC << EOF
 #include <VideoToolbox/VideoToolbox.h>
 int main( void ) { return 0; }
