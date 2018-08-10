@@ -94,9 +94,9 @@ import com.lge.real3d.Real3D;
 import com.lge.real3d.Real3DInfo;
 /**
  * The main Osmo4 activity, used to launch everything
- * 
+ *
  * @version $Revision$
- * 
+ *
  */
 public class Osmo4 extends Activity implements GpacCallback {
 
@@ -104,7 +104,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 	private static final int INITIAL_HIDE_DELAY = 300;
 
 	public boolean m3DLibraryLoaded = false;
-	private Real3D mReal3D;	
+	private Real3D mReal3D;
 	private View mDecorView;
 
     private boolean shouldDeleteGpacConfig = false;
@@ -156,7 +156,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     private GpacLogger logger;
 
     private ProgressDialog startupProgress;
-    
+
     private LinearLayout gl_view;
 
     /**
@@ -176,7 +176,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 			final String LGE_3D_DISPLAY = "lge.hardware.real3d.barrier.landscape";
 			if(this.getPackageManager().hasSystemFeature(LGE_3D_DISPLAY))
 				m3DLibraryLoaded = true;
-        } 
+        }
         catch (ClassNotFoundException e) {
         	m3DLibraryLoaded = false;
         }
@@ -214,7 +214,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         startupProgress.setMessage(getResources().getText(R.string.osmoLoading));
         startupProgress.setTitle(R.string.osmoLoading);
         startupProgress.show();
-        
+
         if (mGLView != null) {
             setContentView(R.layout.main);
             if (toOpen != null)
@@ -223,9 +223,9 @@ public class Osmo4 extends Activity implements GpacCallback {
             return;
         }
 		Preview.context = this;
-       
+
         setContentView(R.layout.main);
-		
+
 		final View contentView = (LinearLayout)findViewById(R.id.surface_gl);
 		mDecorView =  getWindow().getDecorView();
 
@@ -250,7 +250,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 					if (Osmo4.this.keyboardIsVisible)
 						((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(mGLView.getWindowToken(), 0);
 					hideSystemUI();
-				} 
+				}
 				return true;
 			}
 		});
@@ -263,9 +263,9 @@ public class Osmo4 extends Activity implements GpacCallback {
 
 	showSystemUI();
 		mGLView = new Osmo4GLSurfaceView(this);
-		
+
 		gl_view = (LinearLayout)findViewById(R.id.surface_gl);
-        
+
         sensors = new SensorServices(this);
 
         if( m3DLibraryLoaded ) //should be checking wether the terminal is a LG one
@@ -295,7 +295,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                         Osmo4Renderer renderer = new Osmo4Renderer(Osmo4.this, gpacConfig, toOpen);
                         mGLView.setRenderer(renderer);
-                       
+
                         gl_view.addView(mGLView);
 
                         sensors.setRenderer(renderer);
@@ -330,7 +330,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         		if (!guiDir.delete())
         			Log.e(LOG_OSMO_TAG, "Failed to delete " + guiDir);
         	}
-        	if (!guiDir.mkdir())
+        	if (!guiDir.mkdirs())
         		Log.e(LOG_OSMO_TAG, "Failed to create directory " + guiDir);
         	copyAssets(gpacConfig, GUI_ROOT_ASSET_DIR);
         }
@@ -341,12 +341,12 @@ public class Osmo4 extends Activity implements GpacCallback {
             // we do not delete the directory if it already exists, because it might contain custom shaders
             if (shaderDir.exists()) {
                     Log.v(LOG_OSMO_TAG, "Shader directory already exists at: " + shaderDir);
-            }else if (!shaderDir.mkdir()){
+            }else if (!shaderDir.mkdirs()){
                 Log.e(LOG_OSMO_TAG, "Failed to create directory " + shaderDir);
             }
         }
         copyAssets(gpacConfig, SHADER_ROOT_ASSET_DIR);
-        
+
         //if there is not a GPAC.cfg in external storage (i.e  using config in app directory)
         //copy GPAC.cfg from gpacAppDirectoryto gpacLogDirectory
         File osmo = new File(Environment.getExternalStorageDirectory(), "osmo");
@@ -368,7 +368,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         }
 
     }
-    
+
     /*
      * Copy GUI elements
      *
@@ -379,7 +379,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     private final static String GUI_ROOT_ASSET_DIR = "gui";
     private final static String SHADER_ROOT_ASSET_DIR = "shaders";
 
-    private void copyAssets(GpacConfig config, String asset_dir) {    
+    private void copyAssets(GpacConfig config, String asset_dir) {
      		StringBuilder sb = new StringBuilder();
      		HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
 				AssetManager assetManager = getAssets();
@@ -397,9 +397,9 @@ public class Osmo4 extends Activity implements GpacCallback {
 				    } catch(IOException e) {
 				        Log.e(LOG_OSMO_TAG, "Failed to copy: " + path, e);
 				        exceptions.put("Failed to copy " + path, e);
-				    }       
+				    }
 				}
-				
+
 				if (!exceptions.isEmpty()) {
 					try {
               PrintStream out = new PrintStream(config.getGpacLogDirectory() + "debug_assets.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
@@ -609,7 +609,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     /**
      * Opens a new activity to select a file
-     * 
+     *
      * @return true if activity has been selected
      */
     private boolean openFileDialog() {
@@ -825,7 +825,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     /**
      * Cleans GPAC cache
-     * 
+     *
      * @return true if successful
      */
     protected boolean cleanCache() {
@@ -1332,7 +1332,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             mHideHandler.removeMessages(0);
         }
     }
-    
+
     public void setLogFile(String logfile) {
 	    logger.setEnableLogOnDisk(true);
 	    logger.setLogFile(logfile);

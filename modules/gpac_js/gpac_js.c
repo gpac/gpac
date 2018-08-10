@@ -225,6 +225,7 @@ prop_id = SMJS_ID_TO_INT(id);
 switch (prop_id) {
 case GJS_GPAC_PROP_LAST_WORK_DIR:
 	res = gf_opts_get_key("General", "LastWorkingDir");
+	if (!res) res = gf_opts_get_key("Core", "ModulesDirectory");
 #ifdef WIN32
 	if (!res) res = "C:\\";
 #elif defined(GPAC_CONFIG_DARWIN)
@@ -436,7 +437,7 @@ case GJS_GPAC_PROP_DPI_X:
 case GJS_GPAC_PROP_DPI_Y:
 	*vp = INT_TO_JSVAL(compositor->video_out->dpi_y);
 	break;
-	
+
 case GJS_GPAC_PROP_SENSORS_ACTIVE:
 	*vp = BOOLEAN_TO_JSVAL(compositor->orientation_sensors_active);
 	break;
@@ -1458,7 +1459,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
 	com.quality_query.index = 1 + idx;
 	com.quality_query.dependent_group_index = dep_idx;
-	
+
 	com.base.on_channel = gf_list_get(odm->channels, 0);
 
 	if (gf_term_service_command(odm->net_service, &com) == GF_OK) {
@@ -1502,7 +1503,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
 	s32 x, y, w, h;
 
 	if (!odm) return JS_TRUE;
-	
+
 	x = y = w = h = 0;
 	if (argc && JSVAL_IS_INT(argv[0]) ) {
 		dep_idx = JSVAL_TO_INT(argv[0]);
@@ -1524,7 +1525,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
 		w = odm->mo->srd_w;
 		h = odm->mo->srd_h;
 	}
-	
+
 	if (w && h) {
 		JSObject *a = JS_NewObject(c, NULL, NULL, NULL);
 
@@ -1569,7 +1570,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
 	com.base.on_channel = gf_list_get(odm->channels, 0);
-	
+
 	if (tile_mode>=0) {
 		com.switch_quality.set_tile_mode_plus_one = 1 + tile_mode;
 	} else {
@@ -1749,7 +1750,7 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 		url_len = (u32) strlen(url);
 		an_url = strchr(url, '#');
 		if (an_url) url_len -= (u32) strlen(an_url);
-		
+
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			odm = gf_list_get(scene->resources, i);
@@ -1964,7 +1965,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 		}
 		return 0;
 	}
-	
+
 	gf_mx_p(gjs->event_mx);
 	while (gf_list_count(gjs->event_queue)) {
 		GF_Event *an_evt = (GF_Event *) gf_list_pop_front(gjs->event_queue);
@@ -1972,7 +1973,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 		gf_free(an_evt);
 	}
 	gf_mx_v(gjs->event_mx);
-	
+
 	res = gjs_event_filter_process(gjs, evt);
 
 	gf_mx_v(gjs->compositor->mx);
@@ -2277,7 +2278,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
-	
+
 	JSPropertySpec odmClassProps[] = {
 		SMJS_PROPERTY_SPEC("ID",				GJS_OM_PROP_ID, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("nb_resources",		GJS_OM_PROP_NB_RES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),

@@ -62,7 +62,7 @@ enum
 	GF_CODEC_RESILIENT_AFTER_FIRST_RAP=2
 };
 
-/*Define codec matrix*/ 
+/*Define codec matrix*/
 typedef struct __matrix GF_CodecMatrix;
 
 /*the structure for capabilities*/
@@ -218,7 +218,7 @@ user defined.
 	u32 (*CanHandleStream)(IFCE_NAME, u32 StreamType, GF_ESD *esd, u8 ProfileLevelIndication);\
 	const char *(*GetName)(IFCE_NAME);\
 	void *privateStack;	\
- 
+
 
 typedef struct _basedecoder
 {
@@ -270,6 +270,54 @@ typedef struct __input_device
 	void (*DispatchFrame)(struct __input_device *, const char *data, u32 data_len);
 } GF_InputSensorDevice;
 
+
+
+/*interface name and version for media decoder */
+#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '3')
+
+typedef struct _mediadecoderframe
+{
+	//release media frame
+	void (*Release)(struct _mediadecoderframe *frame);
+	//get media frame plane
+	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
+	// @outPlane: adress of target color plane
+	// @outStride: stride in bytes of target color plane
+	GF_Err (*GetPlane)(struct _mediadecoderframe *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
+
+	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix);
+
+	//allocated space by the decoder
+	void *user_data;
+} GF_MediaDecoderFrame;
+
+/*the media module interface. A media module MUST be implemented in synchronous mode as time
+and resources management is done by the terminal*/
+typedef struct _mediadecoder
+{
+	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
+
+	/*Process the media data in inAU.
+	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
+	@ES_ID: stream this data belongs too (scalable object)
+	@outBuffer, outBufferLength: allocated data for decoding - if outBufferLength is not enough
+		you must set the size in outBufferLength and GF_BUFFER_TOO_SMALL
+
+	@PaddingBits is the padding at the end of the buffer (some codecs need this info)
+	@mmlevel: speed indicator for the decoding - cf above for values*/
+	GF_Err (*ProcessData)(struct _mediadecoder *,
+	                      char *inBuffer, u32 inBufferLength,
+	                      u16 ES_ID, u32 *CTS,
+	                      char *outBuffer, u32 *outBufferLength,
+	                      u8 PaddingBits, u32 mmlevel);
+
+
+	/*optional (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_RAW_MEMORY*/
+	GF_Err (*GetOutputBuffer)(struct _mediadecoder *, u16 ES_ID, u8 **pY_or_RGB, u8 **pU, u8 **pV);
+
+	/*optional (may be null), retrievs internal output frame object of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_FRAME_OUTPUT*/
+	GF_Err (*GetOutputFrame)(struct _mediadecoder *, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize);
+} GF_MediaDecoder;
 
 
 #ifdef __cplusplus

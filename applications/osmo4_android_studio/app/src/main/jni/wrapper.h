@@ -33,7 +33,7 @@
 #include <gpac/terminal.h>
 #include <gpac/thread.h>
 #include <gpac/options.h>
-#include <gpac/modules/service.h>
+#include <gpac/network.h>
 
 //#define		MAX_PATH	255
 
@@ -160,7 +160,6 @@ typedef struct _JavaEnvTh {
 	jmethodID cbk_setLogFile;
 	jmethodID cbk_sensorSwitch;
 } JavaEnvTh;
-
 
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------

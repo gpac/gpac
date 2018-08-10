@@ -37,7 +37,7 @@ extern "C" {
  *	\file <gpac/user.h>
  *	\brief GPAC terminal <-> user API.
  */
-	
+
 /*!
  *\addtogroup termuser_grp Terminal User
  *\ingroup playback_grp
@@ -46,7 +46,7 @@ extern "C" {
  *This section documents the user-level API of the GPAC media player.
  *	@{
  */
-	
+
 
 
 

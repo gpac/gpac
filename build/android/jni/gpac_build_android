@@ -180,11 +180,11 @@ ASSETS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/assets/"
 mkdir -p $ASSETS_DIR
 
 echo "Copying gui folder to $ASSETS_DIR ..."
-cp -R "$BASEPATH/gui" $ASSETS_DIR
+cp -R "$BASEPATH/share/gui" $ASSETS_DIR
 echo "[OK] success GUI for Osmo4."
 
 echo "Copying shaders folder to $ASSETS_DIR ..."
-cp -R "$BASEPATH/shaders" $ASSETS_DIR
+cp -R "$BASEPATH/share/shaders" $ASSETS_DIR
 echo "[OK] success Shader Folder for Osmo4."
 
 if [ \( $SDK -eq 1 \) -a \( $JDK -eq 1 \) ]
