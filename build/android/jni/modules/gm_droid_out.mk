@@ -2,7 +2,7 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE		:= gm_droidout
+LOCAL_MODULE		:= gm_droid_out
 
 include $(LOCAL_PATH)/base.mk
 

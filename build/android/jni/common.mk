@@ -1,4 +1,4 @@
-OMMON_PATH := $(call my-dir)
+COMMON_PATH := $(call my-dir)
 
 #Settings common to all JNI Builds
 TARGET_PLATFORM	 := android-4

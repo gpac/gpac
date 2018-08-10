@@ -260,21 +260,21 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 #ifdef DROID_EXTREME_LOGS
 	LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
 #endif /* DROID_EXTREME_LOGS */
-	
+
 	if ( ctx->audioFormat == ENCODING_PCM_8BIT )
 		pBuffer = (*env)->GetByteArrayElements(env, ctx->buff, NULL);
 	else
 		pBuffer = (*env)->GetShortArrayElements(env, ctx->buff, NULL);
-	
+
 	if (pBuffer)
 	{
 		written = dr->FillBuffer(dr->audio_renderer, pBuffer, ctx->mbufferSizeInBytes);
-		
+
 		if ( ctx->audioFormat == ENCODING_PCM_8BIT )
 			(*env)->ReleaseByteArrayElements(env, ctx->buff, pBuffer, 0);
 		else
 			(*env)->ReleaseShortArrayElements(env, ctx->buff, pBuffer, 0);
-		
+
 		if (written)
 		{
 			if ( ctx->audioFormat == ENCODING_PCM_8BIT )
@@ -460,7 +460,7 @@ void *NewWAVRender()
 	driv->SelfThreaded = 0;
 	driv->Setup = WAV_Setup;
 	driv->Shutdown = WAV_Shutdown;
-	driv->ConfigureOutput = WAV_ConfigureOutput;
+	driv->Configure = WAV_ConfigureOutput;
 	driv->GetAudioDelay = WAV_GetAudioDelay;
 	driv->GetTotalBufferTime = WAV_GetTotalBufferTime;
 	driv->SetVolume = WAV_SetVolume;

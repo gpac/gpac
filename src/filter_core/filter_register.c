@@ -97,7 +97,9 @@ const GF_FilterRegister *avimux_register(GF_FilterSession *session);
 const GF_FilterRegister *aout_register(GF_FilterSession *session);
 const GF_FilterRegister *m4vmx_register(GF_FilterSession *session);
 const GF_FilterRegister *resample_register(GF_FilterSession *session);
+#if !defined(GPAC_ANDROID)
 const GF_FilterRegister *vout_register(GF_FilterSession *session);
+#endif
 const GF_FilterRegister *vcrop_register(GF_FilterSession *session);
 const GF_FilterRegister *rawvidreframe_register(GF_FilterSession *session);
 const GF_FilterRegister *pcmreframe_register(GF_FilterSession *session);
@@ -116,7 +118,7 @@ const GF_FilterRegister *gsfdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *sockout_register(GF_FilterSession *session);
 const GF_FilterRegister *av1dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *obumx_register(GF_FilterSession *session);
-#ifndef GPAC_IPHONE
+#if !defined(GPAC_IPHONE) && !defined(GPAC_ANDROID)
 const GF_FilterRegister *nvdec_register(GF_FilterSession *session);
 #endif
 const GF_FilterRegister *atscin_register(GF_FilterSession *session);
@@ -185,7 +187,9 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, aout_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, m4vmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, resample_register(a_sess) );
+#if !defined(GPAC_ANDROID)
 	gf_fs_add_filter_registry(fsess, vout_register(a_sess) );
+#endif
 	gf_fs_add_filter_registry(fsess, vcrop_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, rawvidreframe_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, pcmreframe_register(a_sess) );
@@ -203,7 +207,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, sockout_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, av1dmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, obumx_register(a_sess) );
-#ifndef GPAC_IPHONE
+#if !defined(GPAC_IPHONE) && !defined(GPAC_ANDROID)
 	gf_fs_add_filter_registry(fsess, nvdec_register(a_sess));
 #endif
 	gf_fs_add_filter_registry(fsess, atscin_register(a_sess));

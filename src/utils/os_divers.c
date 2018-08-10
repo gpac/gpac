@@ -1490,6 +1490,8 @@ const char * gf_get_default_cache_directory()
 	strcpy(szCacheDir, "\\windows\\temp" );
 #elif defined(WIN32)
 	GetTempPath(GF_MAX_PATH, szCacheDir);
+#elif defined(GPAC_ANDROID)
+	strcpy(szCacheDir, "/data/data/com.gpac.Osmo4/cache");
 #else
 	strcpy(szCacheDir, "/tmp");
 #endif

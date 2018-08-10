@@ -53,7 +53,7 @@ void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 	if (state==GF_SC_DRAW_FLUSH) {
 		if (!compositor->skip_flush)
 			compositor->skip_flush = 2;
-		
+
 		//if in openGL mode ignore refresh events (content of the window is still OK). This is only used for overlays in 2d
 		if (!compositor->frame_draw_type
 #ifndef GPAC_DISABLE_3D
@@ -153,16 +153,16 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				evt.setup.back_buffer = GF_TRUE;
 			}
 #endif
-			
+
 #ifndef GPAC_DISABLE_3D
 			if (compositor->hybrid_opengl || compositor->force_opengl_2d) {
 				evt.setup.opengl_mode = 1;
 				evt.setup.system_memory = GF_FALSE;
 				evt.setup.back_buffer = GF_TRUE;
 			}
-			
+
 #endif
-			compositor->video_out->ProcessEvent(compositor->video_out, &evt);		
+			compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 			compositor->msg_type &= ~GF_SR_CFG_INITIAL_RESIZE;
 		}
 		/*scene size has been overriden*/
@@ -209,7 +209,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			if ( !(compositor->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
 				compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 			}
-			
+
 			compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 
 			if (restore_fs) {
@@ -638,7 +638,7 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 
 
 	gf_sc_reload_config(compositor);
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
 	return GF_OK;
 }
@@ -923,15 +923,15 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 #ifndef GPAC_DISABLE_3D
 	gf_list_del(compositor->traverse_state->local_lights);
 #endif
-	
+
 	memset(compositor->traverse_state, 0, sizeof(GF_TraverseState));
-	
+
 	compositor->traverse_state->vrml_sensors = gf_list_new();
 	compositor->traverse_state->use_stack = gf_list_new();
 #ifndef GPAC_DISABLE_3D
 	compositor->traverse_state->local_lights = gf_list_new();
 #endif
-	
+
 	gf_mx2d_init(compositor->traverse_state->transform);
 	gf_cmx_init(&compositor->traverse_state->color_mat);
 	compositor->traverse_state->immediate_draw = mode2d;
@@ -1831,7 +1831,7 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 {
 	Bool force_pause;
-	
+
 //	force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
 	force_pause = GF_FALSE;
 
@@ -2091,8 +2091,9 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 			} else {
 				compositor->skip_flush = 1;
 			}
-		}
 #endif
+		}
+
 	}
 
 
@@ -2260,7 +2261,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	compositor->ms_until_next_frame = GF_INT_MAX;
 	frame_duration = compositor->frame_duration;
 
-	if (compositor->auto_rotate) 
+	if (compositor->auto_rotate)
 		compositor_handle_auto_navigation(compositor);
 
 #ifndef GPAC_DISABLE_LOG
@@ -3296,7 +3297,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	compositor->traverse_state->traversing_mode = 0;
 	if (compositor->sel_buffer) compositor->sel_buffer[compositor->sel_buffer_len]=0;
 	srcp = compositor->sel_buffer;
-	
+
 	if (compositor->selected_text) gf_free(compositor->selected_text);
 	compositor->selected_text = gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 	len = gf_utf8_wcstombs((char *) compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);

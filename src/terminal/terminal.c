@@ -36,6 +36,7 @@
 #include "../utils/module_wrap.h"
 
 /*textual command processing*/
+#include <gpac/terminal.h>
 #include <gpac/scene_manager.h>
 
 void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID);
@@ -118,7 +119,7 @@ static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, B
 		compositor->use_step_mode = GF_TRUE;
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
-		//resume/pause to trigger codecs state change 
+		//resume/pause to trigger codecs state change
 		if (force_resume_pause) {
 			mediacontrol_resume(compositor->root_scene->root_od, 0);
 			mediacontrol_pause(compositor->root_scene->root_od);
