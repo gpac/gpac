@@ -772,7 +772,7 @@ void PrintDumpUsage()
 	        " -dxml                dumps IsoMedia file boxes and known track samples in XML output\n"
 	        " -drtp                rtp hint samples structure to XML output\n"
 	        " -dts                 prints sample timing, size and position in file to text output\n"
-	        " -dtsx                same as -dst but does not print offset\n"
+	        " -dtsx                same as -dts but does not print offset\n"
 	        " -dnal trackID        prints NAL sample info of given track\n"
 	        " -dnalc trackID       prints NAL sample info of given track, adding CRC for each nal\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
