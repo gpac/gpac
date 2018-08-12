@@ -1325,7 +1325,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 		return 0;
 	}
-
 	u_k_time = idle_time = 0;
 	f = gf_fopen("/proc/stat", "r");
 	if (f) {
@@ -1337,7 +1336,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		}
 		gf_fclose(f);
 	}
-
 	process_u_k_time = 0;
 	the_rti.process_memory = 0;
 
@@ -1417,7 +1415,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	}
 #endif
 
-
 	the_rti.sampling_instant = last_update_time;
 
 	if (last_update_time) {
@@ -1441,15 +1438,20 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration)
 				the_rti.sampling_period_duration = the_rti.total_cpu_time_diff;
 
-
 			if (!idle_time) idle_time = (the_rti.sampling_period_duration - the_rti.total_cpu_time_diff)/10;
 			samp_sys_time = u_k_time - last_cpu_u_k_time;
 			the_rti.cpu_idle_time = (u32) (idle_time - last_cpu_idle_time);
-			the_rti.total_cpu_usage = (u32) ( 100 * samp_sys_time / (the_rti.cpu_idle_time + samp_sys_time ) );
+			if (the_rti.cpu_idle_time + samp_sys_time > 0)
+				the_rti.total_cpu_usage = (u32) ( 100 * samp_sys_time / (the_rti.cpu_idle_time + samp_sys_time ) );
+			else
+				the_rti.total_cpu_usage = 0;
 			/*move to ms (/proc/stat gives times in 100 ms unit*/
 			the_rti.cpu_idle_time *= 10;
 			if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;
-			the_rti.process_cpu_usage = (u32) ( 100 *  the_rti.process_cpu_time_diff / (the_rti.cpu_idle_time + 10*samp_sys_time ) );
+			if (the_rti.cpu_idle_time + 10*samp_sys_time > 0)
+				the_rti.process_cpu_usage = (u32) ( 100 *  the_rti.process_cpu_time_diff / (the_rti.cpu_idle_time + 10*samp_sys_time ) );
+			else
+				the_rti.process_cpu_usage = 0;
 		}
 	} else {
 		mem_at_startup = the_rti.physical_memory_avail;
@@ -1458,7 +1460,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #ifdef GPAC_MEMORY_TRACKING
 	the_rti.gpac_memory = gpac_allocated_memory;
 #endif
-
 	last_process_k_u_time = process_u_k_time;
 	last_cpu_idle_time = idle_time;
 	last_cpu_u_k_time = u_k_time;
