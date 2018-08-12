@@ -317,7 +317,7 @@ void isor_declare_objects(ISOMReader *read)
 				load_default = GF_TRUE;
 				break;
 			}
-			
+
 			if (load_default) {
 				if (!codec_id) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", i+1, gf_4cc_to_str(m_subtype) ));
@@ -339,7 +339,7 @@ void isor_declare_objects(ISOMReader *read)
 		}
 
 		gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
-			
+
 		if (base_track) {
 			u32 base_subtype=0;
 			if (read->smode==MP4DMX_SINGLE)
@@ -479,6 +479,8 @@ void isor_declare_objects(ISOMReader *read)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(codec_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT( gf_isom_get_media_timescale(read->mov, i+1) ) );
 
+		ch = isor_create_channel(read, pid, i+1, 0, (codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+
 		if (dsi) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
 		}
@@ -560,8 +562,6 @@ void isor_declare_objects(ISOMReader *read)
 				gf_free(prop.value.uint_list.vals);
 			}
 		}
-
-		ch = isor_create_channel(read, pid, i+1, 0, (codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 
 		ch->duration = gf_isom_get_track_duration(read->mov, ch->track);
 		if (!ch->duration) {

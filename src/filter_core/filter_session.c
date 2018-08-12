@@ -1404,15 +1404,15 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 	sep = strchr(sURL, fsess->sep_args);
 	//special case here, need to escape ://
-	if (sep && (fsess->sep_args==':') && !strnicmp(sep, "://", 3))  {
-		sep = strstr(sURL, "://");
-		if (sep) {
-			char *sep2 = strchr(sep+3, '/');
+	if (sep && (fsess->sep_args==':'))  {
+		if (!strnicmp(sep, "://", 3)) {
+			char *sep2 = strchr(sep+3, '/'); // why??
 			if (sep2) sep = strstr(sep2+1, ":gpac:");
 			else sep = strchr(sep+3, ':');
-		} else {
-			sep = strchr(sURL, ':');
-			if (sep && !strnicmp(sep, ":\\", 2)) sep = strstr(sep+2, ":gpac:");
+
+		// windows drive letter
+		} else if (!strnicmp(sep, ":\\", 2) || !strnicmp(sep, ":/", 2)) {
+			sep = strchr(sep + 2, ':');
 		}
 	}
 	if (sep) {

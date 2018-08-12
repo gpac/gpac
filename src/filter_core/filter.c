@@ -736,8 +736,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				}
 			}
 
-			//watchout for "C:\\"
-			while (sep && (sep[1]=='\\')) {
+			//watchout for "C:\\" or "C:/"
+			while (sep && (sep[1]=='\\' || sep[1]=='/')) {
 				sep = strchr(sep+1, ':');
 			}
 			if (sep) {
