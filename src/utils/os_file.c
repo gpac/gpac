@@ -915,9 +915,10 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 GF_EXPORT
 s32 gf_fclose(FILE *file)
 {
-	if (file) {
-		gf_unregister_file_handle(file);
-	}
+	if (!file)
+		return GF_OK;
+
+	gf_unregister_file_handle(file);
 	return fclose(file);
 }
 
