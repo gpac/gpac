@@ -66,7 +66,7 @@ static void inspect_finalize(GF_Filter *filter)
 	Bool concat=GF_FALSE;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
-	if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) concat=GF_TRUE;
+	if (ctx->dump && (ctx->dump!=stderr) && (ctx->dump!=stdout)) concat=GF_TRUE;
 	while (gf_list_count(ctx->src_pids)) {
 		PidCtx *pctx = gf_list_pop_front(ctx->src_pids);
 
@@ -84,7 +84,7 @@ static void inspect_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->src_pids);
 
-	if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) gf_fclose(ctx->dump);
+	if (ctx->dump && (ctx->dump!=stderr) && (ctx->dump!=stdout)) gf_fclose(ctx->dump);
 }
 
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att)

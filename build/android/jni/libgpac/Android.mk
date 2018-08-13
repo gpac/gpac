@@ -16,11 +16,14 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/jpeg/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/png/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/
+LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/ffmpeg_android/
+
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv2 -ldl
-LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lz
+LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lz
+LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale
 
 #LOCAL_SHARED_LIBRARIES    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 #LOCAL_SHARED_LIBRARIES    += -lGLESv2 -ldl
