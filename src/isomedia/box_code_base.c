@@ -3804,7 +3804,7 @@ GF_Err moov_Write(GF_Box *s, GF_BitStream *bs)
 		if (e) return e;
 	}
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (ptr->mvex) {
+	if (ptr->mvex && !ptr->mvex_after_traks) {
 		e = gf_isom_box_write((GF_Box *) ptr->mvex, bs);
 		if (e) return e;
 	}
@@ -3812,6 +3812,13 @@ GF_Err moov_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_array_write(s, ptr->trackList, bs);
 	if (e) return e;
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (ptr->mvex && ptr->mvex_after_traks) {
+		e = gf_isom_box_write((GF_Box *) ptr->mvex, bs);
+		if (e) return e;
+	}
+#endif
 
 	if (ptr->udta) {
 		e = gf_isom_box_write((GF_Box *) ptr->udta, bs);

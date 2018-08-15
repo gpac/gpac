@@ -468,7 +468,6 @@ enum
 	GF_ISOM_SAMPLE_ENTRY_AUDIO = GF_4CC('a','u','d','i')
 };
 
-
 #ifndef GPAC_DISABLE_ISOM
 
 
@@ -703,6 +702,8 @@ typedef struct
 	GF_List *trackList;
 
 	GF_ISOFile *mov;
+
+	Bool mvex_after_traks;
 
 } GF_MovieBox;
 
