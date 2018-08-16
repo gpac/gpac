@@ -114,17 +114,17 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 
 		i=0;
 		while ((trex = (GF_TrackExtendsBox *)gf_list_enum(movie->moov->mvex->TrackExList, &i))) {
-			GF_TrackExtensionPropertiesBox *trep;
 			if (trex->type != GF_ISOM_BOX_TYPE_TREX) continue;
-			trep = GetTrep(movie->moov, trex->trackID);
-
-			if (!trep) {
-				trep = (GF_TrackExtensionPropertiesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREP);
-				trep->trackID = trex->trackID;
-				gf_list_add(movie->moov->mvex->TrackExPropList, trep);
-			}
-
 			if (trex->track->Media->information->sampleTable->CompositionToDecode) {
+				GF_TrackExtensionPropertiesBox *trep;
+				trep = GetTrep(movie->moov, trex->trackID);
+
+				if (!trep) {
+					trep = (GF_TrackExtensionPropertiesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREP);
+					trep->trackID = trex->trackID;
+					gf_list_add(movie->moov->mvex->TrackExPropList, trep);
+				}
+
 				if (!trex->track->Media->information->sampleTable->SampleSize || ! trex->track->Media->information->sampleTable->SampleSize->sampleCount) {
 					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
 					trex->track->Media->information->sampleTable->CompositionToDecode = NULL;
