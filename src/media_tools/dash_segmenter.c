@@ -672,7 +672,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			av1_state.seq_profile, av1_state.seq_level_idx, av1_state.bit_depth,
 			av1_state.mono_chrome,
 			av1_state.chroma_subsampling_x, av1_state.chroma_subsampling_y, av1_state.chroma_sample_position);
-			
+
 		if (av1_state.color_description_present_flag) {
 			char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
 			snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%01u.%01u.%01u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
@@ -691,6 +691,34 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		return GF_OK;
 	}
 #endif /*GPAC_DISABLE_AV1*/
+
+
+	case GF_ISOM_SUBTYPE_VP08:
+	case GF_ISOM_SUBTYPE_VP09:
+	{
+		GF_VPConfig *vpcc = NULL;
+
+		vpcc = gf_isom_vp_config_get(movie, track, 1);
+		if (!vpcc) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_BAD_PARAM;
+		}
+
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
+			vpcc->profile,
+			vpcc->level,
+			vpcc->bit_depth,
+			vpcc->chroma_subsampling,
+			vpcc->colour_primaries,
+			vpcc->transfer_characteristics,
+			vpcc->matrix_coefficients,
+			vpcc->video_fullRange_flag);
+
+
+		gf_odf_vp_cfg_del(vpcc);
+
+		return GF_OK;
+	}
 
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));

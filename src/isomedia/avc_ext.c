@@ -1254,6 +1254,25 @@ void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1)
 }
 
 
+static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg) {
+	u32 i = 0;
+	GF_VPConfig *out = gf_odf_vp_cfg_new();
+	if (out) {
+		out->profile = cfg->profile;
+		out->level = cfg->level;
+		out->bit_depth = cfg->bit_depth;
+		out->chroma_subsampling = cfg->chroma_subsampling;
+		out->video_fullRange_flag = cfg->video_fullRange_flag;
+		out->colour_primaries = cfg->colour_primaries;
+		out->transfer_characteristics = cfg->transfer_characteristics;
+		out->matrix_coefficients = cfg->matrix_coefficients;
+
+
+	}
+
+	return out;
+}
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
@@ -1951,6 +1970,17 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return AV1_DuplicateConfig(entry->av1_config->config);
 }
 
+GF_EXPORT
+GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_MPEGVisualSampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex - 1);
+	if (!entry || !entry->vp_config) return NULL;
+	return VP_DuplicateConfig(entry->vp_config->config);
+}
 
 GF_EXPORT
 u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
@@ -2479,7 +2509,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	u8 reserved;
 	u64 read = 0;
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)s;
-	
+
 	if (ptr->config) gf_odf_av1_cfg_del(ptr->config);
 	GF_SAFEALLOC(ptr->config, GF_AV1Config);
 	memset(&state, 0, sizeof(AV1State));
@@ -2502,7 +2532,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		u64 pos, obu_size;
 		ObuType obu_type;
 		GF_AV1_OBUArrayEntry *a;
-		
+
 		pos = gf_bs_get_position(bs);
 		obu_size = 0;
 		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state) != GF_OK) {
@@ -2565,6 +2595,81 @@ GF_Err av1c_Size(GF_Box *s) {
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+
+void vpcc_del(GF_Box *s)
+{
+	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox*)s;
+	if (ptr->config) gf_odf_vp_cfg_del(ptr->config);
+	ptr->config = NULL;
+	gf_free(ptr);
+}
+
+GF_Err vpcc_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u64 pos;
+	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox *)s;
+
+	if (ptr->config) gf_odf_vp_cfg_del(ptr->config);
+	ptr->config = NULL;
+
+	pos = gf_bs_get_position(bs);
+	ptr->config = gf_odf_vp_cfg_read_bs(bs);
+	pos = gf_bs_get_position(bs) - pos ;
+
+	if (pos < ptr->size)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] VPConfigurationBox: read only "LLU" bytes (expected "LLU").\n", pos, ptr->size));
+	if (pos > ptr->size)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] VPConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", pos, ptr->size));
+
+	return ptr->config ? GF_OK : GF_ISOM_INVALID_FILE;
+}
+
+GF_Box *vpcc_New()
+{
+	GF_VPConfigurationBox *tmp = (GF_VPConfigurationBox *) gf_malloc(sizeof(GF_VPConfigurationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_VPConfigurationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_VPCC;
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err vpcc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	if (!ptr->config) return GF_OK;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	return gf_odf_vp_cfg_write_bs(ptr->config, bs);
+}
+#endif
+
+GF_Err vpcc_Size(GF_Box *s)
+{
+	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox *)s;
+
+	if (!ptr->config) {
+		ptr->size = 0;
+		return GF_OK;
+	}
+
+	if (ptr->config->codec_initdata_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] VPConfigurationBox: codec_initdata_size MUST be 0, was %d\n", ptr->config->codec_initdata_size));
+		return GF_ISOM_INVALID_FILE;
+	}
+
+	ptr->size += 8;
+
+	return GF_OK;
+}
+
+
 
 GF_OperatingPointsInformation *gf_isom_oinf_new_entry()
 {

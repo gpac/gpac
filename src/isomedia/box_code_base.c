@@ -4152,6 +4152,7 @@ void video_sample_entry_del(GF_Box *s)
 	if (ptr->hevc_config) gf_isom_box_del((GF_Box *) ptr->hevc_config);
 	if (ptr->lhvc_config) gf_isom_box_del((GF_Box *) ptr->lhvc_config);
 	if (ptr->av1_config) gf_isom_box_del((GF_Box *)ptr->av1_config);
+	if (ptr->vp_config) gf_isom_box_del((GF_Box *)ptr->vp_config);
 	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
 
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
@@ -4204,6 +4205,10 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AV1C:
 		if (ptr->av1_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->av1_config = (GF_AV1ConfigurationBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_VPCC:
+		if (ptr->vp_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->vp_config = (GF_VPConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_M4DS:
 		if (ptr->descr) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4326,6 +4331,10 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 			e = gf_isom_box_write((GF_Box *)ptr->av1_config, bs);
 			if (e) return e;
 		}
+		if (ptr->vp_config && ptr->vp_config->config) {
+			e = gf_isom_box_write((GF_Box *)ptr->vp_config, bs);
+			if (e) return e;
+		}
 	}
 	if (ptr->pasp) {
 		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
@@ -4362,7 +4371,7 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->cfg_3gpp->size;
 	} else {
-		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->lhvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) && !ptr->av1_config ) {
+		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->lhvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) && !ptr->av1_config && !ptr->vp_config ) {
 			return GF_ISOM_INVALID_FILE;
 		}
 
@@ -4395,11 +4404,17 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 			if (e) return e;
 			ptr->size += ptr->lhvc_config->size;
 		}
-		
+
 		if (ptr->av1_config && ptr->av1_config->config) {
 			e = gf_isom_box_size((GF_Box *)ptr->av1_config);
 			if (e) return e;
 			ptr->size += ptr->av1_config->size;
+		}
+
+		if (ptr->vp_config && ptr->vp_config->config) {
+			e = gf_isom_box_size((GF_Box *)ptr->vp_config);
+			if (e) return e;
+			ptr->size += ptr->vp_config->size;
 		}
 
 		if (ptr->ipod_ext) {
@@ -6811,6 +6826,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_LHV1:
 		case GF_ISOM_BOX_TYPE_LHE1:
 		case GF_ISOM_BOX_TYPE_AV01:
+		case GF_ISOM_BOX_TYPE_VP08:
+		case GF_ISOM_BOX_TYPE_VP09:
 		case GF_ISOM_BOX_TYPE_AV1C:
 		case GF_ISOM_BOX_TYPE_TX3G:
 		case GF_ISOM_BOX_TYPE_TEXT:
@@ -6831,7 +6848,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_MHM1:
 		case GF_ISOM_BOX_TYPE_MHM2:
 			continue;
-			
+
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
 			break;
 		default:
