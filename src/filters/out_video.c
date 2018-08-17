@@ -944,7 +944,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		return GF_OK;
 	}
-#endif
 
 	if (ctx->pfmt==GF_PIXEL_NV21) {
 		ctx->num_textures = 2;
@@ -959,6 +958,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	} else {
 		ctx->num_textures = 1;
 	}
+
+#endif
 
 	return GF_OK;
 }
@@ -1518,6 +1519,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching chroma plane from hardware frame\n"));
 			return;
 		}
+#ifndef GPAC_DISABLE_3D
 		if (ctx->is_yuv && (ctx->num_textures>1)) {
 			e = hw_frame->get_plane(hw_frame, 1, (const u8 **) &src_surf.u_ptr, &stride_chroma);
 			if (e) {
@@ -1532,6 +1534,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 				}
 			}
 		}
+#endif
 	} else {
 		src_surf.video_buffer = data;
 	}

@@ -179,7 +179,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/in_dvb4linux.c \
 	../../../../src/filters/in_file.c \
 	../../../../src/filters/in_http.c \
-	../../../../src/filters/in_pipe.c \
 	../../../../src/filters/in_rtp.c \
 	../../../../src/filters/in_rtp_rtsp.c \
 	../../../../src/filters/in_rtp_sdp.c \
@@ -199,7 +198,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/mux_ts.c \
 	../../../../src/filters/out_audio.c \
 	../../../../src/filters/out_file.c \
-	../../../../src/filters/out_pipe.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
 	../../../../src/filters/reframe_adts.c \
@@ -358,7 +356,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/color.c \
 	../../../../src/utils/configfile.c \
 	../../../../src/utils/constants.c \
-	../../../../src/utils/dlmalloc.c \
 	../../../../src/utils/downloader.c \
 	../../../../src/utils/error.c \
 	../../../../src/utils/list.c \

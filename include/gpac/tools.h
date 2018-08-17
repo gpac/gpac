@@ -1102,6 +1102,9 @@ const char *gf_opts_get_key_name(const char *secName, u32 keyIndex);
  */
 GF_Err gf_opts_discard_changes();
 
+#ifdef GPAC_DISABLE_3D
+#define GPAC_DISABLE_REMOTERY 1
+#endif
 
 #ifdef GPAC_DISABLE_REMOTERY
 #define RMT_ENABLED 0

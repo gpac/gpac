@@ -360,6 +360,11 @@ OBJS+=../modules/netctrl/netctrl.o
 OBJS+=../modules/atsc_in/atsc_in.o
 
 #end of static modules
-
 endif
+
+
+ifeq ($(CONFIG_DARWIN),yes)
+EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox
+endif
+
 
