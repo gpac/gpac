@@ -19,7 +19,7 @@
 
 #include <gpac/tools.h>
 
-#if defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
+#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_3D)
 
 #include "dec_nvdec_sdk.h"
 
@@ -352,9 +352,9 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
 	CUDADRIVER curr_lib ;
 
 	if (CudaDrvLib) return CUDA_SUCCESS;
-	
+
 	assert(CudaDrvLib == 0);
-	
+
 	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib));
 	curr_lib = CudaDrvLib;
 

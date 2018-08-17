@@ -28,7 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#if defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
+#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_3D)
 
 #include "../compositor/gl_inc.h"
 
@@ -62,7 +62,7 @@ typedef struct _nv_dec_ctx
 	u32 width, height, bpp_luma, bpp_chroma;
 	cudaVideoCodec codec_type;
 	cudaVideoChromaFormat chroma_fmt;
-	
+
 	u32 out_size, stride, pix_fmt;
 	u32 reload_decoder_state;
 	Bool skip_next_frame;
@@ -84,7 +84,7 @@ typedef struct _nv_dec_ctx
 } NVDecCtx;
 
 
-struct _nv_dec_inst 
+struct _nv_dec_inst
 {
 	u32 width, height, bpp_luma, bpp_chroma, stride;
 	cudaVideoCodec codec_type;
@@ -253,7 +253,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] Decoder instance %d Video sequence change detected - new setup %u x %u, %u bpp\n", inst->id, pFormat->coded_width, pFormat->coded_height, pFormat->bit_depth_luma_minus8 + 8) );
 	//no change in config
-	if ((ctx->width == pFormat->coded_width) 
+	if ((ctx->width == pFormat->coded_width)
 		&& (ctx->height == pFormat->coded_height)
 		&& (ctx->bpp_luma == 8 + pFormat->bit_depth_luma_minus8)
 		&& (ctx->bpp_chroma == 8 + pFormat->bit_depth_chroma_minus8)
@@ -264,7 +264,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 			return 1;
 		skip_output_resize = GF_TRUE;
 	}
-	
+
 	//commented out since this falls back to soft decoding !
 #ifdef ENABLE_10BIT_OUTPUT
 	if (ctx->bpp_luma + ctx->bpp_chroma > 16)  use_10bits = GF_TRUE;
@@ -349,7 +349,7 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 	if (pPicParams->timestamp > 0xFFFFFFFF) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS %u seek flag, discarding\n", pPicParams->picture_index, (u32) (pPicParams->timestamp & 0xFFFFFFFF)) );
 		return 1;
-	} 
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS %u ready for display, queuing it\n", pPicParams->picture_index, (u32) (pPicParams->timestamp & 0xFFFFFFFF)) );
 
@@ -382,7 +382,7 @@ static GF_Err nvdec_configure_stream(GF_Filter *filter, NVDecCtx *ctx)
 	ctx->needs_resetup = GF_FALSE;
 
 	switch (ctx->codec_id) {
-	case GF_CODECID_MPEG1: 
+	case GF_CODECID_MPEG1:
 		ctx->codec_type = cudaVideoCodec_MPEG1;
 		break;
 	case GF_CODECID_MPEG2_SIMPLE:
@@ -513,7 +513,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_NOT_SUPPORTED;
 	}
 
-	if (!ctx->opid) 
+	if (!ctx->opid)
 		ctx->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
@@ -547,7 +547,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		} else {
 			res = cuCtxCreate(&cuda_ctx, CU_CTX_BLOCKING_SYNC, cuda_dev);
 			cuda_ctx_gl = GF_FALSE;
-		}		
+		}
 		if (res != CUDA_SUCCESS) {
 			if (ctx->use_gl_texture) {
 				cuda_ctx_gl = GF_FALSE;
@@ -567,7 +567,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 		}
 	}
-	
+
 	if (ctx->mode == 2)
 		ctx->prefer_dec_mode = cudaVideoCreate_PreferDXVA;
 	else if (ctx->mode == 1)
@@ -700,9 +700,9 @@ static GF_Err nvdec_process(GF_Filter *filter)
 		data = gf_filter_pck_get_data(ipck, &pck_size);
 	}
 
-	if (ctx->dec_create_error) 
+	if (ctx->dec_create_error)
 		return GF_IO_ERR;
-	
+
 	cu_pkt.payload_size = pck_size;
 	cu_pkt.payload = data;
 	if (ipck) cu_pkt.timestamp = gf_filter_pck_get_cts(ipck);
@@ -719,7 +719,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] decoder instance %d failed to parse data %s\n", ctx->dec_inst->id, cudaGetErrorEnum(res) ) );
 		}
 	}
-	
+
 	//queue reference to source packet props
 	if (ipck) {
 		gf_filter_pck_ref_props(&ipck);
@@ -854,7 +854,7 @@ GF_Err nvframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_te
 	NVDecCtx *ctx = (NVDecCtx *)f->ctx;
 
 	if (plane_idx>1) return GF_BAD_PARAM;
-	
+
 	res = cuCtxPushCurrent(cuda_ctx);
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
@@ -941,7 +941,7 @@ GF_Err nvframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_te
 	//params.second_field = 0;
 	params.top_field_first = f->frame_info.top_field_first;
 	res = cuvidMapVideoFrame(ctx->dec_inst->cu_decoder, f->frame_info.picture_index, &vid_data, &vid_pitch, &params);
-	
+
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map decoded picture data %s\n", cudaGetErrorEnum(res) ) );
 		return GF_IO_ERR;
@@ -995,7 +995,7 @@ GF_Err nvframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_te
 		//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the nomralized result by 2^6
 		//glPixelTransferf(GL_RED_BIAS, 0.00096317f);
 		//glPixelTransferf(GL_RED_SCALE, 0.000015288f);
-		
+
 		glPixelTransferf(GL_RED_SCALE, a);
 		glPixelTransferf(GL_RED_BIAS, b);
 
@@ -1021,7 +1021,7 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 {
 	GF_FilterPacket *dst_pck;
 	NVDecFrame *f;
-	
+
 	if (!ctx->pending_frame) return GF_BAD_PARAM;
 	f = ctx->pending_frame;
 	ctx->pending_frame = NULL;
@@ -1176,7 +1176,7 @@ static const GF_FilterArgs NVDecArgs[] =
 	{ OFFS(unload), "Unload inactive decoder.", GF_PROP_UINT, "no", "no|destroy|reuse", GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(mode), "Video decoder mode.", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(gl), "Enables OpenGL texture output", GF_PROP_BOOL, "true", NULL, 0 },
-	
+
 	{ 0 }
 };
 
