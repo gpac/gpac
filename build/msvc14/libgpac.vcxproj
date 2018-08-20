@@ -612,9 +612,9 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libgpac_static</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">libgpac_static</TargetName>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir)lib\x64;</LibraryPath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir)lib\x64;</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
