@@ -1075,6 +1075,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u64 generation_start_utc = 0;
 	u64 ntpts = 0;
 	Bool seg_dur_adjusted = GF_FALSE;
+	u32 cue_start = 0;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
@@ -2235,7 +2236,7 @@ restart_fragmentation_pass:
 					stop_frag = GF_FALSE;
 					force_switch_segment = GF_FALSE;
 
-					for (cidx=0;cidx<tf->nb_cues; cidx++) {
+					for (cidx=cue_start;cidx<tf->nb_cues; cidx++) {
 						cue = &tf->cues[cidx];
 						if (cue->sample_num) {
 							//ignore first sample
@@ -2302,11 +2303,12 @@ restart_fragmentation_pass:
 						}
 						stop_frag = GF_TRUE;
 						force_switch_segment = GF_TRUE;
-						memmove(tf->cues, &tf->cues[cidx+1], (tf->nb_cues-cidx-1) * sizeof(GF_DASHCueInfo));
-						tf->nb_cues -= cidx+1;
+						if (!simulation_pass) {
+							tf->cues[cidx].is_processed = GF_TRUE;
+						}
+						cue_start = cidx+1;
 					} else if (strip_from>=0) {
-						memmove(tf->cues, &tf->cues[strip_from+1], (tf->nb_cues-strip_from-1) * sizeof(GF_DASHCueInfo));
-						tf->nb_cues -= strip_from+1;
+						cue_start = strip_from+1;
 					}
 
 					if (has_mismatch>=0) {
@@ -2587,6 +2589,7 @@ restart_fragmentation_pass:
 			if (tf->is_ref_track)
 				tfref = tf;
 		}
+		cue_start = 0;
 		goto restart_fragmentation_pass;
 	}
 
@@ -3039,8 +3042,12 @@ err_exit:
 		while (gf_list_count(fragmenters)) {
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
 			if (!e && tf->nb_cues) {
-				GF_LOG(dasher->strict_cues ? GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Track ID %d still has %d cues not processed after segmentation\n", tf->TrackID, tf->nb_cues));
-				if (dasher->strict_cues) e = GF_BAD_PARAM;
+				for (i = 0; i < tf->nb_cues; i++) {
+					if (!tf->cues[i].is_processed) {
+						GF_LOG(dasher->strict_cues ? GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Track ID %d has cue #%d not processed after segmentation\n", tf->TrackID, i));
+						if (dasher->strict_cues) e = GF_BAD_PARAM;
+					}
+				}
 			}
 			if (tf->cues) gf_free(tf->cues);
 			gf_free(tf);
