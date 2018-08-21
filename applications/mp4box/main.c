@@ -1996,6 +1996,7 @@ GF_DashSegmenterInput *dash_inputs = NULL;
 u32 nb_dash_inputs = 0;
 char *gf_logs = NULL;
 char *seg_ext = NULL;
+char *init_seg_ext = NULL;
 const char *dash_title = NULL;
 const char *dash_source = NULL;
 const char *dash_more_info = NULL;
@@ -3393,6 +3394,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			seg_ext = argv[i + 1];
 			i++;
 		}
+		else if (!stricmp(arg, "-init-segment-ext")) {
+			CHECK_NEXT_ARG
+			init_seg_ext = argv[i + 1];
+			i++;
+		}
 		else if (!stricmp(arg, "-bs-switching")) {
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i + 1], "no") || !stricmp(argv[i + 1], "off")) bitstream_switching_mode = GF_DASH_BSMODE_NONE;
@@ -4208,7 +4214,7 @@ int mp4boxMain(int argc, char **argv)
 			use_url_template = GF_TRUE;
 		}
 
-		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
+		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext, init_seg_ext);
 		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
 		if (!e) e = gf_dasher_enable_single_file(dasher, single_file);
