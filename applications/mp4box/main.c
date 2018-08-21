@@ -379,6 +379,7 @@ void PrintDASHUsage()
 	        "                      $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments. May occur multiple times.\n"
 			"\n"
 	        " -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
+	        " -init-segment-ext n  sets the segment extension for init segments (and index and bitstream switching segments). Default is mp4, \"null\" means no extension\n"
 	        " -segment-timeline    uses SegmentTimeline when generating segments.\n"
 	        " -segment-marker MARK adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
 	        " -insert-utc          inserts UTC clock at the begining of each ISOBMF segment\n"
