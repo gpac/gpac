@@ -14,7 +14,12 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
+LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc  
+ifeq ($(CONFIG_DARWIN),yes)
+#LINKFLAGS+= -Wl,-rpath,'@loader_path'
+else
+LINKFLAGS+= -Wl,-rpath,'$$ORIGIN' -Wl,-rpath-link,../../bin/gcc
+endif
 
 ifeq ($(STATICBUILD),yes)
 ##include static modules and other deps for libgpac
@@ -46,7 +51,6 @@ LINKFLAGS+= $(GPAC_SH_FLAGS)
 endif
 
 endif
-
 
 #common obj
 OBJS=main.o filedump.o fileimport.o 

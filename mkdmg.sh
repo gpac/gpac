@@ -42,6 +42,9 @@ mkdir -p tmpdmg/GPAC.app/Contents/MacOS/lib
 
 cp bin/gcc/gm* tmpdmg/GPAC.app/Contents/MacOS/modules
 cp bin/gcc/libgpac.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
+if [ -f bin/gcc/libopenhevc.1.dylib ]; then
+    cp bin/gcc/libopenhevc.1.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
+fi
 cp bin/gcc/MP4Client tmpdmg/GPAC.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/GPAC.app/Contents/MacOS/MP4Box
 cp bin/gcc/gpac tmpdmg/GPAC.app/Contents/MacOS/gpac

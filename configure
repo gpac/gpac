@@ -668,6 +668,7 @@ mkdir -p extra_lib/lib/gcc
 #OK check for all local & systems lib
 local_inc=$source_path/extra_lib/include
 local_lib=$source_path/extra_lib/lib/gcc
+execdir=$source_path/bin/gcc
 
 
 dolog() {
@@ -1112,9 +1113,11 @@ else
   if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$local_lib ; then
     has_openhevc="yes"
     ohevc_ldflags="-L$local_lib $ohevc_ldflags"
+  elif docc $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$execdir ; then
+    has_openhevc="yes"
+    ohevc_ldflags="-L$execdir $ohevc_ldflags"
   fi
 fi
-
 
 #look for freetype support
 cat > $TMPC << EOF
@@ -1391,7 +1394,7 @@ ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lswresamp
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
   if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libswresample ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libavutil libavdevice libswscale libswresample`
-    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libavdevice libswscale libswresample`
+    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libavutil libavdevice libswscale libswresample`
     has_ffmpeg="system"
   fi
 fi
