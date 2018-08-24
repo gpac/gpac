@@ -39,9 +39,13 @@ ifeq ($(STATICBUILD),yes)
 include ../../static.mak
 LINKFLAGS=-lgpac_static $(GPAC_SH_FLAGS) $(EXTRALIBS)
 else
-LINKFLAGS+=-lgpac
+LINKFLAGS+=-lgpac 
+ifeq ($(CONFIG_DARWIN),yes)
+#LINKFLAGS+= -Wl,-rpath,'@loader_path'
+else
+LINKFLAGS+= -Wl,-rpath,'$$ORIGIN' -Wl,-rpath-link,../../bin/gcc
 endif
-
+endif
 
 #common obj
 OBJS= main.o extract.o

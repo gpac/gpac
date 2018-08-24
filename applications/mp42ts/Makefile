@@ -36,8 +36,14 @@ LINKFLAGS+=-lgpac_static
 LINKFLAGS+= $(GPAC_SH_FLAGS)
 LINKFLAGS+=$(EXTRALIBS)
 else
-LINKFLAGS+=-lgpac
+LINKFLAGS+=-lgpac 
+ifeq ($(CONFIG_DARWIN),yes)
+#LINKFLAGS+= -Wl,-rpath,'@loader_path'
+else
+LINKFLAGS+= -Wl,-rpath,'$$ORIGIN' -Wl,-rpath-link,../../bin/gcc
 endif
+endif
+
 
 #common objs - insert after ../static if any to overwrite list of objects
 OBJS= main.o

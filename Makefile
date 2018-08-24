@@ -123,9 +123,12 @@ endif
 	fi
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
 ifneq ($(MP4BOX_STATIC),yes)
-	$(INSTALL) bin/gcc/*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
-	rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
-	rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
+	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
+	#rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
+	#rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
+ifeq ($(CONFIG_OPENHEVC),yes)
+	cp -a bin/gcc/libopenhevc* $(DESTDIR)$(prefix)/$(libdir)/
+endif
 	$(MAKE) installdylib
 endif
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
