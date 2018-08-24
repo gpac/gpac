@@ -1436,7 +1436,7 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 kept if keep_hint_tracks is set
 if keep_pssh, all pssh boxes will be kept
 fragment information (mvex) is not kept*/
-GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh);
+GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh, Bool create_mvex_after_traks);
 
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only

@@ -2666,7 +2666,7 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 	return e;
 }
 
-GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh)
+GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks, Bool keep_pssh, Bool mvex_after_traks)
 {
 	GF_Err e;
 	u32 i;
@@ -2716,6 +2716,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 			dest_file->moov->mvex = NULL;
 		}
 #endif
+		dest_file->moov->mvex_after_traks = mvex_after_traks;
 
 		if (clone_tracks) {
 			for (i=0; i<gf_list_count(orig_file->moov->trackList); i++) {
@@ -2780,7 +2781,6 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 
 	return GF_OK;
 }
-
 
 GF_EXPORT
 GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, Bool keep_data_ref, u32 *dest_track)

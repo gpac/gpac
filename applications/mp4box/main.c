@@ -406,6 +406,7 @@ void PrintDASHUsage()
 	        " -pssh-moof           [deprecated] use -pssh=f\n"
 	        " -pssh=MODE           sets pssh store mode. Mode can be v (moov), f (frag), m (mpd) mv/vm (moov+mpd) mf/fm (moof+mpd).\n"
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
+			" -mvex-after-traks    Stores mvex box after trak boxes within the moov box. If not used, mvex is before.\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
 	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
 	        " -bound               enables video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)\n"
@@ -1968,6 +1969,7 @@ GF_MemTrackerType mem_track = GF_MemTrackerNone;
 Bool dump_iod = GF_FALSE;
 GF_DASHPSSHMode pssh_mode = 0;
 Bool samplegroups_in_traf = GF_FALSE;
+Bool mvex_after_traks = GF_FALSE;
 Bool daisy_chain_sidx = GF_FALSE;
 Bool single_segment = GF_FALSE;
 Bool single_file = GF_FALSE;
@@ -3536,6 +3538,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-sample-groups-traf")) {
 			samplegroups_in_traf = 1;
 		}
+		else if (!stricmp(arg, "-mvex-after-traks")) {
+			mvex_after_traks = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i + 1], "live") || !stricmp(argv[i + 1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
@@ -4240,6 +4245,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
 		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
+		if (!e) e = gf_dasher_set_isobmff_options(dasher, mvex_after_traks);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);

@@ -151,6 +151,8 @@ struct __gf_dash_segmenter
 	Bool split_on_closest;
 	const char *cues_file;
 	Bool strict_cues;
+
+	Bool mvex_after_traks;
 };
 
 struct _dash_segment_input
@@ -1248,7 +1250,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		Bool keep_pssh = GF_FALSE;
 		if ((dasher->pssh_mode==GF_DASH_PSSH_MOOV) || (dasher->pssh_mode==GF_DASH_PSSH_MOOV_MPD))
 			keep_pssh = GF_TRUE;
-		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE, keep_pssh);
+		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE, keep_pssh, dasher->mvex_after_traks);
 		if (e) goto err_exit;
 
 		/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
@@ -6309,6 +6311,12 @@ GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool 
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_dasher_set_isobmff_options(GF_DASHSegmenter *dasher, Bool mvex_after_traks)
+{
+	dasher->mvex_after_traks = mvex_after_traks;
+	return GF_OK;
+}
 
 static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input)
 {
