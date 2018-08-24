@@ -488,6 +488,7 @@ typedef struct
 	u32 sample_num;
 	u64 dts;
 	s64 cts;
+	Bool is_processed;
 } GF_DASHCueInfo;
 
 GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, GF_DASHCueInfo **out_cues, u32 *nb_cues);
