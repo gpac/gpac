@@ -921,6 +921,14 @@ GF_Err gf_dasher_set_split_on_closest(GF_DASHSegmenter *dasher, Bool split_on_cl
 GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool strict_cues);
 
 /*!
+ Sets ISOBMFF options.
+ *	\param dasher the DASH segmenter object
+ *	\param mvex_after_traks if true the mvex box will be after the trak boxes
+ *	\return error code if any
+ */
+GF_Err gf_dasher_set_isobmff_options(GF_DASHSegmenter *dasher, Bool mvex_after_traks);
+
+/*!
  Adds a media input to the DASHer
  *	\param dasher the DASH segmenter object
  *	\param input media source to add
