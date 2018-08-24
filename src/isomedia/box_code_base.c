@@ -6857,127 +6857,74 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			continue;
 		}
 
+#define STSD_SWITCH_BOX(_box) \
+		if (gf_bs_available(bs)) { \
+			u64 pos = gf_bs_get_position(bs); \
+			u32 count_subb = 0; \
+			GF_Err e = gf_isom_box_array_read((GF_Box *) _box, bs, gf_isom_box_add_default); \
+			count_subb = _box->other_boxes ? gf_list_count(_box->other_boxes) : 0; \
+			if (!count_subb || e) { \
+				gf_bs_seek(bs, pos); \
+				_box->data_size = (u32) gf_bs_available(bs); \
+				if (_box->data_size) { \
+					_box->data = a->data; \
+					a->data = NULL; \
+					memmove(_box->data, _box->data + pos, _box->data_size); \
+				} \
+			} else { \
+				_box->data_size = 0; \
+			} \
+		} \
+		gf_bs_del(bs); \
+		if (!_box->data_size && _box->data) { \
+			gf_free(_box->data); \
+			_box->data = NULL; \
+		} \
+		_box->size = 0; \
+		_box->EntryType = a->original_4cc; \
+		gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1); \
+		gf_isom_box_del((GF_Box *)a); \
+		gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, _box, i-1); \
+
+
 		/*only process visual or audio*/
 		switch (trak->Media->handler->handlerType) {
         case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_PICT:
 		{
-			GF_GenericVisualSampleEntryBox *genv;
-			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
-			genv = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
+			GF_GenericVisualSampleEntryBox *genv = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			genv->size = a->size-8;
 			gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *) genv, bs);
 
-			if (gf_bs_available(bs)) {
-				u64 pos = gf_bs_get_position(bs);
-				//try to parse as boxes
-				GF_Err e = gf_isom_box_array_read((GF_Box *) genv, bs, gf_isom_box_add_default);
-				if (e) {
-					gf_bs_seek(bs, pos);
-					genv->data_size = (u32) gf_bs_available(bs);
-					if (genv->data_size) {
-						genv->data = a->data;
-						a->data = NULL;
-						memmove(genv->data, genv->data + pos, genv->data_size);
-					}
-				} else {
-					genv->data_size = 0;
-				}
-			}
-			gf_bs_del(bs);
-			if (!genv->data_size && genv->data) {
-				gf_free(genv->data);
-				genv->data = NULL;
-			}
+			STSD_SWITCH_BOX(genv)
 
-			genv->size = 0;
-			genv->EntryType = a->original_4cc;
-			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genv, i-1);
 		}
 		break;
 		case GF_ISOM_MEDIA_AUDIO:
 		{
-			GF_GenericAudioSampleEntryBox *gena;
-			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
-			gena = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
+			GF_GenericAudioSampleEntryBox *gena = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
 			gena->size = a->size-8;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox *) gena, bs);
 
-			if (gf_bs_available(bs)) {
-				u64 pos = gf_bs_get_position(bs);
-				//try to parse as boxes
-				GF_Err e = gf_isom_box_array_read((GF_Box *) gena, bs, gf_isom_box_add_default);
-				if (e) {
-					gf_bs_seek(bs, pos);
-					gena->data_size = (u32) gf_bs_available(bs);
-					if (gena->data_size) {
-						gena->data = a->data;
-						a->data = NULL;
-						memmove(gena->data, gena->data + pos, gena->data_size);
-					}
-				} else {
-					gena->data_size = 0;
-				}
-			}
-			gf_bs_del(bs);
-			if (!gena->data_size && gena->data) {
-				gf_free(gena->data);
-				gena->data = NULL;
-			}
-			gena->size = 0;
-			gena->EntryType = a->original_4cc;
-			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, gena, i-1);
+			STSD_SWITCH_BOX(gena)
+
 		}
 		break;
 
 		default:
 		{
 			GF_Err e;
-			GF_GenericSampleEntryBox *genm;
-			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->other_boxes, i-1);
-			genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
+			GF_GenericSampleEntryBox *genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
 			genm->size = a->size-8;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 
 			e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)genm, bs);
 			if (e) return;
 
-			genm->size -= 8;
-
-			if (gf_bs_available(bs)) {
-				u64 pos = gf_bs_get_position(bs);
-				//try to parse as boxes
-				GF_Err e = gf_isom_box_array_read((GF_Box *) genm, bs, gf_isom_box_add_default);
-				if (e) {
-					gf_bs_seek(bs, pos);
-					genm->data_size = (u32) gf_bs_available(bs);
-					if (genm->data_size) {
-						genm->data = a->data;
-						a->data = NULL;
-						memmove(genm->data, genm->data + pos, genm->data_size);
-					}
-				} else {
-					genm->data_size = 0;
-				}
-			}
-			gf_bs_del(bs);
-			if (!genm->data_size && genm->data) {
-				gf_free(genm->data);
-				genm->data = NULL;
-			}
-			genm->size = 0;
-
-			genm->EntryType = a->original_4cc;
-			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genm, i-1);
+			STSD_SWITCH_BOX(genm)
 		}
 		break;
 		}
