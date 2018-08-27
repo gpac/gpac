@@ -201,7 +201,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 						sscanf(szV, "%x", &v);
 						tkc->first_IV[j/2] = v;
 					}
-					if (!tkc->IV_size) tkc->IV_size = (u32) strlen(sKey) / 2;
+					if (!tkc->IV_size) tkc->IV_size = (u8) strlen(sKey) / 2;
 				}
 			}
 			else if (!stricmp(att->name, "saiSavedBox")) {
@@ -244,7 +244,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 						tkc->constant_IV[j/2] = v;
 					}
 				}
-				if (!tkc->constant_IV_size) tkc->constant_IV_size = (u32) strlen(sKey) / 2;
+				if (!tkc->constant_IV_size) tkc->constant_IV_size = (u8) strlen(sKey) / 2;
 			}
 			else if (!stricmp(att->name, "encryptSliceHeader")) {
 				tkc->allow_encrypted_slice_header = !strcmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
