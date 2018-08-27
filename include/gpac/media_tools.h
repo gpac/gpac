@@ -703,10 +703,11 @@ GF_Err gf_dasher_add_base_url(GF_DASHSegmenter *dasher, const char *base_url);
  *	\param enable enable usage of URL template
  *	\param default_template template for the segment name
  *	\param default_extension extension for the segment name
+ *	\param default_extension extension for the initialization segment name
  *	\return error code if any
 */
 
-GF_Err gf_dasher_enable_url_template(GF_DASHSegmenter *dasher, Bool enable, const char *default_template, const char *default_extension);
+GF_Err gf_dasher_enable_url_template(GF_DASHSegmenter *dasher, Bool enable, const char *default_template, const char *default_extension, const char *default_init_extension);
 
 /*!
  Enable Segment Timeline template - may be overriden by the current profile
@@ -847,9 +848,10 @@ typedef enum
  *	\param samplegroups_in_traf if set, all sample group definitions are stored in each traf and not set in init segment. Default value is GF_FALSE
  *	\param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
  *  \param tfdt_per_traf if set, each traf will contain a tfdt. Only applicable when single_traf_per_moof is GF_TRUE. Default value is GF_FALSE
+ *  \param mvex_after_traks if set, the mvex box will be written after all track boxes
  *	\return error code if any
 */
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf);
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf, Bool mvex_after_traks);
 
 /*!
  Enables insertion of UTC reference in the begining of segments

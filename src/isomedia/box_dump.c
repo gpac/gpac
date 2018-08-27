@@ -736,10 +736,10 @@ GF_Err gnrm_dump(GF_Box *a, FILE * trace)
 	if (p->EntryType)
 		a->type = p->EntryType;
 
-	gf_isom_box_dump_start(a, "SampleDescriptionBox", trace);
+	gf_isom_box_dump_start(a, "SampleDescriptionEntryBox", trace);
 	fprintf(trace, "DataReferenceIndex=\"%d\" ExtensionDataSize=\"%d\">\n", p->dataReferenceIndex, p->data_size);
 	a->type = GF_ISOM_BOX_TYPE_GNRM;
-	gf_isom_box_dump_done("SampleDescriptionBox", a, trace);
+	gf_isom_box_dump_done("SampleDescriptionEntryBox", a, trace);
 	return GF_OK;
 }
 
@@ -1603,6 +1603,29 @@ GF_Err av1c_dump(GF_Box *a, FILE *trace) {
 		fprintf(trace, "</AV1Config>\n");
 	}
 	fprintf(trace, "</AV1ConfigurationBox>\n");
+	return GF_OK;
+}
+
+
+GF_Err vpcc_dump(GF_Box *a, FILE *trace) {
+	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox*)a;
+	fprintf(trace, "<VPConfigurationBox>\n");
+	if (ptr->config) {
+		fprintf(trace, "<VPConfig");
+
+		fprintf(trace, " profile=\"%u\"", ptr->config->profile);
+		fprintf(trace, " level=\"%u\"", ptr->config->level);
+		fprintf(trace, " bit_depth=\"%u\"", ptr->config->bit_depth);
+		fprintf(trace, " chroma_subsampling=\"%u\"", ptr->config->chroma_subsampling);
+		fprintf(trace, " video_fullRange_flag=\"%u\"", ptr->config->video_fullRange_flag);
+		fprintf(trace, " colour_primaries=\"%u\"", ptr->config->colour_primaries);
+		fprintf(trace, " transfer_characteristics=\"%u\"", ptr->config->transfer_characteristics);
+		fprintf(trace, " matrix_coefficients=\"%u\"", ptr->config->matrix_coefficients);
+		fprintf(trace, " codec_initdata_size=\"%u\"", ptr->config->codec_initdata_size);
+
+		fprintf(trace, ">\n</VPConfig>\n");
+	}
+	fprintf(trace, "</VPConfigurationBox>\n");
 	return GF_OK;
 }
 

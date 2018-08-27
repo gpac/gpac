@@ -459,7 +459,10 @@ enum
 	/*! codecid for RAW media streams. No decoder config associated (config through PID properties)*/
 	GF_CODECID_RAW = GF_4CC('R','A','W','M'),
 
-	GF_CODECID_AV1 = GF_4CC('A','V','1',' ')
+	GF_CODECID_AV1 = GF_4CC('A','V','1',' '),
+
+	GF_CODECID_VP8 = GF_4CC('V','P','0','8'),
+	GF_CODECID_VP9 = GF_4CC('V','P','0','9')
 };
 
 /*! Gets a textual description for the given codecID

@@ -55,6 +55,8 @@ struct __gf_dash_segmenter
 	//has to be freed
 	char *seg_rad_name;
 	const char *seg_ext;
+	const char *seg_init_ext;
+	const char *init_seg_ext;
 	u32 segment_marker_4cc;
 	Bool enable_sidx;
 	u32 subsegs_per_sidx;
@@ -97,6 +99,8 @@ struct __gf_dash_segmenter
 
 	/* NOT YET BACKPORTED  used to segment video as close to the boundary as possible */
 	Bool split_on_closest;
+
+	Bool mvex_after_traks;
 
 	//some HLS options
 	Bool hls_clock;
@@ -200,7 +204,6 @@ GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const cha
 	DOSET(moreInfoURL)
 	DOSET(sourceInfo);
 	DOSET(lang);
-
 	return GF_OK;
 }
 
@@ -257,11 +260,12 @@ static void dasher_format_seg_name(GF_DASHSegmenter *dasher, const char *inName)
 }
 
 GF_EXPORT
-GF_Err gf_dasher_enable_url_template(GF_DASHSegmenter *dasher, Bool enable, const char *default_template, const char *default_extension)
+GF_Err gf_dasher_enable_url_template(GF_DASHSegmenter *dasher, Bool enable, const char *default_template, const char *default_extension, const char *default_init_extension)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->use_url_template = enable;
 	dasher->seg_ext = default_extension;
+	dasher->seg_init_ext = default_init_extension;
 	dasher_format_seg_name(dasher, default_template);
 	return GF_OK;
 }
@@ -386,7 +390,7 @@ GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_s
 }
 
 GF_EXPORT
-GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf)
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf, Bool mvex_after_traks)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->no_fragments_defaults = no_fragments_defaults;
@@ -394,6 +398,7 @@ GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_frag
 	dasher->samplegroups_in_traf = samplegroups_in_traf;
 	dasher->single_traf_per_moof = single_traf_per_moof;
     dasher->tfdt_per_traf = tfdt_per_traf;
+    dasher->mvex_after_traks = mvex_after_traks;
 	return GF_OK;
 }
 
@@ -665,6 +670,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	if (dasher->cues_file) { sprintf(szArg, "cues=%s", dasher->cues_file ); APPEND_ARG(szArg)}
 	if (dasher->strict_cues) { APPEND_ARG("strict_cues")}
+
+	if (dasher->mvex_after_traks) { APPEND_ARG("mvex")}
 
 
 	dasher->dash_mode_changed = GF_FALSE;

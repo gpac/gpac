@@ -132,6 +132,8 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL},
 
 	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "ivf|obu|av1b", NULL},
+	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8", NULL},
+	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9", NULL},
 
 };
 
