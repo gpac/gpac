@@ -80,7 +80,7 @@ GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
 
 
 GF_EXPORT
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, Bool mvex_after_tracks)
 {
 	GF_Err e;
 	u32 i;
@@ -96,7 +96,8 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 	} else {
 		movie->NextMoofNumber = 1;
 	}
-
+	movie->moov->mvex_after_traks = mvex_after_tracks;
+	
 	//this is only allowed in write mode
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 
@@ -114,17 +115,17 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 
 		i=0;
 		while ((trex = (GF_TrackExtendsBox *)gf_list_enum(movie->moov->mvex->TrackExList, &i))) {
-			GF_TrackExtensionPropertiesBox *trep;
 			if (trex->type != GF_ISOM_BOX_TYPE_TREX) continue;
-			trep = GetTrep(movie->moov, trex->trackID);
-
-			if (!trep) {
-				trep = (GF_TrackExtensionPropertiesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREP);
-				trep->trackID = trex->trackID;
-				gf_list_add(movie->moov->mvex->TrackExPropList, trep);
-			}
-
 			if (trex->track->Media->information->sampleTable->CompositionToDecode) {
+				GF_TrackExtensionPropertiesBox *trep;
+				trep = GetTrep(movie->moov, trex->trackID);
+
+				if (!trep) {
+					trep = (GF_TrackExtensionPropertiesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREP);
+					trep->trackID = trex->trackID;
+					gf_list_add(movie->moov->mvex->TrackExPropList, trep);
+				}
+
 				if (!trex->track->Media->information->sampleTable->SampleSize || ! trex->track->Media->information->sampleTable->SampleSize->sampleCount) {
 					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
 					trex->track->Media->information->sampleTable->CompositionToDecode = NULL;
@@ -2359,7 +2360,7 @@ GF_Err gf_isom_enable_mfra(GF_ISOFile *file)
 
 #else
 
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, u32 media_segment_type)
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, u32 media_segment_type, Bool mvex_after_tracks)
 {
 	return GF_NOT_SUPPORTED;
 }

@@ -1639,11 +1639,18 @@ static u32 uvlc(GF_BitStream *bs) {
 	return gf_bs_read_int(bs, leadingZeros) + (1 << leadingZeros) - 1;
 }
 
-static void timing_info(GF_BitStream *bs) {
-	/*num_units_in_display_tick =*/ gf_bs_read_int(bs, 32);
-	/*time_scale =*/ gf_bs_read_int(bs, 32);
-	if (gf_bs_read_int(bs, 3) /*equal_picture_interval*/)
-		/*num_ticks_per_picture_minus_1 =*/ uvlc(bs);
+static void timing_info(GF_BitStream *bs, AV1State *state) {
+	u32 num_ticks_per_picture_minus_1 = 0, time_scale = 0;
+	/*num_units_in_display_tick*/ gf_bs_read_int(bs, 32);
+	time_scale = gf_bs_read_int(bs, 32);
+	if (gf_bs_read_int(bs, 3) /*equal_picture_interval*/) {
+		num_ticks_per_picture_minus_1 = uvlc(bs);
+		state->tb_num = (num_ticks_per_picture_minus_1 + 1);
+		state->tb_den = time_scale;
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] VFR not supported.\n"));
+		//TODO: upload num_units_in_display_tick (eq. to the POC in H264), compute delta between frames, set it as dts_inc in gf_import_aom_av1()
+	}
 }
 
 static void decoder_model_info(GF_BitStream *bs, u8 *buffer_delay_length_minus_1) {
@@ -1678,7 +1685,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		u8 i = 0;
 		timing_info_present_flag = gf_bs_read_int(bs, 1);
 		if (timing_info_present_flag) {
-			timing_info(bs);
+			timing_info(bs, state);
 			decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
 			if (decoder_model_info_present_flag) {
 				decoder_model_info(bs, &buffer_delay_length_minus_1);
@@ -1741,7 +1748,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		OrderHintBits = 0;*/
 	} else {
 		Bool enable_order_hint, seq_choose_screen_content_tools;
-		u8 seq_force_screen_content_tools, seq_force_integer_mv;
+		u8 seq_force_screen_content_tools/*, seq_force_integer_mv*/;
 		/*enable_interintra_compound =*/ gf_bs_read_int(bs, 1);
 		/*enable_masked_compound =*/ gf_bs_read_int(bs, 1);
 		/*enable_warped_motion =*/ gf_bs_read_int(bs, 1);
@@ -1762,16 +1769,16 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 			seq_force_screen_content_tools = gf_bs_read_int(bs, 1);
 		}
 
-		seq_force_integer_mv = 0;
+		/*seq_force_integer_mv = 0;*/
 		if (seq_force_screen_content_tools > 0) {
 			const Bool seq_choose_integer_mv = gf_bs_read_int(bs, 1);
 			if (seq_choose_integer_mv) {
-				seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
+				/*seq_force_integer_mv = 2*//*SELECT_INTEGER_MV*/;
 			} else {
-				seq_force_integer_mv = gf_bs_read_int(bs, 1);
+				/*seq_force_integer_mv = */gf_bs_read_int(bs, 1);
 			}
 		} else {
-			seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
+			/*seq_force_integer_mv = 2*//*SELECT_INTEGER_MV*/;
 		}
 		if (enable_order_hint) {
 			/*u8 order_hint_bits_minus_1 = */gf_bs_read_int(bs, 3);
@@ -1783,15 +1790,15 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 
 	/*enable_superres = */gf_bs_read_int(bs, 1);
 	/*enable_cdef = */gf_bs_read_int(bs, 1);
-	/*enable_restoration = */gf_bs_read_int(bs, 1);	
-	color_config(bs, state);	
+	/*enable_restoration = */gf_bs_read_int(bs, 1);
+	color_config(bs, state);
 	/*film_grain_params_present =*/ gf_bs_read_int(bs, 1);
 }
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 {
 	u32 dw = 0;
-	
+
 	if (gf_bs_available(bs) < 32) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[IVF] Not enough bytes available ("LLU").\n", gf_bs_available(bs)));
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -1875,9 +1882,15 @@ const char *av1_get_obu_name(ObuType obu_type)
 	case OBU_REDUNDANT_FRAME_HEADER: return "redundant_frame_header";
 	case OBU_TILE_LIST: return "tile_list";
 	case OBU_PADDING: return "padding";
-	default:
-		if ((obu_type>OBU_TILE_LIST) && (obu_type<OBU_PADDING)) return "reserved";
-		return "unknown";
+	case OBU_RESERVED_0:
+	case OBU_RESERVED_9:
+	case OBU_RESERVED_10:
+	case OBU_RESERVED_11:
+	case OBU_RESERVED_12:
+	case OBU_RESERVED_13:
+	case OBU_RESERVED_14:
+		return "reserved";
+	default: return "unknown";
 	}
 }
 
@@ -2063,7 +2076,7 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] OBU (Section 5) frame size "LLU" different from consumed bytes "LLU".\n", obu_length, gf_bs_get_position(bs) - pos));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Section5 OBU detected (size "LLU")\n", obu_length));
 		av1_populate_state_from_obu(bs, pos, obu_length, obu_type, state);
 	}

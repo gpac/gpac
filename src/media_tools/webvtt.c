@@ -475,12 +475,12 @@ struct _webvtt_parser {
 	void (*on_cue_read)(void *, GF_WebVTTCue *);
 };
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
 static Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
 {
 	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
 }
-
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 
 /* mark the overlapped cue in the previous sample as split */
@@ -1533,7 +1533,7 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 	gf_webvtt_parser_finalize(parser, duration);
 
 	fprintf(out, "</WebVTTTrack>\n");
-	
+
 exit:
 	gf_webvtt_parser_del(parser);
 	if (szName) gf_fclose(out);

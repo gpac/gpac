@@ -327,6 +327,7 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	u32 timescale;
 	GF_BitStream *bs, *dsi;
 	GF_M4ADecSpecInfo acfg;
+	u32 base_object_type = 0;
 	FILE *in;
 	u32 nbbytes=0;
 	u8 aac_buf[4096];
@@ -359,6 +360,7 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 	dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_m4a_write_config_bs(dsi, &acfg);
+	base_object_type = acfg.base_object_type;
 
 	if (import->flags & GF_IMPORT_PS_EXPLICIT) {
 		import->flags &= ~GF_IMPORT_PS_IMPLICIT;
@@ -400,9 +402,9 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
-	samp->IsRAP = RAP;
 	samp->dataLength = nbbytes;
 	samp->data = (char *) aac_buf;
+	samp->IsRAP = xHEAAC_isRAP(acfg.base_object_type, samp->data, samp->dataLength);
 
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	if (e) goto exit;
@@ -420,6 +422,7 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 
 		samp->data = (char*)aac_buf;
 		samp->dataLength = nbbytes;
+		samp->IsRAP = xHEAAC_isRAP(base_object_type, samp->data, samp->dataLength);
 
 		e = gf_isom_add_sample(import->dest, track, di, samp);
 		if (e) break;

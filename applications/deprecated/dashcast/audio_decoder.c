@@ -183,7 +183,7 @@ static int resample_audio(AudioInputFile *audio_input_file, AudioInputData *audi
 		(*output) [i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE); //FIXME: fix using size below av_samples_get_buffer_size()
 	}
 
-	i = swr_convert(audio_input_file->aresampler, *output, audio_input_data->aframe->nb_samples, audio_input_data->aframe->extended_data, audio_input_data->aframe->nb_samples);
+	i = swr_convert(audio_input_file->aresampler, *output, audio_input_data->aframe->nb_samples, (const uint8_t **)audio_input_data->aframe->extended_data, audio_input_data->aframe->nb_samples);
 	if (i < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
 		return -1;

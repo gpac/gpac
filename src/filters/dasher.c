@@ -69,6 +69,7 @@ typedef struct
 	char *hvcp;
 	char *aacp;
 	char *av1p;
+	char *vpxp;
 	char *template;
 	char *ext;
 	char *profX;
@@ -742,8 +743,17 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	case GF_CODECID_AAC_MPEG2_LCP:
 	case GF_CODECID_AAC_MPEG2_SSRP:
 		if (dcd && (!ctx->forcep || !ctx->aacp) ) {
+			u8 audio_object_type;
+			if (dcd->value.data.size < 2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381-AAC] invalid DSI size %u < 2\n", dcd->value.data.size));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			/*5 first bits of AAC config*/
-			u8 audio_object_type = (dcd->value.data.ptr[0] & 0xF8) >> 3;
+			audio_object_type = (dcd->value.data.ptr[0] & 0xF8) >> 3;
+			if (audio_object_type == 31) { /*escape code*/
+				const u8 audio_object_type_ext = ((dcd->value.data.ptr[0] & 0x07) << 3) + ((dcd->value.data.ptr[1] & 0xE0) >> 5);
+				audio_object_type = 32 + audio_object_type_ext;
+			}
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (force_sbr && (audio_object_type==2) ) {
 				GF_M4ADecSpecInfo a_cfg;
@@ -923,7 +933,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 
 #ifndef GPAC_DISABLE_AV1
 	case GF_CODECID_AV1:
-		if (!subtype) subtype =GF_ISOM_SUBTYPE_AV01;
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_AV01;
 
 		if (dcd && (!ctx->forcep || !ctx->av1p)) {
 			GF_AV1Config *av1c = NULL;
@@ -982,10 +992,44 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		else
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		if (!ctx->forcep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find HEVC config, using default %s\n", szCodec));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AV1 config, using default %s\n", szCodec));
 		}
 		return GF_OK;
 #endif /*GPAC_DISABLE_AV1*/
+
+	case GF_CODECID_VP8:
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_VP08;
+	case GF_CODECID_VP9:
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_VP09;
+
+		if (dcd && (!ctx->forcep || !ctx->vpxp)) {
+			GF_VPConfig *vpcc = gf_odf_vp_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
+
+			if (!vpcc) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			} else {
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02x.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
+					vpcc->profile,
+					vpcc->level,
+					vpcc->bit_depth,
+					vpcc->chroma_subsampling,
+					vpcc->colour_primaries,
+					vpcc->transfer_characteristics,
+					vpcc->matrix_coefficients,
+					vpcc->video_fullRange_flag);
+
+				gf_odf_vp_cfg_del(vpcc);
+				return GF_OK;
+			}
+		}
+		if (ctx->vpxp)
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), ctx->vpxp);
+		else
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		if (!ctx->forcep) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VPX config, using default %s\n", szCodec));
+		}
+		return GF_OK;
 
 	default:
 		subtype = gf_codecid_4cc_type(ds->codec_id);
@@ -4072,7 +4116,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if ((base_ds != ds) && !base_ds->seg_done && (cts * base_ds->timescale > base_ds->last_cts * ds->timescale ) )
 				break;
 
-			//cue base
+			//cue base - FIXME, check what was wrong before we merged  PR #1121
 			if (ds->cues) {
 				u32 cidx;
 				GF_DASHCueInfo *cue=NULL;
@@ -4683,6 +4727,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(hvcp), "HEVC profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(aacp), "AAC profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(av1p), "AV1 profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(vpxp), "VP8/9 profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "DASH template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(ext), "File extension to use for segments", GF_PROP_STRING, "m4s", NULL, 0},
 	{ OFFS(asto), "availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -148,6 +148,7 @@ typedef struct
 	Bool owns_mov;
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
+	Bool mvex;
 
 	GF_List *tracks;
 
@@ -2123,7 +2124,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		}
 
 
-		e = gf_isom_finalize_for_fragment(ctx->file, ctx->dash_mode ? 1 : 0);
+		e = gf_isom_finalize_for_fragment(ctx->file, ctx->dash_mode ? 1 : 0, ctx->mvex);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to finalize moov for fragmentation: %s\n", gf_error_to_string(e) ));
 			return e;
@@ -3025,6 +3026,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tktpl), "use track box from input if any as a template to create new track. no disables template, yes clones the track (except edits and decoder config), udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mudta), "use udta and other moov extension boxes from input if any. no disables import, yes clones all extension boxes, udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tmpd), "sets temp dire for intermediate file(s)", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mvex), "sets mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

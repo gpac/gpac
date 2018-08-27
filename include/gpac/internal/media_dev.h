@@ -28,6 +28,7 @@
 #define _GF_MEDIA_DEV_H_
 
 #include <gpac/media_tools.h>
+#include <gpac/mpeg4_odf.h>
 
 #ifndef GPAC_DISABLE_STREAMING
 #include <gpac/ietf.h>
@@ -117,13 +118,13 @@ typedef struct
 	/*to be eventually completed by other vui members*/
 } AVC_VUI;
 
-typedef struct 
+typedef struct
 {
 	u32 left;
 	u32 right;
 	u32 top;
 	u32 bottom;
-	
+
 } AVC_CROP;
 
 

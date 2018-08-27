@@ -214,7 +214,7 @@ static int resample_audio(AudioOutputFile *audio_output_file, AVCodecContext *au
 		output[i] = (uint8_t*)av_malloc(linesize);
 	}
 
-	if (swr_convert(audio_output_file->aresampler, output, audio_output_file->aframe->nb_samples, audio_output_file->aframe->extended_data, audio_output_file->aframe->nb_samples) < 0) {
+	if (swr_convert(audio_output_file->aresampler, output, audio_output_file->aframe->nb_samples, (const uint8_t **)audio_output_file->aframe->extended_data, audio_output_file->aframe->nb_samples) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
 		return -1;
 	}

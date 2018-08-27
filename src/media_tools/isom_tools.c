@@ -3207,8 +3207,17 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_AUDIO:
 				if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+					u8 audio_object_type;
+					if (esd->decoderConfig->decoderSpecificInfo->dataLength < 2) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381-AAC] invalid DSI size %u < 2\n", esd->decoderConfig->decoderSpecificInfo->dataLength));
+						return GF_NON_COMPLIANT_BITSTREAM;
+					}
 					/*5 first bits of AAC config*/
-					u8 audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
+					audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
+					if (audio_object_type == 31) { /*escape code*/
+						const u8 audio_object_type_ext = ((esd->decoderConfig->decoderSpecificInfo->data[0] & 0x07) << 3) + ((esd->decoderConfig->decoderSpecificInfo->data[1] & 0xE0) >> 5);
+						audio_object_type = 32 + audio_object_type_ext;
+					}
 	#ifndef GPAC_DISABLE_AV_PARSERS
 					if (force_sbr && (audio_object_type==2) ) {
 						GF_M4ADecSpecInfo a_cfg;
@@ -3424,6 +3433,31 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	}
 #endif /*GPAC_DISABLE_AV1*/
 
+	case GF_ISOM_SUBTYPE_VP08:
+	case GF_ISOM_SUBTYPE_VP09:
+	{
+		GF_VPConfig *vpcc = NULL;
+
+		vpcc = gf_isom_vp_config_get(movie, track, 1);
+		if (!vpcc) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_BAD_PARAM;
+		}
+
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02x.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
+			vpcc->profile,
+			vpcc->level,
+			vpcc->bit_depth,
+			vpcc->chroma_subsampling,
+			vpcc->colour_primaries,
+			vpcc->transfer_characteristics,
+			vpcc->matrix_coefficients,
+			vpcc->video_fullRange_flag);
+
+		gf_odf_vp_cfg_del(vpcc);
+		return GF_OK;
+	}
+	
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));

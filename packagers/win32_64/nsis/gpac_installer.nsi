@@ -558,7 +558,6 @@ SectionEnd
 ;  File "${GPAC_BIN}\mfc100.dll"
 ;SectionEnd
 
-
 !ifdef IS_WIN64
 !define TARGET_ARCHITECTURE "x64"
 !else

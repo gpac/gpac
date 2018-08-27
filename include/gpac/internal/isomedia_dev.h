@@ -184,6 +184,11 @@ enum
 	GF_ISOM_BOX_TYPE_AV1C = GF_4CC('a', 'v', '1', 'C'),
 	GF_ISOM_BOX_TYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/* WebM */
+	GF_ISOM_BOX_TYPE_VPCC = GF_4CC('v', 'p', 'c', 'C'),
+	GF_ISOM_BOX_TYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
+	GF_ISOM_BOX_TYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
+
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
 	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
@@ -467,7 +472,6 @@ enum
 	GF_ISOM_SAMPLE_ENTRY_AUDIO = GF_4CC('a','u','d','i')
 };
 
-
 #ifndef GPAC_DISABLE_ISOM
 
 
@@ -702,6 +706,8 @@ typedef struct
 	GF_List *trackList;
 
 	GF_ISOFile *mov;
+
+	Bool mvex_after_traks;
 
 } GF_MovieBox;
 
@@ -1152,6 +1158,12 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_FULL_BOX
+	GF_VPConfig *config;
+} GF_VPConfigurationBox;
+
+typedef struct
+{
 	GF_ISOM_BOX
 	GF_3GPConfig cfg;
 } GF_3GPPConfigBox;
@@ -1172,6 +1184,9 @@ typedef struct
 	GF_HEVCConfigurationBox *lhvc_config;
 	/*av1 extension*/
 	GF_AV1ConfigurationBox *av1_config;
+	/*vp8-9 extension*/
+	GF_VPConfigurationBox *vp_config;
+
 
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;
