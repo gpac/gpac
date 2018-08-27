@@ -707,7 +707,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			return GF_BAD_PARAM;
 		}
 
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02x.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
 			vpcc->profile,
 			vpcc->level,
 			vpcc->bit_depth,

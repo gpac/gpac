@@ -1255,7 +1255,7 @@ void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1)
 
 
 static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg) {
-	u32 i = 0;
+
 	GF_VPConfig *out = gf_odf_vp_cfg_new();
 	if (out) {
 		out->profile = cfg->profile;
