@@ -311,6 +311,10 @@ enum
 	/*AV1 media type*/
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/* VP */
+	GF_ISOM_SUBTYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
+	GF_ISOM_SUBTYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
+
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263	= GF_4CC( 's', '2', '6', '3' ),
 	GF_ISOM_SUBTYPE_3GP_AMR		= GF_4CC( 's', 'a', 'm', 'r' ),
@@ -1128,7 +1132,7 @@ Use streamDescriptionIndex to specify the desired stream (if several)*/
 GF_Err gf_isom_add_sample_reference(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample, u64 dataOffset);
 
 /*set the duration of the last media sample. If not set, the duration of the last sample is the
-duration of the previous one if any, or media TimeScale (default value). This does not modify the edit list if any, 
+duration of the previous one if any, or media TimeScale (default value). This does not modify the edit list if any,
 you must modify this using gf_isom_set_edit_segment*/
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 duration);
 
@@ -1988,6 +1992,9 @@ GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 
 /*gets AV1 config - user is responsible for deleting it*/
 GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+/*gets VP config - user is responsible for deleting it*/
+GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 /*return true if track dependencies implying extractors or implicit reconstruction are found*/
 Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file);

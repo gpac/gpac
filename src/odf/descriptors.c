@@ -1126,6 +1126,110 @@ GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize) {
 }
 
 
+
+GF_EXPORT
+GF_VPConfig *gf_odf_vp_cfg_new()
+{
+	GF_VPConfig *cfg;
+	GF_SAFEALLOC(cfg, GF_VPConfig);
+	if (!cfg) return NULL;
+	cfg->codec_initdata_size = 0;
+	cfg->codec_initdata = NULL;
+	return cfg;
+}
+
+GF_EXPORT
+void gf_odf_vp_cfg_del(GF_VPConfig *cfg)
+{
+	if (!cfg) return;
+
+	if (cfg->codec_initdata) {
+		gf_free(cfg->codec_initdata);
+		cfg->codec_initdata = NULL;
+	}
+
+	gf_free(cfg);
+}
+
+GF_EXPORT
+GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs)
+{
+
+	gf_bs_write_int(bs, cfg->profile, 8);
+	gf_bs_write_int(bs, cfg->level, 8);
+	gf_bs_write_int(bs, cfg->bit_depth, 4);
+	gf_bs_write_int(bs, cfg->chroma_subsampling, 3);
+	gf_bs_write_int(bs, cfg->video_fullRange_flag, 1);
+	gf_bs_write_int(bs, cfg->colour_primaries, 8);
+	gf_bs_write_int(bs, cfg->transfer_characteristics, 8);
+	gf_bs_write_int(bs, cfg->matrix_coefficients, 8);
+
+	if (cfg->codec_initdata_size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] VP Configuration Box: invalid data, codec_initdata_size must be 0, was %d - ignoring\n", cfg->codec_initdata_size));
+	}
+
+	gf_bs_write_int(bs, (u16)0, 16);
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, char **outData, u32 *outSize)
+{
+	GF_Err e;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	*outSize = 0;
+	*outData = NULL;
+	e = gf_odf_vp_cfg_write_bs(cfg, bs);
+	if (e==GF_OK)
+		gf_bs_get_content(bs, outData, outSize);
+
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_EXPORT
+GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs)
+{
+	GF_VPConfig *cfg = gf_odf_vp_cfg_new();
+
+	cfg->profile = gf_bs_read_int(bs, 8);
+	cfg->level = gf_bs_read_int(bs, 8);
+
+	cfg->bit_depth = gf_bs_read_int(bs, 4);
+	cfg->chroma_subsampling = gf_bs_read_int(bs, 3);
+	cfg->video_fullRange_flag = gf_bs_read_int(bs, 1);
+
+
+	cfg->colour_primaries = gf_bs_read_int(bs, 8);
+	cfg->transfer_characteristics = gf_bs_read_int(bs, 8);
+	cfg->matrix_coefficients = gf_bs_read_int(bs, 8);
+
+	cfg->codec_initdata_size = gf_bs_read_int(bs, 16);
+
+	// must be 0 according to spec
+	if (cfg->codec_initdata_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] VP Configuration Box: invalid data, codec_initdata_size must be 0, was %d\n", cfg->codec_initdata_size));
+		gf_odf_vp_cfg_del(cfg);
+		return NULL;
+	}
+
+	return cfg;
+
+}
+
+GF_EXPORT
+GF_VPConfig *gf_odf_vp_cfg_read(char *dsi, u32 dsi_size)
+{
+	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+	GF_VPConfig *cfg = gf_odf_vp_cfg_read_bs(bs);
+	gf_bs_del(bs);
+	return cfg;
+}
+
+
+
+
 GF_EXPORT
 const char *gf_afx_get_type_description(u8 afx_code)
 {

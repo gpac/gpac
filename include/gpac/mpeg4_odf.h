@@ -1010,6 +1010,29 @@ typedef struct
 	GF_List *obu_array; /*GF_AV1_OBUArrayEntry*/
 } GF_AV1Config;
 
+
+/*! VP8-9 config vpcC */
+typedef struct
+{
+	u8	profile;
+	u8	level;
+
+	/*unsigned int(4)     bitDepth;
+	unsigned int(3)     chromaSubsampling;
+	unsigned int(1)     videoFullRangeFlag;*/
+	u8   bit_depth;
+	u8   chroma_subsampling;
+	Bool video_fullRange_flag;
+
+	u8  colour_primaries;
+	u8  transfer_characteristics;
+	u8  matrix_coefficients;
+
+	/* MUST be 0 for VP8 and VP9 */
+	u16 codec_initdata_size;
+	u8* codec_initdata;
+} GF_VPConfig;
+
 /*! Media Segment Descriptor used for Media Control Extensions*/
 typedef struct
 {
@@ -1333,6 +1356,15 @@ GF_Err gf_odf_av1_cfg_write(GF_AV1Config *cfg, char **outData, u32 *outSize);
 \return the decoded HEVC config
 */
 GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs);
+
+
+/* VP8-9 descriptors functions */
+GF_VPConfig *gf_odf_vp_cfg_new();
+void gf_odf_vp_cfg_del(GF_VPConfig *cfg);
+GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs);
+GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, char **outData, u32 *outSize);
+GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs);
+GF_VPConfig *gf_odf_vp_cfg_read(char *dsi, u32 dsi_size);
 
 
 /*! destroy the descriptors in a list but not the list
