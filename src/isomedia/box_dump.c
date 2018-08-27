@@ -1608,6 +1608,29 @@ GF_Err av1c_dump(GF_Box *a, FILE *trace) {
 	return GF_OK;
 }
 
+
+GF_Err vpcc_dump(GF_Box *a, FILE *trace) {
+	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox*)a;
+	fprintf(trace, "<VPConfigurationBox>\n");
+	if (ptr->config) {
+		fprintf(trace, "<VPConfig");
+
+		fprintf(trace, " profile=\"%u\"", ptr->config->profile);
+		fprintf(trace, " level=\"%u\"", ptr->config->level);
+		fprintf(trace, " bit_depth=\"%u\"", ptr->config->bit_depth);
+		fprintf(trace, " chroma_subsampling=\"%u\"", ptr->config->chroma_subsampling);
+		fprintf(trace, " video_fullRange_flag=\"%u\"", ptr->config->video_fullRange_flag);
+		fprintf(trace, " colour_primaries=\"%u\"", ptr->config->colour_primaries);
+		fprintf(trace, " transfer_characteristics=\"%u\"", ptr->config->transfer_characteristics);
+		fprintf(trace, " matrix_coefficients=\"%u\"", ptr->config->matrix_coefficients);
+		fprintf(trace, " codec_initdata_size=\"%u\"", ptr->config->codec_initdata_size);
+
+		fprintf(trace, ">\n</VPConfig>\n");
+	}
+	fprintf(trace, "</VPConfigurationBox>\n");
+	return GF_OK;
+}
+
 GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
