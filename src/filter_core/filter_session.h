@@ -354,6 +354,7 @@ struct __gf_filter_session
 	u32 nb_threads_stopped;
 	GF_Err run_status;
 	Bool disable_blocking;
+	Bool in_final_flush;
 
 	/*user defined callback for all functions - cannot be NULL*/
 	void *ui_opaque;
@@ -450,7 +451,9 @@ struct __gf_filter
 	void *filter_udta;
 
 	Bool has_out_caps;
-	
+
+	Bool in_final_flush;
+
 	//list of pids connected to this filter
 	GF_List *input_pids;
 	u32 num_input_pids;
@@ -538,6 +541,8 @@ struct __gf_filter
 
 	volatile u32 process_task_queued;
 
+	//explicitly set by loaded filters requiring a final flush before being finalized (eg holding internal data)
+	Bool requires_flush;
 	Bool skip_process_trigger_on_tasks;
 
 	u64 schedule_next_time;

@@ -1354,6 +1354,9 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 #endif
 
+	if (filter->session->in_final_flush && !filter->in_final_flush)
+		return;
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
 
 	if (task->filter->postponed_packets) {
@@ -2234,4 +2237,10 @@ GF_EXPORT
 Bool gf_filter_ui_event(GF_Filter *filter, GF_Event *uievt)
 {
 	return gf_fs_ui_event(filter->session, uievt);
+}
+
+GF_EXPORT
+void gf_filter_request_final_flush(GF_Filter *filter, Bool do_request)
+{
+	if (filter) filter->requires_flush = do_request;
 }
