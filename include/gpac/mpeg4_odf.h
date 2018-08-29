@@ -1000,8 +1000,6 @@ typedef struct
 	u8 *obu;
 } GF_AV1_OBUArrayEntry;
 
-#define AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX 9
-
 /*! AV1 config record - not a real MPEG-4 descriptor*/
 typedef struct
 {
