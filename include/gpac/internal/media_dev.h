@@ -511,13 +511,8 @@ typedef struct
 	GF_AV1Config *config;
 
 	/*Needed for RFC6381*/
-	u8 seq_profile;
 	Bool still_picture;
-	u8 seq_level_idx;
 	u8 bit_depth;
-	Bool mono_chrome;
-	Bool chroma_subsampling_x, chroma_subsampling_y;
-	u8 chroma_sample_position;
 	Bool color_description_present_flag;
 	u8 color_primaries, transfer_characteristics, matrix_coefficients;
 	Bool color_range;

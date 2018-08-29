@@ -672,9 +672,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		}
 
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%u.%u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
-			av1_state.seq_profile, av1_state.seq_level_idx, av1_state.bit_depth,
-			av1_state.mono_chrome,
-			av1_state.chroma_subsampling_x, av1_state.chroma_subsampling_y, av1_state.chroma_sample_position);
+			av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.bit_depth,
+			av1_state.config->monochrome,
+			av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y, av1_state.config->chroma_sample_position);
 
 		if (av1_state.color_description_present_flag) {
 			char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
