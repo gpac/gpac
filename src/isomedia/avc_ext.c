@@ -1200,6 +1200,19 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg) {
 	u32 i = 0;
 	GF_AV1Config *out = gf_malloc(sizeof(GF_AV1Config));
+
+	out->marker = cfg->marker;
+	out->version = cfg->version;
+	out->seq_profile = cfg->seq_profile;
+	out->seq_level_idx_0 = cfg->seq_level_idx_0;
+	out->seq_tier_0 = cfg->seq_tier_0;
+	out->high_bitdepth = cfg->high_bitdepth;
+	out->twelve_bit = cfg->twelve_bit;
+	out->monochrome = cfg->monochrome;
+	out->chroma_subsampling_x = cfg->chroma_subsampling_x;
+	out->chroma_subsampling_y = cfg->chroma_subsampling_y;
+	out->chroma_sample_position = cfg->chroma_sample_position;
+
 	out->initial_presentation_delay_present = cfg->initial_presentation_delay_present;
 	out->initial_presentation_delay_minus_one = cfg->initial_presentation_delay_minus_one;
 	out->obu_array = gf_list_new();
@@ -2515,8 +2528,20 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 	memset(&state, 0, sizeof(AV1State));
 	state.config = ptr->config;
 
+	ptr->config->marker = gf_bs_read_int(bs, 1);
+	ptr->config->version = gf_bs_read_int(bs, 7);
+	ptr->config->seq_profile = gf_bs_read_int(bs, 3);
+	ptr->config->seq_level_idx_0 = gf_bs_read_int(bs, 5);
+	ptr->config->seq_tier_0 = gf_bs_read_int(bs, 1);
+	ptr->config->high_bitdepth = gf_bs_read_int(bs, 1);
+	ptr->config->twelve_bit = gf_bs_read_int(bs, 1);
+	ptr->config->monochrome = gf_bs_read_int(bs, 1);
+	ptr->config->chroma_subsampling_x = gf_bs_read_int(bs, 1);
+	ptr->config->chroma_subsampling_y = gf_bs_read_int(bs, 1);
+	ptr->config->chroma_sample_position = gf_bs_read_int(bs, 2);
+
 	reserved = gf_bs_read_int(bs, 3);
-	if (reserved != 0)
+	if (reserved != 0 || ptr->config->marker != 1 || ptr->config->version != 1)
 		return GF_NOT_SUPPORTED;
 	ptr->config->initial_presentation_delay_present = gf_bs_read_int(bs, 1);
 	if (ptr->config->initial_presentation_delay_present) {
@@ -2525,7 +2550,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		reserved = gf_bs_read_int(bs, 4);
 		ptr->config->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
 	}
-	read += 1;
+	read += 4;
 	ptr->config->obu_array = gf_list_new();
 
 	while (read < ptr->size && gf_bs_available(bs)) {
@@ -2584,7 +2609,7 @@ GF_Err av1c_Size(GF_Box *s) {
 		return GF_BAD_PARAM;
 	}
 
-	ptr->size += 1;
+	ptr->size += 4;
 
 	for (i = 0; i < gf_list_count(ptr->config->obu_array); ++i) {
 		GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);

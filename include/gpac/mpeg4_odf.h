@@ -1005,8 +1005,20 @@ typedef struct
 /*! AV1 config record - not a real MPEG-4 descriptor*/
 typedef struct
 {
+	Bool marker;
+	u8 version; /*7 bits*/
+	u8 seq_profile; /*3 bits*/
+	u8 seq_level_idx_0; /*5 bits*/
+	Bool seq_tier_0;
+	Bool high_bitdepth;
+	Bool twelve_bit;
+	Bool monochrome;
+	Bool chroma_subsampling_x;
+	Bool chroma_subsampling_y;
+	u8 chroma_sample_position; /*2 bits*/
+
 	Bool initial_presentation_delay_present;
-	u8 initial_presentation_delay_minus_one;
+	u8 initial_presentation_delay_minus_one; /*4 bits*/
 	GF_List *obu_array; /*GF_AV1_OBUArrayEntry*/
 } GF_AV1Config;
 

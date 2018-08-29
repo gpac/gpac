@@ -1594,7 +1594,11 @@ GF_Err av1c_dump(GF_Box *a, FILE *trace) {
 	fprintf(trace, "<AV1ConfigurationBox>\n");
 	if (ptr->config) {
 		u32 i, obu_count = gf_list_count(ptr->config->obu_array);
-		fprintf(trace, "<AV1Config initial_presentation_delay=\"%u\" OBUs_count=\"%u\">\n", ptr->config->initial_presentation_delay_minus_one+1, obu_count);
+
+		fprintf(trace, "<AV1Config version=\"%u\" profile=\"%u\" level_idx0=\"%u\" tier=\"%u\" ", (u32)ptr->config->version, (u32)ptr->config->seq_profile, (u32)ptr->config->seq_level_idx_0, (u32)ptr->config->seq_tier_0);
+		fprintf(trace, "high_bitdepth=\"%u\" twelve_bit=\"%u\" monochrome=\"%u\" ", (u32)ptr->config->high_bitdepth, (u32)ptr->config->twelve_bit, (u32)ptr->config->monochrome);
+		fprintf(trace, "chroma_subsampling_x=\"%u\" chroma_subsampling_y=\"%u\" chroma_sample_position=\"%u\" ", (u32)ptr->config->chroma_subsampling_x, (u32)ptr->config->chroma_subsampling_y, (u32)ptr->config->chroma_sample_position);
+		fprintf(trace, "initial_presentation_delay=\"%u\" OBUs_count=\"%u\">\n", ptr->config->initial_presentation_delay_minus_one+1, obu_count);
 
 		for (i=0; i<obu_count; i++) {
 			GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
