@@ -1717,9 +1717,11 @@ GF_FilterRegister CENCEncRegister = {
 	.help = "The CENC/ISMA encryptor uses a configuration file for declaring keys. The syntax is available at:\n"\
 			"https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/\n"\
 			"The file can be set per PID using the property CryptFile, or set at the filter option level.\n"\
-			 "When the file set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.",
+			 "When the file is set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.",
 	.private_size = sizeof(GF_CENCEncCtx),
 	.max_extra_pids=-1,
+	//encryptor shall be explicetely loaded
+	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = GF_CENCEncArgs,
 	SETCAPS(CENCEncCaps),
 	.configure_pid = cenc_enc_configure_pid,
