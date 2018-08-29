@@ -3156,6 +3156,9 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 	//no packets
 	if (!pcki) {
+		if (pidinst->pid->filter->force_end_of_session) {
+			pidinst->is_end_of_stream = pidinst->pid->has_seen_eos = GF_TRUE;
+		}
 		return NULL;
 	}
 	assert(pcki->pck);
