@@ -2955,7 +2955,10 @@ static void mp4_mux_finalize(GF_Filter *filter)
 
 	if (ctx->store>=MP4MX_MODE_FRAG) {
 		if (ctx->owns_mov) gf_isom_delete(ctx->file);
+	} else if (ctx->file && ctx->owns_mov) {
+		mp4_mux_done(ctx);
 	}
+
 	while (gf_list_count(ctx->tracks)) {
 		TrackWriter *tkw = gf_list_pop_back(ctx->tracks);
 		mp4_mux_track_writer_del(tkw);
