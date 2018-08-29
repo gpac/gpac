@@ -7281,6 +7281,7 @@ restart_import:
 		}
 	}
 
+	gf_set_progress("Importing AV1", (u32)cur_samp, cur_samp);
 	e = gf_isom_set_visual_info(import->dest, track_num, di, state.width, state.height);
 	if (e) goto exit;
 	e = gf_media_update_par(import->dest, track_num);
