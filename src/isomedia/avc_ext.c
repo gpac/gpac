@@ -2548,7 +2548,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 		ptr->config->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
 	} else {
 		reserved = gf_bs_read_int(bs, 4);
-		ptr->config->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
+		ptr->config->initial_presentation_delay_minus_one = 0;
 	}
 	read += 4;
 	ptr->config->obu_array = gf_list_new();
