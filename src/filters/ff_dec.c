@@ -86,6 +86,8 @@ static GF_Err ffdec_initialize(GF_Filter *filter)
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
+
+	ffmpeg_setup_logs(GF_LOG_CODEC);
 	return GF_OK;
 }
 

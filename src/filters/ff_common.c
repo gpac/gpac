@@ -309,6 +309,28 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 }
 
 
+//static void ff_log_callback(void *avcl, int level, const char *fmt, va_list vl) { }
+
+void ffmpeg_setup_logs(u32 log_class)
+{
+	u32 level = gf_log_tool_get_level(log_class);
+	switch (level) {
+	case GF_LOG_DEBUG:
+		av_log_set_level(AV_LOG_DEBUG);
+		break;
+	case GF_LOG_INFO:
+		av_log_set_level(AV_LOG_INFO);
+		break;
+	case GF_LOG_WARNING:
+		av_log_set_level(AV_LOG_WARNING);
+		break;
+	default:
+		av_log_set_level(AV_LOG_ERROR);
+		break;
+	}
+//	av_log_set_callback(ff_log_callback);
+}
+
 void ffmpeg_initialize()
 {
 	if (ffmpeg_init) return;
