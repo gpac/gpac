@@ -453,6 +453,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				gf_filter_pid_send_event(pid, &evt);
 			}
 			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+			ctx->config_timing = GF_TRUE;
 		}
 	}
 
@@ -2480,7 +2482,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 {
 	u32 i, count = gf_list_count(ctx->tracks);
-	//compute min dts of first packet on each track
+	//compute min dts of first packet on each track - this assume all tracks are synchronized, might need adjustment for MPEG4 Systems
 	ctx->first_ts_min = (u32) -1;
 	for (i=0; i<count; i++) {
 		u64 ts, dts_min;
@@ -2677,10 +2679,6 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use data reference in movie fragments, not supported. Ignoring it\n"));
 			ctx->dref = GF_FALSE;
 		}
-
-		if (ctx->store<MP4MX_MODE_FRAG) {
-			gf_filter_request_final_flush(filter, GF_TRUE);
-		}
 	}
 	if (!ctx->timescale) ctx->timescale=600;
 	gf_isom_set_timescale(ctx->file, ctx->timescale);
@@ -2811,8 +2809,6 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 	u32 i, count;
 	const GF_PropertyValue *p;
-
-	gf_filter_request_final_flush(filter, GF_FALSE);
 
 	count = gf_list_count(ctx->tracks);
 	for (i=0; i<count; i++) {

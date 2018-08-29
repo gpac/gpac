@@ -452,7 +452,7 @@ struct __gf_filter
 
 	Bool has_out_caps;
 
-	Bool in_final_flush;
+	Bool force_end_of_session;
 
 	//list of pids connected to this filter
 	GF_List *input_pids;
@@ -541,8 +541,6 @@ struct __gf_filter
 
 	volatile u32 process_task_queued;
 
-	//explicitly set by loaded filters requiring a final flush before being finalized (eg holding internal data)
-	Bool requires_flush;
 	Bool skip_process_trigger_on_tasks;
 
 	u64 schedule_next_time;
