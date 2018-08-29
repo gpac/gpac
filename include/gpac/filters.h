@@ -1734,6 +1734,15 @@ Bool gf_filter_is_supported_mime(GF_Filter *filter, const char *mime);
 */
 Bool gf_filter_ui_event(GF_Filter *filter, GF_Event *uievt);
 
+
+/*! marks filter as requiring a final flush before disconnecting graph. The flush is notified by a STOP event on the filter with no associated PID.
+This is typically used by muxers writing to a temp file before producing the final mux (eg isobmf writer in non fragmented mode).
+The request can be canceled if the filter has already produced its outputs.
+\param filter triggering filter
+\param do_request if GF_TRUE, a final flush event will be triggered on the filter before disconnecting the graph
+*/
+void gf_filter_request_final_flush(GF_Filter *filter, Bool do_request);
+
 /*! @} */
 
 

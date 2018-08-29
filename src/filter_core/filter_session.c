@@ -1158,13 +1158,53 @@ void gf_fs_run_step(GF_FilterSession *fsess)
 	gf_fs_thread_proc(&fsess->main_th);
 }
 
+//mark all filters towards sink that they are in final flush. filters not marked as final flush won't be called for process
+static void gf_fs_filter_mark_final_flush(GF_Filter *filter)
+{
+	u32 i, j;
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			pidi->filter->in_final_flush = GF_TRUE;
+			gf_fs_filter_mark_final_flush(pidi->filter);
+		}
+	}
+}
+
+static void gf_fs_flush_filter(GF_FSTask *task)
+{
+	GF_FilterEvent evt;
+	gf_fs_filter_mark_final_flush(task->filter);
+
+	GF_FEVT_INIT(evt, GF_FEVT_STOP, NULL);
+	task->filter->freg->process_event(task->filter, &evt);
+}
+
 GF_EXPORT
 GF_Err gf_fs_abort(GF_FilterSession *fsess)
 {
+	u32 i, count;
+	Bool eos_postponed = GF_FALSE;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user\n"));
 	if (!fsess) return GF_BAD_PARAM;
-	if (!fsess->run_status)
-		fsess->run_status = GF_EOS;
+
+	count = gf_list_count(fsess->filters);
+	for (i=0; i<count; i++) {
+		GF_Filter *filter = gf_list_get(fsess->filters, i);
+		if (filter->requires_flush && filter->freg->process_event) {
+			gf_fs_post_task(fsess, gf_fs_flush_filter, filter, NULL, "filter_flush", NULL);
+			eos_postponed = GF_TRUE;
+		}
+	}
+
+	if (!eos_postponed) {
+	 	if (!fsess->run_status)
+			fsess->run_status = GF_EOS;
+	} else {
+			fsess->in_final_flush = GF_TRUE;
+
+	}
 	return GF_OK;
 }
 

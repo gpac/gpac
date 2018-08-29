@@ -1203,6 +1203,7 @@ sample_entry_setup:
 			udesc.h_res = 72;
 			udesc.depth = 24;
 		}
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codecID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
 
 		e = gf_isom_new_generic_sample_description(ctx->file, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
 		if (e) {
@@ -1489,19 +1490,20 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	return mp4_mux_setup_pid(filter, pid, GF_TRUE);
 }
 
-#if 0
+static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx);
+
 static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	u32 i;
-	GF_FilterEvent fevt;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
+	if (!evt->base.on_pid && (evt->base.type==GF_FEVT_STOP) ) {
+		if (ctx->file && ctx->owns_mov) {
+			mp4_mux_done(filter, ctx);
+		}
+	}
 	//by default don't cancel event - to rework once we have downloading in place
 	return GF_FALSE;
 }
-#endif
-
-static void mp4_mux_done(GF_MP4MuxCtx *ctx);
 
 enum
 {
@@ -2568,7 +2570,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 	if (count == nb_eos) {
 		if (ctx->file)
-			mp4_mux_done(ctx);
+			mp4_mux_done(filter, ctx);
 		return GF_EOS;
 	}
 
@@ -2674,6 +2676,10 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		if (ctx->dref && (ctx->store>=MP4MX_MODE_FRAG)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use data reference in movie fragments, not supported. Ignoring it\n"));
 			ctx->dref = GF_FALSE;
+		}
+
+		if (ctx->store<MP4MX_MODE_FRAG) {
+			gf_filter_request_final_flush(filter, GF_TRUE);
 		}
 	}
 	if (!ctx->timescale) ctx->timescale=600;
@@ -2801,10 +2807,12 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 }
 
-static void mp4_mux_done(GF_MP4MuxCtx *ctx)
+static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 	u32 i, count;
 	const GF_PropertyValue *p;
+
+	gf_filter_request_final_flush(filter, GF_FALSE);
 
 	count = gf_list_count(ctx->tracks);
 	for (i=0; i<count; i++) {
@@ -2953,10 +2961,8 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	assert(!ctx->dst_pck);
 
-	if (ctx->store>=MP4MX_MODE_FRAG) {
-		if (ctx->owns_mov) gf_isom_delete(ctx->file);
-	} else if (ctx->file && ctx->owns_mov) {
-		mp4_mux_done(ctx);
+	if (ctx->owns_mov && (ctx->file || (ctx->store>=MP4MX_MODE_FRAG))) {
+		gf_isom_delete(ctx->file);
 	}
 
 	while (gf_list_count(ctx->tracks)) {
@@ -3044,6 +3050,7 @@ GF_FilterRegister MP4MuxRegister = {
 	SETCAPS(MP4MuxCaps),
 	.configure_pid = mp4_mux_configure_pid,
 	.process = mp4_mux_process,
+	.process_event = mp4_mux_process_event
 };
 
 
