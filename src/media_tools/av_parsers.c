@@ -1547,20 +1547,20 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 
 static void color_config(GF_BitStream *bs, AV1State *state)
 {
-	const Bool high_bitdepth = gf_bs_read_int(bs, 1);
+	state->config->high_bitdepth = gf_bs_read_int(bs, 1);
 	state->bit_depth = 8;
-	if (state->seq_profile == 2 && high_bitdepth) {
-		const Bool twelve_bit = gf_bs_read_int(bs, 1);
-		state->bit_depth = twelve_bit ? 12 : 10;
-	} else if (state->seq_profile <= 2) {
-		state->bit_depth = high_bitdepth ? 10 : 8;
+	if (state->config->seq_profile == 2 && state->config->high_bitdepth) {
+		state->config->twelve_bit = gf_bs_read_int(bs, 1);
+		state->bit_depth = state->config->twelve_bit ? 12 : 10;
+	} else if (state->config->seq_profile <= 2) {
+		state->bit_depth = state->config->high_bitdepth ? 10 : 8;
 	}
 
-	state->mono_chrome = GF_FALSE;
-	if (state->seq_profile == 1) {
-		state->mono_chrome = 0;
+	state->config->monochrome = GF_FALSE;
+	if (state->config->seq_profile == 1) {
+		state->config->monochrome = 0;
 	} else {
-		state->mono_chrome = gf_bs_read_int(bs, 1);
+		state->config->monochrome = gf_bs_read_int(bs, 1);
 	}
 	/*NumPlanes = mono_chrome ? 1 : 3;*/
 	state->color_description_present_flag = gf_bs_read_int(bs, 1);
@@ -1573,7 +1573,7 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 		state->transfer_characteristics = 2/*TC_UNSPECIFIED*/;
 		state->matrix_coefficients = 2/*MC_UNSPECIFIED*/;
 	}
-	if (state->mono_chrome) {
+	if (state->config->monochrome) {
 		state->color_range = gf_bs_read_int(bs, 1);
 		/*subsampling_x = 1;
 		subsampling_y = 1;
@@ -1584,33 +1584,33 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 		state->transfer_characteristics == 13/*TC_SRGB*/ &&
 		state->matrix_coefficients == 0/*MC_IDENTITY*/) {
 		state->color_range = 1;
-		state->chroma_subsampling_x = 0;
-		state->chroma_subsampling_y = 0;
+		state->config->chroma_subsampling_x = 0;
+		state->config->chroma_subsampling_y = 0;
 	} else {
-		state->chroma_subsampling_x = GF_FALSE;
-		state->chroma_subsampling_y = GF_FALSE;
+		state->config->chroma_subsampling_x = GF_FALSE;
+		state->config->chroma_subsampling_y = GF_FALSE;
 
 		state->color_range = gf_bs_read_int(bs, 1);
-		if (state->seq_profile == 0) {
+		if (state->config->seq_profile == 0) {
 			/*state->subsampling_x = 1;
 			state->subsampling_y = 1;*/
-		} else if (state->seq_profile == 1) {
+		} else if (state->config->seq_profile == 1) {
 			/*state->subsampling_x = 0;
 			state->subsampling_y = 0;*/
 		} else {
 			if (state->bit_depth == 12) {
-				state->chroma_subsampling_x = gf_bs_read_int(bs, 1);
-				if (state->chroma_subsampling_x)
-					state->chroma_subsampling_y = gf_bs_read_int(bs, 1);
+				state->config->chroma_subsampling_x = gf_bs_read_int(bs, 1);
+				if (state->config->chroma_subsampling_x)
+					state->config->chroma_subsampling_y = gf_bs_read_int(bs, 1);
 				else
-					state->chroma_subsampling_y = 0;
+					state->config->chroma_subsampling_y = 0;
 			} else {
-				state->chroma_subsampling_x = 1;
-				state->chroma_subsampling_y = 0;
+				state->config->chroma_subsampling_x = 1;
+				state->config->chroma_subsampling_y = 0;
 			}
 		}
-		if (state->chroma_subsampling_x && state->chroma_subsampling_y) {
-			state->chroma_sample_position = gf_bs_read_int(bs, 2);
+		if (state->config->chroma_subsampling_x && state->config->chroma_subsampling_y) {
+			state->config->chroma_sample_position = gf_bs_read_int(bs, 2);
 		}
 	}
 	/*separate_uv_delta_q = */gf_bs_read_int(bs, 1);
@@ -1663,7 +1663,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	u8 operating_points_cnt_minus_1, frame_width_bits_minus_1, frame_height_bits_minus_1, buffer_delay_length_minus_1 = 0;
 	Bool timing_info_present_flag, decoder_model_info_present_flag, initial_display_delay_present_flag;
 	state->frame_state.seen_seq_header = GF_TRUE;
-	state->seq_profile = gf_bs_read_int(bs, 3);
+	state->config->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);
 	if (state->reduced_still_picture_header) {
@@ -1671,7 +1671,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		decoder_model_info_present_flag = GF_FALSE;
 		initial_display_delay_present_flag = GF_FALSE;
 		operating_points_cnt_minus_1 = 0;
-		state->seq_level_idx/*[0]*/ = gf_bs_read_int(bs, 5);
+		state->config->seq_level_idx_0 = gf_bs_read_int(bs, 5);
 	} else {
 		u8 i = 0;
 		timing_info_present_flag = gf_bs_read_int(bs, 1);
@@ -1689,9 +1689,10 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		for (i = 0; i <= operating_points_cnt_minus_1; i++) {
 			/*operating_point_idc[i] = */gf_bs_read_int(bs, 12);
 			if (gf_bs_read_int(bs, 5) /*seq_level_idx[i]*/ > 7) {
-				/*seq_tier[i] = */gf_bs_read_int(bs, 1);
+				if (i == 0) state->config->seq_tier_0 = gf_bs_read_int(bs, 1);
+				else gf_bs_read_int(bs, 1);
 			} else {
-				/*seq_tier[i] = 0;*/
+				state->config->seq_tier_0 = 0;
 			}
 			if (decoder_model_info_present_flag) {
 				if (gf_bs_read_int(bs, 1) /*decoder_model_present_for_this_op[i]*/) {
