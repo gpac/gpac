@@ -2795,14 +2795,16 @@ Bool gf_media_avc_slice_is_IDR(AVCState *avc)
 	return gf_media_avc_slice_is_intra(avc);
 }
 
-static const struct {
+struct sar_ {
 	u32 w, h;
-} avc_sar[14] =
-{
+};
+
+static const struct sar_ avc_sar[] = {
 	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
 	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
 	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
-	{ 64, 33 }, { 160,99 },
+	{ 64, 33 }, { 160,99 }, {  4,  3 }, {  3,  2 },
+	{  2,  1 }
 };
 
 
@@ -3156,7 +3158,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 			if (aspect_ratio_idc == 255) {
 				sps->vui.par_num = gf_bs_read_int(bs, 16); /*AR num*/
 				sps->vui.par_den = gf_bs_read_int(bs, 16); /*AR den*/
-			} else if (aspect_ratio_idc<14) {
+			} else if (aspect_ratio_idc < sizeof(avc_sar)/sizeof(struct sar_)) {
 				sps->vui.par_num = avc_sar[aspect_ratio_idc].w;
 				sps->vui.par_den = avc_sar[aspect_ratio_idc].h;
 			}
