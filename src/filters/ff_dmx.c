@@ -434,7 +434,6 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 	return GF_OK;
 }
 
-
 static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
@@ -445,7 +444,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	ctx->fname = "FFDmx";
 	ctx->log_class = GF_LOG_CONTAINER;
 
-//	av_log_set_level(AV_LOG_DEBUG);
+	ffmpeg_setup_logs(ctx->log_class);
 
 	ctx->initialized = GF_TRUE;
 	if (!ctx->src) return GF_SERVICE_ERROR;
@@ -660,12 +659,14 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	ctx->fname = "FFAVIn";
 	ctx->log_class = GF_LOG_MMIO;
 
-//	av_log_set_level(AV_LOG_DEBUG);
+	ffmpeg_setup_logs(ctx->log_class);
 
 	avdevice_register_all();
 	ctx->initialized = GF_TRUE;
-	if (!ctx->src) return GF_SERVICE_ERROR;
-
+	if (!ctx->src) {
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] No source URL specified, expecting video://, audio:/ or av://\n", ctx->fname));
+		return GF_SERVICE_ERROR;
+	}
 	default_fmt = ctx->fmt;
 	if (!default_fmt) {
 #ifdef WIN32

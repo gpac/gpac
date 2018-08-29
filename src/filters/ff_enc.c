@@ -103,6 +103,8 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
 	ctx->sdbs = gf_bs_new((u8*)ctx, 1, GF_BITSTREAM_READ);
+
+	ffmpeg_setup_logs(GF_LOG_CODEC);
 	return GF_OK;
 }
 

@@ -489,6 +489,15 @@ void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_li
 Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 /*!
+ *	\brief Log level getter
+ *
+ *	Gets log level of a given tool
+ *	\param log_tool tool to check
+ *	\return log level of tool
+*/
+u32 gf_log_tool_get_level(GF_LOG_Tool log_tool);
+
+/*!
  *	\brief Set log tools and levels
  *
  *	Set log tools and levels according to the log_tools_levels string. All previous log settings are discarded.

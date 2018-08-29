@@ -47,6 +47,7 @@
 void ffmpeg_initialize();
 void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin);
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
+void ffmpeg_setup_logs(u32 log_class);
 
 enum{
 	FF_REG_TYPE_DEMUX=0,

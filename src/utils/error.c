@@ -348,9 +348,16 @@ u32 call_tool = 0;
 GF_EXPORT
 Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
-	assert(log_tool<GF_LOG_TOOL_MAX);
+	if (log_tool>=GF_LOG_TOOL_MAX) return GF_FALSE;
 	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
 	return GF_FALSE;
+}
+
+GF_EXPORT
+u32 gf_log_tool_get_level(GF_LOG_Tool log_tool)
+{
+	if (log_tool>=GF_LOG_TOOL_MAX) return GF_LOG_ERROR;
+	return global_log_tools[log_tool].level;
 }
 
 void default_log_callback_no_col(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
