@@ -143,8 +143,8 @@ typedef struct
 	GF_Fraction64 tfdt;
 	Bool no_def, straf, strun, sgpd_traf, cache, noinit;
 	u32 psshs;
+
 	//internal
-	u32 first_ts_min;
 	Bool owns_mov;
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
@@ -1453,11 +1453,11 @@ multipid_stsd_setup:
 					gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, 0, -p->value.sint, GF_ISOM_EDIT_NORMAL);
 				}
 			} else if (p->value.sint > 0) {
-				s64 dur = p->value.sint * -1;
+				s64 dur = p->value.sint;
 				dur *= ctx->timescale;
 				dur /= tkw->timescale;
-				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, p->value.sint, GF_ISOM_EDIT_DWELL);
-				gf_isom_set_edit_segment(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_DWELL);
+				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, 0, 0, GF_ISOM_EDIT_NORMAL);
 			}
 			tkw->ts_delay = p->value.sint;
 		} else if (tkw->stream_type==GF_STREAM_VISUAL) {
@@ -2483,7 +2483,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 {
 	u32 i, count = gf_list_count(ctx->tracks);
 	//compute min dts of first packet on each track - this assume all tracks are synchronized, might need adjustment for MPEG4 Systems
-	ctx->first_ts_min = (u32) -1;
+	u64 first_ts_min = (u64) -1;
 	for (i=0; i<count; i++) {
 		u64 ts, dts_min;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
@@ -2497,8 +2497,8 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		dts_min = ts * 1000000;
 		dts_min /= tkw->timescale;
 
-		if (ctx->first_ts_min > dts_min) {
-			ctx->first_ts_min = (u32) dts_min;
+		if (first_ts_min > dts_min) {
+			first_ts_min = (u32) dts_min;
 		}
 		tkw->ts_shift = ts;
 	}
@@ -2508,7 +2508,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
 		//compute offsets
-		dts_diff = ctx->first_ts_min;
+		dts_diff = first_ts_min;
 		dts_diff *= tkw->timescale;
 		dts_diff /= 1000000;
 		dts_diff -= (s64) tkw->ts_shift;
