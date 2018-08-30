@@ -218,8 +218,8 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	if (!ctx->pid) {
 		GF_FilterEvent evt;
-		//set buffer reqs to 100 ms - we don't "bufer" in the filter, but this will allow dispatching
-		//several input frames in the buffer (default being 1000 us max in buffers). Not doing so could cause
+		//set buffer reqs to 100 ms - we don't "buffer" in the filter, but this will allow dispatching
+		//several input frames in the buffer (default being 1 pck / 1000 us max in buffers). Not doing so could cause
 		//the session to end because input is blocked (no tasks posted) and output still holds a packet 
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
 		evt.buffer_req.max_buffer_us = 100000;
