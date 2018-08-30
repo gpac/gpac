@@ -1663,6 +1663,9 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	u8 operating_points_cnt_minus_1, frame_width_bits_minus_1, frame_height_bits_minus_1, buffer_delay_length_minus_1 = 0;
 	Bool timing_info_present_flag, decoder_model_info_present_flag, initial_display_delay_present_flag;
 	state->frame_state.seen_seq_header = GF_TRUE;
+	if (state->config == NULL) {
+		GF_SAFEALLOC(state->config, GF_AV1Config);
+	}
 	state->config->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);

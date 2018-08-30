@@ -7139,8 +7139,8 @@ restart_import:
 		}
 	} else {
 		char const * const levels = gf_log_get_tools_levels();
-		e = gf_log_set_tools_levels("all@quiet");
-		assert(e == GF_OK);
+//		e = gf_log_set_tools_levels("all@quiet");
+//		assert(e == GF_OK);
 
 		e = gf_media_aom_parse_ivf_file_header(bs, &state);
 		if (!e) {
