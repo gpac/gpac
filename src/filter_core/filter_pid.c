@@ -1433,7 +1433,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 						// we will match unless we match an excluded value
 						prop_found = GF_TRUE;
 					}
-				} else if (!(in_cap->flags & GF_CAPFLAG_EXCLUDED) && (an_out_cap->flags&GF_CAPFLAG_EXCLUDED) ) {
+				} else if (!(in_cap->flags & GF_CAPFLAG_EXCLUDED) && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
 					//prop type matched, input includes it and output excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
@@ -1448,6 +1448,9 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					matched = GF_TRUE;
 //					if (an_out_cap->flags & GF_CAPFLAG_STATIC)
 //						static_matched = GF_TRUE;
+				} else if ((in_cap->flags & GF_CAPFLAG_EXCLUDED) && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
+					//prop type matched, input excludes it and output excludes it and no match, remmeber we found the prop type
+					prop_found = GF_TRUE;
 				}
 			}
 			if (nb_caps_tested) {
@@ -1639,7 +1642,6 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 		u32 path_weight;
 
 		GF_FilterRegDesc *a_reg = gf_list_get(links, i);
-
 
 		//check which cap of this filter matches our destination
 		nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
@@ -1840,8 +1842,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			assert(freg != dst->freg);
 			continue;
 		}
-		if (!strcmp(reg_desc->freg->name, "gsfm"))
-			j=0;
+
 		//reset edge status - if source is our origin, disable edge if cap is not matched
 		for (j=0; j<reg_desc->nb_edges; j++) {
 			GF_FilterRegEdge *edge = &reg_desc->edges[j];
@@ -1989,7 +1990,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			result = current_node;
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] testing filter %s\n", current_node->freg->name));
-		
+
 		//compute distances
 		for (i=0; i<current_node->nb_edges; i++) {
 			u8 priority=0;
