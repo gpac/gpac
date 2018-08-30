@@ -464,10 +464,10 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (ctx->frame->pts != pkt.pts) {
 			ctx->ts_shift = (s32) ( (s64) ctx->frame->pts - (s64) pkt.pts );
 		}
-		if (ctx->ts_shift) {
-			s64 shift = ctx->ts_shift;
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) shift) );
-		}
+//		if (ctx->ts_shift) {
+//			s64 shift = ctx->ts_shift;
+//			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) -shift) );
+//		}
 	}
 
 	//try to locate first source packet with cts greater than this packet cts and use it as source for properties
@@ -499,7 +499,6 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
 	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
 	//this is not 100% correct since we don't have any clue if this is SAP1/4 (roll info missing)
-	//since we send the output to our reframers we should be fine
 	if (pkt.flags & AV_PKT_FLAG_KEY)
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 	else
@@ -918,14 +917,10 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 static const GF_FilterCapability FFEncodeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	//our video encoding dumps in unframe mode for now, we reframe properly
-	//using our filters
-	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	//some video encoding dumps in unframe mode, we declre the pid property at runtime
 };
 
 GF_FilterRegister FFEncodeRegister = {
