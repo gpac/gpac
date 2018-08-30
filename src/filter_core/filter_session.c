@@ -614,7 +614,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	sep = strchr(cid, fsess->sep_args);
 	if (sep) sep[0] = 0;
 
-	codecid = gf_codec_parse(cid+3);
+	codecid = gf_codec_parse(cid+2);
 	if (codecid==GF_CODECID_NONE) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized codec identifier in \"enc\" definition: %s\n", cid));
 		if (sep) sep[0] = fsess->sep_args;
