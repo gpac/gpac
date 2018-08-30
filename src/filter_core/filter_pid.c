@@ -223,6 +223,10 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 			pid->raw_media = GF_TRUE;
 		}
 	}
+	//source pid, mark raw media
+	if (!count && pid->num_destinations) {
+		pid->raw_media = GF_TRUE;
+	}
 }
 
 #define TASK_REQUEUE(_t) \
@@ -3690,6 +3694,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (evt->base.on_pid->nb_decoder_inputs || evt->base.on_pid->raw_media || evt->buffer_req.pid_only) {
 			evt->base.on_pid->max_buffer_time = evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
+			evt->base.on_pid->max_buffer_unit = 0;
+			
 			//update blocking state
 			if (evt->base.on_pid->would_block)
 				gf_filter_pid_check_unblock(evt->base.on_pid);
