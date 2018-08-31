@@ -385,6 +385,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	u32 frames_per_sample_backup=0;
 	Bool is_nalu_backup = GF_FALSE;
 	Bool is_tile_base = GF_FALSE;
+	Bool unknown_generic = GF_FALSE;
 	u32 multi_pid_final_stsd_idx = 0;
 
 	const char *lang_name = NULL;
@@ -796,6 +797,7 @@ sample_entry_setup:
 
 	default:
 		m_subtype = codec_id;
+		unknown_generic = GF_TRUE;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
 		tkw->skip_bitrate_update = GF_TRUE;
@@ -1205,8 +1207,10 @@ sample_entry_setup:
 			udesc.h_res = 72;
 			udesc.depth = 24;
 		}
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codecID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
-
+		if (unknown_generic) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codecID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
+		}
+		
 		e = gf_isom_new_generic_sample_description(ctx->file, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
