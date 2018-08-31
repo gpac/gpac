@@ -709,7 +709,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			infmt_negociate = GF_TRUE;
 		}
 	} else {
-		//check pixel format
+		//check audio format
 		ctx->sample_fmt = ffmpeg_audio_fmt_from_gpac(afmt);
 		change_input_fmt = 0;
 		while (codec->sample_fmts) {
@@ -811,7 +811,14 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 
 		//for aac
-		av_dict_set(&ctx->options, "strict", "experimental", 0);
+		switch (ctx->codecid) {
+		case GF_CODECID_AAC_MPEG4:
+		case GF_CODECID_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
+			av_dict_set(&ctx->options, "strict", "experimental", 0);
+			break;
+		}
 
 		if (!ctx->frame)
 			ctx->frame = av_frame_alloc();
