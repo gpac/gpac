@@ -3799,6 +3799,8 @@ GF_Box *gf_isom_clone_config_box(GF_Box *box);
 GF_Err gf_isom_box_dump(void *ptr, FILE * trace);
 GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace);
 
+void gf_isom_registry_disable(u32 boxCode, Bool disable);
+
 /*Apple extensions*/
 GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);
 

@@ -64,8 +64,8 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		return GF_OK;
 	}
 
-	//check the last DTS...
-	if (DTS > stts->w_LastDTS) {
+	//check the last DTS - we allow 0-duration samples (same DTS)
+	if (DTS >= stts->w_LastDTS) {
 		ent = &stts->entries[stts->nb_entries-1];
 		//OK, we're adding at the end
 		if (DTS == stts->w_LastDTS + ent->sampleDelta) {
