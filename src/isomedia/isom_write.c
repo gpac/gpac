@@ -3752,7 +3752,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 	u32 i, count;
 	GF_TrackBox *trak1, *trak2;
 	GF_ESD *esd1, *esd2;
-	Bool need_memcmp;
+	Bool need_memcmp, ret;
 	GF_Box *a, *b;
 
 	/*get orig sample desc and clone it*/
@@ -3910,7 +3910,13 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 	if (!need_memcmp) return GF_TRUE;
 	a = (GF_Box *)trak1->Media->information->sampleTable->SampleDescription;
 	b = (GF_Box *)trak2->Media->information->sampleTable->SampleDescription;
-	return gf_isom_box_equal(a,b);
+	//we ignore all bitrate boxes when comparing the box, disable their writing
+	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_TRUE);
+	ret = gf_isom_box_equal(a,b);
+	//re-enable btrt writing
+	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_FALSE);
+
+	return ret;
 }
 
 GF_EXPORT

@@ -691,25 +691,25 @@ ISOM_BOX_IMPL_DECL(mhac)
 ISOM_BOX_IMPL_DECL(grptype)
 
 
-#define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, "p12" }
+#define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, "p12", GF_FALSE}
 
-#define BOX_DEFINE_S(__type, b_rad, __par, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, __spec }
+#define BOX_DEFINE_S(__type, b_rad, __par, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, __spec, GF_FALSE }
 
-#define FBOX_DEFINE(__type, b_rad, __par, __max_v) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, 0, __par, "p12" }
+#define FBOX_DEFINE(__type, b_rad, __par, __max_v) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, 0, __par, "p12", GF_FALSE }
 
-#define FBOX_DEFINE_FLAGS(__type, b_rad, __par, __max_v, flags) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, flags, __par, "p12" }
+#define FBOX_DEFINE_FLAGS(__type, b_rad, __par, __max_v, flags) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, flags, __par, "p12", GF_FALSE }
 
-#define FBOX_DEFINE_FLAGS_S(__type, b_rad, __par, __max_v, flags, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, flags, __par, __spec }
+#define FBOX_DEFINE_FLAGS_S(__type, b_rad, __par, __max_v, flags, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, flags, __par, __spec, GF_FALSE }
 
-#define FBOX_DEFINE_S(__type, b_rad, __par, __max_v, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, 0, __par, __spec }
+#define FBOX_DEFINE_S(__type, b_rad, __par, __max_v, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 1+__max_v, 0, __par, __spec, GF_FALSE }
 
-#define TREF_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 0, 0, __par, __spec }
+#define TREF_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 0, 0, __par, __spec, GF_FALSE }
 
-#define TRGT_DEFINE(__type, b_rad, __par, __4cc, max_version, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 1+max_version, 0, __par, __spec }
+#define TRGT_DEFINE(__type, b_rad, __par, __4cc, max_version, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 1+max_version, 0, __par, __spec, GF_FALSE }
 
-#define SGPD_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 1, 0, __par, __spec }
+#define SGPD_DEFINE(__type, b_rad, __par, __4cc, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, __4cc, 1, 0, __par, __spec, GF_FALSE }
 
-static const struct box_registry_entry {
+static struct box_registry_entry {
 	u32 box_4cc;
 	GF_Box * (*new_fn)();
 	void (*del_fn)(GF_Box *a);
@@ -722,6 +722,7 @@ static const struct box_registry_entry {
 	u32 flags;
 	const char *parents_4cc;
 	const char *spec;
+	Bool disabled;
 } box_registry [] =
 {
 	//DO NOT MOVE THE FIRST ENTRY
@@ -1209,6 +1210,17 @@ u32 gf_isom_get_num_supported_boxes()
 	return sizeof(box_registry) / sizeof(struct box_registry_entry);
 }
 
+void gf_isom_registry_disable(u32 boxCode, Bool disable)
+{
+	u32 i=0, count = gf_isom_get_num_supported_boxes();
+	for (i=1; i<count; i++) {
+		if (box_registry[i].box_4cc==boxCode) {
+			box_registry[i].disabled = disable;
+			return;
+		}
+	}
+}
+
 static u32 get_box_reg_idx(u32 boxCode, u32 parent_type)
 {
 	u32 i=0, count = gf_isom_get_num_supported_boxes();
@@ -1390,7 +1402,9 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 GF_EXPORT
 GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 {
-	GF_Err e = gf_isom_box_write_listing(a, bs);
+	GF_Err e;
+	if (a->registry->disabled) return GF_OK;
+	e = gf_isom_box_write_listing(a, bs);
 	if (e) return e;
 	if (a->other_boxes) {
 		return gf_isom_box_array_write(a, a->other_boxes, bs);
@@ -1421,7 +1435,12 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 GF_EXPORT
 GF_Err gf_isom_box_size(GF_Box *a)
 {
-	GF_Err e = gf_isom_box_size_listing(a);
+	GF_Err e;
+	if (a->registry->disabled) {
+		a->size = 0;
+		return GF_OK;
+	}
+	e = gf_isom_box_size_listing(a);
 	if (e) return e;
 	if (a->other_boxes) {
 		e = gf_isom_box_array_size(a, a->other_boxes);
