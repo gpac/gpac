@@ -36,8 +36,10 @@ typedef struct
 	GF_FilterPid *ipid, *opid;
 	GF_AudioMixer *mixer;
 	Bool cfg_forced;
+	//output config
 	u32 freq, nb_ch, afmt, ch_cfg;
-	Bool is_planar;
+	//source is planar
+	Bool src_is_planar;
 	GF_AudioInterface input_ai;
 	Bool passthrough;
 
@@ -61,7 +63,7 @@ static char *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride,
 	sample_offset = ctx->bytes_consumed;
 	//planar mode, bytes consummed correspond to all channels, so move frame pointer
 	//to first sample non consumed = bytes_consumed/nb_channels
-	if (ctx->is_planar) {
+	if (ctx->src_is_planar) {
 		*planar_stride = ctx->size / ctx->nb_ch;
 		sample_offset /= ctx->nb_ch;
 	}
@@ -176,28 +178,36 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (p) ch_cfg = p->value.uint;
 	if (!ch_cfg) ch_cfg = (nb_ch==1) ? GF_AUDIO_CH_FRONT_CENTER : (GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
 
-	if ((sr==ctx->freq) && (nb_ch==ctx->nb_ch) && (afmt==ctx->afmt) && (ch_cfg==ctx->ch_cfg)) return GF_OK;
-	ctx->input_ai.samplerate = sr;
-	ctx->input_ai.afmt = afmt;
-	ctx->input_ai.chan = nb_ch;
-	ctx->input_ai.ch_cfg = ch_cfg;
-	ctx->is_planar = gf_audio_fmt_is_planar(afmt);
+	//initial config
+	if (!ctx->freq || !ctx->nb_ch || !ctx->afmt) {
+		ctx->afmt = afmt;
+		ctx->freq = sr;
+		ctx->nb_ch = nb_ch;
+		ctx->ch_cfg = ch_cfg;
+		gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, afmt, ctx->ch_cfg);
+	}
+	//input reconfig
+	if ((sr != ctx->input_ai.samplerate) || (nb_ch != ctx->input_ai.chan)
+		|| (afmt != ctx->input_ai.afmt) || (ch_cfg != ctx->input_ai.ch_cfg)
+		|| (ctx->src_is_planar != gf_audio_fmt_is_planar(afmt))
+	) {
+		ctx->input_ai.samplerate = sr;
+		ctx->input_ai.afmt = afmt;
+		ctx->input_ai.chan = nb_ch;
+		ctx->input_ai.ch_cfg = ch_cfg;
+		ctx->src_is_planar = gf_audio_fmt_is_planar(afmt);
+	}
 
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	ctx->afmt = afmt;
-	ctx->freq = sr;
-	ctx->nb_ch = nb_ch;
-	ctx->ch_cfg = ch_cfg;
-	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, afmt, ctx->ch_cfg);
 	ctx->passthrough = GF_FALSE;
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==afmt))
+	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==ctx->afmt))
 		ctx->passthrough = GF_TRUE;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->freq));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->nb_ch));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ctx->ch_cfg));
 	return GF_OK;
 }
 
@@ -298,8 +308,6 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	ctx->freq = sr;
 	ctx->nb_ch = nb_ch;
 	ctx->ch_cfg = ch_cfg;
-
-	ctx->is_planar = gf_audio_fmt_is_planar(afmt);
 
 	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, ctx->afmt, ctx->ch_cfg);
 	ctx->passthrough = GF_FALSE;
