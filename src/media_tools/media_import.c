@@ -5048,9 +5048,12 @@ restart_import:
 			}
 			/*some streams are not really nice and reuse sps idx with differnet parameters (typically
 			when concatenated bitstreams). Since we cannot put two SPS with the same idx in the decoder config, we keep them in the
-			video bitstream*/
-			if (avc.pps[idx].status == 2) {
-				copy_size = nal_size;
+			video bitstream - if same CRC for the PPS, this is the same PPS, don't copy over*/
+			if (avc.pps[idx].status > 1) {
+				u32 pps_crc = gf_crc_32(buffer, nal_size);
+				if (pps_crc != avc.pps[idx].status) {
+					copy_size = nal_size;
+				}
 			}
 
 			//always keep NAL
@@ -5059,7 +5062,7 @@ restart_import:
 				if (sample_has_slice) flush_sample = GF_TRUE;
 			} else {
 				if (avc.pps[idx].status==1) {
-					avc.pps[idx].status = 2;
+					avc.pps[idx].status = gf_crc_32(buffer, nal_size);
 					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 					slc->size = nal_size;
 					slc->id = idx;
