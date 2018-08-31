@@ -2010,6 +2010,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 
 		if (dst_tk) {
+			u32 found_dst_tk = dst_tk;
 			u32 stype = gf_isom_get_media_subtype(dest, dst_tk, 1);
 			/*we MUST have the same codec*/
 			if (gf_isom_get_media_subtype(orig, i+1, 1) != stype) dst_tk = 0;
@@ -2046,6 +2047,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 					dst_tk = merge_hevc_config(dest, tk_id, orig, i+1, force_cat);
 				}
 #endif /*GPAC_DISABLE_HEVC*/
+				else if (force_cat) {
+					dst_tk = found_dst_tk;
+				}
 			}
 		}
 
