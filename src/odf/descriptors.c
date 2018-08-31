@@ -1088,7 +1088,9 @@ GF_AV1Config *gf_odf_av1_cfg_new()
 	GF_AV1Config *cfg;
 	GF_SAFEALLOC(cfg, GF_AV1Config);
 	if (!cfg) return NULL;
-	cfg->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
+	cfg->marker = 1;
+	cfg->version = 1;
+	cfg->initial_presentation_delay_minus_one = 0;
 	cfg->obu_array = gf_list_new();
 	return cfg;
 }
@@ -1111,6 +1113,17 @@ GF_EXPORT
 GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
 {
 	u32 i = 0;
+	gf_bs_write_int(bs, cfg->marker, 1); assert(cfg->marker == 1);
+	gf_bs_write_int(bs, cfg->version, 7); assert(cfg->version == 1);
+	gf_bs_write_int(bs, cfg->seq_profile, 3);
+	gf_bs_write_int(bs, cfg->seq_level_idx_0, 5);
+	gf_bs_write_int(bs, cfg->seq_tier_0, 1);
+	gf_bs_write_int(bs, cfg->high_bitdepth, 1);
+	gf_bs_write_int(bs, cfg->twelve_bit, 1);
+	gf_bs_write_int(bs, cfg->monochrome, 1);
+	gf_bs_write_int(bs, cfg->chroma_subsampling_x, 1);
+	gf_bs_write_int(bs, cfg->chroma_subsampling_y, 1);
+	gf_bs_write_int(bs, cfg->chroma_sample_position, 2);
 	gf_bs_write_int(bs, 0, 3); /*reserved*/
 	gf_bs_write_int(bs, cfg->initial_presentation_delay_present, 1);
 	gf_bs_write_int(bs, cfg->initial_presentation_delay_minus_one, 4); /*TODO: compute initial_presentation_delay_minus_one*/
@@ -1235,7 +1248,6 @@ GF_VPConfig *gf_odf_vp_cfg_read(char *dsi, u32 dsi_size)
 	return cfg;
 }
 
-
 GF_EXPORT
 GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 {
@@ -1250,22 +1262,32 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	memset(&state, 0, sizeof(AV1State));
 	state.config = cfg;
 
+	cfg->marker = gf_bs_read_int(bs, 1);
+	cfg->version = gf_bs_read_int(bs, 7);
+	cfg->seq_profile = gf_bs_read_int(bs, 3);
+	cfg->seq_level_idx_0 = gf_bs_read_int(bs, 5);
+	cfg->seq_tier_0 = gf_bs_read_int(bs, 1);
+	cfg->high_bitdepth = gf_bs_read_int(bs, 1);
+	cfg->twelve_bit = gf_bs_read_int(bs, 1);
+	cfg->monochrome = gf_bs_read_int(bs, 1);
+	cfg->chroma_subsampling_x = gf_bs_read_int(bs, 1);
+	cfg->chroma_subsampling_y = gf_bs_read_int(bs, 1);
+	cfg->chroma_sample_position = gf_bs_read_int(bs, 2);
+
 	reserved = gf_bs_read_int(bs, 3);
-	if (reserved != 0) {
+	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] wrong avcC reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
 		gf_odf_av1_cfg_del(cfg);
 		return NULL;
 	}
-
-
 	cfg->initial_presentation_delay_present = gf_bs_read_int(bs, 1);
 	if (cfg->initial_presentation_delay_present) {
 		cfg->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
 	} else {
 		reserved = gf_bs_read_int(bs, 4);
-		cfg->initial_presentation_delay_minus_one = AV1_INITIAL_PRESENTATION_DELAY_MINUS_ONE_MAX;
+		cfg->initial_presentation_delay_minus_one = 0;
 	}
-	size -= 1;
-
+	size -= 4;
 
 	while (size) {
 		u64 pos, obu_size;

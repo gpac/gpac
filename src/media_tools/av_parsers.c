@@ -1555,20 +1555,20 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 
 static void color_config(GF_BitStream *bs, AV1State *state)
 {
-	const Bool high_bitdepth = gf_bs_read_int(bs, 1);
+	state->config->high_bitdepth = gf_bs_read_int(bs, 1);
 	state->bit_depth = 8;
-	if (state->seq_profile == 2 && high_bitdepth) {
-		const Bool twelve_bit = gf_bs_read_int(bs, 1);
-		state->bit_depth = twelve_bit ? 12 : 10;
-	} else if (state->seq_profile <= 2) {
-		state->bit_depth = high_bitdepth ? 10 : 8;
+	if (state->config->seq_profile == 2 && state->config->high_bitdepth) {
+		state->config->twelve_bit = gf_bs_read_int(bs, 1);
+		state->bit_depth = state->config->twelve_bit ? 12 : 10;
+	} else if (state->config->seq_profile <= 2) {
+		state->bit_depth = state->config->high_bitdepth ? 10 : 8;
 	}
 
-	state->mono_chrome = GF_FALSE;
-	if (state->seq_profile == 1) {
-		state->mono_chrome = 0;
+	state->config->monochrome = GF_FALSE;
+	if (state->config->seq_profile == 1) {
+		state->config->monochrome = GF_FALSE;
 	} else {
-		state->mono_chrome = gf_bs_read_int(bs, 1);
+		state->config->monochrome = gf_bs_read_int(bs, 1);
 	}
 	/*NumPlanes = mono_chrome ? 1 : 3;*/
 	state->color_description_present_flag = gf_bs_read_int(bs, 1);
@@ -1581,44 +1581,44 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 		state->transfer_characteristics = 2/*TC_UNSPECIFIED*/;
 		state->matrix_coefficients = 2/*MC_UNSPECIFIED*/;
 	}
-	if (state->mono_chrome) {
+	if (state->config->monochrome) {
 		state->color_range = gf_bs_read_int(bs, 1);
-		/*subsampling_x = 1;
-		subsampling_y = 1;
-		chroma_sample_position = CSP_UNKNOWN;
-		separate_uv_delta_q = 0;*/
+		state->config->chroma_subsampling_x = GF_TRUE;
+		state->config->chroma_subsampling_y = GF_TRUE;
+		state->config->chroma_sample_position = 0/*CSP_UNKNOWN*/;
+		/*separate_uv_delta_q = 0;*/
 		return;
 	} else if (state->color_primaries == 0/*CP_BT_709*/ &&
 		state->transfer_characteristics == 13/*TC_SRGB*/ &&
 		state->matrix_coefficients == 0/*MC_IDENTITY*/) {
-		state->color_range = 1;
-		state->chroma_subsampling_x = 0;
-		state->chroma_subsampling_y = 0;
+		state->color_range = GF_TRUE;
+		state->config->chroma_subsampling_x = GF_FALSE;
+		state->config->chroma_subsampling_y = GF_FALSE;
 	} else {
-		state->chroma_subsampling_x = GF_FALSE;
-		state->chroma_subsampling_y = GF_FALSE;
+		state->config->chroma_subsampling_x = GF_FALSE;
+		state->config->chroma_subsampling_y = GF_FALSE;
 
 		state->color_range = gf_bs_read_int(bs, 1);
-		if (state->seq_profile == 0) {
-			/*state->subsampling_x = 1;
-			state->subsampling_y = 1;*/
-		} else if (state->seq_profile == 1) {
-			/*state->subsampling_x = 0;
-			state->subsampling_y = 0;*/
+		if (state->config->seq_profile == 0) {
+			state->config->chroma_subsampling_x = GF_TRUE;
+			state->config->chroma_subsampling_y = GF_TRUE;
+		} else if (state->config->seq_profile == 1) {
+			state->config->chroma_subsampling_x = GF_FALSE;
+			state->config->chroma_subsampling_y = GF_FALSE;
 		} else {
 			if (state->bit_depth == 12) {
-				state->chroma_subsampling_x = gf_bs_read_int(bs, 1);
-				if (state->chroma_subsampling_x)
-					state->chroma_subsampling_y = gf_bs_read_int(bs, 1);
+				state->config->chroma_subsampling_x = gf_bs_read_int(bs, 1);
+				if (state->config->chroma_subsampling_x)
+					state->config->chroma_subsampling_y = gf_bs_read_int(bs, 1);
 				else
-					state->chroma_subsampling_y = 0;
+					state->config->chroma_subsampling_y = GF_FALSE;
 			} else {
-				state->chroma_subsampling_x = 1;
-				state->chroma_subsampling_y = 0;
+				state->config->chroma_subsampling_x = GF_TRUE;
+				state->config->chroma_subsampling_y = GF_FALSE;
 			}
 		}
-		if (state->chroma_subsampling_x && state->chroma_subsampling_y) {
-			state->chroma_sample_position = gf_bs_read_int(bs, 2);
+		if (state->config->chroma_subsampling_x && state->config->chroma_subsampling_y) {
+			state->config->chroma_sample_position = gf_bs_read_int(bs, 2);
 		}
 	}
 	/*separate_uv_delta_q = */gf_bs_read_int(bs, 1);
@@ -1672,7 +1672,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	u8 operating_points_cnt_minus_1, frame_width_bits_minus_1, frame_height_bits_minus_1, buffer_delay_length_minus_1 = 0;
 	Bool timing_info_present_flag, decoder_model_info_present_flag, initial_display_delay_present_flag;
 	state->frame_state.seen_seq_header = GF_TRUE;
-	state->seq_profile = gf_bs_read_int(bs, 3);
+	state->config->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);
 	if (state->reduced_still_picture_header) {
@@ -1680,7 +1680,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		decoder_model_info_present_flag = GF_FALSE;
 		initial_display_delay_present_flag = GF_FALSE;
 		operating_points_cnt_minus_1 = 0;
-		state->seq_level_idx/*[0]*/ = gf_bs_read_int(bs, 5);
+		state->config->seq_level_idx_0 = gf_bs_read_int(bs, 5);
 	} else {
 		u8 i = 0;
 		timing_info_present_flag = gf_bs_read_int(bs, 1);
@@ -1696,12 +1696,18 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		initial_display_delay_present_flag = gf_bs_read_int(bs, 1);
 		operating_points_cnt_minus_1 = gf_bs_read_int(bs, 5);
 		for (i = 0; i <= operating_points_cnt_minus_1; i++) {
+			u8 seq_level_idx_i, seq_tier = 0;
+			
 			/*operating_point_idc[i] = */gf_bs_read_int(bs, 12);
-			if (gf_bs_read_int(bs, 5) /*seq_level_idx[i]*/ > 7) {
-				/*seq_tier[i] = */gf_bs_read_int(bs, 1);
-			} else {
-				/*seq_tier[i] = 0;*/
+
+			seq_level_idx_i = gf_bs_read_int(bs, 5);
+			if (i == 0) state->config->seq_level_idx_0 = seq_level_idx_i;
+
+			if (seq_level_idx_i > 7) {
+				seq_tier = gf_bs_read_int(bs, 1);
 			}
+			if (i == 0) state->config->seq_tier_0 = seq_tier;
+
 			if (decoder_model_info_present_flag) {
 				if (gf_bs_read_int(bs, 1) /*decoder_model_present_for_this_op[i]*/) {
 					operating_parameters_info(bs, i, buffer_delay_length_minus_1);
@@ -1732,7 +1738,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		/*delta_frame_id_length_minus_2 =*/ gf_bs_read_int(bs, 4);
 		/*additional_frame_id_length_minus_1 =*/ gf_bs_read_int(bs, 3);
 	}
-	/*use_128x128_superblock =*/ gf_bs_read_int(bs, 1);
+	state->use_128x128_superblock = gf_bs_read_int(bs, 1);
 	/*enable_filter_intra =*/ gf_bs_read_int(bs, 1);
 	/*enable_intra_edge_filter =*/ gf_bs_read_int(bs, 1);
 	if (state->reduced_still_picture_header) {
@@ -1859,7 +1865,9 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 	*obu_type = gf_bs_read_int(bs, 4);
 	*obu_extension_flag = gf_bs_read_int(bs, 1);
 	*obu_has_size_field = gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 1); /*obu_reserved_1bit*/
+	if (gf_bs_read_int(bs, 1) /*obu_reserved_1bit*/) {
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	if (*obu_extension_flag) {
 		*temporal_id = gf_bs_read_int(bs, 3);
 		*spatial_id = gf_bs_read_int(bs, 2);
@@ -2180,8 +2188,125 @@ typedef enum {
 	SWITCH_FRAME = 3,
 } AV1FrameType;
 
-static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state) {
+#define MAX_TILE_WIDTH 4096
+#define MAX_TILE_AREA (4096 * 2304)
+
+#if 0
+
+static u32 aom_av1_tile_log2(u32 blkSize, u32 target)
+{
+	u32 k;
+	for (k = 0; (blkSize << k) < target; k++) {
+	}
+	return k;
+}
+
+static u32 aom_av1_ns(GF_BitStream *bs, u32 n)
+{
+	u32 v;
+	Bool extra_bit;
+	int w = (u32)(log(n)/log(2)) + 1;
+	u32 m = (1 << w) - n;
+	assert(w < 32);
+	v = gf_bs_read_int(bs, w - 1);
+	if (v < m)
+		return v;
+	extra_bit = gf_bs_read_int(bs, 1);
+	return (v << 1) - m + extra_bit;
+}
+
+static void tile_info(GF_BitStream *bs, AV1State *state)
+{
+	u32 i;
+	u32 MiCols = 2 * ((state->width + 7) >> 3);
+	u32 MiRows = 2 * ((state->height + 7) >> 3);
+	u32 sbCols = state->use_128x128_superblock ? ((MiCols + 31) >> 5) : ((MiCols + 15) >> 4);
+	u32 sbRows = state->use_128x128_superblock ? ((MiRows + 31) >> 5) : ((MiRows + 15) >> 4);
+	u32 sbShift = state->use_128x128_superblock ? 5 : 4;
+	u32 sbSize = sbShift + 2;
+	u32 maxTileWidthSb = MAX_TILE_WIDTH >> sbSize;
+	u32 maxTileAreaSb = MAX_TILE_AREA >> (2 * sbSize);
+	u32 minLog2tileCols = aom_av1_tile_log2(maxTileWidthSb, sbCols);
+	u32 maxLog2tileCols = aom_av1_tile_log2(1, MIN(sbCols, MAX_TILE_COLS));
+	u32 maxLog2tileRows = aom_av1_tile_log2(1, MIN(sbRows, MAX_TILE_ROWS));
+	u32 minLog2Tiles = MAX(minLog2tileCols, aom_av1_tile_log2(maxTileAreaSb, sbRows * sbCols));
+	Bool uniform_tile_spacing_flag = gf_bs_read_int(bs, 1);
+	if (uniform_tile_spacing_flag) {
+		u32 startSb, tileWidthSb, tileHeightSb, minLog2tileRows;
+		state->tileColsLog2 = minLog2tileCols;
+		while (state->tileColsLog2 < maxLog2tileCols) {
+			Bool increment_tile_cols_log2 = gf_bs_read_int(bs, 1);
+			if (increment_tile_cols_log2 == 1)
+				state->tileColsLog2++;
+			else
+				break;
+		}
+
+		tileWidthSb = (sbCols + (1 << state->tileColsLog2) - 1) >> state->tileColsLog2;
+		i = 0;
+		for (startSb = 0; startSb < sbCols; startSb += tileWidthSb) {
+			i += 1;
+		}
+		state->tileCols = i;
+		minLog2tileRows = MAX(minLog2Tiles - state->tileColsLog2, 0);
+		state->tileRowsLog2 = minLog2tileRows;
+		while (state->tileRowsLog2 < maxLog2tileRows) {
+			Bool increment_tile_rows_log2 = gf_bs_read_int(bs, 1);
+			if (increment_tile_rows_log2 == 1)
+				state->tileRowsLog2++;
+			else
+				break;
+		}
+
+		tileHeightSb = (sbRows + (1 << state->tileRowsLog2) - 1) >> state->tileRowsLog2;
+		i = 0;
+		for (startSb = 0; startSb < sbRows; startSb += tileHeightSb) {
+			i += 1;
+		}
+		state->tileRows = i;
+	} else {
+		u32 startSb, maxTileHeightSb, widestTileSb;
+		widestTileSb = 0;
+		startSb = 0;
+		for (i = 0; startSb < sbCols; i++) {
+			u32 maxWidth = MIN(sbCols - startSb, maxTileWidthSb);
+			u32 width_in_sbs_minus_1 = aom_av1_ns(bs, maxWidth);
+			u32 sizeSb = width_in_sbs_minus_1 + 1;
+			widestTileSb = MAX(sizeSb, widestTileSb);
+			startSb += sizeSb;
+		}
+
+		state->tileCols = i;
+		state->tileColsLog2 = aom_av1_tile_log2(1, state->tileCols);
+
+		if (minLog2Tiles > 0)
+			maxTileAreaSb = (sbRows * sbCols) >> (minLog2Tiles + 1);
+		else
+			maxTileAreaSb = sbRows * sbCols;
+		maxTileHeightSb = MAX(maxTileAreaSb / widestTileSb, 1);
+
+		startSb = 0;
+		for (i = 0; startSb < sbRows; i++) {
+			u32 maxHeight = MIN(sbRows - startSb, maxTileHeightSb);
+			u32 height_in_sbs_minus_1 = aom_av1_ns(bs, maxHeight);
+			u32 sizeSb = height_in_sbs_minus_1 + 1;
+			startSb += sizeSb;
+		}
+
+		state->tileRows = i;
+		state->tileRowsLog2 = aom_av1_tile_log2(1, state->tileRows);
+	}
+	if (state->tileColsLog2 > 0 || state->tileRowsLog2 > 0) {
+		/*context_update_tile_idcontext_update_tile_id = */gf_bs_read_int(bs, state->tileRowsLog2 + state->tileColsLog2);
+		/*tile_size_bytes_minus_1tile_size_bytes_minus_1 = */gf_bs_read_int(bs, 2);
+	}
+}
+#endif
+
+static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Bool *show_existing_frame)
+{
 	AV1StateFrame *frame_state = &state->frame_state;
+	assert(bs && state && show_existing_frame);
 	if (state->frame_id_numbers_present_flag) {
 		//idLen = (additional_frame_id_length_minus_1 + delta_frame_id_length_minus_2 + 3);
 	}
@@ -2191,8 +2316,8 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state) {
 	} else {
 		AV1FrameType frame_type;
 		Bool show_frame = GF_FALSE;
-		Bool show_existing_frame = gf_bs_read_int(bs, 1);
-		if (show_existing_frame == GF_TRUE) {
+		*show_existing_frame = gf_bs_read_int(bs, 1);
+		if (*show_existing_frame == GF_TRUE) {
 			/*frame_to_show_map_idx	f(3)
 			if (decoder_model_info_present_flag && !equal_picture_interval) {
 				temporal_point_info()
@@ -2213,6 +2338,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state) {
 		frame_type = gf_bs_read_int(bs, 2);
 		show_frame = gf_bs_read_int(bs, 1);
 		frame_state->key_frame = frame_state->seen_seq_header && show_frame && frame_type == KEY_FRAME && frame_state->seen_frame_header;
+
 	}
 }
 
@@ -2248,14 +2374,51 @@ void av1_reset_frame_state(AV1StateFrame *frame_state, Bool is_destroy)
 	}
 }
 
+static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state)
+{
+	Bool numTiles = state->tileCols * state->tileRows;
+	Bool tile_start_and_end_present_flag = GF_FALSE, tile_start_and_end_present_flagtile_start_and_end_present_flag = GF_FALSE;
+
+	if (numTiles > 1)
+		tile_start_and_end_present_flag = gf_bs_read_int(bs, 1);
+
+	if (numTiles == 1 || !tile_start_and_end_present_flag) {
+		state->frame_state.tg[0].start = 0;
+		state->frame_state.tg[0].end = numTiles - 1;
+	} else {
+		u32 tileBits = state->tileColsLog2 + state->tileRowsLog2;
+		state->frame_state.tg[state->frame_state.tg_idx].start = gf_bs_read_int(bs, tileBits);
+		state->frame_state.tg[state->frame_state.tg_idx].end = gf_bs_read_int(bs, tileBits);
+	}
+
+	state->frame_state.tg_idx++;
+	//incomplete parsing
+}
+
 static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 {
 	AV1StateFrame *frame_state = &state->frame_state;
 	if (frame_state->seen_frame_header == GF_FALSE) {
+		Bool show_existing_frame = GF_FALSE;
 		frame_state->seen_frame_header = GF_TRUE;
-		av1_parse_uncompressed_header(bs, state);
+		av1_parse_uncompressed_header(bs, state, &show_existing_frame); //TODO: av1_parse_uncompressed_header() parsing is incomplete
+#if 0
+		if (show_existing_frame) {
+			/*decode_frame_wrapup(): nothing to do*/
+			frame_state->seen_frame_header = GF_FALSE
+		} else {
+			TileNum = 0;
+			frame_state->seen_frame_header = GF_TRUE;
+		}
+#endif
 	}
-	/*parsing is voluntarily incomplete*/
+}
+
+static void av1_parse_frame(GF_BitStream *bs, AV1State *state)
+{
+//	u64 startBitPos = gf_bs_get_position(bs);
+	av1_parse_frame_header(bs, state);
+	//TODO: av1_parse_frame_header() parsing is incomplete: av1_parse_tile_group(bs, state);
 }
 
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
@@ -2276,9 +2439,9 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 	if (obu_has_size_field) {
 		*obu_size = (u32)gf_av1_leb128_read(bs, NULL);
 	} else {
-		if (*obu_size >= 1 + obu_extension_flag)
+		if (*obu_size >= 1 + obu_extension_flag) {
 			*obu_size = *obu_size - 1 - obu_extension_flag;
-		else {
+		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] computed OBU size "LLD" (input value = "LLU"). Skipping.\n", *obu_size - 1 - obu_extension_flag, *obu_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -2309,7 +2472,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 	}
 	case OBU_METADATA: {
 #if 0 //TODO + sample groups
-		const ObuMetadataType metadata_type = gf_bs_read_u16_le(bs);
+		const ObuMetadataType metadata_type = (u32)read_leb128(bs, NULL); we should check for 16 bits limit for ISOBMFF bindings, see https ://github.com/AOMediaCodec/av1-isobmff/pull/86#issuecomment-416659538
 		if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
 			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_HDR_CLL) {
@@ -2334,11 +2497,14 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	case OBU_FRAME:
-		av1_parse_frame_header(bs, state);
+		av1_parse_frame(bs, state);
 		assert(gf_bs_get_position(bs) <= pos + *obu_size);
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	case OBU_TILE_GROUP:
+		av1_parse_tile_group(bs, state);
+		assert(gf_bs_get_position(bs) <= pos + *obu_size);
+		gf_bs_seek(bs, pos + *obu_size);
 	case OBU_PADDING:
 	case OBU_TEMPORAL_DELIMITER:
 		assert(gf_bs_get_position(bs) <= pos + *obu_size);
@@ -2902,14 +3068,16 @@ Bool gf_media_avc_slice_is_IDR(AVCState *avc)
 	return gf_media_avc_slice_is_intra(avc);
 }
 
-static const struct {
+struct sar_ {
 	u32 w, h;
-} avc_sar[14] =
-{
+};
+
+static const struct sar_ avc_sar[] = {
 	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
 	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
 	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
-	{ 64, 33 }, { 160,99 },
+	{ 64, 33 }, { 160,99 }, {  4,  3 }, {  3,  2 },
+	{  2,  1 }
 };
 
 
@@ -3255,9 +3423,11 @@ static s32 gf_media_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u3
 			if (aspect_ratio_idc == 255) {
 				sps->vui.par_num = gf_bs_read_int(bs, 16); /*AR num*/
 				sps->vui.par_den = gf_bs_read_int(bs, 16); /*AR den*/
-			} else if (aspect_ratio_idc<14) {
+			} else if (aspect_ratio_idc < sizeof(avc_sar)/sizeof(struct sar_)) {
 				sps->vui.par_num = avc_sar[aspect_ratio_idc].w;
 				sps->vui.par_den = avc_sar[aspect_ratio_idc].h;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] Unknown aspect_ratio_idc: your video may have a wrong aspect ratio. Contact the GPAC team!\n"));
 			}
 		}
 		sps->vui.overscan_info_present_flag = gf_bs_read_int(bs, 1);
