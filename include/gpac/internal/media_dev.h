@@ -492,21 +492,30 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
-
+#define MAX_TILE_ROWS 64
+#define MAX_TILE_COLS 64
 typedef struct
 {
 	Bool seen_frame_header, seen_seq_header;
 	Bool key_frame;
 	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
+	struct {
+		u32 start, end;
+	} tg[MAX_TILE_ROWS*MAX_TILE_COLS];
+	u32 tg_idx;
 } AV1StateFrame;
 
 typedef struct
 {
 	Bool frame_id_numbers_present_flag;
 	Bool reduced_still_picture_header;
+	Bool decoder_model_info_present_flag;
 	u16 OperatingPointIdc;
 	u32 width, height;
 	double FPS;
+	Bool use_128x128_superblock;
+	u8 equal_picture_interval;
+	u32 tileRows, tileCols, tileRowsLog2, tileColsLog2;
 	AV1StateFrame frame_state;
 	GF_AV1Config *config;
 
