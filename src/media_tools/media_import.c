@@ -7142,12 +7142,12 @@ restart_import:
 		}
 	} else {
 		char const * const levels = gf_log_get_tools_levels();
-		e = gf_log_set_tools_levels("all@quiet");
+		e = gf_log_modify_tools_levels("all@quiet");
 		assert(e == GF_OK);
 
 		e = gf_media_aom_parse_ivf_file_header(bs, &state);
 		if (!e) {
-			gf_log_set_tools_levels(levels);
+			gf_log_modify_tools_levels(levels);
 			av1_bs_syntax = IVF;
 			if (state.FPS != FPS) {
 				gf_import_message(import, GF_OK, "AV1: detected new frame rate of %lf FPS.", state.FPS);
@@ -7155,7 +7155,7 @@ restart_import:
 				get_video_timing(FPS, &timescale, &dts_inc);
 				gf_isom_remove_track(import->dest, track_num);
 				gf_bs_seek(bs, 0);
-				gf_log_set_tools_levels(levels);
+				gf_log_modify_tools_levels(levels);
 				goto restart_import;
 			}
 			gf_import_message(import, GF_OK, "AV1: detected IVF.");
@@ -7164,18 +7164,18 @@ restart_import:
 			gf_bs_seek(bs, pos);
 			e = aom_av1_parse_temporal_unit_from_annexb(bs, &state);
 			if (!e) {
-				gf_log_set_tools_levels(levels);
+				gf_log_modify_tools_levels(levels);
 				gf_import_message(import, GF_OK, "AV1: detected Annex B.");
 				av1_bs_syntax = AnnexB;
 			} else {
 				gf_bs_seek(bs, pos);
 				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
 				if (e) {
-					gf_log_set_tools_levels(levels);
+					gf_log_modify_tools_levels(levels);
 					gf_import_message(import, GF_NOT_SUPPORTED, "AV1: couldn't guess bitstream format (IVF then Annex B then Section 5 tested).");
 					goto exit;
 				}
-				gf_log_set_tools_levels(levels);
+				gf_log_modify_tools_levels(levels);
 				gf_import_message(import, GF_OK, "AV1: detected OBUs Section 5.");
 				av1_bs_syntax = OBUs;
 			}
