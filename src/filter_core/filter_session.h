@@ -564,6 +564,7 @@ struct __gf_filter
 	Bool reconfigure_outputs;
 
 	Bool user_pid_props;
+	u32 encoder_stream_type;
 
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
