@@ -818,8 +818,13 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 {
 	char *psep;
 	u32 comp_type=0;
+	Bool is_neg = GF_FALSE;
 	const GF_PropertyValue *prop;
 
+	if (frag_name[0] == src_pid->filter->session->sep_neg) {
+		frag_name++;
+		is_neg = GF_TRUE;
+	}
 	//special case for stream types filters
 	prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
 	if (prop) {
@@ -870,6 +875,19 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 			*pid_excluded = GF_TRUE;
 			return GF_FALSE;
 		}
+	}
+	//special case for codec type filters
+	if (!strcmp(frag_name, "raw")) {
+		prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_CODECID);
+		if (prop) {
+			Bool is_eq = (prop->value.uint==GF_CODECID_RAW) ? GF_TRUE : GF_FALSE;
+			if (is_neg) is_eq = !is_eq;
+			if (is_eq) return GF_TRUE;
+			*pid_excluded = GF_TRUE;
+			return GF_FALSE;
+		}
+		//not codec ID set for pid, assume match
+		return GF_TRUE;
 	}
 
 	//generic property adressing code(or builtin name)=val
@@ -996,8 +1014,10 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 		//skip frag char
 		if (frag_name) frag_name++;
 
+		//any ID, always match
+		if (source_ids[0]=='*') { }
 		// id does not match
-		if (strncmp(id, source_ids, sublen)) {
+		else if (strncmp(id, source_ids, sublen)) {
 			source_ids += len;
 			if (last) break;
 		}
@@ -1060,6 +1080,12 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 	if (filter_inst && filter_inst->forced_caps && (filter_inst->freg==freg)) {
 		in_caps = filter_inst->forced_caps;
 		nb_in_caps = filter_inst->nb_forced_caps;
+	}
+
+	if (filter_inst && filter_inst->encoder_stream_type) {
+		const GF_PropertyValue *pid_st = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
+		if (pid_st && (pid_st->value.uint != filter_inst->encoder_stream_type))
+			return GF_FALSE;
 	}
 
 	if (priority)
@@ -2541,7 +2567,13 @@ restart:
 		}
 		//no filterID and dst expects only specific filters, continue
 		else if (filter_dst->source_ids) {
-			continue;
+			Bool pid_excluded=GF_FALSE;
+			if (filter_dst->source_ids[0]!='*')
+				continue;
+			if (!filter_source_id_match(pid, "*", filter_dst->source_ids, &pid_excluded)) {
+				if (pid_excluded && first_pass) filter_found_but_pid_excluded = GF_TRUE;
+				continue;
+			}
 		}
 
 
