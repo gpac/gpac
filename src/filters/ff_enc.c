@@ -571,14 +571,16 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		src_pck = gf_list_get(ctx->src_packets, i);
 		acts = gf_filter_pck_get_cts(src_pck);
 		adur = gf_filter_pck_get_duration(src_pck);
+
+		if ((s64) acts >= pkt.pts) {
+			break;
+		}
+
 		if (acts + adur <= (u64) ( pkt.pts + ctx->ts_shift) ) {
 			gf_list_rem(ctx->src_packets, i);
 			gf_filter_pck_unref(src_pck);
 			i--;
 			count--;
-		}
-		if ((s64) acts >= pkt.pts) {
-			break;
 		}
 		src_pck = NULL;
 	}
@@ -610,7 +612,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 static GF_Err ffenc_process(GF_Filter *filter)
 {
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
-	if (gf_filter_pid_would_block(ctx->out_pid))
+	if (!ctx->out_pid || gf_filter_pid_would_block(ctx->out_pid))
 		return GF_OK;
 	return ctx->process(filter, ctx);
 }
