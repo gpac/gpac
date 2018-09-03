@@ -181,6 +181,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 #ifndef GPAC_DISABLE_LOG
 	char tmp[GF_LOG_TOOL_MAX_NAME_SIZE];
 	const char *val = tmp;
+	if (!val_) val_ = "";
 	assert(strlen(val_) < GF_LOG_TOOL_MAX_NAME_SIZE);
 	strncpy(tmp, val_, GF_LOG_TOOL_MAX_NAME_SIZE - 1);
 	tmp[GF_LOG_TOOL_MAX_NAME_SIZE - 1] = 0;
