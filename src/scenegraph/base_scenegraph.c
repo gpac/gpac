@@ -1065,14 +1065,14 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 				return;
 			}
 		}
-		/*if no rendering node, check if the proto is fully instanciated (externProto)*/
+		/*if no rendering node, check if the proto is fully instantiated (externProto)*/
 		else {
 			GF_ProtoInstance *proto_inst = (GF_ProtoInstance *) node;
 			gf_node_dirty_clear(node, 0);
 			/*proto has been deleted or dummy proto (without node code)*/
 			if (!proto_inst->proto_interface || (proto_inst->flags & GF_SG_PROTO_LOADED) ) return;
 			/*try to load the code*/
-			gf_sg_proto_instanciate(proto_inst);
+			gf_sg_proto_instantiate(proto_inst);
 
 			/*if user callback is set, this is an hardcoded proto. If not, locate the first traversable node*/
 			if (!node->sgprivate->UserCallback) {
