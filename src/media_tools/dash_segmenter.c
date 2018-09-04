@@ -219,7 +219,7 @@ struct _dash_segment_input
 	u32 x, y, w, h;
 
 	Bool disable_inband_param_set;
-	//0: PID specified, 1 or more: specified, indicates the niumber of time the period was instanciated
+	//0: PID specified, 1 or more: specified, indicates the number of time the period was instantiated
 	u32 period_id_not_specified;
 
 	Bool init_segment_generated;

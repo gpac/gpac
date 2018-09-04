@@ -203,7 +203,7 @@ void gf_node_set_private(GF_Node*, void *);
 
 /*set traversal callback function. If a node has no associated callback, the traversing of the
 graph won't propagate below it. It is the app responsability to setup traversing functions as needed
-VRML/MPEG4:  Instanciated Protos are handled internally as well as interpolators, valuators and scripts
+VRML/MPEG4:  Instantiated Protos are handled internally as well as interpolators, valuators and scripts
 @is_destroy: set when the node is about to be destroyed
 */
 GF_Err gf_node_set_callback_function(GF_Node *, void (*NodeFunction)(GF_Node *node, void *traverse_state, Bool is_destroy) );
@@ -414,7 +414,7 @@ enum
 };
 
 /*set node callback: function called upon node creation.
-Application should instanciate the node rendering stack and any desired callback*/
+Application should instantiate the node rendering stack and any desired callback*/
 void gf_sg_set_node_callback(GF_SceneGraph *sg, void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata) );
 
 /*get/set the root node of the graph*/

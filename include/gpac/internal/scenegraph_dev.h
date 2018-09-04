@@ -194,12 +194,12 @@ struct __tag_scene_graph
 	/*all routes available*/
 	GF_List *Routes;
 
-	/*when a proto is instanciated it creates its own scene graph. BIFS/VRML specify that the namespace is the same
+	/*when a proto is instantiated it creates its own scene graph. BIFS/VRML specify that the namespace is the same
 	(eg cannot reuse a NodeID or route name/ID), but this could be done differently by some other stds
 	if NULL this is the main scenegraph*/
 	struct _proto_instance *pOwningProto;
 
-	/*all first-level protos of the graph (the only ones that can be instanciated in this graph)*/
+	/*all first-level protos of the graph (the only ones that can be instantiated in this graph)*/
 	GF_List *protos;
 	/*all first-level protos of the graph not currently registered - memory handling of graph only*/
 	GF_List *unregistered_protos;
@@ -527,7 +527,7 @@ GF_Err gf_sg_proto_get_field_index(GF_ProtoInstance *proto, u32 index, u32 code_
 Bool gf_sg_proto_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
 GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField);
 GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_ProtoInstance *from_inst);
-void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node);
+void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node);
 
 /*get tag of first node in proto code - used for validation only*/
 u32 gf_sg_proto_get_root_tag(GF_Proto *proto);

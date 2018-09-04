@@ -539,7 +539,7 @@ u32 gf_term_get_time(GF_Terminal *term);
 /*forces scene composition*/
 void gf_term_invalidate_compositor(GF_Terminal *term);
 
-/*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
+/*callbacks for scene graph library so that all related ESM nodes are properly instantiated*/
 void gf_term_node_callback(void *_is, u32 type, GF_Node *node, void *param);
 
 /*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos).

@@ -515,7 +515,7 @@ void gf_sg_activate_routes(GF_SceneGraph *sg);
 				proto handling
 
 	The lib allows you to construct prototype nodes as defined in VRML/MPEG4 by constructing
-	proto interfaces and instanciating them. An instanciated proto is handled as a single node for
+	proto interfaces and instantiating them. An instantiated proto is handled as a single node for
 	rendering, thus an application will never handle proto instances for rendering
 */
 
@@ -589,7 +589,7 @@ GF_Err gf_sg_proto_field_get_field(GF_ProtoFieldInterface *field, GF_FieldInfo *
 /*creates the proto interface without the proto code.*/
 GF_Node *gf_sg_proto_create_instance(GF_SceneGraph *sg, GF_Proto *proto);
 
-/*lodes code in this instance - all subprotos are automatically created, thus you must only instanciate
+/*lodes code in this instance - all subprotos are automatically created, thus you must only instantiate
 top-level protos. VRML/BIFS doesn't allow for non top-level proto instanciation in the main graph
 All nodes created in this proto will be forwarded to the app for initialization*/
 GF_Err gf_sg_proto_load_code(GF_Node *proto_inst);
