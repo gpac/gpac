@@ -7155,7 +7155,6 @@ restart_import:
 				get_video_timing(FPS, &timescale, &dts_inc);
 				gf_isom_remove_track(import->dest, track_num);
 				gf_bs_seek(bs, 0);
-				gf_log_modify_tools_levels(levels);
 				goto restart_import;
 			}
 			gf_import_message(import, GF_OK, "AV1: detected IVF.");

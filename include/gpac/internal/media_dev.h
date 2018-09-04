@@ -497,12 +497,13 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u3
 typedef struct
 {
 	Bool seen_frame_header, seen_seq_header;
-	Bool key_frame;
+	Bool key_frame, show_frame;
 	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
 	struct {
-		u32 start, end;
+		u64 bs_start;
+		u32 size;
 	} tg[MAX_TILE_ROWS*MAX_TILE_COLS];
-	u32 tg_idx;
+	u32 tile_idx;
 } AV1StateFrame;
 
 typedef struct
@@ -511,11 +512,24 @@ typedef struct
 	Bool reduced_still_picture_header;
 	Bool decoder_model_info_present_flag;
 	u16 OperatingPointIdc;
-	u32 width, height;
+	u32 width, height, UpscaledWidth;
 	double FPS;
+
 	Bool use_128x128_superblock;
+	u8 frame_width_bits_minus_1, frame_height_bits_minus_1;
 	u8 equal_picture_interval;
+	u8 delta_frame_id_length_minus_2;
+	u8 additional_frame_id_length_minus_1;
+	u8 seq_force_integer_mv;
+	u8 seq_force_screen_content_tools;
+	Bool enable_superres;
+	Bool enable_order_hint;
+	u8 OrderHintBits;
+	Bool enable_ref_frame_mvs;
+
 	u32 tileRows, tileCols, tileRowsLog2, tileColsLog2;
+	u8 tile_size_bytes; /*coding tile header size*/
+
 	AV1StateFrame frame_state;
 	GF_AV1Config *config;
 
