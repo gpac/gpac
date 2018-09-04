@@ -502,7 +502,7 @@ typedef struct
 	struct {
 		u64 bs_start;
 		u32 size;
-	} tg[MAX_TILE_ROWS*MAX_TILE_COLS];
+	} tiles[MAX_TILE_ROWS*MAX_TILE_COLS];
 	u32 tile_idx;
 } AV1StateFrame;
 

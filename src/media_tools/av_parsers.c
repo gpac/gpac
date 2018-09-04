@@ -2552,15 +2552,15 @@ static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 bs_end_o
 		Bool lastTile = TileNum == tg_end;
 		u64 pos = gf_bs_get_position(bs);
 		if (lastTile) {
-			state->frame_state.tg[state->frame_state.tile_idx].bs_start = pos;
-			state->frame_state.tg[state->frame_state.tile_idx].size = (u32)(bs_end_of_obu_position - pos);
+			state->frame_state.tiles[state->frame_state.tile_idx].bs_start = pos;
+			state->frame_state.tiles[state->frame_state.tile_idx].size = (u32)(bs_end_of_obu_position - pos);
 		} else {
 			u64 tile_size_minus_1 = aom_av1_le(bs, state->tile_size_bytes);
 			pos = gf_bs_get_position(bs);
-			state->frame_state.tg[state->frame_state.tile_idx].bs_start = pos;
-			state->frame_state.tg[state->frame_state.tile_idx].size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
+			state->frame_state.tiles[state->frame_state.tile_idx].bs_start = pos;
+			state->frame_state.tiles[state->frame_state.tile_idx].size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
 		}
-		gf_bs_seek(bs, pos + state->frame_state.tg[state->frame_state.tile_idx].size);
+		gf_bs_seek(bs, pos + state->frame_state.tiles[state->frame_state.tile_idx].size);
 		state->frame_state.tile_idx++;
 	}
 }
