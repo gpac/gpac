@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/dashcast
 
-CFLAGS= $(OPTFLAGS) -D_GNU_SOURCE -I"$(SRC_PATH)/include" -I../../ $(ffmpeg_cflags)
+CFLAGS= $(OPTFLAGS) -D_GNU_SOURCE -Wno-deprecated-declarations -I"$(SRC_PATH)/include" -I../../ $(ffmpeg_cflags)
 
 LINKFLAGS=$(GPAC_SH_FLAGS)
 

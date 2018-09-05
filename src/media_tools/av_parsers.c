@@ -1688,7 +1688,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		operating_points_cnt_minus_1 = gf_bs_read_int(bs, 5);
 		for (i = 0; i <= operating_points_cnt_minus_1; i++) {
 			u8 seq_level_idx_i, seq_tier = 0;
-			
+
 			/*operating_point_idc[i] = */gf_bs_read_int(bs, 12);
 
 			seq_level_idx_i = gf_bs_read_int(bs, 5);
@@ -2329,15 +2329,16 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Bool *show_existing_frame)
 {
 	Bool error_resilient_mode = GF_FALSE, allow_screen_content_tools = GF_FALSE, force_integer_mv = GF_FALSE;
-	Bool use_ref_frame_mvs = GF_FALSE, FrameIsIntra = GF_FALSE, frame_size_override_flag = GF_FALSE;
-	Bool disable_cdf_update = GF_FALSE, refresh_frame_flags = GF_FALSE;
+	Bool /*use_ref_frame_mvs = GF_FALSE,*/ FrameIsIntra = GF_FALSE, frame_size_override_flag = GF_FALSE;
+	Bool disable_cdf_update = GF_FALSE;
+	u8 refresh_frame_flags = 0;
 	u8 primary_ref_frame;
 	u16 idLen = 0;
 	AV1FrameType frame_type;
 	AV1StateFrame *frame_state = &state->frame_state;
-	
+
 	assert(bs && state && show_existing_frame);
-	
+
 	if (state->frame_id_numbers_present_flag) {
 		idLen = (state->additional_frame_id_length_minus_1 + state->delta_frame_id_length_minus_2 + 3);
 	}
@@ -2504,7 +2505,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 
 			/*is_motion_mode_switchable =*/ gf_bs_read_int(bs, 1);
 			if (! (error_resilient_mode || !state->enable_ref_frame_mvs) ) {
-				use_ref_frame_mvs = gf_bs_read_int(bs, 1);
+				/*use_ref_frame_mvs = */gf_bs_read_int(bs, 1);
 			}
 		}
 	}
@@ -2519,7 +2520,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 		//load_cdfs(ref_frame_idx[primary_ref_frame]);
 		//load_previous();
 	}
-			
+
 	av1_parse_tile_info(bs, state);
 
 	//incomplete parsing
@@ -2527,9 +2528,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 
 static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 bs_end_of_obu_position)
 {
-	u32 TileNum, tg_start, tg_end;
+	u32 TileNum, tg_start=0, tg_end=0;
 	Bool numTiles = state->tileCols * state->tileRows;
-	Bool tile_start_and_end_present_flag = GF_FALSE, tile_start_and_end_present_flagtile_start_and_end_present_flag = GF_FALSE;
+	Bool tile_start_and_end_present_flag = GF_FALSE;
 
 	if (numTiles > 1)
 		tile_start_and_end_present_flag = gf_bs_read_int(bs, 1);
@@ -2543,12 +2544,12 @@ static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 bs_end_o
 		/*state->frame_state.tg[state->frame_state.tg_idx].end_idx*/ tg_end = gf_bs_read_int(bs, tileBits);
 	}
 	/*state->frame_state.tg_idx++;*/
-	
+
 	gf_bs_align(bs);
 
 	for (TileNum = tg_start; TileNum <= tg_end; TileNum++) {
-		u32 tileRow = TileNum / state->tileCols;
-		u32 tileCol = TileNum % state->tileCols;
+		/*u32 tileRow = TileNum / state->tileCols;
+		u32 tileCol = TileNum % state->tileCols;*/
 		Bool lastTile = TileNum == tg_end;
 		u64 pos = gf_bs_get_position(bs);
 		if (lastTile) {
@@ -2585,7 +2586,7 @@ static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 }
 
 static void av1_parse_frame(GF_BitStream *bs, AV1State *state) {
-	u64 startBitPos = gf_bs_get_position(bs);
+	/*u64 startBitPos = */gf_bs_get_position(bs);
 	av1_parse_frame_header(bs, state);
 	//TODO: av1_parse_frame_header() parsing is incomplete: av1_parse_tile_group(bs, state);
 }
