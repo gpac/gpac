@@ -22,8 +22,8 @@
 		285DBBA21712C80E00AF2B9B /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9D1712C80E00AF2B9B /* libavutil.a */; };
 		285DBBA41712C80E00AF2B9B /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9F1712C80E00AF2B9B /* libswscale.a */; };
 		2897039C1A13C4050063E9C0 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2897039B1A13C4050063E9C0 /* libswresample.a */; };
-		28F2240417D6367000E9D2BE /* ffmpeg_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240317D6367000E9D2BE /* ffmpeg_decode.c */; };
-		28F2240617D6369700E9D2BE /* ffmpeg_demux.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240517D6369700E9D2BE /* ffmpeg_demux.c */; };
+		28F2240417D6367000E9D2BE /* ffmpeg_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240317D6367000E9D2BE /* ffmpeg_decode.c */; settings = {COMPILER_FLAGS = "-Wno-deprecated-declarations"; }; };
+		28F2240617D6369700E9D2BE /* ffmpeg_demux.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240517D6369700E9D2BE /* ffmpeg_demux.c */; settings = {COMPILER_FLAGS = "-Wno-deprecated-declarations -Wno-shorten-64-to-32"; }; };
 		28F2240A17D636DA00E9D2BE /* ffmpeg_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240917D636DA00E9D2BE /* ffmpeg_load.c */; };
 		7141FF301292CB9200FCB27D /* alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7141FF2F1292CB9200FCB27D /* alloc.c */; };
 		7147426012B918C900DB5A59 /* cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 7147425F12B918C900DB5A59 /* cache.c */; };
