@@ -963,7 +963,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			GF_BitStream *bs = NULL;
 			char *epb_rem_bytes;
 
-			//check if we have EP bytes in the payload (theu could be in slice header)
+			//check if we have EP bytes in the payload (they could be in slice header)
 			nb_epb_count = gf_media_nalu_emulation_bytes_remove_count(samp_data + nal_start, nal_size);
 			if (nb_epb_count) {
 				epb_rem_bytes = gf_malloc(sizeof(char) * nal_size);
@@ -999,9 +999,11 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 				gf_free(epb_rem_bytes);
 
 				//check if we have EP bytes in slice header
-				nb_epb_count = gf_media_nalu_emulation_bytes_remove_count(samp_data + nal_start, clear_bytes);
-				if (nb_epb_count)
-					clear_bytes += nb_epb_count;
+				if (clear_bytes < nal_size) {
+					nb_epb_count = gf_media_nalu_emulation_bytes_remove_count(samp_data + nal_start, clear_bytes);
+					if (nb_epb_count)
+						clear_bytes += nb_epb_count;
+				}
 			}
 		} else {
 #if !defined(GPAC_DISABLE_HEVC)
@@ -1061,6 +1063,11 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				nalu_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
 				if (nalu_size == 0) {
 					continue;
+				}
+				if (nalu_size > gf_bs_available(plaintext_bs) ) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] NAL size %d larger than bytes remaining in sample\n", nalu_size ));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
 				}
 
 	 			clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nalu_size, bytes_in_nalhr);
