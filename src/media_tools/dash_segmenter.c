@@ -2322,7 +2322,7 @@ restart_fragmentation_pass:
 					}
 					if (is_split) {
 						if (!next_sample_rap) {
-							GF_LOG(dasher->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for track ID %d but sample %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, tf->TrackID, tf->SampleNum));
+							GF_LOG(dasher->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for track ID %d but sample %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, tf->TrackID, tf->SampleNum+1));
 							if (dasher->strict_cues) {
 								e = GF_BAD_PARAM;
 								goto err_exit;
