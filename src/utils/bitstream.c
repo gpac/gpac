@@ -537,25 +537,34 @@ static void BS_WriteBit(GF_BitStream *bs, u32 bit)
 }
 
 GF_EXPORT
-void gf_bs_write_int(GF_BitStream *bs, s32 value, s32 nBits)
+void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 {
-	value <<= sizeof (s32) * 8 - nBits;
+	//move to unsigned to avoid sanitizer warnings when we pass a value not codable on the given number of bits
+	//we do this when setting bit fileds to all 1's
+	u32 value = (u32) _value;
+	u32 nb_shift = sizeof (s32) * 8 - nBits;
+	if (nb_shift)
+		value <<= nb_shift;
+
 	while (--nBits >= 0) {
-		BS_WriteBit (bs, value < 0);
+		//but check value as signed
+		BS_WriteBit (bs, ((s32)value) < 0);
 		value <<= 1;
 	}
 }
 
 GF_EXPORT
-void gf_bs_write_long_int(GF_BitStream *bs, s64 value, s32 nBits)
+void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 {
 	if (nBits>64) {
 		gf_bs_write_int(bs, 0, nBits-64);
-		gf_bs_write_long_int(bs, value, 64);
+		gf_bs_write_long_int(bs, _value, 64);
 	} else {
+		//cf note in gf_bs_write_int
+		u64 value = (u64) _value;
 		value <<= sizeof (s64) * 8 - nBits;
 		while (--nBits >= 0) {
-			BS_WriteBit (bs, value < 0);
+			BS_WriteBit (bs, ((s64)value) < 0);
 			value <<= 1;
 		}
 	}

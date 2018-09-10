@@ -182,7 +182,9 @@ void isor_check_buffer_level(ISOMReader *read)
 			} else {
 				do_buffer = ch->buffering;
 			}
-			buffer_level = (u32) ( (done - data_offset) / mov_rate * 1000);
+			buffer_level = 0;
+			if (done > data_offset)
+				buffer_level = (u32) ( (done - data_offset) / mov_rate * 1000);
 #else
 			//we only send buffer on/off based on remainging playback time in channel
 			time_remain_ch -= (samp->DTS + samp->CTS_Offset);
