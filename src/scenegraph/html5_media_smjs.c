@@ -500,7 +500,7 @@ void html_media_element_js_finalize(JSContext *c, GF_Node *n)
  *  \param sg the scene graph
  */
 void gf_html_media_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg) {
-	if (!sg || !target) return;
+	if (!sg || !target || !html_media_rt) return;
 	if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
 	        GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ) {
 		GF_Node *n = (GF_Node *)SMJS_GET_PRIVATE(c, obj);
