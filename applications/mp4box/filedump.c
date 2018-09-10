@@ -802,12 +802,14 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 #endif
 
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bool skip_offset)
+void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
 {
 	u32 i, j, k, count;
 	Bool has_error;
 	FILE *dump;
 	char szBuf[1024];
+	Bool skip_offset = ((dump_mode==2) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
+	Bool check_ts = ((dump_mode==3) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
 
 	if (inName) {
 		strcpy(szBuf, inName);
@@ -868,7 +870,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 
 			gf_isom_sample_del(&samp);
 
-			if (has_cts_offset) {
+			if (has_cts_offset && check_ts) {
 				for (k=0; k<count; k++) {
 					u64 adts, acts;
 					if (k==j) continue;
@@ -890,10 +892,10 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 			}
 
 			fprintf(dump, "\n");
-			gf_set_progress("Analysing Track Timing", j+1, count);
+			gf_set_progress("Dumping track timing", j+1, count);
 		}
 		fprintf(dump, "\n\n");
-		gf_set_progress("Analysing Track Timing", count, count);
+		gf_set_progress("Dumping track timing", count, count);
 	}
 	if (inName) gf_fclose(dump);
 	if (has_error) fprintf(stderr, "\tFile has CTTS table errors\n");

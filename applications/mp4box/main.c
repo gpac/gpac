@@ -120,7 +120,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name);
 void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bool skip_offset);
+void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode);
 void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
@@ -775,6 +775,8 @@ void PrintDumpUsage()
 	        " -drtp                rtp hint samples structure to XML output\n"
 	        " -dts                 prints sample timing, size and position in file to text output\n"
 	        " -dtsx                same as -dts but does not print offset\n"
+	        " -dtsc                same as -dts but analyse each sample for duplicated dts/cts - slow !\n"
+	        " -dtsxc               same as -dtsc does not print offset - slow !\n"
 	        " -dnal trackID        prints NAL sample info of given track\n"
 	        " -dnalc trackID       prints NAL sample info of given track, adding CRC for each nal\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
@@ -3186,6 +3188,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dtsx")) {
 			dump_timestamps = 2;
 		}
+		else if (!stricmp(arg, "-dtsc")) {
+			dump_timestamps = 3;
+		}
+		else if (!stricmp(arg, "-dtsxc")) {
+			dump_timestamps = 4;
+		}
 		else if (!stricmp(arg, "-dnal")) {
 			CHECK_NEXT_ARG
 			dump_nal = atoi(argv[i + 1]);
@@ -4589,7 +4597,7 @@ int mp4boxMain(int argc, char **argv)
 
 #endif
 
-	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_timestamps==2) ? GF_TRUE : GF_FALSE);
+	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_timestamps);
 	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_crc);
 
 	if (do_hash) {
