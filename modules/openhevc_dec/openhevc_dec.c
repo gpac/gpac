@@ -611,6 +611,11 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		} else if ( chromat_format == OH_YUV444 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3;
 		}
+		//force top/bottom output of left and right frame, double height
+		if ((ctx->cur_layer==2)  && !ctx->direct_output && (ctx->nb_views>1 || ctx->force_stereo) ){
+			ctx->out_size *= 2;
+		}
+
 		ctx->had_pic = GF_TRUE;
 		ctx->luma_bpp = ctx->chroma_bpp = bit_depth;
 		ctx->chroma_format_idc = chromat_format + 1;
