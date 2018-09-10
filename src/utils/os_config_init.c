@@ -312,9 +312,11 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		}
 
 #elif defined(GPAC_CONFIG_LINUX)
-		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH);
+		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH-1);
 		if (size>0) {
-			char *sep = strrchr(file_path, '/');
+			char *sep;
+			file_path[size] = 0;
+			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
 			return 1;
 		}
