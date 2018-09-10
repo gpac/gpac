@@ -118,10 +118,11 @@ GF_Channel *gf_es_new(GF_ESD *esd)
 	tmp->esd = esd;
 	tmp->es_state = GF_ESM_ES_SETUP;
 
-	nbBits = sizeof(u32) * 8 - esd->slConfig->AUSeqNumLength;
-	tmp->max_au_sn = 0xFFFFFFFF >> nbBits;
-	nbBits = sizeof(u32) * 8 - esd->slConfig->packetSeqNumLength;
-	tmp->max_pck_sn = 0xFFFFFFFF >> nbBits;
+	nbBits = esd->slConfig->AUSeqNumLength;
+	tmp->max_au_sn = ( ((u64)1) << nbBits ) - 1;
+
+	nbBits = esd->slConfig->packetSeqNumLength;
+	tmp->max_pck_sn = ( ((u64)1) << nbBits ) - 1;
 
 	tmp->skip_sl = (esd->slConfig->predefined == SLPredef_SkipSL) ? 1 : 0;
 

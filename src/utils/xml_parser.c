@@ -1241,7 +1241,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	test = gf_fopen(fileName, "rb");
 	if (!test) return GF_URL_ERROR;
 	gf_fseek(test, 0, SEEK_END);
-	assert(gf_ftell(test) < 1<<31);
+	assert(gf_ftell(test) < 0xFFFFFFFF);
 	parser->file_size = (u32) gf_ftell(test);
 	gf_fclose(test);
 
