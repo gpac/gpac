@@ -726,10 +726,8 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 			openHevcFrame_SL.data_cr = (void*) (outBuffer + 11*ctx->stride * ctx->height/4);
 		}
 
-		oh_select_view_layer(ctx->codec, 0);
-		out1 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL);
-		oh_select_view_layer(ctx->codec, 1);
-		out2 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_SL);
+		out1 = oh_output_cropped_cpy_from_layer(ctx->codec, &openHevcFrame_FL, 0);
+		out2 = oh_output_cropped_cpy_from_layer(ctx->codec, &openHevcFrame_SL, 1);
 
 		if (out1 && out2) *outBufferLength = ctx->out_size*2;
 
