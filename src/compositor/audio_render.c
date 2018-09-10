@@ -303,15 +303,15 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		}
 		if (e) return e;
 	}
-	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, in_cfg);
-	ar->audio_delay = ar->audio_out->GetAudioDelay(ar->audio_out);
-
-	ar->audio_out->SetVolume(ar->audio_out, ar->volume);
-	ar->audio_out->SetPan(ar->audio_out, ar->pan);
 
 	ar->time_at_last_config = ar->current_time;
 	ar->bytes_requested = 0;
 	ar->bytes_per_second = freq * nb_chan * nb_bits / 8;
+	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, in_cfg);
+
+	ar->audio_delay = ar->audio_out->GetAudioDelay(ar->audio_out);
+	ar->audio_out->SetVolume(ar->audio_out, ar->volume);
+	ar->audio_out->SetPan(ar->audio_out, ar->pan);
 
 	if (ar->audio_listeners) {
 		u32 k=0;
@@ -349,7 +349,8 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 {
 	u32 written;
 	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
-	if (!ar->need_reconfig) {
+	//we are configured (ar->bytes_per_second != 0) and don't need reconfig
+	if (!ar->need_reconfig && ar->bytes_per_second) {
 		u32 delay_ms = ar->disable_resync ?	0 : ar->audio_delay;
 
 		if (ar->Frozen) {
