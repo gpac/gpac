@@ -549,6 +549,11 @@ typedef struct
 	Bool color_description_present_flag;
 	u8 color_primaries, transfer_characteristics, matrix_coefficients;
 	Bool color_range;
+
+	//reset at each obu
+	Bool obu_has_size_field, obu_extension_flag;
+	u8 temporal_id, spatial_id;
+
 } AV1State;
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);
