@@ -687,6 +687,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_xml_metadata_description) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_dims_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_stxt_get_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_xml_subtitle_description) )
