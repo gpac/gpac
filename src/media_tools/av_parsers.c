@@ -2319,7 +2319,7 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 	}
 }
 
-static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Bool *show_existing_frame)
+static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 {
 	Bool error_resilient_mode = GF_FALSE, allow_screen_content_tools = GF_FALSE, force_integer_mv = GF_FALSE;
 	Bool /*use_ref_frame_mvs = GF_FALSE,*/ FrameIsIntra = GF_FALSE, frame_size_override_flag = GF_FALSE;
@@ -2329,7 +2329,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 	u16 idLen = 0;
 	AV1StateFrame *frame_state = &state->frame_state;
 
-	assert(bs && state && show_existing_frame);
+	assert(bs && state);
 
 	if (state->frame_id_numbers_present_flag) {
 		idLen = (state->additional_frame_id_length_minus_1 + state->delta_frame_id_length_minus_2 + 3);
@@ -2341,8 +2341,8 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 		frame_state->frame_type = AV1_KEY_FRAME;
 		frame_state->show_frame = GF_TRUE;
 	} else {
-		*show_existing_frame = gf_bs_read_int(bs, 1);
-		if (*show_existing_frame == GF_TRUE) {
+		state->show_existing_frame = gf_bs_read_int(bs, 1);
+		if (state->show_existing_frame == GF_TRUE) {
 			/*frame_to_show_map_idx = gf_bs_read_int(bs, 3);
 			if (state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 				temporal_point_info();
@@ -2568,11 +2568,12 @@ static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 {
 	AV1StateFrame *frame_state = &state->frame_state;
 	if (frame_state->seen_frame_header == GF_FALSE) {
-		Bool show_existing_frame = GF_FALSE;
+		state->show_existing_frame = GF_FALSE;
+		state->obu_has_frame_header = GF_TRUE;
 		frame_state->seen_frame_header = GF_TRUE;
-		av1_parse_uncompressed_header(bs, state, &show_existing_frame); //TODO: av1_parse_uncompressed_header() parsing is incomplete
+		av1_parse_uncompressed_header(bs, state); //TODO: av1_parse_uncompressed_header() parsing is incomplete
 
-		if (show_existing_frame) {
+		if (state->show_existing_frame) {
 			/*decode_frame_wrapup(): nothing to do*/
 			frame_state->seen_frame_header = GF_FALSE;
 		} else {
@@ -2606,6 +2607,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 
 	state->obu_extension_flag = state->obu_has_size_field = 0;
 	state->temporal_id = state->spatial_id = 0;
+	state->obu_has_frame_header = GF_FALSE;
 	e = av1_parse_obu_header(bs, obu_type, &state->obu_extension_flag, &state->obu_has_size_field, &state->temporal_id, &state->spatial_id);
 	if (e)
 		return e;
