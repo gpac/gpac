@@ -539,10 +539,12 @@ static void BS_WriteBit(GF_BitStream *bs, u32 bit)
 GF_EXPORT
 void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 {
+	u32 value, nb_shift;
+	if (!nBits) return;
 	//move to unsigned to avoid sanitizer warnings when we pass a value not codable on the given number of bits
 	//we do this when setting bit fileds to all 1's
-	u32 value = (u32) _value;
-	u32 nb_shift = sizeof (s32) * 8 - nBits;
+	value = (u32) _value;
+	nb_shift = sizeof (s32) * 8 - nBits;
 	if (nb_shift)
 		value <<= nb_shift;
 
