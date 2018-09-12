@@ -1502,7 +1502,7 @@ static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_leng
 #define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
 #define DUMP_OBU_INT2(_n, _v) fprintf(dump, _n"=\"%d\" ", _v);
 
-	fprintf(dump, "   <OBU number=\"%d\" size=\"%d\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID==\"%d\" spatialID==\"%d\" ", idx, (u32) obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
+	fprintf(dump, "   <OBU number=\"%d\" size=\"%d\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", idx, (u32) obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
 	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, obu_length) );
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
@@ -1536,7 +1536,11 @@ static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_leng
 		else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) fprintf(dump, "frame_type=\"switch\" ");
 
 		DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
-		DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
+		if (av1->frame_state.nb_tiles_in_obu) {
+			DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
+		} else {
+			fprintf(dump, "nb_tiles=\"unknown\" ");
+		}
 		break;
 	default:
 		break;

@@ -2528,6 +2528,8 @@ static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_star
 		tile_start_and_end_present_flag = gf_bs_read_int(bs, 1);
 
 	if (numTiles == 1 || !tile_start_and_end_present_flag) {
+		tg_start = 0;
+		tg_end = numTiles - 1;
 		/*state->frame_state.tg[0].start_idx = 0;
 		state->frame_state.tg[0].end_idx = numTiles - 1;*/
 	} else {
@@ -2554,8 +2556,11 @@ static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_star
 			state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].obu_start_offset = (u32) (pos - obu_start);
 			state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
 		}
-		gf_bs_seek(bs, pos + state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size);
+		gf_bs_skip_bytes(bs, state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size);
 		state->frame_state.nb_tiles_in_obu++;
+	}
+	if (tg_end == numTiles-1) {
+		state->frame_state.seen_frame_header = GF_FALSE;
 	}
 }
 
@@ -2566,15 +2571,14 @@ static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 		Bool show_existing_frame = GF_FALSE;
 		frame_state->seen_frame_header = GF_TRUE;
 		av1_parse_uncompressed_header(bs, state, &show_existing_frame); //TODO: av1_parse_uncompressed_header() parsing is incomplete
-#if 0
+
 		if (show_existing_frame) {
 			/*decode_frame_wrapup(): nothing to do*/
-			frame_state->seen_frame_header = GF_FALSE
+			frame_state->seen_frame_header = GF_FALSE;
 		} else {
-			TileNum = 0;
+			//TileNum = 0;
 			frame_state->seen_frame_header = GF_TRUE;
 		}
-#endif
 	}
 }
 
@@ -2583,7 +2587,11 @@ static void av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, u6
 	av1_parse_frame_header(bs, state);
 	//byte alignment
 	gf_bs_align(bs);
-	av1_parse_tile_group(bs, state, obu_start, obu_size);
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] frame_obu parsing not complete yet, can lead to errors in CENC and OBU analysis\n"));
+	//this is the correct call, but we would parse garbage since uncompressed_header is not completely done
+	//av1_parse_tile_group(bs, state, obu_start, obu_size);
+	//force frame change... remove once we fix the parsing
+	state->frame_state.seen_frame_header=GF_FALSE;
 }
 
 GF_EXPORT
