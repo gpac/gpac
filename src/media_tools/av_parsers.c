@@ -2275,7 +2275,7 @@ static void frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_overri
 		state->height = frame_height_minus_1 + 1;
 	}
 	superres_params(bs, state);
-	//compute_image_size();
+	//compute_image_size(); //no bits
 }
 
 static void render_size(GF_BitStream *bs)
@@ -2526,7 +2526,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 	//incomplete parsing
 }
 
-static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 bs_end_of_obu_position)
+static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
 	u32 TileNum, tg_start=0, tg_end=0;
 	Bool numTiles = state->tileCols * state->tileRows;
@@ -2547,22 +2547,23 @@ static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 bs_end_o
 
 	gf_bs_align(bs);
 
+	state->frame_state.nb_tiles_in_obu = 0;
 	for (TileNum = tg_start; TileNum <= tg_end; TileNum++) {
 		/*u32 tileRow = TileNum / state->tileCols;
 		u32 tileCol = TileNum % state->tileCols;*/
 		Bool lastTile = TileNum == tg_end;
 		u64 pos = gf_bs_get_position(bs);
 		if (lastTile) {
-			state->frame_state.tiles[state->frame_state.tile_idx].bs_start = pos;
-			state->frame_state.tiles[state->frame_state.tile_idx].size = (u32)(bs_end_of_obu_position - pos);
+			state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].obu_start_offset = (u32) (pos - obu_start);
+			state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size = (u32)(obu_size - (pos - obu_start) );
 		} else {
 			u64 tile_size_minus_1 = aom_av1_le(bs, state->tile_size_bytes);
 			pos = gf_bs_get_position(bs);
-			state->frame_state.tiles[state->frame_state.tile_idx].bs_start = pos;
-			state->frame_state.tiles[state->frame_state.tile_idx].size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
+			state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].obu_start_offset = (u32) (pos - obu_start);
+			state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
 		}
-		gf_bs_seek(bs, pos + state->frame_state.tiles[state->frame_state.tile_idx].size);
-		state->frame_state.tile_idx++;
+		gf_bs_seek(bs, pos + state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size);
+		state->frame_state.nb_tiles_in_obu++;
 	}
 }
 
@@ -2585,10 +2586,12 @@ static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 	}
 }
 
-static void av1_parse_frame(GF_BitStream *bs, AV1State *state) {
-	/*u64 startBitPos = */gf_bs_get_position(bs);
+static void av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
+{
 	av1_parse_frame_header(bs, state);
-	//TODO: av1_parse_frame_header() parsing is incomplete: av1_parse_tile_group(bs, state);
+	//byte alignment
+	gf_bs_align(bs);
+	av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
@@ -2667,12 +2670,12 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	case OBU_FRAME:
-		av1_parse_frame(bs, state);
+		av1_parse_frame(bs, state, pos, *obu_size);
 		assert(gf_bs_get_position(bs) <= pos + *obu_size);
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	case OBU_TILE_GROUP:
-		av1_parse_tile_group(bs, state, pos + *obu_size);
+		av1_parse_tile_group(bs, state, pos, *obu_size);
 		assert(gf_bs_get_position(bs) <= pos + *obu_size);
 		gf_bs_seek(bs, pos + *obu_size);
 		break;

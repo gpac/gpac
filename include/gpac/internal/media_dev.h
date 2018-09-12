@@ -500,10 +500,11 @@ typedef struct
 	Bool key_frame, show_frame;
 	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
 	struct {
-		u64 bs_start;
+		//offset in bytes after first byte of obu, including its header
+		u32 obu_start_offset;
 		u32 size;
 	} tiles[MAX_TILE_ROWS*MAX_TILE_COLS];
-	u32 tile_idx;
+	u32 nb_tiles_in_obu;
 } AV1StateFrame;
 
 typedef struct
