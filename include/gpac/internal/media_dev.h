@@ -551,7 +551,7 @@ typedef struct
 	Bool color_range;
 
 	//reset at each obu
-	Bool obu_has_size_field, obu_extension_flag;
+	Bool obu_has_size_field, obu_extension_flag, obu_has_frame_header, show_existing_frame;
 	u8 temporal_id, spatial_id;
 
 } AV1State;

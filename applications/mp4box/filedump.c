@@ -1527,15 +1527,22 @@ static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_leng
 		if (av1->reduced_still_picture_header) {
 			DUMP_OBU_INT(reduced_still_picture_header)
 		}
+		DUMP_OBU_INT2("has_uncompressed_header", av1->obu_has_frame_header);
+		if (av1->obu_has_frame_header) {
+			if (av1->frame_state.frame_type==AV1_KEY_FRAME) fprintf(dump, "frame_type=\"key\" ");
+			else if (av1->frame_state.frame_type==AV1_INTER_FRAME) fprintf(dump, "frame_type=\"inter\" ");
+			else if (av1->frame_state.frame_type==AV1_INTRA_ONLY_FRAME) fprintf(dump, "frame_type=\"intra_only\" ");
+			else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) fprintf(dump, "frame_type=\"switch\" ");
+
+			DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
+			if (av1->show_existing_frame) {
+				DUMP_OBU_INT2("show_existing_frame", av1->show_existing_frame);
+			}
+		}
 		if (obu_type==OBU_FRAME_HEADER)
 			break;
-	case OBU_TILE_GROUP:
-		if (av1->frame_state.frame_type==AV1_KEY_FRAME) fprintf(dump, "frame_type=\"key\" ");
-		else if (av1->frame_state.frame_type==AV1_INTER_FRAME) fprintf(dump, "frame_type=\"inter\" ");
-		else if (av1->frame_state.frame_type==AV1_INTRA_ONLY_FRAME) fprintf(dump, "frame_type=\"intra_only\" ");
-		else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) fprintf(dump, "frame_type=\"switch\" ");
 
-		DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
+	case OBU_TILE_GROUP:
 		if (av1->frame_state.nb_tiles_in_obu) {
 			DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
 		} else {
