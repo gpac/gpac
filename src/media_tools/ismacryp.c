@@ -1252,11 +1252,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 			if (is_nalu_video) {
 				nal_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
-				if (nal_size+1 > max_size) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*(nal_size+1));
-					memset(buffer, 0, sizeof(char)*(nal_size+1));
-					max_size = nal_size + 1;
-				}
+
 				gf_bs_write_int(cyphertext_bs, nal_size, 8*nalu_size_length);
 
 				clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nal_size, bytes_in_nalhr);
@@ -1291,6 +1287,12 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes = 0;
 					}
 				}
+			}
+			
+			if (nal_size+1 > max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*(nal_size+1));
+				memset(buffer, 0, sizeof(char)*(nal_size+1));
+				max_size = nal_size + 1;
 			}
 
 			//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
@@ -1513,6 +1515,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			is_nalu_video = GF_TRUE;
 			bytes_in_nalhr = 2;
 		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AV1) {
+			tci->av1.config = gf_isom_av1_config_get(mp4, track, 1);
 			is_av1_video = GF_TRUE;
 			bytes_in_nalhr = 2;
 		}
@@ -1766,6 +1769,7 @@ exit:
 	if (mc) gf_crypt_close(mc);
 	if (saiz_buf) gf_free(saiz_buf);
 	if (bs) gf_bs_del(bs);
+	if (tci->av1.config) gf_odf_av1_cfg_del(tci->av1.config);
 	return e;
 }
 
