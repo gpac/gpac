@@ -959,6 +959,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (tci->is_avc) {
+			s32 ret;
 			u32 ntype, nb_epb_count;
 			GF_BitStream *bs = NULL;
 			char *epb_rem_bytes;
@@ -972,7 +973,6 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			}
 			ntype = gf_bs_read_u8(bs ? bs : plaintext_bs);
 
-			gf_media_avc_parse_nalu(bs ? bs : plaintext_bs, ntype, &tci->avc);
 			ntype &= 0x1F;
 			switch (ntype) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
@@ -982,14 +982,33 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			case GF_AVC_NALU_IDR_SLICE:
 			case GF_AVC_NALU_SLICE_AUX:
 			case GF_AVC_NALU_SVC_SLICE:
-				//skip bits till alignment
-				gf_bs_align(bs ? bs : plaintext_bs);
-				if (bs) {
-					clear_bytes = (u32) gf_bs_get_position(bs);
+				ret = gf_media_avc_parse_nalu(bs ? bs : plaintext_bs, ntype, &tci->avc);
+				if (ret<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error parsing slice header, cannot get slice header size. Assuming 8 bytes is enough, but resulting file will not be compliant\n"));
+					clear_bytes = 8;
 				} else {
-					clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
+					//skip bits till alignment
+					gf_bs_align(bs ? bs : plaintext_bs);
+					if (bs) {
+						clear_bytes = (u32) gf_bs_get_position(bs);
+					} else {
+						clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
+					}
 				}
 				break;
+			case GF_AVC_NALU_SEQ_PARAM:
+				gf_media_avc_read_sps(samp_data + nal_start, nal_size, &tci->avc, 0, NULL);
+				clear_bytes = nal_size;
+				break;
+			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
+				gf_media_avc_read_sps(samp_data + nal_start, nal_size, &tci->avc, 1, NULL);
+				clear_bytes = nal_size;
+				break;
+			case GF_AVC_NALU_PIC_PARAM:
+				gf_media_avc_read_pps(samp_data + nal_start, nal_size, &tci->avc);
+				clear_bytes = nal_size;
+				break;
+
 			default:
 				clear_bytes = nal_size;
 				break;
@@ -1462,7 +1481,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 			tci->is_avc = GF_TRUE;
 
-#if !defined(GPAC_DISABLE_HEVC)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, i);
 				gf_media_avc_read_sps(slc->data, slc->size, &tci->avc, 0, NULL);
@@ -1492,7 +1511,6 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 			is_nalu_video = GF_TRUE;
-			tci->slice_header_clear = GF_TRUE;
 			bytes_in_nalhr = 2;
 		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AV1) {
 			is_av1_video = GF_TRUE;
