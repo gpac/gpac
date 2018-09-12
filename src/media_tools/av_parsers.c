@@ -2586,6 +2586,7 @@ static void av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, u6
 	av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
+GF_EXPORT
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
 {
 	GF_Err e = GF_OK;
