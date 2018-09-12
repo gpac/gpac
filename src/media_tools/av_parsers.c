@@ -2589,25 +2589,25 @@ static void av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, u6
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
 {
 	GF_Err e = GF_OK;
-	Bool obu_has_size_field = GF_FALSE, obu_extension_flag = GF_FALSE;
-	u8 temporal_id = 0, spatial_id = 0;
 	u32 hdr_size;
 	u64 pos = gf_bs_get_position(bs);
 
 	if (!bs || !obu_type || !state)
 		return GF_BAD_PARAM;
 
-	e = av1_parse_obu_header(bs, obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
+	state->obu_extension_flag = state->obu_has_size_field = 0;
+	state->temporal_id = state->spatial_id = 0;
+	e = av1_parse_obu_header(bs, obu_type, &state->obu_extension_flag, &state->obu_has_size_field, &state->temporal_id, &state->spatial_id);
 	if (e)
 		return e;
 
-	if (obu_has_size_field) {
+	if (state->obu_has_size_field) {
 		*obu_size = (u32)read_leb128(bs, NULL);
 	} else {
-		if (*obu_size >= 1 + obu_extension_flag) {
-			*obu_size = *obu_size - 1 - obu_extension_flag;
+		if (*obu_size >= 1 + state->obu_extension_flag) {
+			*obu_size = *obu_size - 1 - state->obu_extension_flag;
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] computed OBU size "LLD" (input value = "LLU"). Skipping.\n", *obu_size - 1 - obu_extension_flag, *obu_size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] computed OBU size "LLD" (input value = "LLU"). Skipping.\n", *obu_size - 1 - state->obu_extension_flag, *obu_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
@@ -2616,10 +2616,10 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 	if (obu_hdr_size) *obu_hdr_size = hdr_size;
 
 	if (*obu_type != OBU_SEQUENCE_HEADER && *obu_type != OBU_TEMPORAL_DELIMITER &&
-		state->OperatingPointIdc != 0 && obu_extension_flag == 1)
+		state->OperatingPointIdc != 0 && state->obu_extension_flag == 1)
 	{
-		u32 inTemporalLayer = (state->OperatingPointIdc >> temporal_id) & 1;
-		u32 inSpatialLayer = (state->OperatingPointIdc >> (spatial_id + 8)) & 1;
+		u32 inTemporalLayer = (state->OperatingPointIdc >> state->temporal_id) & 1;
+		u32 inSpatialLayer = (state->OperatingPointIdc >> (state->spatial_id + 8)) & 1;
 		if (!inTemporalLayer || !inSpatialLayer) {
 			*obu_type = -1;
 			gf_bs_seek(bs, pos + *obu_size);
