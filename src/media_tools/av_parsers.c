@@ -2104,13 +2104,6 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 	return e;
 }
 
-typedef enum {
-	AV1_KEY_FRAME = 0,
-	AV1_INTER_FRAME = 1,
-	AV1_INTRA_ONLY_FRAME = 2,
-	AV1_SWITCH_FRAME = 3,
-} AV1FrameType;
-
 #define AV1_NUM_REF_FRAMES 8
 #define AV1_ALL_FRAMES ((1 << AV1_NUM_REF_FRAMES) - 1)
 
@@ -2334,7 +2327,6 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 	u8 refresh_frame_flags = 0;
 	u8 primary_ref_frame;
 	u16 idLen = 0;
-	AV1FrameType frame_type;
 	AV1StateFrame *frame_state = &state->frame_state;
 
 	assert(bs && state && show_existing_frame);
@@ -2346,7 +2338,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 	if (state->reduced_still_picture_header) {
 		frame_state->key_frame = GF_TRUE;
 		FrameIsIntra = GF_TRUE;
-		frame_type = AV1_KEY_FRAME;
+		frame_state->frame_type = AV1_KEY_FRAME;
 		frame_state->show_frame = GF_TRUE;
 	} else {
 		*show_existing_frame = gf_bs_read_int(bs, 1);
@@ -2368,10 +2360,10 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 			}*/
 			return;
 		}
-		frame_type = gf_bs_read_int(bs, 2);
-		FrameIsIntra = (frame_type == AV1_INTRA_ONLY_FRAME || frame_type == AV1_KEY_FRAME);
+		frame_state->frame_type = gf_bs_read_int(bs, 2);
+		FrameIsIntra = (frame_state->frame_type == AV1_INTRA_ONLY_FRAME || frame_state->frame_type == AV1_KEY_FRAME);
 		frame_state->show_frame = gf_bs_read_int(bs, 1);
-		frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+		frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] temporal_point_info() not implemented (1)\n"));
 			assert(0);
@@ -2380,7 +2372,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 		if (!frame_state->show_frame) {
 			/*showable_frame = */gf_bs_read_int(bs, 1);
 		}
-		if (frame_type == AV1_SWITCH_FRAME || (frame_type == AV1_KEY_FRAME && frame_state->show_frame))
+		if (frame_state->frame_type == AV1_SWITCH_FRAME || (frame_state->frame_type == AV1_KEY_FRAME && frame_state->show_frame))
 			error_resilient_mode = GF_TRUE;
 		else
 			error_resilient_mode = gf_bs_read_int(bs, 1);
@@ -2407,7 +2399,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 	if (state->frame_id_numbers_present_flag) {
 		/*current_frame_id = */gf_bs_read_int(bs, idLen);
 	}
-	if (frame_type == AV1_SWITCH_FRAME)
+	if (frame_state->frame_type == AV1_SWITCH_FRAME)
 		frame_size_override_flag =  GF_TRUE;
 	else if (state->reduced_still_picture_header)
 		frame_size_override_flag = GF_FALSE;
@@ -2443,7 +2435,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 #endif
 	}
 
-	if (frame_type == AV1_SWITCH_FRAME || (frame_type == AV1_KEY_FRAME && frame_state->show_frame)) {
+	if (frame_state->frame_type == AV1_SWITCH_FRAME || (frame_state->frame_type == AV1_KEY_FRAME && frame_state->show_frame)) {
 		refresh_frame_flags  = AV1_ALL_FRAMES;
 	} else {
 		refresh_frame_flags = gf_bs_read_int(bs, 8);
@@ -2457,14 +2449,14 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Boo
 		}
 	}
 
-	if (frame_type == AV1_KEY_FRAME) {
+	if (frame_state->frame_type == AV1_KEY_FRAME) {
 		frame_size(bs, state, frame_size_override_flag);
 		render_size(bs);
 		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
 			/*allow_intrabc = */gf_bs_read_int(bs, 1);
 		}
 	} else {
-		if (frame_type == AV1_INTRA_ONLY_FRAME) {
+		if (frame_state->frame_type == AV1_INTRA_ONLY_FRAME) {
 			frame_size(bs, state, frame_size_override_flag);
 			render_size(bs);
 			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
