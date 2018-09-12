@@ -1461,13 +1461,23 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 
+void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc);
+
 void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc)
 {
+	Bool is_av1 = GF_FALSE;
+
 	FILE *dump;
 	if (inName) {
 		char szBuf[GF_MAX_PATH];
 		strcpy(szBuf, inName);
-		if (!is_final_name) sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
+		u32 track = gf_isom_get_track_by_id(file, trackID);
+
+		if (gf_isom_get_media_subtype(file, track, 1) == GF_ISOM_SUBTYPE_AV01) {
+			is_av1 = GF_TRUE;
+		}
+
+		if (!is_final_name) sprintf(szBuf, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
@@ -1476,9 +1486,151 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	} else {
 		dump = stdout;
 	}
-	dump_isom_nal_ex(file, trackID, dump, dump_crc);
+
+	if (is_av1)
+		dump_isom_obu(file, trackID, dump, dump_crc);
+	else
+		dump_isom_nal_ex(file, trackID, dump, dump_crc);
 
 	if (inName) gf_fclose(dump);
+}
+
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_length, ObuType obu_type, u32 obu_size, u32 hdr_size, Bool dump_crc)
+{
+#define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
+#define DUMP_OBU_INT2(_n, _v) fprintf(dump, _n"=\"%d\" ", _v);
+
+	fprintf(dump, "   <OBU number=\"%d\" size=\"%d\" type=\"%s\" header_size=\"%d\" ", idx, (u32) obu_size, av1_get_obu_name(obu_type), hdr_size);
+	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, obu_length) );
+	switch (obu_type) {
+	case OBU_SEQUENCE_HEADER:
+		DUMP_OBU_INT(width)
+		DUMP_OBU_INT(height)
+		DUMP_OBU_INT(bit_depth)
+		DUMP_OBU_INT(still_picture)
+		DUMP_OBU_INT(OperatingPointIdc)
+		DUMP_OBU_INT(color_range)
+		DUMP_OBU_INT(color_description_present_flag)
+		DUMP_OBU_INT(color_primaries)
+		DUMP_OBU_INT(transfer_characteristics)
+		DUMP_OBU_INT(matrix_coefficients)
+		DUMP_OBU_INT2("profile", av1->config->seq_profile)
+		DUMP_OBU_INT2("level", av1->config->seq_level_idx_0)
+		break;
+	case OBU_FRAME_HEADER:
+	case OBU_FRAME:
+		if (av1->frame_id_numbers_present_flag) {
+			DUMP_OBU_INT2("delta_frame_id_length_minus_2", av1->delta_frame_id_length_minus_2)
+		}
+		if (av1->reduced_still_picture_header) {
+			DUMP_OBU_INT(reduced_still_picture_header)
+		}
+		if (obu_type==OBU_FRAME_HEADER)
+			break;
+	case OBU_TILE_GROUP:
+		if (av1->frame_state.frame_type==AV1_KEY_FRAME) fprintf(dump, "frame_type=\"key\" ");
+		else if (av1->frame_state.frame_type==AV1_INTER_FRAME) fprintf(dump, "frame_type=\"inter\" ");
+		else if (av1->frame_state.frame_type==AV1_INTRA_ONLY_FRAME) fprintf(dump, "frame_type=\"intra_only\" ");
+		else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) fprintf(dump, "frame_type=\"switch\" ");
+
+		DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
+		DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
+		break;
+	default:
+		break;
+
+	}
+	fprintf(dump, "/>\n");
+}
+#endif
+
+void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 i, count, track, timescale;
+	AV1State av1;
+	ObuType obu_type;
+	u64 obu_size;
+	u32 hdr_size;
+	GF_BitStream *bs;
+	u32 idx;
+
+	track = gf_isom_get_track_by_id(file, trackID);
+
+	memset(&av1, 0, sizeof(AV1State));
+	av1.config = gf_isom_av1_config_get(file, track, 1);
+	if (!av1.config) {
+		fprintf(stderr, "Error: Track #%d is not AV1!\n", trackID);
+		return;
+	}
+
+	count = gf_isom_get_sample_count(file, track);
+	timescale = gf_isom_get_media_timescale(file, track);
+
+	fprintf(dump, "<OBUTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
+
+	fprintf(dump, " <OBUConfig>\n");
+
+	idx = 1;
+	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
+		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
+		bs = gf_bs_new((const char *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+		gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		dump_obu(dump, idx, &av1, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
+		gf_bs_del(bs);
+		idx++;
+	}
+	fprintf(dump, " </OBUConfig>\n");
+
+	fprintf(dump, " <OBUSamples>\n");
+
+	for (i=0; i<count; i++) {
+		u64 dts, cts;
+		u32 size;
+		char *ptr;
+		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
+		if (!samp) {
+			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
+			continue;
+		}
+		dts = samp->DTS;
+		cts = dts + (s32) samp->CTS_Offset;
+
+		fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\" >\n", i+1, dts, cts, samp->dataLength, samp->IsRAP);
+		if (cts<dts) fprintf(dump, "<!-- NEGATIVE CTS OFFSET! -->\n");
+
+		idx = 1;
+		ptr = samp->data;
+		size = samp->dataLength;
+
+		bs = gf_bs_new(ptr, size, GF_BITSTREAM_READ);
+		while (size) {
+			gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+
+			if (obu_size > size) {
+				fprintf(dump, "   <!-- OBU number %d is corrupted: size is %d but only %d remains -->\n", idx, (u32) obu_size, size);
+				break;
+			}
+
+			dump_obu(dump, idx, &av1, ptr, obu_size, obu_type, (u32) obu_size, hdr_size, dump_crc);
+			ptr += obu_size;
+			size -= obu_size;
+			idx++;
+		}
+		gf_bs_del(bs);
+		fprintf(dump, "  </Sample>\n");
+		gf_isom_sample_del(&samp);
+
+		fprintf(dump, "\n");
+		gf_set_progress("Analysing Track OBUs", i+1, count);
+	}
+	fprintf(dump, " </OBUSamples>\n");
+	fprintf(dump, "</OBUTrack>\n");
+
+	if (av1.config) gf_odf_av1_cfg_del(av1.config);
+#endif
 }
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
