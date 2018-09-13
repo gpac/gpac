@@ -3471,7 +3471,7 @@ generate_pkgconfig () {
 	echo "Description: GPAC Multimedia Framework"
 	echo "URL: http://gpac.sourceforge.net"
 	echo "Version:$version"
-	echo "Cflags: -I\${prefix}/include/gpac"
+	echo "Cflags: -I\${prefix}/include"
 	echo "Libs: -L\${libdir} -lgpac"
 }
 
