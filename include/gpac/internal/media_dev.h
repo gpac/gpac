@@ -534,14 +534,19 @@ typedef struct
 	u8 seq_force_screen_content_tools;
 	Bool enable_superres;
 	Bool enable_order_hint;
+	Bool enable_cdef;
+	Bool enable_restoration;
+	Bool enable_warped_motion;
 	u8 OrderHintBits;
 	Bool enable_ref_frame_mvs;
+	Bool film_grain_params_present;
 
 	u32 tileRows, tileCols, tileRowsLog2, tileColsLog2;
 	u8 tile_size_bytes; /*coding tile header size*/
 
 	AV1StateFrame frame_state;
 	GF_AV1Config *config;
+	Bool separate_uv_delta_q;
 
 	/*Needed for RFC6381*/
 	Bool still_picture;
