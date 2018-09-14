@@ -1578,7 +1578,7 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 		state->config->chroma_subsampling_x = GF_TRUE;
 		state->config->chroma_subsampling_y = GF_TRUE;
 		state->config->chroma_sample_position = 0/*CSP_UNKNOWN*/;
-		/*separate_uv_delta_q = 0;*/
+		state->separate_uv_delta_q = 0;
 		return;
 	} else if (state->color_primaries == 0/*CP_BT_709*/ &&
 		state->transfer_characteristics == 13/*TC_SRGB*/ &&
@@ -1613,7 +1613,7 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 			state->config->chroma_sample_position = gf_bs_read_int(bs, 2);
 		}
 	}
-	/*separate_uv_delta_q = */gf_bs_read_int(bs, 1);
+	state->separate_uv_delta_q = gf_bs_read_int(bs, 1);
 }
 
 
@@ -1735,10 +1735,10 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	if (state->reduced_still_picture_header) {
 		/*enable_interintra_compound = 0;
 		enable_masked_compound = 0;
-		enable_warped_motion = 0;
 		enable_dual_filter = 0;
 		enable_jnt_comp = 0;
 		enable_ref_frame_mvs = 0;*/
+		state->enable_warped_motion = 0;
 		state->enable_order_hint = GF_FALSE;
 		state->OrderHintBits = 0;
 		state->seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
@@ -1747,7 +1747,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		Bool seq_choose_screen_content_tools;
 		/*enable_interintra_compound =*/ gf_bs_read_int(bs, 1);
 		/*enable_masked_compound =*/ gf_bs_read_int(bs, 1);
-		/*enable_warped_motion =*/ gf_bs_read_int(bs, 1);
+		state->enable_warped_motion = gf_bs_read_int(bs, 1);
 		/*enable_dual_filter =*/ gf_bs_read_int(bs, 1);
 		state->enable_order_hint = gf_bs_read_int(bs, 1);
 		if (state->enable_order_hint) {
@@ -1785,10 +1785,10 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	}
 
 	state->enable_superres = gf_bs_read_int(bs, 1);
-	/*enable_cdef = */gf_bs_read_int(bs, 1);
-	/*enable_restoration = */gf_bs_read_int(bs, 1);
+	state->enable_cdef = gf_bs_read_int(bs, 1);
+	state->enable_restoration = gf_bs_read_int(bs, 1);
 	color_config(bs, state);
-	/*film_grain_params_present =*/ gf_bs_read_int(bs, 1);
+	state->film_grain_params_present = gf_bs_read_int(bs, 1);
 }
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
@@ -2319,14 +2319,59 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 	}
 }
 
+static s32 av1_delta_q(GF_BitStream *bs)
+{
+	Bool delta_coded = gf_bs_read_int(bs, 1);
+	s32 delta_q = 0;
+	if ( delta_coded ) {
+		u32 signMask = 1 << (7 - 1);
+		delta_q = gf_bs_read_int(bs, 7);
+		if (delta_q & signMask )
+			delta_q = delta_q - 2 * signMask;
+	}
+	return delta_q;
+}
+
+static u8 Segmentation_Feature_Bits[] = {8,6,6,6,6,3,0,0};
+static u8 Segmentation_Feature_Signed[] = { 1, 1, 1, 1, 1, 0, 0, 0 };
+
+static u8 av1_get_qindex(Bool ignoreDeltaQ, u32 segmentId, u32 base_q_idx, u32 delta_q_present, u32 CurrentQIndex, Bool segmentation_enabled, u8 *features_SEG_LVL_ALT_Q_enabled, s32 *features_SEG_LVL_ALT_Q)
+{
+	//If seg_feature_active_idx( segmentId, SEG_LVL_ALT_Q ) is equal to 1 the following ordered steps apply:
+	if (segmentation_enabled && features_SEG_LVL_ALT_Q_enabled[segmentId] ) {
+		//Set the variable data equal to FeatureData[ segmentId ][ SEG_LVL_ALT_Q ].
+		s32 data = features_SEG_LVL_ALT_Q[segmentId];
+		s32 qindex =  base_q_idx + data;
+		//If ignoreDeltaQ is equal to 0 and delta_q_present is equal to 1, set qindex equal to CurrentQIndex + data.
+		if ((ignoreDeltaQ==0) && (delta_q_present==1)) qindex = CurrentQIndex+data;
+		//Return Clip3( 0, 255, qindex ).
+		if (qindex<0) return 0;
+		else if (qindex>255) return 255;
+		else return (u8) qindex;
+	}
+	//Otherwise, if ignoreDeltaQ is equal to 0 and delta_q_present is equal to 1, return CurrentQIndex.
+	if ((ignoreDeltaQ==0) && (delta_q_present==1)) return CurrentQIndex;
+	//otherwise
+	return base_q_idx;
+}
+
+enum {
+AV1_RESTORE_NONE=0,
+AV1_RESTORE_SWITCHABLE,
+AV1_RESTORE_WIENER,
+AV1_RESTORE_SGRPROJ
+};
+
 static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 {
 	Bool error_resilient_mode = GF_FALSE, allow_screen_content_tools = GF_FALSE, force_integer_mv = GF_FALSE;
 	Bool /*use_ref_frame_mvs = GF_FALSE,*/ FrameIsIntra = GF_FALSE, frame_size_override_flag = GF_FALSE;
 	Bool disable_cdf_update = GF_FALSE;
 	u8 refresh_frame_flags = 0;
+	u8 showable_frame;
 	u8 primary_ref_frame;
 	u16 idLen = 0;
+	u32 idx;
 	AV1StateFrame *frame_state = &state->frame_state;
 
 	assert(bs && state);
@@ -2335,6 +2380,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		idLen = (state->additional_frame_id_length_minus_1 + state->delta_frame_id_length_minus_2 + 3);
 	}
 
+	showable_frame = 0;
 	if (state->reduced_still_picture_header) {
 		frame_state->key_frame = GF_TRUE;
 		FrameIsIntra = GF_TRUE;
@@ -2369,8 +2415,11 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			assert(0);
 			return;
 		}
-		if (!frame_state->show_frame) {
-			/*showable_frame = */gf_bs_read_int(bs, 1);
+		if (frame_state->show_frame) {
+			showable_frame = frame_state->frame_type != AV1_KEY_FRAME;
+
+		} else {
+			showable_frame = gf_bs_read_int(bs, 1);
 		}
 		if (frame_state->frame_type == AV1_SWITCH_FRAME || (frame_state->frame_type == AV1_KEY_FRAME && frame_state->show_frame))
 			error_resilient_mode = GF_TRUE;
@@ -2449,18 +2498,19 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		}
 	}
 
+	u8 allow_intrabc = 0;
 	if (frame_state->frame_type == AV1_KEY_FRAME) {
 		frame_size(bs, state, frame_size_override_flag);
 		render_size(bs);
 		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
-			/*allow_intrabc = */gf_bs_read_int(bs, 1);
+			allow_intrabc = gf_bs_read_int(bs, 1);
 		}
 	} else {
 		if (frame_state->frame_type == AV1_INTRA_ONLY_FRAME) {
 			frame_size(bs, state, frame_size_override_flag);
 			render_size(bs);
 			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
-				/*allow_intrabc = */gf_bs_read_int(bs, 1);
+				allow_intrabc = gf_bs_read_int(bs, 1);
 			}
 		} else {
 			u32 i = 0;
@@ -2514,8 +2564,227 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	}
 
 	av1_parse_tile_info(bs, state);
+	//quantization_params( ):
+	u8 base_q_idx = gf_bs_read_int(bs, 8);
+	s32 DeltaQUDc=0;
+	s32 DeltaQUAc=0;
+	s32 DeltaQVDc=0;
+	s32 DeltaQVAc=0;
+	s32 DeltaQYDc = av1_delta_q(bs);
+	if (! state->config->monochrome) {
+		u8 diff_uv_delta = 0;
+		if (state->separate_uv_delta_q)
+			diff_uv_delta = gf_bs_read_int(bs, 1);
 
-	//incomplete parsing
+		DeltaQUDc = av1_delta_q(bs);
+		DeltaQUAc = av1_delta_q(bs);
+		if ( diff_uv_delta ) {
+			DeltaQVDc = av1_delta_q(bs);
+			DeltaQVAc = av1_delta_q(bs);
+		}
+	}
+	if (/*using_qmatrix*/gf_bs_read_int(bs, 1)) {
+		/*qm_y = */gf_bs_read_int(bs, 4);
+		/*qm_y = */gf_bs_read_int(bs, 4);
+		if ( !state->separate_uv_delta_q ) {
+			/*qm_v = */gf_bs_read_int(bs, 4);
+		}
+	}
+
+	u8 seg_features_SEG_LVL_ALT_Q_enabled[8] = {0,0,0,0,0,0,0,0};
+	s32 seg_features_SEG_LVL_ALT_Q[8] = {0,0,0,0,0,0,0,0};
+
+	//segmentation_params( ):
+	u8 segmentation_enabled = gf_bs_read_int(bs, 1);
+	if (segmentation_enabled) {
+		u8 segmentation_update_map = 1;
+		u8 segmentation_temporal_update = 0;
+		u8 segmentation_update_data = 1;
+		if ( primary_ref_frame != AV1_PRIMARY_REF_NONE ) {
+			segmentation_update_map = gf_bs_read_int(bs, 1);
+			if ( segmentation_update_map == 1 )
+				segmentation_temporal_update = gf_bs_read_int(bs, 1);
+			segmentation_update_data = gf_bs_read_int(bs, 1);
+		}
+		if ( segmentation_update_data == 1 ) {
+			u32 i, j;
+			for (i=0; i < 8/*=MAX_SEGMENTS*/; i++) {
+				for (j=0; j < 8 /*=SEG_LVL_MAX*/; j++) {
+					if (/*feature_enabled = */gf_bs_read_int(bs, 1) == 1 ) {
+						s32 val;
+						u32 bitsToRead = Segmentation_Feature_Bits[ j ];
+						//this is SEG_LVL_ALT_Q
+						if (!j) seg_features_SEG_LVL_ALT_Q_enabled[i] = 1;
+
+						if ( Segmentation_Feature_Signed[ j ] == 1 ) {
+							val = gf_bs_read_int(bs, 1+bitsToRead);
+						} else {
+							val = gf_bs_read_int(bs, bitsToRead);
+						}
+						if (!j) seg_features_SEG_LVL_ALT_Q[i] = val;
+					}
+				}
+			}
+			//ignore all init steps
+		}
+
+	}
+
+	//delta_q_params():
+	u8 delta_q_res = 0;
+	u8 delta_q_present = 0;
+	if ( base_q_idx > 0 ) {
+		delta_q_present = gf_bs_read_int(bs, 1);
+	}
+	if ( delta_q_present ) {
+		delta_q_res = gf_bs_read_int(bs, 2);
+	}
+
+	//delta_lf_params():
+	u8 delta_lf_present = 0;
+	u8 delta_lf_res = 0;
+	u8 delta_lf_multi = 0;
+	if ( delta_q_present ) {
+		if ( !allow_intrabc) {
+			delta_lf_present = gf_bs_read_int(bs, 1);
+		}
+		if ( delta_lf_present ) {
+			delta_lf_res = gf_bs_read_int(bs, 2);
+			delta_lf_multi = gf_bs_read_int(bs, 1);
+		}
+	}
+
+	//init lossless stuff!
+	u8 CodedLossless = 1;
+	for (idx = 0; idx < 8; idx++ ) {
+		u8 qindex = av1_get_qindex(GF_TRUE, idx, base_q_idx, delta_q_present, 0/*CurrentQIndex always ignored at this level of parsin*/, segmentation_enabled, seg_features_SEG_LVL_ALT_Q_enabled, seg_features_SEG_LVL_ALT_Q);
+		Bool LosslessArray = (qindex == 0) && (DeltaQYDc == 0) && (DeltaQUAc == 0) && (DeltaQUDc == 0) && (DeltaQVAc == 0) && (DeltaQVDc == 0);
+		if (!LosslessArray)
+			CodedLossless = 0;
+	}
+	Bool AllLossless = CodedLossless && (state->width == state->UpscaledWidth );
+	
+	//loop_filter_params():
+	if (!CodedLossless && !allow_intrabc) {
+		u8 loop_filter_level_0 = gf_bs_read_int(bs, 6);
+		u8 loop_filter_level_1 = gf_bs_read_int(bs, 6);
+		if (!state->config->monochrome) {
+			if ( loop_filter_level_0 || loop_filter_level_1 ) {
+				u8 loop_filter_level_2 = gf_bs_read_int(bs, 6);
+				u8 loop_filter_level_3 = gf_bs_read_int(bs, 6);
+			}
+		}
+		u8 loop_filter_sharpness = gf_bs_read_int(bs, 3);
+		u8 loop_filter_delta_enabled = gf_bs_read_int(bs, 1);
+		if ( loop_filter_delta_enabled == 1 ) {
+			u8 loop_filter_delta_update = gf_bs_read_int(bs, 1);
+			if (loop_filter_delta_update) {
+				u32 i;
+				for ( i = 0; i < 8/*TOTAL_REFS_PER_FRAME*/; i++ ) {
+					u8 update_ref_delta = gf_bs_read_int(bs, 1);
+					if ( update_ref_delta == 1 ) {
+						u8 loop_filter_ref_deltas_i = gf_bs_read_int(bs, 1+6);
+					}
+				}
+				for ( i = 0; i < 2; i++ ) {
+					u8 update_mode_delta = gf_bs_read_int(bs, 1);
+					if (update_mode_delta) {
+						u8 loop_filter_mode_deltas_i = gf_bs_read_int(bs, 1+6);
+					}
+				}
+			}
+		}
+	}
+	//cdef_params( ):
+	if (!CodedLossless && !allow_intrabc && state->enable_cdef) {
+		u8 cdef_damping_minus_3 = gf_bs_read_int(bs, 2);
+		u8 cdef_bits = gf_bs_read_int(bs, 2);
+		u32 i, num_cd = 1<<cdef_bits;
+		for (i=0; i<num_cd; i++) {
+			u8 cdef_y_pri_strength_i = gf_bs_read_int(bs, 4);
+			u8 cdef_y_sec_strength_i = gf_bs_read_int(bs, 2);
+			if ( ! state->config->monochrome ) {
+				u8 cdef_uv_pri_strength_i = gf_bs_read_int(bs, 4);
+				u8 cdef_uv_sec_strength_i = gf_bs_read_int(bs, 2);
+			}
+		}
+	}
+
+	//lr_params( ) :
+	if (!AllLossless && !allow_intrabc && state->enable_restoration ) {
+		u32 i, nb_planes = state->config->monochrome ? 1 : 3;
+		u8 UsesLr = 0;
+		u8 usesChromaLr = 0;
+		for (i=0; i<nb_planes; i++) {
+			u8 lr_type = gf_bs_read_int(bs, 2);
+			//FrameRestorationType[i] = Remap_Lr_Type[lr_type]
+			if (lr_type != AV1_RESTORE_NONE) {
+				UsesLr = 1;
+				if ( i > 0 ) {
+					usesChromaLr = 1;
+				}
+			}
+		}
+		if ( UsesLr ) {
+			if (state->use_128x128_superblock) {
+				u8 lr_unit_shift = gf_bs_read_int(bs, 1) + 1;
+			} else {
+				u8 lr_unit_shift = gf_bs_read_int(bs, 1);
+				if (lr_unit_shift) {
+					u8 lr_unit_extra_shift = gf_bs_read_int(bs, 1);
+					lr_unit_shift += lr_unit_extra_shift;
+				}
+			}
+			if (state->config->chroma_subsampling_x && state->config->chroma_subsampling_y && usesChromaLr ) {
+				u8 lr_uv_shift = gf_bs_read_int(bs, 1);
+			}
+		}
+	}
+	//read_tx_mode():
+	if ( CodedLossless == 1 ) {
+	} else {
+		/*tx_mode_select = */gf_bs_read_int(bs, 1);
+	}
+
+	//frame_reference_mode( ):
+	u8 reference_select=0;
+	if ( FrameIsIntra ) {
+	} else {
+		reference_select = gf_bs_read_int(bs, 1);
+	}
+
+	//skip_mode_params( ):
+	u8 skipModeAllowed = 0;
+	if ( FrameIsIntra || !reference_select || !state->enable_order_hint ) {
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] skip mode parsing not implemented, can lead to errors in CENC and OBU analysis\n"));
+	}
+	if (skipModeAllowed) {
+		/*skip_mode_present = */gf_bs_read_int(bs, 1);
+	}
+
+
+	if ( FrameIsIntra || error_resilient_mode || !state->enable_warped_motion ) {
+
+	} else {
+		/*allow_warped_motion = */gf_bs_read_int(bs, 1);
+	}
+
+	/*reduced_tx = */gf_bs_read_int(bs, 1);
+
+	//global_motion_params( )
+	if (! FrameIsIntra ) {
+		//unfortunately we don't know frame references, we are NOT a decoder !!!
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] global_motion_params() parsing not implemented, can lead to errors in CENC and OBU analysis\n"));
+	}
+
+	//film_grain_params()
+	if (!state->film_grain_params_present || (!state->frame_state.show_frame && !showable_frame) ) {
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] film_grain_params() parsing not implemented, can lead to errors in CENC and OBU analysis\n"));
+	}
+
+	//end of uncompressed header !!
 }
 
 static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
@@ -2588,11 +2857,7 @@ static void av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, u6
 	av1_parse_frame_header(bs, state);
 	//byte alignment
 	gf_bs_align(bs);
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] frame_obu parsing not complete yet, can lead to errors in CENC and OBU analysis\n"));
-	//this is the correct call, but we would parse garbage since uncompressed_header is not completely done
-	//av1_parse_tile_group(bs, state, obu_start, obu_size);
-	//force frame change... remove once we fix the parsing
-	state->frame_state.seen_frame_header=GF_FALSE;
+	av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
 GF_EXPORT
