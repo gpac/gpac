@@ -43,6 +43,8 @@ typedef struct
 	Bool in_text_header;
 	//global for all tracks unless overriden
 	u32 def_crypt_type;
+
+	GF_Err parse_error;
 } GF_CryptInfo;
 
 static u32 get_crypt_type(char *cr_type)
@@ -119,6 +121,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				GF_Err e = gf_bin128_parse(att->value, tkc->key);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value in CrypTrack\n"));
+                    info->parse_error = e;
                     return;
                 }
 			}
@@ -298,6 +301,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				GF_Err e = gf_bin128_parse(att->value, tkc->KIDs[tkc->KID_count]);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse KID\n"));
+                    info->parse_error = e;
                     return;
                 }
 			}
@@ -305,6 +309,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->KID_count]);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value\n"));
+                    info->parse_error = e;
                     return;
                 }
 			}
@@ -368,6 +373,7 @@ static GF_CryptInfo *load_crypt_file(const char *file)
 	sax = gf_xml_sax_new(isma_ea_node_start, isma_ea_node_end, isma_ea_text, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);
 	gf_xml_sax_del(sax);
+	if (e>=0) e = info->parse_error;
 	if (e<0) {
 		del_crypt_info(info);
 		return NULL;
@@ -1078,7 +1084,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	while (gf_bs_available(plaintext_bs)) {
 		if (is_nalu_video || is_av1_video) {
 			u32 clear_bytes = 0;
-			u32 nb_ranges = 0;
+			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
 
 			if (is_nalu_video) {
@@ -1221,6 +1227,12 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 			}
 		} else {
+
+			if (samp->dataLength > max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*samp->dataLength);
+				max_size = samp->dataLength;
+			}
+
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
 			gf_crypt_encrypt(mc, buffer, samp->dataLength);
 			gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
@@ -1437,6 +1449,12 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			}
 		} else {
 			u32 clear_trailing;
+
+			if (samp->dataLength > max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*samp->dataLength);
+				max_size = samp->dataLength;
+			}
+
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
 			clear_trailing = samp->dataLength % 16;
 
@@ -2657,7 +2675,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	info = load_crypt_file(drm_file);
 	if (!info) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n", drm_file));
-		return GF_NOT_SUPPORTED;
+		return GF_BAD_PARAM;
 	}
 
 	e = GF_OK;
