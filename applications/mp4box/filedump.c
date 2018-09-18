@@ -1706,7 +1706,7 @@ void dump_isom_saps(GF_ISOFile *file, u32 trackID, u32 dump_saps_mode, char *inN
 			if (!dump_saps_mode || (dump_saps_mode==2)) fprintf(dump, " cts=\""LLD"\"", cts);
 			if (!dump_saps_mode || (dump_saps_mode==3)) fprintf(dump, " dts=\""LLD"\"", dts);
 		}
-		fprintf(dump, ">\n");
+		fprintf(dump, "/>\n");
 
 		gf_isom_sample_del(&samp);
 	}
