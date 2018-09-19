@@ -1078,7 +1078,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	while (gf_bs_available(plaintext_bs)) {
 		if (is_nalu_video || is_av1_video) {
 			u32 clear_bytes = 0;
-			u32 nb_ranges = 0;
+			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
 
 			if (is_nalu_video) {
@@ -1099,7 +1099,10 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				u32 hdr_size;
 				pos = gf_bs_get_position(plaintext_bs);
 				e = gf_media_aom_av1_parse_obu(plaintext_bs, &obut, &obu_size, &hdr_size, &tci->av1);
-				if (e) return e;
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n" ));
+					goto exit;
+				}
 				gf_bs_seek(plaintext_bs, pos);
 
 				nalu_size = (u32)obu_size;
@@ -1214,8 +1217,8 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				av1_tile_idx++;
 				if (av1_tile_idx) {
-					clear_bytes = tci->av1.frame_state.tiles[1].obu_start_offset - (tci->av1.frame_state.tiles[0].obu_start_offset + tci->av1.frame_state.tiles[0].size);
-					nalu_size = clear_bytes + tci->av1.frame_state.tiles[1].size;
+					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
+					nalu_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
 					//A subsample SHALL be created for each tile.
 					prev_entry = NULL;
 				}
@@ -1429,8 +1432,8 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				
 				av1_tile_idx++;
 				if (av1_tile_idx) {
-					clear_bytes = tci->av1.frame_state.tiles[1].obu_start_offset - (tci->av1.frame_state.tiles[0].obu_start_offset + tci->av1.frame_state.tiles[0].size);
-					nal_size = clear_bytes + tci->av1.frame_state.tiles[1].size;
+					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
+					nal_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
 					//A subsample SHALL be created for each tile.
 					prev_entry = NULL;
 				}

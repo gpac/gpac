@@ -514,10 +514,24 @@ typedef struct
 		u32 size;
 	} tiles[MAX_TILE_ROWS*MAX_TILE_COLS];
 	u32 nb_tiles_in_obu;
+	u8 refresh_frame_flags;
+	u8 order_hint;
+	u8 allow_high_precision_mv;
+	u8 show_existing_frame, frame_to_show_map_idx;
+	//indicates the size of the uncompressed_header syntax element. This is set back to 0 at the next OBU parsing
+	u16 uncompressed_header_bytes;
 } AV1StateFrame;
+
+#define AV1_NUM_REF_FRAMES	8
 
 typedef struct
 {
+	s32 coefs[AV1_NUM_REF_FRAMES][6];
+} AV1GMParams;
+
+typedef struct
+{
+	/*general sequence information*/
 	Bool frame_id_numbers_present_flag;
 	Bool reduced_still_picture_header;
 	Bool decoder_model_info_present_flag;
@@ -540,12 +554,15 @@ typedef struct
 	u8 OrderHintBits;
 	Bool enable_ref_frame_mvs;
 	Bool film_grain_params_present;
-
+	u8 buffer_delay_length;
+	u8 frame_presentation_time_length;
+	u32 buffer_removal_time_length;
+	u8 operating_points_count;
+	u8 decoder_model_present_for_this_op[6];
+	u8 operating_point_idc[6];
+	
 	u32 tileRows, tileCols, tileRowsLog2, tileColsLog2;
 	u8 tile_size_bytes; /*coding tile header size*/
-
-	AV1StateFrame frame_state;
-	GF_AV1Config *config;
 	Bool separate_uv_delta_q;
 
 	/*Needed for RFC6381*/
@@ -554,11 +571,25 @@ typedef struct
 	Bool color_description_present_flag;
 	u8 color_primaries, transfer_characteristics, matrix_coefficients;
 	Bool color_range;
+	/*shall not be null*/
+	GF_AV1Config *config;
 
-	//reset at each obu
-	Bool obu_has_size_field, obu_extension_flag, obu_has_frame_header, show_existing_frame;
+	/*OBU parsing state, reset at each obu*/
+	Bool obu_has_size_field, obu_extension_flag;
 	u8 temporal_id, spatial_id;
 
+	/*inter-frames state */
+	u8 RefOrderHint[AV1_NUM_REF_FRAMES];
+	u8 RefValid[AV1_NUM_REF_FRAMES];
+	u8 OrderHints[AV1_NUM_REF_FRAMES];
+
+	AV1GMParams GmParams;
+	AV1GMParams PrevGmParams;
+	AV1GMParams SavedGmParams[AV1_NUM_REF_FRAMES];
+	u8 RefFrameType[AV1_NUM_REF_FRAMES];
+
+	/*frame parsing state*/
+	AV1StateFrame frame_state;
 } AV1State;
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);
@@ -567,6 +598,9 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
 GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
+
+Bool gf_media_probe_ivf(GF_BitStream *bs);
+Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
 
 /*parses one OBU*/
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
