@@ -82,7 +82,7 @@ fi
 #test encryption of AVC with emul prev byte in non encrypted NAL
 test_begin "encryption-avc-ebp"
 
-$MP4BOX -crypt $MEDIA_DIR/encryption/cbcs.xml $EXTERNAL_MEDIA_DIR/misc/avc_sei_epb.mp4 -out $mp4file
+$MP4BOX -crypt $MEDIA_DIR/encryption/cbcs.xml $EXTERNAL_MEDIA_DIR/misc/avc_sei_epb.mp4 -out $mp4file 2> /dev/null
 #do_hash_test $mp4file "crypt-avc-epb"
 rm -f $mp4file 2> /dev/null
 
