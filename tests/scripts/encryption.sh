@@ -72,6 +72,10 @@ crypto_test_file "aac"
 $MP4BOX -add $MEDIA_DIR/auxiliary_files/counter.hvc -new $mp4file 2> /dev/null
 crypto_test_file "hevc"
 
+#AV1
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/video.av1 -new $mp4file 2> /dev/null
+crypto_test_file "av1"
+
 rm -f $mp4file 2> /dev/null
 
 
@@ -83,7 +87,7 @@ fi
 test_begin "encryption-avc-ebp"
 
 $MP4BOX -crypt $MEDIA_DIR/encryption/cbcs.xml $EXTERNAL_MEDIA_DIR/misc/avc_sei_epb.mp4 -out $mp4file 2> /dev/null
-#do_hash_test $mp4file "crypt-avc-epb"
+do_hash_test $mp4file "crypt-avc-epb"
 rm -f $mp4file 2> /dev/null
 
 test_end
