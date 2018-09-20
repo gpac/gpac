@@ -7093,6 +7093,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	memset(&state, 0, sizeof(AV1State));
 	av1_cfg = gf_odf_av1_cfg_new();
 	state.config = av1_cfg;
+	if (import->flags & GF_IMPORT_KEEP_AV1_TEMPORAL_OBU)
+		state.keep_temporal_delim = GF_TRUE;
 
 	mdia = gf_fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);

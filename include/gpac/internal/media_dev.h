@@ -531,6 +531,9 @@ typedef struct
 
 typedef struct
 {
+	/*importing options*/
+	Bool keep_temporal_delim;
+
 	/*general sequence information*/
 	Bool frame_id_numbers_present_flag;
 	Bool reduced_still_picture_header;
