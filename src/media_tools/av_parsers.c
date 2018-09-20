@@ -2540,7 +2540,7 @@ static void av1_read_global_param(AV1State *state, GF_BitStream *bs, u8 type, u8
 
 	if (val<0) {
 		val = -val;
-		state->GmParams.coefs[ref][idx] = - ( (val << precDiff) + round);
+		state->GmParams.coefs[ref][idx] = ( -(val << precDiff) + round);
 	} else {
 		state->GmParams.coefs[ref][idx] = (val << precDiff) + round;
 	}
@@ -3242,6 +3242,10 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 				if ( type == AV1_GMC_AFFINE ) {
 					av1_read_global_param(state, bs, type,ref,4);
 					av1_read_global_param(state, bs, type,ref,5);
+				} else {
+					state->GmParams.coefs[ref][4] = -state->GmParams.coefs[ref][3];
+					state->GmParams.coefs[ref][5] = state->GmParams.coefs[ref][2];
+
 				}
 			}
 			if ( type >= AV1_GMC_TRANSLATION ) {
