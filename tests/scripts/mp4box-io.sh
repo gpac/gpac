@@ -44,6 +44,14 @@ mp4_test ()
   do_hint=0 ;;
  *.jpeg )
   do_hint=0 ;;
+ *.jp2 )
+  do_hint=0 ;;
+ *.av1 )
+  do_hint=0 ;;
+ *.obu )
+  do_hint=0 ;;
+ *.ivf )
+  do_hint=0 ;;
  *.png )
   do_hint=0 ;;
  *.mj2 )
