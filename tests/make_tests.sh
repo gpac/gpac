@@ -196,6 +196,7 @@ echo "  -check:                check test suites (names of each test is unique)"
 echo "  -track-stack:          track stack in malloc and turns on -warn option"
 echo "  -noplay:               disables MP4Client tests"
 echo "  -test=NAME             only executes given test"
+echo "  -c                     alias for -sync-before -git-hash -warn -noplay. Before commit/push, you should run ./make_tests -c"
 echo "  SCRIPTS                only runs the scripts provided as arguments, by default runs everything in $SCRIPTS_DIR"
 echo "  -v:                    set verbose output"
 echo "  -h:                    print this help"
@@ -311,6 +312,12 @@ for i in $* ; do
   ;;
  "-v")
   verbose=1;;
+ "-c")
+  sync_media
+  sync_hash
+  log_after_fail=1
+  MP4CLIENT_NOT_FOUND=1
+  ;;
  "-h")
   print_usage
   exit;;
