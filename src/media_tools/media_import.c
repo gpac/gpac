@@ -7074,7 +7074,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0;
 	Bool detect_fps;
 	Double FPS = 0.0;
-	u64 pos = 0;
+	u64 fsize, pos = 0;
 	typedef enum {
 		OBUs,   /*Section 5*/
 		AnnexB,
@@ -7093,6 +7093,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	memset(&state, 0, sizeof(AV1State));
 	av1_cfg = gf_odf_av1_cfg_new();
 	state.config = av1_cfg;
+	if (import->flags & GF_IMPORT_KEEP_AV1_TEMPORAL_OBU)
+		state.keep_temporal_delim = GF_TRUE;
 
 	mdia = gf_fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
@@ -7113,7 +7115,42 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
-restart_import:
+	if (import->streamFormat) {
+		gf_import_message(import, GF_OK, "AV1: forcing format \"%s\".", import->streamFormat);
+		if (!stricmp(import->streamFormat, "obu")) {
+			av1_bs_syntax = OBUs;
+		} else if (!stricmp(import->streamFormat, "annexB")) {
+			av1_bs_syntax = AnnexB;
+		} else if (!stricmp(import->streamFormat, "ivf")) {
+			av1_bs_syntax = IVF;
+		} else {
+			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: unknown bitstream format \"%s\" found. Only \"obu\", \"annexB\" and \"ivf\" found.", import->streamFormat);
+			goto exit;
+		}
+	} else {
+		if (gf_media_probe_ivf(bs)) {
+			e = gf_media_aom_parse_ivf_file_header(bs, &state);
+			av1_bs_syntax = IVF;
+
+			if (detect_fps && (state.FPS != FPS)) {
+				import->video_fps = FPS = state.FPS;
+				get_video_timing(FPS, &timescale, &dts_inc);
+			}
+			pos = gf_bs_get_position(bs);
+		} else if (gf_media_aom_probe_annexb(bs)) {
+			aom_av1_parse_temporal_unit_from_annexb(bs, &state);
+			av1_bs_syntax = AnnexB;
+		} else {
+			gf_bs_seek(bs, pos);
+			e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
+			if (e) {
+				gf_import_message(import, GF_NOT_SUPPORTED, "AV1: couldn't guess bitstream format (IVF then Annex B then Section 5 tested).");
+				goto exit;
+			}
+			av1_bs_syntax = OBUs;
+		}
+	}
+
 	track_id = 0;
 	if (import->esd) track_id = import->esd->ESID;
 	track_num = gf_isom_new_track(import->dest, track_id, GF_ISOM_MEDIA_VISUAL, timescale);
@@ -7128,59 +7165,7 @@ restart_import:
 		gf_isom_set_track_reference(import->dest, track_num, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
 	}
 
-	if (import->streamFormat) {
-		gf_import_message(import, GF_OK, "AV1: forcing format \"%s\".", import->streamFormat);
-		if (!stricmp(import->streamFormat, "obu")) {
-			av1_bs_syntax = OBUs;
-		} else if (!stricmp(import->streamFormat, "annexB")) {
-			av1_bs_syntax = AnnexB;
-		} else if (!stricmp(import->streamFormat, "ivf")) {
-			av1_bs_syntax = IVF;
-		} else {
-			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: unknown bitstream format \"%s\" found. Only \"obu\", \"annexB\" and \"ivf\" found.", import->streamFormat);
-			goto exit;
-		}
-	} else {
-		char const * const levels = gf_log_get_tools_levels();
-		e = gf_log_modify_tools_levels("all@quiet");
-		assert(e == GF_OK);
-
-		e = gf_media_aom_parse_ivf_file_header(bs, &state);
-		if (!e) {
-			gf_log_modify_tools_levels(levels);
-			av1_bs_syntax = IVF;
-			if (detect_fps && (state.FPS != FPS)) {
-				gf_import_message(import, GF_OK, "AV1: detected new frame rate of %lf FPS.", state.FPS);
-				import->video_fps = FPS = state.FPS;
-				get_video_timing(FPS, &timescale, &dts_inc);
-				gf_isom_remove_track(import->dest, track_num);
-				gf_bs_seek(bs, 0);
-				goto restart_import;
-			}
-			gf_import_message(import, GF_OK, "AV1: detected IVF.");
-			pos = gf_bs_get_position(bs);
-		} else {
-			gf_bs_seek(bs, pos);
-			e = aom_av1_parse_temporal_unit_from_annexb(bs, &state);
-			if (!e) {
-				gf_log_modify_tools_levels(levels);
-				gf_import_message(import, GF_OK, "AV1: detected Annex B.");
-				av1_bs_syntax = AnnexB;
-			} else {
-				gf_bs_seek(bs, pos);
-				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
-				if (e) {
-					gf_log_modify_tools_levels(levels);
-					gf_import_message(import, GF_NOT_SUPPORTED, "AV1: couldn't guess bitstream format (IVF then Annex B then Section 5 tested).");
-					goto exit;
-				}
-				gf_log_modify_tools_levels(levels);
-				gf_import_message(import, GF_OK, "AV1: detected OBUs Section 5.");
-				av1_bs_syntax = OBUs;
-			}
-		}
-	}
-
+	fsize = gf_bs_get_size(bs) / 1000;
 	gf_bs_seek(bs, pos);
 	if (av1_bs_syntax == OBUs) {
 		ObuType obu_type;
@@ -7250,12 +7235,16 @@ restart_import:
 
 				e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg, NULL, NULL, &di);
 				if (e) goto exit;
+
+				gf_import_message(import, GF_OK, "Importing AV1 from %s file - size %dx%d bit-depth %d FPS %d/%d", (av1_bs_syntax == OBUs) ? "OBU section 5" : (av1_bs_syntax == AnnexB) ? "AnnexB" : "IVF", state.width, state.height, state.bit_depth, timescale, dts_inc);
+
 			} else {
 				/*safety check: we only support static metadata*/
 				if (gf_list_count(state.frame_state.header_obus) > gf_list_count(av1_cfg->obu_array)) {
 					gf_import_message(import, GF_NOT_SUPPORTED, "More header OBUs in frame state than in config");
 					goto exit;
 				}
+
 				while (gf_list_count(state.frame_state.header_obus)) {
 					u32 i = 0;
 					GF_AV1_OBUArrayEntry *a_hdr = (GF_AV1_OBUArrayEntry*)gf_list_get(state.frame_state.header_obus, 0);
@@ -7278,7 +7267,8 @@ restart_import:
 			if (e) goto exit;
 
 			gf_isom_sample_del(&samp);
-			gf_set_progress("Importing AV1", (u32)cur_samp, cur_samp + 1);
+
+			gf_set_progress("Importing AV1", (u32) gf_bs_get_position(bs)/1000, fsize);
 			cur_samp++;
 		}
 	}

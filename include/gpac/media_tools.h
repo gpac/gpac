@@ -203,7 +203,9 @@ enum
 	GF_IMPORT_NO_SEI = 1<<26,
 	/*! keeps track references when importing a single track*/
 	GF_IMPORT_KEEP_REFS = 1<<27,
-
+	/*! keeps AV1 temporal delimiter OBU in the samples*/
+	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
+	
 	/*! when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
 };
