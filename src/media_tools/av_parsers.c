@@ -1917,12 +1917,14 @@ Bool av1_is_obu_header(ObuType obu_type) {
 	}
 }
 
-static Bool av1_is_obu_frame(ObuType obu_type) {
+static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
+{
 	switch (obu_type) {
-//	case OBU_TEMPORAL_DELIMITER:
 	case OBU_PADDING:
 	case OBU_REDUNDANT_FRAME_HEADER:
 		return GF_FALSE;
+	case OBU_TEMPORAL_DELIMITER:
+		return state->keep_temporal_delim ? GF_TRUE : GF_FALSE;
 	default:
 		return GF_TRUE;
 	}
@@ -2017,7 +2019,7 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 	if (av1_is_obu_header(obu_type)) {
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus);
 	}
-	if (av1_is_obu_frame(obu_type)) {
+	if (av1_is_obu_frame(state, obu_type)) {
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.frame_obus);
 	}
 }
