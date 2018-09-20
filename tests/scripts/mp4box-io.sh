@@ -100,7 +100,7 @@ mp4_test ()
  if [ $do_play != 0 ] ; then
   #MP4 playback
   dump_dur=8
-  do_playback_test $mp4file "play" &
+  do_playback_test $mp4file "play"
  fi
 
  test_end
