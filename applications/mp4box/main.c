@@ -565,7 +565,7 @@ void PrintImportUsage()
 	        " \":profile=INT\"       overrides AVC profile\n"
 	        " \":level=INT\"         overrides AVC level\n"
 	        " \":novpsext\"          removes VPS extensions from HEVC VPS\n"
-	        " \":keepav1t\"          keeps AV1 temporal delimiter OBU in samples\n"
+	        " \":keepav1t\"          keeps AV1 temporal delimiter OBU in samples, might help if source file had losses\n"
 
 	        " \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 	        " \":size=s\"            specifies font size for text import (default 18)\n"
