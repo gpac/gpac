@@ -2067,56 +2067,58 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 {
 	Bool res = GF_TRUE;
 	u64 pos = gf_bs_get_position(bs);
-	//parse one temporal frame
 	u64 sz = read_leb128(bs, NULL);
-	u8 Leb128Bytes = 0;
-	u64 frame_unit_size = read_leb128(bs, &Leb128Bytes);
 
-	if (sz < Leb128Bytes + frame_unit_size) {
-		gf_bs_seek(bs, pos);
-		return GF_FALSE;
-	}
-	sz -= Leb128Bytes + frame_unit_size;
+	while (sz>0) {
+		u8 Leb128Bytes = 0;
+		u64 frame_unit_size = read_leb128(bs, &Leb128Bytes);
 
-	while (frame_unit_size > 0) {
-		ObuType obu_type;
-		u64 pos, obu_length = read_leb128(bs, &Leb128Bytes);
-		if (frame_unit_size < Leb128Bytes + obu_length) {
+		if (sz < Leb128Bytes + frame_unit_size) {
 			res = GF_FALSE;
 			break;
 		}
-		pos = gf_bs_get_position(bs);
-		frame_unit_size -= Leb128Bytes;
+		sz -= Leb128Bytes + frame_unit_size;
 
-		u8 tid, sid;
-		Bool extflag, has_size;
-		GF_Err e = av1_parse_obu_header(bs, &obu_type, &extflag, &has_size, &tid, &sid);
-		if (e) {
-			res = GF_FALSE;
-			break;
-		}
-
-		if (has_size) {
-			obu_length = (u32)read_leb128(bs, NULL);
-		} else {
-			if (obu_length >= 1 + extflag) {
-				obu_length = obu_length - 1 - extflag;
-			} else {
+		while (frame_unit_size > 0) {
+			ObuType obu_type;
+			u64 pos, obu_length = read_leb128(bs, &Leb128Bytes);
+			if (frame_unit_size < Leb128Bytes + obu_length) {
 				res = GF_FALSE;
 				break;
 			}
-		}
-		u32 hdr_size = (u32) (gf_bs_get_position(bs) - pos);
-		obu_length += hdr_size;
+			pos = gf_bs_get_position(bs);
+			frame_unit_size -= Leb128Bytes;
 
-		if (frame_unit_size < obu_length) {
-			res = GF_FALSE;
-			break;
+			u8 tid, sid;
+			Bool extflag, has_size;
+			GF_Err e = av1_parse_obu_header(bs, &obu_type, &extflag, &has_size, &tid, &sid);
+			if (e) {
+				res = GF_FALSE;
+				break;
+			}
+
+			if (has_size) {
+				obu_length = (u32)read_leb128(bs, NULL);
+			} else {
+				if (obu_length >= 1 + extflag) {
+					obu_length = obu_length - 1 - extflag;
+				} else {
+					res = GF_FALSE;
+					break;
+				}
+			}
+			u32 hdr_size = (u32) (gf_bs_get_position(bs) - pos);
+			obu_length += hdr_size;
+
+			if (frame_unit_size < obu_length) {
+				res = GF_FALSE;
+				break;
+			}
+			frame_unit_size -= obu_length;
+			gf_bs_skip_bytes(bs, obu_length - hdr_size);
 		}
-		frame_unit_size -= obu_length;
-		gf_bs_skip_bytes(bs, obu_length - hdr_size);
+		if (!res) break;
 	}
-
 	gf_bs_seek(bs, pos);
 	return res;
 }
