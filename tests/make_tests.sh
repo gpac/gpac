@@ -1609,6 +1609,12 @@ if [ $strict_mode = 1 ] ; then
   break
  fi
 fi
+
+#cleanup temp dir
+if [ $erase_temp_dir != 0 ] ; then
+   rm -rf $TEMP_DIR/* 2> /dev/null
+fi
+
 done
 
 
