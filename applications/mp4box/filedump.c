@@ -802,12 +802,14 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 #endif
 
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bool skip_offset)
+void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
 {
 	u32 i, j, k, count;
 	Bool has_error;
 	FILE *dump;
 	char szBuf[1024];
+	Bool skip_offset = ((dump_mode==2) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
+	Bool check_ts = ((dump_mode==3) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
 
 	if (inName) {
 		strcpy(szBuf, inName);
@@ -868,7 +870,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 
 			gf_isom_sample_del(&samp);
 
-			if (has_cts_offset) {
+			if (has_cts_offset && check_ts) {
 				for (k=0; k<count; k++) {
 					u64 adts, acts;
 					if (k==j) continue;
@@ -890,10 +892,10 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 			}
 
 			fprintf(dump, "\n");
-			gf_set_progress("Analysing Track Timing", j+1, count);
+			gf_set_progress("Dumping track timing", j+1, count);
 		}
 		fprintf(dump, "\n\n");
-		gf_set_progress("Analysing Track Timing", count, count);
+		gf_set_progress("Dumping track timing", count, count);
 	}
 	if (inName) gf_fclose(dump);
 	if (has_error) fprintf(stderr, "\tFile has CTTS table errors\n");
@@ -1460,13 +1462,23 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 
+void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc);
+
 void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc)
 {
+	Bool is_av1 = GF_FALSE;
+
 	FILE *dump;
 	if (inName) {
 		char szBuf[GF_MAX_PATH];
 		strcpy(szBuf, inName);
-		if (!is_final_name) sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
+		u32 track = gf_isom_get_track_by_id(file, trackID);
+
+		if (gf_isom_get_media_subtype(file, track, 1) == GF_ISOM_SUBTYPE_AV01) {
+			is_av1 = GF_TRUE;
+		}
+
+		if (!is_final_name) sprintf(szBuf, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
@@ -1475,8 +1487,232 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	} else {
 		dump = stdout;
 	}
-	dump_isom_nal_ex(file, trackID, dump, dump_crc);
 
+	if (is_av1)
+		dump_isom_obu(file, trackID, dump, dump_crc);
+	else
+		dump_isom_nal_ex(file, trackID, dump, dump_crc);
+
+	if (inName) gf_fclose(dump);
+}
+
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_length, ObuType obu_type, u32 obu_size, u32 hdr_size, Bool dump_crc)
+{
+#define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
+#define DUMP_OBU_INT2(_n, _v) fprintf(dump, _n"=\"%d\" ", _v);
+
+	fprintf(dump, "   <OBU number=\"%d\" size=\"%d\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", idx, (u32) obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
+	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, obu_length) );
+	switch (obu_type) {
+	case OBU_SEQUENCE_HEADER:
+		DUMP_OBU_INT(width)
+		DUMP_OBU_INT(height)
+		DUMP_OBU_INT(bit_depth)
+		DUMP_OBU_INT(still_picture)
+		DUMP_OBU_INT(OperatingPointIdc)
+		DUMP_OBU_INT(color_range)
+		DUMP_OBU_INT(color_description_present_flag)
+		DUMP_OBU_INT(color_primaries)
+		DUMP_OBU_INT(transfer_characteristics)
+		DUMP_OBU_INT(matrix_coefficients)
+		DUMP_OBU_INT2("profile", av1->config->seq_profile)
+		DUMP_OBU_INT2("level", av1->config->seq_level_idx_0)
+		break;
+	case OBU_FRAME_HEADER:
+	case OBU_FRAME:
+		if (av1->frame_id_numbers_present_flag) {
+			DUMP_OBU_INT2("delta_frame_id_length_minus_2", av1->delta_frame_id_length_minus_2)
+		}
+		if (av1->reduced_still_picture_header) {
+			DUMP_OBU_INT(reduced_still_picture_header)
+		}
+		DUMP_OBU_INT2("uncompressed_header_bytes", av1->frame_state.uncompressed_header_bytes);
+		if (av1->frame_state.uncompressed_header_bytes) {
+			if (av1->frame_state.frame_type==AV1_KEY_FRAME) fprintf(dump, "frame_type=\"key\" ");
+			else if (av1->frame_state.frame_type==AV1_INTER_FRAME) fprintf(dump, "frame_type=\"inter\" ");
+			else if (av1->frame_state.frame_type==AV1_INTRA_ONLY_FRAME) fprintf(dump, "frame_type=\"intra_only\" ");
+			else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) fprintf(dump, "frame_type=\"switch\" ");
+
+			DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
+			if (av1->frame_state.show_existing_frame) {
+				DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
+			}
+		}
+		if (obu_type==OBU_FRAME_HEADER)
+			break;
+
+	case OBU_TILE_GROUP:
+		if (av1->frame_state.nb_tiles_in_obu) {
+			DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
+		} else {
+			fprintf(dump, "nb_tiles=\"unknown\" ");
+		}
+		break;
+	default:
+		break;
+
+	}
+	fprintf(dump, "/>\n");
+}
+#endif
+
+void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 i, count, track, timescale;
+	AV1State av1;
+	ObuType obu_type;
+	u64 obu_size;
+	u32 hdr_size;
+	GF_BitStream *bs;
+	u32 idx;
+
+	track = gf_isom_get_track_by_id(file, trackID);
+
+	memset(&av1, 0, sizeof(AV1State));
+	av1.config = gf_isom_av1_config_get(file, track, 1);
+	if (!av1.config) {
+		fprintf(stderr, "Error: Track #%d is not AV1!\n", trackID);
+		return;
+	}
+
+	count = gf_isom_get_sample_count(file, track);
+	timescale = gf_isom_get_media_timescale(file, track);
+
+	fprintf(dump, "<OBUTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
+
+	fprintf(dump, " <OBUConfig>\n");
+
+	idx = 1;
+	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
+		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
+		bs = gf_bs_new((const char *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+		gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		dump_obu(dump, idx, &av1, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
+		gf_bs_del(bs);
+		idx++;
+	}
+	fprintf(dump, " </OBUConfig>\n");
+
+	fprintf(dump, " <OBUSamples>\n");
+
+	for (i=0; i<count; i++) {
+		u64 dts, cts;
+		u32 size;
+		char *ptr;
+		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
+		if (!samp) {
+			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
+			continue;
+		}
+		dts = samp->DTS;
+		cts = dts + (s32) samp->CTS_Offset;
+
+		fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\" >\n", i+1, dts, cts, samp->dataLength, samp->IsRAP);
+		if (cts<dts) fprintf(dump, "<!-- NEGATIVE CTS OFFSET! -->\n");
+
+		idx = 1;
+		ptr = samp->data;
+		size = samp->dataLength;
+
+		bs = gf_bs_new(ptr, size, GF_BITSTREAM_READ);
+		while (size) {
+			gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+
+			if (obu_size > size) {
+				fprintf(dump, "   <!-- OBU number %d is corrupted: size is %d but only %d remains -->\n", idx, (u32) obu_size, size);
+				break;
+			}
+
+			dump_obu(dump, idx, &av1, ptr, obu_size, obu_type, (u32) obu_size, hdr_size, dump_crc);
+			ptr += obu_size;
+			size -= obu_size;
+			idx++;
+		}
+		gf_bs_del(bs);
+		fprintf(dump, "  </Sample>\n");
+		gf_isom_sample_del(&samp);
+
+		fprintf(dump, "\n");
+		gf_set_progress("Analysing Track OBUs", i+1, count);
+	}
+	fprintf(dump, " </OBUSamples>\n");
+	fprintf(dump, "</OBUTrack>\n");
+
+	if (av1.config) gf_odf_av1_cfg_del(av1.config);
+#endif
+}
+
+void dump_isom_saps(GF_ISOFile *file, u32 trackID, u32 dump_saps_mode, char *inName, Bool is_final_name)
+{
+	FILE *dump;
+	u32 i, count;
+	s64 media_offset=0;
+	u32 track = gf_isom_get_track_by_id(file, trackID);
+	if (inName) {
+		char szBuf[GF_MAX_PATH];
+		strcpy(szBuf, inName);
+
+		if (!is_final_name) sprintf(szBuf, "%s_%d_cues.xml", inName, trackID);
+		dump = gf_fopen(szBuf, "wt");
+		if (!dump) {
+			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			return;
+		}
+	} else {
+		dump = stdout;
+	}
+
+	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	fprintf(dump, "<DASHCues xmlns=\"urn:gpac:dash:schema:cues:2018\">\n");
+	fprintf(dump, "<Stream id=\"%d\" timescale=\"%d\"", trackID, gf_isom_get_media_timescale(file, track) );
+	if (dump_saps_mode==4) {
+		fprintf(dump, " mode=\"edit\"");
+		gf_isom_get_edit_list_type(file, track, &media_offset);
+	}
+	fprintf(dump, ">\n");
+
+	count = gf_isom_get_sample_count(file, track);
+	for (i=0; i<count; i++) {
+		s64 cts, dts;
+		u32 di;
+		u32 sap_type = 0;
+		u64 doffset;
+		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
+
+		sap_type = samp->IsRAP;
+		if (!sap_type) {
+			Bool is_rap, has_roll;
+			s32 roll_dist;
+			gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, &has_roll, &roll_dist);
+			if (has_roll) sap_type = SAP_TYPE_4;
+			else if (is_rap)  sap_type = SAP_TYPE_3;
+		}
+
+		if (!sap_type) {
+			gf_isom_sample_del(&samp);
+			continue;
+		}
+
+		dts = cts = samp->DTS;
+		cts += samp->CTS_Offset;
+		fprintf(dump, "<Cue sap=\"%d\"", sap_type);
+		if (dump_saps_mode==4) {
+			cts += media_offset;
+			fprintf(dump, " cts=\""LLD"\"", cts);
+		} else {
+			if (!dump_saps_mode || (dump_saps_mode==1)) fprintf(dump, " sample=\"%d\"", i+1);
+			if (!dump_saps_mode || (dump_saps_mode==2)) fprintf(dump, " cts=\""LLD"\"", cts);
+			if (!dump_saps_mode || (dump_saps_mode==3)) fprintf(dump, " dts=\""LLD"\"", dts);
+		}
+		fprintf(dump, "/>\n");
+
+		gf_isom_sample_del(&samp);
+	}
+	fprintf(dump, "</Stream>\n");
+	fprintf(dump, "</DASHCues>\n");
 	if (inName) gf_fclose(dump);
 }
 

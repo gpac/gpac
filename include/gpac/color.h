@@ -124,7 +124,7 @@ typedef struct
 */
 typedef u32 GF_Color;
 /*!\hideinitializer color formating macro from alpha, red, green and blue components expressed as integers ranging from 0 to 255*/
-#define GF_COL_ARGB(a, r, g, b) ((a)<<24 | (r)<<16 | (g)<<8 | (b))
+#define GF_COL_ARGB(a, r, g, b) (((u32) a)<<24 | ((u32) r)<<16 | ((u32) g)<<8 | ((u32) b))
 /*!\hideinitializer color formating macro from alpha, red, green and blue components expressed as fixed numbers ranging from 0 to \ref FIX_ONE*/
 #define GF_COL_ARGB_FIXED(_a, _r, _g, _b) GF_COL_ARGB(FIX2INT(255*(_a)), FIX2INT(255*(_r)), FIX2INT(255*(_g)), FIX2INT(255*(_b)))
 /*!\hideinitializer gets alpha component of a color*/

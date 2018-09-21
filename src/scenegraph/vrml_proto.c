@@ -304,7 +304,7 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 		return GF_OK;
 	}
 
-	/*otherwise this is an instanciated proto*/
+	/*otherwise this is an instantiated proto*/
 	if (node->sgprivate->tag!=TAG_ProtoNode) return GF_BAD_PARAM;
 
 	inst = (GF_ProtoInstance *) node;
@@ -507,7 +507,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		node->sgprivate->UserPrivate = NULL;
 		/*NO RENDER, this is filtered at the generic gf_node_traverse to cope with instanciations and externProto*/
 		/*load code*/
-		gf_sg_proto_instanciate((GF_ProtoInstance *)node);
+		gf_sg_proto_instantiate((GF_ProtoInstance *)node);
 	}
 	return node;
 }
@@ -556,7 +556,7 @@ static GF_Proto *find_proto_by_interface(GF_SceneGraph *sg, GF_Proto *extern_pro
 }
 
 /*performs common initialization of routes ISed fields and protos once everything is loaded*/
-void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
+void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 {
 	GF_Node *node, *orig;
 	GF_Route *route, *r2;
@@ -635,7 +635,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		gf_list_add(proto->instances, proto_node);
 	}
 
-	/*OVERRIDE the proto instance (eg don't instanciate an empty externproto...)*/
+	/*OVERRIDE the proto instance (eg don't instantiate an empty externproto...)*/
 	proto_node->proto_interface = proto;
 
 	/*clone all nodes*/
@@ -746,7 +746,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	/*set this proto as owner of the new graph*/
 	proto_node->sgprivate->scenegraph->pOwningProto = proto_node;
 
-	/*instanciate fields*/
+	/*instantiate fields*/
 	i=0;
 	while ((field = (GF_ProtoFieldInterface*)gf_list_enum(proto->proto_fields, &i))) {
 		GF_SAFEALLOC(inst, GF_ProtoField);
@@ -761,8 +761,8 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 		/*this is OK to call on GF_Node (returns NULL) and MFNode (returns gf_list_new() )*/
 		inst->field_pointer = gf_sg_vrml_field_pointer_new(inst->FieldType);
 
-		/*regular field, duplicate from default value or instanciated one if specified (since
-		a proto may be partially instanciated when used in another proto)*/
+		/*regular field, duplicate from default value or instantiated one if specified (since
+		a proto may be partially instantiated when used in another proto)*/
 		if (gf_sg_vrml_get_sf_type(inst->FieldType) != GF_SG_VRML_SFNODE) {
 			if (from_inst) {
 				from_field = (GF_ProtoField *)gf_list_get(from_inst->fields, i-1);
@@ -792,7 +792,7 @@ GF_Err gf_sg_proto_load_code(GF_Node *node)
 	inst = (GF_ProtoInstance *) node;
 	if (!inst->proto_interface) return GF_BAD_PARAM;
 	if (inst->flags & GF_SG_PROTO_LOADED) return GF_OK;
-	gf_sg_proto_instanciate(inst);
+	gf_sg_proto_instantiate(inst);
 	return GF_OK;
 }
 

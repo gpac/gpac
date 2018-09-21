@@ -44,6 +44,14 @@ mp4_test ()
   do_hint=0 ;;
  *.jpeg )
   do_hint=0 ;;
+ *.jp2 )
+  do_hint=0 ;;
+ *.av1 )
+  do_hint=0 ;;
+ *.obu )
+  do_hint=0 ;;
+ *.ivf )
+  do_hint=0 ;;
  *.png )
   do_hint=0 ;;
  *.mj2 )
@@ -92,7 +100,7 @@ mp4_test ()
  if [ $do_play != 0 ] ; then
   #MP4 playback
   dump_dur=8
-  do_playback_test $mp4file "play" &
+  do_playback_test $mp4file "play"
  fi
 
  test_end

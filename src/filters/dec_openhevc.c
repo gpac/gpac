@@ -713,6 +713,11 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		} else if ( chromat_format == OH_YUV444 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3;
 		} 
+		//force top/bottom output of left and right frame, double height
+		if ((ctx->cur_layer==2) && (ctx->is_multiview || ctx->force_stereo) ){
+			ctx->out_size *= 2;
+		}
+
 		ctx->luma_bpp = ctx->chroma_bpp = bit_depth;
 		ctx->chroma_format_idc = chromat_format + 1;
 		ctx->sar.num = openHevcFrame_FL.frame_par.sample_aspect_ratio.num;
@@ -850,10 +855,8 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 			openHevcFrame_SL.data_cr = (void*) (data + 11*ctx->stride * ctx->height/4);
 		}
 
-		oh_select_view_layer(ctx->codec, 0);
-		out1 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL);
-		oh_select_view_layer(ctx->codec, 1);
-		out2 = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_SL);
+		out1 = oh_output_cropped_cpy_from_layer(ctx->codec, &openHevcFrame_FL, 0);
+		out2 = oh_output_cropped_cpy_from_layer(ctx->codec, &openHevcFrame_SL, 1);
 
 		if (out1 && out2) {
 			gf_filter_pck_set_cts(pck, cts);

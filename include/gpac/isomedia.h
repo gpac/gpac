@@ -2358,7 +2358,8 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 
 typedef struct
 {
-	u16 bytes_clear_data;
+	//16 bit stored but we use 32
+	u32 bytes_clear_data;
 	u32 bytes_encrypted_data;
 } GF_CENCSubSampleEntry;
 

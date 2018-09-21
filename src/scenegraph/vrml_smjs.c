@@ -1500,7 +1500,7 @@ locate_proto:
 			SMJS_FREE(c, node_name);
 			return JS_FALSE;
 		}
-		/*OK, instanciate proto code*/
+		/*OK, instantiate proto code*/
 		if (gf_sg_proto_load_code(new_node) != GF_OK) {
 			gf_node_unregister(new_node, NULL);
 			SMJS_FREE(c, node_name);
@@ -4296,7 +4296,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 			if (n->sgprivate->tag == TAG_ProtoNode) {
 				GF_ProtoInstance *proto_inst = (GF_ProtoInstance *) n;
 				if (!proto_inst->RenderingNode && !(proto_inst->flags&GF_SG_PROTO_LOADED) )
-					gf_sg_proto_instanciate(proto_inst);
+					gf_sg_proto_instantiate(proto_inst);
 			}
 
 			slot = SMJS_GET_PRIVATE(priv->js_ctx, pf);

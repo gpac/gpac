@@ -2294,7 +2294,7 @@ void *svg_get_document_class(GF_SceneGraph *sg)
 
 Bool is_svg_document_class(JSContext *c, JSObject *obj)
 {
-	if (!obj) return GF_FALSE;
+	if (!svg_rt || !obj) return GF_FALSE;
 	if (GF_JS_InstanceOf(c, obj, &svg_rt->svgDocument, NULL))
 		return GF_TRUE;
 	return GF_FALSE;
@@ -2302,7 +2302,7 @@ Bool is_svg_document_class(JSContext *c, JSObject *obj)
 
 Bool is_svg_element_class(JSContext *c, JSObject *obj)
 {
-	if (!obj) return GF_FALSE;
+	if (!svg_rt || !obj) return GF_FALSE;
 	if (GF_JS_InstanceOf(c, obj, &svg_rt->svgElement, NULL))
 		return GF_TRUE;
 	return GF_FALSE;

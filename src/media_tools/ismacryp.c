@@ -43,6 +43,8 @@ typedef struct
 	Bool in_text_header;
 	//global for all tracks unless overriden
 	u32 def_crypt_type;
+
+	GF_Err parse_error;
 } GF_CryptInfo;
 
 static u32 get_crypt_type(char *cr_type)
@@ -119,6 +121,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				GF_Err e = gf_bin128_parse(att->value, tkc->key);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value in CrypTrack\n"));
+                    info->parse_error = e;
                     return;
                 }
 			}
@@ -298,6 +301,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				GF_Err e = gf_bin128_parse(att->value, tkc->KIDs[tkc->KID_count]);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse KID\n"));
+                    info->parse_error = e;
                     return;
                 }
 			}
@@ -305,6 +309,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->KID_count]);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value\n"));
+                    info->parse_error = e;
                     return;
                 }
 			}
@@ -368,6 +373,7 @@ static GF_CryptInfo *load_crypt_file(const char *file)
 	sax = gf_xml_sax_new(isma_ea_node_start, isma_ea_node_end, isma_ea_text, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);
 	gf_xml_sax_del(sax);
+	if (e>=0) e = info->parse_error;
 	if (e<0) {
 		del_crypt_info(info);
 		return NULL;
@@ -959,11 +965,12 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (tci->is_avc) {
+			s32 ret;
 			u32 ntype, nb_epb_count;
 			GF_BitStream *bs = NULL;
 			char *epb_rem_bytes;
 
-			//check if we have EP bytes in the payload (theu could be in slice header)
+			//check if we have EP bytes in the payload (they could be in slice header)
 			nb_epb_count = gf_media_nalu_emulation_bytes_remove_count(samp_data + nal_start, nal_size);
 			if (nb_epb_count) {
 				epb_rem_bytes = gf_malloc(sizeof(char) * nal_size);
@@ -972,7 +979,6 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			}
 			ntype = gf_bs_read_u8(bs ? bs : plaintext_bs);
 
-			gf_media_avc_parse_nalu(bs ? bs : plaintext_bs, ntype, &tci->avc);
 			ntype &= 0x1F;
 			switch (ntype) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
@@ -982,14 +988,33 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			case GF_AVC_NALU_IDR_SLICE:
 			case GF_AVC_NALU_SLICE_AUX:
 			case GF_AVC_NALU_SVC_SLICE:
-				//skip bits till alignment
-				gf_bs_align(bs ? bs : plaintext_bs);
-				if (bs) {
-					clear_bytes = (u32) gf_bs_get_position(bs);
+				ret = gf_media_avc_parse_nalu(bs ? bs : plaintext_bs, ntype, &tci->avc);
+				if (ret<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error parsing slice header, cannot get slice header size. Assuming 8 bytes is enough, but resulting file will not be compliant\n"));
+					clear_bytes = 8;
 				} else {
-					clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
+					//skip bits till alignment
+					gf_bs_align(bs ? bs : plaintext_bs);
+					if (bs) {
+						clear_bytes = (u32) gf_bs_get_position(bs);
+					} else {
+						clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
+					}
 				}
 				break;
+			case GF_AVC_NALU_SEQ_PARAM:
+				gf_media_avc_read_sps(samp_data + nal_start, nal_size, &tci->avc, 0, NULL);
+				clear_bytes = nal_size;
+				break;
+			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
+				gf_media_avc_read_sps(samp_data + nal_start, nal_size, &tci->avc, 1, NULL);
+				clear_bytes = nal_size;
+				break;
+			case GF_AVC_NALU_PIC_PARAM:
+				gf_media_avc_read_pps(samp_data + nal_start, nal_size, &tci->avc);
+				clear_bytes = nal_size;
+				break;
+
 			default:
 				clear_bytes = nal_size;
 				break;
@@ -999,9 +1024,11 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 				gf_free(epb_rem_bytes);
 
 				//check if we have EP bytes in slice header
-				nb_epb_count = gf_media_nalu_emulation_bytes_remove_count(samp_data + nal_start, clear_bytes);
-				if (nb_epb_count)
-					clear_bytes += nb_epb_count;
+				if (clear_bytes < nal_size) {
+					nb_epb_count = gf_media_nalu_emulation_bytes_remove_count(samp_data + nal_start, clear_bytes);
+					if (nb_epb_count)
+						clear_bytes += nb_epb_count;
+				}
 			}
 		} else {
 #if !defined(GPAC_DISABLE_HEVC)
@@ -1057,10 +1084,18 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	while (gf_bs_available(plaintext_bs)) {
 		if (is_nalu_video || is_av1_video) {
 			u32 clear_bytes = 0;
+			u32 nb_ranges = 1;
+			u32 av1_tile_idx = 0;
+
 			if (is_nalu_video) {
 				nalu_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
 				if (nalu_size == 0) {
 					continue;
+				}
+				if (nalu_size > gf_bs_available(plaintext_bs) ) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] NAL size %d larger than bytes remaining in sample\n", nalu_size ));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
 				}
 
 	 			clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nalu_size, bytes_in_nalhr);
@@ -1070,95 +1105,137 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				u32 hdr_size;
 				pos = gf_bs_get_position(plaintext_bs);
 				e = gf_media_aom_av1_parse_obu(plaintext_bs, &obut, &obu_size, &hdr_size, &tci->av1);
-				if (e) return e;
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n" ));
+					goto exit;
+				}
 				gf_bs_seek(plaintext_bs, pos);
 
 				nalu_size = (u32)obu_size;
 				switch (obut) {
-				case OBU_TEMPORAL_DELIMITER:
-				case OBU_SEQUENCE_HEADER:
-				case OBU_METADATA:
-				case OBU_FRAME_HEADER:
-					clear_bytes = nalu_size;
+				//we only encrypt frame and tile group
+				case OBU_FRAME:
+				case OBU_TILE_GROUP:
+					clear_bytes = hdr_size;
+					if (!tci->av1.frame_state.nb_tiles_in_obu) {
+						clear_bytes = (u32) obu_size;
+					} else {
+						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
+						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
+						nalu_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
+						//A subsample SHALL be created for each tile. this needs further clarification in the spec
+						prev_entry = NULL;
+					}
 					break;
 				default:
-					clear_bytes = hdr_size;
+					clear_bytes = (u32) obu_size;
 					break;
 				}
 			}
 
-			if (nalu_size > max_size) {
-				buffer = (char*)gf_realloc(buffer, sizeof(char)*nalu_size);
-				max_size = nalu_size;
-			}
+			while (nb_ranges) {
 
-			// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
-			if (nalu_size > clear_bytes) {
-				u32 ret = (nalu_size - clear_bytes) % 16;
-				//in AV1 always enforced
-				if (is_av1_video) {
-					clear_bytes += ret;
+				if (nalu_size > max_size) {
+					buffer = (char*)gf_realloc(buffer, sizeof(char)*nalu_size);
+					max_size = nalu_size;
 				}
-				//for CENC (should),
-				else if (tci->scheme_type == GF_CRYPT_TYPE_CENC) {
-				 	//do it if not disabled by user
-					if (tci->block_align != 1) {
-						//always align even if sample is not encrypted in the end
-						if (tci->block_align==2) {
-							clear_bytes += ret;
-						}
-						//or if we don't end up with sample in the clear
-						else if (nalu_size > clear_bytes + ret) {
-							clear_bytes += ret;
-						}
+
+				// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
+				if (nalu_size > clear_bytes) {
+					u32 ret = (nalu_size - clear_bytes) % 16;
+					//in AV1 always enforced
+					if (is_av1_video) {
+						clear_bytes += ret;
 					}
-				} else {
-					clear_bytes += ret;
-				}
-			}
-
-			/*read clear data and transfer to output*/
-			gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
-			if (is_nalu_video)
-				gf_bs_write_int(cyphertext_bs, nalu_size, 8*nalu_size_length);
-
-			gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
-
-			//read data to encrypt
-			if (nalu_size > clear_bytes) {
-				gf_bs_read_data(plaintext_bs, buffer, nalu_size - clear_bytes);
-
-				//pattern encryption
-				if (crypt_byte_block && skip_byte_block) {
-					u32 pos = 0;
-					u32 res = nalu_size - clear_bytes;
-					while (res) {
-						gf_crypt_encrypt(mc, buffer+pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
-						if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
-							pos += 16 * (crypt_byte_block + skip_byte_block);
-							res -= 16 * (crypt_byte_block + skip_byte_block);
-						} else {
-							res = 0;
+					//for CENC (should),
+					else if (tci->scheme_type == GF_CRYPT_TYPE_CENC) {
+						//do it if not disabled by user
+						if (tci->block_align != 1) {
+							//always align even if sample is not encrypted in the end
+							if (tci->block_align==2) {
+								clear_bytes += ret;
+							}
+							//or if we don't end up with sample in the clear
+							else if (nalu_size > clear_bytes + ret) {
+								clear_bytes += ret;
+							}
 						}
+					} else {
+						clear_bytes += ret;
 					}
-				} else {
-					gf_crypt_encrypt(mc, buffer, nalu_size - clear_bytes);
 				}
 
-				/*write encrypted data to bitstream*/
-				gf_bs_write_data(cyphertext_bs, buffer, nalu_size - clear_bytes);
-			}
-			//prev entry is not a VCL, append this NAL
-			if (prev_entry && !prev_entry->bytes_encrypted_data) {
-				prev_entry->bytes_clear_data += nalu_size_length + clear_bytes;
-				prev_entry->bytes_encrypted_data += nalu_size - clear_bytes;
-			} else {
-				prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
-				prev_entry->bytes_clear_data = nalu_size_length + clear_bytes;
-				prev_entry->bytes_encrypted_data = nalu_size - clear_bytes;
-				gf_list_add(subsamples, prev_entry);
+				/*read clear data and transfer to output*/
+				gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
+				if (is_nalu_video)
+					gf_bs_write_int(cyphertext_bs, nalu_size, 8*nalu_size_length);
+
+				gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
+
+				//read data to encrypt
+				if (nalu_size > clear_bytes) {
+					gf_bs_read_data(plaintext_bs, buffer, nalu_size - clear_bytes);
+
+					//pattern encryption
+					if (crypt_byte_block && skip_byte_block) {
+						u32 pos = 0;
+						u32 res = nalu_size - clear_bytes;
+						while (res) {
+							gf_crypt_encrypt(mc, buffer+pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
+							if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
+								pos += 16 * (crypt_byte_block + skip_byte_block);
+								res -= 16 * (crypt_byte_block + skip_byte_block);
+							} else {
+								res = 0;
+							}
+						}
+					} else {
+						gf_crypt_encrypt(mc, buffer, nalu_size - clear_bytes);
+					}
+
+					/*write encrypted data to bitstream*/
+					gf_bs_write_data(cyphertext_bs, buffer, nalu_size - clear_bytes);
+				}
+				//prev entry is not a VCL, append this NAL
+				if (prev_entry && !prev_entry->bytes_encrypted_data) {
+					prev_entry->bytes_clear_data += nalu_size_length + clear_bytes;
+					prev_entry->bytes_encrypted_data += nalu_size - clear_bytes;
+				} else {
+					prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+					prev_entry->bytes_clear_data = nalu_size_length + clear_bytes;
+					prev_entry->bytes_encrypted_data = nalu_size - clear_bytes;
+					gf_list_add(subsamples, prev_entry);
+				}
+				//check bytes of clear is not larger than 16bits
+				while (prev_entry->bytes_clear_data > 0xFFFF) {
+					GF_CENCSubSampleEntry *split_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+					split_entry->bytes_clear_data = prev_entry->bytes_clear_data - 0xFFFF;
+					split_entry->bytes_encrypted_data = prev_entry->bytes_encrypted_data;
+					prev_entry->bytes_clear_data = 0xFFFF;
+					prev_entry->bytes_encrypted_data = 0;
+					gf_list_add(subsamples, split_entry);
+					prev_entry = split_entry;
+				}
+
+
+				nb_ranges--;
+				if (!nb_ranges) break;
+
+				av1_tile_idx++;
+				if (av1_tile_idx) {
+					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
+					nalu_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+					//A subsample SHALL be created for each tile.
+					prev_entry = NULL;
+				}
 			}
 		} else {
+
+			if (samp->dataLength > max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*samp->dataLength);
+				max_size = samp->dataLength;
+			}
+
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
 			gf_crypt_encrypt(mc, buffer, samp->dataLength);
 			gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
@@ -1223,14 +1300,12 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		if (skip_byte_block || is_nalu_video || is_av1_video) {
 			u32 clear_bytes = 0;
 			u32 clear_bytes_at_end = 0;
+			u32 nb_ranges = 1;
+			u32 av1_tile_idx = 0;
 
 			if (is_nalu_video) {
 				nal_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
-				if (nal_size+1 > max_size) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*(nal_size+1));
-					memset(buffer, 0, sizeof(char)*(nal_size+1));
-					max_size = nal_size + 1;
-				}
+
 				gf_bs_write_int(cyphertext_bs, nal_size, 8*nalu_size_length);
 
 				clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nal_size, bytes_in_nalhr);
@@ -1245,14 +1320,22 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				nal_size = (u32) obu_size;
 				switch (obut) {
-				case OBU_TEMPORAL_DELIMITER:
-				case OBU_SEQUENCE_HEADER:
-				case OBU_METADATA:
-				case OBU_FRAME_HEADER:
-					clear_bytes = (u32) obu_size;
+				//we only encrypt frame and tile group
+				case OBU_FRAME:
+				case OBU_TILE_GROUP:
+					clear_bytes = hdr_size;
+					if (!tci->av1.frame_state.nb_tiles_in_obu) {
+						clear_bytes = (u32) obu_size;
+					} else {
+						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
+						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
+						nal_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
+						//A subsample SHALL be created for each tile. this needs further clarification in the spec
+						prev_entry = NULL;
+					}
 					break;
 				default:
-					clear_bytes = hdr_size;
+					clear_bytes = (u32) obu_size;
 					break;
 				}
 			} else {
@@ -1267,75 +1350,114 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 			}
 
-			//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
-			if (tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
-				u32 ret = (nal_size-clear_bytes) % 16;
-				clear_bytes_at_end = ret;
-			}
-			//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
-			else {
-				u32 ret = (nal_size-clear_bytes) % 16;
-				clear_bytes += ret;
-				clear_bytes_at_end = 0;
-			}
-			//copy over clear bytes
-			if (clear_bytes) {
-				gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
-				gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
-			}
+			while (nb_ranges) {
+				if (nal_size+1 > max_size) {
+					buffer = (char*)gf_realloc(buffer, sizeof(char)*(nal_size+1));
+					memset(buffer, 0, sizeof(char)*(nal_size+1));
+					max_size = nal_size + 1;
+				}
 
-			if (nal_size - clear_bytes) {
-				//read the bytes to be encrypted
-				gf_bs_read_data(plaintext_bs, buffer, nal_size - clear_bytes);
+				//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
+				//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
+				if (!is_av1_video && (tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+					u32 ret = (nal_size-clear_bytes) % 16;
+					clear_bytes_at_end = ret;
+				}
+				//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
+				else {
+					u32 ret = (nal_size-clear_bytes) % 16;
+					clear_bytes += ret;
+					clear_bytes_at_end = 0;
+				}
+				//copy over clear bytes
+				if (clear_bytes) {
+					assert(gf_bs_available(plaintext_bs) >= clear_bytes);
 
-				//cbcs scheme with constant IV, reinit at each sub sample,
-				if (!IV_size)
-					gf_crypt_set_IV(mc, IV, 16);
-				//pattern encryption
-				if (crypt_byte_block && skip_byte_block) {
-					u32 pos = 0;
-					u32 res = nal_size - clear_bytes - clear_bytes_at_end;
-					assert((res % 16) == 0);
+					gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
+					gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
+				}
 
-					while (res) {
-						gf_crypt_encrypt(mc, buffer + pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
-						if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
-							pos += 16 * (crypt_byte_block + skip_byte_block);
-							res -= 16 * (crypt_byte_block + skip_byte_block);
-						} else {
-							res = 0;
+				if (nal_size - clear_bytes) {
+					//read the bytes to be encrypted
+					assert(gf_bs_available(plaintext_bs) >= nal_size - clear_bytes);
+					gf_bs_read_data(plaintext_bs, buffer, nal_size - clear_bytes);
+
+					//cbcs scheme (constant IV), reinit at each sub sample,
+					if (!IV_size)
+						gf_crypt_set_IV(mc, IV, 16);
+					//pattern encryption
+					if (crypt_byte_block && skip_byte_block) {
+						u32 pos = 0;
+						u32 res = nal_size - clear_bytes - clear_bytes_at_end;
+						assert((res % 16) == 0);
+
+						while (res) {
+							gf_crypt_encrypt(mc, buffer + pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
+							if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
+								pos += 16 * (crypt_byte_block + skip_byte_block);
+								res -= 16 * (crypt_byte_block + skip_byte_block);
+							} else {
+								res = 0;
+							}
 						}
+					} else {
+						gf_crypt_encrypt(mc, buffer, nal_size - clear_bytes - clear_bytes_at_end);
 					}
-				} else {
-					gf_crypt_encrypt(mc, buffer, nal_size - clear_bytes - clear_bytes_at_end);
+					//write the cyphered data, including the non encrypted bytes at the end of the block
+					gf_bs_write_data(cyphertext_bs, buffer, nal_size - clear_bytes);
 				}
-				//write the cyphered data, including the non encrypted bytes at the end of the block
-				gf_bs_write_data(cyphertext_bs, buffer, nal_size - clear_bytes);
-			}
 
-			//for NALU-based, subsamples. Otherwise, if bytes in clear at the begining, subsample
-			//the spec is not clear here: can we ommit subsamples if we always cypher everything ?
-			//for now commented out for max compatibility
-			//if (is_nalu_video || bytes_in_nalhr)
-			{
-				//note that we write encrypted data to cover the complete byte range after the slice header
-				//but the last incomplete block might be unencrypted, but is still signaled in bytes_encrypted, as per the spec
+				//for NALU-based, subsamples. Otherwise, if bytes in clear at the begining, subsample
+				//the spec is not clear here: can we ommit subsamples if we always cypher everything ?
+				//for now commented out for max compatibility
+				//if (is_nalu_video || bytes_in_nalhr)
+				{
+					//note that we write encrypted data to cover the complete byte range after the slice header
+					//but the last incomplete block might be unencrypted, but is still signaled in bytes_encrypted, as per the spec
 
-				//prev entry is not a VCL, append this NAL
-				if (prev_entry && !prev_entry->bytes_encrypted_data) {
-					prev_entry->bytes_clear_data += nalu_size_length + clear_bytes;
-					prev_entry->bytes_encrypted_data += nal_size - clear_bytes;
-				} else {
-					prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
-					prev_entry->bytes_clear_data = nalu_size_length + clear_bytes;
-					prev_entry->bytes_encrypted_data = nal_size - clear_bytes;
-					gf_list_add(subsamples, prev_entry);
+					//prev entry is not a VCL, append this NAL
+					if (prev_entry && !prev_entry->bytes_encrypted_data) {
+						prev_entry->bytes_clear_data += nalu_size_length + clear_bytes;
+						prev_entry->bytes_encrypted_data += nal_size - clear_bytes;
+					} else {
+						prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+						prev_entry->bytes_clear_data = nalu_size_length + clear_bytes;
+						prev_entry->bytes_encrypted_data = nal_size - clear_bytes;
+						gf_list_add(subsamples, prev_entry);
+					}
+
+					//check bytes of clear is not larger than 16bits
+					while (prev_entry->bytes_clear_data > 0xFFFF) {
+						GF_CENCSubSampleEntry *split_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
+						split_entry->bytes_clear_data = prev_entry->bytes_clear_data - 0xFFFF;
+						split_entry->bytes_encrypted_data = prev_entry->bytes_encrypted_data;
+						prev_entry->bytes_clear_data = 0xFFFF;
+						prev_entry->bytes_encrypted_data = 0;
+						gf_list_add(subsamples, split_entry);
+						prev_entry = split_entry;
+					}
+					assert((s32)prev_entry->bytes_encrypted_data >= 0);
+					assert(prev_entry->bytes_encrypted_data <= samp->dataLength);
 				}
-				assert((s32)prev_entry->bytes_encrypted_data >= 0);
-				assert(prev_entry->bytes_encrypted_data <= samp->dataLength);
+				nb_ranges--;
+				if (!nb_ranges) break;
+				
+				av1_tile_idx++;
+				if (av1_tile_idx) {
+					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
+					nal_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+					//A subsample SHALL be created for each tile.
+					prev_entry = NULL;
+				}
 			}
 		} else {
 			u32 clear_trailing;
+
+			if (samp->dataLength > max_size) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*samp->dataLength);
+				max_size = samp->dataLength;
+			}
+
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
 			clear_trailing = samp->dataLength % 16;
 
@@ -1455,7 +1577,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 			tci->is_avc = GF_TRUE;
 
-#if !defined(GPAC_DISABLE_HEVC)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, i);
 				gf_media_avc_read_sps(slc->data, slc->size, &tci->avc, 0, NULL);
@@ -1485,9 +1607,9 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 			is_nalu_video = GF_TRUE;
-			tci->slice_header_clear = GF_TRUE;
 			bytes_in_nalhr = 2;
 		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AV1) {
+			tci->av1.config = gf_isom_av1_config_get(mp4, track, 1);
 			is_av1_video = GF_TRUE;
 			bytes_in_nalhr = 2;
 		}
@@ -1741,6 +1863,7 @@ exit:
 	if (mc) gf_crypt_close(mc);
 	if (saiz_buf) gf_free(saiz_buf);
 	if (bs) gf_bs_del(bs);
+	if (tci->av1.config) gf_odf_av1_cfg_del(tci->av1.config);
 	return e;
 }
 
@@ -2555,7 +2678,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	info = load_crypt_file(drm_file);
 	if (!info) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n", drm_file));
-		return GF_NOT_SUPPORTED;
+		return GF_BAD_PARAM;
 	}
 
 	e = GF_OK;

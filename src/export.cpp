@@ -1342,6 +1342,8 @@
 
 #endif //GPAC_DISABLE_HEVC
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_aom_av1_parse_obu) )
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 
