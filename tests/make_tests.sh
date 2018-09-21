@@ -79,7 +79,8 @@ VIDEO_DIR="$LOCAL_OUT_DIR/videos"
 #dir where all logs are generated
 LOGS_DIR="$LOCAL_OUT_DIR/logs"
 #temp dir for any test
-TEMP_DIR="$LOCAL_OUT_DIR/temp"
+INTERN_TEMP_DIR="$LOCAL_OUT_DIR/temp"
+TEMP_DIR=$INTERN_TEMP_DIR
 
 ALL_REPORTS="$LOCAL_OUT_DIR/all_results.xml"
 ALL_LOGS="$LOCAL_OUT_DIR/all_logs.txt"
@@ -114,8 +115,8 @@ if [ ! -e $RULES_DIR ] ; then
 mkdir $RULES_DIR
 fi
 
-if [ ! -e $TEMP_DIR ] ; then
-mkdir $TEMP_DIR
+if [ ! -e $INTERN_TEMP_DIR ] ; then
+mkdir $INTERN_TEMP_DIR
 fi
 
 L_ERR=1
@@ -250,7 +251,7 @@ strict_mode=0
 track_stack=0
 speed=1
 single_test_name=""
-erase_temp_dir=1
+keep_temp_dir=0
 
 #Parse arguments
 for i in $* ; do
@@ -273,7 +274,7 @@ for i in $* ; do
  "-keep-avi")
   keep_avi=1;;
  "-keep-tmp")
-  erase_temp_dir=0;;
+  keep_temp_dir=1;;
  "-no-hash")
   disable_hash=1;;
  "-strict")
@@ -359,7 +360,7 @@ fi
 if [ $do_clean != 0 ] ; then
  rm -f $ALL_REPORTS > /dev/null
  rm -f $ALL_LOGS > /dev/null
- rm -rf $TEMP_DIR/* 2> /dev/null
+ rm -rf $INTERN_TEMP_DIR/* 2> /dev/null
  if [ "${#url_arg[@]}" -eq 0 ] ; then
   echo "Deleting cache (logs, stats and videos)"
   rm -rf $LOGS_DIR/* > /dev/null
@@ -526,9 +527,9 @@ MP4CLIENT="MP4Client -noprog -strict-error $base_args"
 MP42TS="MP42TS $base_args"
 DASHCAST="DashCast $base_args"
 
-$MP4BOX -version 2> $TEMP_DIR/version.txt
-VERSION="`head -1 $TEMP_DIR/version.txt | cut -d ' ' -f 5-` "
-rm $TEMP_DIR/version.txt
+$MP4BOX -version 2> $INTERN_TEMP_DIR/version.txt
+VERSION="`head -1 $INTERN_TEMP_DIR/version.txt | cut -d ' ' -f 5-` "
+rm $INTERN_TEMP_DIR/version.txt
 log $L_INF "GPAC version: $VERSION"
 log $L_INF ""
 
@@ -567,6 +568,7 @@ test_begin ()
 
  log $L_DEB "Starting test $TEST_NAME"
 
+ TEMP_DIR=$INTERN_TEMP_DIR
 
  report="$TEMP_DIR/$TEST_NAME-temp.txt"
  LOGS="$LOGS_DIR/$TEST_NAME-logs.txt-new"
@@ -596,6 +598,13 @@ test_begin ()
   echo "" > $report
   test_skip=1
   return
+ fi
+
+ if [ $keep_temp_dir != 0 ] ; then
+ 	TEMP_DIR="$INTERN_TEMP_DIR/$TEST_NAME"
+	if [ ! -e $TEMP_DIR ] ; then
+		mkdir $TEMP_DIR
+	fi
  fi
 
  #reset defaults
@@ -691,6 +700,8 @@ test_end ()
 {
  #wait for all sub-tests to complete (some may use subshells)
  wait
+
+ TEMP_DIR=$INTERN_TEMP_DIR
 
   if [ $# -gt 0 ] ; then
    log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
@@ -929,7 +940,7 @@ do_test ()
  subtest_idx=$((subtest_idx + 1))
 
  log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
- stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
+ stat_subtest="$INTERN_TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
  SUBTEST_NAME=$2
 
  if [ $fuzz_test = 1 ] ; then
@@ -1055,7 +1066,7 @@ do_playback_test ()
  else
   FULL_SUBTEST="$TEST_NAME-$2"
  fi
- AVI_DUMP="$TEMP_DIR/$FULL_SUBTEST-dump"
+ AVI_DUMP="$INTERN_TEMP_DIR/$FULL_SUBTEST-dump"
 
  args="$MP4CLIENT -avi 0-$dump_dur -out $AVI_DUMP -size $dump_size $1"
 
@@ -1134,9 +1145,9 @@ do_hash_test ()
   return
  fi
 
- STATHASH_SH="$TEMP_DIR/$TEST_NAME-stathash-$2.sh"
+ STATHASH_SH="$INTERN_TEMP_DIR/$TEST_NAME-stathash-$2.sh"
 
- test_hash="$TEMP_DIR/$TEST_NAME-$2-test.hash"
+ test_hash="$INTERN_TEMP_DIR/$TEST_NAME-$2-test.hash"
  ref_hash="$HASH_DIR/$TEST_NAME-$2.hash"
 
  echo "HASH_TEST=$2" > $STATHASH_SH
@@ -1216,8 +1227,8 @@ do_compare_file_hashes ()
    log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
    log $L_ERR "	@do_compare_file_hashes takes only two arguments - wrong call (first arg is $1)"
   fi
-test_hash_first="$TEMP_DIR/$TEST_NAME-$(basename $1).hash"
-test_hash_second="$TEMP_DIR/$TEST_NAME-$(basename $2).hash"
+test_hash_first="$INTERN_TEMP_DIR/$TEST_NAME-$(basename $1).hash"
+test_hash_second="$INTERN_TEMP_DIR/$TEST_NAME-$(basename $2).hash"
 
 $MP4BOX -hash -std $1 > $test_hash_first 2> /dev/null
 $MP4BOX -hash -std $1 > $test_hash_second 2> /dev/null
@@ -1400,7 +1411,7 @@ echo '<?xml-stylesheet href="stylesheet.xsl" type="text/xsl"?>' >> $ALL_REPORTS
 echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" start_date=\"$start_date\" end_date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
 
-if [ $erase_temp_dir != 0 ] ; then
+if [ $keep_temp_dir != 1 ] ; then
    rm -rf $TEMP_DIR/* 2> /dev/null
 fi
 
@@ -1611,7 +1622,7 @@ if [ $strict_mode = 1 ] ; then
 fi
 
 #cleanup temp dir
-if [ $erase_temp_dir != 0 ] ; then
+if [ $keep_temp_dir != 1 ] ; then
    rm -rf $TEMP_DIR/* 2> /dev/null
 fi
 
