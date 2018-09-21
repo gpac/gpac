@@ -64,12 +64,11 @@ mp4_test ()
  esac
 
  name=$(basename $1)
-# name=${name%.*}
+ test_begin "mp4box-io-$name"
+
  mp4file="$TEMP_DIR/$name.mp4"
  tmp1="$TEMP_DIR/$name.1.tmp"
  tmp2="$TEMP_DIR/$name.2.tmp"
-
- test_begin "mp4box-io-$name"
 
  if [ $test_skip  = 1 ] ; then
   return
