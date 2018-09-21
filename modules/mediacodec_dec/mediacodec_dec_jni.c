@@ -29,30 +29,75 @@
 #include <android/native_window_jni.h>
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
-#include <jni.h>
-#ifdef GPAC_USE_GLES2
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#else
-#include <GLES/gl.h>
-#include <GLES/glext.h>
-#endif
 #include "mediacodec_dec.h"
+#define RANDOM_JAVA_APP_CLASS "com/gpac/Osmo4/GPACInstance"
+#define ALL_CODECS 1
 
 static jclass cSurfaceTexture = NULL;
 static jclass cSurface = NULL;
-static jobject oSurfaceTex = NULL;
-static jobject oSurface = NULL;
+static jclass cMediaCodecList = NULL;
+static jclass cMediaFormat = NULL;
 static jmethodID mUpdateTexImage;
 static jmethodID mSurfaceTexConstructor;
 static jmethodID mSurfaceConstructor;
 static jmethodID mSurfaceRelease;
 static jmethodID mGetTransformMatrix;
+static jmethodID mFindClassMethod;
+static jmethodID mMediaCodecListConstructor;
+static jmethodID mFindDecoderForFormat;
+static jmethodID mCreateVideoFormat;
+static jmethodID mSetFeatureEnabled;
+static jobject oClassLoader = NULL;
 static JavaVM* javaVM = 0;
+
+static void HandleJNIError(JNIEnv *env)
+{
+	(*env)->ExceptionDescribe(env);
+	(*env)->ExceptionClear(env);
+}
+static jclass FindAppClass(JNIEnv* env, const char* name)
+{
+
+	return (jclass)((*env)->CallObjectMethod(env, oClassLoader, mFindClassMethod, (*env)->NewStringUTF(env, name)));
+}
+
+static GF_Err CacheAppClassLoader(JNIEnv* env, const char* name)
+{
+	GF_Err ret = GF_BAD_PARAM;
+	jclass randomClass = (*env)->FindClass(env, name);
+	if (!randomClass) goto cache_calassloader_failed;
+	jclass classClass = (*env)->GetObjectClass(env, randomClass);
+	if (!classClass) goto cache_calassloader_failed;
+    	jclass classLoaderClass = (*env)->FindClass(env, "java/lang/ClassLoader");
+	if (!classLoaderClass) goto cache_calassloader_failed;
+    	jmethodID getClassLoaderMethod = (*env)->GetMethodID(env, classClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
+	if (!getClassLoaderMethod) goto cache_calassloader_failed;
+	oClassLoader = (jobject) (*env)->NewGlobalRef(env,(*env)->CallObjectMethod(env,randomClass, getClassLoaderMethod));
+	if(!oClassLoader) goto cache_calassloader_failed;
+    	mFindClassMethod = (*env)->GetMethodID(env, classLoaderClass, "findClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+	if(!mFindClassMethod) goto cache_calassloader_failed;
+	ret = GF_OK;
+
+cache_calassloader_failed:
+	if(randomClass)
+		 (*env)->DeleteLocalRef(env, randomClass);
+	 if(classClass)
+		 (*env)->DeleteLocalRef(env, classClass);
+	 if(classLoaderClass)
+		 (*env)->DeleteLocalRef(env, classLoaderClass);
+	return ret;
+}
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
+	JNIEnv* env = NULL;
+	jint res = 0;
 	javaVM = vm;
+	
+	if ((*javaVM)->GetEnv(javaVM, (void**)&env, JNI_VERSION_1_2) != JNI_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("GetEnv failed"));
+		return GF_BAD_PARAM;
+	}
 	return JNI_VERSION_1_2;
 }
 
@@ -68,71 +113,209 @@ JavaVM* GetJavaVM()
 	return javaVM;
 }
 
-GF_Err MCDec_CreateSurface (ANativeWindow ** window, u32 *gl_tex_id, Bool * surface_rendering)
+u32 MCDec_BeforeExit(void * param) {
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,(" [Android Mediacodec decoder] Detach decoder thread %p...\n", gf_th_current()));
+	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
+	
+	return GF_OK;
+}
+
+GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, MC_SurfaceTexture * surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jobject otmp= NULL;
 	jclass ctmp = NULL;
 	jint res = 0;
+	jobject oSurface = NULL;
+	GF_Err ret = GF_BAD_PARAM;
+	u32 gl_tex_id;
 	
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	}
-	if (!env) return GF_BAD_PARAM;
+	if (!env) goto create_surface_failed;
 	
 	// cache classes
 	if (!cSurfaceTexture) {
 		ctmp = (*env)->FindClass(env, "android/graphics/SurfaceTexture");
 		cSurfaceTexture = (*env)->NewGlobalRef(env, ctmp);
-		if(!cSurfaceTexture) GF_BAD_PARAM;
+		if(!cSurfaceTexture) goto create_surface_failed;
 	}
 	if (!cSurface) {
 		ctmp = (*env)->FindClass(env, "android/view/Surface");
 		cSurface = (*env)->NewGlobalRef(env, ctmp);
-		if (!cSurface) return GF_BAD_PARAM;
+		if (!cSurface) goto create_surface_failed;
 	}
-	
-	/* TOFIX : here we call glGenTextures without creating or getting opengl context*/
-	//glGenTextures(1, gl_tex_id); The texture is created by the HW
 	
 	// cache methods
 	if(!mSurfaceTexConstructor) {
 		mSurfaceTexConstructor = (*env)->GetMethodID(env, cSurfaceTexture, "<init>", "(I)V");
-		if(!mSurfaceTexConstructor) return GF_BAD_PARAM;
+		if(!mSurfaceTexConstructor) goto create_surface_failed;
 	}
 	if(!mSurfaceConstructor) {
 		mSurfaceConstructor = (*env)->GetMethodID(env, cSurface, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
-		if(!mSurfaceConstructor) return GF_BAD_PARAM;
+		if(!mSurfaceConstructor) goto create_surface_failed;
 	}
 	if(!mSurfaceRelease) {
 		mSurfaceRelease = (*env)->GetMethodID(env, cSurface, "release", "()V");
-		if(!mSurfaceRelease) return GF_BAD_PARAM;
+		if(!mSurfaceRelease) goto create_surface_failed;
 	}
 	if(!mUpdateTexImage) {
 		mUpdateTexImage = (*env)->GetMethodID(env, cSurfaceTexture, "updateTexImage", "()V");
-		if(!mUpdateTexImage) return GF_BAD_PARAM;
+		if(!mUpdateTexImage) goto create_surface_failed;
 	}
 	if(!mGetTransformMatrix) {
 		mGetTransformMatrix = (*env)->GetMethodID(env, cSurfaceTexture, "getTransformMatrix", "([F)V");
-		if(!mGetTransformMatrix) return GF_BAD_PARAM;
+		if(!mGetTransformMatrix) goto create_surface_failed;
 	}
 	
+	surfaceTex->texture_id = tex_id;
 	// create objects
-	otmp = (*env)->NewObject(env, cSurfaceTexture, mSurfaceTexConstructor, *gl_tex_id);
-	oSurfaceTex = (jobject) (*env)->NewGlobalRef(env,otmp);
-	if(!oSurfaceTex) return GF_BAD_PARAM;
+	otmp = (*env)->NewObject(env, cSurfaceTexture, mSurfaceTexConstructor, surfaceTex->texture_id);
+	surfaceTex->oSurfaceTex = (jobject) (*env)->NewGlobalRef(env,otmp);
+	if(!surfaceTex->oSurfaceTex) goto create_surface_failed;
 	
-	oSurface = (*env)->NewObject(env, cSurface, mSurfaceConstructor, oSurfaceTex);
-	if(!oSurface) return GF_BAD_PARAM;
+	oSurface = (*env)->NewObject(env, cSurface, mSurfaceConstructor, surfaceTex->oSurfaceTex);
+	if(!oSurface) goto create_surface_failed;
+	
 	*window = ANativeWindow_fromSurface(env, oSurface);
 	*surface_rendering = (*window) ? GF_TRUE : GF_FALSE;
 	(*env)->CallVoidMethod(env, oSurface, mSurfaceRelease);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+	}
+	ret = GF_OK;
 	
-	return GF_OK;
+create_surface_failed:
+	if(otmp)
+		 (*env)->DeleteLocalRef(env, otmp);
+	 if(ctmp)
+		 (*env)->DeleteLocalRef(env, ctmp);
+	 if(oSurface)
+		 (*env)->DeleteLocalRef(env, oSurface);
+	 
+	 return ret;
 }
 
-GF_Err MCFrame_UpdateTexImage()
+static char * MCDec_GetDecoderName(JNIEnv * env, jobject mediaCodecList, jmethodID findId, jobject mediaFomat)
+{
+	jint res = 0;
+	jstring jdecoder_name;
+	char * decoder_name = NULL;
+
+	jdecoder_name = (*env)->CallObjectMethod(env, mediaCodecList, findId, mediaFomat);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto get_decoder_exit;
+	}
+	if(jdecoder_name) {
+		const char *decoder_name_tmp;
+		decoder_name_tmp = (*env)->GetStringUTFChars(env, jdecoder_name, 0);
+		decoder_name = gf_strdup(decoder_name_tmp);
+		(*env)->ReleaseStringUTFChars(env, jdecoder_name, decoder_name_tmp);
+	}
+
+get_decoder_exit:
+	if(jdecoder_name)
+		(*env)->DeleteLocalRef(env, jdecoder_name);
+
+	return decoder_name;
+}
+
+char * MCDec_FindDecoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive)
+{
+	JNIEnv* env = NULL;
+	jobject oMediaCodecList = NULL, oMediaFormat = NULL;
+	jclass ctmp = NULL;
+	jint res = 0;
+	jstring jmime, jfeature;
+	char *decoder_name = NULL, *decoder_name_tmp;
+
+
+	if(!mime || !is_adaptive) goto find_decoder_exit;
+
+	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
+	if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+	}
+	if (!env) goto find_decoder_exit;
+
+	// cache classes
+	if (!cMediaCodecList) {
+		ctmp = (*env)->FindClass(env, "android/media/MediaCodecList");
+		cMediaCodecList = (*env)->NewGlobalRef(env, ctmp);
+		if(!cMediaCodecList) goto find_decoder_exit;
+	}
+	if (!cMediaFormat) {
+		ctmp = (*env)->FindClass(env, "android/media/MediaFormat");
+		cMediaFormat = (*env)->NewGlobalRef(env, ctmp);
+		if(!cMediaFormat) goto find_decoder_exit;
+	}
+
+	//methods
+	if(!mMediaCodecListConstructor) {
+		mMediaCodecListConstructor = (*env)->GetMethodID(env, cMediaCodecList, "<init>", "(I)V");
+		if(!mMediaCodecListConstructor) goto find_decoder_exit;
+	}
+	if(!mFindDecoderForFormat) {
+		mFindDecoderForFormat = (*env)->GetMethodID(env, cMediaCodecList, "findDecoderForFormat", "(Landroid/media/MediaFormat;)Ljava/lang/String;");
+		if(!mFindDecoderForFormat) goto find_decoder_exit;
+	}
+	if(!mCreateVideoFormat) {
+		mCreateVideoFormat = (*env)->GetStaticMethodID(env, cMediaFormat, "createVideoFormat", "(Ljava/lang/String;II)Landroid/media/MediaFormat;");
+		if(!mCreateVideoFormat) goto find_decoder_exit;
+	}
+	if(!mSetFeatureEnabled ) {
+		mSetFeatureEnabled = (*env)->GetMethodID(env, cMediaFormat, "setFeatureEnabled", "(Ljava/lang/String;Z)V");
+		if(!mSetFeatureEnabled) goto find_decoder_exit;
+	}
+	oMediaCodecList = (*env)->NewObject(env, cMediaCodecList, mMediaCodecListConstructor, ALL_CODECS);
+	if(!oMediaCodecList) goto find_decoder_exit;
+
+	jmime = (*env)->NewStringUTF(env, mime);
+	oMediaFormat = (*env)->CallStaticObjectMethod(env, cMediaFormat, mCreateVideoFormat, jmime, width, height);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto find_decoder_exit;
+	}
+	decoder_name_tmp = MCDec_GetDecoderName(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
+	if(!decoder_name_tmp) goto find_decoder_exit;
+
+	jfeature = (*env)->NewStringUTF(env, "adaptive-playback");
+	(*env)->CallVoidMethod(env, oMediaFormat, mSetFeatureEnabled, jfeature, JNI_TRUE);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto find_decoder_exit;
+	}
+	decoder_name = MCDec_GetDecoderName(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
+	if(decoder_name){
+		*is_adaptive = GF_TRUE;
+		gf_free(decoder_name_tmp);
+		decoder_name_tmp = NULL;
+	} else {
+		*is_adaptive = GF_FALSE;
+		decoder_name = decoder_name_tmp;
+	}
+
+find_decoder_exit:
+	if(ctmp)
+		(*env)->DeleteLocalRef(env, ctmp);
+	if(oMediaCodecList)
+		(*env)->DeleteLocalRef(env, oMediaCodecList);
+	if(oMediaFormat)
+		(*env)->DeleteLocalRef(env, oMediaFormat);
+	if(jmime)
+		(*env)->DeleteLocalRef(env, jmime);
+	if(jfeature)
+		(*env)->DeleteLocalRef(env, jfeature);
+
+	return decoder_name;
+
+}
+
+GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
@@ -142,47 +325,62 @@ GF_Err MCFrame_UpdateTexImage()
 	}
 	if (!env) return GF_BAD_PARAM;
 	
-	if(oSurfaceTex) {
-		(*env)->CallVoidMethod(env, oSurfaceTex, mUpdateTexImage);
+	(*env)->CallVoidMethod(env, surfaceTex.oSurfaceTex, mUpdateTexImage);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		return GF_BAD_PARAM;
 	}
 	return GF_OK;
 }
-GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx)
+
+GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx, MC_SurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
 	int i =0;
 	jfloatArray texMx;
+	jsize len = 0;
+	jfloat *body;
+	GF_Err ret = GF_BAD_PARAM;
 	
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	}
-	if (!env) return GF_BAD_PARAM;
+	if (!env) goto get_matrix_failed;
 	
-	if(oSurfaceTex) {
-		texMx = (*env)->NewFloatArray(env,16);
-		if (texMx == NULL) {
-			return GF_BAD_PARAM; /* out of memory error thrown */
-		}
-		
-		(*env)->CallVoidMethod(env, oSurfaceTex, mGetTransformMatrix,texMx);
-		
-		jsize len = (*env)->GetArrayLength(env, texMx);
-		
-		jfloat *body = (*env)->GetFloatArrayElements(env, texMx, 0);
-		
-		for (i=0; i<len; i++) {
-			mx->m[i] = FLT2FIX(body[i]);
-		}
-		
-		(*env)->ReleaseFloatArrayElements(env, texMx, body, 0);
-		
+	texMx = (*env)->NewFloatArray(env, 16);
+	if (texMx == NULL) goto get_matrix_failed;
+	
+	(*env)->CallVoidMethod(env, surfaceTex.oSurfaceTex, mGetTransformMatrix,texMx);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto get_matrix_failed;
 	}
-	return GF_OK;
+	len = (*env)->GetArrayLength(env, texMx);
+	body = (*env)->GetFloatArrayElements(env, texMx, 0);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto get_matrix_failed;
+	}
+	for (i=0; i<len; i++) {
+		mx->m[i] = FLT2FIX(body[i]);
+	}
+	
+	(*env)->ReleaseFloatArrayElements(env, texMx, body, 0);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto get_matrix_failed;
+	}
+	ret = GF_OK;
+	
+get_matrix_failed:
+	if(texMx)
+		(*env)->DeleteLocalRef(env, texMx);
+	return ret;
 }
 
-GF_Err MCDec_DeleteSurface()
+GF_Err MCDec_DeleteSurface(MC_SurfaceTexture  surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
@@ -192,12 +390,17 @@ GF_Err MCDec_DeleteSurface()
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	} 
 	if (!env) return GF_BAD_PARAM;
-	(*env)->DeleteGlobalRef(env,cSurface);
+	
+	(*env)->DeleteGlobalRef(env, cSurface);
 	cSurface = NULL;
-	(*env)->DeleteGlobalRef(env,cSurfaceTexture);
+	(*env)->DeleteGlobalRef(env, cSurfaceTexture);
 	cSurfaceTexture = NULL;
-	(*env)->DeleteGlobalRef(env,oSurfaceTex);
-	oSurfaceTex = NULL;
+	(*env)->DeleteGlobalRef(env, cMediaCodecList);
+	cMediaCodecList = NULL;
+	(*env)->DeleteGlobalRef(env, cMediaFormat);
+	cMediaFormat = NULL;
+	(*env)->DeleteGlobalRef(env, surfaceTex.oSurfaceTex);
+	surfaceTex.oSurfaceTex = NULL;
 	
 	return GF_OK;
 }

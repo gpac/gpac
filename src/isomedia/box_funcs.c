@@ -1403,6 +1403,7 @@ GF_EXPORT
 GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 {
 	GF_Err e;
+	if (!a) return GF_BAD_PARAM;
 	if (a->registry->disabled) return GF_OK;
 	e = gf_isom_box_write_listing(a, bs);
 	if (e) return e;

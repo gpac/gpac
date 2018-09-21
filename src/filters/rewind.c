@@ -186,10 +186,6 @@ static GF_Err rewind_process(GF_Filter *filter)
 	if (!dstpck) return GF_OK;
 	gf_filter_pck_merge_properties(pck, dstpck);
 
-	if (0) {
-		memcpy(output, data, size);
-
-	} else
 	if (ctx->is_planar) {
 		u32 i, j, nb_samples, planesize, bytes_per_samp;
 		nb_samples = size / ctx->bytes_per_sample;

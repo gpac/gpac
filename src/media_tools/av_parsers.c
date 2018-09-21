@@ -1553,6 +1553,23 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 	return GF_OK;
 }
 
+
+/*AV1 parsing*/
+
+static u32 av1_read_ns(GF_BitStream *bs, u32 n)
+{
+	u32 v;
+	Bool extra_bit;
+	int w = (u32)(log(n)/log(2)) + 1;
+	u32 m = (1 << w) - n;
+	assert(w < 32);
+	v = gf_bs_read_int(bs, w - 1);
+	if (v < m)
+		return v;
+	extra_bit = gf_bs_read_int(bs, 1);
+	return (v << 1) - m + extra_bit;
+}
+
 static void color_config(GF_BitStream *bs, AV1State *state)
 {
 	state->config->high_bitdepth = gf_bs_read_int(bs, 1);
@@ -1586,7 +1603,7 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 		state->config->chroma_subsampling_x = GF_TRUE;
 		state->config->chroma_subsampling_y = GF_TRUE;
 		state->config->chroma_sample_position = 0/*CSP_UNKNOWN*/;
-		/*separate_uv_delta_q = 0;*/
+		state->separate_uv_delta_q = 0;
 		return;
 	} else if (state->color_primaries == 0/*CP_BT_709*/ &&
 		state->transfer_characteristics == 13/*TC_SRGB*/ &&
@@ -1621,7 +1638,7 @@ static void color_config(GF_BitStream *bs, AV1State *state)
 			state->config->chroma_sample_position = gf_bs_read_int(bs, 2);
 		}
 	}
-	/*separate_uv_delta_q = */gf_bs_read_int(bs, 1);
+	state->separate_uv_delta_q = gf_bs_read_int(bs, 1);
 }
 
 
@@ -1643,7 +1660,8 @@ static void timing_info(GF_BitStream *bs, AV1State *state) {
 	u32 num_ticks_per_picture_minus_1 = 0, time_scale = 0;
 	/*num_units_in_display_tick*/ gf_bs_read_int(bs, 32);
 	time_scale = gf_bs_read_int(bs, 32);
-	if (gf_bs_read_int(bs, 3) /*equal_picture_interval*/) {
+	state->equal_picture_interval = gf_bs_read_int(bs, 3);
+	if (state->equal_picture_interval) {
 		num_ticks_per_picture_minus_1 = uvlc(bs);
 		state->tb_num = (num_ticks_per_picture_minus_1 + 1);
 		state->tb_den = time_scale;
@@ -1653,11 +1671,11 @@ static void timing_info(GF_BitStream *bs, AV1State *state) {
 	}
 }
 
-static void decoder_model_info(GF_BitStream *bs, u8 *buffer_delay_length_minus_1) {
-	*buffer_delay_length_minus_1 = gf_bs_read_int(bs, 5);
+static void decoder_model_info(AV1State *state, GF_BitStream *bs) {
+	state->buffer_delay_length = 1 + gf_bs_read_int(bs, 5);
 	/*num_units_in_decoding_tick =*/ gf_bs_read_int(bs, 32);
-	/*buffer_removal_time_length_minus_1 =*/ gf_bs_read_int(bs, 5);
-	/*frame_presentation_time_length_minus_1 =*/ gf_bs_read_int(bs, 5);
+	state->buffer_removal_time_length = gf_bs_read_int(bs, 5);
+	state->frame_presentation_time_length = 1 + gf_bs_read_int(bs, 5);
 }
 
 static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 buffer_delay_length_minus_1) {
@@ -1669,36 +1687,35 @@ static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 b
 
 static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
-	u8 operating_points_cnt_minus_1, frame_width_bits_minus_1, frame_height_bits_minus_1, buffer_delay_length_minus_1 = 0;
-	Bool timing_info_present_flag, decoder_model_info_present_flag, initial_display_delay_present_flag;
+	u8 buffer_delay_length_minus_1 = 0;
+	Bool timing_info_present_flag, initial_display_delay_present_flag;
 	state->frame_state.seen_seq_header = GF_TRUE;
 	state->config->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);
 	if (state->reduced_still_picture_header) {
 		timing_info_present_flag = GF_FALSE;
-		decoder_model_info_present_flag = GF_FALSE;
 		initial_display_delay_present_flag = GF_FALSE;
-		operating_points_cnt_minus_1 = 0;
+		state->operating_points_count = 1;
 		state->config->seq_level_idx_0 = gf_bs_read_int(bs, 5);
 	} else {
 		u8 i = 0;
 		timing_info_present_flag = gf_bs_read_int(bs, 1);
 		if (timing_info_present_flag) {
 			timing_info(bs, state);
-			decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
-			if (decoder_model_info_present_flag) {
-				decoder_model_info(bs, &buffer_delay_length_minus_1);
+			state->decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
+			if (state->decoder_model_info_present_flag) {
+				decoder_model_info(state, bs);
 			}
 		} else {
-			decoder_model_info_present_flag = 0;
+			state->decoder_model_info_present_flag = GF_FALSE;
 		}
 		initial_display_delay_present_flag = gf_bs_read_int(bs, 1);
-		operating_points_cnt_minus_1 = gf_bs_read_int(bs, 5);
-		for (i = 0; i <= operating_points_cnt_minus_1; i++) {
+		state->operating_points_count = 1 + gf_bs_read_int(bs, 5);
+		for (i = 0; i < state->operating_points_count; i++) {
 			u8 seq_level_idx_i, seq_tier = 0;
-			
-			/*operating_point_idc[i] = */gf_bs_read_int(bs, 12);
+
+			state->operating_point_idc[i] = gf_bs_read_int(bs, 12);
 
 			seq_level_idx_i = gf_bs_read_int(bs, 5);
 			if (i == 0) state->config->seq_level_idx_0 = seq_level_idx_i;
@@ -1708,12 +1725,13 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 			}
 			if (i == 0) state->config->seq_tier_0 = seq_tier;
 
-			if (decoder_model_info_present_flag) {
-				if (gf_bs_read_int(bs, 1) /*decoder_model_present_for_this_op[i]*/) {
+			if (state->decoder_model_info_present_flag) {
+				state->decoder_model_present_for_this_op[i] = gf_bs_read_int(bs, 1);
+				if (state->decoder_model_present_for_this_op[i]) {
 					operating_parameters_info(bs, i, buffer_delay_length_minus_1);
 				}
 			} else {
-				/*decoder_model_present_for_this_op[i] = 0;*/
+				state->decoder_model_present_for_this_op[i] = 0;
 			}
 			if (initial_display_delay_present_flag) {
 				if (gf_bs_read_int(bs, 1) /*initial_display_delay_present_for_this_op[i]*/) {
@@ -1726,17 +1744,17 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	//operatingPoint = av1_choose_operating_point(bs);
 	state->OperatingPointIdc = 0;//TODO: operating_point_idc[operatingPoint];
 
-	frame_width_bits_minus_1 = gf_bs_read_int(bs, 4);
-	frame_height_bits_minus_1 = gf_bs_read_int(bs, 4);
-	state->width = gf_bs_read_int(bs, frame_width_bits_minus_1 + 1) + 1;
-	state->height = gf_bs_read_int(bs, frame_height_bits_minus_1 + 1) + 1;
+	state->frame_width_bits_minus_1 = gf_bs_read_int(bs, 4);
+	state->frame_height_bits_minus_1 = gf_bs_read_int(bs, 4);
+	state->width = gf_bs_read_int(bs,  state->frame_width_bits_minus_1  + 1) + 1;
+	state->height = gf_bs_read_int(bs, state->frame_height_bits_minus_1 + 1) + 1;
 	state->frame_id_numbers_present_flag = GF_FALSE;
 	if (!state->reduced_still_picture_header) {
 		state->frame_id_numbers_present_flag = gf_bs_read_int(bs, 1);
 	}
 	if (state->frame_id_numbers_present_flag) {
-		/*delta_frame_id_length_minus_2 =*/ gf_bs_read_int(bs, 4);
-		/*additional_frame_id_length_minus_1 =*/ gf_bs_read_int(bs, 3);
+		state->delta_frame_id_length_minus_2 = gf_bs_read_int(bs, 4);
+		state->additional_frame_id_length_minus_1 = gf_bs_read_int(bs, 3);
 	}
 	state->use_128x128_superblock = gf_bs_read_int(bs, 1);
 	/*enable_filter_intra =*/ gf_bs_read_int(bs, 1);
@@ -1744,61 +1762,72 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	if (state->reduced_still_picture_header) {
 		/*enable_interintra_compound = 0;
 		enable_masked_compound = 0;
-		enable_warped_motion = 0;
 		enable_dual_filter = 0;
-		enable_order_hint = 0;
 		enable_jnt_comp = 0;
-		enable_ref_frame_mvs = 0;
-		seq_force_screen_content_tools = SELECT_SCREEN_CONTENT_TOOLS;
-		seq_force_integer_mv = SELECT_INTEGER_MV;
-		OrderHintBits = 0;*/
+		enable_ref_frame_mvs = 0;*/
+		state->enable_warped_motion = 0;
+		state->enable_order_hint = GF_FALSE;
+		state->OrderHintBits = 0;
+		state->seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
+		state->seq_force_screen_content_tools = 2/*SELECT_SCREEN_CONTENT_TOOLS*/;
 	} else {
-		Bool enable_order_hint, seq_choose_screen_content_tools;
-		u8 seq_force_screen_content_tools/*, seq_force_integer_mv*/;
+		Bool seq_choose_screen_content_tools;
 		/*enable_interintra_compound =*/ gf_bs_read_int(bs, 1);
 		/*enable_masked_compound =*/ gf_bs_read_int(bs, 1);
-		/*enable_warped_motion =*/ gf_bs_read_int(bs, 1);
+		state->enable_warped_motion = gf_bs_read_int(bs, 1);
 		/*enable_dual_filter =*/ gf_bs_read_int(bs, 1);
-		enable_order_hint = gf_bs_read_int(bs, 1);
-		if (enable_order_hint) {
+		state->enable_order_hint = gf_bs_read_int(bs, 1);
+		if (state->enable_order_hint) {
 			/*enable_jnt_comp =*/ gf_bs_read_int(bs, 1);
-			/*enable_ref_frame_mvs =*/ gf_bs_read_int(bs, 1);
+			state->enable_ref_frame_mvs = gf_bs_read_int(bs, 1);
 		} else {
 			/*enable_jnt_comp =  0*/;
 			/*enable_ref_frame_mvs = 0*/;
 		}
 		seq_choose_screen_content_tools = gf_bs_read_int(bs, 1);
-		seq_force_screen_content_tools = 0;
+		state->seq_force_screen_content_tools = 0;
 		if (seq_choose_screen_content_tools) {
-			seq_force_screen_content_tools = 2/*SELECT_SCREEN_CONTENT_TOOLS*/;
+			state->seq_force_screen_content_tools = 2/*SELECT_SCREEN_CONTENT_TOOLS*/;
 		} else {
-			seq_force_screen_content_tools = gf_bs_read_int(bs, 1);
+			state->seq_force_screen_content_tools = gf_bs_read_int(bs, 1);
 		}
 
-		/*seq_force_integer_mv = 0;*/
-		if (seq_force_screen_content_tools > 0) {
+		state->seq_force_integer_mv = 0;
+		if (state->seq_force_screen_content_tools > 0) {
 			const Bool seq_choose_integer_mv = gf_bs_read_int(bs, 1);
 			if (seq_choose_integer_mv) {
-				/*seq_force_integer_mv = 2*//*SELECT_INTEGER_MV*/;
+				state->seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
 			} else {
-				/*seq_force_integer_mv = */gf_bs_read_int(bs, 1);
+				state->seq_force_integer_mv = gf_bs_read_int(bs, 1);
 			}
 		} else {
-			/*seq_force_integer_mv = 2*//*SELECT_INTEGER_MV*/;
+			state->seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
 		}
-		if (enable_order_hint) {
-			/*u8 order_hint_bits_minus_1 = */gf_bs_read_int(bs, 3);
-			/*OrderHintBits = order_hint_bits_minus_1 + 1*/;
+		if (state->enable_order_hint) {
+			u8 order_hint_bits_minus_1 = gf_bs_read_int(bs, 3);
+			state->OrderHintBits = order_hint_bits_minus_1 + 1;
 		} else {
-			/*OrderHintBits = 0*/;
+			state->OrderHintBits = 0;
 		}
 	}
 
-	/*enable_superres = */gf_bs_read_int(bs, 1);
-	/*enable_cdef = */gf_bs_read_int(bs, 1);
-	/*enable_restoration = */gf_bs_read_int(bs, 1);
+	state->enable_superres = gf_bs_read_int(bs, 1);
+	state->enable_cdef = gf_bs_read_int(bs, 1);
+	state->enable_restoration = gf_bs_read_int(bs, 1);
 	color_config(bs, state);
-	/*film_grain_params_present =*/ gf_bs_read_int(bs, 1);
+	state->film_grain_params_present = gf_bs_read_int(bs, 1);
+}
+
+Bool gf_media_probe_ivf(GF_BitStream *bs)
+{
+	u32 dw = 0;
+	if (gf_bs_available(bs) < 32) return GF_FALSE;
+
+	dw = gf_bs_peek_bits(bs, 32, 0);
+	if (dw != GF_4CC('D', 'K', 'I', 'F')) {
+		return GF_FALSE;
+	}
+	return GF_TRUE;
 }
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
@@ -1842,7 +1871,8 @@ GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 
 GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 {
-	assert(frame_size);
+	if (!frame_size) return GF_BAD_PARAM;
+
 	*frame_size = gf_bs_read_u32_le(bs);
 	if (*frame_size > 256 * 1024 * 1024) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong frame size %u\n", *frame_size));
@@ -1861,7 +1891,7 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 	if (forbidden) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	assert(obu_type && obu_extension_flag && obu_has_size_field && temporal_id && spatial_id);
+
 	*obu_type = gf_bs_read_int(bs, 4);
 	*obu_extension_flag = gf_bs_read_int(bs, 1);
 	*obu_has_size_field = gf_bs_read_int(bs, 1);
@@ -1913,12 +1943,14 @@ Bool av1_is_obu_header(ObuType obu_type) {
 	}
 }
 
-static Bool av1_is_obu_frame(ObuType obu_type) {
+static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
+{
 	switch (obu_type) {
-	case OBU_TEMPORAL_DELIMITER:
 	case OBU_PADDING:
 	case OBU_REDUNDANT_FRAME_HEADER:
 		return GF_FALSE;
+	case OBU_TEMPORAL_DELIMITER:
+		return state->keep_temporal_delim ? GF_TRUE : GF_FALSE;
 	default:
 		return GF_TRUE;
 	}
@@ -2062,7 +2094,7 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 	if (av1_is_obu_header(obu_type)) {
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
 	}
-	if (!state->skip_frames && av1_is_obu_frame(obu_type)) {
+	if (!state->skip_frames && av1_is_obu_frame(state, obu_type)) {
 		if (!state->mem_mode) {
 			av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.frame_obus, NULL);
 		} else {
@@ -2092,18 +2124,82 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 	return GF_OK;
 }
 
+Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
+{
+	Bool res = GF_TRUE;
+	u32 nb_obus = 3;
+	u64 pos = gf_bs_get_position(bs);
+	u64 sz = gf_av1_leb128_read(bs, NULL);
+
+	while (sz > 0) {
+		u8 Leb128Bytes = 0;
+		u64 frame_unit_size = gf_av1_leb128_read(bs, &Leb128Bytes);
+		if (sz < Leb128Bytes + frame_unit_size) {
+			res = GF_FALSE;
+			break;
+		}
+		sz -= Leb128Bytes + frame_unit_size;
+
+		while (frame_unit_size > 0) {
+			ObuType obu_type;
+			u64 pos, obu_length = gf_av1_leb128_read(bs, &Leb128Bytes);
+			if (frame_unit_size < Leb128Bytes + obu_length) {
+				res = GF_FALSE;
+				break;
+			}
+			pos = gf_bs_get_position(bs);
+			frame_unit_size -= Leb128Bytes;
+
+			u8 tid, sid;
+			Bool extflag, has_size;
+			GF_Err e = gf_av1_parse_obu_header(bs, &obu_type, &extflag, &has_size, &tid, &sid);
+			if (e) {
+				res = GF_FALSE;
+				break;
+			}
+
+			if (has_size) {
+				obu_length = (u32)gf_av1_leb128_read(bs, NULL);
+			} else {
+				if (obu_length >= 1 + extflag) {
+					obu_length = obu_length - 1 - extflag;
+				} else {
+					res = GF_FALSE;
+					break;
+				}
+			}
+			u32 hdr_size = (u32) (gf_bs_get_position(bs) - pos);
+			obu_length += hdr_size;
+
+			if (frame_unit_size < obu_length) {
+				res = GF_FALSE;
+				break;
+			}
+			frame_unit_size -= obu_length;
+			gf_bs_skip_bytes(bs, obu_length);
+			if (nb_obus) nb_obus--;
+		}
+		if (!res) break;
+		if (!nb_obus) break;
+	}
+	gf_bs_seek(bs, pos);
+	return res;
+}
+
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e = GF_OK;
 	u64 tupos;
 	u64 tusize, sz;
+	if (!bs || !state) return GF_BAD_PARAM;
+
 	tusize = sz = gf_av1_leb128_read(bs, NULL);
 	tupos = gf_bs_get_position(bs);
 	if (!sz) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] size 0 for annexN frame, likely not annex B\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	assert(bs && state);
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
@@ -2135,18 +2231,18 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 			}
 
 			av1_populate_state_from_obu(bs, pos, obu_length, obu_type, state);
+			if (frame_unit_size < obu_length) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < OBU size ("LLU")\n", frame_unit_size, obu_length));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			frame_unit_size -= obu_length;
 		}
-
-		assert(frame_unit_size == 0);
 	}
-
 	assert(sz == 0);
 	if (tusize !=  gf_bs_get_position(bs) - tupos) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] Annex B TU size "LLU" different from consumed bytes "LLU".\n", tusize, gf_bs_get_position(bs) - tupos));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-
 	return GF_OK;
 }
 
@@ -2181,17 +2277,18 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 	return e;
 }
 
-typedef enum {
-	KEY_FRAME = 0,
-	INTER_FRAME = 1,
-	INTRA_ONLY_FRAME = 2,
-	SWITCH_FRAME = 3,
-} AV1FrameType;
+#define AV1_NUM_REF_FRAMES 8
+#define AV1_ALL_FRAMES ((1 << AV1_NUM_REF_FRAMES) - 1)
+
+#define AV1_SUPERRES_DENOM_MIN 9
+#define AV1_SUPERRES_DENOM_BITS 3
+#define AV1_SUPERRES_NUM 8
+
+#define AV1_REFS_PER_FRAME 7
+#define AV1_PRIMARY_REF_NONE 7
 
 #define MAX_TILE_WIDTH 4096
 #define MAX_TILE_AREA (4096 * 2304)
-
-#if 0
 
 static u32 aom_av1_tile_log2(u32 blkSize, u32 target)
 {
@@ -2201,21 +2298,18 @@ static u32 aom_av1_tile_log2(u32 blkSize, u32 target)
 	return k;
 }
 
-static u32 aom_av1_ns(GF_BitStream *bs, u32 n)
-{
-	u32 v;
-	Bool extra_bit;
-	int w = (u32)(log(n)/log(2)) + 1;
-	u32 m = (1 << w) - n;
-	assert(w < 32);
-	v = gf_bs_read_int(bs, w - 1);
-	if (v < m)
-		return v;
-	extra_bit = gf_bs_read_int(bs, 1);
-	return (v << 1) - m + extra_bit;
+static u64 aom_av1_le(GF_BitStream *bs, u32 n) {
+	u32 i = 0;
+	u64 t = 0;
+	for (i = 0; i < n; i++) {
+		u8 byte = gf_bs_read_int(bs, 8);
+		t += (byte << (i * 8));
+	}
+	return t;
 }
 
-static void tile_info(GF_BitStream *bs, AV1State *state)
+
+static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 {
 	u32 i;
 	u32 MiCols = 2 * ((state->width + 7) >> 3);
@@ -2248,7 +2342,7 @@ static void tile_info(GF_BitStream *bs, AV1State *state)
 			i += 1;
 		}
 		state->tileCols = i;
-		minLog2tileRows = MAX(minLog2Tiles - state->tileColsLog2, 0);
+		minLog2tileRows = MAX((int)(minLog2Tiles - state->tileColsLog2), 0);
 		state->tileRowsLog2 = minLog2tileRows;
 		while (state->tileRowsLog2 < maxLog2tileRows) {
 			Bool increment_tile_rows_log2 = gf_bs_read_int(bs, 1);
@@ -2269,8 +2363,8 @@ static void tile_info(GF_BitStream *bs, AV1State *state)
 		widestTileSb = 0;
 		startSb = 0;
 		for (i = 0; startSb < sbCols; i++) {
-			u32 maxWidth = MIN(sbCols - startSb, maxTileWidthSb);
-			u32 width_in_sbs_minus_1 = aom_av1_ns(bs, maxWidth);
+			u32 maxWidth = MIN((int)(sbCols - startSb), maxTileWidthSb);
+			u32 width_in_sbs_minus_1 = av1_read_ns(bs, maxWidth);
 			u32 sizeSb = width_in_sbs_minus_1 + 1;
 			widestTileSb = MAX(sizeSb, widestTileSb);
 			startSb += sizeSb;
@@ -2287,8 +2381,8 @@ static void tile_info(GF_BitStream *bs, AV1State *state)
 
 		startSb = 0;
 		for (i = 0; startSb < sbRows; i++) {
-			u32 maxHeight = MIN(sbRows - startSb, maxTileHeightSb);
-			u32 height_in_sbs_minus_1 = aom_av1_ns(bs, maxHeight);
+			u32 maxHeight = MIN((int)(sbRows - startSb), maxTileHeightSb);
+			u32 height_in_sbs_minus_1 = av1_read_ns(bs, maxHeight);
 			u32 sizeSb = height_in_sbs_minus_1 + 1;
 			startSb += sizeSb;
 		}
@@ -2297,49 +2391,1024 @@ static void tile_info(GF_BitStream *bs, AV1State *state)
 		state->tileRowsLog2 = aom_av1_tile_log2(1, state->tileRows);
 	}
 	if (state->tileColsLog2 > 0 || state->tileRowsLog2 > 0) {
-		/*context_update_tile_idcontext_update_tile_id = */gf_bs_read_int(bs, state->tileRowsLog2 + state->tileColsLog2);
-		/*tile_size_bytes_minus_1tile_size_bytes_minus_1 = */gf_bs_read_int(bs, 2);
+		/*context_update_tile_id = */gf_bs_read_int(bs, state->tileRowsLog2 + state->tileColsLog2);
+		state->tile_size_bytes = gf_bs_read_int(bs, 2) + 1;
 	}
 }
-#endif
 
-static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state, Bool *show_existing_frame)
+static void superres_params(GF_BitStream *bs, AV1State *state)
 {
-	AV1StateFrame *frame_state = &state->frame_state;
-	assert(bs && state && show_existing_frame);
-	if (state->frame_id_numbers_present_flag) {
-		//idLen = (additional_frame_id_length_minus_1 + delta_frame_id_length_minus_2 + 3);
+	u32 SuperresDenom;
+	Bool use_superres;
+
+	if (state->enable_superres) {
+		use_superres = gf_bs_read_int(bs, 1);
+	} else {
+		use_superres = GF_FALSE;
 	}
-	//allFrames = (1 << NUM_REF_FRAMES) - 1;
+	if (use_superres) {
+		u8 coded_denom = gf_bs_read_int(bs, AV1_SUPERRES_DENOM_BITS);
+		SuperresDenom = coded_denom + AV1_SUPERRES_DENOM_MIN;
+	} else {
+		SuperresDenom = AV1_SUPERRES_NUM;
+	}
+	state->UpscaledWidth = state->width;
+	state->width = (state->UpscaledWidth * AV1_SUPERRES_NUM + (SuperresDenom / 2)) / SuperresDenom;
+}
+
+static void frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag)
+{
+	if (frame_size_override_flag) {
+		u32 frame_width_minus_1, frame_height_minus_1;
+		u8 n = state->frame_width_bits_minus_1 + 1;
+		frame_width_minus_1 = gf_bs_read_int(bs, n);
+		n = state->frame_height_bits_minus_1 + 1;
+		frame_height_minus_1 = gf_bs_read_int(bs, n);
+		state->width = frame_width_minus_1 + 1;
+		state->height = frame_height_minus_1 + 1;
+	}
+	superres_params(bs, state);
+	//compute_image_size(); //no bits
+}
+
+static void render_size(GF_BitStream *bs)
+{
+	Bool render_and_frame_size_different = gf_bs_read_int(bs, 1);
+	if (render_and_frame_size_different == GF_TRUE) {
+		/*render_width_minus_1 =*/ gf_bs_read_int(bs, 16);
+		/*render_height_minus_1 =*/ gf_bs_read_int(bs, 16);
+		//RenderWidth = render_width_minus_1 + 1;
+		//RenderHeight = render_height_minus_1 + 1;
+	} else {
+		//RenderWidth = UpscaledWidth;
+		//RenderHeight = FrameHeight;
+	}
+}
+
+static void read_interpolation_filter(GF_BitStream *bs)
+{
+	Bool is_filter_switchable = gf_bs_read_int(bs, 1);
+	if (!is_filter_switchable) {
+		/*interpolation_filter =*/ gf_bs_read_int(bs, 2);
+	}
+}
+
+static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag)
+{
+	Bool found_ref = GF_FALSE;
+	u32 i = 0;
+	for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
+		found_ref = gf_bs_read_int(bs, 1);
+		if (found_ref == 1) {
+#if 0
+			UpscaledWidth = RefUpscaledWidth[ref_frame_idx[i]];
+			FrameWidth = UpscaledWidth;
+			FrameHeight = RefFrameHeight[ref_frame_idx[i]];
+			RenderWidth = RefRenderWidth[ref_frame_idx[i]];
+			RenderHeight = RefRenderHeight[ref_frame_idx[i]];
+#endif
+			break;
+		}
+	}
+	if (found_ref == 0) {
+		frame_size(bs, state, frame_size_override_flag);
+		render_size(bs);
+	} else {
+		superres_params(bs, state);
+		//compute_image_size();
+	}
+}
+
+static s32 av1_delta_q(GF_BitStream *bs)
+{
+	Bool delta_coded = gf_bs_read_int(bs, 1);
+	s32 delta_q = 0;
+	if ( delta_coded ) {
+		u32 signMask = 1 << (7 - 1);
+		delta_q = gf_bs_read_int(bs, 7);
+		if (delta_q & signMask )
+			delta_q = delta_q - 2 * signMask;
+	}
+	return delta_q;
+}
+
+static u8 Segmentation_Feature_Bits[] = {8,6,6,6,6,3,0,0};
+static u8 Segmentation_Feature_Signed[] = { 1, 1, 1, 1, 1, 0, 0, 0 };
+
+static u8 av1_get_qindex(Bool ignoreDeltaQ, u32 segmentId, u32 base_q_idx, u32 delta_q_present, u32 CurrentQIndex, Bool segmentation_enabled, u8 *features_SEG_LVL_ALT_Q_enabled, s32 *features_SEG_LVL_ALT_Q)
+{
+	//If seg_feature_active_idx( segmentId, SEG_LVL_ALT_Q ) is equal to 1 the following ordered steps apply:
+	if (segmentation_enabled && features_SEG_LVL_ALT_Q_enabled[segmentId] ) {
+		//Set the variable data equal to FeatureData[ segmentId ][ SEG_LVL_ALT_Q ].
+		s32 data = features_SEG_LVL_ALT_Q[segmentId];
+		s32 qindex =  base_q_idx + data;
+		//If ignoreDeltaQ is equal to 0 and delta_q_present is equal to 1, set qindex equal to CurrentQIndex + data.
+		if ((ignoreDeltaQ==0) && (delta_q_present==1)) qindex = CurrentQIndex+data;
+		//Return Clip3( 0, 255, qindex ).
+		if (qindex<0) return 0;
+		else if (qindex>255) return 255;
+		else return (u8) qindex;
+	}
+	//Otherwise, if ignoreDeltaQ is equal to 0 and delta_q_present is equal to 1, return CurrentQIndex.
+	if ((ignoreDeltaQ==0) && (delta_q_present==1)) return CurrentQIndex;
+	//otherwise
+	return base_q_idx;
+}
+
+enum {
+AV1_RESTORE_NONE=0,
+AV1_RESTORE_SWITCHABLE,
+AV1_RESTORE_WIENER,
+AV1_RESTORE_SGRPROJ
+};
+
+#define AV1_GMC_IDENTITY  0
+#define AV1_GMC_TRANSLATION 1
+#define AV1_GMC_ROTZOOM 2
+#define AV1_GMC_AFFINE 3
+
+#define AV1_LAST_FRAME 1
+#define AV1_LAST2_FRAME 2
+#define AV1_LAST3_FRAME 3
+#define AV1_GOLDEN_FRAME 4
+#define AV1_BWDREF_FRAME 5
+#define AV1_ALTREF2_FRAME 6
+#define AV1_ALTREF_FRAME 7
+
+#define GM_ABS_ALPHA_BITS 12
+#define GM_ALPHA_PREC_BITS 15
+#define GM_ABS_TRANS_ONLY_BITS 9
+#define GM_TRANS_ONLY_PREC_BITS 3
+#define GM_ABS_TRANS_BITS 12
+#define GM_TRANS_PREC_BITS 6
+#define WARPEDMODEL_PREC_BITS 16
+
+
+static u32 av1_decode_subexp(GF_BitStream *bs, s32 numSyms)
+{
+	s32 i=0;
+	s32 mk=0;
+	s32 k=3;
+	while (1) {
+		s32 b2 = i ? k + i - 1 : k;
+		s32 a = 1 << b2;
+		if ( numSyms <= mk + 3 * a ) {
+			s32 subexp_final_bits = av1_read_ns(bs, numSyms - mk);
+			return subexp_final_bits + mk;
+		} else {
+			s32 subexp_more_bits = gf_bs_read_int(bs, 1);
+			if ( subexp_more_bits ) {
+				i++;
+				mk += a;
+			} else {
+				s32 subexp_bits = gf_bs_read_int(bs, b2);
+				return subexp_bits + mk;
+			}
+		}
+	}
+}
+
+static GFINLINE s32 inverse_recenter(s32 r, u32 v)
+{
+	if ( v > 2 * r )
+		return v;
+	else if ( v & 1 )
+		return r - ((v + 1) >> 1);
+	else
+		return r + (v >> 1);
+}
+
+static s32 av1_decode_unsigned_subexp_with_ref(GF_BitStream *bs, s32 mx, s32 r)
+{
+	u32 v = av1_decode_subexp(bs, mx );
+	if ((r<0) &&  (- (-r << 1) <= mx ) ) {
+		return inverse_recenter(r, v);
+	} else if ( (r << 1) <= mx ) {
+		return inverse_recenter(r, v);
+	} else {
+		return mx - 1 - inverse_recenter(mx - 1 - r, v);
+	}
+}
+static s16 av1_decode_signed_subexp_with_ref(GF_BitStream *bs, s32 low, s32 high, s32 r)
+{
+	s16 x = av1_decode_unsigned_subexp_with_ref(bs, high - low, r - low);
+	return x + low;
+}
+
+static void av1_read_global_param(AV1State *state, GF_BitStream *bs, u8 type, u8 ref, u8 idx)
+{
+	u8 absBits = GM_ABS_ALPHA_BITS;
+	u8 precBits = GM_ALPHA_PREC_BITS;
+	if ( idx < 2 ) {
+		if ( type == AV1_GMC_TRANSLATION ) {
+			absBits = GM_ABS_TRANS_ONLY_BITS - (!state->frame_state.allow_high_precision_mv ? 1 : 0);
+			precBits = GM_TRANS_ONLY_PREC_BITS - (!state->frame_state.allow_high_precision_mv ? 1 : 0);
+		} else {
+			absBits = GM_ABS_TRANS_BITS;
+			precBits = GM_TRANS_PREC_BITS;
+		}
+	}
+	s32 precDiff = WARPEDMODEL_PREC_BITS - precBits;
+	s32 round = (idx % 3) == 2 ? (1 << WARPEDMODEL_PREC_BITS) : 0;
+	s32 sub = (idx % 3) == 2 ? (1 << precBits) : 0;
+	s32 mx = (1 << absBits);
+	s32 r = (state->PrevGmParams.coefs[ref][idx] >> precDiff) - sub;
+	s32 val = av1_decode_signed_subexp_with_ref(bs, -mx, mx + 1, r );
+
+	if (val<0) {
+		val = -val;
+		state->GmParams.coefs[ref][idx] = ( -(val << precDiff) + round);
+	} else {
+		state->GmParams.coefs[ref][idx] = (val << precDiff) + round;
+	}
+}
+
+static s32 av1_get_relative_dist(s32 a, s32 b, AV1State *state)
+{
+	if ( !state->enable_order_hint )
+		return 0;
+	s32 diff = a - b;
+	s32 m = 1 << (state->OrderHintBits - 1);
+	diff = (diff & (m - 1)) - (diff & m);
+	return diff;
+}
+
+static void av1_setup_past_independence(AV1State *state)
+{
+	u32 ref, i;
+	for (ref = AV1_LAST_FRAME; ref<=AV1_ALTREF_FRAME; ref++) {
+		for (i=0; i<=5; i++) {
+			state->PrevGmParams.coefs[ref][i] = ( ( i % 3 == 2 ) ? 1 << WARPEDMODEL_PREC_BITS : 0 );
+		}
+	}
+}
+
+static void av1_load_previous(AV1State *state, u8 primary_ref_frame, s8 *ref_frame_idx)
+{
+	s8 prevFrame = ref_frame_idx[ primary_ref_frame ];
+	if (prevFrame<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] load_previous: prevFrame reference index %d is invalid\n", prevFrame));
+	} else {
+		state->PrevGmParams = state->SavedGmParams[prevFrame];
+		// load_loop_filter_params( prevFrame )
+		// load_segmentation_params( prevFrame )
+	}
+}
+
+static void av1_decode_frame_wrapup(AV1State *state)
+{
+	u32 i;
+	for (i=0; i<AV1_NUM_REF_FRAMES; i++) {
+		if ( (state->frame_state.refresh_frame_flags >> i) & 1) {
+			state->RefOrderHint[i] = state->frame_state.order_hint;
+			state->SavedGmParams[i] = state->GmParams;
+			state->RefFrameType[i] = state->frame_state.frame_type;
+		}
+	}
+	state->frame_state.seen_frame_header = GF_FALSE;
+	//Otherwise (show_existing_frame is equal to 1), if frame_type is equal to KEY_FRAME, the reference frame loading process as specified in section 7.21 is invoked
+	if ( (state->frame_state.show_existing_frame) && (state->frame_state.frame_type==AV1_KEY_FRAME) ) {
+		state->frame_state.order_hint = state->RefOrderHint[state->frame_state.frame_to_show_map_idx];
+		//OrderHints[ j + LAST_FRAME ] is set equal to SavedOrderHints[state->frame_to_show_map_idx ][ j + LAST_FRAME ] for j = 0..REFS_PER_FRAME-1.
+
+		//gm_params[ ref ][ j ] is set equal to SavedGmParams[ frame_to_show_map_idx ][ ref ][ j ] for ref = LAST_FRAME..ALTREF_FRAME, for j = 0..5.
+		state->GmParams = state->SavedGmParams[state->frame_state.frame_to_show_map_idx];
+
+	}
+}
+
+static s32 find_latest_forward(u32 curFrameHint, u8 *shiftedOrderHints, u8 *usedFrame)
+{
+	u32 i;
+	s32 ref = -1;
+	s32 latestOrderHint = 0;
+	for (i=0; i<AV1_NUM_REF_FRAMES; i++) {
+		s32 hint = shiftedOrderHints[ i ];
+		if ( !usedFrame[ i ] && (hint < curFrameHint) && ( ref < 0 || hint >= latestOrderHint ) ) {
+			ref=i;
+			latestOrderHint = hint;
+		}
+	}
+	return ref;
+}
+
+//see 7.8 of AV1 spec
+static void av1_set_frame_refs(AV1State *state, u8 last_frame_idx, u8 gold_frame_idx, s8 *ref_frame_idx)
+{
+	u32 i;
+	u8 usedFrame[AV1_NUM_REF_FRAMES];
+	u8 shiftedOrderHints[AV1_NUM_REF_FRAMES];
+
+	for (i=0; i<AV1_REFS_PER_FRAME; i++)
+		ref_frame_idx[i] = -1;
+
+	ref_frame_idx[AV1_LAST_FRAME - AV1_LAST_FRAME] = last_frame_idx;
+	ref_frame_idx[AV1_GOLDEN_FRAME - AV1_LAST_FRAME ] = gold_frame_idx;
+
+	for (i=0; i<AV1_NUM_REF_FRAMES; i++) {
+		usedFrame[i] = 0;
+	}
+
+	usedFrame[last_frame_idx] = 1;
+	usedFrame[gold_frame_idx] = 1;
+	u32 curFrameHint =  1 << (state->OrderHintBits - 1);
+
+	for (i=0; i<AV1_NUM_REF_FRAMES; i++) {
+		shiftedOrderHints[ i ] = curFrameHint + av1_get_relative_dist(state->RefOrderHint[i], state->frame_state.order_hint, state);
+	}
+
+	u8 lastOrderHint = shiftedOrderHints[ last_frame_idx ];
+	u8 goldOrderHint = shiftedOrderHints[ gold_frame_idx ];
+
+	//It is a requirement of bitstream conformance that lastOrderHint is strictly less than curFrameHint.
+	if (lastOrderHint >= curFrameHint) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] non conformant bitstream detected while setting up frame refs: lastOrderHint(%d) shall be stricly less than curFrameHint(%d)\n", lastOrderHint, curFrameHint));
+	}
+	//It is a requirement of bitstream conformance that goldOrderHint is strictly less than curFrameHint.
+	if (goldOrderHint >= curFrameHint) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] non conformant bitstream detected while setting up frame refs: goldOrderHint(%d) shall be stricly less than curFrameHint(%d)\n", lastOrderHint, curFrameHint));
+	}
+
+	//find_latest_backward() {
+	s32 ref = -1;
+	s32 latestOrderHint = 0;
+	for (i=0; i < AV1_NUM_REF_FRAMES; i++) {
+		s32 hint = shiftedOrderHints[ i ];
+		if ( !usedFrame[ i ] && (hint >= curFrameHint) && ( ref < 0 || hint >= latestOrderHint ) ) {
+			ref = i;
+			latestOrderHint = hint;
+		}
+	}
+	if (ref >= 0) {
+		ref_frame_idx[ AV1_ALTREF_FRAME - AV1_LAST_FRAME ] = ref;
+		usedFrame[ ref ] = 1;
+	}
+	//find_earliest_backward() for BWDREF_FRAME
+	ref = -1;
+	s32 earliestOrderHint = 0;
+	for (i=0; i < AV1_NUM_REF_FRAMES; i++) {
+		s32 hint = shiftedOrderHints[ i ];
+		if ( !usedFrame[ i ] && (hint >= curFrameHint) && ( ref < 0 || hint < earliestOrderHint ) ) {
+			ref = i;
+			earliestOrderHint = hint;
+		}
+	}
+	if (ref >= 0) {
+		ref_frame_idx[ AV1_BWDREF_FRAME - AV1_LAST_FRAME ] = ref;
+		usedFrame[ ref ] = 1;
+	}
+
+	//find_earliest_backward() for ALTREF2_FRAME
+	ref = -1;
+	earliestOrderHint = 0;
+	for (i=0; i < AV1_NUM_REF_FRAMES; i++) {
+		s32 hint = shiftedOrderHints[ i ];
+		if ( !usedFrame[ i ] && (hint >= curFrameHint) && ( ref < 0 || hint < earliestOrderHint ) ) {
+			ref = i;
+			earliestOrderHint = hint;
+		}
+	}
+	if (ref >= 0) {
+		ref_frame_idx[ AV1_ALTREF2_FRAME - AV1_LAST_FRAME ] = ref;
+		usedFrame[ ref ] = 1;
+	}
+
+	//The remaining references are set to be forward references in anti-chronological order as follows:
+
+	const u8 Ref_Frame_List[AV1_REFS_PER_FRAME - 2 ] = {
+		AV1_LAST2_FRAME, AV1_LAST3_FRAME, AV1_BWDREF_FRAME, AV1_ALTREF2_FRAME, AV1_ALTREF_FRAME
+	};
+
+	for (i=0; i<AV1_REFS_PER_FRAME - 2; i++) {
+		u8 refFrame = Ref_Frame_List[ i ];
+		if ( ref_frame_idx[ refFrame - AV1_LAST_FRAME ] < 0 ) {
+			s32 ref = find_latest_forward(curFrameHint, shiftedOrderHints, usedFrame);
+			if (ref >= 0) {
+				ref_frame_idx[ refFrame - AV1_LAST_FRAME ] = ref;
+				usedFrame[ ref ] = 1;
+			}
+		}
+	}
+	//Finally, any remaining references are set to the reference frame with smallest output order as follows:
+	ref = -1;
+	for (i=0; i < AV1_NUM_REF_FRAMES; i++) {
+		s32 hint = shiftedOrderHints[ i ];
+		if ( ref < 0 || hint < earliestOrderHint ) {
+			ref=i;
+			earliestOrderHint = hint;
+		}
+	}
+	for (i=0; i < AV1_REFS_PER_FRAME; i++) {
+		if (ref_frame_idx[ i ] < 0 ) {
+			ref_frame_idx[ i ] = ref;
+		}
+	}
+}
+
+
+static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
+{
+	Bool error_resilient_mode = GF_FALSE, allow_screen_content_tools = GF_FALSE, force_integer_mv = GF_FALSE;
+	Bool /*use_ref_frame_mvs = GF_FALSE,*/ FrameIsIntra = GF_FALSE, frame_size_override_flag = GF_FALSE;
+	Bool disable_cdf_update = GF_FALSE;
+	u8 showable_frame;
+	u8 primary_ref_frame;
+	u16 idLen = 0;
+	u32 idx;
+	s8 ref_frame_idx[AV1_REFS_PER_FRAME];
+	AV1StateFrame *frame_state = &state->frame_state;
+
+	if (state->frame_id_numbers_present_flag) {
+		idLen = (state->additional_frame_id_length_minus_1 + state->delta_frame_id_length_minus_2 + 3);
+	}
+	frame_state->refresh_frame_flags = 0;
+
+	showable_frame = 0;
 	if (state->reduced_still_picture_header) {
 		frame_state->key_frame = GF_TRUE;
+		FrameIsIntra = GF_TRUE;
+		frame_state->frame_type = AV1_KEY_FRAME;
+		frame_state->show_frame = GF_TRUE;
+		frame_state->show_existing_frame = 0;
 	} else {
-		AV1FrameType frame_type;
-		Bool show_frame = GF_FALSE;
-		*show_existing_frame = gf_bs_read_int(bs, 1);
-		if (*show_existing_frame == GF_TRUE) {
-			/*frame_to_show_map_idx	f(3)
-			if (decoder_model_info_present_flag && !equal_picture_interval) {
-				temporal_point_info()
+		frame_state->show_existing_frame = gf_bs_read_int(bs, 1);
+		if (frame_state->show_existing_frame == GF_TRUE) {
+			frame_state->frame_to_show_map_idx = gf_bs_read_int(bs, 3);
+			frame_state->frame_type = state->RefFrameType[frame_state->frame_to_show_map_idx];
+
+			if (state->decoder_model_info_present_flag && !state->equal_picture_interval) {
+				/*frame_presentation_time = */gf_bs_read_int(bs, state->frame_presentation_time_length);
 			}
-			refresh_frame_flags = 0
-			if (frame_id_numbers_present_flag) {
-				display_frame_id	f(idLen)
+
+			frame_state->refresh_frame_flags = 0;
+			if (state->frame_id_numbers_present_flag) {
+				/*display_frame_id = */gf_bs_read_int(bs, idLen);
 			}
-			frame_type = RefFrameType[frame_to_show_map_idx]
-			if (frame_type == KEY_FRAME) {
-				refresh_frame_flags = allFrames
+			if (frame_state->frame_type == AV1_KEY_FRAME) {
+				frame_state->refresh_frame_flags = AV1_ALL_FRAMES;
 			}
+			/*
 			if (film_grain_params_present) {
 				load_grain_params(frame_to_show_map_idx)
 			}*/
 			return;
 		}
-		frame_type = gf_bs_read_int(bs, 2);
-		show_frame = gf_bs_read_int(bs, 1);
-		frame_state->key_frame = frame_state->seen_seq_header && show_frame && frame_type == KEY_FRAME && frame_state->seen_frame_header;
+		frame_state->frame_type = gf_bs_read_int(bs, 2);
+		FrameIsIntra = (frame_state->frame_type == AV1_INTRA_ONLY_FRAME || frame_state->frame_type == AV1_KEY_FRAME);
+		frame_state->show_frame = gf_bs_read_int(bs, 1);
+		frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
+			/*frame_presentation_time = */gf_bs_read_int(bs, state->frame_presentation_time_length);
+		}
+		if (frame_state->show_frame) {
+			showable_frame = frame_state->frame_type != AV1_KEY_FRAME;
+
+		} else {
+			showable_frame = gf_bs_read_int(bs, 1);
+		}
+		if (frame_state->frame_type == AV1_SWITCH_FRAME || (frame_state->frame_type == AV1_KEY_FRAME && frame_state->show_frame))
+			error_resilient_mode = GF_TRUE;
+		else
+			error_resilient_mode = gf_bs_read_int(bs, 1);
+	}
+
+	if ( (frame_state->frame_type == AV1_KEY_FRAME) && frame_state->show_frame) {
+		u32 i;
+		for ( i = 0; i < AV1_NUM_REF_FRAMES; i++ ) {
+			state->RefValid[i] = 0;
+			state->RefOrderHint[i] = 0;
+		}
+		for ( i = 0; i < AV1_REFS_PER_FRAME; i++ ) {
+			state->OrderHints[ AV1_LAST_FRAME + i ] = 0;
+		}
+	}
+
+	disable_cdf_update = gf_bs_read_int(bs, 1);
+	if (state->seq_force_screen_content_tools == 2/*SELECT_SCREEN_CONTENT_TOOLS*/) {
+		allow_screen_content_tools = gf_bs_read_int(bs, 1);
+	} else {
+		allow_screen_content_tools = state->seq_force_screen_content_tools;
+	}
+	if (allow_screen_content_tools) {
+		if (state->seq_force_integer_mv == 2/*SELECT_INTEGER_MV*/) {
+			force_integer_mv = gf_bs_read_int(bs, 1);
+		} else {
+			force_integer_mv = state->seq_force_integer_mv;
+		}
+	} else {
+		force_integer_mv = 0;
+	}
+	if (FrameIsIntra) {
+		force_integer_mv = 1;
+	}
+	if (state->frame_id_numbers_present_flag) {
+		/*current_frame_id = */gf_bs_read_int(bs, idLen);
+	}
+	if (frame_state->frame_type == AV1_SWITCH_FRAME)
+		frame_size_override_flag =  GF_TRUE;
+	else if (state->reduced_still_picture_header)
+		frame_size_override_flag = GF_FALSE;
+	else
+		frame_size_override_flag = gf_bs_read_int(bs, 1);
+
+	frame_state->order_hint = gf_bs_read_int(bs, state->OrderHintBits);
+	if (FrameIsIntra || error_resilient_mode) {
+		primary_ref_frame = AV1_PRIMARY_REF_NONE;
+	} else {
+		primary_ref_frame = gf_bs_read_int(bs, 3);
+	}
+
+	if (state->decoder_model_info_present_flag) {
+		u8 buffer_removal_time_present_flag = gf_bs_read_int(bs, 1);
+		if (buffer_removal_time_present_flag) {
+			u32 opNum;
+			for (opNum = 0; opNum < state->operating_points_count; opNum++) {
+				if (state->decoder_model_present_for_this_op[opNum]) {
+					u8 opPtIdc = state->operating_point_idc[opNum];
+					u8 inTemporalLayer = (opPtIdc >> state->temporal_id) & 1;
+					u8 inSpatialLayer = (opPtIdc >> (state->spatial_id + 8)) & 1;
+					if (opPtIdc == 0 || (inTemporalLayer && inSpatialLayer)) {
+						/*buffer_removal_time[opNum] = */gf_bs_read_int(bs, state->buffer_removal_time_length);
+					}
+				}
+			}
+		}
+	}
+
+	if (frame_state->frame_type == AV1_SWITCH_FRAME || (frame_state->frame_type == AV1_KEY_FRAME && frame_state->show_frame)) {
+		frame_state->refresh_frame_flags  = AV1_ALL_FRAMES;
+	} else {
+		frame_state->refresh_frame_flags = gf_bs_read_int(bs, 8);
+	}
+	if (!FrameIsIntra || frame_state->refresh_frame_flags != AV1_ALL_FRAMES) {
+		if (error_resilient_mode && state->enable_order_hint) {
+			u32 i = 0;
+			for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
+				u8 ref_order_hint = gf_bs_read_int(bs, state->OrderHintBits);
+				if ( ref_order_hint != state->RefOrderHint[i] ) {
+					state->RefValid[i] = 0;
+				}
+				state->RefOrderHint[i] = ref_order_hint;
+			}
+		}
+	}
+
+	u8 allow_intrabc = 0;
+	if (frame_state->frame_type == AV1_KEY_FRAME) {
+		frame_size(bs, state, frame_size_override_flag);
+		render_size(bs);
+		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
+			allow_intrabc = gf_bs_read_int(bs, 1);
+		}
+	} else {
+		if (frame_state->frame_type == AV1_INTRA_ONLY_FRAME) {
+			frame_size(bs, state, frame_size_override_flag);
+			render_size(bs);
+			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
+				allow_intrabc = gf_bs_read_int(bs, 1);
+			}
+		} else {
+			u32 i = 0;
+			Bool frame_refs_short_signaling = GF_FALSE;
+			if (state->enable_order_hint) {
+				frame_refs_short_signaling = gf_bs_read_int(bs, 1);
+				if (frame_refs_short_signaling) {
+					u8 last_frame_idx = gf_bs_read_int(bs, 3);
+					u8 gold_frame_idx = gf_bs_read_int(bs, 3);
+					av1_set_frame_refs(state, last_frame_idx, gold_frame_idx, ref_frame_idx);
+				}
+			}
+			for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
+				if (!frame_refs_short_signaling)
+					ref_frame_idx[i] = gf_bs_read_int(bs, 3);
+					if (state->frame_id_numbers_present_flag) {
+						u32 n = state->delta_frame_id_length_minus_2 + 2;
+						/*delta_frame_id_minus_1 =*/ gf_bs_read_int(bs, n);
+						//DeltaFrameId = delta_frame_id_minus_1 + 1;
+						//expectedFrameId[i] = ((current_frame_id + (1 << idLen) - DeltaFrameId) % (1 << idLen));
+					}
+			}
+			if (frame_size_override_flag && !error_resilient_mode) {
+				frame_size_with_refs(bs, state, frame_size_override_flag);
+			} else {
+				frame_size(bs, state, frame_size_override_flag);
+				render_size(bs);
+			}
+			frame_state->allow_high_precision_mv = 0;
+			if (!force_integer_mv) {
+				frame_state->allow_high_precision_mv = gf_bs_read_int(bs, 1);
+			}
+
+			read_interpolation_filter(bs);
+
+			/*is_motion_mode_switchable =*/ gf_bs_read_int(bs, 1);
+			if (! (error_resilient_mode || !state->enable_ref_frame_mvs) ) {
+				/*use_ref_frame_mvs = */gf_bs_read_int(bs, 1);
+			}
+		}
+	}
+
+	if ( !FrameIsIntra ) {
+		u32 i;
+		for (i=0; i< AV1_REFS_PER_FRAME; i++) {
+			u8 refFrame = AV1_LAST_FRAME + i;
+			u8 ridx = ref_frame_idx[ i ];
+			if (ridx>=0) {
+				u8 hint = state->RefOrderHint[ ridx ];
+				state->OrderHints[ refFrame ] = hint;
+	/*			if ( !enable_order_hint ) {
+					RefFrameSignBias[ refFrame ] = 0;
+				} else {
+					RefFrameSignBias[ refFrame ] = get_relative_dist( hint, OrderHint) > 0;
+				}
+	*/
+			}
+
+		}
+	}
+
+	if ( !(state->reduced_still_picture_header || disable_cdf_update) )
+		/*disable_frame_end_update_cdf = */gf_bs_read_int(bs, 1);
+
+	if (primary_ref_frame == AV1_PRIMARY_REF_NONE) {
+		//init_non_coeff_cdfs();
+		av1_setup_past_independence(state);
+	} else {
+		//load_cdfs(ref_frame_idx[primary_ref_frame]);
+		av1_load_previous(state, primary_ref_frame, ref_frame_idx);
+	}
+
+	av1_parse_tile_info(bs, state);
+	//quantization_params( ):
+	u8 base_q_idx = gf_bs_read_int(bs, 8);
+	s32 DeltaQUDc=0;
+	s32 DeltaQUAc=0;
+	s32 DeltaQVDc=0;
+	s32 DeltaQVAc=0;
+	s32 DeltaQYDc = av1_delta_q(bs);
+	if (! state->config->monochrome) {
+		u8 diff_uv_delta = 0;
+		if (state->separate_uv_delta_q)
+			diff_uv_delta = gf_bs_read_int(bs, 1);
+
+		DeltaQUDc = av1_delta_q(bs);
+		DeltaQUAc = av1_delta_q(bs);
+		if ( diff_uv_delta ) {
+			DeltaQVDc = av1_delta_q(bs);
+			DeltaQVAc = av1_delta_q(bs);
+		}
+	}
+	if (/*using_qmatrix*/gf_bs_read_int(bs, 1)) {
+		/*qm_y = */gf_bs_read_int(bs, 4);
+		/*qm_y = */gf_bs_read_int(bs, 4);
+		if ( !state->separate_uv_delta_q ) {
+			/*qm_v = */gf_bs_read_int(bs, 4);
+		}
+	}
+
+	u8 seg_features_SEG_LVL_ALT_Q_enabled[8] = {0,0,0,0,0,0,0,0};
+	s32 seg_features_SEG_LVL_ALT_Q[8] = {0,0,0,0,0,0,0,0};
+
+	//segmentation_params( ):
+	u8 segmentation_enabled = gf_bs_read_int(bs, 1);
+	if (segmentation_enabled) {
+		u8 segmentation_update_map = 1;
+		u8 segmentation_temporal_update = 0;
+		u8 segmentation_update_data = 1;
+		if ( primary_ref_frame != AV1_PRIMARY_REF_NONE ) {
+			segmentation_update_map = gf_bs_read_int(bs, 1);
+			if ( segmentation_update_map == 1 )
+				segmentation_temporal_update = gf_bs_read_int(bs, 1);
+			segmentation_update_data = gf_bs_read_int(bs, 1);
+		}
+		if ( segmentation_update_data == 1 ) {
+			u32 i, j;
+			for (i=0; i < 8/*=MAX_SEGMENTS*/; i++) {
+				for (j=0; j < 8 /*=SEG_LVL_MAX*/; j++) {
+					if (/*feature_enabled = */gf_bs_read_int(bs, 1) == 1 ) {
+						s32 val;
+						u32 bitsToRead = Segmentation_Feature_Bits[ j ];
+						//this is SEG_LVL_ALT_Q
+						if (!j) seg_features_SEG_LVL_ALT_Q_enabled[i] = 1;
+
+						if ( Segmentation_Feature_Signed[ j ] == 1 ) {
+							val = gf_bs_read_int(bs, 1+bitsToRead);
+						} else {
+							val = gf_bs_read_int(bs, bitsToRead);
+						}
+						if (!j) seg_features_SEG_LVL_ALT_Q[i] = val;
+					}
+				}
+			}
+			//ignore all init steps
+		}
 
 	}
+
+	//delta_q_params():
+	u8 delta_q_res = 0;
+	u8 delta_q_present = 0;
+	if ( base_q_idx > 0 ) {
+		delta_q_present = gf_bs_read_int(bs, 1);
+	}
+	if ( delta_q_present ) {
+		delta_q_res = gf_bs_read_int(bs, 2);
+	}
+
+	//delta_lf_params():
+	u8 delta_lf_present = 0;
+	u8 delta_lf_res = 0;
+	u8 delta_lf_multi = 0;
+	if ( delta_q_present ) {
+		if ( !allow_intrabc) {
+			delta_lf_present = gf_bs_read_int(bs, 1);
+		}
+		if ( delta_lf_present ) {
+			delta_lf_res = gf_bs_read_int(bs, 2);
+			delta_lf_multi = gf_bs_read_int(bs, 1);
+		}
+	}
+
+	//init lossless stuff!
+	u8 CodedLossless = 1;
+	for (idx = 0; idx < 8; idx++ ) {
+		u8 qindex = av1_get_qindex(GF_TRUE, idx, base_q_idx, delta_q_present, 0/*CurrentQIndex always ignored at this level of parsin*/, segmentation_enabled, seg_features_SEG_LVL_ALT_Q_enabled, seg_features_SEG_LVL_ALT_Q);
+		Bool LosslessArray = (qindex == 0) && (DeltaQYDc == 0) && (DeltaQUAc == 0) && (DeltaQUDc == 0) && (DeltaQVAc == 0) && (DeltaQVDc == 0);
+		if (!LosslessArray)
+			CodedLossless = 0;
+	}
+	Bool AllLossless = CodedLossless && (state->width == state->UpscaledWidth );
+	
+	//loop_filter_params():
+	if (!CodedLossless && !allow_intrabc) {
+		u8 loop_filter_level_0 = gf_bs_read_int(bs, 6);
+		u8 loop_filter_level_1 = gf_bs_read_int(bs, 6);
+		if (!state->config->monochrome) {
+			if ( loop_filter_level_0 || loop_filter_level_1 ) {
+				/*u8 loop_filter_level_2 = */gf_bs_read_int(bs, 6);
+				/*u8 loop_filter_level_3 = */gf_bs_read_int(bs, 6);
+			}
+		}
+		/*u8 loop_filter_sharpness = */gf_bs_read_int(bs, 3);
+		u8 loop_filter_delta_enabled = gf_bs_read_int(bs, 1);
+		if ( loop_filter_delta_enabled == 1 ) {
+			u8 loop_filter_delta_update = gf_bs_read_int(bs, 1);
+			if (loop_filter_delta_update) {
+				u32 i;
+				for ( i = 0; i < 8/*TOTAL_REFS_PER_FRAME*/; i++ ) {
+					u8 update_ref_delta = gf_bs_read_int(bs, 1);
+					if ( update_ref_delta == 1 ) {
+						/*u8 loop_filter_ref_deltas_i = */gf_bs_read_int(bs, 1+6);
+					}
+				}
+				for ( i = 0; i < 2; i++ ) {
+					u8 update_mode_delta = gf_bs_read_int(bs, 1);
+					if (update_mode_delta) {
+						/*u8 loop_filter_mode_deltas_i = */gf_bs_read_int(bs, 1+6);
+					}
+				}
+			}
+		}
+	}
+	//cdef_params( ):
+	if (!CodedLossless && !allow_intrabc && state->enable_cdef) {
+		/*u8 cdef_damping_minus_3 = */gf_bs_read_int(bs, 2);
+		u8 cdef_bits = gf_bs_read_int(bs, 2);
+		u32 i, num_cd = 1<<cdef_bits;
+		for (i=0; i<num_cd; i++) {
+			/*u8 cdef_y_pri_strength_i = */gf_bs_read_int(bs, 4);
+			/*u8 cdef_y_sec_strength_i = */gf_bs_read_int(bs, 2);
+			if ( ! state->config->monochrome ) {
+				/*u8 cdef_uv_pri_strength_i = */gf_bs_read_int(bs, 4);
+				/*u8 cdef_uv_sec_strength_i = */gf_bs_read_int(bs, 2);
+			}
+		}
+	}
+
+	//lr_params( ) :
+	if (!AllLossless && !allow_intrabc && state->enable_restoration ) {
+		u32 i, nb_planes = state->config->monochrome ? 1 : 3;
+		u8 UsesLr = 0;
+		u8 usesChromaLr = 0;
+		for (i=0; i<nb_planes; i++) {
+			u8 lr_type = gf_bs_read_int(bs, 2);
+			//FrameRestorationType[i] = Remap_Lr_Type[lr_type]
+			if (lr_type != AV1_RESTORE_NONE) {
+				UsesLr = 1;
+				if ( i > 0 ) {
+					usesChromaLr = 1;
+				}
+			}
+		}
+		if ( UsesLr ) {
+			if (state->use_128x128_superblock) {
+				/*u8 lr_unit_shift_minus_1 = */gf_bs_read_int(bs, 1) ;
+			} else {
+				u8 lr_unit_shift = gf_bs_read_int(bs, 1);
+				if (lr_unit_shift) {
+					u8 lr_unit_extra_shift = gf_bs_read_int(bs, 1);
+					lr_unit_shift += lr_unit_extra_shift;
+				}
+			}
+			if (state->config->chroma_subsampling_x && state->config->chroma_subsampling_y && usesChromaLr ) {
+				/*u8 lr_uv_shift = */gf_bs_read_int(bs, 1);
+			}
+		}
+	}
+	//read_tx_mode():
+	if ( CodedLossless == 1 ) {
+	} else {
+		/*tx_mode_select = */gf_bs_read_int(bs, 1);
+	}
+
+	//frame_reference_mode( ):
+	u8 reference_select=0;
+	if ( FrameIsIntra ) {
+	} else {
+		reference_select = gf_bs_read_int(bs, 1);
+	}
+
+	//skip_mode_params( ):
+	u8 skipModeAllowed = 0;
+	if ( FrameIsIntra || !reference_select || !state->enable_order_hint ) {
+	} else {
+		u32 i;
+		s32 forwardIdx = -1;
+		s32 backwardIdx = -1;
+		s32 forwardHint=0;
+		s32 backwardHint=0;
+		for (i=0; i<AV1_REFS_PER_FRAME; i++ ) {
+			u8 refHint = state->RefOrderHint[ ref_frame_idx[ i ] ];
+			if ( av1_get_relative_dist( refHint, frame_state->order_hint, state ) < 0 ) {
+				if ( forwardIdx < 0 || av1_get_relative_dist( refHint, forwardHint, state) > 0 ) {
+					forwardIdx = i;
+					forwardHint = refHint;
+				}
+			} else if ( av1_get_relative_dist( refHint, frame_state->order_hint, state) > 0 ) {
+				if ( backwardIdx < 0 || av1_get_relative_dist( refHint, backwardHint, state) < 0 ) {
+					backwardIdx = i;
+					backwardHint = refHint;
+				}
+			}
+		}
+		if ( forwardIdx < 0 ) {
+			skipModeAllowed = 0;
+		} else if ( backwardIdx >= 0 ) {
+			skipModeAllowed = 1;
+			//SkipModeFrame[0] = AV1_LAST_FRAME + MIN(forwardIdx, backwardIdx);
+			//SkipModeFrame[1] = AV1_LAST_FRAME + MAX(forwardIdx, backwardIdx);
+		} else {
+			s32 secondForwardIdx = -1;
+			s32 secondForwardHint=0;
+			for ( i = 0; i < AV1_REFS_PER_FRAME; i++ ) {
+				u8 refHint = state->RefOrderHint[ ref_frame_idx[ i ] ];
+				if ( av1_get_relative_dist( refHint, forwardHint, state) < 0 ) {
+					if ( secondForwardIdx < 0 || av1_get_relative_dist( refHint, secondForwardHint, state ) > 0 ) {
+						secondForwardIdx = i;
+						secondForwardHint = refHint;
+					}
+				}
+			}
+			if ( secondForwardIdx < 0 ) {
+				skipModeAllowed = 0;
+			} else {
+				skipModeAllowed = 1;
+				//SkipModeFrame[ 0 ] = LAST_FRAME + Min(forwardIdx, secondForwardIdx)
+				//SkipModeFrame[ 1 ] = LAST_FRAME + Max(forwardIdx, secondForwardIdx)
+			}
+		}
+	}
+	if (skipModeAllowed) {
+		/*skip_mode_present = */gf_bs_read_int(bs, 1);
+	}
+
+
+	if ( FrameIsIntra || error_resilient_mode || !state->enable_warped_motion ) {
+
+	} else {
+		/*allow_warped_motion = */gf_bs_read_int(bs, 1);
+	}
+
+	/*reduced_tx = */gf_bs_read_int(bs, 1);
+
+	//global_motion_params( )
+	for (u32 ref=AV1_LAST_FRAME; ref <= AV1_ALTREF_FRAME; ref++ ) {
+		for (u32 i=0; i<6; i++) {
+			state->GmParams.coefs[ref][i] = ( ( i % 3 == 2 ) ? 1 << WARPEDMODEL_PREC_BITS : 0 );
+		}
+	}
+	if (! FrameIsIntra ) {
+		u32 ref;
+		for (ref=AV1_LAST_FRAME; ref<=AV1_ALTREF_FRAME; ref++ ) {
+			u8 type = AV1_GMC_IDENTITY;
+			Bool is_global = gf_bs_read_int(bs, 1);
+			if (is_global) {
+				Bool is_rot_zoom = gf_bs_read_int(bs, 1);
+				if (is_rot_zoom) {
+					type = AV1_GMC_ROTZOOM;
+				} else {
+					Bool is_trans = gf_bs_read_int(bs, 1);
+					type = is_trans ? AV1_GMC_TRANSLATION : AV1_GMC_AFFINE;
+
+				}
+			}
+
+			if (type>=AV1_GMC_ROTZOOM) {
+				av1_read_global_param(state, bs, type,ref,2);
+				av1_read_global_param(state, bs, type,ref,3);
+				if ( type == AV1_GMC_AFFINE ) {
+					av1_read_global_param(state, bs, type,ref,4);
+					av1_read_global_param(state, bs, type,ref,5);
+				} else {
+					state->GmParams.coefs[ref][4] = -state->GmParams.coefs[ref][3];
+					state->GmParams.coefs[ref][5] = state->GmParams.coefs[ref][2];
+
+				}
+			}
+			if ( type >= AV1_GMC_TRANSLATION ) {
+				av1_read_global_param(state, bs, type,ref,0);
+				av1_read_global_param(state, bs, type,ref,1);
+			}
+		}
+	}
+
+	//film_grain_params()
+	if (!state->film_grain_params_present || (!state->frame_state.show_frame && !showable_frame) ) {
+	} else {
+		u8 apply_grain = gf_bs_read_int(bs, 1);
+		if (apply_grain ) {
+			/*u8 grain_seed = */gf_bs_read_int(bs, 16);
+			u8 update_grain = 1;
+			if (state->frame_state.frame_type == AV1_INTER_FRAME ) {
+				update_grain = gf_bs_read_int(bs, 1);
+			}
+			if (!update_grain) {
+				/*u8 film_grain_params_ref_idx = */gf_bs_read_int(bs, 3);
+			} else {
+				u32 i, num_y_points = gf_bs_read_int(bs, 4);
+				for ( i = 0; i < num_y_points; i++ ) {
+					/*u8 point_y_value = */gf_bs_read_int(bs, 8);
+					/*u8 point_y_scaling = */gf_bs_read_int(bs, 8);
+				}
+				u8 chroma_scaling_from_luma = 0;
+				if (!state->config->monochrome) chroma_scaling_from_luma = gf_bs_read_int(bs, 1);
+
+				u8 num_cb_points = 0;
+				u8 num_cr_points = 0;
+				if ( state->config->monochrome || chroma_scaling_from_luma ||
+				 	( (state->config->chroma_subsampling_x == 1) && (state->config->chroma_subsampling_y == 1) && (num_y_points == 0) )
+				) {
+				} else {
+					num_cb_points = gf_bs_read_int(bs, 4);
+					for (i=0; i<num_cb_points; i++) {
+						/*point_cb_value[ i ] = */gf_bs_read_int(bs, 8);
+						/*point_cb_scaling[ i ] = */gf_bs_read_int(bs, 8);
+					}
+					num_cr_points = gf_bs_read_int(bs, 4);
+					for (i=0; i<num_cr_points; i++) {
+						/*point_cb_value[ i ] = */gf_bs_read_int(bs, 8);
+						/*point_cb_scaling[ i ] = */gf_bs_read_int(bs, 8);
+					}
+				}
+				/*u8 grain_scaling_minus_8 = */gf_bs_read_int(bs, 2);
+				u8 ar_coeff_lag = gf_bs_read_int(bs, 2);
+				u16 numPosLuma = 2 * ar_coeff_lag * ( ar_coeff_lag + 1 );
+				u16 numPosChroma = numPosLuma;
+				if ( num_y_points ) {
+					numPosChroma = numPosLuma + 1;
+					for ( i = 0; i < numPosLuma; i++ ) {
+						/*ar_coeffs_y_plus_128[ i ] = */gf_bs_read_int(bs, 8);
+					}
+				}
+				if ( chroma_scaling_from_luma || num_cb_points ) {
+					for ( i = 0; i < numPosChroma; i++ ) {
+						/*ar_coeffs_cb_plus_128[ i ] =*/gf_bs_read_int(bs, 8);
+					}
+				}
+				if ( chroma_scaling_from_luma || num_cr_points ) {
+					for ( i = 0; i < numPosChroma; i++ ) {
+						/*ar_coeffs_cr_plus_128[ i ] =*/gf_bs_read_int(bs, 8);
+					}
+				}
+				/*u8 ar_coeff_shift_minus_6 = */gf_bs_read_int(bs, 2);
+				/*u8 grain_scale_shift = */gf_bs_read_int(bs, 2);
+				if ( num_cb_points ) {
+					/*u8 cb_mult = */gf_bs_read_int(bs, 8);
+					/*u8 cb_luma_mult = */gf_bs_read_int(bs, 8);
+					/*u8 cb_offset = */gf_bs_read_int(bs, 9);
+				}
+				if ( num_cr_points ) {
+					/*u8 cr_mult = */gf_bs_read_int(bs, 8);
+					/*u8 cr_luma_mult = */gf_bs_read_int(bs, 8);
+					/*u8 cr_offset = */gf_bs_read_int(bs, 9);
+				}
+				/*u8 overlap_flag = */gf_bs_read_int(bs, 1);
+				/*u8 clip_to_restricted_range = */gf_bs_read_int(bs, 1);
+			}
+		}
+	}
+
+	//end of uncompressed header !!
 }
 
 GF_EXPORT
@@ -2374,75 +3443,116 @@ void av1_reset_frame_state(AV1StateFrame *frame_state, Bool is_destroy)
 	}
 }
 
-static void av1_parse_tile_group(GF_BitStream *bs, AV1State *state)
+static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
+	u32 TileNum, tg_start=0, tg_end=0;
 	Bool numTiles = state->tileCols * state->tileRows;
-	Bool tile_start_and_end_present_flag = GF_FALSE, tile_start_and_end_present_flagtile_start_and_end_present_flag = GF_FALSE;
-
+	Bool tile_start_and_end_present_flag = GF_FALSE;
+	GF_Err e = GF_OK;
 	if (numTiles > 1)
 		tile_start_and_end_present_flag = gf_bs_read_int(bs, 1);
 
 	if (numTiles == 1 || !tile_start_and_end_present_flag) {
-		state->frame_state.tg[0].start = 0;
-		state->frame_state.tg[0].end = numTiles - 1;
+		tg_start = 0;
+		tg_end = numTiles - 1;
+		/*state->frame_state.tg[0].start_idx = 0;
+		state->frame_state.tg[0].end_idx = numTiles - 1;*/
 	} else {
 		u32 tileBits = state->tileColsLog2 + state->tileRowsLog2;
-		state->frame_state.tg[state->frame_state.tg_idx].start = gf_bs_read_int(bs, tileBits);
-		state->frame_state.tg[state->frame_state.tg_idx].end = gf_bs_read_int(bs, tileBits);
+		/*state->frame_state.tg[state->frame_state.tg_idx].start_idx*/ tg_start = gf_bs_read_int(bs, tileBits);
+		/*state->frame_state.tg[state->frame_state.tg_idx].end_idx*/ tg_end = gf_bs_read_int(bs, tileBits);
 	}
+	/*state->frame_state.tg_idx++;*/
 
-	state->frame_state.tg_idx++;
-	//incomplete parsing
+	gf_bs_align(bs);
+
+	state->frame_state.nb_tiles_in_obu = 0;
+	for (TileNum = tg_start; TileNum <= tg_end; TileNum++) {
+		u32 tile_start_offset, tile_size;
+		/*u32 tileRow = TileNum / state->tileCols;
+		u32 tileCol = TileNum % state->tileCols;*/
+		Bool lastTile = TileNum == tg_end;
+		u64 pos = gf_bs_get_position(bs);
+		if (lastTile) {
+			tile_start_offset = (u32) (pos - obu_start);
+			tile_size = (u32)(obu_size - (pos - obu_start) );
+		} else {
+			u64 tile_size_minus_1 = aom_av1_le(bs, state->tile_size_bytes);
+			pos = gf_bs_get_position(bs);
+			tile_start_offset = (u32) (pos - obu_start);
+			tile_size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
+		}
+
+
+		if (tile_start_offset + tile_size > obu_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1]Error parsing tile group, tile %d start %d + size %d exceeds OBU length %d\n", TileNum, tile_start_offset, tile_size, obu_size));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
+		
+		state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].obu_start_offset = tile_start_offset;
+		state->frame_state.tiles[state->frame_state.nb_tiles_in_obu].size = tile_size;
+		gf_bs_skip_bytes(bs, tile_size);
+		state->frame_state.nb_tiles_in_obu++;
+	}
+	if (tg_end == numTiles-1) {
+		av1_decode_frame_wrapup(state);
+	}
+	return e;
 }
 
 static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 {
 	AV1StateFrame *frame_state = &state->frame_state;
 	if (frame_state->seen_frame_header == GF_FALSE) {
-		Bool show_existing_frame = GF_FALSE;
+		u64 pos = gf_bs_get_position(bs);
+		state->frame_state.show_existing_frame = GF_FALSE;
 		frame_state->seen_frame_header = GF_TRUE;
-		av1_parse_uncompressed_header(bs, state, &show_existing_frame); //TODO: av1_parse_uncompressed_header() parsing is incomplete
-#if 0
-		if (show_existing_frame) {
-			/*decode_frame_wrapup(): nothing to do*/
-			frame_state->seen_frame_header = GF_FALSE
+		av1_parse_uncompressed_header(bs, state);
+		state->frame_state.uncompressed_header_bytes = (u32) (gf_bs_get_position(bs)-pos);
+
+		if (state->frame_state.show_existing_frame) {
+			av1_decode_frame_wrapup(state);
+			frame_state->seen_frame_header = GF_FALSE;
 		} else {
-			TileNum = 0;
+			//TileNum = 0;
 			frame_state->seen_frame_header = GF_TRUE;
 		}
-#endif
 	}
 }
 
-static void av1_parse_frame(GF_BitStream *bs, AV1State *state)
+static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
-//	u64 startBitPos = gf_bs_get_position(bs);
 	av1_parse_frame_header(bs, state);
-	//TODO: av1_parse_frame_header() parsing is incomplete: av1_parse_tile_group(bs, state);
+	//byte alignment
+	gf_bs_align(bs);
+	return av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
+GF_EXPORT
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
 {
 	GF_Err e = GF_OK;
-	Bool obu_has_size_field = GF_FALSE, obu_extension_flag = GF_FALSE;
-	u8 temporal_id = 0, spatial_id = 0;
 	u32 hdr_size;
 	u64 pos = gf_bs_get_position(bs);
 
 	if (!bs || !obu_type || !state)
 		return GF_BAD_PARAM;
 
-	e = gf_av1_parse_obu_header(bs, obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
+	state->obu_extension_flag = state->obu_has_size_field = 0;
+	state->temporal_id = state->spatial_id = 0;
+	state->frame_state.uncompressed_header_bytes = 0;
+	e = gf_av1_parse_obu_header(bs, obu_type, &state->obu_extension_flag, &state->obu_has_size_field, &state->temporal_id, &state->spatial_id);
 	if (e)
 		return e;
 
-	if (obu_has_size_field) {
+	if (state->obu_has_size_field) {
 		*obu_size = (u32)gf_av1_leb128_read(bs, NULL);
 	} else {
-		if (*obu_size >= 1 + obu_extension_flag) {
-			*obu_size = *obu_size - 1 - obu_extension_flag;
+		if (*obu_size >= 1 + state->obu_extension_flag) {
+			*obu_size = *obu_size - 1 - state->obu_extension_flag;
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] computed OBU size "LLD" (input value = "LLU"). Skipping.\n", *obu_size - 1 - obu_extension_flag, *obu_size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] computed OBU size "LLD" (input value = "LLU"). Skipping.\n", *obu_size - 1 - state->obu_extension_flag, *obu_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
@@ -2451,63 +3561,76 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 	if (obu_hdr_size) *obu_hdr_size = hdr_size;
 
 	if (*obu_type != OBU_SEQUENCE_HEADER && *obu_type != OBU_TEMPORAL_DELIMITER &&
-		state->OperatingPointIdc != 0 && obu_extension_flag == 1)
+		state->OperatingPointIdc != 0 && state->obu_extension_flag == 1)
 	{
-		u32 inTemporalLayer = (state->OperatingPointIdc >> temporal_id) & 1;
-		u32 inSpatialLayer = (state->OperatingPointIdc >> (spatial_id + 8)) & 1;
+		u32 inTemporalLayer = (state->OperatingPointIdc >> state->temporal_id) & 1;
+		u32 inSpatialLayer = (state->OperatingPointIdc >> (state->spatial_id + 8)) & 1;
 		if (!inTemporalLayer || !inSpatialLayer) {
 			*obu_type = -1;
 			gf_bs_seek(bs, pos + *obu_size);
 			return GF_OK;
 		}
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Found OBU type %u (size "LLU").\n", *obu_type, *obu_size));
 
+	e = GF_OK;
 	switch (*obu_type) {
-	case OBU_SEQUENCE_HEADER: {
+	case OBU_SEQUENCE_HEADER:
 		av1_parse_sequence_header_obu(bs, state);
-		assert(gf_bs_get_position(bs) <= pos + *obu_size);
+		if (gf_bs_get_position(bs) > pos + *obu_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Sequence header parsing consumed too many bytes !\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
 		gf_bs_seek(bs, pos + *obu_size);
-		return GF_OK;
-	}
-	case OBU_METADATA: {
-#if 0 //TODO + sample groups
-		const ObuMetadataType metadata_type = (u32)read_leb128(bs, NULL); we should check for 16 bits limit for ISOBMFF bindings, see https ://github.com/AOMediaCodec/av1-isobmff/pull/86#issuecomment-416659538
+		break;
+
+	case OBU_METADATA:
+#if 0
+ 		//TODO + sample groups
+		const ObuMetadataType metadata_type = (u32)read_leb128(bs, NULL); we should check for 16 bits limit (AV1MetadataSampleGroupEntry) for ISOBMFF bindings, see https ://github.com/AOMediaCodec/av1-isobmff/pull/86#issuecomment-416659538
 		if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
-			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_HDR_CLL) {
-			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_HDR_MDCV) {
-			assert(0); //not implemented
 		} else if (metadata_type == OBU_METADATA_TYPE_SCALABILITY) {
-			assert(0); //not implemented
 		} else if (metadata_type == METADATA_TYPE_TIMECODE) {
-			assert(0); //not implemented
 		}
 #endif
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] parsing for metadata is not implemented. Forwarding.\n"));
-		assert(gf_bs_get_position(bs) <= pos + *obu_size);
+
+		if (gf_bs_get_position(bs) > pos + *obu_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Metadata parsing consumed too many bytes !\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
-	}
+
 	case OBU_FRAME_HEADER:
 	case OBU_REDUNDANT_FRAME_HEADER:
 		av1_parse_frame_header(bs, state);
-		assert(gf_bs_get_position(bs) <= pos + *obu_size);
+		if (gf_bs_get_position(bs) > pos + *obu_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame header parsing consumed too many bytes !\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	case OBU_FRAME:
-		av1_parse_frame(bs, state);
-		assert(gf_bs_get_position(bs) <= pos + *obu_size);
+		e = av1_parse_frame(bs, state, pos, *obu_size);
+		if (gf_bs_get_position(bs) != pos + *obu_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did not consume the right number of bytes !\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	case OBU_TILE_GROUP:
-		av1_parse_tile_group(bs, state);
-		assert(gf_bs_get_position(bs) <= pos + *obu_size);
+		e = av1_parse_tile_group(bs, state, pos, *obu_size);
+		if (gf_bs_get_position(bs) != pos + *obu_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Tile group parsing did not consume the right number of bytes !\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
 		gf_bs_seek(bs, pos + *obu_size);
-	case OBU_PADDING:
+		break;
 	case OBU_TEMPORAL_DELIMITER:
-		assert(gf_bs_get_position(bs) <= pos + *obu_size);
+		state->frame_state.seen_frame_header = GF_FALSE;
+	case OBU_PADDING:
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	default:
@@ -2515,8 +3638,7 @@ GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	}
-
-	return GF_OK;
+	return e;
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/

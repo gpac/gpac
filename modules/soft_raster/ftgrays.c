@@ -224,6 +224,7 @@ static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster)
 	raster->area    = 0;
 	raster->cover   = 0;
 	gray_set_cell( raster, ex, ey );
+	if (ey<0) ey=0;
 	raster->last_ey = SUBPIXELS( ey );
 
 	raster->x = x;
@@ -245,6 +246,8 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 	dx = x2 - x1;
 	ex1 = TRUNC( x1 ); /* if (ex1 >= raster->max_ex) ex1 = raster->max_ex-1; */
 	ex2 = TRUNC( x2 ); /* if (ex2 >= raster->max_ex) ex2 = raster->max_ex-1; */
+	if (ex1<0) ex1=0;
+	if (ex2<0) ex2=0;
 	fx1 = (TCoord)( x1 - SUBPIXELS( ex1 ) );
 	fx2 = (TCoord)( x2 - SUBPIXELS( ex2 ) );
 
@@ -342,6 +345,7 @@ static GFINLINE void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y, i
 
 	ey1 = TRUNC( raster->last_ey );
 	ey2 = TRUNC( to_y ); /* if (ey2 >= raster->max_ey) ey2 = raster->max_ey-1; */
+	if (ey2<0) ey2=0;
 	fy1 = (TCoord)( raster->y - raster->last_ey );
 	fy2 = (TCoord)( to_y - SUBPIXELS( ey2 ) );
 

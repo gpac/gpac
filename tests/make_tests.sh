@@ -196,6 +196,7 @@ echo "  -check:                check test suites (names of each test is unique)"
 echo "  -track-stack:          track stack in malloc and turns on -warn option"
 echo "  -noplay:               disables MP4Client tests"
 echo "  -test=NAME             only executes given test"
+echo "  -precommit              alias for -sync-before -git-hash -warn -noplay. Before commit/push, you should run ./make_tests -precommit"
 echo "  SCRIPTS                only runs the scripts provided as arguments, by default runs everything in $SCRIPTS_DIR"
 echo "  -v:                    set verbose output"
 echo "  -h:                    print this help"
@@ -311,6 +312,12 @@ for i in $* ; do
   ;;
  "-v")
   verbose=1;;
+ "-precommit")
+  sync_media
+  sync_hash
+  log_after_fail=1
+  MP4CLIENT_NOT_FOUND=1
+  ;;
  "-h")
   print_usage
   exit;;
@@ -555,6 +562,7 @@ test_begin ()
  result=""
  TEST_NAME=$1
  fuzz_test=$fuzz_all
+ is_fuzz_test=0
  reference_hash_valid="$HASH_DIR/$TEST_NAME-valid-hash"
 
  log $L_DEB "Starting test $TEST_NAME"
@@ -793,8 +801,8 @@ shopt -s nullglob
   if [ $generate_hash = 1 ] ; then
     log $L_DEB "Test $TEST_NAME $nb_subtests subtests and $nb_test_hash hashes"
     nb_hashes=$((nb_test_hash + nb_test_hash))
-	#only allow no hash if only one subtest
-    if [ $subtest_idx -gt 1 ] && [ $nb_hashes -lt $subtest_idx ] ; then
+  	#only allow no hash if only one subtest or fuzzing
+    if [ $subtest_idx -gt 1 ] && [ $nb_hashes -lt $subtest_idx ] && [ $is_fuzz_test = 0 ]; then
      log $L_ERR "Test $TEST_NAME has too few hash tests: $nb_hashes for $nb_subtests subtests - please fix"
      result="NOT ENOUGH HASHES"
     else
@@ -923,6 +931,10 @@ do_test ()
  log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
  stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
  SUBTEST_NAME=$2
+
+ if [ $fuzz_test = 1 ] ; then
+   is_fuzz_test=1
+ fi
 
  if [ $enable_fuzzing = 0 ] ; then
   fuzz_test=0

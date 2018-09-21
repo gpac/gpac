@@ -57,7 +57,6 @@
 #define BUFFSIZE	8192
 #define DEFAULT_INTERLEAVING_IN_SEC 0.5
 
-
 int mp4boxTerminal(int argc, char **argv);
 
 u32 quiet = 0;
@@ -470,6 +469,7 @@ void PrintImportUsage()
 	        " \":profile=INT\"       overrides AVC profile\n"
 	        " \":level=INT\"         overrides AVC level\n"
 	        " \":novpsext\"          removes VPS extensions from HEVC VPS\n"
+	        " \":keepav1t\"          keeps AV1 temporal delimiter OBU in samples\n"
 
 	        " \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 	        " \":size=s\"            specifies font size for text import (default 18)\n"
@@ -682,9 +682,14 @@ void PrintDumpUsage()
 	        " -drtp                rtp hint samples structure to XML output\n"
 	        " -dts                 prints sample timing, size and position in file to text output\n"
 	        " -dtsx                same as -dts but does not print offset\n"
+	        " -dtsc                same as -dts but analyse each sample for duplicated dts/cts - slow !\n"
+	        " -dtsxc               same as -dtsc does not print offset - slow !\n"
 	        " -dnal trackID        prints NAL sample info of given track\n"
 	        " -dnalc trackID       prints NAL sample info of given track, adding CRC for each nal\n"
 	        " -sdp                 dumps SDP description of hinted file\n"
+	        " -sdp                 dumps SDP description of hinted file\n"
+	        " -dsap trackID        dumps DASH SAP cues (see -cues) for a given track.\n"
+	        "                       use -dsaps to only print sample number, -dsapc to only CTS, -dsapd to only print DTS, -dsapp to only print presentation time.\n"
 	        " -dcr                 ISMACryp samples structure to XML output\n"
 	        " -dump-cover          Extracts cover art\n"
 	        " -dump-chap           Extracts chapter file\n"
@@ -1854,7 +1859,7 @@ s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-u32 i, j, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+u32 i, j, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps, dump_saps_mode;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_SceneDumpFormat dump_mode;
@@ -3125,6 +3130,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dtsx")) {
 			dump_timestamps = 2;
 		}
+		else if (!stricmp(arg, "-dtsc")) {
+			dump_timestamps = 3;
+		}
+		else if (!stricmp(arg, "-dtsxc")) {
+			dump_timestamps = 4;
+		}
 		else if (!stricmp(arg, "-dnal")) {
 			CHECK_NEXT_ARG
 			dump_nal = atoi(argv[i + 1]);
@@ -3134,6 +3145,16 @@ Bool mp4box_parse_args(int argc, char **argv)
 			CHECK_NEXT_ARG
 			dump_nal = atoi(argv[i + 1]);
 			dump_nal_crc = GF_TRUE;
+			i++;
+		}
+		else if (!strnicmp(arg, "-dsap", 5)) {
+			CHECK_NEXT_ARG
+			dump_saps = atoi(argv[i + 1]);
+			if (!stricmp(arg, "-dsaps")) dump_saps_mode = 1;
+			else if (!stricmp(arg, "-dsapc")) dump_saps_mode = 2;
+			else if (!stricmp(arg, "-dsapd")) dump_saps_mode = 3;
+			else if (!stricmp(arg, "-dsapp")) dump_saps_mode = 4;
+			else dump_saps_mode = 0;
 			i++;
 		}
 		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
@@ -3559,7 +3580,7 @@ int mp4boxMain(int argc, char **argv)
 	import_flags = 0;
 	split_size = 0;
 	movie_time = 0;
-	dump_nal = 0;
+	dump_nal = dump_saps = dump_saps_mode = 0;
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = GF_FALSE;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
@@ -4535,8 +4556,9 @@ int mp4boxMain(int argc, char **argv)
 
 #endif
 
-	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_timestamps==2) ? GF_TRUE : GF_FALSE);
+	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_timestamps);
 	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_crc);
+	if (dump_saps) dump_isom_saps(file, dump_saps, dump_saps_mode, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 
 	if (do_hash) {
 		e = hash_file(inName, dump_std);

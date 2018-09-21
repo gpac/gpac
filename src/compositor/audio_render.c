@@ -90,6 +90,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 
 	ar->time_at_last_config = ar->current_time;
 	ar->bytes_requested = 0;
+
 	if (ar->aout) {
 		GF_FilterPacket *pck;
 		//issue a dummy packet to tag the point at which we reconfigured

@@ -178,17 +178,25 @@ static struct log_tool_info {
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
 };
 
+#define GF_LOG_TOOL_MAX_NAME_SIZE (GF_LOG_TOOL_MAX*10)
+
 GF_EXPORT
-GF_Err gf_log_modify_tools_levels(const char *val)
+GF_Err gf_log_modify_tools_levels(const char *val_)
 {
 #ifndef GPAC_DISABLE_LOG
-	u32 level;
-	char *sep, *sep_level;
+	char tmp[GF_LOG_TOOL_MAX_NAME_SIZE];
+	const char *val = tmp;
+	if (!val_) val_ = "";
+	assert(strlen(val_) < GF_LOG_TOOL_MAX_NAME_SIZE);
+	strncpy(tmp, val_, GF_LOG_TOOL_MAX_NAME_SIZE - 1);
+	tmp[GF_LOG_TOOL_MAX_NAME_SIZE - 1] = 0;
+
 	while (val && strlen(val)) {
+		u32 level;
 		const char *next_val = NULL;
 		const char *tools = NULL;
 		/*look for log level*/
-		sep_level = strchr(val, '@');
+		char *sep_level = strchr(val, '@');
 		if (!sep_level) {
 			if (!strcmp(val, "ncl")) {
 				void default_log_callback_no_col(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
@@ -233,7 +241,7 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 		while (tools) {
 			u32 i;
 
-			sep = strchr(tools, ':');
+			char *sep = strchr(tools, ':');
 			if (sep) sep[0] = 0;
 
 			if (!stricmp(tools, "all")) {
