@@ -2127,13 +2127,13 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 {
 	Bool res = GF_TRUE;
-	u32 nb_obus = 3;
 	u64 pos = gf_bs_get_position(bs);
 	u64 sz = gf_av1_leb128_read(bs, NULL);
 
-	while (sz > 0) {
+	while (sz>0) {
 		u8 Leb128Bytes = 0;
 		u64 frame_unit_size = gf_av1_leb128_read(bs, &Leb128Bytes);
+
 		if (sz < Leb128Bytes + frame_unit_size) {
 			res = GF_FALSE;
 			break;
@@ -2176,11 +2176,9 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 				break;
 			}
 			frame_unit_size -= obu_length;
-			gf_bs_skip_bytes(bs, obu_length);
-			if (nb_obus) nb_obus--;
+			gf_bs_skip_bytes(bs, obu_length - hdr_size);
 		}
 		if (!res) break;
-		if (!nb_obus) break;
 	}
 	gf_bs_seek(bs, pos);
 	return res;
