@@ -1409,7 +1409,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 				                                 defaultPadding, defaultDegradationPriority);
 
 			} else {
-				e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum), defaultDescriptionIndex, 0, 0, 0, 0, 0);
+				e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum), 0, 0, 0, 0, 0, 0);
 			}
 			if (e) goto err_exit;
 		} else {
