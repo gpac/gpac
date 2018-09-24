@@ -390,8 +390,10 @@ GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 	e = gf_odf_desc_read(desc, size, outDesc);
 	gf_free(desc);
 	if (oti) {
-		GF_ESD *esd = (GF_ESD *)*outDesc;
+		GF_ESD *esd = (GF_ESD *)inDesc;
+		GF_ESD *out_esd = (GF_ESD *)*outDesc;
 		if (esd->decoderConfig) esd->decoderConfig->objectTypeIndication = oti;
+		if (out_esd->decoderConfig) out_esd->decoderConfig->objectTypeIndication = oti;
 	}
 	return e;
 }
