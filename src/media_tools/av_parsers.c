@@ -6806,9 +6806,12 @@ static s32 gf_media_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc,
 			return -1;
 		}
 		if (/*vps_extension2_flag*/gf_bs_read_int(bs, 1)) {
+#if 0
 			while (gf_bs_available(bs)) {
 				/*vps_extension_data_flag */ gf_bs_read_int(bs, 1);
 			}
+#endif
+
 		}
 	}
 	return vps_id;
@@ -7180,9 +7183,12 @@ static s32 gf_media_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc,
 	}
 
 	if (/*sps_extension_flag*/gf_bs_read_int(bs, 1)) {
+#if 0
 		while (gf_bs_available(bs)) {
 			/*sps_extension_data_flag */ gf_bs_read_int(bs, 1);
 		}
+#endif
+
 	}
 
 	return sps_id;
@@ -7301,10 +7307,13 @@ static s32 gf_media_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 	/*log2_parallel_merge_level_minus2 = */bs_get_ue(bs);
 	pps->slice_segment_header_extension_present_flag = gf_bs_read_int(bs, 1);
 	if ( /*pps_extension_flag= */gf_bs_read_int(bs, 1) ) {
+#if 0
 		while (gf_bs_available(bs) ) {
 			/*pps_extension_data_flag */ gf_bs_read_int(bs, 1);
 		}
-	}
+#endif
+
+}
 	return pps_id;
 }
 
