@@ -33,7 +33,7 @@
 
 
 /*! Flag set to print enabled/disabled edges for debug of pid resolution*/
-#define GF_FS_FLAG_PRINT_CONNECTIONS	1<<31
+#define GF_FS_FLAG_PRINT_CONNECTIONS	((u32)1<<31)
 
 
  //atomic ref_count++ / ref_count--
