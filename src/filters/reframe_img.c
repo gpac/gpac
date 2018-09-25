@@ -65,12 +65,16 @@ typedef struct tagBITMAPINFOHEADER {
 
 typedef struct
 {
+	//options
+	u32 timescale, dur;
+
 	//only one input pid declared
 	GF_FilterPid *ipid;
 	//only one output pid declared
 	GF_FilterPid *opid;
 
 	Bool is_bmp;
+	Bool owns_timescale;
 } GF_ReframeImgCtx;
 
 
@@ -170,7 +174,7 @@ GF_Err img_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_SERVICE_ERROR;
 		}
-		//we don't have inout reconfig for now
+		//we don't have input reconfig for now
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codecid));
@@ -178,6 +182,10 @@ GF_Err img_process(GF_Filter *filter)
 		if (w) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(w));
 		if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
+		if (! gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_TIMESCALE)) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+			ctx->owns_timescale = GF_TRUE;
+		}
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(1) );
 
@@ -185,7 +193,15 @@ GF_Err img_process(GF_Filter *filter)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 	}
 	if (! ctx->is_bmp) {
-		e = gf_filter_pck_forward(pck, ctx->opid);
+		e = GF_OK;
+		dst_pck = gf_filter_pck_new_ref(ctx->opid, NULL, 0, pck);
+		if (!dst_pck) e = GF_OUT_OF_MEM;
+		gf_filter_pck_merge_properties(pck, dst_pck);
+		if (ctx->owns_timescale) {
+			gf_filter_pck_set_cts(dst_pck, 0);
+			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1 );
+		}
+		gf_filter_pck_send(dst_pck);
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return e;
 	}
@@ -219,6 +235,10 @@ GF_Err img_process(GF_Filter *filter)
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 	gf_filter_pck_merge_properties(pck, dst_pck);
+	if (ctx->owns_timescale) {
+		gf_filter_pck_set_cts(dst_pck, 0);
+		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1 );
+	}
 
 	in_stride = out_stride;
 	while (in_stride % 4) in_stride++;
@@ -266,11 +286,19 @@ static const GF_FilterCapability ReframeImgCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "jpg|jpeg|jp2|bmp|png|pngd|pngds|pngs"),
 };
 
+#define OFFS(_n)	#_n, offsetof(GF_ReframeImgCtx, _n)
+static const GF_FilterArgs ReframeImgArgs[] =
+{
+	{ OFFS(timescale), "timescale for media timestamps when loading from file not stream", GF_PROP_UINT, "1000", NULL, 0},
+	{ OFFS(dur), "duration of image when loading from file not stream", GF_PROP_UINT, "1000", NULL, 0},
+	{0}
+};
 
 GF_FilterRegister ReframeImgRegister = {
 	.name = "rfimg",
 	.description = "JPG/J2K/PNG/BMP Image reframer",
 	.private_size = sizeof(GF_ReframeImgCtx),
+	.args = ReframeImgArgs,
 	SETCAPS(ReframeImgCaps),
 	.configure_pid = img_configure_pid,
 	.process = img_process,
