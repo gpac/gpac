@@ -1994,6 +1994,8 @@ typedef struct
 	u32 def_sample_flags;
 	GF_TrackBox *track;
 
+	Bool cannot_use_default;
+	
 	GF_TrackFragmentRandomAccessBox *tfra;
 } GF_TrackExtendsBox;
 
