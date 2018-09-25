@@ -6772,7 +6772,7 @@ next_nal:
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
 		u32 last_cts_samp;
-		u64 last_dts, max_cts, min_cts;
+		u64 last_dts, max_cts, min_cts, min_cts_offset;
 		if (!poc_diff) poc_diff = 1;
 		/*no b-frame references, no need to cope with negative poc*/
 		if (!max_total_delay) {
@@ -6784,6 +6784,7 @@ next_nal:
 		last_dts = 0;
 		max_cts = 0;
 		min_cts = (u64) -1;
+		min_cts_offset = (u64) -1;
 		last_cts_samp = 0;
 
 		for (i=0; i<cur_samp; i++) {
@@ -6810,6 +6811,9 @@ next_nal:
 			cts += (u32) (max_total_delay*dts_inc);
 
 			samp->CTS_Offset = (u32) (cts - samp->DTS);
+
+			if (samp->CTS_Offset < min_cts_offset)
+				min_cts_offset = samp->CTS_Offset;
 
 			if (max_cts < samp->DTS + samp->CTS_Offset) {
 				max_cts = samp->DTS + samp->CTS_Offset;
@@ -6843,6 +6847,11 @@ next_nal:
 				gf_isom_modify_cts_offset(import->dest, track, i+1, samp->CTS_Offset);
 			}
 			gf_isom_sample_del(&samp);
+		}
+		if (min_cts_offset > 0) {
+			gf_isom_shift_cts_offset(import->dest, track, (s32)min_cts_offset);
+			max_cts -= min_cts_offset;
+			min_cts -= min_cts_offset;
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, GF_FALSE);
