@@ -1483,7 +1483,7 @@ restart:
 	if (sep) sep[0] = fsess->sep_args;
 
 	user_args_len = user_args ? (u32) strlen(user_args) : 0;
-	args = gf_malloc(sizeof(char)*(5+strlen(sURL) + (user_args_len ? user_args_len + 1  :0) ) );
+	args = gf_malloc(sizeof(char)*(5+strlen(sURL) + (user_args_len ? user_args_len + 8/*for potential :gpac: */  :0) ) );
 
 	sprintf(args, "%s%c", for_source ? "src" : "dst", fsess->sep_name);
 	strcat(args, sURL);
