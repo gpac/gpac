@@ -143,6 +143,7 @@ typedef struct
 	GF_Fraction64 tfdt;
 	Bool no_def, straf, strun, sgpd_traf, cache, noinit;
 	u32 psshs;
+	u32 tkid;
 
 	//internal
 	Bool owns_mov;
@@ -556,6 +557,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 		if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (p) tkid = p->value.uint;
+
+		if (ctx->tkid) tkid = ctx->tkid;
+
 		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->codecid);
 		if (!mtype) {
 			if (tkw->stream_type == GF_STREAM_ENCRYPTED) {
@@ -3055,6 +3059,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(mudta), "use udta and other moov extension boxes from input if any. no disables import, yes clones all extension boxes, udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tmpd), "sets temp dire for intermediate file(s)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mvex), "sets mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
