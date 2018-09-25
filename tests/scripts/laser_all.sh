@@ -77,5 +77,18 @@ laser_tests ()
 rm -f MEDIA_DIR/laser/*.mp4 2> /dev/null
 rm -f MEDIA_DIR/laser/*.saf 2> /dev/null
 
+if [ $disable_playback != 0 ] ; then
+
+#simple encoding tests
+lsr_test $MEDIA_DIR/laser/enst_afrique.xml
+lsr_test $MEDIA_DIR/laser/stz_animate_stroke-linejoin.xml
+lsr_test $MEDIA_DIR/laser/stz_image_parsing.xml
+lsr_test $MEDIA_DIR/laser/stz_image_parsing2.xml
+lsr_test $MEDIA_DIR/laser/enst_canvas.xml
+
+else
+
 laser_tests
+
+fi
 

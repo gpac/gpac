@@ -49,6 +49,11 @@ compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-pixel-metrics.bt" "$opt"
 compositor_test $1 "$BIFS_DIR/bifs-misc-hc-proto-offscreengroup.bt" "$opt"
 }
 
+if [ $disable_playback != 0 ] ; then
+ return
+fi
+
+
 opt="-opt Compositor:OpenGLMode=disable"
 test_2d_3d "nogl"
 

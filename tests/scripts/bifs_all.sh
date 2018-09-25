@@ -137,11 +137,41 @@ esac
 
 bifs_tests ()
 {
-
  for bt in $MEDIA_DIR/bifs/*.bt ; do
   bt_test $bt
  done
 }
 
+if [ $disable_playback != 0 ] ; then
+
+#simple encoding test
+bt_test $MEDIA_DIR/bifs/bifs-2D-texturing-lineargradient-simple.bt
+
+#simple encoding with image import test
+bt_test $MEDIA_DIR/bifs/bifs-2D-background-background2D-image.bt
+
+#simple encoding with AV import test
+bt_test $MEDIA_DIR/bifs/bifs-timeline-mediacontrol-inline-av-inline.bt
+
+#proto encoding
+ for bt in $MEDIA_DIR/bifs/bifs-proto-*.bt ; do
+  bt_test $bt
+ done
+
+ #bifs commands
+ for bt in $MEDIA_DIR/bifs/bifs-command-*.bt ; do
+  bt_test $bt
+ done
+
+ #od commands
+ for bt in $MEDIA_DIR/bifs/bifs-od-*.bt ; do
+  bt_test $bt
+ done
+
+
+else
+
 bifs_tests
+
+fi
 
