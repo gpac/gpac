@@ -165,7 +165,7 @@ typedef struct
 	u32 sei_buffer_size, sei_buffer_alloc;
 
 	//subsample buffer, only used for SVC for now
-	u32 subsamp_buffer_alloc, subsamp_buffer_size;
+	u32 subsamp_buffer_alloc, subsamp_buffer_size, subs_mapped_bytes;
 	char *subsamp_buffer;
 
 	//AVC specific
@@ -284,6 +284,12 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		return;
 	}
 	ctx->is_file = GF_TRUE;
+
+	if (!ctx->index_dur) {
+		ctx->duration.num = 1;
+		ctx->file_loaded = GF_TRUE;
+		return;
+	}
 
 	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
@@ -1305,10 +1311,11 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 	if (ctx->subsamp_buffer_size) {
 		gf_filter_pck_set_property(ctx->first_pck_in_au, GF_PROP_PCK_SUBS, &PROP_DATA(ctx->subsamp_buffer, ctx->subsamp_buffer_size) );
 		ctx->subsamp_buffer_size = 0;
+		ctx->subs_mapped_bytes = 0;
 	}
 
 	//if we reuse input packets timing, we can dispatch asap.
-	//otherwise if poc probe is done (we now the min_poc_diff between images) and we are not in struct mode, dispatch asap
+	//otherwise if poc probe is done (we know the min_poc_diff between images) and we are not in strict mode, dispatch asap
 	//otherwise we will need to wait for the next ref frame to make sure we know all pocs ...
 	if (ctx->timescale || (!ctx->strict_poc && ctx->poc_probe_done) )
 		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
@@ -1408,13 +1415,14 @@ void naludmx_add_subsample(GF_NALUDmxCtx *ctx, u32 subs_size, u8 subs_priority, 
 		ctx->subsamp_buffer = gf_realloc(ctx->subsamp_buffer, ctx->subsamp_buffer_alloc);
 	}
 	assert(ctx->subsamp_buffer);
-	gf_bs_reassign_buffer(ctx->bs_w, ctx->subsamp_buffer, 14);
+	gf_bs_reassign_buffer(ctx->bs_w, ctx->subsamp_buffer + ctx->subsamp_buffer_size, 14);
 	gf_bs_write_u32(ctx->bs_w, 0); //flags
 	gf_bs_write_u32(ctx->bs_w, subs_size + ctx->nal_length);
 	gf_bs_write_u32(ctx->bs_w, subs_reserved); //reserved
 	gf_bs_write_u8(ctx->bs_w, subs_priority); //priority
 	gf_bs_write_u8(ctx->bs_w, 0); //discardable - todo
 	ctx->subsamp_buffer_size += 14;
+	ctx->subs_mapped_bytes += subs_size + ctx->nal_length;
 }
 
 
@@ -2319,24 +2327,29 @@ GF_Err naludmx_process(GF_Filter *filter)
 					if (dts == GF_FILTER_NO_TS) continue;
 					cts = gf_filter_pck_get_cts(q_pck);
 					cts += ctx->poc_shift;
-					cts -= ctx->avc_state->s_info.poc;
+					cts -= slice_poc;
 					gf_filter_pck_set_cts(q_pck, cts);
 				}
 
-				ctx->poc_shift = ctx->avc_state->s_info.poc;
+				ctx->poc_shift = slice_poc;
 			}
 
 			/*if #pics, compute smallest POC increase*/
-			if (slice_poc != ctx->last_poc) {
-				u32 pdiff = abs(slice_poc - ctx->last_poc);
+			if (slice_poc < ctx->last_poc) {
+				s32 pdiff = ctx->last_poc - slice_poc;
+
+				if ((slice_poc < 0) && !ctx->last_poc)
+					ctx->poc_diff = 0;
+
 				if (!ctx->poc_diff || (ctx->poc_diff > (s32) pdiff ) ) {
 					ctx->poc_diff = pdiff;
+					ctx->poc_probe_done = GF_FALSE;
 				} else if (first_in_au) {
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
 					ctx->poc_probe_done = GF_TRUE;
 				}
-				ctx->last_poc = slice_poc;
 			}
+			ctx->last_poc = slice_poc;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is ref %d\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_ref));
 
 			/*ref slice, reset poc*/
@@ -2427,6 +2440,11 @@ GF_Err naludmx_process(GF_Filter *filter)
 		/*dst_pck = */naludmx_start_nalu(ctx, (u32) size, &au_start, &pck_data);
 		pck_data += ctx->nal_length;
 
+		//add subsample info before touching the size
+		if (ctx->subsamples) {
+			naludmx_add_subsample(ctx, (u32) size, avc_svc_subs_priority, avc_svc_subs_reserved);
+		}
+
 		//bytes come from both our store and the data packet
 		if (nal_hdr_in_store) {
 			memcpy(pck_data, ctx->hdr_store + current + sc_size, nal_bytes_from_store);
@@ -2436,10 +2454,6 @@ GF_Err naludmx_process(GF_Filter *filter)
 		} else {
 			//bytes only come from the data packet
 			memcpy(pck_data, pck_start, (size_t) size);
-		}
-
-		if (ctx->subsamples) {
-			naludmx_add_subsample(ctx, (u32) size, avc_svc_subs_priority, avc_svc_subs_reserved);
 		}
 
 		if (! full_nal) {
@@ -2658,9 +2672,9 @@ static const GF_FilterArgs NALUDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
 	{ OFFS(autofps), "detect FPS from bitstream, fallback to fps option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index_dur), "indexing window length. If 0, bitstream is not probed for duration", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(strict_poc), "delay frame output to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosei), "removes all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "removes all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "removes all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
