@@ -273,7 +273,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	import.dest = mp4;
 	import.esd = src;
 	import.duration = mux->duration;
-	import.flags = mux->import_flags;
+	import.flags = mux->import_flags | GF_IMPORT_FORCE_MPEG4;
 	import.video_fps = mux->frame_rate;
 	import.in_name = szName;
 	import.initial_time_offset = imp_time;
@@ -1236,7 +1236,8 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			dur = au->timing - init_offset;
 			avg_rate += samp->dataLength;
 			rate += samp->dataLength;
-			if (esd->decoderConfig->bufferSizeDB<samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
+			if (esd->decoderConfig->bufferSizeDB<samp->dataLength)
+				esd->decoderConfig->bufferSizeDB = samp->dataLength;
 			if (samp->DTS - time_slice > esd->slConfig->timestampResolution) {
 				if (esd->decoderConfig->maxBitrate < rate) esd->decoderConfig->maxBitrate = rate;
 				rate = 0;
