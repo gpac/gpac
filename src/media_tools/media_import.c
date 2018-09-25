@@ -1320,6 +1320,20 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 
 		importer->final_trackID = gf_isom_get_last_created_track_id(importer->dest);
+
+		if (importer->esd && importer->final_trackID) {
+			u32 tk_num = gf_isom_get_track_by_id(importer->dest, importer->final_trackID);
+			GF_ESD *esd = gf_isom_get_esd(importer->dest, tk_num, 1);
+			if (esd && !importer->esd->decoderConfig) {
+				importer->esd->decoderConfig = esd->decoderConfig;
+				esd->decoderConfig = NULL;
+			}
+			if (esd && !importer->esd->slConfig) {
+				importer->esd->slConfig = esd->slConfig;
+				esd->slConfig = NULL;
+			}
+			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+		}
 	}
 	gf_fs_del(fsess);
 	return GF_OK;
