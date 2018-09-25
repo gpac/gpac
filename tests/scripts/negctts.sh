@@ -6,6 +6,9 @@ do_test "$MP4BOX -add $EXTERNAL_MEDIA_DIR/3D-HEVC/stream_bbb.bit:fmt=HEVC:negctt
 
 do_hash_test "$TEMP_DIR/test.mp4" "import"
 
+do_test "$MP4BOX -dtsc $TEMP_DIR/test.mp4" "mp4box-dump-negctts"
+do_hash_test "$TEMP_DIR/test_ts.txt" "dump"
+
 do_playback_test "$TEMP_DIR/test.mp4" "play-mp4"
 
 do_test "$MP42TS -src $TEMP_DIR/test.mp4 -dst-file $TEMP_DIR/test.ts" "mp42ts"
