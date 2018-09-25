@@ -2098,7 +2098,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (! ctx->no_def) {
 				e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, def_pck_dur, 0, (u8) def_is_rap, 0, 0);
 			} else {
-				e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, 0, 0, 0, 0, 0);
+				e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 0, 0, 0, 0, 0, 0);
 			}
 
 			if (e) {
