@@ -498,6 +498,25 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		needs_sample_entry = 2;
 	}
 
+	switch (tkw->codecid) {
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
+	case GF_CODECID_MPEG4_PART2:
+	case GF_CODECID_AVC:
+	case GF_CODECID_SVC:
+	case GF_CODECID_HEVC:
+	case GF_CODECID_LHVC:
+		if (!dsi && !enh_dsi) return GF_OK;
+	default:
+		break;
+	}
+	if (!tkw->track_num) {
+		needs_sample_entry = 1;
+		needs_track = GF_TRUE;
+	}
+
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
 	if (p) src_url = p->value.string;
 
@@ -996,8 +1015,8 @@ sample_entry_setup:
 		if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
 
 		if (!dsi && !enh_dsi) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for HEVC\n"));
-			return GF_NON_COMPLIANT_BITSTREAM;
+			//not yet known
+			return GF_OK;
 		}
 		if (dsi) {
 			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (codec_id == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
@@ -1015,7 +1034,7 @@ sample_entry_setup:
 			if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
 			tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
 			if (tkw->lvcc) {
-				e = gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->lvcc, dsi ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
+				e = gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->lvcc, dsi ? GF_ISOM_LEHVC_WITH_BASE_BACKWARD : GF_ISOM_LEHVC_ONLY);
 				if (e) {
 					gf_odf_hevc_cfg_del(tkw->lvcc);
 					tkw->lvcc = NULL;
