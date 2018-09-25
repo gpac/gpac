@@ -1589,7 +1589,7 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
 		bs = gf_bs_new((const char *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
 		gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
-		dump_obu(dump, idx, &av1, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
+		dump_obu(dump, idx, &av1, (char*)obu->obu, (u32)obu->obu_length, obu_type, (u32)obu_size, hdr_size, dump_crc);
 		gf_bs_del(bs);
 		idx++;
 	}
@@ -1625,9 +1625,9 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 				break;
 			}
 
-			dump_obu(dump, idx, &av1, ptr, obu_size, obu_type, (u32) obu_size, hdr_size, dump_crc);
+			dump_obu(dump, idx, &av1, ptr, (u32)obu_size, obu_type, (u32) obu_size, hdr_size, dump_crc);
 			ptr += obu_size;
-			size -= obu_size;
+			size -= (u32)obu_size;
 			idx++;
 		}
 		gf_bs_del(bs);
