@@ -82,13 +82,16 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 
 	br = (Double) (s64) gf_isom_get_media_duration(file, track);
 	br /= timescale;
-	bitrate = (u32) ((Double) (s64)avg_rate / br);
-	bitrate *= 8;
-	max_rate *= 8;
-
-	/*move to bps*/
-	gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
-
+	if (br) {
+		bitrate = (u32) ((Double) (s64)avg_rate / br);
+		bitrate *= 8;
+		max_rate *= 8;
+		if (!max_rate) max_rate = bitrate;
+		
+		/*move to bps*/
+		gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
+	}
+	
 #endif
 }
 
@@ -1261,11 +1264,15 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 		//mux args
 		sprintf(szArgs, "mxisom:file=%p:importer", importer->dest);
-		if (importer->flags & GF_IMPORT_FORCE_MPEG4) strcat(szArgs, ":m4sys:mpeg4");
+		if (importer->flags & GF_IMPORT_FORCE_MPEG4) strcat(szArgs, ":m4sys");
 		if (importer->flags & GF_IMPORT_USE_DATAREF) strcat(szArgs, ":dref");
 		if (importer->flags & GF_IMPORT_NO_EDIT_LIST) strcat(szArgs, ":noedit");
 		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":pack_nal");
 		if (importer->flags & GF_IMPORT_FORCE_XPS_INBAND) strcat(szArgs, ":xps_inband=all");
+		if (importer->esd && importer->esd->ESID) {
+			sprintf(szSubArg, ":tkid=%d", importer->esd->ESID);
+			strcat(szArgs, szSubArg);
+		}
 
 		if (importer->duration) {
 			sprintf(szSubArg, ":dur=%d/1000", importer->duration);
@@ -1294,6 +1301,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) strcat(szArgs, ":subsamples");
 		if (importer->flags & GF_IMPORT_NO_SEI) strcat(szArgs, ":nosei");
 		if (importer->flags & GF_IMPORT_SVC_NONE) strcat(szArgs, ":nosvc");
+		if (importer->flags & GF_IMPORT_FORCE_MPEG4) strcat(szArgs, ":mpeg4");
 
 		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) strcat(szArgs, ":webvtt");
 
