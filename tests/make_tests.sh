@@ -470,6 +470,8 @@ if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
   fi
 fi
 
+disable_playback=$MP4CLIENT_NOT_FOUND
+
 MP42TS -h 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then

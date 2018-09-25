@@ -231,7 +231,10 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
 	if (DefaultSampleIsSync) {
 		trex->def_sample_flags |= (2<<24);
 	}
-
+	if (DefaultSampleDescriptionIndex == 0 && DefaultSampleDuration == 0 && DefaultSampleSize == 0
+		&& DefaultSampleIsSync == 0 && DefaultSamplePadding == 0 && DefaultDegradationPriority == 0) {
+		trex->cannot_use_default = GF_TRUE;
+	}
 	return GF_OK;
 }
 
@@ -376,7 +379,7 @@ escape_size:
 		}
 	}
 	//store if #
-	if (DefValue && (DefValue != traf->trex->def_sample_flags)) {
+	if (traf->trex->cannot_use_default || (DefValue && (DefValue != traf->trex->def_sample_flags))) {
 		traf->tfhd->def_sample_flags = DefValue;
 	}
 }
@@ -524,7 +527,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 
 		//size checking
 		//constant size, check if this is from current fragment default or global default
-		if (RunSize && (traf->trex->def_sample_size == RunSize)) {
+		if (RunSize && (traf->trex->def_sample_size == RunSize) && !traf->trex->cannot_use_default) {
 			if (!UseDefaultSize) UseDefaultSize = 2;
 			else if (UseDefaultSize==1) RunSize = 0;
 		} else if (RunSize && (traf->tfhd->def_sample_size == RunSize)) {
@@ -540,7 +543,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 		if (!RunSize) trun->flags |= GF_ISOM_TRUN_SIZE;
 
 		//duration checking
-		if (RunDur && (traf->trex->def_sample_duration == RunDur)) {
+		if (RunDur && (traf->trex->def_sample_duration == RunDur) && !traf->trex->cannot_use_default) {
 			if (!UseDefaultDur) UseDefaultDur = 2;
 			else if (UseDefaultDur==1) RunDur = 0;
 		} else if (RunDur && (traf->tfhd->def_sample_duration == RunDur)) {
@@ -552,7 +555,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 		//flag checking
 		if (!NeedFlags) {
 			// all samples flags are the same after the 2nd entry
-			if (RunFlags == traf->trex->def_sample_flags) {
+			if (RunFlags == traf->trex->def_sample_flags && !traf->trex->cannot_use_default) {
 				/* this run can use trex flags */
 				if (!UseDefaultFlag) {
 					/* if all previous runs used explicit flags per sample, we can still use trex flags for this run */
