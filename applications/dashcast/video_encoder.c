@@ -147,7 +147,6 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	//the global header gives access to the extradata (SPS/PPS)
 	video_output_file->codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 #endif
-
 	video_output_file->vstream_idx = 0;//video_stream->index;
 
 	/* open the video codec - options are passed thru video_output_file->codec_ctx->priv_data */

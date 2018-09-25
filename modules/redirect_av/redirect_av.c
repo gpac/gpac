@@ -133,7 +133,7 @@ static u32 audio_encoding_thread_run(void *param)
 	AVCodecContext * ctx = NULL;
 	assert( avr );
 
-	outBuffSize = FF_MIN_BUFFER_SIZE;
+	outBuffSize = AV_INPUT_BUFFER_MIN_SIZE;
 
 	outBuff = (u8*)gf_malloc(outBuffSize* sizeof(u8));
 	inBuff = NULL;
