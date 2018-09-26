@@ -4030,6 +4030,7 @@ void gf_isom_no_version_date_info(GF_ISOFile *file, Bool drop_info)
 {
 	if (!file) return;
 	file->drop_date_version_info = drop_info;
+	file->keep_utc = GF_TRUE;
 }
 
 GF_EXPORT
