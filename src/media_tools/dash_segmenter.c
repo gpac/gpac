@@ -511,8 +511,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		l1 = args ? (u32) strlen(args) : 0; \
 		l2 = (u32) strlen(_an_arg);\
 		if (l1) args = gf_realloc(args, sizeof(char)*(l1+l2+2));\
-		else args = gf_realloc(args, sizeof(char)*(l1+l2+1));\
+		else args = gf_realloc(args, sizeof(char)*(l2+1));\
 		if (!args) return GF_OUT_OF_MEM;\
+		args[l1]=0;\
 		if (l1) strcat(args, ":"); \
 		strcat(args, _an_arg); \
 
