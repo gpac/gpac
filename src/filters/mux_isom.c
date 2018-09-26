@@ -3010,7 +3010,7 @@ static const GF_FilterCapability MP4MuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_STATIC_OPT, 	GF_PROP_PID_DASH_MODE, 0),
 	//and any codecid
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
-	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci"),
+	CAP_STRING(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|m4s|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci|ismf"),
 	{0},
 	//for scene and OD, we don't want raw codecid (filters modifying a scene graph we don't expose)
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
