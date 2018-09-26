@@ -3958,6 +3958,9 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 			return mp4box_cleanup(1);
 		}
+		if (force_test_mode) {
+			gf_isom_no_version_date_info(file, 1);
+		}
 
 		for (i=0; i<(u32) argc; i++) {
 			if (!strcmp(argv[i], "-add")) {
@@ -4958,27 +4961,6 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 		}
 
-#ifndef GPAC_DISABLE_CRYPTO
-		if (crypt) {
-			if (!drm_file) {
-				fprintf(stderr, "Missing DRM file location - usage '-%s drm_file input_file\n", (crypt==1) ? "crypt" : "decrypt");
-				e = GF_BAD_PARAM;
-				goto err_exit;
-			}
-			if (get_file_type_by_ext(inName) != GF_FILE_TYPE_ISO_MEDIA) {
-				fprintf(stderr, "MP4Box can crypt only ISOMedia File\n");
-				e = GF_BAD_PARAM;
-				goto err_exit;
-			}
-			if (crypt == 1) {
-				e = gf_crypt_file(file, drm_file, outfile);
-			} else if (crypt ==2) {
-				e = gf_decrypt_file(file, drm_file, outfile);
-			}
-			if (e) goto err_exit;
-			needSave = outName ? GF_FALSE : GF_TRUE;
-		}
-#endif /*GPAC_DISABLE_CRYPTO*/
 	} else if (outName) {
 		strcpy(outfile, outName);
 	}
@@ -5270,6 +5252,69 @@ int mp4boxMain(int argc, char **argv)
 		needSave = GF_TRUE;
 	}
 
+	if (cprt) {
+		e = gf_isom_set_copyright(file, "und", cprt);
+		needSave = GF_TRUE;
+		if (e) goto err_exit;
+	}
+	if (chap_file) {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+		e = gf_media_import_chapters(file, chap_file, import_fps);
+		needSave = GF_TRUE;
+#else
+		fprintf(stderr, "Warning: GPAC compiled without Media Import, chapters can't be imported\n");
+		e = GF_NOT_SUPPORTED;
+#endif
+		if (e) goto err_exit;
+	}
+
+	if (major_brand) {
+		gf_isom_set_brand_info(file, major_brand, minor_version);
+		needSave = GF_TRUE;
+	}
+	for (i=0; i<nb_alt_brand_add; i++) {
+		gf_isom_modify_alternate_brand(file, brand_add[i], 1);
+		needSave = GF_TRUE;
+	}
+	for (i=0; i<nb_alt_brand_rem; i++) {
+		gf_isom_modify_alternate_brand(file, brand_rem[i], 0);
+		needSave = GF_TRUE;
+	}
+#ifndef GPAC_DISABLE_CRYPTO
+	if (crypt) {
+		if (!drm_file) {
+			fprintf(stderr, "Missing DRM file location - usage '-%s drm_file input_file\n", (crypt==1) ? "crypt" : "decrypt");
+			e = GF_BAD_PARAM;
+			goto err_exit;
+		}
+		if (get_file_type_by_ext(inName) != GF_FILE_TYPE_ISO_MEDIA) {
+			fprintf(stderr, "MP4Box can crypt only ISOMedia File\n");
+			e = GF_BAD_PARAM;
+			goto err_exit;
+		}
+		if (crypt == 1) {
+			e = gf_crypt_file(file, drm_file, outfile, interleaving_time);
+		} else if (crypt ==2) {
+			e = gf_decrypt_file(file, drm_file, outfile, interleaving_time);
+		}
+		if (e) goto err_exit;
+		needSave = outName ? GF_FALSE : GF_TRUE;
+
+		if (!Frag && !HintIt && !FullInter && !force_co64) {
+			char szName[GF_MAX_PATH];
+			strcpy(szName, gf_isom_get_filename(file) );
+			e = GF_OK;
+			gf_isom_delete(file);
+			file = NULL;
+			if (!outName) {
+				e = gf_move_file(outfile, szName);
+				if (e) goto err_exit;
+			}
+			goto exit;
+		}
+	}
+#endif /*GPAC_DISABLE_CRYPTO*/
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (Frag) {
 		if (!interleaving_time) interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
@@ -5298,24 +5343,6 @@ int mp4boxMain(int argc, char **argv)
 		if (print_sdp) dump_isom_sdp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	}
 #endif
-
-	/*full interleave (sample-based) if just hinted*/
-	if (FullInter) {
-		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
-	} else if (!interleaving_time) {
-		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_STREAMABLE);
-		needSave = GF_TRUE;
-	} else if (do_flat) {
-		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_FLAT);
-		needSave = GF_TRUE;
-	} else {
-		e = gf_isom_make_interleave(file, interleaving_time);
-		if (!e && old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_INTERLEAVED);
-	}
-	if (force_co64)
-		gf_isom_force_64bit_chunk_offset(file, GF_TRUE);
-
-	if (e) goto err_exit;
 
 #if !defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)
 	for (i=0; i<nb_sdp_ex; i++) {
@@ -5348,34 +5375,25 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif /*!defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)*/
 
-	if (cprt) {
-		e = gf_isom_set_copyright(file, "und", cprt);
-		needSave = GF_TRUE;
-		if (e) goto err_exit;
-	}
-	if (chap_file) {
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
-		e = gf_media_import_chapters(file, chap_file, import_fps);
-		needSave = GF_TRUE;
-#else
-		fprintf(stderr, "Warning: GPAC compiled without Media Import, chapters can't be imported\n");
-		e = GF_NOT_SUPPORTED;
-#endif
-		if (e) goto err_exit;
-	}
 
-	if (major_brand) {
-		gf_isom_set_brand_info(file, major_brand, minor_version);
+	/*full interleave (sample-based) if just hinted*/
+	if (FullInter) {
+		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
+	} else if (!interleaving_time) {
+		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_STREAMABLE);
 		needSave = GF_TRUE;
-	}
-	for (i=0; i<nb_alt_brand_add; i++) {
-		gf_isom_modify_alternate_brand(file, brand_add[i], 1);
+	} else if (do_flat) {
+		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_FLAT);
 		needSave = GF_TRUE;
+	} else {
+		e = gf_isom_make_interleave(file, interleaving_time);
+		if (!e && old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_INTERLEAVED);
 	}
-	for (i=0; i<nb_alt_brand_rem; i++) {
-		gf_isom_modify_alternate_brand(file, brand_rem[i], 0);
-		needSave = GF_TRUE;
-	}
+	if (force_co64)
+		gf_isom_force_64bit_chunk_offset(file, GF_TRUE);
+
+	if (e) goto err_exit;
+
 
 	if (!encode && !force_new) gf_isom_set_final_name(file, outfile);
 	if (needSave) {
