@@ -388,6 +388,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool is_tile_base = GF_FALSE;
 	Bool unknown_generic = GF_FALSE;
 	u32 multi_pid_final_stsd_idx = 0;
+	u32 audio_pli=0;
 
 	const char *lang_name = NULL;
 	const char *comp_name = NULL;
@@ -438,6 +439,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			}
 		}
 	}
+
+	audio_pli = gf_isom_get_pl_indication(ctx->file, GF_ISOM_PL_AUDIO);
 
 	//new pid ?
 	tkw = gf_filter_pid_get_udta(pid);
@@ -560,14 +563,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		if (ctx->tkid) tkid = ctx->tkid;
 
-		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->codecid);
-		if (!mtype) {
-			if (tkw->stream_type == GF_STREAM_ENCRYPTED) {
-				tkw->is_encrypted = GF_TRUE;
-				tkw->stream_type = gf_codecid_type(tkw->codecid);
-				mtype = gf_isom_stream_type_to_media_type( tkw->stream_type, tkw->codecid);
-			}
+		if (tkw->stream_type == GF_STREAM_ENCRYPTED) {
+			tkw->is_encrypted = GF_TRUE;
+			tkw->stream_type = gf_codecid_type(tkw->codecid);
 		}
+		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->codecid);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE);
 		if (ctx->tktpl && p && p->value.data.ptr) {
@@ -950,6 +950,15 @@ sample_entry_setup:
 		}
 
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+
+		if (dsi && (tkw->stream_type==GF_STREAM_AUDIO)) {
+			GF_M4ADecSpecInfo acfg;
+			gf_m4a_get_config(dsi->value.data.ptr, dsi->value.data.size, &acfg);
+			audio_pli = acfg.audioPL;
+		}
+		if (audio_pli)
+			gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_AUDIO, audio_pli);
+
 	} else if (use_avc) {
 		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
 
@@ -998,11 +1007,12 @@ sample_entry_setup:
 			tkw->avcc = NULL;
 		}
 
-		//gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_VISUAL, 0x7F);
+		gf_isom_set_pl_indication(ctx->file, GF_ISOM_PL_VISUAL, 0x7F);
 		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, 1);
 		tkw->is_nalu = GF_TRUE;
 
 		tkw->use_dref = GF_FALSE;
+
 	} else if (use_hvt1) {
 		if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
 		tkw->hvcc = gf_odf_hevc_cfg_new();
@@ -1679,7 +1689,8 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		else if (tkw->constant_IV_size != constant_IV_size) needs_seig = GF_TRUE;
 		else if (constant_IV_size && memcmp(tkw->constant_IV, constant_IV, sizeof(bin128))) needs_seig = GF_TRUE;
 
-		if (needs_seig) {
+//		if (needs_seig)
+		{
 			//!! tkw->nb_samples not yet incremented !!
 			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples+1, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 		}
