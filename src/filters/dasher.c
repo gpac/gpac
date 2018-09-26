@@ -4720,7 +4720,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(mix_codecs), "Enables mixing different codecs in an adaptation set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ntp), "Inserts/overrides NTP clock at the begining of each segment. rem removes NTP from all input packets. yes inserts NTP at each segment start. keep leaves input packet NTP untouched.", GF_PROP_UINT, "rem", "rem|yes|keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_sar), "Does not check for identical sample aspect ratio for adaptation sets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(m2ts), "generates MPEG-2 TS output", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(m2ts), "generates MPEG-2 TS output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(for_test), "sets all dates and version info to 0 to enforce same binary result generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(forcep), "forces profile string for avc/hevc/aac", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(bs_switch), "Bitstream switching mode (single init segment):\n\tdef: resolves to off for onDemand and inband for live\n\toff: disables BS switching\n\ton: enables it if same decoder configuration is possible\n\tinband: moves decoder config inband if possible\n\tforce: enables it even if only one representation\n\tmulti: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|force|multi", GF_FS_ARG_HINT_ADVANCED},
