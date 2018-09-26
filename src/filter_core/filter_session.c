@@ -1634,7 +1634,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session)
 
 			nb_connect = 0;
 			for (k=0; k<src_bundle_count; k++) {
-				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx, -1, GF_FALSE, &capstore);
+				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx, -1, NULL, &capstore);
 			}
 			if (nb_connect) {
 				if (first) {

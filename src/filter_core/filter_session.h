@@ -747,13 +747,16 @@ u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
 
 typedef struct
 {
-	Bool *bundles_in_ok;
+	u32 *bundles_in_ok;
 	u32 *bundles_cap_found;
 	u32 *bundles_in_scores;
 	u32 nb_allocs;
 } GF_CapsBundleStore;
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, Bool check_explicit, GF_CapsBundleStore *capstore);
+#define CAP_MATCH_LOADED_INPUT_ONLY		1
+#define CAP_MATCH_LOADED_OUTPUT_ONLY	1<<1
+
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore);
 Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
 
 void gf_filter_check_output_reconfig(GF_Filter *filter);

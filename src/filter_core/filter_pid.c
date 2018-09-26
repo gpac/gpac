@@ -1263,7 +1263,7 @@ Bool gf_filter_has_out_caps(const GF_FilterRegister *freg)
 }
 
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, Bool check_explicit, GF_CapsBundleStore *capstore)
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
@@ -1272,7 +1272,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	u32 nb_out_caps=0;
 	u32 nb_in_bundles=0;
 	u32 bundle_score = 0;
-	Bool *bundles_in_ok = NULL;
+	u32 *bundles_in_ok = NULL;
 	u32 *bundles_cap_found = NULL;
 	u32 *bundles_in_scores = NULL;
 	//initialize caps matched to true for first cap bundle
@@ -1303,7 +1303,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	}
 	if (capstore->nb_allocs < nb_in_bundles) {
 		capstore->nb_allocs = nb_in_bundles;
-		capstore->bundles_in_ok = gf_realloc(capstore->bundles_in_ok, sizeof(Bool) * nb_in_bundles);
+		capstore->bundles_in_ok = gf_realloc(capstore->bundles_in_ok, sizeof(u32) * nb_in_bundles);
 		capstore->bundles_cap_found = gf_realloc(capstore->bundles_cap_found, sizeof(u32) * nb_in_bundles);
 		capstore->bundles_in_scores = gf_realloc(capstore->bundles_in_scores,  sizeof(u32) * nb_in_bundles);
 	}
@@ -1312,7 +1312,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	bundles_in_scores = capstore->bundles_in_scores;
 
 	for (i=0; i<nb_in_bundles; i++) {
-		bundles_in_ok[i] = GF_TRUE;
+		bundles_in_ok[i] = 1;
 		bundles_cap_found[i] = 0;
 		bundles_in_scores[i] = 0;
 	}
@@ -1378,6 +1378,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			u32 cur_dst_bundle=0;
 			Bool static_matched = GF_FALSE;
 			u32 nb_caps_tested = 0;
+			u32 cap_loaded_filter_only = 0;
 			Bool matched=GF_FALSE;
 			Bool exclude=GF_FALSE;
 			Bool prop_found=GF_FALSE;
@@ -1398,11 +1399,6 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				continue;
 			}
 
-			if (check_explicit && (an_out_cap->flags & GF_CAPFLAG_LOADED_FILTER)) {
-				bundles_cap_found[cur_dst_bundle] = 0;
-				break;
-			}
-
 			nb_matched = 0;
 			//check all input caps of dst filter, count ones that are matched
 			for (j=0; j<nb_dst_caps; j++) {
@@ -1414,7 +1410,9 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					if (!matched && prop_found) matched = GF_TRUE;
 					//not match, flag this bundle as not ok
 					if (matched) {
-						bundles_cap_found[cur_dst_bundle] ++;
+						if (!bundles_cap_found[cur_dst_bundle])
+							bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
+
 						nb_matched++;
 					}
 
@@ -1482,17 +1480,24 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					//prop type matched, input excludes it and output excludes it and no match, remmeber we found the prop type
 					prop_found = GF_TRUE;
 				}
+
+				if (prop_found && (in_cap->flags & GF_CAPFLAG_LOADED_FILTER))
+					cap_loaded_filter_only = 1;
 			}
 			if (nb_caps_tested) {
 				//we found a prop, excluded but with != value hence acceptable, default matching to true
 				if (!matched && prop_found) matched = GF_TRUE;
 				//not match, flag this bundle as not ok
 				if (matched) {
-					bundles_cap_found[cur_dst_bundle] ++;
+					if (!bundles_cap_found[cur_dst_bundle])
+						bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
+
 					nb_matched++;
 				}
 			} else if (!nb_dst_caps) {
-				bundles_cap_found[cur_dst_bundle] ++;
+				if (!bundles_cap_found[cur_dst_bundle])
+					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
+
 				nb_matched++;
 			}
 		}
@@ -1500,11 +1505,17 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		nb_matched=0;
 		for (k=0; k<nb_in_bundles; k++) {
 			if (!bundles_cap_found[k])
-				bundles_in_ok[k] = GF_FALSE;
+				bundles_in_ok[k] = 0;
 			else {
-				nb_matched += bundles_cap_found[k];
+				nb_matched += 1;
 				//we matched this property, keep score for the bundle
 				bundles_in_scores[k] ++;
+				//mark if connection is only valid for loaded inputs
+				if (bundles_cap_found[k]==2)
+				 	bundles_in_ok[k] |= 1<<1;
+				//mark if connection is only valid for loaded outputs
+				if (out_cap->flags & GF_CAPFLAG_LOADED_FILTER)
+					bundles_in_ok[k] |= 1<<2;
 			}
 		}
 		//not matched and not excluded, skip until next bundle
@@ -1522,6 +1533,9 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			if (bundle_score < bundles_in_scores[i]) {
 				*dst_bundle_idx = i;
 				bundle_score = bundles_in_scores[i];
+				if (loaded_filter_flags) {
+					*loaded_filter_flags = (bundles_in_ok[i]>>1);
+				}
 			}
 		}
 	}
@@ -1609,6 +1623,7 @@ typedef struct
 	u8 weight;
 	u8 status;
 	u8 priority;
+	u8 loaded_filter_only;
 } GF_FilterRegEdge;
 
 typedef struct __freg_desc
@@ -1638,14 +1653,10 @@ static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc
 
 	for (i=0; i<reg_desc->nb_edges; i++) {
 		GF_FilterRegEdge *edge = &reg_desc->edges[i];
-		if (!break_loop) {
-			if (edge->dst_cap_idx == src_cap_idx) {
-				if (edge->status == EDGE_STATUS_NONE) {
-					edge->status = EDGE_STATUS_ENABLED;
-					//fprintf(stderr, "enable edge from %s to %s\n", edge->src_reg->freg->name, reg_desc->freg->name);
-					gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1);
-				}
-			}
+		if (!break_loop && (edge->dst_cap_idx == src_cap_idx) && (edge->status == EDGE_STATUS_NONE)) {
+			edge->status = EDGE_STATUS_ENABLED;
+			//fprintf(stderr, "enable edge from %s to %s\n", edge->src_reg->freg->name, reg_desc->freg->name);
+			gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1);
 		}
 	}
 }
@@ -1661,6 +1672,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	reg_desc->freg = freg;
 
 	nb_dst_caps = gf_filter_caps_bundle_count(freg->caps, freg->nb_caps);
+
 
 	//we are building a registry descriptor acting as destination, ignore any output caps
 	if (src_pid || dst_filter) freg_has_output = GF_FALSE;
@@ -1680,8 +1692,9 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 				s32 bundle_idx;
 
 				if ( gf_filter_has_out_caps(a_reg->freg)) {
+					u32 loaded_filter_only_flags = 0;
 
-					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, GF_TRUE, capstore);
+					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
 
 					if (path_weight && (bundle_idx == l)) {
 
@@ -1697,12 +1710,14 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 						reg_desc->edges[reg_desc->nb_edges].src_cap_idx = k;
 						reg_desc->edges[reg_desc->nb_edges].dst_cap_idx = l;
 						reg_desc->edges[reg_desc->nb_edges].priority = 0;
+						reg_desc->edges[reg_desc->nb_edges].loaded_filter_only = loaded_filter_only_flags;
 						reg_desc->nb_edges++;
 					}
 				}
 
 				if ( freg_has_output ) {
-					path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, GF_TRUE, capstore);
+					u32 loaded_filter_only_flags = 0;
+					path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
 
 					if (path_weight && (bundle_idx == k)) {
 
@@ -1715,6 +1730,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 						a_reg->edges[a_reg->nb_edges].src_cap_idx = (u16) l;
 						a_reg->edges[a_reg->nb_edges].dst_cap_idx = (u16) k;
 						a_reg->edges[a_reg->nb_edges].priority = 0;
+						a_reg->edges[a_reg->nb_edges].loaded_filter_only = loaded_filter_only_flags;
 						a_reg->nb_edges++;
 					}
 				}
@@ -1888,6 +1904,14 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 					continue;
 				}
 			}
+
+			if (edge->loaded_filter_only && (edge->src_reg->freg != pid->filter->freg) ) {
+				edge->status = EDGE_STATUS_DISABLED;
+				if (!strcmp(pid->filter->freg->name, "dasher") && !strcmp(reg_desc->freg->name, "mxisom"))
+					continue;
+				continue;
+			}
+
 			if ((u32) edge->weight + 1 > max_weight)
 				max_weight = (u32) edge->weight + 1;
 		}
@@ -1978,8 +2002,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			fprintf(stderr, "Filter %s sources: ", rdesc->freg->name);
 			for (j=0; j<rdesc->nb_edges; j++) {
 				GF_FilterRegEdge *edge = &rdesc->edges[j];
-	//			if (edge->status == EDGE_STATUS_ENABLED)
-					fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
+				fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
 			}
 			fprintf(stderr, "\n");
 		}
@@ -2019,7 +2042,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		if (current_node->freg == pid->filter->freg) {
 			result = current_node;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] testing filter %s\n", current_node->freg->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: testing filter %s\n", current_node->freg->name));
 
 		//compute distances
 		for (i=0; i<current_node->nb_edges; i++) {
@@ -2057,13 +2080,13 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			}
 
 			if (do_switch) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] assign filter %s distance %d destination to %s priority %d (previous destination %s distance %d priority %d)\n", redge->src_reg->freg->name, dist, current_node->freg->name, redge->priority, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->src_reg->dist, redge->src_reg->priority ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: assign filter %s distance %d destination to %s priority %d (previous destination %s distance %d priority %d)\n", redge->src_reg->freg->name, dist, current_node->freg->name, redge->priority, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->src_reg->dist, redge->src_reg->priority ));
 				redge->src_reg->dist = dist;
 				redge->src_reg->priority = priority;
 				redge->src_reg->destination = current_node;
 				redge->src_reg->cap_idx = redge->src_cap_idx;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] no shorter path from filter %s distance %d from destination %s priority %d (tested %s dist %d priority %d)\n", redge->src_reg->freg->name, redge->src_reg->dist, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->priority, current_node->freg->name, dist, redge->src_reg->priority));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: no shorter path from filter %s distance %d from destination %s priority %d (tested %s dist %d priority %d)\n", redge->src_reg->freg->name, redge->src_reg->dist, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->priority, current_node->freg->name, dist, redge->src_reg->priority));
 
 			}
 		}
@@ -2072,10 +2095,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 	sort_time_us -= start_time_us;
 	dijkstra_time_us = gf_sys_clock_high_res() - start_time_us;
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Dijkstra] sorted filters in "LLU" us, Dijkstra done in "LLU" us on %d nodes %d edges\n", sort_time_us, dijkstra_time_us, dijsktra_node_count, dijsktra_edge_count));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Filters] Dijkstra: sorted filters in "LLU" us, Dijkstra done in "LLU" us on %d nodes %d edges\n", sort_time_us, dijkstra_time_us, dijsktra_node_count, dijsktra_edge_count));
 
 	if (result && result->destination) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Dijkstra] result: %s", result->freg->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: result: %s", result->freg->name));
 		result = result->destination;
 		while (result->destination) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s", result->freg->name ));
@@ -2085,7 +2108,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s\n", result->freg->name));
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Dijkstra] no results found!\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filters] Dijkstra: no results found!\n"));
 	}
 	gf_list_del(dijkstra_nodes);
 
