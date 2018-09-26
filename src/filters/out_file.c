@@ -80,7 +80,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		} else {
 			strcpy(szName, filename);
 		}
-		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx);
+		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, NULL);
 
 		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
