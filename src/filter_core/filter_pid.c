@@ -4063,7 +4063,6 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	//we create a fake packet for eos signaling
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-	safe_int_dec(&pid->nb_shared_packets_out);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_REM;
 	gf_filter_pck_send(pck);
 }
