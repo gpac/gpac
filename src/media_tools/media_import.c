@@ -816,7 +816,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			if (origin_esd) origin_esd->decoderConfig = NULL;
 		}
 	}
-
+	gf_media_update_bitrate(import->dest, track);
+	
 exit:
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, cur_extract_mode);
