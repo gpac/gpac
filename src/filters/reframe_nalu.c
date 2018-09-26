@@ -2335,8 +2335,8 @@ GF_Err naludmx_process(GF_Filter *filter)
 			}
 
 			/*if #pics, compute smallest POC increase*/
-			if (slice_poc < ctx->last_poc) {
-				s32 pdiff = ctx->last_poc - slice_poc;
+			if (slice_poc != ctx->last_poc) {
+				s32 pdiff = ABS(ctx->last_poc - slice_poc);
 
 				if ((slice_poc < 0) && !ctx->last_poc)
 					ctx->poc_diff = 0;
