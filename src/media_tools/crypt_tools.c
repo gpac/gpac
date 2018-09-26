@@ -375,7 +375,7 @@ GF_CryptInfo *gf_crypt_info_load(const char *file)
 
 
 GF_EXPORT
-GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file)
+GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
 {
 	const char *src_url;
 	char szArgs[4096];
@@ -401,7 +401,11 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 		return GF_FILTER_NOT_FOUND;
 	}
 
-	dst = gf_fs_load_destination(fsess, dst_file, "SID=1", NULL, &e);
+	sprintf(szArgs, "SID=1:cdur=%g", interleave_time);
+	if (gf_isom_drop_date_version_info_enabled(mp4))
+		strcat(szArgs, ":for_test");
+
+	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
 	if (!dst) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load destination muxer\n"));
@@ -418,7 +422,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 }
 
 GF_EXPORT
-GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file)
+GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
 {
 	const char *src_url;
 	char szArgs[4096];
@@ -445,7 +449,11 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 		return GF_FILTER_NOT_FOUND;
 	}
 
-	dst = gf_fs_load_destination(fsess, dst_file, "SID=1", NULL, &e);
+	sprintf(szArgs, "SID=1:cdur=%g", interleave_time);
+	if (gf_isom_drop_date_version_info_enabled(mp4))
+		strcat(szArgs, ":for_test");
+		
+	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
 
 
 	e = gf_fs_run(fsess);

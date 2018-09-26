@@ -185,17 +185,19 @@ void gf_crypt_info_del(GF_CryptInfo *info);
 \param infile source MP4 file to decrypt
 \param drm_file location of crypt info data
 \param outname location of destination file
+\param interleave_time interleave time of the destination file
 \return error code if any
 */
-GF_Err gf_decrypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname);
+GF_Err gf_decrypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname, Double interleave_time);
 
 /*! encrypts a file
 \param infile source MP4 file to encrypt
 \param drm_file location of crypt info data
 \param outname location of destination file
+\param interleave_time interleave time of the destination file
 \return error code if any
 */
-GF_Err gf_crypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname);
+GF_Err gf_crypt_file(GF_ISOFile *infile, const char *drm_file, const char *outname, Double interleave_time);
 
 #endif /*!defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
