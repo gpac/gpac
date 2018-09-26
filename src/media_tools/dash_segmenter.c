@@ -1285,6 +1285,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP41, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP42, 0);
 
+		gf_isom_set_pl_indication(output, 0, GF_ISOM_PL_AUDIO);
+		gf_isom_set_pl_indication(output, 0, GF_ISOM_PL_VISUAL);
+		gf_isom_set_pl_indication(output, 0, GF_ISOM_PL_OD);
+		gf_isom_set_pl_indication(output, 0, GF_ISOM_PL_SCENE);
+		gf_isom_set_pl_indication(output, 0, GF_ISOM_PL_GRAPHICS);
 	}
 
 	MaxFragmentDuration = (u32) (dasher->dash_scale * dasher->fragment_duration);
@@ -1388,8 +1393,14 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			}
 		}
 
-		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
-        else if (mtype == GF_ISOM_MEDIA_AUXV) nb_auxv++;
+		if (mtype == GF_ISOM_MEDIA_VISUAL) {
+			gf_isom_set_pl_indication(output, gf_isom_get_pl_indication(input, GF_ISOM_PL_VISUAL), GF_ISOM_PL_VISUAL);
+			nb_video++;
+		}
+        else if (mtype == GF_ISOM_MEDIA_AUXV) {
+			gf_isom_set_pl_indication(output, gf_isom_get_pl_indication(input, GF_ISOM_PL_VISUAL), GF_ISOM_PL_VISUAL);
+        	nb_auxv++;
+		}
         else if (mtype == GF_ISOM_MEDIA_PICT) nb_pict++;
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) nb_audio++;
 		else if (mtype == GF_ISOM_MEDIA_TEXT || mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT) nb_text++;
