@@ -322,6 +322,7 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 	void *ptr = filter->filter_udta + a->offset_in_private;
 #endif
 	Bool res = GF_FALSE;
+	if (a->offset_in_private<0) return;
 
 	switch (argv->type) {
 	case GF_PROP_BOOL:
