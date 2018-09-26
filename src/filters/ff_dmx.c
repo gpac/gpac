@@ -595,7 +595,7 @@ void ffdmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
-	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
@@ -874,7 +874,7 @@ static const GF_FilterArgs FFAVInArgs[] =
 	{ OFFS(probes), "Probes a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
 
 
-	{ "*", -1, "Any possible args defined for AVInputFormat and AVFormatContext", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "Any possible args defined for AVInputFormat and AVFormatContext", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
