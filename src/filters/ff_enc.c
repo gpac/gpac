@@ -1053,7 +1053,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(all_intra), "only produces intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ls), "outputs log", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
-	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
