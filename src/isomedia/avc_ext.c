@@ -1330,7 +1330,7 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) return e;
 	}
-	if (!the_file->keep_utc)
+	if (!the_file->keep_utc && !the_file->drop_date_version_info)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	//create a new entry

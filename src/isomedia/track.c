@@ -407,7 +407,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
 	}
 	trak->Header->duration = trackDuration;
-	if (!trak->moov->mov->keep_utc)
+	if (!trak->moov->mov->keep_utc && !trak->moov->mov->drop_date_version_info)
 		trak->Header->modificationTime = gf_isom_get_mp4time();
 	return GF_OK;
 }

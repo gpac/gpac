@@ -941,7 +941,6 @@ GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 
 void gf_isom_insert_moov(GF_ISOFile *file)
 {
-	u64 now;
 	GF_MovieHeaderBox *mvhd;
 	if (file->moov) return;
 
@@ -949,11 +948,17 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 	file->moov = (GF_MovieBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOV);
 	file->moov->mov = file;
 	//Header SetUp
-	now = gf_isom_get_mp4time();
 	mvhd = (GF_MovieHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVHD);
-	mvhd->creationTime = now;
-	if (!file->keep_utc)
-		mvhd->modificationTime = now;
+
+	if (file->drop_date_version_info) {
+		mvhd->creationTime = mvhd->modificationTime = 0;
+	} else {
+		u64 now = gf_isom_get_mp4time();
+		mvhd->creationTime = now;
+		if (!file->keep_utc)
+			mvhd->modificationTime = now;
+	}
+
 	mvhd->nextTrackID = 1;
 	//600 is our default movie TimeScale
 	mvhd->timeScale = 600;

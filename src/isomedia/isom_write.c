@@ -592,7 +592,6 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 			return 0;
 		}
 	}
-	now = gf_isom_get_mp4time();
 
 	if (tk_box) {
 		GF_BitStream *bs = gf_bs_new(tk_box, tk_box_size, GF_BITSTREAM_READ);
@@ -653,8 +652,14 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 		if (e) goto err_exit;
 		movie->last_created_track_id = tkhd->trackID = trakID;
 
-		tkhd->creationTime = now;
-		mdia->mediaHeader->creationTime = now;
+		if (movie->drop_date_version_info) {
+			tkhd->creationTime = 0;
+			mdia->mediaHeader->creationTime = 0;
+		} else {
+			now = gf_isom_get_mp4time();
+			tkhd->creationTime = now;
+			mdia->mediaHeader->creationTime = now;
+		}
 
 	} else {
 		tkhd = trak->Header;
@@ -692,7 +697,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 		}
 	}
 
-	if (!movie->keep_utc) {
+	if (!movie->keep_utc && !movie->drop_date_version_info) {
 		tkhd->modificationTime = now;
 	 	mdia->mediaHeader->modificationTime = now;
 	}
