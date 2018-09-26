@@ -762,25 +762,24 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!tci) tci = tci_any;
 
 	if (!tci) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in file\n") );
-		if (cinfo != ctx->cinfo) gf_crypt_info_del(cinfo);
-		return GF_NOT_SUPPORTED;
-	}
-	scheme_type = tci->scheme_type;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in file, PID will not be crypted\n") );
+	} else {
+		scheme_type = tci->scheme_type;
 
-	switch (scheme_type) {
-	case GF_CRYPT_TYPE_ISMA:
-	case GF_CRYPT_TYPE_OMA:
-	case GF_CRYPT_TYPE_ADOBE:
-	case GF_CRYPT_TYPE_CENC:
-	case GF_CRYPT_TYPE_CBC1:
-	case GF_CRYPT_TYPE_CENS:
-	case GF_CRYPT_TYPE_CBCS:
-		break;
-	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Unsupported scheme type %s\n", gf_4cc_to_str(scheme_type) ));
-		if (cinfo != ctx->cinfo) gf_crypt_info_del(cinfo);
-		return GF_NOT_SUPPORTED;
+		switch (scheme_type) {
+		case GF_CRYPT_TYPE_ISMA:
+		case GF_CRYPT_TYPE_OMA:
+		case GF_CRYPT_TYPE_ADOBE:
+		case GF_CRYPT_TYPE_CENC:
+		case GF_CRYPT_TYPE_CBC1:
+		case GF_CRYPT_TYPE_CENS:
+		case GF_CRYPT_TYPE_CBCS:
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Unsupported scheme type %s\n", gf_4cc_to_str(scheme_type) ));
+			if (cinfo != ctx->cinfo) gf_crypt_info_del(cinfo);
+			return GF_NOT_SUPPORTED;
+		}
 	}
 
 	cstr = gf_filter_pid_get_udta(pid);
@@ -791,6 +790,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		cstr->tci = tci;
 		gf_list_add(ctx->streams, cstr);
 		gf_filter_pid_set_udta(pid, cstr);
+		if (!tci) cstr->passthrough = GF_TRUE;
 	}
 	if (cstr->cinfo) gf_crypt_info_del(cstr->cinfo);
 	cstr->cinfo = (cinfo != ctx->cinfo) ? cinfo : NULL;
@@ -802,25 +802,28 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (prop) cstr->codec_id = prop->value.uint;
 
-	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+	if (cstr->tci) {
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
 
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-	if (prop) {
-		switch (prop->value.uint) {
-		case GF_STREAM_VISUAL:
-		case GF_STREAM_AUDIO:
-		case GF_STREAM_SCENE:
-		case GF_STREAM_FONT:
-		case GF_STREAM_TEXT:
-			gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ORIG_STREAM_TYPE, & PROP_UINT(prop->value.uint) );
-			break;
-		default:
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENCrypt] Stream type %s cannot be encrypted, using passthrough\n", gf_stream_type_name(prop->value.uint) ));
-			cstr->passthrough = GF_TRUE;
-			break;
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+		if (prop) {
+			switch (prop->value.uint) {
+			case GF_STREAM_VISUAL:
+			case GF_STREAM_AUDIO:
+			case GF_STREAM_SCENE:
+			case GF_STREAM_FONT:
+			case GF_STREAM_TEXT:
+				gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ORIG_STREAM_TYPE, & PROP_UINT(prop->value.uint) );
+				break;
+			default:
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENCrypt] Stream type %s cannot be encrypted, using passthrough\n", gf_stream_type_name(prop->value.uint) ));
+				cstr->passthrough = GF_TRUE;
+				break;
+			}
 		}
 	}
+	
 	if (cstr->passthrough) return GF_OK;
 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
@@ -1837,12 +1840,14 @@ static const GF_FilterCapability CENCEncCaps[] =
 
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ISMACRYP_SCHEME),
+/*	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ISMACRYP_SCHEME),
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_OMADRM_SCHEME),
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENC_SCHEME),
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENS_SCHEME),
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBC_SCHEME),
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBCS_SCHEME)
+*/
+
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_CENCEncCtx, _n)
