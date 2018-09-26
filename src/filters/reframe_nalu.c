@@ -1740,6 +1740,15 @@ GF_Err naludmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->first_pck_in_au) {
+				if (ctx->bytes_in_header) {
+					if (!ctx->next_nal_end_skip) {
+						char *pck_data;
+						e = naludmx_realloc_last_pck(ctx, (u32) ctx->bytes_in_header, &pck_data);
+						if (e==GF_OK)
+							memcpy(pck_data, ctx->hdr_store, (size_t) ctx->bytes_in_header);
+					}
+					ctx->bytes_in_header = 0;
+				}
 				naludmx_finalize_au_flags(ctx);
 			}
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
