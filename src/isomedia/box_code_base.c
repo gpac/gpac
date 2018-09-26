@@ -1304,6 +1304,9 @@ GF_Err esds_Write(GF_Box *s, GF_BitStream *bs)
 	char *enc_desc;
 	u32 descSize = 0;
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
+	//make sure we write with no ESID and no OCRESID
+	ptr->desc->ESID = 0;
+	ptr->desc->OCRESID = 0;
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
