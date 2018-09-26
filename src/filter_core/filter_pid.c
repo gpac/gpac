@@ -1907,7 +1907,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 			if (edge->loaded_filter_only && (edge->src_reg->freg != pid->filter->freg) ) {
 				edge->status = EDGE_STATUS_DISABLED;
-				if (!strcmp(pid->filter->freg->name, "dasher") && !strcmp(reg_desc->freg->name, "mxisom"))
+				if (!strcmp(pid->filter->freg->name, "mp4dmx") && !strcmp(reg_desc->freg->name, "cecrypt"))
 					continue;
 				continue;
 			}
@@ -4255,7 +4255,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 }
 
 
-GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx)
+GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix)
 {
 	u32 k;
 	char szFormat[10], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
@@ -4319,6 +4319,9 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "PID")) {
 			prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+		} else if (!strcmp(name, "SUF")) {
+			str_val = file_suffix ? file_suffix : "";
+			is_ok = GF_TRUE;
 		} else if (!strncmp(name, "p4cc=", 5)) {
 			if (strlen(name) != 9) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] wrong length in 4CC template, expecting 4cc=ABCD\n", name));

@@ -1833,18 +1833,20 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	char szSegmentName[GF_MAX_PATH];
 	char szInitSegmentName[GF_MAX_PATH];
 	char szIndexSegmentName[GF_MAX_PATH];
+	char szSetFileSuffix[GF_MAX_PATH];
 	const char *template;
 	u32 as_id = 0;
 	Bool single_template = GF_TRUE;
 	GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
 	GF_DashStream *ds = rep->playback.udta;
-	u32 i, j, count, nb_base;
+	u32 i, j, count, nb_base, nb_streams;
 	GF_List *multi_pids = NULL;
 	u32 set_timescale = 0;
 	Bool init_template_done=GF_FALSE;
 	Bool use_inband = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE;
 	Bool template_use_source = GF_FALSE;
 	Bool split_rep_names = GF_FALSE;
+	Bool split_set_names = GF_FALSE;
 
 	count = gf_list_count(set->representations);
 
@@ -1887,6 +1889,30 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (strstr(template, "$Bandwidth$") != NULL) single_template = GF_FALSE;
 			else if (strstr(template, "$RepresentationId$") != NULL) single_template = GF_FALSE;
 		}
+	}
+
+	//check all streams in active period not in this set
+	nb_streams = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<nb_streams; i++) {
+		char *frag_uri;
+		u32 len1, len2;
+		GF_DashStream *ads = gf_list_get(ctx->current_period->streams, i);
+		if (ads->set == set) continue;
+		frag_uri = strrchr(ds->src_url, '#');
+		if (frag_uri) len1 = frag_uri-1 - ds->src_url;
+		else len1 = strlen(ds->src_url);
+		frag_uri = strrchr(ads->src_url, '#');
+		if (frag_uri) len2 = frag_uri-1 - ads->src_url;
+		else len2 = strlen(ads->src_url);
+
+		if ((len1==len2) && !strncmp(ds->src_url, ads->src_url, len1)) {
+			split_set_names = GF_TRUE;
+			break;
+		}
+	}
+
+	if (split_set_names) {
+		sprintf(szSetFileSuffix, "_track%d", ds->id);
 	}
 
 	if (ctx->timescale>0) set_timescale = ctx->timescale;
@@ -2042,7 +2068,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		//resolve segment template
-		e = gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0);
+		e = gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0, split_set_names ? szSetFileSuffix : NULL);
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot resolve template name, cannot derive output segment names, disabling rep %s\n", ds->src_url));
 			gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
@@ -4622,7 +4648,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 
 	//check we have a segment template
 	if (!ctx->template) {
-		ctx->template = gf_strdup( ctx->sfile ? "$File$_dash" : (ctx->stl ? "$File$_$Time$" : "$File$_$Number$") );
+		ctx->template = gf_strdup( ctx->sfile ? "$File$_dash" : (ctx->stl ? "$File$_dash$SUF$_$Time$" : "$File$_dash$SUF$_$Number$") );
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] No template assigned, using %s\n", ctx->template));
 	}
 	return GF_OK;
@@ -4787,6 +4813,7 @@ GF_FilterRegister DasherRegister = {
 	        "\t$Index=NAME$ is replaced by NAME for index segments, ignored otherwise\n"\
 	        "\t$Path=PATH$ is replaced by PATH when creating segments, ignored otherwise\n"\
 	        "\t$Segment=NAME$ is replaced by NAME for media segments, ignored for init segments\n"\
+	        "\t$SUF$ is replaced by \"_trackN\" in case the source is an AV multiplex, or kept empty otherwise\n"\
 			"\n"\
 
 			"To assign PIDs into periods and adaptation sets and configure the session, the dasher looks for the following properties on each input pid:\n"\

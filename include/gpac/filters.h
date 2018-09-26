@@ -2197,9 +2197,10 @@ Supported KEYWORD (case insensitive):
 \param szTemplate source template to solve
 \param szFinalName buffer for final name
 \param file_number number of file to use
+\param file_suffix if not null, will be appended after the value of the §File$ keyword if present
 \return error if any
 */
-GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_number);
+GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_number, const char *file_suffix);
 
 
 /*! sets discard mode on or off on an input pid. When discard is on, all input packets for this PID are no longer dispatched.
