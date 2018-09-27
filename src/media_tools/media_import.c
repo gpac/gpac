@@ -3409,6 +3409,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
 		gf_fseek(info, 0, SEEK_SET);
 		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
+		specInfo[specInfoSize] = 0;
 		gf_fclose(info);
 	} else if (header_end) {
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
