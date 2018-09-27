@@ -2568,7 +2568,7 @@ static u32 av1_decode_subexp(GF_BitStream *bs, s32 numSyms)
 
 static GFINLINE s32 inverse_recenter(s32 r, u32 v)
 {
-	if ( v > 2 * r )
+	if ( (s64)v > (s64)(2 * r) )
 		return v;
 	else if ( v & 1 )
 		return r - ((v + 1) >> 1);
@@ -2682,7 +2682,7 @@ static s32 find_latest_forward(u32 curFrameHint, u8 *shiftedOrderHints, u8 *used
 	s32 latestOrderHint = 0;
 	for (i=0; i<AV1_NUM_REF_FRAMES; i++) {
 		s32 hint = shiftedOrderHints[ i ];
-		if ( !usedFrame[ i ] && (hint < curFrameHint) && ( ref < 0 || hint >= latestOrderHint ) ) {
+		if ( !usedFrame[ i ] && ((u32)hint < curFrameHint) && ( ref < 0 || hint >= latestOrderHint ) ) {
 			ref=i;
 			latestOrderHint = hint;
 		}
@@ -2732,7 +2732,7 @@ static void av1_set_frame_refs(AV1State *state, u8 last_frame_idx, u8 gold_frame
 	s32 latestOrderHint = 0;
 	for (i=0; i < AV1_NUM_REF_FRAMES; i++) {
 		s32 hint = shiftedOrderHints[ i ];
-		if ( !usedFrame[ i ] && (hint >= curFrameHint) && ( ref < 0 || hint >= latestOrderHint ) ) {
+		if ( !usedFrame[ i ] && ((u32)hint >= curFrameHint) && ( ref < 0 || hint >= latestOrderHint ) ) {
 			ref = i;
 			latestOrderHint = hint;
 		}
@@ -2746,7 +2746,7 @@ static void av1_set_frame_refs(AV1State *state, u8 last_frame_idx, u8 gold_frame
 	s32 earliestOrderHint = 0;
 	for (i=0; i < AV1_NUM_REF_FRAMES; i++) {
 		s32 hint = shiftedOrderHints[ i ];
-		if ( !usedFrame[ i ] && (hint >= curFrameHint) && ( ref < 0 || hint < earliestOrderHint ) ) {
+		if ( !usedFrame[ i ] && ((u32)hint >= curFrameHint) && ( ref < 0 || hint < earliestOrderHint ) ) {
 			ref = i;
 			earliestOrderHint = hint;
 		}
@@ -2761,7 +2761,7 @@ static void av1_set_frame_refs(AV1State *state, u8 last_frame_idx, u8 gold_frame
 	earliestOrderHint = 0;
 	for (i=0; i < AV1_NUM_REF_FRAMES; i++) {
 		s32 hint = shiftedOrderHints[ i ];
-		if ( !usedFrame[ i ] && (hint >= curFrameHint) && ( ref < 0 || hint < earliestOrderHint ) ) {
+		if ( !usedFrame[ i ] && ((u32)hint >= curFrameHint) && ( ref < 0 || hint < earliestOrderHint ) ) {
 			ref = i;
 			earliestOrderHint = hint;
 		}
@@ -3071,12 +3071,12 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	u8 segmentation_enabled = gf_bs_read_int(bs, 1);
 	if (segmentation_enabled) {
 		u8 segmentation_update_map = 1;
-		u8 segmentation_temporal_update = 0;
+		/*u8 segmentation_temporal_update = 0;*/
 		u8 segmentation_update_data = 1;
 		if ( primary_ref_frame != AV1_PRIMARY_REF_NONE ) {
 			segmentation_update_map = gf_bs_read_int(bs, 1);
 			if ( segmentation_update_map == 1 )
-				segmentation_temporal_update = gf_bs_read_int(bs, 1);
+				/*segmentation_temporal_update = */gf_bs_read_int(bs, 1);
 			segmentation_update_data = gf_bs_read_int(bs, 1);
 		}
 		if ( segmentation_update_data == 1 ) {
@@ -3104,26 +3104,26 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	}
 
 	//delta_q_params():
-	u8 delta_q_res = 0;
+	/*u8 delta_q_res = 0;*/
 	u8 delta_q_present = 0;
 	if ( base_q_idx > 0 ) {
 		delta_q_present = gf_bs_read_int(bs, 1);
 	}
 	if ( delta_q_present ) {
-		delta_q_res = gf_bs_read_int(bs, 2);
+		/*delta_q_res = */gf_bs_read_int(bs, 2);
 	}
 
 	//delta_lf_params():
 	u8 delta_lf_present = 0;
-	u8 delta_lf_res = 0;
-	u8 delta_lf_multi = 0;
+	/*u8 delta_lf_res = 0;
+	u8 delta_lf_multi = 0;*/
 	if ( delta_q_present ) {
 		if ( !allow_intrabc) {
 			delta_lf_present = gf_bs_read_int(bs, 1);
 		}
 		if ( delta_lf_present ) {
-			delta_lf_res = gf_bs_read_int(bs, 2);
-			delta_lf_multi = gf_bs_read_int(bs, 1);
+			/*delta_lf_res = */gf_bs_read_int(bs, 2);
+			/*delta_lf_multi = */gf_bs_read_int(bs, 1);
 		}
 	}
 
@@ -3290,8 +3290,10 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	/*reduced_tx = */gf_bs_read_int(bs, 1);
 
 	//global_motion_params( )
-	for (u32 ref=AV1_LAST_FRAME; ref <= AV1_ALTREF_FRAME; ref++ ) {
-		for (u32 i=0; i<6; i++) {
+	u32 ref;
+	for (ref=AV1_LAST_FRAME; ref <= AV1_ALTREF_FRAME; ref++ ) {
+		u32 i;
+		for (i=0; i<6; i++) {
 			state->GmParams.coefs[ref][i] = ( ( i % 3 == 2 ) ? 1 << WARPEDMODEL_PREC_BITS : 0 );
 		}
 	}

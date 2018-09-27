@@ -776,7 +776,7 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	//duplicate our desc
@@ -3037,6 +3037,9 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		trak->sample_encryption = NULL;
 	}
 
+	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_TRUE);
+
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	gf_isom_box_size( (GF_Box *) trak);
@@ -3056,7 +3059,11 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	stbl_temp->sampleGroupsDescription = NULL;
 	stbl_temp->CompositionToDecode = NULL;
 	gf_isom_box_del((GF_Box *)stbl_temp);
+
+	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_FALSE);
+
 	if (e) return e;
+
 
 	/*create default boxes*/
 	stbl = new_tk->Media->information->sampleTable;
@@ -3104,7 +3111,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		entry = (GF_SampleEntryBox*)gf_list_get(new_tk->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 		if (entry) {
 			u32 dref;
-			Media_CreateDataRef(new_tk->Media->information->dataInformation->dref, NULL, NULL, &dref);
+			Media_CreateDataRef(dest_file, new_tk->Media->information->dataInformation->dref, NULL, NULL, &dref);
 			entry->dataReferenceIndex = dref;
 		}
 	} else {
@@ -3113,7 +3120,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 			GF_DataEntryBox *dref_entry = (GF_DataEntryBox *)gf_list_get(new_tk->Media->information->dataInformation->dref->other_boxes, i);
 			if (dref_entry->flags & 1) {
 				dref_entry->flags &= ~1;
-				dref_entry->location = gf_strdup(orig_file->fileName);
+				e = Media_SetDrefURL((GF_DataEntryURLBox *)dref_entry, orig_file->fileName, dest_file->finalName);
+				if (e) return e;
 			}
 		}
 	}
@@ -3174,6 +3182,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, orig_desc_index-1);
 	if (!entry) return GF_BAD_PARAM;
 
+	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_TRUE);
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	gf_isom_box_size(entry);
@@ -3184,6 +3193,8 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	e = gf_isom_box_parse(&entry, bs);
 	gf_bs_del(bs);
 	gf_free(data);
+	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_FALSE);
+	
 	if (e) return e;
 
 	/*get new track and insert clone*/
@@ -3194,7 +3205,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 	if (e) goto exit;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) goto exit;
 	}
 	if (!the_file->keep_utc)
@@ -3233,7 +3244,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 	if (e) return e;
 	if (!dataRefIndex) {
-		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		e = Media_CreateDataRef(movie, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 		if (e) return e;
 	}
 	if (!movie->keep_utc)
