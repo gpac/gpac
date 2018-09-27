@@ -189,7 +189,7 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 	if (LastCompatibleVersion > 0) hdesc->LastCompatibleVersion = LastCompatibleVersion;
 
 	//create a data reference - WE ONLY DEAL WITH SELF-CONTAINED HINT TRACKS
-	e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, NULL, NULL, &drefIndex);
+	e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, NULL, NULL, &drefIndex);
 	if (e) return e;
 	hdesc->dataReferenceIndex = drefIndex;
 
