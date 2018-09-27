@@ -968,7 +968,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		e = Media_FindDataRef(meta->file_locations->dref, (char *) URL, (char *) URN, &dataRefIndex);
 		if (e) return e;
 		if (!dataRefIndex) {
-			e = Media_CreateDataRef(meta->file_locations->dref, (char *) URL, (char *) URN, &dataRefIndex);
+			e = Media_CreateDataRef(file, meta->file_locations->dref, (char *) URL, (char *) URN, &dataRefIndex);
 			if (e) return e;
 		}
 		location_entry->data_reference_index = dataRefIndex;

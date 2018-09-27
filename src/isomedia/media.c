@@ -747,8 +747,35 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, const char *finalName)
+{
+	//for now we only support dref created in same folder for relative URLs
+	if (strstr(origName, "://") || ((origName[1]==':') && (origName[2]=='\\'))
+		|| (origName[0]=='/') || (origName[0]=='\\')
+	) {
+		dref_entry->location = gf_strdup(origName);
+	} else {
+		char *fname = strrchr(origName, '/');
+		if (!fname) fname = strrchr(origName, '\\');
+		if (fname) fname++;
 
-GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex)
+		if (!fname) {
+			dref_entry->location = gf_strdup(origName);
+		} else {
+			u32 len = fname - origName;
+			if (strncmp(origName, finalName, len)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Concatenation of relative path %s with relative path %s not supported, use absolute URLs\n", origName, finalName));
+				return GF_NOT_SUPPORTED;
+			} else {
+				dref_entry->location = gf_strdup(fname);
+			}
+		}
+	}
+	return GF_OK;
+}
+
+
+GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex)
 {
 	GF_Err e;
 	GF_DataEntryURLBox *entry;
@@ -769,12 +796,12 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 		//THIS IS URL
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_URL);
 		entry->flags = 0;
-		entry->location = (char*)gf_malloc(strlen(URLname)+1);
+
+		e = Media_SetDrefURL(entry, URLname, movie->fileName);
 		if (! entry->location) {
 			gf_isom_box_del((GF_Box *)entry);
-			return GF_OUT_OF_MEM;
+			return e ? e : GF_OUT_OF_MEM;
 		}
-		strcpy(entry->location, URLname);
 		e = dref_AddDataEntry(dref, (GF_Box *)entry);
 		if (e) return e;
 		*dataRefIndex = gf_list_count(dref->other_boxes);
