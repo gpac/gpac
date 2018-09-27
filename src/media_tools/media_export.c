@@ -2167,6 +2167,17 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 #include <gpac/base_coding.h>
 
+
+static void nhml_write_spec_info(FILE *nhml, const char *url)
+{
+	char *fname = strrchr(url, '/');
+	if (!fname) fname = strrchr(url, '\\');
+	if (fname) fname++;
+	else fname = url;
+
+	fprintf(nhml, "specificInfoFile=\"%s\" ", fname);
+}
+
 GF_EXPORT
 GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 {
@@ -2239,7 +2250,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			inf = gf_fopen(szName, "wb");
 			if (inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
 			gf_fclose(inf);
-			fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+			nhml_write_spec_info(nhml, szName);
 		}
 		gf_odf_desc_del((GF_Descriptor *) esd);
 
@@ -2273,7 +2284,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 				inf = gf_fopen(szName, "wb");
 				if (inf) gf_fwrite(sdesc->extension_buf, sdesc->extension_buf_size, 1, inf);
 				gf_fclose(inf);
-				fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+				nhml_write_spec_info(nhml, szName);
 				gf_free(sdesc->extension_buf);
 			}
 			gf_free(sdesc);
@@ -2289,7 +2300,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 						inf = gf_fopen(szName, "wb");
 						if (inf) gf_fwrite(config, strlen(config), 1, inf);
 						gf_fclose(inf);
-						fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+						nhml_write_spec_info(nhml, szName);
 					}
 					if (encoding)
 						fprintf(nhml, "encoding=\"%s\" ", encoding);
