@@ -31,7 +31,7 @@
 typedef struct
 {
 	//opts
-	Bool rcfg, skip_delim;
+	Bool rcfg, delim;
 	u32 extract;
 
 	//only one input pid declared
@@ -291,7 +291,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	}
 	gf_bs_seek(ctx->bs_r, 0);
 
-	if (ctx->skip_delim)
+	if (!ctx->delim)
 		has_nal_delim = GF_TRUE;
 
 	//we need to insert NALU delim
@@ -397,7 +397,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 {
 	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(extract), "Extracts full, base or layer only", GF_PROP_UINT, "all", "all|base|layer", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(skip_delim), "Skip AU NAL Delimiter insertion", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(delim), "Inserts AU NAL Delimiter", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

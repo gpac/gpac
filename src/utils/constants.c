@@ -36,104 +36,107 @@ typedef struct
 	u32 stream_type;
 	 //log name
 	const char *name;
-	//short name for identifying codec
+	//short name(s) for identifying codec - first value is used as default file ext
 	const char *sname;
+	//default name for isobmff/RFC6381
 	const char *rfc_4cc;
+	//mime type of raw format
+	const char *mime_type;
 } CodecIDReg;
 
 CodecIDReg CodecRegistry [] = {
-	{GF_CODECID_BIFS, GF_CODECID_BIFS, GF_STREAM_SCENE, "MPEG-4 BIFS v1 Scene Description", "bifs", "mp4s"},
-	{GF_CODECID_BIFS_V2, GF_CODECID_BIFS_V2, GF_STREAM_SCENE, "MPEG-4 BIFS v2 Scene Description", "bifs2", "mp4s" },
-	{GF_CODECID_BIFS_EXTENDED, GF_CODECID_BIFS_EXTENDED, GF_STREAM_SCENE, "MPEG-4 BIFS Extended Scene Description", "bifsX", "mp4s"},
-	{GF_CODECID_OD_V1, GF_CODECID_OD_V1, GF_STREAM_OD, "MPEG-4 ObjectDescriptor v1", "od", "mp4s"},
-	{GF_CODECID_OD_V2, GF_CODECID_OD_V2, GF_STREAM_OD, "MPEG-4 ObjectDescriptor v2", "od2", "mp4s"},
-	{GF_CODECID_INTERACT, GF_CODECID_INTERACT, GF_STREAM_INTERACT, "MPEG-4 Interaction Stream", "interact", "mp4s"},
-	{GF_CODECID_AFX, GF_CODECID_AFX, GF_STREAM_SCENE, "MPEG-4 AFX Stream", "afx", "mp4s"},
-	{GF_CODECID_FONT, GF_CODECID_FONT, GF_STREAM_FONT, "MPEG-4 Font Stream", "font", "mp4s"},
-	{GF_CODECID_SYNTHESIZED_TEXTURE, GF_CODECID_SYNTHESIZED_TEXTURE, GF_STREAM_VISUAL, "MPEG-4 Synthetized Texture", "syntex", "mp4s"},
-	{GF_CODECID_TEXT_MPEG4, GF_CODECID_TEXT_MPEG4, GF_STREAM_TEXT, "MPEG-4 Streaming Text", "m4txt", "text"},
-	{GF_CODECID_LASER, GF_CODECID_LASER, GF_STREAM_SCENE, "MPEG-4 LASeR", "laser", "lsr1"},
-	{GF_CODECID_SAF, GF_CODECID_SAF, GF_STREAM_SCENE, "MPEG-4 Simple Aggregation Format", "saf", "mp4s"},
-	{GF_CODECID_MPEG4_PART2, GF_CODECID_MPEG4_PART2, GF_STREAM_VISUAL, "MPEG-4 Visual part 2", "m4vp2", "mp4v"},
-	{GF_CODECID_AVC, GF_CODECID_AVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video", "avc|h264", "avc1"},
-	{GF_CODECID_AVC_PS, GF_CODECID_AVC_PS, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video Parameter Sets", "avcps", "avcp"},
-	{GF_CODECID_SVC, GF_CODECID_SVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Scalable Video Coding", "svc1"},
-	{GF_CODECID_MVC, GF_CODECID_MVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Multiview Video Coding", "mvc1"},
-	{GF_CODECID_HEVC, GF_CODECID_HEVC, GF_STREAM_VISUAL, "HEVC Video", "hevc|h265", "hvc1"},
-	{GF_CODECID_LHVC, GF_CODECID_LHVC, GF_STREAM_VISUAL, "HEVC Video Layered Extensions", "lhvc|shvc|mhvc", "lhc1"},
-	{GF_CODECID_MPEG2_SIMPLE, GF_CODECID_MPEG2_SIMPLE, GF_STREAM_VISUAL, "MPEG-2 Visual Simple", "m2vs", "mp2v"},
-	{GF_CODECID_MPEG2_MAIN, GF_CODECID_MPEG2_MAIN, GF_STREAM_VISUAL, "MPEG-2 Visual Main", "m2v", "mp2v"},
-	{GF_CODECID_MPEG2_SNR, GF_CODECID_MPEG2_SNR, GF_STREAM_VISUAL, "MPEG-2 Visual SNR", "m2vsnr", "mp2v"},
-	{GF_CODECID_MPEG2_SPATIAL, GF_CODECID_MPEG2_SPATIAL, GF_STREAM_VISUAL, "MPEG-2 Visual Spatial", "m2vspat", "mp2v"},
-	{GF_CODECID_MPEG2_HIGH, GF_CODECID_MPEG2_HIGH, GF_STREAM_VISUAL, "MPEG-2 Visual High", "m2vh", "mp2v"},
-	{GF_CODECID_MPEG2_422, GF_CODECID_MPEG2_422, GF_STREAM_VISUAL, "MPEG-2 Visual 422", "m2v4", "mp2v"},
-	{GF_CODECID_MPEG1, GF_CODECID_MPEG1, GF_STREAM_VISUAL, "MPEG-1 Video", "m1v", "mp1v"},
-	{GF_CODECID_JPEG, GF_CODECID_JPEG, GF_STREAM_VISUAL, "JPEG Image", "jpg|jpeg", "jpeg"},
-	{GF_CODECID_PNG, GF_CODECID_PNG, GF_STREAM_VISUAL, "PNG Image", "png", "png "},
-	{GF_CODECID_J2K, GF_CODECID_J2K, GF_STREAM_VISUAL, "JPEG200 Image", "j2k", "mjp2"},
-	{GF_CODECID_AAC_MPEG4, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "MPEG-4 AAC Audio", "aac", "mp4a"},
-	{GF_CODECID_AAC_MPEG2_MP, GF_CODECID_AAC_MPEG2_MP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Main", "aac2m", "mp4a"},
-	{GF_CODECID_AAC_MPEG2_LCP, GF_CODECID_AAC_MPEG2_LCP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Low Complexity", "aac2l", "mp4a"},
-	{GF_CODECID_AAC_MPEG2_SSRP, GF_CODECID_AAC_MPEG2_SSRP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Scalable Sampling Rate", "aac2s", "mp4a"},
-	{GF_CODECID_MPEG2_PART3, GF_CODECID_MPEG2_PART3, GF_STREAM_AUDIO, "MPEG-2 Audio", "m2a", ".mp3"},
-	{GF_CODECID_MPEG_AUDIO, GF_CODECID_MPEG_AUDIO, GF_STREAM_AUDIO, "MPEG-1 Audio", "m1a", ".mp3"},
-	{GF_CODECID_S263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "s263"},
-	{GF_CODECID_H263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "h263"},
-	{GF_CODECID_HEVC_TILES, 0, GF_STREAM_VISUAL, "HEVC tiles Video", "hvt1", "hvt1"},
+	{GF_CODECID_BIFS, GF_CODECID_BIFS, GF_STREAM_SCENE, "MPEG-4 BIFS v1 Scene Description", "bifs", "mp4s", "application/bifs"},
+	{GF_CODECID_BIFS_V2, GF_CODECID_BIFS_V2, GF_STREAM_SCENE, "MPEG-4 BIFS v2 Scene Description", "bifs2", "mp4s", "application/bifs"},
+	{GF_CODECID_BIFS_EXTENDED, GF_CODECID_BIFS_EXTENDED, GF_STREAM_SCENE, "MPEG-4 BIFS Extended Scene Description", "bifsX", "mp4s", "application/bifs"},
+	{GF_CODECID_OD_V1, GF_CODECID_OD_V1, GF_STREAM_OD, "MPEG-4 ObjectDescriptor v1", "od", "mp4s", "application/od"},
+	{GF_CODECID_OD_V2, GF_CODECID_OD_V2, GF_STREAM_OD, "MPEG-4 ObjectDescriptor v2", "od2", "mp4s", "application/od"},
+	{GF_CODECID_INTERACT, GF_CODECID_INTERACT, GF_STREAM_INTERACT, "MPEG-4 Interaction Stream", "interact", "mp4s", "application/x-mpeg4-interact"},
+	{GF_CODECID_AFX, GF_CODECID_AFX, GF_STREAM_SCENE, "MPEG-4 AFX Stream", "afx", "mp4s", "application/x-mpeg4-afx"},
+	{GF_CODECID_FONT, GF_CODECID_FONT, GF_STREAM_FONT, "MPEG-4 Font Stream", "font", "mp4s", "application/x-mpeg4-font"},
+	{GF_CODECID_SYNTHESIZED_TEXTURE, GF_CODECID_SYNTHESIZED_TEXTURE, GF_STREAM_VISUAL, "MPEG-4 Synthetized Texture", "syntex", "mp4s", "application/x-mpeg4-synth"},
+	{GF_CODECID_TEXT_MPEG4, GF_CODECID_TEXT_MPEG4, GF_STREAM_TEXT, "MPEG-4 Streaming Text", "m4txt", "text", "application/x-mpeg4-text"},
+	{GF_CODECID_LASER, GF_CODECID_LASER, GF_STREAM_SCENE, "MPEG-4 LASeR", "laser", "lsr1", "application/x-laser"},
+	{GF_CODECID_SAF, GF_CODECID_SAF, GF_STREAM_SCENE, "MPEG-4 Simple Aggregation Format", "saf", "mp4s", "application/saf"},
+	{GF_CODECID_MPEG4_PART2, GF_CODECID_MPEG4_PART2, GF_STREAM_VISUAL, "MPEG-4 Visual part 2", "m4vp2", "mp4v", "video/mp4v-es"},
+	{GF_CODECID_AVC, GF_CODECID_AVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video", "264|avc|h264", "avc1", "video/avc"},
+	{GF_CODECID_AVC_PS, GF_CODECID_AVC_PS, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video Parameter Sets", "avcps", "avcp", "video/avc"},
+	{GF_CODECID_SVC, GF_CODECID_SVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Scalable Video Coding", "svc1", "video/svc"},
+	{GF_CODECID_MVC, GF_CODECID_MVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Multiview Video Coding", "mvc1", "video/mvc"},
+	{GF_CODECID_HEVC, GF_CODECID_HEVC, GF_STREAM_VISUAL, "HEVC Video", "hvc|hevc|h265", "hvc1", "video/hevc"},
+	{GF_CODECID_LHVC, GF_CODECID_LHVC, GF_STREAM_VISUAL, "HEVC Video Layered Extensions", "lhvc|shvc|mhvc", "lhc1", "video/lhvc"},
+	{GF_CODECID_MPEG2_SIMPLE, GF_CODECID_MPEG2_SIMPLE, GF_STREAM_VISUAL, "MPEG-2 Visual Simple", "m2vs", "mp2v", "video/mp2v-es"},
+	{GF_CODECID_MPEG2_MAIN, GF_CODECID_MPEG2_MAIN, GF_STREAM_VISUAL, "MPEG-2 Visual Main", "m2v", "mp2v", "video/mp2v-es"},
+	{GF_CODECID_MPEG2_SNR, GF_CODECID_MPEG2_SNR, GF_STREAM_VISUAL, "MPEG-2 Visual SNR", "m2v|m2vsnr", "mp2v", "video/mp2v-es"},
+	{GF_CODECID_MPEG2_SPATIAL, GF_CODECID_MPEG2_SPATIAL, GF_STREAM_VISUAL, "MPEG-2 Visual Spatial", "m2v|m2vspat", "mp2v", "video/mp2v-es"},
+	{GF_CODECID_MPEG2_HIGH, GF_CODECID_MPEG2_HIGH, GF_STREAM_VISUAL, "MPEG-2 Visual High", "m2v|m2vh", "mp2v", "video/mp2v-es"},
+	{GF_CODECID_MPEG2_422, GF_CODECID_MPEG2_422, GF_STREAM_VISUAL, "MPEG-2 Visual 422", "m2v|m2v4", "mp2v", "video/mp2v-es"},
+	{GF_CODECID_MPEG1, GF_CODECID_MPEG1, GF_STREAM_VISUAL, "MPEG-1 Video", "m1v", "mp1v", "video/mp1v-es"},
+	{GF_CODECID_JPEG, GF_CODECID_JPEG, GF_STREAM_VISUAL, "JPEG Image", "jpg|jpeg", "jpeg", "image/jpeg"},
+	{GF_CODECID_PNG, GF_CODECID_PNG, GF_STREAM_VISUAL, "PNG Image", "png", "png ", "image/png"},
+	{GF_CODECID_J2K, GF_CODECID_J2K, GF_STREAM_VISUAL, "JPEG200 Image", "j2k", "mjp2", "image/jp2"},
+	{GF_CODECID_AAC_MPEG4, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "MPEG-4 AAC Audio", "aac", "mp4a", "audio/aac"},
+	{GF_CODECID_AAC_MPEG2_MP, GF_CODECID_AAC_MPEG2_MP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Main", "aac|aac2m", "mp4a", "audio/aac"},
+	{GF_CODECID_AAC_MPEG2_LCP, GF_CODECID_AAC_MPEG2_LCP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Low Complexity", "aac|aac2l", "mp4a", "audio/aac"},
+	{GF_CODECID_AAC_MPEG2_SSRP, GF_CODECID_AAC_MPEG2_SSRP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Scalable Sampling Rate", "aac|aac2s", "mp4a", "audio/aac"},
+	{GF_CODECID_MPEG2_PART3, GF_CODECID_MPEG2_PART3, GF_STREAM_AUDIO, "MPEG-2 Audio", "mp3|m2a", ".mp3", "audio/mp3"},
+	{GF_CODECID_MPEG_AUDIO, GF_CODECID_MPEG_AUDIO, GF_STREAM_AUDIO, "MPEG-1 Audio", "mp3|m1a", ".mp3", "audio/mp3"},
+	{GF_CODECID_S263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "s263", "video/h263"},
+	{GF_CODECID_H263, 0, GF_STREAM_VISUAL, "H263 Video", "h263", "h263", "video/h263"},
+	{GF_CODECID_HEVC_TILES, 0, GF_STREAM_VISUAL, "HEVC tiles Video", "hvt1", "hvt1", "video/x-hevc-tiles"},
 
-	{GF_CODECID_EVRC, 0xA0, GF_STREAM_AUDIO, "EVRC Voice", "evrc", "sevc"},
-	{GF_CODECID_SMV, 0xA1, GF_STREAM_AUDIO, "SMV Voice", "smv", "ssmv"},
-	{GF_CODECID_QCELP, 0xE1, GF_STREAM_AUDIO, "QCELP Voice", "qcelp", "sqcp"},
-	{GF_CODECID_AMR, 0, GF_STREAM_AUDIO, "AMR Audio", "amr", "samr"},
-	{GF_CODECID_AMR_WB, 0, GF_STREAM_AUDIO, "AMR WideBand Audio", "amrwb", "sawb"},
-	{GF_CODECID_EVRC_PV, 0, GF_STREAM_AUDIO, "EVRC (PacketVideo MUX) Audio", "evrcpv", "sevc"},
-	{GF_CODECID_SMPTE_VC1, 0xA3, GF_STREAM_VISUAL, "SMPTE VC-1 Video", "vc1", "svc1"},
-	{GF_CODECID_DIRAC, 0xA4, GF_STREAM_VISUAL, "Dirac Video", "dirac", NULL},
-	{GF_CODECID_AC3, 0xA5, GF_STREAM_AUDIO, "AC3 Audio", "ac3", "ac-3"},
-	{GF_CODECID_EAC3, 0xA6, GF_STREAM_AUDIO, "Enhanced AC3 Audio", "eac3", "ec-3"},
-	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL},
-	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL},
-	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics Audio", "dstca", NULL},
-	{GF_CODECID_DTS_HD_HR, 0xAA, GF_STREAM_AUDIO, "DTS-HD High Resolution Audio", "dtsh", NULL},
-	{GF_CODECID_DTS_HD_MASTER, 0xAB, GF_STREAM_AUDIO, "DTS-HD Master Audio", "dstm", NULL},
-	{GF_CODECID_DTS_LBR, 0xAC, GF_STREAM_AUDIO, "DTS Express low bit rate Audio", "dtsl", NULL},
-	{GF_CODECID_OPUS, 0xAD, GF_STREAM_AUDIO, "Opus Audio", "opus", NULL},
-	{GF_CODECID_DVB_EIT, 0, GF_STREAM_PRIVATE_SCENE, "DVB Event Information", "eti", NULL},
-	{GF_CODECID_SVG, 0, GF_STREAM_PRIVATE_SCENE, "SVG over RTP", "svgr", NULL},
-	{GF_CODECID_SVG_GZ, 0, GF_STREAM_PRIVATE_SCENE, "SVG+gz over RTP", "svgzr", NULL},
-	{GF_CODECID_DIMS, 0, GF_STREAM_PRIVATE_SCENE, "3GPP DIMS Scene", "dims", NULL},
-	{GF_CODECID_WEBVTT, 0, GF_STREAM_TEXT, "WebVTT Text", "vtt", "wvtt"},
-	{GF_CODECID_SIMPLE_TEXT, 0, GF_STREAM_TEXT, "Simple Text Stream", "txt", "stxt"},
-	{GF_CODECID_META_TEXT, 0, GF_STREAM_METADATA, "Metadata Text Stream", "mtxt", "mett"},
-	{GF_CODECID_META_XML, 0, GF_STREAM_METADATA, "Metadata XML Stream", "mxml", "metx"},
-	{GF_CODECID_SUBS_TEXT, 0, GF_STREAM_TEXT, "Subtitle text Stream", "subs", "sbtt"},
-	{GF_CODECID_SUBS_XML, 0, GF_STREAM_TEXT, "Subtitle XML Stream", "subx", "stpp"},
-	{GF_CODECID_TX3G, 0, GF_STREAM_TEXT, "Subtitle/text 3GPP/Apple Stream", "tx3g", "tx3g"},
-	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theora", NULL},
-	{GF_CODECID_VORBIS, 0, GF_STREAM_AUDIO, "Vorbis Audio", "vorbis", NULL},
-	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", NULL},
-	{GF_CODECID_SPEEX, 0, GF_STREAM_AUDIO, "Speex Audio", "speex", NULL},
-	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_TEXT, "VobSub Subtitle", "vobsub", NULL},
-	{GF_CODECID_PCM, 0, GF_STREAM_AUDIO, "PCM", "pcm", NULL},
-	{GF_CODECID_ADPCM, 0, GF_STREAM_AUDIO, "AD-PCM", "adpcm", NULL},
-	{GF_CODECID_IBM_CVSD, 0, GF_STREAM_AUDIO, "IBM CSVD", "csvd", NULL},
-	{GF_CODECID_ALAW, 0, GF_STREAM_AUDIO, "ALAW", "alaw", NULL},
-	{GF_CODECID_MULAW, 0, GF_STREAM_AUDIO, "MULAW", "mulaw", NULL},
-	{GF_CODECID_OKI_ADPCM, 0, GF_STREAM_AUDIO, "OKI ADPCM", "okiadpcm", NULL},
-	{GF_CODECID_DVI_ADPCM, 0, GF_STREAM_AUDIO, "DVI ADPCM", "dviadpcm", NULL},
-	{GF_CODECID_DIGISTD, 0, GF_STREAM_AUDIO, "DIGISTD", "digistd", NULL},
-	{GF_CODECID_YAMAHA_ADPCM, 0, GF_STREAM_AUDIO, "YAMAHA ADPCM", "yamadpcm", NULL},
-	{GF_CODECID_DSP_TRUESPEECH, 0, GF_STREAM_AUDIO, "DSP TrueSpeech", "truespeech", NULL},
-	{GF_CODECID_GSM610, 0, GF_STREAM_AUDIO, "GSM 610", "g610", NULL},
-	{GF_CODECID_IBM_MULAW, 0, GF_STREAM_AUDIO, "IBM MULAW", "imulaw", NULL},
-	{GF_CODECID_IBM_ALAW, 0, GF_STREAM_AUDIO, "IBM ALAW", "ialaw", NULL},
-	{GF_CODECID_IBM_ADPCM, 0, GF_STREAM_AUDIO, "IBM ADPCL", "iadpcl", NULL},
-	{GF_CODECID_FLASH, 0, GF_STREAM_SCENE, "Adobe Flash", "swf", NULL},
-	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL},
+	{GF_CODECID_EVRC, 0xA0, GF_STREAM_AUDIO, "EVRC Voice", "evc|evrc", "sevc", "audio/evrc"},
+	{GF_CODECID_SMV, 0xA1, GF_STREAM_AUDIO, "SMV Voice", "smv", "ssmv", "audio/smv"},
+	{GF_CODECID_QCELP, 0xE1, GF_STREAM_AUDIO, "QCELP Voice", "qcp|qcelp", "sqcp", "audio/qcelp"},
+	{GF_CODECID_AMR, 0, GF_STREAM_AUDIO, "AMR Audio", "amr", "samr", "audio/amr"},
+	{GF_CODECID_AMR_WB, 0, GF_STREAM_AUDIO, "AMR WideBand Audio", "amr|amrwb", "sawb", "audio/amr"},
+	{GF_CODECID_EVRC_PV, 0, GF_STREAM_AUDIO, "EVRC (PacketVideo MUX) Audio", "qcp|evrcpv", "sevc", "audio/evrc"},
+	{GF_CODECID_SMPTE_VC1, 0xA3, GF_STREAM_VISUAL, "SMPTE VC-1 Video", "vc1", "svc1", "video/vc1"},
+	{GF_CODECID_DIRAC, 0xA4, GF_STREAM_VISUAL, "Dirac Video", "dirac", NULL, "video/dirac"},
+	{GF_CODECID_AC3, 0xA5, GF_STREAM_AUDIO, "AC3 Audio", "ac3", "ac-3", "audio/ac3"},
+	{GF_CODECID_EAC3, 0xA6, GF_STREAM_AUDIO, "Enhanced AC3 Audio", "eac3", "ec-3", "audio/eac3"},
+	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL, "audio/dra"},
+	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL, "audio/g719"},
+	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics Audio", "dstca", NULL, "audio/dts"},
+	{GF_CODECID_DTS_HD_HR, 0xAA, GF_STREAM_AUDIO, "DTS-HD High Resolution Audio", "dtsh", NULL, "audio/dts"},
+	{GF_CODECID_DTS_HD_MASTER, 0xAB, GF_STREAM_AUDIO, "DTS-HD Master Audio", "dstm", NULL, "audio/dts"},
+	{GF_CODECID_DTS_LBR, 0xAC, GF_STREAM_AUDIO, "DTS Express low bit rate Audio", "dtsl", NULL, "audio/dts"},
+	{GF_CODECID_OPUS, 0xAD, GF_STREAM_AUDIO, "Opus Audio", "opus", NULL, "audio/opus"},
+	{GF_CODECID_DVB_EIT, 0, GF_STREAM_PRIVATE_SCENE, "DVB Event Information", "eti", NULL, "application/x-dvb-eit"},
+	{GF_CODECID_SVG, 0, GF_STREAM_PRIVATE_SCENE, "SVG over RTP", "svgr", NULL, "application/x-svg-rtp"},
+	{GF_CODECID_SVG_GZ, 0, GF_STREAM_PRIVATE_SCENE, "SVG+gz over RTP", "svgzr", NULL, "application/x-svgz-rtp"},
+	{GF_CODECID_DIMS, 0, GF_STREAM_PRIVATE_SCENE, "3GPP DIMS Scene", "dims", NULL, "application/3gpp-dims"},
+	{GF_CODECID_WEBVTT, 0, GF_STREAM_TEXT, "WebVTT Text", "vtt", "wvtt", "text/webtvv"},
+	{GF_CODECID_SIMPLE_TEXT, 0, GF_STREAM_TEXT, "Simple Text Stream", "txt", "stxt", "text/subtitle"},
+	{GF_CODECID_META_TEXT, 0, GF_STREAM_METADATA, "Metadata Text Stream", "mtxt", "mett", "application/text"},
+	{GF_CODECID_META_XML, 0, GF_STREAM_METADATA, "Metadata XML Stream", "mxml", "metx", "application/text+xml"},
+	{GF_CODECID_SUBS_TEXT, 0, GF_STREAM_TEXT, "Subtitle text Stream", "subs", "sbtt", "text/text"},
+	{GF_CODECID_SUBS_XML, 0, GF_STREAM_TEXT, "Subtitle XML Stream", "subx", "stpp", "text/text+xml"},
+	{GF_CODECID_TX3G, 0, GF_STREAM_TEXT, "Subtitle/text 3GPP/Apple Stream", "tx3g", "tx3g", "quicktime/text"},
+	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theo|theora", NULL, "video/theora"},
+	{GF_CODECID_VORBIS, 0, GF_STREAM_AUDIO, "Vorbis Audio", "vorb|vorbis", NULL, "audio/vorbis"},
+	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", NULL, "audio/flac"},
+	{GF_CODECID_SPEEX, 0, GF_STREAM_AUDIO, "Speex Audio", "spx|speex", NULL, "audio/speex"},
+	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_TEXT, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
+	{GF_CODECID_PCM, 0, GF_STREAM_AUDIO, "PCM", "pcm", NULL, "audio/pcm"},
+	{GF_CODECID_ADPCM, 0, GF_STREAM_AUDIO, "AD-PCM", "adpcm", NULL, "audio/pcm"},
+	{GF_CODECID_IBM_CVSD, 0, GF_STREAM_AUDIO, "IBM CSVD", "csvd", NULL, "audio/pcm"},
+	{GF_CODECID_ALAW, 0, GF_STREAM_AUDIO, "ALAW", "alaw", NULL, "audio/pcm"},
+	{GF_CODECID_MULAW, 0, GF_STREAM_AUDIO, "MULAW", "mulaw", NULL, "audio/pcm"},
+	{GF_CODECID_OKI_ADPCM, 0, GF_STREAM_AUDIO, "OKI ADPCM", "okiadpcm", NULL, "audio/pcm"},
+	{GF_CODECID_DVI_ADPCM, 0, GF_STREAM_AUDIO, "DVI ADPCM", "dviadpcm", NULL, "audio/pcm"},
+	{GF_CODECID_DIGISTD, 0, GF_STREAM_AUDIO, "DIGISTD", "digistd", NULL, "audio/pcm"},
+	{GF_CODECID_YAMAHA_ADPCM, 0, GF_STREAM_AUDIO, "YAMAHA ADPCM", "yamadpcm", NULL, "audio/pcm"},
+	{GF_CODECID_DSP_TRUESPEECH, 0, GF_STREAM_AUDIO, "DSP TrueSpeech", "truespeech", NULL, "audio/pcm"},
+	{GF_CODECID_GSM610, 0, GF_STREAM_AUDIO, "GSM 610", "g610", NULL, "audio/pcm"},
+	{GF_CODECID_IBM_MULAW, 0, GF_STREAM_AUDIO, "IBM MULAW", "imulaw", NULL, "audio/pcm"},
+	{GF_CODECID_IBM_ALAW, 0, GF_STREAM_AUDIO, "IBM ALAW", "ialaw", NULL, "audio/pcm"},
+	{GF_CODECID_IBM_ADPCM, 0, GF_STREAM_AUDIO, "IBM ADPCL", "iadpcl", NULL, "audio/pcm"},
+	{GF_CODECID_FLASH, 0, GF_STREAM_SCENE, "Adobe Flash", "swf", NULL, "audio/pcm"},
+	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL, "audio/pcm"},
 
-	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "ivf|obu|av1b", NULL},
-	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8", NULL},
-	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9", NULL},
+	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "ivf|obu|av1b", NULL, "video/av1"},
+	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8", NULL, "video/vp8"},
+	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9", NULL, "video/vp9"},
 
 };
 
@@ -154,6 +157,59 @@ u32 gf_codec_parse(const char *cname)
 }
 
 
+#include <gpac/internal/isomedia_dev.h>
+
+GF_EXPORT
+u32 gf_codec_id_from_isobmf(u32 isobmftype)
+{
+	switch (isobmftype) {
+	case GF_ISOM_SUBTYPE_3GP_AMR:
+		return GF_CODECID_AMR;
+	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
+		return GF_CODECID_AMR_WB;
+	case GF_ISOM_SUBTYPE_3GP_H263:
+	case GF_ISOM_SUBTYPE_H263:
+		return GF_CODECID_H263;
+	case GF_ISOM_SUBTYPE_XDVB:
+		return GF_CODECID_MPEG2_MAIN;
+	case GF_ISOM_MEDIA_FLASH:
+		return GF_CODECID_FLASH;
+	case GF_ISOM_SUBTYPE_AC3:
+		return GF_CODECID_AC3;
+	case GF_ISOM_SUBTYPE_EC3:
+		return GF_CODECID_EAC3;
+	case GF_ISOM_SUBTYPE_MP3:
+		return GF_CODECID_MPEG_AUDIO;
+	case GF_ISOM_SUBTYPE_JPEG:
+		return GF_CODECID_JPEG;
+	case GF_ISOM_SUBTYPE_PNG:
+		return GF_CODECID_PNG;
+	case GF_ISOM_SUBTYPE_JP2K:
+		return GF_CODECID_J2K;
+	case GF_ISOM_SUBTYPE_STXT:
+		return GF_CODECID_SIMPLE_TEXT;
+	case GF_ISOM_SUBTYPE_METT:
+		return GF_CODECID_META_TEXT;
+	case GF_ISOM_SUBTYPE_METX:
+		return GF_CODECID_META_XML;
+	case GF_ISOM_SUBTYPE_SBTT:
+		return GF_CODECID_SUBS_TEXT;
+	case GF_ISOM_SUBTYPE_STPP:
+		return GF_CODECID_SUBS_XML;
+	case GF_ISOM_SUBTYPE_WVTT:
+		return GF_CODECID_WEBVTT;
+	case GF_ISOM_SUBTYPE_3GP_DIMS:
+		return GF_CODECID_DIMS;
+	case GF_ISOM_SUBTYPE_HVT1:
+		return GF_CODECID_HEVC_TILES;
+	case GF_ISOM_SUBTYPE_TEXT:
+	case GF_ISOM_SUBTYPE_TX3G:
+		return GF_CODECID_TX3G;
+	default:
+		break;
+	}
+	return 0;
+}
 
 static CodecIDReg *gf_codecid_reg_find(u32 codecid)
 {
@@ -181,6 +237,23 @@ const char *gf_codecid_name(u32 codecid)
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
 	if (!r) return "Codec Not Supported";
 	return r->name;
+}
+
+GF_EXPORT
+const char *gf_codecid_file_ext(u32 codecid)
+{
+	CodecIDReg *r = gf_codecid_reg_find(codecid);
+	if (r && r->sname) return r->sname;
+	if (r && r->rfc_4cc) return r->rfc_4cc;
+	return "raw";
+}
+
+GF_EXPORT
+const char *gf_codecid_mime(u32 codecid)
+{
+	CodecIDReg *r = gf_codecid_reg_find(codecid);
+	if (r && r->mime_type) return r->mime_type;
+	return "application/octet-string";
 }
 
 GF_EXPORT

@@ -60,19 +60,14 @@ typedef struct
 	u32 is_wav;
 	u32 w, h, stride;
 	u64 nb_bytes;
-
-	char av1_td_obu[2];
-	u32 av1_td_obu_size;
 } GF_GenDumpCtx;
-
-
 
 
 GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode;
-	const char *name;
-	char szExt[10];
+	const char *name, *mimetype;
+	char szExt[10], szCodecExt[30];
 	Bool unframed = GF_FALSE;
 	const GF_PropertyValue *p;
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
@@ -129,170 +124,74 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (p && p->value.boolean) unframed = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+
+	strncpy(szCodecExt, gf_codecid_file_ext(cid), 29);
+	szCodecExt[29]=0;
+	char *sep = strchr(szCodecExt, '|');
+	if (sep) sep[0] = 0;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(szCodecExt) );
+
+	mimetype = gf_codecid_mime(cid);
+
 	switch (cid) {
 	case GF_CODECID_PNG:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("png") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("image/png") );
-		ctx->split = GF_TRUE;
-		break;
 	case GF_CODECID_JPEG:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("jpg") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("image/jpeg") );
 		ctx->split = GF_TRUE;
 		break;
 	case GF_CODECID_J2K:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("jp2") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("image/jp2") );
 		ctx->split = GF_TRUE;
 		ctx->is_mj2k = GF_TRUE;
 		break;
-	case GF_CODECID_MPEG_AUDIO:
-	case GF_CODECID_MPEG2_PART3:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mp3") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/mp3") );
-		break;
 	case GF_CODECID_AMR:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("amr") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/amr") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!AMR\n";
 		ctx->dcfg_size = 6;
 		ctx->rcfg = GF_FALSE;
 		break;
 	case GF_CODECID_AMR_WB:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("amr") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/amr") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!AMR-WB\n";
 		ctx->dcfg_size = 9;
 		ctx->rcfg = GF_FALSE;
 		break;
 	case GF_CODECID_SMV:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("smv") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/smv") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!SMV\n";
 		ctx->dcfg_size = 6;
 		ctx->rcfg = GF_FALSE;
 		break;
 	case GF_CODECID_EVRC_PV:
 	case GF_CODECID_EVRC:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("evc") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/evrc") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!EVRC\n";
 		ctx->dcfg_size = 7;
 		ctx->rcfg = GF_FALSE;
 		break;
 
-	case GF_CODECID_AC3:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ac3") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/ac3") );
-		break;
-	case GF_CODECID_EAC3:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("eac3") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/eac3") );
-		break;
-	case GF_CODECID_DIMS:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("dims") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/3gpp-dims") );
-		break;
-	case GF_CODECID_FLASH:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("swf") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/swf") );
-		break;
-
-	case GF_CODECID_H263:
-	case GF_CODECID_S263:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("263") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/h263") );
-		break;
-	case GF_CODECID_MPEG4_PART2:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("cmp") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/mp4v-es") );
-		break;
-	case GF_CODECID_MPEG1:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("m1v") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/mp1v-es") );
-		break;
-	case GF_CODECID_MPEG2_422:
-	case GF_CODECID_MPEG2_SNR:
-	case GF_CODECID_MPEG2_HIGH:
-	case GF_CODECID_MPEG2_MAIN:
-	case GF_CODECID_MPEG2_SIMPLE:
-	case GF_CODECID_MPEG2_SPATIAL:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("m2v") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/mp2v-es") );
-		break;
-
 	case GF_CODECID_SIMPLE_TEXT:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("txt") );
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("text/subtitle") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		break;
 	case GF_CODECID_META_TEXT:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("txt") );
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/text") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		break;
 	case GF_CODECID_META_XML:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("xml") );
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/text+xml") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		break;
 	case GF_CODECID_SUBS_TEXT:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("txt") );
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("text/text") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		break;
 	case GF_CODECID_SUBS_XML:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("xml") );
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("text/text+xml") );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("XML Sub streams reaggregation not supported in dumper, dumping all samples\n"));
 		ctx->split = GF_TRUE;
 		break;
 
-	case GF_CODECID_AAC_MPEG4:
-	case GF_CODECID_AAC_MPEG2_MP:
-	case GF_CODECID_AAC_MPEG2_LCP:
-	case GF_CODECID_AAC_MPEG2_SSRP:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("aac") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/aac") );
-		break;
-	case GF_CODECID_AVC:
-	case GF_CODECID_AVC_PS:
-	case GF_CODECID_SVC:
-	case GF_CODECID_MVC:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("264") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/avc") );
-		break;
-	case GF_CODECID_HEVC:
-	case GF_CODECID_LHVC:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("hvc") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/hevc") );
-		break;
-	case GF_CODECID_WEBVTT:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("vtt") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("text/webtvv") );
-		break;
-	case GF_CODECID_QCELP:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("qcelp") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcelp") );
-		break;
-	case GF_CODECID_THEORA:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("theo") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("video/theora") );
-		break;
-	case GF_CODECID_VORBIS:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("vorb") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/vorbis") );
-		break;
-	case GF_CODECID_SPEEX:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("spx") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/speex") );
-		break;
-	case GF_CODECID_FLAC:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("flac") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/flac") );
-		break;
 	case GF_CODECID_AV1:
 		av1mode = 0;
 		p = gf_filter_pid_get_property_str(ctx->ipid, "obu:mode");
@@ -323,6 +222,10 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 					ctx->split = GF_TRUE;
 				} else {
 					ctx->target_pfmt = gf_pixel_fmt_parse(szExt);
+					if (!ctx->target_pfmt) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Cannot guess pixel format from extension type %s\n", szExt));
+						return GF_NOT_SUPPORTED;
+					}
 					strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
 				}
 				//forcing pixel format regardless of extension
@@ -389,43 +292,15 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		break;
 
 	default:
-		switch (stype) {
-		case GF_STREAM_SCENE:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("bifs") );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/bifs") );
-			break;
-		case GF_STREAM_OD:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("od") );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/od") );
-			break;
-		case GF_STREAM_MPEGJ:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mpj") );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/mpegj") );
-			break;
-		case GF_STREAM_OCI:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("oci") );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-mpeg4-oci") );
-			break;
-		case GF_STREAM_MPEG7:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mp7") );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/mpeg7") );
-			break;
-		case GF_STREAM_IPMP:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ipmp") );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-mpeg4-ipmp") );
-			break;
-		case GF_STREAM_TEXT:
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("tx3g") );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("text/3gpp") );
-			break;
-		default:
+		if (!strcmp(szCodecExt, "raw")) {
 			strcpy(szExt, gf_4cc_to_str(cid));
 			if (!strlen(szExt)) strcpy(szExt, "raw");
-			
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
-			break;
+		} else {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szCodecExt ) );
 		}
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
+		break;
 	}
 
 	name = gf_codecid_name(cid);
