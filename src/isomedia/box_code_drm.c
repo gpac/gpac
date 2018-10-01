@@ -1422,13 +1422,19 @@ GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 	u32 i, j;
 	u32 sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) s;
+
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	if (!sample_count) {
+		ptr->size = 0;
+		return GF_OK;
+	}
+
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
 	gf_bs_write_u8(bs, ptr->version);
 	gf_bs_write_u24(bs, ptr->flags);
 
-	sample_count = gf_list_count(ptr->samp_aux_info);
 	gf_bs_write_u32(bs, sample_count);
 	if (sample_count) {
 
@@ -1459,11 +1465,16 @@ GF_Err senc_Size(GF_Box *s)
 	u32 sample_count;
 	u32 i;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox*)s;
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	if (!sample_count) {
+		ptr->size = 0;
+		return GF_OK;
+	}
+
 	//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
 	ptr->size += 4; //version and flags
 
 	ptr->size += 4; //sample count
-	sample_count = gf_list_count(ptr->samp_aux_info);
 	if (sample_count) {
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);

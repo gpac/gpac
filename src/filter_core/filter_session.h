@@ -215,6 +215,7 @@ typedef struct __gf_filter_pck_info
 	u32 duration;
 
 	u64 byte_offset;
+	u32 seq_num;
 	s16 roll;
 	u8 carousel_version_number;
 
@@ -317,6 +318,7 @@ struct __gf_filter_session
 	GF_FilterQueue *tasks;
 	GF_FilterQueue *main_thread_tasks;
 	GF_FilterQueue *tasks_reservoir;
+	volatile Bool in_main_sem_wait;
 
 	//if more than one thread, this mutex protects access to loaded filters list, to avoid concurrent calls to destruct and
 	//filter testing (graph resolution, update sending, ...)

@@ -2344,8 +2344,8 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 {
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
 
-	if (ms->duration) fprintf(out, " duration=\""LLD"\"", ms->duration);
 	if (ms->start_number != (u32) -1) fprintf(out, " startNumber=\"%d\"", ms->start_number);
+	if (ms->duration) fprintf(out, " duration=\""LLD"\"", ms->duration);
 
 
 	if (!ms->bitstream_switching_url && !ms->segment_timeline && !ms->initialization_segment && !ms->representation_index) {
@@ -2668,7 +2668,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	fprintf(out, "   </Representation>\n");
 }
 
-static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, FILE *out, Bool write_context)
+static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Bool write_context)
 {
 	u32 i;
 	GF_MPD_Representation *rep;
@@ -3099,12 +3099,11 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	if (mpd->ID)
 		fprintf(out, " id=\"%s\"", mpd->ID);
 
-	if (mpd->profiles)
-		fprintf(out, " profiles=\"%s\"", mpd->profiles);
 	if (mpd->min_buffer_time)
 		gf_mpd_print_duration(out, "minBufferTime", mpd->min_buffer_time, GF_FALSE);
 
 	fprintf(out," type=\"%s\"",(mpd->type == GF_MPD_TYPE_STATIC ? "static" : "dynamic"));
+
 
 	if (mpd->type == GF_MPD_TYPE_DYNAMIC)
 		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityStartTime);
@@ -3121,9 +3120,12 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	if (mpd->suggested_presentation_delay)
 		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay, GF_TRUE);
 	if (mpd->max_segment_duration)
-		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration*1000, GF_TRUE);
+		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration, GF_TRUE);
 	if (mpd->max_subsegment_duration)
 		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration, GF_TRUE);
+
+	if (mpd->profiles)
+		fprintf(out, " profiles=\"%s\"", mpd->profiles);
 
 	if (mpd->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)mpd);
 

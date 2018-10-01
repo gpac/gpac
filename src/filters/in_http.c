@@ -146,6 +146,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		if (!ctx->is_end) {
 			//abort session
+			gf_filter_pid_set_eos(ctx->pid);
 			ctx->is_end = GF_TRUE;
 			gf_dm_sess_abort(ctx->sess);
 		}

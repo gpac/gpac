@@ -141,7 +141,7 @@ typedef struct
 	Bool chain_sidx;
 	u32 msn, msninc;
 	GF_Fraction64 tfdt;
-	Bool no_def, straf, strun, sgpd_traf, cache, noinit;
+	Bool nofragdef, straf, strun, sgpd_traf, cache, noinit;
 	u32 psshs;
 	u32 tkid;
 
@@ -1254,6 +1254,10 @@ sample_entry_setup:
 		assert(0);
 	}
 
+	if (ctx->dash_mode) {
+		gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, 0);
+	}
+
 
 multipid_stsd_setup:
 	if (multi_pid_stsd) {
@@ -1502,7 +1506,13 @@ multipid_stsd_setup:
 		}
 		if (use_negccts) {
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
+
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO1, 0);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO2, 0);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO3, 0);
+
 			tkw->negctts_shift = (tkw->ts_delay<0) ? -tkw->ts_delay : 0;
 		} else {
 			//this will remove any cslg in the track due to template
@@ -2020,6 +2030,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		u32 min_dts_scale=0;
 		u32 def_fake_dur=0;
 		u32 def_fake_scale=0;
+		Double max_dur=0;
 		ctx->single_file = GF_TRUE;
 		ctx->current_offset = ctx->current_size = 0;
 
@@ -2043,8 +2054,15 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			def_fake_dur = gf_filter_pck_get_duration(pck);
 			def_fake_scale = tkw->timescale;
+
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
+			if (p && p->value.frac.num && p->value.frac.den) {
+				Double dur = p->value.frac.num;
+				dur /= p->value.frac.den;
+				if (ctx->dur.num > dur * ctx->dur.den) dur = ((Double)ctx->dur.num) / ctx->dur.den;
+				if (max_dur<dur) max_dur = dur;
+			}
 		}
-		
 		//good to go, finalize for fragments
 		for (i=0; i<count; i++) {
 			u32 def_pck_dur;
@@ -2110,7 +2128,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			//use 1 for the default sample description index. If no multi stsd, this is always the case
 			//otherwise we need to the stsd idx in the traf headers
-			if (! ctx->no_def) {
+			if (! ctx->nofragdef) {
 				e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 1, def_pck_dur, 0, (u8) def_is_rap, 0, 0);
 			} else {
 				e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, 0, 0, 0, 0, 0, 0);
@@ -2135,6 +2153,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 		}
 
+		if (max_dur) {
+			gf_isom_set_movie_duration(ctx->file, max_dur*ctx->timescale);
+		}
+
 		//if we have an explicit track reference for fragmenting, move it first in our list
 		if (ref_tkw) {
 			gf_list_del_item(ctx->tracks, ref_tkw);
@@ -2143,8 +2165,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		ctx->ref_tkw = gf_list_get(ctx->tracks, 0);
 
 		if (!ctx->abs_offset) {
+
 			gf_isom_set_fragment_option(ctx->file, 0, GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET, 1);
 			/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
+			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO5, 1);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO5, 1);
 
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
@@ -3058,7 +3082,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(msninc), "Sets sequence number increase between moofs", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(tfdt), "sets TFDT of first traf", GF_PROP_FRACTION64, "0", NULL, 0},
 	{ OFFS(tfdt_traf), "sets TFDT in each traf", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(no_def), "disables default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(nofragdef), "disables default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(straf), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strun), "uses a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(psshs), "PSSH boxes store mode:\n\tmoof: in first moof of each segments\n\tmoov: in movie box\n\tnone: discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},

@@ -110,6 +110,10 @@ static void init_reader(ISOMChannel *ch)
 		ch->sample->IsRAP = RAP;
 		ch->sample->DTS = ch->start;
 		ch->last_state=GF_OK;
+	} else if (ch->sample_num) {
+		ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num+1, &sample_desc_index, ch->static_sample);
+		ch->disable_seek = GF_TRUE;
+		ch->au_seq_num = ch->sample_num+1;
 	} else {
 		//if seek is disabled, get the next closest sample for this time; otherwose, get the previous RAP sample for this time
 		u32 mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
@@ -357,7 +361,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				/*if sample cannot be found and file is fragmented, rewind sample*/
 				if (ch->sample_num) ch->sample_num--;
 				ch->last_state = GF_EOS;
-			} else {
+			} else if (ch->last_state != GF_EOS) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
 			}

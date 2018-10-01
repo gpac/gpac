@@ -248,6 +248,7 @@ static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		//stop sending data
 		ctx->is_end = GF_TRUE;
+		gf_filter_pid_set_eos(ctx->pid);
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SEEK:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] Seek request not possible on pipes, ignoring\n"));

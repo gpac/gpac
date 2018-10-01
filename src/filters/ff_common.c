@@ -607,6 +607,7 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 		 	freg->nb_caps = 3;
 
 		 	caps = gf_malloc(sizeof(GF_FilterCapability)*3);
+		 	memset(caps, 0, sizeof(GF_FilterCapability)*3);
 		 	caps[0].code = GF_PROP_PID_STREAM_TYPE;
 		 	caps[0].val.type = GF_PROP_UINT;
 		 	caps[0].val.value.uint = ff_streamtype(codec->type);

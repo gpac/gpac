@@ -36,7 +36,20 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Cannot notify scheduler of new task, semaphore failure\n"));
 			}
 		} else {
-			if (gf_sema_wait(sem)) {
+			//if not main and no tasks in main list, this could be the last task to process.
+			//if main thread is sleeping force a wake to take further actions (only the main thread decides the exit)
+			if (!main && !gf_fq_count(fsess->main_thread_tasks) && fsess->in_main_sem_wait) {
+				gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
+			}
+			//if main semaphore, keep track that we are going to sleep
+			if (main) {
+				fsess->in_main_sem_wait = GF_TRUE;
+				if (gf_sema_wait(sem)) {
+				}
+				fsess->in_main_sem_wait = GF_FALSE;
+			} else {
+				if (gf_sema_wait(sem)) {
+				}
 			}
 		}
 	}
