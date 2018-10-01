@@ -484,15 +484,13 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 
 
 
-	gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_TILE_ONLY | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
+	gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_TILE_ONLY);
 
 	if (dumper->sample_num == (u32) -1) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
 		if (!samp) return GF_BAD_PARAM;
 		if (ext_start) {
-			ext_start[0]=0;
-			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, ext_start+1);
-			ext_start[0]='.';
+			sprintf(szName, "%s", dumper->out_name);
 		} else {
 			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
 		}
@@ -513,9 +511,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
 		if (!samp) return GF_BAD_PARAM;
 		if (ext_start) {
-			ext_start[0]=0;
-			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, ext_start+1);
-			ext_start[0]='.';
+			sprintf(szName, "%s", dumper->out_name);
 		} else {
 			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
 		}
