@@ -680,7 +680,8 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	*/
 	{
 		char semaName[40];
-		sprintf(semaName,"GPAC_SEM%ld", (unsigned long) tmp);
+		u64 add = (u64) tmp ^ gf_net_get_utc() ^ gf_rand();
+		sprintf(semaName,"GPAC_SEM"LLU, add);
 		tmp->SemName = gf_strdup(semaName);
 	}
 	sem_unlink(tmp->SemName);

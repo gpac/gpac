@@ -47,7 +47,7 @@ typedef struct
 	u32 nb_pids;
 	u32 fwd;
 	u32 framing;
-	Bool opt_dump;
+	Bool cov;
 	Bool norecfg;
 	const char *update;
 
@@ -380,7 +380,7 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 
 	data = gf_filter_pck_get_data(pck, &size);
 
-	if (stack->opt_dump && !pidctx->nb_packets) {
+	if (stack->cov && !pidctx->nb_packets) {
 		GF_PropertyValue p;
 		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
 		gf_filter_pck_send(pck);
@@ -458,8 +458,9 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	GF_SAFEALLOC(pidctx, PIDCtx);
 	pidctx->src_pid = pid;
 	gf_list_add(stack->pids, pidctx);
-	
-	if (stack->opt_dump) {
+
+	//coverage mode
+	if (stack->cov) {
 		char *data;
 		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
 		gf_filter_pid_set_property(pidctx->src_pid, GF_4CC('s','h','a','1'), format);
@@ -477,7 +478,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		p.value.string = (char *) stack->pid_att;
 		gf_filter_pid_copy_properties(pidctx->dst_pid, pidctx->src_pid);
 
-		if (stack->opt_dump) {
+		if (stack->cov) {
 			Bool old_strict = gf_log_set_strict_error(GF_FALSE);
 			gf_filter_pid_copy_properties(pidctx->src_pid, pidctx->dst_pid);
 			gf_filter_pid_get_packet(pidctx->dst_pid);
@@ -528,7 +529,7 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 	gf_filter_pid_set_property_str(pidctx->dst_pid, "custom1", &p);
 	gf_filter_pid_set_property_dyn(pidctx->dst_pid, "custom2", &p);
 
-	if (stack->opt_dump) {
+	if (stack->cov) {
 		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
 		gf_filter_pid_set_framing_mode(pidctx->dst_pid, GF_TRUE);
 		gf_log_set_strict_error(old_strict);
@@ -553,79 +554,81 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 
 	stack->pids = gf_list_new();
 
-	if (stack->opt_dump) {
+	if (stack->cov) {
 		Bool old_strict;
 		char szFmt[40];
 		s64 val;
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "true", NULL, 0);
 		if (p.value.boolean != GF_TRUE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "yes", NULL, 0);
 		if (p.value.boolean != GF_TRUE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "no", NULL, 0);
 		if (p.value.boolean != GF_FALSE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "false", NULL, 0);
 		if (p.value.boolean != GF_FALSE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_SINT, "prop", "-1", NULL, 0);
 		if (p.value.sint != -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing sint value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing sint value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_UINT, "prop", "1", NULL, 0);
 		if (p.value.uint != 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing uint value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing uint value\n"));
 		}
 		val = 0xFFFFFFFF;
 		val *= 2;
 		sprintf(szFmt, ""LLD, -val);
 		p = gf_props_parse_value(GF_PROP_LSINT, "prop", szFmt, NULL, 0);
 		if (p.value.longsint != -val) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longsint value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longsint value\n"));
 		}
 		sprintf(szFmt, ""LLU, val);
 		p = gf_props_parse_value(GF_PROP_LUINT, "prop", szFmt, NULL, 0);
 		if (p.value.longuint != val) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longuint value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longuint value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "1.0", NULL, 0);
 		if (p.value.fnumber != FIX_ONE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing float value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing float value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "1.0", NULL, 0);
 		if (p.value.number != 1.0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing double value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing double value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000/1", NULL, 0);
 		if ((p.value.frac.den != 1) || (p.value.frac.num != 1000)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000", NULL, 0);
 		if ((p.value.frac.den != 1) || (p.value.frac.num != 1000)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_STRING, "prop", "test", NULL, 0);
 		if (!p.value.string || strcmp(p.value.string, "test")) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value\n"));
 		}
-		sprintf(szFmt, "%p:%d", stack, (u32) sizeof(stack));
+		if (p.value.string) gf_free(p.value.string);
+
+		sprintf(szFmt, "%d@%p", (u32) sizeof(stack), stack);
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", szFmt, NULL, 0);
-		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
+		if ((p.value.data.size != (u32) sizeof(stack)) || memcmp(p.value.data.ptr, (char *) stack, sizeof(stack))) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", szFmt, NULL, 0);
 		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value\n"));
 		}
 		sprintf(szFmt, "%p", stack);
 		p = gf_props_parse_value(GF_PROP_POINTER, "prop", szFmt, NULL, 0);
 		if (p.value.ptr != stack) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value\n"));
 		}
 
 		old_strict = gf_log_set_strict_error(GF_FALSE);
@@ -648,7 +651,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL, 0);
 		if (p.type) {}
-		p = gf_props_parse_value(GF_PROP_STRING, "prop", "", NULL, 0);
+		p = gf_props_parse_value(GF_PROP_STRING, "prop", NULL, NULL, 0);
 		if (p.type) {}
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", "", NULL, 0);
 		if (p.type) {}
@@ -724,7 +727,7 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ OFFS(fwd), "Indicates packet forward mode for filter.\n\t\tshared: uses shared memory (dangerous)\n\t\tcopy: uses copy\n\t\tref: uses references to source packet\n\t\tmix: change mode at each packet sent", GF_PROP_UINT, "shared", "shared|copy|ref|mix", GF_FS_ARG_UPDATE},
 	{ OFFS(framing), "Divides packets in 3 for filter mode, or allows partial blocks for sink mode", GF_PROP_UINT, "none", "none|default|nostart|noend", GF_FS_ARG_UPDATE},
 	{ OFFS(update), "sends update message after half packet send. Update format is FID,argname,argval", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(opt_dump), "Dumps options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(cov), "Dumps options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(norecfg), "Disabled reconfig on input pid in filter/sink mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LSINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LUINT, "0", NULL, GF_FS_ARG_UPDATE},

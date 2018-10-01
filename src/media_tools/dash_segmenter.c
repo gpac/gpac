@@ -132,7 +132,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 		diff -= (s64) gf_net_get_ntp_ms();
 	}
 	if (ms_in_session) *ms_in_session = dasher->mpd_time_ms;
-	return diff>0 ? (u32) diff : 0;
+	return diff>0 ? (u32) diff : 1;
 }
 
 
@@ -609,7 +609,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	else if (dasher->cp_location_mode==GF_DASH_CPMODE_BOTH) { APPEND_ARG("cp=both") }
 
 	if (dasher->min_buffer_time) { sprintf(szArg, "buf=%d", dasher->min_buffer_time); APPEND_ARG(szArg) }
-	if (dasher->dash_scale) { sprintf(szArg, "timescale=%d", dasher->dash_scale); APPEND_ARG(szArg) }
+	if (dasher->dash_scale != 1000) { sprintf(szArg, "timescale=%d", dasher->dash_scale); APPEND_ARG(szArg) }
 	if (!dasher->check_duration) { APPEND_ARG("!check_dur") }
 	//skip_seg not exposed
 

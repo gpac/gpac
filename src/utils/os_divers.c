@@ -863,7 +863,10 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 #endif
 
 
+		gf_rand_init(GF_FALSE);
+		
 		gf_init_global_config(profile);
+
 	}
 	sys_init += 1;
 

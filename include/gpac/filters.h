@@ -992,6 +992,9 @@ typedef struct
 	u8 full_file_only;
 	/*! indicates any current download should be aborted*/
 	u8 forced_dash_segment_switch;
+
+	/*! indicates playback should start from given packet number - used by dasher when reloading sources*/
+	u32 from_pck;
 } GF_FEVT_Play;
 
 /*! Event structure for GF_FEVT_SOURCE_SEEK and GF_FEVT_SOURCE_SWITCH*/
@@ -2713,6 +2716,20 @@ GF_Err gf_filter_pck_set_dependency_flags(GF_FilterPacket *pck, u8 dep_flags);
 \return dep_flags sample dependency flags - see \ref gf_filter_pck_set_dependency_flags for syntax.
 */
 u8 gf_filter_pck_get_dependency_flags(GF_FilterPacket *pck);
+
+
+/*! sets packet sequence number. Shall only be used when a filter handles a PLAY request based on packet sequence number
+\param pck target packet
+\param seq_num sequence number of packet
+\return error code if any
+*/
+GF_Err gf_filter_pck_set_seq_num(GF_FilterPacket *pck, u32 seq_num);
+
+/*! gets packet sequence number info
+\param pck target packet
+\return version_number carrousel version number associated with this data chunk
+*/
+u32 gf_filter_pck_get_seq_num(GF_FilterPacket *pck);
 
 /*! redefinition of GF_Matrix but without the maths.h include which breaks VideoToolBox on OSX/iOS */
 typedef struct __matrix GF_Matrix_unexposed;

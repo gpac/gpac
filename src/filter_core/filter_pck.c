@@ -245,7 +245,11 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 
 	if (!is_filter_destroyed) {
 		assert(pck->pid);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : "", pck->info.cts));
+		if (pck->info.cts != GF_FILTER_NO_TS) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : "", pck->info.cts));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : ""));
+		}
 	}
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
 
@@ -458,6 +462,11 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			gf_filter_packet_destroy(pck);
 		}
 		return GF_OK;
+	}
+
+	if (!pid->initial_play_done && !pid->is_playing) {
+		pid->initial_play_done = GF_TRUE;
+		pid->is_playing = GF_TRUE;
 	}
 
 	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
@@ -1139,6 +1148,19 @@ u8 gf_filter_pck_get_crypt_flags(GF_FilterPacket *pck)
 {
 	//get true packet pointer
 	return (pck->pck->info.flags & GF_PCK_CRYPT_MASK) >> GF_PCK_CRYPT_POS;
+}
+
+GF_Err gf_filter_pck_set_seq_num(GF_FilterPacket *pck, u32 seq_num)
+{
+	PCK_SETTER_CHECK("seqNum")
+	pck->info.seq_num = seq_num;
+	return GF_OK;
+}
+
+u32 gf_filter_pck_get_seq_num(GF_FilterPacket *pck)
+{
+	//get true packet pointer
+	return pck->pck->info.seq_num;
 }
 
 

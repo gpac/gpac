@@ -4138,7 +4138,11 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Live DASH-ing - press 'q' to quit, 's' to save context and quit\n");
 
 		if (!dash_ctx_file && dash_live) {
-			sprintf(szStateFile, "%sdasher%p.xml", gf_get_default_cache_directory(), &dasher);
+			u64 add = (u64) &dasher;
+			add ^= gf_net_get_utc();
+			u32 r1 = (u32) add ^ (u32) (add/0xFFFFFFFF);
+			r1 ^= gf_rand();
+ 			sprintf(szStateFile, "%s/dasher_%X.xml", gf_get_default_cache_directory(), r1 );
 			dash_ctx_file = szStateFile;
 			dyn_state_file = GF_TRUE;
 		} else if (dash_ctx_file) {
@@ -4230,7 +4234,7 @@ int mp4boxMain(int argc, char **argv)
 		dash_cumulated_time=0;
 
 		while (1) {
-			if (run_for && (dash_cumulated_time > run_for))
+			if (run_for && (dash_cumulated_time >= run_for))
 				do_abort = 3;
 
 			dash_prev_time=gf_sys_clock();
@@ -4284,10 +4288,10 @@ int mp4boxMain(int argc, char **argv)
 
 					gf_sleep(sleep_for/10);
 					sleep_for = gf_dasher_next_update_time(dasher, NULL);
-					if (sleep_for<1) {
+					if (sleep_for<=1) {
 						dash_now_time=gf_sys_clock();
-						fprintf(stderr, "Slept for %d ms before generation\n", dash_now_time - slept);
 						dash_cumulated_time+=(dash_now_time-dash_prev_time);
+						fprintf(stderr, "Slept for %d ms before generation, dash cumulated time %d\n", dash_now_time - slept, dash_cumulated_time);
 						break;
 					}
 				}
@@ -4298,7 +4302,7 @@ int mp4boxMain(int argc, char **argv)
 
 		gf_dasher_del(dasher);
 
-		if (dash_ctx_file && (do_abort==3) && (dyn_state_file)) {
+		if (!run_for && dash_ctx_file && (do_abort==3) && (dyn_state_file)) {
 			char szName[1024];
 			fprintf(stderr, "Enter file name to save dash context:\n");
 			if (scanf("%s", szName) == 1) {

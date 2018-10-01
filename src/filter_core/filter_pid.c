@@ -3793,6 +3793,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			}
 		} else if (evt->base.type==GF_FEVT_STOP) {
 			pid->is_playing = GF_FALSE;
+		} else if (evt->base.type==GF_FEVT_SOURCE_SEEK) {
+			pid->is_playing = GF_TRUE;
 		}
 		for (i=0; i<pid->num_destinations && do_reset; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
@@ -4319,7 +4321,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "PID")) {
 			prop_val = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-		} else if (!strcmp(name, "SUF")) {
+		} else if (!strcmp(name, "DS")) {
 			str_val = file_suffix ? file_suffix : "";
 			is_ok = GF_TRUE;
 		} else if (!strncmp(name, "p4cc=", 5)) {

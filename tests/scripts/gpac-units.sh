@@ -22,10 +22,16 @@ single_test "$cmd -threads=4 -sched=lock" "$name-locksched"
 }
 
 
-single_test "$GPAC -list" "gpac-filter-unit-list"
-single_test "$GPAC -info UTFilter" "gpac-filter-unit-info"
+single_test "$GPAC -ltf -h logs" "gpac-filter-h-logs"
+single_test "$GPAC -ltf -h doc" "gpac-filter-h-doc"
+single_test "$GPAC -ltf -h props" "gpac-filter-h-props"
+single_test "$GPAC -ltf -h codecs" "gpac-filter-h-codecs"
+single_test "$GPAC -ltf -h links" "gpac-filter-h-links"
+single_test "$GPAC -ltf -h filters" "gpac-filter-h-filters"
+single_test "$GPAC -ltf -h filters:*" "gpac-filter-h-filters-all"
+single_test "$GPAC -ltf -h UTFilter" "gpac-filter-unit-info"
 
-single_test "$GPAC -ltf UTSOurce:opt_dump UTFilter:opt_dump UTSink:opt_dump" "gpac-filter-dump_props"
+single_test "$GPAC -ltf UTSource:cov UTFilter:cov UTSink:cov" "gpac-filter-dump_props"
 
 sched_test "UTSource UTSink" "gpac-filter-1source-1sink-shared"
 

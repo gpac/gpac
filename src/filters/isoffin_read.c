@@ -734,6 +734,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				ch->end = (u64) (s64) (end  * ch->time_scale);
 		}
 		ch->play_state = 1;
+		ch->sample_num = com->play.from_pck;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 
@@ -917,12 +918,17 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pck_set_dependency_flags(pck, dep_flags);
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
+				gf_filter_pck_set_seq_num(pck, ch->sample_num);
 
 				if (ch->cenc_state_changed) {
 					gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
 
 					if (!ch->IV_size) {
-						gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
+						if (ch->constant_IV_size) {
+							gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
+						} else {
+							gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, NULL);
+						}
 					} else {
 						gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
 					}
