@@ -1551,7 +1551,7 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 {
 	u8 priority;
 	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
-	return gf_filter_pid_caps_match(pid->pid, NULL, NULL, &priority, NULL, pid->filter, -1);
+	return gf_filter_pid_caps_match(pid->pid, NULL, pid->filter, &priority, NULL, pid->filter, -1);
 }
 
 
@@ -2551,7 +2551,7 @@ restart:
 			if (!filter_dst->max_extra_pids) continue;
 		}
 		//pid->filter->dst_filter NULL and pid->filter->target_filter is not: we had a wrong resolved chain to target
-		//so only attempt to reling the chain if dst_filter is the expected target
+		//so only attempt to relink the chain if dst_filter is the expected target
 		if (!pid->filter->dst_filter && pid->filter->target_filter && (filter_dst != pid->filter->target_filter)) {
 			if (filter_dst->target_filter != pid->filter->target_filter) {
 				continue;
