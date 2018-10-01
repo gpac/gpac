@@ -1979,7 +1979,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	if (filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
 
 	if (!link_from->id) {
-		sprintf(szID, "__gpac__%p__", link_from);
+		sprintf(szID, "_%p_", link_from);
 		gf_filter_set_id(link_from, szID);
 	}
 	if (link_ext) {
