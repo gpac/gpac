@@ -226,8 +226,6 @@ static const GF_FilterCapability ReframerRAWCaps[] =
 static GF_Err reframer_initialize(GF_Filter *filter)
 {
 	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
-	if (ctx->rt == REFRAME_RT_SYNC)
-		gf_filter_sep_max_extra_input_pids(filter, (u32) -1);
 
 	ctx->streams = gf_list_new();
 
@@ -275,12 +273,13 @@ static const GF_FilterArgs ReframerArgs[] =
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
 	.description = "Passthrough filter ensuring reframing, and optionnally decoding, of inputs",
-	.help = "This filter forces input pids to be properly frames (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
+	.help = "This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
 		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video\n"\
 		"The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:\n"\
 		"\tEX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\
 		,
 	.private_size = sizeof(GF_ReframerCtx),
+	.max_extra_pids = (u32) -1,
 	.args = ReframerArgs,
 	//reframer is explicit only, so we don't load the reframer during resolution process
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
