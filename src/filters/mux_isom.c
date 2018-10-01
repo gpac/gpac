@@ -1836,6 +1836,9 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 			e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, tkw->stsd_idx, duration, 0, 0, 0);
 		} else {
 			e = gf_isom_add_sample(ctx->file, tkw->track_num, tkw->stsd_idx, &tkw->sample);
+			if (!e && !duration) {
+				gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, 0);
+			}
 		}
 
 		if (e) {
@@ -1843,6 +1846,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
 		}
+
 
 		if (tkw->cenc_state) {
 			mp4_mux_cenc_update(ctx, tkw, pck, for_fragment ? CENC_ADD_FRAG : CENC_ADD_NORMAL, tkw->sample.dataLength);
