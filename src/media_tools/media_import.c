@@ -5088,9 +5088,12 @@ restart_import:
 			} else {
 				if (avc.sps_active_idx != -1) {
 					copy_size = gf_media_avc_reformat_sei(buffer, nal_size, &avc);
-					if (copy_size)
-						nb_sei++;
+				} else {
+					//if no state yet, import SEI
+					copy_size = nal_size;
 				}
+				if (copy_size)
+					nb_sei++;
 			}
 			break;
 
@@ -6389,11 +6392,15 @@ restart_import:
 				copy_size = 0;
 			} else {
 				if (hevc.sps_active_idx != -1) {
+					//todo: inspect SEI and decide what we import
 					copy_size = nal_size;
-					if (copy_size) {
-						nb_sei++;
-					}
+				} else {
+					//if no state yet, import SEI
+					copy_size = nal_size;
 				}
+			}
+			if (copy_size) {
+				nb_sei++;
 			}
 			if (nal_size) {
 				//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
