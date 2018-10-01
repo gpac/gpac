@@ -167,6 +167,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	else {
 		ext = strrchr(ctx->dst, '.');
 		if (!ext) ext = ".*";
+		ext += 1;
 	}
 
 	if (!ext && !ctx->mime) {
@@ -183,7 +184,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 		ctx->in_caps[1].flags = GF_CAPS_INPUT;
 	} else {
-		strncpy(ctx->szExt, ext+1, 9);
+		strncpy(ctx->szExt, ext, 9);
 		strlwr(ctx->szExt);
 		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 		ctx->in_caps[1].val = PROP_NAME( ctx->szExt );

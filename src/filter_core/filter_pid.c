@@ -916,6 +916,9 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 
 	//check for built-in property
 	p4cc = gf_props_get_id(frag_name);
+	if (!p4cc && !strcmp(frag_name, "PID") )
+		p4cc = GF_PROP_PID_ID;
+
 	if (!p4cc && (strlen(frag_name)==4))
 		p4cc = GF_4CC(frag_name[0], frag_name[1], frag_name[2], frag_name[3]);
 
@@ -1615,6 +1618,9 @@ enum
 	EDGE_STATUS_DISABLED,
 };
 
+#define EDGE_LOADED_SOURCE_ONLY (1)
+#define EDGE_LOADED_DEST_ONLY (1<<1)
+
 typedef struct
 {
 	struct __freg_desc *src_reg;
@@ -1937,6 +1943,11 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	for (i=0; i<reg_dst->nb_edges; i++) {
 		GF_FilterRegEdge *edge = &reg_dst->edges[i];
 		edge->status = EDGE_STATUS_NONE;
+
+		if (edge->loaded_filter_only) {
+			edge->status = EDGE_STATUS_DISABLED;
+			continue;
+		}
 		//connection from source, disable edge if pid caps mismatch
 		if (edge->src_reg->freg == pid->filter->freg) {
 			u8 priority=0;

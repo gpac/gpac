@@ -531,7 +531,7 @@ GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 		if (!sdtp->sample_info) return GF_OUT_OF_MEM;
 
 		for (i=sdtp->sampleCount; i<sampleNumber; i++) {
-			sdtp->sample_info[i-1] = 0;
+			sdtp->sample_info[i] = 0;
 		}
 		sdtp->sampleCount = sampleNumber;
 	}

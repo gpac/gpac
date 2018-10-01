@@ -1070,17 +1070,60 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 {
 	const char *src;
-	char szArgs[4096], szSubArgs[1024];
+	char szArgs[4096], szSubArgs[1024], szExt[30];
 	GF_Filter *file_out, *reframer, *remux=NULL, *src_filter;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
+	u32 codec_id=0;
+
+	strcpy(szExt, "");
+	if (dumper->trackID) {
+		u32 msubtype = 0;
+		u32 track_num = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+		GF_ESD *esd = gf_media_map_esd(dumper->file, track_num);
+		if (esd) {
+			codec_id = esd->decoderConfig->objectTypeIndication;
+			gf_odf_desc_del((GF_Descriptor *) esd);
+		}
+		if (!codec_id) {
+			msubtype = gf_isom_get_media_subtype(dumper->file, track_num, 1);
+			codec_id = gf_codec_id_from_isobmf(msubtype);
+		}
+		if (!codec_id) {
+			strcpy(szExt, gf_4cc_to_str(msubtype));
+		} else {
+			char *sep;
+			const char *sname = gf_codecid_file_ext(codec_id);
+			strncpy(szExt, sname, 29);
+			szExt[29]=0;
+			sep = strchr(szExt, '|');
+			if (sep) sep[0] = 0;
+		}
+	}
 
 	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, 0, NULL);
 
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
+		char *ext;
 		//mux args, for now we only dump to file
-		sprintf(szArgs, "fout:dst=%s:dynext", dumper->out_name);
+		sprintf(szArgs, "fout:dst=%s", dumper->out_name);
+
+		if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
+			if (!dumper->sample_num) {
+				ext = strrchr(szArgs, '.');
+				if (ext) ext[0] = 0;
+				strcat(szArgs, "_$num$");
+				ext = strrchr(dumper->out_name, '.');
+				if (ext) strcat(szArgs, ext);
+			}
+			strcat(szArgs, ":dynext");
+		} else if (dumper->trackID) {
+			strcat(szArgs, ":fext=");
+			strcat(szArgs, szExt);
+		}
+
+
 		file_out = gf_fs_load_filter(fsess, szArgs);
 		if (!file_out) {
 			gf_fs_del(fsess);
@@ -1131,8 +1174,8 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!strstr(szArgs, ".avi")) strcat(szArgs, ".avi");
 		strcat(szArgs, ":noraw");
 
-		remux = gf_fs_load_filter(fsess, szArgs);
-		if (!remux) {
+		file_out = gf_fs_load_filter(fsess, szArgs);
+		if (!file_out) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load AVI output filter\n"));
 			return GF_FILTER_NOT_FOUND;

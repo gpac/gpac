@@ -231,40 +231,6 @@ void isor_declare_objects(ISOMReader *read)
 			codec_id = 0;
 
 			switch (m_subtype) {
-			case GF_ISOM_SUBTYPE_3GP_AMR:
-				codec_id = GF_CODECID_AMR;
-				break;
-			case GF_ISOM_SUBTYPE_3GP_AMR_WB:
-				codec_id = GF_CODECID_AMR_WB;
-				break;
-			case GF_ISOM_SUBTYPE_3GP_H263:
-			case GF_ISOM_SUBTYPE_H263:
-				codec_id = GF_CODECID_H263;
-				break;
-			case GF_ISOM_SUBTYPE_XDVB:
-				codec_id = GF_CODECID_MPEG2_MAIN;
-				break;
-			case GF_ISOM_MEDIA_FLASH:
-				codec_id = GF_CODECID_FLASH;
-				break;
-			case GF_ISOM_SUBTYPE_AC3:
-				codec_id = GF_CODECID_AC3;
-				break;
-			case GF_ISOM_SUBTYPE_EC3:
-				codec_id = GF_CODECID_EAC3;
-				break;
-			case GF_ISOM_SUBTYPE_MP3:
-				codec_id = GF_CODECID_MPEG_AUDIO;
-				break;
-			case GF_ISOM_SUBTYPE_JPEG:
-				codec_id = GF_CODECID_JPEG;
-				break;
-			case GF_ISOM_SUBTYPE_PNG:
-				codec_id = GF_CODECID_PNG;
-				break;
-			case GF_ISOM_SUBTYPE_JP2K:
-				codec_id = GF_CODECID_J2K;
-				break;
 			case GF_ISOM_SUBTYPE_STXT:
 				codec_id = GF_CODECID_SIMPLE_TEXT;
 				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
@@ -273,12 +239,6 @@ void isor_declare_objects(ISOMReader *read)
 				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
 				codec_id = GF_CODECID_META_TEXT;
 				break;
-			case GF_ISOM_SUBTYPE_METX:
-				codec_id = GF_CODECID_META_XML;
-				break;
-			case GF_ISOM_SUBTYPE_SBTT:
-				codec_id = GF_CODECID_SUBS_TEXT;
-				break;
 			case GF_ISOM_SUBTYPE_STPP:
 				codec_id = GF_CODECID_SUBS_XML;
 				gf_isom_xml_subtitle_get_description(read->mov, i+1, 1, &namespace, &schemaloc, &mime);
@@ -286,9 +246,6 @@ void isor_declare_objects(ISOMReader *read)
 			case GF_ISOM_SUBTYPE_WVTT:
 				codec_id = GF_CODECID_WEBVTT;
 				stxtcfg = gf_isom_get_webvtt_config(read->mov, i+1, 1);
-				break;
-			case GF_ISOM_SUBTYPE_3GP_DIMS:
-				codec_id = GF_CODECID_DIMS;
 				break;
 			case GF_ISOM_SUBTYPE_HVT1:
 				codec_id = GF_CODECID_HEVC_TILES;
@@ -314,7 +271,9 @@ void isor_declare_objects(ISOMReader *read)
 			}
 				break;
 			default:
-				load_default = GF_TRUE;
+				codec_id = gf_codec_id_from_isobmf(m_subtype);
+				if (!codec_id)
+					load_default = GF_TRUE;
 				break;
 			}
 

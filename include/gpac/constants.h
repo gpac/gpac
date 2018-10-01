@@ -510,6 +510,24 @@ u32 gf_codecid_4cc_type(u32 codecid);
 */
 u32 gf_codec_parse(const char *cname);
 
+/*! Gets the raw file ext (one or more, | separated) for the given codecid
+ \param codecid codec ID
+ \return returns file extension
+*/
+const char *gf_codecid_file_ext(u32 codecid);
+
+/*! Gets the raw file mime type for the given codecid
+ \param codecid codec ID
+ \return returns file mime type
+*/
+const char *gf_codecid_mime(u32 codecid);
+
+/*! Gets the codecid from isomedia code point
+ \param isobmftype isomedia code point
+ \return codec ID, 0 if not mapped/known
+*/
+u32 gf_codec_id_from_isobmf(u32 isobmftype);
+
 /*!
  * \brief AFX Object Code
 */
