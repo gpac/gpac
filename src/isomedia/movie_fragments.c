@@ -105,7 +105,8 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 
 	if (store_file) {
 		/*"dash" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, 1);
+		if (media_segment_type)
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, 1);
 
 		if (!movie->moov->mvex->mehd || !movie->moov->mvex->mehd->fragment_duration) {
 			//update durations
@@ -143,6 +144,10 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 			if (movie->moov->mvex->mehd && movie->moov->mvex->mehd->fragment_duration) {
 				trex->track->Header->duration = 0;
 				Media_SetDuration(trex->track);
+				if (trex->track->editBox && trex->track->editBox->editList) {
+					GF_EdtsEntry *edts = gf_list_last(trex->track->editBox->editList->entryList);
+					edts->segmentDuration = 0;
+				}
 			}
 		}
 
