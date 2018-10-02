@@ -289,8 +289,6 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	} else {
 		GF_GenericSampleDescription udesc;
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
-		memcpy(udesc.compressor_name, " UNKNOWN", 8);
-		udesc.compressor_name[0] = 7;
 		switch (OTI) {
 		case GPAC_OTI_IMAGE_JPEG:
 			udesc.codec_tag = GF_ISOM_BOX_TYPE_JPEG;
@@ -306,6 +304,10 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 			udesc.codec_tag = GF_ISOM_BOX_TYPE_JP2K;
 			memcpy(udesc.compressor_name, " JPEG2000", 9);
 			udesc.compressor_name[0] = 8;
+			break;
+		default:
+			memcpy(udesc.compressor_name, " UNKNOWN", 8);
+			udesc.compressor_name[0] = 7;
 			break;
 		}
 		udesc.width = w;
