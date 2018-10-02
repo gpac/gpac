@@ -3009,8 +3009,8 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			dur /= ctx->dur.den;
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, dur);
 		}
-
-		if (!tkw->skip_bitrate_update)
+		//don't update bitrate info for single sample tracks, unless MPEG-4 Systems - compatibility with old arch
+		if (!tkw->skip_bitrate_update && ((tkw->nb_samples>1) || ctx->m4sys) )
 			gf_media_update_bitrate(ctx->file, tkw->track_num);
 
 		if (tkw->has_open_gop) {
