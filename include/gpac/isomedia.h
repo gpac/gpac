@@ -1400,7 +1400,7 @@ GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *the_file, u32 trackNumber, u
 /*Add a system descriptor to the ESD of a stream - you have to delete the descriptor*/
 GF_Err gf_isom_add_desc_to_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_Descriptor *theDesc);
 
-/*updates average and max bitrate - if 0 for max, removes bitrate info*/
+/*updates average and max bitrate - if 0 for max and avg, removes bitrate info*/
 GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size);
 
 

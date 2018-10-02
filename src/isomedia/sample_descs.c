@@ -1106,7 +1106,9 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	ent = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex - 1);
 	if (!ent) return GF_BAD_PARAM;
 
+	if (!max_bitrate && average_bitrate) max_bitrate = average_bitrate;
 	a = gf_isom_sample_entry_get_bitrate(ent, max_bitrate ? GF_TRUE : GF_FALSE);
+
 	if (!max_bitrate) {
 		if (a) {
 			gf_list_del_item(ent->other_boxes, a);
