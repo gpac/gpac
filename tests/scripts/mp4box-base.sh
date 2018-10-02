@@ -14,18 +14,23 @@ do_hash_test $TEMP_DIR/dref.mp4 "create-dref-mp4"
 
 do_test "$MP4BOX  -raw 1 $mp4file -out $TEMP_DIR/test.tmp" "raw-264"
 do_hash_test $TEMP_DIR/test.tmp "raw-264"
+rm $TEMP_DIR/test.tmp 2&>/dev/null
 
 do_test "$MP4BOX  -raw 2 $mp4file -out $TEMP_DIR/test.tmp" "raw-aac"
 do_hash_test $TEMP_DIR/test.tmp "raw-aac"
+rm $TEMP_DIR/test.tmp 2&>/dev/null
 
 do_test "$MP4BOX  -raw 3 $mp4file -out $TEMP_DIR/test.tmp" "raw-text"
 do_hash_test $TEMP_DIR/test.tmp "raw-text"
+rm $TEMP_DIR/test.tmp 2&>/dev/null
 
 do_test "$MP4BOX  -srt 3 $mp4file -out $TEMP_DIR/test.tmp" "srt-text"
 do_hash_test $TEMP_DIR/test.tmp "srt-text"
+rm $TEMP_DIR/test.tmp 2&>/dev/null
 
 do_test "$MP4BOX  -ttxt 3 $mp4file -out $TEMP_DIR/test.tmp" "ttxt-text"
 do_hash_test $TEMP_DIR/test.tmp "ttxt-text"
+rm $TEMP_DIR/test.tmp 2&>/dev/null
 
 
 do_test "$MP4BOX -raws 1 $mp4file" "raw-samples"
