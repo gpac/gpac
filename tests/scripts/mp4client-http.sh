@@ -1,3 +1,6 @@
+if [ $disable_playback != 0 ] ; then
+return
+fi
 
 #progressive bifs in http
 single_playback_test " http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/bifs/bifs-2D-background-background2D-bind.bt" "mp4client-http-bt"

@@ -1,3 +1,8 @@
+if [ $disable_playback != 0 ] ; then
+return
+fi
+
+
 URL="http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/mp4-live-1s/mp4-live-1s-mpd-AV-BS.mpd"
 DEFAULT_OPT="-run-for 10 -opt DASH:AutoSwitchCount=0 -opt DASH:BufferingMode=minBuffer -opt DASH:NetworkAdaptation=buffer -opt DASH:StartRepresentation=minBandwidth -opt DASH:SpeedAdaptation=no -opt DASH:SwitchProbeCount=1 -opt DASH:AgressiveSwitching=no"
 
