@@ -5327,6 +5327,35 @@ int mp4boxMain(int argc, char **argv)
 		needSave = GF_TRUE;
 	}
 
+	if (cprt) {
+		e = gf_isom_set_copyright(file, "und", cprt);
+		needSave = GF_TRUE;
+		if (e) goto err_exit;
+	}
+	if (chap_file) {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+		e = gf_media_import_chapters(file, chap_file, import_fps);
+		needSave = GF_TRUE;
+#else
+		fprintf(stderr, "Warning: GPAC compiled without Media Import, chapters can't be imported\n");
+		e = GF_NOT_SUPPORTED;
+#endif
+		if (e) goto err_exit;
+	}
+
+	if (major_brand) {
+		gf_isom_set_brand_info(file, major_brand, minor_version);
+		needSave = GF_TRUE;
+	}
+	for (i=0; i<nb_alt_brand_add; i++) {
+		gf_isom_modify_alternate_brand(file, brand_add[i], 1);
+		needSave = GF_TRUE;
+	}
+	for (i=0; i<nb_alt_brand_rem; i++) {
+		gf_isom_modify_alternate_brand(file, brand_rem[i], 0);
+		needSave = GF_TRUE;
+	}
+	
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (Frag) {
 		if (!interleaving_time) interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
@@ -5404,35 +5433,6 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 #endif /*!defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)*/
-
-	if (cprt) {
-		e = gf_isom_set_copyright(file, "und", cprt);
-		needSave = GF_TRUE;
-		if (e) goto err_exit;
-	}
-	if (chap_file) {
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
-		e = gf_media_import_chapters(file, chap_file, import_fps);
-		needSave = GF_TRUE;
-#else
-		fprintf(stderr, "Warning: GPAC compiled without Media Import, chapters can't be imported\n");
-		e = GF_NOT_SUPPORTED;
-#endif
-		if (e) goto err_exit;
-	}
-
-	if (major_brand) {
-		gf_isom_set_brand_info(file, major_brand, minor_version);
-		needSave = GF_TRUE;
-	}
-	for (i=0; i<nb_alt_brand_add; i++) {
-		gf_isom_modify_alternate_brand(file, brand_add[i], 1);
-		needSave = GF_TRUE;
-	}
-	for (i=0; i<nb_alt_brand_rem; i++) {
-		gf_isom_modify_alternate_brand(file, brand_rem[i], 0);
-		needSave = GF_TRUE;
-	}
 
 	if (!encode && !force_new) gf_isom_set_final_name(file, outfile);
 	if (needSave) {
