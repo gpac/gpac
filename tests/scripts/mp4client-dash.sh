@@ -1,3 +1,6 @@
+if [ $disable_playback != 0 ] ; then
+return
+fi
 
 DASH_REF_TPT="http://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech"
 
