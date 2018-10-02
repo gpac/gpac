@@ -4,7 +4,7 @@ test_begin "dash-dynamic-simple"
 
 $MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_1280x720_512kbps.264:dur=10 -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.aac:dur=10 -new $TEMP_DIR/file.mp4 2> /dev/null
 
-do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -time-shift -1 -run-for 8000 $TEMP_DIR/file.mp4#video $TEMP_DIR/file.mp4#audio -out $TEMP_DIR/file.mpd" "dash-gen" &
+do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -time-shift -1 -run-for 4000 $TEMP_DIR/file.mp4#video $TEMP_DIR/file.mp4#audio -out $TEMP_DIR/file.mpd" "dash-gen" &
 
 sleep 1
 
@@ -38,7 +38,7 @@ test_begin "dash-dynamic-loop"
 #import 2.4sec (2.4 gops) and dash using loop mode
 $MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_1280x720_512kbps.264:dur=2.4 -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.aac:dur=2.4 -new $TEMP_DIR/file.mp4 2> /dev/null
 
-do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -time-shift -1 -run-for 8000 $TEMP_DIR/file.mp4#video $TEMP_DIR/file.mp4#audio -out $TEMP_DIR/file.mpd" "dash-gen" &
+do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -mpd-refresh 10 -time-shift -1 -run-for 4000 $TEMP_DIR/file.mp4#video $TEMP_DIR/file.mp4#audio -out $TEMP_DIR/file.mpd" "dash-gen" &
 
 sleep 1
 
@@ -75,7 +75,7 @@ test_begin "dash-dynamic-loop-dur-less-than-seg"
 #import 10 sec (10 gops) and dash for a shorter media duration using loop mode
 $MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_1280x720_512kbps.264:dur=10 -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.aac:dur=10 -new $TEMP_DIR/file.mp4 2> /dev/null
 
-do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 8000 $TEMP_DIR/file.mp4#video:dur=1.4 $TEMP_DIR/file.mp4#audio:dur=1.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
+do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 4000 $TEMP_DIR/file.mp4#video:dur=1.4 $TEMP_DIR/file.mp4#audio:dur=1.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
 
 sleep 1
 
@@ -108,7 +108,7 @@ test_begin "dash-dynamic-loop-dur-greater-than-seg"
 #import 10 sec (10 gops) and dash for a shorter media duration using loop mode
 $MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_1280x720_512kbps.264:dur=10 -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.aac:dur=10 -new $TEMP_DIR/file.mp4 2> /dev/null
 
-do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 8000 $TEMP_DIR/file.mp4#video:dur=2.4 $TEMP_DIR/file.mp4#audio:dur=2.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
+do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 4000 $TEMP_DIR/file.mp4#video:dur=2.4 $TEMP_DIR/file.mp4#audio:dur=2.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
 
 sleep 1
 
@@ -143,7 +143,7 @@ test_begin "dash-dynamic-noloop-dur-less-than-seg"
 #import 10 sec (10 gops) and dash for a shorter media duration using loop mode
 $MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_1280x720_512kbps.264:dur=10 -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.aac:dur=10 -new $TEMP_DIR/file.mp4 2> /dev/null
 
-do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 8000 -no-loop $TEMP_DIR/file.mp4#video:dur=1.4 $TEMP_DIR/file.mp4#audio:dur=1.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
+do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 4000 -no-loop $TEMP_DIR/file.mp4#video:dur=1.4 $TEMP_DIR/file.mp4#audio:dur=1.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
 
 sleep 1
 
@@ -168,7 +168,7 @@ test_begin "dash-dynamic-noloop-dur-greater-than-seg"
 #import 10 sec (10 gops) and dash for a shorter media duration using loop mode
 $MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_1280x720_512kbps.264:dur=10 -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.aac:dur=10 -new $TEMP_DIR/file.mp4 2> /dev/null
 
-do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 8000 -no-loop $TEMP_DIR/file.mp4#video:dur=4.4 $TEMP_DIR/file.mp4#audio:dur=2.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
+do_test "$MP4BOX -dash-live 2000 -subdur 2000 -profile live -bs-switching single -mpd-refresh 10 -time-shift -1 -run-for 4000 -no-loop $TEMP_DIR/file.mp4#video:dur=4.4 $TEMP_DIR/file.mp4#audio:dur=2.4 -out $TEMP_DIR/file.mpd" "dash-gen" &
 
 sleep 1
 
