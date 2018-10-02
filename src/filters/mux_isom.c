@@ -3014,8 +3014,10 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			gf_media_update_bitrate(ctx->file, tkw->track_num);
 
 		if (tkw->has_open_gop) {
-//			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand\n"));
-//			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, 1);
+			if (ctx->importer) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand\n"));
+			}
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, 1);
 		}
 
 		mp4_mux_set_hevc_groups(ctx, tkw);
