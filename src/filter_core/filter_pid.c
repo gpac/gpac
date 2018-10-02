@@ -1080,9 +1080,12 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 	}
 	in_caps = freg->caps;
 	nb_in_caps = freg->nb_caps;
-	if (filter_inst && filter_inst->forced_caps && (filter_inst->freg==freg)) {
-		in_caps = filter_inst->forced_caps;
-		nb_in_caps = filter_inst->nb_forced_caps;
+	if (filter_inst && (filter_inst->freg==freg)) {
+		skip_explicit_load = GF_TRUE;
+		if (filter_inst->forced_caps) {
+			in_caps = filter_inst->forced_caps;
+			nb_in_caps = filter_inst->nb_forced_caps;
+		}
 	}
 
 	if (filter_inst && filter_inst->encoder_stream_type) {

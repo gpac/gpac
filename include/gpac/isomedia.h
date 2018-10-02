@@ -960,6 +960,9 @@ GF_Err gf_isom_get_brand_info(GF_ISOFile *the_file, u32 *brand, u32 *minorVersio
 Note that the Major brand should always be indicated in the alternate brands*/
 GF_Err gf_isom_get_alternate_brand(GF_ISOFile *the_file, u32 BrandIndex, u32 *brand);
 
+/*gets the internal list of brands. DO NOT MODIFY the content*/
+const u32 *gf_isom_get_brands(GF_ISOFile *movie);
+
 /*get the number of padding bits at the end of a given sample if any*/
 GF_Err gf_isom_get_sample_padding_bits(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u8 *NbBits);
 /*indicates whether the track samples use padding bits or not*/
@@ -1092,6 +1095,9 @@ Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *
 
 /*gets the nalu_length_field size used for this sample description if NALU-based (AVC/HEVC/...), else returns 0 */
 u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescriptionIndex);
+
+/*gets bitrate info for given sample description. If not found all values are set to 0*/
+GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 *average_bitrate, u32 *max_bitrate, u32 *decode_buffer_size);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

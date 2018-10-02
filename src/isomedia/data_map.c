@@ -169,7 +169,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 		return GF_NOT_SUPPORTED;
 	}
 
-	sPath = gf_url_get_absolute_path(location, parentPath);
+	sPath = gf_url_concatenate(parentPath, location);
 	if (sPath == NULL) {
 		return GF_URL_ERROR;
 	}
@@ -267,7 +267,7 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 		}
 		//else this is a URL (read mode only)
 	} else {
-		e = gf_isom_datamap_new(ent->location, mdia->mediaTrack->moov->mov->fileName, GF_ISOM_DATA_MAP_READ, & mdia->information->dataHandler);
+		e = gf_isom_datamap_new(ent->location, mdia->mediaTrack->moov->mov->fileName ? mdia->mediaTrack->moov->mov->fileName : mdia->mediaTrack->moov->mov->finalName, GF_ISOM_DATA_MAP_READ, & mdia->information->dataHandler);
 		if (e) return (e==GF_URL_ERROR) ? GF_ISOM_UNKNOWN_DATA_REF : e;
 	}
 	//OK, set the data entry index

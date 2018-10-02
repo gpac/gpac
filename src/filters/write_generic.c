@@ -33,9 +33,9 @@
 typedef struct
 {
 	//opts
-	Bool exporter, rcfg, frame, split;
+	Bool exporter, frame, split;
 	u32 sstart, send;
-	u32 pfmt, afmt;
+	u32 pfmt, afmt, decinfo;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -146,26 +146,26 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!AMR\n";
 		ctx->dcfg_size = 6;
-		ctx->rcfg = GF_FALSE;
+		ctx->decinfo = GF_FALSE;
 		break;
 	case GF_CODECID_AMR_WB:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!AMR-WB\n";
 		ctx->dcfg_size = 9;
-		ctx->rcfg = GF_FALSE;
+		ctx->decinfo = GF_FALSE;
 		break;
 	case GF_CODECID_SMV:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!SMV\n";
 		ctx->dcfg_size = 6;
-		ctx->rcfg = GF_FALSE;
+		ctx->decinfo = GF_FALSE;
 		break;
 	case GF_CODECID_EVRC_PV:
 	case GF_CODECID_EVRC:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!EVRC\n";
 		ctx->dcfg_size = 7;
-		ctx->rcfg = GF_FALSE;
+		ctx->decinfo = GF_FALSE;
 		break;
 
 	case GF_CODECID_SIMPLE_TEXT:
@@ -527,13 +527,13 @@ GF_Err gendump_process(GF_Filter *filter)
 
 	if (ctx->frame) {
 		split = GF_TRUE;
-	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && !ctx->cfg_sent) {
+	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && ctx->decinfo && !ctx->cfg_sent) {
 		dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
 		gf_filter_pck_send(dst_pck);
-		if (!ctx->rcfg && !ctx->split) {
+		if ((ctx->decinfo==1) && !ctx->split) {
 			ctx->dcfg_size = 0;
 			ctx->dcfg = NULL;
 		}
@@ -832,7 +832,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pfmt), "Pixel format for raw extract. If not set, derived from extension", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(afmt), "Audio format for raw extract. If not set, derived from extension", GF_PROP_PCMFMT, "none", NULL, 0},
-	{ OFFS(rcfg), "Force repeating decoder config at each I-frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(decinfo), "Decoder config insert mode: no means never, first means on first packet, sap means at each SAP", GF_PROP_UINT, "no", "no|first|sap", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split), "Force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(sstart), "Start number of frame to dump", GF_PROP_UINT, "0", NULL, 0},

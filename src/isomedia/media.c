@@ -430,6 +430,8 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	e = Media_GetSampleDesc(mdia, sdesc_idx, &entry, &dataRefIndex);
 	if (e) return e;
 
+	if (no_data) return GF_OK;
+
 	// Open the data handler - check our mode, don't reopen in read only if this is
 	//the same entry. In other modes we have no choice because the main data map is
 	//divided into the original and the edition files
@@ -445,8 +447,6 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		e = gf_isom_datamap_open(mdia, dataRefIndex, isEdited);
 		if (e) return e;
 	}
-
-	if (no_data) return GF_OK;
 
 	if ( mdia->mediaTrack->moov->mov->read_byte_offset) {
 		GF_DataEntryBox *ent = (GF_DataEntryBox*)gf_list_get(mdia->information->dataInformation->dref->other_boxes, dataRefIndex - 1);

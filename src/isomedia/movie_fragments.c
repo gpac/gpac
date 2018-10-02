@@ -105,8 +105,9 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, 
 	movie->FragmentsFlags = 0;
 
 	if (store_file) {
-		/*"dash" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, 1);
+		/* add DASH brand if requested*/
+		if (media_segment_type)
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, 1);
 
 		if (!movie->moov->mvex->mehd || !movie->moov->mvex->mehd->fragment_duration) {
 			//update durations
@@ -962,6 +963,10 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		movie->fragmented_file_pos += size;
 		gf_bs_seek(bs_orig, 0);
 		gf_bs_truncate(bs_orig);
+	}
+	else if (movie->on_block_out) {
+		u64 size = gf_bs_get_position(bs);
+		movie->fragmented_file_pos += size;
 	}
 
 	if (!movie->use_segments) {
