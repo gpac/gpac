@@ -3272,7 +3272,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	const char *tag;
 	u32 tag_len, mbrand, bcount, mversion;
 	GF_ISOFile *output;
-	GF_ISOSample *sample, *next;
+	GF_ISOSample *sample;
 	GF_List *fragmenters;
 	u32 MaxFragmentDuration;
 	GF_TrackFragmenter *tf;
@@ -3415,12 +3415,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 				}
 				gf_isom_get_sample_padding_bits(input, tf->OriginalTrack, tf->SampleNum+1, &NbBits);
 
-				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 2, &j);
-				if (next) {
-					defaultDuration = (u32) (next->DTS - sample->DTS);
-				} else {
-					defaultDuration = tf->DefaultDuration;
-				}
+				defaultDuration = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum + 1);
 
 				e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex, defaultDuration, NbBits, 0, 0);
 				if (e) goto err_exit;
@@ -3436,7 +3431,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 				nb_done++;
 
 				gf_isom_sample_del(&sample);
-				sample = next;
+				sample = NULL;
 				tf->FragmentLength += defaultDuration;
 				tf->SampleNum += 1;
 
@@ -3444,8 +3439,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 				if ((tf->SampleNum==tf->SampleCount) ||
 				        /* TODO: should probably test the time position (not only duration) to avoid drift */
 				        (tf->FragmentLength*1000 >= MaxFragmentDuration*tf->TimeScale)) {
-					gf_isom_sample_del(&next);
-					sample = next = NULL;
+					sample = NULL;
 					tf->FragmentLength = 0;
 					break;
 				}
