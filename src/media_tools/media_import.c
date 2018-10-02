@@ -289,15 +289,23 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	} else {
 		GF_GenericSampleDescription udesc;
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
+		memcpy(udesc.compressor_name, " UNKNOWN", 8);
+		udesc.compressor_name[0] = 7;
 		switch (OTI) {
 		case GPAC_OTI_IMAGE_JPEG:
 			udesc.codec_tag = GF_ISOM_BOX_TYPE_JPEG;
+			memcpy(udesc.compressor_name, " JPEG", 5);
+			udesc.compressor_name[0] = 4;
 			break;
 		case GPAC_OTI_IMAGE_PNG:
 			udesc.codec_tag = GF_ISOM_BOX_TYPE_PNG;
+			memcpy(udesc.compressor_name, " PNG", 4);
+			udesc.compressor_name[0] = 3;
 			break;
 		case GPAC_OTI_IMAGE_JPEG_2000:
 			udesc.codec_tag = GF_ISOM_BOX_TYPE_JP2K;
+			memcpy(udesc.compressor_name, " JPEG2000", 9);
+			udesc.compressor_name[0] = 8;
 			break;
 		}
 		udesc.width = w;
@@ -305,7 +313,6 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 		udesc.v_res = 72;
 		udesc.h_res = 72;
 		udesc.depth = 24;
-		memcpy(udesc.compressor_name, "\4JPEG", 5);
 
 		gf_isom_new_generic_sample_description(import->dest, track, NULL, NULL, &udesc, &di);
 		import->final_trackID = gf_isom_get_track_id(import->dest, track);
