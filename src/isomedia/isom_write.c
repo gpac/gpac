@@ -2821,9 +2821,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		trak->sample_encryption = NULL;
 	}
 
-	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_TRUE);
-
-
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	gf_isom_box_size( (GF_Box *) trak);
@@ -2843,8 +2840,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	stbl_temp->sampleGroupsDescription = NULL;
 	stbl_temp->CompositionToDecode = NULL;
 	gf_isom_box_del((GF_Box *)stbl_temp);
-
-	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_FALSE);
 
 	if (e) return e;
 
@@ -2966,7 +2961,6 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, orig_desc_index-1);
 	if (!entry) return GF_BAD_PARAM;
 
-	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_TRUE);
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	gf_isom_box_size(entry);
@@ -2977,8 +2971,6 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	e = gf_isom_box_parse(&entry, bs);
 	gf_bs_del(bs);
 	gf_free(data);
-	gf_isom_registry_disable(GF_ISOM_BOX_TYPE_BTRT, GF_FALSE);
-	
 	if (e) return e;
 
 	/*get new track and insert clone*/
