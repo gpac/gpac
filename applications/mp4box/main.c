@@ -5285,6 +5285,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_isom_modify_alternate_brand(file, brand_rem[i], 0);
 		needSave = GF_TRUE;
 	}
+
 #ifndef GPAC_DISABLE_CRYPTO
 	if (crypt) {
 		if (!drm_file) {
@@ -5380,7 +5381,6 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif /*!defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)*/
 
-
 	/*full interleave (sample-based) if just hinted*/
 	if (FullInter) {
 		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
@@ -5398,7 +5398,6 @@ int mp4boxMain(int argc, char **argv)
 		gf_isom_force_64bit_chunk_offset(file, GF_TRUE);
 
 	if (e) goto err_exit;
-
 
 	if (!encode && !force_new) gf_isom_set_final_name(file, outfile);
 	if (needSave) {

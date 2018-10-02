@@ -3169,7 +3169,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
-
 #ifndef GPAC_DISABLE_ISOM
 
 GF_EXPORT
@@ -3375,7 +3374,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 					}
 				}
 			}
-
 			gf_odf_hevc_cfg_del(hvcc);
 		} else {
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
