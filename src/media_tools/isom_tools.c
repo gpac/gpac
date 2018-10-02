@@ -3270,7 +3270,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	u16 defaultDegradationPriority;
 	GF_Err e;
 	const char *tag;
-	u32 tag_len;
+	u32 tag_len, mbrand, bcount, mversion;
 	GF_ISOFile *output;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
@@ -3288,11 +3288,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	nb_samp = 0;
 	fragmenters = gf_list_new();
 
-	/*FIXME - ALL THESE SHOULD GO DO A clone_movie item !!*/
-	e = gf_isom_set_brand_info(output, GF_ISOM_BRAND_MP42, 1);
-	if (e) goto err_exit;
-	e = gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISOM, 1);
-	if (e) goto err_exit;
+	gf_isom_get_brand_info(input, &mbrand, &mversion, &bcount);
+	gf_isom_set_brand_info(output, mbrand, mversion);
+	for (i=0; i<bcount; i++) {
+		gf_isom_get_alternate_brand(input, i+1, &mbrand);
+		gf_isom_modify_alternate_brand(output, mbrand, GF_TRUE);
+	}
 
 	//copy movie desc
 	gf_isom_clone_root_od(input, output);
@@ -3366,7 +3367,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
 
 	}
-
+	gf_isom_set_movie_duration(output, gf_isom_get_duration(input));
 
 
 
