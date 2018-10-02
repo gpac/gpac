@@ -1389,6 +1389,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	GF_Err e;
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *entry;
+	GF_AudioSampleEntryBox*aud_entry;
 	GF_SampleDescriptionBox *stsd;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -1410,11 +1411,16 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
+	aud_entry = (GF_AudioSampleEntryBox*) entry;
+	aud_entry->samplerate_hi = sampleRate;
+	aud_entry->samplerate_lo = 0;
+	aud_entry->channel_count = nbChannels;
+	aud_entry->bitspersample = bitsPerSample;
 
-	((GF_AudioSampleEntryBox*)entry)->samplerate_hi = sampleRate;
-	((GF_AudioSampleEntryBox*)entry)->samplerate_lo = 0;
-	((GF_AudioSampleEntryBox*)entry)->channel_count = nbChannels;
-	((GF_AudioSampleEntryBox*)entry)->bitspersample = bitsPerSample;
+	if (nbChannels>2) {
+		aud_entry->version = 1;
+		stsd->version = 1;
+	}
 	return GF_OK;
 }
 
