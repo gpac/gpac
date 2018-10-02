@@ -1143,7 +1143,6 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 		return GF_OK;
 	}
 
-
 	if (!max_bitrate && average_bitrate) max_bitrate = average_bitrate;
 
 	a = gf_isom_sample_entry_get_bitrate(ent, max_bitrate ? GF_TRUE : GF_FALSE);
