@@ -2876,7 +2876,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			PrintUsage();
 			return 1;
 		}
-		else if (!stricmp(arg, "-version") || !stricmp(arg, "-v")) {
+		else if (!stricmp(arg, "-version")) {
 			PrintVersion();
 			return 1;
 		}
@@ -3639,6 +3639,7 @@ int mp4boxMain(int argc, char **argv)
 	gf_sys_init(mem_track, NULL);
 	if (argc < 2) {
 		PrintUsage();
+		PrintVersion();
 		gf_sys_close();
 		return 0;
 	}
