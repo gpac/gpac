@@ -738,27 +738,28 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ NULL }
 };
 
+#define UT_CAP_CODE		GF_4CC('c','u','s','t')
 static const GF_FilterCapability UTFilterCaps[] =
 {
-	{ .name="cust", .val.type=GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_CAPFLAG_INPUT },
-	{ .name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_CAPFLAG_INPUT },
-	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_CAPFLAG_OUTPUT },
-	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_CAPFLAG_OUTPUT },
+	CAP_STRING(GF_CAPS_INPUT, UT_CAP_CODE, "UTSourceData"),
+	CAP_STRING(GF_CAPS_INPUT, UT_CAP_CODE, "UTFilterData"),
+	CAP_STRING(GF_CAPS_OUTPUT, UT_CAP_CODE, "UTSourceData"),
+	CAP_STRING(GF_CAPS_OUTPUT, UT_CAP_CODE, "UTFilterData"),
 };
 
 static const GF_FilterCapability UTSinkInputs[] =
 {
-	{ .name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTSourceData" },
+	CAP_STRING(GF_CAPS_INPUT, UT_CAP_CODE, "UTSourceData"),
 };
 
 static const GF_FilterCapability UTSink2Inputs[] =
 {
-	{ .name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTFilterData", .flags = GF_CAPFLAG_OUTPUT },
+	CAP_STRING(GF_CAPS_INPUT, UT_CAP_CODE, "UTFilterData"),
 };
 
 static const GF_FilterCapability UTSourceOutputs[] =
 {
-	{.name="cust", .val.type = GF_PROP_NAME, .val.value.string="UTSourceData", .flags = GF_CAPFLAG_OUTPUT },
+	CAP_STRING(GF_CAPS_OUTPUT, UT_CAP_CODE, "UTSourceData"),
 };
 
 
