@@ -763,7 +763,7 @@ GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, co
 			dref_entry->location = gf_strdup(origName);
 		} else {
 			u32 len = fname - origName;
-			if (strncmp(origName, finalName, len)) {
+			if (!finalName || strncmp(origName, finalName, len)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Concatenation of relative path %s with relative path %s not supported, use absolute URLs\n", origName, finalName));
 				return GF_NOT_SUPPORTED;
 			} else {
@@ -797,7 +797,7 @@ GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, char *U
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_URL);
 		entry->flags = 0;
 
-		e = Media_SetDrefURL(entry, URLname, movie->fileName);
+		e = Media_SetDrefURL(entry, URLname, movie->fileName ? movie->fileName : movie->finalName);
 		if (! entry->location) {
 			gf_isom_box_del((GF_Box *)entry);
 			return e ? e : GF_OUT_OF_MEM;
