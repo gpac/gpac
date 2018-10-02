@@ -1723,7 +1723,7 @@ GF_Err tx3g_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, ">\n");
 	fprintf(trace, "<DefaultBox>\n");
 	tx3g_dump_box(trace, &p->default_box);
-	gf_isom_box_dump_done("DefaultBox", a, trace);
+
 	fprintf(trace, "<DefaultStyle>\n");
 	tx3g_dump_style(trace, &p->default_style);
 	fprintf(trace, "</DefaultStyle>\n");
