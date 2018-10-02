@@ -894,7 +894,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, timescale, (acfg.nb_chan>2) ? 2 : acfg.nb_chan, 16);
+	gf_isom_set_audio_info(import->dest, track, di, timescale, acfg.nb_chan, 16);
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
@@ -1138,7 +1138,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, timescale, (hdr.nb_ch>2) ? 2 : hdr.nb_ch, 16);
+	gf_isom_set_audio_info(import->dest, track, di, timescale, hdr.nb_ch, 16);
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
