@@ -131,6 +131,7 @@ void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 	}
 }
 
+
 static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allowed)
 {
 	GF_Err e;
