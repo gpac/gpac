@@ -1,3 +1,7 @@
+if [ $disable_playback != 0 ] ; then
+return
+fi
+
 #test all the rendering color mode and texturing tools of the soft rasterizer using raw output module
 
 run_rawout_tests()

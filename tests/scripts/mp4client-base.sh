@@ -1,3 +1,7 @@
+if [ $disable_playback != 0 ] ; then
+return
+fi
+
 
 #1- test MP4Client -guid
 single_playback_test "-guid" "mp4client-gui"
