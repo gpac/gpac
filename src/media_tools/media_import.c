@@ -4142,14 +4142,16 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		case GF_ISOM_SUBTYPE_3GP_AMR:
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			ft = (toc >> 3) & 0x0F;
-			/*update mode set (same mechanism for both AMR and AMR-WB*/
-			gpp_cfg.AMR_mode_set |= (1<<ft);
 			if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_AMR_WB) {
 				samp->dataLength = (u32)GF_AMR_WB_FRAME_SIZE[ft];
 			} else {
 				samp->dataLength = (u32)GF_AMR_FRAME_SIZE[ft];
 			}
 			samp->data[0] = toc;
+			if (samp->dataLength) {
+				/*update mode set (same mechanism for both AMR and AMR-WB*/
+				gpp_cfg.AMR_mode_set |= (1<<ft);
+			}
 			break;
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
 		case GF_ISOM_SUBTYPE_3GP_SMV:
