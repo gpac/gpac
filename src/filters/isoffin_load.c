@@ -99,7 +99,7 @@ void isor_declare_objects(ISOMReader *read)
     */
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
-		u32 w, h, sr, nb_ch, streamtype, codec_id, depends_on_id, esid, avg_rate, sample_count, max_size, nb_refs, exp_refs;
+		u32 w, h, sr, nb_ch, streamtype, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs;
 		GF_ESD *an_esd;
 		const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
 		char *tk_template;
@@ -120,7 +120,7 @@ void isor_declare_objects(ISOMReader *read)
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
-		esid = depends_on_id = avg_rate = 0;
+		esid = depends_on_id = avg_rate = max_rate = buffer_size = 0;
 		mime = encoding = stxtcfg = namespace = schemaloc = NULL;
 
 		mtype = gf_isom_get_media_type(read->mov, i+1);
@@ -451,16 +451,9 @@ void isor_declare_objects(ISOMReader *read)
 			s32 idx;
 			gf_isom_get_media_language(read->mov, i+1, &lang);
 			idx = gf_lang_find(lang);
-			if (idx>=0) {
-				gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_NAME( (char *) gf_lang_get_name(idx) ));
-				gf_free(lang);
-			} else {
-				gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang ));
-			}
+			gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang ));
+			if (lang) gf_free(lang);
 			gf_odf_desc_del((GF_Descriptor *)lang_desc);
-		}
-		if (avg_rate) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT(avg_rate));
 		}
 
 		w = h = 0;
@@ -540,10 +533,19 @@ void isor_declare_objects(ISOMReader *read)
 		track_dur /= read->time_scale;
 		//move channel duration in media timescale
 		ch->duration = (u32) (track_dur * ch->time_scale);
-		if (ch->duration) {
-			u64 avg_rate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
-			avg_rate = (u64) (avg_rate / track_dur);
+
+		gf_isom_get_bitrate(read->mov, ch->track, 1, &avg_rate, &max_rate, &buffer_size);
+
+		if (!avg_rate) {
+			if (ch->duration) {
+				u64 avg_rate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
+				avg_rate = (u64) (avg_rate / track_dur);
+				gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avg_rate));
+			}
+		} else {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avg_rate));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_MAXRATE, &PROP_UINT((u32) max_rate));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DBSIZE, &PROP_UINT((u32) buffer_size));
 		}
 
 /*		gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
@@ -569,6 +571,15 @@ void isor_declare_objects(ISOMReader *read)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
 
 		gf_filter_pid_set_info(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
+
+
+		GF_PropertyValue brands;
+		brands.type = GF_PROP_UINT_LIST;
+		u32 major_brand=0;
+		gf_isom_get_brand_info(read->mov, &major_brand, NULL, &brands.value.uint_list.nb_items);
+		brands.value.uint_list.vals = (u32 *) gf_isom_get_brands(read->mov);
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_BRANDS, &brands);
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MBRAND, &PROP_UINT(major_brand) );
 
 		max_size = 0;
 		for (j=0; j<sample_count; j++) {

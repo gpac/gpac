@@ -200,6 +200,7 @@ GF_Err img_process(GF_Filter *filter)
 		if (ctx->owns_timescale) {
 			gf_filter_pck_set_cts(dst_pck, 0);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1 );
+			gf_filter_pck_set_duration(dst_pck, ctx->dur);
 		}
 		gf_filter_pck_send(dst_pck);
 		gf_filter_pid_drop_packet(ctx->ipid);
@@ -238,6 +239,7 @@ GF_Err img_process(GF_Filter *filter)
 	if (ctx->owns_timescale) {
 		gf_filter_pck_set_cts(dst_pck, 0);
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1 );
+		gf_filter_pck_set_duration(dst_pck, ctx->dur);
 	}
 
 	in_stride = out_stride;

@@ -2191,15 +2191,15 @@ u32 gf_isom_get_sync_point_count(GF_ISOFile *the_file, u32 trackNumber)
 GF_EXPORT
 GF_Err gf_isom_get_brand_info(GF_ISOFile *movie, u32 *brand, u32 *minorVersion, u32 *AlternateBrandsCount)
 {
-	if (!movie || !brand) return GF_BAD_PARAM;
+	if (!movie) return GF_BAD_PARAM;
 	if (!movie->brand) {
-		*brand = 0;
-		if (minorVersion) *minorVersion = 0;
+		if (brand) *brand = GF_ISOM_BRAND_ISOM;
+		if (minorVersion) *minorVersion = 1;
 		if (AlternateBrandsCount) *AlternateBrandsCount = 0;
 		return GF_OK;
 	}
 
-	*brand = movie->brand->majorBrand;
+	if (brand) *brand = movie->brand->majorBrand;
 	if (minorVersion) *minorVersion = movie->brand->minorVersion;
 	if (AlternateBrandsCount) *AlternateBrandsCount = movie->brand->altCount;
 	return GF_OK;
@@ -2212,6 +2212,13 @@ GF_Err gf_isom_get_alternate_brand(GF_ISOFile *movie, u32 BrandIndex, u32 *brand
 	if (BrandIndex > movie->brand->altCount || !BrandIndex) return GF_BAD_PARAM;
 	*brand = movie->brand->altBrand[BrandIndex-1];
 	return GF_OK;
+}
+
+GF_EXPORT
+const u32 *gf_isom_get_brands(GF_ISOFile *movie)
+{
+	if (!movie || !movie->brand) return NULL;
+	return movie->brand->altBrand;
 }
 
 GF_Err gf_isom_get_sample_padding_bits(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u8 *NbBits)
@@ -4395,6 +4402,50 @@ Bool gf_isom_is_video_subtype(u32 mtype)
 	default:
 		return GF_FALSE;
 	}
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 *average_bitrate, u32 *max_bitrate, u32 *decode_buffer_size)
+{
+	GF_BitRateBox *a;
+	GF_SampleEntryBox *ent;
+	GF_TrackBox *trak;
+	GF_ESD *esd;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !sampleDescriptionIndex || !trak->Media) return GF_BAD_PARAM;
+
+	esd = NULL;
+	ent = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex - 1);
+	if (!ent) return GF_BAD_PARAM;
+
+	switch (ent->type) {
+	case GF_ISOM_BOX_TYPE_MP4V:
+	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
+		esd = ((GF_MPEGVisualSampleEntryBox *) ent)->esd ? ((GF_MPEGVisualSampleEntryBox *) ent)->esd->desc : NULL;
+		break;
+	case GF_ISOM_BOX_TYPE_MP4A:
+	case GF_ISOM_BOX_TYPE_ENCA:
+		esd = ((GF_MPEGAudioSampleEntryBox *) ent)->esd ? ((GF_MPEGAudioSampleEntryBox *) ent)->esd->desc : NULL;
+		break;
+	case GF_ISOM_BOX_TYPE_MP4S:
+	case GF_ISOM_BOX_TYPE_ENCS:
+		esd = ((GF_MPEGSampleEntryBox *) ent)->esd ? ((GF_MPEGSampleEntryBox *) ent)->esd->desc : NULL;
+		break;
+	}
+
+	if (esd) {
+		if (average_bitrate) *average_bitrate = esd->decoderConfig->avgBitrate;
+		if (max_bitrate) *max_bitrate = esd->decoderConfig->maxBitrate;
+		if (decode_buffer_size) *decode_buffer_size = esd->decoderConfig->bufferSizeDB;
+		return GF_OK;
+	}
+	a = gf_isom_sample_entry_get_bitrate(ent, GF_FALSE);
+	if (average_bitrate) *average_bitrate = a ? a->avgBitrate : 0;
+	if (max_bitrate) *max_bitrate =  a ? a->maxBitrate : 0;
+	if (decode_buffer_size) *decode_buffer_size =  a ? a->bufferSizeDB : 0;
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

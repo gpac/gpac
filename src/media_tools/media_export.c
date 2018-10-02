@@ -1075,6 +1075,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 	u32 codec_id=0;
+	Bool is_avtype = GF_FALSE;
 
 	strcpy(szExt, "");
 	if (dumper->trackID) {
@@ -1099,6 +1100,14 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			sep = strchr(szExt, '|');
 			if (sep) sep[0] = 0;
 		}
+		switch (gf_isom_get_media_type(dumper->file, track_num)) {
+		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUXV:
+		case GF_ISOM_MEDIA_PICT:
+		case GF_ISOM_MEDIA_AUDIO:
+			is_avtype = GF_TRUE;
+			break;
+		}
 	}
 
 	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, 0, NULL);
@@ -1111,10 +1120,10 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 
 		if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
 			if (!dumper->sample_num) {
-				ext = strrchr(szArgs, '.');
+				ext = gf_file_ext_start(szArgs);
 				if (ext) ext[0] = 0;
 				strcat(szArgs, "_$num$");
-				ext = strrchr(dumper->out_name, '.');
+				ext = gf_file_ext_start(dumper->out_name);
 				if (ext) strcat(szArgs, ext);
 			}
 			strcat(szArgs, ":dynext");
@@ -1178,6 +1187,13 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!file_out) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load AVI output filter\n"));
+			return GF_FILTER_NOT_FOUND;
+		}
+	} else if (!is_avtype) {
+		remux = gf_fs_load_filter(fsess, "writegen");
+		if (!remux) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
 			return GF_FILTER_NOT_FOUND;
 		}
 	}

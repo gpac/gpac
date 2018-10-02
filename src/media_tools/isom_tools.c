@@ -3152,7 +3152,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	f = gf_fs_load_filter(fsess, szArgs);
 	if (!f) return GF_NOT_SUPPORTED;
 
-	sprintf(szArgs, "%s:SID=1:frag:cdur=%g", output_file, max_duration_sec);
+	sprintf(szArgs, "%s:SID=1:frag:cdur=%g:abs_offset:fdur", output_file, max_duration_sec);
 	if (use_mfra)
 		strcat(szArgs, ":mfra");
 

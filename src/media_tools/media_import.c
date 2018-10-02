@@ -50,7 +50,7 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 }
 
 
-void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
+static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 i, count, timescale, db_size;
@@ -83,18 +83,33 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	br = (Double) (s64) gf_isom_get_media_duration(file, track);
 	br /= timescale;
 	if (br) {
+		GF_ESD *esd = NULL;
 		bitrate = (u32) ((Double) (s64)avg_rate / br);
 		bitrate *= 8;
 		max_rate *= 8;
 		if (!max_rate) max_rate = bitrate;
-		
-		/*move to bps*/
-		gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
+
+		if (use_esd) esd = gf_isom_get_esd(file, track, 1);
+		if (esd) {
+			esd->decoderConfig->avgBitrate = (u32) bitrate;
+			esd->decoderConfig->maxBitrate = (u32) max_rate;
+			esd->decoderConfig->bufferSizeDB = db_size;
+			gf_isom_change_mpeg4_description(file, track, 1, esd);
+			gf_odf_desc_del((GF_Descriptor *)esd);
+		} else {
+			/*move to bps*/
+			gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
+		}
 	}
 	
 #endif
 }
 
+void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
+{
+	gf_media_update_bitrate_ex(file, track, GF_FALSE);
+
+}
 void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 {
 	u32 fps_1000 = (u32) (fps*1000 + 0.5);
@@ -436,7 +451,7 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	gf_media_update_bitrate(import->dest, track);
+	gf_media_update_bitrate_ex(import->dest, track, GF_TRUE);
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, acfg.audioPL);
 	gf_set_progress("Importing AAC", tot_size, tot_size);
 
@@ -816,7 +831,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			if (origin_esd) origin_esd->decoderConfig = NULL;
 		}
 	}
-	gf_media_update_bitrate(import->dest, track);
+	gf_media_update_bitrate_ex(import->dest, track, GF_TRUE);
 	
 exit:
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
