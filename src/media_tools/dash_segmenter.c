@@ -213,6 +213,7 @@ GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
 	return GF_OK;
 }
 
+
 #define SET_LIST_STR(_field, _val)	\
 	l1 = dasher->_field ? (u32) strlen(dasher->_field) : 0;\
 	l2 = (u32) strlen(_val);\
