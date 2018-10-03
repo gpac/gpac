@@ -232,11 +232,21 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			}
 			else if (!stricmp(att->name, "constant_IV_size")) {
 				tkc->constant_IV_size = atoi(att->value);
-				assert((tkc->constant_IV_size == 8) || (tkc->constant_IV_size == 16));
+				if (tkc->constant_IV_size != 8 && tkc->constant_IV_size != 16) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] wrong given constant IV size %d, should be 8 or 16\n", tkc->constant_IV_size));
+				}
 			}
 			else if (!stricmp(att->name, "constant_IV")) {
 				char *sKey = att->value;
 				if (!strnicmp(sKey, "0x", 2)) sKey += 2;
+				if (!tkc->constant_IV_size) {
+					tkc->constant_IV_size = (u8) strlen(sKey) / 2;
+				} else {
+					u8 expected_size = (u8) strlen(sKey) / 2;
+					if (tkc->constant_IV_size != expected_size) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Mismatch between given constant_IV_size %d and constant_IV length %d\n", tkc->constant_IV_size, expected_size));
+					}
+				}
 				if ((strlen(sKey) == 16) || (strlen(sKey) == 32)) {
 					u32 j;
 					for (j=0; j<strlen(sKey); j+=2) {
@@ -246,8 +256,9 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 						sscanf(szV, "%x", &v);
 						tkc->constant_IV[j/2] = v;
 					}
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] wrong constant IV value size %d, should be 16 or 32\n", strlen(sKey)));
 				}
-				if (!tkc->constant_IV_size) tkc->constant_IV_size = (u8) strlen(sKey) / 2;
 			}
 			else if (!stricmp(att->name, "encryptSliceHeader")) {
 				tkc->allow_encrypted_slice_header = !strcmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
@@ -262,13 +273,13 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 		if (has_common_key) info->has_common_key = 1;
 
 		if ((tkc->IV_size != 0) && (tkc->IV_size != 8) && (tkc->IV_size != 16)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] wrong IV size %d for AES-128, using 16\n", (u32) tkc->IV_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] wrong IV size %d for AES-128, using 16\n", (u32) tkc->IV_size));
 			tkc->IV_size = 16;
 		}
 
 		if ((tkc->scheme_type == GF_CRYPT_TYPE_CENC) || (tkc->scheme_type == GF_CRYPT_TYPE_CBC1)) {
 			if (tkc->crypt_byte_block || tkc->skip_byte_block) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, crypt_byte_block and skip_byte_block shall be 0\n", gf_4cc_to_str(tkc->scheme_type) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, crypt_byte_block and skip_byte_block shall be 0\n", gf_4cc_to_str(tkc->scheme_type) ));
 				tkc->crypt_byte_block = tkc->skip_byte_block = 0;
 			}
 		}
@@ -278,12 +289,12 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				if (!tkc->IV_size) {
 					tkc->IV_size = tkc->constant_IV_size;
 					memcpy(tkc->first_IV, tkc->constant_IV, 16);
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, using constant IV as first IV\n", gf_4cc_to_str(tkc->scheme_type)));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, using constant IV as first IV\n", gf_4cc_to_str(tkc->scheme_type)));
 					tkc->constant_IV_size = 0;
 				} else {
 					tkc->constant_IV_size = 0;
 					memset(tkc->constant_IV, 0, 16);
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, ignoring\n", gf_4cc_to_str(tkc->scheme_type)));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, ignoring\n", gf_4cc_to_str(tkc->scheme_type)));
 				}
 			}
 		}
@@ -1619,7 +1630,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && is_nalu_video) {
 		if (!tci->crypt_byte_block || !tci->skip_byte_block) {
 			if (tci->crypt_byte_block || tci->skip_byte_block) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
 			}
 			tci->crypt_byte_block = 1;
 			tci->skip_byte_block = 9;
