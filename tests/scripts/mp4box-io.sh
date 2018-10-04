@@ -65,8 +65,10 @@ mp4_test ()
   do_hint=0 ;;
  *.qcp )
   do_play=0 ;;
-  #mpg import is broken in master, disable hash until we move to filters
+  #mpg and ogg import is broken in master, disable hash until we move to filters
  *.mpg )
+  do_hash=0 ;;
+ *.ogg )
   do_hash=0 ;;
  #no support for hinting or playback yet
  *.ismt )

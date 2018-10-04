@@ -857,6 +857,10 @@ sample_entry_setup:
 		comp_name = "AOM AV1 Video";
 		break;
 
+	case GF_CODECID_VORBIS:
+	case GF_CODECID_THEORA:
+		use_m4sys = GF_TRUE;
+		break;
 
 	default:
 		m_subtype = codec_id;
@@ -971,6 +975,11 @@ sample_entry_setup:
 		GF_ESD *esd = gf_odf_desc_esd_new(2);
 		esd->decoderConfig->streamType = override_stype ? override_stype : tkw->stream_type;
 		esd->decoderConfig->objectTypeIndication = gf_codecid_oti(codec_id);
+		if (!esd->decoderConfig->objectTypeIndication) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Codec %s does not have an official MPEG-4 systems mapping, cannot mux\n", gf_codecid_name(codec_id) ));
+			return GF_NOT_SUPPORTED;
+
+		}
 		esd->slConfig->timestampResolution = tkw->timescale;
 		if (dsi && !skip_dsi) {
 			esd->decoderConfig->decoderSpecificInfo->data = dsi->value.data.ptr;
