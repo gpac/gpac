@@ -429,6 +429,9 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
 		//if no PSSH declared, don't update the properties
 		if (!PSSH_count) return;
+	} else if (gf_isom_is_adobe_protection_media(mov, track, 1)) {
+		scheme_version = 1;
+		scheme_type = GF_ISOM_ADOBE_SCHEME;
 	}
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );

@@ -1447,7 +1447,7 @@ multipid_stsd_setup:
 			break;
 		case GF_ISOM_ADOBE_SCHEME:
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ADOBE_CRYPT_META);
-			gf_isom_set_adobe_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, is_sel_enc,p ? p->value.data.ptr : NULL, p ? p->value.data.size : 0);
+			gf_isom_set_adobe_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, 1/*scheme_version*/, 1/*is_sel_enc*/,p ? p->value.data.ptr : NULL, p ? p->value.data.size : 0);
 			break;
 		case GF_ISOM_CENC_SCHEME:
 		case GF_ISOM_CENS_SCHEME:
@@ -1477,6 +1477,10 @@ multipid_stsd_setup:
 			}
 			gf_isom_set_generic_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, (char*)scheme_uri, (char*)kms_uri);
 		}
+	} else {
+		//in case we used track template
+		gf_isom_remove_samp_enc_box(ctx->file, tkw->track_num);
+		gf_isom_remove_samp_group_box(ctx->file, tkw->track_num);
 	}
 
 	if (is_true_pid) {

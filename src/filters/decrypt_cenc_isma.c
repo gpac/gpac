@@ -52,7 +52,7 @@ typedef struct
 	char salt[8];
 	u64 last_IV;
 	u32 nb_allow_play;
-	Bool is_oma;
+	Bool is_oma, is_adobe;
 	u32 preview_range;
 
 	/*CENC*/
@@ -62,6 +62,8 @@ typedef struct
 	bin128 *KIDs;
 	bin128 *keys;
 
+	/*adobe*/
+	Bool crypt_init;
 } GF_CENCDecStream;
 
 typedef struct
@@ -342,6 +344,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	return GF_OK;
 }
 
+
 static GF_Err cenc_dec_setup_oma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
 	const GF_PropertyValue *prop;
@@ -503,6 +506,69 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	return GF_NOT_SUPPORTED;
 }
 
+static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
+{
+	GF_CryptInfo *cinfo=NULL;
+	const GF_PropertyValue *prop;
+	GF_FilterPid *pid = cstr->ipid;
+	Bool is_playing = (cstr->state == DECRYPT_STATE_PLAY) ? GF_TRUE : GF_FALSE;
+
+	cstr->state = DECRYPT_STATE_ERROR;
+
+	if (scheme_type != GF_ISOM_ADOBE_SCHEME) return GF_NOT_SUPPORTED;
+	if (scheme_version != 1) return GF_NOT_SUPPORTED;
+
+	cstr->is_adobe = GF_TRUE;
+
+	cstr->state = is_playing ? DECRYPT_STATE_PLAY : DECRYPT_STATE_SETUP;
+
+	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECRYPT_INFO);
+	if (!prop) prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CRYPT_INFO);
+
+	if (prop) {
+		cinfo = gf_crypt_info_load(prop->value.string);
+		if (!cinfo) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", prop->value.string));
+			return GF_BAD_PARAM;
+		}
+	}
+	if (!cinfo) cinfo = ctx->cinfo;
+
+	if (cinfo) {
+		GF_TrackCryptInfo *any_tci = NULL;
+		GF_TrackCryptInfo *tci = NULL;
+		u32 i, count = gf_list_count(cinfo->tcis);
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+		for (i=0; i<count; i++) {
+			tci = gf_list_get(cinfo->tcis, i);
+			if (tci->trackID && prop && (tci->trackID==prop->value.uint)) {
+				break;
+			}
+			if (!any_tci && !tci->trackID) any_tci = tci;
+			if ((cinfo != ctx->cinfo) && !any_tci) any_tci = tci;
+			tci = NULL;
+		}
+		if (!tci && any_tci) tci = any_tci;
+
+		if (tci) {
+			cstr->KID_count = tci->KID_count;
+			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->KID_count*sizeof(bin128));
+			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->KID_count*sizeof(bin128));
+			for (i=0; i<tci->KID_count; i++) {
+				memcpy(cstr->KIDs[i], tci->KIDs[i], sizeof(bin128));
+				memcpy(cstr->keys[i], tci->keys[i], sizeof(bin128));
+			}
+			if (cinfo != ctx->cinfo)
+				gf_crypt_info_del(cinfo);
+			return GF_OK;
+		}
+		if (cinfo != ctx->cinfo)
+			gf_crypt_info_del(cinfo);
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found\n"));
+	return GF_NOT_SUPPORTED;
+}
+
 static GF_Err cenc_dec_access_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, Bool is_play)
 {
 	if (is_play) {
@@ -517,6 +583,27 @@ static GF_Err cenc_dec_access_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 			cstr->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 		else
 			cstr->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
+		if (!cstr->crypt) return GF_IO_ERR;
+
+		cstr->state = DECRYPT_STATE_PLAY;
+		return GF_OK;
+	} else {
+		if (cstr->state != DECRYPT_STATE_PLAY) return GF_SERVICE_ERROR;
+		if (cstr->crypt) gf_crypt_close(cstr->crypt);
+		cstr->crypt = NULL;
+		cstr->state = DECRYPT_STATE_SETUP;
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+}
+
+static GF_Err cenc_dec_access_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, Bool is_play)
+{
+	if (is_play) {
+		if (cstr->state != DECRYPT_STATE_SETUP) return GF_SERVICE_ERROR;
+		assert(!cstr->crypt);
+
+		cstr->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 		if (!cstr->crypt) return GF_IO_ERR;
 
 		cstr->state = DECRYPT_STATE_PLAY;
@@ -733,6 +820,65 @@ exit:
 	return e;
 }
 
+
+static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
+{
+	u32 data_size;
+	const char *in_data;
+	char *out_data;
+	GF_FilterPacket *out_pck;
+	char IV[17];
+	GF_Err e;
+	u32 trim_bytes = 0;
+	u32 offset, size;
+	Bool encrypted_au;
+
+	if (!cstr->crypt) return GF_SERVICE_ERROR;
+
+	in_data = gf_filter_pck_get_data(in_pck, &data_size);
+	out_pck = gf_filter_pck_new_alloc(cstr->opid, data_size, &out_data);
+
+	memcpy(out_data, in_data, data_size);
+
+	trim_bytes = 0;
+	offset=0;
+	size = data_size;
+	encrypted_au = out_data[0] ? GF_TRUE : GF_FALSE;
+	if (encrypted_au) {
+		memmove(IV, out_data+1, 16);
+		if (!cstr->crypt_init) {
+			e = gf_crypt_init(cstr->crypt, cstr->keys[0], IV);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot initialize AES-128 CBC (%s)\n", gf_error_to_string(e)) );
+				return GF_IO_ERR;
+			}
+			cstr->crypt_init = GF_TRUE;
+		} else {
+			e = gf_crypt_set_IV(cstr->crypt, IV, GF_AES_128_KEYSIZE);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot set state AES-128 CBC (%s)\n", gf_error_to_string(e)) );
+				return GF_IO_ERR;
+			}
+		}
+
+		offset += 17;
+		size -= 17;
+
+		gf_crypt_decrypt(cstr->crypt, out_data+offset, size);
+		trim_bytes = out_data[offset + size - 1];
+		size -= trim_bytes;
+	} else {
+		offset += 1;
+		size -= 1;
+	}
+	memmove(out_data, out_data+offset, size);
+	gf_filter_pck_truncate(out_pck, size);
+	gf_filter_pck_merge_properties(in_pck, out_pck);
+
+	gf_filter_pck_send(out_pck);
+	return GF_OK;
+}
+
 static void cenc_dec_stream_del(GF_CENCDecStream *cstr)
 {
 	if (cstr->crypt) gf_crypt_close(cstr->crypt);
@@ -800,9 +946,16 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	case GF_ISOM_CBCS_SCHEME:
 		e = cenc_dec_setup_cenc(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
 		break;
-	default:
-		e = GF_SERVICE_ERROR;
+	case GF_ISOM_ADOBE_SCHEME:
+		e = cenc_dec_setup_adobe(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
 		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Protection scheme type %s not supported\n", gf_4cc_to_str(scheme_type) ) );
+		return GF_SERVICE_ERROR;
+	}
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Error setting up protection scheme type %s\n", gf_4cc_to_str(scheme_type) ) );
+		return e;
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
@@ -844,6 +997,8 @@ static Bool cenc_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		if (cstr->is_cenc || cstr->is_cbc) {
 			cenc_dec_access_cenc(ctx, cstr, is_play);
+		} else if (cstr->is_adobe) {
+			cenc_dec_access_adobe(ctx, cstr, is_play);
 		} else if (cstr->is_oma) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] OMA not supported, canceling filter event\n") );
 			return GF_TRUE;
@@ -878,6 +1033,8 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 			e = cenc_dec_process_cenc(ctx, cstr, pck);
 		} else if (cstr->is_oma) {
 			e = GF_NOT_SUPPORTED;
+		} else if (cstr->is_adobe) {
+			e = cenc_dec_process_adobe(ctx, cstr, pck);
 		} else {
 			e = cenc_dec_process_isma(ctx, cstr, pck);
 		}
@@ -930,6 +1087,7 @@ static const GF_FilterCapability CENCDecCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENS_SCHEME),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBC_SCHEME),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBCS_SCHEME),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ADOBE_SCHEME),
 
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
