@@ -71,6 +71,8 @@ typedef struct
 
 typedef struct
 {
+	Double index_dur;
+
 	//only one input pid declared
 	GF_FilterPid *ipid;
 
@@ -181,8 +183,8 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 		gf_bs_read_int(bs, 8); /* major version num */
 		gf_bs_read_int(bs, 8); /* minor version num */
 		gf_bs_read_int(bs, 8); /* subminor version num */
-		info->width = gf_bs_read_int(bs, 16) /*<< 4*/; /* width */
-		info->height = gf_bs_read_int(bs, 16) /*<< 4*/; /* height */
+		info->width = gf_bs_read_int(bs, 16) << 4; /* width */
+		info->height = gf_bs_read_int(bs, 16) << 4; /* height */
 		gf_bs_read_int(bs, 24); /* frame width */
 		gf_bs_read_int(bs, 24); /* frame height */
 		gf_bs_read_int(bs, 8); /* x offset */
@@ -194,6 +196,12 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 		gf_bs_read_int(bs, 8); /* colorspace */
 		info->bitrate = gf_bs_read_int(bs, 24);/* bitrate */
 		gf_bs_read_int(bs, 6); /* quality */
+
+		/*patch for compatibility with old arch*/
+		if ((info->frame_rate.den==25025) && (info->frame_rate.num==1001) ) {
+			info->frame_rate.den = 25000;
+			info->frame_rate.num = 1000;
+		}
 
 		keyframe_freq_force = 1 << gf_bs_read_int(bs, 5);
 		info->theora_kgs = 0;
@@ -220,10 +228,13 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	if (!st->opid) {
 		st->opid = gf_filter_pid_new(filter);
 	}
+//	gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT(st->serial_no) );
+	gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT(1 + gf_list_find(ctx->streams, st) ) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->info.streamType) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(st->info.type) );
 	gf_filter_pid_set_info(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->info.bitrate) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->info.sample_rate ? st->info.sample_rate : st->info.frame_rate.den) );
+	gf_filter_pid_set_property(st->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(0xFE) );
 
 	if (st->dsi_bs) {
 		char *data;
@@ -317,40 +328,6 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	}
 }
 
-void oggdmx_send_packet(GF_OGGDmxCtx *ctx, GF_OGGStream *st, ogg_packet *oggpacket)
-{
-	char *data;
-	GF_FilterPacket *pck;
-
-	if (!st->opid) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Channel %d packet before configure done - discarding\n", st->serial_no));
-		return;
-	}
-
-	if (st->info.type==GF_CODECID_THEORA) {
-		oggpack_buffer opb;
-		oggpackB_readinit(&opb, oggpacket->packet, oggpacket->bytes);
-		/*not a new frame*/
-		if (oggpackB_read(&opb, 1) != 0) return;
-
-		pck = gf_filter_pck_new_alloc(st->opid, oggpacket->bytes, &data);
-		memcpy(data, (char *) oggpacket->packet, oggpacket->bytes);
-		gf_filter_pck_set_cts(pck, st->recomputed_ts);
-		gf_filter_pck_set_sap(pck, oggpackB_read(&opb, 1) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE );
-		st->recomputed_ts += st->info.frame_rate.num;
-	} else {
-		pck = gf_filter_pck_new_alloc(st->opid, oggpacket->bytes, &data);
-		memcpy(data, (char *) oggpacket->packet, oggpacket->bytes);
-		gf_filter_pck_set_cts(pck, st->recomputed_ts);
-		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-
-		if (st->info.type==GF_CODECID_VORBIS) {
-			st->recomputed_ts += gf_vorbis_check_frame(&st->vp, (char *) oggpacket->packet, oggpacket->bytes);
-		}
-	}
-	gf_filter_pck_send(pck);
-}
-
 GF_Err oggdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 i;
@@ -388,7 +365,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	u64 recompute_ts;
 	GF_Fraction dur;
 
-	if (ctx->duration.num) return;
+	if (!ctx->index_dur || ctx->duration.num) return;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
@@ -580,6 +557,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 		if (would_block && (would_block+1==i))
 			return GF_OK;
 	}
+
 	while (1) {
 		ogg_packet oggpacket;
 
@@ -636,8 +614,35 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				}
 			} else if (st->parse_headers && st->got_headers) {
 				st->parse_headers--;
+			} else if (!st->opid) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Channel %d packet before configure done - discarding\n", st->serial_no));
 			} else {
-				oggdmx_send_packet(ctx, st, &oggpacket);
+				char *output;
+				GF_FilterPacket *dst_pck;
+
+				if (st->info.type==GF_CODECID_THEORA) {
+					oggpack_buffer opb;
+					oggpackB_readinit(&opb, oggpacket.packet, oggpacket.bytes);
+					/*not a new frame*/
+					if (oggpackB_read(&opb, 1) != 0) continue;
+
+					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
+					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
+					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
+					gf_filter_pck_set_sap(dst_pck, oggpackB_read(&opb, 1) ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
+					st->recomputed_ts += st->info.frame_rate.num;
+				} else {
+					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
+					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
+					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
+					gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+
+					if (st->info.type==GF_CODECID_VORBIS) {
+						st->recomputed_ts += gf_vorbis_check_frame(&st->vp, (char *) oggpacket.packet, oggpacket.bytes);
+					}
+				}
+				gf_filter_pck_send(dst_pck);
+
 			}
 		}
 	}
@@ -683,6 +688,13 @@ static const GF_FilterCapability OGGDmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "oga|spx|ogg|ogv|oggm"),
 };
 
+#define OFFS(_n)	#_n, offsetof(GF_OGGDmxCtx, _n)
+static const GF_FilterArgs OGGDmxArgs[] =
+{
+	{ OFFS(index_dur), "indexing window length (unimplemented, only 0 disables stream probing for duration), ", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{0}
+};
+
 
 GF_FilterRegister OGGDmxRegister = {
 	.name = "oggdmx",
@@ -690,6 +702,7 @@ GF_FilterRegister OGGDmxRegister = {
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,
+	.args = OGGDmxArgs,
 	SETCAPS(OGGDmxCaps),
 	.configure_pid = oggdmx_configure_pid,
 	.process = oggdmx_process,
