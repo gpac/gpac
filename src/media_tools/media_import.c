@@ -104,7 +104,7 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 }
 
 
-static void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
+void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 i, count, timescale, db_size;
