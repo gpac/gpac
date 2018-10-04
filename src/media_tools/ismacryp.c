@@ -985,7 +985,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (tci->is_avc) {
 			s32 ret;
-			u32 ntype, nb_epb_count;
+			u32 ntype, nhdr, nb_epb_count;
 			GF_BitStream *bs = NULL;
 			char *epb_rem_bytes;
 
@@ -996,9 +996,9 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 				nb_epb_count = gf_media_nalu_remove_emulation_bytes(samp_data + nal_start, epb_rem_bytes, nal_size);
 				bs = gf_bs_new(epb_rem_bytes, nb_epb_count, GF_BITSTREAM_READ);
 			}
-			ntype = gf_bs_read_u8(bs ? bs : plaintext_bs);
+			nhdr = gf_bs_read_u8(bs ? bs : plaintext_bs);
 
-			ntype &= 0x1F;
+			ntype = nhdr & 0x1F;
 			switch (ntype) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
 			case GF_AVC_NALU_DP_A_SLICE:
@@ -1007,7 +1007,7 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 			case GF_AVC_NALU_IDR_SLICE:
 			case GF_AVC_NALU_SLICE_AUX:
 			case GF_AVC_NALU_SVC_SLICE:
-				ret = gf_media_avc_parse_nalu(bs ? bs : plaintext_bs, ntype, &tci->avc);
+				ret = gf_media_avc_parse_nalu(bs ? bs : plaintext_bs, nhdr, &tci->avc);
 				if (ret<0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error parsing slice header, cannot get slice header size. Assuming 8 bytes is enough, but resulting file will not be compliant\n"));
 					clear_bytes = 8;
