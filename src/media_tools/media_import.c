@@ -4094,6 +4094,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 
 	memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
 	gpp_cfg.type = mtype;
+	gpp_cfg.vendor = GF_VENDOR_GPAC;
 	gpp_cfg.frames_per_sample = import->frames_per_sample;
 	if (!gpp_cfg.frames_per_sample) gpp_cfg.frames_per_sample  = 1;
 	else if (gpp_cfg.frames_per_sample >15) gpp_cfg.frames_per_sample = 15;
@@ -4113,7 +4114,6 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		if (e) goto exit;
 	} else {
 		import->flags &= ~GF_IMPORT_FORCE_MPEG4;
-		gpp_cfg.vendor = GF_VENDOR_GPAC;
 		e = gf_isom_3gp_config_new(import->dest, track, &gpp_cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 		if (e) goto exit;
 	}
@@ -4248,6 +4248,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 	}
 
 	memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
+	gpp_cfg.vendor = GF_VENDOR_GPAC;
 	delete_esd = GF_FALSE;
 
 	mdia = gf_fopen(import->in_name, "rb");

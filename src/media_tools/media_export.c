@@ -2166,7 +2166,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 static void nhml_write_spec_info(FILE *nhml, const char *url)
 {
-	char *fname = strrchr(url, '/');
+	const char *fname = strrchr(url, '/');
 	if (!fname) fname = strrchr(url, '\\');
 	if (fname) fname++;
 	else fname = url;
