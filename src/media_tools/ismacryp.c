@@ -452,6 +452,8 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
+
 /*ISMACrypt*/
 
 static GFINLINE void isma_resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
@@ -581,6 +583,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Error ISMACryp signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
 	}
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+	gf_media_update_bitrate(mp4, track);
 
 	/*remove all IPMP ptrs*/
 	esd = gf_isom_get_esd(mp4, track, 1);
@@ -836,8 +839,10 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		gf_isom_sample_del(&samp);
 		gf_set_progress("ISMA Encrypt", i+1, count);
 	}
-	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 	gf_crypt_close(mc);
+
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+	gf_media_update_bitrate(mp4, track);
 
 
 	/*format as IPMP(X) - note that the ISMACryp spec is broken since it always uses IPMPPointers to a
@@ -2291,6 +2296,7 @@ GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 		gf_set_progress("Adobe's protection scheme Encrypt", i+1, count);
 	}
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+	gf_media_update_bitrate(mp4, track);
 
 exit:
 	if (samp) gf_isom_sample_del(&samp);
@@ -2403,6 +2409,7 @@ GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Error Adobe's protection scheme signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
 	}
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+	gf_media_update_bitrate(mp4, track);
 
 exit:
 	if (mc) gf_crypt_close(mc);
