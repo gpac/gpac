@@ -462,7 +462,8 @@ struct __gf_filter
 	//list of pids created by this filter
 	GF_List *output_pids;
 	u32 num_output_pids;
-	
+	u32 num_output_not_connected;
+
 	//reservoir for packets with allocated memory
 	GF_FilterQueue *pcks_alloc_reservoir;
 	//reservoir for packets with shared memory

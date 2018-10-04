@@ -87,6 +87,7 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 {
 	Bool unblock=GF_FALSE;
 
+	assert(pid->playback_speed_scaler);
 
 	//we block according to the number of dispatched units (decoder output) or to the requested buffer duration
 	//for other streams - unblock accordingly
@@ -104,12 +105,12 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked\n", pid->pid->filter->name, pid->pid->name));
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
-		if (pid->filter->would_block < pid->filter->num_output_pids) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids));
-			//requeue task
-			if (!pid->filter->skip_process_trigger_on_tasks)
-				gf_filter_post_process_task(pid->filter);
-		}
+	}
+	if (pid->filter->would_block < pid->filter->num_output_pids) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids));
+		//requeue task
+		if (!pid->filter->skip_process_trigger_on_tasks)
+			gf_filter_post_process_task(pid->filter);
 	}
 }
 
@@ -2188,10 +2189,11 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			u32 k;
 			for (k=0; k<pid->filter->num_output_pids; k++) {
 				GF_FilterPid *apid = gf_list_get(pid->filter->output_pids, k);
-				if (apid->num_destinations || apid->init_task_pending) {
-					can_reassign = GF_FALSE;
+				if (apid->num_destinations) can_reassign = GF_FALSE;
+				else if ((apid==pid) && (apid->init_task_pending>1)) can_reassign = GF_FALSE;
+				else if ((apid!=pid) && apid->init_task_pending) can_reassign = GF_FALSE;
+				if (!can_reassign)
 					break;
-				}
 			}
 		}
 		//if source filter, try to load another filter - we should complete this with a cache of filter sources
@@ -2665,7 +2667,9 @@ restart:
 				//filter was reassigned (pid is destroyed), return
 				if (reassigned) {
 					if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+					assert(pid->init_task_pending);
 					safe_int_dec(&pid->init_task_pending);
+					if (loaded_filters) gf_list_del(loaded_filters);
 					return;
 				}
 				//we might had it wrong solving the chain initially, break the chain
@@ -2731,18 +2735,23 @@ restart:
 		//PID was not included in explicit connection lists
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
 	} else {
+		GF_FilterEvent evt;
+
 		//no filter found for this pid !
 		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
 
 		if (pid->filter->freg->process_event) {
-			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
+
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+			gf_filter_pid_send_event(pid, &evt);
 		}
 
 		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 		}
+		filter->num_output_not_connected ++;
 	}
 	assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
@@ -3233,6 +3242,8 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		if (pidinst->pid->filter->force_end_of_session) {
 			pidinst->is_end_of_stream = pidinst->pid->has_seen_eos = GF_TRUE;
 		}
+		if (!pidinst->is_end_of_stream && pidinst->pid->filter->would_block)
+			gf_filter_pid_check_unblock(pidinst->pid);
 		return NULL;
 	}
 	assert(pcki->pck);

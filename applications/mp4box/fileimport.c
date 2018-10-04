@@ -148,46 +148,44 @@ void convert_file_info(char *inName, u32 trackID)
 
 		switch (import.tk_info[i].stream_type) {
 		case GF_STREAM_VISUAL:
-			if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_AUXV)  fprintf(stderr, "Auxiliary Video ");
-			else if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_PICT)  fprintf(stderr, "Picture Sequence ");
-			else fprintf(stderr, "Video ");
-
-			fprintf(stderr, "(%s)", gf_codecid_name(import.tk_info[i].codecid));
+			if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_AUXV)  fprintf(stderr, "Auxiliary Video");
+			else if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_PICT)  fprintf(stderr, "Picture Sequence");
+			else fprintf(stderr, "Video");
 			if (import.tk_info[i].video_info.temporal_enhancement) fprintf(stderr, " Temporal Enhancement");
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			fprintf(stderr, "Audio (%s)", gf_codecid_name(import.tk_info[i].codecid));
+			fprintf(stderr, "Audio");
 			break;
 		case GF_STREAM_TEXT:
-			fprintf(stderr, "Text ");
+			fprintf(stderr, "Text");
 			break;
 		case GF_STREAM_SCENE:
-			fprintf(stderr, "Scene ");
+			fprintf(stderr, "Scene");
 			break;
 		case GF_STREAM_OD:
-			fprintf(stderr, "OD ");
+			fprintf(stderr, "OD");
 			break;
 		case GF_STREAM_METADATA:
-			fprintf(stderr, "Metadata ");
+			fprintf(stderr, "Metadata");
 			break;
 		default:
-			fprintf(stderr, "Other (%s) ", gf_4cc_to_str(import.tk_info[i].stream_type));
+			fprintf(stderr, "Other (%s)", gf_4cc_to_str(import.tk_info[i].stream_type));
 			break;
 		}
-		if (import.tk_info[i].codecid) fprintf(stderr, "CodecID %d ", import.tk_info[i].codecid);
+		if (import.tk_info[i].codecid) fprintf(stderr, " Codec %s (ID %d)", gf_codecid_name(import.tk_info[i].codecid), import.tk_info[i].codecid);
 
-		if (import.tk_info[i].lang) fprintf(stderr, " - lang %s", gf_4cc_to_str(import.tk_info[i].lang));
+		if (import.tk_info[i].lang) fprintf(stderr, " lang %s", gf_4cc_to_str(import.tk_info[i].lang));
 
-		if (import.tk_info[i].mpeg4_es_id) fprintf(stderr, " - MPEG-4 ESID %d", import.tk_info[i].mpeg4_es_id);
+		if (import.tk_info[i].mpeg4_es_id) fprintf(stderr, " MPEG-4 ESID %d", import.tk_info[i].mpeg4_es_id);
 
 		if (import.tk_info[i].prog_num) {
 			if (!import.nb_progs) {
-				fprintf(stderr, " - Program %d", import.tk_info[i].prog_num);
+				fprintf(stderr, " Program %d", import.tk_info[i].prog_num);
 			} else {
 				u32 j;
 				for (j=0; j<import.nb_progs; j++) {
 					if (import.tk_info[i].prog_num != import.pg_info[j].number) continue;
-					fprintf(stderr, " - Program %s", import.pg_info[j].name);
+					fprintf(stderr, " Program %s", import.pg_info[j].name);
 					break;
 				}
 			}
@@ -538,12 +536,29 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				txt_mode = GF_ISOM_TEXT_FLAGS_UNTOGGLE;
 			}
 		}
-		else if (!strcmp(ext+1, "gpac")) {
+		else if (!stricmp(ext+1, "fstat")) import_flags |= GF_IMPORT_FILTER_STATS;
+		else if (!strcmp(ext+1, "sopt")) {
 			if (ext2) ext2[0] = ':';
+			char *opt_dest = strstr(ext+1, "dopt");
+			if (opt_dest) {
+				* (opt_dest - 1) = 0;
+				import.filter_dst_opts = opt_dest;
+			}
+			import.filter_src_opts = ext2+1;
 			ext = NULL;
 			break;
 		}
-		/*unrecognized, assume name has colon in it*/
+		else if (!strcmp(ext+1, "dopt")) {
+			if (ext2) ext2[0] = ':';
+			char *opt_src = strstr(ext+1, "sopt");
+			if (opt_src) {
+				* (opt_src - 1) = 0;
+				import.filter_src_opts = opt_src;
+			}
+			import.filter_dst_opts = ext2+1;
+			ext = NULL;
+			break;
+		}		/*unrecognized, assume name has colon in it*/
 		else {
 			fprintf(stderr, "Unrecognized import option %s, ignoring\n", ext+1);
 			ext = ext2;
@@ -580,9 +595,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.flags = GF_IMPORT_PROBE_ONLY;
 	e = gf_media_import(&import);
 	if (e) goto exit;
-
+	
 	if (ext) {
 		ext++;
+		char *sep = strchr(ext, ':');
+		if (sep) sep[0] = 0;
+
 		if (!strnicmp(ext, "audio", 5)) do_audio = 1;
 		else if (!strnicmp(ext, "video", 5)) do_video = 1;
         else if (!strnicmp(ext, "auxv", 4)) do_auxv = 1;
@@ -603,6 +621,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			do_all = 0;
 		}
 		else track_id = atoi(ext);
+
+		if (sep) sep[0] = ':';
 	}
 	if (do_audio || do_video || do_auxv || do_pict || track_id) do_all = 0;
 
@@ -653,6 +673,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.dest = dest;
 	import.video_fps = force_fps;
 	import.frames_per_sample = frames_per_sample;
+	import.flags = import_flags;
 	import.flags = import_flags;
 
 	if (!import.nb_tracks) {

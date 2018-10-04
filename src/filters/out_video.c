@@ -1686,6 +1686,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		} else {
 			s64 diff;
 			if (ctx->speed>=0) {
+				if (cts<ctx->first_cts+1) cts = ctx->first_cts+1;
 				diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
 
 				if (ctx->timescale != 1000000)
@@ -1703,7 +1704,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 
 			if (diff<0) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" us too early, waiting\n", gf_sys_clock(), -diff));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d "LLU" us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
 				if (diff<-1000000) diff = -1000000;
 				gf_filter_ask_rt_reschedule(filter, (u32) (-diff));
 				//not ready yet
@@ -1731,7 +1732,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d  "LLU" ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
 	} else {
 		gf_filter_pck_ref(&pck);
 		gf_filter_pid_drop_packet(ctx->pid);

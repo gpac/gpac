@@ -205,9 +205,9 @@ enum
 	GF_IMPORT_KEEP_REFS = 1<<27,
 	/*! keeps AV1 temporal delimiter OBU in the samples*/
 	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
-	
-	/*! when set by user during import, will abort*/
-	GF_IMPORT_DO_ABORT = 1<<31
+
+	/*! print filter session stats at the end of the import*/
+	GF_IMPORT_FILTER_STATS = 1<<31,
 };
 
 
@@ -367,6 +367,10 @@ typedef struct __track_import
 	struct __program_import_info pg_info[GF_IMPORT_MAX_TRACKS];
 	/*! last error encountered during import, internal to the importer*/
 	GF_Err last_error;
+	/*! any filter options to pass to source*/
+	const char *filter_src_opts;
+	/*! any filter options to pass to sink*/
+	const char *filter_dst_opts;
 } GF_MediaImporter;
 
 /*!
