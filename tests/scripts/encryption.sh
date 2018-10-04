@@ -15,7 +15,7 @@ decryptfile="$TEMP_DIR/$1-decrypted.mp4"
 do_test "$MP4BOX -crypt $2 -out $cryptfile $mp4file" "Encrypt"
 do_hash_test $cryptfile "crypt"
 
-do_test "$MP4BOX -decrypt $2 -out $decryptfile $mp4file" "Decrypt"
+do_test "$MP4BOX -decrypt $2 -out $decryptfile $cryptfile" "Decrypt"
 do_hash_test $decryptfile "decrypt"
 
 #compare hashes of source and decrypted
