@@ -550,7 +550,7 @@ typedef struct
 	Bool mem_mode;
 	GF_BitStream *bs;
 	char *frame_obus;
-	u32 frame_obus_alloc, frame_obus_size;
+	u32 frame_obus_alloc;
 
 	/*general sequence information*/
 	Bool frame_id_numbers_present_flag;
@@ -598,6 +598,7 @@ typedef struct
 	/*OBU parsing state, reset at each obu*/
 	Bool obu_has_size_field, obu_extension_flag;
 	u8 temporal_id, spatial_id;
+	ObuType obu_type;
 
 	/*inter-frames state */
 	u8 RefOrderHint[AV1_NUM_REF_FRAMES];
@@ -627,7 +628,7 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
 
 Bool av1_is_obu_header(ObuType obu_type);
-void av1_reset_frame_state(AV1StateFrame *frame_state, Bool is_destroy);
+void av1_reset_state(AV1State *state, Bool is_destroy);
 
 u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes);
 u32 gf_av1_leb128_size(u64 value);

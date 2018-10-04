@@ -3432,7 +3432,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		}
 
 		gf_odf_av1_cfg_del(av1c);
-		av1_reset_frame_state(&av1_state.frame_state, GF_TRUE);
+		av1_reset_state(&av1_state, GF_TRUE);
 		return GF_OK;
 	}
 #endif /*GPAC_DISABLE_AV1*/

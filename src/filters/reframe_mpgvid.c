@@ -841,7 +841,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		gf_m4v_parser_reset(ctx->vparser, sc_type_forced ? forced_sc_type + 1 : 0);
 		size = 0;
 		e = gf_m4v_parse_frame(ctx->vparser, ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
-		assert(!fstart);
+		//true if we strip VO and VISOBJ assert(!fstart);
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
 		//needs adjustement

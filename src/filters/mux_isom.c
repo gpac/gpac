@@ -2642,7 +2642,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		u64 ts, dts_min;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
-		if (!pck) return;
+		if (!tkw->track_num || !pck) return;
 		ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
 			ts = gf_filter_pck_get_cts(pck);

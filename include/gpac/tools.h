@@ -495,7 +495,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
  *	\param log_tool tool to check
  *	\return log level of tool
 */
-u32 gf_log_tool_get_level(GF_LOG_Tool log_tool);
+u32 gf_log_get_tool_level(GF_LOG_Tool log_tool);
 
 /*!
  *	\brief Set log tools and levels

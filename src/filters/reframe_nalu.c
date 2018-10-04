@@ -32,7 +32,10 @@
 
 #define CTS_POC_OFFSET_SAFETY	1000
 
-#define SAFETY_NAL_STORE	10
+//storage for nal header + slice header when not fully included in an input buffer - this needs to be big enough to hold a slice header
+//note that we only copy the entire input packet in an internal buffer when the current NAL needs to be fully available for parsing (SPS, PPS),
+//otherwise we copy remaining bytes in the hdr store if a startcode may be split across two input packets
+#define SAFETY_NAL_STORE	60
 
 typedef struct
 {
@@ -1581,7 +1584,6 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	*skip_nal = GF_FALSE;
-
 	res = gf_media_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
 	if (res < 0) {
 		if (res == -1) {
@@ -2023,6 +2025,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			hdr_avail = SAFETY_NAL_STORE - hdr_offset;
 			pck_start = start;
 			pck_avail = remain;
+			sc_size = 0;
 		}
 		//nal hdr is in new packet at hdr_offset, use the packet to parse slice header
 		else if (nal_sc_in_store) {
@@ -2030,6 +2033,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			hdr_avail = remain - hdr_offset;
 			pck_start = hdr_start;
 			pck_avail = hdr_avail;
+			sc_size = 0;
 		}
 		//nal hdr is in new packet start + sc_size, use the packet to parse slice header
 		else {
@@ -2074,6 +2078,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 				next = -1;
 
 			if (next<0) {
+				if (sc_size) pck_avail += sc_size;
 				if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_avail) {
 					ctx->hdr_store_alloc = ctx->hdr_store_size + pck_avail;
 					ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
