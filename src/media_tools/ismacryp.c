@@ -515,6 +515,8 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENC/ISMA] Decrypting track ID %d - KMS: %s%s\n", tci->trackID, tci->KMS_URI, use_sel_enc ? " - Selective Decryption" : ""));
 
+	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
+
 	/*start as initialized*/
 	prev_sample_encrypted = 1;
 	/* decrypt each sample */
@@ -578,6 +580,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Error ISMACryp signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
 	}
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 
 	/*remove all IPMP ptrs*/
 	esd = gf_isom_get_esd(mp4, track, 1);
@@ -1559,6 +1562,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		return GF_OK;
 	}
 
+	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
+
 	esd = gf_isom_get_esd(mp4, track, 1);
 	if (esd && (esd->decoderConfig->streamType == GF_STREAM_OD)) {
 		gf_odf_desc_del((GF_Descriptor *) esd);
@@ -1920,6 +1925,8 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		goto exit;
 	}
 
+	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
+
 	/* decrypt each sample */
 	count = gf_isom_get_sample_count(mp4, track);
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
@@ -2193,6 +2200,8 @@ GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 	/*Adobe's protection scheme does not support selective key*/
 	memcpy(tci->key, tci->keys[0], 16);
 
+	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
+
 	e = gf_isom_set_adobe_protection(mp4, track, 1, GF_ISOM_ADOBE_SCHEME, 1, GF_TRUE, tci->metadata, tci->metadata_len);
 	if (e) goto  exit;
 
@@ -2281,6 +2290,7 @@ GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 
 		gf_set_progress("Adobe's protection scheme Encrypt", i+1, count);
 	}
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 
 exit:
 	if (samp) gf_isom_sample_del(&samp);
@@ -2320,6 +2330,8 @@ GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 	}
 
 	memcpy(tci->key, tci->keys[0], 16);
+
+	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
 
 	count = gf_isom_get_sample_count(mp4, track);
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
@@ -2390,6 +2402,7 @@ GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Error Adobe's protection scheme signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
 	}
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 
 exit:
 	if (mc) gf_crypt_close(mc);
