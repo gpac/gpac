@@ -114,6 +114,7 @@ u32 mpeg2ps_get_video_stream_height(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_video_stream_aspect_ratio(mpeg2ps_t *ps, u32 streamno);
 double   mpeg2ps_get_video_stream_bitrate(mpeg2ps_t *ps, u32 streamno);
 double   mpeg2ps_get_video_stream_framerate(mpeg2ps_t *ps, u32 streamno);
+u32 mpeg2ps_get_video_stream_id(mpeg2ps_t *ps, u32 streamno);
 
 /*
  * mpeg2ps_get_video_frame - get the next video frame
@@ -157,6 +158,7 @@ mpeg2ps_audio_type_t mpeg2ps_get_audio_stream_type(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_audio_stream_sample_freq(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_audio_stream_channels(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_audio_stream_bitrate(mpeg2ps_t *ps, u32 streamno);
+u32 mpeg2ps_get_audio_stream_id(mpeg2ps_t *ps, u32 streamno);
 
 /*
  * mpeg2ps_get_audio_frame - get the next audio frame

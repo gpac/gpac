@@ -72,7 +72,7 @@ typedef struct
 	GF_FilterPid *ipid;
 	//only one output pid declared
 	GF_FilterPid *opid;
-
+	u32 src_timescale;
 	Bool is_bmp;
 	Bool owns_timescale;
 } GF_ReframeImgCtx;
@@ -81,7 +81,8 @@ typedef struct
 GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
-
+	const GF_PropertyValue *p;
+	
 	if (is_remove) {
 		ctx->ipid = NULL;
 		return GF_OK;
@@ -92,6 +93,15 @@ GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	ctx->ipid = pid;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	if (p) ctx->src_timescale = p->value.uint;
+
+	if (ctx->src_timescale && !ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	}
 	return GF_OK;
 }
 

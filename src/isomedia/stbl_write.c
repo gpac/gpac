@@ -310,7 +310,7 @@ GF_Err stbl_repackCTS(GF_CompositionOffsetBox *ctts)
 GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 {
 	GF_DttsEntry *packed;
-	u32 i, j, remain, count;
+	u32 i, j, count;
 	GF_CompositionOffsetBox *ctts;
 	ctts = stbl->CompositionOffset;
 	if (!ctts || ctts->unpack_mode) return GF_OK;
@@ -335,8 +335,7 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 	}
 	gf_free(packed);
 
-	remain = stbl->SampleSize->sampleCount - ctts->nb_entries;
-	while (remain) {
+	while (stbl->SampleSize->sampleCount > ctts->nb_entries) {
 		if (ctts->nb_entries == ctts->alloc_size) {
 			ALLOC_INC(ctts->alloc_size);
 			ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
@@ -345,7 +344,6 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 		ctts->entries[ctts->nb_entries].decodingOffset = 0;
 		ctts->entries[ctts->nb_entries].sampleCount = 1;
 		ctts->nb_entries++;
-		remain--;
 	}
 	return GF_OK;
 }

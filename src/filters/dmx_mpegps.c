@@ -39,6 +39,7 @@ typedef struct
 	u32 stream_type;
 	u32 stream_num;
 	Bool in_use;
+	u64 last_dts;
 } M2PSStream;
 
 
@@ -75,6 +76,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 	nb_streams = mpeg2ps_get_video_stream_count(ctx->ps);
 	for (i=0; i<nb_streams; i++) {
 		u32 par;
+		u32 id;
 		GF_Fraction frac;
 		M2PSStream *st = NULL;
 		u32 j, count = gf_list_count(ctx->streams);
@@ -91,7 +93,8 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		}
 		st->in_use = GF_TRUE;
 		st->stream_num = i;
-		if (!sync_id) sync_id = 1+st->stream_num;
+		id = 0x100 | mpeg2ps_get_video_stream_id(ctx->ps, st->stream_num);
+		if (!sync_id) sync_id = id;
 
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->stream_type) );
 		switch (mpeg2ps_get_video_stream_type(ctx->ps, st->stream_num)) {
@@ -105,7 +108,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 			break;
 		}
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( 1 + st->stream_num) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( id) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
 
 		fps = mpeg2ps_get_video_stream_framerate(ctx->ps, i);
@@ -122,11 +125,13 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAR, &PROP_FRAC( frac ) );
 		}
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
-
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
+		gf_filter_pid_set_property_str(st->opid, "nocts", &PROP_BOOL(GF_TRUE ));
 	}
 
 	nb_streams = mpeg2ps_get_audio_stream_count(ctx->ps);
 	for (i=0; i<nb_streams; i++) {
+		u32 id;
 		M2PSStream *st = NULL;
 		u32 j, count = gf_list_count(ctx->streams);
 
@@ -147,7 +152,8 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		}
 		st->in_use = GF_TRUE;
 		st->stream_num = i;
-		if (!sync_id) sync_id = 100+st->stream_num;
+		id = 0x100 | mpeg2ps_get_audio_stream_id(ctx->ps, st->stream_num);
+		if (!sync_id) sync_id = id;
 
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->stream_type) );
 		switch (mpeg2ps_get_audio_stream_type(ctx->ps, st->stream_num)) {
@@ -168,9 +174,11 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT( mpeg2ps_get_audio_stream_bitrate(ctx->ps, i) ) );
 
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( 100 + st->stream_num) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT( id) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, &PROP_FRAC( dur ) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
+		gf_filter_pid_set_property_str(st->opid, "nocts", &PROP_BOOL(GF_TRUE ));
 	}
 }
 
@@ -322,16 +330,26 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 				nb_done++;
 				continue;
 			}
-			dts -= ctx->first_dts;
-			cts -= ctx->first_dts;
+
+			//bug in some streams, make sure we don't dispatch twice the same ts
+			if (st->last_dts == dts) dts++;;
+			st->last_dts = dts;
 
 			if ((buf[buf_len - 4] == 0) && (buf[buf_len - 3] == 0) && (buf[buf_len - 2] == 1)) buf_len -= 4;
 			dst_pck = gf_filter_pck_new_alloc(st->opid, buf_len, &pck_data);
 			memcpy(pck_data, buf, buf_len);
 			if (ftype==1) gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
-			gf_filter_pck_set_dts(dst_pck, dts);
-			gf_filter_pck_set_cts(dst_pck, cts);
+			if (cts != GF_FILTER_NO_TS) {
+				if (dts == GF_FILTER_NO_TS) dts = cts;
+				dts -= ctx->first_dts;
+				cts -= ctx->first_dts;
+				gf_filter_pck_set_dts(dst_pck, dts);
+				gf_filter_pck_set_cts(dst_pck, cts);
+				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
+			} else {
+				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+			}
 			gf_filter_pck_send(dst_pck);
 		} else {
 			u64 cts;
@@ -340,13 +358,17 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 				nb_done++;
 				continue;
 			}
-			cts -= ctx->first_dts;
-
 			dst_pck = gf_filter_pck_new_alloc(st->opid, buf_len, &pck_data);
 			memcpy(pck_data, buf, buf_len);
+			if (cts != GF_FILTER_NO_TS) {
+				cts -= ctx->first_dts;
+				gf_filter_pck_set_cts(dst_pck, cts);
+				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
+			} else {
+				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+			}
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
-			gf_filter_pck_set_cts(dst_pck, cts);
 			gf_filter_pck_send(dst_pck);
 		}
 	}

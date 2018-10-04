@@ -107,6 +107,11 @@ GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		ctx->ac3_parser_bs = gf_eac3_parser_bs;
 	}
 
+	if (ctx->timescale && !ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	}
 	return GF_OK;
 }
 

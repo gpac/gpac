@@ -85,6 +85,12 @@ GF_Err h263dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) ctx->timescale = p->value.uint;
+
+	if (ctx->timescale && !ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	}
 	return GF_OK;
 }
 
@@ -195,6 +201,8 @@ static void h263dmx_check_pid(GF_Filter *filter, GF_H263DmxCtx *ctx, u32 width, 
 		ctx->opid = gf_filter_pid_new(filter);
 		h263dmx_check_dur(filter, ctx);
 	}
+	if ((ctx->width == width) && (ctx->height == height)) return;
+
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
@@ -202,7 +210,6 @@ static void h263dmx_check_pid(GF_Filter *filter, GF_H263DmxCtx *ctx, u32 width, 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
 
-	if ((ctx->width == width) && (ctx->height == height)) return;
 	ctx->width = width;
 	ctx->height = height;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT( width));

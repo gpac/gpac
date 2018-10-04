@@ -1161,6 +1161,7 @@ sample_entry_setup:
 			if (!gpp_cfg.frames_per_sample) gpp_cfg.frames_per_sample  = 1;
 			else if (gpp_cfg.frames_per_sample >15) gpp_cfg.frames_per_sample = 15;
 		}
+		if (amr_mode_set) gpp_cfg.AMR_mode_set = amr_mode_set;
 		if (tkw->stream_type==GF_STREAM_VISUAL) {
 			/*FIXME - we need more in-depth parsing of the bitstream to detect P3@L10 (streaming wireless)*/
 			gpp_cfg.H263_profile = 0;
@@ -1818,6 +1819,23 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	} else {
 		tkw->sample.CTS_Offset = (s32) ((s64) cts - (s64) tkw->sample.DTS);
 	}
+
+	if (prev_dts && (prev_dts >= tkw->sample.DTS) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Sample with DTS "LLU" less than previous sample DTS "LLU", cannot add\n", tkw->sample.DTS, prev_dts ));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	duration = gf_filter_pck_get_duration(pck);
+	if (timescale != tkw->timescale) {
+		tkw->sample.DTS *= tkw->timescale;
+		tkw->sample.DTS /= timescale;
+		tkw->sample.CTS_Offset *= tkw->timescale;
+		tkw->sample.CTS_Offset /= timescale;
+		duration *= tkw->timescale;
+		duration /= timescale;
+	}
+
+
 	tkw->sample.IsRAP = 0;
 	sap_type = gf_filter_pck_get_sap(pck);
 	if (sap_type==GF_FILTER_SAP_1)
@@ -1829,6 +1847,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		tkw->sample.DTS -= tkw->ts_shift;
 	}
 
+
 	if (tkw->negctts_shift)
 		tkw->sample.CTS_Offset -= tkw->negctts_shift;
 
@@ -1839,16 +1858,6 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	}
 	if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
 
-	duration = gf_filter_pck_get_duration(pck);
-
-	if (timescale != tkw->timescale) {
-		tkw->sample.DTS *= tkw->timescale;
-		tkw->sample.DTS /= timescale;
-		tkw->sample.CTS_Offset *= tkw->timescale;
-		tkw->sample.CTS_Offset /= timescale;
-		duration *= tkw->timescale;
-		duration /= timescale;
-	}
 	if (tkw->sample.CTS_Offset < tkw->min_neg_ctts) tkw->min_neg_ctts = tkw->sample.CTS_Offset;
 
 	if (tkw->use_dref) {

@@ -450,7 +450,6 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 		samp->DTS += dts_inc;
 		done += samp->dataLength;
 		if (duration && (samp->DTS > duration)) break;
-		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	gf_media_update_bitrate_ex(import->dest, track, GF_TRUE);
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, acfg.audioPL);
@@ -754,7 +753,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_set_progress("Importing ISO File", i+1, num_samples);
 
 		if (duration && (sampDTS > duration) ) break;
-		if (import->flags & GF_IMPORT_DO_ABORT) break;
+
 		if (e)
 			goto exit;
 		if (is_cenc) {
@@ -1202,7 +1201,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->flags & GF_IMPORT_PROBE_ONLY) {
 		prober = gf_fs_load_filter(fsess, "probe");
 
-		src_filter = gf_fs_load_source(fsess, importer->in_name, NULL, NULL, &e);
+		src_filter = gf_fs_load_source(fsess, importer->in_name, "index_dur=0", NULL, &e);
 		if (e) {
 			gf_fs_del(fsess);
 			return gf_import_message(importer, e, "[Importer] Cannot load filter for input file \"%s\"", importer->in_name);
@@ -1275,54 +1274,82 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			importer->nb_tracks++;
 		}
 	} else {
-		char szArgs[4096];
+		u32 l1, l2;
+		char *args = NULL;
 		char szSubArg[1024];
 		GF_Filter *isobmff_mux;
 
+#define DYNSTRCAT(_an_arg) {\
+		l1 = args ? (u32) strlen(args) : 0; \
+		l2 = (u32) strlen(_an_arg);\
+		if (l1) args = gf_realloc(args, sizeof(char)*(l1+l2+2));\
+		else args = gf_realloc(args, sizeof(char)*(l2+1));\
+		if (!args) { gf_fs_del(fsess); return GF_OUT_OF_MEM; }\
+		args[l1]=0;\
+		if (l1) strcat(args, ":"); \
+		strcat(args, _an_arg); \
+		}\
+
 		//mux args
-		sprintf(szArgs, "mxisom:file=%p:importer", importer->dest);
-		if (importer->flags & GF_IMPORT_FORCE_MPEG4) strcat(szArgs, ":m4sys");
-		if (importer->flags & GF_IMPORT_USE_DATAREF) strcat(szArgs, ":dref");
-		if (importer->flags & GF_IMPORT_NO_EDIT_LIST) strcat(szArgs, ":noedit");
-		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":pack_nal");
-		if (importer->flags & GF_IMPORT_FORCE_XPS_INBAND) strcat(szArgs, ":xps_inband=all");
+		DYNSTRCAT("mxisom:importer");
+		sprintf(szSubArg, "file=%p", importer->dest);
+		DYNSTRCAT(szSubArg);
+		if (importer->trackID) {
+			sprintf(szSubArg, "SID=1#PID=%d", importer->trackID);
+			DYNSTRCAT(szSubArg);
+		}
+		if (importer->filter_dst_opts) DYNSTRCAT(importer->filter_dst_opts);
+
+		if (importer->flags & GF_IMPORT_FORCE_MPEG4) DYNSTRCAT("m4sys");
+		if (importer->flags & GF_IMPORT_USE_DATAREF) DYNSTRCAT("dref");
+		if (importer->flags & GF_IMPORT_NO_EDIT_LIST) DYNSTRCAT("noedit");
+		if (importer->flags & GF_IMPORT_FORCE_PACKED) DYNSTRCAT("pack_nal");
+		if (importer->flags & GF_IMPORT_FORCE_XPS_INBAND) DYNSTRCAT("xps_inband=all");
 		if (importer->esd && importer->esd->ESID) {
-			sprintf(szSubArg, ":tkid=%d", importer->esd->ESID);
-			strcat(szArgs, szSubArg);
+			sprintf(szSubArg, "tkid=%d", importer->esd->ESID);
+			DYNSTRCAT(szSubArg);
 		}
 
 		if (importer->duration) {
-			sprintf(szSubArg, ":dur=%d/1000", importer->duration);
-			strcat(szArgs, szSubArg);
+			sprintf(szSubArg, "dur=%d/1000", importer->duration);
+			DYNSTRCAT(szSubArg);
 		}
 		if (importer->frames_per_sample) {
-			sprintf(szSubArg, ":pack3gp=%d", importer->frames_per_sample);
-			strcat(szArgs, szSubArg);
+			sprintf(szSubArg, "pack3gp=%d", importer->frames_per_sample);
+			DYNSTRCAT(szSubArg);
 		}
 
-		isobmff_mux = gf_fs_load_filter(fsess, szArgs);
+		isobmff_mux = gf_fs_load_filter(fsess, args);
+		gf_free(args);
+		args = NULL;
 		if (!isobmff_mux) {
 			gf_fs_del(fsess);
 			return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] Cannot load ISOBMFF muxer");
 		}
 
 		//source args
-		strcpy(szArgs, "importer");
-		if (importer->flags & GF_IMPORT_SBR_IMPLICIT) strcat(szArgs, ":sbr=imp");
-		else if (importer->flags & GF_IMPORT_SBR_EXPLICIT) strcat(szArgs, ":sbr=exp");
-		if (importer->flags & GF_IMPORT_PS_IMPLICIT) strcat(szArgs, ":ps=imp");
-		else if (importer->flags & GF_IMPORT_PS_EXPLICIT) strcat(szArgs, ":ps=exp");
-		if (importer->flags & GF_IMPORT_OVSBR) strcat(szArgs, ":ovsbr");
+		DYNSTRCAT("importer:index_dur=0");
+		if (importer->trackID) DYNSTRCAT("FID=1");
+		if (importer->filter_src_opts) DYNSTRCAT(importer->filter_src_opts);
+
+		if (importer->flags & GF_IMPORT_SBR_IMPLICIT) DYNSTRCAT("sbr=imp")
+		else if (importer->flags & GF_IMPORT_SBR_EXPLICIT) DYNSTRCAT("sbr=exp")
+		if (importer->flags & GF_IMPORT_PS_IMPLICIT) DYNSTRCAT("ps=imp")
+		else if (importer->flags & GF_IMPORT_PS_EXPLICIT) DYNSTRCAT("ps=exp")
+		if (importer->flags & GF_IMPORT_OVSBR) DYNSTRCAT("ovsbr");
 		//avoids message at end of import
-		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":nal_length=0");
-		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) strcat(szArgs, ":subsamples");
-		if (importer->flags & GF_IMPORT_NO_SEI) strcat(szArgs, ":nosei");
-		if (importer->flags & GF_IMPORT_SVC_NONE) strcat(szArgs, ":nosvc");
-		if (importer->flags & GF_IMPORT_FORCE_MPEG4) strcat(szArgs, ":mpeg4");
+		if (importer->flags & GF_IMPORT_FORCE_PACKED) DYNSTRCAT("nal_length=0");
+		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) DYNSTRCAT("subsamples");
+		if (importer->flags & GF_IMPORT_NO_SEI) DYNSTRCAT("nosei");
+		if (importer->flags & GF_IMPORT_SVC_NONE) DYNSTRCAT("nosvc");
+		if (importer->flags & GF_IMPORT_FORCE_MPEG4) DYNSTRCAT("mpeg4");
 
-		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) strcat(szArgs, ":webvtt");
+		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) DYNSTRCAT("webvtt");
 
-		gf_fs_load_source(fsess, importer->in_name, szArgs, NULL, &e);
+		gf_fs_load_source(fsess, importer->in_name, args, NULL, &e);
+		gf_free(args);
+		args = NULL;
+
 		if (e) {
 			gf_fs_del(fsess);
 			return gf_import_message(importer, e, "[Importer] Cannot load filter for input file \"%s\"", importer->in_name);
@@ -1350,6 +1377,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 				esd->slConfig = NULL;
 			}
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+		}
+
+		if (importer->flags & GF_IMPORT_FILTER_STATS) {
+			gf_fs_print_stats(fsess);
 		}
 	}
 	gf_fs_del(fsess);

@@ -101,6 +101,12 @@ GF_Err amrdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			ctx->sample_rate = 16000;
 			ctx->block_size = 320;
 		}
+		ctx->skip_magic = GF_FALSE;
+		if (!ctx->opid) {
+			ctx->opid = gf_filter_pid_new(filter);
+			gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		}
 	}
 	return GF_OK;
 }
@@ -124,7 +130,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 	stream = gf_fopen(p->value.string, "rb");
 	if (!stream) return;
 
-	ctx->codecid = 0;
+	ctx->codecid = GF_CODECID_NONE;
 	ctx->start_offset = 6;
 	ctx->sample_rate = 8000;
 	ctx->block_size = 160;
@@ -381,6 +387,25 @@ GF_Err amrdmx_process(GF_Filter *filter)
 			ctx->cts = cts;
 	}
 	if (ctx->skip_magic) {
+
+		if (!strnicmp(start, "#!AMR\n", 6)) {
+			ctx->start_offset = 6;
+			ctx->codecid = GF_CODECID_AMR;
+		}
+		else if (!strnicmp(start, "#!EVRC\n", 7)) {
+			ctx->start_offset = 7;
+			ctx->codecid = GF_CODECID_EVRC;
+		}
+		else if (!strnicmp(start, "#!SMV\n", 6)) {
+			ctx->start_offset = 6;
+			ctx->codecid = GF_CODECID_SMV;
+		}
+		else if (!strnicmp(start, "#!AMR-WB\n", 9)) {
+			ctx->codecid = GF_CODECID_AMR_WB;
+			ctx->start_offset = 9;
+			ctx->sample_rate = 16000;
+			ctx->block_size = 320;
+		}
 		start += ctx->start_offset;
 		remain -= ctx->start_offset;
 	}
@@ -415,6 +440,9 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 			/*update mode set (same mechanism for both AMR and AMR-WB*/
 			amr_mode_set |= (1<<ft);
+			break;
+		case GF_CODECID_NONE:
+			size=0;
 			break;
 		default:
 			for (i=0; i<GF_SMV_EVRC_RATE_TO_SIZE_NB; i++) {
@@ -487,6 +515,13 @@ GF_Err amrdmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static GF_Err amrdmx_initialize(GF_Filter *filter)
+{
+	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
+	ctx->skip_magic = GF_TRUE;
+	return GF_OK;
+}
+
 static void amrdmx_finalize(GF_Filter *filter)
 {
 	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
@@ -521,6 +556,7 @@ GF_FilterRegister AMRDmxRegister = {
 	.description = "AMR/EVRC reframer",
 	.private_size = sizeof(GF_AMRDmxCtx),
 	.args = AMRDmxArgs,
+	.initialize = amrdmx_initialize,
 	.finalize = amrdmx_finalize,
 	SETCAPS(AMRDmxCaps),
 	.configure_pid = amrdmx_configure_pid,

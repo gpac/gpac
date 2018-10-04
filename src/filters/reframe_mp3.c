@@ -59,7 +59,7 @@ typedef struct
 	u32 remaining;
 	char header[10];
 	u32 bytes_in_header;
-
+	Bool recompute_cts;
 	MP3Idx *indexes;
 	u32 index_alloc_size, index_size;
 } GF_MP3DmxCtx;
@@ -83,6 +83,16 @@ GF_Err mp3_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) ctx->timescale = p->value.uint;
+
+	p = gf_filter_pid_get_property_str(pid, "nocts");
+	if (p && p->value.boolean) ctx->recompute_cts = GF_TRUE;
+	else ctx->recompute_cts = GF_FALSE;
+
+	if (ctx->timescale && !ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	}
 	return GF_OK;
 }
 
@@ -344,8 +354,10 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 	//input pid sets some timescale - we flushed pending data , update cts
 	else if (ctx->timescale) {
 		u64 cts = gf_filter_pck_get_cts(pck);
-		if (cts != GF_FILTER_NO_TS)
-			ctx->cts = cts;
+		if (cts != GF_FILTER_NO_TS) {
+			if (!ctx->cts || !ctx->recompute_cts)
+				ctx->cts = cts;
+		}
 	}
 
 #if FILTER_FIXME

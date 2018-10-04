@@ -472,7 +472,7 @@ const GF_FilterRegister InspectRegister = {
 	.description = "Inspect packets on pids",
 	.help = "The inspector filter can be used to dump pid and packets. Te default options load only pid changes.\n"\
 				"The packet inspector mode can be configured to dump specific properties of packets using the fmt option.\n"\
-	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN. TOKEN can be:\n"\
+	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN separator. TOKEN can be:\n"\
 				"\tpn: packet (frame in framed mode) number\n"\
 				"\tdts: decoding time stamp in stream timescale, N/A if not available\n"\
 				"\tcts: composition time stamp in stream timescale, N/A if not available\n"\

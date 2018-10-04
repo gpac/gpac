@@ -103,6 +103,11 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) ctx->timescale = p->value.uint;
 	ctx->state.mem_mode = GF_TRUE;
+	if (ctx->timescale && !ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	}
 	return GF_OK;
 }
 

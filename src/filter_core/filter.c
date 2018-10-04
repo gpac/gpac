@@ -1358,6 +1358,10 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 #endif
+	if (filter->num_output_pids && (filter->num_output_not_connected==filter->num_output_pids)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no valid connected outputs, skiping process\n", filter->name));
+		return;
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
 

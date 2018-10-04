@@ -1549,6 +1549,14 @@ Double mpeg2ps_get_video_stream_framerate (mpeg2ps_t *ps, u32 streamno)
 	return ps->video_streams[streamno]->frame_rate;
 }
 
+u32 mpeg2ps_get_video_stream_id(mpeg2ps_t *ps, u32 streamno)
+{
+	if (invalid_video_streamno(ps, streamno)) {
+		return 0;
+	}
+	return ps->video_streams[streamno]->m_stream_id;
+}
+
 static Bool invalid_audio_streamno (mpeg2ps_t *ps, u32 streamno)
 {
 	if (streamno >= NUM_ELEMENTS_IN_ARRAY(ps->audio_streams)) return 1;
@@ -1624,6 +1632,15 @@ u32 mpeg2ps_get_audio_stream_bitrate (mpeg2ps_t *ps, u32 streamno)
 	}
 	return ps->audio_streams[streamno]->bitrate;
 }
+
+u32 mpeg2ps_get_audio_stream_id (mpeg2ps_t *ps, u32 streamno)
+{
+	if (invalid_audio_streamno(ps, streamno)) {
+		return 0;
+	}
+	return ps->audio_streams[streamno]->m_stream_id;
+}
+
 
 mpeg2ps_t *mpeg2ps_init (const char *filename)
 {
@@ -1712,6 +1729,7 @@ Bool mpeg2ps_get_video_frame(mpeg2ps_t *ps, u32 streamno,
                              mpeg2ps_ts_type_t ts_type,
                              u64 *decode_timestamp, u64 *compose_timestamp)
 {
+	u64 dts, cts;
 	mpeg2ps_stream_t *sptr;
 	if (invalid_video_streamno(ps, streamno)) return 0;
 
@@ -1733,16 +1751,22 @@ Bool mpeg2ps_get_video_frame(mpeg2ps_t *ps, u32 streamno,
 		                                 sptr->pict_header_offset);
 	}
 
-	// and the timestamp
-	if (decode_timestamp != NULL) {
-		*decode_timestamp = sptr->frame_ts.have_dts ? sptr->frame_ts.dts : sptr->frame_ts.pts;
-	}
-	if (compose_timestamp != NULL) {
-		*compose_timestamp = sptr->frame_ts.have_pts ? sptr->frame_ts.pts : sptr->frame_ts.dts;
-	}
+	// set the timestamps
+	if (sptr->frame_ts.have_pts)
+		cts = sptr->frame_ts.pts;
+	else
+		cts = sptr->last_ts + (1+sptr->frames_since_last_ts) * sptr->ticks_per_frame;
+	if (sptr->frame_ts.have_dts)
+		dts = sptr->frame_ts.dts;
+	else
+		dts = cts;
 
-	// finally, indicate that we read this frame - get ready for the next one.
+	if (decode_timestamp) *decode_timestamp = dts;
+	if (compose_timestamp) *compose_timestamp = cts;
+
+	//indicate that we read this frame - get ready for the next one.
 	advance_frame(sptr);
+
 
 	return 1;
 }

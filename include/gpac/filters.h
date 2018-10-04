@@ -1390,8 +1390,8 @@ struct __gf_filter_register
 	*/
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
 
-	/*! optional, usually set by demuxers probes the mime type of a data chunk
-	This function is called once the source is open
+	/*! optional, usually set by demuxers. This function probes the mime type of a data chunk
+	This function is called once the source is open, but is never called on an instanciated filter.
 
 	\param data data to probe
 	\param size size of the data to probe
