@@ -440,11 +440,15 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	GF_FilterClockType cktype;
 #ifdef GPAC_MEMORY_TRACKING
 	u32 nb_allocs=0, nb_reallocs=0, prev_nb_allocs=0, prev_nb_reallocs=0;
+#endif
+
+
+	if (!pck->src_filter) return GF_BAD_PARAM;
+
+#ifdef GPAC_MEMORY_TRACKING
 	if (pck->pid->filter->nb_process_since_reset)
 		gf_mem_get_stats(&prev_nb_allocs, NULL, &prev_nb_reallocs, NULL);
 #endif
-
-	if (!pck->src_filter) return GF_BAD_PARAM;
 
 	assert(pck);
 	assert(pck->pid);
