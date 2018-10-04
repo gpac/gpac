@@ -313,7 +313,7 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 
 void ffmpeg_setup_logs(u32 log_class)
 {
-	u32 level = gf_log_tool_get_level(log_class);
+	u32 level = gf_log_get_tool_level(log_class);
 	switch (level) {
 	case GF_LOG_DEBUG:
 		av_log_set_level(AV_LOG_DEBUG);
