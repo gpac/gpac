@@ -110,11 +110,14 @@ static void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	u32 i, count, timescale, db_size;
 	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
 	Double br;
-	GF_ESD *esd;
+	GF_ESD *esd = NULL;
 
 	db_size = 0;
 
-	esd = gf_isom_get_esd(file, track, 1);
+	if (gf_isom_get_media_subtype(file, track, 1) == GF_ISOM_SUBTYPE_MPEG4) {
+		esd = gf_isom_get_esd(file, track, 1);
+	}
+
 	if (esd) {
 		db_size = esd->decoderConfig->bufferSizeDB;
 		esd->decoderConfig->avgBitrate = 0;
@@ -7307,7 +7310,8 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (e) goto exit;
 	e = gf_media_update_par(import->dest, track_num);
 	if (e) goto exit;
-	//gf_media_update_bitrate(import->dest, track_num);
+
+	gf_media_update_bitrate(import->dest, track_num);
 
 	/*rewrite ESD*/
 	if (import->esd) {
