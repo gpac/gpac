@@ -797,11 +797,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				track_id = 0;
 				e = gf_media_import(&import);
 			}
-			else if (do_audio && (import.tk_info[i].stream_type==GF_STREAM_VISUAL)) {
+			else if (do_audio && (import.tk_info[i].stream_type==GF_STREAM_AUDIO)) {
 				do_audio = 0;
 				e = gf_media_import(&import);
 			}
-			else if (do_video && (import.tk_info[i].stream_type==GF_STREAM_AUDIO)) {
+			else if (do_video && (import.tk_info[i].stream_type==GF_STREAM_VISUAL)) {
 				do_video = 0;
 				e = gf_media_import(&import);
 			}
