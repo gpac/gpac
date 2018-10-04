@@ -685,8 +685,16 @@ GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber)
 
 	for (i = 0; i < gf_list_count(stbl->sai_sizes); i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(stbl->sai_sizes, i);
-		if (saiz->aux_info_type != GF_ISOM_CENC_SCHEME)
+		switch (saiz->aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+		case 0:
+			break;
+		default:
 			continue;
+		}
 		gf_isom_box_del((GF_Box *)saiz);
 		gf_list_rem(stbl->sai_sizes, i);
 		i--;
@@ -713,8 +721,16 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 
 	for (i = 0; i < gf_list_count(stbl->sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(stbl->sai_offsets, i);
-		if (saio->aux_info_type != GF_ISOM_CENC_SCHEME)
+		switch (saio->aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+		case 0:
+			break;
+		default:
 			continue;
+		}
 		gf_isom_box_del((GF_Box *)saio);
 		gf_list_rem(stbl->sai_offsets, i);
 		i--;
@@ -844,7 +860,7 @@ GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
 	u32 i;
 	for (i = 0; i < gf_list_count(the_file->moov->other_boxes); i++) {
 		GF_Box *a = (GF_Box *)gf_list_get(the_file->moov->other_boxes, i);
-		if (a->type == GF_ISOM_BOX_UUID_PSSH) {
+		if ((a->type == GF_ISOM_BOX_UUID_PSSH) || (a->type == GF_ISOM_BOX_TYPE_PSSH)) {
 			gf_list_rem(the_file->moov->other_boxes, i);
 			gf_isom_box_del(a);
 			i--;
