@@ -762,7 +762,7 @@ GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, co
 		if (!fname) {
 			dref_entry->location = gf_strdup(origName);
 		} else {
-			u32 len = fname - origName;
+			u32 len = (u32)(fname - origName);
 			if (!finalName || strncmp(origName, finalName, len)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Concatenation of relative path %s with relative path %s not supported, use absolute URLs\n", origName, finalName));
 				return GF_NOT_SUPPORTED;
