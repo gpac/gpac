@@ -7119,6 +7119,26 @@ static Bool probe_webm_matrovska(GF_BitStream *bs)
 	return GF_FALSE;
 }
 
+typedef enum {
+	OBUs,   /*Section 5*/
+	AnnexB,
+	IVF
+} AV1BitstreamSyntax;
+
+static const char* av1_get_bs_syntax_name(AV1BitstreamSyntax av1_bs_syntax)
+{
+	if (av1_bs_syntax == OBUs)
+		return "OBU section 5";
+	else if (av1_bs_syntax == AnnexB)
+		return "AnnexB";
+	else if (av1_bs_syntax == IVF)
+		return "IVF";
+	else {
+		assert(0);
+		return "Unknown";
+	}
+}
+
 static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 {
 #ifdef GPAC_DISABLE_AV1
@@ -7133,11 +7153,6 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	Bool detect_fps;
 	Double FPS = 0.0;
 	u64 fsize, pos = 0;
-	typedef enum {
-		OBUs,   /*Section 5*/
-		AnnexB,
-		IVF
-	} AV1BitstreamSyntax;
 	AV1BitstreamSyntax av1_bs_syntax;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -7285,7 +7300,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 				e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg, NULL, NULL, &di);
 				if (e) goto exit;
 
-				gf_import_message(import, GF_OK, "Importing AV1 from %s file - size %dx%d bit-depth %d FPS %d/%d", (av1_bs_syntax == OBUs) ? "OBU section 5" : (av1_bs_syntax == AnnexB) ? "AnnexB" : "IVF", state.width, state.height, state.bit_depth, timescale, dts_inc);
+				gf_import_message(import, GF_OK, "Importing AV1 from %s file - size %dx%d bit-depth %d FPS %d/%d", av1_get_bs_syntax_name(av1_bs_syntax), state.width, state.height, state.bit_depth, timescale, dts_inc);
 
 			} else {
 				/*safety check: we only support static metadata*/
