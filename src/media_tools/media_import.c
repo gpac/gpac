@@ -107,16 +107,28 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	u32 i, count, timescale, db_size;
+	u32 i, count, timescale, db_size, ofmt;
 	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
 	Double br;
 	GF_ESD *esd = NULL;
 
 	db_size = 0;
 
-	if (gf_isom_get_media_subtype(file, track, 1) == GF_ISOM_SUBTYPE_MPEG4) {
+	switch (gf_isom_get_media_subtype(file, track, 1)) {
+	case GF_ISOM_SUBTYPE_MPEG4:
 		esd = gf_isom_get_esd(file, track, 1);
+		break;
+	case GF_ISOM_SUBTYPE_MPEG4_CRYP:
+		gf_isom_get_original_format_type(file, track, 1, &ofmt);
+		switch (ofmt) {
+		case GF_ISOM_BOX_TYPE_MP4S:
+		case GF_ISOM_BOX_TYPE_MP4A:
+		case GF_ISOM_BOX_TYPE_MP4V:
+			esd = gf_isom_get_esd(file, track, 1);
+			break;
+		}
 	}
+
 
 	if (esd) {
 		db_size = esd->decoderConfig->bufferSizeDB;

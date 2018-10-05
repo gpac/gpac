@@ -1101,10 +1101,17 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 
 	//we have a streamDescritpionIndex, use it
 	if (StreamDescriptionIndex) {
+		u32 entry_type;
 		entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex - 1);
 		if (!entry) return GF_ISOM_INVALID_FILE;
 
-		switch (entry->type) {
+		entry_type = entry->type;
+		if (gf_list_count(entry->protections)) {
+			GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
+			if (sinf && sinf->original_format) entry_type = sinf->original_format->data_format;
+		}
+
+		switch (entry_type) {
 		case GF_ISOM_BOX_TYPE_MP4S:
 			//OK, delete the previous ESD
 			gf_odf_desc_del((GF_Descriptor *) entry->esd->desc);

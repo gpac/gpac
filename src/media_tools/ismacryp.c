@@ -2738,8 +2738,12 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	nb_tracks = gf_isom_get_track_count(mp4);
 	for (i=0; i<nb_tracks; i++) {
 		GF_Err (*gf_encrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
-
 		u32 trackID = gf_isom_get_track_id(mp4, i+1);
+
+		if (gf_isom_is_track_encrypted(mp4, i+1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Track %d is already encrypted\n", trackID));
+			continue;
+		}
 		for (idx=0; idx<count; idx++) {
 			tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
 			if (tci->trackID==trackID) break;
