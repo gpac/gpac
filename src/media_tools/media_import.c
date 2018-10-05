@@ -53,13 +53,12 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	u32 i, count, timescale, db_size, ofmt;
+	u32 i, count, timescale, db_size;
 	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
 	Double br;
 	GF_ISOSample sample;
-	db_size = 0;
 
-	rate = max_rate = avg_rate = time_wnd = 0;
+	db_size = rate = max_rate = avg_rate = time_wnd = 0;
 
 	memset(&sample, 0, sizeof(GF_ISOSample));
 	timescale = gf_isom_get_media_timescale(file, track);
