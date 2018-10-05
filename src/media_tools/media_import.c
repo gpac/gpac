@@ -7152,6 +7152,24 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
+	{
+		/*look for webm or matrovska - the former being the default output format of the official aomenc*/
+		char probe[64], *found = NULL;
+		u32 read = gf_bs_read_data(bs, probe, sizeof(probe)-1);
+		probe[read] = 0;
+		found = strstr(probe, "webm");
+		if (found) {
+			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: guessed unsupport WebM container. Aborting.");
+			goto exit;
+		}
+		found = strstr(probe, "matroska");
+		if (found) {
+			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: guessed unsupport Matrovska container. Aborting.");
+			goto exit;
+		}
+		gf_bs_seek(bs, pos);
+	}
+
 	if (import->streamFormat) {
 		gf_import_message(import, GF_OK, "AV1: forcing format \"%s\".", import->streamFormat);
 		if (!stricmp(import->streamFormat, "obu")) {
