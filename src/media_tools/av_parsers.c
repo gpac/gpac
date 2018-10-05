@@ -2074,17 +2074,27 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state)
 {
+	Bool obu_td_found = GF_FALSE;
 	ObuType obu_type = -1;
-	while (obu_type != OBU_TEMPORAL_DELIMITER && gf_bs_available(bs)) {
+	while (gf_bs_available(bs)) {
 		u64 pos = gf_bs_get_position(bs), obu_length = 0;
 		GF_Err e;
 
 		e = gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_length, NULL, state);
-		if (e) return e;
-
+		if (e)
+			return e;
 		if (obu_length != gf_bs_get_position(bs) - pos) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] OBU (Section 5) frame size "LLU" different from consumed bytes "LLU".\n", obu_length, gf_bs_get_position(bs) - pos));
 			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		if (obu_type == OBU_TEMPORAL_DELIMITER) {
+			if (!obu_td_found) {
+				obu_td_found = GF_TRUE;
+			} else {
+				gf_bs_seek(bs, pos);
+				break;
+			}
 		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Section5 OBU detected (size "LLU")\n", obu_length));
