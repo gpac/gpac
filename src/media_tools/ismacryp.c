@@ -583,7 +583,6 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Error ISMACryp signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
 	}
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
-	gf_media_update_bitrate(mp4, track);
 
 	/*remove all IPMP ptrs*/
 	esd = gf_isom_get_esd(mp4, track, 1);
@@ -596,6 +595,8 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		gf_isom_change_mpeg4_description(mp4, track, 1, esd);
 		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
+
+	gf_media_update_bitrate(mp4, track);
 
 	/*update OD track if any*/
 	for (i=0; i<gf_isom_get_track_count(mp4); i++) {
