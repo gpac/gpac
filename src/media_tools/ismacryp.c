@@ -1705,6 +1705,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		memcpy(tci->key, tci->keys[0], 16);
 		memcpy(tci->default_KID, tci->KIDs[0], 16);
 		idx = 0;
+		tci->defaultKeyIdx = 0;
 	}
 
 	/*create CENC protection*/
@@ -1844,7 +1845,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 		}
 
-		if (use_seig) {
+		if (use_seig && (tci->defaultKeyIdx != idx) ) {
 			/*add this sample to sample encryption group*/
 			e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 1, tci->IV_size, tci->KIDs[idx], tci->crypt_byte_block, tci->skip_byte_block, tci->constant_IV_size, tci->constant_IV);
 			if (e) goto exit;
