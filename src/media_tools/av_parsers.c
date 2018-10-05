@@ -2072,7 +2072,8 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 	}
 }
 
-GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state) {
+GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state)
+{
 	ObuType obu_type = -1;
 	while (obu_type != OBU_TEMPORAL_DELIMITER && gf_bs_available(bs)) {
 		u64 pos = gf_bs_get_position(bs), obu_length = 0;

@@ -7098,6 +7098,27 @@ void av1_reset_frame_state(AV1StateFrame *frame_state) {
 	memset(frame_state, 0, sizeof(AV1StateFrame));
 }
 
+static Bool probe_webm_matrovska(GF_BitStream *bs)
+{
+	char probe[64], *found = NULL;
+	u64 pos = gf_bs_get_position(bs);
+	u32 read = gf_bs_read_data(bs, probe, sizeof(probe) - 1);
+	gf_bs_seek(bs, pos);
+	probe[read] = 0;
+	found = strstr(probe, "webm");
+	if (found) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("AV1: guessed unsupport WebM container. Aborting.\n"));
+		return GF_TRUE;
+	}
+	found = strstr(probe, "matroska");
+	if (found) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("AV1: guessed unsupport Matrovska container. Aborting.\n"));
+		return GF_TRUE;
+	}
+
+	return GF_FALSE;
+}
+
 static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 {
 #ifdef GPAC_DISABLE_AV1
@@ -7152,22 +7173,9 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
-	{
-		/*look for webm or matrovska - the former being the default output format of the official aomenc*/
-		char probe[64], *found = NULL;
-		u32 read = gf_bs_read_data(bs, probe, sizeof(probe)-1);
-		probe[read] = 0;
-		found = strstr(probe, "webm");
-		if (found) {
-			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: guessed unsupport WebM container. Aborting.");
-			goto exit;
-		}
-		found = strstr(probe, "matroska");
-		if (found) {
-			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: guessed unsupport Matrovska container. Aborting.");
-			goto exit;
-		}
-		gf_bs_seek(bs, pos);
+	if (probe_webm_matrovska(bs)) {
+		gf_import_message(import, GF_NOT_SUPPORTED, "AV1: guessed unsupport WebM container. Aborting.");
+		goto exit;
 	}
 
 	if (import->streamFormat) {
@@ -7193,7 +7201,6 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			}
 			pos = gf_bs_get_position(bs);
 		} else if (gf_media_aom_probe_annexb(bs)) {
-			aom_av1_parse_temporal_unit_from_annexb(bs, &state);
 			av1_bs_syntax = AnnexB;
 		} else {
 			gf_bs_seek(bs, pos);
@@ -7205,6 +7212,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			av1_bs_syntax = OBUs;
 		}
 	}
+	gf_bs_seek(bs, pos);
 
 	track_id = 0;
 	if (import->esd) track_id = import->esd->ESID;
@@ -7381,7 +7389,7 @@ static GF_Err gf_import_ivf(GF_MediaImporter *import)
 		return gf_import_aom_av1(import);
 	default: {
 		char *FourCC = (char*)&codec_fourcc;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	}
