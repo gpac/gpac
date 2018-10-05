@@ -498,8 +498,8 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height,
 
 
 
-#define MAX_TILE_ROWS 64
-#define MAX_TILE_COLS 64
+#define AV1_MAX_TILE_ROWS 64
+#define AV1_MAX_TILE_COLS 64
 
 typedef enum {
 	AV1_KEY_FRAME = 0,
@@ -518,7 +518,7 @@ typedef struct
 		//offset in bytes after first byte of obu, including its header
 		u32 obu_start_offset;
 		u32 size;
-	} tiles[MAX_TILE_ROWS*MAX_TILE_COLS];
+	} tiles[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 	u32 nb_tiles_in_obu;
 	u8 refresh_frame_flags;
 	u8 order_hint;

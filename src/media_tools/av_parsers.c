@@ -2262,8 +2262,8 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 	u32 maxTileWidthSb = MAX_TILE_WIDTH >> sbSize;
 	u32 maxTileAreaSb = MAX_TILE_AREA >> (2 * sbSize);
 	u32 minLog2tileCols = aom_av1_tile_log2(maxTileWidthSb, sbCols);
-	u32 maxLog2tileCols = aom_av1_tile_log2(1, MIN(sbCols, MAX_TILE_COLS));
-	u32 maxLog2tileRows = aom_av1_tile_log2(1, MIN(sbRows, MAX_TILE_ROWS));
+	u32 maxLog2tileCols = aom_av1_tile_log2(1, MIN(sbCols, AV1_MAX_TILE_COLS));
+	u32 maxLog2tileRows = aom_av1_tile_log2(1, MIN(sbRows, AV1_MAX_TILE_ROWS));
 	u32 minLog2Tiles = MAX(minLog2tileCols, aom_av1_tile_log2(maxTileAreaSb, sbRows * sbCols));
 	Bool uniform_tile_spacing_flag = gf_bs_read_int(bs, 1);
 	if (uniform_tile_spacing_flag) {
