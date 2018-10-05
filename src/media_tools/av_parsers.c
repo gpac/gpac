@@ -1823,7 +1823,6 @@ Bool gf_media_probe_ivf(GF_BitStream *bs)
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 {
-	char *FourCC = NULL;
 	u32 dw = 0;
 
 	if (gf_bs_available(bs) < 32) {
@@ -1845,8 +1844,8 @@ GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 	dw = gf_bs_read_u16_le(bs);
 
 	dw = gf_bs_read_u32(bs); //codec_fourcc
-	FourCC = (char*)&dw;
 	if (dw != GF_4CC('A', 'V', '0', '1')) {
+		char *FourCC = (char*)&dw;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
