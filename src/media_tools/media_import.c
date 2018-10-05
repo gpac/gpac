@@ -7344,7 +7344,7 @@ static GF_Err gf_import_ivf(GF_MediaImporter *import)
 {
 	GF_Err e = GF_OK;
 	u16 width = 0, height = 0;
-	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0;
+	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
 	FILE *mdia = NULL;
 	GF_BitStream *bs = NULL;
 
@@ -7352,7 +7352,7 @@ static GF_Err gf_import_ivf(GF_MediaImporter *import)
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
-	e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale);
+	e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
 	fclose(mdia);
 	gf_bs_del(bs);
 	if (e)
