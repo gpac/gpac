@@ -7119,21 +7119,15 @@ static Bool probe_webm_matrovska(GF_BitStream *bs)
 	return GF_FALSE;
 }
 
-typedef enum {
-	OBUs,   /*Section 5*/
-	AnnexB,
-	IVF
-} AV1BitstreamSyntax;
-
-static const char* av1_get_bs_syntax_name(AV1BitstreamSyntax av1_bs_syntax)
+static const char* av1_get_bs_syntax_name(GF_Err(*av1_bs_syntax)(GF_BitStream*, AV1State*))
 {
-	if (av1_bs_syntax == OBUs)
+	if (av1_bs_syntax == aom_av1_parse_temporal_unit_from_section5) {
 		return "OBU section 5";
-	else if (av1_bs_syntax == AnnexB)
+	} else if (av1_bs_syntax == aom_av1_parse_temporal_unit_from_annexb) {
 		return "AnnexB";
-	else if (av1_bs_syntax == IVF)
+	} else if (av1_bs_syntax == aom_av1_parse_temporal_unit_from_ivf) {
 		return "IVF";
-	else {
+	} else {
 		assert(0);
 		return "Unknown";
 	}
@@ -7153,7 +7147,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	Bool detect_fps;
 	Double FPS = 0.0;
 	u64 fsize, pos = 0;
-	AV1BitstreamSyntax av1_bs_syntax;
+	GF_Err (*parse_temporal_unit)(GF_BitStream*, AV1State*) = NULL;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -7196,11 +7190,11 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	if (import->streamFormat) {
 		gf_import_message(import, GF_OK, "AV1: forcing format \"%s\".", import->streamFormat);
 		if (!stricmp(import->streamFormat, "obu")) {
-			av1_bs_syntax = OBUs;
+			parse_temporal_unit = aom_av1_parse_temporal_unit_from_section5;
 		} else if (!stricmp(import->streamFormat, "annexB")) {
-			av1_bs_syntax = AnnexB;
+			parse_temporal_unit = aom_av1_parse_temporal_unit_from_annexb;
 		} else if (!stricmp(import->streamFormat, "ivf")) {
-			av1_bs_syntax = IVF;
+			parse_temporal_unit = aom_av1_parse_temporal_unit_from_ivf;
 		} else {
 			gf_import_message(import, GF_NOT_SUPPORTED, "AV1: unknown bitstream format \"%s\" found. Only \"obu\", \"annexB\" and \"ivf\" found.", import->streamFormat);
 			goto exit;
@@ -7208,7 +7202,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	} else {
 		if (gf_media_probe_ivf(bs)) {
 			e = gf_media_aom_parse_ivf_file_header(bs, &state);
-			av1_bs_syntax = IVF;
+			parse_temporal_unit = aom_av1_parse_temporal_unit_from_ivf;
 
 			if (detect_fps && (state.FPS != FPS)) {
 				import->video_fps = FPS = state.FPS;
@@ -7216,7 +7210,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 			}
 			pos = gf_bs_get_position(bs);
 		} else if (gf_media_aom_probe_annexb(bs)) {
-			av1_bs_syntax = AnnexB;
+			parse_temporal_unit = aom_av1_parse_temporal_unit_from_annexb;
 		} else {
 			gf_bs_seek(bs, pos);
 			e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
@@ -7224,7 +7218,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 				gf_import_message(import, GF_NOT_SUPPORTED, "AV1: couldn't guess bitstream format (IVF then Annex B then Section 5 tested).");
 				goto exit;
 			}
-			av1_bs_syntax = OBUs;
+			parse_temporal_unit = aom_av1_parse_temporal_unit_from_section5;
 		}
 	}
 	gf_bs_seek(bs, pos);
@@ -7249,21 +7243,9 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		pos = gf_bs_get_position(bs);
 
 		/*we process each TU and extract only the necessary OBUs*/
-		if (av1_bs_syntax == OBUs) {
-			if (aom_av1_parse_temporal_unit_from_section5(bs, &state) != GF_OK) {
-				gf_import_message(import, GF_OK, "Error parsing OBU (Section 5)");
-				goto exit;
-			}
-		} else if (av1_bs_syntax == AnnexB) {
-			if (aom_av1_parse_temporal_unit_from_annexb(bs, &state) != GF_OK) {
-				gf_import_message(import, GF_OK, "Error parsing OBU (Annex B)");
-				goto exit;
-			}
-		} else if (av1_bs_syntax == IVF) {
-			if (aom_av1_parse_temporal_unit_from_ivf(bs, &state) != GF_OK) {
-				gf_import_message(import, GF_OK, "Error parsing OBU (IVF)");
-				goto exit;
-			}
+		if (parse_temporal_unit(bs, &state) != GF_OK) {
+			gf_import_message(import, GF_OK, "Error parsing %s", av1_get_bs_syntax_name(parse_temporal_unit));
+			goto exit;
 		}
 
 		/*add sample*/
@@ -7300,7 +7282,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 				e = gf_isom_av1_config_new(import->dest, track_num, av1_cfg, NULL, NULL, &di);
 				if (e) goto exit;
 
-				gf_import_message(import, GF_OK, "Importing AV1 from %s file - size %dx%d bit-depth %d FPS %d/%d", av1_get_bs_syntax_name(av1_bs_syntax), state.width, state.height, state.bit_depth, timescale, dts_inc);
+				gf_import_message(import, GF_OK, "Importing AV1 from %s file - size %dx%d bit-depth %d FPS %d/%d", av1_get_bs_syntax_name(parse_temporal_unit), state.width, state.height, state.bit_depth, timescale, dts_inc);
 
 			} else {
 				/*safety check: we only support static metadata*/
