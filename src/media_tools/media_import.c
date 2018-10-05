@@ -7340,6 +7340,35 @@ exit:
 	return e;
 }
 
+static GF_Err gf_import_ivf(GF_MediaImporter *import)
+{
+	GF_Err e = GF_OK;
+	u16 width = 0, height = 0;
+	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0;
+	FILE *mdia = NULL;
+	GF_BitStream *bs = NULL;
+
+	mdia = gf_fopen(import->in_name, "rb");
+	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
+	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
+
+	e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale);
+	fclose(mdia);
+	gf_bs_del(bs);
+	if (e)
+		return e;
+
+	switch (codec_fourcc) {
+	case GF_4CC('A', 'V', '0', '1'):
+		return gf_import_aom_av1(import);
+	default: {
+		char *FourCC = (char*)&codec_fourcc;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	}
+}
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 #ifndef GPAC_DISABLE_OGG
@@ -10244,8 +10273,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		|| !strnicmp(ext, ".shvc", 5) || !strnicmp(ext, ".lhvc", 5) || !strnicmp(ext, ".mhvc", 5)
 	        || !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "MHVC") || !stricmp(fmt, "LHVC") || !stricmp(fmt, "H265") )
 		return gf_import_hevc(importer);
+	/*IVF container (may contain VP9, AV1, ...)*/
+	if (!strnicmp(ext, ".ivf", 4))
+		return gf_import_ivf(importer);
 	/*AOM AV1 video*/
-	if (!strnicmp(ext, ".av1", 4) || !strnicmp(ext, ".ivf", 4) || !strnicmp(ext, ".obu", 4))
+	if (!strnicmp(ext, ".av1", 4) || !strnicmp(ext, ".obu", 4))
 		return gf_import_aom_av1(importer);
 	/*AC3 and E-AC3*/
 	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
