@@ -492,6 +492,12 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
+
+
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale);
+
+
+
 #define MAX_TILE_ROWS 64
 #define MAX_TILE_COLS 64
 

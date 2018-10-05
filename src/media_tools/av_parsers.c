@@ -1821,9 +1821,14 @@ Bool gf_media_probe_ivf(GF_BitStream *bs)
 	return GF_TRUE;
 }
 
-GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale)
 {
 	u32 dw = 0;
+
+	if (!width || !height || !codec_fourcc) {
+		assert(0);
+		return GF_BAD_PARAM;
+	}
 
 	if (gf_bs_available(bs) < 32) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Not enough bytes available ("LLU").\n", gf_bs_available(bs)));
@@ -1841,21 +1846,37 @@ GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong IVF version. 0 expected, got %u\n", dw));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	dw = gf_bs_read_u16_le(bs);
+	dw = gf_bs_read_u16_le(bs); //length of header in bytes
 
-	dw = gf_bs_read_u32(bs); //codec_fourcc
-	if (dw != GF_4CC('A', 'V', '0', '1')) {
-		char *FourCC = (char*)&dw;
+	*codec_fourcc = gf_bs_read_u32(bs);
+	
+	*width  = gf_bs_read_u16_le(bs);
+	*height = gf_bs_read_u16_le(bs);
+	
+	*frame_rate = gf_bs_read_u32_le(bs);
+	*time_scale = gf_bs_read_u32_le(bs);
+
+	gf_bs_read_u64(bs); //skip
+
+	return GF_OK;
+}
+
+GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
+{
+	u16 width = 0, height = 0;
+	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0;
+	GF_Err e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale);
+	if (e)
+		return e;
+
+	if (codec_fourcc != GF_4CC('A', 'V', '0', '1')) {
+		char *FourCC = (char*)&codec_fourcc;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	dw = gf_bs_read_u16_le(bs);
-	state->width = state->width < dw ? dw : state->width;
-	dw = gf_bs_read_u16_le(bs);
-	state->height = state->height < dw ? dw : state->height;
-	state->FPS = gf_bs_read_u32_le(bs) / (double)gf_bs_read_u32_le(bs); //time_base.numerator / time_base.denominator
-
-	gf_bs_read_u64(bs); //skip
+	state->width = state->width < width ? width : state->width;
+	state->height = state->height < height ? height : state->height;
+	state->FPS = frame_rate / (double)time_scale;
 
 	return GF_OK;
 }
