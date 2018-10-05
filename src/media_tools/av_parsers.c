@@ -1902,7 +1902,7 @@ GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	gf_bs_read_u64(bs); //skip
+	/*TODO: u64 pts = */gf_bs_read_u64(bs);
 
 	return GF_OK;
 }
