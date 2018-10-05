@@ -1809,10 +1809,14 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	state->film_grain_params_present = gf_bs_read_int(bs, 1);
 }
 
+
+
+#define IVF_FILE_HEADER_SIZE 32
+
 Bool gf_media_probe_ivf(GF_BitStream *bs)
 {
 	u32 dw = 0;
-	if (gf_bs_available(bs) < 32) return GF_FALSE;
+	if (gf_bs_available(bs) < IVF_FILE_HEADER_SIZE) return GF_FALSE;
 
 	dw = gf_bs_peek_bits(bs, 32, 0);
 	if (dw != GF_4CC('D', 'K', 'I', 'F')) {
@@ -1821,16 +1825,16 @@ Bool gf_media_probe_ivf(GF_BitStream *bs)
 	return GF_TRUE;
 }
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale)
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames)
 {
 	u32 dw = 0;
 
-	if (!width || !height || !codec_fourcc) {
+	if (!width || !height || !codec_fourcc || !frame_rate || !time_scale || !num_frames) {
 		assert(0);
 		return GF_BAD_PARAM;
 	}
 
-	if (gf_bs_available(bs) < 32) {
+	if (gf_bs_available(bs) < IVF_FILE_HEADER_SIZE) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Not enough bytes available ("LLU").\n", gf_bs_available(bs)));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -1846,7 +1850,12 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height,
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong IVF version. 0 expected, got %u\n", dw));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+
 	dw = gf_bs_read_u16_le(bs); //length of header in bytes
+	if (dw != IVF_FILE_HEADER_SIZE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong IVF header length. Expected 32 bytes, got %u\n", dw));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	*codec_fourcc = gf_bs_read_u32(bs);
 	
@@ -1856,7 +1865,8 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height,
 	*frame_rate = gf_bs_read_u32_le(bs);
 	*time_scale = gf_bs_read_u32_le(bs);
 
-	gf_bs_read_u64(bs); //skip
+	*num_frames = gf_bs_read_u32_le(bs);
+	gf_bs_read_u32_le(bs); //skip unused
 
 	return GF_OK;
 }
@@ -1864,14 +1874,14 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height,
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 {
 	u16 width = 0, height = 0;
-	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0;
-	GF_Err e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale);
+	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
+	GF_Err e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
 	if (e)
 		return e;
 
 	if (codec_fourcc != GF_4CC('A', 'V', '0', '1')) {
 		char *FourCC = (char*)&codec_fourcc;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Wrong codec FourCC. Only 'AV01' supported, got '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Unsupported codec FourCC '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	state->width = state->width < width ? width : state->width;
