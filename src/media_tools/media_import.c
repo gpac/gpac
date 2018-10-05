@@ -112,8 +112,6 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	Double br;
 	GF_ESD *esd = NULL;
 
-	db_size = 0;
-
 	switch (gf_isom_get_media_subtype(file, track, 1)) {
 	case GF_ISOM_SUBTYPE_MPEG4:
 		esd = gf_isom_get_esd(file, track, 1);
@@ -129,12 +127,7 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 		}
 	}
 
-
-	if (esd) {
-		db_size = esd->decoderConfig->bufferSizeDB;
-		esd->decoderConfig->avgBitrate = 0;
-		esd->decoderConfig->maxBitrate = 0;
-	}
+	db_size = 0;
 	rate = max_rate = avg_rate = time_wnd = 0;
 
 	timescale = gf_isom_get_media_timescale(file, track);
