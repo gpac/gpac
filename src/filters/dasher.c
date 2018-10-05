@@ -1880,7 +1880,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ds->as_id && !as_id)
 			as_id = ds->as_id;
 
-		if (ds->fps.den && (ds->fps.num > set->max_framerate*ds->fps.den)) {
+		if (ds->fps.den && (ds->fps.num > (s32) (set->max_framerate*ds->fps.den))) {
 			set->max_framerate = ds->fps.num;
 			set->max_framerate /= ds->fps.den;
 		}
@@ -1924,11 +1924,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		GF_DashStream *ads = gf_list_get(ctx->current_period->streams, i);
 		if (ads->set == set) continue;
 		frag_uri = strrchr(ds->src_url, '#');
-		if (frag_uri) len1 = frag_uri-1 - ds->src_url;
-		else len1 = strlen(ds->src_url);
+		if (frag_uri) len1 = (u32) (frag_uri-1 - ds->src_url);
+		else len1 = (u32) strlen(ds->src_url);
 		frag_uri = strrchr(ads->src_url, '#');
-		if (frag_uri) len2 = frag_uri-1 - ads->src_url;
-		else len2 = strlen(ads->src_url);
+		if (frag_uri) len2 = (u32) (frag_uri-1 - ads->src_url);
+		else len2 = (u32) strlen(ads->src_url);
 
 		if ((len1==len2) && !strncmp(ds->src_url, ads->src_url, len1)) {
 			split_set_names = GF_TRUE;
@@ -3661,7 +3661,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		Double seg_duration = (Double) (base_ds->first_cts_in_next_seg - ds->first_cts_in_seg);
 		seg_duration /= base_ds->timescale;
 		assert(seg_duration);
-		seg_dur_ms = seg_duration*1000;
+		seg_dur_ms = (u32) (seg_duration*1000);
 		if ((Double)seg_dur_ms < seg_duration*1000) seg_dur_ms++;
 
 		if (ctx->mpd->max_segment_duration < seg_dur_ms)
@@ -4479,7 +4479,7 @@ static void dasher_resume_subdur(GF_DasherCtx *ctx)
 
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
 		evt.play.speed = 1.0;
-		evt.play.from_pck = ds->seek_to_pck;
+		evt.play.from_pck = (u32) ds->seek_to_pck;
 		gf_filter_pid_send_event(ds->ipid, &evt);
 	}
 	ctx->subdur_done = GF_FALSE;

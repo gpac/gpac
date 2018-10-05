@@ -2219,7 +2219,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		}
 
 		if (max_dur) {
-			gf_isom_set_movie_duration(ctx->file, max_dur*ctx->timescale);
+			gf_isom_set_movie_duration(ctx->file, (u64) ( max_dur*ctx->timescale) );
 		}
 
 		//if we have an explicit track reference for fragmenting, move it first in our list

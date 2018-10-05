@@ -377,7 +377,6 @@ GF_CryptInfo *gf_crypt_info_load(const char *file)
 GF_EXPORT
 GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
 {
-	const char *src_url;
 	char szArgs[4096];
 	GF_Filter *src, *dst, *dcrypt;
 	GF_FilterSession *fsess;
@@ -389,7 +388,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	src = gf_fs_load_filter(fsess, szArgs);
 	if (!src) {
 		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load demux filter for file %s\n", src_url));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load demux filter for source file\n"));
 		return GF_FILTER_NOT_FOUND;
 	}
 
@@ -424,7 +423,6 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 GF_EXPORT
 GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time)
 {
-	const char *src_url;
 	char szArgs[4096];
 	GF_Filter *src, *dst, *crypt;
 	GF_FilterSession *fsess;
@@ -437,7 +435,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 
 	if (!src) {
 		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load demux for file %s\n", src_url));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load demux for source file\n"));
 		return GF_FILTER_NOT_FOUND;
 	}
 
