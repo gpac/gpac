@@ -485,7 +485,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 {
 	GF_Err e;
 	Bool use_sel_enc;
-	u32 track, count, i, j, si, is_avc;
+	u32 track, count, i, j, si, otype, is_nalu;
 	GF_ISOSample *samp;
 	GF_ISMASample *ismasamp;
 	GF_Crypt *mc;
@@ -495,9 +495,9 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_ESD *esd;
 
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
-	e = gf_isom_get_ismacryp_info(mp4, track, 1, &is_avc, NULL, NULL, NULL, NULL, &use_sel_enc, &IV_size, NULL);
+	e = gf_isom_get_ismacryp_info(mp4, track, 1, &otype, NULL, NULL, NULL, NULL, &use_sel_enc, &IV_size, NULL);
 	if (e) return e;
-	is_avc = (is_avc==GF_ISOM_BOX_TYPE_264B) ? 1 : 0;
+	is_nalu = ((otype==GF_ISOM_BOX_TYPE_264B) || (otype==GF_ISOM_BOX_TYPE_265B)) ? 1 : 0;
 
 
 	mc = gf_crypt_open(GF_AES_128, GF_CTR);
@@ -543,7 +543,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		gf_isom_ismacryp_delete_sample(ismasamp);
 
 		/*replace AVC start codes (0x00000001) by nalu size*/
-		if (is_avc) {
+		if (is_nalu) {
 			u32 nalu_size;
 			u32 remain = samp->dataLength;
 			char *start, *end;
