@@ -638,7 +638,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_ISOSample *samp;
 	GF_ISMASample *isamp;
 	GF_Crypt *mc;
-	u32 i, count, di, track, IV_size, rand, avc_size_length;
+	u32 i, count, di, track, IV_size, rand, avc_size_length, hevc_size_length;
 	u64 BSO, range_end;
 	GF_ESD *esd;
 	GF_IPMPPtr *ipmpdp;
@@ -650,7 +650,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	GF_Err e;
 	Bool prev_sample_encryped, has_crypted_samp;
 
-	avc_size_length = 0;
+	avc_size_length = hevc_size_length = 0;
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	if (!track) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot find TrackID %d in input file - skipping\n", tci->trackID));
@@ -664,6 +664,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	}
 	if (esd) {
 		if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) avc_size_length = 1;
+		else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC)) hevc_size_length = 1;
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 	if (avc_size_length) {
@@ -671,7 +672,16 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		avc_size_length = avccfg->nal_unit_size;
 		gf_odf_avc_cfg_del(avccfg);
 		if (avc_size_length != 4) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot encrypt AVC/H264 track with %d size_length field - onmy 4 supported\n", avc_size_length));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot encrypt AVC/H264 track with %d size_length field - only 4 supported\n", avc_size_length));
+			return GF_NOT_SUPPORTED;
+		}
+	}
+	if (hevc_size_length) {
+		GF_HEVCConfig *hvccfg = gf_isom_hevc_config_get(mp4, track, 1);
+		avc_size_length = hvccfg->nal_unit_size;
+		gf_odf_hevc_cfg_del(hvccfg);
+		if (avc_size_length != 4) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot encrypt HEVC/H265 track with %d size_length field - only 4 supported\n", avc_size_length));
 			return GF_NOT_SUPPORTED;
 		}
 	}
