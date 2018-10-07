@@ -1156,8 +1156,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		case GF_ISOM_BOX_TYPE_STXT:
 		case GF_ISOM_BOX_TYPE_WVTT:
 		case GF_ISOM_BOX_TYPE_STPP:
-			/* TODO */
-			assert(0);
+			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+			e = GF_OK;
 			break;
 
 		default:
