@@ -1650,7 +1650,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 
-	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && is_nalu_video) {
+	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (is_nalu_video || is_av1_video) )  {
 		if (!tci->crypt_byte_block || !tci->skip_byte_block) {
 			if (tci->crypt_byte_block || tci->skip_byte_block) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
