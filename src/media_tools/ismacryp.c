@@ -1154,7 +1154,8 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nalu_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
 						//A subsample SHALL be created for each tile. this needs further clarification in the spec
-						prev_entry = NULL;
+						if (prev_entry && prev_entry->bytes_encrypted_data)
+							prev_entry = NULL;
 					}
 					break;
 				default:
@@ -1361,7 +1362,8 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nal_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
 						//A subsample SHALL be created for each tile. this needs further clarification in the spec
-						prev_entry = NULL;
+						if (prev_entry && prev_entry->bytes_encrypted_data)
+							prev_entry = NULL;
 					}
 					break;
 				default:
@@ -1648,7 +1650,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 
-	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && is_nalu_video) {
+	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (is_nalu_video || is_av1_video) )  {
 		if (!tci->crypt_byte_block || !tci->skip_byte_block) {
 			if (tci->crypt_byte_block || tci->skip_byte_block) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
@@ -1890,6 +1892,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+	//not strictky needed but we call it in case bitrate info in source is wrong
+	gf_media_update_bitrate(mp4, track);
 
 exit:
 	if (samp) gf_isom_sample_del(&samp);
