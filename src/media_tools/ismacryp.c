@@ -1154,7 +1154,8 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nalu_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
 						//A subsample SHALL be created for each tile. this needs further clarification in the spec
-						prev_entry = NULL;
+						if (prev_entry && prev_entry->bytes_encrypted_data)
+							prev_entry = NULL;
 					}
 					break;
 				default:
@@ -1361,7 +1362,8 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nal_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
 						//A subsample SHALL be created for each tile. this needs further clarification in the spec
-						prev_entry = NULL;
+						if (prev_entry && prev_entry->bytes_encrypted_data)
+							prev_entry = NULL;
 					}
 					break;
 				default:
