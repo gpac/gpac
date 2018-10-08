@@ -2071,7 +2071,7 @@ GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Des
 
 
 /*creates new VPx config*/
-GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex, Bool is_vp9);
 
 
 /*creates new AV1 config*/

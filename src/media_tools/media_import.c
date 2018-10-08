@@ -7450,7 +7450,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 			gf_bs_read_data(bs, samp->data, samp->dataLength);
 
 			if (cur_samp == 0) {
-				e = gf_isom_vp_config_new(import->dest, track_num, vp9_cfg, NULL, NULL, &di);
+				e = gf_isom_vp_config_new(import->dest, track_num, vp9_cfg, NULL, NULL, &di, GF_TRUE);
 				if (e) goto exit;
 			}
 
