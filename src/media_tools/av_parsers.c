@@ -1907,9 +1907,49 @@ GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 	return GF_OK;
 }
 
+GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME])
+{
+	u8 byte, bytes_per_framesize;
+	u64 pos = gf_bs_get_position(bs), i = 0;
+	GF_Err e = GF_OK;
+	
+	assert(bs && num_frames_in_superframe);
+
+	/*initialize like there is no superframe*/
+	memset(frame_sizes, 0, VP9_MAX_FRAMES_IN_SUPERFRAME * sizeof(frame_sizes[0]));
+	*num_frames_in_superframe = 1;
+	frame_sizes[0] = (u32)ivf_frame_size;
+
+	e = gf_bs_seek(bs, pos + ivf_frame_size - 1);
+	if (e) return e;
+
+	byte = gf_bs_read_u8(bs);
+	if ((byte & 0xe0) != 0xc0)
+		goto exit; /*no superframe*/
+
+	bytes_per_framesize = 1 + ((byte & 0x18) >> 3);
+	*num_frames_in_superframe = 1 + (byte & 0x7);
+
+	/*superframe_index()*/
+	gf_bs_seek(bs, pos + ivf_frame_size - (2 + bytes_per_framesize * *num_frames_in_superframe));
+	byte = gf_bs_read_u8(bs);
+	if ((byte & 0xe0) != 0xc0)
+		goto exit; /*no superframe*/
+
+	for (i = 0; i < *num_frames_in_superframe; ++i) {
+		gf_bs_read_data(bs, (char*)(frame_sizes+i), bytes_per_framesize);
+	}
+
+exit:
+	gf_bs_seek(bs, pos);
+	return e;
+}
+
 GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame)
 {
 	assert(bs && key_frame);
+	//Romain
+	*key_frame = GF_TRUE;
 	return GF_OK;
 }
 
