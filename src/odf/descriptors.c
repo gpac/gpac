@@ -1167,7 +1167,6 @@ void gf_odf_vp_cfg_del(GF_VPConfig *cfg)
 GF_EXPORT
 GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs)
 {
-
 	gf_bs_write_int(bs, cfg->profile, 8);
 	gf_bs_write_int(bs, cfg->level, 8);
 	gf_bs_write_int(bs, cfg->bit_depth, 4);
@@ -1213,7 +1212,6 @@ GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs)
 	cfg->chroma_subsampling = gf_bs_read_int(bs, 3);
 	cfg->video_fullRange_flag = gf_bs_read_int(bs, 1);
 
-
 	cfg->colour_primaries = gf_bs_read_int(bs, 8);
 	cfg->transfer_characteristics = gf_bs_read_int(bs, 8);
 	cfg->matrix_coefficients = gf_bs_read_int(bs, 8);
@@ -1228,7 +1226,6 @@ GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs)
 	}
 
 	return cfg;
-
 }
 
 GF_EXPORT

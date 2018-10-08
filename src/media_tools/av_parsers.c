@@ -1891,7 +1891,7 @@ GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 	return GF_OK;
 }
 
-GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
+GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 {
 	if (!frame_size) return GF_BAD_PARAM;
 
@@ -2215,7 +2215,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 {
 	u64 frame_size;
-	GF_Err e = gf_media_aom_parse_ivf_frame_header(bs, &frame_size);
+	GF_Err e = gf_media_parse_ivf_frame_header(bs, &frame_size);
 	if (e) return e;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] IVF frame detected (size "LLU")\n", frame_size));
 
