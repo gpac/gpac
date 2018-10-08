@@ -1181,7 +1181,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 	return clear_bytes;
 }
 
-static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
+static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
 {
 	GF_BitStream *sai_bs;
 	u32 prev_entry_bytes_clear=0;
@@ -1192,6 +1192,12 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 	char *output;
 	u32 sai_size = cstr->tci->IV_size;
 	u32 nb_subsamples=0;
+
+	//in cbcs scheme, if Per_Sample_IV_size is not 0 (no constant IV), fetch current IV
+	if (!cstr->ctr_mode && cstr->tci->IV_size) {
+		u32 IV_size = 16;
+		gf_crypt_get_IV(cstr->crypt, cstr->IV, &IV_size);
+	}
 
 
 	data = gf_filter_pck_get_data(pck, &pck_size);
@@ -1215,9 +1221,11 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 		u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 		if (cstr->is_nalu_video || cstr->is_av1) {
+			u32 clear_bytes_at_end = 0;
 			u32 clear_bytes = 0;
 			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
+
 
 			if (cstr->is_nalu_video) {
 				nalu_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
@@ -1270,32 +1278,47 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 			}
 
 			while (nb_ranges) {
+				if (cstr->ctr_mode) {
 
-				// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
-				if (nalu_size > clear_bytes) {
-					u32 ret = (nalu_size - clear_bytes) % 16;
-					//in AV1 always enforced
-					if (cstr->is_av1) {
-						clear_bytes += ret;
-					}
-					//for CENC (should),
-					else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CENC) {
-						//do it if not disabled by user
-						if (cstr->tci->block_align != 1) {
-							//always align even if sample is not encrypted in the end
-							if (cstr->tci->block_align==2) {
-								clear_bytes += ret;
-							}
-							//or if we don't end up with sample in the clear
-							else if (nalu_size > clear_bytes + ret) {
-								clear_bytes += ret;
-							}
+					// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
+					if (nalu_size > clear_bytes) {
+						u32 ret = (nalu_size - clear_bytes) % 16;
+						//in AV1 always enforced
+						if (cstr->is_av1) {
+							clear_bytes += ret;
 						}
-					} else {
-						clear_bytes += ret;
+						//for CENC (should),
+						else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CENC) {
+							//do it if not disabled by user
+							if (cstr->tci->block_align != 1) {
+								//always align even if sample is not encrypted in the end
+								if (cstr->tci->block_align==2) {
+									clear_bytes += ret;
+								}
+								//or if we don't end up with sample in the clear
+								else if (nalu_size > clear_bytes + ret) {
+									clear_bytes += ret;
+								}
+							}
+						} else {
+							clear_bytes += ret;
+						}
 					}
-				}
+				} else {
+					//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
+					//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
+					if (!cstr->is_av1 && (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+						u32 ret = (nalu_size - clear_bytes) % 16;
+						clear_bytes_at_end = ret;
+					}
+					//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
+					else {
+						u32 ret = (nalu_size - clear_bytes) % 16;
+						clear_bytes += ret;
+						clear_bytes_at_end = 0;
+					}
 
+				}
 
 				/*skip bytes of clear data*/
 				gf_bs_skip_bytes(ctx->bs_r, clear_bytes);
@@ -1304,13 +1327,20 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 				if (nalu_size > clear_bytes) {
 					/*get encrypted data start*/
 					cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
+
 					/*skip bytes of encrypted data*/
 					gf_bs_skip_bytes(ctx->bs_r, nalu_size - clear_bytes);
+
+					//cbcs scheme with constant IV, reinit at each sub sample,
+					if (!cstr->ctr_mode && !cstr->tci->IV_size)
+						gf_crypt_set_IV(cstr->crypt, cstr->IV, 16);
 
 					//pattern encryption
 					if (cstr->tci->crypt_byte_block && cstr->tci->skip_byte_block) {
 						u32 pos = cur_pos;
-						u32 res = nalu_size - clear_bytes;
+						u32 res = nalu_size - clear_bytes - clear_bytes_at_end;
+						assert((res % 16) == 0);
+
 						while (res) {
 							e = gf_crypt_encrypt(cstr->crypt, output+pos, res >= (u32) (16*cstr->tci->crypt_byte_block) ? 16*cstr->tci->crypt_byte_block : res);
 							if (res >= (u32) (16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block))) {
@@ -1326,6 +1356,8 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 						e = gf_crypt_encrypt(cstr->crypt, output+cur_pos, nalu_size - clear_bytes);
 					}
 				}
+
+
 				//prev entry is not a VCL, append this NAL
 				if (!prev_entry_bytes_crypt) {
 					prev_entry_bytes_clear += cstr->nalu_size_length + clear_bytes;
@@ -1366,239 +1398,10 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 					prev_entry_bytes_clear = prev_entry_bytes_crypt = 0;
 				}
 			}
-		} else {
+
+		} else if (cstr->ctr_mode) {
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
 			e = gf_crypt_encrypt(cstr->crypt, output, pck_size);
-		}
-		if (e) {
-			gf_filter_pck_discard(dst_pck);
-			return e;
-		}
-	}
-	
-	if (prev_entry_bytes_clear || prev_entry_bytes_crypt) {
-		if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
-		nb_subsamples++;
-		gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
-		gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
-		sai_size+=6;
-	}
-
-	cenc_resync_IV(cstr->crypt, cstr->IV, cstr->tci->IV_size);
-
-	if (sai_size) {
-		char *sai=NULL;
-		sai_size = (u32) gf_bs_get_position(sai_bs);
-		gf_bs_seek(sai_bs, cstr->tci->IV_size);
-		gf_bs_write_u16(sai_bs, nb_subsamples);
-		gf_bs_seek(sai_bs, sai_size);
-		sai_size = 0;
-		gf_bs_get_content(sai_bs, &sai, &sai_size);
-
-		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA_NO_COPY(sai, sai_size) );
-	}
-	gf_bs_del(sai_bs);
-
-	gf_filter_pck_send(dst_pck);
-	return GF_OK;
-}
-
-static u32 nb_samples=0;
-
-static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
-{
-	GF_BitStream *sai_bs;
-	u32 prev_entry_bytes_clear=0;
-	u32 prev_entry_bytes_crypt=0;
-	u32 pck_size;
-	GF_FilterPacket *dst_pck;
-	const u8 *data;
-	char *output;
-	u32 sai_size = cstr->tci->IV_size;
-	u32 nb_subsamples=0;
-
-	nb_samples++;
-
-
-	data = gf_filter_pck_get_data(pck, &pck_size);
-	dst_pck = gf_filter_pck_new_alloc(cstr->opid, pck_size, &output);
-
-	gf_filter_pck_merge_properties(pck, dst_pck);
-	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
-
-	//copy over all data
-	memcpy(output, data, sizeof(char)*pck_size);
-
-	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
-	else gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
-
-	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-
-	gf_bs_write_data(sai_bs, cstr->IV, cstr->tci->IV_size);
-
-	while (gf_bs_available(ctx->bs_r)) {
-		if (cstr->tci->skip_byte_block || cstr->is_nalu_video || cstr->is_av1) {
-			u32 clear_bytes = 0;
-			u32 clear_bytes_at_end = 0;
-			u32 nal_size = 0;
-			u32 nb_ranges = 1;
-			u32 av1_tile_idx = 0;
-
-			if (cstr->is_nalu_video) {
-				nal_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
-				if (nal_size > gf_bs_available(ctx->bs_r)) {
-					return GF_NON_COMPLIANT_BITSTREAM;
-				}
-				clear_bytes = cenc_get_clear_bytes(cstr, ctx->bs_r, (char *) data, nal_size, cstr->bytes_in_nal_hdr);
-			} else if (cstr->is_av1) {
-				ObuType obut;
-				u64 pos, obu_size;
-				u32 hdr_size;
-				GF_Err e;
-				pos = gf_bs_get_position(ctx->bs_r);
-				e = gf_media_aom_av1_parse_obu(ctx->bs_r, &obut, &obu_size, &hdr_size, &cstr->av1);
-				if (e) return e;
-				gf_bs_seek(ctx->bs_r, pos);
-
-				nal_size = (u32) obu_size;
-				switch (obut) {
-				//we only encrypt frame and tile group
-				case OBU_FRAME:
-				case OBU_TILE_GROUP:
-					clear_bytes = hdr_size;
-					if (!cstr->av1.frame_state.nb_tiles_in_obu) {
-						clear_bytes = (u32) obu_size;
-					} else {
-						nb_ranges = cstr->av1.frame_state.nb_tiles_in_obu;
-						clear_bytes = cstr->av1.frame_state.tiles[0].obu_start_offset;
-						nal_size = clear_bytes + cstr->av1.frame_state.tiles[0].size;
-						//A subsample SHALL be created for each tile, create one if we previously had crypted bytes
-						if (prev_entry_bytes_crypt) {
-							if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
-							nb_subsamples++;
-							gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
-							gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
-							sai_size+=6;
-
-							prev_entry_bytes_crypt = 0;
-							prev_entry_bytes_clear = 0;
-						}
-					}
-					break;
-				default:
-					clear_bytes = (u32) obu_size;
-					break;
-				}
-			} else {
-				nal_size = (u32) gf_bs_available(ctx->bs_r);
-				clear_bytes = cstr->bytes_in_nal_hdr;
-				if (nal_size < clear_bytes) {
-					if (cstr->tci->block_align == 2) {
-						clear_bytes = nal_size;
-					} else {
-						clear_bytes = 0;
-					}
-				}
-			}
-
-			while (nb_ranges) {
-				//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
-				//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
-				if (!cstr->is_av1 && (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
-					u32 ret = (nal_size-clear_bytes) % 16;
-					clear_bytes_at_end = ret;
-				}
-				//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
-				else {
-					u32 ret = (nal_size-clear_bytes) % 16;
-					clear_bytes += ret;
-					clear_bytes_at_end = 0;
-				}
-
-				//skip clear bytes
-				if (clear_bytes) {
-					gf_bs_skip_bytes(ctx->bs_r, clear_bytes);
-				}
-
-				if (nal_size - clear_bytes) {
-					u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
-
-					//cbcs scheme with constant IV, reinit at each sub sample,
-					if (!cstr->tci->IV_size)
-						gf_crypt_set_IV(cstr->crypt, cstr->IV, 16);
-
-					//pattern encryption
-					if (cstr->tci->crypt_byte_block && cstr->tci->skip_byte_block) {
-						u32 pos = cur_pos;
-						u32 res = nal_size - clear_bytes - clear_bytes_at_end;
-						assert((res % 16) == 0);
-
-						while (res) {
-							gf_crypt_encrypt(cstr->crypt, output + pos, res >= (u32) (16*cstr->tci->crypt_byte_block) ? 16*cstr->tci->crypt_byte_block : res);
-							if (res >= (u32) (16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block))) {
-								pos += 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
-								res -= 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
-							} else {
-								res = 0;
-							}
-						}
-					} else {
-						gf_crypt_encrypt(cstr->crypt, output+cur_pos, nal_size - clear_bytes - clear_bytes_at_end);
-					}
-					//skip
-					gf_bs_skip_bytes(ctx->bs_r, nal_size - clear_bytes);
-				}
-
-				//for NALU-based, subsamples. Otherwise, if bytes in clear at the begining, subsample
-				//the spec is not clear here: can we ommit subsamples if we always cypher everything ?
-				//for now commented out for max compatibility
-				//if (is_nalu_video || bytes_in_nalhr)
-				{
-					//note that we write encrypted data to cover the complete byte range after the slice header
-					//but the last incomplete block might be unencrypted, but is still signaled in bytes_encrypted, as per the spec
-
-					//prev entry is not a VCL, append this NAL
-					if (!prev_entry_bytes_crypt) {
-						prev_entry_bytes_clear += cstr->nalu_size_length + clear_bytes;
-						prev_entry_bytes_crypt += nal_size - clear_bytes;
-					} else {
-
-						//store current
-						if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
-						nb_subsamples++;
-						gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
-						gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
-						sai_size+=6;
-
-						prev_entry_bytes_clear = cstr->nalu_size_length + clear_bytes;
-						prev_entry_bytes_crypt = nal_size - clear_bytes;
-					}
-				}
-
-				//check bytes of clear is not larger than 16bits
-				while (prev_entry_bytes_clear > 0xFFFF) {
-					//store current
-					if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
-					nb_subsamples++;
-					gf_bs_write_u16(sai_bs, 0xFFFF);
-					gf_bs_write_u32(sai_bs, 0);
-					sai_size+=6;
-
-					prev_entry_bytes_clear -= 0xFFFF;
-				}
-
-
-				nb_ranges--;
-				if (!nb_ranges) break;
-
-				av1_tile_idx++;
-				if (av1_tile_idx) {
-					clear_bytes = cstr->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (cstr->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + cstr->av1.frame_state.tiles[av1_tile_idx-1].size);
-					nal_size = clear_bytes + cstr->av1.frame_state.tiles[av1_tile_idx].size;
-					//A subsample SHALL be created for each tile.
-					prev_entry_bytes_clear = prev_entry_bytes_crypt = 0;
-				}
-			}
 		} else {
 			u32 clear_trailing;
 
@@ -1613,7 +1416,13 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 			}
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
 		}
+
+		if (e) {
+			gf_filter_pck_discard(dst_pck);
+			return e;
+		}
 	}
+	
 	if (prev_entry_bytes_clear || prev_entry_bytes_crypt) {
 		if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
 		nb_subsamples++;
@@ -1621,7 +1430,8 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 		gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
 		sai_size+=6;
 	}
-
+	if (cstr->ctr_mode)
+		cenc_resync_IV(cstr->crypt, cstr->IV, cstr->tci->IV_size);
 
 	if (sai_size) {
 		char *sai=NULL;
@@ -1767,16 +1577,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		//TODO add support for multiple IV size in key roll ?
 	}
 
-	if (cstr->ctr_mode) {
-	 	e = cenc_encrypt_ctr(ctx, cstr, pck);
-	} else {
-		//in cbcs scheme, if Per_Sample_IV_size is not 0 (no constant IV), fetch current IV
-		if (cstr->tci->IV_size) {
-			u32 IV_size = 16;
-			gf_crypt_get_IV(cstr->crypt, cstr->IV, &IV_size);
-		}
-		e = cenc_encrypt_cbc(ctx, cstr, pck);
-	}
+	e = cenc_encrypt_packet(ctx, cstr, pck);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error encrypting packet %d in PID %s: %s\n", cstr->nb_pck, gf_filter_pid_get_name(cstr->ipid), gf_error_to_string(e)) );
 		return e;
