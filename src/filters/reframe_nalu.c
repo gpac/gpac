@@ -1640,7 +1640,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 				memcpy(ctx->sei_buffer, data, sei_size);
 				ctx->sei_buffer_size = gf_media_avc_reformat_sei(ctx->sei_buffer, sei_size, ctx->avc_state);
 				if (ctx->sei_buffer_size) {
-					if (!ctx->is_playing) *skip_nal = GF_TRUE;
+					*skip_nal = GF_TRUE;
 				}
 			}
 		}

@@ -918,37 +918,37 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
+static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 {
 	u32 sei_idx=0;
 	u32 i=2;
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+
 	fprintf(dump, " SEI=\"");
-	while (i+1 < ptr_size) {
+	while (gf_bs_available(bs) ) {
 		u32 sei_type = 0;
 		u32 sei_size = 0;
-		while (ptr[i] == 0xFF) {
+		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
 			sei_type+= 255;
-			i++;
 		}
-		sei_type += ptr[i];
-		i++;
-		while (ptr[i] == 0xFF) {
+		sei_type += gf_bs_read_int(bs, 8);
+		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
 			sei_size += 255;
+		}
+		sei_size += gf_bs_read_int(bs, 8);
+		i=0;
+		while (i < sei_size) {
+			gf_bs_read_u8(bs);
 			i++;
 		}
-		sei_size += ptr[i];
-		i++;
-		i+=sei_size;
-
 		if (sei_idx) fprintf(dump, ",");
 		fprintf(dump, "(type=%u, size=%u)", sei_type, sei_size);
 		sei_idx++;
-		if (ptr[i]== 0x80) {
-			i=ptr_size;
+		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
 	}
-	if (i!=ptr_size) fprintf(dump, "(garbage at end)");
+//	if (i!=ptr_size) fprintf(dump, "(garbage at end)");
 	fprintf(dump, "\"");
 }
 
@@ -1103,7 +1103,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		fputs("\"", dump);
 
 		if ((type==GF_HEVC_NALU_SEI_PREFIX) || (type==GF_HEVC_NALU_SEI_SUFFIX)) {
-			dump_sei(dump, (u8 *) ptr, ptr_size, hevc ? GF_TRUE : GF_FALSE);
+			bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+			gf_bs_read_u16(bs);
+			dump_sei(dump, bs, GF_TRUE);
+			gf_bs_del(bs);
 		}
 
 		if (type<GF_HEVC_NALU_VID_PARAM) {
@@ -1127,7 +1130,6 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	case GF_AVC_NALU_NON_IDR_SLICE:
 		res = gf_media_avc_parse_nalu(bs, avc);
 		fputs("Non IDR slice", dump);
-
 		if (res>=0)
 			fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
 		break;
@@ -1151,8 +1153,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 		fputs("SequenceParameterSet", dump);
-		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 0, NULL);
-		assert (idx >= 0);
+		idx = gf_media_avc_read_sps_bs(bs, avc, 0, NULL);
 		if (idx<0) fprintf(dump, "\" sps_id=\"PARSING FAILURE");
 		else fprintf(dump, "\" sps_id=\"%d", idx);
 		fprintf(dump, "\" frame_mbs_only_flag=\"%d", avc->sps->frame_mbs_only_flag);
@@ -1185,7 +1186,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case GF_AVC_NALU_PIC_PARAM:
 		fputs("PictureParameterSet", dump);
-		idx = gf_media_avc_read_pps(ptr, ptr_size, avc);
+		idx = gf_media_avc_read_pps_bs(bs, avc);
 		if (idx<0) fprintf(dump, "\" pps_id=\"PARSING FAILURE\" ");
 		else fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
 		fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
@@ -1212,7 +1213,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		fputs("SVCSubsequenceParameterSet", dump);
-		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 1, NULL);
+		idx = gf_media_avc_read_sps_bs(bs, avc, 1, NULL);
 		assert (idx >= 0);
 		fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
 		break;
@@ -1248,7 +1249,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	fputs("\"", dump);
 
 	if (type==GF_AVC_NALU_SEI) {
-		dump_sei(dump, (u8 *) ptr, ptr_size, GF_FALSE);
+		gf_bs_read_u8(bs);
+		dump_sei(dump, bs, GF_FALSE);
 	}
 
 	if (res<0)
