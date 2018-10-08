@@ -498,6 +498,10 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height,
 
 
 
+GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame);
+
+
+
 #define AV1_MAX_TILE_ROWS 64
 #define AV1_MAX_TILE_COLS 64
 
