@@ -1027,11 +1027,8 @@ typedef struct
 	u8	profile;
 	u8	level;
 
-	/*unsigned int(4)     bitDepth;
-	unsigned int(3)     chromaSubsampling;
-	unsigned int(1)     videoFullRangeFlag;*/
-	u8   bit_depth;
-	u8   chroma_subsampling;
+	u8   bit_depth; /*4 bits*/
+	u8   chroma_subsampling; /*3 bits*/
 	Bool video_fullRange_flag;
 
 	u8  colour_primaries;
