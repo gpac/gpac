@@ -922,6 +922,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
+				if (ch->pck_encrypted && ch->isma_BSO) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_ISMA_BSO, &PROP_LONGUINT(ch->isma_BSO) );
+				}
 
 				if (ch->cenc_state_changed) {
 					gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );

@@ -584,6 +584,8 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	}
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 
+	gf_media_update_bitrate(mp4, track);
+
 	/*remove all IPMP ptrs*/
 	esd = gf_isom_get_esd(mp4, track, 1);
 	if (esd) {

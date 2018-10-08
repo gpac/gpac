@@ -594,7 +594,7 @@ void isor_declare_objects(ISOMReader *read)
 		} else if (streamtype==GF_STREAM_AUDIO) {
 			media_pl = gf_isom_get_pl_indication(read->mov, GF_ISOM_PL_AUDIO);
 		}
-		if (media_pl) gf_filter_pid_set_property(pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(media_pl) );
+		if (media_pl && (media_pl!=0xFF) ) gf_filter_pid_set_property(pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(media_pl) );
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE)
 		e = gf_isom_get_track_template(read->mov, ch->track, &tk_template, &tk_template_size);
