@@ -1948,8 +1948,28 @@ exit:
 GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame)
 {
 	assert(bs && key_frame);
-	//Romain
-	*key_frame = GF_TRUE;
+	
+	/*uncompressed header*/
+	u8 frame_marker = gf_bs_read_int(bs, 1);
+	Bool profile_low_bit = gf_bs_read_int(bs, 1);
+	Bool profile_high_bit = gf_bs_read_int(bs, 1);
+	u8 Profile = (profile_high_bit << 1) + profile_low_bit;
+	if (Profile == 3) {
+		u8 reserved_zero = gf_bs_read_int(bs, 1);
+		assert(reserved_zero == 0);
+	}
+	
+	Bool show_existing_frame = gf_bs_read_int(bs, 1);
+	if (show_existing_frame == 1) {
+		/*frame_to_show_map_idx = */gf_bs_read_int(bs, 3);
+	}
+
+	Bool frame_type = gf_bs_read_int(bs, 1);
+	if (frame_type == 0) *key_frame = GF_TRUE;
+	else *key_frame = GF_FALSE;
+
+	/*incomplete parsing*/
+
 	return GF_OK;
 }
 
