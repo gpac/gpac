@@ -443,16 +443,22 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if (ch->is_encrypted) {
 		GF_ISMASample *ismasamp = gf_isom_get_ismacryp_sample(ch->owner->mov, ch->track, ch->sample, 1);
 		if (ismasamp) {
-			gf_free(ch->sample->data);
-			ch->sample->data = ismasamp->data;
-			ch->sample->dataLength = ismasamp->dataLength;
-			ismasamp->data = NULL;
-			ismasamp->dataLength = 0;
-			ch->isma_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0;
+			if (ch->static_sample) {
+				assert(ch->static_sample->dataLength > ismasamp->dataLength);
+				memcpy(ch->static_sample->data, ismasamp->data, ismasamp->dataLength);
+				ch->static_sample->dataLength = ismasamp->dataLength;
+			} else {
+				gf_free(ch->sample->data);
+				ch->sample->data = ismasamp->data;
+				ch->sample->dataLength = ismasamp->dataLength;
+				ismasamp->data = NULL;
+				ismasamp->dataLength = 0;
+			}
+			ch->pck_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0;
 			ch->isma_BSO = ismasamp->IV;
 			gf_isom_ismacryp_delete_sample(ismasamp);
 		} else {
-			ch->isma_encrypted = 0;
+			ch->pck_encrypted = 0;
 			/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
 			if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
 				Bool Is_Encrypted;

@@ -1352,7 +1352,7 @@ Bool IsMP4Description(u32 entryType)
 	}
 }
 
-Bool IsMP4EncryptedDescription(u32 entryType)
+Bool gf_isom_is_encrypted_entry(u32 entryType)
 {
 	switch (entryType) {
 	case GF_ISOM_BOX_TYPE_ENCA:
@@ -1373,7 +1373,7 @@ Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 	if (!trak) return 2;
 	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 	if (!entry) return 2;
-	if (IsMP4EncryptedDescription(entry->type)) return GF_TRUE;
+	if (gf_isom_is_encrypted_entry(entry->type)) return GF_TRUE;
 
 	if (gf_isom_is_cenc_media(the_file, trackNumber, 1))
 		return GF_TRUE;
@@ -1393,7 +1393,7 @@ u32 gf_isom_get_media_subtype(GF_ISOFile *the_file, u32 trackNumber, u32 Descrip
 
 	//filter MPEG sub-types
 	if (IsMP4Description(entry->type)) {
-		if (IsMP4EncryptedDescription(entry->type)) return GF_ISOM_SUBTYPE_MPEG4_CRYP;
+		if (gf_isom_is_encrypted_entry(entry->type)) return GF_ISOM_SUBTYPE_MPEG4_CRYP;
 		else return GF_ISOM_SUBTYPE_MPEG4;
 	}
 	if (entry->type == GF_ISOM_BOX_TYPE_GNRV) {
@@ -3247,7 +3247,7 @@ GF_EXPORT
 u8 gf_isom_get_pl_indication(GF_ISOFile *movie, u8 PL_Code)
 {
 	GF_IsomInitialObjectDescriptor *iod;
-	if (!movie || !movie->moov) return 0;
+	if (!movie || !movie->moov) return 0xFF;
 	if (!movie->moov->iods || !movie->moov->iods->descriptor) return 0xFF;
 	if (movie->moov->iods->descriptor->tag != GF_ODF_ISOM_IOD_TAG) return 0xFF;
 

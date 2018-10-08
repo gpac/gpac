@@ -157,7 +157,6 @@ typedef struct
 	u32 seek_flag;
 	u32 au_duration;
 	Bool set_disc;
-	Bool isma_encrypted;
 	Bool cenc_state_changed;
 	u64 isma_BSO;
 	bin128 KID;

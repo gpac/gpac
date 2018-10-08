@@ -56,7 +56,6 @@ typedef struct
 	GF_Crypt *crypt;
 	u32 codec_id;
 
-	u32 IV_size;
 	u32 nb_pck;
 
 	//ISMA/OMA var
@@ -66,6 +65,7 @@ typedef struct
 	u64 range_end;
 	Bool prev_sample_encryped;
 	u32 KI_length;
+	u32 isma_IV_size;
 
 	Bool is_adobe;
 	bin128 key;
@@ -148,25 +148,25 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 		gf_rand_init(1);
 	}
 
-	cstr->IV_size = 0;
+	cstr->isma_IV_size = 0;
 	if (!is_isma) {
 		/*128 bit IV in OMA*/
-		cstr->IV_size = 16;
+		cstr->isma_IV_size = 16;
 	} else {
 		p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_IV_SIZE);
 		if (p) {
-			cstr->IV_size=p->value.uint;
+			cstr->isma_IV_size = p->value.uint;
 		} else {
 			p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_MEDIA_DATA_SIZE);
 			if (p) {
 				u64 BSO = p->value.longuint;
 
-				if (BSO<0xFFFF) cstr->IV_size = 2;
-				else if (BSO<0xFFFFFFFF) cstr->IV_size = 4;
-				else cstr->IV_size = 8;
+				if (BSO<0xFFFF) cstr->isma_IV_size = 2;
+				else if (BSO<0xFFFFFFFF) cstr->isma_IV_size = 4;
+				else cstr->isma_IV_size = 8;
 			}
 		}
-		if (cstr->IV_size>8) cstr->IV_size = 8;
+		if (!cstr->isma_IV_size || (cstr->isma_IV_size > 8)) cstr->isma_IV_size = 8;
 	}
 
 	/*init crypto*/
@@ -193,11 +193,12 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 
 	if (!stricmp(kms_uri, "self")) {
 		char Data[100], d64[100];
-		u32 s64;
+		u32 size_b64;
 		memcpy(Data, cstr->tci->keys[0], sizeof(char)*16);
 		memcpy(Data+16, cstr->tci->first_IV, sizeof(char)*8);
-		s64 = gf_base64_encode(Data, 24, d64, 100);
-		d64[s64] = 0;
+		size_b64 = gf_base64_encode(Data, 24, d64, 100);
+		d64[size_b64] = 0;
+		cstr->tci->KMS_URI = gf_realloc(cstr->tci->KMS_URI, size_b64+6);
 		strcpy(cstr->tci->KMS_URI, "(key)");
 		strcat(cstr->tci->KMS_URI, d64);
 		kms_uri = cstr->tci->KMS_URI;
@@ -207,7 +208,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(1) );
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_KMS_URI, kms_uri ? &PROP_STRING(kms_uri) : NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ISMA_SELECTIVE_ENC, &PROP_BOOL( (cstr->tci->sel_enc_type!=0) ? GF_TRUE : GF_FALSE) );
-	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ISMA_IV_LENGTH, &PROP_UINT(cstr->IV_size) );
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ISMA_IV_LENGTH, &PROP_UINT(cstr->isma_IV_size) );
 
 	if (is_isma) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_URI, scheme_uri ? &PROP_STRING(scheme_uri) : NULL );
@@ -601,7 +602,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		break;
 	}
 
-	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && cstr->is_nalu_video) {
+	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (cstr->is_nalu_video || cstr->is_av1) )  {
 		if (!cstr->tci->crypt_byte_block || !cstr->tci->skip_byte_block) {
 			if (cstr->tci->crypt_byte_block || cstr->tci->skip_byte_block) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
@@ -612,7 +613,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	}
 
 	cstr->use_subsamples = GF_FALSE;
-	if (cstr->is_nalu_video) cstr->use_subsamples = GF_TRUE;
+	if (cstr->is_nalu_video || cstr->is_av1) cstr->use_subsamples = GF_TRUE;
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
 		if (cstr->tci->skip_byte_block) {
@@ -940,7 +941,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	if (cstr->tci->sel_enc_type) flags |= GF_ISOM_ISMA_USE_SEL_ENC;
 
 	if (flags & GF_ISOM_ISMA_USE_SEL_ENC) isma_hdr_size = 1;
-	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) isma_hdr_size += cstr->IV_size + cstr->KI_length;
+	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) isma_hdr_size += cstr->isma_IV_size + cstr->KI_length;
 
 	data = gf_filter_pck_get_data(pck, &size);
 	if (!data) {
@@ -984,7 +985,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		gf_bs_write_int(ctx->bs_w, 0, 7);
 	}
 	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
-		if (cstr->IV_size) gf_bs_write_long_int(ctx->bs_w, (s64) cstr->BSO, 8*cstr->IV_size);
+		if (cstr->isma_IV_size) gf_bs_write_long_int(ctx->bs_w, (s64) cstr->BSO, 8*cstr->isma_IV_size);
 		//not yet implemented
 //		if (cstr->KI_length) gf_bs_write_data(ctx->bs_w, (char*) key_indicator, cstr->KI_length);
 	}
@@ -1043,8 +1044,8 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 			e = gf_crypt_init(cstr->crypt, cstr->key, IV);
 			cstr->prev_sample_encryped = GF_TRUE;
 		} else {
-			cstr->IV_size = 16;
-			e = gf_crypt_get_IV(cstr->crypt, IV, &cstr->IV_size);
+			cstr->isma_IV_size = 16;
+			e = gf_crypt_get_IV(cstr->crypt, IV, &cstr->isma_IV_size);
 		}
 
 		if (e) {
@@ -1146,6 +1147,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 			case GF_AVC_NALU_IDR_SLICE:
 			case GF_AVC_NALU_SLICE_AUX:
 			case GF_AVC_NALU_SVC_SLICE:
+				gf_bs_align(plaintext_bs);
 				clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
 				break;
 			default:
@@ -1175,6 +1177,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 	} else {
 		clear_bytes = bytes_in_nalhr;
 	}
+	gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
 	return clear_bytes;
 }
 
@@ -1249,6 +1252,12 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 						nalu_size = clear_bytes + cstr->av1.frame_state.tiles[0].size;
 						//A subsample SHALL be created for each tile, create one if we previously had crypted bytes
 						if (prev_entry_bytes_crypt) {
+							if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
+							nb_subsamples++;
+							gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
+							gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
+							sai_size+=6;
+
 							prev_entry_bytes_crypt = 0;
 							prev_entry_bytes_clear = 0;
 						}
@@ -1265,8 +1274,12 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 				// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
 				if (nalu_size > clear_bytes) {
 					u32 ret = (nalu_size - clear_bytes) % 16;
+					//in AV1 always enforced
+					if (cstr->is_av1) {
+						clear_bytes += ret;
+					}
 					//for CENC (should),
-					if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CENC) {
+					else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CENC) {
 						//do it if not disabled by user
 						if (cstr->tci->block_align != 1) {
 							//always align even if sample is not encrypted in the end
@@ -1390,6 +1403,8 @@ static GF_Err cenc_encrypt_ctr(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 	return GF_OK;
 }
 
+static u32 nb_samples=0;
+
 static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPacket *pck)
 {
 	GF_BitStream *sai_bs;
@@ -1401,6 +1416,8 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 	char *output;
 	u32 sai_size = cstr->tci->IV_size;
 	u32 nb_subsamples=0;
+
+	nb_samples++;
 
 
 	data = gf_filter_pck_get_data(pck, &pck_size);
@@ -1429,7 +1446,9 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 
 			if (cstr->is_nalu_video) {
 				nal_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
-
+				if (nal_size > gf_bs_available(ctx->bs_r)) {
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
 				clear_bytes = cenc_get_clear_bytes(cstr, ctx->bs_r, (char *) data, nal_size, cstr->bytes_in_nal_hdr);
 			} else if (cstr->is_av1) {
 				ObuType obut;
@@ -1455,6 +1474,12 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 						nal_size = clear_bytes + cstr->av1.frame_state.tiles[0].size;
 						//A subsample SHALL be created for each tile, create one if we previously had crypted bytes
 						if (prev_entry_bytes_crypt) {
+							if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
+							nb_subsamples++;
+							gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
+							gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
+							sai_size+=6;
+
 							prev_entry_bytes_crypt = 0;
 							prev_entry_bytes_clear = 0;
 						}
@@ -1499,7 +1524,7 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 					u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 					//cbcs scheme with constant IV, reinit at each sub sample,
-					if (!cstr->IV_size)
+					if (!cstr->tci->IV_size)
 						gf_crypt_set_IV(cstr->crypt, cstr->IV, 16);
 
 					//pattern encryption
@@ -1580,7 +1605,7 @@ static GF_Err cenc_encrypt_cbc(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Filte
 			clear_trailing = pck_size % 16;
 
 			//cbcs scheme with constant IV, reinit at each sample,
-			if (!cstr->IV_size)
+			if (!cstr->tci->IV_size)
 				gf_crypt_set_IV(cstr->crypt, cstr->IV, 16);
 
 			if (pck_size >= 16) {
@@ -1823,6 +1848,7 @@ static void cenc_enc_finalize(GF_Filter *filter)
 		GF_CENCStream *s = gf_list_pop_back(ctx->streams);
 		if (s->crypt) gf_crypt_close(s->crypt);
 		if (s->cinfo) gf_crypt_info_del(s->cinfo);
+		if (s->av1.config) gf_odf_av1_cfg_del(s->av1.config);
 		gf_free(s);
 	}
 	gf_list_del(ctx->streams);

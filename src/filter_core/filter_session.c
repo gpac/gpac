@@ -355,7 +355,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 		//second pass, finalize all
 		for (i=0; i<count; i++) {
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
-			if (filter->freg->finalize) {
+			if (filter->freg->finalize && !filter->finalized) {
 				filter->finalized = GF_TRUE;
 				FSESS_CHECK_THREAD(filter)
 				filter->freg->finalize(filter);

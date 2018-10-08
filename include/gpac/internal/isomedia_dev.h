@@ -3545,6 +3545,8 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 
 void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h);
 
+Bool gf_isom_is_encrypted_entry(u32 entryType);
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
 
 /*

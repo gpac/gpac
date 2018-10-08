@@ -73,7 +73,7 @@ typedef struct
 
 	char *inband_hdr;
 	u32 inband_hdr_size;
-	Bool is_nalu;
+	Bool is_nalu, is_av1;
 	Bool fragment_done;
 	s32 ts_delay, negctts_shift;
 	Bool insert_tfdt, probe_min_ctts;
@@ -191,6 +191,8 @@ typedef struct
 	Bool config_timing;
 
 	Bool major_brand_set;
+	Bool def_brand_patched;
+
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -637,6 +639,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 
 	if (!tkw->has_brands) {
+		Bool is_isom = GF_FALSE;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_MBRAND);
 		if (p) {
 			if (!ctx->major_brand_set) {
@@ -645,6 +648,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			} else {
 				gf_isom_modify_alternate_brand(ctx->file, p->value.uint, GF_TRUE);
 			}
+			if (p->value.uint == GF_ISOM_BRAND_ISOM) is_isom = GF_TRUE;
 		}
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_BRANDS);
 		if (p && p->value.uint_list.nb_items) {
@@ -656,7 +660,13 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 			for (i=0; i<p->value.uint_list.nb_items; i++) {
 				gf_isom_modify_alternate_brand(ctx->file, p->value.uint_list.vals[i], GF_TRUE);
+				if (p->value.uint_list.vals[i] == GF_ISOM_BRAND_ISOM) is_isom = GF_TRUE;
 			}
+		}
+		if (!is_isom && !ctx->def_brand_patched) {
+			//remove default brand
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+			ctx->def_brand_patched = GF_TRUE;
 		}
 	}
 
@@ -1149,6 +1159,7 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AV1 sample description: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
+		tkw->is_av1 = GF_TRUE;
 
 		if (!tkw->has_brands) {
 			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
@@ -1454,7 +1465,7 @@ multipid_stsd_setup:
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
 			tkw->cenc_state = 1;
-			if (tkw->is_nalu) tkw->cenc_subsamples = GF_TRUE;
+			if (tkw->is_nalu || tkw->is_av1) tkw->cenc_subsamples = GF_TRUE;
 			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized protection scheme type %s, using generic signaling\n", gf_4cc_to_str(tkw->stream_type) ));
@@ -1774,8 +1785,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		else if (tkw->constant_IV_size != constant_IV_size) needs_seig = GF_TRUE;
 		else if (constant_IV_size && memcmp(tkw->constant_IV, constant_IV, sizeof(bin128))) needs_seig = GF_TRUE;
 
-//		if (needs_seig)
-		{
+		if (needs_seig) {
 			//!! tkw->nb_samples not yet incremented !!
 			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples+1, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 		}
@@ -1929,7 +1939,6 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
 		}
-
 
 		if (tkw->cenc_state) {
 			mp4_mux_cenc_update(ctx, tkw, pck, for_fragment ? CENC_ADD_FRAG : CENC_ADD_NORMAL, tkw->sample.dataLength);
@@ -2988,7 +2997,7 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				mp4_mux_update_edit_list_for_bframes(ctx, tkw);
 			}
 			has_bframes = GF_TRUE;
-		} else if (tkw->has_ctts && (tkw->stream_type==GF_STREAM_VISUAL) ) {
+		} else if (tkw->has_ctts && (tkw->stream_type==GF_STREAM_VISUAL)) {
 			mp4_mux_update_edit_list_for_bframes(ctx, tkw);
 
 			has_bframes = GF_TRUE;

@@ -38,6 +38,9 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	GF_MPEGVisualSampleEntryBox *entry;
 	if (!gf_isom_is_video_subtype(mdia->handler->handlerType))
 		return GF_FALSE;
+	if (!_entry) return GF_FALSE;
+	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
+
 	switch (_entry->type) {
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
@@ -65,9 +68,20 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	default:
 		break;
 	}
-	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
-	if (!entry) return GF_FALSE;
-	if (entry->avc_config || entry->svc_config || entry->mvc_config || entry->hevc_config || entry->lhvc_config) return GF_TRUE;
+
+	if (entry->avc_config || entry->svc_config || entry->mvc_config || entry->hevc_config || entry->lhvc_config) {
+		GF_ProtectionSchemeInfoBox *schi = gf_list_get(entry->protections, 0);
+		if (!schi || !schi->scheme_type) return GF_TRUE;
+		switch (schi->scheme_type->scheme_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+			return GF_TRUE;
+		default:
+			break;
+		}
+	}
 	return GF_FALSE;
 }
 

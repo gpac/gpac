@@ -4952,7 +4952,9 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 		sgroup = (GF_SampleGroupBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SBGP);
 		sgroup->grouping_type = grouping_type;
 		sgroup->grouping_type_parameter = grouping_type_parameter;
-		gf_list_add(sampleGroups, sgroup);
+//		gf_list_add(sampleGroups, sgroup);
+		//crude patch to align old arch and filters
+		gf_list_insert(sampleGroups, sgroup, 0);
 	}
 	/*used in fragments, means we are adding the last sample*/
 	if (!sample_number) {

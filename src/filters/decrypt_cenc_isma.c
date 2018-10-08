@@ -54,6 +54,7 @@ typedef struct
 	u32 nb_allow_play;
 	Bool is_oma, is_adobe;
 	u32 preview_range;
+	Bool is_nalu;
 
 	/*CENC*/
 	Bool is_cenc;
@@ -248,6 +249,7 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		memcpy(cstr->key, mykey, sizeof(char)*16);
 	}
 	cstr->state = DECRYPT_STATE_SETUP;
+
 	//ctx->nb_allow_play = 1;
 	return GF_OK;
 }
@@ -338,6 +340,35 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	gf_crypt_decrypt(cstr->crypt, out_data, data_size);
 	cstr->last_IV += data_size;
 
+	/*replace AVC start codes (0x00000001) by nalu size*/
+	if (cstr->is_nalu) {
+		u32 nalu_size;
+		u32 remain = data_size;
+		char *start, *end;
+		start = out_data;
+		end = start + 4;
+		while (remain>4) {
+			if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
+				nalu_size = (u32) (end - start - 4);
+				start[0] = (nalu_size>>24)&0xFF;
+				start[1] = (nalu_size>>16)&0xFF;
+				start[2] = (nalu_size>>8)&0xFF;
+				start[3] = (nalu_size)&0xFF;
+				start = end;
+				end = start+4;
+				remain -= 4;
+				continue;
+			}
+			end++;
+			remain--;
+		}
+		nalu_size = (u32) (end - start - 4);
+		start[0] = (nalu_size>>24)&0xFF;
+		start[1] = (nalu_size>>16)&0xFF;
+		start[2] = (nalu_size>>8)&0xFF;
+		start[3] = (nalu_size)&0xFF;
+	}
+
 	gf_filter_pck_merge_properties(in_pck, out_pck);
 
 	gf_filter_pck_send(out_pck);
@@ -417,7 +448,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 
 		/*SystemID for GPAC Player: 67706163-6365-6E63-6472-6D746F6F6C31*/
 		if (strcmp(szSystemID, "6770616363656E6364726D746F6F6C31")) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] System ID %s not supported\n", szSystemID));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENC/ISMA] System ID %s not supported\n", szSystemID));
 			gf_bs_skip_bytes(ctx->bs_r, kid_count*16);
 			j=gf_bs_read_u32(ctx->bs_r);
 			gf_bs_skip_bytes(ctx->bs_r, j);
@@ -653,38 +684,45 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	memcpy(KID, prop->value.data.ptr, 16);
 
 	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_CENC_SAI);
-	if (!prop) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info\n" ) );
-		return GF_SERVICE_ERROR;
+	if (prop) {
+		sai_payload = prop->value.data.ptr;
+		saiz = prop->value.data.size;
+		gf_bs_reassign_buffer(ctx->bs_r, sai_payload, saiz);
 	}
-	sai_payload = prop->value.data.ptr;
-	saiz = prop->value.data.size;
 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
 	out_pck = gf_filter_pck_new_alloc(cstr->opid, data_size, &out_data);
 	memcpy(out_data, in_data, sizeof(char)*data_size);
 
-
-	gf_bs_reassign_buffer(ctx->bs_r, sai_payload, saiz);
-
 	IV_size = 8;
 	//memset to 0 in case we use <16 byte key
-	memset(IV, 0, sizeof(bin128));
-	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_IV_SIZE);
+	memset(IV, 0, sizeof(char)*17);
+	prop = NULL;
+	if (sai_payload)
+		prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_IV_SIZE);
+
 	if (!prop) {
 		const_IV = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_IV_CONST);
 		IV_size = 0;
 	} else {
 		IV_size = prop->value.uint;
 	}
+	if (!sai_payload && !const_IV) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
+		return GF_SERVICE_ERROR;
+
+	}
 	
 	cbc_pattern = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_PATTERN);
 
 	/*read sample auxiliary information from bitstream*/
 	subsample_count = 0;
-	gf_bs_read_data(ctx->bs_r, (char *) IV, IV_size);
-	if (gf_bs_available(ctx->bs_r))
-		subsample_count = gf_bs_read_u16(ctx->bs_r);
+	if (sai_payload) {
+		gf_bs_read_data(ctx->bs_r, (char *) IV, IV_size);
+
+		if (gf_bs_available(ctx->bs_r))
+			subsample_count = gf_bs_read_u16(ctx->bs_r);
+	}
 
 	if (const_IV) IV_size = const_IV->value.data.size;
 
@@ -975,6 +1013,20 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_CONST, NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
 
+	cstr->is_nalu = GF_FALSE;;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (prop) {
+		switch (prop->value.uint) {
+		case GF_CODECID_AVC:
+		case GF_CODECID_SVC:
+		case GF_CODECID_MVC:
+		case GF_CODECID_HEVC:
+		case GF_CODECID_HEVC_TILES:
+		case GF_CODECID_LHVC:
+			cstr->is_nalu = GF_TRUE;;
+			break;
+		}
+	}
 	return e;
 }
 
