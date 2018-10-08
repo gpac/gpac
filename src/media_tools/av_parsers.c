@@ -1907,6 +1907,12 @@ GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 	return GF_OK;
 }
 
+GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame)
+{
+	assert(bs && key_frame);
+	return GF_OK;
+}
+
 static GF_Err av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
 {
 	Bool forbidden = gf_bs_read_int(bs, 1);
