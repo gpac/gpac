@@ -153,6 +153,7 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	bitrate = (u32) ((Double) (s64)avg_rate / br);
 	bitrate *= 8;
 	max_rate *= 8;
+	if (!max_rate) max_rate = bitrate;
 
 	/*move to bps*/
 	if (esd) {
