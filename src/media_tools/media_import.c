@@ -7430,7 +7430,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 			goto exit;
 		}
 
-		if (vp9_parse_sample(bs, &key_frame) != GF_OK) {
+		if (vp9_parse_sample(bs, &key_frame, vp9_cfg) != GF_OK) {
 			gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing VP9 sample");
 			goto exit;
 		}

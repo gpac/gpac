@@ -1562,7 +1562,7 @@ static u32 av1_read_ns(GF_BitStream *bs, u32 n)
 	return (v << 1) - m + extra_bit;
 }
 
-static void color_config(GF_BitStream *bs, AV1State *state)
+static void av1_color_config(GF_BitStream *bs, AV1State *state)
 {
 	state->config->high_bitdepth = gf_bs_read_int(bs, 1);
 	state->bit_depth = 8;
@@ -1805,7 +1805,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	state->enable_superres = gf_bs_read_int(bs, 1);
 	state->enable_cdef = gf_bs_read_int(bs, 1);
 	state->enable_restoration = gf_bs_read_int(bs, 1);
-	color_config(bs, state);
+	av1_color_config(bs, state);
 	state->film_grain_params_present = gf_bs_read_int(bs, 1);
 }
 
@@ -1945,7 +1945,74 @@ exit:
 	return e;
 }
 
-GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame)
+static Bool vp9_frame_sync_code(GF_BitStream *bs)
+{
+	u8 val = gf_bs_read_u8(bs);
+	if (val != 0x49)
+		return GF_FALSE;
+
+	val = gf_bs_read_u8(bs);
+	if (val != 0x83)
+		return GF_FALSE;
+
+	val = gf_bs_read_u8(bs);
+	if (val != 0x42)
+		return GF_FALSE;
+
+	return GF_TRUE;
+}
+
+typedef enum {
+	CS_UNKNOWN = 0,
+	CS_BT_601 = 1,
+	CS_BT_709 = 2,
+	CS_SMPTE_170 = 3,
+	CS_SMPTE_240 = 4,
+	CS_BT_2020 = 5,
+	CS_RESERVED = 6,
+	CS_RGB = 7,
+} VP9_color_space;
+
+static const int VP9_CS_to_23001_8_colour_primaries[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 1 };
+static const int VP9_CS_to_23001_8_transfer_characteristics[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 13 };
+
+static void vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
+{
+	VP9_color_space color_space;
+
+	if (vp9_cfg->profile >= 2) {
+		Bool ten_or_twelve_bit = gf_bs_read_int(bs, 1);
+		vp9_cfg->bit_depth = ten_or_twelve_bit ? 12 : 10;
+	} else {
+		vp9_cfg->bit_depth = 8;
+	}
+
+	color_space = gf_bs_read_int(bs, 3);
+	vp9_cfg->colour_primaries = VP9_CS_to_23001_8_colour_primaries[color_space];
+	vp9_cfg->transfer_characteristics = VP9_CS_to_23001_8_transfer_characteristics[color_space];
+	if (color_space != CS_RGB) {
+		vp9_cfg->video_fullRange_flag = gf_bs_read_int(bs, 1);
+		if (vp9_cfg->profile == 1 || vp9_cfg->profile == 3) {
+			u8 subsampling_x, subsampling_y, subsampling_xy_to_chroma_subsampling[2][2] = { {3, 0}, {2, 0} };
+			subsampling_x = gf_bs_read_int(bs, 1);
+			subsampling_y = gf_bs_read_int(bs, 1);
+			vp9_cfg->chroma_subsampling = subsampling_xy_to_chroma_subsampling[subsampling_x][subsampling_y];
+			Bool reserved_zero = gf_bs_read_int(bs, 1);
+			assert(reserved_zero == 0);
+		} else {
+			vp9_cfg->chroma_subsampling = 0;
+		}
+	 } else {
+		vp9_cfg->video_fullRange_flag = GF_TRUE;
+		if (vp9_cfg->profile == 1 || vp9_cfg->profile == 3) {
+			vp9_cfg->chroma_subsampling = 3;
+			Bool reserved_zero = gf_bs_read_int(bs, 1);
+			assert(reserved_zero == 0);
+		}
+	}
+}
+
+GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame, GF_VPConfig *vp9_cfg)
 {
 	assert(bs && key_frame);
 	
@@ -1953,8 +2020,8 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame)
 	u8 frame_marker = gf_bs_read_int(bs, 1);
 	Bool profile_low_bit = gf_bs_read_int(bs, 1);
 	Bool profile_high_bit = gf_bs_read_int(bs, 1);
-	u8 Profile = (profile_high_bit << 1) + profile_low_bit;
-	if (Profile == 3) {
+	vp9_cfg->profile = (profile_high_bit << 1) + profile_low_bit;
+	if (vp9_cfg->profile == 3) {
 		u8 reserved_zero = gf_bs_read_int(bs, 1);
 		assert(reserved_zero == 0);
 	}
@@ -1965,8 +2032,37 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame)
 	}
 
 	Bool frame_type = gf_bs_read_int(bs, 1);
-	if (frame_type == 0) *key_frame = GF_TRUE;
-	else *key_frame = GF_FALSE;
+	Bool show_frame = gf_bs_read_int(bs, 1);
+	Bool error_resilient_mode = gf_bs_read_int(bs, 1);
+	if (frame_type == 0) {
+		*key_frame = GF_TRUE;
+	} else {
+		Bool intra_only = GF_FALSE;
+		*key_frame = GF_FALSE;
+		
+		if (show_frame == GF_FALSE) {
+			intra_only = gf_bs_read_int(bs, 1);
+		}
+
+		if (error_resilient_mode == GF_FALSE) {
+			/*reset_frame_context = */gf_bs_read_int(bs, 2);
+		}
+
+		if (intra_only == GF_TRUE) {
+			if (!vp9_frame_sync_code(bs))
+				return GF_NON_COMPLIANT_BITSTREAM;
+
+			if (vp9_cfg->profile > 0) {
+				vp9_color_config(bs, vp9_cfg);
+			} else {
+				u8 color_space = CS_BT_601;
+				vp9_cfg->colour_primaries = VP9_CS_to_23001_8_colour_primaries[color_space];
+				vp9_cfg->transfer_characteristics = VP9_CS_to_23001_8_transfer_characteristics[color_space];
+				vp9_cfg->chroma_subsampling = 0;
+				vp9_cfg->bit_depth = 8;
+			}
+		}
+	}
 
 	/*incomplete parsing*/
 
