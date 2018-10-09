@@ -775,6 +775,8 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 		switch (tci->sel_enc_type) {
 		case GF_CRYPT_SELENC_RAP:
+			if (!samp->IsRAP)
+				gf_isom_get_sample_rap_roll_info(mp4, track, i+1, (Bool *) &samp->IsRAP, NULL, NULL);
 			if (samp->IsRAP) isamp->flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
 			break;
 		case GF_CRYPT_SELENC_NON_RAP:
@@ -1758,6 +1760,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 		switch (tci->sel_enc_type) {
 		case GF_CRYPT_SELENC_RAP:
+			if (!samp->IsRAP)
+				gf_isom_get_sample_rap_roll_info(mp4, track, i+1, (Bool *) &samp->IsRAP, NULL, NULL);
 			if (!samp->IsRAP && !all_rap) {
 				bin128 NULL_IV;
 				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, samp->dataLength, use_subsamples);
@@ -2249,6 +2253,8 @@ GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 
 		switch (tci->sel_enc_type) {
 		case GF_CRYPT_SELENC_RAP:
+			if (!samp->IsRAP)
+				gf_isom_get_sample_rap_roll_info(mp4, track, i+1, (Bool *) &samp->IsRAP, NULL, NULL);
 			if (!samp->IsRAP && !all_rap) {
 				is_encrypted_au = GF_FALSE;
 			}
