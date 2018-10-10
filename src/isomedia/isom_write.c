@@ -285,7 +285,7 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 				break;
 			}
 		}
-		if (!elng && (strlen(code) != 3)) {
+		if (!elng && (strlen(code) > 3)) {
 			elng = (GF_ExtendedLanguageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ELNG);
 			if (!count) {
 				trak->Media->other_boxes = gf_list_new();
