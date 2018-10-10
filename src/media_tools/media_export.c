@@ -2236,7 +2236,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	gf_export_message(dumper, GF_OK, "Exporting NHML for track %s", gf_4cc_to_str(mstype) );
 
 	/*write header*/
-	fprintf(nhml, "<%s version=\"1.0\" timeScale=\"%d\" ", szRootName, gf_isom_get_media_timescale(dumper->file, track) );
+	fprintf(nhml, "<%s version=\"1.0\" trackID=\"%d\" timeScale=\"%d\" ", szRootName, dumper->trackID, gf_isom_get_media_timescale(dumper->file, track) );
 	if (esd) {
         u32 mtype;
 
@@ -2318,7 +2318,6 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	}
 
 	if (gf_isom_is_track_in_root_od(dumper->file, track)) fprintf(nhml, "inRootOD=\"yes\" ");
-	fprintf(nhml, "trackID=\"%d\" ", dumper->trackID);
 
 	uncompress = 0;
 
