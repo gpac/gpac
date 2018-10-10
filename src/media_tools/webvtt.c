@@ -1505,7 +1505,8 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 	parser->user = out;
 	parser->on_cue_read = gf_webvtt_dump_cue;
 
-	fprintf(out, "<WebVTTTrack trackID=\"%d\">\n", gf_isom_get_track_id(dumper->file, track) );
+	if (box_dump)
+		fprintf(out, "<WebVTTTrack trackID=\"%d\">\n", gf_isom_get_track_id(dumper->file, track) );
 
 	e = gf_webvtt_dump_header(out, dumper->file, track, box_dump, 1);
 	if (e) goto exit;
@@ -1528,7 +1529,8 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 	duration = gf_isom_get_media_duration(dumper->file, track);
 	gf_webvtt_parser_dump_finalize(parser, duration);
 
-	fprintf(out, "</WebVTTTrack>\n");
+	if (box_dump)
+		fprintf(out, "</WebVTTTrack>\n");
 
 exit:
 	gf_webvtt_parser_del(parser);
