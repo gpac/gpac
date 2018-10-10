@@ -1006,6 +1006,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 				lang = gf_strdup(att->value);
 				import->esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 				gf_isom_set_media_language(import->dest, track, lang);
+			} else {
+				gf_isom_set_media_language(import->dest, track, att->value);
 			}
 		}
 	}
