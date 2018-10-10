@@ -703,7 +703,10 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			txt_line ++;
 			break;
 		}
-		if (duration && (start >= duration)) break;
+		if (duration && (start >= duration)) {
+			end = 0;
+			break;
+		}
 	}
 
 	/*final flush*/	
@@ -715,9 +718,15 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		gf_isom_add_sample(import->dest, track, 1, s);
 		gf_isom_sample_del(&s);
 		nb_samp++;
+		gf_isom_set_last_sample_duration(import->dest, track, 0);
+	} else {
+		if (duration && (start >= duration)) {
+			gf_isom_set_last_sample_duration(import->dest, track, (timescale*duration)/1000);
+		} else {
+			gf_isom_set_last_sample_duration(import->dest, track, 0);
+		}
 	}
 	gf_isom_delete_text_sample(samp);
-	gf_isom_set_last_sample_duration(import->dest, track, 0);
 	gf_set_progress("Importing SRT", nb_samp, nb_samp);
 
 exit:
