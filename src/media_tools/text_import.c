@@ -35,6 +35,8 @@
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
+
 enum
 {
 	GF_TEXT_IMPORT_NONE = 0,
@@ -1314,6 +1316,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("last_sample_duration="LLU", last_sample_end="LLU"\n", last_sample_duration, last_sample_end));
 	gf_isom_set_last_sample_duration(import->dest, track, (u32) last_sample_duration);
+	gf_media_update_bitrate(import->dest, track);
 	gf_set_progress("Importing TTML EBU-TTD", nb_samples, nb_samples);
 
 exit:
