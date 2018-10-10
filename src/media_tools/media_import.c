@@ -3623,12 +3623,16 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	if (import->esd && !import->esd->ESID) import->esd->ESID = import->final_trackID;
 
 	if (sdesc.width && sdesc.height) {
+		u32 w = sdesc.width;
 		gf_isom_set_visual_info(import->dest, track, di, sdesc.width, sdesc.height);
 		if (par_den && par_num) {
 			gf_media_change_par(import->dest, track, par_num, par_den);
+			w *= par_num;
+			w /= par_den;
 		} else {
 			gf_media_update_par(import->dest, track);
 		}
+		gf_isom_set_track_layout_info(import->dest, track, w << 16, sdesc.height << 16, 0, 0, 0);
 	}
 	else if (sdesc.samplerate && sdesc.nb_channels) {
 		gf_isom_set_audio_info(import->dest, track, di, sdesc.samplerate, sdesc.nb_channels, (u8) sdesc.bits_per_sample);
