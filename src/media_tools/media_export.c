@@ -2288,6 +2288,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			const char *mime, *encoding, *config, *namespace, *location;
 			switch (mstype) {
 			case GF_ISOM_SUBTYPE_METT:
+			case GF_ISOM_SUBTYPE_SBTT:
 				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &config) == GF_OK) {
 					if (mime)
 						fprintf(nhml, "mime_type=\"%s\" ", mime);
