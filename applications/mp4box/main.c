@@ -312,7 +312,7 @@ void PrintGeneralUsage()
 void PrintDASHUsage()
 {
 	fprintf(stderr, "DASH Options:\n"
-	        " -mpd m3u8            converts HLS manifest (local or remote http) to MPD \n"
+	        " -mpd m3u8            converts HLS manifest (local or remote http) to MPD\n"
 	        "                       Note: not compatible with other DASH options (except -out and -tmp) and does not convert associated segments\n"
 	        " -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
@@ -427,7 +427,7 @@ void PrintDASHUsage()
 	        " -bs-switching MODE   sets bitstream switching to \"inband\" (default), \"merge\", \"multi\", \"no\" or \"single\" to test with single input.\n"
 	        " -moof-sn N           sets sequence number of first moof to N\n"
 	        " -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
-	        " -no-frags-default    disables default flags in fragments\n"
+	        " -no-frags-default    disables default fragments flags in trex (required by some dash-if profiles and CMAF/smooth streaming compatibility)\n"
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
             " -tfdt-traf           uses a tfdt per track fragment (when -single-traf is used)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
