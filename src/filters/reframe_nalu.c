@@ -1740,6 +1740,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 	u8 *start;
 	u32 pck_size;
 	s32 remain;
+	Bool is_eos = GF_FALSE;
 
 	//always reparse duration
 	if (!ctx->file_loaded)
@@ -1750,13 +1751,11 @@ GF_Err naludmx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->first_pck_in_au) {
 				if (ctx->bytes_in_header) {
-					if (!ctx->next_nal_end_skip) {
-						char *pck_data;
-						e = naludmx_realloc_last_pck(ctx, (u32) ctx->bytes_in_header, &pck_data);
-						if (e==GF_OK)
-							memcpy(pck_data, ctx->hdr_store, (size_t) ctx->bytes_in_header);
-					}
+					start = data = ctx->hdr_store;
+					remain = pck_size = ctx->bytes_in_header;
 					ctx->bytes_in_header = 0;
+					is_eos = GF_TRUE;
+					goto naldmx_flush;
 				}
 				naludmx_finalize_au_flags(ctx);
 			}
@@ -1840,6 +1839,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		ctx->resume_from = 0;
 	}
 
+naldmx_flush:
 	if (!ctx->bs_r) {
 		ctx->bs_r = gf_bs_new(start, remain, GF_BITSTREAM_READ);
 	} else {
@@ -1883,7 +1883,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 		Bool copy_last_bytes = GF_FALSE;
 
 		//not enough bytes to parse start code
-		if (remain<6) {
+		if (!is_eos && (remain<6)) {
 			memcpy(ctx->hdr_store, start, remain);
 			ctx->bytes_in_header = remain;
 			break;
@@ -1956,7 +1956,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 				b2 = start[remain-2];
 				b1 = start[remain-1];
 				//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
-				if (!b1 || !b2 || !b3) {
+				if (!is_eos && (!b1 || !b2 || !b3)) {
 					copy_last_bytes = GF_TRUE;
 					assert(size >= 3);
 					size -= 3;
@@ -2095,7 +2095,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			}
 		} else {
 			next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-			if (next == pck_avail)
+			if (!is_eos && (next == pck_avail))
 				next = -1;
 		}
 
@@ -2496,8 +2496,10 @@ GF_Err naludmx_process(GF_Filter *filter)
 			return GF_OK;
 		}
 	}
-	gf_filter_pid_drop_packet(ctx->ipid);
+	if (is_eos)
+		return naludmx_process(filter);
 
+	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
 }
 

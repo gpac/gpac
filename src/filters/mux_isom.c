@@ -405,6 +405,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	u32 multi_pid_final_stsd_idx = 0;
 	u32 audio_pli=0;
 	u32 avg_rate, max_rate, dbsize;
+	Bool force_tk_layout = GF_FALSE;
 
 	const char *lang_name = NULL;
 	const char *comp_name = NULL;
@@ -913,8 +914,6 @@ sample_entry_setup:
 		if (p) meta_mime = p->value.string;
 		p = gf_filter_pid_get_property_str(pid, "meta:encoding");
 		if (p) meta_encoding = p->value.string;
-		p = gf_filter_pid_get_property_str(pid, "meta:config");
-		if (p) meta_config = p->value.string;
 		p = gf_filter_pid_get_property_str(pid, "meta:xmlns");
 		if (p) meta_xmlns = p->value.string;
 		p = gf_filter_pid_get_property_str(pid, "meta:schemaloc");
@@ -925,6 +924,9 @@ sample_entry_setup:
 	}
 	if (!comp_name) comp_name = gf_codecid_name(codec_id);
 	if (!comp_name) comp_name = gf_4cc_to_str(m_subtype);
+
+	if (dsi)
+		meta_config = dsi->value.data.ptr;
 
 	if (!needs_sample_entry) return GF_OK;
 
@@ -1294,6 +1296,7 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(m_subtype), gf_error_to_string(e) ));
 			return e;
 		}
+		if (m_subtype == GF_ISOM_SUBTYPE_STXT) force_tk_layout = GF_TRUE;
 	} else if (use_tx3g) {
 		GF_TextSampleDescriptor *txtc;
 		if (!dsi) {
@@ -1440,10 +1443,11 @@ multipid_stsd_setup:
 		gf_isom_set_track_layout_info(ctx->file, tkw->track_num, width<<16, height<<16, 0, 0, z_order);
 	}
 	//default for old arch
-	else if (use_m4sys && (tkw->stream_type==GF_STREAM_VISUAL) && !width && !height) {
+	else if (force_tk_layout
+		|| (use_m4sys && (tkw->stream_type==GF_STREAM_VISUAL) && !width && !height)
+	)  {
 		gf_isom_set_track_layout_info(ctx->file, tkw->track_num, 320<<16, 240<<16, 0, 0, 0);
 	}
-
 
 	if (lang_name) gf_isom_set_media_language(ctx->file, tkw->track_num, (char*)lang_name);
 

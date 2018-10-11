@@ -3374,14 +3374,14 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 
 			if (parser->od_es && (parser->od_es->ESID != parser->stream_id)) {
 				GF_StreamContext *prev = parser->od_es;
-				parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, 0);
+				parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, GF_CODECID_OD_V1);
 				/*force new AU if stream changed*/
 				if (parser->od_es != prev) {
 					parser->bifs_au = NULL;
 					parser->od_au = NULL;
 				}
 			}
-			if (!parser->od_es) parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, 0);
+			if (!parser->od_es) parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, GF_CODECID_OD_V1);
 			if (!parser->od_au) parser->od_au = gf_sm_stream_au_new(parser->od_es, parser->au_time, 0, parser->au_is_rap);
 			gf_bt_parse_od_command(parser, str);
 			if (is_base_stream) parser->stream_id= 0;

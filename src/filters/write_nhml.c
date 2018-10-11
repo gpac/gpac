@@ -317,15 +317,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	NHML_PRINT_STRING(0, "meta:xmlns", "xml_namespace")
 	NHML_PRINT_STRING(0, "meta:schemaloc", "xml_schema_location")
 	NHML_PRINT_STRING(0, "meta:mime", "mime_type")
-	NHML_PRINT_STRING(0, "meta:encoding", "encoding")
-	NHML_PRINT_STRING(0, "meta:contentEncoding", "content_encoding")
-	ctx->uncompress = GF_FALSE;
-	if (p) {
-		if (!strcmp(p->value.string, "deflate")) ctx->uncompress = GF_TRUE;
-		else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHMLMx] content_encoding %s not supported\n", p->value.string ));
-		}
-	}
+
 	NHML_PRINT_STRING(0, "meta:config", "config")
 	NHML_PRINT_STRING(0, "meta:aux_mimes", "aux_mime_type")
 
@@ -359,12 +351,22 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 
 	//send DCD
 	if (ctx->opid_info) {
-		sprintf(nhml, "specificInfoFile=\"%s\" ", ctx->info_file);
+		sprintf(nhml, "specificInfoFile=\"%s\" ", gf_file_basename(ctx->info_file) );
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		dst_pck = gf_filter_pck_new_shared(ctx->opid_info, ctx->dcfg, ctx->dcfg_size, NULL);
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 		gf_filter_pck_send(dst_pck);
+	}
+
+	NHML_PRINT_STRING(0, "meta:encoding", "encoding")
+	NHML_PRINT_STRING(0, "meta:contentEncoding", "content_encoding")
+	ctx->uncompress = GF_FALSE;
+	if (p) {
+		if (!strcmp(p->value.string, "deflate")) ctx->uncompress = GF_TRUE;
+		else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHMLMx] content_encoding %s not supported\n", p->value.string ));
+		}
 	}
 
 	if (ctx->opid_mdia) {

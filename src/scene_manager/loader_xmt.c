@@ -2457,7 +2457,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 
 		stream = gf_sm_stream_find(parser->load->ctx, (u16) stream_id);
 		if (stream && (stream->streamType!=GF_STREAM_OD)) stream_id = parser->base_od_id;
-		parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_OD, 0);
+		parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_OD, GF_CODECID_OD_V1);
 		parser->od_au = gf_sm_stream_au_new(parser->od_es, 0, au_time, au_is_rap);
 		parser->od_command = gf_odf_com_new(tag);
 		gf_list_add(parser->od_au->commands, parser->od_command);

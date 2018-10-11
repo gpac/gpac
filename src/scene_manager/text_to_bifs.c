@@ -148,7 +148,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		return GF_URL_ERROR;
 	}
 
-	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, 1);
+	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	if (!srt) return GF_OUT_OF_MEM;
 
 	if (!src->slConfig) src->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
@@ -401,7 +401,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		return GF_URL_ERROR;
 	}
 
-	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, 1);
+	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	if (!srt) return GF_OUT_OF_MEM;
 
 	if (!src->slConfig) src->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);

@@ -319,7 +319,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 			idx = 0;
 			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
-				gf_filter_pid_set_property(ctx->pid, hname, & PROP_STRING(hval));
+				gf_filter_pid_set_property_str(ctx->pid, hname, & PROP_STRING(hval));
 			}
 		}
 

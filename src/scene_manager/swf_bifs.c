@@ -1103,6 +1103,7 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 /*called upon end of sprite or clip*/
 static void swf_bifs_end_of_clip(SWFReader *read)
 {
+#if 0
 	char szDEF[1024];
 	u32 i;
 	GF_AUContext *au;
@@ -1130,6 +1131,8 @@ static void swf_bifs_end_of_clip(SWFReader *read)
 
 		gf_list_insert(au->commands, com, i);
 	}
+#endif
+
 }
 
 static Bool swf_bifs_allocate_depth(SWFReader *read, u32 depth)
@@ -1177,7 +1180,7 @@ static GF_Err swf_init_od(SWFReader *read, Bool root_only)
 	if (root_only) return GF_OK;
 
 	if (read->od_es) return GF_OK;
-	read->od_es = gf_sm_stream_new(read->load->ctx, 2, 1, 1);
+	read->od_es = gf_sm_stream_new(read->load->ctx, 2, GF_STREAM_OD, GF_CODECID_OD_V1);
 	if (!read->od_es) return GF_OUT_OF_MEM;
 
 	esd = (GF_ESD *) gf_odf_desc_esd_new(0);
@@ -1309,7 +1312,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	prev_sc = read->bifs_es;
 	prev_au = read->bifs_au;
 	/*create new BIFS stream*/
-	read->bifs_es = gf_sm_stream_new(read->load->ctx, esd->ESID, GF_STREAM_SCENE, 1);
+	read->bifs_es = gf_sm_stream_new(read->load->ctx, esd->ESID, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	read->bifs_es->timeScale = prev_sc->timeScale;
 	read->bifs_es->imp_exp_time = prev_sc->imp_exp_time + prev_au->timing;
 
@@ -2074,7 +2077,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	read->finalize = swf_bifs_finalize;
 
 	/*create BIFS stream*/
-	read->bifs_es = gf_sm_stream_new(read->load->ctx, 1, GF_STREAM_SCENE, 0x01);
+	read->bifs_es = gf_sm_stream_new(read->load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	read->bifs_es->timeScale = read->frame_rate*100;
 
 	read->bifs_au = gf_sm_stream_au_new(read->bifs_es, 0, 0.0, 1);
@@ -2214,7 +2217,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 
 	/*setup a new BIFS context*/
 	prev_sc = read->bifs_es;
-	read->bifs_es = gf_sm_stream_new(read->load->ctx, esd->ESID, GF_STREAM_SCENE, 1);
+	read->bifs_es = gf_sm_stream_new(read->load->ctx, esd->ESID, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	read->bifs_es->timeScale = prev_sc->timeScale;
 	/*create first AU*/
 	read->bifs_au = gf_sm_stream_au_new(read->bifs_es, 0, 0, 1);

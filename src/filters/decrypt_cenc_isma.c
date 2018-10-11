@@ -264,7 +264,7 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_ISMA_IV_LENGTH);
 	if (p) cstr->IV_length = p->value.uint;
 	p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_ISMA_KI_LENGTH);
-	if (p) cstr->KIDs = p->value.uint;
+	if (p) cstr->KI_length = p->value.uint;
 
 
 	//ctx->nb_allow_play = 1;

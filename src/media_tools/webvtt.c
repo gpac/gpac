@@ -973,7 +973,9 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 		parser->on_header_parsed(parser->user, "WEBVTT\n");
 	}
 
-	while (!parser->is_eof && !parser->suspend) {
+	while (!parser->is_eof) {
+		if (!cue && parser->suspend)
+			break;
 		sOK = gf_text_get_utf8_line(szLine, 2048, parser->vtt_in, parser->unicode_type);
 		REM_TRAIL_MARKS(szLine, "\r\n")
 		len = (u32) strlen(szLine);
@@ -1018,6 +1020,8 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 				}
 			} else {
 				parser->on_header_parsed(parser->user, header);
+				if (header) gf_free(header);
+				header = NULL;
 				if (!sOK) {
 					/* end of file, parsing is done */
 					parser->is_eof = GF_TRUE;
@@ -1027,8 +1031,6 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 					parser->state = WEBVTT_PARSER_STATE_WAITING_CUE;
 					/* no break, continue to the next state*/
 				}
-				if (header) gf_free(header);
-				header = NULL;
 			}
 		case WEBVTT_PARSER_STATE_WAITING_CUE:
 			if (sOK && len) {
@@ -1115,9 +1117,9 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 				}
 			}
 		}
-		if (parser->suspend)
-			return GF_OK;
 	}
+	if (header) gf_free(header);
+	header = NULL;
 
 	if (parser->suspend)
 		return GF_OK;

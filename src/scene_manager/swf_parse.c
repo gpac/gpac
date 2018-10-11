@@ -2395,7 +2395,10 @@ GF_Err swf_parse_tag(SWFReader *read)
 	}
 
 
-	if (!e && !read->tag) return GF_EOS;
+	if (!e && !read->tag) {
+		return GF_EOS;
+	}
+
 	if (read->ioerr) {
 		swf_report(read, GF_IO_ERR, "bitstream IO err (tag size %d)", read->size);
 		return read->ioerr;
@@ -2455,7 +2458,11 @@ GF_Err gf_sm_load_run_swf(GF_SceneLoader *load)
 	}
 	gf_set_progress("SWF Parsing", read->length, read->length);
 
-	if (e==GF_EOS) e = GF_OK;
+	if (e==GF_EOS) {
+		if (read->finalize)
+			read->finalize(read);
+		e = GF_OK;
+	}
 	if (!e) {
 		if (read->flat_limit != 0)
 			swf_report(read, GF_OK, "%d points removed while parsing shapes (Flattening limit %.4f)", read->flatten_points, read->flat_limit);
@@ -2473,9 +2480,6 @@ void gf_swf_reader_del(SWFReader *read)
 	if (!read) return;
 	gf_bs_del(read->bs);
 	if (read->mem) gf_free(read->mem);
-
-	if (read->finalize)
-		read->finalize(read);
 
 	while (gf_list_count(read->display_list)) {
 		DispShape *s = (DispShape *)gf_list_get(read->display_list, 0);

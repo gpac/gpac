@@ -1107,7 +1107,19 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			skip_write_filter = GF_TRUE;
 			break;
 		default:
-			if (codec_id==GF_CODECID_WEBVTT) skip_write_filter = GF_TRUE;
+			switch (codec_id) {
+			case GF_CODECID_WEBVTT:
+				skip_write_filter = GF_TRUE;
+				break;
+			case GF_CODECID_META_TEXT:
+			case GF_CODECID_META_XML:
+			case GF_CODECID_SUBS_TEXT:
+			case GF_CODECID_SUBS_XML:
+			case GF_CODECID_SIMPLE_TEXT:
+				//szExt[0] = 0;
+				strcpy(szExt, "*");
+				break;
+			}
 			break;
 		}
 	}
@@ -1140,11 +1152,10 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				if (ext) strcat(szArgs, ext);
 			}
 			strcat(szArgs, ":dynext");
-		} else if (dumper->trackID) {
+		} else if (dumper->trackID && strlen(szExt) ) {
 			strcat(szArgs, ":fext=");
 			strcat(szArgs, szExt);
 		}
-
 
 		file_out = gf_fs_load_filter(fsess, szArgs);
 		if (!file_out) {
