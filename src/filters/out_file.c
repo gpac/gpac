@@ -70,7 +70,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	} else {
 		Bool append = ctx->append;
 		if (ctx->dynext) {
-			Bool has_ext = (strchr(filename, '.')==NULL) ? GF_FALSE : GF_TRUE;
+			const char *has_ext = gf_file_ext_start(filename);
 
 			strcpy(szName, filename);
 			if (!has_ext && ext) {
@@ -101,16 +101,17 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 {
-	const GF_PropertyValue *p;
+	const GF_PropertyValue *p, *ext;
 	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
+	ext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
+
 	if (p && p->value.string) {
-		fileout_open_close(ctx, p->value.string, NULL, 0, explicit_overwrite);
+		fileout_open_close(ctx, p->value.string, (ext && ctx->dynext) ? ext->value.string : NULL, 0, explicit_overwrite);
 	} else if (ctx->dynext) {
 		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
 		if (!p) {
-			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
-			if (p && p->value.string) {
-				fileout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
+			if (ext && ext->value.string) {
+				fileout_open_close(ctx, ctx->dst, ext->value.string, 0, explicit_overwrite);
 			}
 		}
 	} else {

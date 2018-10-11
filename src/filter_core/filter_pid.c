@@ -761,6 +761,7 @@ void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name)
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to assign name %s to input PID %s in filter %s - ignoring\n", name, pid->pid->name, pid->pid->filter->name));
 	} else if (name) {
+		if (pid->name && name && !strcmp(pid->name, name)) return;
 		if (pid->name) gf_free(pid->name);
 		pid->name = gf_strdup(name);
 	}
@@ -2536,6 +2537,7 @@ restart:
 	//try to connect pid to all running filters
 	count = gf_list_count(filter->session->filters);
 	for (i=0; i<count; i++) {
+		Bool cap_matched = GF_FALSE;
 		GF_Filter *filter_dst = gf_list_get(filter->session->filters, i);
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
@@ -2548,7 +2550,7 @@ restart:
 				continue;
 
 			//explicitly clonable but caps don't match, don't connect to it
-			if (!gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1))
+			if (!gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1))
 				continue;
 		}
 
@@ -2615,9 +2617,14 @@ restart:
 			}
 		}
 
-
 		//we have a match, check if caps are OK
-		if (!gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1)) {
+		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
+
+		if (!cap_matched && filter_dst->clonable) {
+			cap_matched  = gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1);
+		}
+
+		if (!cap_matched) {
 			Bool reassigned=GF_FALSE;
 			u32 j, nb_loaded;
 			GF_Filter *new_f, *reuse_f=NULL;
@@ -2851,6 +2858,12 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 	if (pid->adapters_blacklist)
 		gf_list_del(pid->adapters_blacklist);
 
+	if (pid->infos) {
+		if (safe_int_dec(&pid->infos->reference_count)==0) {
+			gf_props_del(pid->infos);
+		}
+	}
+
 	if (pid->name) gf_free(pid->name);
 	gf_free(pid);
 }
@@ -2913,10 +2926,9 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	}
 	//info property, do not request a new property map
 	if (is_info) {
-		map = gf_list_last(pid->properties);
+		map = pid->infos;
 		if (!map) {
-			map = gf_props_new(pid->filter);
-			if (map) gf_list_add(pid->properties, map);
+			map = pid->infos = gf_props_new(pid->filter);
 		}
 		pid->pid_info_changed = GF_TRUE;
 	} else {
@@ -3066,6 +3078,14 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
 	if (map) {
 		prop = gf_props_get_property(map, prop_4cc, prop_name);
+		if (prop) return prop;
+	}
+	if (PID_IS_OUTPUT(pid)) {
+		return NULL;
+	}
+	pid = pid->pid;
+	if (pid->infos) {
+		prop = gf_props_get_property(pid->infos, prop_4cc, prop_name);
 		if (prop) return prop;
 	}
 

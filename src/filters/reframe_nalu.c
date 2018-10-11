@@ -430,7 +430,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->fps.num;
 
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -688,15 +688,20 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 
 static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 {
-	u32 i, nb_layers=0;
+	u32 i, nb_layers=0, nb_sublayers=0;
 	char *data;
 	u32 data_size;
-
-	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_BitStream *bs;
 
 	for (i=0; i<64; i++) {
 		if (ctx->linf[i].layer_id_plus_one) nb_layers++;
+		if (ctx->linf[i].min_temporal_id != ctx->linf[i].max_temporal_id) nb_sublayers++;
 	}
+	if (!nb_layers && !nb_sublayers)
+		return;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	
 	gf_bs_write_int(bs, 0, 2);
 	gf_bs_write_int(bs, nb_layers, 6);
 	for (i=0; i<nb_layers; i++) {
@@ -1332,7 +1337,7 @@ static void naludmx_update_nalu_maxsize(GF_NALUDmxCtx *ctx, u32 size)
 {
 	if (ctx->max_nalu_size < size) {
 		ctx->max_nalu_size = size;
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_MAX_NALU_SIZE, &PROP_UINT(ctx->max_nalu_size) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MAX_NALU_SIZE, &PROP_UINT(ctx->max_nalu_size) );
 		if (size > ctx->max_nalu_size_allowed) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] nal size %d larger than max allowed size %d - change import settings\n", ctx->log_name, size, ctx->max_nalu_size_allowed ));
 		}
@@ -1763,7 +1768,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			if (ctx->is_hevc) {
 				naludmx_set_hevc_oinf(ctx, ctx->max_temporal_id);
 				naludmx_set_hevc_linf(ctx);
-				gf_filter_pid_set_info_str(ctx->opid, "hevc:min_lid", &PROP_UINT(ctx->min_layer_id) );
+				gf_filter_pid_set_property_str(ctx->opid, "hevc:min_lid", &PROP_UINT(ctx->min_layer_id) );
 			}
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -1775,7 +1780,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 	if (ctx->opid && ctx->is_playing) {
 		u64 byte_offset = gf_filter_pck_get_byte_offset(pck);
 		if (byte_offset != GF_FILTER_NO_BO) {
-			gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(byte_offset) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(byte_offset) );
 		}
 	}
 	start = data;
@@ -2101,7 +2106,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			full_nal = GF_TRUE;
 			size = next;
 		}
-		if (!full_nal && (size<6)) {
+		if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
 			assert(!nal_sc_in_store);
 			assert(!nal_hdr_in_store);
 			assert(remain < SAFETY_NAL_STORE);
@@ -2463,7 +2468,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 
 		//bytes come from both our store and the data packet
 		if (nal_hdr_in_store) {
-			memcpy(pck_data, ctx->hdr_store + current + sc_size, nal_bytes_from_store);
+			memcpy(pck_data, hdr_start, nal_bytes_from_store);
 			assert(size >= nal_bytes_from_store);
 			size -= nal_bytes_from_store;
 			memcpy(pck_data + nal_bytes_from_store, pck_start, (size_t) size);

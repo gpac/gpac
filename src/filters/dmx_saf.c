@@ -148,7 +148,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 				st->ts_res = gf_bs_read_u24(bs);
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->ts_res));
 				if (ctx->duration.num)
-					gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 
 				/*bufferSizeDB = */gf_bs_read_u16(bs);
 				au_size -= 7;
@@ -291,7 +291,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 		GF_SAFStream *st;
 		ctx->duration = dur;
 		while ( (st = gf_list_enum(ctx->streams, &i)) ) {
-			gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 		}
 	}
 }

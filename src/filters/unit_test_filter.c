@@ -497,8 +497,11 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 	//sink mode, request full reconstruction of input blocks or not depending on framing mode 
 	else {
+		GF_FilterEvent evt;
 		gf_filter_pid_set_framing_mode(pidctx->src_pid, stack->framing ? GF_FALSE : GF_TRUE);
 		pidctx->sha_ctx = gf_sha1_starts();
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		gf_filter_pid_send_event(pid, &evt);
 	}
 
 	return GF_OK;

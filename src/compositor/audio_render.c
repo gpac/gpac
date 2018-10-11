@@ -82,8 +82,8 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chan) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(a_fmt) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg) );
-		gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
-		gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
+		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
+		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
 
 		gf_filter_pid_set_max_buffer(ar->aout, 1000*ar->compositor->abuf);
 	}
@@ -187,13 +187,13 @@ void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume)
 {
 	if (Volume>100) Volume=100;
 	if (ar->volume==Volume) return;
-	if (ar->aout) gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
+	if (ar->aout) gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
 }
 
 void gf_sc_ar_mute(GF_AudioRenderer *ar, Bool mute)
 {
 	ar->mute = mute;
-	if (ar->aout) gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(mute ? 0 : ar->volume) );
+	if (ar->aout) gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(mute ? 0 : ar->volume) );
 }
 
 void gf_sc_ar_set_pan(GF_AudioRenderer *ar, u32 Balance)
@@ -201,7 +201,7 @@ void gf_sc_ar_set_pan(GF_AudioRenderer *ar, u32 Balance)
 	if (Balance>100) Balance = 100;
 	if (ar->pan == Balance) return;
 	ar->pan = Balance;
-	if (ar->aout) gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
+	if (ar->aout) gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
 }
 
 
@@ -242,7 +242,7 @@ void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 void gf_sc_ar_set_priority(GF_AudioRenderer *ar, u32 priority)
 {
 	if (ar->aout)
-		gf_filter_pid_set_info(ar->aout, GF_PROP_PID_AUDIO_PRIORITY, &PROP_UINT(priority) );
+		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_PRIORITY, &PROP_UINT(priority) );
 }
 
 void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts)

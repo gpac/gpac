@@ -232,7 +232,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT(1 + gf_list_find(ctx->streams, st) ) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->info.streamType) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(st->info.type) );
-	gf_filter_pid_set_info(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->info.bitrate) );
+	gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->info.bitrate) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->info.sample_rate ? st->info.sample_rate : st->info.frame_rate.den) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(0xFE) );
 
@@ -242,7 +242,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 		gf_bs_get_content(st->dsi_bs, &data, &size);
 		gf_bs_del(st->dsi_bs);
 		st->dsi_bs = NULL;
-		gf_filter_pid_set_info(st->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(data, size) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(data, size) );
 	}
 
 	if (st->info.sample_rate)
@@ -261,7 +261,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_FPS, &PROP_FRAC(st->info.frame_rate) );
 
 	if (ctx->duration.num)
-		gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 
 }
 
@@ -455,7 +455,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			GF_OGGStream *st;
 			ctx->duration = dur;
 			while ( (st = gf_list_enum(ctx->streams, &i)) ) {
-				gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+				gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 			}
 		}
 	}

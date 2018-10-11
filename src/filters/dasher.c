@@ -291,6 +291,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	const GF_PropertyValue *p, *dsi=NULL;
 	u32 dc_crc, dc_enh_crc;
 	GF_DashStream *ds;
+	u32 prev_stream_type;
 	const char *cue_file=NULL;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 
@@ -337,6 +338,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_list_add(ctx->pids, ds);
 		ds->complementary_streams = gf_list_new();
 		period_switch = GF_TRUE;
+		gf_filter_pid_set_udta(pid, ds);
 		//don't create pid at this time
 	}
 
@@ -370,6 +372,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p != _mem) period_switch = GF_TRUE; \
 	_mem = p; \
 
+
+	prev_stream_type = ds->stream_type;
 	CHECK_PROP(GF_PROP_PID_STREAM_TYPE, ds->stream_type, GF_NOT_SUPPORTED)
 
 	if (ds->stream_type != GF_STREAM_FILE) {
@@ -377,6 +381,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			CHECK_PROP(GF_PROP_PID_ORIG_STREAM_TYPE, ds->stream_type, GF_EOS)
 			ds->is_encrypted = GF_TRUE;
 		}
+		if (prev_stream_type==ds->stream_type)
+			period_switch = GF_FALSE;
 
 		CHECK_PROP(GF_PROP_PID_CODECID, ds->codec_id, GF_NOT_SUPPORTED)
 		CHECK_PROP(GF_PROP_PID_TIMESCALE, ds->timescale, GF_NOT_SUPPORTED)
@@ -553,7 +559,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!ds->period_id)
 		ds->period_id = "_gpac_dasher_default_period_id";
 
-	if (!period_switch) return GF_OK;
+	if (!period_switch) {
+		if (ds->opid) gf_filter_pid_copy_properties(ds->opid, pid);
+		return GF_OK;
+	}
 	if (period_switch) {
 		gf_list_del_item(ctx->current_period->streams, ds);
 		gf_list_add(ctx->next_period->streams, ds);
@@ -1747,9 +1756,9 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_ID, &PROP_UINT(ds->pid_id) );
 	if (ds->dep_pid_id)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ds->dep_pid_id) );
-	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_MUX_SRC, &PROP_STRING(szSRC) );
-	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_DASH_MODE, &PROP_UINT(ctx->sseg ? 2 : 1) );
-	gf_filter_pid_set_info(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_DOUBLE(ds->dash_dur) );
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_MUX_SRC, &PROP_STRING(szSRC) );
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MODE, &PROP_UINT(ctx->sseg ? 2 : 1) );
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_DOUBLE(ds->dash_dur) );
 
 	if (ds->id != ds->pid_id) {
 		dasher_update_dep_list(ctx, ds, "isom:scal");
@@ -3654,6 +3663,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 	GF_DashStream *ds_done = NULL, *ds_not_done = NULL;
 	GF_DashStream *set_ds = ds->set->udta;
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
+	Bool has_ds_done = GF_FALSE;
 
 
 	if (ds->segment_started) {
@@ -3703,7 +3713,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			set_ds->nb_rep_done = 0;
 		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Representation #%s flushing DASH segment duration %g end time %g\n", ds->rep->id, ((Double)seg_dur_ms)/1000, ((Double)ds->adjusted_next_seg_start)/ds->timescale));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Representation #%s flushing DASH segment duration %g end time %g\n", ds->rep->id, ((Double)seg_dur_ms)/1000, ((Double)ds->adjusted_next_seg_start)/ds->timescale));
 
 	} else {
 		if (ctx->align) {
@@ -3754,6 +3764,8 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			if (!ds->done) {
 				ds->segment_started = GF_FALSE;
 				ds->seg_done = GF_FALSE;
+			} else {
+				has_ds_done = GF_TRUE;
 			}
 			continue;
 		}
@@ -3778,6 +3790,16 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			}
 			base_ds->adjusted_next_seg_start = base_ds->next_seg_start;
 			base_ds->seg_number++;
+		}
+	}
+	//muxed representation with unaligned duration, 
+	if (has_ds_done) {
+		for (i=0; i<count; i++) {
+			ds = gf_list_get(ctx->current_period->streams, i);
+			//otherwise reset only media components for this rep
+			if ((ds->muxed_base != base_ds) && (ds != base_ds)) continue;
+
+			if (ds->done) base_ds->nb_comp_done++;
 		}
 	}
 
@@ -4056,7 +4078,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 		//flush as much as possible
 		while (1) {
-			u32 sap_type, dur, o_dur, split_dur;
+			u32 sap_type, dur, o_dur, split_dur, check_dur;
 			u64 cts, dts, ncts, split_dur_next;
 			Bool seg_over = GF_FALSE;
 			Bool is_split = GF_FALSE;
@@ -4164,6 +4186,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 			dur = o_dur = gf_filter_pck_get_duration(pck);
 			split_dur = 0;
 			split_dur_next = 0;
+
+			//patch to align old arch with new
+			check_dur = 0;
+			if (ds->stream_type==GF_STREAM_AUDIO)
+				check_dur = dur;
 
 			//adjust duration and cts
 			if (ds->split_dur_next) {
@@ -4292,7 +4319,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->done = 1;
 				gf_filter_pid_set_eos(ds->opid);
 				gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
-			} else if (cts * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
+			} else if ((cts + check_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
 				//no sap, segment is over
 				if (! ctx->sap) {
 					seg_over = GF_TRUE;
@@ -4695,7 +4722,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 
 	//check we have a segment template
 	if (!ctx->template) {
-		ctx->template = gf_strdup( ctx->sfile ? "$File$_dash" : (ctx->stl ? "$File$_dash$DS$_$Time$" : "$File$_dash$DS$_$Number$") );
+		ctx->template = gf_strdup( ctx->sfile ? "$File$_dash" : (ctx->stl ? "$File$_dash$DS$_$Time$" : "$File$_dash$DS$$Number$") );
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] No template assigned, using %s\n", ctx->template));
 	}
 	return GF_OK;

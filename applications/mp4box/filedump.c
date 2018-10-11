@@ -2743,7 +2743,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stderr, "\n*Encrypted stream - CENC scheme %s (version: major=%u, minor=%u)\n", gf_4cc_to_str(scheme_type), (version&0xFFFF0000)>>16, version&0xFFFF);
 					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
 				} else if(gf_isom_is_adobe_protection_media(file, trackNum, 1)) {
-					gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version);
+					gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version, NULL);
 					fprintf(stderr, "\n*Encrypted stream - Adobe protection scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
 				} else {
 					fprintf(stderr, "\n*Encrypted stream - unknown scheme %s\n", gf_4cc_to_str(gf_isom_is_media_encrypted(file, trackNum, 1) ));

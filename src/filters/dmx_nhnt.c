@@ -169,7 +169,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 	dur.den = timescale;
 	if (!ctx->duration.num || (ctx->duration.num * dur.den != dur.num * ctx->duration.den)) {
 		ctx->duration = dur;
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 	}
 }
 
@@ -474,8 +474,8 @@ static const GF_FilterCapability NHNTDmxCaps[] =
 
 
 GF_FilterRegister NHNTDmxRegister = {
-	.name = "nhntdmx",
-	.description = "NHNT demuxer",
+	.name = "nhntr",
+	.description = "NHNT reader",
 	.private_size = sizeof(GF_NHNTDmxCtx),
 	.args = GF_NHNTDmxArgs,
 	.initialize = nhntdmx_initialize,

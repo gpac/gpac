@@ -161,6 +161,8 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				odm->mo->config_changed = GF_TRUE;
 			}
 		}
+		gf_odm_update_duration(odm, pid);
+		gf_odm_check_clock_mediatime(odm);
 		return GF_OK;
 	}
 
@@ -272,14 +274,7 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 
 static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_ObjectManager *odm;
-
 	switch (evt->base.type) {
-	case GF_FEVT_INFO_UPDATE:
-		odm = gf_filter_pid_get_udta(evt->base.on_pid);
-		gf_odm_update_duration(odm, evt->base.on_pid);
-		gf_odm_check_clock_mediatime(odm);
-		break;
 	//event(s) we trigger on ourselves to go up the filter chain
 	case GF_FEVT_CAPS_CHANGE:
 		return GF_FALSE;

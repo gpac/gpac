@@ -674,21 +674,21 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 	/*create CENC protection*/
 
-	gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(0x00010000) );
-	gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(cstr->tci->IsEncrypted ? GF_TRUE : GF_FALSE) );
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(0x00010000) );
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(cstr->tci->IsEncrypted ? GF_TRUE : GF_FALSE) );
 	cstr->prev_sample_encryped = cstr->tci->IsEncrypted;
 
 	if (cstr->tci->IV_size) {
-		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(cstr->tci->IV_size) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(cstr->tci->IV_size) );
 	} else {
-		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, NULL);
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, NULL);
 	}
-	gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_KID, &PROP_DATA(cstr->default_KID, sizeof(bin128) ) );
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_KID, &PROP_DATA(cstr->default_KID, sizeof(bin128) ) );
 
 	if (cstr->tci->skip_byte_block || cstr->tci->crypt_byte_block) {
-		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(cstr->tci->skip_byte_block, cstr->tci->crypt_byte_block ) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(cstr->tci->skip_byte_block, cstr->tci->crypt_byte_block ) );
 	} else {
-		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
 	}
 	if (cstr->tci->constant_IV_size) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(cstr->tci->constant_IV, cstr->tci->constant_IV_size) );
@@ -1572,7 +1572,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	}
 
 	if (key_changed) {
-		gf_filter_pid_set_info(cstr->opid, GF_PROP_PID_KID, &PROP_DATA( cstr->tci->KIDs[cstr->kidx], sizeof(bin128) ) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_KID, &PROP_DATA( cstr->tci->KIDs[cstr->kidx], sizeof(bin128) ) );
 		//TODO add support for multiple patterns and keys ?
 		//TODO add support for multiple IV size in key roll ?
 	}

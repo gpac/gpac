@@ -124,7 +124,7 @@ static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 		u32 i, nb_streams = gf_filter_get_opid_count(ctx->filter);
 		for (i=0; i<nb_streams; i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
-			gf_filter_pid_set_info(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
 		}
 	}
 }
@@ -523,8 +523,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				for (j=0; j<nb_streams; j++) {
 					GF_M2TS_ES *es  =gf_list_get(prog->streams, j);
 					if (es->user) {
-						gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
-						gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
+						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
+						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
 					}
 				}
 			}
@@ -575,8 +575,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			gf_filter_pck_send(dst_pck);
 
 			if (map_time) {
-				gf_filter_pid_set_info_str(stream->user, "time:timestamp", &PROP_LONGUINT(pcr) );
-				gf_filter_pid_set_info_str(stream->user, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
+				gf_filter_pid_set_property_str(stream->user, "time:timestamp", &PROP_LONGUINT(pcr) );
+				gf_filter_pid_set_property_str(stream->user, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
 			}
 		}
 
@@ -597,8 +597,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			for (j=0; j<count2; j++) {
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
 				if (stream->user) {
-					gf_filter_pid_set_info(stream->user, GF_PROP_PID_UTC_TIME, & PROP_LONGUINT(utc_ts) );
-					gf_filter_pid_set_info(stream->user, GF_PROP_PID_UTC_TIMESTAMP, & PROP_LONGUINT(prog->last_pcr_value / 300) );
+					gf_filter_pid_set_property(stream->user, GF_PROP_PID_UTC_TIME, & PROP_LONGUINT(utc_ts) );
+					gf_filter_pid_set_property(stream->user, GF_PROP_PID_UTC_TIMESTAMP, & PROP_LONGUINT(prog->last_pcr_value / 300) );
 				}
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n",
@@ -621,7 +621,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			for (j=0; j<count2; j++) {
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
 				if (stream->user) {
-					gf_filter_pid_set_info(stream->user, GF_PROP_PID_DURATION, & PROP_DOUBLE(duration) );
+					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION, & PROP_DOUBLE(duration) );
 				}
 			}
 		}

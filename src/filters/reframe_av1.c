@@ -248,7 +248,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->fps.num;
 
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 	}
 
 	//currently not supported because of OBU size field rewrite - could work on some streams but we would

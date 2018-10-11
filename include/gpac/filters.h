@@ -723,7 +723,6 @@ enum
 	GF_PROP_PID_CRYPT_INFO = GF_4CC('E','C','R','I'),
 	GF_PROP_PID_DECRYPT_INFO = GF_4CC('E','D','R','I'),
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
-	GF_PROP_PCK_ISMA_BSO = GF_4CC('I','B','S','O'),
 	GF_PROP_PID_ADOBE_CRYPT_META = GF_4CC('A','M','E','T'),
 	GF_PROP_PID_ENCRYPTED = GF_4CC('E','P','C','K'),
 	GF_PROP_PID_OMA_PREVIEW_RANGE = GF_4CC('O','D','P','R'),
@@ -942,7 +941,7 @@ typedef enum
 	GF_FEVT_QUALITY_SWITCH,
 	/*! visibility hint event, helps filters decide how to adapt their processing*/
 	GF_FEVT_VISIBILITY_HINT,
-	/*! special event type sent to a filter whenever the pid info properties have been modified. Cannot be cancelled because not forwarded - cf \ref gf_filter_pid_set_info*/
+	/*! special event type sent to a filter whenever the pid info properties have been modified. No cancel because no forward - cf \ref gf_filter_pid_set_info*/
 	GF_FEVT_INFO_UPDATE,
 	/*! buffer requirement event. This event is NOT sent to filters, it is internaly processed by the filter session. Filters may however send this
 	event to indicate their buffereing preference (real-time sinks mostly)*/
@@ -1799,8 +1798,8 @@ void gf_filter_pid_remove(GF_FilterPid *pid);
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_FilterPid **out_pid);
 
 /*! set a new property on an output pid for built-in property names.
-Previous properties (ones set before last packet dispatch) will still be valid.
-You need to remove them one by one using set_property with NULL property, or reset the properties with \ref gf_filter_pid_reset_properties.
+Previous properties (ones set before last packet dispatch) will still be valid. Property with same type/name will be reassigned
+You need to remove them one by one using \ref gf_filter_pid_set_property with NULL property, or reset the properties with \ref gf_filter_pid_reset_properties.
 Setting a new property will trigger a PID reconfigure.
 
 \param pid the target filter pid
@@ -1826,12 +1825,10 @@ GF_Err gf_filter_pid_set_property_str(GF_FilterPid *pid, const char *name, const
 */
 GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value);
 
-//set a new info on the pid. previous info (ones set before last packet dispatch)
-//will still be valid. You need to remove them one by one using set_property with NULL property, or reset the
-//properties with gf_filter_pid_reset_properties. Setting a new info will not trigger a PID reconfigure.
-
 /*! set a new info property on an output pid for built-in property names.
-Same as \ref gf_filter_pid_set_property, but does not trigger pid reconfiguration
+Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain. First packet dispatched after calling
+this function will be marked , and its fetching by the consuming filter will trigger a process_event notification. If the
+consumming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
 \param pid the target filter pid
 \param prop_4cc the built-in property code to modify
 \param value the new value to assign, or NULL if the property is to be removed
@@ -1840,7 +1837,7 @@ Same as \ref gf_filter_pid_set_property, but does not trigger pid reconfiguratio
 GF_Err gf_filter_pid_set_info(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value);
 
 /*! set a new info property on an output pid
-Same as \ref gf_filter_pid_set_property_str, but does not trigger pid reconfiguration
+See  \ref gf_filter_pid_set_info
 \param pid the target filter pid
 \param name the name of the property to modify
 \param value the new value to assign, or NULL if the property is to be removed
@@ -1849,7 +1846,7 @@ Same as \ref gf_filter_pid_set_property_str, but does not trigger pid reconfigur
 GF_Err gf_filter_pid_set_info_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value);
 
 /*! set a new property on an output pid.
-Same as \ref gf_filter_pid_set_property_dyn, but does not trigger pid reconfiguration
+See \ref gf_filter_pid_set_info
 \param pid the target filter pid
 \param name the name of the property to modify. The name will be copied to the property, and memory destruction performed by the filter session
 \param value the new value to assign, or NULL if the property is to be removed
@@ -2076,7 +2073,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_ou
 void gf_filter_pid_try_pull(GF_FilterPid *pid);
 
 
-/*! looks for a built-in property value on a  pids. This is a recursive call on both input and ouput chain
+/*! looks for a built-in property value on a  pids. This is a recursive call on input chain
 \param pid the target filter pid to query
 \param prop_4cc the code of the built-in property to fetch
 \return the property if found NULL otherwise

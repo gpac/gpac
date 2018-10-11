@@ -1184,6 +1184,11 @@ GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	if (!sample_count) {
+		ptr->size = 0;
+		return GF_OK;
+	}
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u8(bs, ptr->version);
@@ -1220,12 +1225,17 @@ GF_Err piff_psec_Size(GF_Box *s)
 	u32 i, sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox*)s;
 
+	sample_count = gf_list_count(ptr->samp_aux_info);
+	if (!sample_count) {
+		ptr->size = 0;
+		return GF_OK;
+	}
+
 	ptr->size += 4;
 	if (ptr->flags & 1) {
 		ptr->size += 20;
 	}
 	ptr->size += 4;
-	sample_count = gf_list_count(ptr->samp_aux_info);
 	if (sample_count) {
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
@@ -1313,6 +1323,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 #endif
 {
 	GF_Err e;
+	Bool parse_failed = GF_FALSE;
 	u32 i, j, count;
 	u32 senc_size = (u32) senc->size;
 	u32 subs_size = 0, def_IV_size;
@@ -1326,8 +1337,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 
 	gf_bs_seek(bs, senc->bs_offset);
 
-	if (senc_size<16) return GF_BAD_PARAM;
-	senc_size -= 16;
+	//BOX + version/flags
+	if (senc_size<12) return GF_BAD_PARAM;
+	senc_size -= 12;
+
 	if (senc->is_piff) {
 		//UUID
 		if (senc_size<16) return GF_BAD_PARAM;
@@ -1335,7 +1348,9 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	}
 	if (senc->flags & 2) subs_size = 8;
 
+	if (senc_size<4) return GF_BAD_PARAM;
 	count = gf_bs_read_u32(bs);
+	senc_size -= 4;
 
 	def_IV_size = 0;
 	//check the target size if we have one subsample
@@ -1377,25 +1392,42 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			}
 			do_warn = GF_FALSE;
 		}
+		if (senc_size < sai->IV_size) {
+			parse_failed = GF_TRUE;
+			break;
+		}
+
 		//while this would technically be correct, senc mandates that sample_count = all samples in traf/track
 		//regardless of their encryption state
 		//if (is_encrypted)
 		{
-			if (sai->IV_size)
+			if (sai->IV_size) {
 				gf_bs_read_data(bs, (char *)sai->IV, sai->IV_size);
+				senc_size -= sai->IV_size;
+			}
 
 			if (senc->flags & 0x00000002) {
 				sai->subsample_count = gf_bs_read_u16(bs);
 				sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+
+				if (senc_size < 2 + sai->subsample_count * 6) {
+					parse_failed = GF_TRUE;
+					break;
+				}
+
 				for (j = 0; j < sai->subsample_count; j++) {
 					sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
 					sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
 				}
+				senc_size -= 2 + sai->subsample_count * 6;
 			}
 		}
 		gf_list_add(senc->samp_aux_info, sai);
 	}
 	gf_bs_seek(bs, pos);
+	if (parse_failed) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] cannot parse senc, missing IV/crypto state\n"));
+	}
 	return GF_OK;
 }
 

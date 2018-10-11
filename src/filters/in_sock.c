@@ -338,7 +338,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	bitrate = ( gf_sys_clock_high_res() - sock_c->start_time );
 	if (bitrate) {
 		bitrate = (sock_c->nb_bytes * 8 * 1000000) / bitrate;
-		gf_filter_pid_set_info(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT((u32) bitrate) );
+		gf_filter_pid_set_property(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT((u32) bitrate) );
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Receiving from %s at %d kbps\r", sock_c->adress, (u32) (bitrate/10)));
 	}
 

@@ -82,6 +82,7 @@ typedef struct
 #endif
 
 	u64 media_done;
+	Bool is_img;
 
 	GF_BitStream *bs_w;
 	GF_BitStream *bs_r;
@@ -900,6 +901,12 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	if (last_dts) {
 		ctx->duration.num += (u32) (ctx->duration.num - last_dts);
 	}
+	//assume image, one sec (default for old arch)
+	if ((streamType==4) && !ctx->duration.num) {
+		ctx->is_img = GF_TRUE;
+		ctx->duration.num =ctx->duration.den;
+	}
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration) );
 
 	return e;
@@ -1013,6 +1020,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			dims_flags |= GF_DIMS_UNIT_M;
 
 		if (!(dims_flags & GF_DIMS_UNIT_C)) compress = GF_FALSE;
+
+		if (ctx->is_img) sample_duration = ctx->duration.den;
 
 		has_subbs = GF_FALSE;
 		j=0;
@@ -1366,8 +1375,8 @@ static const GF_FilterCapability NHMLDmxCaps[] =
 };
 
 GF_FilterRegister NHMLDmxRegister = {
-	.name = "nhmldmx",
-	.description = "NHML demuxer",
+	.name = "nhmlr",
+	.description = "NHML parser",
 	.private_size = sizeof(GF_NHMLDmxCtx),
 	.args = GF_NHMLDmxArgs,
 	.initialize = nhmldmx_initialize,

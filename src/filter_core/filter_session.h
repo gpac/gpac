@@ -685,6 +685,8 @@ struct __gf_filter_pid
 	//number of shared packets (shared, hw frames or reference) still out there
 	volatile u32 nb_shared_packets_out;
 
+	GF_PropertyMap *infos;
+	
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
 	u32 nb_reaggregation_pending;

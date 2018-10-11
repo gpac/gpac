@@ -211,6 +211,17 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 	if (p) ch_cfg = p->value.uint;
 
+	if (ctx->audio_out->SetVolume) {
+		p = gf_filter_pid_get_info(ctx->pid, GF_PROP_PID_AUDIO_VOLUME);
+		if (p) ctx->audio_out->SetVolume(ctx->audio_out, p->value.uint);
+	}
+	if (ctx->audio_out->SetPan) {
+		p = gf_filter_pid_get_info(ctx->pid, GF_PROP_PID_AUDIO_PAN);
+		if (p) ctx->audio_out->SetPan(ctx->audio_out, p->value.uint);
+	}
+	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_AUDIO_PRIORITY);
+	if (p) aout_set_priority(ctx, p->value.uint);
+
 	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {
 		ctx->needs_recfg = GF_FALSE;
 		ctx->wait_recfg = GF_FALSE;
@@ -333,7 +344,6 @@ static GF_Err aout_process(GF_Filter *filter)
 
 static Bool aout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	const GF_PropertyValue *p;
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 	if (!ctx->audio_out) return GF_TRUE;
 
@@ -343,19 +353,6 @@ static Bool aout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		break;
 	case GF_FEVT_STOP:
 		if (ctx->audio_out->Play) ctx->audio_out->Play(ctx->audio_out, 0);
-		break;
-	case GF_FEVT_INFO_UPDATE:
-		if (ctx->audio_out->SetVolume) {
-			p = gf_filter_pid_get_info(ctx->pid, GF_PROP_PID_AUDIO_VOLUME);
-			if (p) ctx->audio_out->SetVolume(ctx->audio_out, p->value.uint);
-		}
-		if (ctx->audio_out->SetPan) {
-			p = gf_filter_pid_get_info(ctx->pid, GF_PROP_PID_AUDIO_PAN);
-			if (p) ctx->audio_out->SetPan(ctx->audio_out, p->value.uint);
-		}
-		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_AUDIO_PRIORITY);
-		if (p) aout_set_priority(ctx, p->value.uint);
-
 		break;
 	default:
 		break;

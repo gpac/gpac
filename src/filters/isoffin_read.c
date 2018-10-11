@@ -430,8 +430,14 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		//if no PSSH declared, don't update the properties
 		if (!PSSH_count) return;
 	} else if (gf_isom_is_adobe_protection_media(mov, track, 1)) {
+		u32 ofmt;
 		scheme_version = 1;
 		scheme_type = GF_ISOM_ADOBE_SCHEME;
+		const char *metadata = NULL;
+
+		gf_isom_get_adobe_protection_info(mov, track, 1, &ofmt, &scheme_type, &scheme_version, &metadata);
+		if (metadata)
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA((char *)metadata, (u32) strlen(metadata) ) );
 	}
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
@@ -481,19 +487,19 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STORE, &PROP_UINT(container_type) );
 
-		gf_filter_pid_set_info(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
 
 		if (ch->skip_byte_block || ch->crypt_byte_block) {
-			gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
 		}
 
 		if (ch->IV_size) {
-			gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
 		}
 		if (ch->constant_IV_size) {
-			gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
 		}
-		gf_filter_pid_set_info(ch->pid, GF_PROP_PID_KID, &PROP_DATA(ch->KID, sizeof(bin128) ) );
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_KID, &PROP_DATA(ch->KID, sizeof(bin128) ) );
 	}
 }
 
@@ -922,24 +928,21 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
-				if (ch->pck_encrypted && ch->isma_BSO) {
-					gf_filter_pck_set_property(pck, GF_PROP_PCK_ISMA_BSO, &PROP_LONGUINT(ch->isma_BSO) );
-				}
 
 				if (ch->cenc_state_changed) {
-					gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
 
 					if (!ch->IV_size) {
 						if (ch->constant_IV_size) {
-							gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
+							gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_IV_CONST, &PROP_DATA(ch->constant_IV, ch->constant_IV_size) );
 						} else {
-							gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_CONST, NULL);
+							gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_IV_CONST, NULL);
 						}
 					} else {
-						gf_filter_pid_set_info(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
+						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(ch->IV_size) );
 					}
 
-					gf_filter_pid_set_info(ch->pid, GF_PROP_PID_KID, &PROP_DATA(ch->KID, sizeof(bin128) ) );
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_KID, &PROP_DATA(ch->KID, sizeof(bin128) ) );
 				}
 				if (ch->sai_buffer) {
 					assert(ch->sai_buffer_size);
