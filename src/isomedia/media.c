@@ -251,31 +251,11 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		}
 	}
-	break;
+		break;
 	case GF_ISOM_BOX_TYPE_STPP:
-	{
-		/* TODO */
-	}
-	break;
 	case GF_ISOM_BOX_TYPE_SBTT:
-	{
-		/* TODO */
-	}
-	break;
 	case GF_ISOM_BOX_TYPE_STXT:
-	{
-		GF_BitStream *bs;
-		esd =  gf_odf_desc_esd_new(2);
-		*out_esd = esd;
-		esd->decoderConfig->streamType = GF_STREAM_TEXT;
-		esd->decoderConfig->objectTypeIndication = GF_CODECID_SIMPLE_TEXT;
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(bs, entry->type);
-		gf_isom_box_write((GF_Box *)((GF_MetaDataSampleEntryBox*)entry)->config, bs);
-		gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_bs_del(bs);
-	}
-	break;
+		break;
 #endif
 
 	case GF_ISOM_SUBTYPE_3GP_AMR:
