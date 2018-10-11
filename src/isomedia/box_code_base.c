@@ -7479,11 +7479,6 @@ GF_Err trex_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->def_sample_duration = gf_bs_read_u32(bs);
 	ptr->def_sample_size = gf_bs_read_u32(bs);
 	ptr->def_sample_flags = gf_bs_read_u32(bs);
-
-	if (!ptr->def_sample_desc_index) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] TREX with default sample description set to 0, likely broken ! Fixing to 1\n" ));
-		ptr->def_sample_desc_index = 1;
-	}
 	return GF_OK;
 }
 
@@ -7507,7 +7502,8 @@ GF_Err trex_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	gf_bs_write_u32(bs, ptr->trackID);
-	gf_bs_write_u32(bs, ptr->def_sample_desc_index);
+	//we always write 1 in trex default sample desc as using 0 breaks chroms/opera/...
+	gf_bs_write_u32(bs, ptr->def_sample_desc_index ? ptr->def_sample_desc_index : 1);
 	gf_bs_write_u32(bs, ptr->def_sample_duration);
 	gf_bs_write_u32(bs, ptr->def_sample_size);
 	gf_bs_write_u32(bs, ptr->def_sample_flags);

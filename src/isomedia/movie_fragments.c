@@ -596,10 +596,14 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 	}
 
 	//after all runs in the traf are processed, update TRAF flags
-	if (UseDefaultSize==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_SIZE;
-	if (UseDefaultDur==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DUR;
-	if (UseDefaultFlag==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_FLAGS;
-	if (traf->tfhd->sample_desc_index && traf->tfhd->sample_desc_index != traf->trex->def_sample_desc_index) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DESC;
+	if (UseDefaultSize==1)
+		traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_SIZE;
+	if (UseDefaultDur==1)
+		traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DUR;
+	if (UseDefaultFlag==1)
+		traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_FLAGS;
+	if (traf->tfhd->sample_desc_index != traf->trex->def_sample_desc_index)
+		traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DESC;
 
 
 	return sampleCount;
