@@ -7502,7 +7502,7 @@ GF_Err trex_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	gf_bs_write_u32(bs, ptr->trackID);
-	//we always write 1 in trex default sample desc as using 0 breaks chroms/opera/...
+	//we always write 1 in trex default sample desc as using 0 breaks chrome/opera/...
 	gf_bs_write_u32(bs, ptr->def_sample_desc_index ? ptr->def_sample_desc_index : 1);
 	gf_bs_write_u32(bs, ptr->def_sample_duration);
 	gf_bs_write_u32(bs, ptr->def_sample_size);
