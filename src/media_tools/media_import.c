@@ -3374,7 +3374,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			} else if (!stricmp(att->value, "main+redundant")) {
 				dims.containsRedundant = 3;
 			}
-		} else if (!stricmp(att->name, "text_encoding")) {
+		} else if (!stricmp(att->name, "text_encoding") || !stricmp(att->name, "encoding")) {
 			dims.textEncoding = att->value;
 		} else if (!stricmp(att->name, "content_encoding")) {
 			if (!strcmp(att->value, "deflate")) {
