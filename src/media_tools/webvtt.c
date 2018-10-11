@@ -1117,7 +1117,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
 	}
 	while (gf_list_count(parser->samples) > 0) {
 		GF_WebVTTSample *sample = (GF_WebVTTSample *)gf_list_get(parser->samples, 0);
-		parser->last_duration = sample->end - sample->start;
+		parser->last_duration = (sample->end > sample->start) ? sample->end - sample->start : 0;
 		gf_list_rem(parser->samples, 0);
 		parser->on_sample_parsed(parser->user, sample);
 	}
