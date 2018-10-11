@@ -1530,6 +1530,7 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	if (e==GF_EOS) e = GF_OK;
 exit:
 	gf_swf_reader_del(read);
+	gf_media_update_bitrate(import->dest, track);
 	return e;
 }
 /* end of SWF Importer */
