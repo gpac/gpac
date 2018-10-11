@@ -197,7 +197,7 @@ GF_Err img_process(GF_Filter *filter)
 			ctx->owns_timescale = GF_TRUE;
 		}
 
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(1) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(1) );
 
 		if (ext || mime)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );

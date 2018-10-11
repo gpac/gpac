@@ -236,11 +236,15 @@ void isor_declare_objects(ISOMReader *read)
 				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
 				break;
 			case GF_ISOM_SUBTYPE_METT:
-				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
+				gf_isom_get_xml_metadata_description(read->mov, i+1, 1, &namespace, &schemaloc, &encoding);
 				codec_id = GF_CODECID_META_TEXT;
 				break;
 			case GF_ISOM_SUBTYPE_STPP:
 				codec_id = GF_CODECID_SUBS_XML;
+				gf_isom_xml_subtitle_get_description(read->mov, i+1, 1, &namespace, &schemaloc, &mime);
+				break;
+			case GF_ISOM_SUBTYPE_METX:
+				codec_id = GF_CODECID_META_XML;
 				gf_isom_xml_subtitle_get_description(read->mov, i+1, 1, &namespace, &schemaloc, &mime);
 				break;
 			case GF_ISOM_SUBTYPE_WVTT:
@@ -519,9 +523,9 @@ void isor_declare_objects(ISOMReader *read)
 		if (!ch->duration) {
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
-		gf_filter_pid_set_info(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) ch->duration, read->time_scale));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) ch->duration, read->time_scale));
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
-		gf_filter_pid_set_info(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
 
 		if (sample_count && w && h) {
 			u64 mdur = gf_isom_get_media_duration(read->mov, i+1);
@@ -570,7 +574,7 @@ void isor_declare_objects(ISOMReader *read)
 		if (w)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
 
-		gf_filter_pid_set_info(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
 
 
 		GF_PropertyValue brands;
@@ -586,7 +590,7 @@ void isor_declare_objects(ISOMReader *read)
 			u32 s = gf_isom_get_sample_size(read->mov, ch->track, j+1);
 			if (s > max_size) max_size = s;
 		}
-		gf_filter_pid_set_info(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
 
 		u32 media_pl=0;
 		if (streamtype==GF_STREAM_VISUAL) {

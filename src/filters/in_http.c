@@ -315,17 +315,17 @@ static GF_Err httpin_process(GF_Filter *filter)
 				gf_filter_pid_set_property(ctx->pid, GF_GPAC_DOWNLOAD_SESSION, &PROP_POINTER( (void*)ctx->sess ) );
 			}
 
-			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(((e==GF_EOS) && cached) ? GF_TRUE : GF_FALSE) );
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(((e==GF_EOS) && cached) ? GF_TRUE : GF_FALSE) );
 
 			idx = 0;
 			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
-				gf_filter_pid_set_info_str(ctx->pid, hname, & PROP_STRING(hval));
+				gf_filter_pid_set_property(ctx->pid, hname, & PROP_STRING(hval));
 			}
 		}
 
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bytes_done) );
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bytes_done) );
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
 	}
 
 	ctx->nb_read += nb_read;
@@ -350,7 +350,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	gf_filter_pck_send(pck);
 
 	if (ctx->is_end) {
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_EOS;
 	}

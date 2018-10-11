@@ -2028,7 +2028,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//OK, now the trick: we have to rebuild the time stamps, according
 	//to the media time scale (used by SLConfig) - add the edit start time but stay in
 	//the track TS
-	if (useEdit) {
+	if (sample && useEdit) {
 		u64 _ts = (u64)(segStartTime * tsscale);
 
 		(*sample)->DTS += _ts;

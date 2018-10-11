@@ -441,71 +441,55 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	gf_isom_get_sample_flags(ch->owner->mov, ch->track, ch->last_sample_desc_index, &ch->isLeading, &ch->dependsOn, &ch->dependedOn, &ch->redundant);
 
 	if (ch->is_encrypted) {
-		GF_ISMASample *ismasamp = gf_isom_get_ismacryp_sample(ch->owner->mov, ch->track, ch->sample, 1);
-		if (ismasamp) {
-			if (ch->static_sample) {
-				assert(ch->static_sample->dataLength > ismasamp->dataLength);
-				memcpy(ch->static_sample->data, ismasamp->data, ismasamp->dataLength);
-				ch->static_sample->dataLength = ismasamp->dataLength;
-			} else {
-				gf_free(ch->sample->data);
-				ch->sample->data = ismasamp->data;
-				ch->sample->dataLength = ismasamp->dataLength;
-				ismasamp->data = NULL;
-				ismasamp->dataLength = 0;
+		/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
+		if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
+			Bool Is_Encrypted;
+			u32 out_size;
+			u8 IV_size;
+			bin128 KID;
+			u8 crypt_bytr_block, skip_byte_block;
+			u8 constant_IV_size;
+			bin128 constant_IV;
+
+			ch->cenc_state_changed = 0;
+			gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_bytr_block, &skip_byte_block, &constant_IV_size, &constant_IV);
+
+			if (ch->IV_size != IV_size) {
+				ch->IV_size = IV_size;
+				ch->cenc_state_changed = 1;
 			}
-			ch->pck_encrypted = (ismasamp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0;
-			ch->isma_BSO = ismasamp->IV;
-			gf_isom_ismacryp_delete_sample(ismasamp);
+			if ((ch->crypt_byte_block != crypt_bytr_block) || (ch->skip_byte_block != skip_byte_block)) {
+				ch->crypt_byte_block = crypt_bytr_block;
+				ch->skip_byte_block = skip_byte_block;
+				ch->cenc_state_changed = 1;
+			}
+			if (Is_Encrypted != ch->pck_encrypted) {
+				ch->pck_encrypted = Is_Encrypted;
+				ch->cenc_state_changed = 1;
+			}
+			if (Is_Encrypted && !ch->IV_size) {
+				if (ch->constant_IV_size != constant_IV_size) {
+					ch->constant_IV_size = constant_IV_size;
+					ch->cenc_state_changed = 1;
+				} else if (memcmp(ch->constant_IV, constant_IV, ch->constant_IV_size)) {
+					ch->cenc_state_changed = 1;
+				}
+				memmove(ch->constant_IV, constant_IV, ch->constant_IV_size);
+			}
+			if (memcmp(ch->KID, KID, sizeof(bin128))) {
+				memcpy(ch->KID, KID, sizeof(bin128));
+				ch->cenc_state_changed = 1;
+
+			}
+
+			out_size = ch->sai_alloc_size;
+
+			gf_isom_cenc_get_sample_aux_info_buffer(ch->owner->mov, ch->track, ch->sample_num, NULL, &ch->sai_buffer, &out_size);
+			if (out_size > ch->sai_alloc_size) ch->sai_alloc_size = out_size;
+			ch->sai_buffer_size = out_size;
+
 		} else {
-			ch->pck_encrypted = 0;
-			/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
-			if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
-				Bool Is_Encrypted;
-				u32 out_size;
-				u8 IV_size;
-				bin128 KID;
-				u8 crypt_bytr_block, skip_byte_block;
-				u8 constant_IV_size;
-				bin128 constant_IV;
-
-				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_bytr_block, &skip_byte_block, &constant_IV_size, &constant_IV);
-
-				if (ch->IV_size != IV_size) {
-					ch->IV_size = IV_size;
-					ch->cenc_state_changed = 1;
-				}
-				if ((ch->crypt_byte_block != crypt_bytr_block) || (ch->skip_byte_block != skip_byte_block)) {
-					ch->crypt_byte_block = crypt_bytr_block;
-					ch->skip_byte_block = skip_byte_block;
-					ch->cenc_state_changed = 1;
-				}
-				if (Is_Encrypted != ch->pck_encrypted) {
-					ch->pck_encrypted = Is_Encrypted;
-					ch->cenc_state_changed = 1;
-				}
-				if (Is_Encrypted && !ch->IV_size) {
-					if (ch->constant_IV_size != constant_IV_size) {
-						ch->constant_IV_size = constant_IV_size;
-						ch->cenc_state_changed = 1;
-					} else if (memcmp(ch->constant_IV, constant_IV, ch->constant_IV_size)) {
-						ch->cenc_state_changed = 1;
-					}
-					memmove(ch->constant_IV, constant_IV, ch->constant_IV_size);
-				}
-				if (memcmp(ch->KID, KID, sizeof(bin128))) {
-					memcpy(ch->KID, KID, sizeof(bin128));
-					ch->cenc_state_changed = 1;
-
-				}
-
-				out_size = ch->sai_alloc_size;
-
-				gf_isom_cenc_get_sample_aux_info_buffer(ch->owner->mov, ch->track, ch->sample_num, NULL, &ch->sai_buffer, &out_size);
-				if (out_size > ch->sai_alloc_size) ch->sai_alloc_size = out_size;
-				ch->sai_buffer_size = out_size;
-
-			}
+			ch->pck_encrypted = GF_TRUE;
 		}
 	}
 }

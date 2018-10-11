@@ -186,7 +186,7 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 		ctx->duration.num = (s32) duration;
 		ctx->duration.den = ctx->fps.num;
 
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);

@@ -1696,7 +1696,7 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_siz
 GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof);
 
 GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number, s16 roll_distance);
-GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 num_leading_samples);
+GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, u32 num_leading_samples);
 GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
@@ -2424,7 +2424,7 @@ GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber);
 GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file);
 
 Bool gf_isom_is_adobe_protection_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
-GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion);
+GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outMetadata);
 GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, Bool is_selective_enc, char *metadata, u32 len);
 
 void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file);

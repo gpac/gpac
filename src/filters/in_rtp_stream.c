@@ -403,15 +403,15 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 	Float bps;
 	if (!stream->rtp_ch) return;
 
-	gf_filter_pid_set_info_str(stream->opid, "nets:loss", &PROP_FLOAT( gf_rtp_get_loss(stream->rtp_ch) ) );
+	gf_filter_pid_set_property_str(stream->opid, "nets:loss", &PROP_FLOAT( gf_rtp_get_loss(stream->rtp_ch) ) );
 	if (stream->rtsp && (stream->flags & RTP_INTERLEAVED)) {
-		gf_filter_pid_set_info_str(stream->opid, "nets:interleaved", &PROP_UINT( gf_rtsp_get_session_port(stream->rtsp->session) ) );
-		gf_filter_pid_set_info_str(stream->opid, "nets:rtpid", &PROP_UINT( gf_rtp_get_low_interleave_id(stream->rtp_ch) ) );
-		gf_filter_pid_set_info_str(stream->opid, "nets:rctpid", &PROP_UINT( gf_rtp_get_hight_interleave_id(stream->rtp_ch) ) );
+		gf_filter_pid_set_property_str(stream->opid, "nets:interleaved", &PROP_UINT( gf_rtsp_get_session_port(stream->rtsp->session) ) );
+		gf_filter_pid_set_property_str(stream->opid, "nets:rtpid", &PROP_UINT( gf_rtp_get_low_interleave_id(stream->rtp_ch) ) );
+		gf_filter_pid_set_property_str(stream->opid, "nets:rctpid", &PROP_UINT( gf_rtp_get_hight_interleave_id(stream->rtp_ch) ) );
 
 	} else {
-		gf_filter_pid_set_info_str(stream->opid, "nets:rtpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_first ) );
-		gf_filter_pid_set_info_str(stream->opid, "nets:rtcpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_last ) );
+		gf_filter_pid_set_property_str(stream->opid, "nets:rtpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_first ) );
+		gf_filter_pid_set_property_str(stream->opid, "nets:rtcpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_last ) );
 	}
 	if (stream->stat_stop_time) {
 		time = stream->stat_stop_time - stream->stat_start_time;
@@ -423,17 +423,17 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 	bps = 8.0f * stream->rtp_bytes;
 	bps *= 1000;
 	bps /= time;
-	gf_filter_pid_set_info_str(stream->opid, "nets:bw_down", &PROP_UINT( (u32) bps ) );
+	gf_filter_pid_set_property_str(stream->opid, "nets:bw_down", &PROP_UINT( (u32) bps ) );
 
 	bps = 8.0f * stream->rtcp_bytes;
 	bps *= 1000;
 	bps /= time;
-	gf_filter_pid_set_info_str(stream->opid, "nets:ctrl_bw_down", &PROP_UINT( (u32) bps ) );
+	gf_filter_pid_set_property_str(stream->opid, "nets:ctrl_bw_down", &PROP_UINT( (u32) bps ) );
 
 	bps = 8.0f * gf_rtp_get_tcp_bytes_sent(stream->rtp_ch);
 	bps *= 1000;
 	bps /= time;
-	gf_filter_pid_set_info_str(stream->opid, "nets:ctrl_bw_up", &PROP_UINT( (u32) bps ) );
+	gf_filter_pid_set_property_str(stream->opid, "nets:ctrl_bw_up", &PROP_UINT( (u32) bps ) );
 }
 
 
@@ -477,8 +477,8 @@ static void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
 			if (stream->rtsp) {
 				media_time = stream->current_start + ch_time;
 			}
-			gf_filter_pid_set_info_str(stream->opid, "time:timestamp", &PROP_LONGUINT(hdr.TimeStamp) );
-			gf_filter_pid_set_info_str(stream->opid, "time:media", &PROP_DOUBLE(media_time) );
+			gf_filter_pid_set_property_str(stream->opid, "time:timestamp", &PROP_LONGUINT(hdr.TimeStamp) );
+			gf_filter_pid_set_property_str(stream->opid, "time:media", &PROP_DOUBLE(media_time) );
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d Media Time %g - rtp info seq %d TS %d\n",
 			                                 hdr.SequenceNumber, hdr.TimeStamp, stream->current_start + ch_time, stream->rtp_ch->rtp_first_SN, stream->rtp_ch->rtp_time

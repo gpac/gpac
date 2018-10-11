@@ -222,7 +222,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 	}
 	if (ctx->bit_rate != bit_rate) {
 		ctx->bit_rate = bit_rate;
-		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->bit_rate) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->bit_rate) );
 	}
 	level = 1;
 	if ( a52_frame(ctx->codec, (u8 *) data, &ctx->flags, &level, 384)) {

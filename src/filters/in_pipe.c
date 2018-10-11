@@ -374,7 +374,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 		ctx->do_reconfigure = GF_FALSE;
 		e = gf_filter_pid_raw_new(filter, ctx->src, NULL, ctx->mime, ctx->ext, ctx->buffer, nb_read, &ctx->pid);
 		if (e) return e;
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE) );
 	}
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->buffer, nb_read, pipein_pck_destructor);

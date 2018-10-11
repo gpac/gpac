@@ -1310,7 +1310,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 
 		if (importer->duration) {
-			sprintf(szSubArg, "dur=%d/1000", importer->duration);
+			sprintf(szSubArg, "idur=%d/1000", importer->duration);
 			DYNSTRCAT(szSubArg);
 		}
 		if (importer->frames_per_sample) {

@@ -1074,7 +1074,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 	u32 codec_id=0;
-	Bool is_avtype = GF_FALSE;
+	Bool skip_write_filter = GF_FALSE;
 
 	strcpy(szExt, "");
 	if (dumper->trackID) {
@@ -1104,7 +1104,10 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_AUDIO:
-			is_avtype = GF_TRUE;
+			skip_write_filter = GF_TRUE;
+			break;
+		default:
+			if (codec_id==GF_CODECID_WEBVTT) skip_write_filter = GF_TRUE;
 			break;
 		}
 	}
@@ -1113,10 +1116,21 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
-		char *ext;
+		char *ext = gf_file_ext_start(dumper->out_name);
 		//mux args, for now we only dump to file
 		sprintf(szArgs, "fout:dst=%s", dumper->out_name);
 
+		if (dumper->flags & GF_EXPORT_NHNT) {
+			strcpy(szExt, "nhnt");
+			strcat(szArgs, ":clone");
+			if (!ext)
+				strcat(szArgs, ":dynext");
+		} else if (dumper->flags & GF_EXPORT_NHML) {
+			strcpy(szExt, "nhml");
+			strcat(szArgs, ":clone");
+			if (!ext)
+				strcat(szArgs, ":dynext");
+		}
 		if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
 			if (!dumper->sample_num) {
 				ext = gf_file_ext_start(szArgs);
@@ -1154,7 +1168,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 	}
 	else if (dumper->flags & GF_EXPORT_NHNT) {
-		sprintf(szArgs, "write_nhnt");
+		sprintf(szArgs, "nhntw");
 		remux = gf_fs_load_filter(fsess, szArgs);
 		if (!remux) {
 			gf_fs_del(fsess);
@@ -1163,7 +1177,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 	}
 	else if (dumper->flags & GF_EXPORT_NHML) {
-		sprintf(szArgs, "write_nhml:name=%s", dumper->out_name);
+		sprintf(szArgs, "nhmlw:name=%s", dumper->out_name);
 		if (dumper->flags & GF_EXPORT_NHML_FULL)
 			strcat(szArgs, ":full");
 		if (dumper->dump_file) {
@@ -1188,7 +1202,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load AVI output filter\n"));
 			return GF_FILTER_NOT_FOUND;
 		}
-	} else if (!is_avtype) {
+	} else if (!skip_write_filter) {
 		remux = gf_fs_load_filter(fsess, "writegen");
 		if (!remux) {
 			gf_fs_del(fsess);

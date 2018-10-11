@@ -108,8 +108,8 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 
 		if (!group->pto_setup) {
 			cts = gf_filter_pck_get_cts(in_pck);
-			gf_filter_pid_set_info_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
-			gf_filter_pid_set_info_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
+			gf_filter_pid_set_property_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
+			gf_filter_pid_set_property_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
 			group->pto_setup = GF_TRUE;
 		}
 		return;
@@ -188,8 +188,8 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 	gf_filter_pid_drop_packet(in_pid);
 
 	if (do_map_time) {
-		gf_filter_pid_set_info_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
-		gf_filter_pid_set_info_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
+		gf_filter_pid_set_property_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
+		gf_filter_pid_set_property_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
 	}
 }
 
@@ -667,20 +667,20 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		group->nb_pids ++;
 
 		mode = dashdmx_dash_playback_mode(ctx);
-		gf_filter_pid_set_info(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(mode));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(mode));
 
 		if (ctx->max_res && gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH)) {
-			gf_filter_pid_set_info(opid, GF_PROP_SERVICE_WIDTH, &PROP_UINT(ctx->width));
-			gf_filter_pid_set_info(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
+			gf_filter_pid_set_property(opid, GF_PROP_SERVICE_WIDTH, &PROP_UINT(ctx->width));
+			gf_filter_pid_set_property(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
 		}
 
 		dur = (u32) (1000*gf_dash_get_duration(ctx->dash) );
 		if (dur>0)
-			gf_filter_pid_set_info(opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(dur, 1000) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(dur, 1000) );
 
 		dur = (1000*gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group->idx) );
 		if (dur>0)
-			gf_filter_pid_set_info(opid, GF_PROP_PID_TIMESHIFT, &PROP_FRAC_INT(dur, 1000) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT, &PROP_FRAC_INT(dur, 1000) );
 
 
 		if (ctx->use_bmin) {

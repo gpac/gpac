@@ -459,7 +459,7 @@ typedef enum {
 
 struct _webvtt_parser {
 	GF_WebVTTParserState state;
-	Bool is_srt, suspend;
+	Bool is_srt, suspend, is_eof;
 
 	/* List of non-overlapping GF_WebVTTSample */
 	GF_List *samples;
@@ -946,10 +946,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 	char *sOK;
 	u32 len;
 	GF_Err e;
-	Bool do_parse = GF_TRUE;
 	GF_WebVTTCue *cue = NULL;
-//	u32 start = 0;
-//	u32 end = 0;
 	char *prevLine = NULL;
 	char *header = NULL;
 	u32 header_len = 0;
@@ -962,7 +959,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 		parser->on_header_parsed(parser->user, "WEBVTT\n");
 	}
 
-	while (do_parse && !parser->suspend) {
+	while (!parser->is_eof && !parser->suspend) {
 		sOK = gf_text_get_utf8_line(szLine, 2048, parser->vtt_in, parser->unicode_type);
 		REM_TRAIL_MARKS(szLine, "\r\n")
 		len = (u32) strlen(szLine);
@@ -1009,7 +1006,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 				parser->on_header_parsed(parser->user, header);
 				if (!sOK) {
 					/* end of file, parsing is done */
-					do_parse = GF_FALSE;
+					parser->is_eof = GF_TRUE;
 					break;
 				} else {
 					/* empty line means end of header */
@@ -1048,7 +1045,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 					prevLine = NULL;
 				}
 				if (!sOK) {
-					do_parse = GF_FALSE;
+					parser->is_eof = GF_TRUE;
 					break;
 				} else {
 					/* remove empty lines and stay in the same state */
@@ -1095,7 +1092,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 				cue = NULL;
 
 				if (!sOK) {
-					do_parse = GF_FALSE;
+					parser->is_eof = GF_TRUE;
 					break;
 				} else {
 					/* empty line, move to next cue */
@@ -1104,9 +1101,12 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 				}
 			}
 		}
-		if (parser->suspend) return GF_OK;
+		if (parser->suspend)
+			return GF_OK;
 	}
 
+	if (parser->suspend)
+		return GF_OK;
 
 	/* no more cues to come, flush everything */
 	if (cue) {
