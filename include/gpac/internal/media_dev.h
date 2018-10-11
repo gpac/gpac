@@ -502,8 +502,21 @@ s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
-#define MAX_TILE_ROWS 64
-#define MAX_TILE_COLS 64
+
+
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames);
+
+
+
+#define VP9_MAX_FRAMES_IN_SUPERFRAME 16
+
+GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame, GF_VPConfig *vp9_cfg);
+GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME]);
+
+
+
+#define AV1_MAX_TILE_ROWS 64
+#define AV1_MAX_TILE_COLS 64
 
 typedef enum {
 	AV1_KEY_FRAME = 0,
@@ -522,7 +535,7 @@ typedef struct
 		//offset in bytes after first byte of obu, including its header
 		u32 obu_start_offset;
 		u32 size;
-	} tiles[MAX_TILE_ROWS*MAX_TILE_COLS];
+	} tiles[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 	u32 nb_tiles_in_obu;
 	u8 refresh_frame_flags;
 	u8 order_hint;
@@ -619,7 +632,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
-GF_Err gf_media_aom_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
+GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
 
 Bool gf_media_probe_ivf(GF_BitStream *bs);
 Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
