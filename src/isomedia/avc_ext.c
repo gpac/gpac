@@ -2679,7 +2679,7 @@ GF_Err vpcc_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->config = NULL;
 
 	pos = gf_bs_get_position(bs);
-	ptr->config = gf_odf_vp_cfg_read_bs(bs);
+	ptr->config = gf_odf_vp_cfg_read_bs(bs, ptr->version == 0);
 	pos = gf_bs_get_position(bs) - pos ;
 
 	if (pos < ptr->size)
