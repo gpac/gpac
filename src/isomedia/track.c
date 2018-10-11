@@ -805,6 +805,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				gf_list_add(senc->samp_aux_info, new_sai);
 				if (sai->subsample_count) senc->flags = 0x00000002;
 			}
+		} else if (traf->sample_encryption) {
+			senc_Parse(trak->moov->mov->movieFileMap->bs, trak, traf, traf->sample_encryption);
+			trak->sample_encryption->AlgorithmID = traf->sample_encryption->AlgorithmID;
+			if (!trak->sample_encryption->IV_size)
+				trak->sample_encryption->IV_size = traf->sample_encryption->IV_size;
+			if (!trak->sample_encryption->samp_aux_info) trak->sample_encryption->samp_aux_info = gf_list_new();
+			gf_list_transfer(trak->sample_encryption->samp_aux_info, traf->sample_encryption->samp_aux_info);
 		}
 	}
 	return GF_OK;
