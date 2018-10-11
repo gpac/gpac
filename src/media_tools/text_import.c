@@ -1475,6 +1475,10 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	} else {
 		mime = "application/octet-stream";
 	}
+
+	read = gf_swf_reader_new(NULL, import->in_name);
+	gf_swf_read_header(read);
+
 	/*setup	track*/
 	if (cfg) {
 		u32	i;
@@ -1490,10 +1494,12 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 		gf_import_message(import, GF_OK, "SWF import - text track %d	x %d", cfg->text_width,	cfg->text_height);
 		gf_odf_desc_del((GF_Descriptor *)cfg);
 	} else {
-		u32	w;
-		u32	h;
+		u32	w = read->width;
+		u32	h = read->height;
 
-		gf_text_get_video_size(import, &w, &h);
+		if (!w || !h)
+			gf_text_get_video_size(import, &w, &h);
+
 		gf_isom_set_track_layout_info(import->dest,	track, w<<16, h<<16, 0,	0, 0);
 
 		gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT, mime, NULL,	NULL, &descIndex);
@@ -1503,8 +1509,6 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	gf_text_import_set_language(import, track);
 	//duration = (u32) (((Double) import->duration)*timescale/1000.0);
 
-	read = gf_swf_reader_new(NULL, import->in_name);
-	gf_swf_read_header(read);
 	flusher.import = import;
 	flusher.track = track;
 	flusher.timescale = timescale;
@@ -1530,6 +1534,7 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	if (e==GF_EOS) e = GF_OK;
 exit:
 	gf_swf_reader_del(read);
+	gf_media_update_bitrate(import->dest, track);
 	return e;
 }
 /* end of SWF Importer */
