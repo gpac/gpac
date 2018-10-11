@@ -7055,11 +7055,9 @@ next_nal:
 		}
 	}
 
-	// This is a L-HEVC bitstream ...
-	if ( (has_lhvc && (cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1))
-	// HEVC with several sublayers
-	|| (max_temporal_id[0] > 0)
-	) {
+	// This is a L-HEVC bitstream, add linf/cstg. If we have a base HEVC with several temporal sublayers, we don't set linf until we split
+	//the sublayers in different tracks
+	if (has_lhvc && (cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1) ) {
 		gf_lhevc_set_operating_points_information(import->dest, hevc_base_track, track, &hevc.vps[cur_vps_id], max_temporal_id);
 		gf_lhevc_set_layer_information(import->dest, track, &linf[0]);
 
