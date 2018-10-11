@@ -29,6 +29,13 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+enum
+{
+	DECINFO_NO=0,
+	DECINFO_FIRST,
+	DECINFO_SAP,
+	DECINFO_AUTO
+};
 
 typedef struct
 {
@@ -171,25 +178,38 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	case GF_CODECID_SIMPLE_TEXT:
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
+		if (ctx->decinfo == DECINFO_AUTO)
+			ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_META_TEXT:
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
+		if (ctx->decinfo == DECINFO_AUTO)
+			ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_META_XML:
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
+		if (ctx->decinfo == DECINFO_AUTO)
+			ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_SUBS_TEXT:
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
+		if (ctx->decinfo == DECINFO_AUTO)
+			ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_SUBS_XML:
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("XML Sub streams reaggregation not supported in dumper, dumping all samples\n"));
+		if (!ctx->frame) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Subtitles re-assembling is not supported yet\n"));
+			return GF_NOT_SUPPORTED;
+		}
 		ctx->split = GF_TRUE;
+		if (ctx->decinfo == DECINFO_AUTO)
+			ctx->decinfo = DECINFO_FIRST;
 		break;
 
 	case GF_CODECID_AV1:
@@ -302,6 +322,9 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		break;
 	}
+
+	if (ctx->decinfo == DECINFO_AUTO)
+		ctx->decinfo = DECINFO_NO;
 
 	name = gf_codecid_name(cid);
 	if (ctx->exporter) {
@@ -527,13 +550,13 @@ GF_Err gendump_process(GF_Filter *filter)
 
 	if (ctx->frame) {
 		split = GF_TRUE;
-	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && ctx->decinfo && !ctx->cfg_sent) {
+	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && (ctx->decinfo!=DECINFO_NO) && !ctx->cfg_sent) {
 		dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
 		gf_filter_pck_send(dst_pck);
-		if ((ctx->decinfo==1) && !ctx->split) {
+		if ((ctx->decinfo==DECINFO_FIRST) && !ctx->split) {
 			ctx->dcfg_size = 0;
 			ctx->dcfg = NULL;
 		}
@@ -827,7 +850,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pfmt), "Pixel format for raw extract. If not set, derived from extension", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(afmt), "Audio format for raw extract. If not set, derived from extension", GF_PROP_PCMFMT, "none", NULL, 0},
-	{ OFFS(decinfo), "Decoder config insert mode: no means never, first means on first packet, sap means at each SAP", GF_PROP_UINT, "no", "no|first|sap", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(decinfo), "Decoder config insert mode: no means never, first means on first packet, sap means at each SAP, auto selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split), "Force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame), "Force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(sstart), "Start number of frame to dump", GF_PROP_UINT, "0", NULL, 0},

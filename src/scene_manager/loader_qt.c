@@ -118,7 +118,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	sg = load->ctx->scene_graph;
 	gr = (M_Group *) gf_node_new(sg, TAG_MPEG4_Group);
 	gf_node_register((GF_Node *)gr, NULL);
-	st = gf_sm_stream_new(load->ctx, 1, GF_STREAM_SCENE, 1);
+	st = gf_sm_stream_new(load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	au = gf_sm_stream_au_new(st, 0, 0, 1);
 	com = gf_sg_command_new(load->ctx->scene_graph, GF_SG_SCENE_REPLACE);
 	gf_list_add(au->commands, com);
@@ -149,7 +149,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	ni->type.vals[0] = gf_strdup("VR");
 
 	/*create ODs*/
-	st = gf_sm_stream_new(load->ctx, 2, GF_STREAM_OD, 1);
+	st = gf_sm_stream_new(load->ctx, 2, GF_STREAM_OD, GF_CODECID_OD_V1);
 	au = gf_sm_stream_au_new(st, 0, 0, 1);
 	odU = (GF_ODUpdate*) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 	gf_list_add(au->commands, odU);

@@ -83,6 +83,7 @@ typedef struct
 
 	u64 media_done;
 	Bool is_img;
+	u32 header_end;
 
 	GF_BitStream *bs_w;
 	GF_BitStream *bs_r;
@@ -133,7 +134,7 @@ static Bool nhmldmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		ctx->start_range = evt->play.start_range;
 		ctx->current_child_idx = 0;
-		ctx->media_done = 0;
+		ctx->media_done = ctx->header_end;
 		ctx->is_playing = GF_TRUE;
 		//post a seek
 		ctx->in_seek = GF_TRUE;
@@ -350,7 +351,8 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	if (0 == fread(ctx->samp_buffer, 1, ctx->samp_buffer_size, xml)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to read samp->dataLength\n"));
 	}
-
+	e = GF_OK;
+	
 exit:
 	if (xml) gf_fclose(xml);
 	while (gf_list_count(breaker.id_stack)) {
@@ -443,7 +445,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 {
 	GF_Err e;
 	Bool inRootOD;
-	u32 i, tkID, mtype, streamType, codecid, specInfoSize, header_end, par_den, par_num;
+	u32 i, tkID, mtype, streamType, codecid, specInfoSize, par_den, par_num;
 	GF_XMLAttribute *att;
 	u32 width, height, codec_tag, sample_rate, nb_channels, version, revision, vendor_code, temporal_quality, spatial_quality, h_res, v_res, bit_depth, bits_per_sample;
 
@@ -517,7 +519,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	ctx->timescale = 1000;
 	i=0;
 	strcpy(szXmlHeaderEnd, "");
-	header_end = 0;
+	ctx->header_end = 0;
 
 	width = height = codec_tag = sample_rate = nb_channels = version = revision = vendor_code = temporal_quality = spatial_quality = h_res = v_res = bit_depth = bits_per_sample = 0;
 
@@ -561,7 +563,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			strcpy(szInfo, url ? url : att->value);
 			if (url) gf_free(url);
 		} else if (!stricmp(att->name, "headerEnd")) {
-			NHML_SCAN_INT("%u", header_end)
+			NHML_SCAN_INT("%u", ctx->header_end)
 		} else if (!stricmp(att->name, "trackID")) {
 			NHML_SCAN_INT("%u", tkID)
 		} else if (!stricmp(att->name, "inRootOD")) {
@@ -688,13 +690,13 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		gf_fseek(info, 0, SEEK_SET);
 		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
 		gf_fclose(info);
-	} else if (header_end) {
+	} else if (ctx->header_end) {
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
-		specInfoSize = header_end;
+		specInfoSize = ctx->header_end;
 		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
 		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, ctx->mdia);
 		specInfo[specInfoSize] = 0;
-		header_end = specInfoSize;
+		ctx->header_end = specInfoSize;
 	} else if (strlen(szXmlHeaderEnd)) {
 		/* for XML based streams, the decoder specific info can be up to some element in the file */
 		strcpy(szXmlFrom, "doc.start");
@@ -796,13 +798,9 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (codec_tag == GF_ISOM_SUBTYPE_SBTT) {
 			if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
 			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
-			if (specInfo) gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_STRING_NO_COPY(specInfo) );
-			specInfo = NULL;
 		} else if (codec_tag == GF_ISOM_SUBTYPE_STXT) {
 			if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
 			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
-			if (specInfo) gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_STRING_NO_COPY(specInfo) );
-			specInfo = NULL;
 		} else {
 			e = GF_NOT_SUPPORTED;
 		}
@@ -817,8 +815,6 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (codec_tag == GF_ISOM_SUBTYPE_METT) {
 			if (mime_type) gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_type) );
 			if (textEncoding) gf_filter_pid_set_property_str(ctx->opid, "meta:encoding", &PROP_STRING(textEncoding) );
-			if (specInfo) gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_STRING_NO_COPY(specInfo) );
-			specInfo = NULL;
 		} else {
 			e = GF_NOT_SUPPORTED;
 		}

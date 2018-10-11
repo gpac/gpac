@@ -1484,7 +1484,7 @@ static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, B
 
 	if (isHeader) {
 		if (!ctx->hdr_parsed) {
-			gf_filter_pid_set_property_str(ctx->opid, "meta:config", &PROP_DATA((char *)data, (u32) ( strlen(data)+1 ) )  );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)data, (u32) ( strlen(data)+1 ) )  );
 			ctx->hdr_parsed = GF_TRUE;
 		}
 	} else if (!ctx->seek_state) {
@@ -1492,7 +1492,7 @@ static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, B
 		char *pck_data;
 		pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
 		memcpy(pck_data, data, length);
-		gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
+		gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
 
 		gf_filter_pck_send(pck);
 	}
@@ -1518,6 +1518,13 @@ static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 //	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
 
+	//patch for old arch
+	ctx->width = ctx->swf_parse->width;
+	ctx->height = ctx->swf_parse->height;
+	if (!ctx->width && !ctx->height) {
+		ctx->width = 400;
+		ctx->height = 60;
+	}
 	if (!ID) ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
 	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
@@ -1561,6 +1568,12 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 	while (e == GF_OK) {
 		e = swf_parse_tag(ctx->swf_parse);
 		if (ctx->do_suspend) return GF_OK;
+	}
+	if (e==GF_EOS) {
+		if (ctx->swf_parse->finalize) {
+			ctx->swf_parse->finalize(ctx->swf_parse);
+			ctx->swf_parse->finalize = NULL;
+		}
 	}
 	return e;
 }
@@ -2771,6 +2784,14 @@ void txtin_finalize(GF_Filter *filter)
 #endif
 }
 
+static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
+{
+	if (!strncmp(data, "WEBVTT", 6)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "subtitle/vtt";
+	}
+	return NULL;
+}
 static const GF_FilterCapability TXTInCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -2820,6 +2841,7 @@ GF_FilterRegister TXTInRegister = {
 	.process = txtin_process,
 	.configure_pid = txtin_configure_pid,
 	.process_event = txtin_process_event,
+	.probe_data = txtin_probe_data,
 	.initialize = txtin_initialize,
 	.finalize = txtin_finalize
 };

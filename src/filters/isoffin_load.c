@@ -232,12 +232,12 @@ void isor_declare_objects(ISOMReader *read)
 
 			switch (m_subtype) {
 			case GF_ISOM_SUBTYPE_STXT:
+			case GF_ISOM_SUBTYPE_METT:
+			case GF_ISOM_SUBTYPE_SBTT:
+			case GF_ISOM_MEDIA_SUBT:
+
 				codec_id = GF_CODECID_SIMPLE_TEXT;
 				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
-				break;
-			case GF_ISOM_SUBTYPE_METT:
-				gf_isom_get_xml_metadata_description(read->mov, i+1, 1, &namespace, &schemaloc, &encoding);
-				codec_id = GF_CODECID_META_TEXT;
 				break;
 			case GF_ISOM_SUBTYPE_STPP:
 				codec_id = GF_CODECID_SUBS_XML;

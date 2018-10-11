@@ -776,7 +776,7 @@ static void ctxload_finalize(GF_Filter *filter)
 
 static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterProbeScore *score)
 {
-	*score = GF_FPROBE_SUPPORTED;
+	*score = GF_FPROBE_MAYBE_SUPPORTED;
 	if (strstr(probe_data, "<XMT-A") || strstr(probe_data, ":mpeg4:xmta:")) {
 		return "application/x-xmt";
 	} else if (strstr(probe_data, "InitialObjectDescriptor")
