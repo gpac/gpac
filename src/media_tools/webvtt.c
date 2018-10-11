@@ -482,6 +482,12 @@ static Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
 {
 	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
 }
+static Bool gf_webvtt_timestamp_greater(GF_WebVTTTimestamp *ts1, GF_WebVTTTimestamp *ts2)
+{
+	u64 t_ts1 = (60 * 60 * ts1->hour + 60 * ts1->min + ts1->sec) * 1000 + ts1->ms;
+	u64 t_ts2 = (60 * 60 * ts2->hour + 60 * ts2->min + ts2->sec) * 1000 + ts2->ms;
+	return (t_ts1 >= t_ts2) ? GF_TRUE : GF_FALSE;
+}
 
 
 /* mark the overlapped cue in the previous sample as split */
@@ -939,6 +945,14 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 		if (pos < len) {
 			char *settings = line + pos;
 			e = gf_webvtt_cue_add_property(cue, WEBVTT_SETTINGS, settings, (u32) strlen(settings));
+		}
+
+		if (!gf_webvtt_timestamp_greater(&cue->end, &cue->start)) {
+			parser->report_message(parser->user, e, "Bad VTT timestamps, end smaller than start", timestamp_string);
+			cue->end = cue->start;
+			cue->end.ms += 1;
+			return GF_NON_COMPLIANT_BITSTREAM;
+
 		}
 	}
 	return e;
