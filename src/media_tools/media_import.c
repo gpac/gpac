@@ -7362,7 +7362,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	FILE *mdia = NULL;
 	GF_BitStream *bs = NULL;
 	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0, codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
-	u16 width = 0, height = 0;
+	int width = 0, height = 0, renderWidth, renderHeight;
 	Bool detect_fps;
 	Double FPS = 0.0;
 	u64 pos = 0;
@@ -7433,7 +7433,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 			goto exit;
 		}
 
-		if (vp9_parse_sample(bs, &key_frame, vp9_cfg) != GF_OK) {
+		if (vp9_parse_sample(bs, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
 			gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing VP9 sample");
 			goto exit;
 		}
@@ -7469,8 +7469,16 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 
 	gf_set_progress("Importing VP9", num_frames, num_frames);
 	e = gf_isom_set_visual_info(import->dest, track_num, di, width, height);
-	if (e) goto exit;
-	e = gf_media_update_par(import->dest, track_num);
+#if 0 //TODO: find streams when this happens in render_size()
+	if (width != renderWidth) {
+		e = gf_isom_set_pixel_aspect_ratio(import->dest, track_num, di, , );
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VP9] Error setting aspect ratio (%d:%d) with resolution %dx%d\n", xxx, yyy, width, height));
+		}
+	}
+#endif
+
+	e = gf_isom_set_track_layout_info(import->dest, track_num, renderWidth << 16, renderHeight << 16, 0, 0, 0);
 	if (e) goto exit;
 
 	gf_media_update_bitrate(import->dest, track_num);
@@ -7496,7 +7504,7 @@ exit:
 static GF_Err gf_import_ivf(GF_MediaImporter *import)
 {
 	GF_Err e = GF_OK;
-	u16 width = 0, height = 0;
+	int width = 0, height = 0;
 	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
 	FILE *mdia = NULL;
 	GF_BitStream *bs = NULL;

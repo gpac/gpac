@@ -1825,7 +1825,7 @@ Bool gf_media_probe_ivf(GF_BitStream *bs)
 	return GF_TRUE;
 }
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames)
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, int *width, int *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames)
 {
 	u32 dw = 0;
 
@@ -1873,7 +1873,7 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height,
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 {
-	u16 width = 0, height = 0;
+	int width = 0, height = 0;
 	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
 	GF_Err e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
 	if (e)
@@ -2012,12 +2012,80 @@ static void vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 	}
 }
 
-GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame, GF_VPConfig *vp9_cfg)
+static void vp9_compute_image_size()
 {
+	/*MiCols = (FrameWidth + 7) >> 3
+	MiRows = (FrameHeight + 7) >> 3
+	Sb64Cols = (MiCols + 7) >> 3
+	Sb64Rows = (MiRows + 7) >> 3*/
+}
+
+static void vp9_frame_size(GF_BitStream *bs, int *FrameWidth, int *FrameHeight)
+{
+	int frame_width_minus_1 = gf_bs_read_int(bs, 16);
+	int frame_height_minus_1 = gf_bs_read_int(bs, 16);
+	if (frame_width_minus_1+1 != *FrameWidth || frame_height_minus_1+1 != *FrameHeight) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] inconsistent frame dimensions: previous was %dx%d, new one is %dx%d.\n", *FrameWidth, *FrameHeight, frame_width_minus_1 + 1, frame_height_minus_1 + 1));
+	}
+	*FrameWidth = frame_width_minus_1 + 1;
+	*FrameHeight = frame_height_minus_1 + 1;
+	vp9_compute_image_size();
+}
+
+static void vp9_render_size(GF_BitStream *bs, int FrameWidth, int FrameHeight, int *renderWidth, int *renderHeight)
+{
+	Bool render_and_frame_size_different = gf_bs_read_int(bs, 1);
+	if (render_and_frame_size_different == 1) {
+		int render_width_minus_1 = gf_bs_read_int(bs, 16);
+		int render_height_minus_1 = gf_bs_read_int(bs, 16);
+		*renderWidth = render_width_minus_1 + 1;
+		*renderHeight = render_height_minus_1 + 1;
+	} else {
+		*renderWidth = FrameWidth;
+		*renderHeight = FrameHeight;
+	}
+}
+
+static void vp9_loop_filter_params()
+{
+}
+
+static void vp9_quantization_params()
+{
+}
+
+static void vp9_segmentation_params()
+{
+}
+
+static void vp9_tile_info()
+{
+}
+
+static void vp9_frame_size_with_refs()
+{
+}
+
+static void vp9_read_interpolation_filter()
+{
+}
+
+static void vp9_setup_past_independence()
+{
+}
+
+
+#define VP9_KEY_FRAME 0
+
+GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight)
+{
+	Bool FrameIsIntra = GF_FALSE;
+	u8 frame_context_idx = 0, reset_frame_context = 0;
+
 	assert(bs && key_frame);
 	
 	/*uncompressed header*/
-	u8 frame_marker = gf_bs_read_int(bs, 1);
+	u8 frame_marker = gf_bs_read_int(bs, 2);
 	Bool profile_low_bit = gf_bs_read_int(bs, 1);
 	Bool profile_high_bit = gf_bs_read_int(bs, 1);
 	vp9_cfg->profile = (profile_high_bit << 1) + profile_low_bit;
@@ -2027,15 +2095,22 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame, GF_VPConfig *vp9_cfg)
 	}
 	
 	Bool show_existing_frame = gf_bs_read_int(bs, 1);
-	if (show_existing_frame == 1) {
+	if (show_existing_frame == GF_TRUE) {
 		/*frame_to_show_map_idx = */gf_bs_read_int(bs, 3);
+		return GF_OK;
 	}
 
 	Bool frame_type = gf_bs_read_int(bs, 1);
 	Bool show_frame = gf_bs_read_int(bs, 1);
 	Bool error_resilient_mode = gf_bs_read_int(bs, 1);
-	if (frame_type == 0) {
+	if (frame_type == VP9_KEY_FRAME) {
+		vp9_frame_sync_code(bs);
+		vp9_color_config(bs, vp9_cfg);
+		vp9_frame_size(bs, FrameWidth, FrameHeight);
+		vp9_render_size(bs, *FrameWidth, *FrameHeight, renderWidth, renderHeight);
+		/*refresh_frame_flags = 0xFF;*/
 		*key_frame = GF_TRUE;
+		FrameIsIntra = GF_TRUE;
 	} else {
 		Bool intra_only = GF_FALSE;
 		*key_frame = GF_FALSE;
@@ -2043,9 +2118,10 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame, GF_VPConfig *vp9_cfg)
 		if (show_frame == GF_FALSE) {
 			intra_only = gf_bs_read_int(bs, 1);
 		}
+		FrameIsIntra = intra_only;
 
 		if (error_resilient_mode == GF_FALSE) {
-			/*reset_frame_context = */gf_bs_read_int(bs, 2);
+			reset_frame_context = gf_bs_read_int(bs, 2);
 		}
 
 		if (intra_only == GF_TRUE) {
@@ -2061,10 +2137,40 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame, GF_VPConfig *vp9_cfg)
 				vp9_cfg->chroma_subsampling = 0;
 				vp9_cfg->bit_depth = 8;
 			}
+			/*refresh_frame_flags = */gf_bs_read_int(bs, 8);
+			vp9_frame_size(bs, FrameWidth, FrameHeight);
+			vp9_render_size(bs, *FrameWidth, *FrameHeight, renderWidth, renderHeight);
+		} else {
+			int i;
+			/*refresh_frame_flags = */gf_bs_read_int(bs, 8);
+			for (i = 0; i < 3; i++) {
+				/*ref_frame_idx[i] = */gf_bs_read_int(bs, 3);
+				/*ref_frame_sign_bias[LAST_FRAME + i] = */gf_bs_read_int(bs, 1);
+			}
+			vp9_frame_size_with_refs();
+			/*allow_high_precision_mv = */gf_bs_read_int(bs, 1);
+			vp9_read_interpolation_filter();
 		}
 	}
 
-	/*incomplete parsing*/
+	if (error_resilient_mode == 0) {
+		/*refresh_frame_context = */gf_bs_read_int(bs, 1);
+		/*frame_parallel_decoding_mode = */gf_bs_read_int(bs, 1);
+	}
+
+	frame_context_idx = gf_bs_read_int(bs, 2);
+	if (FrameIsIntra || error_resilient_mode) {
+		vp9_setup_past_independence();
+		/*save_probs ...*/
+		frame_context_idx = 0;
+	}
+
+	vp9_loop_filter_params();
+	vp9_quantization_params();
+	vp9_segmentation_params();
+	vp9_tile_info();
+
+	/*header_size_in_bytes = */gf_bs_read_int(bs, 16);
 
 	return GF_OK;
 }
