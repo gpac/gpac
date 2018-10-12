@@ -1165,7 +1165,7 @@ void gf_odf_vp_cfg_del(GF_VPConfig *cfg)
 }
 
 GF_EXPORT
-GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs)
+GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs, Bool is_v0)
 {
 	gf_bs_write_int(bs, cfg->profile, 8);
 	gf_bs_write_int(bs, cfg->level, 8);
@@ -1176,23 +1176,25 @@ GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs)
 	gf_bs_write_int(bs, cfg->transfer_characteristics, 8);
 	gf_bs_write_int(bs, cfg->matrix_coefficients, 8);
 
-	if (cfg->codec_initdata_size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] VP Configuration Box: invalid data, codec_initdata_size must be 0, was %d - ignoring\n", cfg->codec_initdata_size));
-	}
+	if (!is_v0) {
+		if (cfg->codec_initdata_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] VP Configuration Box: invalid data, codec_initdata_size must be 0, was %d - ignoring\n", cfg->codec_initdata_size));
+		}
 
-	gf_bs_write_int(bs, (u16)0, 16);
+		gf_bs_write_int(bs, (u16)0, 16);
+	}
 
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, char **outData, u32 *outSize)
+GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, char **outData, u32 *outSize, Bool is_v0)
 {
 	GF_Err e;
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	*outSize = 0;
 	*outData = NULL;
-	e = gf_odf_vp_cfg_write_bs(cfg, bs);
+	e = gf_odf_vp_cfg_write_bs(cfg, bs, is_v0);
 	if (e==GF_OK)
 		gf_bs_get_content(bs, outData, outSize);
 

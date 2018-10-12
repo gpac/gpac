@@ -1368,8 +1368,8 @@ GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs);
 /* VP8-9 descriptors functions */
 GF_VPConfig *gf_odf_vp_cfg_new();
 void gf_odf_vp_cfg_del(GF_VPConfig *cfg);
-GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs);
-GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, char **outData, u32 *outSize);
+GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs, Bool is_v0);
+GF_Err gf_odf_vp_cfg_write(GF_VPConfig *cfg, char **outData, u32 *outSize, Bool is_v0);
 GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs, Bool is_v0);
 GF_VPConfig *gf_odf_vp_cfg_read(char *dsi, u32 dsi_size);
 
