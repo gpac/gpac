@@ -2696,6 +2696,7 @@ GF_Box *vpcc_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_VPConfigurationBox));
 	tmp->type = GF_ISOM_BOX_TYPE_VPCC;
+	tmp->version = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -2706,13 +2707,11 @@ GF_Err vpcc_Write(GF_Box *s, GF_BitStream *bs)
 	GF_VPConfigurationBox *ptr = (GF_VPConfigurationBox *) s;
 	if (!s) return GF_BAD_PARAM;
 	if (!ptr->config) return GF_OK;
-	
+
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	
-	ptr->version = 1;
-	
-	return gf_odf_vp_cfg_write_bs(ptr->config, bs);
+	return gf_odf_vp_cfg_write_bs(ptr->config, bs, ptr->version == 0);
 }
 #endif
 
@@ -2725,12 +2724,16 @@ GF_Err vpcc_Size(GF_Box *s)
 		return GF_OK;
 	}
 
-	if (ptr->config->codec_initdata_size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] VPConfigurationBox: codec_initdata_size MUST be 0, was %d\n", ptr->config->codec_initdata_size));
-		return GF_ISOM_INVALID_FILE;
-	}
+	if (ptr->version == 0) {
+		ptr->size += 6;
+	} else {
+		if (ptr->config->codec_initdata_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] VPConfigurationBox: codec_initdata_size MUST be 0, was %d\n", ptr->config->codec_initdata_size));
+			return GF_ISOM_INVALID_FILE;
+		}
 
-	ptr->size += 8;
+		ptr->size += 8;
+	}
 
 	return GF_OK;
 }
