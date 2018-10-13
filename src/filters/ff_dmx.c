@@ -721,7 +721,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		strcpy(szPatchedName, "0:0");
 		dev_name = (char *) szPatchedName;
 	}
-#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+#if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
 	else if (!strncmp(dev_fmt->priv_class->class_name, "AVFoundation", 12) && wants_audio) {
 		if (ctx->dev[0] != ':') {
 			strcpy(szPatchedName, ":");

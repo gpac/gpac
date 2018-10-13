@@ -395,7 +395,7 @@ void set_cfg_option(char *opt_string)
 static void on_progress_null(const void *_ptr, const char *_title, u64 done, u64 total)
 {
 }
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 int SDL_main (int argc, char *argv[])
 #else
 int main (int argc, char *argv[])

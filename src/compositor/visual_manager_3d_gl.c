@@ -139,7 +139,7 @@ GLDECL_STATIC(glGetProgramiv);
 GLDECL_STATIC(glGetProgramInfoLog);
 GLDECL_STATIC(glGetAttribLocation);
 
-#ifndef GPAC_ANDROID
+#ifndef GPAC_CONFIG_ANDROID
 GLDECL_STATIC(glEnableVertexAttribArray);
 GLDECL_STATIC(glDisableVertexAttribArray);
 GLDECL_STATIC(glVertexAttribPointer);
@@ -292,7 +292,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 		compositor->gl_caps.has_shaders = 1;
 
-#ifndef GPAC_ANDROID
+#ifndef GPAC_CONFIG_ANDROID
 		GET_GLFUN(glEnableVertexAttribArray);
 		GET_GLFUN(glDisableVertexAttribArray);
 		GET_GLFUN(glVertexAttribPointer);
@@ -572,7 +572,7 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 	return shader;
 }
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #include <errno.h>
 #include <sys/sysctl.h>
 #endif
@@ -2853,7 +2853,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	return;
 #else
 
-#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE) && !defined(GPAC_FIXED_POINT)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_CONFIG_IOS) && !defined(GPAC_FIXED_POINT)
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_draw_mesh_shader_only(tr_state, mesh);
 		return;

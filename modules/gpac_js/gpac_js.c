@@ -41,7 +41,7 @@
 #include <gpac/xml.h>
 
 
-#if defined(GPAC_ANDROID) && !defined(XP_UNIX)
+#if defined(GPAC_CONFIG_ANDROID) && !defined(XP_UNIX)
 #define XP_UNIX
 #endif
 
@@ -488,7 +488,7 @@ break;
 case GJS_GPAC_PROP_FULLSCREEN:
 {
 	/*no fullscreen for iOS (always on)*/
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 	Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
 	if (compositor->fullscreen != res) {
 		gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, res);

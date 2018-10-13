@@ -39,7 +39,7 @@
 
 #ifdef GPAC_HAS_GLU
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #define GLdouble GLfloat
 #endif
 

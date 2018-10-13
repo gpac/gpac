@@ -190,7 +190,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
-#if defined(GPAC_ANDROID) || defined(GPAC_IPHONE)
+#if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
 				if ((compositor->new_width>compositor->display_width) || (compositor->new_height>compositor->display_height)) {
 					u32 w = compositor->display_width;
 					compositor->display_width = compositor->display_height;
@@ -2083,7 +2083,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		}
 		if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
 			/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 			compositor->skip_flush = 0;
 #else
 			if (compositor->skip_flush==2) {
@@ -2937,7 +2937,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 				) {
 
 				//OSX bug with SDL when requesting 4k window we get max screen height but 4k width ...
-#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
 				if (compositor->display_width==event->size.width) {
 					if (compositor->display_height > 2*event->size.height) {
 						event->size.width = compositor->display_width * event->size.height / compositor->display_height;

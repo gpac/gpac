@@ -98,8 +98,8 @@
 /*Configuration for Android */
 #elif defined(GPAC_CONFIG_ANDROID)
 
-#ifndef GPAC_ANDROID
-#define GPAC_ANDROID
+#ifndef GPAC_CONFIG_ANDROID
+#define GPAC_CONFIG_ANDROID
 #endif
 
 #define GPAC_HAS_IPV6
@@ -112,7 +112,7 @@
 #define GPAC_HAS_PNG
 
 /*Configuration for XCode OSX (not iOS) */
-#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
 
 #define GPAC_HAS_IPV6
 #define GPAC_HAS_SSL
@@ -131,7 +131,7 @@
 #define GPAC_MEMORY_TRACKING
 
 /*Configuration for XCode iOS*/
-#elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
+#elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_CONFIG_IOS)
 
 //64-bits iOS
 #ifdef __LP64__

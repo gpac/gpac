@@ -32,7 +32,7 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #ifndef XP_UNIX
 #define XP_UNIX
 #endif

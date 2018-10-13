@@ -261,7 +261,7 @@ static char* gf_sanetize_single_quoted_string(const char *src) {
 }
 #endif
 
-#if defined(GPAC_IPHONE) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 80000)
+#if defined(GPAC_CONFIG_IOS) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 80000)
 #include <spawn.h>
 extern char **environ;
 #endif
@@ -279,7 +279,7 @@ Bool gf_file_exists(const char *fileName)
  	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
 #elif defined(__DARWIN__) || defined(__APPLE__)
  	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
-#elif defined(GPAC_IPHONE) || defined( )
+#elif defined(GPAC_CONFIG_IOS) || defined( )
  	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
 #else
 	FILE *f = gf_fopen(fileName, "r");
@@ -325,7 +325,7 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 	arg2 = gf_sanetize_single_quoted_string(newFileName);
 	if (snprintf(cmd, sizeof cmd, "mv %s %s", arg1, arg2) >= sizeof cmd) goto error;
 
-#if defined(GPAC_IPHONE) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 80000)
+#if defined(GPAC_CONFIG_IOS) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 80000)
 	{
 		pid_t pid;
 		char *argv[3];
@@ -812,7 +812,7 @@ u64 gf_ftell(FILE *fp)
 #endif
 #elif defined(WIN32)
 	return (u64) _ftelli64(fp);
-#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_CONFIG_ANDROID)
 	return (u64) ftello64(fp);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return (u64) ftello(fp);
@@ -834,7 +834,7 @@ u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 #endif
 #elif defined(WIN32)
 	return (u64) _fseeki64(fp, offset, whence);
-#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_CONFIG_ANDROID)
 	return fseeko64(fp, (off64_t) offset, whence);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return fseeko(fp, (off_t) offset, whence);
@@ -888,7 +888,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 	res = _wfsopen(wname, wmode, _SH_DENYNO);
 	gf_free(wname);
 	gf_free(wmode);
-#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_CONFIG_ANDROID)
 	res = fopen64(file_name, mode);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	res = fopen(file_name, mode);

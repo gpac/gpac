@@ -428,7 +428,7 @@ static GF_FilterArgs CompositorArgs[] =
     "\"solid\": objects are drawn as solid and wireframe is then drawn", GF_PROP_UINT, "none", "none|only|solid", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(norms), "enables normal drawing", GF_PROP_UINT, "none", "none|face|vertex", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(glus), "use GLU scale, which may be slower but nicer than GPAC's software stretch routines.", GF_PROP_BOOL,
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 	"false",
 #else
 	"true",

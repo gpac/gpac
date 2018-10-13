@@ -39,11 +39,11 @@
 
 /* number of preprocessor flags for GL3/ES2.0 */
 #define GF_GL_NUM_OF_FLAGS			6
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS) )	//=2^GF_GL_NUM_OF_FLAGS
 #else
 #define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS-1 ( ExternalOES ignored in fragment shader when the platform is not Android)
-#endif // GPAC_ANDROID
+#endif // GPAC_CONFIG_ANDROID
 #define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-2) )	//=2^GF_GL_NUM_OF_FLAGS-2 (YUV and ExternalOES ignored in vertex shader)
 
 /* setting preprocessor flags for GL3/ES2.0 shaders */

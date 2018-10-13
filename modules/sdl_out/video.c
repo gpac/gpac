@@ -30,7 +30,7 @@
 #include <windows.h>
 #endif
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #include <OpenGLES/ES1/gl.h>
 #include <OpenGLES/ES1/glext.h>
 #endif
@@ -620,7 +620,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 }
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #define SDL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE
 #define SDL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE
 #define SDL_GL_WINDOW_FLAGS			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE
@@ -632,7 +632,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 #define SDL_GL_FULLSCREEN_FLAGS		SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN
 #endif
 #else
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
 #define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN | SDL_NOFRAME
 #define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
@@ -732,7 +732,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		}
 
 		if (ctx->disable_vsync) {
-#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+#if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
 #else
 			SDL_GL_SetSwapInterval(0);
 #endif
@@ -759,7 +759,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 	} else {
 		u32 flags;
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 		flags = SDL_FULLSCREEN_FLAGS;
 		//SDL readme says it would make us faster
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
@@ -773,7 +773,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 		//still some issues with render to tager and landscape orientation, we need to reset everything ...
 		if (ctx->enable_defer_mode) {
 			if (ctx->renderer) SDL_DestroyRenderer(ctx->renderer);
@@ -813,7 +813,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				return GF_IO_ERR;
 			}
 		}
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 		SDL_SetWindowSize(ctx->screen, width, height);
 #endif
 		SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
@@ -924,7 +924,7 @@ static void SDLVid_ResetWindow(SDLVidCtx *ctx)
 	}
 
 	/*iOS SDL2 has a nasty bug that breaks switching between 2D and GL context if we don't re-init the video subsystem*/
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 	if ( ctx->screen ) {
 		SDL_DestroyWindow(ctx->screen);
 		ctx->screen=NULL;
@@ -943,7 +943,7 @@ static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-#if defined SDL_TEXTINPUTEVENT_TEXT_SIZE /*&& !defined GPAC_IPHONE*/
+#if defined SDL_TEXTINPUTEVENT_TEXT_SIZE /*&& !defined GPAC_CONFIG_IOS*/
 #include <gpac/unicode.h>
 #endif
 
@@ -953,7 +953,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	SDL_Event sdl_evt;
 	GF_Event gpac_evt;
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 	while (SDL_WaitEventTimeout(&sdl_evt, 0)) {
 #else
 	while (SDL_PollEvent(&sdl_evt)) {
@@ -1494,7 +1494,7 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 #if SDL_VERSION_ATLEAST(2,0,0)
 
 //for CGLSetParameter
-#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+#if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
 #include <OpenGL/OpenGL.h>
 #endif
 
@@ -1508,7 +1508,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	if (ctx->output_3d_type==1) {
 		//with SDL2 we have to disable vsync by overriding swap interval
-#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+#if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
 		if (ctx->disable_vsync) {
 			GLint sync = 0;
 			CGLContextObj gl_ctx = CGLGetCurrentContext();
@@ -1594,7 +1594,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 {
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 	SDLVID();
 	switch (cursor_type) {
 	case GF_CURSOR_ANCHOR:
@@ -1637,7 +1637,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		SDLVid_ProcessMessageQueue(ctx, dr);
 #endif
 
-#if !defined(GPAC_IPHONE) && SDL_VERSION_ATLEAST(2,0,0)
+#if !defined(GPAC_CONFIG_IOS) && SDL_VERSION_ATLEAST(2,0,0)
 		{
 			SDLVID();
 			if (ctx->szCaption[0]) {
@@ -1651,7 +1651,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	}
 	switch (evt->type) {
 	case GF_EVENT_SET_CURSOR:
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 		SDLVid_SetCursor(dr, evt->cursor.cursor_type);
 #endif
 		break;
@@ -1684,7 +1684,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_SIZE:
 	{
 		SDLVID();
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 		if (ctx->fullscreen) {
 		} else {
 			SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
@@ -1701,7 +1701,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	break;
 	case GF_EVENT_MOVE:
 
-#if !defined(GPAC_IPHONE) && SDL_VERSION_ATLEAST(2,0,0)
+#if !defined(GPAC_CONFIG_IOS) && SDL_VERSION_ATLEAST(2,0,0)
 	{
 		SDLVID();
 
@@ -1747,7 +1747,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			}
 			ctx->output_3d_type = 1;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 //            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 #else
@@ -1801,7 +1801,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 
 	case GF_EVENT_TEXT_EDITING_START:
 	case GF_EVENT_TEXT_EDITING_END:
-#if defined(GPAC_IPHONE) && SDL_VERSION_ATLEAST(2,0,0)
+#if defined(GPAC_CONFIG_IOS) && SDL_VERSION_ATLEAST(2,0,0)
 		if (evt->type==GF_EVENT_TEXT_EDITING_START) {
 			SDL_StartTextInput();
 		} else {
@@ -2257,7 +2257,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		format=SDL_PIXELFORMAT_YV12;
 		break;
 	/*FIXME we need to upgrade our SDL build*/
-#if !defined(GPAC_IPHONE) && SDL_VERSION_ATLEAST(2,0,0)
+#if !defined(GPAC_CONFIG_IOS) && SDL_VERSION_ATLEAST(2,0,0)
 	case GF_PIXEL_NV12:
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_NV12;

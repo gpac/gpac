@@ -197,7 +197,7 @@ size_t gpac_nb_alloc_blocs = 0;
 #endif
 
 //backtrace not supported on these platforms
-#if defined(GPAC_IPHONE) || defined(GPAC_ANDROID)
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
 #define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 #endif
 

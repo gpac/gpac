@@ -1646,7 +1646,7 @@ static void dirty_parents(GF_Node *node)
 {
 	Bool check_root = 1;
 	GF_ParentList *nlist;
-#if defined GPAC_ANDROID
+#if defined GPAC_CONFIG_ANDROID
 	if ( !node || !node->sgprivate )
 		return;
 #else
@@ -1663,7 +1663,7 @@ static void dirty_parents(GF_Node *node)
 		nlist = nlist->next;
 	}
 	/*propagate to parent scene graph */
-#if defined GPAC_ANDROID
+#if defined GPAC_CONFIG_ANDROID
 	if (check_root && node->sgprivate->scenegraph) {
 #else
 	if (check_root) {

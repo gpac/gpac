@@ -40,7 +40,7 @@
 #ifndef GPAC_DISABLE_SVG
 
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #ifndef XP_UNIX
 #define XP_UNIX
 #endif /* XP_UNIX */

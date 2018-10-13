@@ -104,12 +104,12 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #endif
 
 
-#if defined(GPAC_IPHONE) || defined(__DARWIN__) || defined(__APPLE__)
+#if defined(GPAC_CONFIG_IOS) || defined(__DARWIN__) || defined(__APPLE__)
     LOAD_PLUGIN(vtb);
 #endif
 
 	//todo fix project for iOS
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 	//these do not compile with xcode 4.2
 //    LOAD_PLUGIN(ios_cam);
 //    LOAD_PLUGIN(ios_mpegv);
@@ -292,7 +292,7 @@ const char **gf_modules_get_module_directories(u32* num_dirs)
 	/* Get directory from config file */
 	directories = (char*)gf_cfg_get_key(pm->cfg, "Core", "ModulesDirectory");
 	if (! directories) {
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Modules directories not found - check the \"ModulesDirectory\" key is set in the \"Core\" section\n"));
 #endif
 		return NULL;

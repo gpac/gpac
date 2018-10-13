@@ -160,7 +160,7 @@ void gf_th_set_priority(GF_Thread *th, s32 priority);
 */
 u32 gf_th_id();
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 /*!
  * Register a function that will be called before pthread_exist is called
  */
@@ -170,7 +170,7 @@ GF_Err gf_register_before_exit_function(GF_Thread *t, u32 (*toRunBeforePthreadEx
  */
 GF_Thread * gf_th_current();
 
-#endif /* GPAC_ANDROID */
+#endif /* GPAC_CONFIG_ANDROID */
 
 /*!
  *\brief abstracted mutex object

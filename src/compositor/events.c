@@ -735,7 +735,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				TODO quick- fix for iPhone as well
 				TODO clean: figure out whether we use a mouse or a touch device - if touch device, remove this test
 				*/
-#if !defined(_WIN32_WCE) || !defined(GPAC_ANDROID)
+#if !defined(_WIN32_WCE) || !defined(GPAC_CONFIG_ANDROID)
 				if ((compositor->grab_x == X) && (compositor->grab_y == Y))
 #endif
 				{

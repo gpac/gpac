@@ -33,7 +33,7 @@ extern GF_HYBMEDIA master_fm_fake_push;
 GF_HYBMEDIA* hyb_masters[] = {
 	&master_fm_fake_pull,
 	&master_fm_fake_push,
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 	&master_fm_mmbtools,
 #endif
 };

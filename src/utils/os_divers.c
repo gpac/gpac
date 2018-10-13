@@ -1165,7 +1165,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 }
 
 
-#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
@@ -1398,7 +1398,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #endif
 
 
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 	the_rti.physical_memory = the_rti.physical_memory_avail = 0;
 	f = gf_fopen("/proc/meminfo", "r");
 	if (f) {
@@ -1494,7 +1494,7 @@ const char * gf_get_default_cache_directory()
 	strcpy(szCacheDir, "\\windows\\temp" );
 #elif defined(WIN32)
 	GetTempPath(GF_MAX_PATH, szCacheDir);
-#elif defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_ANDROID)
 	strcpy(szCacheDir, "/data/data/com.gpac.Osmo4/cache");
 #else
 	strcpy(szCacheDir, "/tmp");
@@ -1726,7 +1726,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 	return GF_OK;
 }
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 
 fm_callback_func fm_cbk = NULL;
 static void *fm_cbk_obj = NULL;
@@ -1741,7 +1741,7 @@ void gf_fm_request_call(u32 type, u32 param, int *value) {
 		fm_cbk(fm_cbk_obj, type, param, value);
 }
 
-#endif //GPAC_ANDROID
+#endif //GPAC_CONFIG_ANDROID
 
 GF_EXPORT
 s32 gf_gettimeofday(struct timeval *tp, void *tz) {
@@ -1894,7 +1894,7 @@ static time_t gf_mktime_utc(struct tm *tm)
 	return  _mkgmtime(tm);
 }
 
-#elif defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_ANDROID)
 #include <time64.h>
 #if defined(__LP64__)
 static time_t gf_mktime_utc(struct tm *tm)

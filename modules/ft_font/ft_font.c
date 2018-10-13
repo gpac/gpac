@@ -573,7 +573,7 @@ typedef struct
 	s32 last_x, last_y;
 } ft_outliner;
 
-#if defined(GPAC_IPHONE) || defined(GPAC_ANDROID)
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
 #define FTCST
 #else
 #define FTCST const
