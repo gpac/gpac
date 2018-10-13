@@ -205,6 +205,11 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 				if (!val[3]) break;
 				val += 4;
 				continue;
+			} else if (!strcmp(val, "strict")) {
+				gf_log_set_strict_error(GF_TRUE);
+				if (!val[6]) break;
+				val += 7;
+				continue;
 			} else {
 				fprintf(stderr, "Unrecognized log format %s - expecting logTool@logLevel\n", val);
 				return GF_BAD_PARAM;
@@ -696,13 +701,27 @@ u32 gf_crc_32(const char *data, u32 len)
 #define CHECK_MAC(_a) "#_a :" ? (_a) ? "yes":"no"
 
 GF_EXPORT
-const char *gpac_features()
+const char *gpac_enabled_features()
 {
 	const char *features = ""
+#ifdef GPAC_CONFIG_WIN32
+	                       "GPAC_CONFIG_WIN32 "
+#endif
+#ifdef GPAC_CONFIG_DARWIN
+	                       "GPAC_CONFIG_DARWIN "
+#endif
+#ifdef GPAC_CONFIG_LINUX
+	                       "GPAC_CONFIG_LINUX "
+#endif
+#ifdef GPAC_CONFIG_ANDROID
+	                       "GPAC_CONFIG_ANDROID "
+#endif
+#ifdef GPAC_IPHONE
+	                       "GPAC_IPHONE "
+#endif
 #ifdef GPAC_64_BITS
 	                       "GPAC_64_BITS "
 #endif
-
 #ifdef GPAC_FIXED_POINT
 	                       "GPAC_FIXED_POINT "
 #endif
@@ -711,6 +730,9 @@ const char *gpac_features()
 #endif
 #ifdef GPAC_BIG_ENDIAN
 	                       "GPAC_BIG_ENDIAN "
+#endif
+#ifdef GPAC_HAS_IPV6
+	                       "GPAC_HAS_IPV6 "
 #endif
 #ifdef GPAC_HAS_SSL
 	                       "GPAC_HAS_SSL "
@@ -721,12 +743,68 @@ const char *gpac_features()
 #ifdef GPAC_HAS_SPIDERMONKEY
 	                       "GPAC_HAS_SPIDERMONKEY "
 #endif
+#ifdef GPAC_HAS_FREETYPE
+	                       "GPAC_HAS_FREETYPE "
+#endif
+#ifdef GPAC_HAS_FAAD
+	                       "GPAC_HAS_FAAD "
+#endif
+#ifdef GPAC_HAS_MAD
+	                       "GPAC_HAS_MAD "
+#endif
+#ifdef GPAC_HAS_LIBA52
+	                       "GPAC_HAS_LIBA52 "
+#endif
 #ifdef GPAC_HAS_JPEG
 	                       "GPAC_HAS_JPEG "
 #endif
 #ifdef GPAC_HAS_PNG
 	                       "GPAC_HAS_PNG "
 #endif
+#ifdef GPAC_HAS_FFMPEG
+	                       "GPAC_HAS_FFMPEG "
+#endif
+#ifdef GPAC_HAS_OPENSVC
+	                       "GPAC_HAS_OPENSVC "
+#endif
+#ifdef GPAC_HAS_JP2
+	                       "GPAC_HAS_JP2 "
+#endif
+#ifdef GPAC_HAS_OPENHEVC
+	                       "GPAC_HAS_OPENHEVC "
+#endif
+#ifdef GPAC_HAS_THEORA
+	                       "GPAC_HAS_THEORA "
+#endif
+#ifdef GPAC_HAS_VORBIS
+	                       "GPAC_HAS_VORBIS "
+#endif
+#ifdef GPAC_HAS_XVID
+	                       "GPAC_HAS_XVID "
+#endif
+#ifdef GPAC_HAS_LINUX_DVB
+	                       "GPAC_HAS_LINUX_DVB "
+#endif
+#ifdef GPAC_HAS_GLU
+	                       "GPAC_HAS_GLU "
+#endif
+
+#if defined(_WIN32_WCE)
+#ifdef GPAC_USE_IGPP
+	                       "GPAC_USE_IGPP "
+#endif
+#ifdef GPAC_USE_IGPP_HP
+	                       "GPAC_USE_IGPP_HP "
+#endif
+#endif
+	                       ;
+	return features;
+}
+
+GF_EXPORT
+const char *gpac_disabled_features()
+{
+	const char *features = ""
 #ifdef GPAC_DISABLE_3D
 	                       "GPAC_DISABLE_3D "
 #endif
@@ -736,13 +814,8 @@ const char *gpac_features()
 #ifdef GPAC_USE_GLES1X
 	                       "GPAC_USE_GLES1X "
 #endif
-#if defined(_WIN32_WCE)
-#ifdef GPAC_USE_IGPP
-	                       "GPAC_USE_IGPP "
-#endif
-#ifdef GPAC_USE_IGPP_HP
-	                       "GPAC_USE_IGPP_HP "
-#endif
+#ifdef GPAC_USE_GLES2
+	                       "GPAC_USE_GLES2 "
 #endif
 #ifdef GPAC_DISABLE_SVG
 	                       "GPAC_DISABLE_SVG "

@@ -298,10 +298,10 @@ void PrintUsage()
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
 	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s\n",
+	        "Features: %s %s\n",
 	        nb_threads,
 	        GF_IMPORT_DEFAULT_FPS,
-	        gpac_features()
+	        gpac_enabled_features(), gpac_disabled_features()
 	       );
 }
 

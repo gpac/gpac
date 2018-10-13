@@ -26,12 +26,15 @@
 #include "filter_session.h"
 #include <gpac/network.h>
 
+//#define CHECK_TASK_LIST_INTEGRITY
+
+
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
 	GF_Semaphore *sem = main ? fsess->semaphore_main : fsess->semaphore_other;
 	if (sem) {
 		if (notify) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Notify scheduler %s semaphore\n", main ? "main" : "secondary"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d notify scheduler %s semaphore\n", gf_th_id(), main ? "main" : "secondary"));
 			if ( ! gf_sema_notify(sem, 1)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Cannot notify scheduler of new task, semaphore failure\n"));
 			}
@@ -445,8 +448,6 @@ const GF_FilterRegister * gf_fs_get_filter_registry(GF_FilterSession *fsess, u32
 	return gf_list_get(fsess->registry, idx);
 }
 
-//#define CHECK_TASK_LIST_INTEGRITY
-
 #ifdef CHECK_TASK_LIST_INTEGRITY
 static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 {
@@ -511,6 +512,8 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 	}
 
 	if (filter) {
+		if (!strcmp(log_name, "process"))
+			assert(filter->process_task_queued);
 	
 		gf_mx_p(filter->tasks_mx);
 		if (! filter->scheduled_for_next_task && (gf_fq_count(filter->tasks) == 0)) {
@@ -527,7 +530,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted task %p Filter %s::%s (%d pending) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, task->notified ? (force_main_thread ? "main" : "secondary") : "filter"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted task %p Filter %s::%s (%d pending, %d process tasks) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, filter->process_task_queued, task->notified ? (force_main_thread ? "main" : "secondary") : "filter"));
 	} else {
 		task->notified = GF_TRUE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Posted filter-less task %s (%d pending) on secondary task list\n", gf_th_id(), task->log_name, fsess->tasks_pending));
@@ -707,6 +710,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	//main thread not using this thread proc, don't wait for notifications
 	Bool do_use_sema = (!thid && fsess->no_main_thread) ? GF_FALSE : GF_TRUE;
 	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
+	u32 sys_thid = gf_th_id();
 
 	GF_Filter *current_filter = NULL;
 	sess_thread->th_id = gf_th_id();
@@ -739,7 +743,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		if (do_use_sema && (current_filter==NULL)) {
 			gf_rmt_begin(sema_wait, GF_RMT_AGGREGATE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", thid, use_main_sema ? "main" : "secondary"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", sys_thid, use_main_sema ? "main" : "secondary"));
 			//wait for something to be done
 			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
 			consecutive_filter_tasks = 0;
@@ -820,7 +824,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				}
 			}
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: no task available\n", thid));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: no task available\n", sys_thid));
 
 			gf_sleep(0);
 			continue;
@@ -853,7 +857,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					if (next) {
 						s64 ndiff;
 						if (next->schedule_next_time <= (u64) now) {
-							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task time ready for execution\n", thid, task->log_name));
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task time ready for execution\n", sys_thid, task->log_name));
 
 							if (do_use_sema) {
 								gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
@@ -871,10 +875,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					}
 
 					if (diff) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, seleeping for %d ms\n", thid, task->log_name, diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, seleeping for %d ms\n", sys_thid, task->log_name, diff));
 						gf_sleep((u32) diff);
 					} else {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, rerun\n", thid, task->log_name, diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, rerun\n", sys_thid, task->log_name, diff));
 					}
 					if (do_use_sema) {
 						gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
@@ -906,7 +910,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							task->notified = GF_FALSE;
 						}
 						task->in_main_task_list_only = GF_FALSE;
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s reposted to filter task until task exec time is reached (%d us)\n", thid, current_filter->name, task->log_name, (s32) (task->schedule_next_time - next->schedule_next_time) ));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s reposted to filter task until task exec time is reached (%d us)\n", sys_thid, current_filter->name, task->log_name, (s32) (task->schedule_next_time - next->schedule_next_time) ));
 						assert(!task->in_main_task_list_only);
 						gf_fq_add(current_filter->tasks, task);
 						continue;
@@ -923,7 +927,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
 					if (! fsess->no_regulation) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, (s32) diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", sys_thid, current_filter->name, task->log_name, (s32) diff));
 
 						if (th_count==0) {
 							if ( gf_fq_count(fsess->tasks) )
@@ -964,7 +968,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		sess_thread->nb_tasks++;
 		sess_thread->has_seen_eot = GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d task#%d %p executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task, task->filter ? task->filter->name : "none", task->log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d task#%d %p executing Filter %s::%s (%d tasks pending, %d process task queued)\n", sys_thid, sess_thread->nb_tasks, task, task->filter ? task->filter->name : "none", task->log_name, fsess->tasks_pending, task->filter ? task->filter->process_task_queued : 0));
 
 		fsess->task_in_process = GF_TRUE;
 		assert( task->run_task );
@@ -1040,7 +1044,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (requeue) {
 			//if requeue on a filter active, use filter queue to avoid another thread grabing the task (we would have concurrent access to the filter)
 			if (current_filter) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in filter tasks (%d pending)\n", thid, task->filter->name, task->log_name, fsess->tasks_pending));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in filter tasks (%d pending)\n", sys_thid, task->filter->name, task->log_name, fsess->tasks_pending));
 				task->notified = GF_FALSE;
 				task->in_main_task_list_only = GF_FALSE;
 #ifdef CHECK_TASK_LIST_INTEGRITY
@@ -1050,7 +1054,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_fq_add(current_filter->tasks, task);
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in %s tasks (%d pending)\n", thid, task->filter ? task->filter->name : "none", task->log_name, (task->filter && (task->filter->freg->flags & GF_FS_REG_MAIN_THREAD)) ? "main" : "secondary", fsess->tasks_pending));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in %s tasks (%d pending)\n", sys_thid, task->filter ? task->filter->name : "none", task->log_name, (task->filter && (task->filter->freg->flags & GF_FS_REG_MAIN_THREAD)) ? "main" : "secondary", fsess->tasks_pending));
 
 				task->notified = GF_TRUE;
 				safe_int_inc(&fsess->tasks_pending);
@@ -1082,6 +1086,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				}
 			}
 #endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d task#%d %p pushed to reservoir\n", sys_thid, sess_thread->nb_tasks, task));
+
 			memset(task, 0, sizeof(GF_FSTask));
 			gf_fq_add(fsess->tasks_reservoir, task);
 		}

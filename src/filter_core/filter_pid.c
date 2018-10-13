@@ -89,6 +89,8 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 
 	assert(pid->playback_speed_scaler);
 
+	gf_mx_p(pid->filter->tasks_mx);
+
 	//we block according to the number of dispatched units (decoder output) or to the requested buffer duration
 	//for other streams - unblock accordingly
 	if (pid->max_buffer_unit) {
@@ -100,18 +102,26 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 	}
 
 	if (pid->would_block && unblock) {
+		assert(pid->would_block);
 		//todo needs Compare&Swap
 		safe_int_dec(&pid->would_block);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked\n", pid->pid->filter->name, pid->pid->name));
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
-	}
+		assert((s32)pid->filter->would_block>=0);
+
+	assert(pid->filter->would_block <= pid->filter->num_output_pids);
+//	fprintf(stderr, "Unblock test filter %s PID %s blocked %d filter %d blocked\n", pid->pid->filter->name, pid->pid->name, pid->would_block, pid->filter->would_block);
+
 	if (pid->filter->would_block < pid->filter->num_output_pids) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids));
 		//requeue task
 		if (!pid->filter->skip_process_trigger_on_tasks)
 			gf_filter_post_process_task(pid->filter);
 	}
+
+	}
+	gf_mx_v(pid->filter->tasks_mx);
 }
 
 static void gf_filter_pid_inst_check_dependencies(GF_FilterPidInst *pidi)
@@ -259,8 +269,10 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 	//WARNING at this point pidinst->filter may be destroyed
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s destruction\n",  filter->name, pid->name));
+	gf_mx_p(filter->tasks_mx);
 	gf_list_del_item(pid->destinations, pidinst);
 	pid->num_destinations = gf_list_count(pid->destinations);
+	gf_mx_v(filter->tasks_mx);
 
 	if (pidinst->is_decoder_input) {
 		assert(pid->nb_decoder_inputs);
@@ -315,6 +327,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	u32 nb_pck_transfer=0;
 	GF_FilterPidInst *src = filter->swap_pidinst;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s swaping PID %s to PID %s\n", filter->name, src->pid->name, dst->pid->name));
 	if (filter->swap_needs_init) {
 		//we are in detach state, the pack queue of the old PID is never read
 		assert(src->detach_pending);
@@ -324,6 +337,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	}
 	//otherwise we actually swap the pid instance on the same PID
 	else {
+		gf_mx_p(dst->pid->filter->tasks_mx);
 		gf_list_del_item(dst->pid->destinations, src);
 		if (gf_list_find(dst->pid->destinations, dst)<0)
 			gf_list_add(dst->pid->destinations, dst);
@@ -331,6 +345,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			gf_list_add(dst->filter->input_pids, dst);
 			dst->filter->num_input_pids = gf_list_count(dst->filter->input_pids);
 		}
+		gf_mx_v(dst->pid->filter->tasks_mx);
 	}
 	assert(!dst->buffer_duration);
 
@@ -463,12 +478,18 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	//if new, add the PID to input/output before calling configure
 	if (new_pid_inst) {
 		assert(pidinst);
+		gf_mx_p(pid->filter->tasks_mx);
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Registering %s::%s as destination for %s::%s\n", pid->filter->name, pid->name, pidinst->filter->name, pidinst->pid->name));
 		gf_list_add(pid->destinations, pidinst);
 		pid->num_destinations = gf_list_count(pid->destinations);
 
 		if (!filter->input_pids) filter->input_pids = gf_list_new();
 		gf_list_add(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
+
+		gf_mx_v(pid->filter->tasks_mx);
+
 		//new connection, update caps in case we have events using caps (buffer req) being sent
 		//while processing the configure (they would be dispatched on the source filter, not the dest one being
 		//processed here)
@@ -508,7 +529,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	if (e==GF_OK) {
 		//if new, register the new pid instance, and the source pid as input to this filer
 		if (new_pid_inst) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Connected filter %s PID %s to filter %s\n", pid->filter->name,  pid->name, filter->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Connected filter %s (%p) PID %s (%p) (%d fan-out) to filter %s (%p)\n", pid->filter->name, pid->filter, pid->name, pid, pid->num_destinations, filter->name, filter));
 		}
 	}
 	//failure on reconfigure, try reloading a filter chain
@@ -516,19 +537,28 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 		gf_filter_relink_dst(pidinst);
 	} else {
-		//error,  remove from input
+
+		//error,  remove from input and poutput
+		gf_mx_p(filter->tasks_mx);
 		gf_list_del_item(filter->input_pids, pidinst);
+		filter->num_input_pids = gf_list_count(filter->input_pids);
+		gf_mx_v(filter->tasks_mx);
+
+		gf_mx_p(pidinst->pid->filter->tasks_mx);
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
 		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
 		pidinst->filter = NULL;
-		filter->num_input_pids = gf_list_count(filter->input_pids);
-		
+		gf_mx_v(pidinst->pid->filter->tasks_mx);
+
 		//if connect and error, direct delete of pid
 		if (new_pid_inst) {
+			gf_mx_p(pid->filter->tasks_mx);
 			gf_list_del_item(pid->destinations, pidinst);
 			pid->num_destinations = gf_list_count(pid->destinations);
 			gf_filter_pid_inst_del(pidinst);
+			gf_mx_v(pid->filter->tasks_mx);
 		}
+
 
 		if (e==GF_REQUIRES_NEW_INSTANCE) {
 			//TODO: copy over args from current filter
@@ -554,6 +584,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				//1-blacklist this filter
 				gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
 				//2-disconnect all other inputs, and post a re-init
+				gf_mx_p(filter->tasks_mx);
 				while (gf_list_count(filter->input_pids)) {
 					GF_FilterPidInst *a_pidinst = gf_list_pop_back(filter->input_pids);
 					FSESS_CHECK_THREAD(filter)
@@ -566,7 +597,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					unload_filter = GF_FALSE;
 				}
 				filter->num_input_pids = 0;
-				
+				gf_mx_v(filter->tasks_mx);
+
 				if (!filter->session->last_connect_error) filter->session->last_connect_error = e;
 				if (ctype==GF_PID_CONF_CONNECT) {
 					assert(pid->filter->out_pid_connection_pending);
@@ -605,11 +637,16 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 
 	if (ctype==GF_PID_CONF_REMOVE) {
+		gf_mx_p(filter->tasks_mx);
 		gf_list_del_item(filter->input_pids, pidinst);
+		filter->num_input_pids = gf_list_count(filter->input_pids);
+		gf_mx_v(filter->tasks_mx);
+
+		gf_mx_p(pidinst->pid->filter->tasks_mx);
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
 		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
 		pidinst->filter = NULL;
-		filter->num_input_pids = gf_list_count(filter->input_pids);
+		gf_mx_v(pidinst->pid->filter->tasks_mx);
 
 		//disconnected the last input, flag as removed
 		if (!filter->num_input_pids && !filter->sticky)
@@ -735,6 +772,8 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	pidinst->props = NULL;
 
 	safe_int_dec(&pidinst->detach_pending);
+
+	gf_mx_p(filter->tasks_mx);
 	//detach pid
 	gf_filter_pid_inst_reset(pidinst);
 	pidinst->pid = NULL;
@@ -742,6 +781,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	pid->num_destinations = gf_list_count(pid->destinations);
 	gf_list_del_item(filter->input_pids, pidinst);
 	filter->num_input_pids = gf_list_count(filter->input_pids);
+	gf_mx_v(filter->tasks_mx);
 
 	if (!filter->detached_pid_inst) {
 		filter->detached_pid_inst = gf_list_new();
@@ -3500,6 +3540,8 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	gf_filter_pidinst_update_stats(pidinst, pck);
 
+	gf_mx_p(pid->filter->tasks_mx);
+//	fprintf(stderr, "filter %s pid %s discard packet - nb_pck %d nb_buffer_unit %d\n", pid->filter->freg->name, pidinst->filter->freg->name, nb_pck, pid->nb_buffer_unit);
 	if (nb_pck<pid->nb_buffer_unit) {
 		//todo needs Compare&Swap
 		pid->nb_buffer_unit = nb_pck;
@@ -3520,9 +3562,11 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	}
 
 	if (!pid->buffer_duration || (pidinst->buffer_duration < (s64) pid->buffer_duration)) {
-		//todo needs Compare&Swap
 		pid->buffer_duration = pidinst->buffer_duration;
 	}
+	gf_filter_pid_check_unblock(pid);
+
+	gf_mx_v(pid->filter->tasks_mx);
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
@@ -3540,8 +3584,6 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		}
 	}
 #endif
-
-	gf_filter_pid_check_unblock(pid);
 
 	//destroy pcki
 	pcki->pck = NULL;
@@ -3630,6 +3672,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	if (pid->filter->session->disable_blocking)
 		return GF_FALSE;
 
+	gf_mx_p(pid->filter->tasks_mx);
 	//either block according to the number of dispatched units (decoder output) or to the requested buffer duration
 	if (pid->max_buffer_unit) {
 		if (pid->nb_buffer_unit * GF_FILTER_SPEED_SCALER >= pid->max_buffer_unit * pid->playback_speed_scaler) {
@@ -3639,8 +3682,8 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		would_block = GF_TRUE;
 	}
 	if (would_block && !pid->would_block) {
-		safe_int_inc(&pid->would_block);
 		safe_int_inc(&pid->filter->would_block);
+		safe_int_inc(&pid->would_block);
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
@@ -3652,6 +3695,9 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		}
 #endif
 	}
+//	fprintf(stderr, "Block test filter %s PID %s blocked %d filter %d blocked (would block %d)\n", pid->pid->filter->name, pid->pid->name, pid->would_block, pid->filter->would_block, would_block);
+	assert(pid->filter->would_block <= pid->filter->num_output_pids);
+	gf_mx_v(pid->filter->tasks_mx);
 	return would_block;
 }
 

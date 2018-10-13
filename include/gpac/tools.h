@@ -90,11 +90,18 @@ extern "C" {
 #endif
 
 /*!
- *	\brief GPAC feature list
+ *	\brief GPAC enabled feature list
  *
- *	returns the list of features enabled/disabled in this GPAC build.
+ *	returns the list of features enabled in this GPAC build.
 */
-const char *gpac_features(void);
+const char *gpac_enabled_features(void);
+
+/*!
+ *	\brief GPAC disabled feature list
+ *
+ *	returns the list of features disabled in this GPAC build.
+*/
+const char *gpac_disabled_features(void);
 
 /*!
  *	\brief 4CC Printing

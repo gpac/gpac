@@ -266,7 +266,7 @@ void *gf_filter_get_udta(GF_Filter *filter)
 const char * gf_filter_get_name(GF_Filter *filter)
 {
 	assert(filter);
-	return (const char *)filter->name;
+	return (const char *)filter->freg->name;
 }
 
 void gf_filter_set_name(GF_Filter *filter, const char *name)
@@ -892,6 +892,9 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
 					filter->clonable=GF_TRUE;
 				found = GF_TRUE;
+			} else if (!strcmp("N", szArg)) {
+				gf_filter_set_name(filter, value);
+				found = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
 				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
@@ -1256,17 +1259,31 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 
 static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 {
-	safe_int_dec(&filter->process_task_queued);
-	if (filter->session->run_status!=GF_OK) return;
+	if (filter->session->run_status!=GF_OK) {
+		return;
+	}
 
+	//lock task mx to take the decision whether to requeue a new task or not (cf gf_filter_post_process_task)
+	//TODO: find a way to bypass this mutex ?
+	gf_mx_p(filter->tasks_mx);
+
+	safe_int_dec(&filter->process_task_queued);
+	//we have some more process() requests queued, requeu
 	if (filter->process_task_queued) {
 		task->requeue_request = GF_TRUE;
-	} else if (filter->pending_packets) {
+	}
+	//we have pending packets, auto-post and requeue
+	else if (filter->pending_packets) {
 		safe_int_inc(&filter->process_task_queued);
 		task->requeue_request = GF_TRUE;
-	} else {
-		task->requeue_request = GF_FALSE;
 	}
+	//we are done for now
+	else {
+		task->requeue_request = GF_FALSE;
+		filter->process_task_queued = 0;
+//		fprintf(stderr, "skiping requeue task on %s - PTQ %d\n", filter->freg->name, filter->process_task_queued);
+	}
+	gf_mx_v(filter->tasks_mx);
 }
 
 #ifdef GPAC_MEMORY_TRACKING
@@ -1323,6 +1340,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->freg->process);
 	task->is_filter_process = GF_TRUE;
 
+//	fprintf(stderr, "filter %s process\n", filter->freg->name);
+	assert(filter->process_task_queued);
 	filter->schedule_next_time = 0;
 
 	if (filter->session->in_final_flush && filter->force_end_of_session)
@@ -1333,6 +1352,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		//do not cancel the process task since it might have been triggered by the filter itself,
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
+		assert(filter->process_task_queued);
 		return;
 	}
 	if (filter->removed || filter->finalized) {
@@ -1348,6 +1368,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (filter->stream_reset_pending) {
 		filter->nb_tasks_done--;
 		task->requeue_request = GF_TRUE;
+		assert(filter->process_task_queued);
 		return;
 	}
 #if 0
@@ -1407,7 +1428,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 	if ((e==GF_EOS) || filter->removed || filter->finalized) {
-		filter->process_task_queued = 0;
+//		filter->process_task_queued = 0;
 		return;
 	}
 	if (e) filter->session->last_process_error = e;
@@ -1417,22 +1438,28 @@ static void gf_filter_process_task(GF_FSTask *task)
 		if (filter->schedule_next_time)
 			task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
+		assert(filter->process_task_queued);
 	}
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
 	else if ((filter->would_block < filter->num_output_pids)
 			&& filter->pending_packets
 			&& (gf_fq_count(filter->tasks)<=1)
-			&& !filter->skip_process_trigger_on_tasks)
+			&& !filter->skip_process_trigger_on_tasks) {
 		task->requeue_request = GF_TRUE;
-
+		assert(filter->process_task_queued);
+	}
 	//filter requested a requeue
 	else if (filter->schedule_next_time) {
 		task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
+		assert(filter->process_task_queued);
 	}
 	else {
 		assert (!filter->schedule_next_time);
 		gf_filter_check_pending_tasks(filter, task);
+		if (task->requeue_request) {
+			assert(filter->process_task_queued);
+		}
 	}
 }
 
@@ -1526,12 +1553,19 @@ GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx)
 void gf_filter_post_process_task(GF_Filter *filter)
 {
 	if (filter->finalized || filter->removed) return;
-	
+	//lock task mx to take the decision whether to post a new task or not (cf gf_filter_check_pending_tasks)
+	gf_mx_p(filter->tasks_mx);
+	assert((s32)filter->process_task_queued>=0);
 	safe_int_inc(&filter->process_task_queued);
 	if (filter->process_task_queued<=1) {
-		assert(!filter->finalized);
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+	} else {
+//		fprintf(stderr, "skiping post task on %s - PTQ %d\n", filter->freg->name, filter->process_task_queued);
 	}
+	if (!filter->session->direct_mode)
+		assert(filter->process_task_queued);
+
+	gf_mx_v(filter->tasks_mx);
 }
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
