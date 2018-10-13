@@ -1267,8 +1267,9 @@ void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1)
 }
 
 
-static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg) {
 
+static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg)
+{
 	GF_VPConfig *out = gf_odf_vp_cfg_new();
 	if (out) {
 		out->profile = cfg->profile;
@@ -1279,12 +1280,51 @@ static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg) {
 		out->colour_primaries = cfg->colour_primaries;
 		out->transfer_characteristics = cfg->transfer_characteristics;
 		out->matrix_coefficients = cfg->matrix_coefficients;
-
-
 	}
 
 	return out;
 }
+
+void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *vp9, GF_MediaBox *mdia)
+{
+	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)vp9, GF_FALSE);
+
+	if (vp9->emul_esd) gf_odf_desc_del((GF_Descriptor *)vp9->emul_esd);
+	vp9->emul_esd = gf_odf_desc_esd_new(2);
+	vp9->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+	vp9->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_VP9;
+
+	if (btrt) {
+		vp9->emul_esd->decoderConfig->bufferSizeDB = btrt->bufferSizeDB;
+		vp9->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
+		vp9->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
+	}
+	if (vp9->descr) {
+		GF_Descriptor *desc, *clone;
+		u32 i = 0;
+		while ((desc = (GF_Descriptor *)gf_list_enum(vp9->descr->descriptors, &i))) {
+			clone = NULL;
+			gf_odf_desc_copy(desc, &clone);
+			if (gf_odf_desc_add_desc((GF_Descriptor *)vp9->emul_esd, clone) != GF_OK)
+				gf_odf_desc_del(clone);
+		}
+	}
+
+	if (vp9->vp_config) {
+		GF_VPConfig *vp9_cfg = VP_DuplicateConfig(vp9->vp_config->config);
+		if (vp9_cfg) {
+			gf_odf_vp_cfg_write(vp9_cfg, &vp9->emul_esd->decoderConfig->decoderSpecificInfo->data, &vp9->emul_esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
+			gf_odf_vp_cfg_del(vp9_cfg);
+		}
+	}
+}
+
+void VP9_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *vp9)
+{
+	VP9_RewriteESDescriptorEx(vp9, NULL);
+}
+
+
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT

@@ -204,6 +204,10 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		AV1_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
 		esd = ((GF_MPEGVisualSampleEntryBox*)entry)->emul_esd;
 		break;
+	case GF_ISOM_BOX_TYPE_VP09:
+		VP9_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
+		esd = ((GF_MPEGVisualSampleEntryBox*)entry)->emul_esd;
+		break;
 	case GF_ISOM_BOX_TYPE_MP4A:
 	case GF_ISOM_BOX_TYPE_ENCA:
         {
