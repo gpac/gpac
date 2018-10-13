@@ -1184,13 +1184,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
 				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->fast ? GL_NEAREST : GL_LINEAR);
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 				if ( gl_format == GL_TEXTURE_EXTERNAL_OES) {
 					txh->tx_io->flags |= TX_IS_FLIPPED;
 					txh->tx_io->gl_type = GL_TEXTURE_EXTERNAL_OES;
 					goto push_exit;
 				}
-#endif // GPAC_ANDROID
+#endif // GPAC_CONFIG_ANDROID
 					
 				if (txh->hw_frame->get_gl_texture(txh->hw_frame, 1, &gl_format, &txh->tx_io->u_id, &txh->tx_io->texcoordmatrix) != GF_OK) {
 					return 0;
@@ -1545,12 +1545,12 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 #ifndef GPAC_DISABLE_3D
 	gf_mo_get_nb_views(txh->stream, &nb_views);
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 	if(txh->stream && txh->tx_io->gl_type == GL_TEXTURE_EXTERNAL_OES) {
 		gf_mx_copy(*mx, txh->tx_io->texcoordmatrix);
 		ret = 1;
 	}
-#endif // GPAC_ANDROID
+#endif // GPAC_CONFIG_ANDROID
 	if (nb_views>1 && !txh->hw_frame) {
 		if (txh->compositor->visual->current_view%2 != 0 && !txh->compositor->multiview_mode){
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
@@ -2065,11 +2065,11 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 	if (txh->tx_io->yuv_shader) {
 		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 		root_visual->glsl_flags |= (txh->tx_io->gl_type == GL_TEXTURE_EXTERNAL_OES ) ? GF_GL_IS_ExternalOES : GF_GL_IS_YUV;
 #else
 		root_visual->glsl_flags |= GF_GL_IS_YUV;
-#endif // GPAC_ANDROID
+#endif // GPAC_CONFIG_ANDROID
 		active_shader = root_visual->glsl_programs[root_visual->glsl_flags];	//Set active
 
 		GL_CHECK_ERR
@@ -2077,9 +2077,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		glUseProgram(active_shader);
 		GL_CHECK_ERR
 		
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 		if (txh->tx_io->gl_type != GL_TEXTURE_EXTERNAL_OES)
-#endif // GPAC_ANDROID
+#endif // GPAC_CONFIG_ANDROID
 		{
 			if (txh->tx_io->v_id) {
 				glActiveTexture(GL_TEXTURE2);

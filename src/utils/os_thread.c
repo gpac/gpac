@@ -25,7 +25,7 @@
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #include <jni.h>
 #endif
 
@@ -67,7 +67,7 @@ struct __tag_thread
 	u32 id;
 	char *log_name;
 #endif
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 	u32 (*RunBeforeExit)(void *param);
 #endif
 };
@@ -127,7 +127,7 @@ GF_Thread *gf_th_new(const char *name)
 }
 
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #include <pthread.h>
 
 static pthread_key_t currentThreadInfoKey = 0;
@@ -156,7 +156,7 @@ GF_Thread * gf_th_current() {
 	return pthread_getspecific(currentThreadInfoKey);
 }
 
-#endif /* GPAC_ANDROID */
+#endif /* GPAC_CONFIG_ANDROID */
 
 
 #ifdef WIN32
@@ -172,10 +172,10 @@ void * RunThread(void *ptr)
 
 	/* Signal the caller */
 	if (! t->_signal) goto exit;
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 	if (pthread_once(&currentThreadInfoKey_once, &currentThreadInfoKey_alloc) || pthread_setspecific(currentThreadInfoKey, t))
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't run thread %s, ID 0x%08x\n", t->log_name, t->id));
-#endif /* GPAC_ANDROID */
+#endif /* GPAC_CONFIG_ANDROID */
 	t->status = GF_THREAD_STATUS_RUN;
 	gf_sema_notify(t->_signal, 1);
 
@@ -205,13 +205,13 @@ exit:
 	return ret;
 #else
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] RunBeforeExit=%p\n", t->log_name, t->RunBeforeExit));
 #endif
 	if (t->RunBeforeExit)
 		t->RunBeforeExit(t->args);
-#endif /* GPAC_ANDROID */
+#endif /* GPAC_CONFIG_ANDROID */
 	pthread_exit((void *)0);
 	return (void *)ret;
 #endif
@@ -296,7 +296,7 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 		}
 #else
 		if (Destroy) {
-#if defined(GPAC_ANDROID) || defined(PTHREAD_HAS_NO_CANCEL)
+#if defined(GPAC_CONFIG_ANDROID) || defined(PTHREAD_HAS_NO_CANCEL)
 			if (pthread_kill(t->threadH, SIGQUIT))
 #else
 			if (pthread_cancel(t->threadH))

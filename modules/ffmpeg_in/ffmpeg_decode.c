@@ -34,7 +34,7 @@
 #include <libavutil/opt.h>
 #endif
 
-#if defined(GPAC_ANDROID) || defined(GPAC_IPHONE)
+#if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
 #define NO_10bit
 #endif
 

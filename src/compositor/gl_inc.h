@@ -39,9 +39,9 @@
 
 #ifdef GPAC_USE_GLES1X
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #include "GLES/gl.h"
-#elif defined(GPAC_IPHONE)
+#elif defined(GPAC_CONFIG_IOS)
 #include "OpenGLES/ES1/gl.h"
 #include "OpenGLES/ES1/glext.h"
 #include "glues.h"
@@ -49,7 +49,7 @@
 #include "GLES/egl.h"
 #endif
 
-#if defined(GPAC_HAS_GLU) && !defined (GPAC_IPHONE)
+#if defined(GPAC_HAS_GLU) && !defined (GPAC_CONFIG_IOS)
 /*WARNING - this is NOT a standard include, GLU is not supported by GLES*/
 #include <GLES/glu.h>
 #endif
@@ -81,7 +81,7 @@
 
 #elif defined(GPAC_USE_GLES2)
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #include "OpenGLES/ES2/gl.h"
 #include "glues.h"
 #else
@@ -500,7 +500,7 @@ GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glGetProgramiv, (GLuint program, GLenum pname, GLint *params) )
 GLDECL(void, glGetProgramInfoLog, (GLuint program,  GLsizei maxLength,  GLsizei *length,  char *infoLog) )
 
-#ifndef GPAC_ANDROID
+#ifndef GPAC_CONFIG_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
 GLDECL(void, glDisableVertexAttribArray, (GLuint index) )
 GLDECL(void, glVertexAttribPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLboolean  normalized,  GLsizei  stride,  const GLvoid *  pointer) )

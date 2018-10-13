@@ -716,8 +716,8 @@ const char *gpac_enabled_features()
 #ifdef GPAC_CONFIG_ANDROID
 	                       "GPAC_CONFIG_ANDROID "
 #endif
-#ifdef GPAC_IPHONE
-	                       "GPAC_IPHONE "
+#ifdef GPAC_CONFIG_IOS
+	                       "GPAC_CONFIG_IOS "
 #endif
 #ifdef GPAC_64_BITS
 	                       "GPAC_64_BITS "

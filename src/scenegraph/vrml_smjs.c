@@ -117,7 +117,7 @@ for iOS don't force GC (better performances according to Ivica)
 
 NOTE - this is currently disabled, as performing the GC at each root with complex scenes (lots of objects) really decreases performances
 */
-#if !defined(GPAC_IPHONE)
+#if !defined(GPAC_CONFIG_IOS)
 # if (JS_VERSION<180)
 //#  define FORCE_GC
 # endif

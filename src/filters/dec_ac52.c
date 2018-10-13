@@ -79,7 +79,7 @@ static GF_Err a52dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	if (!ctx->opid) {
 		u32 flags = MM_ACCEL_DJBFFT;
-#if !defined (GPAC_IPHONE) && !defined (GPAC_ANDROID)
+#if !defined (GPAC_CONFIG_IOS) && !defined (GPAC_CONFIG_ANDROID)
 		flags |= MM_ACCEL_X86_MMX | MM_ACCEL_X86_3DNOW | MM_ACCEL_X86_MMXEXT;
 #endif
 		ctx->codec = a52_init(flags);

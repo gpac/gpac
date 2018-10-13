@@ -28,7 +28,7 @@
 
 #include <gpac/setup.h>
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) )
 
 #include <stdint.h>
 
@@ -48,7 +48,7 @@
 #include "../../src/compositor/gl_inc.h"
 
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #define VTB_GL_TEXTURE
 
 #define GF_CVGLTextureREF CVOpenGLESTextureRef
@@ -1634,7 +1634,7 @@ GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **out
 /*Define codec matrix*/
 typedef struct __matrix GF_CodecMatrix;
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 void *myGetGLContext();
 #else
 
@@ -1667,7 +1667,7 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 	if (! f->ctx->decoded_frames_pending) return GF_IO_ERR;
 	
 	if (!f->ctx->cache_texture) {
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 		status = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, f->ctx->gl_context, NULL, &f->ctx->cache_texture);
 #else
 		status = CVOpenGLTextureCacheCreate(kCFAllocatorDefault, NULL, f->ctx->gl_context, CGLGetPixelFormat(f->ctx->gl_context), NULL, &f->ctx->cache_texture);
@@ -1714,7 +1714,7 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 	}
 	//don't create texture if already done !
 	if ( *outTexture == NULL) {
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 		status = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, f->ctx->cache_texture, f->frame, NULL, GL_TEXTURE_2D, target_fmt, w, h, target_fmt, GL_UNSIGNED_BYTE, plane_idx, outTexture);
 #else
 		status = CVOpenGLTextureCacheCreateTextureFromImage(kCFAllocatorDefault, f->ctx->cache_texture, f->frame, NULL, outTexture);
@@ -1841,7 +1841,7 @@ static const GF_FilterCapability VTBDecCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
 
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SIMPLE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_MAIN),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SNR),
@@ -1884,11 +1884,11 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 #include <gpac/maths.h>
 #include <gpac/filters.h>
 
-#endif // !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )
+#endif // !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) )
 
 const GF_FilterRegister *vtbdec_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) )
 	return &GF_VTBDecCtxRegister;
 #else
 	return NULL;

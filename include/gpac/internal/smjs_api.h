@@ -44,14 +44,14 @@
 #endif
 
 //Android config
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 # ifndef XP_UNIX
 #  define XP_UNIX
 # endif
 #endif
 
 //iOS config
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 # ifndef XP_UNIX
 #  define XP_UNIX
 # endif
@@ -64,7 +64,7 @@
 #endif
 
 /*OSX config*/
-#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
 # define MOZILLA_1_8_BRANCH
 # ifndef XP_UNIX
 #  define XP_UNIX

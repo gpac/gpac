@@ -1142,11 +1142,11 @@ GF_Err gf_opts_discard_changes();
 
 
 /* \cond dummy */
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 typedef void (*fm_callback_func)(void *cbk_obj, u32 type, u32 param, int *value);
 extern void gf_fm_request_set_callback(void *cbk_obj, fm_callback_func cbk_func);
 void gf_fm_request_call(u32 type, u32 param, int *value);
-#endif //GPAC_ANDROID
+#endif //GPAC_CONFIG_ANDROID
 
 /* \endcond */
 

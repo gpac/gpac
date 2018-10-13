@@ -44,7 +44,7 @@
 
 
 #if defined(GPAC_USE_GLES2)
-# ifdef GPAC_IPHONE
+# ifdef GPAC_CONFIG_IOS
 #  include "OpenGLES/ES3/gl.h"
 #  include "glues.h"
 # else
@@ -134,7 +134,7 @@ GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
 GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
 GLDECL(void *, glUnmapBuffer, (GLenum) )
 GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name))
-#ifndef GPAC_ANDROID
+#ifndef GPAC_CONFIG_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index))
 GLDECL(void, glDisableVertexAttribArray, (GLuint index))
 GLDECL(void, glVertexAttribPointer, (GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const GLvoid *  pointer))
@@ -186,7 +186,7 @@ GLDECL_STATIC(glMapBuffer);
 GLDECL_STATIC(glUnmapBuffer);
 GLDECL_STATIC(glGetAttribLocation);
 
-#ifndef GPAC_ANDROID
+#ifndef GPAC_CONFIG_ANDROID
 GLDECL_STATIC(glEnableVertexAttribArray);
 GLDECL_STATIC(glDisableVertexAttribArray);
 GLDECL_STATIC(glVertexAttribPointer);
@@ -224,7 +224,7 @@ static void vout_load_gl()
 	GET_GLFUN(glBufferSubData);
 	GET_GLFUN(glMapBuffer);
 	GET_GLFUN(glUnmapBuffer);
-#ifndef GPAC_ANDROID
+#ifndef GPAC_CONFIG_ANDROID
 	GET_GLFUN(glEnableVertexAttribArray);
 	GET_GLFUN(glDisableVertexAttribArray);
 	GET_GLFUN(glVertexAttribPointer);

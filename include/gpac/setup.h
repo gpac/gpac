@@ -257,7 +257,7 @@ char * my_str_lwr(char *str);
 #include <string.h>
 #include <assert.h>
 
-#if __APPLE__ && defined GPAC_IPHONE
+#if __APPLE__ && defined GPAC_CONFIG_IOS
 #include <TargetConditionals.h>
 #endif
 
@@ -449,7 +449,7 @@ char* gf_strdup(const char *str);
 #endif
 
 #if !defined(GF_EXPORT)
-#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_IPHONE)
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_CONFIG_IOS)
 #define GF_EXPORT __attribute__((visibility("default")))
 #else
 /*use def files for windows or let compiler decide*/
@@ -457,7 +457,7 @@ char* gf_strdup(const char *str);
 #endif
 #endif
 
-#if defined(GPAC_IPHONE)
+#if defined(GPAC_CONFIG_IOS)
 #define GPAC_STATIC_MODULES
 #endif
 

@@ -47,7 +47,7 @@
 #elif (defined(__DARWIN__) || defined(__APPLE__) )
 #include <mach-o/dyld.h> /*for _NSGetExecutablePath */
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #define TEST_MODULE     "osmo4ios"
 #else
 #define TEST_MODULE		"gm_"
@@ -58,7 +58,7 @@
 #ifdef GPAC_CONFIG_LINUX
 #include <unistd.h>
 #endif
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #define DEFAULT_ANDROID_PATH_APP	"/data/data/com.gpac.Osmo4"
 #define DEFAULT_ANDROID_PATH_CFG	"/sdcard/osmo"
 #endif
@@ -223,7 +223,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 }
 
 /*FIXME - the paths defined here MUST be coherent with the paths defined in applications/osmo4_android/src/com/gpac/Osmo4/GpacConfig.java'*/
-#elif defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_ANDROID)
 
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
@@ -281,7 +281,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	/*on OSX, Linux & co, user home is where we store the cfg file*/
 	if (path_type==GF_PATH_CFG) {
 		char *user_home = getenv("HOME");
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 		char buf[PATH_MAX];
 		char *res;
 #endif
@@ -289,7 +289,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find HOME directory\n"));
 			return 0;
 		}
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 		res = realpath(user_home, buf);
 		if (res) {
 			strcpy(file_path, buf);
@@ -437,7 +437,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*we are looking for .app install path, or GUI */
 	if (path_type==GF_PATH_SHARE) {
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 		strcat(app_path, "/Contents/MacOS/share");
 		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 #else /*iOS: for now, everything is set flat within the package*/
@@ -459,7 +459,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 //get real path where the .gpac dir has been created, and use this as the default path
 //for cache (tmp/ dir of ios app) and last working fir
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 {
 	char *cache_dir, *old_cache_dir;
@@ -516,7 +516,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	strcpy(szProfilePath, szPath);
 
 
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
 		gf_delete_file(szPath);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] default modules not found\n"));
@@ -526,9 +526,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	get_default_install_path(szPath, GF_PATH_APP);
 #endif
 
-#if defined(GPAC_IPHONE)
+#if defined(GPAC_CONFIG_IOS)
 	gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
-#elif defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_ANDROID)
 	gf_cfg_set_key(cfg, "General", "DeviceType", "Android");
 #else
 	gf_cfg_set_key(cfg, "General", "DeviceType", "Desktop");
@@ -538,9 +538,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 	gf_cfg_set_key(cfg, "Core", "ModulesDirectory", szPath);
 
-#if defined(GPAC_IPHONE)
+#if defined(GPAC_CONFIG_IOS)
 	gf_ios_refresh_cache_directory(cfg, file_path);
-#elif defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_ANDROID)
 	if (get_default_install_path(szPath, GF_PATH_APP)) {
 		strcat(szPath, "/cache");
 		gf_cfg_set_key(cfg, "Core", "CacheDirectory", szPath);
@@ -567,13 +567,13 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	strcat((char *)szPath, "Fonts");
 #elif defined(__APPLE__)
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 	strcpy(szPath, "/System/Library/Fonts/Cache,/System/Library/Fonts/AppFonts,/System/Library/Fonts/Core,/System/Library/Fonts/Extra");
 #else
 	strcpy(szPath, "/Library/Fonts");
 #endif
 
-#elif defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_ANDROID)
 	strcpy(szPath, "/system/fonts/");
 #else
 	strcpy(szPath, "/usr/share/fonts/truetype/");
@@ -588,7 +588,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "DirectX Video Output");
 #elif defined(__DARWIN__) || defined(__APPLE__)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
-#elif defined(GPAC_ANDROID)
+#elif defined(GPAC_CONFIG_ANDROID)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "Android Video Output");
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "Android Audio Output");
 #else
@@ -626,7 +626,7 @@ static void check_modules_dir(GF_Config *cfg)
 {
 	char path[GF_MAX_PATH];
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 	char *cfg_path;
 	if ( get_default_install_path(path, GF_PATH_SHARE) ) {
 		char *sep;
@@ -757,7 +757,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 		return NULL;
 	}
 
-#ifndef GPAC_IPHONE
+#ifndef GPAC_CONFIG_IOS
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Using global config file in %s directory\n", szPath));
 #endif
 

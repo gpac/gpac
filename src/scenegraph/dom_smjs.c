@@ -43,7 +43,7 @@
 
 #include <gpac/html5_mse.h>
 
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #ifndef XP_UNIX
 #define XP_UNIX
 #endif /* XP_UNIX */
