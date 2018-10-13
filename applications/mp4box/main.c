@@ -106,7 +106,7 @@ void PrintVersion()
 	fprintf(stderr, "MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
 	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s\n", gpac_features());
+	        "Features: %s %s\n", gpac_enabled_features(), gpac_disabled_features());
 }
 
 void PrintGeneralUsage()

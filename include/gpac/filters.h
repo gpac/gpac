@@ -1287,7 +1287,7 @@ typedef enum
 /*! filter registry flags*/
 typedef enum
 {
-	/*! when set indicates all calls shall take place in fthe main thread (running GL output) - to be refined*/
+	/*! when set indicates all calls shall take place in the main thread (running GL output) - to be refined*/
 	GF_FS_REG_MAIN_THREAD = 1<<1,
 	/*! when set indicates the initial call to configure_pid will happen in the main thread. This is typically called by decoders requiring
 	a GL context (currently only in main thread) upon init, but not requiring it for the decode. Such decoders get their GL frames mapped

@@ -41,6 +41,7 @@ static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
 static Bool enable_profiling = GF_FALSE;
+static s32 nb_loops = 0;
 
 
 //the default set of separators
@@ -328,7 +329,8 @@ static void gf_log_usage(void)
 	        "\t        \"sched\"      : filter session scheduler debugging\n"
 	        "\t        \"mutex\"      : log all mutex calls\n"
 	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
-	        "A special keyword \"ncl\" can be set to disable color logs.\n"
+	        "The special keyword \"ncl\" can be set to disable color logs.\n"
+	        "The special keyword \"strict\" can be set to exit at first error.\n"
 	        "\tEX: -logs all@info:dash@debug:ncl moves all log to info level, dash to debug level and disable color logs.\n"
 	        "\n"
 	);
@@ -336,8 +338,7 @@ static void gf_log_usage(void)
 
 static void gpac_usage(void)
 {
-	fprintf(stderr, "Usage: gpac [options] FILTER_ARGS [LINK] FILTER_ARGS\n"
-			"Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
+	fprintf(stderr, "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
 			"This is GPAC's command line tool for setting up and running filter chains - see -h doc for generic help on GPAC filters.\n"
 			"\n"
 			"Global options are:\n"
@@ -356,7 +357,6 @@ static void gpac_usage(void)
 			"-graph          : print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt\n"
 	        "-threads=N      : set N extra thread for the session. -1 means use all available cores\n"
 			"\n"
-	        "-strict-error   : exit at first error\n"
 			"-quiet          : quiet mode\n"
 			"-noprog         : disable progress messages if any\n"
 			"-h [ARG]        : print help (works with -help as well). ARG can be:\n"
@@ -384,6 +384,7 @@ static void gpac_usage(void)
 			"                   (filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)\n"
 			"					Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually\n"
 			"-ltf            : load test-unit filters (used for for unit tests only).\n"
+			"-loop[=N]       : loops execution of session, creating a session at each loop. If N is set, loops N times. Mainly used for testing.\n"
 			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
 			"					A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
 			"-wp[x]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
@@ -391,9 +392,7 @@ static void gpac_usage(void)
 
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
-	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
-	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s\n", separator_set, gpac_features()
+	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n" , separator_set
 	);
 
 }
@@ -405,6 +404,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		switch (c) {
 		case 'q':
 			gf_fs_abort(fsess);
+			nb_loops = 0;
 			return GF_FALSE;
 		case 's':
 			gf_fs_print_stats(fsess);
@@ -436,6 +436,7 @@ static int gpac_main(int argc, char **argv)
 	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
 	u32 quiet = 0;
+	u32 nb_filters = 0;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
@@ -472,6 +473,14 @@ static int gpac_main(int argc, char **argv)
 			} else if (!strcmp(argv[i+1], "links")) {
 				view_filter_conn = GF_TRUE;
 				i++;
+			} else if (!strcmp(argv[i+1], "bin")) {
+				fprintf(stderr, "GPAC binary information:\n"\
+				 	"Version "GPAC_FULL_VERSION"\n"\
+	        		"Compilation configuration: " GPAC_CONFIGURATION "\n"\
+	        		"Enabled features: %s\n" \
+	        		"Disabled features: %s\n", gpac_enabled_features(), gpac_disabled_features()
+				);
+				return 0;
 			} else if (!strcmp(argv[i+1], "filters")) {
 				list_filters = 1;
 				i++;
@@ -512,9 +521,7 @@ static int gpac_main(int argc, char **argv)
 			arg_val++;
 		}
 
-		if (!strcmp(arg, "-strict-error")) {
-			gf_log_set_strict_error(1);
-		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
+		if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 			if (arg_val) {
 				logfile = gf_fopen(arg_val, "wt");
 				gf_log_set_callback(logfile, on_gpac_log);
@@ -560,6 +567,9 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-wpx")) {
 			write_profile = GF_TRUE;
 			sflags |= GF_FS_FLAG_LOAD_META;
+		} else if (!strcmp(arg, "-loop")) {
+			nb_loops = -1;
+			if (arg_val) nb_loops = atoi(arg_val);
 		}
 
 		if (arg_val) {
@@ -588,6 +598,9 @@ static int gpac_main(int argc, char **argv)
 
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 	if (disable_blocking) sflags |= GF_FS_FLAG_NO_BLOCKING;
+
+restart:
+
 	session = gf_fs_new(nb_threads, sched_type, sflags, blacklist);
 	if (!session) {
 		return 1;
@@ -676,6 +689,7 @@ static int gpac_main(int argc, char **argv)
 			if (!e) e = GF_NOT_SUPPORTED;
 			goto exit;
 		}
+		nb_filters++;
 
 		if (link_prev_filter>=0) {
 			GF_Filter *link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_prev_filter);
@@ -710,11 +724,17 @@ static int gpac_main(int argc, char **argv)
 		gf_fs_print_connections(session);
 
 exit:
-	if (e) {
+	if (e && nb_filters) {
 		gf_fs_run(session);
 	}
 	gf_fs_del(session);
 	if (loaded_filters) gf_list_del(loaded_filters);
+
+	if (!e && (nb_loops>0) ) {
+		nb_loops--;
+		goto restart;
+	}
+
 	gf_sys_close();
 	if (e) return 1;
 

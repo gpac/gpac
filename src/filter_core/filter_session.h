@@ -276,7 +276,7 @@ struct __gf_fs_task
 };
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure);
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool requires_main_thread);
 
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, u32 propagate_mask);
 void gf_filter_pid_send_event_downstream(GF_FSTask *task);
@@ -472,6 +472,10 @@ struct __gf_filter
 	GF_FilterQueue *pcks_inst_reservoir;
 
 	GF_Mutex *pcks_mx;
+
+	//!this mutex protects:
+	//- the filter task queue, when reordering tasks for later processing whil other threads try to post to the filter task queue
+	//- the list of input pid and output pid destinations, which can be added from different threads for a same pid (fan-out)
 	GF_Mutex *tasks_mx;
 
 	//list of output pids to be configured
@@ -785,7 +789,6 @@ void gf_props_reset_single(GF_PropertyValue *p);
 
 void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
-
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt);
 

@@ -157,13 +157,12 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on an input PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
-	if ((data || destruct) && gf_filter_pid_would_block(pid))
-		return NULL;
 
 	pck = gf_fq_pop(pid->filter->pcks_shared_reservoir);
 	if (!pck) {
 		GF_SAFEALLOC(pck, GF_FilterPacket);
-		if (!pck) return NULL;
+		if (!pck)
+			return NULL;
 	}
 	pck->pck = pck;
 	pck->data = (char *) data;
@@ -432,7 +431,7 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
-	u32 i, count, nb_dispatch=0, max_nb_pck=0, max_buf_dur=0;
+	u32 i, count, nb_dispatch=0;
 	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
 	GF_FilterPid *pid;
 	s64 duration=0;
@@ -797,17 +796,21 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			post_task = GF_TRUE;
 		}
 		if (post_task) {
-			u32 nb_pck = gf_fq_count(dst->packets);
-			if (max_nb_pck < nb_pck) max_nb_pck = nb_pck;
-			if (max_buf_dur<dst->buffer_duration) max_buf_dur = (u32) dst->buffer_duration;
+			u32 nb_pck;
+//			fprintf(stderr, "filter %s pid %s dispatch packet\n", dst->filter->freg->name, dst->pid->name );
 
+			//do stats after post_process, since we may process and drop the packet during this call in direct scheduling mode
 			if (!dst->filter->skip_process_trigger_on_tasks)
 				gf_filter_post_process_task(dst->filter);
+
+			nb_pck = gf_fq_count(dst->packets);
+			if (pid->nb_buffer_unit < nb_pck) pid->nb_buffer_unit = nb_pck;
+			if (pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = (u32) dst->buffer_duration;
 		}
 	}
-	//todo needs Compare&Swap
-	pid->nb_buffer_unit = max_nb_pck;
-	pid->buffer_duration = max_buf_dur;
+
+//	pid->nb_buffer_unit = max_nb_pck;
+//	pid->buffer_duration = max_buf_dur;
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (pck->pid->filter->nb_process_since_reset) {

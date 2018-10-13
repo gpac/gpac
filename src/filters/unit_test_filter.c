@@ -101,7 +101,7 @@ static void ut_filter_finalize(GF_Filter *filter)
 				} else if (memcmp(p->value.data.ptr, digest, p->value.data.size )) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d wrong hash after execution\n", gf_filter_get_name(filter), i+1 ));
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[%s] Pid %d hash OK after execution :)\n", gf_filter_get_name(filter), i+1 ));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[%s] Pid %d hash OK after execution\n", gf_filter_get_name(filter), i+1 ));
 				}
 			}
 		}
@@ -355,7 +355,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 
 	gf_filter_pck_send(pck);
 
-	//and destroy the reference it
+	//and destroy the reference
 	gf_filter_pck_unref(pck);
 
 	} //end PID loop
@@ -366,17 +366,21 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 
 static GF_Err ut_filter_process_sink(GF_Filter *filter)
 {
-	u32 size, i, count;
+	u32 size, i, count, nb_eos;
 	const char *data;
 	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
 
 	count = gf_list_count(stack->pids);
+	nb_eos=0;
+
 	for (i=0; i<count; i++) {
 	PIDCtx *pidctx=gf_list_get(stack->pids, i);
 
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
-	if (!pck)
-		return GF_OK;
+	if (!pck) {
+		if (gf_filter_pid_is_eos(pidctx->src_pid)) nb_eos++;
+		continue;
+	}
 
 	data = gf_filter_pck_get_data(pck, &size);
 
@@ -400,6 +404,9 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 	gf_filter_pid_drop_packet(pidctx->src_pid);
 
 	} //end PID loop
+
+	if (nb_eos==count) return GF_EOS;
+	
 	return GF_OK;
 }
 
@@ -541,6 +548,7 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 	pidctx->sha_ctx = gf_sha1_starts();
 
 	}//end pid loop
+
 	return GF_OK;
 }
 
@@ -710,7 +718,10 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		gf_props_get_type_name(GF_PROP_POINTER);
 	}
 
-	if (! strcmp( "UTSink", gf_filter_get_name(filter))) stack->mode=1;
+	if (! strcmp( "UTSink", gf_filter_get_name(filter))) {
+		stack->mode=1;
+		gf_filter_sep_max_extra_input_pids(filter, 10);
+	}
 	else if (! strcmp( "UTFilter", gf_filter_get_name(filter))) stack->mode=2;
 	else {
 		stack->mode=0;
