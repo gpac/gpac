@@ -2171,26 +2171,27 @@ static void vp9_tile_info(GF_BitStream *bs, int Sb64Cols)
 	}
 }
 
-static void vp9_frame_size_with_refs(GF_BitStream *bs)
+static void vp9_frame_size_with_refs(GF_BitStream *bs, int *FrameWidth, int *FrameHeight, int *RenderWidth, int *RenderHeight, int *Sb64Cols, int *Sb64Rows)
 {
-	int FrameWidth = 0, FrameHeight = 0, RenderWidth = 0, RenderHeight = 0, Sb64Cols = 0, Sb64Rows = 0; //FIXME: we parse but we don't update the size because it is based on the ref list that we don't keep
 	Bool found_ref;
 	int i;
 	for (i = 0; i < 3; i++) {
 		found_ref = gf_bs_read_int(bs, 1);
 		if (found_ref) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[VP9] frame_size_with_refs() with ref is not supported (keep old value %dx%d).\n", *FrameWidth, *FrameHeight));
+			return;
 			/*FrameWidth = RefFrameWidth[ref_frame_idx[i]];
-			FrameHeight = RefFrameHeight[ref_frame_idx[i]];*/
-			break;
+			FrameHeight = RefFrameHeight[ref_frame_idx[i]];
+			break;*/
 		}
 	}
 	if (found_ref == 0) {
-		vp9_frame_size(bs, &FrameWidth, &FrameHeight, &Sb64Cols, &Sb64Rows);
+		vp9_frame_size(bs, FrameWidth, FrameHeight, Sb64Cols, Sb64Rows);
 	} else {
-		vp9_compute_image_size(FrameWidth, FrameHeight, &Sb64Cols, &Sb64Rows);
+		vp9_compute_image_size(*FrameWidth, *FrameHeight, Sb64Cols, Sb64Rows);
 	}
 	
-	vp9_render_size(bs, FrameWidth, FrameHeight, &RenderWidth, &RenderHeight);
+	vp9_render_size(bs, *FrameWidth, *FrameHeight, RenderWidth, RenderHeight);
 }
 
 static void vp9_read_interpolation_filter(GF_BitStream *bs)
@@ -2281,7 +2282,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 				/*ref_frame_idx[i] = */gf_bs_read_int(bs, 3);
 				/*ref_frame_sign_bias[LAST_FRAME + i] = */gf_bs_read_int(bs, 1);
 			}
-			vp9_frame_size_with_refs(bs);
+			vp9_frame_size_with_refs(bs, FrameWidth, FrameHeight, renderWidth, renderHeight, &Sb64Cols, &Sb64Rows);
 			/*allow_high_precision_mv = */gf_bs_read_int(bs, 1);
 			vp9_read_interpolation_filter(bs);
 		}
