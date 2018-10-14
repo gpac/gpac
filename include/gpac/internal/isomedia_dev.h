@@ -3495,6 +3495,8 @@ void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *md
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *mdia);
 void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *hevc);
+void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *av1, GF_MediaBox *mdia);
+void VP9_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1);
 void AV1_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *av1, GF_MediaBox *mdia);
 void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
