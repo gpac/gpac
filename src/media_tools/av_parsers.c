@@ -1949,15 +1949,15 @@ exit:
 
 static Bool vp9_frame_sync_code(GF_BitStream *bs)
 {
-	u8 val = gf_bs_read_u8(bs);
+	u8 val = gf_bs_read_int(bs, 8);
 	if (val != 0x49)
 		return GF_FALSE;
 
-	val = gf_bs_read_u8(bs);
+	val = gf_bs_read_int(bs, 8);
 	if (val != 0x83)
 		return GF_FALSE;
 
-	val = gf_bs_read_u8(bs);
+	val = gf_bs_read_int(bs, 8);
 	if (val != 0x42)
 		return GF_FALSE;
 
@@ -1978,7 +1978,7 @@ typedef enum {
 static const int VP9_CS_to_23001_8_colour_primaries[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 1 };
 static const int VP9_CS_to_23001_8_transfer_characteristics[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 13 };
 
-static void vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
+static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 {
 	VP9_color_space color_space;
 
@@ -2000,7 +2000,10 @@ static void vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 			subsampling_y = gf_bs_read_int(bs, 1);
 			vp9_cfg->chroma_subsampling = subsampling_xy_to_chroma_subsampling[subsampling_x][subsampling_y];
 			Bool reserved_zero = gf_bs_read_int(bs, 1);
-			assert(reserved_zero == 0);
+			if (reserved_zero) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VP9] color config reserved zero (1) is not zero.\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 		} else {
 			vp9_cfg->chroma_subsampling = 0;
 		}
@@ -2009,9 +2012,14 @@ static void vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 		if (vp9_cfg->profile == 1 || vp9_cfg->profile == 3) {
 			vp9_cfg->chroma_subsampling = 3;
 			Bool reserved_zero = gf_bs_read_int(bs, 1);
-			assert(reserved_zero == 0);
+			if (reserved_zero) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VP9] color config reserved zero (2) is not zero.\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 		}
 	}
+
+	return GF_OK;
 }
 
 static void vp9_compute_image_size()
@@ -2092,8 +2100,11 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 	Bool profile_high_bit = gf_bs_read_int(bs, 1);
 	vp9_cfg->profile = (profile_high_bit << 1) + profile_low_bit;
 	if (vp9_cfg->profile == 3) {
-		u8 reserved_zero = gf_bs_read_int(bs, 1);
-		assert(reserved_zero == 0);
+		Bool reserved_zero = gf_bs_read_int(bs, 1);
+		if (reserved_zero) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VP9] uncompressed header reserved zero is not zero.\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 	}
 	
 	Bool show_existing_frame = gf_bs_read_int(bs, 1);
@@ -2106,8 +2117,10 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 	Bool show_frame = gf_bs_read_int(bs, 1);
 	Bool error_resilient_mode = gf_bs_read_int(bs, 1);
 	if (frame_type == VP9_KEY_FRAME) {
-		vp9_frame_sync_code(bs);
-		vp9_color_config(bs, vp9_cfg);
+		if (!vp9_frame_sync_code(bs))
+			return GF_NON_COMPLIANT_BITSTREAM;
+		if (vp9_color_config(bs, vp9_cfg) != GF_OK)
+			return GF_NON_COMPLIANT_BITSTREAM;
 		vp9_frame_size(bs, FrameWidth, FrameHeight);
 		vp9_render_size(bs, *FrameWidth, *FrameHeight, renderWidth, renderHeight);
 		/*refresh_frame_flags = 0xFF;*/
@@ -2131,7 +2144,8 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 				return GF_NON_COMPLIANT_BITSTREAM;
 
 			if (vp9_cfg->profile > 0) {
-				vp9_color_config(bs, vp9_cfg);
+				if (vp9_color_config(bs, vp9_cfg) != GF_OK)
+					return GF_NON_COMPLIANT_BITSTREAM;
 			} else {
 				u8 color_space = CS_BT_601;
 				vp9_cfg->colour_primaries = VP9_CS_to_23001_8_colour_primaries[color_space];
