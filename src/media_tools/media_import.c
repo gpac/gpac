@@ -7365,7 +7365,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	int width = 0, height = 0, renderWidth, renderHeight;
 	Bool detect_fps;
 	Double FPS = 0.0;
-	u64 pos = 0;
+	u64 pos = 0, fsize = 0;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -7380,6 +7380,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	mdia = gf_fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "VP9: cannot find file %s", import->in_name);
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
+	fsize = gf_bs_get_size(bs) / 1000;
 
 	if (probe_webm_matrovska(bs))
 		goto exit;
@@ -7472,12 +7473,12 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 
 			gf_isom_sample_del(&samp);
 
-			gf_set_progress("Importing VP9", cur_samp, num_frames);
+			gf_set_progress("Importing VP9", gf_bs_get_position(bs) / 1000, fsize);
 			cur_samp++;
 		}
 	}
 
-	gf_set_progress("Importing VP9", num_frames, num_frames);
+	gf_set_progress("Importing VP9", cur_samp, cur_samp);
 	e = gf_isom_set_visual_info(import->dest, track_num, di, width, height);
 #if 0 //TODO: find streams when this happens in render_size()
 	if (width != renderWidth) {
