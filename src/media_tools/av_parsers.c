@@ -2022,15 +2022,15 @@ static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 	return GF_OK;
 }
 
-static void vp9_compute_image_size()
+static void vp9_compute_image_size(int FrameWidth, int FrameHeight, int *Sb64Cols, int *Sb64Rows)
 {
-	/*MiCols = (FrameWidth + 7) >> 3
-	MiRows = (FrameHeight + 7) >> 3
-	Sb64Cols = (MiCols + 7) >> 3
-	Sb64Rows = (MiRows + 7) >> 3*/
+	int MiCols = (FrameWidth + 7) >> 3;
+	int MiRows = (FrameHeight + 7) >> 3;
+	*Sb64Cols = (MiCols + 7) >> 3;
+	*Sb64Rows = (MiRows + 7) >> 3;
 }
 
-static void vp9_frame_size(GF_BitStream *bs, int *FrameWidth, int *FrameHeight)
+static void vp9_frame_size(GF_BitStream *bs, int *FrameWidth, int *FrameHeight, int *Sb64Cols, int *Sb64Rows)
 {
 	int frame_width_minus_1 = gf_bs_read_int(bs, 16);
 	int frame_height_minus_1 = gf_bs_read_int(bs, 16);
@@ -2039,7 +2039,7 @@ static void vp9_frame_size(GF_BitStream *bs, int *FrameWidth, int *FrameHeight)
 	}
 	*FrameWidth = frame_width_minus_1 + 1;
 	*FrameHeight = frame_height_minus_1 + 1;
-	vp9_compute_image_size();
+	vp9_compute_image_size(*FrameWidth, *FrameHeight, Sb64Cols, Sb64Rows);
 }
 
 static void vp9_render_size(GF_BitStream *bs, int FrameWidth, int FrameHeight, int *renderWidth, int *renderHeight)
@@ -2056,32 +2056,149 @@ static void vp9_render_size(GF_BitStream *bs, int FrameWidth, int FrameHeight, i
 	}
 }
 
-static void vp9_loop_filter_params()
-{
+static s64 vp9_s(GF_BitStream *bs, int n) {
+	s64 value = gf_bs_read_int(bs, n);
+	Bool sign = gf_bs_read_int(bs, 1);
+	return sign ? -value : value;
 }
 
-static void vp9_quantization_params()
+static void vp9_loop_filter_params(GF_BitStream *bs)
 {
+	/*loop_filter_level = */gf_bs_read_int(bs, 6);
+	/*loop_filter_sharpness = */gf_bs_read_int(bs, 3);
+	Bool loop_filter_delta_enabled = gf_bs_read_int(bs, 1);
+	if (loop_filter_delta_enabled == 1) {
+		Bool loop_filter_delta_update = gf_bs_read_int(bs, 1);
+		if (loop_filter_delta_update == GF_TRUE) {
+			int i;
+			for (i = 0; i < 4; i++) {
+				Bool update_ref_delta = gf_bs_read_int(bs, 1);
+				if (update_ref_delta == GF_TRUE)
+					/*loop_filter_ref_deltas[i] =*/ vp9_s(bs, 6);
+			}
+			for (i = 0; i < 2; i++) {
+				Bool update_mode_delta = gf_bs_read_int(bs, 1);
+				if (update_mode_delta == GF_TRUE)
+					/*loop_filter_mode_deltas[i] =*/ vp9_s(bs, 6);
+			}
+		}
+	}
 }
 
-static void vp9_segmentation_params()
+static void vp9_quantization_params(GF_BitStream *bs)
 {
+	/*base_q_idx = */gf_bs_read_int(bs, 8);
 }
 
-static void vp9_tile_info()
+#define VP9_MAX_SEGMENTS 8
+#define VP9_SEG_LVL_MAX 4
+static const int segmentation_feature_bits[VP9_SEG_LVL_MAX] = { 8, 6, 2, 0 };
+static const int segmentation_feature_signed[VP9_SEG_LVL_MAX] = { 1, 1, 0, 0 };
+
+#define VP9_MIN_TILE_WIDTH_B64 4
+#define VP9_MAX_TILE_WIDTH_B64 64
+
+static void vp9_segmentation_params(GF_BitStream *bs)
 {
+	int i, j;
+	Bool segmentation_enabled = gf_bs_read_int(bs, 1);
+	if (segmentation_enabled == 1) {
+		Bool segmentation_update_map = gf_bs_read_int(bs, 1);
+		if (segmentation_update_map) {
+			for (i = 0; i < 7; i++)
+				/*segmentation_tree_probs[i] = read_prob()*/
+				/*segmentation_temporal_update = */gf_bs_read_int(bs, 1);
+			/*for (i = 0; i < 3; i++)
+				segmentation_pred_prob[i] = segmentation_temporal_update ? read_prob() : 255*/
+		}
+		Bool segmentation_update_data = gf_bs_read_int(bs, 1);
+		if (segmentation_update_data == 1) {
+			/*segmentation_abs_or_delta_update =*/ gf_bs_read_int(bs, 1);
+			for (i = 0; i < VP9_MAX_SEGMENTS; i++) {
+				for (j = 0; j < VP9_SEG_LVL_MAX; j++) {
+					/*feature_value = 0*/
+					Bool feature_enabled = gf_bs_read_int(bs, 1);
+					/*FeatureEnabled[i][j] = feature_enabled*/
+					if (feature_enabled) {
+						int bits_to_read = segmentation_feature_bits[j];
+						/*feature_value =*/ gf_bs_read_int(bs, bits_to_read);
+						if (segmentation_feature_signed[j] == 1) {
+							/*Bool feature_sign = */gf_bs_read_int(bs, 1);
+							/*if (feature_sign == 1)
+								feature_value *= -1*/
+						}
+					}
+					/*FeatureData[i][j] = feature_value*/
+				}
+			}
+		}
+	}
 }
 
-static void vp9_frame_size_with_refs()
-{
+static int calc_min_log2_tile_cols(int Sb64Cols) {
+	int minLog2 = 0;
+	while ((VP9_MAX_TILE_WIDTH_B64 << minLog2) < Sb64Cols)
+		minLog2++;
+
+	return minLog2;
 }
 
-static void vp9_read_interpolation_filter()
-{
+static int calc_max_log2_tile_cols(int Sb64Cols) {
+	int maxLog2 = 1;
+	while ((Sb64Cols >> maxLog2) >= VP9_MIN_TILE_WIDTH_B64)
+		maxLog2++;
+	
+	return maxLog2 - 1;
 }
 
-static void vp9_setup_past_independence()
+static void vp9_tile_info(GF_BitStream *bs, int Sb64Cols)
 {
+	Bool tile_rows_log2;
+	int minLog2TileCols = calc_min_log2_tile_cols(Sb64Cols);
+	int maxLog2TileCols = calc_max_log2_tile_cols(Sb64Cols);
+	int tile_cols_log2 = minLog2TileCols;
+	while (tile_cols_log2 < maxLog2TileCols) {
+		Bool increment_tile_cols_log2 = gf_bs_read_int(bs, 1);
+		if (increment_tile_cols_log2)
+			tile_cols_log2++;
+		else
+			break;
+	}
+	tile_rows_log2 = gf_bs_read_int(bs, 1);
+	if (tile_rows_log2) {
+		Bool increment_tile_rows_log2 = gf_bs_read_int(bs, 1);
+		tile_rows_log2 += increment_tile_rows_log2;
+	}
+}
+
+static void vp9_frame_size_with_refs(GF_BitStream *bs)
+{
+	int FrameWidth = 0, FrameHeight = 0, RenderWidth = 0, RenderHeight = 0, Sb64Cols = 0, Sb64Rows = 0; //FIXME: we parse but we don't update the size because it is based on the ref list that we don't keep
+	Bool found_ref;
+	int i;
+	for (i = 0; i < 3; i++) {
+		found_ref = gf_bs_read_int(bs, 1);
+		if (found_ref) {
+			/*FrameWidth = RefFrameWidth[ref_frame_idx[i]];
+			FrameHeight = RefFrameHeight[ref_frame_idx[i]];*/
+			break;
+		}
+	}
+	if (found_ref == 0) {
+		vp9_frame_size(bs, &FrameWidth, &FrameHeight, &Sb64Cols, &Sb64Rows);
+	} else {
+		vp9_compute_image_size(FrameWidth, FrameHeight, &Sb64Cols, &Sb64Rows);
+	}
+	
+	vp9_render_size(bs, FrameWidth, FrameHeight, &RenderWidth, &RenderHeight);
+}
+
+static void vp9_read_interpolation_filter(GF_BitStream *bs)
+{
+	Bool is_filter_switchable = gf_bs_read_int(bs, 1);
+	if (!is_filter_switchable) {
+		/*raw_interpolation_filter = */gf_bs_read_int(bs, 2);
+	}
 }
 
 
@@ -2091,6 +2208,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 {
 	Bool FrameIsIntra = GF_FALSE;
 	u8 frame_context_idx = 0, reset_frame_context = 0;
+	int Sb64Cols = 0, Sb64Rows = 0;
 
 	assert(bs && key_frame);
 	
@@ -2121,7 +2239,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 			return GF_NON_COMPLIANT_BITSTREAM;
 		if (vp9_color_config(bs, vp9_cfg) != GF_OK)
 			return GF_NON_COMPLIANT_BITSTREAM;
-		vp9_frame_size(bs, FrameWidth, FrameHeight);
+		vp9_frame_size(bs, FrameWidth, FrameHeight, &Sb64Cols, &Sb64Rows);
 		vp9_render_size(bs, *FrameWidth, *FrameHeight, renderWidth, renderHeight);
 		/*refresh_frame_flags = 0xFF;*/
 		*key_frame = GF_TRUE;
@@ -2154,7 +2272,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 				vp9_cfg->bit_depth = 8;
 			}
 			/*refresh_frame_flags = */gf_bs_read_int(bs, 8);
-			vp9_frame_size(bs, FrameWidth, FrameHeight);
+			vp9_frame_size(bs, FrameWidth, FrameHeight, &Sb64Cols, &Sb64Rows);
 			vp9_render_size(bs, *FrameWidth, *FrameHeight, renderWidth, renderHeight);
 		} else {
 			int i;
@@ -2163,9 +2281,9 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 				/*ref_frame_idx[i] = */gf_bs_read_int(bs, 3);
 				/*ref_frame_sign_bias[LAST_FRAME + i] = */gf_bs_read_int(bs, 1);
 			}
-			vp9_frame_size_with_refs();
+			vp9_frame_size_with_refs(bs);
 			/*allow_high_precision_mv = */gf_bs_read_int(bs, 1);
-			vp9_read_interpolation_filter();
+			vp9_read_interpolation_filter(bs);
 		}
 	}
 
@@ -2176,15 +2294,14 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 
 	frame_context_idx = gf_bs_read_int(bs, 2);
 	if (FrameIsIntra || error_resilient_mode) {
-		vp9_setup_past_independence();
-		/*save_probs ...*/
+		/*setup_past_independence + save_probs ...*/
 		frame_context_idx = 0;
 	}
 
-	vp9_loop_filter_params();
-	vp9_quantization_params();
-	vp9_segmentation_params();
-	vp9_tile_info();
+	vp9_loop_filter_params(bs);
+	vp9_quantization_params(bs);
+	vp9_segmentation_params(bs);
+	vp9_tile_info(bs, Sb64Cols);
 
 	/*header_size_in_bytes = */gf_bs_read_int(bs, 16);
 
