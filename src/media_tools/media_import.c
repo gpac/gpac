@@ -7415,7 +7415,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	while (gf_bs_available(bs)) {
 		Bool key_frame = GF_FALSE;
 		u64 frame_size = 0;
-		int num_frames_in_superframe = 0;
+		int num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 		u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 
 		GF_Err e = gf_media_parse_ivf_frame_header(bs, &frame_size);
@@ -7428,14 +7428,24 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 		}
 
 		/*check if it is a superframe*/
-		if (vp9_parse_superframe(bs, frame_size, &num_frames_in_superframe, frame_sizes) != GF_OK) {
+		if (vp9_parse_superframe(bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size) != GF_OK) {
 			gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing VP9 sample");
 			goto exit;
 		}
 
-		if (vp9_parse_sample(bs, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
-			gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing VP9 sample");
-			goto exit;
+		for (i = 0; i < num_frames_in_superframe; ++i) {
+			u64 pos2 = gf_bs_get_position(bs);
+			if (vp9_parse_sample(bs, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
+				gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing VP9 sample");
+				goto exit;
+			}
+			gf_bs_seek(bs, pos2 + frame_sizes[i]);
+		}
+		if (gf_bs_get_position(bs) + superframe_index_size != pos + frame_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("VP9: inconsistent IVF frame size of "LLU" bytes. Detected %d frames (+ %d bytes for the superframe index):\n", frame_size, num_frames_in_superframe, superframe_index_size));
+			for (i = 0; i < num_frames_in_superframe; ++i) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("VP9:    superframe %d, size is %u bytes\n", i, frame_sizes[i]));
+			}
 		}
 		gf_bs_seek(bs, pos + frame_size);
 
