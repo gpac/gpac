@@ -1744,7 +1744,12 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	if (! gf_isom_has_sync_points(mp4, track))
 		all_rap = GF_TRUE;
 
-	if (tci->keyRoll || (tci->sel_enc_type != GF_CRYPT_SELENC_NONE)) {
+	if (tci->keyRoll) {
+		use_seig = GF_TRUE;
+	} else if (tci->sel_enc_type == GF_CRYPT_SELENC_RAP) {
+		if (gf_isom_has_sync_points(mp4, track))
+			use_seig = GF_TRUE;
+	} else if (tci->sel_enc_type > GF_CRYPT_SELENC_RAP) {
 		use_seig = GF_TRUE;
 	}
 
@@ -1865,6 +1870,9 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		if (use_seig && (tci->defaultKeyIdx != idx) ) {
 			/*add this sample to sample encryption group*/
 			e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 1, tci->IV_size, tci->KIDs[idx], tci->crypt_byte_block, tci->skip_byte_block, tci->constant_IV_size, tci->constant_IV);
+			if (e) goto exit;
+		} else if (use_seig) {
+			e = gf_isom_set_sample_cenc_default(mp4, track, i+1);
 			if (e) goto exit;
 		}
 
