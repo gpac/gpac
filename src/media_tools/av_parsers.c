@@ -2207,16 +2207,16 @@ static void vp9_read_interpolation_filter(GF_BitStream *bs)
 
 GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight)
 {
-	Bool FrameIsIntra = GF_FALSE;
-	u8 frame_context_idx = 0, reset_frame_context = 0;
+	Bool FrameIsIntra = GF_FALSE, profile_low_bit = GF_FALSE, profile_high_bit = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
+	u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0;
 	int Sb64Cols = 0, Sb64Rows = 0;
 
 	assert(bs && key_frame);
 	
 	/*uncompressed header*/
-	u8 frame_marker = gf_bs_read_int(bs, 2);
-	Bool profile_low_bit = gf_bs_read_int(bs, 1);
-	Bool profile_high_bit = gf_bs_read_int(bs, 1);
+	frame_marker = gf_bs_read_int(bs, 2);
+	profile_low_bit = gf_bs_read_int(bs, 1);
+	profile_high_bit = gf_bs_read_int(bs, 1);
 	vp9_cfg->profile = (profile_high_bit << 1) + profile_low_bit;
 	if (vp9_cfg->profile == 3) {
 		Bool reserved_zero = gf_bs_read_int(bs, 1);
@@ -2226,15 +2226,15 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 		}
 	}
 	
-	Bool show_existing_frame = gf_bs_read_int(bs, 1);
+	show_existing_frame = gf_bs_read_int(bs, 1);
 	if (show_existing_frame == GF_TRUE) {
 		/*frame_to_show_map_idx = */gf_bs_read_int(bs, 3);
 		return GF_OK;
 	}
 
-	Bool frame_type = gf_bs_read_int(bs, 1);
-	Bool show_frame = gf_bs_read_int(bs, 1);
-	Bool error_resilient_mode = gf_bs_read_int(bs, 1);
+	frame_type = gf_bs_read_int(bs, 1);
+	show_frame = gf_bs_read_int(bs, 1);
+	error_resilient_mode = gf_bs_read_int(bs, 1);
 	if (frame_type == VP9_KEY_FRAME) {
 		if (!vp9_frame_sync_code(bs))
 			return GF_NON_COMPLIANT_BITSTREAM;
