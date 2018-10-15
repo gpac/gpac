@@ -111,7 +111,6 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		assert((s32)pid->filter->would_block>=0);
 
 	assert(pid->filter->would_block <= pid->filter->num_output_pids);
-//	fprintf(stderr, "Unblock test filter %s PID %s blocked %d filter %d blocked\n", pid->pid->filter->name, pid->pid->name, pid->would_block, pid->filter->would_block);
 
 	if (pid->filter->would_block < pid->filter->num_output_pids) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids));
@@ -1958,8 +1957,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 			if (edge->loaded_filter_only && (edge->src_reg->freg != pid->filter->freg) ) {
 				edge->status = EDGE_STATUS_DISABLED;
-				if (!strcmp(pid->filter->freg->name, "mp4dmx") && !strcmp(reg_desc->freg->name, "cecrypt"))
-					continue;
 				continue;
 			}
 
@@ -3541,9 +3538,8 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	gf_filter_pidinst_update_stats(pidinst, pck);
 
 	gf_mx_p(pid->filter->tasks_mx);
-//	fprintf(stderr, "filter %s pid %s discard packet - nb_pck %d nb_buffer_unit %d\n", pid->filter->freg->name, pidinst->filter->freg->name, nb_pck, pid->nb_buffer_unit);
+
 	if (nb_pck<pid->nb_buffer_unit) {
-		//todo needs Compare&Swap
 		pid->nb_buffer_unit = nb_pck;
 	}
 
@@ -3695,7 +3691,6 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		}
 #endif
 	}
-//	fprintf(stderr, "Block test filter %s PID %s blocked %d filter %d blocked (would block %d)\n", pid->pid->filter->name, pid->pid->name, pid->would_block, pid->filter->would_block, would_block);
 	assert(pid->filter->would_block <= pid->filter->num_output_pids);
 	gf_mx_v(pid->filter->tasks_mx);
 	return would_block;

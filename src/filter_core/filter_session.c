@@ -512,9 +512,6 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 	}
 
 	if (filter) {
-		if (!strcmp(log_name, "process"))
-			assert(filter->process_task_queued);
-	
 		gf_mx_p(filter->tasks_mx);
 		if (! filter->scheduled_for_next_task && (gf_fq_count(filter->tasks) == 0)) {
 			task->notified = GF_TRUE;
@@ -542,7 +539,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		check_task_list(fsess->main_thread_tasks, task);
 #endif
 
-		//only notify/count tasks posted on the main task lists, the other ones don't use sema_wait
+		//notify/count tasks posted on the main task or regular task lists
 		safe_int_inc(&fsess->tasks_pending);
 		if (filter && force_main_thread) {
 			gf_fq_add(fsess->main_thread_tasks, task);

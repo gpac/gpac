@@ -1280,8 +1280,6 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	//we are done for now
 	else {
 		task->requeue_request = GF_FALSE;
-		filter->process_task_queued = 0;
-//		fprintf(stderr, "skiping requeue task on %s - PTQ %d\n", filter->freg->name, filter->process_task_queued);
 	}
 	gf_mx_v(filter->tasks_mx);
 }
@@ -1340,7 +1338,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->freg->process);
 	task->is_filter_process = GF_TRUE;
 
-//	fprintf(stderr, "filter %s process\n", filter->freg->name);
 	assert(filter->process_task_queued);
 	filter->schedule_next_time = 0;
 
@@ -1427,8 +1424,11 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (filter->session->run_status != GF_OK) {
 		return;
 	}
+	if ((e==GF_EOS) && filter->postponed_packets)
+		e = GF_OK;
+
 	if ((e==GF_EOS) || filter->removed || filter->finalized) {
-//		filter->process_task_queued = 0;
+		filter->process_task_queued = 0;
 		return;
 	}
 	if (e) filter->session->last_process_error = e;
@@ -1560,7 +1560,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	if (filter->process_task_queued<=1) {
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
-//		fprintf(stderr, "skiping post task on %s - PTQ %d\n", filter->freg->name, filter->process_task_queued);
+		assert(filter->scheduled_for_next_task || gf_fq_count(filter->tasks) );
 	}
 	if (!filter->session->direct_mode)
 		assert(filter->process_task_queued);

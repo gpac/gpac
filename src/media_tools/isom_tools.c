@@ -2574,10 +2574,10 @@ reparse:
 			if (sample->IsRAP>SAP_TYPE_1) {
 				u32 sample_idx = gf_isom_get_sample_count(file, sti[j].track_num);
 				if (is_irap) {
-					gf_isom_set_sample_rap_group(file, sti[j].track_num, sample_idx, 0);
+					gf_isom_set_sample_rap_group(file, sti[j].track_num, sample_idx, GF_TRUE, 0);
 				}
 				else if (has_roll) {
-					gf_isom_set_sample_roll_group(file, sti[j].track_num, sample_idx, (s16) roll_distance);
+					gf_isom_set_sample_roll_group(file, sti[j].track_num, sample_idx, GF_TRUE, (s16) roll_distance);
 				}
 			}
 

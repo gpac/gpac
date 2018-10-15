@@ -2289,7 +2289,8 @@ naldmx_flush:
 			recovery_point_frame_cnt = ctx->avc_state->sei.recovery_point.frame_cnt;
 			bIntraSlice = gf_media_avc_slice_is_intra(ctx->avc_state);
 
-			if (gf_media_avc_slice_is_IDR(ctx->avc_state))
+			au_sap_type = GF_FILTER_SAP_NONE;
+			if (ctx->avc_state->s_info.nal_unit_type == GF_AVC_NALU_IDR_SLICE)
 				au_sap_type = GF_FILTER_SAP_1;
 
 			slice_poc = ctx->avc_state->s_info.poc;
