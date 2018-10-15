@@ -504,14 +504,14 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u3
 
 
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u16 *width, u16 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames);
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, int *width, int *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames);
 
 
 
 #define VP9_MAX_FRAMES_IN_SUPERFRAME 16
 
-GF_Err vp9_parse_sample(GF_BitStream *bs, Bool *key_frame, GF_VPConfig *vp9_cfg);
-GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME]);
+GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight);
+GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], int *superframe_index_size);
 
 
 
