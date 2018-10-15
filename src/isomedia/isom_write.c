@@ -5113,8 +5113,10 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 		}
 		gf_list_add(sgdesc->group_descriptions, entry);
 	}
-	if (!entry) entry_idx = 0;
-	else entry_idx = 1 + gf_list_find(sgdesc->group_descriptions, entry);
+	if (!entry)
+		entry_idx = 0;
+	else
+		entry_idx = 1 + gf_list_find(sgdesc->group_descriptions, entry);
 
 	/*look in stbl or traf for sample sampleGroups*/
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -5122,7 +5124,7 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 		if (!traf->sampleGroups)
 			traf->sampleGroups = gf_list_new();
 		groupList = traf->sampleGroups;
-		if (is_traf_sgpd && entry)
+		if (entry_idx && is_traf_sgpd)
 			entry_idx |= 0x10000;
 	} else
 #endif
@@ -5328,14 +5330,14 @@ Bool sg_rap_compare_entry(void *udta, void *entry)
 	return GF_FALSE;
 }
 
-GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, u32 num_leading_samples)
+GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool is_rap, u32 num_leading_samples)
 {
-	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
+	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, is_rap ? sg_rap_create_entry : NULL, is_rap ? sg_rap_compare_entry : NULL);
 }
 
-GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, u32 num_leading_samples)
+GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples)
 {
-	return gf_isom_set_sample_group_info(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
+	return gf_isom_set_sample_group_info(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, is_rap ? sg_rap_create_entry : NULL, is_rap ? sg_rap_compare_entry : NULL);
 }
 
 
@@ -5357,14 +5359,14 @@ Bool sg_roll_compare_entry(void *udta, void *entry)
 	return GF_FALSE;
 }
 
-GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance)
+GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool is_roll, s16 roll_distance)
 {
-	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
+	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, is_roll ? sg_roll_create_entry : NULL, is_roll ? sg_roll_compare_entry : NULL);
 }
 
-GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, s16 roll_distance)
+GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, Bool is_roll, s16 roll_distance)
 {
-	return gf_isom_set_sample_group_info(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
+	return gf_isom_set_sample_group_info(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_ROLL, 0, &roll_distance, is_roll ? sg_roll_create_entry : NULL, is_roll ? sg_roll_compare_entry : NULL);
 }
 
 void *sg_encryption_create_entry(void *udta)
@@ -5534,9 +5536,8 @@ GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 	return e;
 }
 
-/*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
-GF_Err gf_isom_set_sample_cenc_default(GF_ISOFile *movie, u32 track, u32 sample_number)
+GF_Err gf_isom_set_sample_cenc_default_group(GF_ISOFile *movie, u32 track, u32 sample_number)
 {
 	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_SEIG, 0, NULL, NULL, NULL);
 }

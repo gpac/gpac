@@ -241,6 +241,9 @@ Function does nothing when the test is skipped (see below) or a previous error o
 
 WARNING: `HASHNAME` shall be unique for a given test, otherwise hashes will be overwritten.
 
+A subtest having its result reverted from fail to pass through a rule file will prevent the next hash test to be exectuted by setting the variable `skip_next_hash_test` to 1.
+You can set this variable to 0 before calling  do_hash_test  if you need to force a hash test after a test failure.
+
 ### do_compare_file_hashes 
 Two arguments
 - `FILE1`

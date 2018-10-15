@@ -797,8 +797,6 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 		if (post_task) {
 			u32 nb_pck;
-//			fprintf(stderr, "filter %s pid %s dispatch packet\n", dst->filter->freg->name, dst->pid->name );
-
 			//do stats after post_process, since we may process and drop the packet during this call in direct scheduling mode
 			if (!dst->filter->skip_process_trigger_on_tasks)
 				gf_filter_post_process_task(dst->filter);
@@ -808,9 +806,6 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			if (pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = (u32) dst->buffer_duration;
 		}
 	}
-
-//	pid->nb_buffer_unit = max_nb_pck;
-//	pid->buffer_duration = max_buf_dur;
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (pck->pid->filter->nb_process_since_reset) {

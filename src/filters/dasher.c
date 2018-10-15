@@ -1594,6 +1594,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	GF_Err e;
 	Bool has_frag=GF_FALSE;
 	Bool has_subs=GF_FALSE;
+	Bool has_strun=GF_FALSE;
 	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
 	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
 	const char *dst_args;
@@ -1637,6 +1638,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		//look for subs_sidx arg
 		sprintf(szKey, "%csubs_sidx", sep_args);
 		if (strstr(dst_args, szKey)) has_subs = GF_TRUE;
+
+		sprintf(szKey, "%cstrun", sep_args);
+		if (strstr(dst_args, szKey)) has_strun = GF_TRUE;
 	}
 	if (trash_init) {
 		sprintf(szSRC, "%cnoinit", sep_args);
@@ -1648,6 +1652,10 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 	if (!has_subs && ctx->sseg) {
 		sprintf(szSRC, "%csubs_sidx%c0", sep_args, sep_name);
+		strcat(szDST, szSRC);
+	}
+	if (ctx->cues && !has_strun) {
+		sprintf(szSRC, "%cstrun", sep_args);
 		strcat(szDST, szSRC);
 	}
 	//override xps inband declaration in args
@@ -3677,7 +3685,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		if (ctx->mpd->max_segment_duration < seg_dur_ms)
 			ctx->mpd->max_segment_duration = seg_dur_ms;
 
-		if (!base_ds->done && !ctx->stl && ctx->tpl) {
+		if (!base_ds->done && !ctx->stl && ctx->tpl && !ctx->cues) {
 
 			if (seg_duration< ds->dash_dur/2) {
 
@@ -3896,7 +3904,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		return;
 	}
 
-	if (!ctx->stl) {
+	if (!ctx->stl && !ctx->cues) {
 		Double drift, seg_start = (Double) ds->seg_start_time;
 		seg_start /= ds->mpd_timescale;
 		drift = seg_start - (ds->seg_number - ds->startNumber) * ds->dash_dur;
@@ -4229,7 +4237,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						//ignore first sample
 						if (!ds->nb_pck) continue;
 
-						if (cue->sample_num == ds->nb_pck) {
+						if (cue->sample_num == ds->nb_pck + 1) {
 							is_split = GF_TRUE;
 							break;
 						} else if (cue->sample_num < ds->nb_pck) {
@@ -4240,7 +4248,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 					else if (cue->dts) {
 						u64 ts = cue->dts * ds->timescale;
-						u64 ts2 = (dts + ds->first_cts) * ds->cues_timescale;
+						u64 ts2 = dts * ds->cues_timescale;
 						if (ts == ts2) {
 							is_split = GF_TRUE;
 							break;

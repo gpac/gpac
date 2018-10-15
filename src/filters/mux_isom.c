@@ -95,7 +95,7 @@ typedef struct
 	u32 dur_in_frag;
 
 	u32 amr_mode_set;
-
+	Bool has_seig;
 } TrackWriter;
 
 enum
@@ -1830,9 +1830,12 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		else if (tkw->constant_IV_size != constant_IV_size) needs_seig = GF_TRUE;
 		else if (constant_IV_size && memcmp(tkw->constant_IV, constant_IV, sizeof(bin128))) needs_seig = GF_TRUE;
 
+		//!! tkw->nb_samples not yet incremented !!
 		if (needs_seig) {
-			//!! tkw->nb_samples not yet incremented !!
 			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples+1, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+			tkw->has_seig = GF_TRUE;
+		} else if (tkw->has_seig) {
+			e = gf_isom_set_sample_cenc_default_group(ctx->file, tkw->track_num, tkw->nb_samples+1);
 		}
 	}
 	if (e) {
@@ -1846,7 +1849,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 	if (act_type==CENC_ADD_FRAG) {
 		e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, IV_size, sai, sai_size, tkw->cenc_subsamples);
-
+		if (e) return e;
 	} else {
 		if (sai) {
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, IV_size, sai, sai_size, tkw->cenc_subsamples);
@@ -1997,22 +2000,24 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	tkw->samples_in_stsd++;
 	tkw->samples_in_frag++;
 
-	if (sap_type==3) {
+	//compat with old arch: write sample to group info fro all samples
+	if ((sap_type==3) || tkw->has_open_gop)  {
 		if (for_fragment) {
-			e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, 0);
-		} else {
-			e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, 0);
+			e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
+		} else if (sap_type==3) {
+			e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
 		}
 		tkw->has_open_gop = GF_TRUE;
-	} else if (sap_type==4) {
+	}
+	if (sap_type==4) {
 		s16 roll = gf_filter_pck_get_roll_info(pck);
 		if (for_fragment) {
-			e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, roll);
+			e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
 		} else {
-			e = gf_isom_set_sample_roll_group(ctx->file, tkw->track_num, tkw->nb_samples, roll);
+			e = gf_isom_set_sample_roll_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 4 roll %s in roll group: %s\n", tkw->sample.DTS, roll, gf_error_to_string(e) ));

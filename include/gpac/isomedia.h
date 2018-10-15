@@ -1695,8 +1695,8 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, u32 TrackID, u32 IV_siz
 
 GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof);
 
-GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number, s16 roll_distance);
-GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, u32 num_leading_samples);
+GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *movie, u32 trackID, u32 sample_number, Bool is_roll, s16 roll_distance);
+GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples);
 GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, u32 trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
@@ -2775,16 +2775,16 @@ Bool gf_isom_drop_date_version_info_enabled(GF_ISOFile *file);
 /*sets rap flag for sample_number - this is used by non-IDR RAPs in AVC (also in USAC) were SYNC flag (stss table) cannot be used
 num_leading_sample is the number of samples to after this RAP that have dependences on samples before this RAP and hence should be discarded
 - currently sample group info MUST be added in order (no insertion in the tables)*/
-GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, u32 num_leading_samples);
+GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool is_rap, u32 num_leading_samples);
 /*sets roll_distance info for sample_number (number of frames before (<0) or after (>0) this sample to have a complete refresh of the decoded data (used by GDR in AVC)
 - currently sample group info MUST be added in order (no insertion in the tables)*/
-GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance);
+GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool is_roll, s16 roll_distance);
 
 /*set encryption group for a sample_number; see GF_CENCSampleEncryptionGroupEntry for the parameters*/
 GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 IV_size, bin128 KeyID,
 									u8 crypt_byte_block, u8 skip_byte_block, u8 constant_IV_size, bin128 constant_IV);
 
-GF_Err gf_isom_set_sample_cenc_default(GF_ISOFile *movie, u32 track, u32 sample_number);
+GF_Err gf_isom_set_sample_cenc_default_group(GF_ISOFile *movie, u32 track, u32 sample_number);
 
 GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use_negative_offsets);
 
