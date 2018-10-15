@@ -2152,6 +2152,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 		count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
 		for (i=0; i<count; i++) {
 			GF_SampleGroupBox *sg;
+			Bool found = GF_FALSE;
 			u32 j;
 			u32 first_sample_in_entry, last_sample_in_entry;
 			first_sample_in_entry = 1;
@@ -2171,7 +2172,13 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->grouping_type_parameter,  sg->sample_entries[j].group_description_index, sgpd_in_traf);
 				if (e) return e;
 
+				found = GF_TRUE;
 				break;
+			}
+			//unmapped sample
+			if (!found) {
+				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->grouping_type_parameter,  0, sgpd_in_traf);
+				if (e) return e;
 			}
 		}
 	}
