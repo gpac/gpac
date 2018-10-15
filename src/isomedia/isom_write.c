@@ -5098,12 +5098,14 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 	if (!sgdesc) return GF_OUT_OF_MEM;
 
 	entry = NULL;
-	for (i=0; i<gf_list_count(sgdesc->group_descriptions); i++) {
-		entry = gf_list_get(sgdesc->group_descriptions, i);
-		if (sg_compare_entry(udta, entry)) break;
-		entry = NULL;
+	if (sg_compare_entry) {
+		for (i=0; i<gf_list_count(sgdesc->group_descriptions); i++) {
+			entry = gf_list_get(sgdesc->group_descriptions, i);
+			if (sg_compare_entry(udta, entry)) break;
+			entry = NULL;
+		}
 	}
-	if (!entry) {
+	if (!entry && sg_create_entry) {
 		entry = sg_create_entry(udta);
 		if (!entry) return GF_IO_ERR;
 		if (traf && !is_traf_sgpd) {
@@ -5111,8 +5113,8 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 		}
 		gf_list_add(sgdesc->group_descriptions, entry);
 	}
-
-	entry_idx = 1 + gf_list_find(sgdesc->group_descriptions, entry);
+	if (!entry) entry_idx = 0;
+	else entry_idx = 1 + gf_list_find(sgdesc->group_descriptions, entry);
 
 	/*look in stbl or traf for sample sampleGroups*/
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -5120,7 +5122,7 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 		if (!traf->sampleGroups)
 			traf->sampleGroups = gf_list_new();
 		groupList = traf->sampleGroups;
-		if (is_traf_sgpd)
+		if (is_traf_sgpd && entry)
 			entry_idx |= 0x10000;
 	} else
 #endif
@@ -5530,6 +5532,13 @@ GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 	e = gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_SEIG, 0, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
 	gf_free(udta);
 	return e;
+}
+
+/*sample encryption information group can be in stbl or traf*/
+GF_EXPORT
+GF_Err gf_isom_set_sample_cenc_default(GF_ISOFile *movie, u32 track, u32 sample_number)
+{
+	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_SEIG, 0, NULL, NULL, NULL);
 }
 
 GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
