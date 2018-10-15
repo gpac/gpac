@@ -6724,7 +6724,11 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		break;
 	}
 	if (dasher->bitstream_switching_mode == GF_DASH_BSMODE_DEFAULT) {
-		dasher->bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+		if (dasher->nb_inputs > 1) {
+			dasher->bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+		} else {
+			dasher->bitstream_switching_mode = GF_DASH_BSMODE_NONE;
+		}
 	}
 
 	//we allow using inband param set when not time aligned. set the option now before overriding flags for non time aligned
