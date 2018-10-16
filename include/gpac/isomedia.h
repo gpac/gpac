@@ -1092,12 +1092,12 @@ void gf_isom_no_version_date_info(GF_ISOFile *file, Bool drop_info);
 /*gets last UTC/timestamp values indicated for the reference track in the file if any. Returns 0 if no info found*/
 Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info);
 
-
 /*gets the nalu_length_field size used for this sample description if NALU-based (AVC/HEVC/...), else returns 0 */
 u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescriptionIndex);
 
-/*gets bitrate info for given sample description. If not found all values are set to 0*/
-GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 *average_bitrate, u32 *max_bitrate, u32 *decode_buffer_size);
+/*gets max/average rate info as indicated in ESDS or BTRT boxes. If not found all values are set to 0
+if sampleDescIndex is 0, gather for all sample descriptions*/
+GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescIndex, u32 *average_bitrate, u32 *max_bitrate, u32 *decode_buffer_size);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
