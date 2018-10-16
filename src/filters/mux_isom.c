@@ -2443,7 +2443,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (ctx->strun) {
 				e = gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_RANDOM_ACCESS, 0);
 
-			} else if (ctx->fsap && (tkw->stream_type == GF_STREAM_VISUAL)) {
+			}
+			//fragment at sap boundaries for video, but not in dash mode (compatibility with old arch)
+			else if (ctx->fsap && (tkw->stream_type == GF_STREAM_VISUAL) && !ctx->dash_mode) {
 				e = gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_RANDOM_ACCESS, 1);
 				if (e) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable set fragment options: %s\n", gf_error_to_string(e) ));
