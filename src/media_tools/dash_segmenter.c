@@ -2080,6 +2080,9 @@ restart_fragmentation_pass:
 						}
 					} else {
 						u64 cts = gf_isom_get_media_duration(input, tf->OriginalTrack);
+						if (dash_input->media_duration * tf->TimeScale < cts)
+							cts = dash_input->media_duration * tf->TimeScale;
+							
 						if (cts>ref_track_next_cts) ref_track_next_cts = cts;
 						else ref_track_next_cts += sample_duration;
 					}
