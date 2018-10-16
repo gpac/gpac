@@ -9902,6 +9902,7 @@ GF_Err saiz_Read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->default_sample_info_size == 0) {
 		ptr->sample_info_size = gf_malloc(sizeof(u8)*ptr->sample_count);
+		ptr->sample_alloc = ptr->sample_count;
 		gf_bs_read_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
 		ISOM_DECREASE_SIZE(ptr, ptr->sample_count);
 	}

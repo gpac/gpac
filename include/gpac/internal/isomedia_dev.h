@@ -1484,7 +1484,7 @@ typedef struct
 	u32 aux_info_type_parameter;
 
 	u8 default_sample_info_size;
-	u32 sample_count;
+	u32 sample_count, sample_alloc;
 	u8 *sample_info_size;
 } GF_SampleAuxiliaryInfoSizeBox;
 
@@ -2798,8 +2798,8 @@ typedef struct
 	u8 crypt_byte_block, skip_byte_block;
 	u8 IsProtected;
 	u8 Per_Sample_IV_size;
-	bin128 KID;
 	u8 constant_IV_size;
+	bin128 KID;
 	bin128 constant_IV;
 } GF_CENCSampleEncryptionGroupEntry;
 
