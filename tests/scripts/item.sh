@@ -18,13 +18,13 @@ do_hash_test $mp4file "add-items"
 do_test "$MP4BOX -set-primary id=2 $mp4file" "set-primary"
 do_hash_test $mp4file "mp4box-set-primary"
 
-do_test "$MP4BOX $EXTERNAL_MEDIA_DIR/item/counter_noItems.mp4 -dump-item 1:path=$TEMP_DIR/file1.html" "dump-item1"
+do_test "$MP4BOX $mp4file -dump-item 1:path=$TEMP_DIR/file1.html" "dump-item1"
 do_hash_test $TEMP_DIR/file1.html "dump-item1"
-do_test "$MP4BOX $EXTERNAL_MEDIA_DIR/item/counter_noItems.mp4 -dump-item 2:path=$TEMP_DIR/file1.css" "dump-item2"
+do_test "$MP4BOX $mp4file -dump-item 2:path=$TEMP_DIR/file1.css" "dump-item2"
 do_hash_test $TEMP_DIR/file1.css "dump-item2"
-do_test "$MP4BOX $EXTERNAL_MEDIA_DIR/item/counter_noItems.mp4 -dump-item 3:path=$TEMP_DIR/file1.js" "dump-item3"
+do_test "$MP4BOX $mp4file -dump-item 3:path=$TEMP_DIR/file1.js" "dump-item3"
 do_hash_test $TEMP_DIR/file1.js "dump-item3"
-do_test "$MP4BOX $EXTERNAL_MEDIA_DIR/item/counter_noItems.mp4 -dump-item 4:path=$TEMP_DIR/file1.svg" "dump-item4"
+do_test "$MP4BOX $mp4file -dump-item 4:path=$TEMP_DIR/file1.svg" "dump-item4"
 do_hash_test $TEMP_DIR/file1.svg "dump-item4"
 
 
