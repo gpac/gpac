@@ -7378,12 +7378,12 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					}
 				}
 
+				strcat(szOutName, "_dash");
 				if ((dash_input->trackNum || dash_input->single_track_num) && (!dasher->seg_rad_name || !strstr(dasher->seg_rad_name, "$RepresentationID$") ) ) {
 					char tmp[20];
-					sprintf(tmp, "_track%d", dash_input->trackNum ? dash_input->trackNum : dash_input->single_track_num);
+					sprintf(tmp, "_track%d_", dash_input->trackNum ? dash_input->trackNum : dash_input->single_track_num);
 					strcat(szOutName, tmp);
 				}
-				strcat(szOutName, "_dash");
 
 				if (gf_url_get_resource_path(dasher->mpd_name, tmp)) {
 					strcat(tmp, szOutName);
