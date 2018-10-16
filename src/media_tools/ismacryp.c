@@ -1576,6 +1576,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	Bool use_subsamples = GF_FALSE;
 	char *saiz_buf;
 	Bool use_seig = GF_FALSE;
+	Bool has_seig = GF_FALSE;
 	GF_BitStream *bs;
 
 	nalu_size_length = 0;
@@ -1879,7 +1880,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			/*add this sample to sample encryption group*/
 			e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 1, tci->IV_size, tci->KIDs[idx], tci->crypt_byte_block, tci->skip_byte_block, tci->constant_IV_size, tci->constant_IV);
 			if (e) goto exit;
-		} else if (use_seig) {
+			has_seig = GF_TRUE;
+		} else if (has_seig) {
 			e = gf_isom_set_sample_cenc_default(mp4, track, i+1);
 			if (e) goto exit;
 		}
