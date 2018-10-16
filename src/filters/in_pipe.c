@@ -439,8 +439,8 @@ GF_FilterRegister PipeInRegister = {
 		"\n"\
 		"Input pipes can be setup to run forever using the ka option. In this case, end of stream will never be triggered\n"\
 		"This can be usefull to pipe raw streams from different process into gpac:\n"\
-		"Demux side: gpac -i pipe://mypipe:ext=.264:mkp:ka\n"\
-		"Client side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264\n"\
+		"Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka\n"\
+		"Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264\n"\
 	"",
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,

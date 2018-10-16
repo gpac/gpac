@@ -706,7 +706,7 @@ restart:
 		gf_list_add(loaded_filters, filter);
 	}
 	if (!gf_list_count(loaded_filters)) {
-		gpac_usage();
+		fprintf(stderr, "Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n");
 		e = GF_BAD_PARAM;
 		goto exit;
 	}
