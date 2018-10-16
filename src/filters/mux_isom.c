@@ -1744,6 +1744,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	char *sai = NULL;
 	u32 sai_size = 0;
 	Bool needs_seig = GF_FALSE;
+	u32 sample_num;
 
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PATTERN);
 	if (p) {
@@ -1816,11 +1817,18 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 	pck_is_encrypted = gf_filter_pck_get_crypt_flags(pck);
 
+	//!! tkw->nb_samples / tkw->samples_in_frag not yet incremented !!
+	if (act_type == CENC_ADD_FRAG)
+		sample_num = tkw->samples_in_frag + 1;
+	else
+		sample_num = tkw->nb_samples + 1;
+
 	if (!pck_is_encrypted) {
 		bin128 dumb_IV;
 		memset(dumb_IV, 0, 16);
-		e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples+1, 0, 0, dumb_IV, 0, 0, 0, NULL);
+		e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, sample_num, 0, 0, dumb_IV, 0, 0, 0, NULL);
 		IV_size = 0;
+		tkw->has_seig = GF_TRUE;
 	} else {
 		e = GF_OK;
 		if (tkw->IV_size != IV_size) needs_seig = GF_TRUE;
@@ -1830,12 +1838,11 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		else if (tkw->constant_IV_size != constant_IV_size) needs_seig = GF_TRUE;
 		else if (constant_IV_size && memcmp(tkw->constant_IV, constant_IV, sizeof(bin128))) needs_seig = GF_TRUE;
 
-		//!! tkw->nb_samples not yet incremented !!
 		if (needs_seig) {
-			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, tkw->nb_samples+1, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, sample_num, 1, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 			tkw->has_seig = GF_TRUE;
 		} else if (tkw->has_seig) {
-			e = gf_isom_set_sample_cenc_default_group(ctx->file, tkw->track_num, tkw->nb_samples+1);
+			e = gf_isom_set_sample_cenc_default_group(ctx->file, tkw->track_num, sample_num);
 		}
 	}
 	if (e) {
@@ -2518,6 +2525,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					//start of next segment, abort fragmentation for this track and flush all other writers
 					if (ctx->dash_seg_num && (ctx->dash_seg_num != p->value.uint)) {
 						tkw->fragment_done = GF_TRUE;
+						tkw->samples_in_frag = 0;
 						nb_done ++;
 						//make sure we flush until the end of the segment
 						ctx->flush_seg = GF_TRUE;
