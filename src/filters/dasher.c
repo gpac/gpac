@@ -1954,7 +1954,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	}
 
 	if (split_set_names) {
-		sprintf(szSetFileSuffix, "_track%d", ds->id);
+		sprintf(szSetFileSuffix, "_track%d_", ds->id);
 	}
 
 	if (ctx->timescale>0) set_timescale = ctx->timescale;
