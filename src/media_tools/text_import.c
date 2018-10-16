@@ -1494,8 +1494,8 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 		gf_import_message(import, GF_OK, "SWF import - text track %d	x %d", cfg->text_width,	cfg->text_height);
 		gf_odf_desc_del((GF_Descriptor *)cfg);
 	} else {
-		u32	w = read->width;
-		u32	h = read->height;
+		u32	w = (u32)read->width;
+		u32	h = (u32)read->height;
 
 		if (!w || !h)
 			gf_text_get_video_size(import, &w, &h);
