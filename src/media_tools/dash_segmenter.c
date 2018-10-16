@@ -2718,7 +2718,17 @@ restart_fragmentation_pass:
 
 
     if (!bandwidth) {
-		bandwidth = (u32) (file_size * 8 / file_duration);
+    	for (i=0; i<gf_list_count(fragmenters); i++) {
+    		u32 bw=0;
+			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
+			gf_isom_get_bitrate(input, tf->OriginalTrack, 0, &bw, NULL, NULL);
+			if (!bw) {
+				bw = gf_isom_get_media_data_size(input, tf->OriginalTrack);
+				bw *= 8;
+				bw /= file_duration;
+			}
+			bandwidth += bw;
+		}
 	}
 
     bandwidth += dash_input->dependency_bandwidth;
