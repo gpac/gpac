@@ -1105,6 +1105,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u64 generation_start_utc = 0;
 	u64 ntpts = 0;
 	Bool seg_dur_adjusted = GF_FALSE;
+	u32 nb_enc = 0;
 	u32 cue_start = 0;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
@@ -1391,6 +1392,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			else if (vidtype > GF_ISOM_HEVCTYPE_HEVC_ONLY) {
 				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
 			}
+		} else {
+			nb_enc ++;
 		}
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
@@ -1635,6 +1638,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		}
 
 		nb_samp += tf->SampleCount;
+	}
+
+	if (!nb_enc) {
+		gf_isom_remove_pssh_box(output);
 	}
 
 	if (gf_list_count(fragmenters)>1)
