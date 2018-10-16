@@ -2583,7 +2583,7 @@ restart_fragmentation_pass:
 					file_size = gf_isom_get_file_size(output);
 					end_range = file_size - 1;
 					if (dasher->single_file_mode!=1) {
-						sprintf(szMPDTempLine, "      <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);
+						sprintf(szMPDTempLine, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"", start_range, end_range);
 						gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						if (idx_start_range || idx_end_range) {
 							sprintf(szMPDTempLine, " indexRange=\""LLD"-"LLD"\"", idx_start_range, idx_end_range);
