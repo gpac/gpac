@@ -1155,9 +1155,13 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nalu_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
-						//A subsample SHALL be created for each tile. this needs further clarification in the spec
-						if (prev_entry && prev_entry->bytes_encrypted_data)
-							prev_entry = NULL;
+						if (tci->av1.frame_state.tiles[0].size>=16) {
+							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, other wise merge in prev
+							if (prev_entry && prev_entry->bytes_encrypted_data)
+								prev_entry = NULL;
+						} else {
+							clear_bytes = nalu_size;
+						}
 					}
 					break;
 				default:
@@ -1363,9 +1367,13 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nal_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
-						//A subsample SHALL be created for each tile. this needs further clarification in the spec
-						if (prev_entry && prev_entry->bytes_encrypted_data)
-							prev_entry = NULL;
+						if (tci->av1.frame_state.tiles[0].size>=16) {
+							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, other wise merge in prev
+							if (prev_entry && prev_entry->bytes_encrypted_data)
+								prev_entry = NULL;
+						} else {
+							clear_bytes = nal_size;
+						}
 					}
 					break;
 				default:
