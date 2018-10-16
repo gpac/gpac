@@ -2521,7 +2521,7 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 		//no sync table is ALL RAP
 		*defaultRandomAccess = stbl->SyncSample ? 0 : 1;
 		if (stbl->SyncSample
-		        && (stbl->SyncSample->nb_entries >= stbl->SampleSize->sampleCount/2)) {
+		        && (stbl->SyncSample->nb_entries == stbl->SampleSize->sampleCount)) {
 			*defaultRandomAccess = 1;
 		}
 	}
