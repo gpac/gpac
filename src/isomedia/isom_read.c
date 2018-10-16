@@ -3234,7 +3234,8 @@ GF_Err gf_isom_get_track_layout_info(GF_ISOFile *movie, u32 trackNumber, u32 *wi
 GF_EXPORT
 u64 gf_isom_get_media_data_size(GF_ISOFile *movie, u32 trackNumber)
 {
-	u32 i, size;
+	u32 i;
+	u64 size;
 	GF_SampleSizeBox *stsz;
 	GF_TrackBox *tk = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!tk) return 0;
