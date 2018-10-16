@@ -1258,16 +1258,20 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						nb_ranges = cstr->av1.frame_state.nb_tiles_in_obu;
 						clear_bytes = cstr->av1.frame_state.tiles[0].obu_start_offset;
 						nalu_size = clear_bytes + cstr->av1.frame_state.tiles[0].size;
-						//A subsample SHALL be created for each tile, create one if we previously had crypted bytes
-						if (prev_entry_bytes_crypt) {
-							if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
-							nb_subsamples++;
-							gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
-							gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
-							sai_size+=6;
+						//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, other wise merge in prev
+						if (cstr->av1.frame_state.tiles[0].size>=16) {
+							if (prev_entry_bytes_crypt) {
+								if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
+								nb_subsamples++;
+								gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
+								gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
+								sai_size+=6;
 
-							prev_entry_bytes_crypt = 0;
-							prev_entry_bytes_clear = 0;
+								prev_entry_bytes_crypt = 0;
+								prev_entry_bytes_clear = 0;
+							}
+						} else {
+							clear_bytes = nalu_size;
 						}
 					}
 					break;

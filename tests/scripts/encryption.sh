@@ -92,5 +92,8 @@ rm -f $mp4file 2> /dev/null
 
 test_end
 
+#AV1 with small tiles less than 16 bytes
+$MP4BOX -add $EXTERNAL_MEDIA_DIR/import/obu_tiles4x2_grp4.av1 -new $mp4file 2> /dev/null
+crypto_test_file "av1small"
 
 
