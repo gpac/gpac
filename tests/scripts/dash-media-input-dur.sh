@@ -10,9 +10,9 @@ do_test "$MP4BOX -dash 1000 $TEMP_DIR/file.mp4#video:dur=17 $TEMP_DIR/file.mp4#a
 
 do_hash_test $TEMP_DIR/file.mpd "$TEST_NAME-hash-mpd"
 
-do_hash_test $TEMP_DIR/file_track1_dashinit.mp4 "$TEST_NAME-hash-init-segment-video"
+do_hash_test $TEMP_DIR/file_dash_track1_init.mp4 "$TEST_NAME-hash-init-segment-video"
 
-do_hash_test $TEMP_DIR/file_track2_dashinit.mp4 "$TEST_NAME-hash-init-segment-audio"
+do_hash_test $TEMP_DIR/file_dash_track2_init.mp4 "$TEST_NAME-hash-init-segment-audio"
 
 do_playback_test "$TEMP_DIR/file.mpd" "play-$TEST_NAME"
 
