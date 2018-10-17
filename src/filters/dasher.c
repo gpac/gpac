@@ -1690,6 +1690,12 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 	strcat(szDST, szSRC);
 
+	//patch for old arch: make sure we don't have any extra free box after the sidx
+	if (ctx->for_test && ctx->sseg) {
+		sprintf(szSRC, "%ccache", sep_args );
+		strcat(szDST, szSRC);
+	}
+
 
 	if (ds->moof_sn>1) {
 		sprintf(szSRC, "%cmsn%c%d", sep_args, sep_name, ds->moof_sn);
@@ -4641,7 +4647,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			r_end = evt->seg_size.idx_range_end;
 		}
 		//init segment or representation index, set it in on demand and main single source
-		if (ctx->sfile && (evt->seg_size.is_init==1))  {
+		if ((ctx->sfile || ctx->sseg) && (evt->seg_size.is_init==1))  {
 			GF_MPD_URL *url, **s_url;
 
 			if (ds->rep->segment_base && !evt->seg_size.media_range_end) {
