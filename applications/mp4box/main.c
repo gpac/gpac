@@ -3700,8 +3700,9 @@ int mp4boxMain(int argc, char **argv)
 	/*init libgpac*/
 	gf_sys_init(mem_track);
 	if (argc < 2) {
-		PrintUsage();
-		PrintVersion();
+		fprintf(stderr, "Not enough arguments - check usage with -h\n"
+			"MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
+	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n");
 		gf_sys_close();
 		return 0;
 	}
