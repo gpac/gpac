@@ -330,7 +330,8 @@ typedef struct
 {
 	u64 time; //in mpd timescale
 	u64 dur; //in timescale
-	char *file_name;
+	char *filename;//name as printed in segment lists / m3u8
+	char *filepath; //full path
 	u32 file_size;
 	u64 file_offset;
 	u32 index_size;

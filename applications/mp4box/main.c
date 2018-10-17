@@ -3340,7 +3340,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			seg_name = argv[i + 1];
 			i++;
 		}
-		else if (!stricmp(arg, "-run-for")) {
+		else if (!stricmp(arg, "-run-for") || !stricmp(arg, "-dash-run-for")) {
 			CHECK_NEXT_ARG
 			run_for = atoi(argv[i + 1]);
 			i++;

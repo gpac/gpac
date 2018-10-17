@@ -1932,6 +1932,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	if (as_id) {
 		set->id = ds->as_id;
 	}
+	if (ctx->sseg) {
+		set->segment_alignment = GF_TRUE;
+		set->starts_with_sap = 1;
+	}
 
 	if (count==1)
 		single_template = GF_TRUE;
@@ -2294,6 +2298,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			seg_list->timescale = ds->mpd_timescale;
 			seg_list->segment_URLs = gf_list_new();
 			seg_list->start_number = (u32) -1;
+			seg_list->duration = ds->mpd_timescale * ds->dash_dur;
 			rep->segment_list = seg_list;
 			ds->pending_segment_urls = gf_list_new();
 
@@ -2348,10 +2353,11 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, Double min_valid_mpd_time, 
 			dur = (Double) sctx->dur;
 			dur/= ds->timescale;
 			if (time + dur >= min_valid_mpd_time) break;
-			if (sctx->file_name) {
-				fprintf(stderr, "removing segment %s\n", sctx->file_name);
-				gf_delete_file(sctx->file_name);
-				gf_free(sctx->file_name);
+			if (sctx->filepath) {
+				fprintf(stderr, "removing segment %s\n", sctx->filename ? sctx->filename : sctx->filepath);
+				gf_delete_file(sctx->filepath);
+				if (sctx->filename) gf_free(sctx->filename);
+				gf_free(sctx->filepath);
 			}
 
 			if (ds->rep->segment_list) {
@@ -3897,7 +3903,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_FilterPacket *pck)
 {
 	GF_DASH_SegmentContext *seg_state=NULL;
-	char szSegmentName[GF_MAX_PATH], szIndexName[GF_MAX_PATH];
+	char szSegmentName[GF_MAX_PATH], szSegmentFullPath[GF_MAX_PATH], szIndexName[GF_MAX_PATH];
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 
 	if (ctx->ntp==DASHER_NTP_YES) {
@@ -3947,14 +3953,15 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		//get final segment template - output file name is NULL, we already have solved this in source_setup
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, ds->set->bitstream_switching, szIndexName, NULL, base_ds->rep_id, NULL, base_ds->idx_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
 
+		strcpy(szSegmentFullPath, szIndexName);
 		if (ctx->out_path) {
 			char *rel = gf_url_concatenate(ctx->out_path, szIndexName);
 			if (rel) {
-				strcpy(szIndexName, rel);
+				strcpy(szSegmentFullPath, rel);
 				gf_free(rel);
 			}
 		}
-		gf_filter_pck_set_property(pck, GF_PROP_PCK_IDXFILENAME, &PROP_STRING(szIndexName) );
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_IDXFILENAME, &PROP_STRING(szSegmentFullPath) );
 	}
 
 	if (ctx->sseg) return;
@@ -3987,9 +3994,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	//get final segment template - output file name is NULL, we already have solved this in source_setup
 	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, NULL, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
 
-
-	if (seg_state)
-		seg_state->file_name = gf_strdup(szSegmentName);
+	strcpy(szSegmentFullPath, szSegmentName);
 
 	if (ctx->out_path) {
 		char *rel = NULL;
@@ -4004,9 +4009,14 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			rel = gf_url_concatenate(ctx->out_path, szSegmentName);
 
 		if (rel) {
-			strcpy(szSegmentName, rel);
+			strcpy(szSegmentFullPath, rel);
 			gf_free(rel);
 		}
+	}
+
+	if (seg_state) {
+		seg_state->filepath = gf_strdup(szSegmentFullPath);
+		seg_state->filename = gf_strdup(szSegmentName);
 	}
 
 	if (ds->rep->segment_list) {
@@ -4020,7 +4030,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		ctx->nb_seg_url_pending++;
 	}
 
-	gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(szSegmentName) );
+	gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(szSegmentFullPath) );
 }
 
 static void dasher_update_pck_times(GF_DashStream *ds, GF_FilterPacket *dst)
@@ -4211,20 +4221,27 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (dts==GF_FILTER_NO_TS) dts = cts;
 
 			if (!ds->rep_init) {
+				u32 set_start_with_sap;
 				const GF_PropertyValue *p;
 				if (!sap_type) {
 					gf_filter_pid_drop_packet(ds->ipid);
 					break;
 				}
+				set_start_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
 					//set AS sap type
-					if (!ds->set->starts_with_sap) {
+					if (!set_start_with_sap) {
 						//don't set SAP type if not a base rep - could be further checked
-						if (!gf_list_count(ds->complementary_streams) )
-							ds->set->starts_with_sap = sap_type;
+						if (!gf_list_count(ds->complementary_streams) ) {
+							if (ctx->sseg) {
+								ds->set->subsegment_starts_with_sap = sap_type;
+							} else {
+								ds->set->starts_with_sap = sap_type;
+							}
+						}
 					}
-					else if (ds->set->starts_with_sap != sap_type) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Segments do not start with the same SAP types: set initialized with %d but first packet got %d - bitstream will not be compliant\n", ds->set->starts_with_sap, sap_type));
+					else if (set_start_with_sap != sap_type) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Segments do not start with the same SAP types: set initialized with %d but first packet got %d - bitstream will not be compliant\n", set_start_with_sap, sap_type));
 					}
 					//TODO setup proper PTO, the code below will break sync by realigning first AU of each stream
 					if (ds->rep->segment_list)
@@ -4366,7 +4383,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 					if ((ctx->profile != GF_DASH_PROFILE_FULL) && (ds->nb_sap_4 || (ds->nb_sap_3 > 1)) ) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
 						ctx->profile = GF_DASH_PROFILE_FULL;
-						ds->set->starts_with_sap = sap_type;
+						if (ctx->sseg)
+							ds->set->subsegment_starts_with_sap = sap_type;
+						else
+							ds->set->starts_with_sap = sap_type;
 					}
 
 					seg_over = GF_TRUE;
@@ -4413,7 +4433,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 					if ((ctx->profile != GF_DASH_PROFILE_FULL) && (ds->nb_sap_4 || (ds->nb_sap_3 > 1)) ) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
 						ctx->profile = GF_DASH_PROFILE_FULL;
-						ds->set->starts_with_sap = sap_type;
+						if (ctx->sseg)
+							ds->set->subsegment_starts_with_sap = sap_type;
+						else
+							ds->set->starts_with_sap = sap_type;
 					}
 
 					seg_over = GF_TRUE;
@@ -4688,7 +4711,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				url->media_range->start_range = evt->seg_size.media_range_start;
 				url->media_range->end_range = evt->seg_size.media_range_end;
 			}
-			if (evt->seg_size.idx_range_end) {
+			//patch in test mode, old arch was not generating the index size for segment lists
+			if (evt->seg_size.idx_range_end && (!ctx->for_test || ctx->sfile) ) {
 				GF_SAFEALLOC(url->index_range, GF_MPD_ByteRange);
 				url->index_range->start_range = evt->seg_size.idx_range_start;
 				url->index_range->end_range = evt->seg_size.idx_range_end;
