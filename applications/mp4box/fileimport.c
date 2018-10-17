@@ -252,7 +252,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
-	s32 par_d, par_n, prog_id, delay;
+	s32 par_d, par_n, prog_id, delay, force_rate;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
@@ -305,6 +305,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	rap_only = 0;
 	txt_flags = 0;
 	max_layer_id_plus_one = max_temporal_id_plus_one = 0;
+	force_rate = -1;
 
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
@@ -542,6 +543,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				txt_mode = GF_ISOM_TEXT_FLAGS_UNTOGGLE;
 			}
 		}
+		else if (!strnicmp(ext+1, "rate=", 5)) {
+			force_rate = atoi(ext+6);
+		}
 
 		/*unrecognized, assume name has colon in it*/
 		else {
@@ -747,6 +751,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_text_set_display_flags(import.dest, i+1, 0, txt_flags, txt_mode);
 			}
 
+			if (force_rate>=0) {
+				gf_isom_update_bitrate(import.dest, i+1, 1, force_rate, force_rate, 0);
+			}
 
 			if (split_tile_mode) {
 				switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
@@ -925,6 +932,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (txt_flags) {
 				gf_isom_text_set_display_flags(import.dest, track, 0, txt_flags, txt_mode);
+			}
+			if (force_rate>=0) {
+				gf_isom_update_bitrate(import.dest, i+1, 1, force_rate, force_rate, 0);
 			}
 
 			if (split_tile_mode) {

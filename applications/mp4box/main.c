@@ -594,6 +594,7 @@ void PrintImportUsage()
 	        " \":txtflags=flags\"    sets display flags (hexa number) of text track\n"
 	        " \":txtflags+=flags\"   adds display flags (hexa number) to text track\n"
 	        " \":txtflags-=flags\"   removes display flags (hexa number) from text track\n"
+	        " \":rate=VAL\"          forces average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box\n"
 	        "\n"
 	        " -add file              add file tracks to (new) output file\n"
 	        " -cat file              concatenates file samples to (new) output file\n"

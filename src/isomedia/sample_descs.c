@@ -1130,7 +1130,8 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 
 	a->avgBitrate = average_bitrate;
 	a->maxBitrate = max_bitrate;
-	a->bufferSizeDB = decode_buffer_size;
+	if (decode_buffer_size)
+		a->bufferSizeDB = decode_buffer_size;
 	return GF_OK;
 }
 
