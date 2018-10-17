@@ -118,6 +118,7 @@ typedef struct
 
 	GF_List *postponed_pids;
 	u32 last_dyn_period_id;
+	u32 next_pid_id_in_period;
 } GF_DasherCtx;
 
 
@@ -257,7 +258,6 @@ typedef struct _dash_stream
 	u32 nb_cues;
 	GF_DASHCueInfo *cues;
 	Bool cues_use_edits;
-
 } GF_DashStream;
 
 
@@ -2030,17 +2030,26 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		rep = gf_list_get(set->representations, i);
 		ds = rep->playback.udta;
 		if (ds->pid_id) continue;
-		ds->pid_id = gf_list_find(ctx->pids, ds) + 1;
+		//in bitstream switching mode, ensure each track in the set has the same ID
+		if (set->bitstream_switching) {
+			ctx->next_pid_id_in_period++;
+			ds->pid_id = ctx->next_pid_id_in_period;
 
-		for (j=i+1; j<count; j++) {
-			GF_DashStream *a_ds;
-			rep = gf_list_get(set->representations, j);
-			a_ds = rep->playback.udta;
-			if (a_ds->pid_id) continue;
-			if (a_ds->dep_id) continue;
-			if (a_ds->stream_type == ds->stream_type) a_ds->pid_id = ds->pid_id;
+			for (j=i+1; j<count; j++) {
+				GF_DashStream *a_ds;
+				rep = gf_list_get(set->representations, j);
+				a_ds = rep->playback.udta;
+				if (a_ds->pid_id) continue;
+				if (a_ds->dep_id) continue;
+				if (a_ds->stream_type == ds->stream_type) a_ds->pid_id = ds->pid_id;
+			}
+		}
+		//otherwise copy over the source PID
+		else {
+			ds->pid_id = ds->id;
 		}
 	}
+	
 	for (i=0; i<count; i++) {
 		u32 j;
 		rep = gf_list_get(set->representations, i);
@@ -3075,6 +3084,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			dasher_send_manifest(filter, ctx, GF_FALSE);
 
 		ctx->last_dyn_period_id++;
+		ctx->next_pid_id_in_period = 0;
 	}
 
 	if (ctx->subdur_done)
