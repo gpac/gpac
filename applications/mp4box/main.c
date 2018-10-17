@@ -3340,7 +3340,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			seg_name = argv[i + 1];
 			i++;
 		}
-		else if (!stricmp(arg, "-run-for") || !stricmp(arg, "-dash-run-for")) {
+		else if (!stricmp(arg, "-run-for")) {
 			CHECK_NEXT_ARG
 			run_for = atoi(argv[i + 1]);
 			i++;
@@ -4309,7 +4309,7 @@ int mp4boxMain(int argc, char **argv)
 
 		gf_dasher_del(dasher);
 
-		if (!run_for && dash_ctx_file && (do_abort==3) && (dyn_state_file)) {
+		if (!run_for && dash_ctx_file && (do_abort==3) && (dyn_state_file) && !force_test_mode) {
 			char szName[1024];
 			fprintf(stderr, "Enter file name to save dash context:\n");
 			if (scanf("%s", szName) == 1) {

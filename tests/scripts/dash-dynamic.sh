@@ -14,22 +14,12 @@ do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
 #wait for the end of the MP4Box
 wait
 
-
-#this is dynamic, use the stored MPD to avoid the varying availablilityStartTime
-do_hash_test $TEMP_DIR/file-Period_DID1.mpd "hash-mpd"
+#hash the final MPD (written as  static)
+do_hash_test $TEMP_DIR/file.mpd "hash-mpd"
 
 #hash 3rd segment of video and audio, making sur the tfdt is correct
 do_hash_test $TEMP_DIR/file_dash_track1_3.m4s "hash-seg3-video"
 do_hash_test $TEMP_DIR/file_dash_track2_3.m4s "hash-seg3-audio"
-
-echo "TFDT for track 1 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 1 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
 
 test_end
 
@@ -48,23 +38,12 @@ do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
 #wait for the end of the MP4Box
 wait
 
-#this is dynamic, use the stored MPD to avoid the varying availablilityStartTime
-do_hash_test $TEMP_DIR/file-Period_DID1.mpd "hash-mpd"
+#hash the final MPD (written as  static)
+do_hash_test $TEMP_DIR/file.mpd "hash-mpd"
 
-#hash 3rd segment of video and audio, making sur the tfdt is correct
+#hash 3rd segment of video and audio
 do_hash_test $TEMP_DIR/file_dash_track1_3.m4s "hash-seg3-video"
 do_hash_test $TEMP_DIR/file_dash_track2_3.m4s "hash-seg3-audio"
-
-
-echo "TFDT for track 1 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 1 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-
 
 test_end
 
@@ -85,23 +64,14 @@ do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
 #wait for the end of the MP4Box
 wait
 
-#this is dynamic, use the stored MPD to avoid the varying availablilityStartTime
-do_hash_test $TEMP_DIR/file-Period_DID1.mpd "hash-mpd"
+#hash the final MPD (written as  static)
+do_hash_test $TEMP_DIR/file.mpd "hash-mpd"
 
 do_hash_test $TEMP_DIR/file_dash_track1_3.m4s "hash-seg3-video"
 do_hash_test $TEMP_DIR/file_dash_track2_3.m4s "hash-seg3-audio"
 
-echo "TFDT for track 1 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 1 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-
-
 test_end
+
 
 test_begin "dash-dynamic-loop-dur-greater-than-seg"
 
@@ -118,22 +88,11 @@ do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
 #wait for the end of the MP4Box
 wait
 
-#this is dynamic, use the stored MPD to avoid the varying availablilityStartTime
-do_hash_test $TEMP_DIR/file-Period_DID1.mpd "hash-mpd"
+#hash the final MPD (written as  static)
+do_hash_test $TEMP_DIR/file.mpd "hash-mpd"
 
 do_hash_test $TEMP_DIR/file_dash_track1_3.m4s "hash-seg3-video"
 do_hash_test $TEMP_DIR/file_dash_track2_3.m4s "hash-seg3-audio"
-
-
-echo "TFDT for track 1 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 2" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_2.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 1 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track1_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-echo "TFDT for track 2 segment 3" >> $LOGS
-$MP4BOX -diso -std $TEMP_DIR/file_dash_track2_3.m4s 2> /dev/null | grep "tfdt" >> $LOGS
-
 
 test_end
 
@@ -153,15 +112,14 @@ do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
 #wait for the end of the MP4Box
 wait
 
-#this is dynamic, use the stored MPD to avoid the varying availablilityStartTime
-do_hash_test $TEMP_DIR/file-Period_DID1.mpd "hash-mpd1"
-do_hash_test $TEMP_DIR/file-Period_DID2.mpd "hash-mpd2"
+#hash the final MPD (written as  static)
+do_hash_test $TEMP_DIR/file.mpd "hash-mpd"
 
 do_hash_test $TEMP_DIR/file_dash_track1__p3_1.m4s "hash-seg3-video"
 do_hash_test $TEMP_DIR/file_dash_track2__p3_1.m4s "hash-seg3-audio"
 
-
 test_end
+
 
 test_begin "dash-dynamic-noloop-dur-greater-than-seg"
 
@@ -178,9 +136,8 @@ do_playback_test "$TEMP_DIR/file.mpd" "dash-play"
 #wait for the end of the MP4Box
 wait
 
-#this is dynamic, use the stored MPD to avoid the varying availablilityStartTime
-do_hash_test $TEMP_DIR/file-Period_DID1.mpd "hash-mpd1"
-do_hash_test $TEMP_DIR/file-Period_DID2.mpd "hash-mpd2"
+#hash the final MPD (written as  static)
+do_hash_test $TEMP_DIR/file.mpd "hash-mpd"
 
 do_hash_test $TEMP_DIR/file_dash_track1_2.m4s "hash-seg2-video"
 
