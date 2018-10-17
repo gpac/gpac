@@ -83,6 +83,7 @@ typedef struct
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool m2ts;
+	Bool cmpd;
 
 	//internal
 
@@ -2149,9 +2150,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			init_ext = (ctx->ext && !stricmp(ctx->ext, "null")) ? NULL : "mp4";
 		}
 
+		//get final segment template with path resolution - output file name is NULL, we already have solved this
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, set->bitstream_switching, szSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
+		ds->seg_template = gf_strdup(szSegmentName);
+
 		//get final segment template - output file name is NULL, we already have solved this
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, set->bitstream_switching, szSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
-		ds->seg_template = gf_strdup(szSegmentName);
 
 		//get final init name - output file name is NULL, we already have solved this
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentFilename, NULL, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
@@ -2161,10 +2165,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		gf_media_mpd_format_segment_name(init_template_mode, set->bitstream_switching, szInitSegmentTemplate, NULL, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, 0, 0, ctx->stl);
 
 		if (idx_ext) {
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE, set->bitstream_switching, szIndexSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
-
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE_WITH_PATH, set->bitstream_switching, szIndexSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
 			ds->idx_template = gf_strdup(szIndexSegmentName);
 
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE, set->bitstream_switching, szIndexSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
 		}
 
 		if (ctx->store_seg_states) {
@@ -2201,7 +2205,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				if (single_template) {
 					seg_template->media = gf_strdup(szSegmentName);
 					if (ds->idx_template)
-						seg_template->index = gf_strdup(ds->idx_template);
+						seg_template->index = gf_strdup(szIndexSegmentName);
 
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
@@ -2224,7 +2228,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				}
 				seg_template->media = gf_strdup(szSegmentName);
 				if (ds->idx_template)
-					seg_template->index = gf_strdup(ds->idx_template);
+					seg_template->index = gf_strdup(szIndexSegmentName);
 				seg_template->duration = (u64)(ds->dash_dur * ds->mpd_timescale);
 				seg_template->timescale = ds->mpd_timescale;
 				seg_template->start_number = ds->startNumber ? ds->startNumber : 1;
@@ -2496,7 +2500,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		ctx->mpd->m3u8_time = ctx->hlsc;
 		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
 	} else {
-		e = gf_mpd_write(ctx->mpd, tmp);
+		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
 	}
 
 	if (e) {
@@ -2545,7 +2549,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 			return GF_IO_ERR;
 		}
 		ctx->mpd->write_context = GF_TRUE;
-		e = gf_mpd_write(ctx->mpd, tmp);
+		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
 		gf_fclose(tmp);
 		ctx->mpd->write_context = GF_FALSE;
 		if (e) {
@@ -4937,6 +4941,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cues), "sets cue file - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_cues), "strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cmpd), "skips line feed and spaces in MPD XML for more compacity", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
