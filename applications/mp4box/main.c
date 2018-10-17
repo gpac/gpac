@@ -498,6 +498,7 @@ void PrintImportUsage()
 	        " \":txtflags=flags\"    sets display flags (hexa number) of text track\n"
 	        " \":txtflags+=flags\"   adds display flags (hexa number) to text track\n"
 	        " \":txtflags-=flags\"   removes display flags (hexa number) from text track\n"
+	        " \":rate=VAL\"          forces average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box\n"
 	        "\n"
 	        " \":fstat\"   			prints filter session stats after import\n"
 	        " \":sopt:[OPTS]\"      set OPTS as additionnal arguments to source filter. OPTS can be any usual filter argument, see gpac -h\n"

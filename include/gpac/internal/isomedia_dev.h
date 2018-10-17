@@ -1230,6 +1230,7 @@ typedef struct
 	u16 samplerate_hi;				\
 	u16 samplerate_lo;				\
 	u8 extensions[36];				\
+	u8 is_qtff;						\
 
 
 typedef struct
