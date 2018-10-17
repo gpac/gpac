@@ -37,9 +37,11 @@ typedef enum
 	GF_DASH_TEMPLATE_SEGMENT = 0,
 	GF_DASH_TEMPLATE_INITIALIZATION,
 	GF_DASH_TEMPLATE_TEMPLATE,
+	GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH,
 	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE,
 	GF_DASH_TEMPLATE_REPINDEX,
 	GF_DASH_TEMPLATE_REPINDEX_TEMPLATE,
+	GF_DASH_TEMPLATE_REPINDEX_TEMPLATE_WITH_PATH,
 	//same as GF_DASH_TEMPLATE_INITIALIZATION but skip default "init" concatenation
 	GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT,
 	//same as GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE but skip default "init" concatenation
@@ -520,12 +522,11 @@ void gf_mpd_url_free(void *_item);
 GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
 
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out);
+GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
 GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period *period);
 GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period);
 
-void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context);
 GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
 
 GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *uri, const char *value);
@@ -613,9 +614,7 @@ GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
 
-void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent);
 void gf_mpd_base_url_free(void *_item);
-void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent);
 
 GF_MPD_Representation *gf_mpd_representation_new();
 void gf_mpd_representation_free(void *_item);
