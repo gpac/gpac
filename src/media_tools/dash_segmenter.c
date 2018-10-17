@@ -6538,7 +6538,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	if (dasher->dash_mode && !dasher->mpd_update_time && !dasher->mpd_live_duration) {
 		if (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) {
 			dasher->force_period_end = GF_TRUE;
-			dasher->dash_mode = GF_DASH_DYNAMIC;
+			dasher->dash_mode = GF_DASH_STATIC;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Either MPD refresh (update) period or MPD duration shall be set in dynamic mode.\n"));
 			return GF_BAD_PARAM;

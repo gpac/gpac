@@ -4350,7 +4350,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_dasher_del(dasher);
 
 		if (dash_ctx) {
-			if (do_abort==3) {
+			if (!force_test_mode && (do_abort==3)) {
 				if (!dash_ctx_file) {
 					char szName[1024];
 					fprintf(stderr, "Enter file name to save dash context:\n");
