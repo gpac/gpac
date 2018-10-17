@@ -3002,7 +3002,7 @@ restart_fragmentation_pass:
 				fprintf(dasher->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 			if (!is_bs_switching) {
 				fprintf(dasher->mpd, ">\n");
-				fprintf(dasher->mpd, "      <Initialization range=\"%d-%d\"/>\n", 0, index_start_range-1);
+				fprintf(dasher->mpd, "     <Initialization range=\"%d-%d\"/>\n", 0, index_start_range-1);
 				fprintf(dasher->mpd, "    </SegmentBase>\n");
 			} else {
 				fprintf(dasher->mpd, "/>\n");
