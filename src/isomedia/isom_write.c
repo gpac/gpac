@@ -1419,6 +1419,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 
 	if (nbChannels>2) {
 		aud_entry->version = 1;
+		aud_entry->is_qtff = 0;
 		stsd->version = 1;
 	}
 	return GF_OK;
