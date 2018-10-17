@@ -144,6 +144,8 @@ GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream
 	ptr->samplerate_lo = gf_bs_read_u16(bs);
 
 	ptr->size -= 28;
+	if (!ptr->is_qtff) return GF_OK;
+	
 	if (ptr->version==1) {
 		if (ptr->size<16) return GF_ISOM_INVALID_FILE;
 		gf_bs_read_data(bs, (char *) ptr->extensions, 16);
@@ -172,20 +174,24 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->packet_size);
 	gf_bs_write_u16(bs, ptr->samplerate_hi);
 	gf_bs_write_u16(bs, ptr->samplerate_lo);
-	if (ptr->version==1) {
-		gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
-	} else if (ptr->version==2) {
-		gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
+	if (ptr->is_qtff) {
+		if (ptr->version==1) {
+			gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
+		} else if (ptr->version==2) {
+			gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
+		}
 	}
 }
 
 void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr)
 {
 	ptr->size += 28;
-	if (ptr->version==1) {
-		ptr->size+=16;
-	} else if (ptr->version==2) {
-		ptr->size += 36;
+	if (ptr->is_qtff) {
+		if (ptr->version==1) {
+			ptr->size+=16;
+		} else if (ptr->version==2) {
+			ptr->size += 36;
+		}
 	}
 }
 
@@ -1108,61 +1114,79 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	GF_BitRateBox *a;
 	GF_Err e;
 	GF_SampleEntryBox *ent;
+	u32 i, count;
 	GF_TrackBox *trak;
-	GF_ESD *esd;
+
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return GF_BAD_PARAM;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !sampleDescriptionIndex || !trak->Media) return GF_BAD_PARAM;
 
-	esd = NULL;
-	ent = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex - 1);
-	if (!ent) return GF_BAD_PARAM;
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
-	switch (ent->type) {
-	case GF_ISOM_BOX_TYPE_MP4V:
-	case GF_ISOM_BOX_TYPE_ENCV:
-	case GF_ISOM_BOX_TYPE_RESV:
-		esd = ((GF_MPEGVisualSampleEntryBox *) ent)->esd ? ((GF_MPEGVisualSampleEntryBox *) ent)->esd->desc : NULL;
-		break;
-	case GF_ISOM_BOX_TYPE_MP4A:
-	case GF_ISOM_BOX_TYPE_ENCA:
-		esd = ((GF_MPEGAudioSampleEntryBox *) ent)->esd ? ((GF_MPEGAudioSampleEntryBox *) ent)->esd->desc : NULL;
-		break;
-	case GF_ISOM_BOX_TYPE_MP4S:
-	case GF_ISOM_BOX_TYPE_ENCS:
-		esd = ((GF_MPEGSampleEntryBox *) ent)->esd ? ((GF_MPEGSampleEntryBox *) ent)->esd->desc : NULL;
-		break;
-	}
+	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	for (i=0; i<count; i++) {
+		u32 ent_type;
+		GF_ProtectionSchemeInfoBox *sinf;
+		GF_ESDBox *esds=NULL;
+		if (sampleDescriptionIndex && (sampleDescriptionIndex!=i+1)) continue;
 
-	if (esd) {
-		esd->decoderConfig->avgBitrate = average_bitrate;
-		esd->decoderConfig->maxBitrate = max_bitrate;
-		esd->decoderConfig->bufferSizeDB = decode_buffer_size;
-		return GF_OK;
-	}
+		ent = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
+		if (!ent) return GF_BAD_PARAM;
 
-	if (!max_bitrate && average_bitrate) max_bitrate = average_bitrate;
-
-	a = gf_isom_sample_entry_get_bitrate(ent, max_bitrate ? GF_TRUE : GF_FALSE);
-
-	if (!max_bitrate) {
-		if (a) {
-			gf_list_del_item(ent->other_boxes, a);
-			gf_isom_box_del((GF_Box *) a);
-
-			if (!gf_list_count(ent->other_boxes)) {
-				gf_list_del(ent->other_boxes);
-				ent->other_boxes = NULL;
-			}
+		ent_type = ent->type;
+		switch (ent_type) {
+		case GF_ISOM_BOX_TYPE_ENCV:
+		case GF_ISOM_BOX_TYPE_ENCA:
+		case GF_ISOM_BOX_TYPE_ENCS:
+			sinf = gf_list_get(ent->protections, 0);
+			if (sinf && sinf->original_format)
+				ent_type = sinf->original_format->type;
+			break;
 		}
-		return GF_OK;
-	}
+		switch (ent_type) {
+		case GF_ISOM_BOX_TYPE_MP4V:
+			esds = ((GF_MPEGVisualSampleEntryBox *)ent)->esd;
+			break;
+		case GF_ISOM_BOX_TYPE_MP4A:
+			esds = ((GF_MPEGAudioSampleEntryBox *)ent)->esd;
+			break;
+		case GF_ISOM_BOX_TYPE_MP4S:
+			esds = ((GF_MPEGSampleEntryBox *) ent)->esd;
+			break;
+		}
+		//using mpeg4 esd
+		if (esds) {
+			if (esds->desc && esds->desc->decoderConfig) {
+				esds->desc->decoderConfig->avgBitrate = average_bitrate;
+				esds->desc->decoderConfig->maxBitrate = max_bitrate;
+				if (decode_buffer_size)
+					esds->desc->decoderConfig->bufferSizeDB = decode_buffer_size;
+			}
+			continue;
+		}
+		
+		//using BTRT
+		if (!max_bitrate && average_bitrate) max_bitrate = average_bitrate;
+		a = gf_isom_sample_entry_get_bitrate(ent, max_bitrate ? GF_TRUE : GF_FALSE);
 
-	a->avgBitrate = average_bitrate;
-	a->maxBitrate = max_bitrate;
-	a->bufferSizeDB = decode_buffer_size;
+		if (!max_bitrate) {
+			if (a) {
+				gf_list_del_item(ent->other_boxes, a);
+				gf_isom_box_del((GF_Box *) a);
+
+				if (!gf_list_count(ent->other_boxes)) {
+					gf_list_del(ent->other_boxes);
+					ent->other_boxes = NULL;
+				}
+			}
+		} else {
+			a->avgBitrate = average_bitrate;
+			a->maxBitrate = max_bitrate;
+			if (decode_buffer_size)
+				a->bufferSizeDB = decode_buffer_size;
+		}
+	}
 	return GF_OK;
 }
 
