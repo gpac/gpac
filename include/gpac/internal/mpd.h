@@ -321,6 +321,7 @@ typedef struct
 	u32 segs_purged;
 	Double dur_purged;
 	u32 moof_sn, moof_sn_inc;
+	u32 last_dyn_period_id;
 } GF_DASH_SegmenterContext;
 
 typedef struct
