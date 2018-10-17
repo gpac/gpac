@@ -2519,6 +2519,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					tkw->fragment_done = GF_TRUE;
 					gf_filter_pid_drop_packet(tkw->ipid);
 					ctx->flush_seg = GF_TRUE;
+					tkw->next_seg_cts = tkw->cts_next;
 					break;
 				}
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MuxIsom] Packet with no CTS assigned, cannot store to track, ignoring\n"));
