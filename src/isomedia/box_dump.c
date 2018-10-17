@@ -3255,7 +3255,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 	fprintf(nhmlFile, "</NHNTStream>\n");
 	gf_fclose(nhmlFile);
-
+	gf_delete_file(nhmlFileName);
 	if (count) gf_set_progress("SRT Extract", i, count);
 	return GF_OK;
 }
