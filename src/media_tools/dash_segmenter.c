@@ -1347,6 +1347,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 					gf_list_rem(trak->Media->information->sampleTable->sampleGroupsDescription, 0);
 				}
 			}
+			if (dash_input->bandwidth) {
+				gf_isom_update_bitrate(output, TrackNum, 0, dash_input->bandwidth, dash_input->bandwidth, 0);
+			}
 
 // Commenting it the code for Timed Text tracks, it may happen that we have only one long sample, fragmentation is useful
 #if 0
