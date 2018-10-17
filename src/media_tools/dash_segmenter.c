@@ -1865,7 +1865,7 @@ restart_fragmentation_pass:
 
 					if (!use_url_template) {
 						const char *name = gf_dasher_strip_output_dir(dasher->mpd_name, SegmentName);
-						sprintf(szMPDTempLine, "      <SegmentURL media=\"%s\"/>\n", name );
+						sprintf(szMPDTempLine, "     <SegmentURL media=\"%s\"/>\n", name );
 						gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						if (dasher->dash_ctx) {
 							char szKey[100], szVal[4046];
