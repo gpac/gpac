@@ -7199,6 +7199,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		for (cur_adaptation_set=0; cur_adaptation_set < max_adaptation_set; cur_adaptation_set++) {
 			char szInit[GF_MAX_PATH], tmp[GF_MAX_PATH];
 			u32 first_rep_in_set=0;
+			u32 nb_rep_in_set=0;
 			u32 max_width = 0;
 			u32 max_height = 0;
 			u32 dar_num = 1;
@@ -7348,6 +7349,13 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 			if (e) goto exit;
 
+			nb_rep_in_set = 0;
+			for (i=0; i<dasher->nb_inputs && !e; i++) {
+				GF_DashSegInput *dash_input = &dasher->inputs[i];
+				if (dash_input->adaptation_set==cur_adaptation_set+1)
+					nb_rep_in_set++;
+			}
+
 			is_first_rep = GF_TRUE;
 			for (i=0; i<dasher->nb_inputs && !e; i++) {
 				char szOutName[GF_MAX_PATH], *segment_name, *orig_seg_name;
@@ -7364,6 +7372,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 				/*in scalable case: seg_name is variable*/
 				dasher->variable_seg_rad_name = has_scalability ? GF_TRUE : GF_FALSE;
+
 				if (segment_name) {
 					if (strstr(segment_name, "%s")) {
 						sprintf(szSolvedSegName, segment_name, szOutName);
@@ -7379,6 +7388,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 					segment_name = szSolvedSegName;
 				}
+
+				if (nb_rep_in_set==1)
+					dasher->variable_seg_rad_name = GF_FALSE;
 
 				/* user added a relative-path baseURL */
 				if (dash_input->nb_baseURL) {
