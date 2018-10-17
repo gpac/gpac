@@ -252,7 +252,7 @@ static void dasher_format_seg_name(GF_DASHSegmenter *dasher, const char *inName)
 	/*if output is not in the current working dir, concatenate output path to segment name*/
 	szName[0] = 0;
 
-	if (inName && gf_url_get_resource_path(dasher->mpd_name, szName)) {
+	if (0 && inName && gf_url_get_resource_path(dasher->mpd_name, szName)) {
 		strcat(szName, inName);
 		dasher->seg_rad_name = gf_strdup(szName);
 	} else {
@@ -649,7 +649,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->daisy_chain_sidx) { APPEND_ARG("chain_sidx")}
 	if (dasher->initial_moof_sn) { sprintf(szArg, "msn=%d", dasher->initial_moof_sn ); APPEND_ARG(szArg)}
 	if (dasher->initial_tfdt) { sprintf(szArg, "tfdt="LLU"", dasher->initial_tfdt ); APPEND_ARG(szArg)}
-	if (dasher->no_fragments_defaults) {APPEND_ARG("no_def")}
+	if (dasher->no_fragments_defaults) {APPEND_ARG("nofragdef")}
 	if (dasher->single_traf_per_moof) {APPEND_ARG("straf")}
 	if (dasher->single_trun_per_traf) {APPEND_ARG("strun")}
 	switch (dasher->pssh_mode) {
@@ -733,7 +733,10 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		if (url && di->media_duration) { sprintf(szArg, "#CDur=%g", di->media_duration ); APPEND_ARG(szArg)}
 
 		if (di->xlink)  { sprintf(szArg, "#xlink=%s", di->xlink ); APPEND_ARG(szArg)}
-		if (di->bandwidth)  { sprintf(szArg, "#Bitrate=%d", di->bandwidth ); APPEND_ARG(szArg)}
+		if (di->bandwidth)  {
+			sprintf(szArg, "#Bitrate=%d", di->bandwidth ); APPEND_ARG(szArg)
+			sprintf(szArg, "#Maxrate=%d", di->bandwidth ); APPEND_ARG(szArg)
+		}
 
 		for (j=0;j<di->nb_baseURL; j++) {
 			if (!j) { sprintf(szArg, "#BUrl=%s", di->baseURL[j] ); APPEND_ARG(szArg)}

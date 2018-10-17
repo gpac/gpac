@@ -153,6 +153,7 @@ typedef struct
 	u32 psshs;
 	u32 tkid;
 	Bool fdur;
+	Bool btrt;
 
 
 	//internal
@@ -404,7 +405,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool unknown_generic = GF_FALSE;
 	u32 multi_pid_final_stsd_idx = 0;
 	u32 audio_pli=0;
-	u32 avg_rate, max_rate, dbsize;
 	Bool force_tk_layout = GF_FALSE;
 
 	const char *lang_name = NULL;
@@ -601,6 +601,10 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			tkw->track_num = gf_isom_new_track_from_template(ctx->file, tkid, mtype, tkw->timescale, p->value.data.ptr, p->value.data.size, udta_only);
 			if (!tkw->track_num) {
 				tkw->track_num = gf_isom_new_track_from_template(ctx->file, 0, mtype, tkw->timescale, p->value.data.ptr, p->value.data.size, udta_only);
+			}
+
+			if (!ctx->btrt) {
+				gf_isom_update_bitrate(ctx->file, tkw->track_num, 0, 0, 0, 0);
 			}
 		} else {
 			if (!mtype) {
@@ -1366,17 +1370,21 @@ sample_entry_setup:
 		assert(0);
 	}
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
-	avg_rate = p ? p->value.uint : 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MAXRATE);
-	max_rate = p ? p->value.uint : 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DBSIZE);
-	dbsize = p ? p->value.uint : 0;
+	if (ctx->btrt) {
+		u32 avg_rate, max_rate, dbsize;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
+		avg_rate = p ? p->value.uint : 0;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MAXRATE);
+		max_rate = p ? p->value.uint : 0;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DBSIZE);
+		dbsize = p ? p->value.uint : 0;
 
-	if (avg_rate && max_rate) {
-		gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, avg_rate, max_rate, dbsize);
+		if (avg_rate && max_rate) {
+			gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, avg_rate, max_rate, dbsize);
+		}
+	} else {
+		gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, 0);
 	}
-
 
 multipid_stsd_setup:
 	if (multi_pid_stsd) {
@@ -2474,7 +2482,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	nb_eos=0;
 	nb_done = 0;
 	for (i=0; i<count; i++) {
-		u64 cts, dts;
+		u64 cts, dts, ncts;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
 		if (tkw->fragment_done) {
@@ -2557,8 +2565,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				if (tkw->first_dts_in_seg > dts)
 					tkw->first_dts_in_seg = dts;
 			}
-			tkw->cts_next = cts;
-			tkw->cts_next += gf_filter_pck_get_duration(pck);
+			ncts = cts + gf_filter_pck_get_duration(pck);
+			if (tkw->cts_next < ncts)
+				tkw->cts_next = ncts;
 
 
 			if (ctx->fdur) {
@@ -2617,7 +2626,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	if (nb_done==count) {
 		Bool is_eos = (count == nb_eos) ? GF_TRUE : GF_FALSE;
 		u64 next_ref_ts = ctx->ref_tkw->next_seg_cts;
-		if (is_eos) next_ref_ts = ctx->ref_tkw->cts_next;
+		if (is_eos)
+			next_ref_ts = ctx->ref_tkw->cts_next;
 
 		ctx->next_frag_start += ctx->cdur;
 		while (ctx->next_frag_start <= ctx->adjusted_next_frag_start) {
@@ -3165,7 +3175,7 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		}
 
 		//don't update bitrate info for single sample tracks, unless MPEG-4 Systems - compatibility with old arch
-		if (!tkw->skip_bitrate_update && ((tkw->nb_samples>1) || ctx->m4sys) )
+		if (ctx->btrt && !tkw->skip_bitrate_update && ((tkw->nb_samples>1) || ctx->m4sys) )
 			gf_media_update_bitrate(ctx->file, tkw->track_num);
 	}
 
@@ -3282,6 +3292,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(mvex), "sets mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragments based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(btrt), "sets btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
 	{0}
 };
 

@@ -686,6 +686,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "durPurged")) dasher->dur_purged = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "moofSN")) dasher->moof_sn = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "moofInc")) dasher->moof_sn_inc = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "lastDynPeriodID")) dasher->last_dyn_period_id = gf_mpd_parse_int(att->value);
 
 	}
 	return dasher;
@@ -2262,7 +2263,7 @@ void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms, Bool UseHo
 
 void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent)
 {
-	fprintf(out, "   %s<BaseURL", indent);
+	fprintf(out, "%s<BaseURL", indent);
 	if (base_URL->service_location)
 		fprintf(out, " serviceLocation=\"%s\"", base_URL->service_location);
 	if (base_URL->byte_range)
@@ -2342,6 +2343,8 @@ GF_MPD_SegmentTimeline *gf_mpd_segmentimeline_new(void)
 
 static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentBase *ms, char *indent, Bool close_if_no_child)
 {
+	char tmp_indent[256];
+	sprintf(tmp_indent, "%s ",indent);
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
 
 	if (ms->start_number != (u32) -1) fprintf(out, " startNumber=\"%d\"", ms->start_number);
@@ -2355,32 +2358,30 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 	}
 	fprintf(out, ">\n");
 
-	if (ms->initialization_segment) gf_mpd_print_url(out, ms->initialization_segment, "Initialization", indent);
-	if (ms->representation_index) gf_mpd_print_url(out, ms->representation_index, "RepresentationIndex", indent);
+	if (ms->initialization_segment) gf_mpd_print_url(out, ms->initialization_segment, "Initialization", tmp_indent);
+	if (ms->representation_index) gf_mpd_print_url(out, ms->representation_index, "RepresentationIndex", tmp_indent);
 
-	if (ms->segment_timeline) gf_mpd_print_segment_timeline(out, ms->segment_timeline, indent);
-	if (ms->bitstream_switching_url) gf_mpd_print_url(out, ms->bitstream_switching_url, "BitstreamSwitching", indent);
+	if (ms->segment_timeline) gf_mpd_print_segment_timeline(out, ms->segment_timeline, tmp_indent);
+	if (ms->bitstream_switching_url) gf_mpd_print_url(out, ms->bitstream_switching_url, "BitstreamSwitching", tmp_indent);
 	return 0;
 }
 
 static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *indent)
 {
-	char tmp_indent[256];
 	fprintf(out, "%s<SegmentList", indent);
 	if (s->xlink_href) {
 		fprintf(out, " xlink:href=\"%s\"", s->xlink_href);
 		if (s->xlink_actuate_on_load)
 			fprintf(out, " actuate=\"onLoad\"");
 	}	
-	sprintf(tmp_indent, "%s ",indent);
-	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, tmp_indent, GF_FALSE);
+	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent, GF_FALSE);
 	
 	if (s->segment_URLs) {
 		u32 i;
 		GF_MPD_SegmentURL *url;
 		i = 0;
 		while ( (url = gf_list_enum(s->segment_URLs, &i))) {
-			fprintf(out, "%s<SegmentURL", tmp_indent);
+			fprintf(out, "%s <SegmentURL", indent);
                        if (url->media) fprintf(out, " media=\"%s\"", url->media);
                        if (url->duration)fprintf(out, " duration=\""LLU"\"", url->duration);
 			if (url->index) fprintf(out, " index=\"%s\"", url->index);
@@ -2577,6 +2578,10 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 		fprintf(out, "tsOffset=\""LLU"\" ", dasher->ts_offset);
 	if (dasher->mux_pids)
 		fprintf(out, "muxPIDs=\"%s\" ", dasher->mux_pids);
+
+	if (dasher->last_dyn_period_id) {
+		fprintf(out, "lastDynPeriodID=\"%d\" ", dasher->last_dyn_period_id);
+	}
 
 	fprintf(out, "ownsSet=\"%s\"/>\n", dasher->owns_set ? "true" : "false");
 }
@@ -3163,11 +3168,12 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		if (info->copyright) {
 			fprintf(out, "  <Copyright>%s</Copyright>\n", info->copyright);
 		}
-		fprintf(out, " </ProgramInformation>\n\n");
+		fprintf(out, " </ProgramInformation>\n");
 	}
 
 	gf_mpd_print_base_urls(out, mpd->base_URLs, " ");
 
+	fprintf(out, "\n");
 	i=0;
 	while ((text = (char *)gf_list_enum(mpd->locations, &i))) {
 		fprintf(out, " <Location>%s</Location>\n", text);
