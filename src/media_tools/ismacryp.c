@@ -1193,7 +1193,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
 				if (unit_size > clear_bytes) {
 					u32 ret = (unit_size - clear_bytes) % 16;
-					//in AV1 always enforced
+					//in OBU (AV1) always enforced
 					if (bs_type == ENC_OBU) {
 						clear_bytes += ret;
 					}
@@ -1271,6 +1271,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				nb_ranges--;
 				if (!nb_ranges) break;
 
+				assert(bs_type == ENC_OBU);
 				av1_tile_idx++;
 				clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
 				unit_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
