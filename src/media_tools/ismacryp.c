@@ -1094,7 +1094,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
 	GF_CENCSubSampleEntry *prev_entry=NULL;
 	char *buffer;
-	u32 max_size, nalu_size=0;
+	u32 max_size, nalu_size = 0;
 	GF_Err e = GF_OK;
 	GF_List *subsamples;
 
@@ -1111,7 +1111,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		e = GF_IO_ERR;
 		goto exit;
 	}
-	if (is_av1_video) nalu_size_length=0;
+	if (is_av1_video) nalu_size_length = 0;
 
 	while (gf_bs_available(plaintext_bs)) {
 		if (is_nalu_video || is_av1_video) {
@@ -1125,7 +1125,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 					continue;
 				}
 				if (nalu_size > gf_bs_available(plaintext_bs) ) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] NAL size %d larger than bytes remaining in sample\n", nalu_size ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] NAL size %u larger than bytes remaining in sample\n", nalu_size ));
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
 				}
@@ -1886,9 +1886,9 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			if (e) goto exit;
 		}
 
-		if (tci->ctr_mode)
+		if (tci->ctr_mode) {
 			gf_cenc_encrypt_sample_ctr(mc, tci, samp, is_nalu_video, is_av1_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
-		else {
+		} else {
 			//in cbcs scheme, if Per_Sample_IV_size is not 0 (no constant IV), fetch current IV
 			if (tci->IV_size) {
 				u32 IV_size = 16;
