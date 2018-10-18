@@ -1088,7 +1088,15 @@ static u32 gf_cenc_get_clear_bytes(GF_TrackCryptInfo *tci, GF_BitStream *plainte
 	return clear_bytes;
 }
 
-static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, Bool is_nalu_video, Bool is_av1_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
+typedef enum {
+	ENC_FULL_SAMPLE,
+
+	/*below types may have several ranges (clear/encrypted) per sample*/
+	ENC_NALU, /*NALU based*/
+	ENC_OBU,  /*OBU based*/
+} GF_Enc_BsFmt;
+
+static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										 u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block)
 {
 	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
@@ -1111,15 +1119,15 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		e = GF_IO_ERR;
 		goto exit;
 	}
-	if (is_av1_video) nalu_size_length = 0;
+	if (bs_type == ENC_OBU) nalu_size_length = 0;
 
 	while (gf_bs_available(plaintext_bs)) {
-		if (is_nalu_video || is_av1_video) {
+		if ( (bs_type == ENC_NALU) || (bs_type == ENC_OBU) ) {
 			u32 clear_bytes = 0;
 			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
 
-			if (is_nalu_video) {
+			if (bs_type == ENC_NALU) {
 				nalu_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
 				if (nalu_size == 0) {
 					continue;
@@ -1131,7 +1139,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 
 	 			clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nalu_size, bytes_in_nalhr);
-			} else if (is_av1_video) {
+			} else if (bs_type == ENC_OBU) {
 				ObuType obut;
 				u64 pos, obu_size;
 				u32 hdr_size;
@@ -1181,7 +1189,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				if (nalu_size > clear_bytes) {
 					u32 ret = (nalu_size - clear_bytes) % 16;
 					//in AV1 always enforced
-					if (is_av1_video) {
+					if (bs_type == ENC_OBU) {
 						clear_bytes += ret;
 					}
 					//for CENC (should),
@@ -1204,7 +1212,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				/*read clear data and transfer to output*/
 				gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
-				if (is_nalu_video)
+				if (bs_type == ENC_NALU)
 					gf_bs_write_int(cyphertext_bs, nalu_size, 8*nalu_size_length);
 
 				gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
@@ -1308,7 +1316,7 @@ exit:
 }
 
 
-static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, Bool is_nalu_video, Bool is_av1_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
+static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block) {
 	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
 	GF_CENCSubSampleEntry *prev_entry = NULL;
@@ -1331,22 +1339,22 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		goto exit;
 	}
 
-	if (is_av1_video) nalu_size_length=0;
+	if (bs_type == ENC_OBU) nalu_size_length = 0;
 
 	while (gf_bs_available(plaintext_bs)) {
-		if (skip_byte_block || is_nalu_video || is_av1_video) {
+		if (skip_byte_block || (bs_type == ENC_NALU) || (bs_type == ENC_OBU)) {
 			u32 clear_bytes = 0;
 			u32 clear_bytes_at_end = 0;
 			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
 
-			if (is_nalu_video) {
+			if (bs_type == ENC_NALU) {
 				nal_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
 
 				gf_bs_write_int(cyphertext_bs, nal_size, 8*nalu_size_length);
 
 				clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nal_size, bytes_in_nalhr);
-			} else if (is_av1_video) {
+			} else if (bs_type == ENC_OBU) {
 				ObuType obut;
 				u64 pos, obu_size;
 				u32 hdr_size;
@@ -1401,7 +1409,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
 				//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
-				if (!is_av1_video && (tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+				if ((bs_type != ENC_OBU) && (tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
 					u32 ret = (nal_size-clear_bytes) % 16;
 					clear_bytes_at_end = ret;
 				}
@@ -1571,8 +1579,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	u32 i, count, di, track, saiz_len, nb_samp_encrypted, nalu_size_length, idx, bytes_in_nalhr;
 	GF_ESD *esd;
 	Bool has_crypted_samp;
-	Bool is_nalu_video = GF_FALSE;
-	Bool is_av1_video = GF_FALSE;
+	GF_Enc_BsFmt bs_type;
 	Bool use_subsamples = GF_FALSE;
 	char *saiz_buf;
 	Bool use_seig = GF_FALSE;
@@ -1634,7 +1641,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 #endif
 			if (avccfg) gf_odf_avc_cfg_del(avccfg);
 			if (svccfg) gf_odf_avc_cfg_del(svccfg);
-			is_nalu_video = GF_TRUE;
+			bs_type = ENC_NALU;
 			bytes_in_nalhr = 1;
 		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
 			GF_HEVCConfig *hevccfg = gf_isom_hevc_config_get(mp4, track, 1);
@@ -1651,17 +1658,18 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			tci->is_avc = GF_FALSE;
 
 			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-			is_nalu_video = GF_TRUE;
+			bs_type = ENC_NALU;
 			bytes_in_nalhr = 2;
-		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AV1) {
+		} else if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AV1) {
 			tci->av1.config = gf_isom_av1_config_get(mp4, track, 1);
-			is_av1_video = GF_TRUE;
+			bs_type = ENC_OBU;
 			bytes_in_nalhr = 2;
 		}
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 
-	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (is_nalu_video || is_av1_video) )  {
+	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) )
+		&& ( (bs_type == ENC_NALU) || (bs_type == ENC_OBU) ) )  {
 		if (!tci->crypt_byte_block || !tci->skip_byte_block) {
 			if (tci->crypt_byte_block || tci->skip_byte_block) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
@@ -1672,7 +1680,9 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 
-	if (is_nalu_video || is_av1_video) use_subsamples = GF_TRUE;
+	if ((bs_type == ENC_NALU) || (bs_type == ENC_OBU)) {
+		use_subsamples = GF_TRUE;
+	}
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
 	else if (tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
 		if (tci->skip_byte_block) {
@@ -1887,14 +1897,14 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		}
 
 		if (tci->ctr_mode) {
-			gf_cenc_encrypt_sample_ctr(mc, tci, samp, is_nalu_video, is_av1_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			gf_cenc_encrypt_sample_ctr(mc, tci, samp, bs_type, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
 		} else {
 			//in cbcs scheme, if Per_Sample_IV_size is not 0 (no constant IV), fetch current IV
 			if (tci->IV_size) {
 				u32 IV_size = 16;
 				gf_crypt_get_IV(mc, IV, &IV_size);
 			}
-			gf_cenc_encrypt_sample_cbc(mc, tci, samp, is_nalu_video, is_av1_video, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			gf_cenc_encrypt_sample_cbc(mc, tci, samp, bs_type, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
 		}
 
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
