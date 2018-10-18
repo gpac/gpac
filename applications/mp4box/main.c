@@ -4311,6 +4311,11 @@ int mp4boxMain(int argc, char **argv)
 				u32 slept = gf_sys_clock();
 				u32 sleep_for = gf_dasher_next_update_time(dasher, &ms_in_session);
 				fprintf(stderr, "Next generation scheduled in %u ms (DASH time "LLU" ms)\n", sleep_for, ms_in_session);
+				if (ms_in_session>=run_for) {
+					dash_cumulated_time = 1+run_for;
+					continue;
+				}
+				
 				while (1) {
 					if (gf_prompt_has_input()) {
 						char c = (char) gf_prompt_get_char();
@@ -4334,7 +4339,7 @@ int mp4boxMain(int argc, char **argv)
 					if (!sleep_for) break;
 
 					gf_sleep(1);
-					sleep_for = gf_dasher_next_update_time(dasher, NULL);
+					sleep_for = gf_dasher_next_update_time(dasher, &ms_in_session);
 					if (sleep_for<1) {
 						dash_now_time=gf_sys_clock();
 						fprintf(stderr, "Slept for %d ms before generation\n", dash_now_time - slept);
