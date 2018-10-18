@@ -1102,7 +1102,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	GF_BitStream *plaintext_bs = NULL, *cyphertext_bs, *sai_bs = NULL;
 	GF_CENCSubSampleEntry *prev_entry = NULL;
 	char *buffer;
-	u32 max_size_in_bytes, nalu_size = 0;
+	u32 max_size_in_bytes, unit_size = 0;
 	GF_Err e = GF_OK;
 	GF_List *subsamples = NULL;
 
@@ -1129,17 +1129,17 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 			switch(bs_type) {
 			case ENC_NALU:
-				nalu_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length_in_bytes);
-				if (nalu_size == 0) {
+				unit_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length_in_bytes);
+				if (unit_size == 0) {
 					continue;
 				}
-				if (nalu_size > gf_bs_available(plaintext_bs) ) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] NAL size %u larger than bytes remaining in sample\n", nalu_size ));
+				if (unit_size > gf_bs_available(plaintext_bs) ) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] NAL size %u larger than bytes remaining in sample\n", unit_size ));
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
 				}
 
-	 			clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nalu_size, bytes_in_nalhr);
+	 			clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, unit_size, bytes_in_nalhr);
 				break;
 			case ENC_OBU: {
 				ObuType obut;
@@ -1153,7 +1153,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 				gf_bs_seek(plaintext_bs, pos);
 
-				nalu_size = (u32)obu_size;
+				unit_size = (u32)obu_size;
 				switch (obut) {
 					//we only encrypt frame and tile group
 				case OBU_FRAME:
@@ -1164,13 +1164,13 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 					} else {
 						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
-						nalu_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
+						unit_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
 						if (tci->av1.frame_state.tiles[0].size >= 16) {
 							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
 							if (prev_entry && prev_entry->bytes_encrypted_data)
 								prev_entry = NULL;
 						} else {
-							clear_bytes = nalu_size;
+							clear_bytes = unit_size;
 						}
 					}
 					break;
@@ -1185,14 +1185,14 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			}
 
 			while (nb_ranges) {
-				if (nalu_size > max_size_in_bytes) {
-					buffer = (char*)gf_realloc(buffer, sizeof(char)*nalu_size);
-					max_size_in_bytes = nalu_size;
+				if (unit_size > max_size_in_bytes) {
+					buffer = (char*)gf_realloc(buffer, sizeof(char)*unit_size);
+					max_size_in_bytes = unit_size;
 				}
 
 				// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
-				if (nalu_size > clear_bytes) {
-					u32 ret = (nalu_size - clear_bytes) % 16;
+				if (unit_size > clear_bytes) {
+					u32 ret = (unit_size - clear_bytes) % 16;
 					//in AV1 always enforced
 					if (bs_type == ENC_OBU) {
 						clear_bytes += ret;
@@ -1206,7 +1206,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 								clear_bytes += ret;
 							}
 							//or if we don't end up with sample in the clear
-							else if (nalu_size > clear_bytes + ret) {
+							else if (unit_size > clear_bytes + ret) {
 								clear_bytes += ret;
 							}
 						}
@@ -1218,18 +1218,18 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				/*read clear data and transfer to output*/
 				gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
 				if (bs_type == ENC_NALU)
-					gf_bs_write_int(cyphertext_bs, nalu_size, 8*nalu_size_length_in_bytes);
+					gf_bs_write_int(cyphertext_bs, unit_size, 8*nalu_size_length_in_bytes);
 
 				gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
 
 				//read data to encrypt
-				if (nalu_size > clear_bytes) {
-					gf_bs_read_data(plaintext_bs, buffer, nalu_size - clear_bytes);
+				if (unit_size > clear_bytes) {
+					gf_bs_read_data(plaintext_bs, buffer, unit_size - clear_bytes);
 
 					//pattern encryption
 					if (crypt_byte_block && skip_byte_block) {
 						u32 pos = 0;
-						u32 res = nalu_size - clear_bytes;
+						u32 res = unit_size - clear_bytes;
 						while (res) {
 							gf_crypt_encrypt(mc, buffer+pos, res >= (u32) (16*crypt_byte_block) ? 16*crypt_byte_block : res);
 							if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
@@ -1240,20 +1240,20 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 							}
 						}
 					} else {
-						gf_crypt_encrypt(mc, buffer, nalu_size - clear_bytes);
+						gf_crypt_encrypt(mc, buffer, unit_size - clear_bytes);
 					}
 
 					/*write encrypted data to bitstream*/
-					gf_bs_write_data(cyphertext_bs, buffer, nalu_size - clear_bytes);
+					gf_bs_write_data(cyphertext_bs, buffer, unit_size - clear_bytes);
 				}
 				//prev entry is not a VCL, append this NAL
 				if (prev_entry && !prev_entry->bytes_encrypted_data) {
 					prev_entry->bytes_clear_data += nalu_size_length_in_bytes + clear_bytes;
-					prev_entry->bytes_encrypted_data += nalu_size - clear_bytes;
+					prev_entry->bytes_encrypted_data += unit_size - clear_bytes;
 				} else {
 					prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
 					prev_entry->bytes_clear_data = nalu_size_length_in_bytes + clear_bytes;
-					prev_entry->bytes_encrypted_data = nalu_size - clear_bytes;
+					prev_entry->bytes_encrypted_data = unit_size - clear_bytes;
 					gf_list_add(subsamples, prev_entry);
 				}
 				//check bytes of clear is not larger than 16bits
@@ -1273,7 +1273,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				av1_tile_idx++;
 				clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
-				nalu_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+				unit_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
 				//A subsample SHALL be created for each tile.
 				prev_entry = NULL;
 			}
