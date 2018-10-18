@@ -1099,12 +1099,12 @@ typedef enum {
 static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										 u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block)
 {
-	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
-	GF_CENCSubSampleEntry *prev_entry=NULL;
+	GF_BitStream *plaintext_bs = NULL, *cyphertext_bs, *sai_bs = NULL;
+	GF_CENCSubSampleEntry *prev_entry = NULL;
 	char *buffer;
 	u32 max_size, nalu_size = 0;
 	GF_Err e = GF_OK;
-	GF_List *subsamples;
+	GF_List *subsamples = NULL;
 
 	plaintext_bs = cyphertext_bs = sai_bs = NULL;
 	max_size = 4096;
@@ -1164,7 +1164,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nalu_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
 						if (tci->av1.frame_state.tiles[0].size>=16) {
-							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, other wise merge in prev
+							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
 							if (prev_entry && prev_entry->bytes_encrypted_data)
 								prev_entry = NULL;
 						} else {
@@ -1275,7 +1275,6 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 			}
 		} else {
-
 			if (samp->dataLength > max_size) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*samp->dataLength);
 				max_size = samp->dataLength;
@@ -1318,9 +1317,9 @@ exit:
 
 static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block) {
-	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
+	GF_BitStream *plaintext_bs = NULL, *cyphertext_bs = NULL, *sai_bs = NULL;
 	GF_CENCSubSampleEntry *prev_entry = NULL;
-	char *buffer;
+	char *buffer = NULL;
 	u32 max_size, nal_size;
 	GF_Err e = GF_OK;
 	GF_List *subsamples;
@@ -1376,7 +1375,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nal_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
 						if (tci->av1.frame_state.tiles[0].size>=16) {
-							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, other wise merge in prev
+							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
 							if (prev_entry && prev_entry->bytes_encrypted_data)
 								prev_entry = NULL;
 						} else {
