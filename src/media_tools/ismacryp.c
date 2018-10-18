@@ -1267,12 +1267,10 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				if (!nb_ranges) break;
 
 				av1_tile_idx++;
-				if (av1_tile_idx) {
-					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
-					nalu_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
-					//A subsample SHALL be created for each tile.
-					prev_entry = NULL;
-				}
+				clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
+				nalu_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+				//A subsample SHALL be created for each tile.
+				prev_entry = NULL;
 			}
 		} else {
 			if (samp->dataLength > max_size) {
@@ -1492,12 +1490,10 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				if (!nb_ranges) break;
 				
 				av1_tile_idx++;
-				if (av1_tile_idx) {
-					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
-					nal_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
-					//A subsample SHALL be created for each tile.
-					prev_entry = NULL;
-				}
+				clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
+				nal_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+				//A subsample SHALL be created for each tile.
+				prev_entry = NULL;
 			}
 		} else {
 			u32 clear_trailing;
