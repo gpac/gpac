@@ -131,6 +131,7 @@ struct __gf_dash_segmenter
 	const char *bs_switch_segment_file;
 	Bool inband_param_set;
 	Bool force_period_end;
+	Bool force_session_end;
 
 	/*set if seg_rad_name depends on input file name (had %s in it). In this case, SegmentTemplate cannot be used at adaptation set level*/
 	Bool variable_seg_rad_name;
@@ -1046,7 +1047,7 @@ static u32 cicp_get_channel_config(u32 nb_chan,u32 nb_surr, u32 nb_lfe)
 
 
 
-static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input, Bool first_in_set)
+static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -1713,6 +1714,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			if (opt) init_seg_size = atoi(opt);
 		}
 	}
+
+	if (dasher->force_session_end)
+		goto write_rep_only;
+
 
 restart_fragmentation_pass:
 
@@ -2741,6 +2746,8 @@ restart_fragmentation_pass:
 	}
 
 
+write_rep_only:
+
     if (!bandwidth) {
     	for (i=0; i<gf_list_count(fragmenters); i++) {
     		u32 bw=0;
@@ -3101,9 +3108,10 @@ restart_fragmentation_pass:
 		gf_cfg_set_key(dasher->dash_ctx, RepSecName, "NextFragmentIndex", sOpt);
 
 
-		sprintf(sOpt, LLU, period_duration);
-		gf_cfg_set_key(dasher->dash_ctx, RepSecName, "CumulatedDuration", sOpt);
-
+		if (!dasher->force_session_end) {
+			sprintf(sOpt, LLU, period_duration);
+			gf_cfg_set_key(dasher->dash_ctx, RepSecName, "CumulatedDuration", sOpt);
+		}
 		if (store_dash_params) {
 			sprintf(sOpt, "%u", bandwidth);
 			gf_cfg_set_key(dasher->dash_ctx, RepSecName, "Bandwidth", sOpt);
@@ -3781,7 +3789,7 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 	}
 
 
-	e= gf_media_isom_segment_file(dash_input->isobmf_input, szOutName, dasher, dash_input, first_in_set);
+	e = isom_segment_file(dash_input->isobmf_input, szOutName, dasher, dash_input, first_in_set);
 	if(dash_input->no_cache){
 		gf_isom_delete(dash_input->isobmf_input);
 		dash_input->isobmf_input=NULL;
@@ -6431,11 +6439,16 @@ static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput
 			char szPName[50];
 			sprintf(szPName, "DID1");
 			if (dasher->dash_ctx) {
-				while (1) {
-					const char *p = gf_cfg_get_key(dasher->dash_ctx, "PastPeriods", szPName);
-					if (!p) break;
-					dash_input->period_id_not_specified++;
-					sprintf(szPName, "DID%d", dash_input->period_id_not_specified);
+				if (dasher->force_session_end) {
+					const char *p = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastActivePeriod");
+					if (p) strcpy(szPName, p);
+				} else {
+					while (1) {
+						const char *p = gf_cfg_get_key(dasher->dash_ctx, "PastPeriods", szPName);
+						if (!p) break;
+						dash_input->period_id_not_specified++;
+						sprintf(szPName, "DID%d", dash_input->period_id_not_specified);
+					}
 				}
 			}
 			dash_input->periodID = gf_strdup(szPName);
@@ -6534,10 +6547,12 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Dashing starting\n"));
 
 	dasher->force_period_end = GF_FALSE;
+	dasher->force_session_end = GF_FALSE;
 
 	if (dasher->dash_mode && !dasher->mpd_update_time && !dasher->mpd_live_duration) {
 		if (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) {
-			dasher->force_period_end = GF_TRUE;
+			//dasher->force_period_end = GF_TRUE;
+			dasher->force_session_end = GF_TRUE;
 			dasher->dash_mode = GF_DASH_STATIC;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Either MPD refresh (update) period or MPD duration shall be set in dynamic mode.\n"));
@@ -6888,7 +6903,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				}
 			}
 
-			if (sub_duration && (sub_duration < dur) ) {
+			if (sub_duration && (!dasher->disable_loop || (sub_duration < dur)) ) {
 				dur = dasher->subduration;
 			}
 
@@ -6916,7 +6931,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		if (first_in_period) {
 			dasher->inputs[first_in_period-1].period_duration = period_duration;
 		}
-		presentation_duration += period_duration;
+		if (!dasher->force_session_end)
+			presentation_duration += period_duration;
+
 		if (max_media_duration - min_media_duration > dasher->segment_duration) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] The difference between the durations of the longest and shortest representations (%f) is higher than the segment duration (%f)\n", max_media_duration - min_media_duration, dasher->segment_duration));
 		}
@@ -6999,7 +7016,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 		opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastActivePeriod");
 		//period has changed
-		if (opt && strcmp(opt, id)) {
+		if (opt && strcmp(opt, id) && !dasher->force_session_end) {
 			Bool prev_period_not_done = GF_FALSE;
 			const char *prev_id = opt;
 			Double last_period_dur = 0;
@@ -7062,19 +7079,41 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			gf_cfg_set_key(dasher->dash_ctx, "DASH", "LastPeriodDuration", szOpt);
 		} else {
 			GF_DashSegInput *dash_input = &dasher->inputs[last_period_rep_idx_plus_one-1];
-			opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastPeriodDuration");
-			if (opt) {
-				Double d = dash_input->duration;
-				if (dash_input->clamp_duration) d = dash_input->clamp_duration;
-				else if (dash_input->media_duration) d = dash_input->media_duration;
-
-				duration = atof(opt);
-
-				if (dash_input->period_duration + duration > d) {
-					dash_input->period_duration = d - duration;
+			if (dasher->force_session_end || dasher->force_period_end) {
+				//get largest duration
+				u32 k, scount = gf_cfg_get_section_count(dasher->dash_ctx);
+				Double mdur=0;
+				for (k=0; k<scount; k++) {
+					const char *sec = gf_cfg_get_section_name(dasher->dash_ctx, k);
+					if (!sec) continue;
+					if( !strnicmp(sec, "Representation_", 15) ) {
+						const char *key = gf_cfg_get_key(dasher->dash_ctx, sec, "CumulatedDuration");
+						if (key) {
+							Double v = ((Double) atoi(key)) / dasher->dash_scale;
+							if (v > mdur) mdur = v;
+						}
+					}
 				}
-				dash_input->period_duration += duration;
-				presentation_duration += duration;
+				dash_input->period_duration = mdur;
+				presentation_duration += mdur;
+			} else {
+				opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastPeriodDuration");
+				if (opt) {
+					Double d = dash_input->duration;
+					if (dash_input->clamp_duration) d = dash_input->clamp_duration;
+					else if (dash_input->media_duration) d = dash_input->media_duration;
+
+					duration = atof(opt);
+					if (dasher->force_session_end) {
+						dash_input->period_duration = duration;
+					} else {
+						if (dasher->disable_loop && dash_input->period_duration + duration > d) {
+							dash_input->period_duration = d - duration;
+						}
+						dash_input->period_duration += duration;
+					}
+					presentation_duration += duration;
+				}
 			}
 			sprintf(szOpt, "%g", dash_input->period_duration);
 			gf_cfg_set_key(dasher->dash_ctx, "DASH", "LastPeriodDuration", szOpt);
@@ -7434,7 +7473,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				//to have different names in periods
 				if (dash_input->period_id_not_specified>1) {
 					char tmp[20];
-					sprintf(tmp, "_p%d_", dash_input->period_id_not_specified);
+					sprintf(tmp, "p%d_", dash_input->period_id_not_specified);
 					strcat(segment_name, tmp);
 				}
 				dasher->seg_rad_name = segment_name;
@@ -7453,7 +7492,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				if (dash_input->segment_duration && (dasher->fragment_duration * dasher->dash_scale > dash_input->segment_duration)) {
 					dasher->fragment_duration = dasher->segment_duration;
 				}
-
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("DASHing file %s\n", dash_input->file_name));
 				e = dash_input->dasher_segment_file(dash_input, szOutName, dasher, is_first_rep);
@@ -7484,7 +7522,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		if (last_period_rep_idx_plus_one && dasher->inputs[last_period_rep_idx_plus_one-1].periodID && strcmp(id, dasher->inputs[last_period_rep_idx_plus_one-1].periodID) ) {
 			flush_period = GF_TRUE;
 		}
-		else if (dasher->force_period_end) {
+		else if (dasher->force_period_end || dasher->force_session_end) {
 			flush_period = GF_TRUE;
 		}
 		if (flush_period && dasher->dash_ctx) {
@@ -7530,7 +7568,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		presentation_duration = dasher->mpd_live_duration;
 	}
 
-	if (dasher->force_period_end && !dasher->mpd_update_time && !presentation_duration) {
+	if ((dasher->force_period_end || dasher->force_session_end) && !dasher->mpd_update_time && !presentation_duration) {
 		presentation_duration = 0;
 		i=0;
 		while ((p = (PeriodEntry *) gf_list_enum(period_links, &i))) {
