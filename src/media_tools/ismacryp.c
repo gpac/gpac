@@ -957,7 +957,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 	gf_crypt_get_IV(mc, (u8 *) next_IV, &size);
 	/*
 		NOTE 1: the next_IV returned by get_state has 17 bytes, the first byte being the current counter position in the following 16 bytes.
-		If this index is 0, this means that we are at the begining of a new block and we can use it as IV for next sample,
+		If this index is 0, this means that we are at the beginning of a new block and we can use it as IV for next sample,
 		otherwise we must discard unsued bytes in the counter (next sample shall begin with counter at 0)
 		if less than 16 blocks were cyphered, we must force increasing the next IV for next sample, not doing so would produce the same IV for the next bytes cyphered,
 		which is forbidden by CENC (unique IV per sample). In GPAC, we ALWAYS force counter increase
@@ -1456,7 +1456,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 					gf_bs_write_data(cyphertext_bs, buffer, nal_size - clear_bytes);
 				}
 
-				//for NALU-based, subsamples. Otherwise, if bytes in clear at the begining, subsample
+				//for NALU-based, subsamples. Otherwise, if bytes in clear at the beginning, subsample
 				//the spec is not clear here: can we ommit subsamples if we always cypher everything ?
 				//for now commented out for max compatibility
 				//if (is_nalu_video || bytes_in_nalhr)

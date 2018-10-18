@@ -841,7 +841,7 @@ typedef enum
 GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf);
 
 /*!
- Enables insertion of UTC reference in the begining of segments
+ Enables insertion of UTC reference in the beginning of segments
  *	\param dasher the DASH segmenter object
  *	\param insert_utc if set, UTC will be inserted. Default value is disabled.
  *	\return error code if any
