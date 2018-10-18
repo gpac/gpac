@@ -1096,20 +1096,20 @@ typedef enum {
 	ENC_OBU,  /*OBU based*/
 } GF_Enc_BsFmt;
 
-static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
+static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length_in_bytes, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										 u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block)
 {
 	GF_BitStream *plaintext_bs = NULL, *cyphertext_bs, *sai_bs = NULL;
 	GF_CENCSubSampleEntry *prev_entry = NULL;
 	char *buffer;
-	u32 max_size, nalu_size = 0;
+	u32 max_size_in_bytes, nalu_size = 0;
 	GF_Err e = GF_OK;
 	GF_List *subsamples = NULL;
 
 	plaintext_bs = cyphertext_bs = sai_bs = NULL;
-	max_size = 4096;
-	buffer = (char*)gf_malloc(sizeof(char) * max_size);
-	memset(buffer, 0, max_size);
+	max_size_in_bytes = 4096;
+	buffer = (char*)gf_malloc(sizeof(char) * max_size_in_bytes);
+	memset(buffer, 0, max_size_in_bytes);
 	plaintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 	cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1119,7 +1119,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		e = GF_IO_ERR;
 		goto exit;
 	}
-	if (bs_type == ENC_OBU) nalu_size_length = 0;
+	if (bs_type == ENC_OBU) nalu_size_length_in_bytes = 0;
 
 	while (gf_bs_available(plaintext_bs)) {
 		if ( (bs_type == ENC_NALU) || (bs_type == ENC_OBU) ) {
@@ -1127,8 +1127,9 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
 
-			if (bs_type == ENC_NALU) {
-				nalu_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length);
+			switch(bs_type) {
+			case ENC_NALU:
+				nalu_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length_in_bytes);
 				if (nalu_size == 0) {
 					continue;
 				}
@@ -1139,31 +1140,32 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 
 	 			clear_bytes = gf_cenc_get_clear_bytes(tci, plaintext_bs, samp->data, nalu_size, bytes_in_nalhr);
-			} else if (bs_type == ENC_OBU) {
+				break;
+			case ENC_OBU: {
 				ObuType obut;
 				u64 pos, obu_size;
 				u32 hdr_size;
 				pos = gf_bs_get_position(plaintext_bs);
 				e = gf_media_aom_av1_parse_obu(plaintext_bs, &obut, &obu_size, &hdr_size, &tci->av1);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n" ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n"));
 					goto exit;
 				}
 				gf_bs_seek(plaintext_bs, pos);
 
 				nalu_size = (u32)obu_size;
 				switch (obut) {
-				//we only encrypt frame and tile group
+					//we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
 					clear_bytes = hdr_size;
 					if (!tci->av1.frame_state.nb_tiles_in_obu) {
-						clear_bytes = (u32) obu_size;
+						clear_bytes = (u32)obu_size;
 					} else {
 						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
 						nalu_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
-						if (tci->av1.frame_state.tiles[0].size>=16) {
+						if (tci->av1.frame_state.tiles[0].size >= 16) {
 							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
 							if (prev_entry && prev_entry->bytes_encrypted_data)
 								prev_entry = NULL;
@@ -1173,16 +1175,19 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 					}
 					break;
 				default:
-					clear_bytes = (u32) obu_size;
+					clear_bytes = (u32)obu_size;
 					break;
 				}
 			}
+				break;
+			default:
+				assert(0); break;
+			}
 
 			while (nb_ranges) {
-
-				if (nalu_size > max_size) {
+				if (nalu_size > max_size_in_bytes) {
 					buffer = (char*)gf_realloc(buffer, sizeof(char)*nalu_size);
-					max_size = nalu_size;
+					max_size_in_bytes = nalu_size;
 				}
 
 				// adjust so that encrypted bytes are a multiple of 16 bytes: cenc SHOULD, cens SHALL, we always do it
@@ -1213,7 +1218,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				/*read clear data and transfer to output*/
 				gf_bs_read_data(plaintext_bs, buffer, clear_bytes);
 				if (bs_type == ENC_NALU)
-					gf_bs_write_int(cyphertext_bs, nalu_size, 8*nalu_size_length);
+					gf_bs_write_int(cyphertext_bs, nalu_size, 8*nalu_size_length_in_bytes);
 
 				gf_bs_write_data(cyphertext_bs, buffer, clear_bytes);
 
@@ -1243,11 +1248,11 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 				//prev entry is not a VCL, append this NAL
 				if (prev_entry && !prev_entry->bytes_encrypted_data) {
-					prev_entry->bytes_clear_data += nalu_size_length + clear_bytes;
+					prev_entry->bytes_clear_data += nalu_size_length_in_bytes + clear_bytes;
 					prev_entry->bytes_encrypted_data += nalu_size - clear_bytes;
 				} else {
 					prev_entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
-					prev_entry->bytes_clear_data = nalu_size_length + clear_bytes;
+					prev_entry->bytes_clear_data = nalu_size_length_in_bytes + clear_bytes;
 					prev_entry->bytes_encrypted_data = nalu_size - clear_bytes;
 					gf_list_add(subsamples, prev_entry);
 				}
@@ -1273,9 +1278,10 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				prev_entry = NULL;
 			}
 		} else {
-			if (samp->dataLength > max_size) {
+			assert(bs_type == ENC_FULL_SAMPLE);
+			if (samp->dataLength > max_size_in_bytes) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*samp->dataLength);
-				max_size = samp->dataLength;
+				max_size_in_bytes = samp->dataLength;
 			}
 
 			gf_bs_read_data(plaintext_bs, buffer, samp->dataLength);
