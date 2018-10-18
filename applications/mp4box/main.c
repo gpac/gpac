@@ -384,7 +384,7 @@ void PrintDASHUsage()
 	        " -init-segment-ext n  sets the segment extension for init segments (and index and bitstream switching segments). Default is mp4, \"null\" means no extension\n"
 	        " -segment-timeline    uses SegmentTimeline when generating segments.\n"
 	        " -segment-marker MARK adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
-	        " -insert-utc          inserts UTC clock at the begining of each ISOBMF segment\n"
+	        " -insert-utc          inserts UTC clock at the beginning of each ISOBMF segment\n"
 	        " -base-url string     sets Base url at MPD level. Can be used several times.\n"
 	        "                        WARNING: this does NOT modify generated files location (see segment template).\n"
 	        " -mpd-title string    sets MPD title.\n"
