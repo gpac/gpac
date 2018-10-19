@@ -1154,13 +1154,11 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				gf_bs_seek(plaintext_bs, pos);
 
 				unit_size = (u32)obu_size;
-				switch (obut) {
-					//we only encrypt frame and tile group
+				switch (obut) { //we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
-					clear_bytes = hdr_size;
 					if (!tci->av1.frame_state.nb_tiles_in_obu) {
-						clear_bytes = (u32)obu_size;
+						clear_bytes = (u32)obu_size; /*no data => all in clear*/
 					} else {
 						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
 						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
@@ -1183,6 +1181,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			default:
 				assert(0); break;
 			}
+
 
 			while (nb_ranges) {
 				if (unit_size > max_size_in_bytes) {
