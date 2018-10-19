@@ -3195,7 +3195,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		gf_mpd_print_duration(out, "mediaPresentationDuration", mpd->media_presentation_duration, GF_TRUE);
 	if (mpd->minimum_update_period)
 		gf_mpd_print_duration(out, "minimumUpdatePeriod", mpd->minimum_update_period, GF_TRUE);
-	if (mpd->time_shift_buffer_depth)
+	if ((s32) mpd->time_shift_buffer_depth > 0)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", mpd->time_shift_buffer_depth, GF_TRUE);
 	if (mpd->suggested_presentation_delay)
 		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay, GF_TRUE);
