@@ -1111,7 +1111,7 @@ union __gf_filter_event
 };
 
 
-const char *gf_filter_event_name(u32 type);
+const char *gf_filter_event_name(GF_FEventType type);
 
 /*! @} */
 
