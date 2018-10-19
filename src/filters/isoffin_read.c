@@ -843,6 +843,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		}
 	} else if (read->extern_mov) {
 		in_is_eos = GF_TRUE;
+		read->input_loaded = GF_TRUE;
 	}
 	if (read->moov_not_loaded) {
 		read->moov_not_loaded = GF_FALSE;
@@ -952,7 +953,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				isor_reader_release_sample(ch);
 			} else if (ch->last_state==GF_EOS) {
 				assert(read->input_loaded);
-				if (in_is_eos && (ch->play_state==1)) {
+				if (ch->play_state==1) {
 					ch->play_state = 2;
 					gf_filter_pid_set_eos(ch->pid);
 				}
