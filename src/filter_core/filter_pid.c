@@ -3752,13 +3752,14 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 	return GF_FALSE;
 }
 
-const char *gf_filter_event_name(u32 type)
+const char *gf_filter_event_name(GF_FEventType type)
 {
 	switch (type) {
 	case GF_FEVT_PLAY: return "PLAY";
 	case GF_FEVT_SET_SPEED: return "SET_SPEED";
 	case GF_FEVT_STOP: return "STOP";
 	case GF_FEVT_SOURCE_SEEK: return "SOURCE_SEEK";
+	case GF_FEVT_SOURCE_SWITCH: return "SOURCE_SWITCH";
 	case GF_FEVT_ATTACH_SCENE: return "ATTACH_SCENE";
 	case GF_FEVT_RESET_SCENE: return "RESET_SCENE";
 	case GF_FEVT_PAUSE: return "PAUSE";
@@ -3768,7 +3769,11 @@ const char *gf_filter_event_name(u32 type)
 	case GF_FEVT_INFO_UPDATE: return "INFO_UPDATE";
 	case GF_FEVT_BUFFER_REQ: return "BUFFER_REQ";
 	case GF_FEVT_MOUSE: return "MOUSE";
-	default: return "UNKNOWN";
+	case GF_FEVT_SEGMENT_SIZE: return "SEGMENT_SIZE";
+	case GF_FEVT_CAPS_CHANGE: return "CAPS_CHANGED";
+	case GF_FEVT_CONNECT_FAIL: return "CONNECT_FAIL";
+	default:
+		return "UNKNOWN";
 	}
 }
 
