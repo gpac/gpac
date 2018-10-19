@@ -7451,11 +7451,12 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 			gf_bs_seek(bs, pos2 + frame_sizes[i]);
 		}
 		if (gf_bs_get_position(bs) + superframe_index_size != pos + frame_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VP9] Inconsistent IVF frame size of "LLU" bytes at sample %u.\n", frame_size, cur_samp));
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VP9] Detected %d frames (+ %d bytes for the superframe index):\n", num_frames_in_superframe, superframe_index_size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] Inconsistent IVF frame size of "LLU" bytes at sample %u.\n", frame_size, cur_samp));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("      Detected %d frames (+ %d bytes for the superframe index):\n", num_frames_in_superframe, superframe_index_size));
 			for (i = 0; i < num_frames_in_superframe; ++i) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VP9]    superframe %d, size is %u bytes\n", i, frame_sizes[i]));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("         superframe %d, size is %u bytes\n", i, frame_sizes[i]));
 			}
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("\n"));
 		}
 		gf_bs_seek(bs, pos + frame_size);
 
