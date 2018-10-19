@@ -1141,7 +1141,7 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 		case GF_ISOM_BOX_TYPE_ENCS:
 			sinf = gf_list_get(ent->protections, 0);
 			if (sinf && sinf->original_format)
-				ent_type = sinf->original_format->type;
+				ent_type = sinf->original_format->data_format;
 			break;
 		}
 		switch (ent_type) {
