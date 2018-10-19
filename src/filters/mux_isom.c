@@ -2435,6 +2435,16 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	assert(ctx->init_movie_done);
 
 	if (ctx->dash_mode && !ctx->segment_started) {
+		//don't start a new segment if all pids are in eos
+		nb_eos=0;
+		for (i=0; i<count; i++) {
+			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+			if (gf_filter_pid_is_eos(tkw->ipid)) {
+				nb_eos ++;
+			}
+		}
+		if (nb_eos==count)
+			return GF_EOS;
 		ctx->segment_started = GF_TRUE;
 		ctx->insert_tfdt = GF_TRUE;
 		ctx->insert_pssh = (ctx->psshs == MP4MX_PSSH_MOOF) ? GF_TRUE : GF_FALSE;
@@ -2443,6 +2453,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	}
 
 	if (!ctx->fragment_started) {
+		//setup some default
 		gf_isom_set_next_moof_number(ctx->file, ctx->msn);
 		ctx->msn += ctx->msninc;
 		
@@ -2496,6 +2507,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (!pck) {
 				if (gf_filter_pid_is_eos(tkw->ipid)) {
 					tkw->fragment_done = GF_TRUE;
+					if (ctx->dash_mode) ctx->flush_seg = GF_TRUE;
 					nb_done ++;
 					nb_eos++;
 					break;
@@ -2507,6 +2519,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				nb_eos++;
 				nb_done ++;
 				tkw->fragment_done = GF_TRUE;
+				if (ctx->dash_mode) ctx->flush_seg = GF_TRUE;
 				break;
 			}
 
@@ -2713,16 +2726,21 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				}
 			}
 		}
-		if (ctx->file) {
-			gf_isom_close(ctx->file);
-			ctx->file = NULL;
-
-			if (ctx->dst_pck) {
-				gf_filter_pck_send(ctx->dst_pck);
-				ctx->dst_pck = NULL;
+		//only destroy file if not dash or not onDemand, otherwise (regular dash) the file will be needed to append further segments
+		if (ctx->dash_mode!=MP4MX_DASH_ON) {
+			//only delete file in vod mode
+			if (ctx->file) {
+				gf_isom_close(ctx->file);
+				ctx->file = NULL;
 			}
-			if (!ctx->flush_size) gf_filter_pid_set_eos(ctx->opid);
 		}
+
+		if (ctx->dst_pck) {
+			gf_filter_pck_send(ctx->dst_pck);
+			ctx->dst_pck = NULL;
+		}
+		if (!ctx->flush_size) gf_filter_pid_set_eos(ctx->opid);
+
 		return ctx->flush_size ? GF_OK : GF_EOS;
 	}
 
