@@ -2145,6 +2145,7 @@ typedef struct
 
 	/*internal*/
 	u32 SAP_type;
+	u64 dts;
 } GF_TrunEntry;
 
 typedef struct

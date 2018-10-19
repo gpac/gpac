@@ -258,6 +258,8 @@ typedef struct _dash_stream
 	u32 nb_cues;
 	GF_DASHCueInfo *cues;
 	Bool cues_use_edits;
+
+	Bool clamp_done;
 } GF_DashStream;
 
 
@@ -2422,7 +2424,10 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx)
 		if (ds->xlink) pdur = (u32) (1000*ds->period_dur);
 		else {
 			u64 ds_dur = ds->max_period_dur;
-			if (ds->clamped_dur) ds_dur = (u64) (ds->clamped_dur) * 1000;
+			if (ds->clamped_dur && !ctx->loop) {
+				u64 clamp_dur = (u64) (ds->clamped_dur) * 1000;
+				if (clamp_dur<ds_dur) ds_dur = clamp_dur;
+			}
 
 			if (ds->dur_purged && (ctx->mpd->type != GF_MPD_TYPE_DYNAMIC)) {
 				u64 rem_dur = (u64) (ds->dur_purged) * 1000;
@@ -3078,7 +3083,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	Bool has_deps = GF_FALSE;
 	GF_DasherPeriod *p;
 	GF_List *streams;
-	Double period_idx, period_start, next_period_start;
+	Double period_idx, period_start, next_period_start, min_dur, min_adur, max_adur;
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
 
@@ -3279,6 +3284,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		ctx->current_period->period->ID = gf_strdup(szPName);
 	}
 
+	min_dur = min_adur = max_adur = 0;
 	//setup representation dependency / components (muxed)
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
@@ -3287,6 +3293,24 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		GF_DashStream *ds_video=NULL;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		ds->period = ctx->current_period;
+
+		if (ctx->loop) {
+			Double d=0;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DURATION);
+			if (p && p->value.frac.den) {
+				d = p->value.frac.num;
+				d /= p->value.frac.den;
+				if (ds->clamped_dur && (ds->clamped_dur<d))
+					d = ds->clamped_dur;
+
+				if (ds->stream_type == GF_STREAM_AUDIO) {
+					if (d > max_adur) max_adur = d;
+					if (!min_adur || (d < min_adur)) min_adur = d;
+				} else {
+					if (!min_dur || (d < min_dur)) min_dur = d;
+				}
+			}
+		}
 
 		if (ds->stream_type == GF_STREAM_FILE) {
 			remove = GF_TRUE;
@@ -3374,6 +3398,21 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 		}
 	}
+
+
+	if (ctx->loop && max_adur) {
+		if (max_adur != min_adur) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Audio streams in the period have different durations (min %lf, max %lf), may result in bad synchronization while looping\n", min_adur, max_adur));
+		}
+		for (i=0; i<count; i++) {
+			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+			if (ds->clamped_dur > max_adur) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input %s: max audio duration (%lf) in the period is less than duration (%lf), clamping will happen\n", ds->src_url , max_adur, ds->clamped_dur));
+			}
+			ds->clamped_dur = max_adur;
+		}
+	}
+
 
 	if (is_restore) return GF_OK;
 
@@ -3771,7 +3810,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 	Bool has_ds_done = GF_FALSE;
 	u32 seg_dur_ms=0;
-	Bool logit = GF_FALSE;
+	GF_DashStream *ds_log = NULL;
 	u64 first_cts_in_cur_seg=0;
 
 
@@ -3822,7 +3861,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			set_ds->nb_rep_done = 0;
 		}
 
-		logit = GF_TRUE;
+		ds_log = ds;
 	} else {
 		if (ctx->align) {
 			set_ds->nb_rep_done++;
@@ -3908,8 +3947,8 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		}
 	}
 
-	if (logit) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Rep#%s flus seg %d start %g duration %g next seg end time %g\n", ds->rep->id, ds->seg_number-1, ((Double)first_cts_in_cur_seg)/ds->timescale, ((Double)seg_dur_ms)/1000, ((Double)ds->adjusted_next_seg_start)/ds->timescale));
+	if (ds_log) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Rep#%s flush seg %d start %g duration %g next seg end time %g\n", ds_log->rep->id, ds_log->seg_number-1, ((Double)first_cts_in_cur_seg)/ds_log->timescale, ((Double)seg_dur_ms)/1000, ((Double)ds_log->adjusted_next_seg_start)/ds_log->timescale));
 	}
 
 	//muxed representation with unaligned duration, 
@@ -4169,6 +4208,8 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 			GF_FEVT_INIT(evt, GF_FEVT_STOP, a_ds->ipid);
 			gf_filter_pid_send_event(a_ds->ipid, &evt);
 
+			gf_filter_pid_set_discard(a_ds->ipid, GF_FALSE);
+
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, a_ds->ipid);
 			evt.play.speed = 1.0;
 			gf_filter_pid_send_event(a_ds->ipid, &evt);
@@ -4231,8 +4272,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 
 			if (!pck) {
-				if (gf_filter_pid_is_eos(ds->ipid)) {
+				if (gf_filter_pid_is_eos(ds->ipid) || ds->clamp_done) {
 					u32 ds_done = 1;
+					ds->clamp_done = GF_FALSE;
 					if (ctx->loop && dasher_check_loop(ctx, ds)) {
 						if (ctx->subdur)
 							break;
@@ -4478,15 +4520,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//forcing max time
 			else if ((base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
-				|| (base_ds->clamped_dur && (cts >= base_ds->clamped_dur * ds->timescale))
+				|| (base_ds->clamped_dur && (cts + o_dur > ds->ts_offset + base_ds->clamped_dur * ds->timescale))
 			) {
-				seg_over = GF_TRUE;
 				if (!base_ds->period->period->duration && base_ds->force_rep_end) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Inputs duration do not match, %s truncated to %g duration\n", ds->src_url, ((Double)base_ds->force_rep_end)/base_ds->timescale ));
 				}
-				ds->done = 1;
-				gf_filter_pid_set_eos(ds->opid);
+				gf_filter_pid_drop_packet(ds->ipid);
 				gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+				ds->clamp_done = GF_TRUE;
+				continue;
 			} else if ((cts + check_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
 				//no sap, segment is over
 				if (! ctx->sap) {
@@ -4528,7 +4570,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				base_ds->nb_comp_done ++;
 				if (split_dur_next)
 					ds->split_dur_next = (u32) split_dur_next;
-				assert(sap_type);
+
 				if (base_ds->nb_comp_done == base_ds->nb_comp) {
 					dasher_flush_segment(ctx, base_ds);
 				}

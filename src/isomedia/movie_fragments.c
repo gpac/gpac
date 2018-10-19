@@ -1897,7 +1897,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	char *buffer;
 	u64 pos;
 	GF_ISOSample *od_sample = NULL;
-	GF_TrunEntry *ent;
+	GF_TrunEntry *ent, *prev_ent;
 	GF_TrackFragmentBox *traf, *traf_2;
 	GF_TrackFragmentRunBox *trun;
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) || !sample)
@@ -1987,11 +1987,17 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	if (!ent) return GF_OUT_OF_MEM;
 	ent->CTS_Offset = sample->CTS_Offset;
 	ent->Duration = Duration;
+	ent->dts = sample->DTS;
 	ent->size = sample->dataLength;
 	ent->flags = GF_ISOM_FORMAT_FRAG_FLAGS(PaddingBits, sample->IsRAP, DegradationPriority);
 	if (sample->IsRAP) {
 		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, (redundant_coding ? 1 : 0) );
 		ent->SAP_type = sample->IsRAP;
+	}
+	prev_ent = gf_list_last(trun->entries);
+	if (prev_ent && prev_ent->dts && sample->DTS) {
+		if (prev_ent->Duration != sample->DTS - prev_ent->dts)
+			prev_ent->Duration = sample->DTS - prev_ent->dts;
 	}
 	gf_list_add(trun->entries, ent);
 
