@@ -1977,14 +1977,16 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		}
 
 		if (tci->ctr_mode) {
-			gf_cenc_encrypt_sample_ctr(mc, tci, samp, bs_type, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			e = gf_cenc_encrypt_sample_ctr(mc, tci, samp, bs_type, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			if (e) goto exit;
 		} else {
 			//in cbcs scheme, if Per_Sample_IV_size is not 0 (no constant IV), fetch current IV
 			if (tci->IV_size) {
 				u32 IV_size = 16;
 				gf_crypt_get_IV(mc, IV, &IV_size);
 			}
-			gf_cenc_encrypt_sample_cbc(mc, tci, samp, bs_type, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			e = gf_cenc_encrypt_sample_cbc(mc, tci, samp, bs_type, nalu_size_length, IV, tci->IV_size, &saiz_buf, &saiz_len, bytes_in_nalhr, tci->crypt_byte_block, tci->skip_byte_block);
+			if (e) goto exit;
 		}
 
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
