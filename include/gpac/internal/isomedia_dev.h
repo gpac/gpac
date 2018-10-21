@@ -452,6 +452,7 @@ enum
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
 	GF_ISOM_BOX_TYPE_265B 	= GF_4CC('2','6','5','b'),
 	GF_ISOM_BOX_TYPE_AV1B 	= GF_4CC('a','v','1','b'),
+	GF_ISOM_BOX_TYPE_VP9B   = GF_4CC('v','p','9','b'),
 
 	/*MPEG-H 3D audio*/
 	GF_ISOM_BOX_TYPE_MHA1 	= GF_4CC('m','h','a','1'),
