@@ -1580,7 +1580,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	u32 i, count, di, track, saiz_len, nb_samp_encrypted, nalu_size_length, idx, bytes_in_nalhr;
 	GF_ESD *esd;
 	Bool has_crypted_samp;
-	GF_Enc_BsFmt bs_type;
+	GF_Enc_BsFmt bs_type = ENC_FULL_SAMPLE;
 	Bool use_subsamples = GF_FALSE;
 	char *saiz_buf;
 	Bool use_seig = GF_FALSE;
