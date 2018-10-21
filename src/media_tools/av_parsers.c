@@ -2035,7 +2035,8 @@ static void vp9_frame_size(GF_BitStream *bs, int *FrameWidth, int *FrameHeight, 
 	int frame_width_minus_1 = gf_bs_read_int(bs, 16);
 	int frame_height_minus_1 = gf_bs_read_int(bs, 16);
 	if (frame_width_minus_1+1 != *FrameWidth || frame_height_minus_1+1 != *FrameHeight) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] inconsistent frame dimensions: previous was %dx%d, new one is %dx%d.\n", *FrameWidth, *FrameHeight, frame_width_minus_1 + 1, frame_height_minus_1 + 1));
+		if (*FrameWidth || *FrameHeight)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] inconsistent frame dimensions: previous was %dx%d, new one is %dx%d.\n", *FrameWidth, *FrameHeight, frame_width_minus_1 + 1, frame_height_minus_1 + 1));
 	}
 	*FrameWidth = frame_width_minus_1 + 1;
 	*FrameHeight = frame_height_minus_1 + 1;
