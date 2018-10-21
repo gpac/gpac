@@ -1092,8 +1092,9 @@ typedef enum {
 	ENC_FULL_SAMPLE,
 
 	/*below types may have several ranges (clear/encrypted) per sample*/
-	ENC_NALU, /*NALU based*/
-	ENC_OBU,  /*OBU based*/
+	ENC_NALU, /*NALU-based*/
+	ENC_OBU,  /*OBU-based*/
+	ENC_VP9,  /*custom, see https://www.webmproject.org/vp9/mp4/*/
 } GF_Enc_BsFmt;
 
 static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, GF_ISOSample *samp, GF_Enc_BsFmt bs_type, u32 nalu_size_length_in_bytes, char IV[16], u32 IV_size, char **sai, u32 *saiz,
@@ -1119,10 +1120,11 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		e = GF_IO_ERR;
 		goto exit;
 	}
-	if (bs_type == ENC_OBU) nalu_size_length_in_bytes = 0;
+	if (bs_type != ENC_OBU)
+		nalu_size_length_in_bytes = 0;
 
 	while (gf_bs_available(plaintext_bs)) {
-		if ( (bs_type == ENC_NALU) || (bs_type == ENC_OBU) ) {
+		if (bs_type != ENC_FULL_SAMPLE) {
 			u32 clear_bytes = 0;
 			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
@@ -1178,8 +1180,63 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 			}
 				break;
+			case ENC_VP9: {
+				u64 pos = 0;
+				int num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
+				u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
+
+				if (tci->block_align != 2) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\"\n"));
+					e = GF_NOT_SUPPORTED;
+					goto exit;
+				}
+
+				pos = gf_bs_get_position(plaintext_bs);
+				e = vp9_parse_superframe(plaintext_bs, samp->dataLength, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+				assert(num_frames_in_superframe == 1 && superframe_index_size == 0);
+				if (e) goto exit;
+				gf_bs_seek(plaintext_bs, pos);
+
+				for (i = 0; i < num_frames_in_superframe; ++i) {
+					Bool key_frame;
+					int width = 0, height = 0, renderWidth, renderHeight;
+					GF_VPConfig *vp9_cfg = gf_odf_vp_cfg_new();
+					u64 pos2 = gf_bs_get_position(plaintext_bs);
+					e = vp9_parse_sample(plaintext_bs, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
+					gf_odf_vp_cfg_del(vp9_cfg);
+					if (e) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC][VP9] Error parsing sample at DTS="LLU"\n", samp->DTS));
+						goto exit;
+					}
+					clear_bytes = gf_bs_get_position(plaintext_bs);
+					gf_bs_seek(plaintext_bs, pos2 + frame_sizes[i]);
+				}
+				if (gf_bs_get_position(plaintext_bs) + superframe_index_size != pos + samp->dataLength) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] Inconsistent sample size %u (parsed "LLU") at DTS="LLU". Re-import raw VP9/IVF for more details.\n",
+						samp->dataLength, gf_bs_get_position(plaintext_bs) + superframe_index_size - pos), samp->DTS);
+				}
+				gf_bs_seek(plaintext_bs, pos + samp->dataLength);
+
+				unit_size = samp->dataLength;
+
+				nb_ranges = num_frames_in_superframe + superframe_index_size ? 1/*final superframe index must be in clear*/ : 0;
+				//TODO: clear_bytes = ; and remove reference above
+				unit_size = frame_sizes[0];
+
+				//not clearly defined in the spec (so we do the same as in AV1 which is better defined):
+				if (frame_sizes[0] - clear_bytes >= 16) {
+					//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
+					if (prev_entry && prev_entry->bytes_encrypted_data)
+						prev_entry = NULL;
+				} else {
+					clear_bytes = unit_size;
+				}
+			}
+				break;
 			default:
-				assert(0); break;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unsupported bitstream format (%s).\n", bs_type));
+				e = GF_NOT_SUPPORTED;
+				goto exit;
 			}
 
 
@@ -1201,7 +1258,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						//do it if not disabled by user
 						if (tci->block_align != 1) {
 							//always align even if sample is not encrypted in the end
-							if (tci->block_align==2) {
+							if (tci->block_align == 2) {
 								clear_bytes += ret;
 							}
 							//or if we don't end up with sample in the clear
@@ -1270,12 +1327,24 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				nb_ranges--;
 				if (!nb_ranges) break;
 
-				assert(bs_type == ENC_OBU);
 				av1_tile_idx++;
-				clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
-				unit_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
-				//A subsample SHALL be created for each tile.
-				prev_entry = NULL;
+				switch (bs_type) {
+				case ENC_OBU:
+					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx - 1].size);
+					unit_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+					prev_entry = NULL; //a subsample SHALL be created for each tile.
+					break;
+				case ENC_VP9:
+					if (nb_ranges > 1) {
+						clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx - 1].size);
+						unit_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+					} else { /*last*/
+						unit_size = clear_bytes = 0;
+					}
+					prev_entry = NULL; //a subsample SHALL be created for each tile.
+					break;
+				default: break;
+				}
 			}
 		} else {
 			assert(bs_type == ENC_FULL_SAMPLE);
@@ -1289,6 +1358,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
 		}
 	}
+
 
 	if (samp->data) {
 		gf_free(samp->data);
@@ -1412,7 +1482,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
 				//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
-				if ((bs_type != ENC_OBU) && (tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+				if ( ( (bs_type != ENC_OBU) && (bs_type != ENC_VP9) ) && (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) {
 					u32 ret = (nal_size-clear_bytes) % 16;
 					clear_bytes_at_end = ret;
 				}
@@ -1665,23 +1735,31 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			tci->av1.config = gf_isom_av1_config_get(mp4, track, 1);
 			bs_type = ENC_OBU;
 			bytes_in_nalhr = 2;
+		} else if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_VP9) {
+			bs_type = ENC_VP9;
+			bytes_in_nalhr = 2;
 		}
 		gf_odf_desc_del((GF_Descriptor*) esd);
 	}
 
-	if (((tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) )
-		&& ( (bs_type == ENC_NALU) || (bs_type == ENC_OBU) ) )  {
-		if (!tci->crypt_byte_block || !tci->skip_byte_block) {
-			if (tci->crypt_byte_block || tci->skip_byte_block) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
+	if ( (tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) {
+		if ( (bs_type == ENC_NALU) || (bs_type == ENC_OBU) ) {
+			if (!tci->crypt_byte_block || !tci->skip_byte_block) {
+				if (tci->crypt_byte_block || tci->skip_byte_block) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
+				}
+				tci->crypt_byte_block = 1;
+				tci->skip_byte_block = 9;
 			}
-			tci->crypt_byte_block = 1;
-			tci->skip_byte_block = 9;
+		} else if (bs_type == ENC_VP9) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, CBCS or CENS, is not supported with VP9.\n"));
+			e = GF_NOT_SUPPORTED;
+			goto exit;
 		}
 	}
 
 
-	if ((bs_type == ENC_NALU) || (bs_type == ENC_OBU)) {
+	if (bs_type != ENC_FULL_SAMPLE) {
 		use_subsamples = GF_TRUE;
 	}
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
@@ -1716,8 +1794,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	if (tci->ctr_mode) {
 		mc = gf_crypt_open(GF_AES_128, GF_CTR);
-	}
-	else {
+	} else {
 		mc = gf_crypt_open(GF_AES_128, GF_CBC);
 	}
 	if (!mc) {
@@ -1746,7 +1823,10 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	/*create CENC protection*/
 	e = gf_isom_set_cenc_protection(mp4, track, 1, tci->scheme_type, 0x00010000, tci->IsEncrypted, tci->IV_size, tci->default_KID,
 		tci->crypt_byte_block, tci->skip_byte_block, tci->constant_IV_size, tci->constant_IV);
-	if (e) goto exit;
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot create CENC protection: %s\n", gf_error_to_string(e)));
+		goto exit;
+	}
 
 
 	count = gf_isom_get_sample_count(mp4, track);
@@ -1777,8 +1857,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	for (i = 0; i < count; i++) {
 		saiz_len=0;
 		samp = gf_isom_get_sample(mp4, track, i+1, &di);
-		if (!samp)
-		{
+		if (!samp) {
 			e = GF_IO_ERR;
 			goto exit;
 		}
