@@ -1127,7 +1127,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		if (bs_type != ENC_FULL_SAMPLE) {
 			u32 clear_bytes = 0;
 			u32 nb_ranges = 1;
-			u32 av1_tile_idx = 0;
+			u32 range_idx = 0;
 
 			switch(bs_type) {
 			case ENC_NALU:
@@ -1208,12 +1208,12 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC][VP9] Error parsing sample at DTS="LLU"\n", samp->DTS));
 						goto exit;
 					}
-					clear_bytes = gf_bs_get_position(plaintext_bs);
+					clear_bytes = (u32)gf_bs_get_position(plaintext_bs);
 					gf_bs_seek(plaintext_bs, pos2 + frame_sizes[i]);
 				}
 				if (gf_bs_get_position(plaintext_bs) + superframe_index_size != pos + samp->dataLength) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] Inconsistent sample size %u (parsed "LLU") at DTS="LLU". Re-import raw VP9/IVF for more details.\n",
-						samp->dataLength, gf_bs_get_position(plaintext_bs) + superframe_index_size - pos), samp->DTS);
+						samp->dataLength, gf_bs_get_position(plaintext_bs) + superframe_index_size - pos, samp->DTS));
 				}
 				gf_bs_seek(plaintext_bs, pos + samp->dataLength);
 
@@ -1327,17 +1327,17 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				nb_ranges--;
 				if (!nb_ranges) break;
 
-				av1_tile_idx++;
+				range_idx++;
 				switch (bs_type) {
 				case ENC_OBU:
-					clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx - 1].size);
-					unit_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+					clear_bytes = tci->av1.frame_state.tiles[range_idx].obu_start_offset - (tci->av1.frame_state.tiles[range_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[range_idx - 1].size);
+					unit_size = clear_bytes + tci->av1.frame_state.tiles[range_idx].size;
 					prev_entry = NULL; //a subsample SHALL be created for each tile.
 					break;
 				case ENC_VP9:
 					if (nb_ranges > 1) {
-						clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx - 1].size);
-						unit_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+						clear_bytes = tci->av1.frame_state.tiles[range_idx].obu_start_offset - (tci->av1.frame_state.tiles[range_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[range_idx - 1].size);
+						unit_size = clear_bytes + tci->av1.frame_state.tiles[range_idx].size;
 					} else { /*last*/
 						unit_size = clear_bytes = 0;
 					}
