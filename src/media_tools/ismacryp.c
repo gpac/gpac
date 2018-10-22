@@ -1158,9 +1158,10 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				gf_bs_seek(plaintext_bs, pos);
 
 				assert(av1.frame_state.nb_tiles_in_obu > 0);
-				tci->nb_ranges = av1.frame_state.nb_tiles_in_obu;
-				tci->ranges[0].clear = av1.frame_state.tiles[0].obu_start_offset;
+				nb_ranges = tci->nb_ranges = av1.frame_state.nb_tiles_in_obu;
+				clear_bytes = tci->ranges[0].clear = av1.frame_state.tiles[0].obu_start_offset;
 				tci->ranges[0].encrypted = av1.frame_state.tiles[0].size;
+				unit_size = tci->ranges[0].clear + tci->ranges[0].encrypted;
 				for (i = 1; i < tci->nb_ranges; ++i) {
 					tci->ranges[i].clear = av1.frame_state.tiles[i].obu_start_offset - (av1.frame_state.tiles[i - 1].obu_start_offset + av1.frame_state.tiles[i - 1].size);
 					tci->ranges[i].encrypted = av1.frame_state.tiles[i].size;
