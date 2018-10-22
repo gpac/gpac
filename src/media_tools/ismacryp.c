@@ -1120,7 +1120,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		e = GF_IO_ERR;
 		goto exit;
 	}
-	if (bs_type != ENC_OBU)
+	if ( (bs_type == ENC_OBU) || (bs_type == ENC_VP9) )
 		nalu_size_length_in_bytes = 0;
 
 	while (gf_bs_available(plaintext_bs)) {
