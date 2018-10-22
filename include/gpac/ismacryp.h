@@ -157,6 +157,9 @@ typedef struct
 #ifndef GPAC_DISABLE_HEVC
 	HEVCState hevc;
 #endif
+#ifndef GPAC_DISABLE_AV1
+	AV1State av1;
+#endif
 
 	struct {
 		int clear, encrypted;
