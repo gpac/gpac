@@ -157,9 +157,12 @@ typedef struct
 #ifndef GPAC_DISABLE_HEVC
 	HEVCState hevc;
 #endif
-#ifndef GPAC_DISABLE_AV1
-	AV1State av1;
-#endif
+
+	struct {
+		int clear, encrypted;
+	} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
+	u32 nb_ranges;
+
 	Bool slice_header_clear;
 	Bool is_avc;
 #endif
