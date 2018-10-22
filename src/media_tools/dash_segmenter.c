@@ -2012,7 +2012,7 @@ restart_fragmentation_pass:
 				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 2, &j);
 
 				if (next) sample_duration = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum+2);
-				if (clamp_duration && next && clamp_duration*tf->TimeScale <= next->DTS + sample_duration) {
+				if (clamp_duration && next && clamp_duration*tf->TimeScale < next->DTS + sample_duration) {
 					gf_isom_sample_del(&next);
 					next = NULL;
 				}
