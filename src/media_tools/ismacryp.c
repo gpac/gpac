@@ -1146,26 +1146,37 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			case ENC_OBU: {
 				ObuType obut;
 				u64 pos, obu_size;
-				u32 hdr_size;
+				u32 hdr_size, i;
+				AV1State av1;
+				memset(&av1, 0, sizeof(AV1State));
 				pos = gf_bs_get_position(plaintext_bs);
-				e = gf_media_aom_av1_parse_obu(plaintext_bs, &obut, &obu_size, &hdr_size, &tci->av1);
+				e = gf_media_aom_av1_parse_obu(plaintext_bs, &obut, &obu_size, &hdr_size, &av1);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n"));
 					goto exit;
 				}
 				gf_bs_seek(plaintext_bs, pos);
 
+				assert(av1.frame_state.nb_tiles_in_obu > 0);
+				tci->nb_ranges = av1.frame_state.nb_tiles_in_obu;
+				tci->ranges[0].clear = av1.frame_state.tiles[0].obu_start_offset;
+				tci->ranges[0].encrypted = av1.frame_state.tiles[0].size;
+				for (i = 1; i < tci->nb_ranges; ++i) {
+					tci->ranges[i].clear = av1.frame_state.tiles[i].obu_start_offset - (av1.frame_state.tiles[i - 1].obu_start_offset + av1.frame_state.tiles[i - 1].size);
+					tci->ranges[i].encrypted = av1.frame_state.tiles[i].size;
+				}
+
 				unit_size = (u32)obu_size;
 				switch (obut) { //we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
-					if (!tci->av1.frame_state.nb_tiles_in_obu) {
+					if (!tci->nb_ranges) {
 						clear_bytes = (u32)obu_size; /*no data => all in clear*/
 					} else {
-						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
-						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
-						unit_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
-						if (tci->av1.frame_state.tiles[0].size >= 16) {
+						nb_ranges = tci->nb_ranges;
+						clear_bytes = tci->ranges[0].clear;
+						unit_size = clear_bytes + tci->ranges[0].encrypted;
+						if (tci->ranges[0].encrypted >= 16) {
 							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
 							if (prev_entry && prev_entry->bytes_encrypted_data)
 								prev_entry = NULL;
@@ -1199,7 +1210,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 
 				for (i = 0; i < num_frames_in_superframe; ++i) {
 					Bool key_frame;
-					int width = 0, height = 0, renderWidth, renderHeight;
+					int width = 0, height = 0, renderWidth = 0, renderHeight = 0;
 					GF_VPConfig *vp9_cfg = gf_odf_vp_cfg_new();
 					u64 pos2 = gf_bs_get_position(plaintext_bs);
 					e = vp9_parse_sample(plaintext_bs, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
@@ -1212,7 +1223,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 					gf_bs_seek(plaintext_bs, pos2 + frame_sizes[i]);
 				}
 				if (gf_bs_get_position(plaintext_bs) + superframe_index_size != pos + samp->dataLength) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] Inconsistent sample size %u (parsed "LLU") at DTS="LLU". Re-import raw VP9/IVF for more details.\n",
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC][VP9] Inconsistent sample size %u (parsed "LLU") at DTS="LLU". Re-import raw VP9/IVF for more details.\n",
 						samp->dataLength, gf_bs_get_position(plaintext_bs) + superframe_index_size - pos, samp->DTS));
 				}
 				gf_bs_seek(plaintext_bs, pos + samp->dataLength);
@@ -1330,20 +1341,24 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				range_idx++;
 				switch (bs_type) {
 				case ENC_OBU:
-					clear_bytes = tci->av1.frame_state.tiles[range_idx].obu_start_offset - (tci->av1.frame_state.tiles[range_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[range_idx - 1].size);
-					unit_size = clear_bytes + tci->av1.frame_state.tiles[range_idx].size;
+					clear_bytes = tci->ranges[range_idx].clear;
+					unit_size = clear_bytes + tci->ranges[range_idx].encrypted;
 					prev_entry = NULL; //a subsample SHALL be created for each tile.
 					break;
 				case ENC_VP9:
 					if (nb_ranges > 1) {
-						clear_bytes = tci->av1.frame_state.tiles[range_idx].obu_start_offset - (tci->av1.frame_state.tiles[range_idx - 1].obu_start_offset + tci->av1.frame_state.tiles[range_idx - 1].size);
-						unit_size = clear_bytes + tci->av1.frame_state.tiles[range_idx].size;
+						clear_bytes = tci->ranges[range_idx].clear;
+						unit_size = clear_bytes + tci->ranges[range_idx].encrypted;
 					} else { /*last*/
-						unit_size = clear_bytes = 0;
+						unit_size = clear_bytes = tci->ranges[range_idx].clear;
+						assert(tci->ranges[range_idx].encrypted == 0);
 					}
 					prev_entry = NULL; //a subsample SHALL be created for each tile.
 					break;
-				default: break;
+				default:
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Detected unexpected subrange in bitstream format %d\n", bs_type));
+					assert(0);
+					break;
 				}
 			}
 		} else {
@@ -1430,11 +1445,22 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 			} else if (bs_type == ENC_OBU) {
 				ObuType obut;
 				u64 pos, obu_size;
-				u32 hdr_size;
+				u32 hdr_size, i;
+				AV1State av1;
+				memset(&av1, 0, sizeof(AV1State));
 				pos = gf_bs_get_position(plaintext_bs);
-				e = gf_media_aom_av1_parse_obu(plaintext_bs, &obut, &obu_size, &hdr_size, &tci->av1);
+				e = gf_media_aom_av1_parse_obu(plaintext_bs, &obut, &obu_size, &hdr_size, &av1);
 				if (e) return e;
 				gf_bs_seek(plaintext_bs, pos);
+
+				assert(av1.frame_state.nb_tiles_in_obu > 0);
+				tci->nb_ranges = av1.frame_state.nb_tiles_in_obu;
+				tci->ranges[0].clear = av1.frame_state.tiles[0].obu_start_offset;
+				tci->ranges[0].encrypted = av1.frame_state.tiles[0].size;
+				for (i = 1; i < tci->nb_ranges; ++i) {
+					tci->ranges[i].clear = av1.frame_state.tiles[i].obu_start_offset - (av1.frame_state.tiles[i - 1].obu_start_offset + av1.frame_state.tiles[i - 1].size);
+					tci->ranges[i].encrypted = av1.frame_state.tiles[i].size;
+				}
 
 				nal_size = (u32) obu_size;
 				switch (obut) {
@@ -1442,13 +1468,13 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
 					clear_bytes = hdr_size;
-					if (!tci->av1.frame_state.nb_tiles_in_obu) {
+					if (!tci->nb_ranges) {
 						clear_bytes = (u32) obu_size;
 					} else {
-						nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
-						clear_bytes = tci->av1.frame_state.tiles[0].obu_start_offset;
-						nal_size = clear_bytes + tci->av1.frame_state.tiles[0].size;
-						if (tci->av1.frame_state.tiles[0].size>=16) {
+						nb_ranges = tci->nb_ranges;
+						clear_bytes = tci->ranges[0].clear;
+						nal_size = clear_bytes + tci->ranges[0].encrypted;
+						if (tci->ranges[0].encrypted >= 16) {
 							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
 							if (prev_entry && prev_entry->bytes_encrypted_data)
 								prev_entry = NULL;
@@ -1566,8 +1592,8 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				if (!nb_ranges) break;
 				
 				av1_tile_idx++;
-				clear_bytes = tci->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (tci->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + tci->av1.frame_state.tiles[av1_tile_idx-1].size);
-				nal_size = clear_bytes + tci->av1.frame_state.tiles[av1_tile_idx].size;
+				clear_bytes = tci->ranges[av1_tile_idx].clear;
+				nal_size = clear_bytes + tci->ranges[av1_tile_idx].encrypted;
 				//A subsample SHALL be created for each tile.
 				prev_entry = NULL;
 			}
@@ -1732,7 +1758,6 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			bs_type = ENC_NALU;
 			bytes_in_nalhr = 2;
 		} else if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AV1) {
-			tci->av1.config = gf_isom_av1_config_get(mp4, track, 1);
 			bs_type = ENC_OBU;
 			bytes_in_nalhr = 2;
 		} else if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_VP9) {
@@ -2006,7 +2031,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
-	//not strictky needed but we call it in case bitrate info in source is wrong
+	//not strictly needed but we call it in case bitrate info in source is wrong
 	gf_media_update_bitrate(mp4, track);
 
 exit:
@@ -2014,7 +2039,6 @@ exit:
 	if (mc) gf_crypt_close(mc);
 	if (saiz_buf) gf_free(saiz_buf);
 	if (bs) gf_bs_del(bs);
-	if (tci->av1.config) gf_odf_av1_cfg_del(tci->av1.config);
 	return e;
 }
 
