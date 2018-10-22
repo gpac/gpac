@@ -7184,7 +7184,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 	get_video_timing(FPS, &timescale, &dts_inc);
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
-	fsize = gf_bs_get_size(bs) / 1000;
+	fsize = gf_bs_get_size(bs);
 	if (!fsize) {
 		gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[AV1] Error: bitstream size is 0 byte", import->in_name);
 		goto exit;
@@ -7319,7 +7319,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 			gf_isom_sample_del(&samp);
 
-			gf_set_progress("Importing AV1", (u32) gf_bs_get_position(bs)/1000, fsize);
+			gf_set_progress("Importing AV1", gf_bs_get_position(bs), fsize);
 			cur_samp++;
 		}
 	}
@@ -7384,7 +7384,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	mdia = gf_fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "[VP9] cannot find file %s", import->in_name);
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
-	fsize = gf_bs_get_size(bs) / 1000;
+	fsize = gf_bs_get_size(bs);
 	if (!fsize) {
 		gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[VP9] Error: bitstream size is 0 byte", import->in_name);
 		goto exit;
@@ -7483,7 +7483,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 
 			gf_isom_sample_del(&samp);
 
-			gf_set_progress("Importing VP9", gf_bs_get_position(bs) / 1000, fsize);
+			gf_set_progress("Importing VP9", gf_bs_get_position(bs), fsize);
 			cur_samp++;
 		}
 	}
