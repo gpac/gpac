@@ -1229,7 +1229,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC-CTR][VP9] Inconsistent sample size %u (parsed "LLU") at DTS="LLU". Re-import raw VP9/IVF for more details.\n",
 						samp->dataLength, gf_bs_get_position(plaintext_bs) + superframe_index_size - pos, samp->DTS));
 				}
-				gf_bs_seek(plaintext_bs, pos + samp->dataLength);
+				gf_bs_seek(plaintext_bs, pos);
 
 				clear_bytes = tci->ranges[0].clear;
 				assert(frame_sizes[0] == tci->ranges[0].clear + tci->ranges[0].encrypted);
