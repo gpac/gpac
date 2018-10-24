@@ -334,8 +334,9 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 		}
 		return res;
 	}
-	if (bs->EndOfStream) bs->EndOfStream(bs->par);
-	else {
+	if (bs->EndOfStream) {
+		bs->EndOfStream(bs->par);
+	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overread bitstream\n"));
 	}
 	assert(bs->position <= 1+bs->size);

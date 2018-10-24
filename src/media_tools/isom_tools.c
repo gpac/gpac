@@ -76,7 +76,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
-			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
+			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 			return GF_NOT_SUPPORTED;
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -90,9 +90,17 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	} else {
         u32 mtype = gf_isom_get_media_type(file, track);
 		if (gf_isom_is_video_subtype(mtype)) {
+			u32 stype = gf_isom_get_media_subtype(file, track, 1);
+			char *cstype = (char*)&stype;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER,
+				("[ISOBMF] Error: changing pixel ratio of media subtype \"%c%c%c%c\" is not unsupported\n",
+					cstype[3], cstype[2], cstype[1], cstype[0]));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("                - note that inband doesn't allow PAR change.\n"));
 			return GF_NOT_SUPPORTED;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
+			return GF_BAD_PARAM;
 		}
-		return GF_BAD_PARAM;
 	}
 
 	e = gf_isom_set_pixel_aspect_ratio(file, track, 1, ar_num, ar_den);
