@@ -248,16 +248,9 @@ GF_Err gf_dasher_add_base_url(GF_DASHSegmenter *dasher, const char *base_url)
 
 static void dasher_format_seg_name(GF_DASHSegmenter *dasher, const char *inName)
 {
-	char szName[GF_MAX_PATH];
-	/*if output is not in the current working dir, concatenate output path to segment name*/
-	szName[0] = 0;
-
-	if (0 && inName && gf_url_get_resource_path(dasher->mpd_name, szName)) {
-		strcat(szName, inName);
-		dasher->seg_rad_name = gf_strdup(szName);
-	} else {
-		if (inName) dasher->seg_rad_name = gf_strdup(inName);
-	}
+	if (dasher->seg_rad_name) gf_free(dasher->seg_rad_name);
+	dasher->seg_rad_name = NULL;
+	if (inName) dasher->seg_rad_name = gf_strdup(inName);
 }
 
 GF_EXPORT
