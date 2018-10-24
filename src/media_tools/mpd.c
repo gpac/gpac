@@ -3156,7 +3156,7 @@ GF_Err gf_mpd_write_m3u8_file(GF_MPD *mpd, const char *file_name, GF_MPD_Period 
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 {
-	u32 i;
+	u32 i, count;
 	s32 indent = compact ? GF_INT_MIN : 0;
 
 	GF_MPD_ProgramInfo *info;
@@ -3275,9 +3275,14 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		}
 	*/
 
-	i=0;
-	while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
-		gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out, mpd->write_context, indent+1);
+	count = gf_list_count(mpd->periods);
+	for (i=0; i<count; i++) {
+		Bool is_dynamic;
+		period = (GF_MPD_Period *)gf_list_get(mpd->periods, i);
+		is_dynamic = (mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_TRUE : GF_FALSE;
+		//hack for backward compat with old arch, forces print period@start if 0
+		if (!i && count>1 && mpd->was_dynamic) is_dynamic = GF_TRUE;
+		gf_mpd_print_period(period, is_dynamic, out, mpd->write_context, indent+1);
 	}
 
 	fprintf(out, "</MPD>");

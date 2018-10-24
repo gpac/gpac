@@ -499,8 +499,10 @@ typedef struct {
 	//internal options
 	//skip version/dates/... for file diff/hash
 	Bool force_test_mode;
-	//indicates the GPAC state info should be writen
+	//indicates the GPAC state info should be written
 	Bool write_context;
+	//indicates this is tha last static serialization of a previously dynamic MPD
+	Bool was_dynamic;
 	//indicates the HLS variant files shall be created, otherwise temp files are used
 	Bool create_m3u8_files;
 	Bool m3u8_time;

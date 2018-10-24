@@ -105,7 +105,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		ctx->idx_file_crc = crc;
 
 		if (ctx->sub_filter) {
-			gf_filter_remove(ctx->sub_filter, filter);
+			gf_filter_remove_src(filter, ctx->sub_filter);
 			ctx->sub_filter = NULL;
 		}
 		strcpy(sURL, p->value.string);

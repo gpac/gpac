@@ -431,7 +431,7 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
-	u32 i, count, nb_dispatch=0;
+	u32 i, count, nb_dispatch=0, nb_discard=0;
 	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
 	GF_FilterPid *pid;
 	s64 duration=0;
@@ -651,6 +651,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				//and post a reconfigure task
 				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task, dst->filter, dst->pid, "pidinst_reconfigure", NULL);
 			}
+			nb_discard++;
 			continue;
 		}
 
@@ -820,7 +821,11 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	//unprotect the packet now that it is safely dispatched
 	if (safe_int_dec(&pck->reference_count) == 0) {
 		if (!nb_dispatch) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("No PID destination on filter %s for packet - discarding\n", pid->filter->name));
+			if (nb_discard) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("All PID destinations on filter %s are in discard mode - discarding\n", pid->filter->name));
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("No PID destination on filter %s for packet - discarding\n", pid->filter->name));
+			}
 		}
 		gf_filter_packet_destroy(pck);
 	}

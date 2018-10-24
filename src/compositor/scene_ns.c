@@ -380,7 +380,7 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 	gf_list_del_item(root_scene->namespaces, sns);
 
 	if (sns->source_filter) {
-		gf_filter_remove(sns->source_filter, root_scene->compositor->filter);
+		gf_filter_remove_src(root_scene->compositor->filter, sns->source_filter);
 	}
 
 	while (gf_list_count(sns->Clocks)) {
