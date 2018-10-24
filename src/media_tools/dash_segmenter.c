@@ -1290,12 +1290,16 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE, keep_pssh, dasher->mvex_after_traks);
 		if (e) goto err_exit;
 
-		/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
-		gf_isom_set_brand_info(output, GF_ISOM_BRAND_ISO5, 1);
+		/*because of movie fragments MOOF based offset, brand <= ISO4 is forbidden*/
+		/*because of tfdt in traf, brand <= ISO5 is forbidden*/
+		gf_isom_set_brand_info(output, GF_ISOM_BRAND_ISO6, 1);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISOM, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO1, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO2, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO3, 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO4, 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO5, 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_AVC1, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP41, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP42, 0);
 
@@ -1503,7 +1507,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 				tf->media_time_to_pres_time_shift += (u32) (scale*SegDuration);
 			}
 
-			gf_isom_set_brand_info(output, GF_ISOM_BRAND_ISO5, 1);
+			gf_isom_set_brand_info(output, GF_ISOM_BRAND_ISO6, 1);
 
 			/*DASH self-init media segment*/
 			if (dasher->single_file_mode==1) {
@@ -3480,6 +3484,7 @@ restart_init:
 	if (dash_opts->force_test_mode) {
 		gf_isom_no_version_date_info(init_seg, 1);
 	}
+
 	for (i=0; i<nb_dash_inputs; i++) {
 		u32 j;
 		GF_ISOFile *in;
@@ -3631,7 +3636,6 @@ retry_track:
 						case GF_ISOM_SUBTYPE_HVC2:
 							gf_isom_hevc_set_inband_config(init_seg, track, 1);
 							use_hevc = GF_TRUE;
-							gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
 							sps_merge_failed = GF_FALSE;
 							break;
 						case GF_ISOM_SUBTYPE_AVC_H264:
@@ -3640,7 +3644,6 @@ retry_track:
 						case GF_ISOM_SUBTYPE_MVC_H264:
 							gf_isom_avc_set_inband_config(init_seg, track, 1);
 							use_avc3 = GF_TRUE;
-							gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
 							sps_merge_failed = GF_FALSE;
 							break;
 						}
@@ -3735,11 +3738,10 @@ retry_track:
 			}
 		}
 		if (!i) {
-			if (use_hevc || use_avc3) {
-				gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
-			} else {
-				gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO5, 1);
-			}
+			//force ISO6 since we use tfdt all over the place
+			gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
+			gf_isom_modify_alternate_brand(init_seg, GF_ISOM_BRAND_ISOM, 0);
+
 			/*DASH self-init media segment*/
 			if (single_segment) {
 				gf_isom_modify_alternate_brand(init_seg, GF_ISOM_BRAND_DSMS, 1);
@@ -5507,7 +5509,11 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 	}
 
 	if (dasher->max_segment_duration) {
-		format_duration(mpd, dasher->max_segment_duration, "maxSegmentDuration");
+		if (dasher->single_segment) {
+			format_duration(mpd, dasher->max_segment_duration, "maxSubsegmentDuration");
+		} else {
+			format_duration(mpd, dasher->max_segment_duration, "maxSegmentDuration");
+		}
 	}
 
 	if (dasher->profile==GF_DASH_PROFILE_LIVE) {
