@@ -3463,6 +3463,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 
 static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, GF_DASHSegmenter *dash_opts, GF_DashSwitchingMode bs_switch_mode, Bool *disable_bs_switching)
 {
+	u64 max_track_duration = 0;
 	GF_Err e = GF_OK;
 	u32 i;
 	u32 single_track_id = 0;
@@ -3484,6 +3485,7 @@ restart_init:
 	if (dash_opts->force_test_mode) {
 		gf_isom_no_version_date_info(init_seg, 1);
 	}
+	max_track_duration = 0;
 
 	for (i=0; i<nb_dash_inputs; i++) {
 		u32 j;
@@ -3735,6 +3737,10 @@ retry_track:
 
 					gf_isom_set_edit_segment(init_seg, track, EditTime, SegDuration, MediaTime, EditMode);
 				}
+
+				if (max_track_duration < gf_isom_get_track_duration(in, j+1)) {
+					max_track_duration = gf_isom_get_track_duration(in, j+1);
+				}
 			}
 		}
 		if (!i) {
@@ -3752,6 +3758,8 @@ retry_track:
 			if ((dash_opts->pssh_mode==GF_DASH_PSSH_MOOV) || (dash_opts->pssh_mode==GF_DASH_PSSH_MOOV_MPD) ) {
 				e = gf_isom_clone_pssh(init_seg, in, GF_FALSE);
 			}
+
+			gf_isom_set_movie_duration(init_seg, max_track_duration);
 		}
 		gf_isom_close(in);
 	}
