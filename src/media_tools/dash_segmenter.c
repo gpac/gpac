@@ -2007,6 +2007,9 @@ restart_fragmentation_pass:
 					}
 				}
 
+				if (!tf->SampleNum && tf->is_ref_track && !ref_SAP_type)
+					ref_SAP_type = SAP_type;
+
 				gf_isom_get_sample_padding_bits(input, tf->OriginalTrack, tf->SampleNum+1, &NbBits);
 
 				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 2, &j);
@@ -2433,7 +2436,8 @@ restart_fragmentation_pass:
 					gf_isom_sample_del(&sample);
 					sample = next = NULL;
 
-					ref_SAP_type = SAP_type;
+					if (!ref_SAP_type)
+						ref_SAP_type = SAP_type;
 
 					//only compute max dur over segment for the track used for indexing / deriving MPD start time
 					if (!tfref || (tf->is_ref_track)) {
@@ -6442,7 +6446,10 @@ static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput
 			if (dasher->dash_ctx) {
 				if (dasher->force_session_end) {
 					const char *p = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastActivePeriod");
-					if (p) strcpy(szPName, p);
+					if (p) {
+						strcpy(szPName, p);
+						sscanf(p, "DID%d", &dash_input->period_id_not_specified);
+					}
 				} else {
 					while (1) {
 						const char *p = gf_cfg_get_key(dasher->dash_ctx, "PastPeriods", szPName);
