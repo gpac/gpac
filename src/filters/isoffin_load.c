@@ -498,9 +498,9 @@ void isor_declare_objects(ISOMReader *read)
 			}
 		}
 
-		for (exp_refs=0; exp_refs<2; exp_refs++) {
-			u32 rtype = exp_refs ? GF_ISOM_REF_SABT : GF_ISOM_REF_SCAL;
-			const char *rname = exp_refs ? "isom:sabt" : "isom:scal";
+		for (exp_refs=0; exp_refs<3; exp_refs++) {
+			u32 rtype = (exp_refs==2) ? GF_ISOM_REF_TBAS : exp_refs ? GF_ISOM_REF_SABT : GF_ISOM_REF_SCAL;
+			const char *rname = (exp_refs==2) ? "isom:tbas" : exp_refs ? "isom:sabt" : "isom:scal";
 			if (!exp_refs && (codec_id==GF_CODECID_LHVC))
 				continue;
 

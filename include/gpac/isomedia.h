@@ -2115,6 +2115,8 @@ typedef enum {
 	GF_ISOM_LEHVC_WITH_BASE,
 	//changes track type to HVC1/HEV1 with additionnal cfg: base and enh. in track no extractors
 	GF_ISOM_LEHVC_WITH_BASE_BACKWARD,
+	//changes track type to HVC2/HEV2 for tile base tracks
+	GF_ISOM_HEVC_TILE_BASE,
 } GF_ISOMLHEVCTrackType;
 GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, GF_ISOMLHEVCTrackType track_type);
 

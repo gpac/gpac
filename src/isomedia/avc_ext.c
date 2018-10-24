@@ -1795,6 +1795,7 @@ typedef enum
 	GF_ISOM_HVCC_SET_LHVC,
 	GF_ISOM_HVCC_SET_LHVC_WITH_BASE,
 	GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD,
+	GF_ISOM_HVCC_SET_HEVC_TILE_BASE,
 	GF_ISOM_LHCC_SET_INBAND
 } HevcConfigUpdateType;
 
@@ -1900,7 +1901,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 	} else {
 
 		/*SVCC replacement/removal with HEVC base, backward compatible signaling*/
-		if ((operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD) || (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE)) {
+		if ((operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD) || (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE) || (operand_type==GF_ISOM_HVCC_SET_HEVC_TILE_BASE) ) {
 			if (!entry->hevc_config) return GF_BAD_PARAM;
 			if (!cfg) {
 				if (entry->lhvc_config) {
@@ -1911,10 +1912,12 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 				else if (entry->type==GF_ISOM_BOX_TYPE_HEV1) entry->type = (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE) ? GF_ISOM_BOX_TYPE_HEV2 : GF_ISOM_BOX_TYPE_HEV1;
 				else entry->type =  (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE) ? GF_ISOM_BOX_TYPE_HVC2 : GF_ISOM_BOX_TYPE_HVC1;
 			} else {
-				if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
-				if (entry->lhvc_config->config) gf_odf_hevc_cfg_del(entry->lhvc_config->config);
-				entry->lhvc_config->config = HEVC_DuplicateConfig(cfg);
-
+				if (operand_type != GF_ISOM_HVCC_SET_HEVC_TILE_BASE) {
+					if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
+					if (entry->lhvc_config->config) gf_odf_hevc_cfg_del(entry->lhvc_config->config);
+					entry->lhvc_config->config = HEVC_DuplicateConfig(cfg);
+				}
+				
 				if (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD) {
 					if (entry->type==GF_ISOM_BOX_TYPE_HEV2) entry->type = GF_ISOM_BOX_TYPE_HEV1;
 					else entry->type = GF_ISOM_BOX_TYPE_HVC1;
@@ -1984,6 +1987,8 @@ GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Des
 		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC_WITH_BASE);
 	case GF_ISOM_LEHVC_WITH_BASE_BACKWARD:
 		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD);
+	case GF_ISOM_HEVC_TILE_BASE:
+		return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_HEVC_TILE_BASE);
 	default:
 		return GF_BAD_PARAM;
 	}
