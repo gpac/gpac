@@ -1831,6 +1831,7 @@ restart_fragmentation_pass:
 	while ( (count = gf_list_count(fragmenters)) ) {
 		Bool store_pssh = GF_FALSE;
 		u32 ref_SAP_type = 0;
+		u32 ref_start_SAP_type = 0;
 #ifdef GENERATE_VIRTUAL_REP_SRD
 		if (dash_input->virtual_representation)
 			break;
@@ -2005,6 +2006,10 @@ restart_fragmentation_pass:
 							else if (has_roll && (roll_distance>=0) ) SAP_type = 4;
 						}
 					}
+				}
+
+				if (!tf->FragmentLength && tf->is_ref_track) {
+					ref_start_SAP_type = SAP_type;
 				}
 
 				gf_isom_get_sample_padding_bits(input, tf->OriginalTrack, tf->SampleNum+1, &NbBits);
@@ -2433,7 +2438,8 @@ restart_fragmentation_pass:
 					gf_isom_sample_del(&sample);
 					sample = next = NULL;
 
-					ref_SAP_type = SAP_type;
+					if (!ref_SAP_type)
+						ref_SAP_type = SAP_type ? SAP_type : ref_start_SAP_type;
 
 					//only compute max dur over segment for the track used for indexing / deriving MPD start time
 					if (!tfref || (tf->is_ref_track)) {
@@ -2502,7 +2508,9 @@ restart_fragmentation_pass:
 				min_seg_dur = SegmentDuration;
 
 			//remember max sap type at start of segment
-			if (ref_SAP_type > max_sap_type)
+			if (!max_sap_type && ref_SAP_type)
+				max_sap_type = ref_SAP_type;
+			else if (ref_SAP_type > max_sap_type)
 				max_sap_type = ref_SAP_type;
 
 			if (max_seg_dur < SegmentDuration)
@@ -2731,10 +2739,11 @@ restart_fragmentation_pass:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dasher->dash_scale, (Double) max_seg_dur / dasher->dash_scale));
 		}
 		if (dasher->dash_ctx) {
-			max_segment_duration = dasher->segment_duration;
 			if (!seg_dur_adjusted && ((Double) max_seg_dur / dasher->dash_scale < dasher->segment_duration/2)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment duration is smaller than required (require %g s but DASH-ing only %g s)\n", dasher->segment_duration, (Double) max_seg_dur / dasher->dash_scale));
 			}
+			max_segment_duration = max_seg_dur;
+			max_segment_duration /= 1000;
 		} else {
 			if (nb_segments == 1) {
 				max_segment_duration = (Double) total_seg_dur;
@@ -2810,8 +2819,6 @@ write_rep_only:
 			fprintf(dasher->mpd, " timescale=\"%d\"", mpd_timescale);
 			fprintf(dasher->mpd, " startNumber=\"%d\"", startNumber);
 			if (!dasher->use_segment_timeline) {
-				if (!max_segment_duration)
-					max_segment_duration = dasher->segment_duration;
 				fprintf(dasher->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale + 0.5));
 			}
 
@@ -5829,23 +5836,11 @@ GF_EXPORT
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 {
 	Double past_period_dur = 0, max_dur = 0;
-//	Double safety_dur;
 	Double ms_elapsed;
-	u32 i, ntp_sec, frac, prev_sec, prev_frac, dash_scale;
+	u32 i, ntp_sec, frac, prev_sec, prev_frac, dash_scale, nb_reps=0;
 	const char *opt, *section;
 
 	if (!dasher || !dasher->dash_ctx) return -1;
-
-	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration");
-	if (!opt) return 0;
-
-/*
-	safety_dur = atof(opt) / 2;
-	if (safety_dur > dasher->mpd_update_time)
-		safety_dur = dasher->mpd_update_time;
-
-	safety_dur = 0;
-*/
 
 	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "GenerationNTP");
 	sscanf(opt, "%u:%u", &prev_sec, &prev_frac);
@@ -5859,6 +5854,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 		Double dur = 0;
 		section = gf_cfg_get_section_name(dasher->dash_ctx, i);
 		if (section && !strncmp(section, "Representation_", 15)) {
+			nb_reps ++;
 			opt = gf_cfg_get_key(dasher->dash_ctx, section, "CumulatedDuration");
 			if (opt) {
 				u64 val;
@@ -5868,6 +5864,15 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 			if (dur>max_dur) max_dur = dur;
 		}
 	}
+	//last period has been flushed but its duration not yet included in cumulated dur
+	if (!nb_reps) {
+		opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "CumulatedPastPeriodsDuration");
+		if (opt) {
+			sscanf(opt, "%lf", &past_period_dur);
+			max_dur = past_period_dur;
+		}
+	}
+
 	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "CumulatedPastPeriodsDuration");
 	if (opt) {
 		sscanf(opt, "%lf", &past_period_dur);
@@ -6442,7 +6447,10 @@ static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput
 			if (dasher->dash_ctx) {
 				if (dasher->force_session_end) {
 					const char *p = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastActivePeriod");
-					if (p) strcpy(szPName, p);
+					if (p) {
+						strcpy(szPName, p);
+						sscanf(p, "DID%d", &dash_input->period_id_not_specified);
+					}
 				} else {
 					while (1) {
 						const char *p = gf_cfg_get_key(dasher->dash_ctx, "PastPeriods", szPName);
@@ -6575,9 +6583,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		if (opt) {
 			Double seg_dur = atof(opt);
 			dasher->max_segment_duration = seg_dur;
-		} else {
-			sprintf(szOpt, "%f", dasher->segment_duration);
-			gf_cfg_set_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration", szOpt);
 		}
 		sprintf(szOpt, "%u", dasher->dash_scale);
 		gf_cfg_set_key(dasher->dash_ctx, "DASH", "TimeScale", szOpt);
@@ -7095,6 +7100,10 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 						}
 					}
 				}
+				if (!mdur) {
+					opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastPeriodDuration");
+					if (opt) mdur = atof(opt);
+				}
 				dash_input->period_duration = mdur;
 				presentation_duration += mdur;
 			} else {
@@ -7552,11 +7561,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 			if (dasher->dash_ctx) purge_dash_context(dasher->dash_ctx);
 		}
-	}
-
-	if (dasher->dash_ctx) {
-		sprintf(szOpt, "%g", dasher->max_segment_duration);
-		gf_cfg_set_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration", szOpt);
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH Segment generation done\n"));
