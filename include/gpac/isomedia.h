@@ -445,7 +445,6 @@ enum
 	/* Apple iTunes Video (.M4V) Video */
 	GF_ISOM_BRAND_M4V  = GF_4CC( 'M', '4', 'V', ' ' ),
 
-	GF_ISOM_BRAND_HVC1 = GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_BRAND_HVCE = GF_4CC( 'h', 'v', 'c', 'e' ),
 	GF_ISOM_BRAND_HVCI = GF_4CC( 'h', 'v', 'c', 'i' ),
 

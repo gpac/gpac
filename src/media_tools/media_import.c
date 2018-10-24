@@ -6978,8 +6978,6 @@ next_nal:
 
 	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_ISO4, 1);
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_ISOM, 0);
-	if (has_hevc)
-		gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_HVC1, 1);
 
 	if (!vpss && !ppss && !spss) {
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
