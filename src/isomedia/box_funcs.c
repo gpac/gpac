@@ -1029,7 +1029,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv", "av1"),
 
 	// VP8-9 boxes
-	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09", 1, 0, "vp"),
+	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 encv resv", 1, 0, "vp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VP08, video_sample_entry, "stsd", "vp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VP09, video_sample_entry, "stsd", "vp"),
 
