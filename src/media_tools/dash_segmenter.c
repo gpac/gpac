@@ -53,7 +53,7 @@ struct _dash_component
 	u32 media_type;/*audio/video/text/ ...*/
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 	/*for video */
-	u32 width, height, fps_num, fps_denum, sar_num, sar_denum, max_sap;
+	u32 width, height, fps_num, fps_denum, sar_num, sar_denum, max_sap, hevc_tile_type;
 
 	/*for audio*/
 	u32 sample_rate, channels;
@@ -3216,6 +3216,19 @@ static GF_Err dasher_isom_get_components_info(GF_DashSegInput *input, GF_DASHSeg
 				input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
 			}
 			gf_isom_get_pixel_aspect_ratio(in, i+1, 1, &input->components[input->nb_components].sar_num, &input->components[input->nb_components].sar_denum);
+
+			switch (gf_isom_get_media_subtype(in, i+1, 1) ) {
+			case GF_ISOM_SUBTYPE_HVT1:
+				input->components[input->nb_components].hevc_tile_type = 2;
+				break;
+			case GF_ISOM_SUBTYPE_HVC2:
+			case GF_ISOM_SUBTYPE_HEV2:
+				if (gf_isom_get_reference_count(in, i+1, GF_ISOM_REF_SABT)>0)
+					input->components[input->nb_components].hevc_tile_type = 1;
+				break;
+			default:
+				break;
+			}
 		}
 		/*non-video tracks, get lang*/
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) {
@@ -6905,7 +6918,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					}
 				}
 				else if (dash_input->components[k].media_type == GF_ISOM_MEDIA_VISUAL) {
-					nb_vids++;
+					if (dash_input->components[k].hevc_tile_type<2)
+						nb_vids++;
 				}
 			}
 
@@ -7295,6 +7309,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				   ) {
 					use_bs_switching = GF_FALSE;
 				}
+
+				if (dasher->inputs[first_rep_in_set].components[0].hevc_tile_type)
+					use_bs_switching = GF_TRUE;
 
 				if (! use_bs_switching) {
 					skip_init_segment_creation = GF_TRUE;
