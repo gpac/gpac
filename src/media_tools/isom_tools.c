@@ -1213,6 +1213,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		is_subseq_pps[i] = 0;
 	while (gf_bs_available(bs))
 	{
+		gf_bs_enable_emulation_byte_removal(bs, GF_FALSE);
 		size = gf_bs_read_int(bs, nalu_size_length);
 		if (size>max_size) {
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
@@ -1437,6 +1438,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		offset = 0;
 		while (gf_bs_available(bs))
 		{
+			gf_bs_enable_emulation_byte_removal(bs, GF_FALSE);
 			size = gf_bs_read_int(bs, nalu_size_length);
 			if (size>max_size) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
