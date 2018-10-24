@@ -1182,13 +1182,14 @@ do_hash_test ()
  fi
 
  if [ $generate_hash = 0 ] ; then
-  if [ ! -f $file_to_hash ] ; then
+  if [ ! -f $1 ] ; then
    echo "SRC_NOT_FOUND=1" >> $STATHASH_SH
    echo "HASH_FAIL=0" >> $STATHASH_SH
+   echo "not found $1"
    return
   fi
 
-   echo "SRC_NOT_FOUND=0" >> $STATHASH_SH
+  echo "SRC_NOT_FOUND=0" >> $STATHASH_SH
   if [ ! -f $ref_hash ] ; then
    echo "HASH_NOT_FOUND=1" >> $STATHASH_SH
    return
