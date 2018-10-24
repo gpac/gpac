@@ -4596,6 +4596,9 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 		while (gf_filter_pid_get_packet(pid)) {
 			gf_filter_pid_drop_packet(pid);
 		}
+		pidi->is_end_of_stream = GF_TRUE;
+	} else {
+		pidi->is_end_of_stream = pid->has_seen_eos;
 	}
 	pidi->discard_inputs = discard_on;
 	return GF_OK;
