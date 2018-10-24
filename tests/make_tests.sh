@@ -789,12 +789,18 @@ shopt -s nullglob
    HASH_TEST=""
    HASH_NOT_FOUND=0
    HASH_FAIL=0
+   SRC_NOT_FOUND=0
 
    source $i
    nb_test_hash=$((nb_test_hash + 1))
    if [ $HASH_NOT_FOUND -eq 1 ] ; then
     result="$HASH_TEST:HashNotFound $result"
     nb_hash_missing=$((nb_hash_missing + 1))
+    test_exec_na=$((test_exec_na + 1))
+   elif [ $SRC_NOT_FOUND -eq 1 ] ; then
+    result="$HASH_TEST:HashSourceNotFound $result"
+    test_ok=0
+    nb_hash_fail=$((nb_hash_fail + 1))
     test_exec_na=$((test_exec_na + 1))
    elif [ $HASH_FAIL -eq 1 ] ; then
     result="$HASH_TEST:HashFail $result"
@@ -1176,6 +1182,13 @@ do_hash_test ()
  fi
 
  if [ $generate_hash = 0 ] ; then
+  if [ ! -f $file_to_hash ] ; then
+   echo "SRC_NOT_FOUND=1" >> $STATHASH_SH
+   echo "HASH_FAIL=0" >> $STATHASH_SH
+   return
+  fi
+
+   echo "SRC_NOT_FOUND=0" >> $STATHASH_SH
   if [ ! -f $ref_hash ] ; then
    echo "HASH_NOT_FOUND=1" >> $STATHASH_SH
    return
