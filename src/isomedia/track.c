@@ -1071,6 +1071,12 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	//Update Stream dependancies
 	e = Track_FindRef(trak, GF_ISOM_REF_DECODE, &dpnd);
 	if (e) return e;
+
+	if (!dpnd && esd->dependsOnESID) {
+		e = Track_FindRef(trak, GF_ISOM_REF_BASE, &dpnd);
+		if (e) return e;
+	}
+
 	if (!dpnd && esd->dependsOnESID) {
 		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
 		dpnd->reference_type = GF_ISOM_BOX_TYPE_DPND;

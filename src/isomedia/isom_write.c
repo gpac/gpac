@@ -5614,7 +5614,9 @@ GF_Err gf_isom_set_sync_table(GF_ISOFile *file, u32 track)
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak) return GF_BAD_PARAM;
 
-	trak->Media->information->sampleTable->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+	if (!trak->Media->information->sampleTable->SyncSample)
+		trak->Media->information->sampleTable->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+
 	return GF_OK;
 }
 

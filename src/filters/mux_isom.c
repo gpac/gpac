@@ -406,6 +406,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	u32 multi_pid_final_stsd_idx = 0;
 	u32 audio_pli=0;
 	Bool force_tk_layout = GF_FALSE;
+	Bool force_mix_xps = GF_FALSE;
 
 	const char *lang_name = NULL;
 	const char *comp_name = NULL;
@@ -940,6 +941,15 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot create a new sample description entry (codec change) for finalized movie in fragmented mode\n"));
 			return GF_NOT_SUPPORTED;
 		}
+		force_mix_xps = GF_TRUE;
+	} else if (tkw->nb_samples && (needs_sample_entry==2) && ctx->for_test && tkw->is_nalu && !ctx->xps_inband && enh_dsi) {
+		force_mix_xps = GF_TRUE;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Param set update detected in scalable mode, injecting parameter sets inband (file might not be compliant).\nThis patch is for backward compatibility with GPAC old architecture and only applies when for_test muxer option is set\n"));
+	} else if (ctx->xps_inband==2) {
+		force_mix_xps = GF_TRUE;
+	}
+	
+	if (force_mix_xps) {
 
 		//for AVC and HEVC, move to inband params if config changed
 		if (use_avc && dsi) {
@@ -952,7 +962,9 @@ sample_entry_setup:
 				tkw->svcc = gf_odf_avc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
 			}
 			if (!ctx->xps_inband) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] AVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant\n"));
+				if (ctx->init_movie_done) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] AVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant\n"));
+				}
 				ctx->xps_inband = 2;
 			}
 			mp4_mux_make_inband_header(ctx, tkw);
@@ -967,7 +979,9 @@ sample_entry_setup:
 				tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
 			}
 			if (!ctx->xps_inband) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] HEVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant\n"));
+				if (ctx->init_movie_done) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] HEVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant\n"));
+				}
 				ctx->xps_inband = 2;
 			}
 			mp4_mux_make_inband_header(ctx, tkw);
@@ -1148,7 +1162,6 @@ sample_entry_setup:
 		if (!tkw->has_brands) {
 			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_HVC1, 1);
 		}
 		//pacth for old arch
 		else if (ctx->dash_mode) {
@@ -1174,6 +1187,9 @@ sample_entry_setup:
 			}
 		} else if (codec_id == GF_CODECID_LHVC) {
 			gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_LEHVC_ONLY);
+		} else if (is_tile_base) {
+			//force hvc2
+			gf_isom_lhvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->hvcc, GF_ISOM_HEVC_TILE_BASE);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new HEVC sample description: %s\n", gf_error_to_string(e) ));
@@ -1453,7 +1469,14 @@ multipid_stsd_setup:
 			gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
 			width = width * sar.num / sar.den;
 		}
+
 		gf_isom_set_track_layout_info(ctx->file, tkw->track_num, width<<16, height<<16, 0, 0, z_order);
+		if (codec_id==GF_CODECID_HEVC_TILES) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_SIZE);
+			if (p) {
+				gf_isom_set_track_layout_info(ctx->file, tkw->track_num, p->value.vec2i.x<<16, p->value.vec2i.y<<16, 0, 0, z_order);
+			}
+		}
 	}
 	//default for old arch
 	else if (force_tk_layout
@@ -1555,6 +1578,9 @@ multipid_stsd_setup:
 	if (is_true_pid) {
 		mp4_mux_write_track_refs(ctx, tkw, "isom:scal", GF_ISOM_REF_SCAL);
 		mp4_mux_write_track_refs(ctx, tkw, "isom:sabt", GF_ISOM_REF_SABT);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
+	} else if (codec_id==GF_CODECID_HEVC_TILES) {
+		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
 	}
 
 	if (is_true_pid && ctx->dash_mode && is_tile_base) {
@@ -2954,6 +2980,8 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			return GF_BAD_PARAM;
 		}
 		ctx->owns_mov = GF_FALSE;
+		if (gf_isom_drop_date_version_info_enabled(ctx->file))
+			ctx->for_test = GF_TRUE;
 	} else {
 		u32 open_mode = GF_ISOM_OPEN_WRITE;
 		ctx->owns_mov = GF_TRUE;
