@@ -1765,6 +1765,8 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 {
 	u32 i, j, count;
 
+	if (!filter) return;
+
 	if (filter->removed) 
 		return;
 
@@ -1819,9 +1821,19 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 	}
 }
 
-void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
+void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter)
 {
-	gf_filter_remove_internal(filter, until_filter, GF_FALSE);
+	gf_filter_remove_internal(src_filter, filter, GF_FALSE);
+}
+
+void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter)
+{
+	Bool removed;
+	if (!filter) return;
+	removed = filter->removed;
+	filter->removed = GF_TRUE;
+	gf_filter_remove_internal(dst_filter, filter, GF_FALSE);
+	filter->removed = removed;
 }
 
 

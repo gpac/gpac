@@ -478,7 +478,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
 			if (!group) continue;
 			if (group->seg_filter_src) {
-				gf_filter_remove(group->seg_filter_src, ctx->filter);
+				gf_filter_remove_src(ctx->filter, group->seg_filter_src);
 				group->seg_filter_src = NULL;
 			}
 			gf_free(group);

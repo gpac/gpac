@@ -1067,7 +1067,7 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 			gf_filter_pid_set_udta(xpid->pid, NULL);
 			xpid->pid = NULL;
 		}
-		gf_filter_remove(odm->scene_ns->source_filter, odm->subscene->compositor->filter);
+		gf_filter_remove_src(odm->subscene->compositor->filter, odm->scene_ns->source_filter);
 		odm->scene_ns->source_filter = NULL;
 	}
 

@@ -3619,7 +3619,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	if (pcki)
 		gf_filter_pid_filter_internal_packet(pidi, pcki);
 
-	return ((GF_FilterPidInst *)pid)->is_end_of_stream;
+	return pidi->is_end_of_stream;
 }
 
 void gf_filter_pid_set_eos(GF_FilterPid *pid)
@@ -3636,7 +3636,7 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
-	pid->pid->has_seen_eos = GF_TRUE;
+	pid->has_seen_eos = GF_TRUE;
 	gf_filter_pck_send(pck);
 }
 
@@ -4592,6 +4592,7 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 		return GF_BAD_PARAM;
 	}
 	if (discard_on) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Discarding packets on PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		while (gf_filter_pid_get_packet(pid)) {
 			gf_filter_pid_drop_packet(pid);
 		}

@@ -1492,11 +1492,17 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason);
 */
 void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force_disconnect);
 
-/*! disconnects a filter chain between two filters
-\param filter the starting point of the chain to disconnect
-\param until_filter the end point of the chain to disconnect. This filter is NOT deconnected
+/*! disconnects a source filter chain between two filters
+\param filter the calling filter. This filter is NOT disconnected
+\param the source filter point of the chain to disconnect.
 */
-void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
+void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter);
+
+/*! disconnects a sink filter chain between two filters
+\param filter the calling filter. This filter is NOT disconnected
+\param the sink filter point of the chain to disconnect.
+*/
+void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *src_filter);
 
 /*! sets the number of additional input pid a filter can accept. This overrides the default value of the filter registry
 \param filter the target filter

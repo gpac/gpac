@@ -368,7 +368,7 @@ GF_Err filelist_process(GF_Filter *filter)
 	if (ctx->load_next) {
 		char szURL[GF_MAX_PATH];
 
-		if (ctx->filter_src) gf_filter_remove(ctx->filter_src, filter);
+		if (ctx->filter_src) gf_filter_remove_src(filter, ctx->filter_src);
 		ctx->filter_src = NULL;
 		ctx->load_next = GF_FALSE;
 
