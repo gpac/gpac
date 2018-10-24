@@ -1150,6 +1150,11 @@ sample_entry_setup:
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_HVC1, 1);
 		}
+		//pacth for old arch
+		else if (ctx->dash_mode) {
+			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO6, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
+		}
 
 		tkw->is_nalu = GF_TRUE;
 
@@ -2336,16 +2341,33 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		ctx->ref_tkw = gf_list_get(ctx->tracks, 0);
 
 		if (!ctx->abs_offset) {
-
+			u32 mval = ctx->dash_mode ? '6' : '5';
+			u32 mbrand, mcount, i, found=0;
+			char szB[5];
 			gf_isom_set_fragment_option(ctx->file, 0, GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET, 1);
-			/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
-			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO5, 1);
-			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO5, 1);
 
+			gf_isom_get_brand_info(ctx->file, &mbrand, NULL, &mcount);
+			strcpy(szB, gf_4cc_to_str(mbrand));
+			if (!strncmp(szB, "iso", 3) && (szB[3] >= mval) && (szB[3] <= 'F') ) found = 1;
+			i=0;
+			while (!found && (i<mcount)) {
+				i++;
+				gf_isom_get_alternate_brand(ctx->file, i, &mbrand);
+				strcpy(szB, gf_4cc_to_str(mbrand));
+				if (!strncmp(szB, "iso", 3) && (szB[3] >= mval) && (szB[3] <= 'F') ) found = 1;
+			}
+
+			/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
+			if (!found) {
+				gf_isom_set_brand_info(ctx->file, ctx->dash_mode ? GF_ISOM_BRAND_ISO6 : GF_ISOM_BRAND_ISO5, 1);
+			}
+			
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, 0);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO1, 0);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO2, 0);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO3, 0);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO4, 0);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_AVC1, 0);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MP41, 0);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_MP42, 0);
 		}

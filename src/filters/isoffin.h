@@ -123,6 +123,7 @@ typedef struct
 
 	Bool has_edit_list;
 	u32 sample_num;
+	s64 ts_offset;
 /*
 	s64 dts_offset;
 	Bool do_dts_shift_test;
