@@ -53,7 +53,7 @@ struct _dash_component
 	u32 media_type;/*audio/video/text/ ...*/
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 	/*for video */
-	u32 width, height, fps_num, fps_denum, sar_num, sar_denum, max_sap;
+	u32 width, height, fps_num, fps_denum, sar_num, sar_denum, max_sap, hevc_tile_type;
 
 	/*for audio*/
 	u32 sample_rate, channels;
@@ -225,7 +225,7 @@ struct _dash_segment_input
 
 	Bool init_segment_generated;
 	char *init_seg_url;
-	Bool use_bs_switching;
+	u32 use_bs_switching; //0: no, 1: yes, 2: kaked for hevc tiles
 
 
 	Bool get_component_info_done;
@@ -3216,6 +3216,19 @@ static GF_Err dasher_isom_get_components_info(GF_DashSegInput *input, GF_DASHSeg
 				input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
 			}
 			gf_isom_get_pixel_aspect_ratio(in, i+1, 1, &input->components[input->nb_components].sar_num, &input->components[input->nb_components].sar_denum);
+
+			switch (gf_isom_get_media_subtype(in, i+1, 1) ) {
+			case GF_ISOM_SUBTYPE_HVT1:
+				input->components[input->nb_components].hevc_tile_type = 2;
+				break;
+			case GF_ISOM_SUBTYPE_HVC2:
+			case GF_ISOM_SUBTYPE_HEV2:
+				if (gf_isom_get_reference_count(in, i+1, GF_ISOM_REF_SABT)>0)
+					input->components[input->nb_components].hevc_tile_type = 1;
+				break;
+			default:
+				break;
+			}
 		}
 		/*non-video tracks, get lang*/
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) {
@@ -5605,7 +5618,7 @@ static GF_Err write_period_header(GF_DASHSegmenter *dasher, FILE *mpd, const cha
 
 static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool use_url_template, u32 single_file_mode,
                                       GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, u32 adaptation_set_num, u32 first_rep_in_set,
-                                      Bool bitstream_switching_mode, u32 max_width, u32 max_height, u32 dar_num, u32 dar_den, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled, const char *mpd_name, Bool start_with_sap)
+                                      u32 bitstream_switching_mode, u32 max_width, u32 max_height, u32 dar_num, u32 dar_den, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled, const char *mpd_name, Bool start_with_sap)
 {
 	u32 i, j;
 	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
@@ -5613,7 +5626,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 
 	//force segmentAlignment in onDemand
 	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"%s\"", (!is_on_demand  && segment_alignment_disabled) ? "false" : "true");
-	if (bitstream_switching_mode) {
+	if (bitstream_switching_mode==1) {
 		fprintf(mpd, " bitstreamSwitching=\"true\"");
 	}
 	if (first_rep->group_id) {
@@ -6905,7 +6918,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					}
 				}
 				else if (dash_input->components[k].media_type == GF_ISOM_MEDIA_VISUAL) {
-					nb_vids++;
+					if (dash_input->components[k].hevc_tile_type<2)
+						nb_vids++;
 				}
 			}
 
@@ -7257,7 +7271,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			u32 fps_denum = 0;
 			Double seg_duration_in_as = 0;
 			Bool has_scalability = GF_FALSE;
-			Bool use_bs_switching = (dasher->bitstream_switching_mode==GF_DASH_BSMODE_NONE) ? GF_FALSE : GF_TRUE;
+			u32 use_bs_switching = (dasher->bitstream_switching_mode==GF_DASH_BSMODE_NONE) ? 0 : 1;
 			char *lang;
 			char szFPS[100];
 			Bool is_first_rep = GF_FALSE;
@@ -7293,8 +7307,11 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				        /*unless the representation is a scalable one split across several adaptation sets ...*/
 				        && (dasher->inputs[first_rep_in_set].nb_representations<=1)
 				   ) {
-					use_bs_switching = GF_FALSE;
+					use_bs_switching = 0;
 				}
+
+				if (dasher->inputs[first_rep_in_set].components[0].hevc_tile_type)
+					use_bs_switching = 2;
 
 				if (! use_bs_switching) {
 					skip_init_segment_creation = GF_TRUE;
@@ -7318,7 +7335,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					e = dasher->inputs[first_rep_in_set].dasher_create_init_segment(dasher->inputs, dasher->nb_inputs, cur_adaptation_set+1, szInit, dasher->tmpdir, dasher, dasher->bitstream_switching_mode, &disable_bs_switching);
 					if (e) goto exit;
 					if (disable_bs_switching)
-						use_bs_switching = GF_FALSE;
+						use_bs_switching = 0;
 				}
 
 				dasher->inputs[first_rep_in_set].init_seg_url = use_bs_switching ? gf_strdup(szInit) : NULL;
