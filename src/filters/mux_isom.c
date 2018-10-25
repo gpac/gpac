@@ -527,6 +527,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		needs_sample_entry = 2;
 	}
 
+	//TODO: try to merge PPS/SPS for AVC and HEVC rather than creating a new sample description
+
 	switch (tkw->codecid) {
 	case GF_CODECID_AAC_MPEG4:
 	case GF_CODECID_AAC_MPEG2_MP:
@@ -941,11 +943,6 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot create a new sample description entry (codec change) for finalized movie in fragmented mode\n"));
 			return GF_NOT_SUPPORTED;
 		}
-		force_mix_xps = GF_TRUE;
-	} else if (tkw->nb_samples && (needs_sample_entry==2) && ctx->for_test && tkw->is_nalu && !ctx->xps_inband && enh_dsi) {
-		force_mix_xps = GF_TRUE;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Param set update detected in scalable mode, injecting parameter sets inband (file might not be compliant).\nThis patch is for backward compatibility with GPAC old architecture and only applies when for_test muxer option is set\n"));
-	} else if (ctx->xps_inband==2) {
 		force_mix_xps = GF_TRUE;
 	}
 	

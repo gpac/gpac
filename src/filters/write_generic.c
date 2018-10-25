@@ -134,8 +134,8 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	strncpy(szCodecExt, gf_codecid_file_ext(cid), 29);
 	szCodecExt[29]=0;
-	char *sep = strchr(szCodecExt, '|');
-	if (sep) sep[0] = 0;
+//	char *sep = strchr(szCodecExt, '|');
+//	if (sep) sep[0] = 0;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(szCodecExt) );
 
 	mimetype = gf_codecid_mime(cid);

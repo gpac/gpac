@@ -525,7 +525,7 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	memset(ifce, 0, sizeof(GF_ESInterface));
 	ifce->stream_id = gf_isom_get_track_id(mp4, track_num);
 
-	esd = gf_media_map_esd(mp4, track_num);
+	esd = gf_media_map_esd(mp4, track_num, 0);
 
 	if (esd) {
 		ifce->stream_type = esd->decoderConfig->streamType;

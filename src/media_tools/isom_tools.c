@@ -815,12 +815,14 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
-GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
+GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 {
 	GF_BitStream *bs;
 	GF_ESD *esd;
+	u32 subtype;
 
-	u32 subtype = gf_isom_get_media_subtype(mp4, track, 1);
+	if (!stsd_idx) stsd_idx = 1;
+	subtype = gf_isom_get_media_subtype(mp4, track, stsd_idx);
 	/*all types with an official MPEG-4 mapping*/
 	switch (subtype) {
 	case GF_ISOM_SUBTYPE_MPEG4:
@@ -841,7 +843,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
 	case GF_ISOM_SUBTYPE_AV01:
-		return gf_isom_get_esd(mp4, track, 1);
+		return gf_isom_get_esd(mp4, track, stsd_idx);
 	}
 	
 	if (subtype == GF_ISOM_SUBTYPE_3GP_DIMS) {

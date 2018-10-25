@@ -1080,7 +1080,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (dumper->trackID) {
 		u32 msubtype = 0;
 		u32 track_num = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
-		GF_ESD *esd = gf_media_map_esd(dumper->file, track_num);
+		GF_ESD *esd = gf_media_map_esd(dumper->file, track_num, 0);
 		if (esd) {
 			codec_id = esd->decoderConfig->objectTypeIndication;
 			gf_odf_desc_del((GF_Descriptor *) esd);
