@@ -335,7 +335,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 			u32 j;
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
 			filter->process_th_id = 0;
-			
+			filter->scheduled_for_next_task = GF_TRUE;
+
 			if (filter->detached_pid_inst) {
 				while (gf_list_count(filter->detached_pid_inst)) {
 					GF_FilterPidInst *pidi = gf_list_pop_front(filter->detached_pid_inst);
@@ -357,6 +358,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, j);
 				gf_filter_pid_inst_reset(pidi);
 			}
+			filter->scheduled_for_next_task = GF_FALSE;
 		}
 		//second pass, finalize all
 		for (i=0; i<count; i++) {
@@ -1191,8 +1193,20 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess)
 	//disable all sources
 	for (i=0; i<count; i++) {
 		GF_Filter *filter = gf_list_get(fsess->filters, i);
-		//force end of session on all sources
-		if (!filter->num_input_pids) filter->force_end_of_session = GF_TRUE;
+		//force end of session on all sources, and on all filters connected to these sources
+		//if we don't propagate on connected filters, we take the risk of not deactivating demuxers working from file
+		//(eg ignoring input packets)
+		if (!filter->num_input_pids) {
+			u32 j, k;
+			filter->force_end_of_session = GF_TRUE;
+			for (j=0; j<filter->num_output_pids; j++) {
+				GF_FilterPid *pid = gf_list_get(filter->output_pids, j);
+				for (k=0; k<pid->num_destinations; k++) {
+					GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
+					pidi->filter->force_end_of_session = GF_TRUE;
+				}
+			}
+		}
 	}
 	fsess->in_final_flush = GF_TRUE;
 
