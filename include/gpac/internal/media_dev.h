@@ -158,6 +158,8 @@ typedef struct
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 state;
 
+	u32 sbusps_crc;
+
 	/*for SVC stats during import*/
 	u32 nb_ei, nb_ep, nb_eb;
 } AVC_SPS;
