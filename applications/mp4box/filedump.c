@@ -921,35 +921,45 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 {
 	u32 sei_idx=0;
-	u32 i=2;
+	u32 i=1;
+	u8 *sei_no_epb = NULL;
+	u32 sei_no_epb_size = 0;
 	fprintf(dump, " SEI=\"");
-	while (i+1 < ptr_size) {
+
+
+	/*PPS still contains emulation bytes*/
+	sei_no_epb = gf_malloc(ptr_size + 1/*for SEI null string termination*/);
+	sei_no_epb_size = gf_media_nalu_remove_emulation_bytes((const char *) ptr, (char *) sei_no_epb, ptr_size);
+
+
+	while (i+2 < sei_no_epb_size) {
 		u32 sei_type = 0;
 		u32 sei_size = 0;
-		while (ptr[i] == 0xFF) {
+		while (sei_no_epb[i] == 0xFF) {
 			sei_type+= 255;
 			i++;
 		}
-		sei_type += ptr[i];
+		sei_type += sei_no_epb[i];
 		i++;
-		while (ptr[i] == 0xFF) {
+		while (sei_no_epb[i] == 0xFF) {
 			sei_size += 255;
 			i++;
 		}
-		sei_size += ptr[i];
+		sei_size += sei_no_epb[i];
 		i++;
 		i+=sei_size;
 
 		if (sei_idx) fprintf(dump, ",");
 		fprintf(dump, "(type=%u, size=%u)", sei_type, sei_size);
 		sei_idx++;
-		if (ptr[i]== 0x80) {
-			i=ptr_size;
+		if (sei_no_epb[i]== 0x80) {
+			i=sei_no_epb_size;
 			break;
 		}
 	}
-	if (i!=ptr_size) fprintf(dump, "(garbage at end)");
+	if (i!=sei_no_epb_size) fprintf(dump, "(garbage at end)");
 	fprintf(dump, "\"");
+	gf_free(sei_no_epb);
 }
 
 static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
