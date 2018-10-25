@@ -58,7 +58,8 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 	Double br;
 	GF_ISOSample sample;
 
-	db_size = rate = max_rate = avg_rate = time_wnd = 0;
+	db_size = 0;
+	rate = max_rate = avg_rate = time_wnd = 0;
 
 	memset(&sample, 0, sizeof(GF_ISOSample));
 	timescale = gf_isom_get_media_timescale(file, track);

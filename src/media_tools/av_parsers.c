@@ -1834,7 +1834,7 @@ Bool gf_media_probe_ivf(GF_BitStream *bs)
 	return GF_TRUE;
 }
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, int *width, int *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames)
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames)
 {
 	u32 dw = 0;
 
@@ -1882,7 +1882,7 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, int *width, int *height,
 
 GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
 {
-	int width = 0, height = 0;
+	u32 width = 0, height = 0;
 	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
 	GF_Err e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
 	if (e)

@@ -212,14 +212,14 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) ch_cfg = p->value.uint;
 
 	if (ctx->audio_out->SetVolume) {
-		p = gf_filter_pid_get_info(ctx->pid, GF_PROP_PID_AUDIO_VOLUME);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_AUDIO_VOLUME);
 		if (p) ctx->audio_out->SetVolume(ctx->audio_out, p->value.uint);
 	}
 	if (ctx->audio_out->SetPan) {
-		p = gf_filter_pid_get_info(ctx->pid, GF_PROP_PID_AUDIO_PAN);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_AUDIO_PAN);
 		if (p) ctx->audio_out->SetPan(ctx->audio_out, p->value.uint);
 	}
-	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_AUDIO_PRIORITY);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_PRIORITY);
 	if (p) aout_set_priority(ctx, p->value.uint);
 
 	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {

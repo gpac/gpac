@@ -818,7 +818,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 
 			nb_pck = gf_fq_count(dst->packets);
 			if (pid->nb_buffer_unit < nb_pck) pid->nb_buffer_unit = nb_pck;
-			if (pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = (u32) dst->buffer_duration;
+			if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = (s64) dst->buffer_duration;
 		}
 	}
 

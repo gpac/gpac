@@ -2369,7 +2369,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (!ctx->abs_offset) {
 			u32 mval = ctx->dash_mode ? '6' : '5';
 			u32 mbrand, mcount, i, found=0;
-			char szB[5];
+			u8 szB[5];
 			gf_isom_set_fragment_option(ctx->file, 0, GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET, 1);
 
 			gf_isom_get_brand_info(ctx->file, &mbrand, NULL, &mcount);
@@ -2643,7 +2643,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				}
 				tkw->dur_in_frag += dur;
 			} else if (!ctx->flush_seg && !ctx->dash_mode
-				&& (cts >= ((s64) (ctx->adjusted_next_frag_start * tkw->timescale)) + tkw->ts_delay)
+				&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->timescale) + tkw->ts_delay)
 			 ) {
 				u32 sap = gf_filter_pck_get_sap(pck);
 				if ((ctx->store==MP4MX_MODE_FRAG) || (sap && sap<GF_FILTER_SAP_3)) {

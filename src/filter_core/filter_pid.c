@@ -3149,10 +3149,13 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 	return NULL;
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
 {
 	return gf_filter_pid_get_info_internal(pid, prop_4cc, NULL);
 }
+
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char *prop_name)
 {
 	return gf_filter_pid_get_info_internal(pid, 0, prop_name);

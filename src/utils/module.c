@@ -363,8 +363,10 @@ GF_BaseInterface *gf_modules_load(u32 whichplug, u32 InterfaceFamily)
 		return NULL;
 	}
 	if (!inst->query_func) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Library %s missing GPAC export symbols\n", inst->name));
-		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "invalid");
+		if (!inst->filterreg_func) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Library %s missing GPAC export symbols\n", inst->name));
+			gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "invalid");
+		}
 		goto err_exit;
 	}
 

@@ -167,8 +167,12 @@ void gf_modules_unload_library(ModuleInstance *inst)
 	if (inst->plugman->no_unload)
 		return;
 
+	/*filters are not unloaded*/
+	if (inst->filterreg_func)
+		return;
+
 #ifdef WIN32
-	if (strcmp(inst->name, "gm_openhevc_dec.dll"))
+	if (strcmp(inst->name, "gf_ohevcdec.dll"))
 		FreeLibrary((HMODULE)inst->lib_handle);
 #else
 	dlclose(inst->lib_handle);

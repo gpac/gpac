@@ -1519,8 +1519,8 @@ static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 //	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(file_size) );
 
 	//patch for old arch
-	ctx->width = ctx->swf_parse->width;
-	ctx->height = ctx->swf_parse->height;
+	ctx->width = FIX2INT(ctx->swf_parse->width);
+	ctx->height = FIX2INT(ctx->swf_parse->height);
 	if (!ctx->width && !ctx->height) {
 		ctx->width = 400;
 		ctx->height = 60;

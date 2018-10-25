@@ -589,7 +589,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			current = mpgviddmx_next_start_code(ctx->hdr_store, 8);
 
 			//no start code in stored buffer
-			if ((current<0) || (current>=ctx->bytes_in_header) )  {
+			if ((current<0) || (current >= (s32) ctx->bytes_in_header) )  {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				gf_filter_pck_set_cts(dst_pck, GF_FILTER_NO_TS);

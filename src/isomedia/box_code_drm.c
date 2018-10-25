@@ -1409,7 +1409,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				sai->subsample_count = gf_bs_read_u16(bs);
 				sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 
-				if (senc_size < 2 + sai->subsample_count * 6) {
+				if ((s32) senc_size < 2 + sai->subsample_count * 6) {
 					parse_failed = GF_TRUE;
 					break;
 				}

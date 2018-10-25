@@ -1997,7 +1997,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	prev_ent = gf_list_last(trun->entries);
 	if (prev_ent && prev_ent->dts && sample->DTS) {
 		if (prev_ent->Duration != sample->DTS - prev_ent->dts)
-			prev_ent->Duration = sample->DTS - prev_ent->dts;
+			prev_ent->Duration = (u32) (sample->DTS - prev_ent->dts);
 	}
 	gf_list_add(trun->entries, ent);
 
