@@ -4939,6 +4939,7 @@ restart_import:
 				if ((avc.sps[idx].state & AVC_SUBSPS_PARSED) && !(avc.sps[idx].state & AVC_SUBSPS_DECLARED)) {
 					avc.sps[idx].state |= AVC_SUBSPS_DECLARED;
 					add_sps = 1;
+					avc.sps[idx].sbusps_crc = gf_crc_32(buffer, nal_size);
 				}
 				dstcfg = svccfg;
 				if (import->flags & GF_IMPORT_SVC_NONE) {
@@ -4950,14 +4951,16 @@ restart_import:
 					add_sps = 1;
 				}
 			}
-			/*some streams are not really nice and reuse sps idx with differnet parameters (typically
-			when concatenated bitstreams). Since we cannot put two SPS with the same idx in the decoder config, we keep them in the
-			video bitstream*/
 			if (avc.sps[idx].state & AVC_SUBSPS_DECLARED) {
 				if (import->flags & GF_IMPORT_SVC_NONE) {
 					copy_size = 0;
 				} else {
-					copy_size = nal_size;
+					/*some streams are not really nice and reuse sps idx with differnet parameters (typically
+					when concatenated bitstreams). Since we cannot put two SPS with the same idx in the decoder config, we keep them in the
+					video bitstream*/
+					if (avc.sps[idx].sbusps_crc != gf_crc_32(buffer, nal_size) ) {
+						copy_size = nal_size;
+					}
 				}
 			}
 
