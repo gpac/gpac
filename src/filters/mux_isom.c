@@ -2202,7 +2202,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (!blocksize) return GF_EOS;
 		pck = gf_filter_pck_new_alloc(ctx->opid, blocksize, &output);
 		nb_read = (u32) fread(output, 1, blocksize, ctx->tmp_store);
-		ctx->flush_done += blocksize;
+		ctx->flush_done += nb_read;
+		if (nb_read != blocksize) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error flushing fragmented file, read %d bytes but asked %d bytes\n", nb_read, blocksize));
+		}
 		if (ctx->flush_done==ctx->flush_size) {
 			gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
 			gf_filter_pck_send(pck);

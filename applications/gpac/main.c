@@ -906,11 +906,11 @@ static void dump_all_props(void)
 
 static void dump_all_codec(GF_FilterSession *session)
 {
-	GF_PropertyValue rawp, cp;
+	GF_PropertyValue rawp;
+	GF_PropertyValue cp;
 	u32 cidx=0;
 	u32 count = gf_fs_filters_registry_count(session);
-//	fprintf(stderr, "Codec names (I: Filter Input support, O: Filter Output support):\n");
-	fprintf(stderr, "Codec names listed as built_in_name[|variant]: full_name\n");
+	fprintf(stderr, "Codec names listed as built_in_name[|variant](I: Filter Input support, O: Filter Output support): full_name\n");
 	rawp.type = cp.type = GF_PROP_UINT;
 	rawp.value.uint = GF_CODECID_RAW;
 	while (1) {
@@ -931,8 +931,7 @@ static void dump_all_codec(GF_FilterSession *session)
 			if ( gf_fs_check_registry_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp)) dec_found = GF_TRUE;
 		}
 
-//		fprintf(stderr, "%s (%c%c): %s\n", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-', lname);
-		fprintf(stderr, "%s: %s\n", sname, lname);
+		fprintf(stderr, "%s (%c%c): %s\n", sname, dec_found ? 'I' : '-', enc_found ? 'O' : '-', lname);
 	}
 	fprintf(stderr, "\n");
 }

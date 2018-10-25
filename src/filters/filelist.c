@@ -594,6 +594,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				pattern = list;
 			}
 			gf_enum_directory(dir, GF_FALSE, filelist_enum, ctx, pattern);
+			if (c && sep_dir) sep_dir[0] = c;
 		} else {
 			if (gf_file_exists(list)) {
 				gf_list_add(ctx->file_list, gf_strdup(list));

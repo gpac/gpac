@@ -204,7 +204,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 {
 	GF_Err e;
 	u32 sample_desc_index;
-	Bool is_init = GF_FALSE;
 	if (ch->sample) return;
 
 	if (ch->next_track) {
@@ -214,7 +213,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->to_init) {
 		init_reader(ch);
-		is_init = GF_TRUE;
 		sample_desc_index = ch->last_sample_desc_index;
 	} else if (ch->speed < 0) {
 		if (ch->last_state == GF_EOS) {

@@ -286,7 +286,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			u32 len=0;
 			char *nv;
 			char *sep = strchr(v, list_sep_char);
-			if (sep) {
+			if (sep && is_xml) {
 				char *xml_end = strchr(v, '>');
 				len = (u32) (sep - v);
 				if (xml_end) {
@@ -323,8 +323,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 			if (!sep)
 			 	len = (u32) strlen(v);
-
-			strncpy(szV, v, sizeof(char)*100);
+			if (len>=99) len=99;
+			strncpy(szV, v, len);
 			sscanf(szV, "%u", &val_uint);
 			p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
 			p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
@@ -736,10 +736,10 @@ GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, ch
 
 const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name)
 {
-	u32 i, count, hash;
+	u32 i, count;
 	const GF_PropertyValue *res=NULL;
-	hash = gf_props_hash_djb2(prop_4cc, name);
 #if GF_PROPS_HASHTABLE_SIZE
+	u32 hash = gf_props_hash_djb2(prop_4cc, name);
 	if (map->hash_table[hash] ) {
 		count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {

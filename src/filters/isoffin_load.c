@@ -461,9 +461,8 @@ void isor_declare_objects(ISOMReader *read)
 		}
 		if (lang_desc) {
 			char *lang=NULL;
-			s32 idx;
 			gf_isom_get_media_language(read->mov, i+1, &lang);
-			idx = gf_lang_find(lang);
+			//s32 idx = gf_lang_find(lang);
 			gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang ));
 			if (lang) gf_free(lang);
 			gf_odf_desc_del((GF_Descriptor *)lang_desc);

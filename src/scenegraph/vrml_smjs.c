@@ -283,7 +283,6 @@ void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj
 
 static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 {
-	GF_Compositor *compositor;
 	u32 i, count;
 	GF_JSAPIParam par;
 
@@ -293,7 +292,7 @@ static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 	if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_COMPOSITOR, sg->RootNode, &par))
 		return;
 
-	compositor = par.compositor;
+	//GF_Compositor *compositor = par.compositor;
 
 	count = gf_modules_count();
 	for (i=0; i<count; i++) {

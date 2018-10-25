@@ -75,7 +75,6 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode;
 	const char *name, *mimetype;
 	char szExt[10], szCodecExt[30];
-	Bool unframed = GF_FALSE;
 	const GF_PropertyValue *p;
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 
@@ -127,8 +126,6 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->dcfg = p->value.data.ptr;
 		ctx->dcfg_size = p->value.data.size;
 	}
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
-	if (p && p->value.boolean) unframed = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
