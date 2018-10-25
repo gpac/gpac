@@ -922,8 +922,8 @@ do_fuzz()
 ret=0
 do_test ()
 {
- skip_next_hash_test=0
-
+  skip_next_hash_test=0
+  
   if [ $# -gt 2 ] ; then
    log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
    log $L_ERR "	@do_test takes only two arguments - wrong call (first arg $1)"
@@ -1136,6 +1136,10 @@ fi
 #@do_hash_test: generates a hash for $1 file , compare it to HASH_DIR/$TEST_NAME$2.hash
 do_hash_test ()
 {
+  if [ $skip_next_hash_test = 1 ] ; then
+    skip_next_hash_test=0
+    return
+  fi
 
   if [ $skip_next_hash_test = 1 ] ; then
     skip_next_hash_test=0

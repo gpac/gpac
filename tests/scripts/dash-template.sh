@@ -22,10 +22,10 @@ test_end
 
 }
 
-base_test "dash-template-bandwidth-time" ":bandwidth=600000 -profile live -segment-name test-\$Bandwidth\$-\$Time%05d\$\$Init=is\$" "test-600000-is.mpd" "test-600000-00000.m4s"
+base_test "dash-template-bandwidth-time" ":bandwidth=600000 -profile live -segment-name test-\$Bandwidth\$-\$Time%05d\$\$Init=is\$" "test-600000-is.mp4" "test-600000-01000.m4s"
 
-base_test "dash-template-repid-number" ":id=myrep -profile live -segment-name test-\$RepresentationID\$-\$Number%d\$" "test-myrep-.mpd" "test-myrep-1.m4s"
+base_test "dash-template-repid-number" ":id=myrep -profile live -segment-name test-\$RepresentationID\$-\$Number%d\$" "test-myrep-.mp4" "test-myrep-10.m4s"
 
-base_test "dash-template-baseurl-global-path" ":id=myrep -base-url some_dir/ -profile live -segment-name \$Path=some_dir/\$test-\$RepresentationID\$-\$Number%d\$" "some_dir/test-myrep-.mpd" "some_dir/test-myrep-1.m4s"
+base_test "dash-template-baseurl-global-path" ":id=myrep -base-url some_dir/ -profile live -segment-name \$Path=some_dir/\$test-\$RepresentationID\$-\$Number%d\$" "some_dir/test-myrep-.mp4" "some_dir/test-myrep-10.m4s"
 
-base_test "dash-template-baseurl-rep-path" ":id=myrep:baseURL=some_dir/ -profile live -segment-name \$Path=some_dir/\$test-\$RepresentationID\$-\$Number%d\$" "some_dir/test-myrep-.mpd" "some_dir/test-myrep-1.m4s"
+base_test "dash-template-baseurl-rep-path" ":id=myrep:baseURL=some_dir/ -profile live -segment-name \$Path=some_dir/\$test-\$RepresentationID\$-\$Number%d\$" "some_dir/test-myrep-.mp4" "some_dir/test-myrep-10.m4s"
