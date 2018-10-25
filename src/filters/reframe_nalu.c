@@ -1739,6 +1739,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 	char *data;
 	u8 *start;
 	u32 pck_size;
+	u32 hdr_size_at_resume = 0;
 	s32 remain;
 	Bool is_eos = GF_FALSE;
 
@@ -1817,6 +1818,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;
 			ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
 		}
+		hdr_size_at_resume = ctx->hdr_store_size;
 		memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size);
 		ctx->hdr_store_size += pck_size;
 		start = data = ctx->hdr_store;
@@ -2494,6 +2496,10 @@ naldmx_flush:
 		//a huge number of frames in a single call
 		if (remain && gf_filter_pid_would_block(ctx->opid)) {
 			ctx->resume_from = (u32) ((char *)start -  (char *)data);
+			if (data == ctx->hdr_store) {
+				assert(ctx->resume_from > hdr_size_at_resume);
+				ctx->resume_from -= hdr_size_at_resume;
+			}
 			return GF_OK;
 		}
 	}
