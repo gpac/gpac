@@ -6043,10 +6043,19 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 				written = 0;
 			}
 		} else {
-			if (written<=nal_size) {
-				memcpy(buffer, new_buffer, sizeof(char)*written);
+			var = gf_media_nalu_emulation_bytes_add_count(new_buffer, written);
+			if (var) {
+				if (written+var<=nal_size) {
+					written = gf_media_nalu_add_emulation_bytes(new_buffer, buffer, written);
+				} else {
+					written = 0;
+				}
 			} else {
-				written = 0;
+				if (written<=nal_size) {
+					memcpy(buffer, new_buffer, sizeof(char)*written);
+				} else {
+					written = 0;
+				}
 			}
 		}
 	}
