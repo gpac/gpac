@@ -794,7 +794,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	}
 }
 
-
+GF_EXPORT
 void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name)
 {
 	if (PID_IS_INPUT(pid)) {
@@ -805,10 +805,14 @@ void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name)
 		pid->name = gf_strdup(name);
 	}
 }
+
+GF_EXPORT
 const char *gf_filter_pid_get_name(GF_FilterPid *pid)
 {
 	return pid->pid->name;
 }
+
+GF_EXPORT
 const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid)
 {
 	if (PID_IS_INPUT(pid)) {
@@ -816,6 +820,8 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid)
 	}
 	return pid->filter->name;
 }
+
+GF_EXPORT
 const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid)
 {
 	u32 i;
@@ -830,6 +836,7 @@ const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid)
 	return args;
 }
 
+GF_EXPORT
 void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *nb_pck, u32 *max_duration, u32 *duration)
 {
 	if (max_slots) *max_slots = pid->pid->max_buffer_unit;
@@ -838,6 +845,7 @@ void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *
 	if (duration) *duration = (u32) pid->pid->buffer_duration;
 }
 
+GF_EXPORT
 void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta)
 {
 	if (PID_IS_INPUT(pid)) {
@@ -846,6 +854,8 @@ void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta)
 		pid->udta = udta;
 	}
 }
+
+GF_EXPORT
 void *gf_filter_pid_get_udta(GF_FilterPid *pid)
 {
 	if (PID_IS_INPUT(pid)) {
@@ -1594,6 +1604,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	return bundle_score;
 }
 
+GF_EXPORT
 Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 {
 	u8 priority;
@@ -2831,7 +2842,7 @@ void gf_filter_reconnect_output(GF_Filter *filter)
 	}
 }
 
-
+GF_EXPORT
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks)
 {
 	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
@@ -2844,6 +2855,7 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 {
 	char szName[30];
@@ -3092,6 +3104,7 @@ static GF_PropertyMap *filter_pid_get_prop_map(GF_FilterPid *pid)
 	return NULL;
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc)
 {
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
@@ -3100,6 +3113,7 @@ const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4
 	return gf_props_get_property(map, prop_4cc, NULL);
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const char *prop_name)
 {
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
@@ -3197,6 +3211,7 @@ GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 
 }
 
+GF_EXPORT
 GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid)
 {
 	GF_PropertyMap *dst_props, *src_props;
@@ -3224,6 +3239,7 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 	return gf_props_merge_property(dst_props, src_props, NULL, NULL);
 }
 
+GF_EXPORT
 u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 {
 	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
@@ -3282,6 +3298,7 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 	return is_internal;
 }
 
+GF_EXPORT
 GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 {
 	GF_FilterPacketInstance *pcki;
@@ -3366,6 +3383,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	return (GF_FilterPacket *)pcki;
 }
 
+GF_EXPORT
 Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 {
 	GF_FilterPacketInstance *pcki;
@@ -3393,6 +3411,7 @@ Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 	return GF_TRUE;
 }
 
+GF_EXPORT
 Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 {
 	GF_FilterPacketInstance *pcki;
@@ -3509,6 +3528,7 @@ static void gf_filter_pidinst_reset_stats(GF_FilterPidInst *pidi)
 	pidi->first_frame_time = 0;
 }
 
+GF_EXPORT
 void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 {
 	u32 nb_pck=0;
@@ -3601,6 +3621,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	gf_rmt_end();
 }
 
+GF_EXPORT
 Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 {
 	GF_FilterPacketInstance *pcki;
@@ -3622,6 +3643,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	return pidi->is_end_of_stream;
 }
 
+GF_EXPORT
 void gf_filter_pid_set_eos(GF_FilterPid *pid)
 {
 	GF_FilterPacket *pck;
@@ -3640,6 +3662,7 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	gf_filter_pck_send(pck);
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
 {
 	GF_PropertyMap *props;
@@ -3657,6 +3680,7 @@ const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *id
 	return gf_props_enum_property(props, idx, prop_4cc, prop_name);
 }
 
+GF_EXPORT
 Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 {
 	Bool would_block=GF_FALSE;
@@ -3696,6 +3720,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	return would_block;
 }
 
+GF_EXPORT
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_output)
 {
 	u32 count, i, j;
@@ -3736,6 +3761,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_ou
 }
 
 
+GF_EXPORT
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 {
 	u32 i;
@@ -3752,6 +3778,7 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 	return GF_FALSE;
 }
 
+GF_EXPORT
 const char *gf_filter_event_name(GF_FEventType type)
 {
 	switch (type) {
@@ -4000,6 +4027,7 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 	gf_free(evt);
 }
 
+GF_EXPORT
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
 	GF_FilterEvent *dup_evt;
@@ -4060,7 +4088,7 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 
 }
 
-
+GF_EXPORT
 void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 {
 	GF_FilterEvent *dup_evt;
@@ -4083,6 +4111,7 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt)
 }
 
 
+GF_EXPORT
 void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
 	//filter is being shut down, prevent any event posting
@@ -4097,6 +4126,7 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 }
 
 
+GF_EXPORT
 Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
 {
 	if (!pid || !filter) return GF_FALSE;
@@ -4105,6 +4135,7 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
 }
 
 
+GF_EXPORT
 GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, Bool for_inputs)
 {
 	u32 i;
@@ -4160,6 +4191,7 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_filter_pid_remove(GF_FilterPid *pid)
 {
 	GF_FilterPacket *pck;
@@ -4183,6 +4215,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	gf_filter_pck_send(pck);
 }
 
+GF_EXPORT
 void gf_filter_pid_try_pull(GF_FilterPid *pid)
 {
 	if (PID_IS_OUTPUT(pid)) {
@@ -4200,7 +4233,7 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid)
 }
 
 
-
+GF_EXPORT
 GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_time, u32 *timescale)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
@@ -4216,12 +4249,14 @@ GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_ti
 	return res;
 }
 
+GF_EXPORT
 u32 gf_filter_pid_get_timescale(GF_FilterPid *pid)
 {
 	GF_PropertyMap *map = pid ? gf_list_get(pid->pid->properties, 0) : 0;
 	return map ? map->timescale : 0;
 }
 
+GF_EXPORT
 void gf_filter_pid_clear_eos(GF_FilterPid *pid)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
@@ -4232,6 +4267,7 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid)
 	pidi->is_end_of_stream = GF_FALSE;
 }
 
+GF_EXPORT
 void gf_filter_pid_set_clock_mode(GF_FilterPid *pid, Bool filter_in_charge)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
@@ -4242,6 +4278,7 @@ void gf_filter_pid_set_clock_mode(GF_FilterPid *pid, Bool filter_in_charge)
 	pidi->handles_clock_references = filter_in_charge;
 }
 
+GF_EXPORT
 const char *gf_filter_pid_get_args(GF_FilterPid *pid)
 {
 	if (PID_IS_OUTPUT(pid)) {
@@ -4252,6 +4289,7 @@ const char *gf_filter_pid_get_args(GF_FilterPid *pid)
 	return pid->pid->filter->orig_args;
 }
 
+GF_EXPORT
 void gf_filter_pid_set_max_buffer(GF_FilterPid *pid, u32 total_duration_us)
 {
 	if (PID_IS_INPUT(pid)) {
@@ -4261,6 +4299,7 @@ void gf_filter_pid_set_max_buffer(GF_FilterPid *pid, u32 total_duration_us)
 	pid->max_buffer_time = pid->user_max_buffer_time = total_duration_us;
 }
 
+GF_EXPORT
 u32 gf_filter_pid_get_max_buffer(GF_FilterPid *pid)
 {
 	if (PID_IS_OUTPUT(pid)) {
@@ -4271,6 +4310,7 @@ u32 gf_filter_pid_get_max_buffer(GF_FilterPid *pid)
 }
 
 
+GF_EXPORT
 void gf_filter_pid_set_loose_connect(GF_FilterPid *pid)
 {
 	if (PID_IS_INPUT(pid)) {
@@ -4280,6 +4320,7 @@ void gf_filter_pid_set_loose_connect(GF_FilterPid *pid)
 	pid->not_connected_ok = GF_TRUE;
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc)
 {
 	u32 i;
@@ -4337,6 +4378,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 	return NULL;
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const char *prop_name)
 {
 	GF_PropertyMap *map = pid->caps_negociate;
@@ -4348,6 +4390,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 }
 
 
+GF_EXPORT
 GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix)
 {
 	u32 k;
@@ -4584,6 +4627,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 }
 
 
+GF_EXPORT
 GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *) pid;
@@ -4632,6 +4676,7 @@ static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *ds
 	return NULL;
 }
 
+GF_EXPORT
 char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 {
 	const char *dst_args;

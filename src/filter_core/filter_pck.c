@@ -35,6 +35,7 @@ static void gf_filter_pck_reset_props(GF_FilterPacket *pck, GF_FilterPid *pid)
 	pck->src_filter = pid->filter;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst, gf_filter_prop_filter filter_prop, void *cbk)
 {
 	if (PCK_IS_INPUT(pck_dst)) {
@@ -59,6 +60,8 @@ GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_Filter
 	}
 	return gf_props_merge_property(pck_dst->props, pck_src->props, filter_prop, cbk);
 }
+
+GF_EXPORT
 GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst)
 {
 	return gf_filter_pck_merge_properties_filter(pck_src, pck_dst, NULL, NULL);
@@ -137,11 +140,13 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	return pck;
 }
 
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data)
 {
 	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
 }
 
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
@@ -149,6 +154,7 @@ GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_
 	return pck;
 }
 
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct, Bool intern_pck)
 {
 	GF_FilterPacket *pck;
@@ -179,11 +185,14 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char
 	return pck;
 }
 
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, gf_fsess_packet_destructor destruct)
 {
 	return gf_filter_pck_new_shared_internal(pid, data, data_size, destruct, GF_FALSE);
 
 }
+
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 data_size, GF_FilterPacket *reference)
 {
 	GF_FilterPacket *pck;
@@ -203,6 +212,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	return pck;
 }
 
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck;
@@ -214,6 +224,7 @@ GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame 
 	return pck;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 {
 	GF_FilterPacket *pck;
@@ -234,6 +245,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 	return gf_filter_pck_send(pck);
 }
 
+/*internal*/
 void gf_filter_packet_destroy(GF_FilterPacket *pck)
 {
 	Bool is_filter_destroyed = GF_FALSE;
@@ -417,6 +429,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 	return GF_TRUE;
 }
 
+GF_EXPORT
 void gf_filter_pck_discard(GF_FilterPacket *pck)
 {
 	if (PCK_IS_INPUT(pck)) {
@@ -429,6 +442,7 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
 	u32 i, count, nb_dispatch=0, nb_discard=0;
@@ -833,6 +847,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_ref(GF_FilterPacket **pck)
 {
 	if (! pck ) return GF_BAD_PARAM;
@@ -843,6 +858,7 @@ GF_Err gf_filter_pck_ref(GF_FilterPacket **pck)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 {
 	GF_FilterPacket *npck, *srcpck;
@@ -880,6 +896,7 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_filter_pck_unref(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -889,6 +906,7 @@ void gf_filter_pck_unref(GF_FilterPacket *pck)
 	}
 }
 
+GF_EXPORT
 const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size)
 {
 	assert(pck);
@@ -922,21 +940,25 @@ static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc
 	return gf_props_insert_property(pck->props, hash, prop_4cc, prop_name, dyn_name, value);
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_property(GF_FilterPacket *pck, u32 prop_4cc, const GF_PropertyValue *value)
 {
 	return gf_filter_pck_set_property_full(pck, prop_4cc, NULL, NULL, value);
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_property_str(GF_FilterPacket *pck, const char *name, const GF_PropertyValue *value)
 {
 	return gf_filter_pck_set_property_full(pck, 0, name, NULL, value);
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF_PropertyValue *value)
 {
 	return gf_filter_pck_set_property_full(pck, 0, NULL, name, value);
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc)
 {
 	//get true packet pointer
@@ -945,6 +967,7 @@ const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 pro
 	return gf_props_get_property(pck->props, prop_4cc, NULL);
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pck_get_property_str(GF_FilterPacket *pck, const char *prop_name)
 {
 	//get true packet pointer
@@ -953,6 +976,7 @@ const GF_PropertyValue *gf_filter_pck_get_property_str(GF_FilterPacket *pck, con
 	return gf_props_get_property(pck->props, 0, prop_name);
 }
 
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pck_enum_properties(GF_FilterPacket *pck, u32 *idx, u32 *prop_4cc, const char **prop_name)
 {
 	if (!pck->pck->props) return NULL;
@@ -966,6 +990,7 @@ const GF_PropertyValue *gf_filter_pck_enum_properties(GF_FilterPacket *pck, u32 
 	} \
 
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_framing(GF_FilterPacket *pck, Bool is_start, Bool is_end)
 {
 	PCK_SETTER_CHECK("framing info")
@@ -978,6 +1003,7 @@ GF_Err gf_filter_pck_set_framing(GF_FilterPacket *pck, Bool is_start, Bool is_en
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_end)
 {
 	assert(pck);
@@ -989,30 +1015,39 @@ GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_
 }
 
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_dts(GF_FilterPacket *pck, u64 dts)
 {
 	PCK_SETTER_CHECK("DTS")
 	pck->info.dts = dts;
 	return GF_OK;
 }
+
+GF_EXPORT
 u64 gf_filter_pck_get_dts(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
 	return pck->pck->info.dts;
 }
+
+GF_EXPORT
 GF_Err gf_filter_pck_set_cts(GF_FilterPacket *pck, u64 cts)
 {
 	PCK_SETTER_CHECK("CTS")
 	pck->info.cts = cts;
 	return GF_OK;
 }
+
+GF_EXPORT
 u64 gf_filter_pck_get_cts(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
 	return pck->pck->info.cts;
 }
+
+GF_EXPORT
 u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1020,6 +1055,7 @@ u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck)
 	return pck->pck->pid_props->timescale ? pck->pck->pid_props->timescale : 1000;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, GF_FilterSAPType sap_type)
 {
 	PCK_SETTER_CHECK("SAP")
@@ -1028,6 +1064,8 @@ GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, GF_FilterSAPType sap_type)
 
 	return GF_OK;
 }
+
+GF_EXPORT
 GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1035,12 +1073,15 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 	return (GF_FilterSAPType) ( (pck->pck->info.flags & GF_PCK_SAP_MASK) >> GF_PCK_SAP_POS);
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_roll_info(GF_FilterPacket *pck, s16 roll_count)
 {
 	PCK_SETTER_CHECK("ROLL")
 	pck->info.roll = roll_count;
 	return GF_OK;
 }
+
+GF_EXPORT
 s16 gf_filter_pck_get_roll_info(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1048,7 +1089,7 @@ s16 gf_filter_pck_get_roll_info(GF_FilterPacket *pck)
 	return pck->pck->info.roll;
 }
 
-
+GF_EXPORT
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced)
 {
 	PCK_SETTER_CHECK("interlaced")
@@ -1056,12 +1097,16 @@ GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced)
 	if (is_interlaced)  pck->info.flags |= is_interlaced<<GF_PCK_ILACE_POS;
 	return GF_OK;
 }
+
+GF_EXPORT
 u32 gf_filter_pck_get_interlaced(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
 	return (pck->pck->info.flags & GF_PCK_ILACE_MASK) >> GF_PCK_ILACE_POS;
 }
+
+GF_EXPORT
 GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted)
 {
 	PCK_SETTER_CHECK("corrupted")
@@ -1069,6 +1114,8 @@ GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted)
 	if (is_corrupted) pck->info.flags |= GF_PCKF_CORRUPTED;
 	return GF_OK;
 }
+
+GF_EXPORT
 Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1076,6 +1123,7 @@ Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck)
 	return pck->pck->info.flags & GF_PCKF_CORRUPTED ? GF_TRUE : GF_FALSE;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration)
 {
 	PCK_SETTER_CHECK("dur")
@@ -1083,12 +1131,16 @@ GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration)
 	pck->info.flags |= GF_PCKF_DUR_SET;
 	return GF_OK;
 }
+
+GF_EXPORT
 u32 gf_filter_pck_get_duration(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
 	return pck->pck->info.duration;
 }
+
+GF_EXPORT
 GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek)
 {
 	PCK_SETTER_CHECK("seek")
@@ -1096,6 +1148,8 @@ GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek)
 	if (is_seek) pck->info.flags |= GF_PCKF_SEEK;
 	return GF_OK;
 }
+
+GF_EXPORT
 Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1103,6 +1157,7 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 	return (pck->pck->info.flags & GF_PCKF_SEEK) ? GF_TRUE : GF_FALSE;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_dependency_flags(GF_FilterPacket *pck, u8 dep_flags)
 {
 	PCK_SETTER_CHECK("dependency_flags")
@@ -1110,6 +1165,8 @@ GF_Err gf_filter_pck_set_dependency_flags(GF_FilterPacket *pck, u8 dep_flags)
 	pck->info.flags |= dep_flags;
 	return GF_OK;
 }
+
+GF_EXPORT
 u8 gf_filter_pck_get_dependency_flags(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1117,12 +1174,15 @@ u8 gf_filter_pck_get_dependency_flags(GF_FilterPacket *pck)
 	return pck->pck->info.flags & 0xFF;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number)
 {
 	PCK_SETTER_CHECK("carousel_version")
 	pck->info.carousel_version_number = version_number;
 	return GF_OK;
 }
+
+GF_EXPORT
 u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1130,6 +1190,7 @@ u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck)
 	return pck->pck->info.carousel_version_number;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset)
 {
 	PCK_SETTER_CHECK("byteOffset")
@@ -1137,6 +1198,7 @@ GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset)
 	return GF_OK;
 }
 
+GF_EXPORT
 u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 {
 	assert(pck);
@@ -1144,6 +1206,7 @@ u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 	return pck->pck->info.byte_offset;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_crypt_flags(GF_FilterPacket *pck, u8 crypt_flag)
 {
 	PCK_SETTER_CHECK("byteOffset")
@@ -1151,12 +1214,15 @@ GF_Err gf_filter_pck_set_crypt_flags(GF_FilterPacket *pck, u8 crypt_flag)
 	pck->info.flags |= crypt_flag << GF_PCK_CRYPT_POS;
 	return GF_OK;
 }
+
+GF_EXPORT
 u8 gf_filter_pck_get_crypt_flags(GF_FilterPacket *pck)
 {
 	//get true packet pointer
 	return (pck->pck->info.flags & GF_PCK_CRYPT_MASK) >> GF_PCK_CRYPT_POS;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_set_seq_num(GF_FilterPacket *pck, u32 seq_num)
 {
 	PCK_SETTER_CHECK("seqNum")
@@ -1164,13 +1230,14 @@ GF_Err gf_filter_pck_set_seq_num(GF_FilterPacket *pck, u32 seq_num)
 	return GF_OK;
 }
 
+GF_EXPORT
 u32 gf_filter_pck_get_seq_num(GF_FilterPacket *pck)
 {
 	//get true packet pointer
 	return pck->pck->info.seq_num;
 }
 
-
+GF_EXPORT
 GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType ctype)
 {
 	PCK_SETTER_CHECK("clock_type")
@@ -1179,18 +1246,21 @@ GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType cty
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck)
 {
 	//get true packet pointer
 	return (pck->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
 }
 
+GF_EXPORT
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)
 {
 	assert(pck);
 	return pck->pck->hw_frame;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **data_start, char **new_range_start, u32 *new_size)
 {
 	assert(pck);
@@ -1223,6 +1293,7 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **da
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pck_truncate(GF_FilterPacket *pck, u32 size)
 {
 	assert(pck);

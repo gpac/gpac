@@ -1297,7 +1297,10 @@ typedef enum
 	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
 	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing
 	e.g. nvdec wants annex B format, so that the weoght of the reframer+decoder is the same as the weight of other decoders*/
-	GF_FS_REG_HIDE_WEIGHT = 1<<4
+	GF_FS_REG_HIDE_WEIGHT = 1<<4,
+
+	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
+	GF_FS_REG_DYNLIB = 0x80000000
 } GF_FSRegistryFlags;
 
 /*! The filter registry. Registries are loaded once at the start of the session and shall never be modified after that.

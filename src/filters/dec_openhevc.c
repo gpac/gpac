@@ -1058,7 +1058,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 					u32 size = gf_media_nalu_next_start_code((u8 *) ptr, remain, &sc_size);
 					if (!sc_size) break;
 
-					gf_media_hevc_parse_nalu( (u8 *) ptr, size, NULL, NULL, NULL, &layer_id);
+					gf_media_hevc_parse_nalu(ptr, size, NULL, NULL, NULL, &layer_id);
 
 					ptr += size+sc_size;
 					if (remain<=size+sc_size) break;
@@ -1155,7 +1155,7 @@ static const GF_FilterCapability OHEVCDecCaps[] =
 static const GF_FilterArgs OHEVCDecArgs[] =
 {
 	{ OFFS(threading), "Set threading mode", GF_PROP_UINT, "frame", "frameslice|frame|slice", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(nb_threads), "Set number of threads. If 0, uses number of cores minus one", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(nb_threads), "Set number of threads. If 0, uses number of cores minus one", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(no_copy), "Directly dispatch internal decoded frame without copy", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_hfr), "Packs 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seek_reset), "Resets decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1181,7 +1181,15 @@ GF_FilterRegister OHEVCDecRegister = {
 
 #endif // defined(GPAC_HAS_OPENHEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 
+
+#ifndef GPAC_OPENHEVC_STATIC
+
+GPAC_MODULE_EXPORT
+GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
+#else
 const GF_FilterRegister *ohevcdec_register(GF_FilterSession *session)
+#endif
+
 {
 #if defined(GPAC_HAS_OPENHEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 	return &OHEVCDecRegister;
@@ -1189,5 +1197,3 @@ const GF_FilterRegister *ohevcdec_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-
-

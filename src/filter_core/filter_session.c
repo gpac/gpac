@@ -229,8 +229,11 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, u
 	//load external modules
 	count = gf_modules_count();
 	for (i=0; i<count; i++) {
-		const GF_FilterRegister *freg = gf_modules_load_filter(i, a_sess);
-		if (freg) gf_fs_add_filter_registry(fsess, freg);
+		GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, a_sess);
+		if (freg) {
+			freg->flags |= 0x80000000;
+			gf_fs_add_filter_registry(fsess, freg);
+		}
 	}
 
 	fsess->blacklist = NULL;
