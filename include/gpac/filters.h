@@ -1406,7 +1406,7 @@ struct __gf_filter_register
 	/*! optional for dynamic filter registries. Dynamic registries may declare any number of registries. The registry_free function will be called to cleanup any allocated memory
 
 	\param session the filter session
-	\param the filter registry to destroy
+	\param freg the filter registry to destroy
 	*/
 	void (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
 	/*! user data of registry loader, not inspected/modified by filter session*/
@@ -1494,15 +1494,15 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 
 /*! disconnects a source filter chain between two filters
 \param filter the calling filter. This filter is NOT disconnected
-\param the source filter point of the chain to disconnect.
+\param src_filter the source filter point of the chain to disconnect.
 */
 void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter);
 
 /*! disconnects a sink filter chain between two filters
 \param filter the calling filter. This filter is NOT disconnected
-\param the sink filter point of the chain to disconnect.
+\param dst_filter the sink filter point of the chain to disconnect.
 */
-void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *src_filter);
+void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter);
 
 /*! sets the number of additional input pid a filter can accept. This overrides the default value of the filter registry
 \param filter the target filter
