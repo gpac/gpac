@@ -256,6 +256,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_free(filter);
 }
 
+GF_EXPORT
 void *gf_filter_get_udta(GF_Filter *filter)
 {
 	assert(filter);
@@ -263,12 +264,14 @@ void *gf_filter_get_udta(GF_Filter *filter)
 	return filter->filter_udta;
 }
 
+GF_EXPORT
 const char * gf_filter_get_name(GF_Filter *filter)
 {
 	assert(filter);
 	return (const char *)filter->freg->name;
 }
 
+GF_EXPORT
 void gf_filter_set_name(GF_Filter *filter, const char *name)
 {
 	assert(filter);
@@ -277,19 +280,15 @@ void gf_filter_set_name(GF_Filter *filter, const char *name)
 	filter->name = gf_strdup(name ? name : filter->freg->name);
 }
 
-void gf_filter_set_id(GF_Filter *filter, const char *ID)
+static void gf_filter_set_id(GF_Filter *filter, const char *ID)
 {
 	assert(filter);
 
 	if (filter->id) gf_free(filter->id);
 	filter->id = ID ? gf_strdup(ID) : NULL;
 }
-const char *gf_filter_sft_id(GF_Filter *filter)
-{
-	assert(filter);
-	return filter->id;
-}
 
+GF_EXPORT
 void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
 	u32 old_len, len;
@@ -314,7 +313,7 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 	strcat(filter->source_ids, sources_ID);
 }
 
-void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
+static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
 {
 #ifdef WIN32
 	void *ptr = (void *) (((char*) filter->filter_udta) + a->offset_in_private);
@@ -1530,26 +1529,31 @@ GF_Filter *gf_filter_clone(GF_Filter *filter)
 	return new_filter;
 }
 
+GF_EXPORT
 u32 gf_filter_get_ipid_count(GF_Filter *filter)
 {
 	return filter->num_input_pids;
 }
 
+GF_EXPORT
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx)
 {
 	return gf_list_get(filter->input_pids, idx);
 }
 
+GF_EXPORT
 u32 gf_filter_get_opid_count(GF_Filter *filter)
 {
 	return filter->num_output_pids;
 }
 
+GF_EXPORT
 GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx)
 {
 	return gf_list_get(filter->output_pids, idx);
 }
 
+GF_EXPORT
 void gf_filter_post_process_task(GF_Filter *filter)
 {
 	if (filter->finalized || filter->removed) return;
@@ -1568,6 +1572,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	gf_mx_v(filter->tasks_mx);
 }
 
+GF_EXPORT
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 {
 	if (!filter->in_process) {
@@ -1579,6 +1584,7 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Filter %s real-time reschedule in %d us (at "LLU" sys clock)\n", filter->name, us_until_next, filter->schedule_next_time));
 }
 
+GF_EXPORT
 void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)
 {
 	if (!filter) return;
@@ -1629,6 +1635,7 @@ static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
 	}
 }
 
+GF_EXPORT
 void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force_disconnect)
 {
 	struct _gf_filter_setup_failure *stack;
@@ -1649,6 +1656,7 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 	}
 }
 
+GF_EXPORT
 void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 {
 	//filter was already connected, trigger removal of all pid instances
@@ -1674,6 +1682,7 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	}
 }
 
+GF_EXPORT
 void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name)
 {
 	gf_fs_post_task(filter->session, task_fun, filter, NULL, task_name, udta);
@@ -1821,11 +1830,13 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 	}
 }
 
+GF_EXPORT
 void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter)
 {
 	gf_filter_remove_internal(src_filter, filter, GF_FALSE);
 }
 
+GF_EXPORT
 void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter)
 {
 	Bool removed;
@@ -1939,17 +1950,20 @@ void gf_filter_forward_clock(GF_Filter *filter)
 	filter->next_clock_dispatch_type = 0;
 }
 
+GF_EXPORT
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
 {
 	return gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE);
 }
 
+GF_EXPORT
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
 	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE);
 }
 
 
+GF_EXPORT
 void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf)
 {
 	u32 i;
@@ -1977,6 +1991,7 @@ void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_
 	return;
 }
 
+GF_EXPORT
 void gf_filter_make_sticky(GF_Filter *filter)
 {
 	if (filter) filter->sticky = 1;
@@ -2002,6 +2017,7 @@ u32 gf_filter_get_num_events_queued(GF_Filter *filter)
 	return nb_events;
 }
 
+GF_EXPORT
 void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp)
 {
 	//for now only one clock hint possible ...
@@ -2009,6 +2025,7 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 	filter->session->hint_timestamp = media_timestamp;
 }
 
+GF_EXPORT
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp)
 {
 	//for now only one clock hint possible ...
@@ -2041,6 +2058,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps )
 {
 	if (!filter) return GF_BAD_PARAM;
@@ -2053,6 +2071,7 @@ GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *cap
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name)
 {
 	u32 pmode = GF_PLAYBACK_MODE_NONE;

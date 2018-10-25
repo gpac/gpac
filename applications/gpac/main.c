@@ -49,7 +49,14 @@ static char separator_set[7] = ":=#,!@";
 #define SEP_LINK	5
 #define SEP_FRAG	2
 
-static void print_filters(int argc, char **argv, GF_FilterSession *session);
+typedef enum
+{
+	ARGMODE_BASE=0,
+	ARGMODE_ADVANCED,
+	ARGMODE_EXPERT,
+} GF_FilterArgMode;
+
+static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_FilterArgMode argmode);
 static void dump_all_props(void);
 static void dump_all_codec(GF_FilterSession *session);
 void write_filters_options(GF_FilterSession *fsess);
@@ -370,6 +377,7 @@ static void gpac_usage(void)
 			"                  'links': prints possible connections between each supported filters.\n"
 			"                  FNAME: prints filter FNAME info (multiple NAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation\n"
 			"                    Use * to print info on all filters (warning, big output!)\n"
+			"                    By default only basic options are show. Use -ha to show advanced options and filter IO capabilities, -hx for expert (all) options\n"
 			"\n"
 			"Expert options\n"
 			"-nb             : disable blocking mode of filters\n"
@@ -436,6 +444,7 @@ static int gpac_main(int argc, char **argv)
 	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
 	u32 quiet = 0;
+	GF_FilterArgMode argmode = ARGMODE_BASE;
 	u32 nb_filters = 0;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
@@ -454,7 +463,10 @@ static int gpac_main(int argc, char **argv)
 #else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
-		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
+		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx")) {
+			if (!strcmp(arg, "-ha")) argmode = ARGMODE_ADVANCED;
+			else if (!strcmp(arg, "-hx")) argmode = ARGMODE_EXPERT;
+
 			if (i+1==argc) {
 				gpac_usage();
 				return 0;
@@ -614,7 +626,7 @@ restart:
 	}
 
 	if (list_filters || print_filter_info) {
-		print_filters(argc, argv, session);
+		print_filters(argc, argv, session, argmode);
 		goto exit;
 	}
 	if (view_filter_conn) {
@@ -785,35 +797,64 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 	}
 }
 
-static void print_filter(const GF_FilterRegister *reg)
+static void print_filter(const GF_FilterRegister *reg, GF_FilterArgMode argmode)
 {
 	fprintf(stderr, "Name: %s\n", reg->name);
 	if (reg->description) fprintf(stderr, "Description: %s\n", reg->description);
 	if (reg->author) fprintf(stderr, "Author: %s\n", reg->author);
 	if (reg->help) fprintf(stderr, "\n%s\n\n", reg->help);
 
-	if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
-	else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
+	if (argmode==ARGMODE_EXPERT) {
+		if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
+		else fprintf(stderr, "Max Input pids: %d\n", 1 + reg->max_extra_pids);
 
-	fprintf(stderr, "Flags:");
-	if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) fprintf(stderr, " ExplicitOnly");
-	if (reg->flags & GF_FS_REG_MAIN_THREAD) fprintf(stderr, "MainThread");
-	if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) fprintf(stderr, "ConfigureMainThread");
-	if (reg->flags & GF_FS_REG_HIDE_WEIGHT) fprintf(stderr, "HideWeight");
-	if (reg->probe_url) fprintf(stderr, " IsSource");
-	if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
-	if (reg->probe_data) fprintf(stderr, " DataProber");
-	fprintf(stderr, "\nPriority %d", reg->priority);
+		fprintf(stderr, "Flags:");
+		if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) fprintf(stderr, " ExplicitOnly");
+		if (reg->flags & GF_FS_REG_MAIN_THREAD) fprintf(stderr, " MainThread");
+		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) fprintf(stderr, " ConfigureMainThread");
+		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) fprintf(stderr, " HideWeight");
+		if (reg->flags & GF_FS_REG_DYNLIB) fprintf(stderr, " DynamicLib");
 
-	fprintf(stderr, "\n");
+		if (reg->probe_url) fprintf(stderr, " IsSource");
+		if (reg->reconfigure_output) fprintf(stderr, " ReconfigurableOutput");
+		if (reg->probe_data) fprintf(stderr, " DataProber");
+		fprintf(stderr, "\nPriority %d", reg->priority);
+
+		fprintf(stderr, "\n");
+	}
+
 
 	if (reg->args) {
 		u32 idx=0;
-		fprintf(stderr, "Options:\n");
+		switch (argmode) {
+		case ARGMODE_EXPERT:
+			fprintf(stderr, "Options (expert):\n");
+			break;
+		case ARGMODE_ADVANCED:
+			fprintf(stderr, "Options (advanced):\n");
+			break;
+		case ARGMODE_BASE:
+			fprintf(stderr, "Options (basic):\n");
+			break;
+		}
+
 		while (1) {
+			Bool print = GF_FALSE;
 			const GF_FilterArgs *a = & reg->args[idx];
 			if (!a || !a->arg_name) break;
 			idx++;
+			switch (argmode) {
+			case ARGMODE_EXPERT:
+			 	print = GF_TRUE;
+			 	break;
+			case ARGMODE_ADVANCED:
+			 	if (!(a->flags & GF_FS_ARG_HINT_EXPERT)) print = GF_TRUE;
+			 	break;
+			case ARGMODE_BASE:
+			 	if (!(a->flags & (GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_HINT_ADVANCED)) ) print = GF_TRUE;
+			 	break;
+			}
+			if (!print) continue;
 
 			fprintf(stderr, "\t%s (%s): %s.", a->arg_name, gf_props_get_type_name(a->arg_type), a->arg_desc);
 			if (a->arg_default_val) {
@@ -833,12 +874,14 @@ static void print_filter(const GF_FilterRegister *reg)
 	}
 
 	if (reg->nb_caps) {
-		dump_caps(reg->nb_caps, reg->caps);
+		if (argmode>=ARGMODE_ADVANCED) {
+			dump_caps(reg->nb_caps, reg->caps);
+		}
 	}
 	fprintf(stderr, "\n");
 }
 
-static void print_filters(int argc, char **argv, GF_FilterSession *session)
+static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_FilterArgMode argmode)
 {
 	Bool found = GF_FALSE;
 	u32 i, count = gf_fs_filters_registry_count(session);
@@ -853,7 +896,7 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 				if (arg[0]=='-') continue;
 
 				if (!strcmp(arg, reg->name) ) {
-					print_filter(reg);
+					print_filter(reg, argmode);
 					found = GF_TRUE;
 				} else {
 					char *sep = strchr(arg, ':');
@@ -861,7 +904,7 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session)
 						|| (!sep && !strcmp(arg, "*"))
 					 	|| (sep && !strcmp(sep, ":*") && !strncmp(reg->name, arg, 1+sep - arg) )
 					) {
-						print_filter(reg);
+						print_filter(reg, argmode);
 						found = GF_TRUE;
 						break;
 					}

@@ -66,6 +66,9 @@ ifeq ($(CONFIG_HID),yes)
 #PLUGDIRS+=psvr
 endif
 
+ifeq ($(CONFIG_OPENHEVC),yes)
+PLUGDIRS+=dec_openhevc
+endif
 
 #w32 plugins
 ifeq ($(CONFIG_WIN32),yes)
