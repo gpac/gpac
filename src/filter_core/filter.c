@@ -1564,7 +1564,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	if (filter->process_task_queued<=1) {
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
-		assert(filter->scheduled_for_next_task || gf_fq_count(filter->tasks) );
+		assert(filter->scheduled_for_next_task || filter->force_end_of_session || gf_fq_count(filter->tasks) );
 	}
 	if (!filter->session->direct_mode)
 		assert(filter->process_task_queued);
