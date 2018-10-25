@@ -200,6 +200,7 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	duration = 0;
+	cur_dur = 0;
 	while (adts_dmx_sync_frame_bs(bs, &hdr)) {
 		if ((sr_idx>=0) && (sr_idx != hdr.sr_idx)) {
 			duration *= GF_M4ASampleRates[hdr.sr_idx];
