@@ -408,6 +408,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	u32 txtHdrLen=0;
 	u64 plainTextLen=0;
 	u32 crypt_type=0;
+	u32 stsd_idx = ch->owner->stsd ? ch->owner->stsd : 1;
 
 	if (!ch->is_encrypted) return;
 
@@ -415,27 +416,27 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	kms_uri = scheme_uri = NULL;
 
 	if (gf_isom_is_ismacryp_media(mov, track, 1)) {
-		gf_isom_get_ismacryp_info(mov, track, 1, NULL, &scheme_type, &scheme_version, &scheme_uri, &kms_uri, &selectiveEncryption, &IVLength, &KeyIndicationLength);
+		gf_isom_get_ismacryp_info(mov, track, stsd_idx, NULL, &scheme_type, &scheme_version, &scheme_uri, &kms_uri, &selectiveEncryption, &IVLength, &KeyIndicationLength);
 	} else if (gf_isom_is_omadrm_media(mov, track, 1)) {
 		//u8 hash[20];
-		gf_isom_get_omadrm_info(mov, track, 1, NULL, &scheme_type, &scheme_version, &contentID, &kms_uri, &txtHdr, &txtHdrLen, &plainTextLen, &crypt_type, &selectiveEncryption, &IVLength, &KeyIndicationLength);
+		gf_isom_get_omadrm_info(mov, track, stsd_idx, NULL, &scheme_type, &scheme_version, &contentID, &kms_uri, &txtHdr, &txtHdrLen, &plainTextLen, &crypt_type, &selectiveEncryption, &IVLength, &KeyIndicationLength);
 
 		//gf_media_get_file_hash(gf_isom_get_filename(mov), hash);
-	} else if (gf_isom_is_cenc_media(mov, track, 1)) {
+	} else if (gf_isom_is_cenc_media(mov, track, stsd_idx)) {
 		ch->is_cenc = GF_TRUE;
 
-		gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &scheme_type, &scheme_version, NULL);
+		gf_isom_get_cenc_info(ch->owner->mov, ch->track, stsd_idx, NULL, &scheme_type, &scheme_version, NULL);
 
 		PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
 		//if no PSSH declared, don't update the properties
 		if (!PSSH_count) return;
-	} else if (gf_isom_is_adobe_protection_media(mov, track, 1)) {
+	} else if (gf_isom_is_adobe_protection_media(mov, track, stsd_idx)) {
 		u32 ofmt;
 		scheme_version = 1;
 		scheme_type = GF_ISOM_ADOBE_SCHEME;
 		const char *metadata = NULL;
 
-		gf_isom_get_adobe_protection_info(mov, track, 1, &ofmt, &scheme_type, &scheme_version, &metadata);
+		gf_isom_get_adobe_protection_info(mov, track, stsd_idx, &ofmt, &scheme_type, &scheme_version, &metadata);
 		if (metadata)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA((char *)metadata, (u32) strlen(metadata) ) );
 	}
@@ -483,7 +484,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		gf_bs_del(pssh_bs);
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PSSH, & PROP_DATA_NO_COPY(psshd, s) );
 
-		gf_isom_cenc_get_default_info(ch->owner->mov, ch->track, 1, &container_type, &ch->pck_encrypted, &ch->IV_size, &ch->KID, &ch->constant_IV_size, &ch->constant_IV, &ch->crypt_byte_block, &ch->skip_byte_block);
+		gf_isom_cenc_get_default_info(ch->owner->mov, ch->track, stsd_idx, &container_type, &ch->pck_encrypted, &ch->IV_size, &ch->KID, &ch->constant_IV_size, &ch->constant_IV, &ch->crypt_byte_block, &ch->skip_byte_block);
 
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STORE, &PROP_UINT(container_type) );
 
@@ -887,6 +888,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				isor_reader_get_sample(ch);
 			}
 
+			if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {
+				isor_reader_release_sample(ch);
+				continue;
+			}
 			if (ch->sample) {
 				u32 sample_dur;
 				u8 dep_flags;
@@ -989,6 +994,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(smode), "Load mode for scalable/tile tracks\n\tsplit: each track is declared, extractors are removed\n\tsplitx: each track is declared, extractors are kept\n\tsingle: a single track is declared (highest level for scalable, tile base for tiling)", GF_PROP_UINT, "split", "split|splitx|single", GF_FS_ARG_HINT_ADVANCED},
 
+	{ OFFS(stsd), "only extract sample mapped to the given sample desciption index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
