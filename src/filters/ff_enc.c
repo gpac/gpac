@@ -356,9 +356,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 	if (pkt.flags & AV_PKT_FLAG_DISPOSABLE) {
 		gf_filter_pck_set_dependency_flags(dst_pck, 0x8);
 	}
+#endif
 	gf_filter_pck_send(dst_pck);
 
 	//we're in final flush, request a process task until all frames flushe
@@ -787,9 +789,17 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				i++;
 			}
 			if (change_input_fmt == AV_PIX_FMT_NONE) {
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 				void *ff_opaque=NULL;
+#else
+				AVCodec *codec_alt = NULL;
+#endif
 				while (1) {
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 					const AVCodec *codec_alt = av_codec_iterate(&ff_opaque);
+#else
+					codec_alt = av_codec_next(codec_alt);
+#endif
 					if (!codec_alt) break;
 					if (codec_alt==codec) continue;
 					if (codec_alt->id == codec_id) {
