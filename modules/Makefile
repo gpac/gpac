@@ -63,7 +63,7 @@ PLUGDIRS+=gpac_js
 endif
 
 ifeq ($(CONFIG_HID),yes)
-PLUGDIRS+=psvr
+#PLUGDIRS+=psvr
 endif
 
 
