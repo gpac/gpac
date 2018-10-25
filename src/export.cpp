@@ -1348,6 +1348,7 @@
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_next_start_code) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_remove_emulation_bytes) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_sps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_pps_info) )

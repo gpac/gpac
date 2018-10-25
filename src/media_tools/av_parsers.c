@@ -4578,7 +4578,7 @@ static u32 gf_media_nalu_emulation_bytes_add_count(char *buffer, u32 nal_size)
 		\96 0x00000302
 		\96 0x00000303"
 		*/
-		if (num_zero == 2 && buffer[i] < 0x04) {
+		if (num_zero == 2 && (u8) buffer[i] < 0x04) {
 			/*emulation code found*/
 			num_zero = 0;
 			emulation_bytes_count++;
@@ -4645,7 +4645,7 @@ u32 gf_media_nalu_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
 		if (num_zero == 2
 		        && buffer[i] == 0x03
 		        && i+1 < nal_size /*next byte is readable*/
-		        && buffer[i+1] < 0x04)
+		        && (u8) buffer[i+1] < 0x04)
 		{
 			/*emulation code found*/
 			num_zero = 0;
@@ -4665,6 +4665,7 @@ u32 gf_media_nalu_emulation_bytes_remove_count(const char *buffer, u32 nal_size)
 }
 
 /*nal_size is updated to allow better error detection*/
+GF_EXPORT
 u32 gf_media_nalu_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
@@ -4682,7 +4683,7 @@ u32 gf_media_nalu_remove_emulation_bytes(const char *buffer_src, char *buffer_ds
 		if (num_zero == 2
 		        && buffer_src[i] == 0x03
 		        && i+1 < nal_size /*next byte is readable*/
-		        && buffer_src[i+1] < 0x04)
+		        && (u8) buffer_src[i+1] < 0x04)
 		{
 			/*emulation code found*/
 			num_zero = 0;
@@ -5810,9 +5811,7 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 		case 16: /*progressive refinement segment start*/
 		case 17: /*progressive refinement segment end*/
 		case 18: /*motion constrained slice group*/
-			break;
-		default: /*reserved*/
-			do_copy = 0;
+		default: /*add all unknown SEIs*/
 			break;
 		}
 
@@ -5849,8 +5848,8 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 	}
 	gf_bs_del(bs);
 	gf_free(sei_without_emulation_bytes);
-
-	if (written) {
+	//if we removed things, rewrite
+	if (written != sei_without_emulation_bytes_size) {
 		var = gf_media_nalu_emulation_bytes_add_count(new_buffer, written);
 		if (var) {
 			if (written+var<=nal_size) {
