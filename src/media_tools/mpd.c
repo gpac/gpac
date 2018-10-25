@@ -2669,7 +2669,6 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 
 static void gf_mpd_print_representation(GF_MPD_Representation const * const rep, FILE *out, Bool write_context, s32 indent)
 {
-	Bool can_close = GF_FALSE;
 	u32 i;
 	GF_MPD_other_descriptors *rsld;
 
@@ -2677,9 +2676,10 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	fprintf(out, "<Representation");
 	if (rep->id) fprintf(out, " id=\"%s\"", rep->id);
 
-	if (!gf_list_count(rep->base_URLs) && !rep->segment_base && !rep->segment_template && !rep->segment_list && !gf_list_count(rep->sub_representations)) {
+/*	if (!gf_list_count(rep->base_URLs) && !rep->segment_base && !rep->segment_template && !rep->segment_list && !gf_list_count(rep->sub_representations)) {
 		can_close = 1;
 	}
+*/
 
 	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)rep);
 
@@ -3036,7 +3036,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	GF_MPD_AdaptationSet *as;
 	GF_MPD_Representation *rep;
 	Bool use_range = GF_FALSE;
-	Bool use_crypt = GF_FALSE;
 	Bool use_init = GF_FALSE;
 	Bool use_ind_segments = GF_TRUE;
 	u32 nb_audio = 0;
@@ -3049,7 +3048,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
 		Bool as_has_audio = GF_FALSE;
-		if (gf_list_count(as->content_protection)) use_crypt = GF_TRUE;
+		if (gf_list_count(as->content_protection)) { /*use_crypt = GF_TRUE; */ }
 		if (as->starts_with_sap>2) use_ind_segments = GF_FALSE;
 
 		j=0;
@@ -3064,7 +3063,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 			sctx = gf_list_get(rep->state_seg_list, 0);
 			if (!sctx->filename) use_range = GF_TRUE;
-			if (gf_list_count(rep->content_protection)) use_crypt = GF_TRUE;
+			if (gf_list_count(rep->content_protection))  { /*use_crypt = GF_TRUE; */ }
 
 			init_seg = gf_mpd_m3u8_get_init_seg(period, as, rep);
 			if (init_seg) use_init = GF_TRUE;
@@ -3222,7 +3221,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	gf_mpd_lf(out, indent);
 
 	if (mpd->children) {
-		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)mpd, "");
+		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)mpd, indent+1);
 	}
 
 	i=0;
@@ -4449,7 +4448,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				if (sep) sep[0] = 0;
 				if (is_index) {
 					strcat(segment_name, seg_rad_name + char_template+6);
-					needs_init = GF_FALSE;
+					needs_index = GF_FALSE;
 				}
 				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
@@ -4493,6 +4492,8 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 	if (needs_init)
 		strcat(segment_name, "init");
+	if (needs_index)
+		strcat(segment_name, "idx");
 
 	if (!is_init && !is_template && !is_init_template && !is_index && !has_number) {
 		if (use_segment_timeline) {

@@ -2535,9 +2535,7 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 
 void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 {
-	Bool del_sys = GF_FALSE;
 	if (prog->iod) {
-		del_sys = GF_TRUE;
 		gf_odf_desc_del(prog->iod);
 	}
 	while (prog->streams) {

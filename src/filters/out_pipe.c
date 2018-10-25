@@ -36,6 +36,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#ifdef GPAC_CONFIG_LINUX
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
+
 #ifndef __BEOS__
 #include <errno.h>
 #endif

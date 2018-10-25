@@ -434,7 +434,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	char szPath[GF_MAX_PATH];
 	char szOutPath[GF_MAX_PATH];
 	char *prev=NULL;
-	u32 time, prev_time, nb_frames, init_time;
+	u32 time, prev_time, nb_frames;
 	u64 dump_dur;
 	char *conv_buf = NULL;
 	GF_Compositor *compositor = gf_term_get_compositor(term);
@@ -533,11 +533,9 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	}
 
 	cur_time_idx = 0;
-	init_time = 0;
 	/*step to first frame*/
 	if (prev_time) {
 		gf_term_step_clocks(term, prev_time);
-		init_time = prev_time;
 		prev_time=0;
 	}
 

@@ -955,7 +955,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 	gf_bs_reassign_buffer(ctx->bs_r, ctx->buffer, ctx->buf_size);
 	while (gf_bs_available(ctx->bs_r) > 4) { //1 byte header + 3 vlen field at least 1 bytes
 		GF_Err e = GF_OK;
-		u32 payload_start, pck_len, block_size, block_offset;
+		u32 pck_len, block_size, block_offset;
 		u32 hdr_pos = (u32) gf_bs_get_position(ctx->bs_r);
 		/*Bool reserved =*/ gf_bs_read_int(ctx->bs_r, 1);
 		u32 frag_flags = gf_bs_read_int(ctx->bs_r, 2);
@@ -1000,9 +1000,6 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 					st_idx,
 					gsfdmx_pck_name(pck_type),
 					is_crypted, sn, pck_len, block_offset, gf_bs_get_position(ctx->bs_r)-hdr_pos, hdr_pos));
-
-		payload_start = (u32) gf_bs_get_position(ctx->bs_r);
-
 
 		e = GF_OK;
 

@@ -338,7 +338,6 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	char *dsi;
 	u32 dsi_size, crc;
-	Bool first = GF_FALSE;
 
 	//no config or no config change
 	if (!gf_list_count(ctx->state.frame_state.header_obus)) return;
@@ -346,7 +345,6 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		av1dmx_check_dur(filter, ctx);
-		first = GF_TRUE;
 	}
 
 	//first or config changed, compute dsi
@@ -384,7 +382,6 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
 {
-	u32 pos = 0;
 	u32 last_obu_end = 0;
 	GF_Err e = GF_OK;
 
@@ -399,7 +396,7 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 		GF_FilterPacket *pck;
 		char *output;
 
-		pos = (u32) gf_bs_get_position(ctx->bs);
+		//u32 pos = (u32) gf_bs_get_position(ctx->bs);
 
 		/*we process each TU and extract only the necessary OBUs*/
 		switch (ctx->bsmode) {

@@ -1185,9 +1185,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 		if ((prot_scheme==GF_ISOM_CENC_SCHEME) || (prot_scheme==GF_ISOM_CBC_SCHEME) || (prot_scheme==GF_ISOM_CENS_SCHEME) || (prot_scheme==GF_ISOM_CBCS_SCHEME)) {
 			u32 j, nb_pssh;
 			GF_XMLAttribute *att;
-			char cenc_value[256];
 			char szVal[GF_MAX_PATH];
-			cenc_value[0]='\0';
 
 			ctx->use_cenc = GF_TRUE;
 
@@ -1217,7 +1215,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			nb_pssh = gf_bs_read_u32(bs_r);
 
 			//add pssh
-			for (j=0; j<count; j++) {
+			for (j=0; j<nb_pssh; j++) {
 				u32 j;
 				bin128 sysID;
 				GF_XMLNode *node, *pnode;
@@ -2298,11 +2296,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		/*we are using a single file or segment, use base url*/
 		else if (ctx->sseg || ctx->sfile) {
 			GF_MPD_BaseURL *baseURL;
-			char *ext = (ctx->ext && !stricmp(ctx->ext, "null")) ? NULL : "mp4";
+/*			char *ext = (ctx->ext && !stricmp(ctx->ext, "null")) ? NULL : "mp4";
 			if (ctx->m2ts) ext = "ts";
 
 			//use GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT to get rid of default "init" added for init templates
-			//gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, ext, 0, 0, 0, ctx->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentName, NULL, ds->rep_id, NULL, szDASHTemplate, ext, 0, 0, 0, ctx->stl);
+*/
 
 			if (ds->init_seg) gf_free(ds->init_seg);
 			ds->init_seg = gf_strdup(szInitSegmentFilename);
@@ -4353,7 +4352,6 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 static GF_Err dasher_process(GF_Filter *filter)
 {
 	u32 i, count, nb_init, has_init;
-	Bool has_pck = GF_FALSE;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
 
@@ -4441,7 +4439,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 				break;
 			}
-			has_pck = GF_TRUE;
 			if (ds->seek_to_pck) {
 				u32 sn = gf_filter_pck_get_seq_num(pck);
 				if (sn) {
