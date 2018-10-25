@@ -921,7 +921,7 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 {
 	u32 sei_idx=0;
-	u32 i=2;
+	u32 i;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	fprintf(dump, " SEI=\"");
@@ -948,7 +948,6 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			break;
 		}
 	}
-//	if (i!=ptr_size) fprintf(dump, "(garbage at end)");
 	fprintf(dump, "\"");
 }
 

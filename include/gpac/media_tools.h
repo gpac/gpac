@@ -63,9 +63,10 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
 only, since the OTI/codecid used when emulated is not standard...
  * \param mp4 source file
  * \param track track for which the esd is to be emulated
+ * \param stsd_dix indicates the default sample description to map. 0 is equivalent to 1, first sample description
  * \return rebuilt ESD. It is the caller responsibility to delete it.
  */
-GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
+GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx);
 
 /*!
 Creates (if needed) a GF_ESD for the given image item - THIS IS RESERVED for local playback

@@ -80,15 +80,15 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_le
 	GF_HEVCConfig *lvcc = NULL;
 
 	if (ctx->is_hevc) {
-		hvcc = gf_odf_hevc_cfg_read(dsi, dsi_len, GF_FALSE);
+		if (dsi) hvcc = gf_odf_hevc_cfg_read(dsi, dsi_len, GF_FALSE);
 		if (dsi_enh) lvcc = gf_odf_hevc_cfg_read(dsi_enh, dsi_enh_len, GF_TRUE);
-		if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
-		ctx->nal_hdr_size = hvcc->nal_unit_size;
+		if (!hvcc && !lvcc) return GF_NON_COMPLIANT_BITSTREAM;
+		ctx->nal_hdr_size = hvcc ? hvcc->nal_unit_size : lvcc->nal_unit_size;
 	} else {
-		avcc = gf_odf_avc_cfg_read(dsi, dsi_len);
+		if (dsi) avcc = gf_odf_avc_cfg_read(dsi, dsi_len);
 		if (dsi_enh) svcc = gf_odf_avc_cfg_read(dsi_enh, dsi_enh_len);
-		if (!avcc) return GF_NON_COMPLIANT_BITSTREAM;
-		ctx->nal_hdr_size = avcc->nal_unit_size;
+		if (!avcc && !svcc) return GF_NON_COMPLIANT_BITSTREAM;
+		ctx->nal_hdr_size = avcc ? avcc->nal_unit_size : svcc->nal_unit_size;
 	}
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -185,12 +185,13 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
 
 	ctx->ipid = pid;
-	if (!dcd)
+	if (!dcd && !dcd_enh)
 		return GF_OK;
 
-	return nalumx_make_inband_header(ctx, dcd->value.data.ptr, dcd->value.data.size, dcd_enh ? dcd_enh->value.data.ptr : NULL, dcd_enh ? dcd_enh->value.data.size : 0);
+	return nalumx_make_inband_header(ctx, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, dcd_enh ? dcd_enh->value.data.ptr : NULL, dcd_enh ? dcd_enh->value.data.size : 0);
 }
 
 
@@ -259,6 +260,11 @@ GF_Err nalumx_process(GF_Filter *filter)
 			return GF_EOS;
 		}
 		return GF_OK;
+	}
+
+	if (!ctx->nal_hdr_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NALWrite] no NAL size length field set, assuming 4\n"));
+		ctx->nal_hdr_size = 4;
 	}
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);

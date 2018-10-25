@@ -372,35 +372,38 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 
 	if (sample_desc_index != ch->last_sample_desc_index) {
-		u32 mtype = gf_isom_get_media_type(ch->owner->mov, ch->track);
-		switch (mtype) {
-		case GF_ISOM_MEDIA_VISUAL:
-		case GF_ISOM_MEDIA_AUXV:
-		case GF_ISOM_MEDIA_PICT:
-			//code is here as a reminder, but by default we use inband param set extraction so no need for it
-#if 0
-			if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {
-				u32 extract_mode = ch->nalu_extract_mode | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
+		if (!ch->owner->stsd) {
+			u32 mtype = gf_isom_get_media_type(ch->owner->mov, ch->track);
+			switch (mtype) {
+			case GF_ISOM_MEDIA_VISUAL:
+			case GF_ISOM_MEDIA_AUXV:
+			case GF_ISOM_MEDIA_PICT:
+				//code is here as a reminder, but by default we use inband param set extraction so no need for it
+	#if 0
+				if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {
+					u32 extract_mode = ch->nalu_extract_mode | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 
+					ch->sample = NULL;
+					gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, extract_mode);
+					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &ch->last_sample_desc_index, ch->static_sample);
+
+					gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
+				}
+	#endif
+				break;
+			case GF_ISOM_MEDIA_TEXT:
+			case GF_ISOM_MEDIA_SUBPIC:
+			case GF_ISOM_MEDIA_MPEG_SUBT:
+				break;
+			default:
+				//TODO: do we want to support codec changes ?
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Change of sample description (%d->%d) for media type %s not supported\n", ch->last_sample_desc_index, sample_desc_index, gf_4cc_to_str(mtype) ));
 				ch->sample = NULL;
-				gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, extract_mode);
-				ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &ch->last_sample_desc_index, ch->static_sample);
-
-				gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
+				ch->last_state = GF_NOT_SUPPORTED;
+				return;
 			}
-#endif
-			break;
-		case GF_ISOM_MEDIA_TEXT:
-		case GF_ISOM_MEDIA_SUBPIC:
-		case GF_ISOM_MEDIA_MPEG_SUBT:
-			break;
-		default:
-			//TODO: do we want to support codec changes ?
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Change of sample description (%d->%d) for media type %s not supported\n", ch->last_sample_desc_index, sample_desc_index, gf_4cc_to_str(mtype) ));
-			ch->sample = NULL;
-			ch->last_state = GF_NOT_SUPPORTED;
-			return;
 		}
+		ch->last_sample_desc_index = sample_desc_index;
 	}
 
 	ch->last_state = GF_OK;

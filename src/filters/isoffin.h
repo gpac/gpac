@@ -54,6 +54,7 @@ typedef struct
 	char *src;
 	Bool allt, noedit, itt;
 	u32 smode;
+	u32 stsd;
 
 	//internal
 

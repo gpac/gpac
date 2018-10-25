@@ -114,7 +114,7 @@ void isor_declare_objects(ISOMReader *read)
 		u32 srd_id=0, srd_indep=0, srd_x=0, srd_y=0, srd_w=0, srd_h=0;
 		u32 base_ttile_track=0;
 		Bool srd_full_frame=GF_FALSE;
-		u32 mtype, m_subtype;
+		u32 mtype, m_subtype, stsd_idx;
 		GF_GenericSampleDescription *udesc = NULL;
 
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
@@ -161,8 +161,10 @@ void isor_declare_objects(ISOMReader *read)
 			streamtype = GF_STREAM_UNKNOWN;
 			break;
 		}
+
+		stsd_idx = read->stsd ? read->stsd : 1;
 		//some subtypes are not declared as readable objects
-		m_subtype = gf_isom_get_media_subtype(read->mov, i+1, 1);
+		m_subtype = gf_isom_get_media_subtype(read->mov, i+1, stsd_idx);
 		switch (m_subtype) {
 		case GF_ISOM_SUBTYPE_HVT1:
 			if (read->smode == MP4DMX_SINGLE)
@@ -199,7 +201,7 @@ void isor_declare_objects(ISOMReader *read)
 			continue;
 
 		ocr_es_id = 0;
-		an_esd = gf_media_map_esd(read->mov, i+1);
+		an_esd = gf_media_map_esd(read->mov, i+1, stsd_idx);
 		if (an_esd) {
 			if (an_esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
 				gf_odf_desc_del((GF_Descriptor *)an_esd);
@@ -237,19 +239,19 @@ void isor_declare_objects(ISOMReader *read)
 			case GF_ISOM_MEDIA_SUBT:
 
 				codec_id = GF_CODECID_SIMPLE_TEXT;
-				gf_isom_stxt_get_description(read->mov, i+1, 1, &mime, &encoding, &stxtcfg);
+				gf_isom_stxt_get_description(read->mov, i+1, stsd_idx, &mime, &encoding, &stxtcfg);
 				break;
 			case GF_ISOM_SUBTYPE_STPP:
 				codec_id = GF_CODECID_SUBS_XML;
-				gf_isom_xml_subtitle_get_description(read->mov, i+1, 1, &namespace, &schemaloc, &mime);
+				gf_isom_xml_subtitle_get_description(read->mov, i+1, stsd_idx, &namespace, &schemaloc, &mime);
 				break;
 			case GF_ISOM_SUBTYPE_METX:
 				codec_id = GF_CODECID_META_XML;
-				gf_isom_xml_subtitle_get_description(read->mov, i+1, 1, &namespace, &schemaloc, &mime);
+				gf_isom_xml_subtitle_get_description(read->mov, i+1, stsd_idx, &namespace, &schemaloc, &mime);
 				break;
 			case GF_ISOM_SUBTYPE_WVTT:
 				codec_id = GF_CODECID_WEBVTT;
-				stxtcfg = gf_isom_get_webvtt_config(read->mov, i+1, 1);
+				stxtcfg = gf_isom_get_webvtt_config(read->mov, i+1, stsd_idx);
 				break;
 			case GF_ISOM_SUBTYPE_HVT1:
 				codec_id = GF_CODECID_HEVC_TILES;
@@ -257,14 +259,14 @@ void isor_declare_objects(ISOMReader *read)
 				if (base_ttile_track) {
 					depends_on_id = gf_isom_get_track_id(read->mov, base_ttile_track);
 				}
-				gf_isom_get_tile_info(read->mov, i+1, 1, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
+				gf_isom_get_tile_info(read->mov, i+1, stsd_idx, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
 				break;
 			case GF_ISOM_SUBTYPE_TEXT:
 			case GF_ISOM_SUBTYPE_TX3G:
 			{
 				GF_TextSampleDescriptor *txtcfg = NULL;
 				codec_id = GF_CODECID_TX3G;
-				e = gf_isom_get_text_description(read->mov, i+1, 1, &txtcfg);
+				e = gf_isom_get_text_description(read->mov, i+1, stsd_idx, &txtcfg);
 				if (e) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d unable to fetch TX3G config\n", i+1));
 				}
@@ -287,7 +289,7 @@ void isor_declare_objects(ISOMReader *read)
 
 					codec_id = m_subtype;
 				}
-				udesc = gf_isom_get_generic_sample_description(read->mov, i+1, 1);
+				udesc = gf_isom_get_generic_sample_description(read->mov, i+1, stsd_idx);
 				if (udesc) {
 					dsi = udesc->extension_buf;
 					dsi_size = udesc->extension_buf_size;
@@ -311,7 +313,7 @@ void isor_declare_objects(ISOMReader *read)
 			switch (m_subtype) {
 			case GF_ISOM_SUBTYPE_LHV1:
 			case GF_ISOM_SUBTYPE_LHE1:
-				base_subtype = gf_isom_get_media_subtype(read->mov, base_track, 1);
+				base_subtype = gf_isom_get_media_subtype(read->mov, base_track, stsd_idx);
 				switch (base_subtype) {
 				case GF_ISOM_SUBTYPE_HVC1:
 				case GF_ISOM_SUBTYPE_HEV1:
@@ -327,7 +329,7 @@ void isor_declare_objects(ISOMReader *read)
 				depends_on_id = gf_isom_get_track_id(read->mov, base_track);
 				has_scalable_layers = GF_TRUE;
 			} else {
-				switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, 1)) {
+				switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, stsd_idx)) {
 				case GF_ISOM_HEVCTYPE_HEVC_LHVC:
 				case GF_ISOM_HEVCTYPE_LHVC_ONLY:
 					has_scalable_layers = GF_TRUE;
@@ -342,7 +344,7 @@ void isor_declare_objects(ISOMReader *read)
 				}
 			}
 		} else {
-			switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, 1)) {
+			switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, stsd_idx)) {
 			case GF_ISOM_HEVCTYPE_HEVC_LHVC:
 			case GF_ISOM_HEVCTYPE_LHVC_ONLY:
 				has_scalable_layers = GF_TRUE;
@@ -376,8 +378,8 @@ void isor_declare_objects(ISOMReader *read)
 		if (read->smode != MP4DMX_SINGLE) {
 			if ((codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC)) {
 				Bool signal_lhv = (read->smode==MP4DMX_SPLIT) ? GF_TRUE : GF_FALSE;
-				GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(read->mov, i+1, 1);
-				GF_HEVCConfig *lhcc = gf_isom_lhvc_config_get(read->mov, i+1, 1);
+				GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(read->mov, i+1, stsd_idx);
+				GF_HEVCConfig *lhcc = gf_isom_lhvc_config_get(read->mov, i+1, stsd_idx);
 
 				if (hvcc || lhcc) {
 					if (dsi) gf_free(dsi);
@@ -386,6 +388,10 @@ void isor_declare_objects(ISOMReader *read)
 					if (!hvcc) signal_lhv = GF_TRUE;
 
 					if (signal_lhv && lhcc) {
+						if (hvcc) {
+							hvcc->is_lhvc = GF_FALSE;
+							gf_odf_hevc_cfg_write(hvcc, &dsi, &dsi_size);
+						}
 						lhcc->is_lhvc = GF_TRUE;
 						gf_odf_hevc_cfg_write(lhcc, &enh_dsi, &enh_dsi_size);
 						codec_id = GF_CODECID_LHVC;
@@ -407,10 +413,10 @@ void isor_declare_objects(ISOMReader *read)
 			if ((codec_id==GF_CODECID_AVC) || (codec_id==GF_CODECID_SVC) || (codec_id==GF_CODECID_MVC)) {
 				Bool is_mvc = GF_FALSE;
 				Bool signal_svc = (read->smode==MP4DMX_SPLIT) ? GF_TRUE : GF_FALSE;
-				GF_AVCConfig *avcc = gf_isom_avc_config_get(read->mov, i+1, 1);
-				GF_AVCConfig *svcc = gf_isom_svc_config_get(read->mov, i+1, 1);
+				GF_AVCConfig *avcc = gf_isom_avc_config_get(read->mov, i+1, stsd_idx);
+				GF_AVCConfig *svcc = gf_isom_svc_config_get(read->mov, i+1, stsd_idx);
 				if (!svcc) {
-					svcc = gf_isom_mvc_config_get(read->mov, i+1, 1);
+					svcc = gf_isom_mvc_config_get(read->mov, i+1, stsd_idx);
 					is_mvc = GF_TRUE;
 				}
 
@@ -421,6 +427,9 @@ void isor_declare_objects(ISOMReader *read)
 					if (!avcc) signal_svc = GF_TRUE;
 
 					if (signal_svc && svcc) {
+						if (avcc) {
+							gf_odf_avc_cfg_write(avcc, &dsi, &dsi_size);
+						}
 						gf_odf_avc_cfg_write(svcc, &enh_dsi, &enh_dsi_size);
 						codec_id = is_mvc ? GF_CODECID_MVC : GF_CODECID_SVC;
 					} else {
@@ -461,13 +470,13 @@ void isor_declare_objects(ISOMReader *read)
 		}
 
 		w = h = 0;
-		gf_isom_get_visual_info(read->mov, i+1, 1, &w, &h);
+		gf_isom_get_visual_info(read->mov, i+1, stsd_idx, &w, &h);
 		if (w && h) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(w));
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(h));
 		}
 		sr = nb_ch = 0;
-		gf_isom_get_audio_info(read->mov, i+1, 1, &sr, &nb_ch, NULL);
+		gf_isom_get_audio_info(read->mov, i+1, stsd_idx, &sr, &nb_ch, NULL);
 		if (sr && nb_ch) {
 			u32 d1, d2;
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
@@ -491,7 +500,7 @@ void isor_declare_objects(ISOMReader *read)
 		if (srd_w && srd_h) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
 			if (base_ttile_track) {
-				gf_isom_get_visual_info(read->mov, base_ttile_track, 1, &w, &h);
+				gf_isom_get_visual_info(read->mov, base_ttile_track, stsd_idx, &w, &h);
 				if (w && h) {
 					gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(w, h) );
 				}
@@ -543,7 +552,7 @@ void isor_declare_objects(ISOMReader *read)
 		//move channel duration in media timescale
 		ch->duration = (u32) (track_dur * ch->time_scale);
 
-		gf_isom_get_bitrate(read->mov, ch->track, 1, &avg_rate, &max_rate, &buffer_size);
+		gf_isom_get_bitrate(read->mov, ch->track, stsd_idx, &avg_rate, &max_rate, &buffer_size);
 
 		if (!avg_rate) {
 			if (ch->duration) {
@@ -626,7 +635,7 @@ void isor_declare_objects(ISOMReader *read)
 			GF_DIMSDescription dims;
 			memset(&dims, 0, sizeof(GF_DIMSDescription));
 
-			gf_isom_get_dims_description(read->mov, ch->track, 1, &dims);
+			gf_isom_get_dims_description(read->mov, ch->track, stsd_idx, &dims);
 			gf_filter_pid_set_property_str(ch->pid, "dims:profile", &PROP_UINT(dims.profile));
 			gf_filter_pid_set_property_str(ch->pid, "dims:level", &PROP_UINT(dims.level));
 			gf_filter_pid_set_property_str(ch->pid, "dims:pathComponents", &PROP_UINT(dims.pathComponents));
