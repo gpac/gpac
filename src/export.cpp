@@ -38,7 +38,8 @@
 #endif
 
 
-#pragma comment (linker, EXPORT_SYMBOL(gpac_features) )
+#pragma comment (linker, EXPORT_SYMBOL(gpac_enabled_features) )
+#pragma comment (linker, EXPORT_SYMBOL(gpac_disabled_features) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_close) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_args) )
@@ -2335,6 +2336,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_destination ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_property ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_property_str ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_info_str) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_property ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_property_str ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_info_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_framing_mode ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_new ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_post_process_task ) )

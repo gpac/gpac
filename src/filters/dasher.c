@@ -2324,7 +2324,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				baseURL->URL = gf_strdup(szInitSegmentFilename);
 				seg_list->dasher_segment_name = gf_strdup(szSegmentName);
 				seg_list->timescale = ds->mpd_timescale;
-				seg_list->duration = ds->mpd_timescale * ds->dash_dur;
+				seg_list->duration = (u64) (ds->mpd_timescale * ds->dash_dur);
 				seg_list->segment_URLs = gf_list_new();
 				rep->segment_list = seg_list;
 				ds->pending_segment_urls = gf_list_new();
@@ -2344,7 +2344,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			seg_list->timescale = ds->mpd_timescale;
 			seg_list->segment_URLs = gf_list_new();
 			seg_list->start_number = (u32) -1;
-			seg_list->duration = ds->mpd_timescale * ds->dash_dur;
+			seg_list->duration = (u64) (ds->mpd_timescale * ds->dash_dur);
 			rep->segment_list = seg_list;
 			ds->pending_segment_urls = gf_list_new();
 
@@ -2620,7 +2620,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		ctx->mpd->media_presentation_duration = store_mpd_dur;
 	}
 	if (max_seg_dur) {
-		ctx->mpd->max_segment_duration = max_seg_dur;
+		ctx->mpd->max_segment_duration = (u32) max_seg_dur;
 		ctx->mpd->max_subsegment_duration = 0;
 	}
 

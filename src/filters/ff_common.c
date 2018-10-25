@@ -589,6 +589,8 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 		} else {
 			break;
 		}
+		if (!description)
+			description = "description unavailable in ffmpeg";
 
 		GF_SAFEALLOC(freg, GF_FilterRegister);
 		if (!freg) continue;

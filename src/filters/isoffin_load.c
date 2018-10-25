@@ -532,7 +532,7 @@ void isor_declare_objects(ISOMReader *read)
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
 		if (!ch->has_edit_list) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) gf_isom_get_media_duration(read->mov, ch->track) - ch->ts_offset, ch->time_scale));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) gf_isom_get_media_duration(read->mov, ch->track) - (s32) ch->ts_offset, ch->time_scale));
 		} else {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((s32) ch->duration, read->time_scale));
 		}

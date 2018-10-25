@@ -199,7 +199,7 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	if (scheme_version != 1) return GF_NOT_SUPPORTED;
 	if (!kms_uri) return GF_NON_COMPLIANT_BITSTREAM;
 
-	kms_crc = gf_crc_32(kms_uri, strlen(kms_uri));
+	kms_crc = gf_crc_32(kms_uri, (u32) strlen(kms_uri));
 	if (cstr->pssh_crc == kms_crc) return GF_OK;
 	cstr->pssh_crc = kms_crc;
 
