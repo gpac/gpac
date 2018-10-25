@@ -1126,8 +1126,11 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 	while (gf_bs_available(plaintext_bs)) {
 		if (bs_type != ENC_FULL_SAMPLE) {
 			u32 clear_bytes = 0;
-			u32 nb_ranges = 1;
 			u32 range_idx = 0;
+			struct {
+				int clear, encrypted;
+			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
+			u32 nb_ranges=1;
 
 			switch(bs_type) {
 			case ENC_NALU:
@@ -1156,32 +1159,27 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 				gf_bs_seek(plaintext_bs, pos);
 
-				assert(tci->av1.frame_state.nb_tiles_in_obu > 0);
-				tci->nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
-				tci->ranges[0].clear = tci->av1.frame_state.tiles[0].obu_start_offset;
-				tci->ranges[0].encrypted = tci->av1.frame_state.tiles[0].size;
-				for (i = 1; i < tci->nb_ranges; ++i) {
-					tci->ranges[i].clear = tci->av1.frame_state.tiles[i].obu_start_offset - (tci->av1.frame_state.tiles[i - 1].obu_start_offset + tci->av1.frame_state.tiles[i - 1].size);
-					tci->ranges[i].encrypted = tci->av1.frame_state.tiles[i].size;
-				}
-
 				unit_size = (u32)obu_size;
 				switch (obut) { //we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
-					if (!tci->nb_ranges) {
-						clear_bytes = (u32)obu_size; /*no data => all in clear*/
+					assert(tci->av1.frame_state.nb_tiles_in_obu > 0);
+					nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
+
+					ranges[0].clear = tci->av1.frame_state.tiles[0].obu_start_offset;
+					ranges[0].encrypted = tci->av1.frame_state.tiles[0].size;
+					for (i = 1; i < nb_ranges; ++i) {
+						ranges[i].clear = tci->av1.frame_state.tiles[i].obu_start_offset - (tci->av1.frame_state.tiles[i - 1].obu_start_offset + tci->av1.frame_state.tiles[i - 1].size);
+						ranges[i].encrypted = tci->av1.frame_state.tiles[i].size;
+					}
+					clear_bytes = ranges[0].clear;
+					unit_size = clear_bytes + ranges[0].encrypted;
+					if (ranges[0].encrypted >= 16) {
+						//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
+						if (prev_entry && prev_entry->bytes_encrypted_data)
+							prev_entry = NULL;
 					} else {
-						nb_ranges = tci->nb_ranges;
-						clear_bytes = tci->ranges[0].clear;
-						unit_size = clear_bytes + tci->ranges[0].encrypted;
-						if (tci->ranges[0].encrypted >= 16) {
-							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
-							if (prev_entry && prev_entry->bytes_encrypted_data)
-								prev_entry = NULL;
-						} else {
-							clear_bytes = unit_size;
-						}
+						clear_bytes = unit_size;
 					}
 					break;
 				default:
@@ -1220,8 +1218,8 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						goto exit;
 					}
 
-					tci->ranges[i].clear = (int)(gf_bs_get_position(plaintext_bs) - pos2);
-					tci->ranges[i].encrypted = frame_sizes[i] - tci->ranges[i].clear;
+					ranges[i].clear = (int)(gf_bs_get_position(plaintext_bs) - pos2);
+					ranges[i].encrypted = frame_sizes[i] - ranges[i].clear;
 
 					gf_bs_seek(plaintext_bs, pos2 + frame_sizes[i]);
 				}
@@ -1231,14 +1229,14 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				}
 				gf_bs_seek(plaintext_bs, pos);
 
-				clear_bytes = tci->ranges[0].clear;
-				assert(frame_sizes[0] == tci->ranges[0].clear + tci->ranges[0].encrypted);
+				clear_bytes = ranges[0].clear;
+				assert(frame_sizes[0] == ranges[0].clear + ranges[0].encrypted);
 				unit_size = frame_sizes[0];
 
 				//final superframe index must be in clear
 				if (superframe_index_size > 0) {
-					tci->ranges[nb_ranges].clear = superframe_index_size;
-					tci->ranges[nb_ranges].encrypted = 0;
+					ranges[nb_ranges].clear = superframe_index_size;
+					ranges[nb_ranges].encrypted = 0;
 					nb_ranges++;
 				}
 
@@ -1349,17 +1347,17 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				range_idx++;
 				switch (bs_type) {
 				case ENC_OBU:
-					clear_bytes = tci->ranges[range_idx].clear;
-					unit_size = clear_bytes + tci->ranges[range_idx].encrypted;
+					clear_bytes = ranges[range_idx].clear;
+					unit_size = clear_bytes + ranges[range_idx].encrypted;
 					prev_entry = NULL; //a subsample SHALL be created for each tile.
 					break;
 				case ENC_VP9:
 					if (nb_ranges > 1) {
-						clear_bytes = tci->ranges[range_idx].clear;
-						unit_size = clear_bytes + tci->ranges[range_idx].encrypted;
+						clear_bytes = ranges[range_idx].clear;
+						unit_size = clear_bytes + ranges[range_idx].encrypted;
 					} else { /*last*/
-						unit_size = clear_bytes = tci->ranges[range_idx].clear;
-						assert(tci->ranges[range_idx].encrypted == 0);
+						unit_size = clear_bytes = ranges[range_idx].clear;
+						assert(ranges[range_idx].encrypted == 0);
 					}
 					prev_entry = NULL; //a subsample SHALL be created for each tile.
 					break;
@@ -1441,8 +1439,11 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 		if (skip_byte_block || (bs_type == ENC_NALU) || (bs_type == ENC_OBU)) {
 			u32 clear_bytes = 0;
 			u32 clear_bytes_at_end = 0;
-			u32 nb_ranges = 1;
 			u32 av1_tile_idx = 0;
+			struct {
+				int clear, encrypted;
+			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
+			u32 nb_ranges=1;
 
 			if (bs_type == ENC_NALU) {
 				unit_size = gf_bs_read_int(plaintext_bs, 8*nalu_size_length_in_bytes);
@@ -1468,28 +1469,22 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
 					assert(tci->av1.frame_state.nb_tiles_in_obu > 0);
-					tci->nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
-					tci->ranges[0].clear = tci->av1.frame_state.tiles[0].obu_start_offset;
-					tci->ranges[0].encrypted = tci->av1.frame_state.tiles[0].size;
-					for (i = 1; i < tci->nb_ranges; ++i) {
-						tci->ranges[i].clear = tci->av1.frame_state.tiles[i].obu_start_offset - (tci->av1.frame_state.tiles[i - 1].obu_start_offset + tci->av1.frame_state.tiles[i - 1].size);
-						tci->ranges[i].encrypted = tci->av1.frame_state.tiles[i].size;
+					nb_ranges = tci->av1.frame_state.nb_tiles_in_obu;
+					ranges[0].clear = tci->av1.frame_state.tiles[0].obu_start_offset;
+					ranges[0].encrypted = tci->av1.frame_state.tiles[0].size;
+					for (i = 1; i < nb_ranges; ++i) {
+						ranges[i].clear = tci->av1.frame_state.tiles[i].obu_start_offset - (tci->av1.frame_state.tiles[i - 1].obu_start_offset + tci->av1.frame_state.tiles[i - 1].size);
+						ranges[i].encrypted = tci->av1.frame_state.tiles[i].size;
 					}
 
-					clear_bytes = hdr_size;
-					if (!tci->nb_ranges) {
-						clear_bytes = (u32) obu_size;
+					clear_bytes = ranges[0].clear;
+					unit_size = clear_bytes + ranges[0].encrypted;
+					if (ranges[0].encrypted >= 16) {
+						//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
+						if (prev_entry && prev_entry->bytes_encrypted_data)
+							prev_entry = NULL;
 					} else {
-						nb_ranges = tci->nb_ranges;
-						clear_bytes = tci->ranges[0].clear;
-						unit_size = clear_bytes + tci->ranges[0].encrypted;
-						if (tci->ranges[0].encrypted >= 16) {
-							//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
-							if (prev_entry && prev_entry->bytes_encrypted_data)
-								prev_entry = NULL;
-						} else {
-							clear_bytes = unit_size;
-						}
+						clear_bytes = unit_size;
 					}
 					break;
 				default:
@@ -1601,8 +1596,8 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				if (!nb_ranges) break;
 				
 				av1_tile_idx++;
-				clear_bytes = tci->ranges[av1_tile_idx].clear;
-				unit_size = clear_bytes + tci->ranges[av1_tile_idx].encrypted;
+				clear_bytes = ranges[av1_tile_idx].clear;
+				unit_size = clear_bytes + ranges[av1_tile_idx].encrypted;
 				//A subsample SHALL be created for each tile.
 				prev_entry = NULL;
 			}
