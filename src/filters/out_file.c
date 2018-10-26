@@ -33,7 +33,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *fext;
-	Bool append, dynext, cat;
+	Bool append, dynext, cat, ow;
 
 	//only one input pid
 	GF_FilterPid *pid;
@@ -48,6 +48,7 @@ typedef struct
 
 	Bool patch_blocks;
 	Bool is_null;
+	GF_Err is_error;
 } GF_FileOutCtx;
 
 
@@ -84,6 +85,18 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
+		if (!ctx->ow && gf_file_exists(szFinalName) && !append) {
+			char szRes[20];
+
+			fprintf(stderr, "File %s already exist - override (y/n/a) ?:", szFinalName);
+			scanf("%20s", szRes);
+			if ((szRes[0] == 'n') || (szRes[0] == 'N')) {
+				ctx->is_error = GF_IO_ERR;;
+				return GF_IO_ERR;
+			}
+			if ((szRes[0] == 'a') || (szRes[0] == 'A')) ctx->ow = GF_TRUE;
+		}
+
 		ctx->file = gf_fopen(szFinalName, append ? "a+b" : "w");
 
 		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write && !explicit_overwrite) {
@@ -94,6 +107,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	ctx->nb_write = 0;
 	if (!ctx->file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] cannot open output file %s\n", ctx->szFileName));
+		ctx->is_error = GF_IO_ERR;;
 		return GF_IO_ERR;
 	}
 	return GF_OK;
@@ -210,6 +224,15 @@ static GF_Err fileout_process(GF_Filter *filter)
 	u32 pck_size, nb_write;
 	u32 dep_flags;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
+
+	if (ctx->is_error) {
+		GF_Err e = ctx->is_error;
+		if (e != GF_EOS) {
+			gf_filter_pid_set_discard(ctx->pid, GF_TRUE);
+			ctx->is_error = GF_EOS;
+		}
+		return e;
+	}
 
 	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
@@ -361,6 +384,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(speed), "sets playback speed when vsync is on", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fext), "sets extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cat), "cats each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ow), "always overwrite output if existing", GF_PROP_BOOL, "true", NULL, 0},
 	{0}
 };
 
