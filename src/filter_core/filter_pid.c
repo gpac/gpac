@@ -1685,6 +1685,11 @@ typedef struct
 	u8 status;
 	u8 priority;
 	u8 loaded_filter_only;
+	//stream type of the output cap of src. Might be:
+	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
+	// 0 if not spcified
+	// or a valid GF_STREAM_*
+	s32 src_stream_type;
 } GF_FilterRegEdge;
 
 typedef struct __freg_desc
@@ -1699,25 +1704,84 @@ typedef struct __freg_desc
 	u32 cap_idx;
 } GF_FilterRegDesc;
 
+static s32 gf_filter_reg_get_output_stream_type(const GF_FilterRegister *freg, u32 out_cap_idx)
+{
+	u32 i, cur_bundle, stype=0, nb_stype=0;
 
-static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel)
+	cur_bundle = 0;
+	for (i=0; i<freg->nb_caps; i++) {
+		u32 cap_stype=0;
+		const GF_FilterCapability *cap = &freg->caps[i];
+		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
+			cur_bundle++;
+			continue;
+		}
+		if (!(cap->flags & GF_CAPFLAG_OUTPUT)) continue;
+
+		if ((cur_bundle != out_cap_idx) && !(cap->flags & GF_CAPFLAG_STATIC) ) continue;
+		//output type is file or same media type, allow looking for filter chains
+		if (cap->flags & GF_CAPFLAG_EXCLUDED) continue;
+		if (cap->code == GF_PROP_PID_STREAM_TYPE) cap_stype = cap->val.value.uint;
+		else if (cap->code == GF_PROP_PID_MIME) cap_stype = GF_STREAM_FILE;
+		else if (cap->code == GF_PROP_PID_FILE_EXT) cap_stype = GF_STREAM_FILE;
+
+		if (!cap_stype) continue;
+
+		if (stype != cap_stype) {
+			stype = cap_stype;
+			nb_stype++;
+		}
+	}
+	if (nb_stype==1) return (s32) stype;
+	if (nb_stype) return -1;
+	return 0;
+}
+
+static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel, s32 dst_stream_type)
 {
 	u32 i;
 	Bool break_loop = (reg_desc->edges_marked_rlevel < rlevel) ? GF_TRUE: GF_FALSE;
 	if (src_freg == reg_desc->freg)
 		return;
 
-	if (rlevel > fsess->max_resolve_chain_len)
+	if (rlevel > fsess->max_resolve_chain_len) {
 		return;
+	}
 
 	reg_desc->edges_marked_rlevel = rlevel;
 
 	for (i=0; i<reg_desc->nb_edges; i++) {
 		GF_FilterRegEdge *edge = &reg_desc->edges[i];
 		if (!break_loop && (edge->dst_cap_idx == src_cap_idx) && (edge->status == EDGE_STATUS_NONE)) {
+			//candidate edge, check stream type
+			s32 source_stream_type = edge->src_stream_type;
+
+			//source edge cap indicates multiple stream types (demuxer/encoder/decoder dundle)
+			if (source_stream_type<0) {
+				//if destination type is known (>=0 and NOT file, inherit it
+				//otherwise, we we can't filter out yet
+				if ((dst_stream_type>0) && (dst_stream_type != GF_STREAM_FILE))
+					source_stream_type = dst_stream_type;
+			}
+			//inherit source type if not specified
+			if (!source_stream_type && dst_stream_type>0)
+				source_stream_type = dst_stream_type;
+			//if source is encrypted type and dest type is set, use dest type
+			if ((source_stream_type==GF_STREAM_ENCRYPTED) && dst_stream_type>0)
+				source_stream_type = dst_stream_type;
+			//if dest is encrypted type and source type is set, use source type
+			if ((dst_stream_type==GF_STREAM_ENCRYPTED) && source_stream_type>0)
+				dst_stream_type = source_stream_type;
+
+			//if stream types are know (>0) and not source files, do not mark the edges if they mismatch
+			//moving from non-file type A to non-file type B requires an explicit filter
+			if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type))
+				continue;
+
 			edge->status = EDGE_STATUS_ENABLED;
+
 			//fprintf(stderr, "enable edge from %s to %s\n", edge->src_reg->freg->name, reg_desc->freg->name);
-			gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1);
+			gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1, source_stream_type);
 		}
 	}
 }
@@ -1758,20 +1822,23 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
 
 					if (path_weight && (bundle_idx == l)) {
-
+						GF_FilterRegEdge *edge;
 						if (reg_desc->nb_edges==reg_desc->nb_alloc_edges) {
-							reg_desc->nb_alloc_edges += 20;
+							reg_desc->nb_alloc_edges += 10;
 							reg_desc->edges = gf_realloc(reg_desc->edges, sizeof(GF_FilterRegEdge) * reg_desc->nb_alloc_edges);
 						}
 						assert(path_weight<0xFF);
 						assert(k<0xFFFF);
 						assert(l<0xFFFF);
-						reg_desc->edges[reg_desc->nb_edges].src_reg = a_reg;
-						reg_desc->edges[reg_desc->nb_edges].weight = path_weight;
-						reg_desc->edges[reg_desc->nb_edges].src_cap_idx = k;
-						reg_desc->edges[reg_desc->nb_edges].dst_cap_idx = l;
-						reg_desc->edges[reg_desc->nb_edges].priority = 0;
-						reg_desc->edges[reg_desc->nb_edges].loaded_filter_only = loaded_filter_only_flags;
+						edge = &reg_desc->edges[reg_desc->nb_edges];
+						edge->src_reg = a_reg;
+						edge->weight = path_weight;
+						edge->src_cap_idx = k;
+						edge->dst_cap_idx = l;
+						edge->priority = 0;
+						edge->loaded_filter_only = loaded_filter_only_flags;
+					 	edge->src_stream_type = gf_filter_reg_get_output_stream_type(edge->src_reg->freg, edge->src_cap_idx);
+
 						reg_desc->nb_edges++;
 					}
 				}
@@ -1781,17 +1848,20 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 					path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
 
 					if (path_weight && (bundle_idx == k)) {
-
+						GF_FilterRegEdge *edge;
 						if (a_reg->nb_edges==a_reg->nb_alloc_edges) {
-							a_reg->nb_alloc_edges += 20;
+							a_reg->nb_alloc_edges += 10;
 							a_reg->edges = gf_realloc(a_reg->edges, sizeof(GF_FilterRegEdge) * a_reg->nb_alloc_edges);
 						}
-						a_reg->edges[a_reg->nb_edges].src_reg = reg_desc;
-						a_reg->edges[a_reg->nb_edges].weight = (u8) path_weight;
-						a_reg->edges[a_reg->nb_edges].src_cap_idx = (u16) l;
-						a_reg->edges[a_reg->nb_edges].dst_cap_idx = (u16) k;
-						a_reg->edges[a_reg->nb_edges].priority = 0;
-						a_reg->edges[a_reg->nb_edges].loaded_filter_only = loaded_filter_only_flags;
+						edge = &a_reg->edges[a_reg->nb_edges];
+						edge->src_reg = reg_desc;
+						edge->weight = (u8) path_weight;
+						edge->src_cap_idx = (u16) l;
+						edge->dst_cap_idx = (u16) k;
+						edge->priority = 0;
+						edge->loaded_filter_only = loaded_filter_only_flags;
+					 	edge->src_stream_type = gf_filter_reg_get_output_stream_type(edge->src_reg->freg, edge->src_cap_idx);
+
 						a_reg->nb_edges++;
 					}
 				}
@@ -2019,7 +2089,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//enable edge and propagate down the graph
 		edge->status = EDGE_STATUS_ENABLED;
 
-		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1);
+		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1, edge->src_stream_type);
 	}
 
 	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
@@ -2102,7 +2172,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			gf_list_rem(dijkstra_nodes, reg_idx);
 		}
 
-
 		if (current_node->freg == pid->filter->freg) {
 			result = current_node;
 		}
@@ -2149,7 +2218,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				redge->src_reg->priority = priority;
 				redge->src_reg->destination = current_node;
 				redge->src_reg->cap_idx = redge->src_cap_idx;
-			} else {
+			} else if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: no shorter path from filter %s distance %d from destination %s priority %d (tested %s dist %d priority %d)\n", redge->src_reg->freg->name, redge->src_reg->dist, redge->src_reg->destination ? redge->src_reg->destination->freg->name : "none", redge->priority, current_node->freg->name, dist, redge->src_reg->priority));
 
 			}
@@ -2162,15 +2231,15 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Filters] Dijkstra: sorted filters in "LLU" us, Dijkstra done in "LLU" us on %d nodes %d edges\n", sort_time_us, dijkstra_time_us, dijsktra_node_count, dijsktra_edge_count));
 
 	if (result && result->destination) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: result: %s", result->freg->name));
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Filters] Dijkstra result: %s", result->freg->name));
 		result = result->destination;
 		while (result->destination) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s", result->freg->name ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, (" %s", result->freg->name ));
 			gf_list_add(out_reg_chain, (void *) result->freg);
 			gf_list_add(out_reg_chain, (void *) &result->freg->caps[result->cap_idx]);
 			result = result->destination;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s\n", result->freg->name));
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, (" %s\n", result->freg->name));
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filters] Dijkstra: no results found!\n"));
 	}

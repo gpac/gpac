@@ -1391,7 +1391,9 @@ static void gf_filter_process_task(GF_FSTask *task)
 		gf_list_del(task->filter->postponed_packets);
 		task->filter->postponed_packets = NULL;
 		if (task->filter->process_task_queued==1) {
+			gf_mx_p(task->filter->tasks_mx);
 			task->filter->process_task_queued = 0;
+			gf_mx_v(task->filter->tasks_mx);
 			return;
 		}
 	}
@@ -1427,7 +1429,9 @@ static void gf_filter_process_task(GF_FSTask *task)
 		e = GF_OK;
 
 	if ((e==GF_EOS) || filter->removed || filter->finalized) {
+		gf_mx_p(filter->tasks_mx);
 		filter->process_task_queued = 0;
+		gf_mx_v(filter->tasks_mx);
 		return;
 	}
 	if (e) filter->session->last_process_error = e;
@@ -1481,7 +1485,9 @@ void gf_filter_process_inline(GF_Filter *filter)
 		gf_list_del(filter->postponed_packets);
 		filter->postponed_packets = NULL;
 		if (filter->process_task_queued==1) {
+			gf_mx_p(filter->tasks_mx);
 			filter->process_task_queued = 0;
+			gf_mx_v(filter->tasks_mx);
 			return;
 		}
 	}
@@ -1507,7 +1513,9 @@ void gf_filter_process_inline(GF_Filter *filter)
 		return;
 	}
 	if ((e==GF_EOS) || filter->removed || filter->finalized) {
+		gf_mx_p(filter->tasks_mx);
 		filter->process_task_queued = 0;
+		gf_mx_v(filter->tasks_mx);
 		return;
 	}
 	if (e) filter->session->last_process_error = e;
@@ -1564,7 +1572,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	if (filter->process_task_queued<=1) {
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
-		assert(filter->scheduled_for_next_task || filter->force_end_of_session || gf_fq_count(filter->tasks) );
+		assert(filter->scheduled_for_next_task || filter->session->run_status || filter->force_end_of_session || gf_fq_count(filter->tasks) );
 	}
 	if (!filter->session->direct_mode)
 		assert(filter->process_task_queued);

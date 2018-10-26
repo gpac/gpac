@@ -256,10 +256,12 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 
 	if (!is_filter_destroyed) {
 		assert(pck->pid);
-		if (pck->info.cts != GF_FILTER_NO_TS) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : "", pck->info.cts));
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : ""));
+		if (pck->pid->filter) {
+			if (pck->info.cts != GF_FILTER_NO_TS) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : "", pck->info.cts));
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet%s\n", pck->pid->filter->name, pck->pid->name, (pck->info.flags&GF_PCKF_PROPS_REFERENCE) ? " property reference" : ""));
+			}
 		}
 	}
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);

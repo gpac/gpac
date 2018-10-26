@@ -258,7 +258,7 @@ GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set);
 \param session filter session
 \param  max_chain_length sets maximum chain length when resolving filter links.
 Default value is 6 ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]
-(filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)
+(filter chains loaded for adaptation (eg pixel format change, audio resample) are loaded after the link resolution)
 Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually
 \return error if any
 */
