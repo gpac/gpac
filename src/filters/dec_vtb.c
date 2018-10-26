@@ -80,7 +80,7 @@
 typedef struct
 {
 	//opts
-	u32 reorder;
+	u32 reorder, pfmt;
 	Bool no_copy;
 	Bool disable_hw;
 
@@ -303,15 +303,17 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	w = h = 0;
 	
     dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-	
-//	kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
-//	ctx->pix_fmt = GF_PIXEL_YUV;
-	
-	kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-	ctx->pix_fmt = GF_PIXEL_NV12;
 
-//	kColorSpace = kCVPixelFormatType_24RGB;
-//	ctx->pix_fmt = GF_PIXEL_RGB;
+	if (ctx->pfmt==1) {
+		kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
+		ctx->pix_fmt = GF_PIXEL_YUV;
+	} else if (ctx->pfmt==2) {
+		kColorSpace = kCVPixelFormatType_24RGB;
+		ctx->pix_fmt = GF_PIXEL_RGB;
+	} else {
+		kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
+		ctx->pix_fmt = GF_PIXEL_NV12;
+	}
 
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
@@ -1861,6 +1863,7 @@ static const GF_FilterArgs VTBDecArgs[] =
 {
 	{ OFFS(reorder), "number of frames to wait for temporal re-ordering", GF_PROP_UINT, "6", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_copy), "dispatch VTB frames into filter chain (no copy)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pfmt), "sets default pixel format for decoded video. If not matched default to nv12", GF_PROP_PIXFMT, "nv12", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disable_hw), "Disables hardware decoding", GF_PROP_BOOL, "false", NULL, 0},
 	{}
 };
