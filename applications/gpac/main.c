@@ -1058,7 +1058,7 @@ void write_filters_options(GF_FilterSession *fsess)
 		char szSecName[200];
 
 		const GF_FilterRegister *freg = gf_fs_get_filter_registry(fsess, i);
-		sprintf(szSecName, "filter:%s", freg->name);
+		sprintf(szSecName, "filter@%s", freg->name);
 		meta_sep = strchr(szSecName + 7, ':');
 		if (meta_sep) meta_sep[0] = 0;
 

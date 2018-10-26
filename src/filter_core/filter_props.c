@@ -1113,8 +1113,7 @@ Bool gf_props_4cc_check_props()
 	return res;
 }
 
-GF_EXPORT
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum)
+const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum, Bool is_4cc)
 {
 	switch (att->type) {
 	case GF_PROP_SINT:
@@ -1250,7 +1249,11 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
 		for (i=0; i<count; i++) {
 			char szItem[1024];
-			sprintf(szItem, "%u", att->value.uint_list.vals[i]);
+			if (is_4cc) {
+				sprintf(szItem, "%s", gf_4cc_to_str(att->value.uint_list.vals[i]) );
+			} else {
+				sprintf(szItem, "%u", att->value.uint_list.vals[i]);
+			}
 			if (!i) {
 				strncpy(dump, szItem, len);
 			} else {
@@ -1273,8 +1276,16 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 }
 
 GF_EXPORT
+const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum)
+{
+	return gf_prop_dump_val_ex(att, dump, dump_data, min_max_enum, GF_FALSE);
+}
+
+GF_EXPORT
 const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
 {
+	Bool is_4cc = GF_FALSE;
+
 	switch (p4cc) {
 	case GF_PROP_PID_STREAM_TYPE:
 	case GF_PROP_PID_ORIG_STREAM_TYPE:
@@ -1289,15 +1300,18 @@ const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PRO
 	case GF_PROP_PID_CENC_STORE:
 	case GF_PROP_PID_SUBTYPE:
 	case GF_PROP_PID_ISOM_SUBTYPE:
+	case GF_PROP_PID_ISOM_MBRAND:
 		return gf_4cc_to_str(att->value.uint);
 	case GF_PROP_PID_PLAYBACK_MODE:
 		if (att->value.uint == GF_PLAYBACK_MODE_SEEK) return "seek";
 		else if (att->value.uint == GF_PLAYBACK_MODE_REWIND) return "rewind";
 		else if (att->value.uint == GF_PLAYBACK_MODE_FASTFORWARD) return "forward";
 		else return "none";
+	case GF_PROP_PID_ISOM_BRANDS:
+		is_4cc = GF_TRUE;
 
 	default:
-		return gf_prop_dump_val(att, dump, dump_data, NULL);
+		return gf_prop_dump_val_ex(att, dump, dump_data, NULL, is_4cc);
 	}
 	return "";
 }
