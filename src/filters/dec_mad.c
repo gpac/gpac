@@ -176,18 +176,24 @@ static GF_Err maddec_process(GF_Filter *filter)
 
 	memcpy(ctx->buffer + ctx->len, data, in_size);
 	ctx->len += in_size;
+
+mad_resync:
 	mad_stream_buffer(&ctx->stream, ctx->buffer, ctx->len);
 
 	if (mad_frame_decode(&ctx->frame, &ctx->stream) == -1) {
+		if (ctx->stream.error==MAD_ERROR_BUFLEN) {
+			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MAD] Decoding failed error %s (%d)\n", mad_stream_errorstr(&ctx->stream), ctx->stream.error ) );
+		if (ctx->len==in_size) {
+			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		//try resynchro
 		memcpy(ctx->buffer, data, in_size);
 		ctx->len = in_size;
-		mad_stream_buffer(&ctx->stream, ctx->buffer, ctx->len);
-
-		if (mad_frame_decode(&ctx->frame, &ctx->stream) == -1) {
-			gf_filter_pid_drop_packet(ctx->ipid);
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
+		goto mad_resync;
 	}
 
 	mad_synth_frame(&ctx->synth, &ctx->frame);
