@@ -1093,7 +1093,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	/*if OCR stream force self-synchro !!*/
 	if (esd->decoderConfig->streamType==GF_STREAM_OCR) clockID = esd->ESID;
 	if (!clockID) {
-		/*if no clock ID but depandancy, force the clock to be the base layer for AV but not systems (animation streams, ..)*/
+		/*if no clock ID but dependency, force the clock to be the base layer for AV but not systems (animation streams, ..)*/
 		if ((esd->decoderConfig->streamType==GF_STREAM_VISUAL) || (esd->decoderConfig->streamType==GF_STREAM_AUDIO)) clockID = esd->dependsOnESID;
 		if (!clockID) clockID = esd->ESID;
 	}
