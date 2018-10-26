@@ -290,7 +290,7 @@ static void gpac_filter_help(void)
 
 
 
-static void gf_log_usage(void)
+static void gpac_log_usage(void)
 {
 	fprintf(stderr, "The following log options are available:\n"
 	        "-log-file=file  : set output log file. Also works with -lf\n"
@@ -343,12 +343,10 @@ static void gf_log_usage(void)
 	);
 }
 
-static void gpac_usage(void)
+static void gpac_expert_opts(void)
 {
-	fprintf(stderr, "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
-			"This is GPAC's command line tool for setting up and running filter chains - see -h doc for generic help on GPAC filters.\n"
-			"\n"
-			"Global options are:\n"
+
+	fprintf(stderr, "Expert options gor gpac command line tool\n"
 #ifdef GPAC_MEMORY_TRACKING
             "-mem-track:  enables memory tracker\n"
             "-mem-track-stack:  enables memory tracker with stack dumping\n"
@@ -360,9 +358,41 @@ static void gpac_usage(void)
 			"                   The fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"
 			"                   The fifth char, if present, is used for boolean negation\n"
 			"                   The sixth char, if present, is used for LINK directives (cf -h doc)\n"
+			"-nb             : disable blocking mode of filters\n"
+	        "-sched=MODE     : set scheduler mode. Possible modes are:\n"
+	        "                   free: uses lock-free queues (default)\n"
+	        "                   lock: uses mutexes for queues when several threads\n"
+	        "                   flock: uses mutexes for queues even when no thread (debug mode)\n"
+	        "                   direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
+			"-cl=N           : sets maximum chain length when resolving filter links.\n"
+			"                   Default value is 6 ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]\n"
+			"                   (filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)\n"
+			"                   Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually\n"
+			"-ltf            : load test-unit filters (used for for unit tests only).\n"
+			"-loop[=N]       : loops execution of session, creating a session at each loop. If N is set, loops N times. Mainly used for testing.\n"
+			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
+			"                  A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
+			"-wp[x]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
+			"-p=NAME         : uses profile NAME for the global GPAC config. If not found, config file is created. If NAME is a path, tries to load profile from that file.\n"
+			"-cfg=Key:Name[=VAL]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
+	        "-cfg=KEY        : Sets configuration file avlue. KEY format is \"section:key[=value]\". \n"
+	        "                   \"section:key=null\" or \"section:key\" removes the key\n"
+	        "                   \"section:*=null\" removes the section\n"
+	        , separator_set
+	);
+}
+
+static void gpac_usage(void)
+{
+	fprintf(stderr, "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
+			"This is GPAC's command line tool for setting up and running filter chains - see -h doc for generic help on GPAC filters.\n"
+			"\n"
+			"Global options are:\n"
+
 			"-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
 			"-graph          : print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt\n"
 	        "-threads=N      : set N extra thread for the session. -1 means use all available cores\n"
+			"-bl=NAMES       : blacklist the filters in NAMES (comma-seperated list)\n"
 			"\n"
 			"-quiet          : quiet mode\n"
 			"-noprog         : disable progress messages if any\n"
@@ -375,32 +405,13 @@ static void gpac_usage(void)
 			"                  'codecs': prints the supported builtin codecs.\n"
 			"                  'props': prints the supported builtin pid properties.\n"
 			"                  'links': prints possible connections between each supported filters.\n"
+			"                  'X': prints advanced options.\n"
 			"                  FNAME: prints filter FNAME info (multiple NAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation\n"
 			"                    Use * to print info on all filters (warning, big output!)\n"
 			"                    By default only basic options are show. Use -ha to show advanced options and filter IO capabilities, -hx for expert (all) options\n"
 			"\n"
-			"Expert options\n"
-			"-nb             : disable blocking mode of filters\n"
-	        "-sched=MODE     : set scheduler mode. Possible modes are:\n"
-	        "                   free: uses lock-free queues (default)\n"
-	        "                   lock: uses mutexes for queues when several threads\n"
-	        "                   flock: uses mutexes for queues even when no thread (debug mode)\n"
-	        "                   direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
-			"-bl=NAMES       : blacklist the filters in NAMES (comma-seperated list)\n"
-			"-cl=N           : sets maximum chain length when resolving filter links.\n"
-			"                   Default value is 6 ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]\n"
-			"                   (filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)\n"
-			"					Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually\n"
-			"-ltf            : load test-unit filters (used for for unit tests only).\n"
-			"-loop[=N]       : loops execution of session, creating a session at each loop. If N is set, loops N times. Mainly used for testing.\n"
-			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
-			"					A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
-			"-wp[x]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
-			"-p=NAME         : uses profile NAME for the global GPAC config. If not found, config file is created. If NAME is a path, tries to load profile from that file.\n"
-
-			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
-	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n" , separator_set
+	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
 	);
 
 }
@@ -432,6 +443,47 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 
 static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
 
+static void set_cfg_key(char *opt_string)
+{
+	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
+	sep = strchr(opt_string, ':');
+	if (!sep) {
+		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
+		return;
+	}
+	{
+		const size_t sepIdx = sep - opt_string;
+		strncpy(szSec, opt_string, sepIdx);
+		szSec[sepIdx] = 0;
+	}
+	sep ++;
+	sep2 = strchr(sep, '=');
+	if (!sep2) {
+		gf_opts_set_key(szSec, sep, NULL);
+		return;
+	}
+	{
+		const size_t sepIdx = sep2 - sep;
+		strncpy(szKey, sep, sepIdx);
+		szKey[sepIdx] = 0;
+		strcpy(szVal, sep2+1);
+	}
+
+	if (!stricmp(szKey, "*")) {
+		if (stricmp(szVal, "null")) {
+			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
+			return;
+		}
+		gf_opts_del_section(szSec);
+		return;
+	}
+
+	if (!stricmp(szVal, "null")) {
+		szVal[0]=0;
+	}
+	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
+}
+
 static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
@@ -446,6 +498,7 @@ static int gpac_main(int argc, char **argv)
 	u32 quiet = 0;
 	GF_FilterArgMode argmode = ARGMODE_BASE;
 	u32 nb_filters = 0;
+	Bool nothing_to_do = GF_TRUE;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
@@ -471,13 +524,16 @@ static int gpac_main(int argc, char **argv)
 				gpac_usage();
 				return 0;
 			} else if (!strcmp(argv[i+1], "logs")) {
-				gf_log_usage();
+				gpac_log_usage();
 				return 0;
 			} else if (!strcmp(argv[i+1], "doc")) {
 				gpac_filter_help();
 				return 0;
 			} else if (!strcmp(argv[i+1], "props")) {
 				dump_all_props();
+				return 0;
+			} else if (!strcmp(argv[i+1], "X")) {
+				gpac_expert_opts();
 				return 0;
 			} else if (!strcmp(argv[i+1], "codecs")) {
 				dump_codecs = GF_TRUE;
@@ -582,6 +638,15 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-loop")) {
 			nb_loops = -1;
 			if (arg_val) nb_loops = atoi(arg_val);
+		}
+		else if (!strcmp(arg, "-cfg")) {
+			set_cfg_key(arg_val);
+			nothing_to_do = GF_FALSE;
+		} else if ((arg[0]=='-') && !strcmp(arg, "-i") && !strcmp(arg, "-src")  && !strcmp(arg, "-o")  && !strcmp(arg, "-dst") ) {
+			fprintf(stderr, "Unrecognized option \"%s\", check usage \"gpac -h\"\n", arg);
+			gf_sys_close();
+			return 1;
+
 		}
 
 		if (arg_val) {
@@ -718,8 +783,12 @@ restart:
 		gf_list_add(loaded_filters, filter);
 	}
 	if (!gf_list_count(loaded_filters)) {
-		fprintf(stderr, "Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n");
-		e = GF_BAD_PARAM;
+		if (nothing_to_do) {
+			fprintf(stderr, "Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n");
+			e = GF_BAD_PARAM;
+		} else {
+			e = GF_EOS;
+		}
 		goto exit;
 	}
 	if (quiet<2)
@@ -748,7 +817,7 @@ exit:
 	}
 
 	gf_sys_close();
-	if (e) return 1;
+	if (e<0) return 1;
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (gf_memory_size() || gf_file_handles_count() ) {
