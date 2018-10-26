@@ -368,6 +368,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 
 static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	GF_FilterEvent evt;
 	PidCtx *pctx;
 	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
@@ -402,10 +403,12 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				inspect_dump_packet_fmt(ctx, pctx->tmp, NULL, 0, 0);
 		}
 	}
+
+	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+	gf_filter_pid_send_event(pid, &evt);
 	if (ctx->is_prober || ctx->pck || ctx->fmt) {
-		GF_FilterEvent evt;
-		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-		gf_filter_pid_send_event(pid, &evt);
+	} else {
+		gf_filter_pid_set_discard(pid, GF_TRUE);
 	}
 	return GF_OK;
 }
