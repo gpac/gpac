@@ -661,7 +661,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	sprintf(szSrc, "src%c", filter->session->sep_name);
 	sprintf(szDst, "dst%c", filter->session->sep_name);
 
-	snprintf(szSecName, 200, "filter:%s", filter->freg->name);
+	snprintf(szSecName, 200, "filter@%s", filter->freg->name);
 
 	//instantiate all args with defauts value
 	i=0;
@@ -2142,6 +2142,7 @@ GF_EXPORT
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_FilterPid **out_pid)
 {
 	char *sep;
+	char tmp[50];
 	GF_FilterPid *pid = *out_pid;
 	if (!pid) {
 		pid = gf_filter_pid_new(filter);
@@ -2165,7 +2166,9 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	gf_filter_pid_set_name(pid, sep);
 
 	if (fext) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(fext));
+		strncpy(tmp, fext, 20);
+		strlwr(tmp);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp));
 	} else {
 		char *ext = strrchr(url, '.');
 		if (ext && !stricmp(ext, ".gz")) {
@@ -2181,7 +2184,9 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			char *s = strchr(ext, '#');
 			if (s) s[0] = 0;
 
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext));
+			strncpy(tmp, ext, 20);
+			strlwr(tmp);
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp));
 			if (s) s[0] = '#';
 		}
 	}
@@ -2205,8 +2210,11 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		gf_mx_v(filter->session->filters_mx);
 
 	}
-	if (mime_type)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( mime_type));
+	if (mime_type) {
+		strncpy(tmp, mime_type, 50);
+		strlwr(tmp);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp ));
+	}
 
 	return GF_OK;
 }
