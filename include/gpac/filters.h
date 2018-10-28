@@ -830,15 +830,25 @@ const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PRO
 /* ! property is optional for GPAC GSF serialization (not transmitted over network when property thining is enabled) */
 #define GF_PROP_FLAG_GSF_REM 1<<1
 
-/*! gets property description and falgs
+/*! structure describing a builtin property in GPAC*/
+typedef struct {
+	/*! identifier (4CC) */
+	u32 type;
+	/*! name */
+	const char *name;
+	/*! description */
+	const char *description;
+	/*! data type  (uint, float, etc ..) */
+	u8 data_type;
+	/*! flags for the property */
+	u8 flags;
+} GF_BuiltInProperty;
+
+/*! gets property description
 \param prop_idx built-in property index, starting from 0
-\param name pointer for property name - optional
-\param description pointer for property description - optional
-\param prop_type pointer for property type - optional
-\param prop_flags pointer for property flags - optional
-\return GF_TRUE if property was found, GF_FALSE otherwise
+\return associated property description or NULL if property was not found
 */
-Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type, u8 *prop_flags);
+const GF_BuiltInProperty *gf_props_get_description(u32 prop_idx);
 
 /*! gets built-in property 4CC from name
 \param name built-in property name

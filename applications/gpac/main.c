@@ -42,6 +42,7 @@ static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
 static Bool enable_profiling = GF_FALSE;
 static s32 nb_loops = 0;
+u32 quiet = 0;
 
 
 //the default set of separators
@@ -394,7 +395,7 @@ static void gpac_usage(void)
 	        "-threads=N      : set N extra thread for the session. -1 means use all available cores\n"
 			"-bl=NAMES       : blacklist the filters in NAMES (comma-seperated list)\n"
 			"\n"
-			"-quiet          : quiet mode\n"
+			"-quiet          : quiet mode, supress all messages (except help screens / Props/codec/filter infos)\n"
 			"-noprog         : disable progress messages if any\n"
 			"-h [ARG]        : print help (works with -help as well). ARG can be:\n"
 			"                  not given: prints command line options help (this screen).\n"
@@ -405,10 +406,10 @@ static void gpac_usage(void)
 			"                  'codecs': prints the supported builtin codecs.\n"
 			"                  'props': prints the supported builtin pid properties.\n"
 			"                  'links': prints possible connections between each supported filters.\n"
-			"                  'X': prints advanced options.\n"
 			"                  FNAME: prints filter FNAME info (multiple NAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation\n"
 			"                    Use * to print info on all filters (warning, big output!)\n"
 			"                    By default only basic options are show. Use -ha to show advanced options and filter IO capabilities, -hx for expert (all) options\n"
+			"                  not given and -hx specified: prints advanced options.\n"
 			"\n"
 	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
@@ -443,13 +444,13 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 
 static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
 
-static void set_cfg_key(char *opt_string)
+static Bool set_cfg_key(char *opt_string)
 {
 	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
 	sep = strchr(opt_string, ':');
 	if (!sep) {
-		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
-		return;
+		if (quiet<2) fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
+		return GF_FALSE;
 	}
 	{
 		const size_t sepIdx = sep - opt_string;
@@ -460,7 +461,7 @@ static void set_cfg_key(char *opt_string)
 	sep2 = strchr(sep, '=');
 	if (!sep2) {
 		gf_opts_set_key(szSec, sep, NULL);
-		return;
+		return GF_TRUE;
 	}
 	{
 		const size_t sepIdx = sep2 - sep;
@@ -471,17 +472,18 @@ static void set_cfg_key(char *opt_string)
 
 	if (!stricmp(szKey, "*")) {
 		if (stricmp(szVal, "null")) {
-			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
-			return;
+			if (quiet<2) fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
+			return GF_FALSE;
 		}
 		gf_opts_del_section(szSec);
-		return;
+		return GF_TRUE;
 	}
 
 	if (!stricmp(szVal, "null")) {
 		szVal[0]=0;
 	}
 	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
+	return GF_TRUE;
 }
 
 static int gpac_main(int argc, char **argv)
@@ -495,7 +497,6 @@ static int gpac_main(int argc, char **argv)
 	s32 link_prev_filter = -1;
 	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
-	u32 quiet = 0;
 	GF_FilterArgMode argmode = ARGMODE_BASE;
 	u32 nb_filters = 0;
 	Bool nothing_to_do = GF_TRUE;
@@ -514,14 +515,18 @@ static int gpac_main(int argc, char **argv)
 #ifdef GPAC_MEMORY_TRACKING
             mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
+			if (quiet<2) fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx")) {
 			if (!strcmp(arg, "-ha")) argmode = ARGMODE_ADVANCED;
 			else if (!strcmp(arg, "-hx")) argmode = ARGMODE_EXPERT;
 
 			if (i+1==argc) {
-				gpac_usage();
+				if (argmode == ARGMODE_EXPERT) {
+					gpac_expert_opts();
+				} else {
+					gpac_usage();
+				}
 				return 0;
 			} else if (!strcmp(argv[i+1], "logs")) {
 				gpac_log_usage();
@@ -531,9 +536,6 @@ static int gpac_main(int argc, char **argv)
 				return 0;
 			} else if (!strcmp(argv[i+1], "props")) {
 				dump_all_props();
-				return 0;
-			} else if (!strcmp(argv[i+1], "X")) {
-				gpac_expert_opts();
 				return 0;
 			} else if (!strcmp(argv[i+1], "codecs")) {
 				dump_codecs = GF_TRUE;
@@ -640,10 +642,12 @@ static int gpac_main(int argc, char **argv)
 			if (arg_val) nb_loops = atoi(arg_val);
 		}
 		else if (!strcmp(arg, "-cfg")) {
-			set_cfg_key(arg_val);
+			if (!set_cfg_key(arg_val))
+				return 1;
 			nothing_to_do = GF_FALSE;
 		} else if ((arg[0]=='-') && !strcmp(arg, "-i") && !strcmp(arg, "-src")  && !strcmp(arg, "-o")  && !strcmp(arg, "-dst") ) {
-			fprintf(stderr, "Unrecognized option \"%s\", check usage \"gpac -h\"\n", arg);
+			if (quiet<2)
+			 	fprintf(stderr, "Unrecognized option \"%s\", check usage \"gpac -h\"\n", arg);
 			gf_sys_close();
 			return 1;
 
@@ -664,7 +668,7 @@ static int gpac_main(int argc, char **argv)
 	}
 
 	if (gf_sys_get_rti(0, &rti, 0)) {
-		if (dump_stats)
+		if (dump_stats && (quiet<2))
 			fprintf(stderr, "System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores);
 		if (nb_threads<0) {
 			nb_threads = rti.nb_cores-1;
@@ -686,7 +690,7 @@ restart:
 	if (load_test_filters) gf_fs_register_test_filters(session);
 
 	if (max_chain_len>=0) {
-		if (!max_chain_len) fprintf(stderr, "\nDynamic resolution of filter connections disabled\n\n");
+		if (!max_chain_len && (quiet<2)) fprintf(stderr, "\nDynamic resolution of filter connections disabled\n\n");
 		gf_fs_set_max_resolution_chain_length(session, (u32) max_chain_len);
 	}
 
@@ -741,7 +745,7 @@ restart:
 				if (strlen(arg)>1) {
 					link_prev_filter = atoi(arg+1);
 					if (link_prev_filter<0) {
-						fprintf(stderr, "Wrong filter index %d, must be positive\n", link_prev_filter);
+						if (quiet<2) fprintf(stderr, "Wrong filter index %d, must be positive\n", link_prev_filter);
 						e = GF_BAD_PARAM;
 						goto exit;
 					}
@@ -762,7 +766,7 @@ restart:
 		}
 
 		if (!filter) {
-			fprintf(stderr, "Failed to load filter%s %s\n", is_simple ? "" : " for",  arg);
+			 if (quiet<2) fprintf(stderr, "Failed to load filter%s %s\n", is_simple ? "" : " for",  arg);
 			if (!e) e = GF_NOT_SUPPORTED;
 			goto exit;
 		}
@@ -771,7 +775,7 @@ restart:
 		if (link_prev_filter>=0) {
 			GF_Filter *link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_prev_filter);
 			if (!link_from) {
-				fprintf(stderr, "Wrong filter index @%d\n", link_prev_filter);
+				if (quiet<2) fprintf(stderr, "Wrong filter index @%d\n", link_prev_filter);
 				e = GF_BAD_PARAM;
 				goto exit;
 			}
@@ -784,7 +788,7 @@ restart:
 	}
 	if (!gf_list_count(loaded_filters)) {
 		if (nothing_to_do) {
-			fprintf(stderr, "Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n");
+			if (quiet<2) fprintf(stderr, "Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n");
 			e = GF_BAD_PARAM;
 		} else {
 			e = GF_EOS;
@@ -799,15 +803,15 @@ restart:
 	if (!e) e = gf_fs_get_last_connect_error(session);
 	if (!e) e = gf_fs_get_last_process_error(session);
 
+exit:
+	if (e && nb_filters) {
+		gf_fs_run(session);
+	}
 	if (dump_stats)
 		gf_fs_print_stats(session);
 	if (dump_graph)
 		gf_fs_print_connections(session);
 
-exit:
-	if (e && nb_filters) {
-		gf_fs_run(session);
-	}
 	gf_fs_del(session);
 	if (loaded_filters) gf_list_del(loaded_filters);
 
@@ -860,7 +864,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
 		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE, NULL);
 
-		fprintf(stderr, " Type=%s, value=%s", szName,  szVal);
+		fprintf(stderr, " - Type: %s - Value: %s", szName,  szVal);
 		if (cap->priority) fprintf(stderr, ", priority=%d", cap->priority);
 		fprintf(stderr, "\n");
 	}
@@ -991,25 +995,23 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_F
 static void dump_all_props(void)
 {
 	u32 i=0;
-	u32 prop_4cc;
-	const char *name, *desc;
-	u8 ptype, prop_flags;
+	const GF_BuiltInProperty *prop_info;
+
 	fprintf(stderr, "Built-in properties for PIDs and packets \"Name (4CC type FLAGS): description\"\nFLAGS can be D (dropable - cf gsfm help), P (packet)\n\n");
-	while (gf_props_get_description(i, &prop_4cc, &name, &desc, &ptype, &prop_flags)) {
+	while ((prop_info = gf_props_get_description(i))) {
 		i++;
 		char szFlags[10];
-		if (!name) continue;
-		if (!name) continue;
+		if (! prop_info->name) continue;
 
 		szFlags[0]=0;
-		if (prop_flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
-		if (prop_flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
+		if (prop_info->flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
+		if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
 
-		fprintf(stderr, "%s (%s %s %s): %s", name, gf_4cc_to_str(prop_4cc), gf_props_get_type_name(ptype), szFlags, desc);
+		fprintf(stderr, "%s (%s %s %s): %s", prop_info->name, gf_4cc_to_str(prop_info->type), gf_props_get_type_name(prop_info->data_type), szFlags, prop_info->description);
 
-		if (ptype==GF_PROP_PIXFMT) {
+		if (prop_info->data_type==GF_PROP_PIXFMT) {
 			fprintf(stderr, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
-		} else if (ptype==GF_PROP_PCMFMT) {
+		} else if (prop_info->data_type==GF_PROP_PCMFMT) {
 			fprintf(stderr, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
 		}
 		fprintf(stderr, "\n");

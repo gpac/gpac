@@ -893,13 +893,7 @@ const char *gf_props_get_type_name(u32 type)
 	return "Undefined";
 }
 
-struct _gf_prop_typedef {
-	u32 type;
-	const char *name;
-	const char *description;
-	u8 prop_type;
-	u8 prop_flags;
-} GF_BuiltInProps [] =
+GF_BuiltInProperty GF_BuiltInProps [] =
 {
 	{ GF_PROP_PID_ID, "ID", "Stream ID", GF_PROP_UINT},
 	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of pid - mandatory if MPEG-4 Systems used", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
@@ -1048,7 +1042,7 @@ u32 gf_props_get_id(const char *name)
 {
 	u32 i, nb_props;
 	if (!name) return 0;
-	nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
 	for (i=0; i<nb_props; i++) {
 		if (GF_BuiltInProps[i].name && !strcmp(GF_BuiltInProps[i].name, name)) return GF_BuiltInProps[i].type;
 	}
@@ -1056,22 +1050,17 @@ u32 gf_props_get_id(const char *name)
 }
 
 GF_EXPORT
-Bool gf_props_get_description(u32 prop_idx, u32 *type, const char **name, const char **description, u8 *prop_type, u8 *prop_flags)
+const GF_BuiltInProperty *gf_props_get_description(u32 prop_idx)
 {
-	u32 nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
-	if (prop_idx>=nb_props) return GF_FALSE;
-	if (type) *type = GF_BuiltInProps[prop_idx].type;
-	if (name) *name = GF_BuiltInProps[prop_idx].name;
-	if (description) *description = GF_BuiltInProps[prop_idx].description;
-	if (prop_type) *prop_type = GF_BuiltInProps[prop_idx].prop_type;
-	if (prop_flags) *prop_flags = GF_BuiltInProps[prop_idx].prop_flags;
-	return GF_TRUE;
+	u32 nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
+	if (prop_idx>=nb_props) return NULL;
+	return &GF_BuiltInProps[prop_idx];
 }
 
 GF_EXPORT
 const char *gf_props_4cc_get_name(u32 prop_4cc)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
 	for (i=0; i<nb_props; i++) {
 		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].name;
 	}
@@ -1081,9 +1070,9 @@ const char *gf_props_4cc_get_name(u32 prop_4cc)
 GF_EXPORT
 u8 gf_props_4cc_get_flags(u32 prop_4cc)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
 	for (i=0; i<nb_props; i++) {
-		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].prop_flags;
+		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].flags;
 	}
 	return 0;
 }
@@ -1091,9 +1080,9 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc)
 GF_EXPORT
 u32 gf_props_4cc_get_type(u32 prop_4cc)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
 	for (i=0; i<nb_props; i++) {
-		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].prop_type;
+		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].data_type;
 	}
 	return GF_PROP_FORBIDEN;
 }
@@ -1101,7 +1090,7 @@ u32 gf_props_4cc_get_type(u32 prop_4cc)
 Bool gf_props_4cc_check_props()
 {
 	Bool res = GF_TRUE;
-	u32 i, j, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	u32 i, j, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
 	for (i=0; i<nb_props; i++) {
 		for (j=i+1; j<nb_props; j++) {
 			if (GF_BuiltInProps[i].type==GF_BuiltInProps[j].type) {
