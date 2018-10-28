@@ -670,7 +670,6 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 GF_EXPORT
 GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 {
-	GF_Filter *filter = NULL;
 	const char *args=NULL;
 	u32 i, len, count = gf_list_count(fsess->registry);
 	char *sep;
@@ -691,15 +690,10 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
-			GF_Err e;
-			filter = gf_filter_new(fsess, f_reg, args, NULL, GF_FILTER_ARG_EXPLICIT, &e);
-			if (!filter) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", name, gf_error_to_string(e) ));
-			}
-			return filter;
+			return gf_filter_new(fsess, f_reg, args, NULL, GF_FILTER_ARG_EXPLICIT, NULL);
 		}
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter\n", name));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
 	return NULL;
 }
 

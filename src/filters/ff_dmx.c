@@ -447,8 +447,10 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	ffmpeg_setup_logs(ctx->log_class);
 
 	ctx->initialized = GF_TRUE;
-	if (!ctx->src) return GF_SERVICE_ERROR;
-
+	if (!ctx->src) {
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Missing file name, cannot open\n", ctx->fname));
+		return GF_SERVICE_ERROR;
+	}
 	/*some extensions not supported by ffmpeg, overload input format*/
 	ext = strrchr(ctx->src, '.');
 	if (ext) {
