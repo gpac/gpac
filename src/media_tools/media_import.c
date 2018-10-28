@@ -7449,7 +7449,11 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 				gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[VP9] Error parsing sample %u", cur_samp);
 				goto exit;
 			}
-			gf_bs_seek(bs, pos2 + frame_sizes[i]);
+			e = gf_bs_seek(bs, pos2 + frame_sizes[i]);
+			if (e) {
+				gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[VP9] Seek bad param (offset "LLU") at sample %u (1)", pos2 + frame_sizes[i], cur_samp);
+				goto exit;
+			}
 		}
 		if (gf_bs_get_position(bs) + superframe_index_size != pos + frame_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VP9] Inconsistent IVF frame size of "LLU" bytes at sample %u.\n", frame_size, cur_samp));
@@ -7459,7 +7463,11 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 			}
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("\n"));
 		}
-		gf_bs_seek(bs, pos + frame_size);
+		e = gf_bs_seek(bs, pos + frame_size);
+		if (e) {
+			gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "[VP9] Seek bad param (offset "LLU") at sample %u (2)", pos + frame_size, cur_samp);
+			goto exit;
+		}
 
 		/*add sample*/
 		{
