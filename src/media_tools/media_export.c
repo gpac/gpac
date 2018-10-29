@@ -366,7 +366,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 inTrackNum, GF_ISOFile *outfile, Bool ResetDependancies, Bool AddToIOD)
+static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 inTrackNum, GF_ISOFile *outfile, Bool ResetDependencies, Bool AddToIOD)
 {
 	GF_ESD *esd;
 	GF_InitialObjectDescriptor *iod;
@@ -383,13 +383,13 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 	newTk = gf_isom_get_track_by_id(outfile, TrackID);
 	if (newTk) TrackID = 0;
 
-	//get the ESD and remove dependancies
+	//get the ESD and remove dependencies
 	esd = NULL;
 	msubtype = gf_isom_get_media_subtype(infile, inTrackNum, 1);
 
 	if (msubtype == GF_ISOM_SUBTYPE_MPEG4) {
 		esd = gf_isom_get_esd(infile, inTrackNum, 1);
-		if (esd && ResetDependancies) {
+		if (esd && ResetDependencies) {
 			esd->dependsOnESID = 0;
 			esd->OCRESID = 0;
 		}

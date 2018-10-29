@@ -1119,7 +1119,7 @@ u32 gf_isom_new_track(GF_ISOFile *the_file, u32 trackID, u32 MediaType, u32 Time
 returns the track number or 0 if error*/
 u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScale, char *tk_box, u32 tk_box_size, Bool udta_only);
 
-/*removes the desired track - internal cross dependancies will be updated.
+/*removes the desired track - internal cross dependencies will be updated.
 WARNING: any OD streams with references to this track through  ODUpdate, ESDUpdate, ESDRemove commands
 will be rewritten*/
 GF_Err gf_isom_remove_track(GF_ISOFile *the_file, u32 trackNumber);

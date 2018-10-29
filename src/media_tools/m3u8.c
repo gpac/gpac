@@ -62,7 +62,7 @@ typedef struct _s_accumulated_attributes {
 	char *init_url;
 	char *key_url;
 	bin128 key_iv;
-	Bool independant_segments;
+	Bool independent_segments;
 } s_accumulated_attributes;
 
 
@@ -664,7 +664,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		return ret;
 	}
 	if (!strncmp(line, "#EXT-X-INDEPENDENT-SEGMENTS", strlen("#EXT-X-INDEPENDENT-SEGMENTS") )) {
-		attributes->independant_segments = GF_TRUE;
+		attributes->independent_segments = GF_TRUE;
 		M3U8_COMPATIBILITY_VERSION(1);
 		return NULL;
 	}
@@ -1042,7 +1042,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 				if (attribs.is_playlist_ended) {
 					(*playlist)->playlist_needs_refresh = GF_FALSE;
 				}
-				if (attribs.independant_segments) {
+				if (attribs.independent_segments) {
 					(*playlist)->independent_segments = GF_TRUE;
 				}
 				if (attribs.mediaURL) {

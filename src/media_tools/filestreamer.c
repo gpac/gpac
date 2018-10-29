@@ -83,7 +83,7 @@ struct __isom_rtp_streamer
 	/*to sync looping sessions with tracks of # length*/
 	u32 duration_ms;
 
-	/*base track if this stream contains a media decoding dependancy, 0 otherwise*/
+	/*base track if this stream contains a media decoding dependency, 0 otherwise*/
 	u32 base_track;
 
 	Bool first_RTCP_sent;

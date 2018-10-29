@@ -578,7 +578,7 @@ GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src);
 
 
 /*!
- *\brief Flushes bitstream contet to disk
+ *\brief Flushes bitstream content to disk
  *
  *Flushes bitstream contet to disk
  *\param bs the target bitstream

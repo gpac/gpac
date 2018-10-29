@@ -1328,7 +1328,7 @@ insertIPI:
 		ipiD->IPI_ES_Id = tmpRef;
 		ipiD->tag = GF_ODF_ISOM_IPI_PTR_TAG;
 	} else {
-		//Watch out! ONLY ONE IPI dependancy is allowed per stream
+		//Watch out! ONLY ONE IPI dependency is allowed per stream
 		dpnd->trackIDCount = 1;
 		dpnd->trackIDs[0] = ipiD->IPI_ES_Id;
 		//and replace the tag and value...

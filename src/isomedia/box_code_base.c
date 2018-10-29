@@ -2882,7 +2882,7 @@ GF_Err mdat_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	//make sure we have some data ...
-	//if not, we handle that independantly (edit files)
+	//if not, we handle that independently (edit files)
 	if (ptr->data) {
 		gf_bs_write_data(bs, ptr->data, (u32) ptr->dataSize);
 	}
