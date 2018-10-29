@@ -1355,10 +1355,13 @@ static void gf_filter_process_task(GF_FSTask *task)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been removed, skiping process\n", filter->name));
 		return;
 	}
-	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
+	if (filter->would_block && (filter->would_block + filter->num_output_not_connected == filter->num_output_pids) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping process\n", filter->name));
 		filter->nb_tasks_done--;
-		gf_filter_check_pending_tasks(filter, task);
+		//remove filter process task - task will be reinserted upon unblock()
+		gf_mx_p(task->filter->tasks_mx);
+		task->filter->process_task_queued = 0;
+		gf_mx_v(task->filter->tasks_mx);
 		return;
 	}
 	if (filter->stream_reset_pending) {
