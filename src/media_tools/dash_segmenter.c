@@ -1720,8 +1720,18 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 	}
 
 	max_sap_type = 0;
-	if (dasher->force_session_end)
+	if (dasher->force_session_end) {
+		if (dasher->dash_ctx) {
+			opt = gf_cfg_get_key(dasher->dash_ctx, RepSecName, "MaxSAPType");
+			if (opt) max_sap_type = atoi(opt);
+			else {
+				opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "PrevPeriodMaxSAPType");
+				if (opt) max_sap_type = atoi(opt);
+			}
+		}
+
 		goto write_rep_only;
+	}
 
 
 restart_fragmentation_pass:
@@ -2917,6 +2927,7 @@ write_rep_only:
 	//single segment (onDemand profiles, assumes we always start with an IDR), don't write
 	if (dasher->single_file_mode != 1) {
 		if (segments_start_with_sap || split_seg_at_rap) {
+			//don't write startWithSAP on final dynamic->static conversion, we don't have the info
 			if (max_sap_type != 1) {
 				fprintf(dasher->mpd, " startWithSAP=\"%d\"", max_sap_type);
 			}
@@ -3120,6 +3131,9 @@ write_rep_only:
 		sprintf(sOpt, "%d", fragment_index);
 		gf_cfg_set_key(dasher->dash_ctx, RepSecName, "NextFragmentIndex", sOpt);
 
+		sprintf(sKey, "MaxSAPType");
+		sprintf(sOpt, "%d", max_sap_type);
+		gf_cfg_set_key(dasher->dash_ctx, RepSecName, sKey, sOpt);
 
 		if (!dasher->force_session_end) {
 			sprintf(sOpt, LLU, period_duration);
@@ -6095,7 +6109,11 @@ static void purge_dash_context(GF_Config *dash_ctx)
 	for (i=0; i<count; i++) {
 		const char *opt = gf_cfg_get_section_name(dash_ctx, i);
 		if (!opt) continue;
-		if( !strnicmp(opt, "Representation_", 15) || !strcmp(opt, "SegmentsStartTimes")) {
+		if ( !strnicmp(opt, "Representation_", 15) || !strcmp(opt, "SegmentsStartTimes")) {
+			const char *max_sap = gf_cfg_get_key(dash_ctx, opt, "MaxSAPType");
+			if (max_sap) {
+				gf_cfg_set_key(dash_ctx, "DASH", "PrevPeriodMaxSAPType", max_sap);
+			}
 			gf_cfg_del_section(dash_ctx, opt);
 			count--;
 			i--;
