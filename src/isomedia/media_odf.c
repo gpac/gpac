@@ -27,7 +27,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-// Rewrite the good dependancies when an OD AU is extracted from the file
+// Rewrite the good dependencies when an OD AU is extracted from the file
 GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 {
 	GF_Err e;
@@ -226,7 +226,7 @@ err_exit:
 }
 
 
-// Update the dependancies when an OD AU is inserted in the file
+// Update the dependencies when an OD AU is inserted in the file
 GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOSample **od_samp)
 {
 	GF_TrackReferenceBox *tref;
@@ -431,7 +431,7 @@ err_exit:
 
 
 
-// Rewrite the good dependancies when an OD AU is extracted from the file
+// Rewrite the good dependencies when an OD AU is extracted from the file
 static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id)
 {
 	GF_Err e;

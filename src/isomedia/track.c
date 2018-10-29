@@ -1068,7 +1068,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		tref = trak->References;
 	}
 
-	//Update Stream dependancies
+	//Update Stream dependencies
 	e = Track_FindRef(trak, GF_ISOM_REF_DECODE, &dpnd);
 	if (e) return e;
 
@@ -1089,7 +1089,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	}
 	esd->dependsOnESID = 0;
 
-	//Update GF_Clock dependancies
+	//Update GF_Clock dependencies
 	e = Track_FindRef(trak, GF_ISOM_REF_OCR, &dpnd);
 	if (e) return e;
 	if (!dpnd && esd->OCRESID && (esd->OCRESID != trak->moov->mov->es_id_default_sync)) {
@@ -1123,7 +1123,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			esd->ipiPtr->IPI_ES_Id = tmpRef;
 			esd->ipiPtr->tag = GF_ODF_ISOM_IPI_PTR_TAG;
 		} else {
-			//Watch out! ONLY ONE IPI dependancy is allowed per stream
+			//Watch out! ONLY ONE IPI dependency is allowed per stream
 			if (dpnd->trackIDCount != 1) return GF_ISOM_INVALID_MEDIA;
 			//if an existing one is there, what shall we do ???
 			//donno, erase it

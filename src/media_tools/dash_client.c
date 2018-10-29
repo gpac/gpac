@@ -3898,7 +3898,7 @@ s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 idx, u32 group_de
 GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 {
 	GF_Err e;
-	u32 i, j, count, nb_dependant_rep;
+	u32 i, j, count, nb_dependent_rep;
 	GF_MPD_Period *period;
 
 	if (!dash->groups) {
@@ -3947,7 +3947,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? GF_TRUE : GF_FALSE;
 
 		seg_dur = 0;
-		nb_dependant_rep = 0;
+		nb_dependent_rep = 0;
 		for (j=0; j<gf_list_count(set->representations); j++) {
 			Double dur;
 			u32 nb_seg, k;
@@ -4067,7 +4067,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			if (!rep->playback.enhancement_rep_index_plus_one)
 				group->max_complementary_rep_index = j;
 			if (!rep->playback.disabled && rep->dependency_id)
-				nb_dependant_rep++;
+				nb_dependent_rep++;
 		}
 
 		if (!seg_dur && !dash->is_m3u8) {
@@ -4094,13 +4094,13 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 					group->max_cached_segments ++;
 			}
 #endif
-			group->max_cached_segments *= (nb_dependant_rep+1);
-			group->max_buffer_segments *= (nb_dependant_rep+1);
+			group->max_cached_segments *= (nb_dependent_rep+1);
+			group->max_buffer_segments *= (nb_dependent_rep+1);
 		}
 
 		if (!dash->thread_mode) {
-			group->max_cached_segments = (nb_dependant_rep+1);
-			group->max_buffer_segments = (nb_dependant_rep+1);
+			group->max_cached_segments = (nb_dependent_rep+1);
+			group->max_buffer_segments = (nb_dependent_rep+1);
 		}
 
 		if (!has_dependent_representations)

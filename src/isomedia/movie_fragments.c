@@ -172,7 +172,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, 
 		//we could also check all our data refs are local but we'll do that at run time
 		//in order to allow a mix of both (remote refs in MOOV and local in MVEX)
 
-		//one thing that MUST be done is OD cross-dependancies. The movie fragment spec
+		//one thing that MUST be done is OD cross-dependencies. The movie fragment spec
 		//is broken here, since it cannot allow dynamic insertion of new ESD and their
 		//dependancies
 	}
@@ -810,32 +810,40 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 
 	if (load_mdat_only) {
 		u64 pos = gf_bs_get_position(bs);
+		if (movie->moof->fragment_offset > pos)
+			return GF_CORRUPTED_DATA;
+
 		//we assume we never write large MDATs in fragment mode which should always be true
 		movie->moof->mdat_size = (u32) (pos - movie->moof->fragment_offset);
 
 		if (movie->segment_bs) {
-			gf_bs_seek(bs, 0);
+			e = gf_bs_seek(bs, 0);
+			if (e) return e;
 			/*write mdat size*/
 			gf_bs_write_u32(bs, (u32) movie->moof->mdat_size);
 			/*and get internal buffer*/
-			gf_bs_seek(bs, movie->moof->mdat_size);
+			e = gf_bs_seek(bs, movie->moof->mdat_size);
+			if (e) return e;
 			gf_bs_get_content(bs, &movie->moof->mdat, &movie->moof->mdat_size);
 
 			gf_bs_del(bs);
 			movie->editFileMap->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		} else {
 			u64 offset = movie->segment_start;
-			gf_bs_seek(bs, offset);
+			e = gf_bs_seek(bs, offset);
+			if (e) return e;
 			/*write mdat size*/
 			gf_bs_write_u32(bs, (u32) movie->moof->mdat_size);
 
 			movie->moof->mdat = (char*)gf_malloc(sizeof(char) * movie->moof->mdat_size);
 			if (!movie->moof->mdat) return GF_OUT_OF_MEM;
 
-			gf_bs_seek(bs, offset);
+			e = gf_bs_seek(bs, offset);
+			if (e) return e;
 			gf_bs_read_data(bs, movie->moof->mdat, movie->moof->mdat_size);
 
-			gf_bs_seek(bs, offset);
+			e = gf_bs_seek(bs, offset);
+			if (e) return e;
 			gf_bs_truncate(bs);
 		}
 
@@ -850,12 +858,14 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 
 	//2- update MOOF MDAT header
 	if (!movie->moof->mdat) {
-		gf_bs_seek(bs, movie->moof->fragment_offset);
+		e = gf_bs_seek(bs, movie->moof->fragment_offset);
+		if (e) return e;
 		//we assume we never write large MDATs in fragment mode which should always be true
 		mdat_size = (u32) (moof_start - movie->moof->fragment_offset);
 		gf_bs_write_u32(bs, (u32) mdat_size);
 		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
-		gf_bs_seek(bs, moof_start);
+		e = gf_bs_seek(bs, moof_start);
+		if (e) return e;
 	}
 
 	/*estimate moof size and shift trun offsets*/
@@ -891,10 +901,12 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	/*rewind bitstream and load mdat in memory */
 	if (movie->moof_first && !movie->moof->mdat) {
 		buffer = (char*)gf_malloc(sizeof(char)*mdat_size);
-		gf_bs_seek(bs, movie->moof->fragment_offset);
+		e = gf_bs_seek(bs, movie->moof->fragment_offset);
+		if (e) return e;
 		gf_bs_read_data(bs, buffer, mdat_size);
 		/*back to mdat start and erase with moov*/
-		gf_bs_seek(bs, movie->moof->fragment_offset);
+		e = gf_bs_seek(bs, movie->moof->fragment_offset);
+		if (e) return e;
 		gf_bs_truncate(bs);
 	}
 
@@ -2008,7 +2020,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 
 	//rewrite OD frames
 	if (traf->trex->track->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
-		//this may fail if depandancies are not well done ...
+		//this may fail if dependencies are not well done ...
 		Media_ParseODFrame(traf->trex->track->Media, sample, &od_sample);
 		sample = od_sample;
 	}

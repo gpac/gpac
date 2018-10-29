@@ -510,7 +510,7 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 			}
 		}
 		if (!esdl->esd->dependsOnESID) {
-			xmt_report(parser, GF_OK, "WARNING: Could not find stream dependance %s for ES %s - forcing self-synchronization", esdl->Depends_Name, esdl->desc_name);
+			xmt_report(parser, GF_OK, "WARNING: Could not find stream dependence %s for ES %s - forcing self-synchronization", esdl->Depends_Name, esdl->desc_name);
 		}
 		gf_free(esdl->Depends_Name);
 		esdl->Depends_Name = NULL;
