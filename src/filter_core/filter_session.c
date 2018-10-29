@@ -833,7 +833,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		//this is a crude way of scheduling the next task, we should
 		//1- have a way to make sure we will not repost after a time-consuming task
-		//2- have a wait to wait for the given amount of time rather than just do a sema_wait/notify in loop
+		//2- have a way to wait for the given amount of time rather than just do a sema_wait/notify in loop
 		if (task->schedule_next_time) {
 			s64 now = gf_sys_clock_high_res();
 			s64 diff = task->schedule_next_time;
