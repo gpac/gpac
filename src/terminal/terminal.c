@@ -1720,9 +1720,16 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 GF_EXPORT
 void gf_term_print_stats(GF_Terminal *term)
 {
-	gf_fs_print_stats(term->fsess);
+	if (term->fsess)
+		gf_fs_print_stats(term->fsess);
 }
 
+GF_EXPORT
+void gf_term_print_graph(GF_Terminal *term)
+{
+	if (term->fsess)
+		gf_fs_print_connections(term->fsess);
+}
 
 GF_EXPORT
 GF_Err gf_term_connect_output_filter(GF_Terminal *term, const char *filter_desc)

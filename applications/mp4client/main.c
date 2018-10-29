@@ -293,6 +293,8 @@ void PrintUsage()
 	        "\t-uncache:       Revert all cached items to their original name and location. Does not start player.\n"
 	        "\n"
 	        "\t-p profile:    user-defined profile, either a name or path to an existing GPAC config file.\n"
+	        "\t-stats:        dumps filter session stats after playback.\n"
+	        "\t-graph:        dumps filter session graph after playback.\n"
 	        "\t-help:          shows this screen\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
@@ -1221,6 +1223,8 @@ int mp4client_main(int argc, char **argv)
 	Bool pause_at_first = GF_FALSE;
 	Bool no_cfg_save = GF_FALSE;
 	Bool is_cfg_only = GF_FALSE;
+	Bool print_stats = GF_FALSE;
+	Bool print_graph = GF_FALSE;
 
 	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
@@ -1475,6 +1479,10 @@ int mp4client_main(int argc, char **argv)
 			else if (!stricmp(arg, "-service")) {
 				initial_service_id = atoi(argv[i+1]);
 				i++;
+			} else if (!stricmp(arg, "-stats")) {
+				print_stats=GF_TRUE;
+			} else if (!stricmp(arg, "-graph")) {
+				print_graph=GF_TRUE;
 			}
 		}
 	}
@@ -2078,6 +2086,9 @@ force_input:
 		case 'f':
 			gf_term_print_stats(term);
 			break;
+		case 'g':
+			gf_term_print_graph(term);
+			break;
 
 		case 'u':
 		{
@@ -2124,13 +2135,6 @@ force_input:
 		}
 		break;
 
-		case 'g':
-		{
-			GF_SystemRTInfo rti;
-			gf_sys_get_rti(rti_update_time_ms, &rti, 0);
-			fprintf(stderr, "GPAC allocated memory "LLD"\n", rti.gpac_memory);
-		}
-		break;
 		case 'M':
 		{
 			u32 size;
@@ -2287,6 +2291,10 @@ force_input:
 		gf_log_set_strict_error(0);
 	}
 
+	if (print_graph)
+		gf_term_print_graph(term);
+	if (print_stats)
+		gf_term_print_stats(term);
 
 	i = gf_sys_clock();
 	gf_term_disconnect(term);
