@@ -2189,6 +2189,9 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 			}
 			//unmapped sample
 			if (!found) {
+				if (!traf->sampleGroups)
+					traf->sampleGroups = gf_list_new();
+
 				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->grouping_type_parameter,  0, sgpd_in_traf);
 				if (e) return e;
 			}
