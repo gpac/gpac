@@ -1719,6 +1719,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 		}
 	}
 
+	max_sap_type = 0;
 	if (dasher->force_session_end)
 		goto write_rep_only;
 
