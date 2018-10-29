@@ -194,6 +194,8 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 
 void gf_term_print_stats(GF_Terminal *term);
 
+void gf_term_print_graph(GF_Terminal *term);
+
 /*! @} */
 
 #ifdef __cplusplus
