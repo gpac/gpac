@@ -4727,6 +4727,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	GF_SampleGroupBox *sgroup = NULL;
 	u32 i, count, last_sample_in_entry;
 
+	assert(sampleGroups);
 	count = gf_list_count(sampleGroups);
 	for (i=0; i<count; i++) {
 		sgroup = (GF_SampleGroupBox*)gf_list_get(sampleGroups, i);

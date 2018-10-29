@@ -7544,7 +7544,7 @@ static GF_Err gf_import_ivf(GF_MediaImporter *import)
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
 	e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
-	fclose(mdia);
+	gf_fclose(mdia);
 	gf_bs_del(bs);
 	if (e)
 		return e;

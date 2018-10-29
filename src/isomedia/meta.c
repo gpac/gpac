@@ -743,7 +743,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			fseek(fp,0,SEEK_SET);
 			colr->opaque = malloc(colr->opaque_size);
 			read = gf_fread(colr->opaque, 1, colr->opaque_size, fp);
-			fclose(fp);
+			gf_fclose(fp);
 			if (ferror(fp) || read != colr->opaque_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error reading ICC colour profile from file %s\n", &image_props->iccPath));
 			} else {
