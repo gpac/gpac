@@ -2611,6 +2611,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 i, count;
 	Bool found_dest=GF_FALSE;
+	Bool can_try_link_resuolution=GF_FALSE;
 	Bool first_pass=GF_TRUE;
 	GF_List *loaded_filters = NULL;
 	GF_Filter *filter = task->filter;
@@ -2734,6 +2735,8 @@ restart:
 			}
 		}
 
+		can_try_link_resuolution = GF_TRUE;
+
 		//we have a match, check if caps are OK
 		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
 
@@ -2849,12 +2852,11 @@ restart:
 	}
 
 	//nothing found, redo a pass, this time allowing for link resolve
-	if (first_pass) {
-		if (filter->session->max_resolve_chain_len) {
-			first_pass = GF_FALSE;
-			goto restart;
-		}
+	if (first_pass && can_try_link_resuolution && filter->session->max_resolve_chain_len) {
+		first_pass = GF_FALSE;
+		goto restart;
 	}
+	
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
