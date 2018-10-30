@@ -502,7 +502,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_Event evt;
 	int rgb_mode=0;
 	const GF_PropertyValue *p;
-	u32 w, h, pfmt, stride, timescale, dw, dh;
+	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh, hw, hh;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -529,6 +529,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) ctx->fps = p->value.frac;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
 	if (p) stride = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE_UV);
+	stride_uv = p ? p->value.uint : 0;
 
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
@@ -627,7 +629,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->width = w;
 	ctx->height = h;
 	ctx->pfmt = pfmt;
-	ctx->uv_w = ctx->uv_h = ctx->uv_stride = 0;
+	ctx->uv_w = ctx->uv_h = 0;
+	ctx->uv_stride = stride_uv;
 	ctx->bit_depth = 0;
 	ctx->has_alpha = GF_FALSE;
 	ctx->swap_uv = GF_FALSE;
@@ -640,6 +643,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #ifndef GPAC_DISABLE_3D
 	ctx->pixel_format = GL_LUMINANCE;
 #endif
+	hw = ctx->width/2;
+	if (ctx->width %2) hw++;
+	hh = ctx->height/2;
+	if (ctx->height %2) hh++;
+
 	switch (ctx->pfmt) {
 	case GF_PIXEL_YUV444_10:
 		ctx->bit_depth = 10;
@@ -661,8 +669,13 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->bit_depth = 10;
 	case GF_PIXEL_YUV:
 		ctx->uv_w = ctx->width/2;
+		if (ctx->width % 2) ctx->uv_w++;
 		ctx->uv_h = ctx->height/2;
-		ctx->uv_stride = ctx->stride/2;
+		if (ctx->height % 2) ctx->uv_h++;
+		if (!ctx->uv_stride) {
+			ctx->uv_stride = ctx->stride/2;
+			if (ctx->stride%2) ctx->uv_stride ++;
+		}
 		ctx->is_yuv = GF_TRUE;
 		break;
 	case GF_PIXEL_NV12_10:
@@ -679,7 +692,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_PIXEL_YUYV:
 		ctx->uv_w = ctx->width/2;
 		ctx->uv_h = ctx->height;
-		ctx->uv_stride = ctx->stride/2;
+		if (!ctx->uv_stride) {
+			ctx->uv_stride = ctx->stride/2;
+			if (ctx->stride%2) ctx->uv_stride ++;
+		}
 		ctx->is_yuv = GF_TRUE;
 		break;
 	case GF_PIXEL_GREYSCALE:

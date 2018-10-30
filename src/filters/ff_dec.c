@@ -278,53 +278,45 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		pix_out = AV_PIX_FMT_RGBA;
 		break;
 	case GF_PIXEL_YUV:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)out_buffer + 5 * ctx->stride * ctx->height / 4;
-		pict.linesize[0] = ctx->stride;
-		pict.linesize[1] = pict.linesize[2] = ctx->stride/2;
-		pix_out = AV_PIX_FMT_YUV420P;
-		break;
-	case GF_PIXEL_YUV422:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)out_buffer + 3*ctx->stride * ctx->height/2;
-		pict.linesize[0] = ctx->stride;
-		pict.linesize[1] = pict.linesize[2] = ctx->stride/2;
-		pix_out = AV_PIX_FMT_YUV422P;
-		break;
-	case GF_PIXEL_YUV444:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)out_buffer + 2*ctx->stride * ctx->height;
-		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ctx->stride;
-		pix_out = AV_PIX_FMT_YUV444P;
-		break;
 	case GF_PIXEL_YUV_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)out_buffer + 5 * ctx->stride * ctx->height / 4;
+		pict.data[2] =  (uint8_t *)pict.data[1] + ctx->stride_uv * uv_height;
 		pict.linesize[0] = ctx->stride;
-		pict.linesize[1] = pict.linesize[2] = ctx->stride/2;
-		pix_out = AV_PIX_FMT_YUV420P10LE;
+		pict.linesize[1] = pict.linesize[2] = ctx->stride_uv;
+		if (ctx->pixel_fmt == GF_PIXEL_YUV_10)
+			pix_out = AV_PIX_FMT_YUV420P10LE;
+		else
+			pix_out = AV_PIX_FMT_YUV420P;
 		break;
+
+	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)out_buffer + 3*ctx->stride * ctx->height/2;
+		pict.data[2] =  (uint8_t *)pict.data[1] + ctx->stride_uv * ctx->height;
 		pict.linesize[0] = ctx->stride;
-		pict.linesize[1] = pict.linesize[2] = ctx->stride/2;
-		pix_out = AV_PIX_FMT_YUV422P10LE;
+		pict.linesize[1] = pict.linesize[2] = ctx->stride_uv;
+		if (ctx->pixel_fmt == GF_PIXEL_YUV422_10)
+			pix_out = AV_PIX_FMT_YUV422P10LE;
+		else
+			pix_out = AV_PIX_FMT_YUV422P;
 		break;
+
+	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
 		pict.data[0] =  (uint8_t *)out_buffer;
 		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
 		pict.data[2] =  (uint8_t *)out_buffer + 2*ctx->stride * ctx->height;
 		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ctx->stride;
-		pix_out = AV_PIX_FMT_YUV444P10LE;
+		if (ctx->pixel_fmt == GF_PIXEL_YUV444_10)
+			pix_out = AV_PIX_FMT_YUV444P10LE;
+		else
+			pix_out = AV_PIX_FMT_YUV444P;
 		break;
+
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %s\n", av_get_pix_fmt_name(ctx->decoder->pix_fmt) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %s, patch welcome\n", av_get_pix_fmt_name(ctx->decoder->pix_fmt) ));
 
 		gf_filter_pck_discard(dst_pck);
 
