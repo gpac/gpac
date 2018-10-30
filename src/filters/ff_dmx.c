@@ -355,7 +355,11 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 		}
 
 		if (expose_ffdec) {
+			const char *cname = avcodec_get_name(codec->codec_id);
 			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
+
+			if (cname)
+				gf_filter_pid_set_property_str(pid, "ffmpeg:codec", &PROP_STRING(cname ) );
 		} else if (codec->extradata_size) {
 			//expose as const data
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
@@ -503,7 +507,7 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
-		if (!ctx->nb_playing && !ctx->raw_data) {
+		if (!ctx->nb_playing && !ctx->raw_data && (com->play.start_range>0) ) {
 			int res = av_seek_frame(ctx->demuxer, -1, (s64) (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
 			if (res<0) {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ctx->fname, ctx->src, com->play.start_range, av_err2str(res) ));

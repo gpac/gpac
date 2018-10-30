@@ -1294,7 +1294,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			}
 			else {
 				if (odm->type!=type) continue;
-				//todo: select prefered media format ?
+				//todo: select preferred media format ?
 			}
 
 			if (scene->selected_service_id && (scene->selected_service_id != odm->ServiceID)) {

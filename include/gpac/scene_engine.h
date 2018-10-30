@@ -58,7 +58,7 @@ typedef void (*gf_seng_callback)(void *udta, u16 ESID, char *data, u32 size, u64
 /**
  * \param calling_object is the calling object on which call back will be called
  * \param inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
- * \param load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
+ * \param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
  * \param dump_path is the path where scenes are dumped
  * \param embed_resources indicates if images and scripts should be encoded inlined with the content
  *
@@ -69,7 +69,7 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_
 /**
  * \param calling_object is the calling object on which call back will be called
  * \param inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
- * \param load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
+ * \param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
  * \param width width of scene if no IOD is given in the context.
  * \param height height of scene if no IOD is given in the context.
  * \param usePixelMetrics metrics system used in the scene, if no IOD is given in the context.

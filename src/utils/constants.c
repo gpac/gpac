@@ -138,6 +138,8 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8", NULL, "video/vp8"},
 	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9", NULL, "video/vp9"},
 
+	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
+
 };
 
 
@@ -758,6 +760,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		uv_height = height / 2;
 		size = 3*stride * height / 2;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
+		if (no_in_stride_uv && (stride%2) )
+		 	stride_uv+=1;
 		planes=3;
 		break;
 	case GF_PIXEL_YUVA:
@@ -766,6 +770,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		uv_height = height / 2;
 		size = 3*stride * height / 2 + width*height;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
+		if (no_in_stride_uv && (stride%2) )
+		 	stride_uv+=1;
 		planes=4;
 		break;
 	case GF_PIXEL_YUV_10:
@@ -773,6 +779,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		size = 3*stride * height / 2;
 		uv_height = height / 2;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
+		if (no_in_stride_uv && (stride%2) )
+		 	stride_uv+=1;
 		planes=3;
 		break;
 	case GF_PIXEL_YUV422:
@@ -780,6 +788,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		size = stride * height * 2;
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
+		if (no_in_stride_uv && (stride%2) )
+		 	stride_uv+=1;
 		planes=3;
 		break;
 	case GF_PIXEL_YUV422_10:
@@ -787,6 +797,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		size = stride * height * 2;
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
+		if (no_in_stride_uv && (stride%2) )
+		 	stride_uv+=1;
 		planes=3;
 		break;
 	case GF_PIXEL_YUV444:

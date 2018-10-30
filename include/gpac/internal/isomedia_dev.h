@@ -2211,7 +2211,7 @@ typedef struct
 {
 	GF_ISOM_BOX
 	u8 reserved;
-	u8 prefered;
+	u8 preferred;
 	u8 required;
 } GF_RelyHintBox;
 

@@ -1248,14 +1248,13 @@ int mp4client_main(int argc, char **argv)
 	nb_times = 0;
 	times[0] = 0;
 
-	/*first locate config file if specified*/
+	/*first identify profile and mem tracking */
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (!strcmp(arg, "-p")) {
 			profile = argv[i+1];
 			i++;
-		}
-		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
+		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 #ifdef GPAC_MEMORY_TRACKING
             mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
 #else
@@ -1345,7 +1344,7 @@ int mp4client_main(int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-ifce")) {
-			gf_opts_set_key("Core", "DefaultMCastInterface", argv[i+1]);
+			gf_opts_set_key("libgpac", "ifce", argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-help")) {
@@ -1491,7 +1490,7 @@ int mp4client_main(int argc, char **argv)
 		return 0;
 	}
 	if (do_uncache) {
-		const char *cache_dir = gf_opts_get_key("Core", "CacheDirectory");
+		const char *cache_dir = gf_opts_get_key("libgpac", "cache");
 		do_flatten_cache(cache_dir);
 		fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
 		return 0;
@@ -1522,7 +1521,7 @@ int mp4client_main(int argc, char **argv)
 		TCHAR buffer[1024];
 		DWORD res = GetCurrentDirectory(1024, buffer);
 		buffer[res] = 0;
-		opt = gf_opts_get_key("Core", "ModulesDirectory");
+		opt = gf_opts_get_key("libgpac", "mod-dirs");
 		if (strstr(opt, buffer)) {
 			gui_mode=1;
 		} else {
@@ -1631,9 +1630,8 @@ int mp4client_main(int argc, char **argv)
 		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 	}
 
-	str = gf_opts_get_key("Core", "HTTPProxyEnabled");
-	if (str && !strcmp(str, "yes")) {
-		str = gf_opts_get_key("Core", "HTTPProxyName");
+	if (gf_opts_get_bool("libgpac", "proxy-on")) {
+		str = gf_opts_get_key("libgpac", "proxy-name");
 		if (str) fprintf(stderr, "HTTP Proxy %s enabled\n", str);
 	}
 

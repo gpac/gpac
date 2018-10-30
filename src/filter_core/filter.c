@@ -493,8 +493,13 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
 		}
 	}
-	else if (!strnicmp(value, "$GPAC_LANGUAGES", 15)) {
-		value = "English";
+	else if (!strnicmp(value, "$GPAC_LANG", 15)) {
+		value = gf_opts_get_key("libgpac", "lang");
+		if (!value) value = "en";
+	}
+	else if (!strnicmp(value, "$GPAC_UA", 15)) {
+		value = gf_opts_get_key("libgpac", "user-agent");
+		if (!value) value = "GPAC " GPAC_VERSION;
 	}
 	argv = gf_props_parse_value(type, name, value, enum_values, filter->session->sep_list);
 	return argv;
@@ -594,7 +599,7 @@ static const char *gf_filter_load_arg_config(const char *sec_name, const char *a
 
 	//keep MP4Client behaviour: some options are set in MP4Client main apply them
 	if (!strcmp(arg_name, "ifce")) {
-		opt = gf_opts_get_key("Core", "DefaultMCastInterface");
+		opt = gf_opts_get_key("libgpac", "ifce");
 		if (opt)
 			return opt;
 	}

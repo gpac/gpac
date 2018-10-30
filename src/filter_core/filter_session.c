@@ -105,7 +105,6 @@ GF_EXPORT
 GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
 {
 	u32 i, count;
-	const char *opt;
 	GF_FilterSession *fsess, *a_sess;
 
 	//safety check: all built-in properties shall have unique 4CCs
@@ -255,8 +254,8 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, u
 
 	gf_filter_sess_build_graph(fsess, NULL);
 
-	opt = gf_opts_get_key("Core", "PrintFilterEdges");
-	if (opt && !strcmp(opt, "yes")) fsess->flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
+	if (gf_opts_get_bool("libgpac", "print-edges"))
+		fsess->flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
 	fsess->init_done = GF_TRUE;
 	return fsess;
@@ -1910,10 +1909,9 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 	        (locales_parent_path && (locales_parent_path[0] != '/') && strstr(locales_parent_path, "://") && strnicmp(locales_parent_path, "file://", 7))) {
 		return 0;
 	}
-	opt = gf_cfg_get_key(loc->term->user->config, "Core", "Language2CC");
-	if (opt) {
-		if (!strcmp(opt, "*") || !strcmp(opt, "un") )
-			opt = NULL;
+	opt = gf_cfg_get_key(loc->term->user->config, "libgpac", "lang");
+	if (opt && (!strcmp(opt, "*") || !strcmp(opt, "un") ) ) {
+		opt = NULL;
 	}
 
 	while (opt) {

@@ -685,10 +685,87 @@ static u64 memory_at_gpac_startup = 0;
 
 static u32 gpac_argc = 0;
 const char **gpac_argv = NULL;
+FILE *gpac_log_file = NULL;
+static u64 gpac_log_time_start = 0;
+static u64 gpac_last_log_time=0;
+static Bool gpac_log_utc_time = GF_FALSE;
+
+static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
+{
+	FILE *logs = cbk ? cbk : stderr;
+
+	if (gpac_log_time_start) {
+		u64 now = gf_sys_clock_high_res();
+		fprintf(logs, "At "LLD" (diff %d) - ", now - gpac_log_time_start, (u32) (now - gpac_last_log_time) );
+		gpac_last_log_time = now;
+	}
+	if (gpac_log_utc_time) {
+		u64 utc_clock = gf_net_get_utc() ;
+		time_t secs = utc_clock/1000;
+		struct tm t;
+		t = *gmtime(&secs);
+		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
+	}
+	vfprintf(logs, fmt, list);
+	fflush(logs);
+}
 
 GF_EXPORT
-void gf_sys_set_args(s32 argc, const char **argv)
+Bool gf_sys_set_args(s32 argc, const char **argv)
 {
+	if (!gpac_argc) {
+		u32 i;
+		Bool gf_opts_load_option(const char *name, const char *val, Bool *consumed_next);
+
+		const char *log_file_name=NULL;
+		for (i=1; i<argc; i++) {
+			Bool consumed;
+			Bool use_sep=GF_FALSE;
+			const char *arg = argv[i];
+			char *arg_val = strchr(arg, '=');
+			if (arg_val) {
+				arg_val[0]=0;
+				arg_val++;
+				use_sep=GF_TRUE;
+			} else if (i+1<argc) {
+				arg_val = (char *) argv[i+1];
+			}
+			if (arg[0] != '-') continue;
+			if (! arg[1]) continue;
+
+			if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
+				log_file_name = arg_val;
+				if (!use_sep) i += 1;
+			} else if (!strcmp(arg, "-logs") ) {
+				if (gf_log_set_tools_levels(arg_val) != GF_OK) {
+					return GF_FALSE;
+				}
+				if (!use_sep) i += 1;
+			} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
+				gpac_log_time_start = 1;
+				gf_log_set_callback(gpac_log_file, on_gpac_log);
+			} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
+				gpac_log_utc_time = 1;
+				gf_log_set_callback(gpac_log_file, on_gpac_log);
+			} else if (gf_opts_load_option(arg, arg_val, &consumed)) {
+				if (consumed && !use_sep)
+					i += 1;
+			}
+			
+			if (use_sep) {
+				arg_val--;
+				arg_val[0]='=';
+			}
+		}
+		if (log_file_name) {
+			gpac_log_file = gf_fopen(log_file_name, "wt");
+			gf_log_set_callback(gpac_log_file, on_gpac_log);
+		}
+
+		if (gf_opts_get_bool("libgpac", "rmt"))
+			gf_sys_enable_profiling(GF_TRUE);
+
+	}
 	//for OSX we allow overwrite of argc/argv due to different behavior between console-mode apps and GUI
 #if !defined(__DARWIN__) && !defined(__APPLE__)
 	if (!gpac_argc && (argc>=0) )
@@ -697,7 +774,9 @@ void gf_sys_set_args(s32 argc, const char **argv)
 		gpac_argc = (u32) argc;
 		gpac_argv = argv;
 	}
+	return GF_TRUE;
 }
+
 GF_EXPORT
 u32 gf_sys_get_argc()
 {
@@ -717,42 +796,58 @@ const char *gf_sys_get_arg(u32 arg)
 Remotery *remotery_handle=NULL;
 
 //commented out as it put quite some load on the browser
-#if 0
-gf_log_cbk prev_default_logs = NULL;
 
-void rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
+gf_log_cbk gpac_prev_default_logs = NULL;
+
+void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
 	char szMsg[4046];
 	vsprintf(szMsg, fmt, vlist);
 
 	rmt_LogText(szMsg);
 }
-#endif
 
 #endif
 
+static void gpac_rmt_input_handler(const char* text, void* context)
+{
+fprintf(stderr, "RMT text %s\n", text);
+}
 
 GF_EXPORT
 Bool gf_sys_enable_profiling(Bool start)
 {
 #ifndef GPAC_DISABLE_REMOTERY
 	if (start && !remotery_handle) {
+		rmtSettings *rmcfg = rmt_Settings();
+
+		rmcfg->port = gf_opts_get_int("libgpac", "rmt-port");
+		rmcfg->reuse_open_port = gf_opts_get_bool("libgpac", "rmt-reuse");
+		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("libgpac", "rmt-localhost");
+		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("libgpac", "rmt-sleep");
+		rmcfg->maxNbMessagesPerUpdate = gf_opts_get_int("libgpac", "rmt-nmsg");
+		rmcfg->messageQueueSizeInBytes = gf_opts_get_int("libgpac", "rmt-qsize");
+		rmcfg->input_handler = gpac_rmt_input_handler;
+
 		rmtError rme = rmt_CreateGlobalInstance(&remotery_handle);
 		if (rme != RMT_ERROR_NONE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize Remotery profiler: error %d\n", rme));
 			return GF_FALSE;
 		}
-		rmt_BindOpenGL();
-#if 0
-		prev_default_logs = gf_log_set_callback(NULL, rmt_log_callback);
-#endif
+		if (gf_opts_get_bool("libgpac", "rmt-ogl"))
+			rmt_BindOpenGL();
+
+		if (gf_opts_get_bool("libgpac", "rmt-log")) {
+			gpac_prev_default_logs = gf_log_set_callback(NULL, gpac_rmt_log_callback);
+		}
 	} else if (!start && remotery_handle) {
-		rmt_UnbindOpenGL();
+		if (gf_opts_get_bool("libgpac", "rmt-ogl"))
+			rmt_UnbindOpenGL();
+
 		rmt_DestroyGlobalInstance(remotery_handle);
 		remotery_handle=NULL;
-#if 0
-		gf_log_set_callback(NULL, prev_default_logs);
-#endif
+		if (gpac_prev_default_logs != NULL)
+			gf_log_set_callback(NULL, gpac_prev_default_logs);
 	}
 	return GF_TRUE;
 #else
@@ -904,10 +999,15 @@ void gf_sys_close()
 		psapi_hinst = NULL;
 #endif
 
+		gf_sys_enable_profiling(GF_FALSE);
+		
 		gf_uninit_global_config();
-	}
 
-	gf_sys_enable_profiling(GF_FALSE);
+		if (gpac_log_file) {
+			gf_fclose(gpac_log_file);
+			gpac_log_file = NULL;
+		}
+	}
 }
 
 #ifdef GPAC_MEMORY_TRACKING

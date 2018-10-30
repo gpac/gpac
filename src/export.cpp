@@ -63,6 +63,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_user_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_enum_directory) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_args) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_is_libgpac_arg) )
+
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tools_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tool_level) )

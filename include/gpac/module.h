@@ -299,12 +299,12 @@ GF_Err gf_modules_close_interface(GF_BaseInterface *interface_obj);
 /*!
  *\brief module load
  *
- *Loads a module based on a prefered name.
+ *Loads a module based on a preferred name.
  *If not found, check for predefined names for the given interface type in fthe global config and loads by predefined name.
  *If still not found, enumerate modules.
 
  \param ifce_type type of module interface to load
- \param name name of prefered module
+ \param name name of preferred module
  \return the loaded module, or NULL if not found
 */
 GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name);

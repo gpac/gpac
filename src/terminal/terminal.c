@@ -887,7 +887,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	}
 
 	memset(&load, 0, sizeof(GF_SceneLoader));
-	load.localPath = gf_opts_get_key("Core", "CacheDirectory");
+	load.localPath = gf_opts_get_key("libgpac", "cache");
 	load.flags = GF_SM_LOAD_FOR_PLAYBACK | GF_SM_LOAD_CONTEXT_READY;
 	load.type = GF_SM_LOAD_BT;
 

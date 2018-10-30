@@ -201,15 +201,12 @@ void gf_modules_new(GF_Config *config)
 		return;
 	}
 
-	opt = gf_cfg_get_key(config, "Core", "ModuleUnload");
-	if (opt && !strcmp(opt, "no")) {
-		gpac_modules_static->no_unload = GF_TRUE;
-	}
+	gpac_modules_static->no_unload = !gf_opts_get_bool("libgpac", "mod-reload");
 
-	opt = gf_cfg_get_key(config, "Core", "Version");
+	opt = gf_opts_get_key("libgpac", "version");
 	if (!opt || strcmp(opt, GPAC_FULL_VERSION)) {
 		gf_cfg_del_section(config, "PluginsCache");
-		gf_cfg_set_key(config, "Core", "Version", GPAC_FULL_VERSION);
+		gf_opts_set_key("libgpac", "version", GPAC_FULL_VERSION);
 	}
 
 	gpac_modules_static->needs_load = GF_TRUE;
@@ -290,7 +287,7 @@ const char **gf_modules_get_module_directories(u32* num_dirs)
 	if (!pm->cfg) return NULL;
 
 	/* Get directory from config file */
-	directories = (char*)gf_cfg_get_key(pm->cfg, "Core", "ModulesDirectory");
+	directories = (char*)gf_opts_get_key("libgpac", "mod-dirs");
 	if (! directories) {
 #ifndef GPAC_CONFIG_IOS
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Modules directories not found - check the \"ModulesDirectory\" key is set in the \"Core\" section\n"));
@@ -628,7 +625,7 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 			ifce = NULL;
 		}
 	}
-	/*get a prefered output*/
+	/*get a preferred output*/
 	if (!ifce) {
 		const char *sOpt;
 		switch (ifce_type) {
