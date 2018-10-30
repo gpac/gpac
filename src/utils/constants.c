@@ -758,62 +758,65 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_YUV:
 		stride = no_in_stride ? width : *out_stride;
 		uv_height = height / 2;
-		size = 3*stride * height / 2;
+		if (height % 2) uv_height++;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		size = stride * height + stride_uv * uv_height * 2;
 		break;
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVD:
 		stride = no_in_stride ? width : *out_stride;
 		uv_height = height / 2;
-		size = 3*stride * height / 2 + width*height;
+		if (height % 2) uv_height++;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=4;
+		size = 2*stride * height + stride_uv * uv_height * 2;
 		break;
 	case GF_PIXEL_YUV_10:
 		stride = no_in_stride ? 2*width : *out_stride;
-		size = 3*stride * height / 2;
 		uv_height = height / 2;
+		if (height % 2) uv_height++;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		size = stride * height + stride_uv * uv_height * 2;
 		break;
 	case GF_PIXEL_YUV422:
 		stride = no_in_stride ? width : *out_stride;
-		size = stride * height * 2;
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		size = stride * height + stride_uv * height * 2;
 		break;
 	case GF_PIXEL_YUV422_10:
 		stride = no_in_stride ? 2*width : *out_stride;
-		size = stride * height * 2;
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride/2 : *out_stride_uv;
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		size = stride * height + stride_uv * height * 2;
 		break;
 	case GF_PIXEL_YUV444:
 		stride = no_in_stride ? width : *out_stride;
-		size = stride * height * 3;
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=3;
+		size = stride * height * 3;
 		break;
 	case GF_PIXEL_YUV444_10:
 		stride = no_in_stride ? 2*width : *out_stride;
-		size = stride * height * 3;
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=3;
+		size = stride * height * 3;
 		break;
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV21:
@@ -826,18 +829,19 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_NV12_10:
 	case GF_PIXEL_NV21_10:
 		stride = no_in_stride ? 2*width : *out_stride;
-		size = 3 * stride * height / 2;
 		uv_height = height/2;
+		if (height % 2) uv_height++;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=2;
+		size = 3 * stride * height / 2;
 		break;
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
 		stride = no_in_stride ? 2*width : *out_stride;
-		size = height * stride;
 		planes=1;
+		size = height * stride;
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get size info\n", gf_pixel_fmt_name(pixfmt) ));
