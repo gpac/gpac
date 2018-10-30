@@ -462,7 +462,10 @@ enum
 	GF_CODECID_AV1 = GF_4CC('A','V','1',' '),
 
 	GF_CODECID_VP8 = GF_4CC('V','P','0','8'),
-	GF_CODECID_VP9 = GF_4CC('V','P','0','9')
+	GF_CODECID_VP9 = GF_4CC('V','P','0','9'),
+
+	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
+
 };
 
 /*! Gets a textual description for the given codecID

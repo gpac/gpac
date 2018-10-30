@@ -78,10 +78,8 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 void isor_declare_objects(ISOMReader *read)
 {
 	ISOMChannel *ch;
-#ifdef FILTER_FIXME
 	const char *tag;
 	u32 tlen;
-#endif
 	u32 i, count, ocr_es_id, base_track, j, track_id;
 	Bool highest_stream;
 	Bool single_media_found = GF_FALSE;
@@ -696,10 +694,9 @@ void isor_declare_objects(ISOMReader *read)
 		if (read->itt) break;
 	}
 
-#ifdef FILTER_FIXME
 	/*if cover art, extract it in cache*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
-		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(read->service), "Core", "CacheDirectory");
+		const char *cdir = gf_opts_get_key("libgpac", "cache");
 		if (cdir) {
 			char szName[GF_MAX_PATH];
 			const char *sep;
@@ -735,21 +732,12 @@ void isor_declare_objects(ISOMReader *read)
 				}
 
 				if (!isom_contains_video) {
-					od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-					od->service_ifce = read->input;
-					od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID;
-					od->URLString = gf_strdup(szName);
-					if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-						send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
-					} else {
-						gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_TRUE);
-					}
+					GF_FilterPid *cover_pid = gf_filter_pid_new(read->filter);
+					gf_filter_pid_set_property(cover_pid, GF_PROP_PID_REMOTE_URL, &PROP_STRING(szName) );
 				}
 			}
 		}
 	}
-#endif
-
 }
 
 Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_idx)

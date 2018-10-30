@@ -208,7 +208,7 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 	//we need a rely box (common to all protocols)
 	relyA = (GF_RelyHintBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_RELY);
 	if (Rely == 1) {
-		relyA->prefered = 1;
+		relyA->preferred = 1;
 	} else {
 		relyA->required = 1;
 	}

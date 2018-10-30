@@ -475,7 +475,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 
 	strcat(res, "cache/");
 	cache_dir = res;
-	old_cache_dir = (char*) gf_cfg_get_key(cfg, "Core", "CacheDirectory");
+	old_cache_dir = (char*) gf_opts_get_key("libgpac", "cache");
 
 	if (!gf_dir_exists(cache_dir)) {
 		if (old_cache_dir && strcmp(old_cache_dir, cache_dir)) {
@@ -483,7 +483,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 		}
 		gf_mkdir(cache_dir);
 	}
-	gf_cfg_set_key(cfg, "Core", "CacheDirectory", cache_dir);
+	gf_opts_set_key("libgpac", "cache", cache_dir);
 }
 
 #endif
@@ -536,18 +536,18 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 
 
-	gf_cfg_set_key(cfg, "Core", "ModulesDirectory", szPath);
+	gf_cfg_set_key(cfg, "libgpac", "mod-dirs", szPath);
 
 #if defined(GPAC_CONFIG_IOS)
 	gf_ios_refresh_cache_directory(cfg, file_path);
 #elif defined(GPAC_CONFIG_ANDROID)
 	if (get_default_install_path(szPath, GF_PATH_APP)) {
 		strcat(szPath, "/cache");
-		gf_cfg_set_key(cfg, "Core", "CacheDirectory", szPath);
+		gf_cfg_set_key(cfg, "libgpac", "cache", szPath);
 	}
 #else
 	/*get default temporary directoy */
-	gf_cfg_set_key(cfg, "Core", "CacheDirectory", gf_get_default_cache_directory());
+	gf_cfg_set_key(cfg, "libgpac", "cache", gf_get_default_cache_directory());
 #endif
 
 	gf_cfg_set_key(cfg, "Video", "Raster2D", "GPAC 2D Raster");
@@ -580,7 +580,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 #endif
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
 
-	gf_cfg_set_key(cfg, "Core", "CleanCache", "200M");
+	gf_cfg_set_key(cfg, "libgpac", "cache-size", "100M");
 
 #if defined(_WIN32_WCE)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "GAPI Video Output");
@@ -652,19 +652,19 @@ static void check_modules_dir(GF_Config *cfg)
 	const char *opt;
 
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
-		opt = gf_cfg_get_key(cfg, "Core", "ModulesDirectory");
+		opt = gf_cfg_get_key(cfg, "libgpac", "mod-dirs");
 		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
 #if defined(__DARWIN__) || defined(__APPLE__)
 		if (!opt || strcmp(opt, path))
-			gf_cfg_set_key(cfg, "Core", "ModulesDirectory", path);
+			gf_cfg_set_key(cfg, "libgpac", "mod-dirs", path);
 #else
 
 		//otherwise only check we didn't switch between a 64 bit version and a 32 bit version
 		if (!opt) {
-			gf_cfg_set_key(cfg, "Core", "ModulesDirectory", path);
+			gf_cfg_set_key(cfg, "libgpac", "mod-dirs", path);
 		} else  {
 			Bool erase_modules_dir = GF_FALSE;
-			const char *opt64 = gf_cfg_get_key(cfg, "Core", "64bits");
+			const char *opt64 = gf_cfg_get_key(cfg, "libgpac", "64bits");
 			if (!opt64) {
 				//first run or old versions, erase
 				erase_modules_dir = GF_TRUE;
@@ -683,10 +683,10 @@ static void check_modules_dir(GF_Config *cfg)
 #else
 			opt64 = "no";
 #endif
-			gf_cfg_set_key(cfg, "Core", "64bits", opt64);
+			gf_cfg_set_key(cfg, "libgpac", "64bits", opt64);
 
 			if (erase_modules_dir) {
-				gf_cfg_set_key(cfg, "Core", "ModulesDirectory", path);
+				gf_cfg_set_key(cfg, "libgpac", "mod-dirs", path);
 			}
 		}
 #endif
@@ -763,7 +763,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	check_modules_dir(cfg);
 
-	if (!gf_cfg_get_key(cfg, "Core", "StorageDirectory")) {
+	if (!gf_cfg_get_key(cfg, "libgpac", "store-dir")) {
 		char *sep;
 		strcpy(szPath, gf_cfg_get_filename(cfg));
 		sep = strrchr(szPath, '/');
@@ -771,7 +771,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 		if (sep) sep[0] = 0;
 		strcat(szPath, "/Storage");
 		if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
-		gf_cfg_set_key(cfg, "Core", "StorageDirectory", szPath);
+		gf_cfg_set_key(cfg, "libgpac", "store-dir", szPath);
 	}
 	return cfg;
 }
@@ -812,6 +812,10 @@ void gf_uninit_global_config()
 GF_EXPORT
 const char *gf_opts_get_key(const char *secName, const char *keyName)
 {
+	if (!strcmp(secName, "libgpac")) {
+		const char *opt = gf_cfg_get_key(gpac_global_config, "temp", keyName);
+		if (opt) return opt;
+	}
 	return gf_cfg_get_key(gpac_global_config, secName, keyName);
 }
 GF_EXPORT
@@ -843,13 +847,218 @@ GF_EXPORT
 const char *gf_opts_get_key_name(const char *secName, u32 keyIndex)
 {
 	return gf_cfg_get_key_name(gpac_global_config, secName, keyIndex);
-
 }
+
+
 
 GF_EXPORT
 GF_Err gf_opts_discard_changes()
 {
 	return gf_cfg_discard_changes(gpac_global_config);
+}
+
+#include <gpac/main.h>
+
+GF_GPACArg GPAC_Args[] = {
+ GF_DEF_ARG("log-file", "lf", "set output log file", NULL, NULL, GF_ARG_STRING, GF_ARG_IS_LOG),
+ GF_DEF_ARG("log-clock", "lc", "log time in micro sec since start time of GPAC before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_IS_LOG),
+ GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_IS_LOG),
+ GF_DEF_ARG("logs", NULL, "set log tools and levels."\
+			"\n"\
+			"You can independently log different tools involved in a session.\n"\
+			"log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"\
+	        "levelX can be one of:\n"\
+	        "\t        \"quiet\"      : skip logs\n"\
+	        "\t        \"error\"      : logs only error messages\n"\
+	        "\t        \"warning\"    : logs error+warning messages\n"\
+	        "\t        \"info\"       : logs error+warning+info messages\n"\
+	        "\t        \"debug\"      : logs all messages\n"\
+	        "toolX can be one of:\n"\
+	        "\t        \"core\"       : libgpac core\n"\
+	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"\
+	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
+	        "\t        \"network\"    : network data exept RTP trafic\n"\
+	        "\t        \"rtp\"        : rtp trafic\n"\
+	        "\t        \"author\"     : authoring tools (hint, import, export)\n"\
+	        "\t        \"sync\"       : terminal sync layer\n"\
+	        "\t        \"codec\"      : terminal codec messages\n"\
+	        "\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"\
+	        "\t        \"media\"      : terminal media object management\n"\
+	        "\t        \"scene\"      : scene graph and scene manager\n"\
+	        "\t        \"script\"     : scripting engine messages\n"\
+	        "\t        \"interact\"   : interaction engine (events, scripts, etc)\n"\
+	        "\t        \"smil\"       : SMIL timing engine\n"\
+	        "\t        \"compose\"    : composition engine (2D, 3D, etc)\n"\
+	        "\t        \"mmio\"       : Audio/Video HW I/O management\n"\
+	        "\t        \"rti\"        : various run-time stats\n"\
+	        "\t        \"cache\"      : HTTP cache subsystem\n"\
+	        "\t        \"audio\"      : Audio renderer and mixers\n"\
+	        "\t        \"mem\"        : GPAC memory tracker\n"\
+	        "\t        \"dash\"       : HTTP streaming logs\n"\
+	        "\t        \"module\"     : GPAC modules (av out, font engine, 2D rasterizer))\n"\
+	        "\t        \"filter\"     : filters debugging\n"\
+	        "\t        \"sched\"      : filter session scheduler debugging\n"\
+	        "\t        \"mutex\"      : log all mutex calls\n"\
+	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"\
+	        "The special keyword \"ncl\" can be set to disable color logs.\n"\
+	        "The special keyword \"strict\" can be set to exit at first error.\n"\
+	        "\tEX: -logs all@info:dash@debug:ncl moves all log to info level, dash to debug level and disable color logs."\
+ 			, NULL, NULL, GF_ARG_STRING, GF_ARG_IS_LOG),
+
+ GF_DEF_ARG("store-dir", NULL, "sets storage directory", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ GF_DEF_ARG("mod-dirs", NULL, "sets module directories", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("ifce", NULL, "sets default multicast interface through interface IP adress", NULL, NULL, GF_ARG_STRING, 0),
+ GF_DEF_ARG("lang", NULL, "sets preferred language", NULL, NULL, GF_ARG_STRING, 0),
+
+ GF_DEF_ARG("cache", NULL, "sets cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("proxy-on", NULL, "Enables HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("proxy-name", NULL, "sets HTTP proxy adress", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("proxy-port", NULL, "sets HTTP proxy port", "80", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("maxrate", NULL, "sets max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("no-cache", NULL, "disables HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("offline-cache", NULL, "enables offline HTTP caching (no revalidation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("clean-cache", NULL, "indicates if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_STRING, GF_ARG_IS_HTTP),
+ GF_DEF_ARG("cache-size", NULL, "specifies cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("head-timeout", NULL, "Sets HTTP head request timeout in milliseconds", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("req-timeout", NULL, "Sets HTTP/RTSP request timeout in milliseconds", "20000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("broken-cert", NULL, "Enables accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("user-agent", "ua", "sets user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("user-profileid", "upid", "sets user profile ID (through  \"X-UserProfileID\" entity header)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("user-profile", "up", "sets user profile filename. Content of file is appended as body to HEAD/GET requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("query-string", NULL, "inserts query string (without ?) to URL on requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
+ GF_DEF_ARG("mobile-ip", NULL, "sets IP adress for mobileIP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+
+ GF_DEF_ARG("version", NULL, "sets to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
+ GF_DEF_ARG("64bits", NULL, "indicates if GPAC version is 64 bits, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
+ GF_DEF_ARG("mod-reload", NULL, "unload / reload module shared libs when no longer used", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("print-edges", NULL, "prints edges status in filter graph before dijkstra resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt", NULL, "enables profiling through Remotery (https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-port", NULL, "sets remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-reuse", NULL, "have remotery reuse port", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-localhost", NULL, "make remotery only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-sleep", NULL, "sets remotery sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-nmsg", NULL, "sets remotery number of messages per update", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-qsize", NULL, "sets remotery message queue size in bytes", "131072", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-log", NULL, "redirects logs to remotery (experimental, usually not well handled by browser)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("rmt-ogl", NULL, "make remotery sample opengl calls", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ {0}
+};
+
+GF_EXPORT
+const GF_GPACArg *gf_gpac_args()
+{
+	return GPAC_Args;
+}
+
+static const char *gpac_opt_default(const char *argname)
+{
+	const GF_GPACArg *arg = NULL;
+	u32 i=0;
+	while (GPAC_Args[i].name) {
+		arg = &GPAC_Args[i];
+		i++;
+		if (!strcmp(arg->name, argname)) break;
+		arg = NULL;
+	}
+	if (!arg) return NULL;
+	return arg->val;
+}
+
+GF_EXPORT
+Bool gf_opts_get_bool(const char *secName, const char *keyName)
+{
+	const char *opt = gf_opts_get_key(secName, keyName);
+
+	if (!opt && !strcmp(secName, "libgpac")) {
+		opt = gpac_opt_default(keyName);
+	}
+
+	if (!opt) return GF_FALSE;
+	if (!strcmp(opt, "yes")) return GF_TRUE;
+	if (!strcmp(opt, "true")) return GF_TRUE;
+	if (!strcmp(opt, "1")) return GF_TRUE;
+	return GF_FALSE;
+}
+GF_EXPORT
+u32 gf_opts_get_int(const char *secName, const char *keyName)
+{
+	u32 times=1, val;
+	const char *opt = (char *) gf_opts_get_key(secName, keyName);
+
+	if (!opt && !strcmp(secName, "libgpac")) {
+		opt = gpac_opt_default(keyName);
+	}
+	if (!opt) return 0;
+	char c=0;
+	char *sep = strchr(opt, 'k');
+	if (sep) times=1000;
+	else {
+		sep = strchr(opt, 'K');
+		if (sep) times=1000;
+		else {
+			sep = strchr(opt, 'm');
+			if (sep) times=1000000;
+			else {
+				sep = strchr(opt, 'M');
+				if (sep) times=1000000;
+			}
+		}
+	}
+	if (sep) { c = sep[0]; sep[0]=0; }
+	val = atoi(opt);
+	if (sep) sep[0]=c;
+	return val*times;
+}
+
+Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next)
+{
+	const GF_GPACArg *arg = NULL;
+	u32 i=0;
+	*consumed_next = GF_FALSE;
+	arg_name = arg_name+1;
+	while (GPAC_Args[i].name) {
+		arg = &GPAC_Args[i];
+		i++;
+		if (!strcmp(arg->name, arg_name)) break;
+		arg = NULL;
+	}
+	if (!arg) return GF_FALSE;
+
+	if (arg->type==GF_ARG_BOOL) {
+		if (!val) gf_opts_set_key("temp", arg->name, "yes");
+		else {
+			if (!strcmp(val, "yes") || !strcmp(val, "true") || !strcmp(val, "1")) {
+				*consumed_next = GF_TRUE;
+				gf_opts_set_key("temp", arg->name, "yes");
+			} else {
+				if (!strcmp(val, "no") || !strcmp(val, "false") || !strcmp(val, "0")) {
+					*consumed_next = GF_TRUE;
+					gf_opts_set_key("temp", arg->name, "no");
+				} else {
+					gf_opts_set_key("temp", arg->name, "yes");
+				}
+			}
+		}
+	} else {
+		*consumed_next = GF_TRUE;
+		gf_opts_set_key("temp", arg->name, val);
+	}
+	return GF_TRUE;
+}
+
+GF_EXPORT
+Bool gf_is_libgpac_arg(const char *arg_name)
+{
+	const GF_GPACArg *arg = NULL;
+	u32 i=0;
+	arg_name = arg_name+1;
+	while (GPAC_Args[i].name) {
+		arg = &GPAC_Args[i];
+		i++;
+		if (!strcmp(arg->name, arg_name)) break;
+		arg = NULL;
+	}
+	return arg ? GF_TRUE : GF_FALSE;
 }
 
 #endif

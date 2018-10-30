@@ -87,6 +87,57 @@ int main(int argc, char **argv) {\
 
 #endif //win32
 
+/*! structure holding a gpac arg (not a filter arg)*/
+typedef struct
+{
+	/*! name of arg*/
+	const char *name;
+	/*! alternate name of arg*/
+	const char *altname;
+	/*! description of arg*/
+	const char *desc;
+	/*! default value of arg*/
+	const char *val;
+	/*! possible value of arg*/
+	const char *values;
+	/*! argument type for UI construction - note that argument values are not parsed and shall be set as strings*/
+	u16 type;
+	/*! argument flags*/
+	u16 flags;
+} GF_GPACArg;
+
+/*! argument applies to the log subsystem*/
+#define GF_ARG_IS_LOG 1<<1
+/*! argument applies to the HTTP subsystem*/
+#define GF_ARG_IS_HTTP 1<<2
+//these 3 values match argument hints of filters
+/*! argument is of advanced type*/
+#define GF_ARG_HINT_ADVANCED 1<<3
+/*! argument is of expert type*/
+#define GF_ARG_HINT_EXPERT (1<<4)
+/*! argument should not be presented in UIs*/
+#define GF_ARG_HINT_HIDE 1<<5
+
+/*! argument is a boolean*/
+#define GF_ARG_BOOL		0
+/*! argument is a 32 bit integer*/
+#define GF_ARG_INT		1
+/*! argument is a double*/
+#define GF_ARG_DOUBLE	2
+/*! argument is a string*/
+#define GF_ARG_STRING	3
+/*! argument is a camma-separated list of strings*/
+#define GF_ARG_STRINGS	4
+
+#define GF_DEF_ARG(_a, _b, _c, _d, _e, _f, _g) {_a, _b, _c, _d, _e, _f, _g}
+
+/*! gets the options defined for libgpac
+\return array of options*/
+const GF_GPACArg *gf_gpac_args();
+
+/*! check if the given option is a libgpac argument
+\return GF_TRUE if this is the case, GF_FALSE otherwise*/
+Bool gf_is_libgpac_arg(const char *arg_name);
 
 /*! @} */
 

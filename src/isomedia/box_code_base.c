@@ -4902,7 +4902,7 @@ GF_Err rely_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_RelyHintBox *ptr = (GF_RelyHintBox *)s;
 	ptr->reserved = gf_bs_read_int(bs, 6);
-	ptr->prefered = gf_bs_read_int(bs, 1);
+	ptr->preferred = gf_bs_read_int(bs, 1);
 	ptr->required = gf_bs_read_int(bs, 1);
 	return GF_OK;
 }
@@ -4923,7 +4923,7 @@ GF_Err rely_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_int(bs, ptr->reserved, 6);
-	gf_bs_write_int(bs, ptr->prefered, 1);
+	gf_bs_write_int(bs, ptr->preferred, 1);
 	gf_bs_write_int(bs, ptr->required, 1);
 	return GF_OK;
 }

@@ -600,8 +600,8 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(autortsp), "Automatically reconfig RTSP interleaving if UDP timeout", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(first_packet_drop), "Sets number of first RTP packet to drop - 0 if no drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(frequency_drop), "Drop 1 out of N packet - 0 disable droping", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(user_agent), "User agent string", GF_PROP_STRING, "GPAC " GPAC_VERSION " RTSP Client", NULL, 0},
-	{ OFFS(languages), "User agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_LANGUAGES", NULL, 0},
+	{ OFFS(user_agent), "User agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_UA", NULL, 0},
+	{ OFFS(languages), "User languages, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_LANG", NULL, 0},
 	{ OFFS(stats), "Updates statistics to the user every given MS, 0 disables reporting", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };

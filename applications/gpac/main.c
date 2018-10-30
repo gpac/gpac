@@ -27,10 +27,6 @@
 #include <gpac/filters.h>
 #include <time.h>
 
-static u64 log_time_start = 0;
-static Bool log_utc_time = GF_FALSE;
-static Bool logs_set = GF_FALSE;
-static FILE *logfile = NULL;
 static s32 nb_threads=0;
 static GF_SystemRTInfo rti;
 static u32 list_filters = 0;
@@ -39,8 +35,6 @@ static Bool dump_graph = GF_FALSE;
 static Bool print_filter_info = GF_FALSE;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
-static u64 last_log_time=0;
-static Bool enable_profiling = GF_FALSE;
 static s32 nb_loops = 0;
 u32 quiet = 0;
 
@@ -55,6 +49,7 @@ typedef enum
 	ARGMODE_BASE=0,
 	ARGMODE_ADVANCED,
 	ARGMODE_EXPERT,
+	ARGMODE_ALL,
 } GF_FilterArgMode;
 
 static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_FilterArgMode argmode);
@@ -62,33 +57,13 @@ static void dump_all_props(void);
 static void dump_all_codec(GF_FilterSession *session);
 void write_filters_options(GF_FilterSession *fsess);
 
-static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
-{
-	FILE *logs = cbk ? cbk : stderr;
-
-	if (log_time_start) {
-		u64 now = gf_sys_clock_high_res();
-		fprintf(logs, "At "LLD" (diff %d) - ", now - log_time_start, (u32) (now - last_log_time) );
-		last_log_time = now;
-	}
-	if (log_utc_time) {
-		u64 utc_clock = gf_net_get_utc() ;
-		time_t secs = utc_clock/1000;
-		struct tm t;
-		t = *gmtime(&secs);
-		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
-	}
-	vfprintf(logs, fmt, list);
-	fflush(logs);
-}
-
 static void gpac_filter_help(void)
 {
 	fprintf(stderr,
 "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
 "This is GPAC's command line tool for setting up and running filter chains.\n"
 "See -h for available options.\n"
-"Help is given with default separator sets :=#,@. See -s to change them.\n"
+"Help is given with default separator sets :=#,@. See -seps to change them.\n"
 "\n"
 "General\n"
 "\n"
@@ -150,7 +125,7 @@ static void gpac_filter_help(void)
 "\tEX: \"src=file.mp4 dst=dump.yuv\" will dump the video content of file.mp4 in dump.yuv\n"
 "\tSpecific source or sink filters may also be specified using filterName:src=URL or filterName:dst=URL.\n"
 "\n"
-"There is a special option called \"gfreg\" which allows specifying prefered filters to use when handling URLs\n"
+"There is a special option called \"gfreg\" which allows specifying preferred filters to use when handling URLs\n"
 "\tEX: \"src=file.mp4:gfreg=ffdmx,ffdec\" will use ffdmx to handle the file and ffdec to decode\n"
 "This can be used to test a specific filter when alternate filter chains are possible.\n"
 "\n"
@@ -229,7 +204,7 @@ static void gpac_filter_help(void)
 "\n"
 "Arguments inheriting\n"
 "\n"
-"Unless explicitly disabled (-cl option), the filter engine will resolve implicit or explicit (LINK) connections between filters "
+"Unless explicitly disabled (-max-chain option), the filter engine will resolve implicit or explicit (LINK) connections between filters "
 "and will allocate any filter chain required to connect the filters. "
 "In doing so, it loads new filters with arguments inherited from both the source and the destination.\n"
 "\tEX: \"src=file.mp4:OPT dst=file.aac dst=file.264\" will pass the \":OPT\" to all filters loaded between the source and the two destinations\n"
@@ -289,133 +264,156 @@ static void gpac_filter_help(void)
 	);
 }
 
+#define GF_ARG_PERSISTENT	1<<10
 
 
-static void gpac_log_usage(void)
+static void print_arg(const GF_GPACArg *arg)
 {
-	fprintf(stderr, "The following log options are available:\n"
-	        "-log-file=file  : set output log file. Also works with -lf\n"
-	        "-logs=log_args  : set log tools and levels, see -h logs\n"
-	        "-lc             : log time in micro sec since start time of GPAC before each log line (same as -log-clock).\n"
-	        "-lu             : log UTC time in ms before each log line (same as -log-utc).\n"
-			"-logs=log_args  : set the subsystem(s) to log"
-			"\n"
-			"You can independently log different tools involved in a session.\n"
-			"log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-	        "levelX can be one of:\n"
-	        "\t        \"quiet\"      : skip logs\n"
-	        "\t        \"error\"      : logs only error messages\n"
-	        "\t        \"warning\"    : logs error+warning messages\n"
-	        "\t        \"info\"       : logs error+warning+info messages\n"
-	        "\t        \"debug\"      : logs all messages\n"
-	        "toolX can be one of:\n"
-	        "\t        \"core\"       : libgpac core\n"
-	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
-	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
-	        "\t        \"network\"    : network data exept RTP trafic\n"
-	        "\t        \"rtp\"        : rtp trafic\n"
-	        "\t        \"author\"     : authoring tools (hint, import, export)\n"
-	        "\t        \"sync\"       : terminal sync layer\n"
-	        "\t        \"codec\"      : terminal codec messages\n"
-	        "\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"
-	        "\t        \"media\"      : terminal media object management\n"
-	        "\t        \"scene\"      : scene graph and scene manager\n"
-	        "\t        \"script\"     : scripting engine messages\n"
-	        "\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
-	        "\t        \"smil\"       : SMIL timing engine\n"
-	        "\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
-	        "\t        \"mmio\"       : Audio/Video HW I/O management\n"
-	        "\t        \"rti\"        : various run-time stats\n"
-	        "\t        \"cache\"      : HTTP cache subsystem\n"
-	        "\t        \"audio\"      : Audio renderer and mixers\n"
-#ifdef GPAC_MEMORY_TRACKING
-	        "\t        \"mem\"        : GPAC memory tracker\n"
-#endif
-	        "\t        \"dash\"       : HTTP streaming logs\n"
-	        "\t        \"module\"     : GPAC modules (av out, font engine, 2D rasterizer))\n"
-	        "\t        \"filter\"     : filters debugging\n"
-	        "\t        \"sched\"      : filter session scheduler debugging\n"
-	        "\t        \"mutex\"      : log all mutex calls\n"
-	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
-	        "The special keyword \"ncl\" can be set to disable color logs.\n"
-	        "The special keyword \"strict\" can be set to exit at first error.\n"
-	        "\tEX: -logs all@info:dash@debug:ncl moves all log to info level, dash to debug level and disable color logs.\n"
-	        "\n"
-	);
+	fprintf(stderr, "-%s", arg->name);
+	if (arg->altname)
+		fprintf(stderr, " (-%s)", arg->altname);
+
+	if (arg->flags & GF_ARG_PERSISTENT) {
+		fprintf(stderr, " (P)");
+	}
+
+	switch (arg->type) {
+	case GF_ARG_BOOL: fprintf(stderr, " [boolean]"); break;
+	case GF_ARG_INT: fprintf(stderr, " [int]"); break;
+	case GF_ARG_DOUBLE: fprintf(stderr, " [number]"); break;
+	case GF_ARG_STRING: fprintf(stderr, " [string]"); break;
+	case GF_ARG_STRINGS: fprintf(stderr, " [string list]"); break;
+	default: break;
+	}
+	if (arg->val)
+		fprintf(stderr, " (default %s)", arg->val);
+	if (arg->values)
+		fprintf(stderr, " (values %s)", arg->values);
+	if (arg->desc)
+		fprintf(stderr, ": %s", arg->desc);
+
+	fprintf(stderr, "\n");
+}
+static void gpac_core_help(GF_FilterArgMode mode, Bool for_logs)
+{
+	u32 i=0;
+	const GF_GPACArg *args = gf_gpac_args();
+
+	fprintf(stderr, "libgpac %s options:\n", for_logs ? "logs" : "core");
+	fprintf(stderr, "These options can be set in the config file using key libgpac:OPTNAME=val, where OPTNAME is the option name without initial '-' character\n");
+
+	while (args[i].name) {
+		const GF_GPACArg *arg = &args[i];
+		i++;
+		if (arg->flags & GF_ARG_HINT_HIDE) continue;
+
+		if (for_logs) {
+		 	if ( !(arg->flags & GF_ARG_IS_LOG)) continue;
+		} else {
+		 	if (arg->flags & GF_ARG_IS_LOG) continue;
+		 	if (mode != ARGMODE_ALL) {
+				if ((mode==ARGMODE_EXPERT) && !(arg->flags & GF_ARG_HINT_EXPERT)) continue;
+				else if ((mode==ARGMODE_ADVANCED) && !(arg->flags & GF_ARG_HINT_ADVANCED)) continue;
+				else if ((mode==ARGMODE_BASE) && (arg->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT) )) continue;
+			}
+		}
+
+		print_arg(arg);
+	}
 }
 
-static void gpac_expert_opts(void)
+GF_GPACArg gpac_args[] =
 {
-
-	fprintf(stderr, "Expert options gor gpac command line tool\n"
 #ifdef GPAC_MEMORY_TRACKING
-            "-mem-track:  enables memory tracker\n"
-            "-mem-track-stack:  enables memory tracker with stack dumping\n"
+ 	GF_DEF_ARG("mem-track", NULL, "enables memory tracker", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("mem-track-stack", NULL, "enables memory tracker with stack dumping", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 #endif
-			"-s=CHARLIST     : set the default character sets used to seperate various arguments, default is %s\n"
-			"                   The first char is used to seperate argument names\n"
-			"                   The second char, if present, is used to seperate names and values\n"
-			"                   The third char, if present, is used to seperate fragments for pid sources\n"
-			"                   The fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"
-			"                   The fifth char, if present, is used for boolean negation\n"
-			"                   The sixth char, if present, is used for LINK directives (cf -h doc)\n"
-			"-nb             : disable blocking mode of filters\n"
-	        "-sched=MODE     : set scheduler mode. Possible modes are:\n"
-	        "                   free: uses lock-free queues (default)\n"
-	        "                   lock: uses mutexes for queues when several threads\n"
-	        "                   flock: uses mutexes for queues even when no thread (debug mode)\n"
-	        "                   direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
-			"-cl=N           : sets maximum chain length when resolving filter links.\n"
-			"                   Default value is 6 ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]\n"
-			"                   (filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution)\n"
-			"                   Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually\n"
-			"-ltf            : load test-unit filters (used for for unit tests only).\n"
-			"-loop[=N]       : loops execution of session, creating a session at each loop. If N is set, loops N times. Mainly used for testing.\n"
-			"-rmt[=PORT]     : enables profiling through Remotery (https://github.com/Celtoys/Remotery). Port can be optionnaly specified. \n"
-			"                  A copy of Remotery visualizer is in gpac/doc/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis.\n"
-			"-wp[x]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
-			"-p=NAME         : uses profile NAME for the global GPAC config. If not found, config file is created. If NAME is a path, tries to load profile from that file.\n"
-			"-cfg=Key:Name[=VAL]          : writes all filter options in config file -wpx also writes all meta filter arguments (large config file !).\n"
-	        "-cfg=KEY        : Sets configuration file avlue. KEY format is \"section:key[=value]\". \n"
-	        "                   \"section:key=null\" or \"section:key\" removes the key\n"
-	        "                   \"section:*=null\" removes the section\n"
-	        , separator_set
-	);
-}
+ 	GF_DEF_ARG("p", NULL, "uses indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
-static void gpac_usage(void)
+	GF_DEF_ARG("seps", NULL, "sets the default character sets used to seperate various arguments.\n"\
+			"\tThe first char is used to seperate argument names\n"\
+			"\tThe second char, if present, is used to seperate names and values\n"\
+			"\tThe third char, if present, is used to seperate fragments for pid sources\n"\
+			"\tThe fourth char, if present, is used for list separators (sourceIDs, gfreg, ...)\n"\
+			"\tThe fifth char, if present, is used for boolean negation\n"\
+			"\tThe sixth char, if present, is used for LINK directives (cf -h doc)\n", separator_set, NULL, GF_ARG_STRING, GF_ARG_PERSISTENT|GF_ARG_HINT_EXPERT),
+
+	GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters", NULL, NULL, GF_ARG_BOOL, GF_ARG_PERSISTENT|GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("sched", NULL, "set scheduler mode. Possible modes are:\n"\
+	        "\tfree: uses lock-free queues (default)\n"\
+	        "\tlock: uses mutexes for queues when several threads\n"\
+	        "\tflock: uses mutexes for queues even when no thread (debug mode)\n"\
+	        "\tdirect: uses no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|direct", GF_ARG_STRING, GF_ARG_PERSISTENT|GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("max-chain", NULL, "sets maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution). Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_PERSISTENT|GF_ARG_HINT_EXPERT),
+
+	GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_PERSISTENT|GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("blacklist", NULL, "blacklist the filters listed in the given string (comma-seperated list)", NULL, NULL, GF_ARG_STRING, GF_ARG_PERSISTENT|GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("loop", NULL, "loops execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("wp", NULL, "writes all filter options in the config file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("wpx", NULL, "writes all filter options and all meta filter arguments in the config file (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("cfg", NULL, "sets configuration file value. The string parameter can be formatted as:\n"\
+	        "\tsection:key=val: sets the key to a new value\n"\
+	        "\tsection:key=null or section:key: removes the key\n"\
+	        "\tsection:*=null: removes the section\n"\
+			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+
+	GF_DEF_ARG("stats", NULL, "print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("graph", NULL, "print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("quiet", NULL, "quiet mode, removes all messages (except help screens / props/codec/filter infos)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("noprog", NULL, "disable progress messages", NULL, NULL, GF_ARG_BOOL, 0),
+
+	GF_DEF_ARG("i", "src", "specifies an input file - see filters help -h doc", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("o", "dst", "specifies an output file - see filters help -h doc", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("h", "help -ha -hx -hh", "prints help. By default only basic options are printed; -ha prints advanced options, -hx prints expert options and -hh prints all. String parameter can be:\n"\
+			"\tempty: prints command line options help.\n"\
+			"\tdoc: prints the general filter info.\n"\
+			"\tlog: prints the log system help.\n"\
+			"\tcore: prints the supported libgpac core options. Use -ha or -hx for advanced/expert options.\n"\
+			"\tfilters: prints name of all available filters.\n"\
+			"\tfilters:*: prints name of all available filters, including meta filters.\n"\
+			"\tcodecs: prints the supported builtin codecs.\n"\
+			"\tprops: prints the supported builtin pid properties.\n"\
+			"\tlinks: prints possible connections between each supported filters.\n"\
+			"\tFNAME: prints filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (warning, big output!), *:* to print info on all filters including meta filter instances (warning, big big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options\n"\
+		, NULL, NULL, GF_ARG_STRING, 0),
+
+	{0}
+};
+
+
+static void gpac_usage(GF_FilterArgMode argmode)
 {
-	fprintf(stderr, "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
-			"This is GPAC's command line tool for setting up and running filter chains - see -h doc for generic help on GPAC filters.\n"
-			"\n"
-			"Global options are:\n"
+	u32 i=0;
+	if ((argmode != ARGMODE_ADVANCED) && (argmode != ARGMODE_EXPERT) ) {
+		fprintf(stderr, "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
+			"gpac is GPAC's command line tool for setting up and running filter chains. Options do not require any specific order.\n\n"
+		);
+	}
+	if (argmode>=ARGMODE_ADVANCED) {
+		if (argmode!=ARGMODE_ALL) fprintf(stderr, "List of gpac %s options.\n", argmode==ARGMODE_ADVANCED ? "advanced" : "expert");
+		fprintf(stderr, "Options marked with (P) are first loaded from GPAC config file from section \"gpac\" using option name without first '-' as key name. For example, having [gpac]threads=2 in the config file is similar as using -threads=2. The option specified at prompt overrides the value of the config file.\n\n");
+	}
 
-			"-stats          : print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt\n"
-			"-graph          : print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt\n"
-	        "-threads=N      : set N extra thread for the session. -1 means use all available cores\n"
-			"-bl=NAMES       : blacklist the filters in NAMES (comma-seperated list)\n"
-			"\n"
-			"-quiet          : quiet mode, supress all messages (except help screens / Props/codec/filter infos)\n"
-			"-noprog         : disable progress messages if any\n"
-			"-h [ARG]        : print help (works with -help as well). ARG can be:\n"
-			"                  not given: prints command line options help (this screen).\n"
-			"                  'doc': prints the general filter info.\n"
-			"                  'log': prints the log system help.\n"
-			"                  'filters': prints name of all available filters.\n"
-			"                  'filters:*': prints name of all available filters, including meta filters.\n"
-			"                  'codecs': prints the supported builtin codecs.\n"
-			"                  'props': prints the supported builtin pid properties.\n"
-			"                  'links': prints possible connections between each supported filters.\n"
-			"                  FNAME: prints filter FNAME info (multiple NAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation\n"
-			"                    Use * to print info on all filters (warning, big output!)\n"
-			"                    By default only basic options are show. Use -ha to show advanced options and filter IO capabilities, -hx for expert (all) options\n"
-			"                  not given and -hx specified: prints advanced options.\n"
-			"\n"
-	        "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
+	while (gpac_args[i].name) {
+		GF_GPACArg *arg = &gpac_args[i];
+		i++;
+
+		if (argmode!=ARGMODE_ALL) {
+			if ((argmode==ARGMODE_EXPERT) && !(arg->flags & GF_ARG_HINT_EXPERT)) continue;
+			if ((argmode==ARGMODE_ADVANCED) && !(arg->flags & GF_ARG_HINT_ADVANCED)) continue;
+			else if ((argmode==ARGMODE_BASE) && (arg->flags & (GF_ARG_HINT_ADVANCED| GF_ARG_HINT_EXPERT)) ) continue;
+		}
+
+		print_arg(arg);
+	}
+	if (argmode==ARGMODE_BASE) {
+		fprintf(stderr, "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
-	);
-
+		);
+	}
 }
+
 
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
@@ -486,11 +484,35 @@ static Bool set_cfg_key(char *opt_string)
 	return GF_TRUE;
 }
 
+static GF_FilterSchedulerType parse_sched_type(const char *type)
+{
+	if (!type) return GF_FS_SCHEDULER_LOCK_FREE;
+	if (!strcmp(type, "lock")) return GF_FS_SCHEDULER_LOCK;
+	else if (!strcmp(type, "flock")) return GF_FS_SCHEDULER_LOCK_FORCE;
+	else if (!strcmp(type, "direct")) return GF_FS_SCHEDULER_DIRECT;
+	else if (!strcmp(type, "freex")) return GF_FS_SCHEDULER_LOCK_FREE_X;
+	return GF_FS_SCHEDULER_LOCK_FREE;
+}
+static void parse_sep_set(const char *arg, Bool *override_seps)
+{
+	if (!arg) return;
+	u32 len = (u32) strlen(arg);
+	if (!len) return;
+	*override_seps = GF_TRUE;
+	if (len>=1) separator_set[0] = arg[0];
+	if (len>=2) separator_set[1] = arg[1];
+	if (len>=3) separator_set[2] = arg[2];
+	if (len>=4) separator_set[3] = arg[3];
+	if (len>=5) separator_set[4] = arg[4];
+	if (len>=6) separator_set[5] = arg[5];
+}
+
 static int gpac_main(int argc, char **argv)
 {
 	GF_Err e=GF_OK;
 	int i;
 	const char *profile=NULL;
+	const char *opt;
 	u32 sflags=0;
 	Bool override_seps=GF_FALSE;
 	Bool write_profile=GF_FALSE;
@@ -507,8 +529,11 @@ static int gpac_main(int argc, char **argv)
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
 	s32 max_chain_len=-1;
+	Bool logs_set = GF_FALSE;
+
 	const char *blacklist = NULL;
 
+	//look for mem track and profile, and also process all helpers
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
 		if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
@@ -517,19 +542,22 @@ static int gpac_main(int argc, char **argv)
 #else
 			if (quiet<2) fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
-		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx")) {
+		} else if (!strncmp(arg, "-p=", 3)) {
+			profile = arg+3;
+		}
+		else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
 			if (!strcmp(arg, "-ha")) argmode = ARGMODE_ADVANCED;
 			else if (!strcmp(arg, "-hx")) argmode = ARGMODE_EXPERT;
+			else if (!strcmp(arg, "-hh")) argmode = ARGMODE_ALL;
 
 			if (i+1==argc) {
-				if (argmode == ARGMODE_EXPERT) {
-					gpac_expert_opts();
-				} else {
-					gpac_usage();
-				}
+				gpac_usage(argmode);
 				return 0;
-			} else if (!strcmp(argv[i+1], "logs")) {
-				gpac_log_usage();
+			} else if (!strcmp(argv[i+1], "log")) {
+				gpac_core_help(ARGMODE_EXPERT, GF_TRUE);
+				return 0;
+			} else if (!strcmp(argv[i+1], "core")) {
+				gpac_core_help(argmode, GF_FALSE);
 				return 0;
 			} else if (!strcmp(argv[i+1], "doc")) {
 				gpac_filter_help();
@@ -560,28 +588,23 @@ static int gpac_main(int argc, char **argv)
 			} else {
 				print_filter_info = 1;
 			}
-		} else if (!strncmp(arg, "-s=", 3)) {
-			u32 len;
-			arg = arg+3;
-			len = (u32) strlen(arg);
-			if (!len) continue;
-			override_seps = GF_TRUE;
-			if (len>=1) separator_set[0] = arg[0];
-			if (len>=2) separator_set[1] = arg[1];
-			if (len>=3) separator_set[2] = arg[2];
-			if (len>=4) separator_set[3] = arg[3];
-			if (len>=5) separator_set[4] = arg[4];
-			if (len>=6) separator_set[5] = arg[5];
-		} else if (!strcmp(arg, "-noprog")) {
-			if (!quiet) quiet = 1;
-		} else if (!strcmp(arg, "-quiet")) {
-			quiet = 2;
 		} else if (!strncmp(arg, "-p=", 3)) {
 			profile = arg+3;
 		}
 	}
 	gf_sys_init(mem_track, profile);
+	//this will parse default args
 	gf_sys_set_args(argc, (const char **) argv);
+
+	//load persistent options
+	nb_threads = gf_opts_get_int("gpac", "threads");
+	opt = gf_opts_get_key("gpac", "max-chain");
+	if (opt)
+		max_chain_len = atoi(opt);
+	sched_type = parse_sched_type(gf_opts_get_key("gpac", "sched") );
+	disable_blocking = gf_opts_get_bool("gpac", "no-block");
+	blacklist = gf_opts_get_key("gpac", "blacklist");
+	parse_sep_set(gf_opts_get_key("gpac", "seps"), &override_seps);
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -591,44 +614,25 @@ static int gpac_main(int argc, char **argv)
 			arg_val++;
 		}
 
-		if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			if (arg_val) {
-				logfile = gf_fopen(arg_val, "wt");
-				gf_log_set_callback(logfile, on_gpac_log);
-			}
-		} else if (!strcmp(arg, "-logs") ) {
-			if (gf_log_set_tools_levels(arg_val) != GF_OK) {
-				return 1;
-			}
+		if (arg_val && !strcmp(arg, "-logs")) {
 			logs_set = GF_TRUE;
-		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
-			log_time_start = 1;
-			gf_log_set_callback(logfile, on_gpac_log);
-		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
-			log_utc_time = 1;
-			gf_log_set_callback(logfile, on_gpac_log);
 		} else if (arg_val && !strcmp(arg, "-threads")) {
 			nb_threads = atoi(arg_val);
-		} else if (arg_val && !strcmp(arg, "-cl")) {
+		} else if (arg_val && !strcmp(arg, "-max-chain")) {
 			max_chain_len = atoi(arg_val);
 		} else if (arg_val && !strcmp(arg, "-sched")) {
-			if (!strcmp(arg_val, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
-			else if (!strcmp(arg_val, "flock")) sched_type = GF_FS_SCHEDULER_LOCK_FORCE;
-			else if (!strcmp(arg_val, "direct")) sched_type = GF_FS_SCHEDULER_DIRECT;
-			else if (!strcmp(arg_val, "freex")) sched_type = GF_FS_SCHEDULER_LOCK_FREE_X;
+			sched_type = parse_sched_type(arg_val);
 		} else if (!strcmp(arg, "-ltf")) {
 			load_test_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-stats")) {
 			dump_stats = GF_TRUE;
 		} else if (!strcmp(arg, "-graph")) {
 			dump_graph = GF_TRUE;
-		} else if (!strcmp(arg, "-rmt")) {
-			enable_profiling = GF_TRUE;
-		} else if (!strcmp(arg, "-nb")) {
+		} else if (!strcmp(arg, "-no-block")) {
 			disable_blocking = GF_TRUE;
 		} else if (strstr(arg, ":*") && list_filters) {
 			list_filters = 3;
-		} else if (!strncmp(arg, "-bl", 3)) {
+		} else if (!strncmp(arg, "-blacklist", 3)) {
 			blacklist = arg_val;
 		} else if (strstr(arg, ":*")) {
 			print_meta_filters = GF_TRUE;
@@ -645,12 +649,23 @@ static int gpac_main(int argc, char **argv)
 			if (!set_cfg_key(arg_val))
 				return 1;
 			nothing_to_do = GF_FALSE;
-		} else if ((arg[0]=='-') && !strcmp(arg, "-i") && !strcmp(arg, "-src")  && !strcmp(arg, "-o")  && !strcmp(arg, "-dst") ) {
-			if (quiet<2)
-			 	fprintf(stderr, "Unrecognized option \"%s\", check usage \"gpac -h\"\n", arg);
-			gf_sys_close();
-			return 1;
-
+		}
+		else if (!strncmp(arg, "-seps=", 3)) {
+			parse_sep_set(arg_val, &override_seps);
+		} else if (!strcmp(arg, "-noprog")) {
+			if (!quiet) quiet = 1;
+		} else if (!strcmp(arg, "-quiet")) {
+			quiet = 2;
+		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
+			i++;
+		} else if (arg[0]=='-') {
+			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
+			} else if (!gf_is_libgpac_arg(arg) ) {
+				if (quiet<2)
+					fprintf(stderr, "Unrecognized option \"%s\", check usage \"gpac -h\"\n", arg);
+				gf_sys_close();
+				return 1;
+			}
 		}
 
 		if (arg_val) {
@@ -675,8 +690,6 @@ static int gpac_main(int argc, char **argv)
 			if (nb_threads<0) nb_threads=0;
 		}
 	}
-	if (enable_profiling) gf_sys_enable_profiling(GF_TRUE);
-
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 	if (disable_blocking) sflags |= GF_FS_FLAG_NO_BLOCKING;
 
@@ -900,6 +913,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_FilterArgMode argmode)
 	if (reg->args) {
 		u32 idx=0;
 		switch (argmode) {
+		case ARGMODE_ALL:
 		case ARGMODE_EXPERT:
 			fprintf(stderr, "Options (expert):\n");
 			break;
@@ -917,6 +931,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_FilterArgMode argmode)
 			if (!a || !a->arg_name) break;
 			idx++;
 			switch (argmode) {
+			case ARGMODE_ALL:
 			case ARGMODE_EXPERT:
 			 	print = GF_TRUE;
 			 	break;

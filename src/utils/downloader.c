@@ -440,7 +440,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	case 3:
 		meth = TLSv1_client_method();
 		break;
-#else /* for openssl 1.1+ this is the prefered method */
+#else /* for openssl 1.1+ this is the preferred method */
 	case 0:
 		meth = TLS_client_method();
 		break;
@@ -1392,9 +1392,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	gf_dm_sess_notify_state(sess, sess->status, GF_OK);
 
 	/*PROXY setup*/
-	if (sess->proxy_enabled!=2 && sess->dm && sess->dm->cfg) {
-		proxy = gf_cfg_get_key(sess->dm->cfg, "Core", "HTTPProxyEnabled");
-		if (proxy && !strcmp(proxy, "yes")) {
+	if (sess->proxy_enabled!=2) {
+		proxy = NULL;
+		if (gf_opts_get_bool("libgpac", "proxy-on")) {
 			u32 i;
 			Bool use_proxy=GF_TRUE;
 			for (i=0; i<gf_list_count(sess->dm->skip_proxy_servers); i++) {
@@ -1405,9 +1405,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				}
 			}
 			if (use_proxy) {
-				proxy = gf_cfg_get_key(sess->dm->cfg, "Core", "HTTPProxyPort");
-				proxy_port = proxy ? atoi(proxy) : 80;
-				proxy = gf_cfg_get_key(sess->dm->cfg, "Core", "HTTPProxyName");
+				proxy_port = gf_opts_get_int("libgpac", "proxy-port");
+				if (!proxy_port) proxy_port = 80;
+				proxy = gf_opts_get_key("libgpac", "proxy-name");
 				sess->proxy_enabled = 1;
 			} else {
 				proxy = NULL;
@@ -1421,11 +1421,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	}
 
 
-	if (sess->dm && sess->dm->cfg) {
-		ip = gf_cfg_get_key(sess->dm->cfg, "Core", "MobileIP");
-	} else {
-		ip = NULL;
-	}
+	ip = gf_opts_get_key("libgpac", "mobile-ip");
 
 	if (!proxy) {
 		proxy = sess->server_name;
@@ -1836,10 +1832,8 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 	dm->cache_mx = gf_mx_new("download_manager_cache_mx");
 	default_cache_dir = NULL;
 	gf_mx_p( dm->cache_mx );
-	if (cfg)
-		opt = gf_cfg_get_key(cfg, "Core", "CacheDirectory");
-	else
-		opt = NULL;
+
+	opt = gf_opts_get_key("libgpac", "cache");
 
 retry_cache:
 	if (!opt) {
@@ -1877,13 +1871,8 @@ retry_cache:
 		}
 	}
 
-	opt = cfg ? gf_cfg_get_key(cfg, "Core", "MaxRate") : NULL;
 	/*use it in in BYTES per second*/
-	if (opt)
-		dm->limit_data_rate = 1000 * atoi(opt) / 8;
-	else
-		gf_cfg_set_key(cfg, "Core", "MaxRate", "0");
-
+	dm->limit_data_rate = 1000 * gf_opts_get_int("libgpac", "maxrate") / 8;
 
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 	//when rate is limited, use smaller smaller read size
@@ -1891,60 +1880,29 @@ retry_cache:
 		dm->read_buf_size = 1024;
 	}
 
-	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Core", "DisableCache");
-		if (!opt) gf_cfg_set_key(cfg, "Core", "DisableCache", "no");
-		if (opt && !strcmp(opt, "yes")) dm->disable_cache = GF_TRUE;
-	}
+	dm->disable_cache = gf_opts_get_bool("libgpac", "no-cache");
 
-	dm->allow_offline_cache = GF_FALSE;
-	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Core", "AllowOfflineCache");
-		if (opt && !strcmp(opt, "yes") )
-			dm->allow_offline_cache = GF_TRUE;
-	}
+	dm->allow_offline_cache = gf_opts_get_bool("libgpac", "offline-cache");
 
 	dm->clean_cache = GF_FALSE;
 	dm->allow_broken_certificate = GF_FALSE;
-	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Core", "CleanCache");
-		if (opt) {
-			if (!strcmp(opt, "yes") ) {
-				dm->clean_cache = GF_TRUE;
-				dm->max_cache_size=0;
-				gf_dm_clean_cache(dm);
-			} else if (sscanf(opt, LLU"M", &dm->max_cache_size)==1) {
-				dm->max_cache_size*=1000;
-				dm->max_cache_size*=1000;
-				gf_dm_clean_cache(dm);
-			} else if (sscanf(opt, LLU"K", &dm->max_cache_size)==1) {
-				dm->max_cache_size*=1000;
-				gf_dm_clean_cache(dm);
-			}
-		}
-		opt = gf_cfg_get_key(cfg, "Core", "AllowBrokenCertificate");
-		if (!opt) {
-			gf_cfg_set_key(cfg, "Core", "AllowBrokenCertificate", "no");
-		} else if (!strcmp(opt, "yes")) {
-			dm->allow_broken_certificate = GF_TRUE;
+	if ( gf_opts_get_bool("libgpac", "clean-cache")) {
+		dm->clean_cache = GF_TRUE;
+		dm->max_cache_size=0;
+		gf_dm_clean_cache(dm);
+	} else {
+		dm->max_cache_size = gf_opts_get_int("libgpac", "cache-size");
+		if (dm->max_cache_size) {
+			gf_dm_clean_cache(dm);
 		}
 	}
+	dm->allow_broken_certificate = gf_opts_get_bool("libgpac", "broken-cert");
 
+	dm->head_timeout = gf_opts_get_int("libgpac", "head-timeout");
+	if (!dm->head_timeout) dm->head_timeout = 5000;
 
-	dm->head_timeout = 5000;
-	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Core", "HTTPHeadTimeout");
-		if (opt) {
-			dm->head_timeout = atoi(opt);
-		}
-	}
-	dm->request_timeout = 20000;
-	if (cfg) {
-		opt = gf_cfg_get_key(cfg, "Core", "HTTPRequestTimeout");
-		if (opt) {
-			dm->request_timeout = atoi(opt);
-		}
-	}
+	dm->request_timeout = gf_opts_get_int("libgpac", "req-timeout");
+	if (!dm->request_timeout) dm->request_timeout = 20000;
 
 	gf_mx_v( dm->cache_mx );
 
@@ -2491,12 +2449,9 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	if (sess->creds && sess->creds->valid) {
 		sprintf(pass_buf, "Authorization: Basic %s", sess->creds->digest);
 	}
-	if (sess->dm && sess->dm->cfg)
-		user_agent = gf_cfg_get_key(sess->dm->cfg, "Core", "UserAgent");
-	else
-		user_agent = NULL;
-	if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
 
+	user_agent = gf_opts_get_key("libgpac", "ua");
+	if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
 
 	par.error = GF_OK;
 	par.msg_type = GF_NETIO_GET_METHOD;
@@ -2515,10 +2470,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	}
 
 	url = (sess->proxy_enabled==1) ? sess->orig_url : sess->remote_path;
-	if (sess->dm && sess->dm->cfg)
-		param_string = gf_cfg_get_key(sess->dm->cfg, "Core", "ParamString");
-	else
-		param_string = NULL;
+
+	param_string = gf_opts_get_key("libgpac", "query-string");
 	if (param_string) {
 		if (strchr(sess->remote_path, '?')) {
 			sprintf(sHTTP, "%s %s&%s HTTP/1.0\r\nHost: %s\r\n" ,
@@ -2569,12 +2522,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		no_cache = GF_TRUE;
 	}
 	if (!has_language) {
-		const char *opt;
-
-		if (sess->dm && sess->dm->cfg)
-			opt = gf_cfg_get_key(sess->dm->cfg, "Core", "Language2CC");
-		else
-			opt = NULL;
+		const char *opt = gf_opts_get_key("libgpac", "lang");
 		if (opt) {
 			strcat(sHTTP, "Accept-Language: ");
 			strcat(sHTTP, opt);
@@ -2594,19 +2542,14 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 	/*check if we have personalization info*/
 	send_profile = GF_FALSE;
-	if (sess->dm && sess->dm->cfg)
-		user_profile = gf_cfg_get_key(sess->dm->cfg, "Core", "UserProfileID");
-	else
-		user_profile = NULL;
+	user_profile = gf_opts_get_key("libgpac", "user-profileid");
+
 	if (user_profile) {
 		strcat(sHTTP, "X-UserProfileID: ");
 		strcat(sHTTP, user_profile);
 		strcat(sHTTP, "\r\n");
 	} else {
-		if (sess->dm && sess->dm->cfg)
-			user_profile = gf_cfg_get_key(sess->dm->cfg, "Core", "UserProfile");
-		else
-			user_profile = NULL;
+		user_profile = gf_opts_get_key("libgpac", "user-profile");
 		if (user_profile) {
 			FILE *profile = gf_fopen(user_profile, "rt");
 			if (profile) {
@@ -2655,21 +2598,21 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			FILE *profile;
 			assert( sess->dm );
 			assert( sess->dm->cfg );
-			user_profile = gf_cfg_get_key(sess->dm->cfg, "Core", "UserProfile");
+			user_profile = gf_opts_get_key("libgpac", "user-profile");
 			assert (user_profile);
 			profile = gf_fopen(user_profile, "rt");
 			if (profile) {
 				s32 read = (s32) fread(tmp_buf+len, sizeof(char), par.size, profile);
 				if ((read<0) || (read< (s32) par.size)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-					       ("Error while loading Downloader/UserProfile, size=%d, should be %d.", read, par.size));
+					       ("[HTTP] Error while loading UserProfile, size=%d, should be %d.", read, par.size));
 					for (; read < (s32) par.size; read++) {
 						tmp_buf[len + read] = 0;
 					}
 				}
 				gf_fclose(profile);
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Error while loading Profile file %s.", user_profile));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Error while loading Profile file %s.", user_profile));
 			}
 		}
 
@@ -3107,8 +3050,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				sess->chunked = GF_TRUE;
 		}
 		else if (!stricmp(hdrp->name, "X-UserProfileID") ) {
-			if (sess->dm && sess->dm->cfg)
-				gf_cfg_set_key(sess->dm->cfg, "Core", "UserProfileID", hdrp->value);
+			gf_opts_set_key("libgpac", "user-profileid", hdrp->value);
 		}
 		else if (!stricmp(hdrp->name, "Connection") ) {
 			if (strstr(hdrp->value, "close"))
@@ -3833,14 +3775,12 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 	if (rate_in_bits_per_sec == 0xFFFFFFFF) {
 		dm->simulate_no_connection=GF_TRUE;
 	} else {
+		char opt[100];
 		dm->simulate_no_connection=GF_FALSE;
 		dm->limit_data_rate = rate_in_bits_per_sec/8;
 
-		if (dm->cfg) {
-			char opt[100];
-			sprintf(opt, "%d", rate_in_bits_per_sec / 1024);
-			gf_cfg_set_key(dm->cfg, "Core", "MaxRate", opt);
-		}
+		sprintf(opt, "%d", rate_in_bits_per_sec);
+		gf_opts_set_key("libgpac", "maxrate", opt);
 
 		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 		//when rate is limited, use smaller smaller read size

@@ -670,7 +670,7 @@ typedef struct {
 	u32 MaxDelay;
 } GF_QoS_MaxDelay;
 
-/*! QoS Prefered Max Delay Qualifier*/
+/*! QoS preferred Max Delay Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 PrefMaxDelay;

@@ -2241,7 +2241,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, (" %s\n", result->freg->name));
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filters] Dijkstra: no results found!\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Filters] Dijkstra: no results found!\n"));
 	}
 	gf_list_del(dijkstra_nodes);
 
@@ -2319,6 +2319,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			if (! gf_filter_swap_source_registry(pid->filter) ) {
 				//no filter found for this pid !
 				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("No suitable filter chain found\n"));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Swap source demux to %s\n", pid->filter->freg->name));
 			}
 			*filter_reassigned = GF_TRUE;
 		} else if (!reconfigurable_only) {

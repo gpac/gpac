@@ -604,14 +604,24 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		if (res) *score = GF_FPROBE_SUPPORTED;
 		else {
 			AV1State state;
-			memset(&state, 0, sizeof(AV1State));
+			GF_Err e;
 
-			GF_Err e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
+#ifndef GPAC_DISABLE_LOGS
+			u32 ll = gf_log_get_tool_level(GF_LOG_CODING);
+			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
+#endif
+
+			memset(&state, 0, sizeof(AV1State));
+			e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
 			if (e==GF_OK) {
 				res = GF_TRUE;
 				*score = GF_FPROBE_MAYBE_SUPPORTED;
 			}
 			av1_reset_state(&state, GF_TRUE);
+#ifndef GPAC_DISABLE_LOGS
+			gf_log_set_tool_level(GF_LOG_CODING, ll);
+#endif
+
 		}
 	}
 	gf_bs_del(bs);

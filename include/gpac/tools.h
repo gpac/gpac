@@ -768,8 +768,9 @@ void gf_sys_close();
  *	Sets the user app arguments (used by GUI mode)
  *	\param argc Number of arguments
  *	\param argv Array of arguments
+ *	\return GF_TRUE if success, GF_FALSE otherwise
  */
-void gf_sys_set_args(s32 argc, const char **argv);
+Bool gf_sys_set_args(s32 argc, const char **argv);
 
 /*!
  *	\brief Get number of args
@@ -1111,6 +1112,8 @@ u32 gf_opts_get_section_count();
 const char *gf_opts_get_section_name(u32 secIndex);
 u32 gf_opts_get_key_count(const char *secName);
 const char *gf_opts_get_key_name(const char *secName, u32 keyIndex);
+Bool gf_opts_get_bool(const char *secName, const char *keyName);
+u32 gf_opts_get_int(const char *secName, const char *keyName);
 
 /*!
  * Do not save modification to global options
