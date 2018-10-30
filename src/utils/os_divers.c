@@ -730,8 +730,13 @@ Bool gf_sys_set_args(s32 argc, const char **argv)
 			} else if (i+1<argc) {
 				arg_val = (char *) argv[i+1];
 			}
-			if (arg[0] != '-') continue;
-			if (! arg[1]) continue;
+			if ((arg[0] != '-') || ! arg[1]) {
+				if (use_sep) {
+					arg_val--;
+					arg_val[0]='=';
+				}
+				continue;
+			}
 
 			if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 				log_file_name = arg_val;
