@@ -208,6 +208,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
 	if (!pix_fmt) pix_fmt = GF_PIXEL_RGB;
 
+	if (ctx->width != ctx->decoder->width)
+		ctx->width = ctx->width;
 	//update all props
 	FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 	FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
@@ -742,6 +744,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!ctx->frame)
 			ctx->frame = av_frame_alloc();
 
+		if (ctx->pixel_fmt) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_FRAC( ctx->pixel_fmt) );
+		}
+
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffdec_process_audio;
 		ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
@@ -764,6 +770,11 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		if (!ctx->frame)
 			ctx->frame = av_frame_alloc();
+
+		if (ctx->sample_fmt) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_FRAC( ctx->sample_fmt) );
+		}
+
 	} else {
 #ifdef FF_SUB_SUPPORT
 		ctx->process = ffdec_process_subtitle;
