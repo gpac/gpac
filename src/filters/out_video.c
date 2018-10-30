@@ -465,6 +465,7 @@ typedef struct
 
 	u32 uv_w, uv_h, uv_stride, bit_depth;
 	Bool is_yuv;
+	u32 nb_drawn;
 } GF_VideoOutCtx;
 
 
@@ -1737,14 +1738,27 @@ static GF_Err vout_process(GF_Filter *filter)
 
 		if (ctx->drop) {
 			u64 next_ts;
+			Bool do_drop = GF_FALSE;
 			//peeking next packet CTS might fail if no packet in buffer, in which case we don't drop
 			if (gf_filter_pid_get_first_packet_cts(ctx->pid, &next_ts)) {
 				if (next_ts<ref_clock) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms drop frame "LLU" ms reference clock "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale, (1000*ref_clock)/ctx->timescale));
-
-					gf_filter_pck_unref(pck);
-					return GF_OK;
+					do_drop = GF_TRUE;
 				}
+			} else if (ctx->speed > 2){
+				u32 speed = ABS(ctx->speed);
+
+				ctx->nb_drawn++;
+				if (ctx->nb_drawn % speed) {
+					do_drop = GF_TRUE;
+				} else {
+					ctx->nb_drawn = 0;
+				}
+			}
+			if (do_drop) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms drop frame "LLU" ms reference clock "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale, (1000*ref_clock)/ctx->timescale));
+
+				gf_filter_pck_unref(pck);
+				return GF_OK;
 			}
 		}
 
