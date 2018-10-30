@@ -280,7 +280,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		Bool is_xml = GF_FALSE;
 		p.value.string_list = gf_list_new();
 		char *v = (char *) value;
-		if (v[0]=='<') is_xml = GF_TRUE;
+		if (v && v[0]=='<') is_xml = GF_TRUE;
 		if (!list_sep_char) list_sep_char = ',';
 		while (v) {
 			u32 len=0;
