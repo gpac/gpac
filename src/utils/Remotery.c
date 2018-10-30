@@ -49,7 +49,6 @@
 #define RMT_IMPL
 #include <gpac/tools.h>
 
-
 #ifdef RMT_PLATFORM_WINDOWS
   #pragma comment(lib, "ws2_32.lib")
 #endif
@@ -139,8 +138,8 @@ static rmtBool g_SettingsInitialized = RMT_FALSE;
 
 #endif
 
-#ifdef _MSC_VER
-    #define RMT_UNREFERENCED_PARAMETER(i) assert(i == 0 || i != 0);	// To fool warning C4100 on warning level 4
+#if defined(_MSC_VER) && !defined(__clang__)
+    #define RMT_UNREFERENCED_PARAMETER(i) (i)
 #else
     #define RMT_UNREFERENCED_PARAMETER(i) (void)(1 ? (void)0 : ((void)i))
 #endif
@@ -255,7 +254,7 @@ static rmtU32 msTimer_Get()
         #endif
 
         return msTime;
-
+        
     #endif
 }
 
@@ -492,13 +491,13 @@ static void AtomicSub(rmtS32 volatile* value, rmtS32 sub)
 }
 
 
-// Compiler write fences (windows implementation)
+// Compiler write fences
 static void WriteFence()
 {
-#if defined(RMT_PLATFORM_WINDOWS) && !defined(__MINGW32__)
-    _WriteBarrier();
-#elif defined (__clang__)
+#if defined (__clang__)
     __asm__ volatile("" : : : "memory");
+#elif defined(RMT_PLATFORM_WINDOWS) && !defined(__MINGW32__)
+    _WriteBarrier();
 #else
     asm volatile ("" : : : "memory");
 #endif
@@ -3215,10 +3214,10 @@ static void WebSocket_PrepareBuffer(Buffer* buffer)
     char empty_frame_header[WEBSOCKET_MAX_FRAME_HEADER_SIZE];
 
     assert(buffer != NULL);
-
+ 
     // Reset to start
     buffer->bytes_used = 0;
-
+ 
     // Allocate enough space for a maximum-sized frame header
     Buffer_Write(buffer, empty_frame_header, sizeof(empty_frame_header));
 }
@@ -3240,7 +3239,7 @@ static void WebSocket_WriteFrameHeader(WebSocket* web_socket, rmtU8* dest, rmtU3
     rmtU8 frame_type = (rmtU8)web_socket->mode;
 
     dest[0] = final_fragment | frame_type;
-
+ 
      // Construct the frame header, correctly applying the narrowest size
      if (length <= 125)
      {
@@ -4418,6 +4417,8 @@ struct Remotery
     // The main server thread
     rmtThread* thread;
 
+	int unbinding;
+
 #if RMT_USE_CUDA
     rmtCUDABind cuda;
 #endif
@@ -4509,7 +4510,7 @@ static rmtError Remotery_SendLogTextMessage(Remotery* rmt, Message* message)
 
     assert(rmt != NULL);
     assert(message != NULL);
-
+    
     bin_buf = rmt->server->bin_buf;
     WebSocket_PrepareBuffer(bin_buf);
     Buffer_Write(bin_buf, message->payload, message->payload_size);
@@ -4764,12 +4765,13 @@ static rmtError Remotery_ReceiveMessage(void* context, char* message_data, rmtU3
     {
         case FOURCC('C', 'O', 'N', 'I'):
         {
+            rmt_LogText("Console message received...");
+            rmt_LogText(message_data + 4);
+
             // Pass on to any registered handler
             if (g_Settings.input_handler != NULL)
                 g_Settings.input_handler(message_data + 4, g_Settings.input_handler_context);
 
-            rmt_LogText("Console message received...");
-            rmt_LogText(message_data + 4);
             break;
         }
 
@@ -5188,7 +5190,7 @@ static rmtBool QueueLine(rmtMessageQueue* queue, unsigned char* text, rmtU32 siz
 
 RMT_API void _rmt_LogText(rmtPStr text)
 {
-    int start_offset, prev_offset, i;
+    int start_offset, offset, i;
     unsigned char line_buffer[1024] = { 0 };
     ThreadSampler* ts;
 
@@ -5202,54 +5204,44 @@ RMT_API void _rmt_LogText(rmtPStr text)
     line_buffer[1] = 'O';
     line_buffer[2] = 'G';
     line_buffer[3] = 'M';
+    // Fill with spaces to enable viewing line_buffer without offset in a debugger
+    // (will be overwritten later by QueueLine/rmtMessageQueue_AllocMessage)
+    line_buffer[4] = ' ';
+    line_buffer[5] = ' ';
+    line_buffer[6] = ' ';
+    line_buffer[7] = ' ';
     start_offset = 8;
 
     // There might be newlines in the buffer, so split them into multiple network calls
-    prev_offset = start_offset;
+    offset = start_offset;
     for (i = 0; text[i] != 0; i++)
     {
         char c = text[i];
 
         // Line wrap when too long or newline encountered
-        if (prev_offset == sizeof(line_buffer) - 3 || c == '\n')
+        if (offset == sizeof(line_buffer) - 1 || c == '\n')
         {
-            if (QueueLine(g_Remotery->mq_to_rmt_thread, line_buffer, prev_offset, ts) == RMT_FALSE)
+            // Send the line up to now
+            if (QueueLine(g_Remotery->mq_to_rmt_thread, line_buffer, offset, ts) == RMT_FALSE)
                 return;
 
             // Restart line
-            prev_offset = start_offset;
+            offset = start_offset;
+
+            // Don't add the newline character (if this was the reason for the flush)
+            // to the restarted line_buffer, let's skip it
+            if (c == '\n')
+                continue;
         }
 
-        // Safe to insert 2 characters here as previous check would split lines if not enough space left
-        switch (c)
-        {
-            // Skip newline, dealt with above
-            case '\n':
-                break;
-
-            // Escape these
-            case '\\':
-                line_buffer[prev_offset++] = '\\';
-                line_buffer[prev_offset++] = '\\';
-                break;
-
-            case '\"':
-                line_buffer[prev_offset++] = '\\';
-                line_buffer[prev_offset++] = '\"';
-                break;
-
-            // Add the rest
-            default:
-                line_buffer[prev_offset++] = c;
-                break;
-        }
+        line_buffer[offset++] = c;
     }
 
     // Send the last line
-    if (prev_offset > start_offset)
+    if (offset > start_offset)
     {
-        assert(prev_offset < ((int)sizeof(line_buffer) - 3));
-        QueueLine(g_Remotery->mq_to_rmt_thread, line_buffer, prev_offset, ts);
+        assert(offset < (int)sizeof(line_buffer));
+        QueueLine(g_Remotery->mq_to_rmt_thread, line_buffer, offset, ts);
     }
 }
 
@@ -6672,7 +6664,7 @@ RMT_API void _rmt_UnbindOpenGL(void)
     {
         OpenGL* opengl = g_Remotery->opengl;
         assert(opengl != NULL);
-
+		g_Remotery->unbinding = 1;
         // Stall waiting for the OpenGL queue to empty into the Remotery queue
         while (!rmtMessageQueue_IsEmpty(opengl->mq_to_opengl_main))
             UpdateOpenGLFrame();
@@ -6687,6 +6679,7 @@ RMT_API void _rmt_UnbindOpenGL(void)
             rmtFreeLibrary(opengl->dll_handle);
             opengl->dll_handle = NULL;
         }
+		g_Remotery->unbinding = 0;
     }
 }
 
@@ -6696,6 +6689,9 @@ RMT_API void _rmt_BeginOpenGLSample(rmtPStr name, rmtU32* hash_cache)
     ThreadSampler* ts;
 
     if (g_Remotery == NULL)
+        return;
+
+    if (g_Remotery->opengl->dll_handle == NULL)
         return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
@@ -6771,7 +6767,7 @@ static void UpdateOpenGLFrame(void)
     opengl = g_Remotery->opengl;
     assert(opengl != NULL);
 
-    rmt_BeginCPUSample(rmt_UpdateOpenGLFrame, RMTSF_Aggregate);
+    rmt_BeginCPUSample(rmt_UpdateOpenGLFrame, 0);
 
     // Process all messages in the OpenGL queue
     while (1)
@@ -6791,7 +6787,7 @@ static void UpdateOpenGLFrame(void)
 
         // Retrieve timing of all OpenGL samples
         // If they aren't ready leave the message unconsumed, holding up later frames and maintaining order
-        if (!GetOpenGLSampleTimes(sample, &opengl->first_timestamp,&opengl->last_resync))
+        if (!GetOpenGLSampleTimes(sample, &opengl->first_timestamp,&opengl->last_resync) && !g_Remotery->unbinding)
             break;
 
         // Pass samples onto the remotery thread for sending to the viewer
@@ -6808,6 +6804,8 @@ RMT_API void _rmt_EndOpenGLSample(void)
     ThreadSampler* ts;
 
     if (g_Remotery == NULL)
+        return;
+    if (g_Remotery->opengl->dll_handle == NULL)
         return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
@@ -7138,7 +7136,7 @@ RMT_API void _rmt_EndMetalSample(void)
         {
             if (metal_sample->timestamp != NULL)
                 MetalTimestamp_End(metal_sample->timestamp);
-
+            
             // Send to the update loop for ready-polling
             if (ThreadSampler_Pop(ts, g_Remotery->metal->mq_to_metal_main, (Sample*)metal_sample))
                 // Perform ready-polling on popping of the root sample
