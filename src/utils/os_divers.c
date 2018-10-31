@@ -714,7 +714,7 @@ GF_EXPORT
 Bool gf_sys_set_args(s32 argc, const char **argv)
 {
 	if (!gpac_argc) {
-		u32 i;
+		s32 i;
 		Bool gf_opts_load_option(const char *name, const char *val, Bool *consumed_next);
 
 		const char *log_file_name=NULL;

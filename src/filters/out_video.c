@@ -1745,7 +1745,7 @@ static GF_Err vout_process(GF_Filter *filter)
 					do_drop = GF_TRUE;
 				}
 			} else if (ctx->speed > 2){
-				u32 speed = ABS(ctx->speed);
+				u32 speed = (u32) ABS(ctx->speed);
 
 				ctx->nb_drawn++;
 				if (ctx->nb_drawn % speed) {
