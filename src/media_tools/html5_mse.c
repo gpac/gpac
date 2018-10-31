@@ -318,7 +318,7 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 		}
 
 		/* Check MIME type to start the right InputService */
-		sPlug = gf_cfg_get_key(sourcebuffer->mediasource->service->term->user->config, "MimeTypes", mime);
+		sPlug = gf_opts_get_key("MimeTypes", mime);
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;

@@ -60,12 +60,12 @@ static Bool netctrl_process(GF_TermExt *termext, u32 action, void *param)
 	case GF_TERM_EXT_START:
 		netctrl->term = (GF_Terminal *) param;
 
-		sOpt = gf_modules_get_option((GF_BaseInterface*)termext, "NetControler", "Enabled");
+		sOpt = gf_opts_get_key("NetControler", "Enabled");
 		if (!sOpt || strcmp(sOpt, "yes")) return 0;
-		sOpt = gf_cfg_get_key(netctrl->term->compositor->user->config, "NetControler", "ServerIP");
+		sOpt = gf_opts_get_key("NetControler", "ServerIP");
 		if (sOpt) server_ip = sOpt;
 		else server_ip = "127.0.0.1";
-		sOpt = gf_cfg_get_key(netctrl->term->compositor->user->config, "NetControler", "Port");
+		sOpt = gf_opts_get_key("NetControler", "Port");
 		if (sOpt) port = atoi(sOpt);
 		else port = 20320;
 

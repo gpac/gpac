@@ -686,9 +686,9 @@ void CNativeWrapper::SetupLogs() {
 	debug_log("SetupLogs()");
 
 	gf_mx_p(m_mx);
-	gf_log_set_tools_levels( gf_opts_get_key("General", "Logs") );
+	gf_log_set_tools_levels( gf_opts_get_key("core", "logs") );
 	gf_log_set_callback(this, on_gpac_log);
-	opt = gf_opts_get_key("General", "LogFile");
+	opt = gf_opts_get_key("core", "log-file");
 	if (opt) {
 		JavaEnvTh *env = getEnv();
 		if (env && env->cbk_setLogFile) {
@@ -772,10 +772,10 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	strcat(vertex_path, "/../shaders/vertex.glsl");
 	strcat(fragment_path, "/../shaders/fragment.glsl");
 
-	gf_opts_set_key("Video", "VertexShader", vertex_path);
-	gf_opts_set_key("Video", "FragmentShader", fragment_path);
-	gf_opts_set_key("Compositor", "OpenGLMode", "hybrid");
-	opt = gf_opts_get_key("Core", "ModulesDirectory");
+	gf_opts_set_key("core", "vert-shader", vertex_path);
+	gf_opts_set_key("core", "frag-shader", fragment_path);
+	gf_opts_set_key("filter@compositor", "ogl", "hybrid");
+	opt = gf_opts_get_key("core", "mod-dirs");
 	LOGI("loading modules in directory %s...", opt);
 
 	/*m_user.modules = gf_modules_new(opt, m_user.config);

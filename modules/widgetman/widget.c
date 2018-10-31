@@ -342,7 +342,7 @@ if (!strcmp(prop_name, "viewMode")) {
 	*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "floating") );
 }
 else if (!strcmp(prop_name, "locale")) {
-	opt = gf_cfg_get_key(wid->widget->wm->term->user->config, "Systems", "Language2CC");
+	opt = gf_opts_get_key("core", "lang");
 	if (!opt) opt = "und";
 	*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, opt) );
 }
@@ -368,11 +368,11 @@ else if (!strcmp(prop_name, "description")) {
 	if (wid->widget->description) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, wid->widget->description) );
 }
 else if (!strcmp(prop_name, "width")) {
-	opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, "width");
+	opt = gf_opts_get_key((const char *) wid->secname, "width");
 	*vp = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 }
 else if (!strcmp(prop_name, "height")) {
-	opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, "height");
+	opt = gf_opts_get_key((const char *) wid->secname, "height");
 	*vp = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 }
 else if (!strcmp(prop_name, "preferences")) {

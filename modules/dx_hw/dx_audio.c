@@ -180,8 +180,8 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 	while (ctx->buffer_size % ctx->format.nBlockAlign) ctx->buffer_size++;
 
 	ctx->use_notif = GF_TRUE;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Audio", "DisableNotification");
-	if (sOpt && !stricmp(sOpt, "yes")) ctx->use_notif = GF_FALSE;
+	if (gf_opts_get_bool("core", "ds-disable-notif"))
+		ctx->use_notif = GF_FALSE;
 
 	memset(&dsbBufferDesc, 0, sizeof(DSBUFFERDESC));
 	dsbBufferDesc.dwSize = sizeof (DSBUFFERDESC);
@@ -218,7 +218,7 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 	hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
 	if (FAILED(hr)) {
 retry:
-		if (ctx->use_notif) gf_modules_set_option((GF_BaseInterface *)dr, "Audio", "DisableNotification", "yes");
+		if (ctx->use_notif) gf_opts_set_key("core", "ds-disable-notif", "yes");
 		ctx->use_notif = GF_FALSE;
 		dsbBufferDesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
 		hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );

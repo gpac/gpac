@@ -781,7 +781,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			gf_log_set_callback(gpac_log_file, on_gpac_log);
 		}
 
-		if (gf_opts_get_bool("libgpac", "rmt"))
+		if (gf_opts_get_bool("core", "rmt"))
 			gf_sys_enable_profiling(GF_TRUE);
 
 		if (quiet) {
@@ -845,12 +845,12 @@ Bool gf_sys_enable_profiling(Bool start)
 	if (start && !remotery_handle) {
 		rmtSettings *rmcfg = rmt_Settings();
 
-		rmcfg->port = gf_opts_get_int("libgpac", "rmt-port");
-		rmcfg->reuse_open_port = gf_opts_get_bool("libgpac", "rmt-reuse");
-		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("libgpac", "rmt-localhost");
-		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("libgpac", "rmt-sleep");
-		rmcfg->maxNbMessagesPerUpdate = gf_opts_get_int("libgpac", "rmt-nmsg");
-		rmcfg->messageQueueSizeInBytes = gf_opts_get_int("libgpac", "rmt-qsize");
+		rmcfg->port = gf_opts_get_int("core", "rmt-port");
+		rmcfg->reuse_open_port = gf_opts_get_bool("core", "rmt-reuse");
+		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "rmt-localhost");
+		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("core", "rmt-sleep");
+		rmcfg->maxNbMessagesPerUpdate = gf_opts_get_int("core", "rmt-nmsg");
+		rmcfg->messageQueueSizeInBytes = gf_opts_get_int("core", "rmt-qsize");
 		rmcfg->input_handler = gpac_rmt_input_handler;
 
 		rmtError rme = rmt_CreateGlobalInstance(&remotery_handle);
@@ -858,14 +858,14 @@ Bool gf_sys_enable_profiling(Bool start)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize Remotery profiler: error %d\n", rme));
 			return GF_FALSE;
 		}
-		if (gf_opts_get_bool("libgpac", "rmt-ogl"))
+		if (gf_opts_get_bool("core", "rmt-ogl"))
 			rmt_BindOpenGL();
 
-		if (gf_opts_get_bool("libgpac", "rmt-log")) {
+		if (gf_opts_get_bool("core", "rmt-log")) {
 			gpac_prev_default_logs = gf_log_set_callback(NULL, gpac_rmt_log_callback);
 		}
 	} else if (!start && remotery_handle) {
-		if (gf_opts_get_bool("libgpac", "rmt-ogl"))
+		if (gf_opts_get_bool("core", "rmt-ogl"))
 			rmt_UnbindOpenGL();
 
 		rmt_DestroyGlobalInstance(remotery_handle);

@@ -759,7 +759,7 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 	atts[i++] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
 	atts[i++] = EGL_BLUE_SIZE;
 	atts[i++] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	opt = gf_opts_get_key("core", "gl-bits-depth");
 	atts[i++] = EGL_DEPTH_SIZE;
 	atts[i++] = opt ? atoi(opt) : 16;
 	atts[i++] = EGL_SURFACE_TYPE;
@@ -873,7 +873,7 @@ GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height)
 	atts[5] = 8;
 	atts[6] = EGL_ALPHA_SIZE;
 	atts[7] = (dr->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA) ? 8 : EGL_DONT_CARE;
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	opt = gf_opts_get_key("core", "gl-bits-depth");
 	atts[8] = EGL_DEPTH_SIZE;
 	atts[9] = opt ? atoi(opt) : 16;
 
@@ -1476,7 +1476,7 @@ static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoH
 	gctx->off_y = rc.top;
 	gctx->erase_dest = GF_TRUE;
 
-	const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "GAPI", "FBAccess");
+	const char *opt = gf_opts_get_key("core", "gapi-fbaccess");
 	if (!opt || !strcmp(opt, "raw")) gx_mode = 2;
 	else if (opt && !strcmp(opt, "gx")) gx_mode = 1;
 	else gx_mode = 0;

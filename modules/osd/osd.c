@@ -174,7 +174,7 @@ Bool osd_load_scene(GF_OSD *osd)
 	strcpy(osd->statBuffer, "Hello World !");
 	osd->text->string.vals[0] = osd->statBuffer;
 
-	opt = gf_cfg_get_key(osd->term->user->config, "OSD", "Visible");
+	opt = gf_opts_get_key("OSD", "Visible");
 	if (!opt || strcmp(opt, "yes")) osd->visible->whichChoice = -1;
 
 
@@ -212,7 +212,7 @@ static Bool osd_process(GF_TermExt *termext, u32 action, void *param)
 	switch (action) {
 	case GF_TERM_EXT_START:
 		osd->term = (GF_Terminal *) param;
-		opt = gf_modules_get_option((GF_BaseInterface*)termext, "OSD", "Enabled");
+		opt = gf_opts_get_key("OSD", "Enabled");
 		if (!opt || strcmp(opt, "yes")) return 0;
 
 		/*load scene*/

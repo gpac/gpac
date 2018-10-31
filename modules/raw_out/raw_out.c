@@ -67,7 +67,7 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 	const char *opt;
 	RAWCTX;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "RAWVideo", "RawOutput");
+	opt = gf_opts_get_key("RAWVideo", "RawOutput");
 	if (opt && !strcmp(opt, "null")) {
 		rc->passthrough = GF_TRUE;
 		dr->Blit = RAW_BlitPassthrough;
@@ -80,7 +80,7 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 	} else {
 		rc->bpp = 3;
 		rc->pixel_format = GF_PIXEL_RGB;
-		opt = gf_modules_get_option((GF_BaseInterface *)dr, "RAWVideo", "PixelFormat");
+		opt = gf_opts_get_key("RAWVideo", "PixelFormat");
 		if (opt) {
 			if (!strcmp(opt, "555")) {
 				rc->bpp = 2;

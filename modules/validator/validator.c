@@ -934,7 +934,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		validator->compositor = (GF_Compositor *) param;
 
 		/* Check if the validator should be loaded and in which mode */
-		opt = gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "Mode");
+		opt = gf_opts_get_key("Validator", "Mode");
 		if (!opt) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("Validator missing configuration, stopping.\n"));
 			return GF_FALSE;
@@ -954,11 +954,11 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 
 		/* initializes the validator and starts */
 		validator->xvs_filename = NULL;
-		validator->xvl_filename = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "XVL");
+		validator->xvl_filename = (char *)gf_opts_get_key("Validator", "XVL");
 		if (!validator->xvl_filename) {
-			validator->xvs_filename = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "XVS");
+			validator->xvs_filename = (char *)gf_opts_get_key("Validator", "XVS");
 			if (!validator->xvs_filename) {
-				validator->xvs_filename = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "Trace");
+				validator->xvs_filename = (char *)gf_opts_get_key("Validator", "Trace");
 				if (!validator->xvs_filename) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Validator configuration without input, stopping.\n"));
 					return GF_FALSE;
@@ -1032,9 +1032,9 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		/*auto-disable the recording by default*/
 		if (!validator->trace_mode) {
 			if (validator->is_recording ) {
-				gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Play");
+				gf_opts_set_key("Validator", "Mode", "Play");
 			} else {
-				gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Disable");
+				gf_opts_set_key("Validator", "Mode", "Disable");
 			}
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Stopping validator\n"));

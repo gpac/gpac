@@ -173,7 +173,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 	vcap->state = 0;
 	vcap->service = serv;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)plug, "AVCap", "FlipVideo");
+	opt = gf_opts_get_key("AVCap", "FlipVideo");
 	if (opt && !strcmp(opt, "yes"))	vcap->flip_video = GF_TRUE;
 
 	if (!vcap->device_desc) {
@@ -218,7 +218,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 		vcap->device->getFormatMgr()->setFramerate(30);
 
 		default_4cc = 0;
-		opt = gf_modules_get_option((GF_BaseInterface *)plug, "AVCap", "Default4CC");
+		opt = gf_opts_get_key("AVCap", "Default4CC");
 		if (opt) {
 			default_4cc = GF_4CC(opt[0], opt[1], opt[2], opt[3]);
 			vcap->device->getFormatMgr()->setFormat(default_4cc);

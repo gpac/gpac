@@ -93,8 +93,8 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 	// check window mode used - SDL or X11
 	{
 		WINDOW_MODE window_mode = 0;
-		opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "WindowMode");
-		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "WindowMode", "X11");
+		opt = gf_opts_get_key("DirectFB", "WindowMode");
+		if (!opt) gf_opts_set_key("DirectFB", "WindowMode", "X11");
 		if (!opt || !strcmp(opt, "X11")) window_mode = WINDOW_X11;
 		else if (opt && !strcmp(opt, "SDL")) window_mode = WINDOW_SDL;
 		DirectFBVid_InitAndCreateSurface(ctx, window_mode);
@@ -102,21 +102,21 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 
 	// check hardware accelerator configuration
 	DirectFBVid_CtxSetDisableAcceleration(ctx, 0);
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableAcceleration");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "DisableAcceleration", "no");
+	opt = gf_opts_get_key("DirectFB", "DisableAcceleration");
+	if (!opt) gf_opts_set_key("DirectFB", "DisableAcceleration", "no");
 	if (opt && !strcmp(opt, "yes")) DirectFBVid_CtxSetDisableAcceleration(ctx, 1);
 
 	// check for display configuration
 	DirectFBVid_CtxSetDisableDisplay(ctx, 0);
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableDisplay");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "DisableDisplay", "no");
+	opt = gf_opts_get_key("DirectFB", "DisableDisplay");
+	if (!opt) gf_opts_set_key("DirectFB", "DisableDisplay", "no");
 	if (opt && !strcmp(opt, "yes")) DirectFBVid_CtxSetDisableDisplay(ctx, 1);
 
 	// set flip mode
 	{
 		FLIP_MODE flip_mode = 0;
-		opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "FlipSyncMode");
-		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "FlipSyncMode", "waitsync");
+		opt = gf_opts_get_key("DirectFB", "FlipSyncMode");
+		if (!opt) gf_opts_set_key("DirectFB", "FlipSyncMode", "waitsync");
 		if (!opt || !strcmp(opt, "waitsync")) flip_mode |= FLIP_WAITFORSYNC;
 		else if (opt && !strcmp(opt, "wait")) flip_mode |= FLIP_WAIT;
 		else if (opt && !strcmp(opt, "sync")) flip_mode |= FLIP_ONSYNC;
@@ -126,8 +126,8 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 	}
 
 	// enable/disable blit
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableBlit");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "DisableBlit", "no");
+	opt = gf_opts_get_key("DirectFB", "DisableBlit");
+	if (!opt) gf_opts_set_key("DirectFB", "DisableBlit", "no");
 	if (opt && !strcmp(opt, "all")) {
 		driv->hw_caps &= ~(GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV);
 	}

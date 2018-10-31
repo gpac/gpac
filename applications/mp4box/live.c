@@ -121,7 +121,7 @@ int stream_file_rtp(int argc, char **argv)
 
 	gf_sys_set_args(argc, (const char **) argv);
 
-	ifce_addr = gf_opts_get_key("libgpac", "ifce");
+	ifce_addr = gf_opts_get_key("core", "ifce");
 
 	if (!gf_isom_probe_file(inName)) {
 		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
@@ -528,7 +528,7 @@ int live_session(int argc, char **argv)
 		PrintLiveUsage();
 		return 1;
 	}
-	ifce_addr = gf_opts_get_key("libgpac", "ifce");
+	ifce_addr = gf_opts_get_key("core", "ifce");
 
 	if (dst_port && dst) livesess.streams = gf_list_new();
 
@@ -874,7 +874,7 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 	GF_RTPReorder *ch = NULL;
 #endif
 	GF_Socket *sock;
-	const char *grab_ifce = gf_opts_get_key("libgpac", "ifce");
+	const char *grab_ifce = gf_opts_get_key("core", "ifce");
 	GF_Err e = gf_m2ts_get_socket(grab_m2ts, grab_ifce, GF_M2TS_UDP_BUFFER_SIZE, &sock);
 
 	if (e) {
@@ -1015,7 +1015,7 @@ u32 grab_atsc3_session(const char *dir, s32 serviceID, s32 atsc_max_segs, u32 st
 	u32 nb_stats=1;
 	u32 start_time = gf_sys_clock();
 
-	const char *ifce = gf_opts_get_key("libgpac", "ifce");
+	const char *ifce = gf_opts_get_key("core", "ifce");
 	
 	gf_sys_get_rti(0, &rti, 0);
 

@@ -49,12 +49,11 @@ static GF_Err ALSA_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u3
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
 
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Audio", "ForceSampleRate");
-	if (opt) ctx->force_sr = atoi(opt);
-	ctx->dev_name = gf_modules_get_option((GF_BaseInterface *)dr, "Audio", "DeviceName");
+	ctx->force_sr = gf_opts_get_int("core", "force-alsarate");
+	ctx->dev_name = gf_opts_get_key("core", "alsa-devname");
 	if (!ctx->dev_name) {
 		ctx->dev_name = "hw:0,0";
-		gf_modules_set_option((GF_BaseInterface *)dr, "Audio", "DeviceName", ctx->dev_name);
+		gf_opts_set_key("core", "alsa-devname", ctx->dev_name);
 	}
 
 	/*test device*/

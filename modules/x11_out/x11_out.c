@@ -971,8 +971,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 	if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
 
 #ifdef GPAC_HAS_OPENGL
-	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "DisableVSync");
-	if (opt && !strcmp(opt, "yes")) {
+	if (gf_opts_get_bool("core", "disable-vsync")) {
 		my_glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddress( (const GLubyte*)"glXSwapIntervalEXT");
 		if (my_glXSwapIntervalEXT != NULL) {
 			my_glXSwapIntervalEXT(xWin->display, xWin->wnd, 0);
@@ -1547,7 +1546,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->use_shared_memory = 0;
 
 #ifdef GPAC_HAS_X11_SHM
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseHardwareMemory");
+	sOpt = gf_opts_get_key("core", "hwvmem");
 	if (sOpt && !strcmp(sOpt, "yes")) {
 		int XShmMajor, XShmMinor;
 		Bool XShmPixmaps;
@@ -1563,7 +1562,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 #endif
 
 #ifdef GPAC_HAS_X11_XV
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "DisableColorKeying");
+	sOpt = gf_opts_get_key("core", "no-colorkey");
 	if (sOpt && !strcmp(sOpt, "yes")) {
 		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
 	} else {
@@ -1586,8 +1585,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 #ifdef GPAC_HAS_X11_SHM
 		/*if user asked for YUV->RGB on offscreen, do it (it may crash the system)*/
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "EnableOffscreenYUV");
-		if (sOpt && !strcmp(sOpt, "yes")) {
+		if (gf_opts_get_bool("core", "offscreen-yuv")) {
 			vout->hw_caps |= GF_VIDEO_HW_HAS_YUV;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV Offscreen YUV2RGB acceleration\n"));
 		}
@@ -1633,11 +1631,11 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		int attribs[64];
 		int i, nb_bits, nb_depth_bits;
 
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent");
+		sOpt = gf_opts_get_key("core", "gl-bits-comp");
 		/* Most outputs are 24/32 bits these days, use 8 bits per channel instead of 5, works better on MacOS X */
 		nb_bits = sOpt ? atoi(sOpt) : 8;
 		if (!sOpt) {
-			gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent", "8");
+			gf_opts_set_key("core", "gl-bits-comp", "8");
 		}
 retry_8bpp:
 		i=0;
@@ -1660,18 +1658,18 @@ retry_8bpp:
 			attribs[i++] = 2;
 		}
 
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
+		sOpt = gf_opts_get_key("core", "gl-bits-depth");
 		nb_depth_bits = sOpt ? atoi(sOpt) : 16;
 		if (!sOpt) {
-			gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth", "16");
+			gf_opts_set_key("core", "gl-bits-depth", "16");
 		}
 		if (nb_bits) {
 			attribs[i++] = GLX_DEPTH_SIZE;
 			attribs[i++] = nb_depth_bits;
 		}
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
+		sOpt = gf_opts_get_key("core", "gl-doublebuf");
 		if (!sOpt) {
-			gf_modules_set_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering", "yes");
+			gf_opts_set_key("core", "gl-doublebuf", "yes");
 		}
 		if (!sOpt || !strcmp(sOpt, "yes")) {
 			attribs[i++] = GLX_DOUBLEBUFFER;
@@ -1731,9 +1729,9 @@ retry_8bpp:
 	XUnmapWindow(xWindow->display, (Window) xWindow->gl_wnd);
 	XSync(xWindow->display, False);
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "X113DOffscreenMode");
+	sOpt = gf_opts_get_key("core", "gl-offscreen");
 	if (!sOpt)
-		gf_modules_set_option((GF_BaseInterface *)vout, "Video", "X113DOffscreenMode", "Pixmap");
+		gf_opts_set_key("core", "gl-offscreen", "Pixmap");
 	if (sOpt && !strcmp(sOpt, "Window")) {
 		xWindow->offscreen_type = 1;
 	} else if (sOpt && !strcmp(sOpt, "VisibleWindow")) {

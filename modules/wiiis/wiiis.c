@@ -47,7 +47,7 @@ static Bool WII_RegisterDevice(struct __input_device *ifce, const char *urn, GF_
 	if (strcmp(urn, "WiiMote")) return 0;
 
 	/*init wiiuse lib*/
-	opt = gf_modules_get_option((GF_BaseInterface*)ifce, "WII", "MaxWiimotes");
+	opt = gf_opts_get_key("WII", "MaxWiimotes");
 	if (opt) wii->nb_wiimotes = atoi(opt);
 	if (!wii->nb_wiimotes) wii->nb_wiimotes = 1;
 
@@ -96,7 +96,7 @@ static u32 WII_Run(void *par)
 
 
 	scan_delay = 5;
-	opt = gf_modules_get_option((GF_BaseInterface*)ifce, "WII", "ScanDelay");
+	opt = gf_opts_get_key("WII", "ScanDelay");
 	if (opt) scan_delay = atoi(opt);
 
 	/*locate the wiimotes*/
@@ -109,14 +109,14 @@ static u32 WII_Run(void *par)
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[Wii] Failed to connect to any wiimote\n"));
 	}
 
-	opt = gf_modules_get_option((GF_BaseInterface*)ifce, "WII", "MotionSensing");
+	opt = gf_opts_get_key("WII", "MotionSensing");
 	/*enable motion sensing*/
 	if (!opt || !strcmp(opt, "yes")) {
 		Float smooth_alpha = 0.5;
 		Float ori_threshold = 10.0;
-		opt = gf_modules_get_option((GF_BaseInterface*)ifce, "WII", "OrientationThreshold");
+		opt = gf_opts_get_key("WII", "OrientationThreshold");
 		if (opt) ori_threshold = (Float) atof(opt);
-		opt = gf_modules_get_option((GF_BaseInterface*)ifce, "WII", "SmoothAlpha");
+		opt = gf_opts_get_key("WII", "SmoothAlpha");
 		if (opt) {
 			smooth_alpha = (Float) atof(opt);
 			if (smooth_alpha<0) smooth_alpha = 0.5;

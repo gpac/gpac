@@ -182,15 +182,15 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 		font_name = alt_fonts[i];
 
 		if (!stricmp(font_name, "SERIF")) {
-			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontSerif");
+			opt = gf_opts_get_key("FontCache", "FontSerif");
 			if (opt) font_name = (char*)opt;
 		}
 		else if (!stricmp(font_name, "SANS") || !stricmp(font_name, "sans-serif")) {
-			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontSans");
+			opt = gf_opts_get_key("FontCache", "FontSans");
 			if (opt) font_name = (char*)opt;
 		}
 		else if (!stricmp(font_name, "TYPEWRITER") || !stricmp(font_name, "monospace")) {
-			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontFixed");
+			opt = gf_opts_get_key("FontCache", "FontFixed");
 			if (opt) font_name = (char*)opt;
 		}
 

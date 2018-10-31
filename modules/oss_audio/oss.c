@@ -69,7 +69,7 @@ static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32
 	const char *opt;
 	OSSCTX();
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "OSS", "ForceSampleRate");
+	opt = gf_opts_get_key("core", "force-alsarate");
 	if (opt) ctx->force_sr = atoi(opt);
 
 	/*open OSS in non-blocking mode*/

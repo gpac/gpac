@@ -558,7 +558,7 @@ BOOL COptRender::OnInitDialog()
 
 	/*graphics driver enum*/
 	while (m_Graphics.GetCount()) m_Graphics.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "Raster2D");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "core", "raster2d");
 	s32 count = gf_modules_get_count(gpac->m_user.modules);
 	GF_BaseInterface *ifce;
 	select = 0;
@@ -604,7 +604,7 @@ Bool COptRender::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "BoundingVolume", (sel==2) ? "AABB" : (sel==1) ? "Box" : "None");
 
 	m_Graphics.GetWindowText(str, 50);
-	gf_cfg_set_key(gpac->m_user.config, "Compositor", "Raster2D", str);
+	gf_cfg_set_key(gpac->m_user.config, "core", "raster2d", str);
 
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "OpenGLMode", m_Use3DRender.GetCheck() ? "always" : "disable");
 	return GF_FALSE;
@@ -831,9 +831,8 @@ BOOL COptVideo::OnInitDialog()
 	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "SwitchResolution");
-	m_SwitchRes.SetCheck(sOpt && !stricmp(sOpt, "yes") ? 1 : 0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "HardwareMemory");
+	m_SwitchRes.SetCheck(gf_cfg_get_bool(gpac->m_user.config, "core", "switch-vres") );
+	sOpt = gf_cfg_get_bool(gpac->m_user.config, "core", "hwvmem");
 	m_UseHWMemory.SetCheck(sOpt && !stricmp(sOpt, "Always") ? 1 : 0);
 
 
@@ -843,7 +842,7 @@ BOOL COptVideo::OnInitDialog()
 	s32 select = 0;
 	/*video drivers enum*/
 	while (m_Videos.GetCount()) m_Videos.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "DriverName");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "core", "video-output");
 
 	for (u32 i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_VIDEO_OUTPUT_INTERFACE);
@@ -864,10 +863,10 @@ void COptVideo::SaveOptions()
 	Osmo4 *gpac = GetApp();
 	char str[50];
 
-	gf_cfg_set_key(gpac->m_user.config, "Video", "SwitchResolution", m_SwitchRes.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Video", "HardwareMemory", m_UseHWMemory.GetCheck() ? "Always" : "Auto");
+	gf_cfg_set_key(gpac->m_user.config, "core", "switch-vres", m_SwitchRes.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "core", "hwvmem", m_UseHWMemory.GetCheck() ? "Always" : "Auto");
 	m_Videos.GetWindowText(str, 50);
-	gf_cfg_set_key(gpac->m_user.config, "Video", "DriverName", str);
+	gf_cfg_set_key(gpac->m_user.config, "core", "video-output", str);
 }
 
 
@@ -945,7 +944,7 @@ BOOL COptAudio::OnInitDialog()
 
 	/*driver enum*/
 	while (m_DriverList.GetCount()) m_DriverList.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "DriverName");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "core", "audio-output");
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
 	GF_BaseInterface *ifce;
 	s32 select = 0;
@@ -988,7 +987,7 @@ void COptAudio::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "TotalDuration", str);
 
 	m_DriverList.GetWindowText(str, 50);
-	gf_cfg_set_key(gpac->m_user.config, "Audio", "DriverName", str);
+	gf_cfg_set_key(gpac->m_user.config, "core", "audio-output", str);
 
 	if (strstr(str, "DirectSound")) {
 		gf_cfg_set_key(gpac->m_user.config, "Audio", "DisableNotification", m_Notifs.GetCheck() ? "yes" : "no");
@@ -1060,7 +1059,7 @@ BOOL COptFont::OnInitDialog()
 
 	/*video drivers enum*/
 	while (m_Fonts.GetCount()) m_Fonts.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontReader");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontCache", "FontReader");
 	s32 to_sel = 0;
 	s32 select = 0;
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
@@ -1075,7 +1074,7 @@ BOOL COptFont::OnInitDialog()
 	m_Fonts.SetCurSel(select);
 
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontDirectory");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontCache", "FontDirectory");
 	if (sOpt) m_BrowseFont.SetWindowText(sOpt);
 
 	/*text texturing modes*/
@@ -1141,9 +1140,9 @@ void COptFont::SaveOptions()
 	char str[MAX_PATH];
 
 	m_Fonts.GetWindowText(str, 50);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontReader", str);
+	gf_cfg_set_key(gpac->m_user.config, "FontCache", "FontReader", str);
 	m_BrowseFont.GetWindowText(str, 50);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
+	gf_cfg_set_key(gpac->m_user.config, "FontCache", "FontDirectory", str);
 	switch (m_TextureModes.GetCurSel()) {
 	case 2:
 		gf_cfg_set_key(gpac->m_user.config, "Compositor", "TextureTextMode", "Always");

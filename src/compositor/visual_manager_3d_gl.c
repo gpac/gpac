@@ -160,10 +160,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	if (compositor->visual->type_3d || compositor->hybrid_opengl)
 		ext = (const char *) glGetString(GL_EXTENSIONS);
 
-	if (!ext) ext = gf_opts_get_key("Video", "OpenGLExtensions");
+	if (!ext) ext = gf_opts_get_key("core", "glext");
 	/*store OGL extension to config for app usage*/
-	else if (gf_opts_get_key("Video", "OpenGLExtensions")==NULL)
-		gf_opts_set_key("Video", "OpenGLExtensions", ext ? ext : "None");
+	else if (gf_opts_get_key("core", "glext")==NULL)
+		gf_opts_set_key("core", "glext", ext ? ext : "None");
 
 	if (!ext) return;
 
@@ -329,7 +329,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (compositor->shader_only_mode) {
-		const char *shader = gf_opts_get_key("Video", "VertexShader");
+		const char *shader = gf_opts_get_key("core", "vert-shader");
 		FILE *t = shader ? gf_fopen(shader, "rt") : NULL;
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Vertex shader not found, disabling shaders\n"));
@@ -337,7 +337,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		}
 		if (t) gf_fclose(t);
 
-		shader = gf_opts_get_key("Video", "FragmentShader");
+		shader = gf_opts_get_key("core", "frag-shader");
 		t = shader ? gf_fopen(shader, "rt") : NULL;
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Fragment shader not found, disabling shaders\n"));
@@ -733,7 +733,7 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 
 		case GF_3D_STEREO_CUSTOM:
 		{
-			const char *sOpt = gf_opts_get_key("Video", "InterleaverShader");
+			const char *sOpt = gf_opts_get_key("core", "mv-interleave-shader");
 			if (sOpt) {
 				visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(sOpt, GL_FRAGMENT_SHADER);
 				if (visual->autostereo_glsl_fragment) res = GF_TRUE;
@@ -1007,7 +1007,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	visual->glsl_has_shaders = GF_TRUE;
 	GL_CHECK_ERR
 
-	shader_file =(char *) gf_opts_get_key("Video", "VertexShader");
+	shader_file =(char *) gf_opts_get_key("core", "vert-shader");
 	if (!shader_file) return GF_FALSE;
 
 	for (i=0; i<GF_GL_NB_VERT_SHADERS; i++) {
@@ -1019,7 +1019,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		}
 	}
 
-	shader_file =(char *) gf_opts_get_key("Video", "FragmentShader");
+	shader_file =(char *) gf_opts_get_key("core", "frag-shader");
 	if (!shader_file) return GF_FALSE;
 
 	for (i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {

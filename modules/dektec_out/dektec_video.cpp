@@ -329,7 +329,7 @@ GF_Err Dektec_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 i
 	DtContext *dtc = (DtContext*)dr->opaque;
 	DtDevice *dvc = dtc->dvc;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "CardSlot");
+	opt = gf_opts_get_key("DektecVideo", "CardSlot");
 	if (opt) {
 		int PciBusNumber, SlotNumber;
 		sscanf(opt, "%d:%d", &PciBusNumber, &SlotNumber);
@@ -342,9 +342,9 @@ GF_Err Dektec_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 i
 		}
 	}
 	dtc->clip_sdi = GF_TRUE;
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "ClipSDI");
+	opt = gf_opts_get_key("DektecVideo", "ClipSDI");
 	if (!opt) 
-		gf_modules_set_option((GF_BaseInterface *)dr, "DektecVideo", "ClipSDI", "yes");
+		gf_opts_set_key("DektecVideo", "ClipSDI", "yes");
 	else if (!strcmp(opt, "no"))
 		dtc->clip_sdi = GF_FALSE;
 
@@ -355,9 +355,9 @@ GF_Err Dektec_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 i
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] No DTA 2174 or 2154 in system: %s\n", DtapiResult2Str(res)));
 		return GF_BAD_PARAM;
 	}
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "ForceRes");
+	opt = gf_opts_get_key("DektecVideo", "ForceRes");
 	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)dr, "DektecVideo", "ForceRes", "no");
+		gf_opts_set_key("DektecVideo", "ForceRes", "no");
 		dtc->force_width = dtc->force_height = 0;
 	} else if (sscanf(opt, "%ux%u", &dtc->force_width, &dtc->force_height) == 2) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Using forced resolution %ux%u\n", dtc->force_width, dtc->force_height));
@@ -375,9 +375,9 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 	Bool is4K = GF_FALSE;
 	DtContext *dtc = (DtContext*)dr->opaque;
 	DtDevice *dvc = dtc->dvc;
-
-	const char* sopt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "FrameRate");
-	if (!sopt) sopt = gf_modules_get_option((GF_BaseInterface *)dr, "Compositor", "FrameRate");
+	/*NOT WORKING*/
+	const char* sopt = gf_opts_get_key("Video", "FrameRate");
+	if (!sopt) sopt = gf_opts_get_key("Compositor", "FrameRate");
 	Double frameRate = 30.0;
 	int dFormat = -1, linkStd = -1;
 
@@ -467,7 +467,7 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 	if (frameRate == 60.0)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Dealing with 60 fps video is not stable, use with caution.\n"));
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "SDIOutput");
+	opt = gf_opts_get_key("DektecVideo", "SDIOutput");
 	if (opt) {
 		port = atoi(opt);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Using port %d (%s)\n", port, opt));

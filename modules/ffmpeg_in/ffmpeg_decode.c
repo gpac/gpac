@@ -392,21 +392,21 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		GF_SystemRTInfo rti;
 		u32 nb_threads, detected_nb_threads = 1;
 		const char *sOpt;
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType");
+		sOpt = gf_opts_get_key("OpenHEVC", "ThreadingType");
 		if (sOpt && !strcmp(sOpt, "wpp")) av_opt_set(*ctx, "thread_type", "slice", 0);
 		else if (sOpt && !strcmp(sOpt, "frame+wpp")) av_opt_set(*ctx, "thread_type", "frameslice", 0);
 		else {
 			av_opt_set(*ctx, "thread_type", "frame", 0);
-			if (!sOpt) gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType", "frame");
+			if (!sOpt) gf_opts_set_key("OpenHEVC", "ThreadingType", "frame");
 		}
 		if (gf_sys_get_rti(0, &rti, 0) ) {
 			detected_nb_threads = (rti.nb_cores>1) ? rti.nb_cores-1 : 1;
 		}
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads");
+		sOpt = gf_opts_get_key("OpenHEVC", "NumThreads");
 		if (!sOpt) {
 			char szO[100];
 			sprintf(szO, "%d", detected_nb_threads);
-			gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads", szO);
+			gf_opts_set_key("OpenHEVC", "NumThreads", szO);
 			nb_threads = detected_nb_threads;
 		} else {
 			nb_threads = atoi(sOpt);
@@ -422,8 +422,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		/* Set the decoder id */
 		//av_opt_set_int(openHevcContext->c->priv_data, "decoder-id", i, 0);
 
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "CBUnits");
-		if (!sOpt) gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "CBUnits", "4");
+		sOpt = gf_opts_get_key("OpenHEVC", "CBUnits");
+		if (!sOpt) gf_opts_set_key("OpenHEVC", "CBUnits", "4");
 		if (sOpt) ffd->output_cb_size = atoi(sOpt);
 	}
 #endif //HAS_HEVC

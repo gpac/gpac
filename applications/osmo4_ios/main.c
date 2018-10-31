@@ -480,12 +480,12 @@ int main (int argc, char *argv[])
 	}
 
 	if (!logs_set)
-		gf_log_set_tools_levels( gf_opts_get_key("General", "Logs") );
+		gf_log_set_tools_levels( gf_opts_get_key("core", "logs") );
 
-	gf_opts_set_key("Compositor", "OpenGLMode", "hybrid");
+	gf_opts_set_key("filter@compositor", "ogl", "hybrid");
 
 	if (!logfile) {
-		const char *opt = gf_opts_get_key("General", "LogFile");
+		const char *opt = gf_opts_get_key("core", "log-file");
 		if (opt) {
 			logfile = gf_fopen(opt, "wt");
 			if (logfile)
@@ -501,7 +501,7 @@ int main (int argc, char *argv[])
 	init_h = forced_height;
 /*
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading modules\n" ));
-	str = gf_opts_get_key("Core", "ModulesDirectory");
+	str = gf_opts_get_key("core", "mod-dirs");
 
 	user.modules = gf_modules_new((const char *) str, cfg_file);
 	if (user.modules) i = gf_modules_get_count(user.modules);
@@ -516,8 +516,6 @@ int main (int argc, char *argv[])
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Modules Loaded (%d found in %s)\n", i, str));
 */
 //	url_arg="$IOS_DOCS/NBA_score_table_2_hd.mp4#LIVE360TV";
-	gf_opts_set_key("Compositor", "NumViews", "1");
-//	gf_opts_set_key("Compositor", "StereoType", "SideBySide");
 
 	if (url_arg && !strncmp(url_arg, "$IOS_DOCS", 9)) {
 		char *path = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
@@ -543,13 +541,10 @@ int main (int argc, char *argv[])
 	if (bench_mode) {
 		//gf_cfg_discard_changes(user.config);
 		auto_exit = GF_TRUE;
-		gf_opts_set_key("Audio", "DriverName", "Raw Audio Output");
 		if (bench_mode!=2) {
-			gf_opts_set_key("Video", "DriverName", "Raw Video Output");
-			gf_opts_set_key("RAWVideo", "RawOutput", "null");
-			gf_opts_set_key("Compositor", "OpenGLMode", "disable");
+			gf_opts_set_key("filter@compositor", "ogl", "off");
 		} else {
-			gf_opts_set_key("Video", "DisableVSync", "yes");
+			gf_opts_set_key("core", "disable-vsync", "yes");
 		}
 	}
 
@@ -570,25 +565,19 @@ int main (int argc, char *argv[])
 		display_rti = 2;
 		gf_term_set_option(term, GF_OPT_VIDEO_BENCH, (bench_mode==3) ? 2 : 1);
 		if (bench_mode==1) bench_mode=2;
-	} else {
-		/*check video output*/
-		str = gf_opts_get_key("Video", "DriverName");
-		if (!strcmp(str, "Raw Video Output")) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: using raw output video (memory only) - no display used\n"));
-		}
 	}
 	
 	/*check audio output*/
-	str = gf_opts_get_key("Audio", "DriverName");
+	str = gf_opts_get_key("core", "audio-output");
 	if (!str || !strcmp(str, "No Audio Output Available")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: no audio output availble - make sure no other program is locking the sound card\n"));
 	}
 	str = gf_opts_get_key("General", "NoMIMETypeFetch");
 	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 
-	str = gf_opts_get_key("Core", "HTTPProxyEnabled");
+	str = gf_opts_get_key("core", "proxy-on");
 	if (str && !strcmp(str, "yes")) {
-		str = gf_opts_get_key("Core", "HTTPProxyName");
+		str = gf_opts_get_key("core", "proxy-name");
 		if (str) GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("HTTP Proxy %s enabled\n", str));
 	}
 

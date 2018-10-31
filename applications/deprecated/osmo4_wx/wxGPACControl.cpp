@@ -476,7 +476,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	SetYUVLabel();
 
 	/*graphics driver enum*/
-	sOpt = gf_cfg_get_key(cfg, "Compositor", "Raster2D");
+	sOpt = gf_cfg_get_key(cfg, "core", "raster2d");
 	GF_BaseInterface *ifce;
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
@@ -519,11 +519,10 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	else m_normals->SetSelection(0);
 
 	/*video*/
-	sOpt = gf_cfg_get_key(cfg, "Video", "SwitchResolution");
-	m_switchres->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Video", "UseHardwareMemory");
+	m_switchres->SetValue( gf_cfg_get_bool(cfg, "core", "switch-vres") );
+	sOpt = gf_cfg_get_key(cfg, "core", "hwvmem");
 	m_usehwmem->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Video", "DriverName");
+	sOpt = gf_cfg_get_key(cfg, "core", "video-output");
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_VIDEO_OUTPUT_INTERFACE);
@@ -550,7 +549,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_nomulitch->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
 	/*driver enum*/
-	sOpt = gf_cfg_get_key(cfg, "Audio", "DriverName");
+	sOpt = gf_cfg_get_key(cfg, "core", "audio-output");
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE);
@@ -569,7 +568,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 #endif
 
 	/*font*/
-	sOpt = gf_cfg_get_key(cfg, "FontEngine", "FontReader");
+	sOpt = gf_cfg_get_key(cfg, "FontCache", "FontReader");
 	to_sel = select = 0;
 	for (i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_FONT_READER_INTERFACE);
@@ -580,7 +579,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 		to_sel++;
 	}
 	m_font->SetSelection(select);
-	sOpt = gf_cfg_get_key(cfg, "FontEngine", "FontDirectory");
+	sOpt = gf_cfg_get_key(cfg, "FontCache", "FontDirectory");
 	if (sOpt) m_fontdir->SetLabel(wxString(sOpt, wxConvUTF8) );
 	sOpt = gf_cfg_get_key(cfg, "Compositor", "TextureTextMode");
 	m_texturemode->Append(wxT("Default"));
@@ -949,7 +948,7 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	if (m_bWas3D != is_3D) {
 		/*FIXME*/
 	}
-	gf_cfg_set_key(cfg, "Compositor", "Raster2D", m_graph->GetStringSelection().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "core", "raster2d", m_graph->GetStringSelection().mb_str(wxConvUTF8));
 
 	gf_cfg_set_key(cfg, "Compositor", "DirectDraw", m_direct->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", m_scalable->GetValue() ? "yes" : "no");
@@ -967,9 +966,9 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	sel = m_normals->GetSelection();
 	gf_cfg_set_key(cfg, "Compositor", "DrawNormals", (sel==2) ? "PerVertex" : ( (sel==1) ? "PerFace" : "Never" ) );
 
-	gf_cfg_set_key(cfg, "Video", "SwitchResolution", m_switchres->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Video", "UseHardwareMemory", m_usehwmem->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Video", "DriverName", m_video->GetStringSelection().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "core", "switch-vres", m_switchres->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "core", "hwvmem", m_usehwmem->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "core", "video-output", m_video->GetStringSelection().mb_str(wxConvUTF8));
 
 
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", m_forcecfg->GetValue() ? "yes" : "no");
@@ -978,14 +977,14 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", wxString::Format(wxT("%d"), m_nbbuf->GetValue()).mb_str(wxConvUTF8) );
 	gf_cfg_set_key(cfg, "Audio", "TotalDuration", wxString::Format(wxT("%d"), m_buflen->GetValue()).mb_str(wxConvUTF8) );
-	gf_cfg_set_key(cfg, "Audio", "DriverName", m_audio->GetStringSelection().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "core", "audio-output", m_audio->GetStringSelection().mb_str(wxConvUTF8));
 #ifdef WIN32
 	if (m_notifs->IsEnabled())
 		gf_cfg_set_key(cfg, "Audio", "DisableNotification", m_notifs->GetValue() ? "yes" : "no");
 #endif
 
-	gf_cfg_set_key(cfg, "FontEngine", "FontReader", m_font->GetStringSelection().mb_str(wxConvUTF8));
-	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", m_fontdir->GetLabel().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "FontCache", "FontReader", m_font->GetStringSelection().mb_str(wxConvUTF8));
+	gf_cfg_set_key(cfg, "FontCache", "FontDirectory", m_fontdir->GetLabel().mb_str(wxConvUTF8));
 	switch (m_texturemode->GetSelection()) {
 	case 2:
 		gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Always");

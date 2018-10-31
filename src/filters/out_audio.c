@@ -271,8 +271,8 @@ static GF_Err aout_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] No audio output modules found, cannot load audio output\n"));
 		return GF_IO_ERR;
 	}
-	if (!gf_opts_get_key("Audio", "DriverName")) {
-		gf_opts_set_key("Audio", "DriverName", ctx->audio_out->module_name);
+	if (!gf_opts_get_key("core", "audio-output")) {
+		gf_opts_set_key("core", "audio-output", ctx->audio_out->module_name);
 	}
 
 	ctx->audio_out->FillBuffer = aout_fill_output;

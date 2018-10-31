@@ -247,7 +247,7 @@ static void gpac_filter_help(void)
 "\n"
 "External filters\n"
 "GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in\n"
-"folders listed in GPAC config file section \"Core\" key \"ModulesDirectory\". The files have to be named gf_* and export a single function\n"
+"folders listed in GPAC config file section \"core\" key \"mod-dirs\". The files have to be named gf_* and export a single function\n"
 "returning a filter register - see libgpac documentation for more details.\n"
 "\n"
 	);
@@ -333,7 +333,7 @@ static void gpac_usage(GF_FilterArgMode argmode)
 	}
 
 	if (argmode>=GF_ARGMODE_ADVANCED) {
-		fprintf(stderr, "The following options are part of libgpac core and can also be assigned though the config file from section \"libgpac\" using option name without first '-' as key name. For example, having [gpac]threads=2 in the config file is similar as using -threads=2. The option specified at prompt overrides the value of the config file.\n\n");
+		fprintf(stderr, "The following options are part of libgpac core and can also be assigned though the config file from section \"core\" using option name without first '-' as key name. For example, having [core]threads=2 in the config file is similar as using -threads=2. The option specified at prompt overrides the value of the config file.\n\n");
 
 		gf_sys_print_core_help(argmode, GF_ARG_SUBSYS_FILTERS);
 	}

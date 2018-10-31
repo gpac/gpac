@@ -92,7 +92,7 @@ typedef struct
 typedef struct _gf_sc_texture_handler GF_TextureH;
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','1')
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','4')
 
 /*
 			video output interface

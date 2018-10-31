@@ -633,7 +633,7 @@ function display_widget_info(wid)
   info.children[i++] = text_label('Widget was pushed from device IP '+wid.originating_device_ip, 'BEGIN' );
  }
  info.children[i++] = text_label('Section name in GPAC config file: '+wid.section, 'BEGIN' );
- info.children[i++] = text_label('UA Locale: ' + gpac.get_option('Systems', 'LanguageName') + ' (' + gpac.get_option('Systems', 'Language2CC') + ')', 'BEGIN');
+ info.children[i++] = text_label('UA Locale: ' + gpac.get_option('core', 'lang'), 'BEGIN');
  info.children[i++] = text_label('widget src: ' + wid.url , 'BEGIN');
  info.children[i++] = text_label('config src: ' + wid.manifest , 'BEGIN');
  info.children[i++] = text_label('content src : '+wid.localizedSrc, 'BEGIN' );

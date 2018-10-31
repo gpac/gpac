@@ -464,8 +464,8 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Error setuing up video output: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
-		if (!gf_opts_get_key("Video", "DriverName")) {
-			gf_opts_set_key("Video", "DriverName", compositor->video_out->module_name);
+		if (!gf_opts_get_key("core", "video-output")) {
+			gf_opts_set_key("core", "video-output", compositor->video_out->module_name);
 		}
 	}
 

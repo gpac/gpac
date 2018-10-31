@@ -392,7 +392,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->evt_mx = gf_mx_new("Event Filter");
 
 
-	if (0 == gf_cfg_get_key_count(user->config, "MimeTypes")) {
+	if (0 == gf_opts_get_key_count("MimeTypes")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
 		/* No mime-types detected, probably the first launch */
 		for (i=0; i< gf_modules_count(); i++) {
@@ -882,7 +882,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	}
 
 	memset(&load, 0, sizeof(GF_SceneLoader));
-	load.localPath = gf_opts_get_key("libgpac", "cache");
+	load.localPath = gf_opts_get_key("core", "cache");
 	load.flags = GF_SM_LOAD_FOR_PLAYBACK | GF_SM_LOAD_CONTEXT_READY;
 	load.type = GF_SM_LOAD_BT;
 
@@ -1284,11 +1284,11 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 	u32 i, k, count;
 
 	memset(term->shortcuts, 0, sizeof(GF_Shortcut)*MAX_SHORTCUTS);
-	count = gf_cfg_get_key_count(term->user->config, "Shortcuts");
+	count = gf_opts_get_key_count("Shortcuts");
 	k = 0;
 	for (i=0; i<count; i++) {
-		char *name = (char*)gf_cfg_get_key_name(term->user->config, "Shortcuts", i);
-		char *val = (char*)gf_cfg_get_key(term->user->config, "Shortcuts", name);
+		char *name = (char*)gf_opts_get_key_name("Shortcuts", i);
+		char *val = (char*)gf_opts_get_key("Shortcuts", name);
 		if (!name || !val) continue;
 
 		strncpy(szVal, val, 50);

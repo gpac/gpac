@@ -38,11 +38,11 @@ GF_Err gdip_init_font_engine(GF_FontReader *dr)
 	const char *sOpt;
 	FontPriv *ctx = (FontPriv *)dr->udta;
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
+	sOpt = gf_opts_get_key("FontCache", "FontSerif");
 	strcpy(ctx->font_serif, sOpt ? sOpt : "Times New Roman");
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
+	sOpt = gf_opts_get_key("FontCache", "FontSans");
 	strcpy(ctx->font_sans, sOpt ? sOpt : "Arial");
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
+	sOpt = gf_opts_get_key("FontCache", "FontFixed");
 	strcpy(ctx->font_fixed, sOpt ? sOpt : "Courier New");
 
 	return GF_OK;

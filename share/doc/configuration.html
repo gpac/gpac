@@ -26,9 +26,6 @@ The config file is ordered by sections and keys.
 <br/>
 <b><a href="#General" style="text-decoration: underline;">General</a></b>
 <b><a href="#Core" style="text-decoration: underline;">Core</a></b>
-<b><a href="#Audio" style="text-decoration: underline;">Audio</a></b>
-<b><a href="#Video" style="text-decoration: underline;">Video</a></b>
-<b><a href="#FontEngine" style="text-decoration: underline;">FontEngine</a></b>
 <b><a href="#SHORTCUTS" style="text-decoration: underline;">Shortcuts</a></b>
 <b><a href="#DirectFB" style="text-decoration: underline;">DirectFB</a></b>
 <b><a href="#DektecVideo" style="text-decoration: underline;">DektecVideo</a></b>
@@ -229,94 +226,17 @@ The default multicast interface overrides filter-specific default argument, but 
 Prints filter graph edges before running dijkstra. For debug only.
 </p>
 
-<a name="Audio"></a>
-<span style="text-decoration: underline;"><b>Section "Audio"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Audio" section of the config file holds all configuration options for the specific audio hardware.</p>
-<b>DriverName</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the driver to use for audio rendering. This driver cannot be reloaded at run-time, the complete system must be restarted.</p>
-
-<b>DisableNotification</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Disables usage of audio buffer notifications when supported (currently only DirectSound supports it). If DirectSound audio sounds weird try without notifications.</p>
-
-<b>DeviceName</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the ALSA device to use. Default device is "hw:0,0".</p>
-
-<b>ForceSampleRate</b> [value: <i>unsigned integer</i>]
-<p style="text-indent: 5%">
-Forces ALSA output sample rate. Default 0 uses source samplerate.</p>
 
 <br/><br/>
-
-<a name="Video"></a>
-<span style="text-decoration: underline;"><b>Section "Video"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Video" section of the config file holds all configuration options for the video renderer and hardware.</p>
-<b>DriverName</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the driver to use for video memory access. This driver cannot be reloaded at run-time, the complete system must be restarted.</p>
-
-<b>Raster2D</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the 2D rasterizer to use for vectorial drawing. Same as above, this module cannot be reloaded during a presentation.</p>
-
-<b>OpenGLExtensions</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
-</p>
-
-<b>SwitchResolution</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies fullscreen resolution mode. If enabled, selects smallest video resolution larger than scene size, otherwise use current video resolution.</p>
-<b>HardwareMemory</b> [value: <i>"Auto" "Always" "Never"</i>]
-<p style="text-indent: 5%">
-Only valid for 2D renderer. Specifies if main video backbuffer is always on hardware, always on system memory or selected by GPAC (default mode). Depending on the scene type, this may drastically change the playback speed.</p>
-<b>DisableColorKeying</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Only valid for 2D renderer. Specifies if partial overlays should be disabled. If not disabled, hardware color keying for overlays is tested and used if present. Otherwise, only the top-most video with no overlapping objects will be drawn using overlays. Default value is "no".</p>
-<b>UseGLDoubleBuffering</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies if OpenGL double buffering shall be used. Default is "no".</p>
-<b>GLNbBitsPerComponent</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the number of bits per color component. Default is 5.</p>
-<b>GLNbBitsDepth</b> [value: <i>positive integer</i>]
-<p style="text-indent: 5%">
-Specifies the number of bits for the depth buffer. Default is 16.</p>
-<b>X113DOffscreenMode</b> [value: <i>"Window" "VisibleWindow" "Pixmap"</i>]
-<p style="text-indent: 5%">
-Specifies the type of OpenGL offscreen rendering in X11. Default mode is "Pixmap".</p>
-<ul>
-<li><i>"Window"</i>: A hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work.</li>
-<li><i>"VisibleWindow"</i>: A visible window is used to perform offscreen rendering. This can be usefull while debugging.</li>
-<li><i>"Pixmap"</i>: An X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player.</li>
-</ul>
-
-
-
-<br/><br/>
-<a name="FontEngine"></a>
+<a name="FontCache"></a>
 <span style="text-decoration: underline;"><b>Section "FontEngine"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "FontEngine" section of the config file holds all configuration options for the font handling. The GPAC rendering module handles text through vectorial outline, allowing graphics module development without having to 
-integrate text rendering which is always heavy work.</p>
-<b>FontReader</b> [value: <i>string</i>]
-<p style="text-indent: 5%">
-Specifies the module to use for font handling. This module cannot be reloaded at run-time, GPAC must be restarted.</p>
-
-<b>FontDirectory</b> (value: <i>path to TrueType (*.ttf, *.ttc) font directory</i>]
-<p style="text-indent: 5%">
-Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).
-<br/><i>Note:</i>
-The freetype module will scan the entire sub-directories for fonts.
-</p>
+<p>The "FontCache" section of the config file holds all scanned fonts and default fonts used by GPAC.</p>
 <b>FontSerif</b> [value: <i>string</i>]}: specifies default SERIF font.<br/>
 <b>FontSans</b> [value: <i>string</i>]}: specifies default SANS font.<br/>
 <b>FontFixed</b> [value: <i>string</i>]}: specifies default fixed font.<br/>
 <br/>
 <i>Note:</i><br/>
 The FreeType module uses this section to cache familly names to font file name associations.
-
 
 <a name="MimeTypes"></a>
 <span style="text-decoration: underline;"><b>Section "MimeTypes"</b></span> <i><a href="#Overview">Back to top</a></i>

@@ -473,7 +473,7 @@ extern "C" {
 
 void wxOsmo4Frame::CheckVideoOut()
 {
-	const char *sOpt = gf_cfg_get_key(m_user.config, "Video", "DriverName");
+	const char *sOpt = gf_cfg_get_key(m_user.config, "core", "video-output");
 	void *os_handle = NULL;
 	void *os_display = NULL;
 	/*build a child window for embed display*/
@@ -873,7 +873,7 @@ wxOsmo4Frame::wxOsmo4Frame() :
 		}
 	}
 
-	sOpt = gf_cfg_get_key(m_user.config, "Audio", "DriverName");
+	sOpt = gf_cfg_get_key(m_user.config, "core", "audio-output");
 
 	if (!strcmp(sOpt, "No Audio Output Available")) {
 		::wxLogMessage(wxT("WARNING: no audio output availble - make sure no other program is locking the sound card"));

@@ -294,7 +294,7 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	count = atts->systemLanguage ? gf_list_count(*atts->systemLanguage) : 0;
 	if (count) {
 		found = GF_FALSE;
-		const char *lang = gf_opts_get_key("libgpac", "lang");
+		const char *lang = gf_opts_get_key("core", "lang");
 		lang_idx = lang ? gf_lang_find(lang) : -1;
 	} else {
 		lang_idx = -1;
