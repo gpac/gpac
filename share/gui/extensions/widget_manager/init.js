@@ -186,7 +186,7 @@ function display_widget_info(wid)
 		gw_new_text(info_dlg.area, 'Widget was pushed from device IP '+wid.originating_device_ip, 'text' );
 	}
 	gw_new_text(info_dlg.area, 'Section name in GPAC config file: '+wid.section, 'text' );
-	gw_new_text(info_dlg.area, 'UA Locale: ' + gpac.get_option('Systems', 'LanguageName') + ' (' + gpac.get_option('Systems', 'Language2CC') + ')', 'text');
+	gw_new_text(info_dlg.area, 'UA Locale: ' + gpac.get_option('core', 'lang'), 'text');
 	gw_new_text(info_dlg.area, 'widget src: ' + wid.url , 'text');
 	gw_new_text(info_dlg.area, 'config src: ' + wid.manifest , 'text');
 	gw_new_text(info_dlg.area, 'content src : '+wid.localizedSrc, 'text' );

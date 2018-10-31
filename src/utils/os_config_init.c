@@ -475,7 +475,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 
 	strcat(res, "cache/");
 	cache_dir = res;
-	old_cache_dir = (char*) gf_opts_get_key("libgpac", "cache");
+	old_cache_dir = (char*) gf_opts_get_key("core", "cache");
 
 	if (!gf_dir_exists(cache_dir)) {
 		if (old_cache_dir && strcmp(old_cache_dir, cache_dir)) {
@@ -483,7 +483,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 		}
 		gf_mkdir(cache_dir);
 	}
-	gf_opts_set_key("libgpac", "cache", cache_dir);
+	gf_opts_set_key("core", "cache", cache_dir);
 }
 
 #endif
@@ -536,26 +536,26 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 
 
-	gf_cfg_set_key(cfg, "libgpac", "mod-dirs", szPath);
+	gf_cfg_set_key(cfg, "core", "mod-dirs", szPath);
 
 #if defined(GPAC_CONFIG_IOS)
 	gf_ios_refresh_cache_directory(cfg, file_path);
 #elif defined(GPAC_CONFIG_ANDROID)
 	if (get_default_install_path(szPath, GF_PATH_APP)) {
 		strcat(szPath, "/cache");
-		gf_cfg_set_key(cfg, "libgpac", "cache", szPath);
+		gf_cfg_set_key(cfg, "core", "cache", szPath);
 	}
 #else
 	/*get default temporary directoy */
-	gf_cfg_set_key(cfg, "libgpac", "cache", gf_get_default_cache_directory());
+	gf_cfg_set_key(cfg, "core", "cache", gf_get_default_cache_directory());
 #endif
 
-	gf_cfg_set_key(cfg, "Video", "Raster2D", "GPAC 2D Raster");
-	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
+	gf_cfg_set_key(cfg, "core", "raster2d", "GPAC 2D Raster");
+	gf_cfg_set_key(cfg, "core", "ds-disable-notif", "no");
 
 	/*Setup font engine to FreeType by default, and locate TrueType font directory on the system*/
-	gf_cfg_set_key(cfg, "FontEngine", "FontReader", "FreeType Font Reader");
-	gf_cfg_set_key(cfg, "FontEngine", "RescanFonts", "yes");
+	gf_cfg_set_key(cfg, "core", "font-reader", "FreeType Font Reader");
+	gf_cfg_set_key(cfg, "core", "rescan-fonts", "yes");
 
 
 #if defined(_WIN32_WCE)
@@ -578,26 +578,26 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 #else
 	strcpy(szPath, "/usr/share/fonts/truetype/");
 #endif
-	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
+	gf_cfg_set_key(cfg, "core", "font-dirs", szPath);
 
-	gf_cfg_set_key(cfg, "libgpac", "cache-size", "100M");
+	gf_cfg_set_key(cfg, "core", "cache-size", "100M");
 
 #if defined(_WIN32_WCE)
-	gf_cfg_set_key(cfg, "Video", "DriverName", "GAPI Video Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "GAPI Video Output");
 #elif defined(WIN32)
-	gf_cfg_set_key(cfg, "Video", "DriverName", "DirectX Video Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "DirectX Video Output");
 #elif defined(__DARWIN__) || defined(__APPLE__)
-	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "SDL Video Output");
 #elif defined(GPAC_CONFIG_ANDROID)
-	gf_cfg_set_key(cfg, "Video", "DriverName", "Android Video Output");
-	gf_cfg_set_key(cfg, "Audio", "DriverName", "Android Audio Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "Android Video Output");
+	gf_cfg_set_key(cfg, "core", "audio-output", "Android Audio Output");
 #else
-	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
-	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "X11 Video Output");
+	gf_cfg_set_key(cfg, "core", "audio-output", "SDL Audio Output");
 #endif
 
-	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
-	gf_cfg_set_key(cfg, "Video", "HardwareMemory", "Auto");
+	gf_cfg_set_key(cfg, "core", "switch-vres", "no");
+	gf_cfg_set_key(cfg, "core", "hwvmem", "auto");
 
 
 	/*locate GUI*/
@@ -609,9 +609,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 		/*shaders are at the same location*/
 		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Video", "VertexShader", gui_path);
+		gf_cfg_set_key(cfg, "core", "vert-shader", gui_path);
 		sprintf(gui_path, "%s%cshaders%cfragment.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Video", "FragmentShader", gui_path);
+		gf_cfg_set_key(cfg, "core", "frag-shader", gui_path);
 	}
 
 	/*store and reload*/
@@ -640,9 +640,9 @@ static void check_modules_dir(GF_Config *cfg)
 		sep[0] = 0;
 
 		sprintf(shader_path, "%s%cshaders%cvertex.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Video", "VertexShader", shader_path);
+		gf_cfg_set_key(cfg, "core", "vert-shader", shader_path);
 		sprintf(shader_path, "%s%cshaders%cfragment.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Video", "FragmentShader", shader_path);
+		gf_cfg_set_key(cfg, "core", "frag-shader", shader_path);
 	}
 	cfg_path = gf_cfg_get_filename(cfg);
 	gf_ios_refresh_cache_directory(cfg, cfg_path);
@@ -652,19 +652,19 @@ static void check_modules_dir(GF_Config *cfg)
 	const char *opt;
 
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
-		opt = gf_cfg_get_key(cfg, "libgpac", "mod-dirs");
+		opt = gf_cfg_get_key(cfg, "core", "mod-dirs");
 		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
 #if defined(__DARWIN__) || defined(__APPLE__)
 		if (!opt || strcmp(opt, path))
-			gf_cfg_set_key(cfg, "libgpac", "mod-dirs", path);
+			gf_cfg_set_key(cfg, "core", "mod-dirs", path);
 #else
 
 		//otherwise only check we didn't switch between a 64 bit version and a 32 bit version
 		if (!opt) {
-			gf_cfg_set_key(cfg, "libgpac", "mod-dirs", path);
+			gf_cfg_set_key(cfg, "core", "mod-dirs", path);
 		} else  {
 			Bool erase_modules_dir = GF_FALSE;
-			const char *opt64 = gf_cfg_get_key(cfg, "libgpac", "64bits");
+			const char *opt64 = gf_cfg_get_key(cfg, "core", "64bits");
 			if (!opt64) {
 				//first run or old versions, erase
 				erase_modules_dir = GF_TRUE;
@@ -683,10 +683,10 @@ static void check_modules_dir(GF_Config *cfg)
 #else
 			opt64 = "no";
 #endif
-			gf_cfg_set_key(cfg, "libgpac", "64bits", opt64);
+			gf_cfg_set_key(cfg, "core", "64bits", opt64);
 
 			if (erase_modules_dir) {
-				gf_cfg_set_key(cfg, "libgpac", "mod-dirs", path);
+				gf_cfg_set_key(cfg, "core", "mod-dirs", path);
 			}
 		}
 #endif
@@ -763,7 +763,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	check_modules_dir(cfg);
 
-	if (!gf_cfg_get_key(cfg, "libgpac", "store-dir")) {
+	if (!gf_cfg_get_key(cfg, "core", "store-dir")) {
 		char *sep;
 		strcpy(szPath, gf_cfg_get_filename(cfg));
 		sep = strrchr(szPath, '/');
@@ -771,7 +771,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 		if (sep) sep[0] = 0;
 		strcat(szPath, "/Storage");
 		if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
-		gf_cfg_set_key(cfg, "libgpac", "store-dir", szPath);
+		gf_cfg_set_key(cfg, "core", "store-dir", szPath);
 	}
 	return cfg;
 }
@@ -812,7 +812,7 @@ void gf_uninit_global_config()
 GF_EXPORT
 const char *gf_opts_get_key(const char *secName, const char *keyName)
 {
-	if (!strcmp(secName, "libgpac")) {
+	if (!strcmp(secName, "core")) {
 		const char *opt = gf_cfg_get_key(gpac_global_config, "temp", keyName);
 		if (opt) return opt;
 	}
@@ -957,6 +957,38 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("blacklist", NULL, "blacklist the filters listed in the given string (comma-seperated list)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-graph-cache", NULL, "disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
+ GF_DEF_ARG("switch-vres", NULL, "selects smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("hwvmem", NULL, "specifies (2D renderer only) if main video backbuffer is always on hardware, always on system memory or selected by GPAC (default mode). Depending on the scene type, this may drastically change the playback speed", NULL, "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("vert-shader", NULL, "specifies path to vertex shader file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("frag-shader", NULL, "specifies path to vertex shader file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("pref-yuv4cc", NULL, "sets prefered YUV 4CC for overlays (used by DX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("yuv-overlay", NULL, "indicates YUV overlay is possible on the video card. Always overriden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("offscreen-yuv", NULL, "indicates if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("overlay-color-key", NULL, "indicates color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-offscreen", NULL, "indicates openGL mode for offscreen rendering.\n"\
+		"\tWindow: A hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work.\n"\
+    	"\tVisibleWindow: A visible window is used to perform offscreen rendering. This can be usefull while debugging.\n"\
+    	"\tPixmap: An X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player.\n"\
+    	"\tPBuffer: uses opengl PBuffers for drawing, not always supported.\n"\
+ 	, NULL, "Window|VisibleWindow|Pixmap|PBuffer", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in openGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in openGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-doublebuf", NULL, "enables openGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("sdl-defer", NULL, "use defer rendering for SDL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("no-colorkey", NULL, "disables color keying at the video output level", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("video-output", NULL, "indicates the name of the video output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("raster2d", NULL, "indicates the name of the 2D rasterizer module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gapi-fbaccess", NULL, "sets GAPI access mode to the backbuffer", NULL, "base|raw|gx", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+
+
+ GF_DEF_ARG("audio-output", NULL, "indicates the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("alsa-devname", NULL, "sets ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),
+ GF_DEF_ARG("force-alsarate", NULL, "forces ALSA and OSS output sample rate", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
+ GF_DEF_ARG("ds-disable-notif", NULL, "disables DirectSound audio buffer notifications when supported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
+
+ GF_DEF_ARG("font-reader", NULL, "indicates name of font reader module", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_TEXT),
+ GF_DEF_ARG("font-dirs", NULL, "indicates comma-separated list of directories to scan for fonts", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
+ GF_DEF_ARG("rescan-fonts", NULL, "indicates the font directory must be rescanned", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
 
  GF_DEF_ARG("rmt", NULL, "enables profiling through Remotery (https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-port", NULL, "sets remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
@@ -995,7 +1027,7 @@ Bool gf_opts_get_bool(const char *secName, const char *keyName)
 {
 	const char *opt = gf_opts_get_key(secName, keyName);
 
-	if (!opt && !strcmp(secName, "libgpac")) {
+	if (!opt && !strcmp(secName, "core")) {
 		opt = gpac_opt_default(keyName);
 	}
 
@@ -1011,7 +1043,7 @@ u32 gf_opts_get_int(const char *secName, const char *keyName)
 	u32 times=1, val;
 	char *opt = (char *) gf_opts_get_key(secName, keyName);
 
-	if (!opt && !strcmp(secName, "libgpac")) {
+	if (!opt && !strcmp(secName, "core")) {
 		opt = (char *) gpac_opt_default(keyName);
 	}
 	if (!opt) return 0;
@@ -1074,7 +1106,7 @@ Bool gf_sys_set_cfg_option(const char *opt_string)
 	}
 	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
 
-	if (!strcmp(szSec, "libgpac")) {
+	if (!strcmp(szSec, "core")) {
 		if (!strcmp(szKey, "noprog") && (!strcmp(szVal, "yes")||!strcmp(szVal, "true")||!strcmp(szVal, "1")) ) {
 			void gpac_disable_progress();
 
@@ -1188,7 +1220,7 @@ void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags)
 	u32 i=0;
 	const GF_GPACArg *args = gf_sys_get_options();
 
-	fprintf(stderr, "These options can be set in the config file using key libgpac:OPTNAME=val, where OPTNAME is the option name without initial '-' character\n");
+	fprintf(stderr, "These options can be set in the config file using section:key sytax core:OPTNAME=val, where OPTNAME is the option name without initial '-' character\n");
 	
 	while (args[i].name) {
 		const GF_GPACArg *arg = &args[i];

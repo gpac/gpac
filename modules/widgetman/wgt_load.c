@@ -118,7 +118,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			n = gf_node_new(wgtload->scene->graph, TAG_SVG_script);
 			gf_node_register(n, root);
 			gf_node_list_add_child_last(&((GF_ParentNode *)root)->children, n, &last);
-			path = gf_modules_get_option((GF_BaseInterface *)plug, "Widgets", "WidgetLoadScript");
+			path = gf_opts_get_key("Widgets", "WidgetLoadScript");
 			jsfile = path ? gf_fopen(path, "rt") : NULL;
 			if (jsfile) {
 				gf_fclose(jsfile);
@@ -141,7 +141,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			gf_node_init(n);
 
 
-			wmpath = gf_modules_get_option((GF_BaseInterface *)plug, "Widgets", "WidgetManagerScript");
+			wmpath = gf_opts_get_key("Widgets", "WidgetManagerScript");
 			jsfile = wmpath ? gf_fopen(wmpath, "rt") : NULL;
 			if (jsfile) {
 				gf_fclose(jsfile);

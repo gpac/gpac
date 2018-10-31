@@ -328,7 +328,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 			strcpy(szExt, &ext[1]);
 			strlwr(szExt);
 
-			szExtList = gf_modules_get_option((GF_BaseInterface *)plug, "MimeTypes", "application/x-ffmpeg");
+			szExtList = gf_opts_get_key("MimeTypes", "application/x-ffmpeg");
 			if (!szExtList) {
 				gf_service_register_mime(plug, "application/x-ffmpeg", szExt, "Other Movies (FFMPEG)");
 			} else if (!strstr(szExtList, szExt)) {
@@ -338,7 +338,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 				buf = (char*)gf_malloc(sizeof(char)*len);
 				sprintf(buf, "\"%s ", szExt);
 				strcat(buf, &szExtList[1]);
-				gf_modules_set_option((GF_BaseInterface *)plug, "MimeTypes", "application/x-ffmpeg", buf);
+				gf_opts_set_key("MimeTypes", "application/x-ffmpeg", buf);
 				gf_free(buf);
 			}
 		}
@@ -601,7 +601,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 		/*setup wraper for FFMPEG I/O*/
 		ffd->buffer_size = 8192;
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize");
+		sOpt = gf_opts_get_key("FFMPEG", "IOBufferSize");
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
 		ffd->buffer = (char*)gf_malloc(sizeof(char)*ffd->buffer_size);
 #ifdef FFMPEG_DUMP_REMOTE
@@ -717,7 +717,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "DataBufferMS");
+	sOpt = gf_opts_get_key("FFMPEG", "DataBufferMS");
 	ffd->data_buffer_ms = 0;
 	if (sOpt) ffd->data_buffer_ms = atoi(sOpt);
 	if (!ffd->data_buffer_ms) ffd->data_buffer_ms = FFD_DATA_BUFFER;

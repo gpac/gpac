@@ -265,9 +265,7 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
 	snprintf (ctx->jackClientName, MAX_JACK_CLIENT_NAME_SZ, "gpac-%d",
 	          getPid ());
 
-	opt =
-	    gf_modules_get_option ((GF_BaseInterface *) dr, MODULE_NAME,
-	                           AUTO_CONNECT_OPTION);
+	opt = gf_opts_get_key(MODULE_NAME, AUTO_CONNECT_OPTION);
 	if (opt != NULL)
 	{
 		if (optionIsTrue (opt))
@@ -278,11 +276,9 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
 	else
 	{
 		ctx->autoConnect = TRUE;
-		gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-		                       AUTO_CONNECT_OPTION, YES_OPTION);
+		gf_opts_set_key(MODULE_NAME, AUTO_CONNECT_OPTION, YES_OPTION);
 	}
-	opt = gf_modules_get_option ((GF_BaseInterface *) dr, MODULE_NAME,
-	                             AUTO_START_JACKD_OPTION);
+	opt = gf_opts_get_key(MODULE_NAME, AUTO_START_JACKD_OPTION);
 	if (opt != NULL)
 	{
 		if (optionIsTrue (opt))
@@ -293,8 +289,7 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
 	else
 	{
 		ctx->autoStartJackd = TRUE;
-		gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-		                       AUTO_START_JACKD_OPTION, YES_OPTION);
+		gf_opts_set_key(MODULE_NAME, AUTO_START_JACKD_OPTION, YES_OPTION);
 	}
 	if (!ctx->autoStartJackd)
 	{

@@ -365,14 +365,14 @@ void GF_UPnP::Load(GF_Terminal *term)
 
 	gf_sk_get_host_name((char*)hostname);
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "AllowedDevicesIP");
+	opt = gf_opts_get_key("UPnP", "AllowedDevicesIP");
 	if (!opt) {
 		gf_cfg_set_key(m_pTerm->user->config, "UPnP", "AllowedDevicesIP", "");
 		opt="";
 	}
 	m_IPFilter = opt;
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices");
+	opt = gf_opts_get_key("UPnP", "IgnoreCreatedDevices");
 	if (!opt || !strcmp(opt, "yes")) {
 		ignore_local_devices = GF_TRUE;
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices", "yes");
@@ -380,31 +380,31 @@ void GF_UPnP::Load(GF_Terminal *term)
 
 
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices");
+	opt = gf_opts_get_key("UPnP", "IgnoreCreatedDevices");
 	if (!opt || !strcmp(opt, "yes")) {
 		ignore_local_devices = GF_TRUE;
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices", "yes");
 	}
 
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "SaveUUIDs");
+	opt = gf_opts_get_key("UPnP", "SaveUUIDs");
 	if (opt && !strcmp(opt, "yes")) save_uuids = GF_TRUE;
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaRendererEnabled");
+	opt = gf_opts_get_key("UPnP", "MediaRendererEnabled");
 	if (!opt || !strcmp(opt, "yes")) {
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "MediaRendererEnabled", "yes");
 
-		name = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaRendererName");
+		name = gf_opts_get_key("UPnP", "MediaRendererName");
 		if (!name) {
 			sprintf(friendly_name, "GPAC @ %s", hostname);
 			name = friendly_name;
 		}
 
 		port = 0;
-		opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaRendererPort");
+		opt = gf_opts_get_key("UPnP", "MediaRendererPort");
 		if (opt) port = atoi(opt);
 
-		uuid = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaRendererUUID");
+		uuid = gf_opts_get_key("UPnP", "MediaRendererUUID");
 		if (uuid) {
 			m_pMediaRenderer = new GPAC_MediaRenderer(this, name, false, uuid, port);
 		} else {
@@ -425,22 +425,22 @@ void GF_UPnP::Load(GF_Terminal *term)
 		m_pPlatinum->AddDevice(device);
 	}
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaServerEnabled");
+	opt = gf_opts_get_key("UPnP", "MediaServerEnabled");
 	if (!opt || !strcmp(opt, "yes")) {
 		char *media_root;
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "MediaServerEnabled", "yes");
 
-		name = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaServerName");
+		name = gf_opts_get_key("UPnP", "MediaServerName");
 		if (!name) {
 			sprintf(friendly_name, "GPAC @ %s", hostname);
 			name = friendly_name;
 		}
 
 		port = 0;
-		opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaServerPort");
+		opt = gf_opts_get_key("UPnP", "MediaServerPort");
 		if (opt) port = atoi(opt);
 
-		uuid = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaServerUUID");
+		uuid = gf_opts_get_key("UPnP", "MediaServerUUID");
 		if (uuid) {
 			m_pMediaServer = new GPAC_FileMediaServer(name, false, uuid, port);
 		} else {
@@ -450,7 +450,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 				gf_cfg_set_key(m_pTerm->user->config, "UPnP", "MediaServerUUID", uuid);
 			}
 		}
-		media_root = (char *) gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaServerRoot");
+		media_root = (char *) gf_opts_get_key("UPnP", "MediaServerRoot");
 		if (!media_root) {
 			gf_cfg_set_key(m_pTerm->user->config, "UPnP", "MediaServerRoot", "all:/");
 			m_pMediaServer->AddSharedDirectory("/", "all");
@@ -484,7 +484,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 		m_pPlatinum->AddDevice(device);
 	}
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "GenericControllerEnabled");
+	opt = gf_opts_get_key("UPnP", "GenericControllerEnabled");
 	if (!opt || !strcmp(opt, "yes")) {
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "GenericControllerEnabled", "yes");
 		/*create our generic control point*/
@@ -495,7 +495,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 		m_pGenericController = new GPAC_GenericController(m_ctrlPtRef, this);
 	}
 
-	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "AVCPEnabled");
+	opt = gf_opts_get_key("UPnP", "AVCPEnabled");
 	if (!opt || !strcmp(opt, "yes")) {
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "AVCPEnabled", "yes");
 
@@ -1406,7 +1406,7 @@ static JSBool SMJS_FUNCTION(upnp_device_start)
 	device->m_ManufacturerURL = "http://www.telecom-paristech.fr/";
 
 	if (device->m_pUPnP->m_pGenericController) {
-		const char *opt = gf_cfg_get_key(device->m_pUPnP->m_pTerm->user->config, "UPnP", "IgnoreCreatedDevices");
+		const char *opt = gf_opts_get_key("UPnP", "IgnoreCreatedDevices");
 		if (!opt || !strcmp(opt, "yes")) {
 			device->m_pUPnP->m_pGenericController->m_CtrlPoint->IgnoreUUID(device->GetUUID());
 		}
@@ -1598,11 +1598,11 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 
 	upnp_init_time = gf_sys_clock();
 
-	count = gf_cfg_get_key_count(m_pTerm->user->config, "UPnPDevices");
+	count = gf_opts_get_key_count("UPnPDevices");
 	for (i=0; i<count; i++) {
 		char szFriendlyName[1024], szFile[1024], *sep;
-		const char *device_id = gf_cfg_get_key_name(m_pTerm->user->config, "UPnPDevices", i);
-		const char *dev = gf_cfg_get_key(m_pTerm->user->config, "UPnPDevices", device_id);
+		const char *device_id = gf_opts_get_key_name("UPnPDevices", i);
+		const char *dev = gf_opts_get_key("UPnPDevices", device_id);
 
 		if (!strncmp(dev, "off;", 4)) continue;
 
@@ -1653,12 +1653,12 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 
 	switch (action) {
 	case GF_TERM_EXT_START:
-		opt = gf_modules_get_option((GF_BaseInterface*)termext, "UPnP", "Enabled");
+		opt = gf_opts_get_key("UPnP", "Enabled");
 		if (!opt) {
 			//UPnP is disabled by default on all platforms until we have a more stable state on load and exit
 			opt = "no";
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[UPnP] Disabling UPnP - to enable it, modify section [UPnP] key \"Enabled\" in GPAC config file\n"));
-			gf_modules_set_option((GF_BaseInterface*)termext, "UPnP", "Enabled", opt);
+			gf_opts_set_key("UPnP", "Enabled", opt);
 		}
 		if (!strcmp(opt, "yes")) {
 			upnp->Load((GF_Terminal *)param);

@@ -270,22 +270,14 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		}
 
 		/*switch driver to raw_driver*/
-		test = gf_cfg_get_key(user.config, "Video", "DriverName");
+		test = gf_cfg_get_key(user.config, "core", "video-output");
 		if (test) strcpy(old_driv, test);
 
 		needs_raw = 0;
 		test = gf_cfg_get_key(user.config, "Compositor", "RendererName");
 		/*since we only support RGB24 for MP42AVI force using RAW out with 2D driver*/
 		if (test && strstr(test, "2D")) {
-			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
 			needs_raw = 1;
-		}
-		if (needs_raw) {
-			test = gf_cfg_get_key(user.config, "Video", "DriverName");
-			if (stricmp(test, "raw_out") && stricmp(test, "Raw Video Output")) {
-				printf("couldn't load raw output driver (%s used)\n", test);
-				goto err_exit;
-			}
 		}
 	}
 
@@ -443,7 +435,7 @@ err_exit:
 		if (output_merged_frame) gf_free(output_merged_frame);
 	*/
 	if (user.modules) gf_modules_del(user.modules);
-	if (needs_raw) gf_cfg_set_key(user.config, "Video", "DriverName", old_driv);
+	if (needs_raw) gf_cfg_set_key(user.config, "core", "video-output", old_driv);
 	gf_cfg_del(user.config);
 }
 
@@ -490,13 +482,12 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	}
 
 	/*switch driver to raw_driver*/
-	test = gf_cfg_get_key(user.config, "Video", "DriverName");
+	test = gf_cfg_get_key(user.config, "core", "video-output");
 	if (test) strcpy(old_driv, test);
 
 	test = gf_cfg_get_key(user.config, "Compositor", "RendererName");
 	/*since we only support RGB24 for MP42AVI force using RAW out with 2D driver*/
 	if (test && strstr(test, "2D")) {
-		gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
 		needs_raw = 1;
 	}
 
@@ -514,14 +505,6 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	gf_sc_set_option(b2v.sr, GF_OPT_RELOAD_CONFIG, 1);
 
 	b2v.bifs = gf_bifs_decoder_new(b2v.sg, 0);
-
-	if (needs_raw) {
-		test = gf_cfg_get_key(user.config, "Video", "DriverName");
-		if (stricmp(test, "raw_out") && stricmp(test, "Raw Video Output")) {
-			printf("couldn't load raw output driver (%s used)\n", test);
-			goto err_exit;
-		}
-	}
 
 	strcpy(config_path, "");
 	if (out_dir) {
@@ -650,7 +633,7 @@ err_exit:
 	if (avi_out) AVI_close(avi_out);
 	if (conv_buf) gf_free(conv_buf);
 	if (user.modules) gf_modules_del(user.modules);
-	if (needs_raw) gf_cfg_set_key(user.config, "Video", "DriverName", old_driv);
+	if (needs_raw) gf_cfg_set_key(user.config, "core", "video-output", old_driv);
 	gf_cfg_del(user.config);
 }
 

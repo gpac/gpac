@@ -277,9 +277,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	u32 flags = 0;
 	u32 max_chain = 0;
-	s32 nb_threads = gf_opts_get_int("libgpac", "threads");
-	const char *blacklist = gf_opts_get_key("libgpac", "blacklist");
-	const char *opt = gf_opts_get_key("libgpac", "sched");
+	s32 nb_threads = gf_opts_get_int("core", "threads");
+	const char *blacklist = gf_opts_get_key("core", "blacklist");
+	const char *opt = gf_opts_get_key("core", "sched");
 
 	if (!opt) sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	else if (!strcmp(opt, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
@@ -296,25 +296,25 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	if (inflags & GF_FS_FLAG_NO_MAIN_THREAD)
 		flags |= GF_FS_FLAG_NO_MAIN_THREAD;
 
-	if (gf_opts_get_bool("libgpac", "dbg-edges"))
+	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
-	if (gf_opts_get_bool("libgpac", "no-reg"))
+	if (gf_opts_get_bool("core", "no-reg"))
 		flags |= GF_FS_FLAG_NO_REGULATION;
 
-	if (gf_opts_get_bool("libgpac", "no-block"))
+	if (gf_opts_get_bool("core", "no-block"))
 		flags |= GF_FS_FLAG_NO_BLOCKING;
 
-	if (gf_opts_get_bool("libgpac", "no-graph-cache"))
+	if (gf_opts_get_bool("core", "no-graph-cache"))
 		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 
 	fsess = gf_fs_new(nb_threads, sched_type, flags, blacklist);
 	if (!fsess) return NULL;
 
-	max_chain = gf_opts_get_int("libgpac", "max-chain");
+	max_chain = gf_opts_get_int("core", "max-chain");
 	gf_fs_set_max_resolution_chain_length(fsess, max_chain);
 
-	opt = gf_opts_get_key("libgpac", "seps");
+	opt = gf_opts_get_key("core", "seps");
 	if (opt)
 		gf_fs_set_separators(fsess, opt);
 
@@ -1976,7 +1976,7 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 	        (locales_parent_path && (locales_parent_path[0] != '/') && strstr(locales_parent_path, "://") && strnicmp(locales_parent_path, "file://", 7))) {
 		return 0;
 	}
-	opt = gf_cfg_get_key(loc->term->user->config, "libgpac", "lang");
+	opt = gf_opts_get_key("core", "lang");
 	if (opt && (!strcmp(opt, "*") || !strcmp(opt, "un") ) ) {
 		opt = NULL;
 	}

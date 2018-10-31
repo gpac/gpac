@@ -185,7 +185,7 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 	}
 
 	/* First try to locate the resource in the locales folder */
-	opt = gf_cfg_get_key(wpack->wm->term->user->config, "Systems", "Language2CC");
+	opt = gf_opts_get_key("core", "lang");
 	if (opt) {
 		if (!strcmp(opt, "*") || !strcmp(opt, "un") )
 			opt = NULL;
@@ -266,7 +266,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	wzip->wm = wm;
 	wzip->relocate_uri = widget_package_relocate_uri;
 	wzip->resources = gf_list_new();
-	dir = gf_cfg_get_key(wm->term->user->config, "Core", "CacheDirectory");
+	dir = gf_opts_get_key("core", "cache");
 	/* create the extracted path for the package root using:
 	   the cache dir + a CRC of the file path and the instance*/
 	sprintf(wzip->root_extracted_path, "%s%p", path, wzip);
@@ -357,7 +357,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 	wzip->relocate_uri = widget_package_relocate_uri;
 	wzip->resources = gf_list_new();
 	wzip->package_path = gf_strdup(path);
-	dir = gf_cfg_get_key(wm->term->user->config, "Core", "CacheDirectory");
+	dir = gf_opts_get_key("core", "cache");
 	/* create the extracted path for the package root using:
 	   the cache dir + a CRC of the file path and the instance*/
 	sprintf(wzip->root_extracted_path, "%s%p", path, wzip);
@@ -1130,7 +1130,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 
 
 		/*get stored value for this preference*/
-		value = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *)wid->secname, pref->name);
+		value = gf_opts_get_key((const char *)wid->secname, pref->name);
 		/*if none found, use preference*/
 		if (!value) value = pref->value;
 
@@ -1646,7 +1646,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 		}
 		/*read from config*/
 		else {
-			att = (char *)gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, pref->name);
+			att = (char *)gf_opts_get_key((const char *) wid->secname, pref->name);
 			if (!att) att = pref->value;
 
 			if (att) gf_bs_write_data(bs, (const char *) att, (u32) strlen(att) );
@@ -1909,7 +1909,7 @@ else if (!strcmp(prop_name, "originating_device_ip")
 else {
 	char szName[1024];
 	sprintf(szName, "WM:%s", prop_name);
-	opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, szName);
+	opt = gf_opts_get_key((const char *) wid->secname, szName);
 	if (opt) {
 		Double val=0;
 		if (!strcmp(opt, "true")) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
@@ -2354,7 +2354,7 @@ if (!strcmp(prop_name, "num_widgets")) {
 	*vp = INT_TO_JSVAL(gf_list_count(wm->widget_instances));
 }
 else if (!strcmp(prop_name, "last_widget_dir")) {
-	const char *opt = gf_cfg_get_key(wm->term->user->config, "Widgets", "last_widget_dir");
+	const char *opt = gf_opts_get_key("Widgets", "last_widget_dir");
 	if (!opt) opt = "/";
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, opt));
 }
@@ -2876,7 +2876,7 @@ static Bool wm_relocate_url(GF_WidgetManager *wm, const char *widget_path, const
 			e = gf_dm_sess_process(sess);
 			gf_dm_sess_del(sess);
 			if (e==GF_OK) {
-				const char *opt = gf_cfg_get_key(wm->term->user->config, "Systems", "Language2CC");
+				const char *opt = gf_opts_get_key("core", "lang");
 				strcpy(relocated_name, res_url);
 				if (opt)
 					sprintf(localized_res_name, "%s/%s", opt, res_name);
@@ -3006,7 +3006,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 	GF_DownloadSession *sess = NULL;
 	const char *widget_ns_prefix = NULL;
 	const char *mpegu_ns_prefix = NULL;
-	const char *user_locale = gf_cfg_get_key(wm->term->user->config, "Systems", "Language2CC");
+	const char *user_locale = gf_opts_get_key("core", "lang");
 
 	/* Try to see if this widget is already loaded */
 	e = GF_OK;
@@ -3538,14 +3538,14 @@ static JSBool SMJS_FUNCTION(wm_initialize)
 	//SMJS_ARGS
 	GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
 
-	count = gf_cfg_get_key_count(wm->term->user->config, "Widgets");
+	count = gf_opts_get_key_count("Widgets");
 	for (i=0; i<count; i++) {
-		const char *name = gf_cfg_get_key_name(wm->term->user->config, "Widgets", i);
+		const char *name = gf_opts_get_key_name("Widgets", i);
 		/*this is a previously loaded widgets - reload it*/
 		if (!strnicmp(name, "Widget#", 7)) {
-			const char *manifest = gf_cfg_get_key(wm->term->user->config, name, "WM:Manifest");
+			const char *manifest = gf_opts_get_key(name, "WM:Manifest");
 			if (manifest) {
-				const char *ID = gf_cfg_get_key(wm->term->user->config, name, "WM:InstanceID");
+				const char *ID = gf_opts_get_key(name, "WM:InstanceID");
 				u32 instID = ID ? atoi(ID) : 0;
 				GF_WidgetInstance *wi = wm_load_widget(wm, manifest, instID, 0);
 				if (wi) {
@@ -3556,7 +3556,7 @@ static JSBool SMJS_FUNCTION(wm_initialize)
 		}
 	}
 
-	opt = gf_cfg_get_key(wm->term->user->config, "Widgets", "WidgetStore");
+	opt = gf_opts_get_key("Widgets", "WidgetStore");
 	if (opt) gf_enum_directory(opt, 1, wm_enum_dir, wm, NULL);
 
 	return JS_TRUE;

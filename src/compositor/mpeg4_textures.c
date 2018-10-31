@@ -361,7 +361,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				u8 hash[20];
 				FILE *cached_texture;
 				char szExtractName[GF_MAX_PATH], section[64], *opt, *src_url;
-				opt = (char *) gf_opts_get_key("libgpac", "cache");
+				opt = (char *) gf_opts_get_key("core", "cache");
 				if (opt) {
 					strcpy(szExtractName, opt);
 				} else {

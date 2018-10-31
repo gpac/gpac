@@ -678,11 +678,11 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 #endif
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+		opt = gf_opts_get_key("core", "gl-bits-depth");
 		nb_bits = opt ? atoi(opt) : 16;
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
-		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
+		opt = gf_opts_get_key("core", "gl-bits-comp");
 		nb_bits = opt ? atoi(opt) : 8;
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, nb_bits);
@@ -726,10 +726,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			hw_reset = GF_TRUE;
 		}
 
-		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
-		if (opt && !strcmp(opt, "yes")) {
-			ctx->disable_vsync = GF_TRUE;
-		}
+		ctx->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
 
 		if (ctx->disable_vsync) {
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
@@ -801,8 +798,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		}
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;
-			const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
-			if (!opt || strcmp(opt, "yes")) {
+			if (! gf_opts_get_bool("core", "disable-vsync")) {
 				flags |= SDL_RENDERER_PRESENTVSYNC;
 			}
 
@@ -1289,8 +1285,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 		u32 flags = (ctx->output_3d_type==1) ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 #endif
 		Bool switch_res = GF_FALSE;
-		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
-		if (sOpt && !stricmp(sOpt, "yes")) switch_res = GF_TRUE;
+		switch_res = gf_opts_get_bool("core", "switch-vres");
 		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = GF_TRUE;
 
 		ctx->store_width = *screen_width;
@@ -1374,11 +1369,11 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
+	opt = gf_opts_get_key("core", "hwvmem");
 	if (system_mem) {
-		if (opt && !strcmp(opt, "Always")) system_mem = GF_FALSE;
+		if (opt && !strcmp(opt, "always")) system_mem = GF_FALSE;
 	} else {
-		if (opt && !strcmp(opt, "Never")) system_mem = GF_TRUE;
+		if (opt && !strcmp(opt, "never")) system_mem = GF_TRUE;
 	}
 	ctx->use_systems_memory = system_mem;
 
@@ -2484,7 +2479,7 @@ void *SDL_NewVideo()
 	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_STRETCH | GF_VIDEO_HW_HAS_RGBA;
 
 
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "SDL_DeferMode");
+	opt = gf_opts_get_key("core", "sdl-defer");
 	ctx->enable_defer_mode = 0;
 	if (opt && !strcmp(opt, "yes"))
 		ctx->enable_defer_mode = 1;

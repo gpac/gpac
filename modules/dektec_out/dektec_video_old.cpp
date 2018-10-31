@@ -227,7 +227,7 @@ extern "C" {
 
 		int port = 1;
 		const char *opt;
-		opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "SDIOutput");
+		opt = gf_opts_get_key("DektecVideo", "SDIOutput");
 		if (opt) {
 			port = atoi(opt);
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Dektec Out] Using port %d (%s)\n", port, opt));

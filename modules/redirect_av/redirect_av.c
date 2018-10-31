@@ -630,11 +630,11 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 	{
 	case GF_TERM_EXT_START:
 		avr->term = ( GF_Terminal * ) param;
-		opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_ENABLED_OPTION );
+		opt = gf_opts_get_key(moduleName, AVR_ENABLED_OPTION );
 		if ( !opt )
-			gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_ENABLED_OPTION, "no" );
+			gf_opts_set_key(moduleName, AVR_ENABLED_OPTION, "no" );
 		if ( !opt || strcmp ( opt, "yes" ) ) return GF_FALSE;
-		opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_VIDEO_CODEC_OPTION );
+		opt = gf_opts_get_key moduleName, AVR_VIDEO_CODEC_OPTION );
 		avr->globalLock = gf_global_resource_lock("AVRedirect:output");
 		if (!avr->globalLock) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Failed to lock global resource 'AVRedirect:output', another GPAC instance must be running, disabling AVRedirect\n"));
@@ -648,7 +648,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 		/* register all the codecs */
 		avcodec_register_all();
 		if ( !opt )
-			gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_VIDEO_CODEC_OPTION, possibleCodecs );
+			gf_opts_set_key(moduleName, AVR_VIDEO_CODEC_OPTION, possibleCodecs );
 		{
 			if ( !opt )
 			{
@@ -725,7 +725,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 		*/
 		opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_DESTINATION);
 		if (!opt) {
-			gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_DESTINATION, AVR_DEFAULT_DESTINATION);
+			gf_opts_set_key( moduleName, AVR_DESTINATION, AVR_DEFAULT_DESTINATION);
 			avr->destination = AVR_DEFAULT_DESTINATION;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s not set, using %s\n", AVR_DESTINATION, AVR_DEFAULT_DESTINATION ) );
 		} else

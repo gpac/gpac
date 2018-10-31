@@ -333,7 +333,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	}
 
 	/*check log file*/
-	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	str = gf_opts_get_key("General", "log-file");
 	if (str) {
 		m_pLogs = gf_fopen(str, "wt");
 		if (m_pLogs) gf_log_set_callback(m_pLogs, gpax_do_log);

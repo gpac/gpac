@@ -149,9 +149,9 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 	switch (action) {
 	case GF_TERM_EXT_START:
 		uir->term = (GF_Terminal *) param;
-		opt = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "Mode");
+		opt = gf_opts_get_key("UIRecord", "Mode");
 		if (!opt) return GF_FALSE;
-		uifile = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "File");
+		uifile = gf_opts_get_key("UIRecord", "File");
 		if (!uifile) return GF_FALSE;
 
 		if (!strcmp(opt, "Play")) {
@@ -184,7 +184,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		gf_term_remove_event_filter(uir->term, &uir->evt_filter);
 		uir->term = NULL;
 		/*auto-disable the plugin by default*/
-		gf_modules_set_option((GF_BaseInterface*)termext, "UIRecord", "Mode", "Disable");
+		gf_opts_set_key("UIRecord", "Mode", "Disable");
 		break;
 
 	case GF_TERM_EXT_PROCESS:

@@ -1352,7 +1352,7 @@ int mp4client_main(int argc, char **argv)
  	}
 
 	if (do_uncache) {
-		const char *cache_dir = gf_opts_get_key("libgpac", "cache");
+		const char *cache_dir = gf_opts_get_key("core", "cache");
 		do_flatten_cache(cache_dir);
 		fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
 		return 0;
@@ -1383,7 +1383,7 @@ int mp4client_main(int argc, char **argv)
 		TCHAR buffer[1024];
 		DWORD res = GetCurrentDirectory(1024, buffer);
 		buffer[res] = 0;
-		opt = gf_opts_get_key("libgpac", "mod-dirs");
+		opt = gf_opts_get_key("core", "mod-dirs");
 		if (strstr(opt, buffer)) {
 			gui_mode=1;
 		} else {
@@ -1396,7 +1396,7 @@ int mp4client_main(int argc, char **argv)
 		hide_shell(1);
 	}
 	if (gui_mode) {
-		gf_sys_set_cfg_option("libgpac:noprog=yes");
+		gf_sys_set_cfg_option("core:noprog=yes");
 	}
 
 	if (!url_arg && simulation_time_in_ms)
@@ -1479,8 +1479,8 @@ int mp4client_main(int argc, char **argv)
 		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 	}
 
-	if (gf_opts_get_bool("libgpac", "proxy-on")) {
-		str = gf_opts_get_key("libgpac", "proxy-name");
+	if (gf_opts_get_bool("core", "proxy-on")) {
+		str = gf_opts_get_key("core", "proxy-name");
 		if (str) fprintf(stderr, "HTTP Proxy %s enabled\n", str);
 	}
 

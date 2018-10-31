@@ -143,7 +143,7 @@ static Bool psvr_process(GF_TermExt *termext, u32 action, void *param)
 	switch (action) {
 	case GF_TERM_EXT_START:
 		psvr->term = (GF_Terminal *) param;
-		opt = gf_modules_get_option((GF_BaseInterface*)termext, "PSVR", "Enabled");
+		opt = gf_opts_get_key("PSVR", "Enabled");
 		if (!opt || strcmp(opt, "yes")) return 0;
 
 		gf_th_run(psvr->th, psvr_run, psvr);

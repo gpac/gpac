@@ -149,13 +149,13 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 
 	DDCONTEXT;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
+	opt = gf_opts_get_key("core", "hwvmem");
 	if (opt) {
 		if (use_system_memory) {
-			if (!strcmp(opt, "Always")) use_system_memory = GF_FALSE;
+			if (!strcmp(opt, "always")) use_system_memory = GF_FALSE;
 		} else {
-			if (!strcmp(opt, "Never")) use_system_memory = GF_TRUE;
-			else if (!strcmp(opt, "Auto")) dd->force_video_mem_for_yuv = GF_TRUE;
+			if (!strcmp(opt, "never")) use_system_memory = GF_TRUE;
+			else if (!strcmp(opt, "auto")) dd->force_video_mem_for_yuv = GF_TRUE;
 		}
 	}
 
@@ -707,13 +707,13 @@ void DD_InitYUV(GF_VideoOutput *dr)
 	h = 576;
 
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "PreferedYUV4CC");
+	opt = gf_opts_get_key("core", "pref-yuv4cc");
 	if (opt) {
 		char a, b, c, d;
 		if (sscanf(opt, "%c%c%c%c", &a, &b, &c, &d)==4) {
 			dr->yuv_pixel_format = GF_4CC(a, b, c, d);
 			dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
-			opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HasOverlay");
+			opt = gf_opts_get_key("core", "yuv-overlay");
 			if (opt && !strcmp(opt, "yes"))
 				dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
 			dd->yuv_init = GF_TRUE;
@@ -817,12 +817,12 @@ rem_fmt:
 
 		/*store our options*/
 		sprintf(szOpt, "%c%c%c%c", (dr->yuv_pixel_format>>24) & 0xFF, (dr->yuv_pixel_format>>16) & 0xFF, (dr->yuv_pixel_format>>8) & 0xFF, (dr->yuv_pixel_format) & 0xFF);
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "PreferedYUV4CC", szOpt);
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "HasOverlay", (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) ? "yes" : "no");
+		gf_opts_set_key("core", "pref-yuv4cc", szOpt);
+		gf_opts_set_key("core", "yuv-overlay", (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) ? "yes" : "no");
 	}
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
-	if (opt && !strcmp(opt, "Never")) num_yuv = 0;
+	opt = gf_opts_get_key("core", "hwvmem");
+	if (opt && !strcmp(opt, "never")) num_yuv = 0;
 
 	/*too bad*/
 	if (!num_yuv) {
@@ -835,21 +835,21 @@ rem_fmt:
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 
 	/*enable YUV->RGB on the backbuffer ?*/
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV");
+	opt = gf_opts_get_key("core", "offscreen-yuv");
 	/*no set is the default*/
 	if (!opt) {
 		opt = "yes";
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV", "yes");
+		gf_opts_set_key("core", "offscreen-yuv", "yes");
 	}
 	if (opt && strcmp(opt, "yes")) dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
 	else dd->offscreen_yuv_to_rgb = GF_TRUE;
 
 	/*get YUV overlay key*/
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey");
+	opt = gf_opts_get_key("core", "overlay-color-key");
 	/*no set is the default*/
 	if (!opt) {
 		opt = "0101FE";
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey", "0101FE");
+		gf_opts_set_key("core", "overlay-color-key", "0101FE");
 	}
 	sscanf(opt, "%06x", &dr->overlay_color_key);
 	if (dr->overlay_color_key) dr->overlay_color_key |= 0xFF000000;

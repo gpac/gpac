@@ -201,12 +201,12 @@ void gf_modules_new(GF_Config *config)
 		return;
 	}
 
-	gpac_modules_static->no_unload = !gf_opts_get_bool("libgpac", "mod-reload");
+	gpac_modules_static->no_unload = !gf_opts_get_bool("core", "mod-reload");
 
-	opt = gf_opts_get_key("libgpac", "version");
+	opt = gf_opts_get_key("core", "version");
 	if (!opt || strcmp(opt, GPAC_FULL_VERSION)) {
 		gf_cfg_del_section(config, "PluginsCache");
-		gf_opts_set_key("libgpac", "version", GPAC_FULL_VERSION);
+		gf_opts_set_key("core", "version", GPAC_FULL_VERSION);
 	}
 
 	gpac_modules_static->needs_load = GF_TRUE;
@@ -287,7 +287,7 @@ const char **gf_modules_get_module_directories(u32* num_dirs)
 	if (!pm->cfg) return NULL;
 
 	/* Get directory from config file */
-	directories = (char*)gf_opts_get_key("libgpac", "mod-dirs");
+	directories = (char*)gf_opts_get_key("core", "mod-dirs");
 	if (! directories) {
 #ifndef GPAC_CONFIG_IOS
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Modules directories not found - check the \"ModulesDirectory\" key is set in the \"Core\" section\n"));
@@ -529,33 +529,6 @@ GF_Err gf_modules_close_interface(GF_BaseInterface *ifce)
 }
 
 GF_EXPORT
-const char *gf_modules_get_option(GF_BaseInterface *ifce, const char *secName, const char *keyName)
-{
-	GF_Config *cfg;
-	if (!ifce || !ifce->HPLUG) return NULL;
-	cfg = ((ModuleInstance *)ifce->HPLUG)->plugman->cfg;
-	if (!cfg) return NULL;
-	return gf_cfg_get_ikey(cfg, secName, keyName);
-}
-
-GF_EXPORT
-GF_Err gf_modules_set_option(GF_BaseInterface *ifce, const char *secName, const char *keyName, const char *keyValue)
-{
-	GF_Config *cfg;
-	if (!ifce || !ifce->HPLUG) return GF_BAD_PARAM;
-	cfg = ((ModuleInstance *)ifce->HPLUG)->plugman->cfg;
-	if (!cfg) return GF_NOT_SUPPORTED;
-	return gf_cfg_set_key(cfg, secName, keyName, keyValue);
-}
-
-GF_EXPORT
-GF_Config *gf_modules_get_config(GF_BaseInterface *ifce)
-{
-	if (!ifce || !ifce->HPLUG) return NULL;
-	return ((ModuleInstance *)ifce->HPLUG)->plugman->cfg;
-}
-
-GF_EXPORT
 const char *gf_modules_get_file_name(u32 i)
 {
 	ModuleInstance *inst = (ModuleInstance *) gf_list_get(gpac_modules_static->plug_list, i);
@@ -582,8 +555,6 @@ static Bool module_check_ifce(GF_BaseInterface *ifce, u32 ifce_type)
 	{
 		GF_VideoOutput *vout = (GF_VideoOutput *) ifce;
 		if (!vout->Flush || !vout->Setup) return GF_FALSE;
-		//no more support for raw out, deprecated
-		if (!stricmp(ifce->module_name, "Raw Video Output")) return GF_FALSE;
 		return GF_TRUE;
 	}
 	case GF_AUDIO_OUTPUT_INTERFACE:
@@ -630,16 +601,16 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 		const char *sOpt;
 		switch (ifce_type) {
 		case GF_VIDEO_OUTPUT_INTERFACE:
-			sOpt = gf_opts_get_key("Video", "DriverName");
+			sOpt = gf_opts_get_key("core", "video-output");
 			break;
 		case GF_AUDIO_OUTPUT_INTERFACE:
-			sOpt = gf_opts_get_key("Audio", "DriverName");
+			sOpt = gf_opts_get_key("core", "audio-output");
 			break;
 		case GF_RASTER_2D_INTERFACE:
-			sOpt = gf_opts_get_key("Video", "Raster2D");
+			sOpt = gf_opts_get_key("core", "raster2d");
 			break;
 		case GF_FONT_READER_INTERFACE:
-			sOpt = gf_opts_get_key("FontEngine", "FontReader");
+			sOpt = gf_opts_get_key("core", "font-reader");
 			break;
 		default:
 			sOpt = NULL;

@@ -121,8 +121,14 @@ typedef struct
 #define GF_ARG_SUBSYS_FILTERS 	(1<<6)
 /*! argument applies to the HTTP subsystem*/
 #define GF_ARG_SUBSYS_HTTP 		(1<<7)
+/*! argument applies to the video subsystem*/
+#define GF_ARG_SUBSYS_VIDEO 		(1<<9)
+/*! argument applies to the audio subsystem*/
+#define GF_ARG_SUBSYS_AUDIO 		(1<<10)
+/*! argument applies to the font and text subsystem*/
+#define GF_ARG_SUBSYS_TEXT 		(1<<11)
 /*! argument applies to the remotery subsystem*/
-#define GF_ARG_SUBSYS_RMT 		(1<<9)
+#define GF_ARG_SUBSYS_RMT 		(1<<12)
 
 /*! argument is a boolean*/
 #define GF_ARG_BOOL		0

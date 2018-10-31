@@ -696,7 +696,7 @@ void isor_declare_objects(ISOMReader *read)
 
 	/*if cover art, extract it in cache*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
-		const char *cdir = gf_opts_get_key("libgpac", "cache");
+		const char *cdir = gf_opts_get_key("core", "cache");
 		if (cdir) {
 			char szName[GF_MAX_PATH];
 			const char *sep;

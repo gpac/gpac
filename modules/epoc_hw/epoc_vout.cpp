@@ -196,7 +196,7 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 
 		// Define properties for the wanted EGLSurface
 		EGLint atts[7];
-		const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+		const char *opt = gf_opts_get_key("core", "gl-bits-depth");
 
 		atts[0] = EGL_BUFFER_SIZE;
 		atts[1] = gl_buffer_size;
@@ -297,7 +297,7 @@ static GF_Err EVID_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 heig
 
 	// Define properties for the wanted EGLSurface
 	EGLint atts[13];
-	const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	const char *opt = gf_opts_get_key("core", "gl-bits-depth");
 	atts[0] = EGL_RED_SIZE;
 	atts[1] = 8;
 	atts[2] = EGL_GREEN_SIZE;

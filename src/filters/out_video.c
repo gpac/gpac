@@ -1012,8 +1012,8 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] No output modules found, cannot load video output\n"));
 		return GF_IO_ERR;
 	}
-	if (!gf_opts_get_key("Video", "DriverName")) {
-		gf_opts_set_key("Video", "DriverName", ctx->video_out->module_name);
+	if (!gf_opts_get_key("core", "video-output")) {
+		gf_opts_set_key("core", "video-output", ctx->video_out->module_name);
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] Setting up video module %s\n", ctx->video_out->module_name));
@@ -1658,7 +1658,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	if (ctx->vsync) {
+	if (ctx->vsync || ctx->drop) {
 		u64 ref_clock = 0;
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u64 clock_us, now = gf_sys_clock_high_res();

@@ -79,8 +79,7 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
 	if (ctx == NULL)
 		return GF_BAD_PARAM;
-	opt = gf_modules_get_option ((GF_BaseInterface *) dr, MODULE_NAME,
-	                             OUTPUT_NAME);
+	opt = gf_opts_get_key(MODULE_NAME, OUTPUT_NAME);
 	ctx->output_name = DEFAULT_OUTPUT_NAME;
 	if (opt != NULL)
 	{
@@ -88,11 +87,9 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	}
 	else
 	{
-		gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-		                       OUTPUT_NAME, DEFAULT_OUTPUT_NAME);
+		gf_opts_set_key(MODULE_NAME, OUTPUT_NAME, DEFAULT_OUTPUT_NAME);
 	}
-	opt = gf_modules_get_option ((GF_BaseInterface *) dr, MODULE_NAME,
-	                             OUTPUT_DESCRIPTION);
+	opt = gf_opts_get_key(MODULE_NAME, OUTPUT_DESCRIPTION);
 	ctx->output_description = DEFAULT_OUTPUT_DESCRIPTION;
 	if (opt != NULL)
 	{
@@ -100,8 +97,7 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	}
 	else
 	{
-		gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-		                       OUTPUT_DESCRIPTION, DEFAULT_OUTPUT_DESCRIPTION);
+		gf_opts_set_key(MODULE_NAME, OUTPUT_DESCRIPTION, DEFAULT_OUTPUT_DESCRIPTION);
 	}
 	return GF_OK;
 }

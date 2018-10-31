@@ -84,7 +84,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = 0;
 
-	VTLFolder = (char *)gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", "VTLPath");
+	VTLFolder = (char *)gf_opts_get_key("RVCDecoder", "VTLPath");
 	if (!VTLFolder) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC Decoder] Cannot locate VTL: path is unknown. Please indicate path in GPAC config file:\n[RVCDecoder]\nVTLPath=PATH\n"));
 		return GF_SERVICE_ERROR;
@@ -98,7 +98,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		FILE *f;
 		u32 size;
 		sprintf(opt, "Predefined_%d", esd->decoderConfig->predefined_rvc_config);
-		path = (char *) gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", (const char *)opt);
+		path = (char *) gf_opts_get_key("RVCDecoder", (const char *)opt);
 		if (!opt) return GF_NOT_SUPPORTED;
 		f = gf_fopen(path, "rt");
 		if (!f) return GF_NOT_SUPPORTED;

@@ -225,7 +225,7 @@ prop_id = SMJS_ID_TO_INT(id);
 switch (prop_id) {
 case GJS_GPAC_PROP_LAST_WORK_DIR:
 	res = gf_opts_get_key("General", "LastWorkingDir");
-	if (!res) res = gf_opts_get_key("libgpac", "mod-dirs");
+	if (!res) res = gf_opts_get_key("core", "mod-dirs");
 #ifdef WIN32
 	if (!res) res = "C:\\";
 #elif defined(GPAC_CONFIG_DARWIN)
@@ -1820,7 +1820,7 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 		}
 
 		if (!storage) {
-			const char *storage_dir = gf_opts_get_key("libgpac", "store-dir");
+			const char *storage_dir = gf_opts_get_key("core", "store-dir");
 
 			storage = gf_cfg_force_new(storage_dir, szFile);
 			if (storage) {

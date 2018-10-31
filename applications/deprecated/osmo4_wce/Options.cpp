@@ -234,7 +234,7 @@ BOOL COptAudio::OnInitDialog()
 
 	/*driver enum*/
 	while (m_DriverList.GetCount()) m_DriverList.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "DriverName");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "core", "audio-output");
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
 	GF_BaseInterface *ifce;
 	s32 select = 0;
@@ -273,7 +273,7 @@ void COptAudio::SaveOptions()
 
 	m_DriverList.GetWindowText(wstr, 50);
 	CE_WideToChar((u16 *)wstr, str);
-	gf_cfg_set_key(gpac->m_user.config, "Audio", "DriverName", str);
+	gf_cfg_set_key(gpac->m_user.config, "core", "audio-output", str);
 
 }
 
@@ -424,7 +424,7 @@ BOOL COptFont::OnInitDialog()
 
 	/*video drivers enum*/
 	while (m_Fonts.GetCount()) m_Fonts.DeleteString(0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "DriverName");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontCache", "FontReader");
 	s32 to_sel = 0;
 	s32 select = 0;
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
@@ -440,7 +440,7 @@ BOOL COptFont::OnInitDialog()
 	m_Fonts.SetCurSel(select);
 
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontDirectory");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontCache", "FontDirectory");
 	CE_CharToWide((char *)sOpt, (u16 *)wTmp);
 	if (sOpt) m_BrowseFont.SetWindowText(wTmp);
 
@@ -464,10 +464,10 @@ void COptFont::SaveOptions()
 
 	m_Fonts.GetWindowText(wstr, 50);
 	CE_WideToChar((u16 *)wstr, str);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontReader", str);
+	gf_cfg_set_key(gpac->m_user.config, "FontCache", "FontReader", str);
 	m_BrowseFont.GetWindowText(wstr, 50);
 	CE_WideToChar((u16 *)wstr, str);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
+	gf_cfg_set_key(gpac->m_user.config, "FontCache", "FontDirectory", str);
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "TextureTextMode", m_UseTexture.GetCheck() ? "Default" : "Never");
 }
 

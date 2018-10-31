@@ -338,9 +338,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_close_interface) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_option) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_modules_set_option) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_config) )
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_wcstombs) )

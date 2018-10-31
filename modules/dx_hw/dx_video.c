@@ -107,7 +107,7 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 	const char *opt;
 	DDContext *dd = (DDContext*)driv->opaque;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
+	opt = gf_opts_get_key("core", "gl-offscreen");
 
 #ifndef _WIN32_WCE
 	wglChoosePixelFormatARB = (CHOOSEPFFORMATARB) wglGetProcAddress("wglChoosePixelFormatARB");
@@ -123,19 +123,19 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX] Using PBuffer for OpenGL Offscreen Rendering\n"));
 		driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 
-		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode", "PBuffer");
+		if (!opt) gf_opts_set_key("core", "gl-offscreen", "PBuffer");
 	} else
 #endif
 	{
 		u32 gl_type = 1;
 
-		opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
+		opt = gf_opts_get_key("core", "gl-offscreen");
 		if (opt) {
 			if (!strcmp(opt, "Window")) gl_type = 1;
 			else if (!strcmp(opt, "VisibleWindow")) gl_type = 2;
 			else gl_type = 0;
 		} else {
-			gf_modules_set_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode", "Window");
+			gf_opts_set_key("core", "gl-offscreen", "Window");
 		}
 
 		if (gl_type) {
@@ -271,7 +271,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	u32 i=0;
 	static int egl_atts[20];
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
+	sOpt = gf_opts_get_key("core", "gl-bits-comp");
 	nb_bits = sOpt ? atoi(sOpt) : 5;
 
 	egl_atts[i++] = EGL_RED_SIZE;
@@ -283,7 +283,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	/*alpha for compositeTexture*/
 	egl_atts[i++] = EGL_ALPHA_SIZE;
 	egl_atts[i++] = 1;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	sOpt = gf_opts_get_key("core", "gl-bits-depth");
 	nb_bits = sOpt ? atoi(sOpt) : 5;
 	egl_atts[i++] = EGL_DEPTH_SIZE;
 	egl_atts[i++] = nb_bits;
@@ -356,9 +356,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	//- we must call SetPixelFormat to create the GL context
 	//- it is not possible to call several time SetPixelFormat on the same window with different PF properties ...
 	if (!dd->mode_high_bpp) {
-		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
+		sOpt = gf_opts_get_key("core", "gl-bits-comp");
 		if (!sOpt) {
-			gf_modules_set_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent", "8");
+			gf_opts_set_key("core", "gl-bits-comp", "8");
 			dd->bpp = 8;
 		} else {
 			dd->bpp = atoi(sOpt);
@@ -408,11 +408,11 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	if (dd->gl_double_buffer ) {
 		use_double_buffer = dd->gl_double_buffer;
 	} else {
-		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseGLDoubleBuffering");
+		sOpt = gf_opts_get_key("core", "gl-doublebuf");
 		if (!sOpt || !strcmp(sOpt, "yes")) use_double_buffer = GF_TRUE;
 	}
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
+	sOpt = gf_opts_get_key("core", "gl-bits-depth");
 	if (sOpt) bits_depth = atoi(sOpt);
 
 	memset(&pfd, 0, sizeof(pfd));
@@ -596,8 +596,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 #endif
 	GetWindowRect(dd->cur_hwnd, &rc);
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
-	if (opt && !strcmp(opt, "yes")) dd->disable_vsync = GF_TRUE;
+	dd->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
 
 	return GF_OK;
 }
@@ -639,7 +638,6 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 {
 	GF_Err e;
 	const char *sOpt;
-	u32 MaxWidth, MaxHeight;
 	DDCONTEXT;
 
 	if (bOn == dd->fullscreen) return GF_OK;
@@ -653,15 +651,10 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	on the dest pixel format)*/
 	dd->yuv_init = GF_FALSE;
 	if (dd->fullscreen) {
-		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
-		if (sOpt && !stricmp(sOpt, "yes")) dd->switch_res = GF_TRUE;
+		dd->switch_res = gf_opts_get_bool("core", "switch-vres");
 		/*get current or best fitting mode*/
 		if (GetDisplayMode(dd) != GF_OK) return GF_IO_ERR;
 	}
-
-	MaxWidth = MaxHeight = 0;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "MaxResolution");
-	if (sOpt) sscanf(sOpt, "%dx%d", &MaxWidth, &MaxHeight);
 
 	if (dd->NeedRestore) RestoreWindow(dd);
 	/*destroy all objects*/
@@ -711,11 +704,6 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 		}
 #endif
 
-		/*change display mode*/
-		if ((MaxWidth && (dd->fs_width >= MaxWidth)) || (MaxHeight && (dd->fs_height >= MaxHeight)) ) {
-			dd->fs_width = MaxWidth;
-			dd->fs_height = MaxHeight;
-		}
 		SetWindowPos(dd->cur_hwnd, NULL, X, Y, dd->fs_width, dd->fs_height, SWP_SHOWWINDOW | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
 	} else if (dd->os_hwnd==dd->fs_hwnd) {
 		SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_SHOWWINDOW | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
