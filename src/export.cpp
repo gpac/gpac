@@ -65,6 +65,10 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_args) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_is_libgpac_arg) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_bool) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_int) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_print_graph) )
+
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )
