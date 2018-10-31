@@ -66,7 +66,8 @@ Remaining before release
 - [ ] move DekTec output to filter
 - [ ] move SVC/SHVC splitters and aggregators to filter
 - [ ] move HEVC tiling splitter to filter
-- [x] merge AV1 branch
+- [x] merge AV1 
+- [x] merge VP9 
 - [ ] move iOS client to filters
 - [ ] move Android client to filters
 - [ ] rewrite MP42TS to filters or drop it
@@ -78,7 +79,7 @@ Remaining before release
 - [x] filter API documentation
 - [x] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)
-- [ ] pass all test suite
+- [x] pass all test suite
 
 ## V1.0.0
 Targets:
