@@ -2114,7 +2114,7 @@ restart_fragmentation_pass:
 							ref_track_next_cts += sample_duration;
 						} else {
 							u64 last_cts = gf_isom_get_media_duration(input, tf->OriginalTrack);
-							u64 dur = (dash_input->clamp_duration ? dash_input->clamp_duration : dash_input->media_duration) * tf->TimeScale;
+							u64 dur = (u64) ((dash_input->clamp_duration ? dash_input->clamp_duration : dash_input->media_duration) * tf->TimeScale);
 							if (dur < last_cts)
 								last_cts = dur;
 
@@ -2768,11 +2768,11 @@ write_rep_only:
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 			gf_isom_get_bitrate(input, tf->OriginalTrack, 0, &bw, NULL, NULL);
 			if (!bw) {
-				bw = gf_isom_get_media_data_size(input, tf->OriginalTrack);
-				bw *= 8;
-				bw /= file_duration;
+				u64 msize = gf_isom_get_media_data_size(input, tf->OriginalTrack);
+				msize *= 8;
+				bw = (u32) (msize / file_duration);
 			}
-			bandwidth += bw;
+			bandwidth += (u32) bw;
 		}
 	}
 
