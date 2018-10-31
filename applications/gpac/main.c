@@ -403,7 +403,6 @@ static int gpac_main(int argc, char **argv)
 	GF_FilterSession *session;
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
-	Bool logs_set = GF_FALSE;
 
 	//look for mem track and profile, and also process all helpers
 	for (i=1; i<argc; i++) {
@@ -485,9 +484,7 @@ static int gpac_main(int argc, char **argv)
 			arg_val++;
 		}
 
-		if (arg_val && !strcmp(arg, "-logs")) {
-			logs_set = GF_TRUE;
-		} else if (!strcmp(arg, "-ltf")) {
+		if (!strcmp(arg, "-ltf")) {
 			load_test_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-stats")) {
 			dump_stats = GF_TRUE;

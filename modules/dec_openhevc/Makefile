@@ -15,8 +15,7 @@ LDFLAGS+=-pg
 endif
 
 
-LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS) -lgpac
-
+LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS)
 
 
 #common obj

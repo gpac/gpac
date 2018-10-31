@@ -950,9 +950,6 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 {
 	GF_Event evt;
-#ifdef GPAC_HAS_OPENGL
-	const char *opt;
-#endif
 	XWindow *xWin = (XWindow *)vout->opaque;
 
 	if (!xWin->glx_visualinfo) return GF_IO_ERR;
