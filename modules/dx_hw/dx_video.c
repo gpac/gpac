@@ -575,7 +575,6 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 {
 	RECT rc;
 	DDCONTEXT
-	const char *opt;
 	dd->os_hwnd = (HWND) os_handle;
 
 	DD_SetupWindow(dr, init_flags);
@@ -637,7 +636,6 @@ void DD_ShowTaskbar(Bool show)
 static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
 {
 	GF_Err e;
-	const char *sOpt;
 	DDCONTEXT;
 
 	if (bOn == dd->fullscreen) return GF_OK;
