@@ -286,8 +286,10 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	else if (!strcmp(opt, "flock")) sched_type = GF_FS_SCHEDULER_LOCK_FORCE;
 	else if (!strcmp(opt, "direct")) sched_type = GF_FS_SCHEDULER_DIRECT;
 	else if (!strcmp(opt, "freex")) sched_type = GF_FS_SCHEDULER_LOCK_FREE_X;
-	else sched_type = GF_FS_SCHEDULER_LOCK_FREE;
-
+	else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized scheduler type %s\n", opt));
+		return NULL;
+	}
 	if (inflags & GF_FS_FLAG_LOAD_META)
 		flags |= GF_FS_FLAG_LOAD_META;
 
