@@ -115,8 +115,7 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 	if (pid->filter->would_block < pid->filter->num_output_pids) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids));
 		//requeue task
-		if (!pid->filter->skip_process_trigger_on_tasks)
-			gf_filter_post_process_task(pid->filter);
+		gf_filter_post_process_task(pid->filter);
 	}
 
 	}
@@ -2122,23 +2121,23 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	sort_time_us = gf_sys_clock_high_res();
 
 	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
-		fprintf(stderr, "Filter %s sources: ", reg_dst->freg->name);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", reg_dst->freg->name));
 		for (i=0; i<reg_dst->nb_edges; i++) {
 			GF_FilterRegEdge *edge = &reg_dst->edges[i];
-			fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
 		}
-		fprintf(stderr, "\n");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
 
 		count = gf_list_count(dijkstra_nodes);
 		for (i=0; i<count; i++) {
 			u32 j;
 			GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
-			fprintf(stderr, "Filter %s sources: ", rdesc->freg->name);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", rdesc->freg->name));
 			for (j=0; j<rdesc->nb_edges; j++) {
 				GF_FilterRegEdge *edge = &rdesc->edges[j];
-				fprintf(stderr, " %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
 			}
-			fprintf(stderr, "\n");
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
 		}
 	}
 

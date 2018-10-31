@@ -32,10 +32,6 @@
 #include <gpac/user.h>
 
 
-/*! Flag set to print enabled/disabled edges for debug of pid resolution*/
-#define GF_FS_FLAG_PRINT_CONNECTIONS	((u32)1<<31)
-
-
  //atomic ref_count++ / ref_count--
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <Windows.h>
@@ -547,8 +543,6 @@ struct __gf_filter
 	volatile u32 nb_caps_renegociate;
 
 	volatile u32 process_task_queued;
-
-	Bool skip_process_trigger_on_tasks;
 
 	u64 schedule_next_time;
 

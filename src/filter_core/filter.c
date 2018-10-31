@@ -163,8 +163,6 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 
 	gf_filter_parse_args(filter, args, arg_type);
 
-	filter->skip_process_trigger_on_tasks = GF_FALSE;
-
 	if (filter->freg->initialize) {
 		GF_Err e;
 		FSESS_CHECK_THREAD(filter)
@@ -181,12 +179,6 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	}
 	return GF_OK;
 }
-
-void gf_filter_disable_process_trigger(GF_Filter *filter, Bool disable)
-{
-	if (filter) filter->skip_process_trigger_on_tasks = disable;
-}
-
 
 static void reset_filter_args(GF_Filter *filter);
 
@@ -1377,7 +1369,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 #if 0
 	//empty input for this filter, don't call process
-	else if (filter->num_input_pids==1 && !filter->pending_packets && !filter->skip_process_trigger_on_tasks) {
+	else if (filter->num_input_pids==1 && !filter->pending_packets) {
 		filter->nb_tasks_done--;
 		gf_filter_check_pending_tasks(filter, task);
 		return;
@@ -1455,7 +1447,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	else if ((filter->would_block < filter->num_output_pids)
 			&& filter->pending_packets
 			&& (gf_fq_count(filter->tasks)<=1)
-			&& !filter->skip_process_trigger_on_tasks) {
+	) {
 		task->requeue_request = GF_TRUE;
 		assert(filter->process_task_queued);
 	}
@@ -1595,7 +1587,8 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s request for real-time reschedule but filter is not in process\n", filter->name));
 		return;
 	}
-	if (!us_until_next) return;
+	if (!us_until_next)
+		return;
 	filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Filter %s real-time reschedule in %d us (at "LLU" sys clock)\n", filter->name, us_until_next, filter->schedule_next_time));
 }

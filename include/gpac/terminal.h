@@ -170,7 +170,7 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only);
 
 /*decodes pending media and render frame.
 NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
-returns estimated time left until next frame should be drawn. If GF_TERM_NO_REGULATION is not set, the function will sleep
+returns estimated time left until next frame should be drawn. If filter session regulation is not disabled, the function will sleep
 for until next frame should be drawn before returning.
 */
 void gf_term_process_step(GF_Terminal *term);

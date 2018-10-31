@@ -60,27 +60,25 @@ typedef struct _tag_user GF_User;
 
 enum
 {
-	/*disables frame-rate regulation (used when dumping content)*/
-	GF_TERM_NO_REGULATION = 1,
 	/*display should be hidden upon initialization*/
-	GF_TERM_INIT_HIDE = 1<<1,
+	GF_TERM_INIT_HIDE = 1,
 	/*no audio renderer will be created*/
-	GF_TERM_NO_AUDIO = 1<<2,
+	GF_TERM_NO_AUDIO = 1<<1,
 	/*initializes client without a default audio out - used for dump modes where audio playback is not needed*/
-	GF_TERM_NO_DEF_AUDIO_OUT = 1<<3,
+	GF_TERM_NO_DEF_AUDIO_OUT = 1<<2,
 	/*disables video output module - used for bench mode without video*/
-	GF_TERM_NO_VIDEO = 1<<4,
+	GF_TERM_NO_VIDEO = 1<<3,
 	/*works without window thread*/
-	GF_TERM_WINDOW_NO_THREAD = 1<<5,
+	GF_TERM_WINDOW_NO_THREAD = 1<<4,
 	/*lets the main user handle window events (needed for browser plugins)*/
-	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<6,
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<5,
 	/*works without title bar*/
-	GF_TERM_WINDOW_NO_DECORATION = 1<<7,
+	GF_TERM_WINDOW_NO_DECORATION = 1<<6,
 
 	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOW_TRANSPARENT = 1<<8,
+	GF_TERM_WINDOW_TRANSPARENT = 1<<7,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<9,
+	GF_TERM_WINDOWLESS = 1<<8,
 };
 
 /*user object for all callbacks*/
@@ -101,10 +99,6 @@ struct _tag_user
 
 	/*init flags bypassing GPAC config file	*/
 	u32 init_flags;
-	/*number of threads to use*/
-	u32 threads;
-	/*filter blacklist - temporary, should be moved to config ?*/
-	const char *blacklist;
 };
 
 /*! @} */

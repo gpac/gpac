@@ -102,7 +102,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 }
 
 GF_EXPORT
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
+GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
 {
 	u32 i, count;
 	GF_FilterSession *fsess, *a_sess;
@@ -120,6 +120,18 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, u
 
 	fsess->filters = gf_list_new();
 	fsess->main_th.fsess = fsess;
+
+	if ((s32) nb_threads == -1) {
+		GF_SystemRTInfo rti;
+		memset(&rti, 0, sizeof(GF_SystemRTInfo));
+		if (gf_sys_get_rti(0, &rti, 0)) {
+			nb_threads = rti.nb_cores-1;
+		}
+		if ((s32)nb_threads<0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Failed to query number of cores, disabling extra threads for session\n"));
+			nb_threads=0;
+		}
+	}
 
 	if (sched_type==GF_FS_SCHEDULER_DIRECT) {
 		fsess->direct_mode = GF_TRUE;
@@ -254,16 +266,62 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, u
 
 	gf_filter_sess_build_graph(fsess, NULL);
 
-	if (gf_opts_get_bool("libgpac", "print-edges"))
-		fsess->flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
-
 	fsess->init_done = GF_TRUE;
+	return fsess;
+}
+
+GF_EXPORT
+GF_FilterSession *gf_fs_new_defaults(u32 inflags)
+{
+	GF_FilterSession *fsess;
+	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
+	u32 flags = 0;
+	u32 max_chain = 0;
+	s32 nb_threads = gf_opts_get_int("libgpac", "threads");
+	const char *blacklist = gf_opts_get_key("libgpac", "blacklist");
+	const char *opt = gf_opts_get_key("libgpac", "sched");
+
+	if (!opt) sched_type = GF_FS_SCHEDULER_LOCK_FREE;
+	else if (!strcmp(opt, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
+	else if (!strcmp(opt, "flock")) sched_type = GF_FS_SCHEDULER_LOCK_FORCE;
+	else if (!strcmp(opt, "direct")) sched_type = GF_FS_SCHEDULER_DIRECT;
+	else if (!strcmp(opt, "freex")) sched_type = GF_FS_SCHEDULER_LOCK_FREE_X;
+	else sched_type = GF_FS_SCHEDULER_LOCK_FREE;
+
+	if (inflags & GF_FS_FLAG_LOAD_META)
+		flags |= GF_FS_FLAG_LOAD_META;
+
+	if (inflags & GF_FS_FLAG_NO_MAIN_THREAD)
+		flags |= GF_FS_FLAG_NO_MAIN_THREAD;
+
+	if (gf_opts_get_bool("libgpac", "dbg-edges"))
+		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
+
+	if (gf_opts_get_bool("libgpac", "no-reg"))
+		flags |= GF_FS_FLAG_NO_REGULATION;
+
+	if (gf_opts_get_bool("libgpac", "no-block"))
+		flags |= GF_FS_FLAG_NO_BLOCKING;
+
+	if (gf_opts_get_bool("libgpac", "no-graph-cache"))
+		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;
+
+	fsess = gf_fs_new(nb_threads, sched_type, flags, blacklist);
+	if (!fsess) return NULL;
+
+	max_chain = gf_opts_get_int("libgpac", "max-chain");
+	gf_fs_set_max_resolution_chain_length(fsess, max_chain);
+
+	opt = gf_opts_get_key("libgpac", "seps");
+	if (opt)
+		gf_fs_set_separators(fsess, opt);
+
 	return fsess;
 }
 
 
 GF_EXPORT
-GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set)
+GF_Err gf_fs_set_separators(GF_FilterSession *session, const char *separator_set)
 {
 	if (!session) return GF_BAD_PARAM;
 	if (separator_set && (strlen(separator_set)<5)) return GF_BAD_PARAM;
@@ -290,6 +348,13 @@ GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_
 	if (!session) return GF_BAD_PARAM;
 	session->max_resolve_chain_len = max_chain_length;
 	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_fs_get_max_resolution_chain_length(GF_FilterSession *session)
+{
+	if (!session) return 0;
+	return session->max_resolve_chain_len;
 }
 
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)

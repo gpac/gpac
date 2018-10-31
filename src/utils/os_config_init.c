@@ -858,11 +858,12 @@ GF_Err gf_opts_discard_changes()
 }
 
 #include <gpac/main.h>
+#include <gpac/filters.h>
 
 GF_GPACArg GPAC_Args[] = {
- GF_DEF_ARG("log-file", "lf", "set output log file", NULL, NULL, GF_ARG_STRING, GF_ARG_IS_LOG),
- GF_DEF_ARG("log-clock", "lc", "log time in micro sec since start time of GPAC before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_IS_LOG),
- GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_IS_LOG),
+ GF_DEF_ARG("log-file", "lf", "set output log file", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("log-clock", "lc", "log time in micro sec since start time of GPAC before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("logs", NULL, "set log tools and levels."\
 			"\n"\
 			"You can independently log different tools involved in a session.\n"\
@@ -903,49 +904,73 @@ GF_GPACArg GPAC_Args[] = {
 	        "The special keyword \"ncl\" can be set to disable color logs.\n"\
 	        "The special keyword \"strict\" can be set to exit at first error.\n"\
 	        "\tEX: -logs all@info:dash@debug:ncl moves all log to info level, dash to debug level and disable color logs."\
- 			, NULL, NULL, GF_ARG_STRING, GF_ARG_IS_LOG),
+ 			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
 
- GF_DEF_ARG("store-dir", NULL, "sets storage directory", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- GF_DEF_ARG("mod-dirs", NULL, "sets module directories", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("ifce", NULL, "sets default multicast interface through interface IP adress", NULL, NULL, GF_ARG_STRING, 0),
- GF_DEF_ARG("lang", NULL, "sets preferred language", NULL, NULL, GF_ARG_STRING, 0),
+ GF_DEF_ARG("noprog", NULL, "disables progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("quiet", NULL, "disables all messages, including errors", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
 
- GF_DEF_ARG("cache", NULL, "sets cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
- GF_DEF_ARG("proxy-on", NULL, "Enables HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
- GF_DEF_ARG("proxy-name", NULL, "sets HTTP proxy adress", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
- GF_DEF_ARG("proxy-port", NULL, "sets HTTP proxy port", "80", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
- GF_DEF_ARG("maxrate", NULL, "sets max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("no-cache", NULL, "disables HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
- GF_DEF_ARG("offline-cache", NULL, "enables offline HTTP caching (no revalidation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("clean-cache", NULL, "indicates if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_STRING, GF_ARG_IS_HTTP),
- GF_DEF_ARG("cache-size", NULL, "specifies cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
- GF_DEF_ARG("head-timeout", NULL, "Sets HTTP head request timeout in milliseconds", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("req-timeout", NULL, "Sets HTTP/RTSP request timeout in milliseconds", "20000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("broken-cert", NULL, "Enables accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("user-agent", "ua", "sets user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_IS_HTTP),
- GF_DEF_ARG("user-profileid", "upid", "sets user profile ID (through  \"X-UserProfileID\" entity header)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("user-profile", "up", "sets user profile filename. Content of file is appended as body to HEAD/GET requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("query-string", NULL, "inserts query string (without ?) to URL on requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_IS_HTTP),
- GF_DEF_ARG("mobile-ip", NULL, "sets IP adress for mobileIP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("strict-error", "se", "exits after the first error is reported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("store-dir", NULL, "sets storage directory", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("mod-dirs", NULL, "sets module directories", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("ifce", NULL, "sets default multicast interface through interface IP adress", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("lang", NULL, "sets preferred language", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("cfg", "opt", "sets configuration file value. The string parameter can be formatted as:\n"\
+	        "\tsection:key=val: sets the key to a new value\n"\
+	        "\tsection:key=null or section:key: removes the key\n"\
+	        "\tsection:*=null: removes the section\n"\
+			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("version", NULL, "sets to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("64bits", NULL, "indicates if GPAC version is 64 bits, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("mod-reload", NULL, "unload / reload module shared libs when no longer used", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("mobile-ip", NULL, "sets IP adress for mobileIP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 
- GF_DEF_ARG("version", NULL, "sets to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
- GF_DEF_ARG("64bits", NULL, "indicates if GPAC version is 64 bits, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
- GF_DEF_ARG("mod-reload", NULL, "unload / reload module shared libs when no longer used", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("print-edges", NULL, "prints edges status in filter graph before dijkstra resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt", NULL, "enables profiling through Remotery (https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-port", NULL, "sets remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-reuse", NULL, "have remotery reuse port", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-localhost", NULL, "make remotery only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-sleep", NULL, "sets remotery sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-nmsg", NULL, "sets remotery number of messages per update", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-qsize", NULL, "sets remotery message queue size in bytes", "131072", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-log", NULL, "redirects logs to remotery (experimental, usually not well handled by browser)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
- GF_DEF_ARG("rmt-ogl", NULL, "make remotery sample opengl calls", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+ GF_DEF_ARG("cache", NULL, "sets cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy-on", NULL, "Enables HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy-name", NULL, "sets HTTP proxy adress", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy-port", NULL, "sets HTTP proxy port", "80", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("maxrate", NULL, "sets max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("no-cache", NULL, "disables HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("offline-cache", NULL, "enables offline HTTP caching (no revalidation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("clean-cache", NULL, "indicates if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("cache-size", NULL, "specifies cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("head-timeout", NULL, "Sets HTTP head request timeout in milliseconds", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("req-timeout", NULL, "Sets HTTP/RTSP request timeout in milliseconds", "20000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("broken-cert", NULL, "Enables accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-agent", "ua", "sets user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-profileid", "upid", "sets user profile ID (through  \"X-UserProfileID\" entity header)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-profile", "up", "sets user profile filename. Content of file is appended as body to HEAD/GET requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("query-string", NULL, "inserts query string (without ?) to URL on requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+
+ GF_DEF_ARG("dbg-edges", NULL, "logs edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+
+ GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("sched", NULL, "set scheduler mode. Possible modes are:\n"\
+		"\tfree: uses lock-free queues (default)\n"\
+		"\tlock: uses mutexes for queues when several threads\n"\
+		"\tflock: uses mutexes for queues even when no thread (debug mode)\n"\
+		"\tdirect: uses no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|direct", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("max-chain", NULL, "sets maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution). Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+
+ GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("blacklist", NULL, "blacklist the filters listed in the given string (comma-seperated list)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("no-graph-cache", NULL, "disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+
+
+ GF_DEF_ARG("rmt", NULL, "enables profiling through Remotery (https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-port", NULL, "sets remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-reuse", NULL, "have remotery reuse port", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-localhost", NULL, "make remotery only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-sleep", NULL, "sets remotery sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-nmsg", NULL, "sets remotery number of messages per update", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-qsize", NULL, "sets remotery message queue size in bytes", "131072", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-log", NULL, "redirects logs to remotery (experimental, usually not well handled by browser)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-ogl", NULL, "make remotery sample opengl calls", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  {0}
 };
 
 GF_EXPORT
-const GF_GPACArg *gf_gpac_args()
+const GF_GPACArg *gf_sys_get_options()
 {
 	return GPAC_Args;
 }
@@ -983,13 +1008,12 @@ GF_EXPORT
 u32 gf_opts_get_int(const char *secName, const char *keyName)
 {
 	u32 times=1, val;
-	const char *opt = (char *) gf_opts_get_key(secName, keyName);
+	char *opt = (char *) gf_opts_get_key(secName, keyName);
 
 	if (!opt && !strcmp(secName, "libgpac")) {
-		opt = gpac_opt_default(keyName);
+		opt = (char *) gpac_opt_default(keyName);
 	}
 	if (!opt) return 0;
-	char c=0;
 	char *sep = strchr(opt, 'k');
 	if (sep) times=1000;
 	else {
@@ -1004,25 +1028,92 @@ u32 gf_opts_get_int(const char *secName, const char *keyName)
 			}
 		}
 	}
-	if (sep) { c = sep[0]; sep[0]=0; }
+	sscanf(opt, "%d", &val);
 	val = atoi(opt);
-	if (sep) sep[0]=c;
 	return val*times;
 }
 
-Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next)
+GF_EXPORT
+Bool gf_sys_set_cfg_option(const char *opt_string)
+{
+	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
+	sep = strchr(opt_string, ':');
+	if (!sep) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreArgs] Badly formatted option %s - expected Section:Name=Value\n", opt_string ) );
+		return GF_FALSE;
+	}
+	{
+		const size_t sepIdx = sep - opt_string;
+		strncpy(szSec, opt_string, sepIdx);
+		szSec[sepIdx] = 0;
+	}
+	sep ++;
+	sep2 = strchr(sep, '=');
+	if (!sep2) {
+		gf_opts_set_key(szSec, sep, NULL);
+		return  GF_TRUE;
+	}
+
+	const size_t sepIdx = sep2 - sep;
+	strncpy(szKey, sep, sepIdx);
+	szKey[sepIdx] = 0;
+	strcpy(szVal, sep2+1);
+
+	if (!stricmp(szKey, "*")) {
+		if (stricmp(szVal, "null")) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreArgs] Badly formatted option %s - expected Section:*=null\n", opt_string));
+			return GF_FALSE;
+		}
+		gf_opts_del_section(szSec);
+		return GF_TRUE;
+	}
+
+	if (!stricmp(szVal, "null")) {
+		szVal[0]=0;
+	}
+	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
+
+	if (!strcmp(szSec, "libgpac")) {
+		if (!strcmp(szKey, "noprog") && (!strcmp(szVal, "yes")||!strcmp(szVal, "true")||!strcmp(szVal, "1")) ) {
+			void gpac_disable_progress();
+
+			gpac_disable_progress();
+		}
+	}
+	return GF_TRUE;
+}
+
+Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e)
 {
 	const GF_GPACArg *arg = NULL;
 	u32 i=0;
+	*e = GF_OK;
 	*consumed_next = GF_FALSE;
 	arg_name = arg_name+1;
 	while (GPAC_Args[i].name) {
 		arg = &GPAC_Args[i];
 		i++;
 		if (!strcmp(arg->name, arg_name)) break;
+		if (arg->altname) {
+			char *alt = strstr(arg->altname, arg_name);
+			if (alt) {
+				char c = alt[strlen(arg_name)];
+				if (!c || (c==' ')) break;
+			}
+		}
 		arg = NULL;
 	}
 	if (!arg) return GF_FALSE;
+
+	if (!strcmp(arg->name, "cfg")) {
+		*consumed_next = GF_TRUE;
+		if (! gf_sys_set_cfg_option(val)) *e = GF_BAD_PARAM;
+		return GF_TRUE;
+	}
+	if (!strcmp(arg->name, "strict-error")) {
+		gf_log_set_strict_error(1);
+		return GF_TRUE;
+	}
 
 	if (arg->type==GF_ARG_BOOL) {
 		if (!val) gf_opts_set_key("temp", arg->name, "yes");
@@ -1047,7 +1138,7 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 }
 
 GF_EXPORT
-Bool gf_is_libgpac_arg(const char *arg_name)
+u32 gf_sys_is_gpac_arg(const char *arg_name)
 {
 	const GF_GPACArg *arg = NULL;
 	u32 i=0;
@@ -1058,7 +1149,61 @@ Bool gf_is_libgpac_arg(const char *arg_name)
 		if (!strcmp(arg->name, arg_name)) break;
 		arg = NULL;
 	}
-	return arg ? GF_TRUE : GF_FALSE;
+	if (!arg) return 0;
+	if (arg->type==GF_ARG_BOOL) return 1;
+	return 2;
+}
+
+
+GF_EXPORT
+void gf_sys_print_arg(const GF_GPACArg *arg)
+{
+	fprintf(stderr, "-%s", arg->name);
+	if (arg->altname)
+		fprintf(stderr, " (-%s)", arg->altname);
+
+	switch (arg->type) {
+	case GF_ARG_BOOL: fprintf(stderr, " [boolean]"); break;
+	case GF_ARG_INT: fprintf(stderr, " [int]"); break;
+	case GF_ARG_DOUBLE: fprintf(stderr, " [number]"); break;
+	case GF_ARG_STRING: fprintf(stderr, " [string]"); break;
+	case GF_ARG_STRINGS: fprintf(stderr, " [string list]"); break;
+	default: break;
+	}
+	if (arg->val)
+		fprintf(stderr, " (default %s)", arg->val);
+	if (arg->values)
+		fprintf(stderr, " (values %s)", arg->values);
+	if (arg->desc)
+		fprintf(stderr, ": %s", arg->desc);
+
+	fprintf(stderr, "\n");
+}
+
+
+GF_EXPORT
+void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags)
+{
+	u32 i=0;
+	const GF_GPACArg *args = gf_sys_get_options();
+
+	fprintf(stderr, "These options can be set in the config file using key libgpac:OPTNAME=val, where OPTNAME is the option name without initial '-' character\n");
+	
+	while (args[i].name) {
+		const GF_GPACArg *arg = &args[i];
+		i++;
+		if (arg->flags & GF_ARG_HINT_HIDE) continue;
+
+		if (subsystem_flags && !(arg->flags & subsystem_flags)) {
+		 	continue;
+		}
+		if (mode != GF_ARGMODE_ALL) {
+			if ((mode==GF_ARGMODE_EXPERT) && !(arg->flags & GF_ARG_HINT_EXPERT)) continue;
+			else if ((mode==GF_ARGMODE_ADVANCED) && !(arg->flags & GF_ARG_HINT_ADVANCED)) continue;
+			else if ((mode==GF_ARGMODE_BASE) && (arg->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT) )) continue;
+		}
+		gf_sys_print_arg(arg);
+	}
 }
 
 #endif

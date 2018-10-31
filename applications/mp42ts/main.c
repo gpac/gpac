@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
 #include <gpac/mpegts.h>
+#include <gpac/main.h>
 
 #ifndef GPAC_DISABLE_STREAMING
 #include <gpac/internal/ietf_dev.h>
@@ -55,16 +56,8 @@ s32 temi_id_2 = -1;
 u32 temi_url_insertion_delay = 1000;
 u32 temi_offset = 0;
 Bool temi_disable_loop = GF_FALSE;
-FILE *logfile = NULL;
 
-static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
-{
-	FILE *logs = (FILE*)cbk;
-	vfprintf(logs, fmt, list);
-	fflush(logs);
-}
-
-static GFINLINE void usage()
+static void usage()
 {
 	fprintf(stderr, "mp42ts <inputs> <destinations> [options]\n"
 	        "\n"
@@ -141,8 +134,8 @@ static GFINLINE void usage()
             "-mem-track             enables memory tracker\n"
             "-mem-track-stack       enables memory tracker stack dumping\n"
 #endif
-	        "-logs                  set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "-h or -help            print this screen\n"
+	        "-hc                    print libgpac options\n"
 	        "\n"
 			"GPAC version " GPAC_FULL_VERSION "\n"
 	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
@@ -1903,6 +1896,11 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			usage();
 			return GF_EOS;
 		}
+		else if (!stricmp(arg, "-hc") ) {
+			fprintf(stderr, "libgpac options:\n");
+			gf_sys_print_core_help(GF_ARGMODE_ALL, 0);
+			return GF_EOS;
+		}
 		else if (CHECK_PARAM("-pcr-init")) {
 			sscanf(next_arg, LLD, pcr_init_val);
 		}
@@ -2048,13 +2046,6 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*ip_ifce = next_arg;
 		} else if (CHECK_PARAM("-sdt-rate")) {
 			*sdt_refresh_rate = atoi(next_arg);
-		}
-		else if (CHECK_PARAM("-logs")) {
-			if (gf_log_set_tools_levels(next_arg) != GF_OK)
-				return GF_BAD_PARAM;
-		} else if (CHECK_PARAM("-lf")) {
-			logfile = gf_fopen(next_arg, "wt");
-			gf_log_set_callback(logfile, on_gpac_log);
 		} else if (CHECK_PARAM("-segment-dir")) {
 			if (seg_dir_found) {
 				goto error;
@@ -2175,12 +2166,17 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			}
 		} else if (CHECK_PARAM("-src")) { //second pass arguments
 		} else if (CHECK_PARAM("-prog")) { //second pass arguments
-		}
-		else {
-			error_msg = "unknown option";
-			goto error;
+		} else {
+			u32 res = gf_sys_is_gpac_arg(arg);
+			if (!res) {
+				error_msg = "unknown option";
+				goto error;
+			} else if (res==2) {
+				if (!strchr(arg, '=')) i++;
+			}
 		}
 	}
+	
 	if (*real_time) force_real_time = 1;
 	rate_found = 1;
 
@@ -2413,6 +2409,12 @@ int main(int argc, char **argv)
 	                        &audio_input_type, &audio_input_ip, &audio_input_port,
 	                        &output_type, &ts_out, &udp_out, &rtp_out, &output_port,
 	                        &segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap, &nb_pck_pack, &pcr_ms, &ttl, &ip_ifce, &insert_temi, &sdt_refresh_rate, &enable_forced_pcr)) {
+		goto exit;
+	}
+
+	e = gf_sys_set_args(argc, (const char **) argv);
+	if (e) {
+		fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
 		goto exit;
 	}
 
@@ -2874,7 +2876,6 @@ exit:
 	if (aac_reader) AAC_Reader_del(aac_reader);
 #endif
 
-	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 
 #ifdef GPAC_MEMORY_TRACKING

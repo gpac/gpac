@@ -314,7 +314,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	GF_Terminal *tmp;
 	GF_Filter *comp_filter;
 	u32 def_w, def_h;
-	u32 session_flags;
 	const char *opt;
 	char szArgs[200];
 
@@ -339,10 +338,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	sprintf(szArgs, "%d", user->init_flags);
 	gf_opts_set_key("Temp", "InitFlags", szArgs);
 
-	session_flags = GF_FS_FLAG_NO_MAIN_THREAD;
-	if (user->init_flags & GF_TERM_NO_REGULATION) session_flags |= GF_FS_FLAG_NO_REGULATION;
-
-	tmp->fsess = gf_fs_new(user->threads, GF_FS_SCHEDULER_LOCK_FREE, session_flags, user->blacklist);
+	tmp->fsess = gf_fs_new_defaults(GF_FS_FLAG_NO_MAIN_THREAD);
 	if (!tmp->fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to create filter session.\n"));
 		gf_free(tmp);
@@ -371,7 +367,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 		return NULL;
 	}
 	gf_filter_make_sticky(comp_filter);
-	gf_filter_disable_process_trigger(comp_filter, GF_TRUE);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
 	gf_sc_set_fps(tmp->compositor, 30.0);
@@ -1403,9 +1398,6 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 				return GF_IP_UDP_TIMEOUT;
 			}
 		}
-
-		if (! (term->user->init_flags & GF_TERM_NO_REGULATION))
-			break;
 	}
 	return GF_OK;
 }

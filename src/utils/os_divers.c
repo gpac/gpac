@@ -710,16 +710,25 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 	fflush(logs);
 }
 
+static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
+
+void gpac_disable_progress()
+{
+	gf_set_progress_callback(NULL, progress_quiet);
+}
+
 GF_EXPORT
-Bool gf_sys_set_args(s32 argc, const char **argv)
+GF_Err gf_sys_set_args(s32 argc, const char **argv)
 {
 	if (!gpac_argc) {
 		s32 i;
-		Bool gf_opts_load_option(const char *name, const char *val, Bool *consumed_next);
+		u32 quiet=0;
+		Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e);
 
 		const char *log_file_name=NULL;
 		for (i=1; i<argc; i++) {
 			Bool consumed;
+			GF_Err e;
 			Bool use_sep=GF_FALSE;
 			const char *arg = argv[i];
 			char *arg_val = strchr(arg, '=');
@@ -742,9 +751,9 @@ Bool gf_sys_set_args(s32 argc, const char **argv)
 				log_file_name = arg_val;
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-logs") ) {
-				if (gf_log_set_tools_levels(arg_val) != GF_OK) {
-					return GF_FALSE;
-				}
+				e = gf_log_set_tools_levels(arg_val);
+				if (e) return e;
+				
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 				gpac_log_time_start = 1;
@@ -752,11 +761,16 @@ Bool gf_sys_set_args(s32 argc, const char **argv)
 			} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
 				gpac_log_utc_time = 1;
 				gf_log_set_callback(gpac_log_file, on_gpac_log);
-			} else if (gf_opts_load_option(arg, arg_val, &consumed)) {
+			} else if (!strcmp(arg, "-quiet")) {
+				quiet = 2;
+			} else if (!strcmp(arg, "-noprog")) {
+				if (!quiet) quiet = 1;
+			} else if (gf_opts_load_option(arg, arg_val, &consumed, &e)) {
+				if (e) return e;
+				
 				if (consumed && !use_sep)
 					i += 1;
 			}
-			
 			if (use_sep) {
 				arg_val--;
 				arg_val[0]='=';
@@ -770,6 +784,11 @@ Bool gf_sys_set_args(s32 argc, const char **argv)
 		if (gf_opts_get_bool("libgpac", "rmt"))
 			gf_sys_enable_profiling(GF_TRUE);
 
+		if (quiet) {
+			if (quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
+			gf_set_progress_callback(NULL, progress_quiet);
+		}
+		
 	}
 	//for OSX we allow overwrite of argc/argv due to different behavior between console-mode apps and GUI
 #if !defined(__DARWIN__) && !defined(__APPLE__)
@@ -779,7 +798,7 @@ Bool gf_sys_set_args(s32 argc, const char **argv)
 		gpac_argc = (u32) argc;
 		gpac_argv = argv;
 	}
-	return GF_TRUE;
+	return GF_OK;
 }
 
 GF_EXPORT

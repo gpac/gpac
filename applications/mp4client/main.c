@@ -31,6 +31,7 @@
 #include <gpac/events.h>
 #include <gpac/media_tools.h>
 #include <gpac/options.h>
+#include <gpac/main.h>
 
 #include <gpac/avparse.h>
 #include <gpac/network.h>
@@ -79,11 +80,7 @@ Bool no_prog = 0;
 #define VK_MOD  GF_KEY_MOD_CTRL
 #endif
 
-//number of extra threads
-static u32 nb_threads = 1;
-
 static Bool no_audio = GF_FALSE;
-static Bool no_regulation = GF_FALSE;
 static u32 bench_mode = 0;
 static u32 bench_mode_start = 0;
 static u32 bench_buffer = 0;
@@ -109,13 +106,10 @@ static Bool CanSeek = GF_FALSE;
 static char the_url[GF_MAX_PATH];
 static char pl_path[GF_MAX_PATH];
 static Bool no_mime_check = GF_TRUE;
-static Bool be_quiet = GF_FALSE;
-static u64 log_time_start = 0;
-static Bool log_utc_time = GF_FALSE;
+static u64 log_rti_time_start = 0;
 static Bool loop_at_end = GF_FALSE;
 static u32 forced_width=0;
 static u32 forced_height=0;
-static const char *blacklist = NULL;
 
 /*windowless options*/
 u32 align_mode = 0;
@@ -186,56 +180,7 @@ void PrintUsage()
 #endif
 	        "\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
 	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
-	        "\t-quiet:         removes script message, buffering and downloading status\n"
-	        "\t-strict-error:  exit when the player reports its first error\n"
-	        "\t-opt option:    Overrides an option in the configuration file. String format is section:key=value. \n"
-	        "\t                  \"section:key=null\" removes the key\n"
-	        "\t                  \"section:*=null\" removes the section\n"
-	        "\t-conf option:   Same as -opt but does not start player.\n"
-	        "\t-log-file file: sets output log file. Also works with -lf\n"
-	        "\t-logs log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-	        "\t                 levelX can be one of:\n"
-	        "\t        \"quiet\"      : skip logs\n"
-	        "\t        \"error\"      : logs only error messages\n"
-	        "\t        \"warning\"    : logs error+warning messages\n"
-	        "\t        \"info\"       : logs error+warning+info messages\n"
-	        "\t        \"debug\"      : logs all messages\n"
-	        "\t                 toolX can be one of:\n"
-	        "\t        \"core\"       : libgpac core\n"
-	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
-	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
-	        "\t        \"network\"    : network data exept RTP trafic\n"
-	        "\t        \"rtp\"        : rtp trafic\n"
-	        "\t        \"author\"     : authoring tools (hint, import, export)\n"
-	        "\t        \"sync\"       : terminal sync layer\n"
-	        "\t        \"codec\"      : terminal codec messages\n"
-	        "\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"
-	        "\t        \"media\"      : terminal media object management\n"
-	        "\t        \"scene\"      : scene graph and scene manager\n"
-	        "\t        \"script\"     : scripting engine messages\n"
-	        "\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
-	        "\t        \"smil\"       : SMIL timing engine\n"
-	        "\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
-	        "\t        \"mmio\"       : Audio/Video HW I/O management\n"
-	        "\t        \"rti\"        : various run-time stats\n"
-	        "\t        \"cache\"      : HTTP cache subsystem\n"
-	        "\t        \"audio\"      : Audio renderer and mixers\n"
-#ifdef GPAC_MEMORY_TRACKING
-	        "\t        \"mem\"        : GPAC memory tracker\n"
-#endif
-#ifndef GPAC_DISABLE_DASH_CLIENT
-	        "\t        \"dash\"       : HTTP streaming logs\n"
-#endif
-	        "\t        \"module\"     : GPAC modules debugging\n"
-	        "\t        \"mutex\"      : mutex\n"
-	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
-	        "\tThe special value \"ncl\" disables color logs.\n"
-	        "\n"
-	        "\t-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
-	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
-	        "\t-ifce IPIFCE           : Sets default Multicast interface\n"
 	        "\t-size WxH:      specifies visual size (default: scene size)\n"
-	        "\t-nb-threads N:  sets number of extra thread to N (default is N=%d)\n"
 	        "\t-no-thread:     disables thread usage (except for depending on driver audio)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
@@ -249,7 +194,6 @@ void PrintUsage()
 	        "\t-play-from T:   starts from T seconds in media\n"
 	        "\t-speed S:       starts with speed S\n"
 	        "\t-loop:          loops presentation\n"
-	        "\t-no-regulation: disables framerate regulation\n"
 	        "\t-bench:         disable a/v output and bench source decoding (as fast as possible)\n"
 	        "\t-vbench:        disable audio output, video sync bench source decoding/display (as fast as possible)\n"
 	        "\t-sbench:        disable all decoders and bench systems layer (as fast as possible)\n"
@@ -264,7 +208,6 @@ void PrintUsage()
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
 	        "\t-service ID:    auto-tune to given service ID in a multiplex\n"
-	        "\t-noprog:        disable progress report\n"
 	        "\t-no-save:       disable saving config file on exit\n"
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
@@ -295,13 +238,13 @@ void PrintUsage()
 	        "\t-p profile:    user-defined profile, either a name or path to an existing GPAC config file.\n"
 	        "\t-stats:        dumps filter session stats after playback.\n"
 	        "\t-graph:        dumps filter session graph after playback.\n"
-	        "\t-help:          shows this screen\n"
+	        "\t-h or -help:   shows this screen\n"
+	        "\t-hc:           shows libgpac core options\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
 	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s %s\n",
-	        nb_threads,
 	        GF_IMPORT_DEFAULT_FPS,
 	        gpac_enabled_features(), gpac_disabled_features()
 	       );
@@ -626,8 +569,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONSOLE, ("%s %s: %s\n", servName, evt->message.message, gf_error_to_string(evt->message.error)));
 			}
-		} else if (!be_quiet)
+		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONSOLE, ("%s %s\n", servName, evt->message.message));
+		}
 	}
 	break;
 	case GF_EVENT_PROGRESS:
@@ -1059,7 +1003,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 }
 
 static u64 last_log_time=0;
-static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
+static void on_rti_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk ? cbk : stderr;
 
@@ -1067,21 +1011,6 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 		char szMsg[2048];
 		vsprintf(szMsg, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
-	} else {
-		if (log_time_start) {
-			u64 now = gf_sys_clock_high_res();
-			fprintf(logs, "At "LLD" (diff %d) - ", now - log_time_start, (u32) (now - last_log_time) );
-			last_log_time = now;
-		}
-		if (log_utc_time) {
-			u64 utc_clock = gf_net_get_utc() ;
-			time_t secs = utc_clock/1000;
-			struct tm t;
-			t = *gmtime(&secs);
-			fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
-		}
-		vfprintf(logs, fmt, list);
-		fflush(logs);
 	}
 }
 
@@ -1097,55 +1026,14 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 
 		/*turn on RTI loging*/
 		if (use_rtix) {
-			gf_log_set_callback(NULL, on_gpac_log);
+			gf_log_set_callback(NULL, on_rti_log);
 			gf_log_set_tool_level(GF_LOG_RTI, GF_LOG_DEBUG);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
-		} else if (log_time_start) {
-			log_time_start = gf_sys_clock_high_res();
+		} else if (log_rti_time_start) {
+			log_rti_time_start = gf_sys_clock_high_res();
 		}
 	}
-}
-
-void set_cfg_option(char *opt_string)
-{
-	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
-	sep = strchr(opt_string, ':');
-	if (!sep) {
-		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
-		return;
-	}
-	{
-		const size_t sepIdx = sep - opt_string;
-		strncpy(szSec, opt_string, sepIdx);
-		szSec[sepIdx] = 0;
-	}
-	sep ++;
-	sep2 = strchr(sep, '=');
-	if (!sep2) {
-		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
-		return;
-	}
-	{
-		const size_t sepIdx = sep2 - sep;
-		strncpy(szKey, sep, sepIdx);
-		szKey[sepIdx] = 0;
-		strcpy(szVal, sep2+1);
-	}
-
-	if (!stricmp(szKey, "*")) {
-		if (stricmp(szVal, "null")) {
-			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
-			return;
-		}
-		gf_opts_del_section(szSec);
-		return;
-	}
-
-	if (!stricmp(szVal, "null")) {
-		szVal[0]=0;
-	}
-	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
 Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
@@ -1206,23 +1094,20 @@ void do_flatten_cache(const char *cache_dir)
 #include <wincon.h>
 #endif
 
-static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
-
 int mp4client_main(int argc, char **argv)
 {
 	char c;
 	const char *str;
 	int ret_val = 0;
+	GF_Err e;
 	u32 i, times[100], nb_times;
 	u32 simulation_time_in_ms = 0;
 	u32 initial_service_id = 0;
 	Bool auto_exit = GF_FALSE;
-	Bool logs_set = GF_FALSE;
 	Bool start_fs = GF_FALSE;
 	Bool use_rtix = GF_FALSE;
 	Bool pause_at_first = GF_FALSE;
 	Bool no_cfg_save = GF_FALSE;
-	Bool is_cfg_only = GF_FALSE;
 	Bool print_stats = GF_FALSE;
 	Bool print_graph = GF_FALSE;
 
@@ -1267,6 +1152,10 @@ int mp4client_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
 			PrintUsage();
 			return 0;
+		} else if (!strcmp(arg, "-hc")) {
+			fprintf(stderr, "libgpac options:\n");
+			gf_sys_print_core_help(GF_ARGMODE_ALL, 0);
+			return 0;
 		}
 	}
 
@@ -1275,15 +1164,14 @@ int mp4client_main(int argc, char **argv)
 #else
 	gf_sys_init(GF_MemTrackerNone, profile);
 #endif
-	gf_sys_set_args(argc, (const char **) argv);
 
-	/*if logs are specified, use them*/
-	if (gf_log_set_tools_levels( gf_opts_get_key("General", "Logs") ) != GF_OK) {
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+
+	e = gf_sys_set_args(argc, (const char **) argv);
+	if (e) {
+		fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
+		gf_sys_close();
 		return 1;
-	}
-
-	if( gf_opts_get_key("General", "Logs") != NULL ) {
-		logs_set = GF_TRUE;
 	}
 
 	if (!gui_mode) {
@@ -1307,53 +1195,22 @@ int mp4client_main(int argc, char **argv)
 				forced_width = forced_height = 0;
 			}
 			i++;
-		} else if (!strcmp(arg, "-quiet")) {
-			be_quiet = 1;
-		} else if (!strcmp(arg, "-strict-error")) {
-			gf_log_set_strict_error(1);
-		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			logfile = gf_fopen(argv[i+1], "wt");
-			gf_log_set_callback(logfile, on_gpac_log);
-			i++;
-		} else if (!strcmp(arg, "-logs") ) {
-			if (gf_log_set_tools_levels(argv[i+1]) != GF_OK) {
-				return 1;
-			}
-			logs_set = GF_TRUE;
-			i++;
-		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
-			log_time_start = 1;
-		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
-			log_utc_time = 1;
 		}
-		else if (!strcmp(arg, "-no-thread")) nb_threads = 0;
-		else if (!strcmp(arg, "-nb-threads")) {
-			nb_threads = atoi(argv[i+1]);
+		//libgpac opts using an argument
+		else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf") || !strcmp(arg, "-logs") || !strcmp(arg, "-cfg")  || !strcmp(arg, "-ifce") ) {
 			i++;
 		}
-		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
-		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
-		else if (!strcmp(arg, "-fs")) start_fs = 1;
 
-		else if (!strcmp(arg, "-opt")) {
-			set_cfg_option(argv[i+1]);
-			i++;
-		} else if (!strcmp(arg, "-conf")) {
-			set_cfg_option(argv[i+1]);
-			is_cfg_only=GF_TRUE;
-			i++;
+		else if (!strcmp(arg, "-no-thread")) {
+			gf_opts_set_key("temp", "threads", "0");
 		}
-		else if (!strcmp(arg, "-ifce")) {
-			gf_opts_set_key("libgpac", "ifce", argv[i+1]);
-			i++;
+		else if (!strcmp(arg, "-no-audio")) {
+			no_audio = GF_TRUE;
 		}
+		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else if (!stricmp(arg, "-help")) {
 			PrintUsage();
 			return 1;
-		}
-		else if (!stricmp(arg, "-noprog")) {
-			no_prog=1;
-			gf_set_progress_callback(NULL, progress_quiet);
 		}
 		else if (!stricmp(arg, "-no-save") || !stricmp(arg, "--no-save") /*old versions used --n-save ...*/) {
 			no_cfg_save=1;
@@ -1412,17 +1269,16 @@ int mp4client_main(int argc, char **argv)
 			sscanf(argv[i+1], "%f", &scale);
 			i++;
 		}
+		/* already parsed */
 		else if (!strcmp(arg, "-p")) {
-			/* already parsed */
 			i++;
 		}
-		else if (!strcmp(arg, "-bl")) {
-			blacklist = argv[i+1];
-			i++;
+		/* already parsed */
+		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack") || !strcmp(arg, "-gui") || !strcmp(arg, "-guid")) {
 		}
 
 		/*arguments only used in non-gui mode*/
-		if (!gui_mode) {
+		else if (!gui_mode) {
 			if (arg[0] != '-') {
 				if (url_arg) {
 					fprintf(stderr, "Several input URLs provided (\"%s\", \"%s\"). Check your command-line.\n", url_arg, arg);
@@ -1482,13 +1338,19 @@ int mp4client_main(int argc, char **argv)
 				print_stats=GF_TRUE;
 			} else if (!stricmp(arg, "-graph")) {
 				print_graph=GF_TRUE;
+			} else {
+				u32 res = gf_sys_is_gpac_arg(arg);
+				if (!res) {
+					fprintf(stderr, "Unrecognized option %s\n", arg);
+				} else if (res==2) {
+					i++;
+				}
 			}
+		} else if (gf_sys_is_gpac_arg(arg)==2) {
+			i++;
 		}
-	}
-	if (is_cfg_only) {
-		fprintf(stderr, "GPAC Config updated\n");
-		return 0;
-	}
+ 	}
+
 	if (do_uncache) {
 		const char *cache_dir = gf_opts_get_key("libgpac", "cache");
 		do_flatten_cache(cache_dir);
@@ -1534,8 +1396,7 @@ int mp4client_main(int argc, char **argv)
 		hide_shell(1);
 	}
 	if (gui_mode) {
-		no_prog=1;
-		gf_set_progress_callback(NULL, progress_quiet);
+		gf_sys_set_cfg_option("libgpac:noprog=yes");
 	}
 
 	if (!url_arg && simulation_time_in_ms)
@@ -1548,13 +1409,6 @@ int mp4client_main(int argc, char **argv)
 
 	if (dump_mode) rti_file = NULL;
 
-	if (!logs_set) {
-		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
-	}
-	//only override default log callback when needed
-	if (rti_file || logfile || log_utc_time || log_time_start)
-		gf_log_set_callback(NULL, on_gpac_log);
-
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
 	{
@@ -1566,24 +1420,19 @@ int mp4client_main(int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.threads = 0;
-		user.init_flags |= GF_TERM_NO_REGULATION;
 		if (!visible)
 			user.init_flags |= GF_TERM_INIT_HIDE;
 		no_cfg_save=GF_TRUE;
 	} else {
 		init_w = forced_width;
 		init_h = forced_height;
-		user.threads = nb_threads;
 	}
 
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = &user;
 
-	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
-	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
-	
+	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;	
 
 	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
 	if (dump_mode) user.init_flags |= GF_TERM_NO_DEF_AUDIO_OUT;
@@ -1604,7 +1453,7 @@ int mp4client_main(int argc, char **argv)
 
 	fprintf(stderr, "Loading GPAC Terminal\n");
 	i = gf_sys_clock();
-	user.blacklist = blacklist;
+
 	term = gf_term_new(&user);
 	if (!term) {
 		fprintf(stderr, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
@@ -2172,7 +2021,7 @@ force_input:
 				fprintf(stderr, "Cannot read option\n");
 				break;
 			}
-			set_cfg_option(szOpt);
+			gf_sys_set_cfg_option(szOpt);
 		}
 		break;
 
@@ -2333,39 +2182,7 @@ force_input:
 	return ret_val;
 }
 
-#if defined(WIN32) && !defined(NO_WMAIN)
-int wmain(int argc, wchar_t** wargv)
-{
-	int i;
-	int res;
-	size_t len;
-	size_t res_len;
-	char **argv;
-	argv = (char **)malloc(argc*sizeof(wchar_t *));
-	for (i = 0; i < argc; i++) {
-		wchar_t *src_str = wargv[i];
-		len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(wargv[i]);
-		argv[i] = (char *)malloc(len + 1);
-		res_len = gf_utf8_wcstombs(argv[i], len, &src_str);
-		argv[i][res_len] = 0;
-		if (res_len > len) {
-			fprintf(stderr, "Length allocated for conversion of wide char to UTF-8 not sufficient\n");
-			return -1;
-		}
-	}
-	res = mp4client_main(argc, argv);
-	for (i = 0; i < argc; i++) {
-		free(argv[i]);
-	}
-	free(argv);
-	return res;
-}
-#else
-int main(int argc, char** argv)
-{
-	return mp4client_main(argc, argv);
-}
-#endif //win32
+GF_MAIN_FUNC(mp4client_main)
 
 
 static GF_ObjectManager *video_odm = NULL;
