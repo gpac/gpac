@@ -946,10 +946,11 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("sched", NULL, "set scheduler mode. Possible modes are:\n"\
-		"\tfree: uses lock-free queues (default)\n"\
+		"\tfree: uses lock-free queues except for task list (default)\n"\
 		"\tlock: uses mutexes for queues when several threads\n"\
+		"\tfreex: uses lock-free queues including for task lists (experimental)\n"\
 		"\tflock: uses mutexes for queues even when no thread (debug mode)\n"\
-		"\tdirect: uses no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|direct", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+		"\tdirect: uses no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("max-chain", NULL, "sets maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution). Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
