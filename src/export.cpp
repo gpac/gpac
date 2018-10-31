@@ -59,6 +59,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_gpac_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_print_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_print_core_help) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_cfg_option) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )
@@ -2213,6 +2214,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_shortnames) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_new_defaults) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_run) )
@@ -2238,6 +2240,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_ui_event ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_max_resolution_chain_length ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_process_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )

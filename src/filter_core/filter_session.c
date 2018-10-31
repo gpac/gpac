@@ -214,7 +214,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 		return NULL;
 	}
 
-	for (i=0; i<nb_threads; i++) {
+	for (i=0; i<(u32) nb_threads; i++) {
 		GF_SessionThread *sess_thread;
 		GF_SAFEALLOC(sess_thread, GF_SessionThread);
 		if (!sess_thread) continue;
