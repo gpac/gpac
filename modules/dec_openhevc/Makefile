@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/dec_openhevc
 
-CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(OHEVC_CFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -17,7 +17,6 @@ endif
 
 LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS)
 
-
 #common obj
 OBJS=dec_openhevc.o
 SRCS=$(SRC_PATH)/src/filters/dec_openhevc.c
@@ -28,6 +27,7 @@ else
 EXTRALIBS+=-ldl
 endif
 
+LINKFLAGS+=-lgpac
 
 LIB=gf_openhevc_dec$(DYN_LIB_SUFFIX)
 
