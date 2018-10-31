@@ -38,6 +38,7 @@
 #endif
 
 #include <gpac/media_tools.h>
+#include <gpac/main.h>
 
 /*RTP packetizer flags*/
 #ifndef GPAC_DISABLE_STREAMING
@@ -59,7 +60,6 @@
 
 int mp4boxTerminal(int argc, char **argv);
 
-u32 quiet = 0;
 Bool dvbhdemux = GF_FALSE;
 Bool keep_sys_tracks = GF_FALSE;
 
@@ -116,7 +116,6 @@ void PrintGeneralUsage()
             " -mem-track:  enables memory tracker\n"
             " -mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
-	        " -strict-error        exits after the first error is reported\n"
 	        " -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
 	        "                       * Note 1: Interleaving is 0.5s by default\n"
 	        "                       * Note 2: Performs drift checking across tracks\n"
@@ -807,6 +806,13 @@ void PrintATSCUsage()
 	        "\n"
 	       );
 }
+
+void PrintCoreUsage()
+{
+	fprintf(stderr, "libgpac core options\n");
+	gf_sys_print_core_help(GF_ARGMODE_ALL, 0);
+}
+
 void PrintUsage()
 {
 	fprintf (stderr, "MP4Box [option] input [option]\n"
@@ -824,6 +830,7 @@ void PrintUsage()
 	         " -h rtp               file streamer help\n"
 	         " -h live              BIFS streamer help\n"
 	         " -h atsc              ATSC3 reader help\n"
+	         " -h core              libgpac core options\n"
 	         " -h all               all options are printed\n"
 	         "\n"
 	         " -nodes               lists supported MPEG4 nodes\n"
@@ -834,13 +841,7 @@ void PrintUsage()
 	         " -languages           lists supported ISO 639 languages\n"
 	         " -boxes               lists all supported ISOBMF boxes and their syntax\n"
 	         "\n"
-	         " -quiet                quiet mode\n"
-	         " -noprog               disables progress\n"
 	         " -v                   verbose mode\n"
-	         " -logs                set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-	         " -log-file FILE       sets output log file. Also works with -lf FILE\n"
-	         " -log-clock or -lc    logs time in micro sec since start time of GPAC before each log line.\n"
-	         " -log-utc or -lu      logs UTC time in ms before each log line.\n"
 	         " -version             gets build version\n"
 	         " -- INPUT             escape option if INPUT starts with - character\n"
 	         "\n"
@@ -1205,9 +1206,6 @@ static Bool can_convert_to_isma(GF_ISOFile *file)
 	return GF_FALSE;
 }
 #endif
-
-static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
-
 
 typedef struct
 {
@@ -1951,7 +1949,6 @@ const char *dash_more_info = NULL;
 #if !defined(GPAC_DISABLE_STREAMING)
 const char *grab_m2ts = NULL;
 #endif
-const char *grab_ifce = NULL;
 
 FILE *logfile = NULL;
 static u32 run_for=0;
@@ -2803,6 +2800,7 @@ else if (!stricmp(arg, "-h")) {
 	else if (!strcmp(argv[i + 1], "rtp")) PrintStreamerUsage();
 	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
 #endif
+	else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
 	else if (!strcmp(argv[i + 1], "all")) {
 		PrintGeneralUsage();
 		PrintExtractUsage();
@@ -2822,6 +2820,7 @@ else if (!stricmp(arg, "-h")) {
 		PrintStreamerUsage();
 		PrintLiveUsage();
 #endif
+		PrintCoreUsage();
 	}
 	else PrintUsage();
 	return 1;
@@ -2835,8 +2834,13 @@ else if (!stricmp(arg, "-tag-list")) {
 	return 1;
 }
 else if (!live_scene && !stream_rtp) {
-	fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
-	return 2;
+	u32 res = gf_sys_is_gpac_arg(arg);
+	if (res==0) {
+		fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
+		return 2;
+	} else if (res==2) {
+		i++;
+	}
 }
 }
 *current_index = i;
@@ -2886,29 +2890,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 			return 1;
 		}
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
-		else if (!stricmp(arg, "-quiet")) quiet = 2;
         else if (!strcmp(argv[i], "-mem-track")) continue;
         else if (!strcmp(argv[i], "-mem-track-stack")) continue;
 
-		else if (!stricmp(arg, "-logs")) {
-			CHECK_NEXT_ARG
-			gf_logs = argv[i + 1];
-			if (gf_logs)
-				gf_log_set_tools_levels(gf_logs);
+		else if (!stricmp(arg, "-logs") || !strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 			i++;
 		}
-		else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			logfile = gf_fopen(argv[i + 1], "wt");
-			gf_log_set_callback(logfile, on_mp4box_log);
-			i++;
-		}
-		else if (!strcmp(arg, "-lc") || !strcmp(arg, "-log-clock")) {
-			log_sys_clock = GF_TRUE;
-		}
-		else if (!strcmp(arg, "-lu") || !strcmp(arg, "-log-utc")) {
-			log_utc_time = GF_TRUE;
-		}
-		else if (!stricmp(arg, "-noprog")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {
 			print_info = 1;
 			if ((i + 1<(u32)argc) && (sscanf(argv[i + 1], "%u", &info_track_id) == 1)) {
@@ -2928,11 +2915,6 @@ Bool mp4box_parse_args(int argc, char **argv)
 			i++;
 		}
 #endif
-		else if (!stricmp(arg, "-ifce")) {
-			CHECK_NEXT_ARG
-			grab_ifce = argv[i + 1];
-			i++;
-		}
 #ifndef GPAC_DISABLE_ATSC
 		else if (!stricmp(arg, "-atsc")) {
 			grab_atsc = GF_TRUE;
@@ -3272,9 +3254,6 @@ Bool mp4box_parse_args(int argc, char **argv)
 			CHECK_NEXT_ARG chap_file = argv[i + 1];
 			i++;
 			open_edit = GF_TRUE;
-		}
-		else if (!strcmp(arg, "-strict-error")) {
-			gf_log_set_strict_error(1);
 		}
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
@@ -3667,7 +3646,7 @@ int mp4boxMain(int argc, char **argv)
 			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 			gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
 		}
-		return grab_atsc3_session(atsc_output_dir, grab_ifce, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
+		return grab_atsc3_session(atsc_output_dir, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
 	}
 #endif
 
@@ -3716,6 +3695,13 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 
+
+	e = gf_sys_set_args(argc, (const char **) argv);
+	if (e) {
+		fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
+		return mp4box_cleanup(1);
+	}
+
 	if (raw_cat) {
 		char chunk[4096];
 		FILE *fin, *fout;
@@ -3745,7 +3731,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #if !defined(GPAC_DISABLE_STREAMING)
 	if (grab_m2ts) {
-		return grab_live_m2ts(grab_m2ts, grab_ifce, inName);
+		return grab_live_m2ts(grab_m2ts, inName);
 	}
 #endif
 
@@ -3763,10 +3749,6 @@ int mp4boxMain(int argc, char **argv)
 		if (mem_track)
 			gf_log_set_tool_level(GF_LOG_MEMORY, level);
 #endif
-		if (quiet) {
-			if (quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
-			gf_set_progress_callback(NULL, progress_quiet);
-		}
 	}
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
@@ -5475,43 +5457,8 @@ exit:
 	return 0;
 }
 
-#if defined(WIN32) && !defined(NO_WMAIN)
-#include <windows.h>
 
-int wmain( int argc, wchar_t** wargv )
-{
-	int i;
-	int res;
-	size_t len;
-	size_t res_len;
-	char **argv;
-	argv = (char **)malloc(argc*sizeof(wchar_t *));
-	for (i = 0; i < argc; i++) {
-		wchar_t *src_str = wargv[i];
-		len = UTF8_MAX_BYTES_PER_CHAR*gf_utf8_wcslen(wargv[i]);
-		argv[i] = (char *)malloc(len + 1);
-		res_len = gf_utf8_wcstombs(argv[i], len, (const unsigned short**)&src_str);
-		argv[i][res_len] = 0;
-		if (res_len > len) {
-			fprintf(stderr, "Length allocated for conversion of wide char to UTF-8 not sufficient\n");
-			return -1;
-		}
-	}
-	/* force windows console codepage to utf8 to display (some, but not all) characters properly */
-	SetConsoleOutputCP(65001);
-	res = mp4boxMain(argc, argv);
-	for (i = 0; i < argc; i++) {
-		free(argv[i]);
-	}
-	free(argv);
-	return res;
-}
-#else
-int main(int argc, char** argv)
-{
-	return mp4boxMain( argc, argv );
-}
-#endif //win32
+GF_MAIN_FUNC(mp4boxMain)
 
 
 #endif /*GPAC_DISABLE_ISOM*/

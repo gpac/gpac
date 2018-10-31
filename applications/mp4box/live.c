@@ -56,6 +56,7 @@ void PrintStreamerUsage()
 	        "\n"
 	        "MP4Box can stream ISO files to RTP. The streamer currently doesn't support\n"
 	        "data carrouselling and will therefore not handle BIFS and OD streams properly.\n"
+	        "Available options:\n"
 	        "\n"
             "-rtp         enables streamer\n"
             "-run-for=T   runs for T seconds of the media then exits\n"
@@ -64,18 +65,12 @@ void PrintStreamerUsage()
 	        "-dst=IP      IP destination (uni/multi-cast). Default: 127.0.0.1\n"
 	        "-port=PORT   output port of the first stream. Default: 7000\n"
 	        "-mtu=MTU     path MTU for RTP packets. Default is 1450 bytes\n"
-	        "-ifce=IFCE   IP address of the physical interface to use. Default: NULL (ANY)\n"
 	        "-ttl=TTL     time to live for multicast packets. Default: 1\n"
 	        "-sdp=Name    file name of the generated SDP. Default: \"session.sdp\"\n"
 	        "\n"
+	        "You can also specify gpac core options (see -h core)\n"
+	        "\n"
 	       );
-}
-
-static void on_logs(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
-{
-	FILE *logs = (FILE*)cbk;
-	vfprintf(logs, fmt, list);
-	fflush(logs);
 }
 
 int stream_file_rtp(int argc, char **argv)
@@ -83,7 +78,7 @@ int stream_file_rtp(int argc, char **argv)
 	GF_ISOMRTPStreamer *file_streamer;
 	char *sdp_file = "session.sdp";
 	char *ip_dest = "127.0.0.1";
-	char *ifce_addr = NULL;
+	const char *ifce_addr = NULL;
 	char *inName = NULL;
 	char *logs=NULL;
 	FILE *logfile=NULL;
@@ -112,7 +107,6 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
 		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
-		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
         else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
         else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
@@ -122,13 +116,12 @@ int stream_file_rtp(int argc, char **argv)
 	}
 
 	gf_sys_init(mem_track, NULL);
-	if (logs)
-		gf_log_set_tools_levels(logs);
-	else
-		gf_log_set_tool_level(GF_LOG_RTP, GF_LOG_INFO); //set to debug to have packet list
-	if (logfile) {
-		gf_log_set_callback(logfile, on_logs);
-	}
+
+	gf_log_set_tool_level(GF_LOG_RTP, GF_LOG_INFO);
+
+	gf_sys_set_args(argc, (const char **) argv);
+
+	ifce_addr = gf_opts_get_key("libgpac", "ifce");
 
 	if (!gf_isom_probe_file(inName)) {
 		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
@@ -137,7 +130,7 @@ int stream_file_rtp(int argc, char **argv)
 		return 1;
 	}
 
-	file_streamer = gf_isom_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
+	file_streamer = gf_isom_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, (char *) ifce_addr);
 	if (!file_streamer) {
 		fprintf(stderr, "Cannot create file streamer\n");
 	} else {
@@ -507,6 +500,9 @@ int live_session(int argc, char **argv)
 
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_INFO);
 
+	gf_sys_set_args(argc, (const char **) argv);
+
+
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] != '-') filename = arg;
@@ -515,7 +511,6 @@ int live_session(int argc, char **argv)
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_name = arg+5;
 		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
-		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 		else if (!strnicmp(arg, "-no-rap", 7)) no_rap = 1;
 		else if (!strnicmp(arg, "-dims", 5)) load_type = GF_SM_LOAD_DIMS;
 		else if (!strnicmp(arg, "-src=", 5)) src_name = arg+5;
@@ -533,6 +528,7 @@ int live_session(int argc, char **argv)
 		PrintLiveUsage();
 		return 1;
 	}
+	ifce_addr = gf_opts_get_key("libgpac", "ifce");
 
 	if (dst_port && dst) livesess.streams = gf_list_new();
 
@@ -866,7 +862,7 @@ exit:
 
 #ifndef GPAC_DISABLE_MPEG2TS
 
-u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *outName)
+u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 {
 	char data[0x80000];
 	u32 check = 50;
@@ -878,6 +874,7 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 	GF_RTPReorder *ch = NULL;
 #endif
 	GF_Socket *sock;
+	const char *grab_ifce = gf_opts_get_key("libgpac", "ifce");
 	GF_Err e = gf_m2ts_get_socket(grab_m2ts, grab_ifce, GF_M2TS_UDP_BUFFER_SIZE, &sock);
 
 	if (e) {
@@ -1010,7 +1007,7 @@ static void atsc_stats(GF_ATSCDmx *atscd, u32 now)
 	}
 }
 
-u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 atsc_max_segs, u32 stats_rate, u32 debug_tsi)
+u32 grab_atsc3_session(const char *dir, s32 serviceID, s32 atsc_max_segs, u32 stats_rate, u32 debug_tsi)
 {
 	GF_ATSCDmx *atscd;
 	Bool run = GF_TRUE;
@@ -1018,6 +1015,8 @@ u32 grab_atsc3_session(const char *dir, const char *ifce, s32 serviceID, s32 ats
 	u32 nb_stats=1;
 	u32 start_time = gf_sys_clock();
 
+	const char *ifce = gf_opts_get_key("libgpac", "ifce");
+	
 	gf_sys_get_rti(0, &rti, 0);
 
 	atscd = gf_atsc3_dmx_new(ifce, dir, 0);

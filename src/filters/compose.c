@@ -324,7 +324,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	e = gf_sc_load(ctx);
 	if (e) return e;
-	ctx->no_regulation = GF_TRUE;
+
 	ctx->filter = filter;
 
 	gf_filter_get_session_caps(filter, &sess_caps);

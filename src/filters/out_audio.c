@@ -336,7 +336,8 @@ static GF_Err aout_process(GF_Filter *filter)
 		aout_reconfig(ctx);
 	}
 
-	if (ctx->th || ctx->audio_out->SelfThreaded) return GF_EOS;
+	if (ctx->th || ctx->audio_out->SelfThreaded)
+		return GF_EOS;
 
 	ctx->audio_out->WriteAudio(ctx->audio_out);
 	return GF_OK;

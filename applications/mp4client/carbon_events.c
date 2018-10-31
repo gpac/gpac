@@ -28,7 +28,7 @@
 #endif
 
 
-void gf_sys_set_args(int argc, const char **argv);
+int gf_sys_set_args(int argc, const char **argv);
 void send_open_url(const char *url);
 
 void RunApplicationEventLoop(void);

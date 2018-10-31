@@ -260,7 +260,7 @@ struct __tag_compositor
 	Bool bench_mode;
 	//0: no frame pending, 1: frame pending, needs clock increase, 2: frames are pending but one frame has been decoded, do not increase clock
 	u32 force_bench_frame;
-	Bool no_regulation;
+
 	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
 	u32 frame_dur[GF_SR_FPS_COMPUTE_SIZE];

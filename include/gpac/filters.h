@@ -206,21 +206,31 @@ When set, all sub filters are exposed. This should only be set when inspecting f
 #define GF_FS_FLAG_LOAD_META	1<<1
 /*! Flag set to disable the blocking mode of the filter session. The default is a semi-blocking mode, cf \ref gf_filter_pid_would_block*/
 #define GF_FS_FLAG_NO_BLOCKING	1<<2
-/*! Flag set to disable internal caching of filter graph connections. If diabled, the graph will be recomputed at each link resolution (less memory ungry but slower)*/
+/*! Flag set to disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)*/
 #define GF_FS_FLAG_NO_GRAPH_CACHE	1<<3
 /*! Flag set to disable main thread. Such sessions shall be run using \ref gf_fs_run_step*/
 #define GF_FS_FLAG_NO_MAIN_THREAD	1<<4
 /*! Flag set to disable session regulation (no sleep)*/
 #define GF_FS_FLAG_NO_REGULATION	1<<5
+/*! Flag set to print enabled/disabled edges for debug of pid resolution*/
+#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<6)
+
 
 /*! Creates a new filter session. This will also load all available filters not blacklisted.
-\param nb_threads number of extra threads to allocate
+\param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
 \param type scheduler type
 \param flags set of above flags for the session. Modes set by flags cannot be changed at runtime
 \param blacklist string containing comma-separated names of filters to disable
 \return the created filter session
 */
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
+GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
+
+/*! Creates a new filter session, loading parameters from gpac config. This will also load all available filters not blacklisted.
+\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META and  \ref GF_FS_FLAG_NO_MAIN_THREAD are used, other flags 
+\return the created filter session
+*/
+GF_FilterSession *gf_fs_new_defaults(u32 flags);
+
 /*! Destructs the filter session
 \param session the filter session to destruct
 */
@@ -241,6 +251,9 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name);
 */
 GF_Err gf_fs_run(GF_FilterSession *session);
 
+/*! the default separator set used*/
+#define GF_FS_DEFAULT_SEPS	":=#,!@"
+
 /*! Sets the set of separators to use when parsin args
 \param session filter session
 \param separator_set filter session.
@@ -252,9 +265,9 @@ The fifth char, if present, is used for boolean negation - default is '!'
 The sixth char, if present, is used for LINK directives - default is '@'
 \return error if any
 */
-GF_Err gf_fs_set_separators(GF_FilterSession *session, char *separator_set);
+GF_Err gf_fs_set_separators(GF_FilterSession *session, const char *separator_set);
 
-/*! prints all possible connections between filter registries to stderr
+/*! Sets the maximum length of a filter chain dynamically loaded to solve connection between two filters
 \param session filter session
 \param  max_chain_length sets maximum chain length when resolving filter links.
 Default value is 6 ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]
@@ -263,6 +276,12 @@ Setting the value to 0 disables dynamic link resolution. You will have to specif
 \return error if any
 */
 GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_chain_length);
+
+/*! gets the maximum filter chain length
+\param session filter session
+\return maximum chain length when resolving filter links.
+*/
+u32 gf_fs_get_max_resolution_chain_length(GF_FilterSession *session);
 
 /*! runs session in non blovking mode: process all tasks of oldest scheduled filter, process any pending pid connections and returns.
 This can only be used if the flag \ref GF_FS_FLAG_NO_MAIN_THREAD was secified at session creation time
@@ -1159,16 +1178,16 @@ it must match the capability requirement (equal, excluded). If no property exist
 /*! structure holding arguments for a filter*/
 typedef enum
 {
-	/*! if set indicates that the argument is updatable. If so, the value will be changed if \ref offset_in_private is valid, and the update_args function will be called if not NULL*/
-	GF_FS_ARG_UPDATE = 1<<1,
-	/*! used by meta filters (ffmpeg & co) to indicate the parsing is handled by the filter in which case the type is overloaded to string and passed to the update_args function*/
-	GF_FS_ARG_META = 1<<2,
 	/*! used for GUI config: advanced argument type */
-	GF_FS_ARG_HINT_ADVANCED = 1<<3,
+	GF_FS_ARG_HINT_ADVANCED = 1<<1,
 	/*! used for GUI config: expert argument type */
-	GF_FS_ARG_HINT_EXPERT = 1<<4,
+	GF_FS_ARG_HINT_EXPERT = 1<<2,
 	/*! used for GUI config: hidden argument type */
-	GF_FS_ARG_HINT_HIDE = 1<<5,
+	GF_FS_ARG_HINT_HIDE = 1<<3,
+	/*! if set indicates that the argument is updatable. If so, the value will be changed if \ref offset_in_private is valid, and the update_args function will be called if not NULL*/
+	GF_FS_ARG_UPDATE = 1<<4,
+	/*! used by meta filters (ffmpeg & co) to indicate the parsing is handled by the filter in which case the type is overloaded to string and passed to the update_args function*/
+	GF_FS_ARG_META = 1<<5,
 } GF_FSArgumentFlags;
 
 /*! structure holding arguments for a filter*/
@@ -1729,12 +1748,6 @@ Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed,
 */
 Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt);
 
-
-/*! disables automatic filter triggers when an input packet is received ion its pid. Mostly used by old APIs in GPAC.
-\param filter filter object
-\param disable if GF_TRUE, disable waking the filter whenever a new packet is received on its inputs
-*/
-void gf_filter_disable_process_trigger(GF_Filter *filter, Bool disable);
 
 /*! gets a filter argument value as string for a given argument name..
 \param filter filter object

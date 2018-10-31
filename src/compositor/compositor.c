@@ -633,10 +633,6 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	gf_sc_load_opengl_extensions(compositor, GF_FALSE);
 #endif
 
-	if (compositor->init_flags & GF_TERM_NO_REGULATION )
-		compositor->no_regulation = GF_TRUE;
-
-
 	gf_sc_reload_config(compositor);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
@@ -2184,7 +2180,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (!compositor->bench_mode) {
 			compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
 		}
-		if (!compositor->no_regulation) gf_sleep(compositor->frame_duration);
 		return;
 	}
 
@@ -2198,9 +2193,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			compositor->scene_sampled_clock += compositor->frame_duration;
 		}
 		gf_sc_lock(compositor, 0);
-		if (!compositor->no_regulation) {
-			gf_sleep(compositor->bench_mode ? 2 : compositor->frame_duration);
-		}
 		compositor->force_bench_frame=0;
 		compositor->frame_draw_type = 0;
 		compositor->recompute_ar = 0;
@@ -2608,6 +2600,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	if (frame_drawn) compositor->step_mode = GF_FALSE;
 
+	/*old arch code kept for reference*/
+#if 0
 	/*let the owner decide*/
 	if (compositor->no_regulation)
 		return;
@@ -2654,6 +2648,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	end_time %= frame_duration;
 	gf_sleep(frame_duration - end_time);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept for %d ms\n", frame_duration - end_time));
+#endif
+
 }
 
 Bool gf_sc_visual_is_registered(GF_Compositor *compositor, GF_VisualManager *visual)

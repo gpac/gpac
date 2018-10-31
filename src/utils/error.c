@@ -488,8 +488,9 @@ void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level)
 	assert(tool<=GF_LOG_TOOL_MAX);
 	if (tool==GF_LOG_ALL) {
 		u32 i;
-		for (i=0; i<GF_LOG_TOOL_MAX; i++)
+		for (i=0; i<GF_LOG_TOOL_MAX; i++) {
 			global_log_tools[i].level = level;
+		}
 	} else {
 		global_log_tools[tool].level = level;
 	}

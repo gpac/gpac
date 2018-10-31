@@ -382,7 +382,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 
-	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, 0, NULL);
+	fsess = gf_fs_new_defaults(0);
 
 	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
 	src = gf_fs_load_filter(fsess, szArgs);
@@ -428,7 +428,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 
-	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, 0, NULL);
+	fsess = gf_fs_new_defaults(0);
 
 	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
 	src = gf_fs_load_filter(fsess, szArgs);

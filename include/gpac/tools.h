@@ -768,9 +768,9 @@ void gf_sys_close();
  *	Sets the user app arguments (used by GUI mode)
  *	\param argc Number of arguments
  *	\param argv Array of arguments
- *	\return GF_TRUE if success, GF_FALSE otherwise
+ *	\returnerror code if any, GF_OK otherwise
  */
-Bool gf_sys_set_args(s32 argc, const char **argv);
+GF_Err gf_sys_set_args(s32 argc, const char **argv);
 
 /*!
  *	\brief Get number of args

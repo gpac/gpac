@@ -50,7 +50,7 @@ extern "C" {
 
 #if defined(WIN32) && !defined(NO_WMAIN)
 
-#define GPAC_DEC_MAIN(__fun) \
+#define GF_MAIN_FUNC(__fun) \
 int wmain( int argc, wchar_t** wargv )\
 {\
 	int i;\
@@ -80,7 +80,7 @@ int wmain( int argc, wchar_t** wargv )\
 
 #else
 
-#define GPAC_DEC_MAIN(__fun) \
+#define GF_MAIN_FUNC(__fun) \
 int main(int argc, char **argv) {\
 	return __fun( argc, argv ); \
 }
@@ -106,17 +106,23 @@ typedef struct
 	u16 flags;
 } GF_GPACArg;
 
-/*! argument applies to the log subsystem*/
-#define GF_ARG_IS_LOG 1<<1
-/*! argument applies to the HTTP subsystem*/
-#define GF_ARG_IS_HTTP 1<<2
 //these 3 values match argument hints of filters
 /*! argument is of advanced type*/
-#define GF_ARG_HINT_ADVANCED 1<<3
+#define GF_ARG_HINT_ADVANCED	(1<<1)
 /*! argument is of expert type*/
-#define GF_ARG_HINT_EXPERT (1<<4)
+#define GF_ARG_HINT_EXPERT		(1<<2)
 /*! argument should not be presented in UIs*/
-#define GF_ARG_HINT_HIDE 1<<5
+#define GF_ARG_HINT_HIDE 		(1<<3)
+/*! argument applies to the libgpac core subsystem*/
+#define GF_ARG_SUBSYS_CORE 		(1<<4)
+/*! argument applies to the log subsystem*/
+#define GF_ARG_SUBSYS_LOG 		(1<<5)
+/*! argument applies to the filter subsystem*/
+#define GF_ARG_SUBSYS_FILTERS 	(1<<6)
+/*! argument applies to the HTTP subsystem*/
+#define GF_ARG_SUBSYS_HTTP 		(1<<7)
+/*! argument applies to the remotery subsystem*/
+#define GF_ARG_SUBSYS_RMT 		(1<<9)
 
 /*! argument is a boolean*/
 #define GF_ARG_BOOL		0
@@ -133,11 +139,36 @@ typedef struct
 
 /*! gets the options defined for libgpac
 \return array of options*/
-const GF_GPACArg *gf_gpac_args();
+const GF_GPACArg *gf_sys_get_options();
 
 /*! check if the given option is a libgpac argument
-\return GF_TRUE if this is the case, GF_FALSE otherwise*/
-Bool gf_is_libgpac_arg(const char *arg_name);
+\return 0 if not a libgpac core option, 1 if option not consuming an argument, 2 if option consuming an argument*/
+u32 gf_sys_is_gpac_arg(const char *arg_name);
+
+/*! parses config string and update config accordingly
+\param opt_string section/key/val formatted as Section:Key (discard key), Section:Key=null (discard key), Section:Key=Val (set key) or Section:*=null (discard section)
+\return GF_TRUE if update is OK, GF_FALSE otherwise*/
+Bool gf_sys_set_cfg_option(const char *opt_string);
+
+
+typedef enum
+{
+	GF_ARGMODE_BASE=0,
+	GF_ARGMODE_ADVANCED,
+	GF_ARGMODE_EXPERT,
+	GF_ARGMODE_ALL,
+} GF_FilterArgMode;
+
+/*! prints a argument to stderr
+\param arg argument to print
+*/
+void gf_sys_print_arg(const GF_GPACArg *arg);
+
+/*! prints libgpac help for builton core options to stderr
+\param mode filtering mode based on argument  type
+\param subsystem_flags filtering mode based on argument subsytem flags
+*/
+void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags);
 
 /*! @} */
 

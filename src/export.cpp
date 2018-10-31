@@ -55,6 +55,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_clock_high_res) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_rti) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_battery_state) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_options) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_gpac_arg) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_print_arg) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_print_core_help) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_error_to_string) )
@@ -62,13 +67,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rand) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_user_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_enum_directory) )
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_args) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_is_libgpac_arg) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_bool) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_int) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_print_graph) )
-
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )
@@ -325,6 +323,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_section_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_key_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_discard_changes) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_bool) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_int) )
 
 
 #ifndef GPAC_DISABLE_PLAYER
@@ -1809,6 +1809,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_clock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_print_graph) )
 
 /*terminal_dev exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )

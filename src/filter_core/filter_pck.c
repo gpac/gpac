@@ -815,8 +815,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		if (post_task) {
 			u32 nb_pck;
 			//do stats after post_process, since we may process and drop the packet during this call in direct scheduling mode
-			if (!dst->filter->skip_process_trigger_on_tasks)
-				gf_filter_post_process_task(dst->filter);
+			gf_filter_post_process_task(dst->filter);
 
 			nb_pck = gf_fq_count(dst->packets);
 			if (pid->nb_buffer_unit < nb_pck) pid->nb_buffer_unit = nb_pck;
