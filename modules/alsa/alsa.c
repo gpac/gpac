@@ -45,7 +45,6 @@ typedef struct
 static GF_Err ALSA_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	int err;
-	const char *opt;
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
 
 
