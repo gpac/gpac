@@ -51,7 +51,7 @@ sched_test "UTSource:max_pck=100 UTFilter:FID=1:fwd=copy UTSink:SID=1" "gpac-fil
 sched_test "UTSource:max_pck=100 UTFilter:FID=1:fwd=ref UTSink:SID=1" "gpac-filter-1source-1filter-1sink-ref"
 sched_test "UTSource:max_pck=100 UTFilter:FID=1:fwd=mix UTSink:SID=1" "gpac-filter-1source-1filter-1sink-mix"
 #same as above with non blocking endabled
-sched_test "-nb UTSource:max_pck=100 UTFilter:FID=1:fwd=mix UTSink:SID=1" "gpac-filter-1source-1filter-1sink-mix-nb"
+sched_test "-no-block UTSource:max_pck=100 UTFilter:FID=1:fwd=mix UTSink:SID=1" "gpac-filter-1source-1filter-1sink-mix-nb"
 
 sched_test "UTSource:FID=1:max_pck=100 UTFilter:FID=2:fwd=mix UTSink:SID=1,2" "gpac-filter-1source-1filter-1sinkdouble"
 

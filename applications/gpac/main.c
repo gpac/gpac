@@ -425,7 +425,7 @@ static int gpac_main(int argc, char **argv)
 				gpac_usage(argmode);
 				return 0;
 			} else if (!strcmp(argv[i+1], "log")) {
-				gpac_core_help(GF_ARGMODE_EXPERT, GF_TRUE);
+				gpac_core_help(GF_ARGMODE_ALL, GF_TRUE);
 				return 0;
 			} else if (!strcmp(argv[i+1], "core")) {
 				gpac_core_help(argmode, GF_FALSE);
@@ -459,8 +459,6 @@ static int gpac_main(int argc, char **argv)
 			} else {
 				print_filter_info = 1;
 			}
-		} else if (!strncmp(arg, "-p=", 3)) {
-			profile = arg+3;
 		}
 	}
 	gf_sys_init(mem_track, profile);
@@ -510,6 +508,8 @@ static int gpac_main(int argc, char **argv)
 			parse_sep_set(arg_val, &override_seps);
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
 			i++;
+		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
+
 		} else if (arg[0]=='-') {
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
