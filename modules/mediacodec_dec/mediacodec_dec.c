@@ -333,7 +333,7 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
 
     if(!ctx->codec) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_createDecoderByType failed"));
-        return GF_CODEC_NOT_FOUND;
+        return GF_FILTER_NOT_FOUND;
     }
     
     if(!ctx->window){
@@ -478,7 +478,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
        glGenTextures(1, &ctx->tex_id);
 
 	//check AVC config
-    if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
+    if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AVC) {
 	ctx->SPSs = gf_list_new();
 	ctx->PPSs = gf_list_new();
 	ctx->mime = "video/avc";
@@ -879,9 +879,9 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	}
 	if (!ctx->reconfig_needed && (!(ctx->codec && ctx->is_adaptive))) {
-		if(ctx->esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC)
+		if(ctx->esd->decoderConfig->objectTypeIndication == GF_CODECID_AVC)
 			MCDec_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
-		else if(ctx->esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_HEVC)
+		else if(ctx->esd->decoderConfig->objectTypeIndication == GF_CODECID_HEVC)
 			MCDec_ParseHEVCNALs(ctx, inBuffer, inBufferLength);
 	}		
 	
@@ -1008,14 +1008,14 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
     if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
     switch (esd->decoderConfig->objectTypeIndication) {
-        case GPAC_OTI_VIDEO_AVC:
+        case GF_CODECID_AVC:
 			return GF_CODEC_SUPPORTED;
-        case GPAC_OTI_VIDEO_HEVC:
+        case GF_CODECID_HEVC:
 			if(sdkInt() >= 21) {
 				return GF_CODEC_SUPPORTED;
 			}
 			break;
-		case GPAC_OTI_VIDEO_MPEG4_PART2:
+		case GF_CODECID_MPEG4_PART2:
             return GF_CODEC_SUPPORTED;
     }
 
