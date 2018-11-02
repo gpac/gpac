@@ -14,8 +14,11 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-
+ifeq ($(CONFIG_DARWIN),yes)
+LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS)
+else
 LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS) -Wl,-Bsymbolic
+endif
 
 #common obj
 OBJS=dec_openhevc.o

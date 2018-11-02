@@ -41,7 +41,6 @@ static Bool restart = 0;
 static Bool not_threaded = 1;
 
 static Bool no_audio = 0;
-static Bool no_regulation = 0;
 Bool is_connected = 0;
 Bool startup_file = 0;
 GF_User user;
@@ -536,7 +535,6 @@ int main (int argc, char *argv[])
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	//user.opaque = user.modules;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
-	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
 	if (bench_mode) {
 		//gf_cfg_discard_changes(user.config);
