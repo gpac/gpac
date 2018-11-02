@@ -60,6 +60,7 @@ distclean:
 	@find . -type f -name '*.gcno*' -delete
 	@find . -type f -name '*.gcda*' -delete
 	@rm -f coverage.info 2> /dev/null
+	@rm -f bin/gcc/gm_*.so 2> /dev/null
 
 doc:
 	@cd $(SRC_PATH)/share/doc && doxygen
@@ -127,7 +128,7 @@ ifneq ($(MP4BOX_STATIC),yes)
 	#rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
 	#rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_OPENHEVC),yes)
-	cp -a bin/gcc/libopenhevc* $(DESTDIR)$(prefix)/$(libdir)/
+	cp -a bin/gcc/libopenhevc* $(DESTDIR)$(prefix)/$(libdir)/ || true
 endif
 	$(MAKE) installdylib
 endif

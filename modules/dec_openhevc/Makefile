@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 
-LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS)
+LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS) -Wl,-Bsymbolic
 
 #common obj
 OBJS=dec_openhevc.o
