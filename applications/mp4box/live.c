@@ -467,7 +467,7 @@ int live_session(int argc, char **argv)
 	u32 i;
 	char *filename = NULL;
 	char *dst = NULL;
-	char *ifce_addr = NULL;
+	const char *ifce_addr = NULL;
 	char *sdp_name = "session.sdp";
 	u16 dst_port = 7000;
 	u32 load_type=0;
@@ -537,7 +537,7 @@ int live_session(int argc, char **argv)
 		fprintf(stderr, "Cannot create scene engine\n");
 		return 1;
 	}
-	if (livesess.streams) live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, ifce_addr, sdp_name);
+	if (livesess.streams) live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, (char *) ifce_addr, sdp_name);
 
 	has_carousel = 0;
 	last_src_modif = src_name ? gf_file_modification_time(src_name) : 0;
