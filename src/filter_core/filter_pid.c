@@ -110,13 +110,13 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		safe_int_dec(&pid->filter->would_block);
 		assert((s32)pid->filter->would_block>=0);
 
-	assert(pid->filter->would_block <= pid->filter->num_output_pids);
+		assert(pid->filter->would_block <= pid->filter->num_output_pids);
 
-	if (pid->filter->would_block < pid->filter->num_output_pids) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids));
-		//requeue task
-		gf_filter_post_process_task(pid->filter);
-	}
+		if (pid->filter->would_block + pid->filter->num_output_not_connected < pid->filter->num_output_pids) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids, pid->filter->process_task_queued));
+			//requeue task
+			gf_filter_post_process_task(pid->filter);
+		}
 
 	}
 	gf_mx_v(pid->filter->tasks_mx);
