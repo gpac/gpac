@@ -1180,6 +1180,13 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 		arg = &GPAC_Args[i];
 		i++;
 		if (!strcmp(arg->name, arg_name)) break;
+		if (arg->altname) {
+			char *alt = strstr(arg->altname, arg_name);
+			if (alt) {
+				char c = alt[strlen(arg_name)];
+				if (!c || (c==' ')) break;
+			}
+		}
 		arg = NULL;
 	}
 	if (!arg) return 0;
