@@ -838,9 +838,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 
 		if (!task) {
+			u32 force_nb_notif = 0;
 			//no more task and EOS signal
 			if (fsess->run_status != GF_OK)
 				break;
+
 			if (!fsess->tasks_pending && fsess->main_th.has_seen_eot) {
 				//check all threads
 				Bool all_done = GF_TRUE;
@@ -849,7 +851,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					GF_SessionThread *st = gf_list_get(fsess->threads, i);
 					if (!st->has_seen_eot) {
 						all_done = GF_FALSE;
-						break;
+						force_nb_notif++;
 					}
 				}
 				if (all_done)
@@ -884,6 +886,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 					}
 				}
+			}
+			//this thread and the main thread are done but we still have unfinished threads, re-notify everyone
+			else if (!fsess->tasks_pending && fsess->main_th.has_seen_eot && do_use_sema && force_nb_notif) {
+				gf_sema_notify(fsess->semaphore_main, 1);
+				gf_sema_notify(fsess->semaphore_other, th_count);
 			}
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: no task available\n", sys_thid));
@@ -1185,6 +1192,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	}
 
 	gf_rmt_end();
+	fprintf(stderr, "sess_thread %d exit\n", sys_thid);
 
 	//no main thread, return
 	if (!thid && fsess->no_main_thread) {
