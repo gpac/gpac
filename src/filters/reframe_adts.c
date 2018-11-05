@@ -275,13 +275,6 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	}
 	ctx->sr_idx = ctx->hdr.sr_idx;
 
-	timescale = sr;
-	if (ctx->ovsbr) timescale = 2*sr;
-
-
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : timescale));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
-
 	/*keep MPEG-2 AAC codecid even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
 	codecid = ctx->hdr.is_mp2 ? ctx->hdr.profile+GF_CODECID_AAC_MPEG2_MP-1 : GF_CODECID_AAC_MPEG4;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codecid) );
@@ -377,6 +370,12 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (acfg.audioPL) );
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
+
+	timescale = sr;
+	if (ctx->ovsbr) timescale = 2*sr;
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : timescale));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
 }
 
