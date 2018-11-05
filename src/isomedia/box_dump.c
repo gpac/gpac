@@ -4680,9 +4680,12 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 		if (cenc_sample) {
-			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\" IV=\"", i+1, cenc_sample->IV_size);
-			dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
-			fprintf(trace, "\"");
+			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);
+			if (cenc_sample->IV_size) {
+				fprintf(trace, "IV=\"");
+				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
+				fprintf(trace, "\"");
+			}
 			if (ptr->flags & 0x2) {
 				fprintf(trace, " SubsampleCount=\"%d\"", cenc_sample->subsample_count);
 				fprintf(trace, ">\n");
