@@ -15,7 +15,7 @@ mpdfile="$TEMP_DIR/$2.mpd"
 do_test "$MP4BOX -add $EXTERNAL_MEDIA_DIR/misc/sbrps_fhg.aac:$1 -new $mp4file" "import"
 do_hash_test $mp4file "import"
 
-do_test "$MP4BOX -dash 1000 $mp4file -out $mpdfile" "dash"
+do_test "$MP4BOX -dash 1000 -rap $mp4file -out $mpdfile" "dash"
 do_hash_test $mpdfile "mpd"
 
 test_end
