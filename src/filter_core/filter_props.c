@@ -300,6 +300,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 			if (!sep)
 			 	len = (u32) strlen(v);
+			else
+				len = (u32) (sep - v);
 
 			nv = gf_malloc(sizeof(char)*(len+1));
 			strncpy(nv, v, sizeof(char)*len);
