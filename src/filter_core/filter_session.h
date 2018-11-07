@@ -573,6 +573,8 @@ struct __gf_filter
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif
+
+	Bool pid_info_changed;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -788,6 +790,8 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt);
+
+GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter);
 
 #endif //_GF_FILTER_SESSION_H_
 

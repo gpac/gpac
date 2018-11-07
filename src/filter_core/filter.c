@@ -1391,8 +1391,12 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (task->filter->postponed_packets) {
 		while (gf_list_count(task->filter->postponed_packets)) {
 			GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
-			GF_Err e = gf_filter_pck_send(pck);
-			if (e==GF_PENDING_PACKET) break;
+			GF_Err e = gf_filter_pck_send_internal(pck, GF_FALSE);
+			if (e==GF_PENDING_PACKET) {
+				gf_list_del_item(task->filter->pending_packets, pck);
+				gf_list_insert(task->filter->pending_packets, pck, 0);
+				break;
+			}
 		}
 		gf_list_del(task->filter->postponed_packets);
 		task->filter->postponed_packets = NULL;

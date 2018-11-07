@@ -318,27 +318,14 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	}
 }
 
-void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
+void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPidInst *pidinst, GF_FilterPidInst *dst_swapinst)
 {
-	GF_FilterPidInst *pidinst = task->udta;
-	GF_Filter *filter = pidinst->filter;
-
-	//reset in process
-	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
-		TASK_REQUEUE(task)
-		return;
-	}
+	u32 i, j;
 
 	//reset PID instance buffers before checking number of output shared packets
 	//otherwise we may block because some of the shared packets are in the
 	//pid instance buffer (not consumed)
 	gf_filter_pid_inst_reset(pidinst);
-
-	//we still have packets out there!
-	if (pidinst->pid->nb_shared_packets_out) {
-		TASK_REQUEUE(task)
-		return;
-	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s swap destruction\n",  filter->name, pidinst->pid->name));
 	gf_mx_p(filter->tasks_mx);
@@ -346,10 +333,10 @@ void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 	filter->num_input_pids = gf_list_count(filter->input_pids);
 	gf_mx_v(filter->tasks_mx);
 
-	gf_mx_p(task->pid->filter->tasks_mx);
-	gf_list_del_item(task->pid->destinations, pidinst);
-	task->pid->num_destinations = gf_list_count(task->pid->destinations);
-	gf_mx_v(task->pid->filter->tasks_mx);
+	gf_mx_p(pid->filter->tasks_mx);
+	gf_list_del_item(pid->destinations, pidinst);
+	pid->num_destinations = gf_list_count(pid->destinations);
+	gf_mx_v(pid->filter->tasks_mx);
 
 
 	gf_filter_pid_inst_del(pidinst);
@@ -358,11 +345,39 @@ void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 		safe_int_dec(&pidinst->pid->nb_decoder_inputs);
 	}
 
-	if (!filter->num_input_pids) {
-		assert(!filter->finalized);
-		filter->finalized = GF_TRUE;
-		gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+	if (filter->num_input_pids) return;
+
+	//filter no longer used, disconnect chain
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_FilterPidInst *a_pidi = gf_list_get(pid->destinations, j);
+			if (a_pidi == dst_swapinst) continue;
+
+			gf_filter_pid_inst_swap_delete(a_pidi->filter, pid, a_pidi, dst_swapinst);
+		}
 	}
+	assert(!filter->finalized);
+	filter->finalized = GF_TRUE;
+	gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+}
+
+void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
+{
+	u32 i, j;
+	GF_FilterPidInst *pidinst = task->udta;
+	GF_Filter *filter = pidinst->filter;
+	GF_FilterPid *pid = pidinst->pid;
+	GF_FilterPidInst *dst_swapinst = pidinst->filter->swap_pidinst_dst;
+
+	//reset in process
+	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
+		TASK_REQUEUE(task)
+		return;
+	}
+	pidinst->filter->swap_pidinst_dst = NULL;
+
+	gf_filter_pid_inst_swap_delete(filter, pid, pidinst, dst_swapinst);
 }
 
 void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
@@ -461,6 +476,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	}
 	if (filter->swap_pidinst_src) {
 		src = filter->swap_pidinst_src;
+		src->filter->swap_pidinst_dst = filter->swap_pidinst_dst;
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_swap_delete_task, src->filter, src->pid, "pid_inst_delete", src);
 	}
 }
@@ -497,6 +513,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				if (ctype == GF_PID_CONF_CONNECT) {
 					new_pid_inst=GF_TRUE;
 				}
+				safe_int_dec(&pidinst->detach_pending);
 				break;
 			}
 			pidinst=NULL;
@@ -790,7 +807,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		TASK_REQUEUE(task)
 		return;
 	}
-	if (new_chain_input && new_chain_input->in_pid_connection_pending) {
+	if (new_chain_input->in_pid_connection_pending) {
 		TASK_REQUEUE(task)
 		return;
 	}
@@ -825,8 +842,6 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	}
 	pidinst->props = NULL;
 
-	safe_int_dec(&pidinst->detach_pending);
-
 	gf_mx_p(filter->tasks_mx);
 	//detach pid
 	gf_filter_pid_inst_reset(pidinst);
@@ -836,14 +851,6 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	gf_list_del_item(filter->input_pids, pidinst);
 	filter->num_input_pids = gf_list_count(filter->input_pids);
 	gf_mx_v(filter->tasks_mx);
-
-	if (!new_chain_input) {
-		if (!filter->num_input_pids) {
-			filter->finalized = GF_TRUE;
-			gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
-		}
-		return;
-	}
 
 	if (!filter->detached_pid_inst) {
 		filter->detached_pid_inst = gf_list_new();
@@ -3505,18 +3512,27 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 				return NULL;
 		}
 	}
-	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) && !pcki->pid_info_change_done && pidinst->filter->freg->process_event) {
-		GF_FilterEvent evt;
+	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) /*&& !pcki->pid_info_change_done*/) {
+		Bool res=GF_FALSE;
+
 		//it may happen that this filter pid is pulled from another thread than ours (eg audio callback), in which case
 		//we cannot go reentrant, we have to wait until the filter is not in use ...
-		if (pidinst->filter->process_th_id && (pidinst->filter->process_th_id != gf_th_id()) ) {
+		if (pidinst->filter->freg->process_event && pidinst->filter->process_th_id && (pidinst->filter->process_th_id != gf_th_id()) ) {
 			return NULL;
 		}
 		pcki->pid_info_change_done = 1;
-		GF_FEVT_INIT(evt, GF_FEVT_INFO_UPDATE, pid);
 
-		FSESS_CHECK_THREAD(pidinst->filter)
-		pidinst->filter->freg->process_event(pidinst->filter, &evt);
+		if (pidinst->filter->freg->process_event) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_INFO_UPDATE, pid);
+
+			FSESS_CHECK_THREAD(pidinst->filter)
+			res = pidinst->filter->freg->process_event(pidinst->filter, &evt);
+		}
+		
+		if (!res) {
+			pidinst->filter->pid_info_changed = GF_TRUE;
+		}
 	}
 	pidinst->last_pck_fetch_time = gf_sys_clock_high_res();
 
@@ -3767,6 +3783,9 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	GF_FilterPacketInstance *pcki;
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
 
+	if (pidi->detach_pending)
+		return GF_FALSE;
+		
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return GF_FALSE;
