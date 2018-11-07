@@ -1260,17 +1260,22 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess)
 	//disable all sources
 	for (i=0; i<count; i++) {
 		GF_Filter *filter = gf_list_get(fsess->filters, i);
-		//force end of session on all sources, and on all filters connected to these sources
+		//force end of session on all sources, and on all filters connected to these sources, and dispatch end of stream on all outputs pids of these filters
 		//if we don't propagate on connected filters, we take the risk of not deactivating demuxers working from file
 		//(eg ignoring input packets)
 		if (!filter->num_input_pids) {
-			u32 j, k;
+			u32 j, k, l;
 			filter->force_end_of_session = GF_TRUE;
 			for (j=0; j<filter->num_output_pids; j++) {
 				GF_FilterPid *pid = gf_list_get(filter->output_pids, j);
+				gf_filter_pid_set_eos(pid);
 				for (k=0; k<pid->num_destinations; k++) {
 					GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
 					pidi->filter->force_end_of_session = GF_TRUE;
+					for (l=0; l<pidi->filter->num_output_pids; l++) {
+						GF_FilterPid *opid = gf_list_get(pidi->filter->output_pids, l);
+						gf_filter_pid_set_eos(opid);
+					}
 				}
 			}
 		}
