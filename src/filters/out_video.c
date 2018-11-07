@@ -498,6 +498,17 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 }
 #endif
 
+static void vout_set_caption(GF_VideoOutCtx *ctx)
+{
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_SET_CAPTION;
+	evt.caption.caption = gf_filter_pid_orig_src_args(ctx->pid);
+	if (!strncmp(evt.caption.caption, "src=", 4)) evt.caption.caption += 4;
+	if (!strncmp(evt.caption.caption, "./", 2)) evt.caption.caption += 2;
+	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+}
+
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Event evt;
@@ -543,12 +554,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(pid, &fevt);
 
-		memset(&evt, 0, sizeof(GF_Event));
-		evt.type = GF_EVENT_SET_CAPTION;
-		evt.caption.caption = gf_filter_pid_orig_src_args(pid);
-		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
-
 		ctx->pid = pid;
+
+		vout_set_caption(ctx);
 	}
 
 	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
@@ -1793,8 +1801,13 @@ static GF_Err vout_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 {
+	if (fevt->base.type==GF_FEVT_INFO_UPDATE) {
+		GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
+		vout_set_caption(ctx);
+		return GF_TRUE;
+	}
 	//cancel
 	return GF_TRUE;
 }
