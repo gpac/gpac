@@ -1008,7 +1008,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					}
 					if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
 						current_filter->in_process = GF_FALSE;
-						if (current_filter->freg->flags & GF_FS_REG_MAIN_THREAD) {
+								if (current_filter->freg->flags & GF_FS_REG_MAIN_THREAD) {
 							if (do_use_sema) {
 								gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 							}
@@ -1192,7 +1192,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	}
 
 	gf_rmt_end();
-	fprintf(stderr, "sess_thread %d exit\n", sys_thid);
 
 	//no main thread, return
 	if (!thid && fsess->no_main_thread) {
