@@ -200,6 +200,9 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (reassign) {
 		filelist_start_ipid(ctx, iopid);
 	}
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
+	if (p)
+	 	gf_filter_pid_set_info(iopid->opid, GF_PROP_PID_URL, p);
 
 	return GF_OK;
 }
