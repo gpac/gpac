@@ -117,6 +117,10 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (is_remove) {
 		if (pid==ctx->file_pid)
 			ctx->file_pid = NULL;
+		else {
+			iopid = gf_filter_pid_get_udta(pid);
+			if (iopid) iopid->ipid = NULL;
+		}
 		return GF_OK;
 	}
 
@@ -163,6 +167,8 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 		gf_list_add(ctx->io_pids, iopid);
 	}
+	gf_filter_pid_set_udta(pid, iopid);
+
 	if (!iopid->opid) {
 		iopid->opid = gf_filter_pid_new(filter);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -170,6 +176,7 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		iopid->stream_type = p->value.uint;
 	}
 
+	gf_filter_pid_reset_properties(iopid->opid);
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(iopid->opid, iopid->ipid);
 	//we could further optimize by querying the duration of all sources in the list
