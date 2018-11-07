@@ -362,6 +362,8 @@ typedef struct __track_import
 	struct __program_import_info pg_info[GF_IMPORT_MAX_TRACKS];
 	/*! last error encountered during import, internal to the importer*/
 	GF_Err last_error;
+
+	GF_AudioSampleEntryImportMode asemode;
 } GF_MediaImporter;
 
 /*!

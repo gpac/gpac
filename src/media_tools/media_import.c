@@ -586,7 +586,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 		gf_isom_new_generic_sample_description(import->dest, track, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &udesc, &di);
 	}
 
-	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16);
+	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16, import->asemode);
 
 	gf_fseek(in, 0, SEEK_END);
 	tot_size = gf_ftell(in);
@@ -903,7 +903,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, timescale, acfg.nb_chan, 16);
+	gf_isom_set_audio_info(import->dest, track, di, timescale, acfg.nb_chan, 16, import->asemode);
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
@@ -1147,7 +1147,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, timescale, hdr.nb_ch, 16);
+	gf_isom_set_audio_info(import->dest, track, di, timescale, hdr.nb_ch, 16, import->asemode);
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
@@ -2671,7 +2671,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, NULL, NULL, &di);
 	if (e) goto exit;
 
-	gf_isom_set_audio_info(import->dest, track, di, sr, nb_ch, 16);
+	gf_isom_set_audio_info(import->dest, track, di, sr, nb_ch, 16, import->asemode);
 	gf_import_message(import, GF_OK, "%s Audio import - sample rate %d - %d channel%s", (mtype==GPAC_OTI_AUDIO_MPEG1) ? "MPEG-1" : "MPEG-2", sr, nb_ch, (nb_ch>1) ? "s" : "");
 
 
@@ -3635,7 +3635,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		gf_isom_set_track_layout_info(import->dest, track, w << 16, sdesc.height << 16, 0, 0, 0);
 	}
 	else if (sdesc.samplerate && sdesc.nb_channels) {
-		gf_isom_set_audio_info(import->dest, track, di, sdesc.samplerate, sdesc.nb_channels, (u8) sdesc.bits_per_sample);
+		gf_isom_set_audio_info(import->dest, track, di, sdesc.samplerate, sdesc.nb_channels, (u8) sdesc.bits_per_sample, import->asemode);
 	}
 
 	duration = (u64) ( ((Double) import->duration)/ 1000 * timescale);
@@ -4130,7 +4130,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		e = gf_isom_3gp_config_new(import->dest, track, &gpp_cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 		if (e) goto exit;
 	}
-	gf_isom_set_audio_info(import->dest, track, di, sample_rate, 1, 16);
+	gf_isom_set_audio_info(import->dest, track, di, sample_rate, 1, 16, import->asemode);
 	duration = import->duration;
 	duration *= sample_rate;
 	duration /= 1000;
@@ -4401,7 +4401,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 		e = gf_isom_3gp_config_new(import->dest, track, &gpp_cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 		if (e) goto exit;
 	}
-	gf_isom_set_audio_info(import->dest, track, di, samplerate, 1, (u8) bps);
+	gf_isom_set_audio_info(import->dest, track, di, samplerate, 1, (u8) bps, import->asemode);
 
 	duration = import->duration;
 	duration *= samplerate;
@@ -7999,7 +7999,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 
 					e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, NULL, NULL, &di);
 					if (e) goto exit;
-					gf_isom_set_audio_info(import->dest, track, di, vp.sample_rate, (vp.channels>1) ? 2 : 1, 16);
+					gf_isom_set_audio_info(import->dest, track, di, vp.sample_rate, (vp.channels>1) ? 2 : 1, 16, import->asemode);
 
 					{
 						Double d = import->duration;
@@ -8966,7 +8966,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				esd->decoderConfig->decoderSpecificInfo->data = NULL;
 				gf_odf_desc_del((GF_Descriptor *)esd);
 				tsimp->stream_setup = GF_TRUE;
-				gf_isom_set_audio_info(import->dest, tsimp->track, 1, ((GF_M2TS_PES_PCK*)par)->stream->aud_sr, ((GF_M2TS_PES_PCK*)par)->stream->aud_nb_ch, 8);
+				gf_isom_set_audio_info(import->dest, tsimp->track, 1, ((GF_M2TS_PES_PCK*)par)->stream->aud_sr, ((GF_M2TS_PES_PCK*)par)->stream->aud_nb_ch, 8, import->asemode);
 			}
 		}
 		break;
@@ -9300,7 +9300,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		if (!tsimp->stream_setup) {
 			if (pck->stream->aud_sr) {
-				gf_isom_set_audio_info(import->dest, tsimp->track, 1, pck->stream->aud_sr, pck->stream->aud_nb_ch, 16);
+				gf_isom_set_audio_info(import->dest, tsimp->track, 1, pck->stream->aud_sr, pck->stream->aud_nb_ch, 16, import->asemode);
 				tsimp->stream_setup = GF_TRUE;
 			}
 			else if (pck->stream->vid_w) {
@@ -10040,7 +10040,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import, Bool is_EAC3)
 	cfg.streams[0].lfon = hdr.lfon;
 
 	gf_isom_ac3_config_new(import->dest, track, &cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16);
+	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16, import->asemode);
 
 	gf_bs_seek(bs, 0);
 	tot_size = gf_bs_get_size(bs);
