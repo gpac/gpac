@@ -1053,13 +1053,14 @@ void gf_filter_relink_dst(GF_FilterPidInst *pidinst)
 	if (!link_from_pid) return;
 
 	//detach the pidinst, and relink from the new input pid
-	gf_filter_renegociate_output_dst(link_from_pid, link_from_pid->filter, filter_dst, pidinst, GF_FALSE);
+	gf_filter_renegociate_output_dst(link_from_pid, link_from_pid->filter, filter_dst, pidinst, cur_pidinst);
 }
 
-void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *pidi, Bool reconfig_only)
+void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *dst_pidi, GF_FilterPidInst *src_pidi)
 {
 	Bool is_new_chain = GF_TRUE;
 	GF_Filter *new_f;
+	Bool reconfig_only = src_pidi ? GF_FALSE: GF_TRUE;
 
 	if (!filter_dst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
@@ -1068,17 +1069,17 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 
 	//try to load filters to reconnect output pid
 	if (!reconfig_only && gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
-		GF_FilterPidInst *dst_pidi;
+		GF_FilterPidInst *a_dst_pidi;
 		new_f = pid->filter;
 		assert(pid->num_destinations==1);
-		dst_pidi = gf_list_get(pid->destinations, 0);
+		a_dst_pidi = gf_list_get(pid->destinations, 0);
 		//we are replacing the chain, remove filters until dest, keeping the final PID connected since we will detach
 		// and reattach it
 		if (!filter_dst->sticky) filter_dst->sticky = 2;
-		gf_filter_remove_internal(dst_pidi->filter, filter_dst, GF_TRUE);
+		gf_filter_remove_internal(a_dst_pidi->filter, filter_dst, GF_TRUE);
 		is_new_chain = GF_FALSE;
 		//we will reassign packets from that pid instance to the new connection
-		filter_dst->swap_pidinst = dst_pidi;
+		filter_dst->swap_pidinst_dst = a_dst_pidi;
 
 	}
 	//we are inserting a new chain
@@ -1098,21 +1099,22 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		return;
 	}
 	//detach pid instance from its source pid
-	if (pidi) {
+	if (dst_pidi) {
 		//signal as detached, this will prevent any further packet access
-		safe_int_inc(&pidi->detach_pending);
+		safe_int_inc(&dst_pidi->detach_pending);
 
 		//we need to first reconnect the pid and then detach the output
 		if (is_new_chain) {
 			//signal a stream reset is pending to prevent filter entering endless loop
-			safe_int_inc(&pidi->filter->stream_reset_pending);
+			safe_int_inc(&dst_pidi->filter->stream_reset_pending);
 			//keep track of the pidinst being detached in the new filter
-			new_f->swap_pidinst = pidi;
+			new_f->swap_pidinst_dst = dst_pidi;
+			new_f->swap_pidinst_src = src_pidi;
 			new_f->swap_needs_init = GF_TRUE;
 		}
 		//we directly detach the pid
 		else {
-			gf_fs_post_task(filter->session, gf_filter_pid_detach_task, filter_dst, pidi->pid, "pidinst_detach", filter_dst);
+			gf_fs_post_task(filter->session, gf_filter_pid_detach_task, filter_dst, dst_pidi->pid, "pidinst_detach", filter_dst);
 		}
 	}
 
@@ -1232,7 +1234,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 						} else {
 							//disconnect pid, but prevent filter from unloading
 							if (!filter_dst->sticky) filter_dst->sticky = 2;
-							gf_filter_renegociate_output_dst(pid, filter, filter_dst, pidi, GF_TRUE);
+							gf_filter_renegociate_output_dst(pid, filter, filter_dst, pidi, NULL);
 						}
 					}
 				}
@@ -1241,7 +1243,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 					filter_dst = pid->caps_dst_filter;
 					assert(pid->num_destinations==0);
 					pid->caps_dst_filter = NULL;
-					gf_filter_renegociate_output_dst(pid, filter, filter_dst, NULL, GF_TRUE);
+					gf_filter_renegociate_output_dst(pid, filter, filter_dst, NULL, NULL);
 				}
 			}
 			if (safe_int_dec(&pid->caps_negociate->reference_count)==0) {
@@ -1441,7 +1443,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (e) filter->session->last_process_error = e;
 	
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
-	if (!filter->would_block && !filter->input_pids && (e!=GF_EOS)) {
+	if ((filter->would_block+filter->num_output_not_connected<filter->num_output_pids) && !filter->input_pids && (e!=GF_EOS)) {
 		if (filter->schedule_next_time)
 			task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
@@ -1867,6 +1869,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 {
 	u32 i;
 	char *src_url=NULL;
+	GF_Filter *target_filter=NULL;
 	GF_Err e;
 	const GF_FilterArgs *src_arg=NULL;
 
@@ -1918,10 +1921,12 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Swaping source filter for URL %s\n", src_url));
 
+	target_filter = filter->target_filter;
 	filter->finalized = GF_FALSE;
-	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->dst_filter, GF_TRUE);
+	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE);
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
+		if (target_filter) filter->dst_filter = NULL;
 		return GF_TRUE;
 	}
 	//nope ...

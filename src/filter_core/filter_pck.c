@@ -652,7 +652,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
 			if ((pck->info.flags & GF_PCKF_PROPS_CHANGED) && (dst->props != pck->pid_props)) {
 				//unassign old property list and set the new one
-				if (safe_int_dec(& dst->props->reference_count) == 0) {
+				if (dst->props && (safe_int_dec(& dst->props->reference_count) == 0)) {
 					gf_list_del_item(dst->pid->properties, dst->props);
 					gf_props_del(dst->props);
 				}

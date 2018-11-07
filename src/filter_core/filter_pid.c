@@ -318,17 +318,65 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	}
 }
 
+void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
+{
+	GF_FilterPidInst *pidinst = task->udta;
+	GF_Filter *filter = pidinst->filter;
+
+	//reset in process
+	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
+		TASK_REQUEUE(task)
+		return;
+	}
+
+	//reset PID instance buffers before checking number of output shared packets
+	//otherwise we may block because some of the shared packets are in the
+	//pid instance buffer (not consumed)
+	gf_filter_pid_inst_reset(pidinst);
+
+	//we still have packets out there!
+	if (pidinst->pid->nb_shared_packets_out) {
+		TASK_REQUEUE(task)
+		return;
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s swap destruction\n",  filter->name, pidinst->pid->name));
+	gf_mx_p(filter->tasks_mx);
+	gf_list_del_item(filter->input_pids, pidinst);
+	filter->num_input_pids = gf_list_count(filter->input_pids);
+	gf_mx_v(filter->tasks_mx);
+
+	gf_mx_p(task->pid->filter->tasks_mx);
+	gf_list_del_item(task->pid->destinations, pidinst);
+	task->pid->num_destinations = gf_list_count(task->pid->destinations);
+	gf_mx_v(task->pid->filter->tasks_mx);
+
+
+	gf_filter_pid_inst_del(pidinst);
+	if (pidinst->is_decoder_input) {
+		assert(pidinst->pid->nb_decoder_inputs);
+		safe_int_dec(&pidinst->pid->nb_decoder_inputs);
+	}
+
+	if (!filter->num_input_pids) {
+		assert(!filter->finalized);
+		filter->finalized = GF_TRUE;
+		gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+	}
+}
+
 void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 {
 	GF_PropertyMap *prev_dst_props;
 	GF_FilterPacketInstance *pcki;
 	u32 nb_pck_transfer=0;
-	GF_FilterPidInst *src = filter->swap_pidinst;
+	GF_FilterPidInst *src = filter->swap_pidinst_src;
+	if (!src) src = filter->swap_pidinst_dst;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s swaping PID %s to PID %s\n", filter->name, src->pid->name, dst->pid->name));
 	if (filter->swap_needs_init) {
 		//we are in detach state, the pack queue of the old PID is never read
-		assert(src->detach_pending);
+		assert(filter->swap_pidinst_dst->detach_pending);
 		//we are in pending stete, the origin of the old PID is never dispatching
 		assert(dst->pid->filter->out_pid_connection_pending);
 		//we can therefore swap the packet queues safely and other important info
@@ -390,6 +438,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		gf_filter_post_process_task(dst->filter);	
 	}
 
+	src = filter->swap_pidinst_dst;
 	if (filter->swap_needs_init) {
 		//exit out special handling of the pid since we are ready to detach
 		assert(src->filter->stream_reset_pending);
@@ -404,10 +453,15 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 		gf_filter_pid_inst_del(src);
 
-		filter->swap_pidinst = NULL;
+		filter->swap_pidinst_dst = NULL;
+		filter->swap_pidinst_src = NULL;
 		assert(!src_filter->finalized);
 		src_filter->finalized = GF_TRUE;
 		gf_fs_post_task(src_filter->session, gf_filter_remove_task, src_filter, NULL, "filter_destroy", NULL);
+	}
+	if (filter->swap_pidinst_src) {
+		src = filter->swap_pidinst_src;
+		gf_fs_post_task(filter->session, gf_filter_pid_inst_swap_delete_task, src->filter, src->pid, "pid_inst_delete", src);
 	}
 }
 
@@ -497,7 +551,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	//we are swaping a PID instance (dyn insert of a filter), do it before reconnecting
 	//in order to have properties in place
 	//TODO: handle error case, we might need to re-switch the pid inst!
-	if (filter->swap_pidinst) {
+	if (filter->swap_pidinst_src || filter->swap_pidinst_dst) {
 		gf_filter_pid_inst_swap(filter, pidinst);
 	}
 
@@ -736,7 +790,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		TASK_REQUEUE(task)
 		return;
 	}
-	if (new_chain_input->in_pid_connection_pending) {
+	if (new_chain_input && new_chain_input->in_pid_connection_pending) {
 		TASK_REQUEUE(task)
 		return;
 	}
@@ -756,9 +810,11 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	//first connection of this PID to this filter
 	if (!pidinst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not found in filter %s inputs\n",  pid->name, filter->name));
-
-		assert(!new_chain_input->swap_pidinst);
-		new_chain_input->swap_needs_init = GF_FALSE;
+		if (new_chain_input) {
+			assert(!new_chain_input->swap_pidinst_dst);
+			assert(!new_chain_input->swap_pidinst_src);
+			new_chain_input->swap_needs_init = GF_FALSE;
+		}
 		return;
 	}
 
@@ -781,6 +837,14 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	filter->num_input_pids = gf_list_count(filter->input_pids);
 	gf_mx_v(filter->tasks_mx);
 
+	if (!new_chain_input) {
+		if (!filter->num_input_pids) {
+			filter->finalized = GF_TRUE;
+			gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+		}
+		return;
+	}
+
 	if (!filter->detached_pid_inst) {
 		filter->detached_pid_inst = gf_list_new();
 	}
@@ -788,7 +852,8 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 
 	//we are done, reset filter swap instance so that connection can take place
 	if (new_chain_input->swap_needs_init) {
-		new_chain_input->swap_pidinst = NULL;
+		new_chain_input->swap_pidinst_dst = NULL;
+		new_chain_input->swap_pidinst_src = NULL;
 		new_chain_input->swap_needs_init = GF_FALSE;
 	}
 }
@@ -2627,7 +2692,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	pid->props_changed_since_connect = GF_FALSE;
 
 	//swap pid is pending on the possible destination filter
-	if (filter->swap_pidinst) {
+	if (filter->swap_pidinst_src || filter->swap_pidinst_dst) {
 		task->requeue_request = GF_TRUE;
 		return;
 	}
