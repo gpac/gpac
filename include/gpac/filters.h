@@ -212,8 +212,10 @@ When set, all sub filters are exposed. This should only be set when inspecting f
 #define GF_FS_FLAG_NO_MAIN_THREAD	1<<4
 /*! Flag set to disable session regulation (no sleep)*/
 #define GF_FS_FLAG_NO_REGULATION	1<<5
+/*! Flag set to disable data probe*/
+#define GF_FS_FLAG_NO_PROBE	(1<<6)
 /*! Flag set to print enabled/disabled edges for debug of pid resolution*/
-#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<6)
+#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<7)
 
 
 /*! Creates a new filter session. This will also load all available filters not blacklisted.
@@ -1421,13 +1423,14 @@ struct __gf_filter_register
 	*/
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
 
-	/*! optional, usually set by demuxers. This function probes the mime type of a data chunk
-	This function is called once the source is open, but is never called on an instanciated filter.
-
+	/*! optional, usually set by demuxers. This function probes the mime type of a data chunk, usually located at the start of the file.
+	This function is called once the source is open, but is never called on an instanciated filter. The returned mime type (if any) is then used instead of the file extension
+	for solving filter graph.
+	Note: demux filters should always exposed 2 input caps bundle, one for specifiying input cap by file extension and one for specifying input cap by mime type.
 	\param data data to probe
 	\param size size of the data to probe
-	\param score set to the probe score
-	\return mime type of content
+	\param score set to the probe score. Initially set to \ref GF_FPROBE_NOT_SUPPORTED before calling the function. If you are certain of the data type, use \ref GF_FPROBE_SUPPORTED, if unsure use \ref GF_FPROBE_MAYBE_SUPPORTED
+	\return mime type of content, or NULL if not detected.
 	*/
 	const char * (*probe_data)(const u8 *data, u32 size, GF_FilterProbeScore *score);
 

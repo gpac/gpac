@@ -192,15 +192,17 @@ static GF_Err a52dec_process(GF_Filter *filter)
 	char *buffer;
 	u32 sample_rate, flags;
 	u8 num_channels;
-	Bool is_eos = GF_FALSE;
 	sample_t level;
 	GF_A52DecCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (!pck) {
-		is_eos = gf_filter_pid_is_eos(ctx->ipid);
-		if (!is_eos) return GF_OK;
+		if ( gf_filter_pid_is_eos(ctx->ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+		return GF_OK;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[A52] Decoding AU\n"));
 
@@ -266,9 +268,9 @@ static GF_Err a52dec_process(GF_Filter *filter)
 
 static const GF_FilterCapability A52DecCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC3),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 

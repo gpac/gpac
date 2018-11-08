@@ -492,6 +492,39 @@ static void mp3_dmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
+
+static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	u32 nb_frames=0;
+	u32 pos=0;
+	u32 prev_pos=0;
+	while (1) {
+		u32 hdr = gf_mp3_get_next_header_mem(data, size, &pos);
+		if (!hdr) break;
+		if (gf_mp3_version(hdr) > 3) break;
+		u8 sampleRateIndex = (hdr >> 10) & 0x3;
+		if (sampleRateIndex>2) break;
+		u32 fsize = gf_mp3_frame_size(hdr);
+		if (fsize + pos > size) break;
+
+		if (prev_pos && pos) {
+			nb_frames=0;
+			break;
+		}
+		prev_pos = pos;
+		nb_frames++;
+		if (nb_frames>4) break;
+		size -= fsize + pos;
+		data += fsize + pos;
+	}
+
+	if (nb_frames>=2) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/mp3";
+	}
+	return NULL;
+}
+
 static const GF_FilterCapability MP3DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -529,6 +562,7 @@ GF_FilterRegister MP3DmxRegister = {
 	SETCAPS(MP3DmxCaps),
 	.configure_pid = mp3_dmx_configure_pid,
 	.process = mp3_dmx_process,
+	.probe_data = mp3_dmx_probe_data,
 	.process_event = mp3_dmx_process_event
 };
 

@@ -364,7 +364,6 @@ void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_Fil
 
 void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 {
-	u32 i, j;
 	GF_FilterPidInst *pidinst = task->udta;
 	GF_Filter *filter = pidinst->filter;
 	GF_FilterPid *pid = pidinst->pid;
@@ -1276,6 +1275,11 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 		//try by name
 		if (!pid_cap && cap->name) pid_cap = gf_filter_pid_get_property_str(src_pid, cap->name);
 
+		if (src_pid->ext_not_trusted && (cap->code==GF_PROP_PID_FILE_EXT)) {
+			all_caps_matched=GF_FALSE;
+			continue;
+		}
+
 
 		//we found a property of that type and it is equal
 		if (pid_cap) {
@@ -1844,6 +1848,12 @@ static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc
 			if ((dst_stream_type==GF_STREAM_ENCRYPTED) && source_stream_type>0)
 				dst_stream_type = source_stream_type;
 
+
+			if (!strcmp(edge->src_reg->freg->name, "rfac3"))
+				i = i;
+			if (!strcmp(edge->src_reg->freg->name, "a52"))
+				i = i;
+
 			//if stream types are know (>0) and not source files, do not mark the edges if they mismatch
 			//moving from non-file type A to non-file type B requires an explicit filter
 			if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type))
@@ -2167,6 +2177,27 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
 	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
 
+	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", reg_dst->freg->name));
+		for (i=0; i<reg_dst->nb_edges; i++) {
+			GF_FilterRegEdge *edge = &reg_dst->edges[i];
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
+
+		count = gf_list_count(dijkstra_nodes);
+		for (i=0; i<count; i++) {
+			u32 j;
+			GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", rdesc->freg->name));
+			for (j=0; j<rdesc->nb_edges; j++) {
+				GF_FilterRegEdge *edge = &rdesc->edges[j];
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
+		}
+	}
+
 	//remove all filters not used for this resolution (no enabled edges)
 	count = gf_list_count(dijkstra_nodes);
 	for (i=0; i<count; i++) {
@@ -2192,26 +2223,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 	sort_time_us = gf_sys_clock_high_res();
 
-	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", reg_dst->freg->name));
-		for (i=0; i<reg_dst->nb_edges; i++) {
-			GF_FilterRegEdge *edge = &reg_dst->edges[i];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
-		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
-
-		count = gf_list_count(dijkstra_nodes);
-		for (i=0; i<count; i++) {
-			u32 j;
-			GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", rdesc->freg->name));
-			for (j=0; j<rdesc->nb_edges; j++) {
-				GF_FilterRegEdge *edge = &rdesc->edges[j];
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
-			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
-		}
-	}
 
 	dijsktra_edge_count = 0;
 	dijsktra_node_count = gf_list_count(dijkstra_nodes)+1;
@@ -3056,7 +3067,6 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 			gf_props_del(pid->infos);
 		}
 	}
-
 	if (pid->name) gf_free(pid->name);
 	gf_free(pid);
 }

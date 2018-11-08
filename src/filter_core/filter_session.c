@@ -168,10 +168,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	if (flags & GF_FS_FLAG_NO_MAIN_THREAD)
 		fsess->no_main_thread = GF_TRUE;
 
-	if (flags & GF_FS_FLAG_NO_REGULATION)
-		fsess->no_regulation = GF_TRUE;
-
-
 	if (!fsess->semaphore_main)
 		nb_threads=0;
 
@@ -307,6 +303,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 
 	if (gf_opts_get_bool("core", "no-graph-cache"))
 		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;
+
+	if (gf_opts_get_bool("core", "no-probe"))
+		flags |= GF_FS_FLAG_NO_PROBE;
 
 	fsess = gf_fs_new(nb_threads, sched_type, flags, blacklist);
 	if (!fsess) return NULL;
@@ -933,7 +932,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							}
 							continue;
 						}
-						if (!fsess->no_regulation) {
+						if (!(fsess->flags & GF_FS_FLAG_NO_REGULATION)) {
 							ndiff = next->schedule_next_time - now;
 							if (ndiff<diff) diff = ndiff;
 						} else {
@@ -995,7 +994,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 					sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
-					if (! fsess->no_regulation) {
+					if (! (fsess->flags & GF_FS_FLAG_NO_REGULATION) ) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", sys_thid, current_filter->name, task->log_name, (s32) diff));
 
 						if (th_count==0) {

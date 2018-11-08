@@ -651,6 +651,29 @@ static void qcpdmx_finalize(GF_Filter *filter)
 	if (ctx->buffer) gf_free(ctx->buffer);
 }
 
+static const char *qcpdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	char magic[5];
+	Bool is_qcp = GF_TRUE;
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+
+	magic[4] = 0;
+	gf_bs_read_data(bs, magic, 4);
+	if (strnicmp(magic, "RIFF", 4)) {
+		is_qcp = GF_FALSE;
+	} else {
+		/*riff_size = */gf_bs_read_u32_le(bs);
+		gf_bs_read_data(bs, magic, 4);
+		if (strnicmp(magic, "QLCM", 4)) {
+			is_qcp = GF_FALSE;
+		}
+	}
+	gf_bs_del(bs);
+	if (!is_qcp) return NULL;
+	*score = GF_FPROBE_SUPPORTED;
+	return "audio/qcp";
+}
+
 static const GF_FilterCapability QCPDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -683,6 +706,7 @@ GF_FilterRegister QCPDmxRegister = {
 	SETCAPS(QCPDmxCaps),
 	.configure_pid = qcpdmx_configure_pid,
 	.process = qcpdmx_process,
+	.probe_data = qcpdmx_probe_data,
 	.process_event = qcpdmx_process_event
 };
 

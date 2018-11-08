@@ -91,7 +91,7 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 	u32 val;
 	u64 pos;
 
-	while (gf_bs_available(bs)) {
+	while (gf_bs_available(bs)>7) {
 		val = gf_bs_read_u8(bs);
 		if (val!=0xFF) continue;
 		val = gf_bs_read_int(bs, 4);
@@ -117,7 +117,7 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 			gf_bs_read_u16(bs);
 			hdr->hdr_size = 9;
 		}
-		if (hdr->frame_size < hdr->hdr_size) {
+		if (!GF_M4ASampleRates[hdr->sr_idx] || (hdr->frame_size < hdr->hdr_size)) {
 			gf_bs_seek(bs, pos+1);
 			continue;
 		}
@@ -469,7 +469,16 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
-			assert(ctx->remaining == 0);
+			if (ctx->remaining) {
+				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->remaining, &output);
+				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
+				memcpy(output, data, ctx->remaining);
+				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
+				gf_filter_pck_set_cts(dst_pck, ctx->cts);
+				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+				gf_filter_pck_send(dst_pck);
+				ctx->remaining = 0;
+			}
 			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 			ctx->src_pck = NULL;
 			return GF_EOS;
@@ -596,6 +605,14 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			ctx->hdr.hdr_size = 9;
 		}
 
+		if (!ctx->hdr.frame_size || !GF_M4ASampleRates[ctx->hdr.sr_idx] ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] invalid ADTS frame, resyncing\n"));
+			ctx->bytes_in_header = 0;
+			remain--;
+			start++;
+			continue;
+		}
+
 		//ready to send packet
 		if (ctx->hdr.frame_size < remain) {
 			u32 next_frame = ctx->hdr.frame_size;
@@ -652,7 +669,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 				if (alread_sync) {
 					boffset -= (7-alread_sync);
 				} else {
-				assert(offset == 7);
+					assert((offset == 7) || (offset == 9));
 					boffset += (char *) (sync + offset) - data;
 				}
 				gf_filter_pck_set_byte_offset(dst_pck, boffset);
@@ -676,6 +693,24 @@ static void adts_dmx_finalize(GF_Filter *filter)
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
+}
+
+static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	u32 nb_frames=0;
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	while (gf_bs_available(bs)) {
+		ADTSHeader hdr;
+		if (!adts_dmx_sync_frame_bs(bs, &hdr)) break;
+		if ((hdr.hdr_size!=7) && (hdr.hdr_size!=9)) continue;
+		if (!hdr.nb_ch) continue;
+		nb_frames++;
+	}
+	if (nb_frames) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/aac";
+	}
+	return NULL;
 }
 
 static const GF_FilterCapability ADTSDmxCaps[] =
@@ -728,6 +763,7 @@ GF_FilterRegister ADTSDmxRegister = {
 	SETCAPS(ADTSDmxCaps),
 	.configure_pid = adts_dmx_configure_pid,
 	.process = adts_dmx_process,
+	.probe_data = adts_dmx_probe_data,
 	.process_event = adts_dmx_process_event
 };
 
