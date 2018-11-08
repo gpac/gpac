@@ -2158,7 +2158,8 @@ GF_EXPORT
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, char *probe_data, u32 probe_size, GF_FilterPid **out_pid)
 {
 	char *sep;
-	char tmp[50];
+	char tmp_ext[50];
+	Bool ext_not_trusted;
 	GF_FilterPid *pid = *out_pid;
 	if (!pid) {
 		pid = gf_filter_pid_new(filter);
@@ -2182,9 +2183,9 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	gf_filter_pid_set_name(pid, sep);
 
 	if (fext) {
-		strncpy(tmp, fext, 20);
-		strlwr(tmp);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp));
+		strncpy(tmp_ext, fext, 20);
+		strlwr(tmp_ext);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 	} else {
 		char *ext = strrchr(url, '.');
 		if (ext && !stricmp(ext, ".gz")) {
@@ -2200,14 +2201,16 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			char *s = strchr(ext, '#');
 			if (s) s[0] = 0;
 
-			strncpy(tmp, ext, 20);
-			strlwr(tmp);
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp));
+			strncpy(tmp_ext, ext, 20);
+			strlwr(tmp_ext);
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 			if (s) s[0] = '#';
 		}
 	}
+
+	ext_not_trusted = GF_FALSE;
 	//probe data
-	if (!mime_type && probe_data) {
+	if (!mime_type && probe_data && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
 		u32 i, count;
 		GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
 		gf_mx_p(filter->session->filters_mx);
@@ -2218,18 +2221,38 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			if (!freg || !freg->probe_data) continue;
 			score = GF_FPROBE_NOT_SUPPORTED;
 			a_mime = freg->probe_data(probe_data, probe_size, &score);
-			if (a_mime && (score > max_score)) {
-				mime_type = a_mime;
-				max_score = score;
+			if (score==GF_FPROBE_NOT_SUPPORTED) {
+				u32 k;
+				for (k=0;k<freg->nb_caps && !ext_not_trusted; k++) {
+					const GF_FilterCapability *cap = &freg->caps[k];
+					if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
+					if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
+					if (cap->code != GF_PROP_PID_FILE_EXT) continue;
+
+					if (strstr(cap->val.value.string, tmp_ext))
+						ext_not_trusted = GF_TRUE;
+				}
+			} else {
+				if (a_mime) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Data Prober (filter %s) detected format is%s mime %s\n", freg->name, (score==GF_FPROBE_MAYBE_SUPPORTED) ? " maybe" : "", a_mime));
+				}
+				if (a_mime && (score > max_score)) {
+					mime_type = a_mime;
+					max_score = score;
+				}
 			}
 		}
 		gf_mx_v(filter->session->filters_mx);
 
+		pid->ext_not_trusted = ext_not_trusted;
+
 	}
 	if (mime_type) {
-		strncpy(tmp, mime_type, 50);
-		strlwr(tmp);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp ));
+		strncpy(tmp_ext, mime_type, 50);
+		strlwr(tmp_ext);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp_ext ));
+		//we have a mime, disable extension checking
+		pid->ext_not_trusted = GF_TRUE;
 	}
 
 	return GF_OK;

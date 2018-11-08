@@ -306,7 +306,6 @@ struct __gf_filter_session
 	Bool task_in_process;
 	Bool requires_solved_graph;
 	Bool no_main_thread;
-	Bool no_regulation;
 
 	GF_List *registry;
 	GF_List *filters;
@@ -728,6 +727,8 @@ struct __gf_filter_pid
 	GF_Filter *caps_dst_filter;
 
 	u32 forced_cap;
+
+	Bool ext_not_trusted;
 };
 
 

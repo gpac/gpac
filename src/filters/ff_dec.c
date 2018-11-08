@@ -364,7 +364,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	av_init_packet(&pkt);
 	if (pck) pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
-	if (!pck) {
+	if (pck) {
 		src_pck = pck;
 		gf_filter_pck_ref_props(&src_pck);
 		if (src_pck) gf_list_add(ctx->src_packets, src_pck);
@@ -399,7 +399,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	if ((len<0) || !gotpic) {
 		ctx->frame_start = 0;
 		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
-		if (len<0) {
+		if (pkt.size && (len<0)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(len) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -812,6 +812,7 @@ static const GF_FilterCapability FFDecodeCaps[] =
 {
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_SVC),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
@@ -820,6 +821,8 @@ static const GF_FilterCapability FFDecodeCaps[] =
 	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 
 #ifdef FF_SUB_SUPPORT

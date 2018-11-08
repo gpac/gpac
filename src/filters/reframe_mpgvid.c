@@ -1004,10 +1004,40 @@ static void mpgviddmx_finalize(GF_Filter *filter)
 	}
 }
 
+static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	GF_M4VParser *parser;
+	u8 ftype;
+	u32 tinc;
+	u64 fsize, start;
+	Bool is_coded;
+	GF_Err e;
+	GF_M4VDecSpecInfo dsi;
+
+	memset(&dsi, 0, sizeof(GF_M4VDecSpecInfo));
+	parser = gf_m4v_parser_new((char*)data, size, GF_FALSE);
+	e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+	gf_m4v_parser_del(parser);
+	if (e==GF_OK) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "video/mp4v-es";
+	}
+
+	memset(&dsi, 0, sizeof(GF_M4VDecSpecInfo));
+	parser = gf_m4v_parser_new((char*)data, size, GF_TRUE);
+	e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+	gf_m4v_parser_del(parser);
+	if (e==GF_OK) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "video/mpgv-es";
+	}
+	return NULL;
+}
+
 static const GF_FilterCapability MPGVidDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mp4v-es|video/x-mpgv-es"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mp4v-es|video/mpgv-es"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG1),
@@ -1052,6 +1082,7 @@ GF_FilterRegister MPGVidDmxRegister = {
 	SETCAPS(MPGVidDmxCaps),
 	.configure_pid = mpgviddmx_configure_pid,
 	.process = mpgviddmx_process,
+	.probe_data = mpgvdmx_probe_data,
 	.process_event = mpgviddmx_process_event
 };
 
