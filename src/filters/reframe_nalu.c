@@ -2718,8 +2718,8 @@ static const GF_FilterArgs NALUDmxArgs[] =
 
 GF_FilterRegister NALUDmxRegister = {
 	.name = "rfnalu",
-	.description = "NALU Video (AVC & HEVC) reframer",
-	.help = "This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\n\tThe demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.",
+	GF_FS_SET_DESCRIPTION("NALU Video (AVC & HEVC) reframer")
+	GF_FS_SET_HELP("This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\n\tThe demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.")
 	.private_size = sizeof(GF_NALUDmxCtx),
 	.args = NALUDmxArgs,
 	.initialize = naludmx_initialize,

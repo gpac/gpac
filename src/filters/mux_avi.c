@@ -446,7 +446,7 @@ static const GF_FilterCapability AVIMuxCapsNoRAW[] =
 
 GF_FilterRegister AVIMuxRegister = {
 	.name = "avimx",
-	.description = "AVI muxer",
+	GF_FS_SET_DESCRIPTION("AVI muxer")
 	.private_size = sizeof(GF_AVIMuxCtx),
 	.max_extra_pids = -1,
 	.args = AVIMuxArgs,

@@ -292,7 +292,7 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 
 GF_FilterRegister WebVTTMxRegister = {
 	.name = "writevtt",
-	.description = "WebVTT Mux",
+	GF_FS_SET_DESCRIPTION("WebVTT file writer")
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,
 	.finalize = vttmx_finalize,

@@ -95,7 +95,7 @@ typedef struct
 	/*! alternate name of arg*/
 	const char *altname;
 	/*! description of arg*/
-	const char *desc;
+	const char *description;
 	/*! default value of arg*/
 	const char *val;
 	/*! possible value of arg*/
@@ -140,6 +140,7 @@ typedef struct
 #define GF_ARG_STRING	3
 /*! argument is a camma-separated list of strings*/
 #define GF_ARG_STRINGS	4
+
 
 #define GF_DEF_ARG(_a, _b, _c, _d, _e, _f, _g) {_a, _b, _c, _d, _e, _f, _g}
 

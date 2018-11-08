@@ -472,8 +472,8 @@ static const GF_FilterCapability InspectCaps[] =
 
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
-	.description = "Inspect packets on pids",
-	.help = "The inspector filter can be used to dump pid and packets. Te default options load only pid changes.\n"\
+	GF_FS_SET_DESCRIPTION("Inspect packets on pids")
+	GF_FS_SET_HELP("The inspector filter can be used to dump pid and packets. Te default options load only pid changes.\n"\
 				"The packet inspector mode can be configured to dump specific properties of packets using the fmt option.\n"\
 	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN separator. TOKEN can be:\n"\
 				"\tpn: packet (frame in framed mode) number\n"\
@@ -508,7 +508,7 @@ const GF_FilterRegister InspectRegister = {
 	 			"An unrecognized keywork or missing property will resolve to an empty string\n"\
 	 			"\n"\
 	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order\n"\
-	 			"since the inspector fetches one packet at a time on each PID\n",
+	 			"since the inspector fetches one packet at a time on each PID\n")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
@@ -542,7 +542,7 @@ static const GF_FilterCapability ProberCaps[] =
 
 const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
-	.description = "Inspect packets on demux pids (not file)",
+	GF_FS_SET_DESCRIPTION("Inspect packets on demux pids (not file)")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,

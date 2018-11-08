@@ -609,7 +609,7 @@ static const GF_FilterArgs RTPInArgs[] =
 
 GF_FilterRegister RTPInRegister = {
 	.name = "rtpin",
-	.description = "RTP/RTSP/SDP input",
+	GF_FS_SET_DESCRIPTION("RTP/RTSP/SDP input")
 	.private_size = sizeof(GF_RTPIn),
 	.args = RTPInArgs,
 	.initialize = rtpin_initialize,

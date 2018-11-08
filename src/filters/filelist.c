@@ -668,8 +668,8 @@ static const GF_FilterCapability FileListCaps[] =
 
 GF_FilterRegister FileListRegister = {
 	.name = "flist",
-	.description = "sources concatenator",
-	.help = "This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=\"f1[,f2]\", where f1 can be a file or a directory to enum.\n"\
+	GF_FS_SET_DESCRIPTION("sources concatenator")
+	GF_FS_SET_HELP("This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=\"f1[,f2]\", where f1 can be a file or a directory to enum.\n"\
 		"Syntax for directory is:\n"\
 		"\tdir/*: enumerates everything in dir\n"\
 		"\tfoo/*.png: enumerates all files with extension png in foo\n"\
@@ -690,8 +690,7 @@ GF_FilterRegister FileListRegister = {
 		"The source lines follow the usual source syntax, see main help\n"\
 		"\t\tAdditionnal pid properties can be added per source, but are valid only for the current source, and reset at next source\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist\n"\
-		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n"\
-	,
+		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n")
 	.private_size = sizeof(GF_FileListCtx),
 	.max_extra_pids = -1,
 	.args = GF_FileListArgs,

@@ -1315,6 +1315,19 @@ typedef enum
 /*! quick macro for assigning the caps object to the registry structure*/
 #define SETCAPS( __struct ) .caps = __struct, .nb_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
 
+#ifndef GPAC_DISABLE_DOC
+#define GF_FS_SET_DESCRIPTION(_desc) .description = _desc,
+#define GF_FS_SET_AUTHOR(_author) .author = _author,
+#define GF_FS_SET_HELP(_help) .help = _help,
+#define GF_FS_DEF_ARG(_name, _offset, _desc, _type, _default, _enum, _flags) { _name, _offset, _desc, _type, _default, _enum, _flags }
+#else
+#define GF_FS_SET_DESCRIPTION(_desc)
+#define GF_FS_SET_AUTHOR(_author)
+#define GF_FS_SET_HELP(_help)
+#define GF_FS_SET_ARGHELP(_help)
+#define GF_FS_DEF_ARG(_name, _offset, _desc, _type, _default, _enum, _flags) {_name, _offset, _type, _default, _enum, _flags}
+#endif
+
 /*! filter registry flags*/
 typedef enum
 {
@@ -1340,12 +1353,6 @@ struct __gf_filter_register
 {
 	/*! mandatory - name of the filter as used when setting up filters, shall not contain any space*/
 	const char *name;
-	/*! optional - author of the filter*/
-	const char *author;
-	/*! mandatory - description of the filter*/
-	const char *description;
-	/*! optionnal - help of the filter*/
-	const char *help;
 	/*! optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions*/
 	u32 private_size;
 	/*! indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1. A value of 0 implies the filter can only handle one PID*/
@@ -1446,6 +1453,17 @@ struct __gf_filter_register
 	void (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
 	/*! user data of registry loader, not inspected/modified by filter session*/
 	void *udta;
+
+
+#ifndef GPAC_DISABLE_DOC
+	/*! optional - short description of the filter*/
+	const char *description;
+	/*! optional - author of the filter*/
+	const char *author;
+	/*! optionnal - help of the filter*/
+	const char *help;
+#endif
+
 };
 
 
@@ -1617,7 +1635,7 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
 
 /*! explicietly assigns a source ID to a filter. This shall be called before connecting the link_from filter
-If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem adress) will be used
+If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem address) will be used
 \param filter the target filter
 \param link_from the filter to link from
 \param link_ext any link extensions allowed in link syntax:

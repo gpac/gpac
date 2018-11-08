@@ -424,8 +424,8 @@ static const GF_FilterCapability PipeInCaps[] =
 
 GF_FilterRegister PipeInRegister = {
 	.name = "pin",
-	.description = "pipe input",
-	.help = "This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.\n"\
+	GF_FS_SET_DESCRIPTION("pipe input")
+	GF_FS_SET_HELP( "This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.\n"\
 		"Input pipes cannot seek\n"\
 		"The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)\n"\
 		"It can be set to run forever (until the session is closed), ignoring any potential pipe close on the writing side\n"\
@@ -446,7 +446,7 @@ GF_FilterRegister PipeInRegister = {
 		"This can be usefull to pipe raw streams from different process into gpac:\n"\
 		"Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka\n"\
 		"Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264\n"\
-	"",
+	"")
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,
 	SETCAPS(PipeInCaps),

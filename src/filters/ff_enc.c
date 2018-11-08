@@ -1044,8 +1044,8 @@ static const GF_FilterCapability FFEncodeCaps[] =
 
 GF_FilterRegister FFEncodeRegister = {
 	.name = "ffenc",
-	.description = "FFMPEG encoder "LIBAVCODEC_IDENT,
-	.help = "See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options",
+	GF_FS_SET_DESCRIPTION("FFMPEG encoder "LIBAVCODEC_IDENT)
+	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options")
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
 	.initialize = ffenc_initialize,

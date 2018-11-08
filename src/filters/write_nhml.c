@@ -832,7 +832,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 
 GF_FilterRegister NHMLDumpRegister = {
 	.name = "nhmlw",
-	.description = "NHML file writer",
+	GF_FS_SET_DESCRIPTION("NHML file writer")
 	.private_size = sizeof(GF_NHMLDumpCtx),
 	.args = NHMLDumpArgs,
 	.initialize = nhmldump_initialize,

@@ -298,7 +298,7 @@ static const GF_FilterArgs NHNTDumpArgs[] =
 
 GF_FilterRegister NHNTDumpRegister = {
 	.name = "nhntw",
-	.description = "NHNT file writer",
+	GF_FS_SET_DESCRIPTION("NHNT file writer")
 	.private_size = sizeof(GF_NHNTDumpCtx),
 	.args = NHNTDumpArgs,
 	.finalize = nhntdump_finalize,

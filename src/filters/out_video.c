@@ -1842,7 +1842,7 @@ static const GF_FilterCapability VideoOutCaps[] =
 
 GF_FilterRegister VideoOutRegister = {
 	.name = "vout",
-	.description = "Video graphics card output",
+	GF_FS_SET_DESCRIPTION("Video graphics card output")
 	.private_size = sizeof(GF_VideoOutCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VideoOutArgs,

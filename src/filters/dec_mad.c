@@ -274,7 +274,7 @@ static const GF_FilterCapability MADCaps[] =
 
 GF_FilterRegister MADRegister = {
 	.name = "maddec",
-	.description = "MAD decoder",
+	GF_FS_SET_DESCRIPTION("MAD decoder")
 	.private_size = sizeof(GF_MADCtx),
 	SETCAPS(MADCaps),
 	.finalize = maddec_finalize,

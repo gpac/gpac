@@ -574,7 +574,7 @@ static const GF_FilterArgs AMRDmxArgs[] =
 
 GF_FilterRegister AMRDmxRegister = {
 	.name = "rfamr",
-	.description = "AMR/EVRC reframer",
+	GF_FS_SET_DESCRIPTION("AMR/EVRC reframer")
 	.private_size = sizeof(GF_AMRDmxCtx),
 	.args = AMRDmxArgs,
 	.initialize = amrdmx_initialize,

@@ -574,6 +574,10 @@ char* gf_strdup(const char *str);
 # endif
 #endif
 
+//define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not
+//#define GPAC_DISABLE_DOC
+
+
 /*! @} */
 
 #ifdef __cplusplus

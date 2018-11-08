@@ -66,10 +66,6 @@ void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter missing name - ignoring\n"));
 		return;
 	}
-	if (!freg->description) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing description - ignoring\n", freg->name));
-		return;
-	}
 	if (!freg->process) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing process function - ignoring\n", freg->name));
 		return;

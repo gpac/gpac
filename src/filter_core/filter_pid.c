@@ -1011,7 +1011,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 		return GF_TRUE;
 	}
 
-	//generic property adressing code(or builtin name)=val
+	//generic property addressing code(or builtin name)=val
 	psep = strchr(frag_name, src_pid->filter->session->sep_name);
 	if (!psep) {
 		psep = strchr(frag_name, '-');
@@ -1023,7 +1023,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	}
 
 	if (!psep) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing %s not recognized, ignoring and assuming match\n", frag_name ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID addressing %s not recognized, ignoring and assuming match\n", frag_name ));
 		return GF_TRUE;
 	}
 
@@ -1101,7 +1101,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 			if (comp_type == 2) is_equal = !is_equal;
 			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID adressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal=true\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID addressing uses \'%s\' comparison on property %s which is not a number, defaulting to equal=true\n", (comp_type==1) ? "less than" : "more than", gf_props_4cc_get_name(p4cc) ));
 			is_equal = GF_TRUE;
 			break;
 		}

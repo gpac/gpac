@@ -1194,12 +1194,12 @@ static const GF_FilterArgs GSFDemuxArgs[] =
 
 GF_FilterRegister GSFDemuxRegister = {
 	.name = "gsfd",
-	.description = "GPAC stream format demultiplexer",
-	.help = "This filter deserialize the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
+	GF_FS_SET_DESCRIPTION("GPAC Super/Simple/Serialized/Stream/State Format demultiplexer")
+	GF_FS_SET_HELP("This filter deserialize the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"\
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC\n"\
 			"using either pipes or sockets\n"\
 			"\n"\
-			"The stream format can be encrypted in AES 128 CBC mode, in which case the demux filters has to be given a 128 bit key.",
+			"The stream format can be encrypted in AES 128 CBC mode, in which case the demux filters has to be given a 128 bit key.")
 	.private_size = sizeof(GSF_DemuxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFDemuxArgs,

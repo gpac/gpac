@@ -191,7 +191,7 @@ static const GF_FilterArgs ADTSMxArgs[] =
 
 GF_FilterRegister ADTSMxRegister = {
 	.name = "ufadts",
-	.description = "Raw AAC to ADTS writer",
+	GF_FS_SET_DESCRIPTION("Raw AAC to ADTS writer")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = ADTSMxArgs,
 	.finalize = adtsmx_finalize,

@@ -795,7 +795,7 @@ void PrintATSCUsage()
 	        "MP4Box can read ATSC3 sessions from network. \n"
 	        "\n"
 	        " -atsc 			enables ATSC3 reader\n"
-	        " -ifce IP			IP adress of network interface to use\n"
+	        " -ifce IP			IP address of network interface to use\n"
 	        " -dir PATH			local filesystem path to which the files are written. If not set, nothing is written to disk.\n"
 	        " -service ID:		ID of the service to grab. If not set or -1, all services are dumped. If 0, no services are dumped. If -2, the first service found is used.\n"
 	        " -nb-segs N:		sets max segments to keep on disk per stream. -1 (default) keeps all.\n"
