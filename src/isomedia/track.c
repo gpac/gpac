@@ -870,7 +870,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 
 	GF_Err e;
 
-	if (*mdia || !mdia) return GF_BAD_PARAM;
+	if (!mdia || *mdia) return GF_BAD_PARAM;
 
 	minf = NULL;
 	mdhd = NULL;
