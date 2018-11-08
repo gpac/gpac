@@ -699,7 +699,7 @@ static const GF_FilterArgs QCPDmxArgs[] =
 
 GF_FilterRegister QCPDmxRegister = {
 	.name = "rfqcp",
-	.description = "QCP reframer",
+	GF_FS_SET_DESCRIPTION("QCP reframer")
 	.private_size = sizeof(GF_QCPDmxCtx),
 	.args = QCPDmxArgs,
 	.finalize = qcpdmx_finalize,

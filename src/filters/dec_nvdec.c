@@ -1182,7 +1182,7 @@ static const GF_FilterArgs NVDecArgs[] =
 
 GF_FilterRegister NVDecRegister = {
 	.name = "nvdec",
-	.description = "NVidia Hardware decoder",
+	GF_FS_SET_DESCRIPTION("NVidia Hardware decoder")
 	.private_size = sizeof(NVDecCtx),
 	SETCAPS(NVDecCaps),
 	.flags = GF_FS_REG_CONFIGURE_MAIN_THREAD | GF_FS_REG_HIDE_WEIGHT,

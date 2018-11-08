@@ -396,7 +396,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
-	.description = "Audio soundcard output",
+	GF_FS_SET_DESCRIPTION("Audio soundcard output")
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 	SETCAPS(AudioOutCaps),

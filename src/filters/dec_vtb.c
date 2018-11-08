@@ -1870,7 +1870,7 @@ static const GF_FilterArgs VTBDecArgs[] =
 
 GF_FilterRegister GF_VTBDecCtxRegister = {
 	.name = "vtbdec",
-	.description = "VideoToolBox decoder",
+	GF_FS_SET_DESCRIPTION("VideoToolBox decoder")
 	.private_size = sizeof(GF_VTBDecCtx),
 	.args = VTBDecArgs,
 	SETCAPS(VTBDecCaps),

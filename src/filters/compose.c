@@ -496,11 +496,10 @@ static const GF_FilterCapability CompositorCaps[] =
 
 const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
-	.description = "GPAC interactive media compositor",
-	.help = "The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion. The compositor acts as a pseudo-sink for the video side and creates its own output window.\n"\
+	GF_FS_SET_DESCRIPTION("GPAC interactive media compositor")
+	GF_FS_SET_HELP("The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion. The compositor acts as a pseudo-sink for the video side and creates its own output window.\n"\
 	"The video frames are however dispatched to an output video pid in the form of frame pointers requiring later GPU read if used.\n"\
-	"The audio part acts as a regular filter."\
-	"",
+	"The audio part acts as a regular filter.")
 	.private_size = sizeof(GF_Compositor),
 	.flags = GF_FS_REG_MAIN_THREAD | GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,

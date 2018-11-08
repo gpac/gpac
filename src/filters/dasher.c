@@ -5250,8 +5250,8 @@ static const GF_FilterArgs DasherArgs[] =
 
 GF_FilterRegister DasherRegister = {
 	.name = "dasher",
-	.description = "MPEG-DASH and HLS segmenter",
-	.help = "GPAC DASH and HLS segmenter\n"\
+	GF_FS_SET_DESCRIPTION("MPEG-DASH and HLS segmenter")
+	GF_FS_SET_HELP("GPAC DASH and HLS segmenter\n"\
 			"The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)\n"\
 			"The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
 			"\tEX: template=Great_$File$_$Width$_$Number$ on 640x360 foo.mp4 source will resolve in Great_foo_640_$Number$ for the DASH template\n"\
@@ -5338,7 +5338,7 @@ GF_FilterRegister DasherRegister = {
 			"The dasher will add the following properties to the output PIDs:\n"\
 			"* DashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher\n"\
 			"* DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"\
-			,
+			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,
 	.initialize = dasher_initialize,

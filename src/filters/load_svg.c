@@ -420,7 +420,7 @@ static const GF_FilterArgs SVGInArgs[] =
 };
 GF_FilterRegister SVGInRegister = {
 	.name = "svgplay",
-	.description = "SVG loader for playback",
+	GF_FS_SET_DESCRIPTION("SVG loader for playback")
 	.private_size = sizeof(SVGIn),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = SVGInArgs,

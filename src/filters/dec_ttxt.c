@@ -1309,7 +1309,7 @@ static const GF_FilterCapability TTXTDecCaps[] =
 
 GF_FilterRegister TTXTDecRegister = {
 	.name = "ttxtdec",
-	.description = "TTXT/TX3G decoder",
+	GF_FS_SET_DESCRIPTION("TTXT/TX3G decoder")
 	.private_size = sizeof(GF_TTXTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = TTXTDecArgs,

@@ -410,7 +410,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 
 GF_FilterRegister NALUMxRegister = {
 	.name = "ufnalu",
-	.description = "ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC",
+	GF_FS_SET_DESCRIPTION("ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC")
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
 	.finalize = nalumx_finalize,

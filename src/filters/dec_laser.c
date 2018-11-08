@@ -227,7 +227,7 @@ static const GF_FilterCapability LSRDecCaps[] =
 
 GF_FilterRegister LSRDecRegister = {
 	.name = "lsrdec",
-	.description = "MPEG-4 LASeR decoder",
+	GF_FS_SET_DESCRIPTION("MPEG-4 LASeR decoder")
 	.private_size = sizeof(GF_LSRDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	SETCAPS(LSRDecCaps),

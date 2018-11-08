@@ -698,7 +698,7 @@ static const GF_FilterArgs OGGDmxArgs[] =
 
 GF_FilterRegister OGGDmxRegister = {
 	.name = "oggdmx",
-	.description = "OGG demuxer",
+	GF_FS_SET_DESCRIPTION("OGG demuxer")
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,

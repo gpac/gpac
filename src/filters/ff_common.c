@@ -528,7 +528,9 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 	while (1) {
 		const AVClass *av_class=NULL;
 		const char *subname = NULL;
-		const char *description = NULL;
+#ifndef GPAC_DISABLE_DOC
+		const char *description = "description unavailable in ffmpeg";
+#endif
 		char szDef[100];
 		GF_FilterRegister *freg;
 		if (type==FF_REG_TYPE_DEMUX) {
@@ -536,27 +538,37 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
+#ifndef GPAC_DISABLE_DOC
 			description = fmt->long_name;
+#endif
+
 		} else if (type==FF_REG_TYPE_DECODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
 			av_class = codec->priv_class;
 			subname = codec->name;
+#ifndef GPAC_DISABLE_DOC
 			description = codec->long_name;
+#endif
+
 		} else if (type==FF_REG_TYPE_DEV_IN) {
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 			fmt = av_input_video_device_next(fmt);
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
+#ifndef GPAC_DISABLE_DOC
 			description = fmt->long_name;
+#endif
     		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
 #else
 			fmt = av_iformat_next(fmt);
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
+#ifndef GPAC_DISABLE_DOC
 			description = fmt->long_name;
+#endif
 			//brute force ...
 			if (!strcmp(subname, "dshow")) {}
 			else if (!strcmp(subname, "avfoundation")) {}
@@ -585,13 +597,13 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 			if (!codec) break;
 			av_class = codec->priv_class;
 			subname = codec->name;
+#ifndef GPAC_DISABLE_DOC
 			description = codec->long_name;
+#endif
+
 		} else {
 			break;
 		}
-		if (!description)
-			description = "description unavailable in ffmpeg";
-
 		GF_SAFEALLOC(freg, GF_FilterRegister);
 		if (!freg) continue;
 		memcpy(freg, orig_reg, sizeof(GF_FilterRegister));
@@ -603,8 +615,9 @@ void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_r
 
 		sprintf(szDef, "%s:%s", fname, subname);
 		freg->name = gf_strdup(szDef);
+#ifndef GPAC_DISABLE_DOC
 		freg->description = description;
-
+#endif
 		 if ((type==FF_REG_TYPE_ENCODE) || (type==FF_REG_TYPE_DECODE)) {
 		 	GF_FilterCapability *caps;
 		 	u32 cid = ffmpeg_codecid_to_gpac(codec->id);

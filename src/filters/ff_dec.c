@@ -841,8 +841,8 @@ static const GF_FilterCapability FFDecodeCaps[] =
 
 GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
-	.description = "FFMPEG decoder "LIBAVCODEC_IDENT,
-	.help = "See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on decoder options",
+	GF_FS_SET_DESCRIPTION("FFMPEG decoder "LIBAVCODEC_IDENT)
+	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on decoder options")
 	.private_size = sizeof(GF_FFDecodeCtx),
 	SETCAPS(FFDecodeCaps),
 	.initialize = ffdec_initialize,

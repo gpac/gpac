@@ -49,6 +49,7 @@ void write_filters_options(GF_FilterSession *fsess);
 static void gpac_filter_help(void)
 {
 	fprintf(stderr,
+#ifndef GPAC_DISABLE_DOC
 "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
 "This is GPAC's command line tool for setting up and running filter chains.\n"
 "See -h for available options.\n"
@@ -63,7 +64,7 @@ static void gpac_filter_help(void)
 "the filter engine (no such thing as a tee filter in GPAC).\n"
 "When a pid cannot be connected to any filter, a warning is thrown and all packets dispatched on "
 "this pid will be immediately destroyed. The session may however still run.\n"
-"Each output pid carries a set of properties describing the data it delivers (eg width, ehight, codec, ...).\n"
+"Each output pid carries a set of properties describing the data it delivers (eg width, height, codec, ...).\n"
 "Properties can be built-in (identified by a 4 character code in GPAC), or user-defined (identified by a string).\n"
 "Each pid tracks its properties changes and triggers filter reconfiguration during packet processing.\n"
 "This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain "
@@ -82,9 +83,9 @@ static void gpac_filter_help(void)
 "Unsigned 32 bit integer properties can be specified in hexadecimal using the format 0xAABBCCDD.\n"
 "N-dimension properties (vectors) are formatted as DIM1xDIM2[xDIM3[xDIM4]] values, without multiplier.\n"
 "Data properties are formatted as:\n"
-"\t\"size@address\": constant data block, not internally copied; size gives the size of the block, adress the data pointer.\n"
+"\t\"size@address\": constant data block, not internally copied; size gives the size of the block, address the data pointer.\n"
 "\t\"0xBYTESTRING\": data block specified in hexadecimal, internally copied.\n"
-"Pointer properties are formatted as \"adress\", adress giving the pointer adress (32 or 64 bit depending on platforms).\n"
+"Pointer properties are formatted as \"address\", address giving the pointer address (32 or 64 bit depending on platforms).\n"
 "String and interget lists are formatted as val1,val2[,...]\n"
 "\n"
 "Note: Special characters in property formats (0x,/,-,+I,-I,x) cannot be configured.\n"
@@ -106,7 +107,7 @@ static void gpac_filter_help(void)
 "\tEX: \"-i tcp://127.0.0.1:1234/:OPT\" will extract the URL and options\n"
 "Note: one trick to avoid the escape sequence is to declare the urls option at the end, eg f1:opt1=foo:url=http://bar, provided you have only one URL. See arguments inheriting below.\n"
 "\n"
-"Source and sink filters do not need to be adressed by the filter name, specifying src= or dst= instead is enough.\n"
+"Source and sink filters do not need to be addressed by the filter name, specifying src= or dst= instead is enough.\n"
 "You can also use the syntax -src URL or -i URL for sources and -dst URL or -o URL for destination\n"
 "This allows prompt completion in shells\n"
 "\tEX: \"src=file.mp4\", or \"-src file.mp4\" will find a filter (for example \"fin\") able to load src\n"
@@ -250,7 +251,11 @@ static void gpac_filter_help(void)
 "folders listed in GPAC config file section \"core\" key \"mod-dirs\". The files have to be named gf_* and export a single function\n"
 "returning a filter register - see libgpac documentation for more details.\n"
 "\n"
+#else
+"GPAC compiled without built-in doc.\n"
+#endif
 	);
+
 }
 
 
@@ -723,9 +728,13 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 static void print_filter(const GF_FilterRegister *reg, GF_FilterArgMode argmode)
 {
 	fprintf(stderr, "Name: %s\n", reg->name);
+#ifndef GPAC_DISABLE_DOC
 	if (reg->description) fprintf(stderr, "Description: %s\n", reg->description);
 	if (reg->author) fprintf(stderr, "Author: %s\n", reg->author);
 	if (reg->help) fprintf(stderr, "\n%s\n\n", reg->help);
+#else
+	fprintf(stderr, "GPAC compiled without built-in doc\n");
+#endif
 
 	if (argmode==GF_ARGMODE_EXPERT) {
 		if (reg->max_extra_pids==(u32) -1) fprintf(stderr, "Max Input pids: any\n");
@@ -836,7 +845,11 @@ static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_F
 				}
 			}
 		} else {
+#ifndef GPAC_DISABLE_DOC
 			fprintf(stderr, "%s: %s\n", reg->name, reg->description);
+#else
+			fprintf(stderr, "%s (compiled without built-in doc)\n", reg->name);
+#endif
 			found = GF_TRUE;
 
 		}

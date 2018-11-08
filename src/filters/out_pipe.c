@@ -475,8 +475,8 @@ static const GF_FilterCapability PipeOutCaps[] =
 
 GF_FilterRegister PipeOutRegister = {
 	.name = "pout",
-	.description = "pipe output",
-	.help = "This filter handles generic output pipes (mono-directionnal) in blocking mode only.\n"\
+	GF_FS_SET_DESCRIPTION("pipe output")
+	GF_FS_SET_HELP("This filter handles generic output pipes (mono-directionnal) in blocking mode only.\n"\
 		"Output pipes don't currently support non blocking mode\n"\
 		"The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -o pipe://URL where URL is a relative or absolute pipe name)\n"\
 		"Data format of the pipe must currently be specified using extension (either in filename or through ext option) or mime type\n"\
@@ -490,7 +490,7 @@ GF_FilterRegister PipeOutRegister = {
 		"The pipe input can create the pipe if not found using mkp option. On windows hosts, this will create a pipe server.\n"\
 		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction\n"\
 		"\n"\
-	"",
+	"")
 	.private_size = sizeof(GF_PipeOutCtx),
 	.args = PipeOutArgs,
 	SETCAPS(PipeOutCaps),
