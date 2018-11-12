@@ -1265,23 +1265,23 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(max_buffer), "max content buffer in ms. If 0 uses default player settings", GF_PROP_UINT, "10000", NULL, 0},
 	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(store), "enables file caching", GF_PROP_UINT, "mem", "mem|file|cache", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(algo), "adaptation algorithm to use. The following algorithms are defined:\n\
-					\tnone: no adaptation logic\n\
-					\tgrate: GAPC legacy algo based on available rate\n\
-					\tgbuf: GAPC legacy algo based on buffer occupancy\n\
-					\tbba0: BBA-0\n\
-					\tbolaf: BOLA Finite\n\
-					\tbolab: BOLA Basic\n\
-					\tbolau: BOLA-U\n\
-					\tbolao: BOLA-O\n\
-					", GF_PROP_UINT, "gbuf", "none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start_with), "specifies the initial representation criteria:\n\
-						min_q: start with lowest quality\n\
-						max_q: start with highest quality\n\
-						min_bw: start with lowest bitrate\n\
-						max_bw: start with highest bitrate; for tiles are used, all low priority tiles will have the lower (below max) bandwidth selected\n\
-						max_bw_tiles: start with highest bitrate; for tiles all low priority tiles will have their lowest bandwidth selected\n\
-						", GF_PROP_UINT, "min_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", 0},
+	{ OFFS(algo), "adaptation algorithm to use. The following algorithms are defined:\n"\
+					"\tnone: no adaptation logic\n"\
+					"\tgrate: GAPC legacy algo based on available rate\n"\
+					"\tgbuf: GAPC legacy algo based on buffer occupancy\n"\
+					"\tbba0: BBA-0\n"\
+					"\tbolaf: BOLA Finite\n"\
+					"\tbolab: BOLA Basic\n"\
+					"\tbolau: BOLA-U\n"\
+					"\tbolao: BOLA-O"
+					, GF_PROP_UINT, "gbuf", "none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(start_with), "specifies the initial representation criteria:\n"\
+						"\tmin_q: start with lowest quality\n"\
+						"\tmax_q: start with highest quality\n"\
+						"\tmin_bw: start with lowest bitrate\n"\
+						"\tmax_bw: start with highest bitrate; for tiles are used, all low priority tiles will have the lower (below max) bandwidth selected\n"\
+						"\tmax_bw_tiles: start with highest bitrate; for tiles all low priority tiles will have their lowest bandwidth selected"
+						, GF_PROP_UINT, "min_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", 0},
 
 	{ OFFS(max_res), "use max media resolution to configure display", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(immediate), "when interactive switching is requested and immediate is set, the buffer segments are trashed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1293,17 +1293,17 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(server_utc), "Uses ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "Uses screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeshift), "Sets initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tile_mode), "Sets tile adaptiaion mode:\
-						none: bitrate is shared equaly accross all tiles\n\
-						rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row\n\
-						rrows: bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row\n\
-						mrows: bitrate decreased for top and bottom rows only, same rate for each tile on the row\n\
-						cols: bitrate decreases for each columns of tiles starting from the left, same rate for each tile on the columns\n\
-						rcols: bitrate decreases for each columns of tiles starting from the right, same rate for each tile on the columns\n\
-						mcols: bitrate decreased for left and right columns only, same rate for each tile on the columns\n\
-						center: bitrate decreased for all tiles on the edge of the picture\n\
-						edges: bitrate decreased for all tiles on the center of the picture\n\
-						", GF_PROP_UINT, "none", "none|rows|rrows|mrows|cols|rcols|mcols|center|edges", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tile_mode), "Sets tile adaptiaion mode:\n"\
+						"\tnone: bitrate is shared equaly accross all tiles\n"\
+						"\trows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row\n"\
+						"\trrows: bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row\n"\
+						"\tmrows: bitrate decreased for top and bottom rows only, same rate for each tile on the row\n"\
+						"\tcols: bitrate decreases for each columns of tiles starting from the left, same rate for each tile on the columns\n"\
+						"\trcols: bitrate decreases for each columns of tiles starting from the right, same rate for each tile on the columns\n"\
+						"\tmcols: bitrate decreased for left and right columns only, same rate for each tile on the columns\n"\
+						"\tcenter: bitrate decreased for all tiles on the edge of the picture\n"\
+						"\tedges: bitrate decreased for all tiles on the center of the picture"
+						, GF_PROP_UINT, "none", "none|rows|rrows|mrows|cols|rcols|mcols|center|edges", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tiles_rate), "Indicates the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(delay40X), "Delay in millisconds to wait between two 40X on the same segment", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(exp_threshold), "Delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},

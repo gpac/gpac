@@ -812,6 +812,8 @@ void gf_uninit_global_config()
 GF_EXPORT
 const char *gf_opts_get_key(const char *secName, const char *keyName)
 {
+	if (!gpac_global_config) return NULL;
+
 	if (!strcmp(secName, "core")) {
 		const char *opt = gf_cfg_get_key(gpac_global_config, "temp", keyName);
 		if (opt) return opt;
@@ -821,31 +823,37 @@ const char *gf_opts_get_key(const char *secName, const char *keyName)
 GF_EXPORT
 GF_Err gf_opts_set_key(const char *secName, const char *keyName, const char *keyValue)
 {
+	if (!gpac_global_config) return GF_BAD_PARAM;
 	return gf_cfg_set_key(gpac_global_config, secName, keyName, keyValue);
 }
 GF_EXPORT
 void gf_opts_del_section(const char *secName)
 {
+	if (!gpac_global_config) return;
 	gf_cfg_del_section(gpac_global_config, secName);
 }
 GF_EXPORT
 u32 gf_opts_get_section_count()
 {
+	if (!gpac_global_config) return 0;
 	return gf_cfg_get_section_count(gpac_global_config);
 }
 GF_EXPORT
 const char *gf_opts_get_section_name(u32 secIndex)
 {
+	if (!gpac_global_config) return NULL;
 	return gf_cfg_get_section_name(gpac_global_config, secIndex);
 }
 GF_EXPORT
 u32 gf_opts_get_key_count(const char *secName)
 {
+	if (!gpac_global_config) return 0;
 	return gf_cfg_get_key_count(gpac_global_config, secName);
 }
 GF_EXPORT
 const char *gf_opts_get_key_name(const char *secName, u32 keyIndex)
 {
+	if (!gpac_global_config) return NULL;
 	return gf_cfg_get_key_name(gpac_global_config, secName, keyIndex);
 }
 
@@ -869,41 +877,42 @@ GF_GPACArg GPAC_Args[] = {
 			"You can independently log different tools involved in a session.\n"\
 			"log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"\
 	        "levelX can be one of:\n"\
-	        "\t        \"quiet\"      : skip logs\n"\
-	        "\t        \"error\"      : logs only error messages\n"\
-	        "\t        \"warning\"    : logs error+warning messages\n"\
-	        "\t        \"info\"       : logs error+warning+info messages\n"\
-	        "\t        \"debug\"      : logs all messages\n"\
+	        "\tquiet: skip logs\n"\
+	        "\terror: logs only error messages\n"\
+	        "\twarning: logs error+warning messages\n"\
+	        "\tinfo: logs error+warning+info messages\n"\
+	        "\tdebug: logs all messages\n"\
 	        "toolX can be one of:\n"\
-	        "\t        \"core\"       : libgpac core\n"\
-	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"\
-	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
-	        "\t        \"network\"    : network data exept RTP trafic\n"\
-	        "\t        \"rtp\"        : rtp trafic\n"\
-	        "\t        \"author\"     : authoring tools (hint, import, export)\n"\
-	        "\t        \"sync\"       : terminal sync layer\n"\
-	        "\t        \"codec\"      : terminal codec messages\n"\
-	        "\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"\
-	        "\t        \"media\"      : terminal media object management\n"\
-	        "\t        \"scene\"      : scene graph and scene manager\n"\
-	        "\t        \"script\"     : scripting engine messages\n"\
-	        "\t        \"interact\"   : interaction engine (events, scripts, etc)\n"\
-	        "\t        \"smil\"       : SMIL timing engine\n"\
-	        "\t        \"compose\"    : composition engine (2D, 3D, etc)\n"\
-	        "\t        \"mmio\"       : Audio/Video HW I/O management\n"\
-	        "\t        \"rti\"        : various run-time stats\n"\
-	        "\t        \"cache\"      : HTTP cache subsystem\n"\
-	        "\t        \"audio\"      : Audio renderer and mixers\n"\
-	        "\t        \"mem\"        : GPAC memory tracker\n"\
-	        "\t        \"dash\"       : HTTP streaming logs\n"\
-	        "\t        \"module\"     : GPAC modules (av out, font engine, 2D rasterizer))\n"\
-	        "\t        \"filter\"     : filters debugging\n"\
-	        "\t        \"sched\"      : filter session scheduler debugging\n"\
-	        "\t        \"mutex\"      : log all mutex calls\n"\
-	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"\
+	        "\tcore: libgpac core\n"\
+	        "\tcoding: bitstream formats (audio, video, scene)\n"\
+	        "\tcontainer: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
+	        "\tnetwork: network data exept RTP trafic\n"\
+	        "\trtp: rtp trafic\n"\
+	        "\tauthor: authoring tools (hint, import, export)\n"\
+	        "\tsync: terminal sync layer\n"\
+	        "\tcodec: terminal codec messages\n"\
+	        "\tparser: scene parsers (svg, xmt, bt) and other\n"\
+	        "\tmedia: terminal media object management\n"\
+	        "\tscene: scene graph and scene manager\n"\
+	        "\tscript: scripting engine messages\n"\
+	        "\tinteract: interaction engine (events, scripts, etc)\n"\
+	        "\tsmil: SMIL timing engine\n"\
+	        "\tcompose: composition engine (2D, 3D, etc)\n"\
+	        "\tmmio: Audio/Video HW I/O management\n"\
+	        "\trti: various run-time stats\n"\
+	        "\tcache: HTTP cache subsystem\n"\
+	        "\taudio: Audio renderer and mixers\n"\
+	        "\tmem: GPAC memory tracker\n"\
+	        "\tdash: HTTP streaming logs\n"\
+	        "\tmodule: GPAC modules (av out, font engine, 2D rasterizer)\n"\
+	        "\tfilter: filters debugging\n"\
+	        "\tsched: filter session scheduler debugging\n"\
+	        "\tmutex: log all mutex calls\n"\
+	        "\tall: all tools logged - other tools can be specified afterwards.\n"\
 	        "The special keyword \"ncl\" can be set to disable color logs.\n"\
 	        "The special keyword \"strict\" can be set to exit at first error.\n"\
-	        "\tEX: -logs all@info:dash@debug:ncl moves all log to info level, dash to debug level and disable color logs."\
+	        "\tEX: -logs all@info:dash@debug:ncl\n"\
+			"This moves all log to info level, dash to debug level and disable color logs."\
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
 
  GF_DEF_ARG("noprog", NULL, "disables progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
@@ -917,7 +926,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("cfg", "opt", "sets configuration file value. The string parameter can be formatted as:\n"\
 	        "\tsection:key=val: sets the key to a new value\n"\
 	        "\tsection:key=null or section:key: removes the key\n"\
-	        "\tsection:*=null: removes the section\n"\
+	        "\tsection:*=null: removes the section"\
 			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("version", NULL, "sets to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("64bits", NULL, "indicates if GPAC version is 64 bits, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
@@ -951,7 +960,7 @@ GF_GPACArg GPAC_Args[] = {
 		"\tfreex: uses lock-free queues including for task lists (experimental)\n"\
 		"\tflock: uses mutexes for queues even when no thread (debug mode)\n"\
 		"\tdirect: uses no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("max-chain", NULL, "sets maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution). Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("max-chain", NULL, "sets maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-probe", NULL, "disables data probing non source", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
@@ -962,15 +971,15 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("hwvmem", NULL, "specifies (2D renderer only) if main video backbuffer is always on hardware, always on system memory or selected by GPAC (default mode). Depending on the scene type, this may drastically change the playback speed", NULL, "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("vert-shader", NULL, "specifies path to vertex shader file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("frag-shader", NULL, "specifies path to vertex shader file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("pref-yuv4cc", NULL, "sets prefered YUV 4CC for overlays (used by DX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("pref-yuv4cc", NULL, "sets prefered YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("yuv-overlay", NULL, "indicates YUV overlay is possible on the video card. Always overriden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("offscreen-yuv", NULL, "indicates if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("overlay-color-key", NULL, "indicates color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-offscreen", NULL, "indicates openGL mode for offscreen rendering.\n"\
-		"\tWindow: A hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work.\n"\
-    	"\tVisibleWindow: A visible window is used to perform offscreen rendering. This can be usefull while debugging.\n"\
-    	"\tPixmap: An X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player.\n"\
-    	"\tPBuffer: uses opengl PBuffers for drawing, not always supported.\n"\
+		"\tWindow: A hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work\n"\
+    	"\tVisibleWindow: A visible window is used to perform offscreen rendering. This can be usefull while debugging\n"\
+    	"\tPixmap: An X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player\n"\
+    	"\tPBuffer: uses opengl PBuffers for drawing, not always supported"\
  	, NULL, "Window|VisibleWindow|Pixmap|PBuffer", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in openGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in openGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
@@ -980,17 +989,13 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("video-output", NULL, "indicates the name of the video output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("raster2d", NULL, "indicates the name of the 2D rasterizer module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gapi-fbaccess", NULL, "sets GAPI access mode to the backbuffer", NULL, "base|raw|gx", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
-
-
  GF_DEF_ARG("audio-output", NULL, "indicates the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("alsa-devname", NULL, "sets ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),
  GF_DEF_ARG("force-alsarate", NULL, "forces ALSA and OSS output sample rate", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
  GF_DEF_ARG("ds-disable-notif", NULL, "disables DirectSound audio buffer notifications when supported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
-
  GF_DEF_ARG("font-reader", NULL, "indicates name of font reader module", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_TEXT),
  GF_DEF_ARG("font-dirs", NULL, "indicates comma-separated list of directories to scan for fonts", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
  GF_DEF_ARG("rescan-fonts", NULL, "indicates the font directory must be rescanned", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
-
  GF_DEF_ARG("rmt", NULL, "enables profiling through Remotery (https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-port", NULL, "sets remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-reuse", NULL, "have remotery reuse port", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
@@ -1002,6 +1007,9 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("rmt-ogl", NULL, "make remotery sample opengl calls", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  {0}
 };
+
+
+const GF_Config *gf_sys_get_lang_file();
 
 GF_EXPORT
 const GF_GPACArg *gf_sys_get_options()
@@ -1197,7 +1205,7 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 
 
 GF_EXPORT
-void gf_sys_print_arg(const GF_GPACArg *arg)
+void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem)
 {
 	fprintf(stderr, "-%s", arg->name);
 	if (arg->altname)
@@ -1216,7 +1224,7 @@ void gf_sys_print_arg(const GF_GPACArg *arg)
 	if (arg->values)
 		fprintf(stderr, " (values %s)", arg->values);
 	if (arg->description)
-		fprintf(stderr, ": %s", arg->description);
+		fprintf(stderr, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
 	fprintf(stderr, "\n");
 }
 
@@ -1227,8 +1235,6 @@ void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags)
 	u32 i=0;
 	const GF_GPACArg *args = gf_sys_get_options();
 
-	fprintf(stderr, "These options can be set in the config file using section:key sytax core:OPTNAME=val, where OPTNAME is the option name without initial '-' character\n");
-	
 	while (args[i].name) {
 		const GF_GPACArg *arg = &args[i];
 		i++;
@@ -1242,7 +1248,7 @@ void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags)
 			else if ((mode==GF_ARGMODE_ADVANCED) && !(arg->flags & GF_ARG_HINT_ADVANCED)) continue;
 			else if ((mode==GF_ARGMODE_BASE) && (arg->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT) )) continue;
 		}
-		gf_sys_print_arg(arg);
+		gf_sys_print_arg(arg, "core");
 	}
 }
 

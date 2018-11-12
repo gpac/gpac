@@ -5254,8 +5254,10 @@ GF_FilterRegister DasherRegister = {
 	GF_FS_SET_HELP("GPAC DASH and HLS segmenter\n"\
 			"The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)\n"\
 			"The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files\n"\
-			"\tEX: template=Great_$File$_$Width$_$Number$ on 640x360 foo.mp4 source will resolve in Great_foo_640_$Number$ for the DASH template\n"\
-			"\tEX: template=Great_$File$_$Width$ on 640x360 foo.mp4 source will resolve in Great_foo_640.mp4 for onDemand case\n"\
+			"\tEX: template=Great_$File$_$Width$_$Number$\n"\
+			"If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template\n"\
+			"\tEX: template=Great_$File$_$Width$\n"\
+			"If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case\n"\
 			"\n"\
 			"Standard DASH replacement strings\n"\
 	        "\t$Number[%%0Nd]$: is replaced by the segment number, possibly prefixed with 0\n"\
@@ -5285,19 +5287,29 @@ GF_FilterRegister DasherRegister = {
 			"\tDashDur: overrides dasher segment duration for this PID\n"\
 			"\tStartNumber: sets the start number for the first segment in the PID, default is 1\n"
 			"\tNon-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).\n"\
-			"\tEX: \"src=test.mp4:#Bitrate=1M dst=test.mpd\" will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate\n"\
-			"\tEX: \"src=muxav.mp4 dst=test.mpd\" will create unmuxed DASH segments\n"\
-			"\tEX: \"src=muxav.mp4:#Representation=1 dst=test.mpd\" will create muxed DASH segments\n"\
-			"\tEX: \"src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\" will put src m1.mp4 in first period, m2.mp4 in second period\n"\
-			"\tEX: \"src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd\" will assign a base URL to src m1.mp4\n"\
-			"\tEX: \"src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\" will assign the specified XML descriptor to the adaptation set.\n"\
+			"\tEX: src=test.mp4:#Bitrate=1M dst=test.mpd\n"\
+			"This will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate\n"\
+			"\tEX: src=muxav.mp4 dst=test.mpd\n"\
+			"This will create unmuxed DASH segments\n"\
+			"\tEX: src=muxav.mp4:#Representation=1 dst=test.mpd\n"\
+			"This will create muxed DASH segments\n"\
+			"\tEX: src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\n"\
+			"This will put src m1.mp4 in first period, m2.mp4 in second period\n"\
+			"\tEX: src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd\n"\
+			"This will assign a base URL to src m1.mp4\n"\
+			"\tEX: src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\n"\
+			"This will assign the specified XML descriptor to the adaptation set.\n"\
 			"\t\tNote that this can be used to inject most DASH descriptors not natively handled by the dasher\n"\
 			"\t\tThe dasher handles the XML descriptor as a string and does not attempt to validate it.\n"\
 			"\t\tDescriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:\n"\
-			"\tEX: \"src=m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> dst=test.mpd\" will insert two descriptors in the representation(s) of m1.mp4\n"\
-			"\tEX: \"src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd\" will assign different templates to the audio and video sources.\n"\
-			"\tEX: \"src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1\" will insert an create an MPD with first a remote period then a regular one\n"\
-			"\tEX: \"src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4\" will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one\n"\
+			"\tEX: src=m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> dst=test.mpd\n"\
+			"This will insert two descriptors in the representation(s) of m1.mp4\n"\
+			"\tEX: src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd\n"\
+			"This will assign different templates to the audio and video sources.\n"\
+			"\tEX: src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1\n"\
+			"This will insert an create an MPD with first a remote period then a regular one\n"\
+			"\tEX: src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4\n"\
+			"This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one\n"\
 			"\n"\
 			"The dasher will request muxing filter chains for each representation and will reassign PID IDs\n"\
 			"so that each media component (video, audio, ...) in an adaptation set has the same ID\n"\
@@ -5336,8 +5348,8 @@ GF_FilterRegister DasherRegister = {
 			"\t\tnofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"\
 			"\n"\
 			"The dasher will add the following properties to the output PIDs:\n"\
-			"* DashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher\n"\
-			"* DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"\
+			"\tDashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher\n"\
+			"\tDashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"\
 			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,
