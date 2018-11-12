@@ -168,14 +168,23 @@ typedef enum
 
 /*! prints a argument to stderr
 \param arg argument to print
+\param arg_subsystem name of subsystem of argument (core, gpac, filter name) for localization)
 */
-void gf_sys_print_arg(const GF_GPACArg *arg);
+void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem);
 
 /*! prints libgpac help for builton core options to stderr
 \param mode filtering mode based on argument  type
 \param subsystem_flags filtering mode based on argument subsytem flags
 */
 void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags);
+
+/*! gets localized version of string identified by module name and identifier.
+\param sec_name name of the module to query, such as "gpac", "core", or filter name
+\param str_name name of string to query, such as acore/app option or a filter argument
+\param def_val default value to return if no locaization exists
+\return localized version of the string
+*/
+const char *gf_sys_localized(const char *sec_name, const char *str_name, const char *def_val);
 
 /*! @} */
 

@@ -374,9 +374,9 @@ GF_Err compose_initialize(GF_Filter *filter)
 static GF_FilterArgs CompositorArgs[] =
 {
 	{ OFFS(aa), "Set anti-aliasing mode for raster graphics - whether the setting is applied or not depends on the graphics module / graphic card.\n"\
-		"\"none\": no anti-aliasing\n"\
-    	"\"text\": anti-aliasing for text only\n"\
-    	"\"all\": complete anti-aliasing", GF_PROP_UINT, "all", "none|text|all", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+		"\tnone: no anti-aliasing\n"\
+    	"\ttext: anti-aliasing for text only\n"\
+    	"\tall: complete anti-aliasing", GF_PROP_UINT, "all", "none|text|all", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hlfill), "Set highlight fill color (ARGB)", GF_PROP_UINT, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hlline), "Set highlight stroke color (ARGB)", GF_PROP_UINT, "0xFF000000", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hllinew), "Set highlight stroke width", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
@@ -386,7 +386,10 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(blitp), "partial hardware blits (if not set, will force more redraw)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stress), "enables stress mode of compositor (rebuild all vector graphics and texture states at each frame)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fast), "enables speed optimization - whether the setting is applied or not depends on the graphics module / graphic card", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(bvol), "draws bounding volume of objects. In 2D mode, only rectangles are used as bounding volumes. The \"aabb\" value is used in 3D mode only, and specifies the object bounding-box tree shall be drawn", GF_PROP_UINT, "no", "no|box|aabb", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(bvol), "draws bounding volume of objects.\n"\
+			"\tno: disable bounding box\n"\
+			"\tbox: draws a rectangle (2D) or box (3D mode)\n"\
+			"\taabb: draws axis-aligned bounding-box tree (3D only)", GF_PROP_UINT, "no", "no|box|aabb", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(textxt), "specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Default value will use texturing for OpenGL rendering.", GF_PROP_UINT, "default", "default|never|always", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(out8b), "converts 10-bit video to 8 bit texture before GPU upload.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(drop), "drops late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
@@ -408,9 +411,9 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(apan), "audio pan in percent, 50 is no pan", GF_PROP_UINT, "50", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(async), "audio resynchronization; if disabled, audio data is never dropped but may get out of sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 
-	{ OFFS(buf), "playout buffer in ms. Overriden by \"BufferLenth\" property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(rbuf), "rebuffer trigger in ms. Overriden by \"RebufferLenth\" property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). Overriden by \"BufferMaxOccupancy\" property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(buf), "playout buffer in ms. Overriden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(rbuf), "rebuffer trigger in ms. Overriden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specifies 2D rendering mode. When on, this will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not look as nice as 2D mode. In hybrid mode, the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).", GF_PROP_UINT, "auto", "auto|off|hybrid|on|raster", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
@@ -418,8 +421,8 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(nav), "overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)", GF_PROP_UINT, "none", "none|walk|fly|pan|game|slide|exam|orbit|vr", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(linegl), "specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(epow2), "emulate power-of-2 textures for openGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled\n"\
-	"\"yes\": video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"\
-	"\"no\": video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	"\tyes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"\
+	"\tno: video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(paa), "specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(bcull), "specifies whether backface culling shall be disable or not.", GF_PROP_UINT, "on", "off|on|alpha", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(wire), "enables wireframe mode.\n"\

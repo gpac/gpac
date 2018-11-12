@@ -488,8 +488,7 @@ GF_FilterRegister PipeOutRegister = {
 		"Any destination name starting with \\\\ is used as is, with \\ translated in /\n"\
 		"\n"\
 		"The pipe input can create the pipe if not found using mkp option. On windows hosts, this will create a pipe server.\n"\
-		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction\n"\
-		"\n"\
+		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction"\
 	"")
 	.private_size = sizeof(GF_PipeOutCtx),
 	.args = PipeOutArgs,

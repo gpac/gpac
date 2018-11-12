@@ -545,8 +545,10 @@ GF_FilterRegister SockOutRegister = {
 		"The socket output can be configured to drop or revert packet order for test purposes. In both cases, a window size in packets is specified\n"
 		"as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator\n"
 		"If the numerator is 0, a packet is randomly chosen in that window\n"
-		"\tEX: :pckd=4/10 drops every 4th packet of each 10 packet window\n"
-		"\tEX: :pckr=0/100 reverts the send order of one random packet in each 100 packet window\n"
+		"\tEX: :pckd=4/10\n"\
+		"This drops every 4th packet of each 10 packet window\n"
+		"\tEX: :pckr=0/100\n"\
+		"This reverts the send order of one random packet in each 100 packet window\n"
 		"\n")
 	.private_size = sizeof(GF_SockOutCtx),
 	.args = SockOutArgs,
