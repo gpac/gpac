@@ -3476,7 +3476,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			interleaving_time = atof(argv[i + 1]) / 1000;
 			needSave = GF_TRUE;
 			i++;
-			Frag = 1;
+			Frag = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
