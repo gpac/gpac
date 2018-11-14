@@ -91,6 +91,13 @@ void gf_odm_del(GF_ObjectManager *odm)
 	}
 	if (odm->lower_layer_odm) {
 		odm->lower_layer_odm->upper_layer_odm = NULL;
+		if (odm->lower_layer_odm->codec) {
+			GF_CodecCapability cap;
+			//switch off enhancement layer
+			cap.CapCode = GF_CODEC_MEDIA_LAYER_DETACH;
+			cap.cap.valueInt = 0;
+			gf_codec_set_capability(odm->lower_layer_odm->codec, cap);
+		}
 	}
 	/*make sure we are not in the media queue*/
 	gf_term_lock_media_queue(odm->term, GF_TRUE);

@@ -641,40 +641,58 @@ refetch_AU:
 	if (current_odm->upper_layer_odm) {
 		GF_CodecCapability cap;
 		Bool check_addon = GF_TRUE;
-		if (*nextAU) {
-			GF_AddonMedia *addon = current_odm->upper_layer_odm->parentscene->root_od->addon;
-			if (gf_scene_check_addon_restart(addon, (*nextAU)->CTS, (*nextAU)->DTS)) {
-				//due to some issues in openhevc we reset the decoder when we restart the scalable addon
-				GF_CodecCapability cap;
-				cap.CapCode = GF_CODEC_WAIT_RAP;
-				gf_codec_set_capability(codec, cap);
-			}
 
-			assert(addon->addon_type==GF_ADDON_TYPE_SCALABLE);
-			if (addon->is_splicing) {
-				//addon start not yet reached
-				if (addon->splice_start > (*nextAU)->CTS ) check_addon = GF_FALSE;
-				//addon end reached
-				if ((addon->is_over==2) || ((addon->splice_end>=0) && (addon->splice_end <= (*nextAU)->CTS) ) ) {
-					check_addon = GF_FALSE;
-					//switch off enhancement layer
-					if (codec->coding_config_changed) {
+		if (*nextAU) {
+			GF_AddonMedia *addon;
+			/*lock net in case the addon gets destroyed*/
+			gf_term_lock_net(current_odm->term, GF_TRUE);
+			addon = current_odm->upper_layer_odm ? current_odm->upper_layer_odm->parentscene->root_od->addon : NULL;
+			gf_term_lock_net(current_odm->term, GF_FALSE);
+
+			if (!addon) {
+				check_addon = GF_FALSE;
+				current_odm->upper_layer_odm = NULL;
+				//switch off enhancement layer
+				if (codec->coding_config_changed) {
+					cap.CapCode = GF_CODEC_MEDIA_LAYER_DETACH;
+					cap.cap.valueInt = 0;
+					gf_codec_set_capability(codec, cap);
+				}
+			} else {
+
+				if (gf_scene_check_addon_restart(addon, (*nextAU)->CTS, (*nextAU)->DTS)) {
+					//due to some issues in openhevc we reset the decoder when we restart the scalable addon
+					GF_CodecCapability cap;
+					cap.CapCode = GF_CODEC_WAIT_RAP;
+					gf_codec_set_capability(codec, cap);
+				}
+
+				assert(addon->addon_type==GF_ADDON_TYPE_SCALABLE);
+				if (addon->is_splicing) {
+					//addon start not yet reached
+					if (addon->splice_start > (*nextAU)->CTS ) check_addon = GF_FALSE;
+					//addon end reached
+					if ((addon->is_over==2) || ((addon->splice_end>=0) && (addon->splice_end <= (*nextAU)->CTS) ) ) {
+						check_addon = GF_FALSE;
+						//switch off enhancement layer
+						if (codec->coding_config_changed) {
+							cap.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
+							cap.cap.valueInt = 0;
+							gf_codec_set_capability(codec, cap);
+						}
+
+						gf_list_del_item(codec->odm->parentscene->declared_addons, addon);
+						gf_scene_reset_addon(addon, GF_TRUE);
+						current_odm->upper_layer_odm = NULL;
+						*prev_channel_unreliable = GF_TRUE;
+					}
+					//switch on enhancement layer
+					if (check_addon && !codec->coding_config_changed) {
+						codec->coding_config_changed = GF_TRUE;
 						cap.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
-						cap.cap.valueInt = 0;
+						cap.cap.valueInt = 1;
 						gf_codec_set_capability(codec, cap);
 					}
-
-					gf_list_del_item(codec->odm->parentscene->declared_addons, addon);
-					gf_scene_reset_addon(addon, GF_TRUE);
-					current_odm->upper_layer_odm = NULL;
-					*prev_channel_unreliable = GF_TRUE;
-				}
-				//switch on enhancement layer
-				if (check_addon && !codec->coding_config_changed) {
-					codec->coding_config_changed = GF_TRUE;
-					cap.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
-					cap.cap.valueInt = 1;
-					gf_codec_set_capability(codec, cap);
 				}
 			}
 		}
@@ -1759,6 +1777,7 @@ scalable_retry:
 		if (cts_diff > 20000 ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] decoded frame CTS %d but input frame CTS %d, likely due to clock discontinuity\n", codec->decio->module_name, CU->TS, cts));
 			CU->TS = cts;
+			CU->TS = 0;
 		}
 
 		UnlockCompositionUnit(codec, CU, unit_size);

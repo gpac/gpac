@@ -59,7 +59,7 @@ typedef struct
 
 	GF_ESD *esd;
 	OHHandle codec;
-	u32 nb_layers, cur_layer;
+	u32 nb_layers, cur_layer, prev_cur_layer;
 	u32 output_cb_size;
 
 	Bool decoder_started;
@@ -96,6 +96,7 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
 		ctx->nb_layers++;
+		ctx->prev_cur_layer = ctx->cur_layer;
 		ctx->cur_layer++;
 		oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
 		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
@@ -541,6 +542,14 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 			}
 		}
 		return GF_OK;
+	case GF_CODEC_MEDIA_LAYER_DETACH:
+		if (ctx->cur_layer<=1) return GF_OK;
+		ctx->cur_layer--;
+		if (ctx->nb_layers>1) ctx->nb_layers--;
+		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
+		oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
+		ctx->force_stereo_reset = ctx->force_stereo;
+		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		if (ctx->nb_layers==1) return GF_OK;
 		if (ctx->nb_layers==1 || ctx->nb_views!=1) return GF_OK;
@@ -582,7 +591,13 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		oh_frameinfo_update(ctx->codec, &openHevcFrame_FL.frame_par);
 	}else{
 		oh_cropped_frameinfo(ctx->codec, &openHevcFrame_FL.frame_par);
-		if (ctx->nb_layers == 2) oh_cropped_frameinfo_from_layer(ctx->codec, &openHevcFrame_SL.frame_par, 1);
+		if (ctx->nb_layers == 2) {
+			int res = oh_cropped_frameinfo_from_layer(ctx->codec, &openHevcFrame_SL.frame_par, 1);
+			if ( (res==1) && (ctx->prev_cur_layer != ctx->cur_layer)) {
+				ctx->prev_cur_layer = ctx->cur_layer;
+				ctx->force_stereo_reset = GF_TRUE;
+			}
+		}
 	}
 
 	a_w      = openHevcFrame_FL.frame_par.width;
