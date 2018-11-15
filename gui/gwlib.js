@@ -3122,15 +3122,17 @@ function gw_new_message(container, label, content) {
     }
     notif.set_size(0.8 * gw_display_width, 120);
 
-    notif.timer = gw_new_timer(false);
-    notif.timer.wnd = notif;
-    notif.timer.set_timeout(gwskin.default_message_timeout, false);
-    notif.timer.start(0);
-    notif.timer.on_active = function (val) {
-        if (!val) this.wnd.close();
+    if (arguments.length < 4) {
+        notif.timer = gw_new_timer(false);
+        notif.timer.wnd = notif;
+        notif.timer.set_timeout(gwskin.default_message_timeout, false);
+        notif.timer.start(0);
+        notif.timer.on_active = function (val) {
+            if (!val) this.wnd.close();
+        }
+        notif.show_effect = 'notif';
+        notif._no_focus = true;
     }
-    notif.show_effect = 'notif';
-    notif._no_focus = true;
     return notif;
 }
 
