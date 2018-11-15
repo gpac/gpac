@@ -169,7 +169,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 	
 //	kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
 //	ctx->pix_fmt = GF_PIXEL_YV12;
-	
+
 	kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
 	ctx->pix_fmt = GF_PIXEL_NV12;
 	
@@ -350,8 +350,8 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 				break;
 			default:
 				if (ctx->luma_bit_depth>8) {
-					kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-					ctx->pix_fmt = GF_PIXEL_YV12_10;
+					kColorSpace = kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange;
+					ctx->pix_fmt = GF_PIXEL_NV12_10;
 				}
 				break;
 			}
