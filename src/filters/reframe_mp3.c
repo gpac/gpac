@@ -184,6 +184,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL );
 
+	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 
 	ctx->nb_ch = gf_mp3_num_channels(ctx->hdr);
 	ctx->codecid = gf_mp3_object_type_indication(ctx->hdr);
@@ -528,7 +529,7 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 static const GF_FilterCapability MP3DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-mp3|audio/mp3"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/mp3|audio/x-mp3"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
