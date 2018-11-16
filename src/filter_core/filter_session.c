@@ -685,9 +685,9 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	szCodec[1] = fsess->sep_name;
 	szCodec[2] = 0;
 
-	cid = strstr(args, szCodec);
+	cid = args ? strstr(args, szCodec) : NULL;
 	if (!cid) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing codec identifier in \"enc\" definition: %s\n", args));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing codec identifier in \"enc\" definition: %s\n", args ? args : "no arguments"));
 		return NULL;
 	}
 	sep = strchr(cid, fsess->sep_args);
