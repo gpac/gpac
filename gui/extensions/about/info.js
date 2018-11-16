@@ -3,7 +3,7 @@ extension = {
 
         var str = 'Version ' +  gpac.get_option('General', 'Version');
         str += '\nMore info: http://gpac.io';
-        str += '\nDistributed under LGPL v2.1';
+        str += '\nDistributed under LGPL v2.1 or any later version';
         str += '\n(c) 2002-2018 Telecom ParisTech';
         str += '\n\nThanks to all great OSS tools used in GPAC: FreeType, SpiderMonkey, OpenHEVC, ffmpeg, libjpeg, libpng, faad2, libmad, SDL, ...';
         notif = gw_new_message(null, 'About GPAC', str, 0);
