@@ -707,7 +707,7 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		nb_frames++;
 	}
 	gf_bs_del(bs);
-	if (nb_frames) {
+	if (nb_frames>=2) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/aac";
 	}
