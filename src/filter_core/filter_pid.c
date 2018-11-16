@@ -1812,15 +1812,16 @@ static s32 gf_filter_reg_get_output_stream_type(const GF_FilterRegister *freg, u
 	return 0;
 }
 
-static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel, s32 dst_stream_type)
+static Bool gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel, s32 dst_stream_type)
 {
-	u32 i;
+	u32 i=0;
 	Bool break_loop = (reg_desc->edges_marked_rlevel < rlevel) ? GF_TRUE: GF_FALSE;
-	if (src_freg == reg_desc->freg)
-		return;
 
+	if (src_freg == reg_desc->freg) {
+		return GF_TRUE;
+	}
 	if (rlevel > fsess->max_resolve_chain_len) {
-		return;
+		return GF_FALSE;
 	}
 
 	reg_desc->edges_marked_rlevel = rlevel;
@@ -1848,23 +1849,17 @@ static void gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc
 			if ((dst_stream_type==GF_STREAM_ENCRYPTED) && source_stream_type>0)
 				dst_stream_type = source_stream_type;
 
-
-			if (!strcmp(edge->src_reg->freg->name, "rfac3"))
-				i = i;
-			if (!strcmp(edge->src_reg->freg->name, "a52"))
-				i = i;
-
 			//if stream types are know (>0) and not source files, do not mark the edges if they mismatch
 			//moving from non-file type A to non-file type B requires an explicit filter
-			if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type))
+			if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type)) {
 				continue;
-
-			edge->status = EDGE_STATUS_ENABLED;
-
-			//fprintf(stderr, "enable edge from %s to %s\n", edge->src_reg->freg->name, reg_desc->freg->name);
-			gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1, source_stream_type);
+			}
+			if (gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1, source_stream_type)) {
+				edge->status = EDGE_STATUS_ENABLED;
+			}
 		}
 	}
+	return GF_TRUE;
 }
 
 
@@ -2110,7 +2105,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				u8 priority=0;
 				u32 dst_bundle_idx;
 				//check path weight for the given dst cap - we MUST give the target cap otherwise we might get a default match to another cap
-				path_weight = gf_filter_pid_caps_match(pid, freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, edge->dst_cap_idx);
+				path_weight = gf_filter_pid_caps_match(pid, freg, NULL, &priority, &dst_bundle_idx, pid->filter->dst_filter, edge->dst_cap_idx);
 				if (!path_weight) {
 					edge->status = EDGE_STATUS_DISABLED;
 					continue;
@@ -2136,8 +2131,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	}
 	//create a new node for the destination based on elligible filters in the graph
 	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
-
-	//create on the set of nodes elligible
 	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst);
 	reg_dst->dist = 0;
 	reg_dst->priority = 0;
