@@ -1949,6 +1949,7 @@ GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frame
 	if ((byte & 0xe0) != 0xc0)
 		goto exit; /*no superframe*/
 
+	frame_sizes[0] = 0;
 	for (i = 0; i < *num_frames_in_superframe; ++i) {
 		gf_bs_read_data(bs, (char*)(frame_sizes+i), bytes_per_framesize);
 	}

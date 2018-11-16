@@ -417,7 +417,7 @@ static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, timescale, acfg.nb_chan, 16);
+	gf_isom_set_audio_info(import->dest, track, di, timescale, acfg.nb_chan, 16, import->asemode);
 
 	/*add first sample*/
 	samp = gf_isom_sample_new();
@@ -1318,6 +1318,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			sprintf(szSubArg, "pack3gp=%d", importer->frames_per_sample);
 			DYNSTRCAT(szSubArg);
 		}
+		if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { DYNSTRCAT("ase=v0s"); }
+		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { DYNSTRCAT("ase=v1"); }
+		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { DYNSTRCAT("ase=v1qt"); }
 
 		isobmff_mux = gf_fs_load_filter(fsess, args);
 		gf_free(args);

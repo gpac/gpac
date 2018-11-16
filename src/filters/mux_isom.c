@@ -154,7 +154,7 @@ typedef struct
 	u32 tkid;
 	Bool fdur;
 	Bool btrt;
-
+	GF_AudioSampleEntryImportMode ase;
 
 	//internal
 	Bool owns_mov;
@@ -1459,7 +1459,7 @@ multipid_stsd_setup:
 		gf_free(gpp_cfg);
 	}
 
-	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps);
+	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->ase);
 	else if (width) {
 		gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
 		if (sar.den && (sar.num != sar.den)) {
@@ -3360,6 +3360,13 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragments based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "sets btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(ase), "sets audio sample entry mode for more than stereo layouts:\n"\
+			"\t:v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
+			"\t:v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
+			"\t:v1: use v1 signaling, ISOBMFF style\n"\
+			"\t:v1qt: use v1 signaling, QTFF style\n"\
+		, GF_PROP_BOOL, "v0", "v0|v0s|v1|v1qt", 0},
+
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };

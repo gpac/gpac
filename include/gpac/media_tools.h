@@ -372,6 +372,8 @@ typedef struct __track_import
 	const char *filter_src_opts;
 	/*! any filter options to pass to sink*/
 	const char *filter_dst_opts;
+
+	GF_AudioSampleEntryImportMode asemode;
 } GF_MediaImporter;
 
 /*!
