@@ -644,7 +644,10 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 
 void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 {
-	fprintf(trace, " DataReferenceIndex=\"%d\" SampleRate=\"%d\"", p->dataReferenceIndex, p->samplerate_hi);
+	fprintf(trace, " DataReferenceIndex=\"%d\"", p->dataReferenceIndex);
+	if (p->version)
+		fprintf(trace, " Version=\"%d\"", p->version);
+	fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
 	fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
 }
 
@@ -820,8 +823,10 @@ GF_Err dref_dump(GF_Box *a, FILE * trace)
 
 GF_Err stsd_dump(GF_Box *a, FILE * trace)
 {
-//	GF_SampleDescriptionBox *p = (GF_SampleDescriptionBox *)a;
+	GF_SampleDescriptionBox *p = (GF_SampleDescriptionBox *)a;
 	gf_isom_box_dump_start(a, "SampleDescriptionBox", trace);
+	if (p->version)
+		fprintf(trace, " version=\"%d\"", p->version);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("SampleDescriptionBox", a, trace);
 	return GF_OK;
