@@ -981,7 +981,7 @@ typedef enum
 	GF_FEVT_CAPS_CHANGE,
 	/*! inidicates the PID could not be connected - the pid passed is an output pid of the filter, no specific event structure is associated*/
 	GF_FEVT_CONNECT_FAIL,
-	/*mouse move event, send from compositor down to filters*/
+	/*! mouse move event, send from compositor down to filters*/
 	GF_FEVT_MOUSE,
 } GF_FEventType;
 
