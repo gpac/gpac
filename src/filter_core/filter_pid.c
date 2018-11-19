@@ -2946,10 +2946,13 @@ restart:
 		if (pid->filter->freg->process_event) {
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
-
-			GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
-			gf_filter_pid_send_event(pid, &evt);
 		}
+
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+		
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
@@ -4189,8 +4192,7 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 	gf_free(evt);
 }
 
-GF_EXPORT
-void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
+void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, Bool force_downstream)
 {
 	GF_FilterEvent *dup_evt;
 	GF_FilterPid *target_pid=NULL;
@@ -4202,7 +4204,7 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	//filter is being shut down, prevent any event posting
 	if (pid->filter->finalized) return;
 
-	if (PID_IS_OUTPUT(pid)) {
+	if (!force_downstream && PID_IS_OUTPUT(pid)) {
 		upstream = GF_TRUE;
 	}
 
@@ -4247,7 +4249,12 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 		safe_int_inc(&target_pid->filter->num_events_queued);
 	}
 	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, target_pid, "downstream_event", dup_evt);
+}
 
+GF_EXPORT
+void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
+{
+	gf_filter_pid_send_event_internal(pid, evt, GF_FALSE);
 }
 
 GF_EXPORT

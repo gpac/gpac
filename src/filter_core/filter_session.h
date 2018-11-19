@@ -794,6 +794,8 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt);
 
 GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter);
 
+void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, Bool force_downstream);
+
 #endif //_GF_FILTER_SESSION_H_
 
 
