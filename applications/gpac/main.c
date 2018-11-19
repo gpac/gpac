@@ -768,8 +768,9 @@ restart:
 		}
 
 		if (!filter) {
-			 GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s %s\n", is_simple ? "" : " for",  arg));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s %s\n", is_simple ? "" : " for",  arg));
 			if (!e) e = GF_NOT_SUPPORTED;
+			nb_filters=0;
 			goto exit;
 		}
 		nb_filters++;
