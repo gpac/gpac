@@ -1323,11 +1323,13 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 	return GF_OK;
 }
 
-static GFINLINE void print_filter_name(GF_Filter *f)
+static GFINLINE void print_filter_name(GF_Filter *f, Bool skip_id)
 {
 	fprintf(stderr, "%s", f->name);
-	if (f->id) fprintf(stderr, " ID %s", f->id);
+	if (!skip_id && f->id) fprintf(stderr, " ID %s", f->id);
 	if (f->dynamic_filter) return;
+
+	if (!f->src_args && !f->orig_args && !f->dst_args) return;
 	fprintf(stderr, " (");
 	if (f->src_args) fprintf(stderr, "%s", f->src_args);
 	else if (f->orig_args) fprintf(stderr, "%s", f->orig_args);
@@ -1352,7 +1354,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		ipids = f->num_input_pids;
 		opids = f->num_output_pids;
 		fprintf(stderr, "\tFilter ");
-		print_filter_name(f);
+		print_filter_name(f, GF_FALSE);
 		fprintf(stderr, " : %d input pids %d output pids "LLU" tasks "LLU" us process time\n", ipids, opids, f->nb_tasks_done, f->time_process);
 
 		if (ipids) {
@@ -1410,41 +1412,80 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks);
 }
 
+static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent)
+{
+	u32 i=0;
+
+	while (i<indent) {
+		fprintf(stderr, "-");
+		i++;
+	}
+
+	print_filter_name(f, GF_TRUE);
+	fprintf(stderr, "\n");
+
+	if (gf_list_find(filters_done, f)>=0)
+		return;
+
+	gf_list_add(filters_done, f);
+
+	for (i=0; i<f->num_output_pids; i++) {
+		u32 j;
+		GF_FilterPid *pidout = gf_list_get(f->output_pids, i);
+		for (j=0; j<pidout->num_destinations; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pidout->destinations, j);
+			gf_fs_print_filter_outputs(pidi->filter, filters_done, indent+1);
+		}
+	}
+
+}
 GF_EXPORT
 void gf_fs_print_connections(GF_FilterSession *fsess)
 {
-	u32 i, j, k, count;
-
+	u32 i, count;
+	Bool has_undefined=GF_FALSE;
+	Bool has_connected=GF_FALSE;
+	Bool has_unconnected=GF_FALSE;
+	GF_List *filters_done;
 	fprintf(stderr, "\n");
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
+	filters_done = gf_list_new();
+
 	count=gf_list_count(fsess->filters);
-	fprintf(stderr, "Filter connections - %d filters\n", count);
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
-		fprintf(stderr, "\tFilter ");
-		print_filter_name(f);
-		if (f->source_ids) fprintf(stderr, " sources %s", f->source_ids);
-		fprintf(stderr, " %d in %d out:\n", f->num_input_pids, f->num_output_pids);
-
-		for (j=0; j<f->num_input_pids; j++) {
-			GF_FilterPidInst *pidi = gf_list_get(f->input_pids, j);
-			fprintf(stderr, "\t\t%s input from ", pidi->pid->name);
-			print_filter_name(pidi->pid->filter);
-			fprintf(stderr, "\n");
+		//only dump sources
+		if (f->num_input_pids) continue;
+		if (!f->num_output_pids) continue;
+		if (!has_connected) {
+			has_connected = GF_TRUE;
+			fprintf(stderr, "Filters connected:\n");
 		}
-		for (j=0; j<f->num_output_pids; j++) {
-			GF_FilterPid *pid = gf_list_get(f->output_pids, j);
-			for (k=0; k<pid->num_destinations; k++) {
-				GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
-				fprintf(stderr, "\t\t%s output to ", pid->name);
-				print_filter_name(pidi->filter);
-				fprintf(stderr, "\n");
-			}
-		}
-		fprintf(stderr, "\n");
+		gf_fs_print_filter_outputs(f, filters_done, 0);
 	}
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		//only dump not connected ones
+		if (f->num_input_pids || f->num_output_pids) continue;
+		if (!has_unconnected) {
+			has_unconnected = GF_TRUE;
+			fprintf(stderr, "Filters not connected:\n");
+		}
+		gf_fs_print_filter_outputs(f, filters_done, 0);
+	}
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		if (gf_list_find(filters_done, f)>=0) continue;
+		if (!has_undefined) {
+			has_undefined = GF_TRUE;
+			fprintf(stderr, "Filters in unknown connection state:\n");
+		}
+		gf_fs_print_filter_outputs(f, filters_done, 0);
+	}
+
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+	gf_list_del(filters_done);
 }
 
 
