@@ -917,6 +917,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_CODECID, "CodecID", "Codec ID (MPEG-4 OTI or ISOBMFF 4CC)", GF_PROP_UINT},
 	{ GF_PROP_PID_IN_IOD, "InitialObjectDescriptor", "Indicates if pid is declared in the IOD for MPEG-4", GF_PROP_BOOL},
 	{ GF_PROP_PID_UNFRAMED, "Unframed", "Indicates that the media data is not framed, i.e. each packet is not a complete AU/frame or is not in internal format (eg annexB for avc/hevc, adts for aac)", GF_PROP_BOOL},
+	{ GF_PROP_PID_UNFRAMED_LATM, "LATM", "Indicates media is unframed AAC in LATM format", GF_PROP_BOOL},
 	{ GF_PROP_PID_DURATION, "Duration", "Media duration", GF_PROP_FRACTION},
 	{ GF_PROP_PID_NB_FRAMES, "NumFrames", "Number of frames in the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FRAME_SIZE, "ConstantFrameSize", "Size of the frames for constant frame size streams", GF_PROP_UINT},

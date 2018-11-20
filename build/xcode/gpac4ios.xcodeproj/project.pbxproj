@@ -363,6 +363,7 @@
 		929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929816EF8BC200B7C64F /* icon_ipad.png */; };
 		929A929F16EF8BC200B7C64F /* icon_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929916EF8BC200B7C64F /* icon_retina.png */; };
 		929A92A016EF8BC200B7C64F /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929A16EF8BC200B7C64F /* icon.png */; };
+		929FA64321A3E83F000455A7 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 929FA64221A3E83E000455A7 /* reframe_latm.c */; };
 		92B039F716F2050100B2568F /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B039F616F2050100B2568F /* libSDL2.a */; };
 		92BC210316EF8E7A000E0620 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199991278778800ACFF58 /* audio.c */; };
 		92BC210716EF8E7A000E0620 /* cursors.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999A1278778800ACFF58 /* cursors.c */; };
@@ -919,6 +920,7 @@
 		929A929816EF8BC200B7C64F /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad.png; path = ../../applications/osmo4_ios/Resources/icon_ipad.png; sourceTree = SOURCE_ROOT; };
 		929A929916EF8BC200B7C64F /* icon_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_retina.png; path = ../../applications/osmo4_ios/Resources/icon_retina.png; sourceTree = SOURCE_ROOT; };
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
+		929FA64221A3E83E000455A7 /* reframe_latm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_latm.c; path = ../../src/filters/reframe_latm.c; sourceTree = "<group>"; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
 		92B69DB31A091CFC004E74AA /* h2b2vs.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = h2b2vs.js; sourceTree = "<group>"; };
 		92B69DB41A091CFC004E74AA /* H2B2VS.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = H2B2VS.png; sourceTree = "<group>"; };
@@ -2052,6 +2054,7 @@
 				92EB6D8420E4E19300A97A49 /* reframe_amr.c */,
 				92EB6DBA20E4E19700A97A49 /* reframe_h263.c */,
 				92EB6D8520E4E19300A97A49 /* reframe_img.c */,
+				929FA64221A3E83E000455A7 /* reframe_latm.c */,
 				92EB6DA520E4E19500A97A49 /* reframe_mp3.c */,
 				92EB6DBB20E4E19700A97A49 /* reframe_mpgvid.c */,
 				92EB6D7520E4E19200A97A49 /* reframe_nalu.c */,
@@ -2547,6 +2550,7 @@
 				71CCF2E01277045100339E12 /* mpeg2_ps.c in Sources */,
 				71CCF2E21277045100339E12 /* mpegts.c in Sources */,
 				71CCF2E31277045100339E12 /* reedsolomon.c in Sources */,
+				929FA64321A3E83F000455A7 /* reframe_latm.c in Sources */,
 				92EB6D6920E4E17F00A97A49 /* filter_queue.c in Sources */,
 				71CCF2E41277045100339E12 /* saf.c in Sources */,
 				8959AC89211C9C3C004D2C87 /* in_sock.c in Sources */,
