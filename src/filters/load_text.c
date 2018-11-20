@@ -2790,6 +2790,38 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		*score = GF_FPROBE_SUPPORTED;
 		return "subtitle/vtt";
 	}
+	if (strstr(data, " --> ")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/srt";
+	}
+	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "application/x-shockwave-flash";
+	}
+
+	if ((data[0]=='{') && strstr(data, "}{")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/sub";
+
+	}
+	/*XML formats*/
+	if (!strstr(data, "?>") )  return NULL;
+
+	if (strstr(data, "<x-quicktime-tx3g") || strstr(data, "<text3GTrack")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "quicktime/text";
+
+	}
+	if (strstr(data, "TextStream")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/ttxt";
+	}
+	if (strstr(data, "tt")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/ttml";
+
+	}
+
 	return NULL;
 }
 static const GF_FilterCapability TXTInCaps[] =
