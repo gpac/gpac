@@ -482,10 +482,13 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		return GF_OK;
 	}
 
+#if 0
+	//this code is wrong, it prevents dispatch of play events down the graph
 	if (!pid->initial_play_done && !pid->is_playing) {
 		pid->initial_play_done = GF_TRUE;
 		pid->is_playing = GF_TRUE;
 	}
+#endif
 
 	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
