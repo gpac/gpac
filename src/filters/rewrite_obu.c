@@ -131,6 +131,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->fps.den = 1;
 	}
 	gf_filter_pid_set_property_str(ctx->opid, "obu:mode", &PROP_UINT(ctx->mode) );
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 
 	return GF_OK;
 }

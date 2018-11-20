@@ -78,6 +78,7 @@ GF_Err m4vmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->dsi_size = dcd->value.data.size;
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	return GF_OK;
 }
 
