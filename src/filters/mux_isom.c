@@ -3365,7 +3365,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			"\t:v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
 			"\t:v1: use v1 signaling, ISOBMFF style\n"\
 			"\t:v1qt: use v1 signaling, QTFF style\n"\
-		, GF_PROP_BOOL, "v0", "v0|v0s|v1|v1qt", 0},
+		, GF_PROP_UINT, "v0", "v0|v0s|v1|v1qt", 0},
 
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
