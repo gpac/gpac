@@ -120,6 +120,8 @@ typedef struct
 	u32 last_dyn_period_id;
 	u32 next_pid_id_in_period;
 	Bool post_play_events;
+
+	Bool force_period_switch;
 } GF_DasherCtx;
 
 
@@ -262,6 +264,8 @@ typedef struct _dash_stream
 
 	Bool clamp_done;
 } GF_DashStream;
+
+static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds);
 
 
 static GF_DasherPeriod *dasher_new_period()
@@ -505,7 +509,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						//DASH-IF IOP 3.3 mandates the SBR/PS info
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Could not get AAC info, %s\n", gf_error_to_string(res)));
 					}
-				} else {
+				} else if (dsi) {
 					dasher_get_audio_info_with_m4a_sbr_ps(ds, dsi, NULL, &_nb_ch);
 				}
 				break;
@@ -592,7 +596,21 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_OK;
 	}
 	if (period_switch) {
-		gf_list_del_item(ctx->current_period->streams, ds);
+		s32 res = gf_list_del_item(ctx->current_period->streams, ds);
+		//force end of segment if stream is not yet done and in current period
+		if ((res>=0) && !ds->done && !ds->seg_done) {
+			GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s config changed during active period, forcing period switch\n", gf_filter_pid_get_name(ds->ipid) ));
+			ds->seg_done = GF_TRUE;
+			assert(base_ds->nb_comp_done < base_ds->nb_comp);
+			base_ds->nb_comp_done ++;
+			ds->first_cts_in_next_seg = ds->est_next_dts;;
+
+			if (base_ds->nb_comp_done == base_ds->nb_comp) {
+				dasher_flush_segment(ctx, base_ds);
+			}
+			ctx->force_period_switch = GF_TRUE;
+		}
 		gf_list_add(ctx->next_period->streams, ds);
 		ds->period = ctx->next_period;
 	}
@@ -811,7 +829,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X", ds->codec_id);
 
 		if (!ctx->forcep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AVC config, using default %s\n", szCodec));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AAC config, using default %s\n", szCodec));
 		}
 		return GF_OK;
 
@@ -4084,7 +4102,10 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			//otherwise reset only media components for this rep
 			if ((ds->muxed_base != base_ds) && (ds != base_ds)) continue;
 
-			if (ds->done) base_ds->nb_comp_done++;
+			if (ds->done) {
+				assert(base_ds->nb_comp_done < base_ds->nb_comp);
+				base_ds->nb_comp_done++;
+			}
 		}
 	}
 
@@ -4360,6 +4381,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->setup_failure) return ctx->setup_failure;
 
 	nb_init = has_init = 0;
+
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *base_ds;
@@ -4416,6 +4438,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					ds->seg_done = GF_TRUE;
 					ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
 					ds->est_first_cts_in_next_seg = 0;
+					assert(base_ds->nb_comp_done < base_ds->nb_comp);
 					base_ds->nb_comp_done ++;
 					if (base_ds->nb_comp_done == base_ds->nb_comp) {
 						dasher_flush_segment(ctx, base_ds);
@@ -4687,8 +4710,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 				}
 			}
+			if (ds->muxed_base && ds->muxed_base->done)
+				seg_over = GF_FALSE;
+
 			//temp hack: if flushing now will result in a one sample fragment afterwards, don't flush unless we have an asto set (low latency)
-			if (seg_over && ds->nb_samples_in_source && !ctx->loop && (ds->nb_pck+1 == ds->nb_samples_in_source) && !ctx->asto) {
+			else if (seg_over && ds->nb_samples_in_source && !ctx->loop && (ds->nb_pck+1 == ds->nb_samples_in_source) && !ctx->asto) {
 				seg_over = GF_FALSE;
 			}
 			//if dur=0 (some text streams), don't flush segment
@@ -4696,6 +4722,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				assert(!ds->seg_done);
 				ds->seg_done = GF_TRUE;
 				ds->first_cts_in_next_seg = cts;
+				assert(base_ds->nb_comp_done < base_ds->nb_comp);
 				base_ds->nb_comp_done ++;
 				if (split_dur_next)
 					ds->split_dur_next = (u32) split_dur_next;
@@ -4787,8 +4814,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 	nb_init  = 0;
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-		if (ds->muxed_base) ds = ds->muxed_base;
+		//if (ds->muxed_base) ds = ds->muxed_base;
 		if (ds->done || ds->subdur_done) nb_init++;
+		else if (ds->seg_done && ctx->force_period_switch) nb_init++;
+		else if (ds->seg_done && ds->muxed_base && ds->muxed_base->done) {
+			nb_init++;
+			ds->done = 1;
+		}
 	}
 	//still some running steams in period
 	if (count && (nb_init<count)) {
@@ -4822,6 +4854,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->sseg && !ctx->on_demand_done) {
 		return GF_OK;
 	}
+	ctx->force_period_switch = GF_FALSE;
 	//done with this period, do period switch - this will update the MPD if needed
 	e = dasher_switch_period(filter, ctx);
 	//no more periods
@@ -5173,6 +5206,7 @@ static const GF_FilterCapability DasherCaps[] =
 	{0},
 	//anything else (not file and framed) result in manifest PID
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
