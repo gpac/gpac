@@ -69,10 +69,7 @@ typedef struct
 	Bool in_seek;
 	u32 timescale;
 
-	u32 remaining;
 	ADTSHeader hdr;
-	char header[10];
-	u32 bytes_in_header;
 	u32 dts_inc;
 
 	Bool is_playing;
@@ -83,6 +80,10 @@ typedef struct
 
 	ADTSIdx *indexes;
 	u32 index_alloc_size, index_size;
+
+	u8 *adts_buffer;
+	u32 adts_buffer_size, adts_buffer_alloc, resume_from;
+	u64 byte_offset;
 } GF_ADTSDmxCtx;
 
 
@@ -261,6 +262,9 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_AAC_MPEG4));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
+	if (ctx->is_file) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
+	}
 
 
 	ctx->is_mp2 = ctx->hdr.is_mp2;
@@ -366,9 +370,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_bs_get_content(dsi, &dsi_b, &dsi_s);
 	gf_bs_del(dsi);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi_b, dsi_s) );
-
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (acfg.audioPL) );
-
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
 
 	timescale = sr;
@@ -390,10 +392,14 @@ static Bool adts_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
 			ctx->cts = 0;
-			ctx->remaining = 0;
-			ctx->bytes_in_header = 0;
 		}
 		if (! ctx->is_file) {
+			if (evt->play.start_range || ctx->initial_play_done) {
+				ctx->adts_buffer_size = 0;
+				ctx->resume_from = 0;
+			}
+
+			ctx->initial_play_done = GF_TRUE;
 			return GF_FALSE;
 		}
 		ctx->start_range = evt->play.start_range;
@@ -414,6 +420,8 @@ static Bool adts_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (!ctx->file_pos)
 				return GF_TRUE;
 		}
+		ctx->resume_from = 0;
+		ctx->adts_buffer_size = 0;
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = ctx->file_pos;
@@ -455,133 +463,95 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 {
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u64 byte_offset;
 	char *data, *output;
 	u8 *start;
-	u32 pck_size, remain;
-	u32 alread_sync = 0;
+	u32 pck_size, remain, prev_pck_size;
+	u64 cts = GF_FILTER_NO_TS;
 
 	//always reparse duration
 	if (!ctx->duration.num)
 		adts_dmx_check_dur(filter, ctx);
 
+	if (ctx->opid && !ctx->is_playing)
+		return GF_OK;
+
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			gf_filter_pid_set_eos(ctx->opid);
-			if (ctx->remaining) {
-				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->remaining, &output);
-				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
-				memcpy(output, data, ctx->remaining);
-				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
-				gf_filter_pck_set_cts(dst_pck, ctx->cts);
-				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-				gf_filter_pck_send(dst_pck);
-				ctx->remaining = 0;
+			if (!ctx->adts_buffer_size) {
+				gf_filter_pid_set_eos(ctx->opid);
+				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+				ctx->src_pck = NULL;
+				return GF_EOS;
 			}
-			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
-			ctx->src_pck = NULL;
-			return GF_EOS;
-		}
-		return GF_OK;
-	}
-
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
-	byte_offset = gf_filter_pck_get_byte_offset(pck);
-
-	start = data;
-	remain = pck_size;
-
-	//flush not previously dispatched data
-	if (ctx->remaining) {
-		u32 to_send = ctx->remaining;
-		if (ctx->remaining > pck_size) {
-			to_send = pck_size;
-			ctx->remaining -= pck_size;
 		} else {
-			ctx->remaining = 0;
+			return GF_OK;
 		}
-		if (!ctx->in_seek) {
-			dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
-			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
-			memcpy(output, data, to_send);
+	}
 
-			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
-			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-			if (byte_offset != GF_FILTER_NO_BO) {
-				gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
+	prev_pck_size = ctx->adts_buffer_size;
+	if (pck && !ctx->resume_from) {
+		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+
+		if (ctx->byte_offset != GF_FILTER_NO_BO) {
+			u64 byte_offset = gf_filter_pck_get_byte_offset(pck);
+			if (!ctx->adts_buffer_size) {
+				ctx->byte_offset = byte_offset;
+			} else if (ctx->byte_offset + ctx->adts_buffer_size != byte_offset) {
+				ctx->byte_offset = GF_FILTER_NO_BO;
 			}
-			gf_filter_pck_send(dst_pck);
 		}
 
-		if (ctx->remaining) {
-			gf_filter_pid_drop_packet(ctx->ipid);
-			return GF_OK;
+		if (ctx->adts_buffer_size + pck_size > ctx->adts_buffer_alloc) {
+			ctx->adts_buffer_alloc = ctx->adts_buffer_size + pck_size;
+			ctx->adts_buffer = gf_realloc(ctx->adts_buffer, ctx->adts_buffer_alloc);
 		}
-		adts_dmx_update_cts(ctx);
-		start += to_send;
-		remain -= to_send;
+		memcpy(ctx->adts_buffer + ctx->adts_buffer_size, data, pck_size);
+		ctx->adts_buffer_size += pck_size;
 	}
 
-	if (ctx->bytes_in_header) {
-		if (ctx->bytes_in_header + remain < 7) {
-			memcpy(ctx->header + ctx->bytes_in_header, start, remain);
-			ctx->bytes_in_header += remain;
-			gf_filter_pid_drop_packet(ctx->ipid);
-			return GF_OK;
-		}
-		alread_sync = 7 - ctx->bytes_in_header;
-		memcpy(ctx->header + ctx->bytes_in_header, start, alread_sync);
-		start += alread_sync;
-		remain -= alread_sync;
-		ctx->bytes_in_header = 0;
-		alread_sync = GF_TRUE;
-	}
 	//input pid sets some timescale - we flushed pending data , update cts
-	else if (ctx->timescale) {
-		u64 cts = gf_filter_pck_get_cts(pck);
-		if (cts != GF_FILTER_NO_TS)
-			ctx->cts = cts;
-		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
-		ctx->src_pck = pck;
-		gf_filter_pck_ref_props(&ctx->src_pck);
+	if (ctx->timescale && pck) {
+		cts = gf_filter_pck_get_cts(pck);
+	}
+
+	if (cts == GF_FILTER_NO_TS) {
+		//avoids updating cts
+		prev_pck_size = 0;
+	}
+
+	remain = ctx->adts_buffer_size;
+	start = ctx->adts_buffer;
+
+	if (ctx->resume_from) {
+		start += ctx->resume_from - 1;
+		remain -= ctx->resume_from - 1;
+		ctx->resume_from = 0;
 	}
 
 	while (remain) {
 		u8 *sync;
-		u32 sync_pos, size, offset;
+		u32 sync_pos, size, offset, bytes_to_drop=0;
 
-		if (alread_sync) {
-			gf_bs_reassign_buffer(ctx->bs, ctx->header+1, 6);
-			sync = start;
-		} else {
-			sync = memchr(start, 0xFF, remain);
-			sync_pos = (u32) (sync ? sync - start : remain);
+		sync = memchr(start, 0xFF, remain);
+		sync_pos = (u32) (sync ? sync - start : remain);
 
-			//couldn't find sync byte in this packet
-			if (!sync) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ADTSDmx] Could not find sync word in packet, droping\n"));
-				break;
-			}
-			if (remain - sync_pos < 7) {
-				memcpy(ctx->header, sync, remain - sync_pos);
-				ctx->bytes_in_header = remain - sync_pos;
-				break;
-			}
-
-			//not sync !
-			if ((remain - sync_pos <= 1) || ((sync[1] & 0xF0) != 0xF0) ) {
-				start ++;
-				remain --;
-				continue;
-			}
-			if (!ctx->bs) {
-				ctx->bs = gf_bs_new(sync + 1, remain - sync_pos - 1, GF_BITSTREAM_READ);
-			} else {
-				gf_bs_reassign_buffer(ctx->bs, sync + 1, remain - sync_pos - 1);
-			}
+		//couldn't find sync byte in this packet
+		if (remain - sync_pos < 7) {
+			break;
 		}
+
+		//not sync !
+		if ((remain - sync_pos <= 1) || ((sync[1] & 0xF0) != 0xF0) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] invalid ADTS sync bytes, resyncing\n"));
+			goto drop_byte;
+		}
+		if (!ctx->bs) {
+			ctx->bs = gf_bs_new(sync + 1, remain - sync_pos - 1, GF_BITSTREAM_READ);
+		} else {
+			gf_bs_reassign_buffer(ctx->bs, sync + 1, remain - sync_pos - 1);
+		}
+
 		//ok parse header
 		gf_bs_read_int(ctx->bs, 4);
 
@@ -605,46 +575,34 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			ctx->hdr.hdr_size = 9;
 		}
 
-		if (!ctx->hdr.frame_size || !GF_M4ASampleRates[ctx->hdr.sr_idx] ) {
+		if (!ctx->hdr.frame_size || !GF_M4ASampleRates[ctx->hdr.sr_idx] || !ctx->hdr.nb_ch) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] invalid ADTS frame, resyncing\n"));
-			ctx->bytes_in_header = 0;
-			remain--;
-			start++;
-			continue;
+			goto drop_byte;
 		}
 
 		//ready to send packet
-		if (ctx->hdr.frame_size < remain) {
+		if (ctx->hdr.frame_size + 1 < remain) {
 			u32 next_frame = ctx->hdr.frame_size;
-			if (alread_sync) {
-				next_frame = ctx->hdr.frame_size - 7;
-			}
 			//make sure we are sync!
 			if ((sync[next_frame] !=0xFF) || ((sync[next_frame+1] & 0xF0) !=0xF0) ) {
-				if (alread_sync) {
-					assert(memchr(ctx->header+1, 0xFF, 8) == NULL);
-					alread_sync = 0;
-				} else {
-					start++;
-					remain--;
-				}
-				continue;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] invalid ADTS frame, resyncing\n"));
+				goto drop_byte;
 			}
+		}
+		//otherwise wait for next frame, unless if end of stream
+		else if (pck) {
+			break;
 		}
 
 		adts_dmx_check_pid(filter, ctx);
 
-		if (!ctx->is_playing) return GF_OK;
+		if (!ctx->is_playing) {
+			ctx->resume_from = 1 + ctx->adts_buffer_size - remain;
+			return GF_OK;
+		}
 
 		size = ctx->hdr.frame_size - ctx->hdr.hdr_size;
 		offset = ctx->hdr.hdr_size;
-		if (alread_sync) {
-			offset = ctx->hdr.no_crc ? 0 : 2;
-		}
-		if (size + offset > remain) {
-			size = remain - offset;
-			ctx->remaining = ctx->hdr.frame_size - ctx->hdr.hdr_size - size;
-		}
 
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = (u64) (ctx->start_range * GF_M4ASampleRates[ctx->sr_idx]);
@@ -661,30 +619,57 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
-			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);
+			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
-			if (byte_offset != GF_FILTER_NO_BO) {
-				u64 boffset = byte_offset;
-				if (alread_sync) {
-					boffset -= (7-alread_sync);
-				} else {
-					assert((offset == 7) || (offset == 9));
-					boffset += (char *) (sync + offset) - data;
-				}
-				gf_filter_pck_set_byte_offset(dst_pck, boffset);
+			if (ctx->byte_offset != GF_FILTER_NO_BO) {
+				gf_filter_pck_set_byte_offset(dst_pck, ctx->byte_offset + ctx->hdr.hdr_size);
 			}
 
 			gf_filter_pck_send(dst_pck);
 		}
-		start += offset+size;
-		remain -= offset+size;
-		alread_sync = 0;
-		if (ctx->remaining) break;
 		adts_dmx_update_cts(ctx);
-	}
-	gf_filter_pid_drop_packet(ctx->ipid);
 
+		bytes_to_drop = ctx->hdr.frame_size;
+
+		//truncated last frame
+		if (bytes_to_drop>remain) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] truncated ADTS frame!\n"));
+			bytes_to_drop=remain;
+		}
+
+drop_byte:
+		if (!bytes_to_drop) {
+			bytes_to_drop = 1;
+		}
+		start += bytes_to_drop;
+		remain -= bytes_to_drop;
+
+		if (prev_pck_size) {
+			if (prev_pck_size > bytes_to_drop) prev_pck_size -= bytes_to_drop;
+			else {
+				prev_pck_size=0;
+				ctx->cts = cts;
+				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+				ctx->src_pck = pck;
+				if (pck)
+					gf_filter_pck_ref_props(&ctx->src_pck);
+			}
+		}
+		if (ctx->byte_offset != GF_FILTER_NO_BO)
+			ctx->byte_offset += bytes_to_drop;
+	}
+
+	if (!pck) {
+		ctx->adts_buffer_size = 0;
+		return adts_dmx_process(filter);
+	} else {
+		if (remain) {
+			memmove(ctx->adts_buffer, start, remain);
+		}
+		ctx->adts_buffer_size = remain;
+		gf_filter_pid_drop_packet(ctx->ipid);
+	}
 	return GF_OK;
 }
 
@@ -693,6 +678,7 @@ static void adts_dmx_finalize(GF_Filter *filter)
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->adts_buffer) gf_free(ctx->adts_buffer);
 }
 
 static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
