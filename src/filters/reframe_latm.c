@@ -329,6 +329,10 @@ static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->cts = 0;
 		}
 		if (! ctx->is_file) {
+			if (evt->play.start_range || ctx->initial_play_done)
+				ctx->latm_buffer_size = 0;
+
+			ctx->initial_play_done = GF_TRUE;
 			return GF_FALSE;
 		}
 		ctx->start_range = evt->play.start_range;
@@ -489,6 +493,7 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 		ctx->latm_buffer_size -= pos;
 	} else {
 		ctx->latm_buffer_size = 0;
+		return latm_dmx_process(filter);
 	}
 	return GF_OK;
 }
