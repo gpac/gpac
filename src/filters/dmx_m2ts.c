@@ -147,7 +147,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	GF_FilterPid *opid;
 	Bool m4sys_stream = GF_FALSE;
 	Bool m4sys_iod_stream = GF_FALSE;
-	Bool has_scal_layer = GF_TRUE;
+	Bool has_scal_layer = GF_FALSE;
 	Bool unframed = GF_FALSE;
 	if (stream->user) return;
 
