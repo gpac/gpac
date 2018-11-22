@@ -898,12 +898,24 @@ const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid)
 	const char *args = pid->pid->filter->src_args;
 	if (args && strstr(args, "src")) return args;
 	if (!pid->filter->num_input_pids) return args;
-	for (i=0; i<pid->filter->num_input_pids; i++) {
+	for (i=0; i<pid->pid->filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->pid->filter->input_pids, i);
 		const char *arg_src = gf_filter_pid_orig_src_args(pidi->pid);
 		if (arg_src) return arg_src;
 	}
 	return args;
+}
+
+GF_EXPORT
+const char *gf_filter_pid_get_source_filter_name(GF_FilterPid *pid)
+{
+	GF_Filter *filter  = pid->pid->filter;
+	while (filter && filter->num_input_pids) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, 0);
+		filter = pidi->pid->filter;
+	}
+	if (!filter) return NULL;
+	return filter->name ? filter->name : filter->freg->name;
 }
 
 GF_EXPORT

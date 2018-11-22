@@ -1583,7 +1583,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	if (filter->process_task_queued<=1) {
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("skip process for filter %s\n", filter->freg->name));
+//		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("skip post process task for filter %s\n", filter->freg->name));
 		assert(filter->scheduled_for_next_task || filter->session->run_status || filter->force_end_of_session || gf_fq_count(filter->tasks) );
 	}
 	if (!filter->session->direct_mode)
