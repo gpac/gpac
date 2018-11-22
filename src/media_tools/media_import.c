@@ -413,6 +413,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		} else {
 			gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Audio (SR %d - %d channels)", orig_name, trackID, sr, ch);
 		}
+		if (import->asemode != GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET) {
+			gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
+			gf_isom_set_audio_info(import->dest, track, 1, sr, ch, bps, import->asemode);
+		}
 	}
 	break;
 	case GF_ISOM_MEDIA_SUBPIC:

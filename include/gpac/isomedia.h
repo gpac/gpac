@@ -1358,10 +1358,11 @@ GF_Err gf_isom_set_clean_apperture(GF_ISOFile *movie, u32 trackNumber, u32 Strea
 
 /*set SR & nbChans for audio description*/
 typedef enum {
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS = 0,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2 = 1,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG = 2,
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF = 3
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS = 1,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2 = 2,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG = 3,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF = 4,
 } GF_AudioSampleEntryImportMode;
 
 GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode);
