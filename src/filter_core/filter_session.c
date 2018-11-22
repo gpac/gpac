@@ -1412,7 +1412,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks);
 }
 
-static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent)
+static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent, GF_FilterPid *pid)
 {
 	u32 i=0;
 
@@ -1420,9 +1420,14 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 		fprintf(stderr, "-");
 		i++;
 	}
-
+	if (pid) {
+		fprintf(stderr, "(PID %s) ", pid->name);
+	}
 	print_filter_name(f, GF_TRUE);
-	fprintf(stderr, "\n");
+	if (f->id)
+		fprintf(stderr, " (%s)\n", f->id);
+	else
+		fprintf(stderr, " (0x%p)\n", f);
 
 	if (gf_list_find(filters_done, f)>=0)
 		return;
@@ -1434,7 +1439,7 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 		GF_FilterPid *pidout = gf_list_get(f->output_pids, i);
 		for (j=0; j<pidout->num_destinations; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pidout->destinations, j);
-			gf_fs_print_filter_outputs(pidi->filter, filters_done, indent+1);
+			gf_fs_print_filter_outputs(pidi->filter, filters_done, indent+1, pidout);
 		}
 	}
 
@@ -1462,7 +1467,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 			has_connected = GF_TRUE;
 			fprintf(stderr, "Filters connected:\n");
 		}
-		gf_fs_print_filter_outputs(f, filters_done, 0);
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL);
 	}
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
@@ -1472,7 +1477,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 			has_unconnected = GF_TRUE;
 			fprintf(stderr, "Filters not connected:\n");
 		}
-		gf_fs_print_filter_outputs(f, filters_done, 0);
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL);
 	}
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
@@ -1481,7 +1486,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 			has_undefined = GF_TRUE;
 			fprintf(stderr, "Filters in unknown connection state:\n");
 		}
-		gf_fs_print_filter_outputs(f, filters_done, 0);
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL);
 	}
 
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
