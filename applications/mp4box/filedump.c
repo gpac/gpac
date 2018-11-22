@@ -3630,7 +3630,7 @@ static void revert_cache_file(char *item_path)
 		return;
 	}
 	if (!strncmp(item_path, "./", 2) || !strncmp(item_path, ".\\", 2))
-		item_path += 2;
+			item_path += 2;
 
  	strcpy(szPATH, item_path);
 	strcat(szPATH, ".txt");

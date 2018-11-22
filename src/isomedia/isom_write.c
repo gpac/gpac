@@ -1417,30 +1417,31 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	aud_entry->bitspersample = bitsPerSample;
 
 	switch (asemode) {
-		case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
-			stsd->version = 0;
-			aud_entry->version = 0;
-			aud_entry->is_qtff = 0;
-			aud_entry->channel_count = 2;
-			break;
-		case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS:
-			stsd->version = 0;
-			aud_entry->version = 0;
-			aud_entry->is_qtff = 0;
-			aud_entry->channel_count = nbChannels;
-			break;
-		case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG:
-			stsd->version = 1;
-			aud_entry->version = 1;
-			aud_entry->is_qtff = 0;
-			aud_entry->channel_count = nbChannels;
-			break;
-		case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
-			stsd->version = 1;
-			aud_entry->version = 1;
-			aud_entry->is_qtff = 1;
-			aud_entry->channel_count = nbChannels;
-			break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
+		stsd->version = 0;
+		aud_entry->version = 0;
+		aud_entry->is_qtff = 0;
+		aud_entry->channel_count = 2;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET:
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS:
+		stsd->version = 0;
+		aud_entry->version = 0;
+		aud_entry->is_qtff = 0;
+		aud_entry->channel_count = nbChannels;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG:
+		stsd->version = 1;
+		aud_entry->version = 1;
+		aud_entry->is_qtff = 0;
+		aud_entry->channel_count = nbChannels;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
+		stsd->version = 1;
+		aud_entry->version = 1;
+		aud_entry->is_qtff = 1;
+		aud_entry->channel_count = nbChannels;
+		break;
 	}
 	return GF_OK;
 }
