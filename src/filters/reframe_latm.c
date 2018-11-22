@@ -67,6 +67,7 @@ typedef struct
 
 	LATMIdx *indexes;
 	u32 index_alloc_size, index_size;
+	u32 resume_from;
 } GF_LATMDmxCtx;
 
 
@@ -76,9 +77,10 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 	u64 pos, mux_size;
 	if (!acfg) return 0;
 
-	while (gf_bs_available(bs)) {
+	while (gf_bs_available(bs)>3) {
 		val = gf_bs_read_u8(bs);
-		if (val!=0x56) continue;
+		if (val!=0x56)
+			continue;
 		val = gf_bs_read_int(bs, 3);
 		if (val != 0x07) {
 			gf_bs_read_int(bs, 5);
@@ -86,6 +88,10 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 		}
 		mux_size = gf_bs_read_int(bs, 13);
 		pos = gf_bs_get_position(bs);
+		if (mux_size>gf_bs_available(bs) ) {
+			gf_bs_seek(bs, pos-3);
+			return GF_FALSE;
+		}
 
 		/*use same stream mux*/
 		if (!gf_bs_read_int(bs, 1)) {
@@ -286,6 +292,9 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_AAC_MPEG4));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
+	if (ctx->is_file) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
+	}
 
 
 	ctx->nb_ch = ctx->acfg.nb_chan;
@@ -304,9 +313,7 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	ctx->dts_inc = ctx->frame_size;
 	gf_m4a_write_config(&ctx->acfg, &dsi_b, &dsi_s);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi_b, dsi_s) );
-
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (ctx->acfg.audioPL) );
-
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
 
 	timescale = sr;
@@ -329,8 +336,10 @@ static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->cts = 0;
 		}
 		if (! ctx->is_file) {
-			if (evt->play.start_range || ctx->initial_play_done)
+			if (evt->play.start_range || ctx->initial_play_done) {
 				ctx->latm_buffer_size = 0;
+				ctx->resume_from = 0;
+			}
 
 			ctx->initial_play_done = GF_TRUE;
 			return GF_FALSE;
@@ -353,6 +362,8 @@ static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (!ctx->file_pos)
 				return GF_TRUE;
 		}
+		ctx->latm_buffer_size = 0;
+		ctx->resume_from = 0;
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = ctx->file_pos;
@@ -396,11 +407,15 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck;
 	u32 pos;
 	char *data, *output;
-	u32 pck_size;
+	u32 pck_size, prev_pck_size;
+	u64 cts = GF_FILTER_NO_TS;
 
 	//always reparse duration
 	if (!ctx->duration.num)
 		latm_dmx_check_dur(filter, ctx);
+
+	if (ctx->opid && !ctx->is_playing)
+		return GF_OK;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -420,31 +435,34 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale && pck) {
-		u64 cts = gf_filter_pck_get_cts(pck);
-		if (cts != GF_FILTER_NO_TS)
-			ctx->cts = cts;
-		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
-		ctx->src_pck = pck;
-		gf_filter_pck_ref_props(&ctx->src_pck);
+		cts = gf_filter_pck_get_cts(pck);
 	}
 
-	if (ctx->opid && !ctx->is_playing)
-		return GF_OK;
+	prev_pck_size = ctx->latm_buffer_size;
 
-	if (pck) {
+	if (pck && !ctx->resume_from) {
 		if (ctx->latm_buffer_size + pck_size > ctx->latm_buffer_alloc) {
 			ctx->latm_buffer_alloc = ctx->latm_buffer_size + pck_size;
 			ctx->latm_buffer = gf_realloc(ctx->latm_buffer, ctx->latm_buffer_alloc);
 		}
 		memcpy(ctx->latm_buffer + ctx->latm_buffer_size, data, pck_size);
 		ctx->latm_buffer_size += pck_size;
-		gf_filter_pid_drop_packet(ctx->ipid);
 	}
 
 	if (!ctx->bs) ctx->bs = gf_bs_new(ctx->latm_buffer, ctx->latm_buffer_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs, ctx->latm_buffer, ctx->latm_buffer_size);
 
+	if (ctx->resume_from) {
+		gf_bs_seek(ctx->bs, ctx->resume_from-1);
+		ctx->resume_from = 0;
+	}
+
+	if (cts == GF_FILTER_NO_TS)
+		prev_pck_size = 0;
+
+
 	while (1) {
+		u32 pos = (u32) gf_bs_get_position(ctx->bs);
 		u8 latm_buffer[4096];
 		u32 latm_frame_size = 4096;
 		if (!latm_dmx_sync_frame_bs(ctx->bs,&ctx->acfg, &latm_frame_size, latm_buffer)) break;
@@ -458,6 +476,11 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 		}
 
 		latm_dmx_check_pid(filter, ctx);
+
+		if (!ctx->is_playing) {
+			ctx->resume_from = pos+1;
+			return GF_OK;
+		}
 
 		if (!ctx->in_seek) {
 			GF_FilterSAPType sap = GF_FILTER_SAP_1;
@@ -484,6 +507,17 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 			gf_filter_pck_send(dst_pck);
 		}
 		latm_dmx_update_cts(ctx);
+
+		if (prev_pck_size) {
+			pos = gf_bs_get_position(ctx->bs);
+			if (prev_pck_size<=pos) {
+				prev_pck_size=0;
+				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+				ctx->src_pck = pck;
+				if (pck)
+					gf_filter_pck_ref_props(&ctx->src_pck);
+			}
+		}
 	}
 
 	if (pck) {
@@ -491,6 +525,8 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 		assert(ctx->latm_buffer_size >= pos);
 		memmove(ctx->latm_buffer, ctx->latm_buffer+pos, ctx->latm_buffer_size - pos);
 		ctx->latm_buffer_size -= pos;
+		gf_filter_pid_drop_packet(ctx->ipid);
+		assert(!ctx->resume_from);
 	} else {
 		ctx->latm_buffer_size = 0;
 		return latm_dmx_process(filter);
@@ -503,6 +539,7 @@ static void latm_dmx_finalize(GF_Filter *filter)
 	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->latm_buffer) gf_free(ctx->latm_buffer);
 }
 
 static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
