@@ -3361,11 +3361,11 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(fdur), "fragments based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "sets btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(ase), "sets audio sample entry mode for more than stereo layouts:\n"\
-			"\t:v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
-			"\t:v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
-			"\t:v1: use v1 signaling, ISOBMFF style\n"\
-			"\t:v1qt: use v1 signaling, QTFF style\n"\
-		, GF_PROP_UINT, "v0", "v0|v0s|v1|v1qt", 0},
+			"\tv0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
+			"\tv0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
+			"\tv1: use v1 signaling, ISOBMFF style\n"\
+			"\tv1qt: use v1 signaling, QTFF style\n"\
+		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
 
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
