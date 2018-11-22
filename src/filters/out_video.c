@@ -504,9 +504,12 @@ static void vout_set_caption(GF_VideoOutCtx *ctx)
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_SET_CAPTION;
 	evt.caption.caption = gf_filter_pid_orig_src_args(ctx->pid);
-	if (!strncmp(evt.caption.caption, "src=", 4)) evt.caption.caption += 4;
-	if (!strncmp(evt.caption.caption, "./", 2)) evt.caption.caption += 2;
-	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	if (!evt.caption.caption) evt.caption.caption = gf_filter_pid_get_source_filter_name(ctx->pid);
+	if (evt.caption.caption) {
+		if (!strncmp(evt.caption.caption, "src=", 4)) evt.caption.caption += 4;
+		if (!strncmp(evt.caption.caption, "./", 2)) evt.caption.caption += 2;
+		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	}
 }
 
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)

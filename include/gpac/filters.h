@@ -1944,6 +1944,12 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
 */
 const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid);
 
+/*! gets the source filter name or class name for the pid, walking down the chain until the source filter (ony the first input pid of each filter is used).
+\param pid the target filter pid
+\return argument of the source filter
+*/
+const char *gf_filter_pid_get_source_filter_name(GF_FilterPid *pid);
+
 /*! gets the arguments for the filter
 \param pid the target filter pid
 \return arguments of the source filter
