@@ -96,6 +96,8 @@ void dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump
 GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array);
 u32 id3_get_genre_tag(const char *name);
 
+GF_Err rip_mpd(const char *mpd);
+
 /*in filedump.c*/
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDumpFormat dump_mode, Bool do_log);
@@ -525,6 +527,11 @@ void PrintImportUsage()
 	        " \":ovsbr\"             same as -ovsbr option\n"
 	        " \":ps\"                same as -ps option\n"
 	        " \":psx\"               same as -psx option\n"
+	        " \":asemode=MODE\"      sets the mode to create the AudioSampleEntry\n"
+	        " \"                       v0-bs : uses MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
+	        " \"                       v0-2  : uses MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
+	        " \"                       v1    : uses MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
+	        " \"                       v1-qt : uses QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2)\n"
 	        " \":mpeg4\"             same as -mpeg4 option\n"
 	        " \":nosei\"             discard all SEI messages during import\n"
 	        " \":svc\"               import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"
@@ -788,25 +795,29 @@ void PrintDumpUsage()
 	        " -dsap trackID        dumps DASH SAP cues (see -cues) for a given track.\n"
 	        "                       use -dsaps to only print sample number, -dsapc to only CTS, -dsapd to only print DTS, -dsapp to only print presentation time.\n"
 	        " -dcr                 ISMACryp samples structure to XML output\n"
-	        " -dump-cover          Extracts cover art\n"
-	        " -dump-chap           Extracts chapter file\n"
-	        " -dump-chap-ogg       Extracts chapter file as OGG format\n"
-	        " -dump-udta [ID:]4cc  Extracts udta for the given 4CC. If ID is given, dumps from UDTA of the given track ID, otherwise moov is used.\n"
+	        " -dump-cover          extracts cover art\n"
+	        " -dump-chap           extracts chapter file\n"
+	        " -dump-chap-ogg       extracts chapter file as OGG format\n"
+	        " -dump-udta [ID:]4cc  extracts udta for the given 4CC. If ID is given, dumps from UDTA of the given track ID, otherwise moov is used.\n"
 	        "\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	        " -ttxt                Converts input subtitle to GPAC TTXT format\n"
+	        " -ttxt                converts input subtitle to GPAC TTXT format\n"
 #endif
-	        " -ttxt TrackID        Dumps Text track to GPAC TTXT format\n"
+	        " -ttxt TrackID        dumps Text track to GPAC TTXT format\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	        " -srt                 Converts input subtitle to SRT format\n"
+	        " -srt                 converts input subtitle to SRT format\n"
 #endif
-	        " -srt TrackID         Dumps Text track to SRT format\n"
+	        " -srt TrackID         dumps Text track to SRT format\n"
+	        "\n"
+	        " -rip-mpd             download manifest and segments of an MPD. Does not work with live sessions\n"
 	        "\n"
 	        " -stat                generates node/field statistics for scene\n"
 	        " -stats               generates node/field statistics per MPEG-4 Access Unit\n"
 	        " -statx               generates node/field statistics for scene after each AU\n"
 	        "\n"
 	        " -hash                generates SHA-1 Hash of the input file\n"
+	        "\n"
+	        " -comp BOXLIST        compresses top level box listed. The list is formated as orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]\n"
 #ifndef GPAC_DISABLE_CORE_TOOLS
 	        " -bin                 converts input XML file using NHML bitstream syntax to binary\n"
 #endif
@@ -1872,6 +1883,109 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 }
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
+static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_top_boxes)
+{
+	FILE *in, *out;
+	char *buf;
+	u32 buf_alloc, comp_size;
+	s32 bytes_saved=0;
+	s32 bytes_comp=0;
+	u64 source_size;
+	Bool has_mov = GF_FALSE;
+	GF_BitStream *bs_in, *bs_out;
+
+	in = gf_fopen(inName, "rb");
+	if (!in) return GF_URL_ERROR;
+	out = gf_fopen(outName, "wb");
+	if (!out) return GF_IO_ERR;
+
+	buf_alloc = 4096;
+	buf = gf_malloc(buf_alloc);
+
+	bs_in = gf_bs_from_file(in, GF_BITSTREAM_READ);
+	source_size = gf_bs_get_size(bs_in);
+
+	bs_out = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
+	while (gf_bs_available(bs_in)) {
+		u32 size = gf_bs_read_u32(bs_in);
+		u32 type = gf_bs_read_u32(bs_in);
+		const char *b4cc = gf_4cc_to_str(type);
+		const char *replace = strstr(compress_top_boxes, b4cc);
+		if (!strcmp(b4cc, "moov")) has_mov = GF_TRUE;
+
+		if (!replace) {
+			gf_bs_write_u32(bs_out, size);
+			gf_bs_write_u32(bs_out, type);
+
+			size-=8;
+			while (size) {
+				u32 nbytes = size;
+				if (nbytes>buf_alloc) nbytes=buf_alloc;
+				gf_bs_read_data(bs_in, buf, nbytes);
+				gf_bs_write_data(bs_out, buf, nbytes);
+				size-=nbytes;
+			}
+			continue;
+		}
+		size-=8;
+		if (size>buf_alloc) {
+			buf_alloc = size;
+			buf = gf_realloc(buf, buf_alloc);
+		}
+		gf_bs_read_data(bs_in, buf, size);
+		replace+=5;
+		comp_size = buf_alloc;
+		gf_gz_compress_payload(&buf, size, &comp_size);
+		if (comp_size>buf_alloc) {
+			buf_alloc = comp_size;
+		}
+		if (size > comp_size) {
+			bytes_saved += size - comp_size;
+		} else {
+			bytes_saved -= comp_size - size;
+		}
+		bytes_comp += size;
+		gf_bs_write_u32(bs_out, comp_size+8);
+		gf_bs_write_data(bs_out, replace, 4);
+		gf_bs_write_data(bs_out, buf, comp_size);
+	}
+	gf_bs_del(bs_in);
+	gf_bs_del(bs_out);
+	gf_fclose(in);
+	gf_fclose(out);
+
+	if (has_mov) {
+		u32 i, nb_tracks, nb_samples;
+		GF_ISOFile *mov;
+		Double rate, new_rate, duration;
+
+		mov = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
+		duration = gf_isom_get_duration(mov);
+		duration /= gf_isom_get_timescale(mov);
+
+		nb_samples = 0;
+		nb_tracks = gf_isom_get_track_count(mov);
+		for (i=0; i<nb_tracks; i++) {
+			nb_samples += gf_isom_get_sample_count(mov, i+1);
+		}
+		gf_isom_close(mov);
+
+		rate = source_size;
+		rate /= duration;
+		rate /= 1000;
+
+		new_rate = source_size - bytes_saved;
+		new_rate /= duration;
+		new_rate /= 1000;
+
+		fprintf(stderr, "Compressing top-level boxes saved %d bytes out of %d (reduced by %g %%) original rate %g kbps new rate %g kbps, orig %g box bytes/sample saved %g bytes/sample\n", bytes_saved, bytes_comp, ((Double)bytes_saved*100)/(bytes_comp?bytes_comp:1), rate, new_rate, ((Double)bytes_comp)/nb_samples, ((Double)bytes_saved)/nb_samples );
+	} else {
+		fprintf(stderr, "Compressing top-level boxes saved %d bytes out of %d (reduced by %g %%)\n", bytes_saved, bytes_comp, ((Double)bytes_saved*100)/(bytes_comp?bytes_comp:1));
+
+	}
+	return GF_OK;
+}
+
 static GF_Err hash_file(char *name, u32 dump_std)
 {
 	u32 i;
@@ -1935,8 +2049,8 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, do_mpd_rip;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes;
 u32 track_dump_type, dump_isom, dump_timestamps;
 u32 trackID;
 Double min_buffer = 1.5;
@@ -3159,6 +3273,13 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
 		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
 		else if (!stricmp(arg, "-hash")) do_hash = GF_TRUE;
+		else if (!stricmp(arg, "-comp")) {
+			CHECK_NEXT_ARG
+			compress_top_boxes = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-rip")) do_mpd_rip = GF_TRUE;
+
 #ifndef GPAC_DISABLE_CORE_TOOLS
 		else if (!stricmp(arg, "-bin")) do_bin_nhml = GF_TRUE;
 #endif
@@ -3643,7 +3764,7 @@ int mp4boxMain(int argc, char **argv)
 	split_size = 0;
 	movie_time = 0;
 	dump_nal = dump_saps = dump_saps_mode = 0;
-	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = GF_FALSE;
+	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = GF_FALSE;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
@@ -3663,6 +3784,7 @@ int mp4boxMain(int argc, char **argv)
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
 	seg_name = dash_ctx_file = NULL;
+	compress_top_boxes = NULL;
 	initial_moof_sn = 0;
 	initial_tfdt = 0;
 
@@ -3800,6 +3922,16 @@ int mp4boxMain(int argc, char **argv)
 		gf_fclose(fout);
 		return mp4box_cleanup(0);
 	}
+	if (compress_top_boxes) {
+		e = do_compress_top_boxes(inName, outName, compress_top_boxes);
+		return mp4box_cleanup(e ? 1 : 0);
+	}
+
+	if (do_mpd_rip) {
+		e = rip_mpd(inName);
+		return mp4box_cleanup(e ? 1 : 0);
+	}
+
 #if !defined(GPAC_DISABLE_STREAMING)
 	if (grab_m2ts) {
 		return grab_live_m2ts(grab_m2ts, grab_ifce, inName);

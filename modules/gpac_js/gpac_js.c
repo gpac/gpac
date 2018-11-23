@@ -553,6 +553,8 @@ static JSBool SMJS_FUNCTION(gpac_get_option)
 			return JS_TRUE;
 		}
 		opt = term->compositor->audio_renderer->filter_chain.filters->filter->GetOption(term->compositor->audio_renderer->filter_chain.filters->filter, key_name);
+	} else if (sec_name && !stricmp(sec_name, "General") && key_name && !strcmp(key_name, "Version")) {
+		opt = GPAC_FULL_VERSION;
 	} else if (key_name) {
 		opt = gf_cfg_get_key(term->user->config, sec_name, key_name);
 	} else if (idx>=0) {
