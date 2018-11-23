@@ -1885,6 +1885,10 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 
 static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_top_boxes)
 {
+#ifdef GPAC_DISABLE_ZLIB
+	fprintf(stderr, "zlib support diabled in this build\n");
+	return GF_NOT_SUPPORTED;
+#else
 	FILE *in, *out;
 	char *buf;
 	u32 buf_alloc, comp_size;
@@ -1984,6 +1988,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 
 	}
 	return GF_OK;
+#endif
 }
 
 static GF_Err hash_file(char *name, u32 dump_std)
