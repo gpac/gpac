@@ -5979,7 +5979,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	Bool flush_sample, flush_next_sample, is_empty_sample, sample_has_islice, sample_has_vps, sample_has_sps, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
-	Bool first_hevc, has_hevc, has_lhvc;
+	Bool first_hevc, /*has_hevc, */ has_lhvc;
 	u32 use_opengop_gdr = 0;
 	u8 layer_ids[64];
 	SAPType sample_rap_type;
@@ -6039,7 +6039,7 @@ restart_import:
 	spss = ppss = vpss = NULL;
 	nb_nalus = 0;
 	hevc_base_track = 0;
-	has_hevc = has_lhvc = GF_FALSE;
+	/*has_hevc = */has_lhvc = GF_FALSE;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -6145,7 +6145,7 @@ restart_import:
 			has_lhvc = GF_TRUE;
 		} else {
 			dst_cfg = hevc_cfg;
-			has_hevc = GF_TRUE;
+			//has_hevc = GF_TRUE;
 		}
 
 		if (prev_cfg != dst_cfg) {
@@ -7372,7 +7372,6 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	GF_BitStream *bs = NULL;
 	u32 timescale = 0, dts_inc = 0, track_num = 0, track_id = 0, di = 0, cur_samp = 0, codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
 	int width = 0, height = 0, renderWidth, renderHeight;
-	Bool detect_fps;
 	Double FPS = 0.0;
 	u64 pos = 0, fsize = 0;
 
@@ -7402,13 +7401,11 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 	if (e)
 		goto exit;
 
-	detect_fps = GF_TRUE;
 	FPS = (Double)import->video_fps;
 	if (!FPS || import->video_fps == GF_IMPORT_AUTO_FPS) {
 		FPS = (double)frame_rate / time_scale;
 	} else {
 		/*fps is forced by the caller*/
-		detect_fps = GF_FALSE;
 	}
 	get_video_timing(FPS, &timescale, &dts_inc);
 

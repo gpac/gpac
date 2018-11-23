@@ -1050,7 +1050,7 @@ static u32 cicp_get_channel_config(u32 nb_chan,u32 nb_surr, u32 nb_lfe)
 static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
-	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
+	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done=0;
 	u32 sample_duration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, nb_samp, nb_done;
 	u32 nb_video, nb_auxv, nb_pict, nb_audio, nb_text, nb_scene, mpd_timescale;
 	u8 defaultPadding;
@@ -1063,7 +1063,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
 	u64 MaxFragmentDuration, MaxSegmentDuration, period_duration;
-	Double segment_start_time, SegmentDuration, maxFragDurationOverSegment;
+	Double segment_start_time=0, SegmentDuration, maxFragDurationOverSegment;
 	u64 presentationTimeOffset = 0;
 	Double file_duration, max_segment_duration;
 	u32 nb_segments, width, height, sample_rate, nb_channels, nb_surround, nb_lfe, sar_w, sar_h, fps_num, fps_denum, startNumber;
@@ -3090,8 +3090,8 @@ write_rep_only:
 	/*store context*/
 	if (dasher->dash_ctx) {
 		period_duration += (u64)segment_start_time; //change to get a Double period duration
-
-		for (i=0; i<gf_list_count(fragmenters); i++) {
+		count = gf_list_count(fragmenters);
+		for (i=0; i<count; i++) {
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 
 			/*InitialTSOffset is used when joining different files - if we are still in the same file , do not update it*/
