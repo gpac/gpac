@@ -1818,6 +1818,10 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 
 static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_top_boxes)
 {
+#ifdef GPAC_DISABLE_ZLIB
+	fprintf(stderr, "zlib support diabled in this build\n");
+	return GF_NOT_SUPPORTED;
+#else
 	FILE *in, *out;
 	char *buf;
 	u32 buf_alloc, comp_size;
@@ -1893,7 +1897,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		Double rate, new_rate, duration;
 
 		mov = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
-		duration = gf_isom_get_duration(mov);
+		duration = (Double) gf_isom_get_duration(mov);
 		duration /= gf_isom_get_timescale(mov);
 
 		nb_samples = 0;
@@ -1903,11 +1907,11 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		}
 		gf_isom_close(mov);
 
-		rate = source_size;
+		rate = (Double) source_size;
 		rate /= duration;
 		rate /= 1000;
 
-		new_rate = source_size - bytes_saved;
+		new_rate = (Double)(source_size - bytes_saved);
 		new_rate /= duration;
 		new_rate /= 1000;
 
@@ -1917,6 +1921,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 
 	}
 	return GF_OK;
+#endif
 }
 
 static GF_Err hash_file(char *name, u32 dump_std)
