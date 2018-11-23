@@ -540,7 +540,7 @@ static const GF_FilterCapability OSVCDecCaps[] =
 
 GF_FilterRegister OSVCDecRegister = {
 	.name = "osvcdec",
-	.description = "OpenSVC decoder",
+	GF_FS_SET_DESCRIPTION("OpenSVC decoder")
 	.private_size = sizeof(GF_OSVCDecCtx),
 	SETCAPS(OSVCDecCaps),
 	.initialize = osvcdec_initialize,

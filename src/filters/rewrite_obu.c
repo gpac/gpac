@@ -131,6 +131,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->fps.den = 1;
 	}
 	gf_filter_pid_set_property_str(ctx->opid, "obu:mode", &PROP_UINT(ctx->mode) );
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 
 	return GF_OK;
 }
@@ -338,8 +339,8 @@ static const GF_FilterArgs OBUMxArgs[] =
 
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
-	.description = "OBU to IVF/OBU/annexB writer",
-	.help = "The OBU rewrite filter is used to rewrite the OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU",
+	GF_FS_SET_DESCRIPTION("OBU to IVF/OBU/annexB writer")
+	GF_FS_SET_HELP("The OBU rewrite filter is used to rewrite the OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU")
 	.private_size = sizeof(GF_OBUMxCtx),
 	.args = OBUMxArgs,
 	SETCAPS(OBUMxCaps),

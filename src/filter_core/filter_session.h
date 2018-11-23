@@ -306,7 +306,6 @@ struct __gf_filter_session
 	Bool task_in_process;
 	Bool requires_solved_graph;
 	Bool no_main_thread;
-	Bool no_regulation;
 
 	GF_List *registry;
 	GF_List *filters;
@@ -552,7 +551,10 @@ struct __gf_filter
 
 	GF_PropertyMap *caps_negociate;
 	Bool is_pid_adaptation_filter;
-	GF_FilterPidInst *swap_pidinst;
+	/*destination pid instance we are swapping*/
+	GF_FilterPidInst *swap_pidinst_dst;
+	/*source pid instance we are swapping*/
+	GF_FilterPidInst *swap_pidinst_src;
 	Bool swap_needs_init;
 
 	const GF_FilterCapability *forced_caps;
@@ -570,6 +572,8 @@ struct __gf_filter
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif
+
+	Bool pid_info_changed;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -723,6 +727,8 @@ struct __gf_filter_pid
 	GF_Filter *caps_dst_filter;
 
 	u32 forced_cap;
+
+	Bool ext_not_trusted;
 };
 
 
@@ -765,7 +771,7 @@ Bool gf_filter_has_out_caps(const GF_FilterRegister *freg);
 void gf_filter_check_output_reconfig(GF_Filter *filter);
 Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid);
 
-void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *pidi, Bool reconfig_only);
+void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *dst_pidi, GF_FilterPidInst *src_pidi);
 
 GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned);
 GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
@@ -785,6 +791,10 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt);
+
+GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter);
+
+void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, Bool force_downstream);
 
 #endif //_GF_FILTER_SESSION_H_
 

@@ -250,7 +250,7 @@ static const GF_FilterArgs TileAggArgs[] =
 
 GF_FilterRegister TileAggRegister = {
 	.name = "tileagg",
-	.description = "Video tile aggregator for HEVC",
+	GF_FS_SET_DESCRIPTION("Video tile aggregator for HEVC")
 	.private_size = sizeof(GF_TileAggCtx),
 	SETCAPS(TileAggCaps),
 	.initialize = tileagg_initialize,

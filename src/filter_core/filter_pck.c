@@ -444,8 +444,7 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 	}
 }
 
-GF_EXPORT
-GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
+GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 {
 	u32 i, count, nb_dispatch=0, nb_discard=0;
 	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
@@ -483,7 +482,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		return GF_OK;
 	}
 
-	if (!pid->initial_play_done && !pid->is_playing) {
+	//special case for source filters (no input pids), mark as playing once we have a packet sent
+	if (!pid->filter->num_input_pids && !pid->initial_play_done && !pid->is_playing) {
 		pid->initial_play_done = GF_TRUE;
 		pid->is_playing = GF_TRUE;
 	}
@@ -497,26 +497,30 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	if (pid->has_seen_eos) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s has seen EOS\n", pck->pid->filter->name, pck->pid->name));
 	}
-	
-	//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
-	pck->info.flags &= ~GF_PCKF_PROPS_CHANGED;
+	//send from filter, update flags
+	if (from_filter) {
+		if (pid->filter->pid_info_changed) {
+			pid->filter->pid_info_changed = GF_FALSE;
+			pid->pid_info_changed = GF_TRUE;
+		}
 
-	if (!pid->request_property_map && !(pck->info.flags & GF_PCK_CMD_MASK) && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
+		//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
+		pck->info.flags &= ~GF_PCKF_PROPS_CHANGED;
 
-		pck->info.flags |= GF_PCKF_PROPS_CHANGED;
-		pid->pid_info_changed = GF_FALSE;
-	}
-	//any new pid_set_property after this packet will trigger a new property map
-	pck->info.flags &= ~GF_PCKF_INFO_CHANGED;
-	if (! (pck->info.flags & GF_PCK_CMD_MASK)) {
-		pid->request_property_map = GF_TRUE;
-		pid->props_changed_since_connect = GF_FALSE;
-	}
-	if (pid->pid_info_changed) {
-		if (! (pck->info.flags & GF_PCKF_PROPS_CHANGED) )
+		if (!pid->request_property_map && !(pck->info.flags & GF_PCK_CMD_MASK) && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
+
+			pck->info.flags |= GF_PCKF_PROPS_CHANGED;
+		}
+		//any new pid_set_property after this packet will trigger a new property map
+		if (! (pck->info.flags & GF_PCK_CMD_MASK)) {
+			pid->request_property_map = GF_TRUE;
+			pid->props_changed_since_connect = GF_FALSE;
+		}
+		if (pid->pid_info_changed) {
 			pck->info.flags |= GF_PCKF_INFO_CHANGED;
-		pid->pid_info_changed = GF_FALSE;
+			pid->pid_info_changed = GF_FALSE;
+		}
 	}
 
 	if (pck->pid_props) {
@@ -652,7 +656,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
 			if ((pck->info.flags & GF_PCKF_PROPS_CHANGED) && (dst->props != pck->pid_props)) {
 				//unassign old property list and set the new one
-				if (safe_int_dec(& dst->props->reference_count) == 0) {
+				if (dst->props && (safe_int_dec(& dst->props->reference_count) == 0)) {
 					gf_list_del_item(dst->pid->properties, dst->props);
 					gf_props_del(dst->props);
 				}
@@ -846,6 +850,12 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	}
 	gf_rmt_end();
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
+{
+	return gf_filter_pck_send_internal(pck, GF_TRUE);
 }
 
 GF_EXPORT

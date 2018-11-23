@@ -184,6 +184,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL );
 
+	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 
 	ctx->nb_ch = gf_mp3_num_channels(ctx->hdr);
 	ctx->codecid = gf_mp3_object_type_indication(ctx->hdr);
@@ -492,10 +493,43 @@ static void mp3_dmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
+
+static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	u32 nb_frames=0;
+	u32 pos=0;
+	u32 prev_pos=0;
+	while (1) {
+		u32 hdr = gf_mp3_get_next_header_mem(data, size, &pos);
+		if (!hdr) break;
+		if (gf_mp3_version(hdr) > 3) break;
+		u8 sampleRateIndex = (hdr >> 10) & 0x3;
+		if (sampleRateIndex>2) break;
+		u32 fsize = gf_mp3_frame_size(hdr);
+		if (fsize + pos > size) break;
+
+		if (prev_pos && pos) {
+			nb_frames=0;
+			break;
+		}
+		prev_pos = pos;
+		nb_frames++;
+		if (nb_frames>4) break;
+		size -= fsize + pos;
+		data += fsize + pos;
+	}
+
+	if (nb_frames>=2) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/mp3";
+	}
+	return NULL;
+}
+
 static const GF_FilterCapability MP3DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-mp3|audio/mp3"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/mp3|audio/x-mp3"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
@@ -522,13 +556,14 @@ static const GF_FilterArgs MP3DmxArgs[] =
 
 GF_FilterRegister MP3DmxRegister = {
 	.name = "rfmp3",
-	.description = "MPEG-1/2 audio reframer",
+	GF_FS_SET_DESCRIPTION("MPEG-1/2 audio reframer")
 	.private_size = sizeof(GF_MP3DmxCtx),
 	.args = MP3DmxArgs,
 	.finalize = mp3_dmx_finalize,
 	SETCAPS(MP3DmxCaps),
 	.configure_pid = mp3_dmx_configure_pid,
 	.process = mp3_dmx_process,
+	.probe_data = mp3_dmx_probe_data,
 	.process_event = mp3_dmx_process_event
 };
 

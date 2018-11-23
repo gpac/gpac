@@ -590,6 +590,55 @@ static void h263dmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
+static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	u32 nb_frames=0;
+	u32 max_nb_frames=0;
+	u32 prev_fmt=0;
+	s32 current = h263dmx_next_start_code((u8*)data, size);
+	while (size && (current>=0) && (current<size)) {
+		u32 fmt=0;
+		data += current;
+		size -= current;
+
+		GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+
+		/*parse header*/
+		gf_bs_read_int(bs, 22);
+		gf_bs_read_int(bs, 8);
+		gf_bs_read_int(bs, 5);
+
+		fmt = gf_bs_read_int(bs, 3);
+		gf_bs_del(bs);
+
+		if (fmt>=1 && (fmt<=5)) {
+			if (!prev_fmt || (prev_fmt==fmt)) {
+				nb_frames++;
+			} else {
+				if (nb_frames>max_nb_frames) {
+					max_nb_frames = nb_frames;
+				}
+			}
+			prev_fmt=fmt;
+		} else {
+			nb_frames=0;
+			break;
+		}
+		current = h263dmx_next_start_code((u8*)data+1, size-1);
+		if (current<=0) break;
+		current++;
+		if (size < current) break;
+	}
+	if (nb_frames>max_nb_frames) {
+		max_nb_frames = nb_frames;
+	}
+	if (max_nb_frames) {
+		*score = max_nb_frames>2 ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
+		return "video/h263";
+	}
+	return NULL;
+}
+
 static const GF_FilterCapability H263DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -619,13 +668,14 @@ static const GF_FilterArgs H263DmxArgs[] =
 
 GF_FilterRegister H263DmxRegister = {
 	.name = "rfh263",
-	.description = "H263 reframer",
+	GF_FS_SET_DESCRIPTION("H263 reframer")
 	.private_size = sizeof(GF_H263DmxCtx),
 	.args = H263DmxArgs,
 	.finalize = h263dmx_finalize,
 	SETCAPS(H263DmxCaps),
 	.configure_pid = h263dmx_configure_pid,
 	.process = h263dmx_process,
+	.probe_data = h263dmx_probe_data,
 	.process_event = h263dmx_process_event
 };
 

@@ -644,7 +644,10 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 
 void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 {
-	fprintf(trace, " DataReferenceIndex=\"%d\" SampleRate=\"%d\"", p->dataReferenceIndex, p->samplerate_hi);
+	fprintf(trace, " DataReferenceIndex=\"%d\"", p->dataReferenceIndex);
+	if (p->version)
+		fprintf(trace, " Version=\"%d\"", p->version);
+	fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
 	fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
 }
 
@@ -818,8 +821,10 @@ GF_Err dref_dump(GF_Box *a, FILE * trace)
 
 GF_Err stsd_dump(GF_Box *a, FILE * trace)
 {
-//	GF_SampleDescriptionBox *p = (GF_SampleDescriptionBox *)a;
+	GF_SampleDescriptionBox *p = (GF_SampleDescriptionBox *)a;
 	gf_isom_box_dump_start(a, "SampleDescriptionBox", trace);
+	if (p->version)
+		fprintf(trace, " version=\"%d\"", p->version);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("SampleDescriptionBox", a, trace);
 	return GF_OK;
@@ -4678,9 +4683,12 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 		if (cenc_sample) {
-			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\" IV=\"", i+1, cenc_sample->IV_size);
-			dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
-			fprintf(trace, "\"");
+			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);
+			if (cenc_sample->IV_size) {
+				fprintf(trace, "IV=\"");
+				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
+				fprintf(trace, "\"");
+			}
 			if (ptr->flags & 0x2) {
 				fprintf(trace, " SubsampleCount=\"%d\"", cenc_sample->subsample_count);
 				fprintf(trace, ">\n");

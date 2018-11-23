@@ -401,7 +401,7 @@ static const GF_FilterCapability FAADCaps[] =
 
 GF_FilterRegister FAADRegister = {
 	.name = "faad",
-	.description = "FAAD decoder",
+	GF_FS_SET_DESCRIPTION("FAAD decoder")
 	.private_size = sizeof(GF_FAADCtx),
 	SETCAPS(FAADCaps),
 	.configure_pid = faaddec_configure_pid,

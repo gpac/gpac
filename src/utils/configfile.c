@@ -92,13 +92,15 @@ static void gf_cfg_clear(GF_Config * iniFile) {
 GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const char * file_name)
 {
 	IniSection *p;
-	IniKey *k;
+	IniKey *k=NULL;
 	FILE *file;
 	char *ret;
 	char *line;
 	u32 line_alloc = MAX_INI_LINE;
 	char fileName[GF_MAX_PATH];
-
+	Bool line_done = GF_FALSE;
+	u32 nb_empty_lines=0;
+	Bool in_multiline = GF_FALSE;;
 	gf_cfg_clear(tmp);
 
 	if (filePath && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
@@ -120,6 +122,18 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	line = (char*)gf_malloc(sizeof(char)*line_alloc);
 	memset(line, 0, sizeof(char)*line_alloc);
 
+#define FLUSH_EMPTY_LINES \
+			if (k&& nb_empty_lines) {\
+				u32 klen = strlen(k->value)+1+nb_empty_lines;\
+				k->value = gf_realloc(k->value, sizeof(char)*klen);\
+				while (nb_empty_lines) {\
+					nb_empty_lines--;\
+					strcat(k->value, "\n");\
+				}\
+				k=NULL;\
+			}\
+			nb_empty_lines=0;\
+
 	while (!feof(file)) {
 		u32 read, nb_pass;
 		ret = fgets(line, line_alloc, file);
@@ -135,18 +149,30 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		if (!ret) continue;
 
 		/* get rid of the end of line stuff */
-		while (1) {
-			u32 len = (u32) strlen(line);
-			if (!len) break;
-			if ((line[len-1] != '\n') && (line[len-1] != '\r')) break;
-			line[len-1] = 0;
+		if (!strstr(line, "=@")) {
+			while (!in_multiline) {
+				u32 len = (u32) strlen(line);
+				if (!len) break;
+				if ((line[len-1] != '\n') && (line[len-1] != '\r')) break;
+				line[len-1] = 0;
+			}
 		}
-		if (!strlen(line)) continue;
-		if (line[0] == '#') continue;
-
+		if (!strlen(line)) {
+			if (k) nb_empty_lines++;
+			continue;
+		}
+		if (line[0] == '#') {
+			FLUSH_EMPTY_LINES
+			continue;
+		}
 
 		/* new section */
 		if (line[0] == '[') {
+			//compat with old arch
+			if (nb_empty_lines) nb_empty_lines--;
+
+			FLUSH_EMPTY_LINES
+
 			p = (IniSection *) gf_malloc(sizeof(IniSection));
 			p->keys = gf_list_new();
 			p->section_name = gf_strdup(line + 1);
@@ -154,7 +180,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			while (p->section_name[strlen(p->section_name) - 1] == ']' || p->section_name[strlen(p->section_name) - 1] == ' ') p->section_name[strlen(p->section_name) - 1] = 0;
 			gf_list_add(tmp->sections, p);
 		}
-		else if (strlen(line) && (strchr(line, '=') != NULL) ) {
+		else if (strlen(line) && !in_multiline && (strchr(line, '=') != NULL) ) {
 			if (!p) {
 				gf_list_del(tmp->sections);
 				gf_free(tmp->fileName);
@@ -163,25 +189,53 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 				gf_free(line);
 				return GF_IO_ERR;
 			}
+			FLUSH_EMPTY_LINES
 
 			k = (IniKey *) gf_malloc(sizeof(IniKey));
 			memset((void *)k, 0, sizeof(IniKey));
 			ret = strchr(line, '=');
 			if (ret) {
+				u32 klen;
 				ret[0] = 0;
 				k->name = gf_strdup(line);
 				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
 				ret[0] = '=';
 				ret += 1;
 				while (ret[0] == ' ') ret++;
+				if (ret[0]=='@') {
+					ret++;
+					in_multiline = GF_TRUE;
+				}
 				if ( ret[0] != 0) {
 					k->value = gf_strdup(ret);
 					while (k->value[strlen(k->value) - 1] == ' ') k->value[strlen(k->value) - 1] = 0;
 				} else {
 					k->value = gf_strdup("");
 				}
+				line_done = GF_FALSE;
+				klen = strlen(k->value);
 			}
 			gf_list_add(p->keys, k);
+			if (line_done) k=NULL;
+			line_done=GF_FALSE;
+		} else if (k) {
+			u32 l1 = strlen(k->value);
+			u32 l2 = strlen(line);
+			k->value = gf_realloc(k->value, sizeof(char) * (l1 + l2 + 1 + nb_empty_lines) );
+			l2 += l1 + nb_empty_lines;
+			while (nb_empty_lines) {
+				strcat(k->value, "\n");
+				nb_empty_lines--;
+			}
+			strcat(k->value, line);
+			l2 -= 2; //@ and \n
+			if (k->value[l2] == '@') {
+				k->value[l2] = 0;
+				k=NULL;
+				in_multiline = GF_FALSE;
+			}
+		} else {
+			k = NULL;
 		}
 	}
 	gf_free(line);
@@ -242,15 +296,17 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 	i=0;
 	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
 		/*Temporary sections are not saved*/
-		if (!strnicmp(sec->section_name, "Temp", 4)) continue;
+		if (!strnicmp(sec->section_name, "temp", 4)) continue;
 
 		fprintf(file, "[%s]\n", sec->section_name);
 		j=0;
 		while ( (key = (IniKey *) gf_list_enum(sec->keys, &j)) ) {
-			fprintf(file, "%s=%s\n", key->name, key->value);
+			if (strchr(key->value, '\n')) {
+				fprintf(file, "%s=@%s@\n", key->name, key->value);
+			} else {
+				fprintf(file, "%s=%s\n", key->name, key->value);
+			}
 		}
-		/* end of section */
-		fprintf(file, "\n");
 	}
 	gf_fclose(file);
 	return GF_OK;

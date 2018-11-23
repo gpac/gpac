@@ -435,7 +435,7 @@ static const GF_FilterCapability VTTDecCaps[] =
 
 GF_FilterRegister VTTDecRegister = {
 	.name = "vttdec",
-	.description = "WebVTT decoder",
+	GF_FS_SET_DESCRIPTION("WebVTT decoder")
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,

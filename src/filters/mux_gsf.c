@@ -1057,8 +1057,8 @@ static const GF_FilterArgs GSFMxArgs[] =
 
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfm",
-	.description = "GPAC Super/Simple/Serialized/Stream/State Format writer",
-	.help = "This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. "\
+	GF_FS_SET_DESCRIPTION("GPAC Super/Simple/Serialized/Stream/State Format multiplexer")
+	GF_FS_SET_HELP("This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. "\
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "\
 			"using either pipes or sockets. Upstream events are not serialized.\n"\
 			"\n"\
@@ -1076,8 +1076,9 @@ GF_FilterRegister GSFMxRegister = {
 			"The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the minp option can be used: "
 			"this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.\n"
 			"The skp option may also be used to specify which property to drop:\n"
-			"\tEX: skp=\"4CC1,Name2\" will remove properties of type 4CC1 and properties (built-in or not) of name Name2\n"
-			"\n",
+			"\tEX: skp=\"4CC1,Name2\n"\
+			"This will remove properties of type 4CC1 and properties (built-in or not) of name Name2\n"
+			"\n")
 	.private_size = sizeof(GSFMxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFMxArgs,

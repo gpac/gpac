@@ -1233,8 +1233,8 @@ static const GF_FilterArgs TSMuxArgs[] =
 
 GF_FilterRegister TSMuxRegister = {
 	.name = "mxts",
-	.description = "MPEG-2 Transport Stream muxer",
-	.help = "GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"\
+	GF_FS_SET_DESCRIPTION("MPEG-2 Transport Stream muxer")
+	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"\
 	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"\
 		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID inidcated by sid option\n"\
 		"name option is overriden by input PID property ServiceName\n"\
@@ -1248,7 +1248,7 @@ GF_FilterRegister TSMuxRegister = {
 		"temi=\"#20#4#10#,,URL\": inserts a temi URL+timecode to the third stream of program with ServiceID 10 and an external temi to the first stream of program with ServiceID 20\n"\
 		"\n"\
 		"In DASH mode, the PCR is always initialized at 0, and flush_rap is automatically set.\n"
-	,
+	)
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,
 	.initialize = tsmux_initialize,

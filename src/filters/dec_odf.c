@@ -419,7 +419,7 @@ static const GF_FilterCapability ODFDecCaps[] =
 
 GF_FilterRegister ODFDecRegister = {
 	.name = "odfdec",
-	.description = "MPEG-4 OD decoder",
+	GF_FS_SET_DESCRIPTION("MPEG-4 OD decoder")
 	.private_size = sizeof(GF_ODFDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	SETCAPS(ODFDecCaps),

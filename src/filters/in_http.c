@@ -380,7 +380,7 @@ static const GF_FilterCapability HTTPInCaps[] =
 
 GF_FilterRegister HTTPInRegister = {
 	.name = "httpin",
-	.description = "HTTP input",
+	GF_FS_SET_DESCRIPTION("HTTP input")
 	.private_size = sizeof(GF_HTTPInCtx),
 	.args = HTTPInArgs,
 	SETCAPS(HTTPInCaps),

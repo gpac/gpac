@@ -280,7 +280,7 @@ static const GF_FilterCapability VorbisDecCaps[] =
 
 GF_FilterRegister VorbisDecRegister = {
 	.name = "vorbisdec",
-	.description = "OGG/Vorbis decoder",
+	GF_FS_SET_DESCRIPTION("OGG/Vorbis decoder")
 	.private_size = sizeof(GF_VorbisDecCtx),
 	SETCAPS(VorbisDecCaps),
 	.finalize = vorbisdec_finalize,

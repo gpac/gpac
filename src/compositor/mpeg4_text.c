@@ -155,6 +155,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			span->bounds.y = start_y;
 			span->bounds.x = 0;
 			span->bounds.width = 0;
+			span->bounds.y += 2;
+			span->bounds.height += 4;
 
 			if (split_words) {
 				for (k=0; k<span->nb_glyphs; k++) {
@@ -185,6 +187,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 				span->bounds.height = st->ascent + st->descent;
 				span->bounds.y = start_y;
 				span->bounds.x = 0;
+				span->bounds.y += 2;
+				span->bounds.height += 4;
 				k = (j - first_char);
 				span->glyphs[0] = tspan->glyphs[FSLTR ? (first_char+k) : (len - first_char - k - 1)];
 				span->bounds.width = tspan->font_scale * (span->glyphs[0] ? span->glyphs[0]->horiz_advance : tspan->font->max_advance_h);

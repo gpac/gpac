@@ -188,6 +188,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
 
 	ctx->ipid = pid;
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	if (!dcd && !dcd_enh)
 		return GF_OK;
 
@@ -410,7 +411,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 
 GF_FilterRegister NALUMxRegister = {
 	.name = "ufnalu",
-	.description = "ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC",
+	GF_FS_SET_DESCRIPTION("ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC")
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
 	.finalize = nalumx_finalize,

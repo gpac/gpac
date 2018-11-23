@@ -2623,6 +2623,7 @@ static void naludmx_finalize(GF_Filter *filter)
 	if (ctx->hevc_state) gf_free(ctx->hevc_state);
 }
 
+
 static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	u32 sc, sc_size;
@@ -2669,7 +2670,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 	if (!nb_hevc && !nb_avc) return NULL;
 	*score = GF_FPROBE_MAYBE_SUPPORTED;
-	if (!nb_hevc) return nb_avc ? "video/avc" : NULL;
+	if (!nb_hevc) return "video/avc";
 	if (!nb_avc) return "video/hevc";
 	if (nb_hevc>nb_avc) return "video/hevc";
 	return "video/avc";
@@ -2717,8 +2718,8 @@ static const GF_FilterArgs NALUDmxArgs[] =
 
 GF_FilterRegister NALUDmxRegister = {
 	.name = "rfnalu",
-	.description = "NALU Video (AVC & HEVC) reframer",
-	.help = "This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\n\tThe demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.",
+	GF_FS_SET_DESCRIPTION("NALU Video (AVC & HEVC) reframer")
+	GF_FS_SET_HELP("This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\n\tThe demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.")
 	.private_size = sizeof(GF_NALUDmxCtx),
 	.args = NALUDmxArgs,
 	.initialize = naludmx_initialize,

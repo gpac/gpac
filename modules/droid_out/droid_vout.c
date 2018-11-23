@@ -55,9 +55,7 @@ typedef struct
 
 	u32 tex_width, tex_height;
 
-	GLuint texID;
-	GLuint framebuff;
-	GLuint depthbuff;
+	GLint texID;
 
 	GLubyte* texData;
 
@@ -412,7 +410,7 @@ void drawGLScene(AndroidContext *rc)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("drawGLScene : start"));
 #endif /* DROID_EXTREME_LOGS */
 #ifdef GPAC_USE_GLES2
-	GLuint loc_vertex_array, loc_texcoord_array;
+	GLint loc_vertex_array, loc_texcoord_array;
 	loc_vertex_array = loc_texcoord_array = -1;
 #endif
 
@@ -852,8 +850,6 @@ GF_VideoOutput *NewAndroidVideoOutput()
 	memset(pCtx, 0, sizeof(AndroidContext));
 
 	pCtx->texID = -1;
-	pCtx->framebuff = -1;
-	pCtx->depthbuff = -1;
 	driv->opaque = pCtx;
 
 	driv->Flush = droid_Flush;

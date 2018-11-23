@@ -400,10 +400,10 @@ static const GF_FilterCapability FileOutCaps[] =
 
 GF_FilterRegister FileOutRegister = {
 	.name = "fout",
-	.description = "Generic file output",
-	.help = "The file output filter can work as a null sink when its destination is \"null\", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"\
-	"In regular mode, the filter will dump to file incomming packets (stream type \"file\", starting a new file for each packet having a start block set, unless operating in cat mode.\n"\
-	"The ouput file name can use gpac templating mechanism, see gpac help.",
+	GF_FS_SET_DESCRIPTION("Generic file output")
+	GF_FS_SET_HELP("The file output filter can work as a null sink when its destination is \"null\", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"\
+	"In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a start block set, unless operating in cat mode.\n"\
+	"The ouput file name can use gpac templating mechanism, see gpac help.")
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
 	SETCAPS(FileOutCaps),

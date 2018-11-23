@@ -1305,7 +1305,7 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs);
 
 /*! writes GF_TextSampleDescriptor
  \param cfg the text config to encode
- \param outData adress of output buffer (internal alloc, user to free it)
+ \param outData address of output buffer (internal alloc, user to free it)
  \param outSize size of the allocated output
  \return error if any
  */
