@@ -1960,7 +1960,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		Double rate, new_rate, duration;
 
 		mov = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
-		duration = gf_isom_get_duration(mov);
+		duration = (Double) gf_isom_get_duration(mov);
 		duration /= gf_isom_get_timescale(mov);
 
 		nb_samples = 0;
@@ -1970,11 +1970,11 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		}
 		gf_isom_close(mov);
 
-		rate = source_size;
+		rate = (Double) source_size;
 		rate /= duration;
 		rate /= 1000;
 
-		new_rate = source_size - bytes_saved;
+		new_rate = (Double)(source_size - bytes_saved);
 		new_rate /= duration;
 		new_rate /= 1000;
 
