@@ -177,7 +177,8 @@ void loadSensorControler(MPEGVSensorContext *rc)
 	if ( res == JNI_EDETACHED )
 	{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] The current thread is not attached to the VM, assuming native thread\n"));
-		if ( res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL) )
+		res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+		if ( res )
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] Attach current thread failed: %d\n", res));
 			return;

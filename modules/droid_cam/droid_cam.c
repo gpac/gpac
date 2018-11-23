@@ -265,6 +265,7 @@ void unloadCameraControler(ISOMReader *read)
 u32 unregisterFunc(void* data)
 {
 	unloadCameraControler(globReader);
+	return 0;
 }
 
 void loadCameraControler(ISOMReader *read)
@@ -279,7 +280,8 @@ void loadCameraControler(ISOMReader *read)
 	if ( res == JNI_EDETACHED )
 	{
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] The current thread is not attached to the VM, assuming native thread\n"));
-		if ( res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL) )
+		res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+		if ( res )
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] Attach current thread failed: %d\n", res));
 			return;
@@ -508,8 +510,8 @@ void CallCamMethod(ISOMReader *read, jmethodID methodID)
 	if ( res == JNI_EDETACHED )
 	{
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] The current thread is not attached to the VM, assuming native thread\n"));
-		if ( res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL) )
-		{
+		res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+		if ( res ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] Attach current thread failed: %d\n", res));
 			return;
 		}
@@ -650,6 +652,8 @@ GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	/*nothing to do on MP4 for channel config*/
 	case GF_NET_CHAN_CONFIG:
 		return GF_OK;
+	default:
+		break;
 	}
 	return GF_NOT_SUPPORTED;
 }

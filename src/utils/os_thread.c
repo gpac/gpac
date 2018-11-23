@@ -148,8 +148,10 @@ static void currentThreadInfoKey_alloc()
 {
 	int err;
 	/* We do not use any destructor */
-	if (err = pthread_key_create(&currentThreadInfoKey, NULL))
+	err = pthread_key_create(&currentThreadInfoKey, NULL);
+	if (err) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] pthread_key_create() failed with error %d\n", err));
+	}
 }
 
 GF_Thread * gf_th_current() {
