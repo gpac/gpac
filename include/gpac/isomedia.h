@@ -1325,7 +1325,15 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32
 GF_Err gf_isom_set_clean_apperture(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 cleanApertureWidthN, u32 cleanApertureWidthD, u32 cleanApertureHeightN, u32 cleanApertureHeightD, u32 horizOffN, u32 horizOffD, u32 vertOffN, u32 vertOffD);
 
 /*set SR & nbChans for audio description*/
-GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample);
+typedef enum {
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS = 1,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2 = 2,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG = 3,
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF = 4,
+} GF_AudioSampleEntryImportMode;
+
+GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode);
 
 /*non standard extensions: set/remove a fragment of a sample - this is used for video packets
 in order to keep AU structure in the file format (no normative tables for that). Info is NOT written to disk*/

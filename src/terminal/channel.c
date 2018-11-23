@@ -1187,6 +1187,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 				if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon) {
 					s64 res;
+					if (!ch->odm->parentscene->root_od->addon->timeline_ready && (ch->odm->parentscene->root_od->addon->url[0]==0))
+						return;
+						
 					res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene->root_od->addon, ch->DTS);
 					if (res<0) res=0;
 					ch->DTS = (u32) res;
