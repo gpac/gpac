@@ -215,6 +215,8 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (ctx->opid_info)
 		gf_filter_pid_set_name(ctx->opid_info, "info");
 
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
 	return GF_OK;
 }
 
@@ -832,7 +834,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 
 GF_FilterRegister NHMLDumpRegister = {
 	.name = "nhmlw",
-	.description = "NHML file writer",
+	GF_FS_SET_DESCRIPTION("NHML file writer")
 	.private_size = sizeof(GF_NHMLDumpCtx),
 	.args = NHMLDumpArgs,
 	.initialize = nhmldump_initialize,

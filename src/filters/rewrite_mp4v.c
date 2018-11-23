@@ -78,6 +78,7 @@ GF_Err m4vmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->dsi_size = dcd->value.data.size;
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	return GF_OK;
 }
 
@@ -143,7 +144,7 @@ static const GF_FilterArgs M4VMxArgs[] =
 
 GF_FilterRegister M4VMxRegister = {
 	.name = "ufm4v",
-	.description = "ISOBMFF to MPEG-4(Part2) writer",
+	GF_FS_SET_DESCRIPTION("ISOBMFF to MPEG-4(Part2) writer")
 	.private_size = sizeof(GF_M4VMxCtx),
 	.args = M4VMxArgs,
 	SETCAPS(M4VMxCaps),

@@ -57,6 +57,13 @@ u32 temi_url_insertion_delay = 1000;
 u32 temi_offset = 0;
 Bool temi_disable_loop = GF_FALSE;
 
+Double temi_period=0;
+Bool request_temi_toggle = GF_FALSE;
+Bool temi_on = GF_TRUE;
+Bool temi_single_toggle = GF_FALSE;
+u64 temi_period_last_dts = 0;
+FILE *logfile = NULL;
+
 static void usage()
 {
 	fprintf(stderr, "mp42ts <inputs> <destinations> [options]\n"
@@ -248,13 +255,13 @@ static u32 format_af_descriptor(char *af_data, u32 timeline_id, u64 timecode, u3
 {
 	u32 res;
 	u32 len;
-	u32 last_time;
+	u32 last_time=0;
 	GF_BitStream *bs = gf_bs_new(af_data, 188, GF_BITSTREAM_WRITE);
 
 	if (ntp) {
 		last_time = 1000*(ntp>>32);
 		last_time += 1000*(ntp&0xFFFFFFFF)/0xFFFFFFFF;
-	} else {
+	} else if (timescale) {
 		last_time = (u32) (1000*timecode/timescale);
 	}
 	if (temi_url && (!*last_url_time || (last_time - *last_url_time + 1 >= temi_url_insertion_delay)) ) {
@@ -270,7 +277,7 @@ static u32 format_af_descriptor(char *af_data, u32 timeline_id, u64 timecode, u3
 		gf_bs_write_int(bs,	0xFF, 5); //reserved
 		gf_bs_write_int(bs,	timeline_id, 7); //timeline_id
 
-		if (strlen(temi_url)) {
+		if (temi_url) {
 			char *url = (char *)temi_url;
 			if (!strnicmp(temi_url, "http://", 7)) {
 				gf_bs_write_int(bs,	1, 8); //url_scheme
@@ -356,8 +363,10 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
 		if (priv->timeline_id) {
+			Bool deactivate_temi=GF_FALSE;
 			u64 ntp=0;
 			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset + priv->cts_dts_shift;
+			Bool insert_temi=GF_FALSE;
 			if (temi_disable_loop) {
 				tc += priv->ts_offset;
 			}
@@ -373,8 +382,43 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				ntp <<= 32;
 				ntp |= frac;
 			}
-			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, priv->timeline_id - 1, tc, ifce->timescale, ntp, priv->temi_url, &priv->last_temi_url);
-			pck.mpeg2_af_descriptors = af_data;
+			if (!temi_period) {
+				//toggle temi at RAP POINTS ONLY
+				if (request_temi_toggle && priv->sample->IsRAP) {
+					temi_on = !temi_on;
+					if (!temi_on) {
+						deactivate_temi = GF_TRUE;
+					}
+					fprintf(stderr, "Turning TEMI %st at DTS "LLU" (%g sec)\n", temi_on ? "on" : "off" , priv->sample->DTS, ((Double)priv->sample->DTS)/ifce->timescale);
+					request_temi_toggle = GF_FALSE;
+				}
+				insert_temi = temi_on;
+			} else {
+
+				if (!temi_on) {
+					if (priv->sample->IsRAP && ((priv->sample->DTS - temi_period_last_dts) >= temi_period * ifce->timescale)) {
+						temi_on = GF_TRUE;
+						temi_period_last_dts = priv->sample->DTS;
+						fprintf(stderr, "Turning TEMI on at DTS "LLU" (%g sec)\n", priv->sample->DTS, ((Double)priv->sample->DTS)/ifce->timescale);
+					}
+				} else {
+					if (!temi_single_toggle && priv->sample->IsRAP && ((priv->sample->DTS - temi_period_last_dts) >= temi_period * ifce->timescale)) {
+						temi_on = GF_FALSE;
+						temi_period_last_dts = priv->sample->DTS;
+						fprintf(stderr, "Turning TEMI off at DTS "LLU" (%g sec)\n", priv->sample->DTS, ((Double)priv->sample->DTS)/ifce->timescale);
+						deactivate_temi = GF_TRUE;
+					}
+				}
+				insert_temi = temi_on;
+			}
+
+			if (insert_temi) {
+				pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, priv->timeline_id - 1, tc, ifce->timescale, ntp, priv->temi_url, &priv->last_temi_url);
+				pck.mpeg2_af_descriptors = af_data;
+			} else if (deactivate_temi) {
+				pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, priv->timeline_id - 1, 0, 0, 0, "", &priv->last_temi_url);
+				pck.mpeg2_af_descriptors = af_data;
+			}
 		}
 
 		if (priv->nb_repeat_last) {
@@ -2136,6 +2180,14 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			temi_offset = atoi(next_arg);
 		} else if (!stricmp(arg, "-temi-noloop")) {
 			temi_disable_loop = 1;
+		} else if (!stricmp(arg, "-temi-off")) {
+			temi_on = GF_FALSE;
+		} else if (CHECK_PARAM("-temi-period")) {
+			temi_period = atof(next_arg);
+			if (temi_period<0) {
+				temi_period *= -1;
+				temi_single_toggle = GF_TRUE;
+			}
 		} else if (!stricmp(arg, "-insert-ntp")) {
 			insert_ntp = GF_TRUE;
 		}
@@ -2787,6 +2839,7 @@ call_flush:
 				if (gf_prompt_has_input()) {
 					char c = gf_prompt_get_char();
 					if (c=='q') break;
+					else if (c=='t') request_temi_toggle = GF_TRUE;
 				}
 			}
 			if (status == GF_M2TS_STATE_IDLE) {

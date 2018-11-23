@@ -316,6 +316,7 @@
     <ClCompile Include="..\..\src\filters\reframe_av1.c" />
     <ClCompile Include="..\..\src\filters\reframe_h263.c" />
     <ClCompile Include="..\..\src\filters\reframe_img.c" />
+    <ClCompile Include="..\..\src\filters\reframe_latm.c" />
     <ClCompile Include="..\..\src\filters\reframe_mp3.c" />
     <ClCompile Include="..\..\src\filters\reframe_mpgvid.c" />
     <ClCompile Include="..\..\src\filters\reframe_nalu.c" />

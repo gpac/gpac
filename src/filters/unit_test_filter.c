@@ -779,7 +779,7 @@ static const GF_FilterCapability UTSourceOutputs[] =
 
 const GF_FilterRegister UTFilterRegister = {
 	.name = "UTFilter",
-	.description = "Unit Test Filter, only used for unit testing of filter framework",
+	GF_FS_SET_DESCRIPTION("Unit Test Filter, only used for unit testing of filter framework")
 	.private_size = sizeof(GF_UnitTestFilter),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS( UTFilterCaps),
@@ -794,7 +794,7 @@ const GF_FilterRegister UTFilterRegister = {
 
 const GF_FilterRegister UTSinkRegister = {
 	.name = "UTSink",
-	.description = "Unit Test Sink, only used for unit testing of filter framework",
+	GF_FS_SET_DESCRIPTION("Unit Test Sink, only used for unit testing of filter framework")
 	.private_size = sizeof(GF_UnitTestFilter),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS(UTSinkInputs),
@@ -808,7 +808,7 @@ const GF_FilterRegister UTSinkRegister = {
 
 const GF_FilterRegister UTSink2Register = {
 	.name = "UTSink2",
-	.description = "Unit Test Sink, only used for unit testing of filter framework",
+	GF_FS_SET_DESCRIPTION("Unit Test Sink, only used for unit testing of filter framework")
 	.private_size = sizeof(GF_UnitTestFilter),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS(UTSink2Inputs),
@@ -822,7 +822,7 @@ const GF_FilterRegister UTSink2Register = {
 
 const GF_FilterRegister UTSourceRegister = {
 	.name = "UTSource",
-	.description = "Unit Test Source, only used for unit testing of filter framework",
+	GF_FS_SET_DESCRIPTION("Unit Test Source, only used for unit testing of filter framework")
 	.private_size = sizeof(GF_UnitTestFilter),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS(UTSourceOutputs),

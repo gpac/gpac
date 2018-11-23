@@ -521,15 +521,37 @@ static void ac3dmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
+static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	u32 nb_frames=0;
+	u32 pos=0;
+	while (1) {
+		GF_AC3Header ahdr;
+		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
+		 	break;
+		u32 fsize = ahdr.framesize;
+		if (fsize > size+pos) break;
+		nb_frames++;
+		if (nb_frames>4) break;
+		size -= fsize+pos;
+		data += fsize+pos;
+	}
+	if (nb_frames>=2) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/ac3";
+	}
+	return NULL;
+}
+
 //TODO - eac3 needs more testing
 static const GF_FilterCapability AC3DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 //	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3|audio/x-eac3|audio/eac3"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/ac3|audio/x-ac3"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AC3),
-	CAP_BOOL(GF_CAPS_OUTPUT_STATIC ,GF_PROP_PID_UNFRAMED, GF_FALSE),
+	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 //	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac3|eac3"),
@@ -551,13 +573,14 @@ static const GF_FilterArgs AC3DmxArgs[] =
 
 GF_FilterRegister AC3DmxRegister = {
 	.name = "rfac3",
-	.description = "AC3 reframer",
+	GF_FS_SET_DESCRIPTION("AC3 reframer")
 	.private_size = sizeof(GF_AC3DmxCtx),
 	.args = AC3DmxArgs,
 	.finalize = ac3dmx_finalize,
 	SETCAPS(AC3DmxCaps),
 	.configure_pid = ac3dmx_configure_pid,
 	.process = ac3dmx_process,
+	.probe_data = ac3dmx_probe_data,
 	.process_event = ac3dmx_process_event
 };
 

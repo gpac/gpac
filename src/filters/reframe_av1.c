@@ -657,7 +657,7 @@ static const GF_FilterArgs AV1DmxArgs[] =
 
 GF_FilterRegister AV1DmxRegister = {
 	.name = "rfav1",
-	.description = "AV1 reframer",
+	GF_FS_SET_DESCRIPTION("AV1 reframer")
 	.private_size = sizeof(GF_AV1DmxCtx),
 	.args = AV1DmxArgs,
 	.finalize = av1dmx_finalize,

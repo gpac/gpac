@@ -495,7 +495,7 @@ GF_BaseInterface *gf_modules_load_by_name(const char *plug_name, u32 InterfaceFa
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Added plugin cache %s for %s\n", plug_name, ((ModuleInstance*)ifce->HPLUG)->name));
 			return ifce;
 		}
-		/*check direct adressing by dynamic lib name*/
+		/*check direct addressing by dynamic lib name*/
 		mod_filename = gf_module_get_file_name(ifce);
 		if (mod_filename && strstr(mod_filename, plug_name)) {
 			return ifce;

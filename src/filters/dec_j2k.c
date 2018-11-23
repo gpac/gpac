@@ -384,9 +384,9 @@ static const GF_FilterCapability J2KCaps[] =
 GF_FilterRegister J2KRegister = {
 	.name = "j2kdec",
 #ifdef OPENJPEG_VERSION
-	.description = "OpenJPEG2000 decoder v"OPENJPEG_VERSION,
+	GF_FS_SET_DESCRIPTION("OpenJPEG2000 decoder v"OPENJPEG_VERSION)
 #else
-	.description = "OpenJPEG2000 decoder",
+	GF_FS_SET_DESCRIPTION("OpenJPEG2000 decoder")
 #endif
 	.private_size = sizeof(GF_J2KCtx),
 	SETCAPS(J2KCaps),

@@ -101,6 +101,7 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->parser = gf_webvtt_parser_new();
 		gf_webvtt_parser_cue_callback(ctx->parser, vttmx_write_cue, ctx);
 	}
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
 }
 
@@ -292,7 +293,7 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 
 GF_FilterRegister WebVTTMxRegister = {
 	.name = "writevtt",
-	.description = "WebVTT Mux",
+	GF_FS_SET_DESCRIPTION("WebVTT file writer")
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,
 	.finalize = vttmx_finalize,

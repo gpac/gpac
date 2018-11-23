@@ -3263,11 +3263,9 @@ Bool gf_m2ts_probe_file(const char *fileName)
 GF_EXPORT
 Bool gf_m2ts_probe_data(const u8 *data, u32 size)
 {
-	char buf[M2TS_PROBE_SIZE];
 	size /= 188;
 	size *= 188;
-	if (size>M2TS_PROBE_SIZE) size = M2TS_PROBE_SIZE;
-	return gf_m2ts_probe_buffer(buf, size);
+	return gf_m2ts_probe_buffer((char *) data, size);
 }
 
 

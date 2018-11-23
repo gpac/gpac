@@ -187,6 +187,7 @@ jint JNI_OnUnLoad(JavaVM* vm, void* reserved) {
 	}
 	javaVM = NULL;
 	jni_thread_env_key = (int) NULL;
+	return 0;
 }
 
 #define NUM_JNI_VERSIONS 4
@@ -312,11 +313,13 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
 }
 
 static u32 beforeThreadExits(void * param) {
-	/* Ivica - I think there is no need for this because the detach is done in jni_destroy_env_func()
-	 *LOGI("Before Thread exist, detach the JavaVM from Thread for thread %p...\n", gf_th_current());
+	/* Ivica - I think there is no need for this because the detach is done in jni_destroy_env_func()*/
+
+	/*LOGI("Before Thread exist, detach the JavaVM from Thread for thread %p...\n", gf_th_current());
 	if (javaVM)
 	javaVM->DetachCurrentThread();
 	*/
+	return 0;
 }
 
 JavaEnvTh * CNativeWrapper::getEnv() {
@@ -718,7 +721,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		strcpy(m_cfg_dir, cfg_dir);
 
 	char m_cfg_filename[GF_MAX_PATH];
-	if (m_cfg_dir) {
+	if (m_cfg_dir[0]) {
 		LOGI("GPAC.cfg found in %s, force using it.\n", m_cfg_dir);
 		strcpy(m_cfg_filename, m_cfg_dir);
 		strcat(m_cfg_filename, "GPAC.cfg");
@@ -742,7 +745,6 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 	m_mx = gf_mx_new("Osmo4");
 
-
 	m_user.init_flags = 0;
 	m_user.opaque = this;
 
@@ -757,6 +759,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
 	gf_sys_init(GF_MemTrackerNone, NULL);
 	gf_fm_request_set_callback(this, on_fm_request);
+
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
 	//load config file
@@ -845,6 +848,7 @@ int CNativeWrapper::connect(const char *url)
 		}
 	}
 	debug_log("connected ...");
+	return 0;
 }
 
 void CNativeWrapper::setGpacPreference( const char * category, const char * name, const char * value)

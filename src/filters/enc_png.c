@@ -342,7 +342,7 @@ static const GF_FilterCapability PNGEncCaps[] =
 
 GF_FilterRegister PNGEncRegister = {
 	.name = "pngenc",
-	.description = "PNG encoder",
+	GF_FS_SET_DESCRIPTION("PNG encoder")
 	.private_size = sizeof(GF_PNGEncCtx),
 	.finalize = pngenc_finalize,
 	SETCAPS(PNGEncCaps),

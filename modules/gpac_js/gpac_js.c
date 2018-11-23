@@ -567,7 +567,9 @@ static JSBool SMJS_FUNCTION(gpac_get_option)
 		key_name = SMJS_CHARS(c, argv[1]);
 	}
 
-	if (key_name) {
+	if (sec_name && !stricmp(sec_name, "General") && key_name && !strcmp(key_name, "Version")) {
+		opt = GPAC_FULL_VERSION;
+	} else if (key_name) {
 		if (!strcmp(sec_name, "Compositor")) {
 			opt = gf_filter_get_arg(compositor->filter, key_name, arg_val);
 		} else {

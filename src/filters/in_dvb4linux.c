@@ -400,7 +400,7 @@ static const GF_FilterArgs DVBLinuxArgs[] =
 
 GF_FilterRegister DVBLinuxRegister = {
 	.name = "dvbin",
-	.description = "DVB for Linux input",
+	GF_FS_SET_DESCRIPTION("DVB for Linux input")
 	.private_size = sizeof(GF_DVBLinuxCtx),
 	.args = DVBLinuxArgs,
 	.initialize = dvblin_initialize,
