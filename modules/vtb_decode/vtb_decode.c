@@ -355,7 +355,8 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 				}
 				break;
 			default:
-#ifndef GPAC_IPHONE
+				//we disable support for 10bit output on ios and old OSX, defaulting back to 8 bits
+#if !defined(GPAC_IPHONE) && defined(AVAILABLE_MAC_OS_X_VERSION_10_13_AND_LATER)
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange;
 					ctx->pix_fmt = GF_PIXEL_NV12_10;
