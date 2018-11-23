@@ -399,7 +399,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 				}
 				break;
 			default:
-#ifndef GPAC_CONFIG_IOS
+#if !defined(GPAC_CONFIG_IOS) && defined(AVAILABLE_MAC_OS_X_VERSION_10_13_AND_LATER)
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange;
 					ctx->pix_fmt = GF_PIXEL_NV12_10;
