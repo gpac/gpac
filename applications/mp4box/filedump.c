@@ -3588,6 +3588,10 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
+
+#include <gpac/download.h>
+#include <gpac/internal/mpd.h>
+
 void get_file_callback(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	if (parameter->msg_type==GF_NETIO_DATA_EXCHANGE) {
@@ -3615,9 +3619,6 @@ static GF_DownloadSession *get_file(const char *url, GF_DownloadManager *dm, GF_
 	}
 	return sess;
 }
-
-#include <gpac/download.h>
-#include <gpac/internal/mpd.h>
 
 static void revert_cache_file(char *item_path)
 {
