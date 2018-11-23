@@ -6,6 +6,7 @@ NDK=0
 SDK=0
 JDK=0
 REBUILD=0
+CLEAN=0
 
 for i in $*
 do
@@ -15,6 +16,11 @@ do
 then
   echo -e "\033[31m Usage: $0 Force Rebuild : Activated \033[0m"
   REBUILD=1
+fi
+
+ if [ "$i" = "-clean" ]
+then
+  CLEAN=1
 fi
 
 #! Check for the NDK path
@@ -98,6 +104,17 @@ version="`grep '#define GPAC_GIT_REVISION' \"./include/gpac/revision.h\" | cut -
 #rm -rf $BUILDPATH/../obj/*
 
 cd $BUILDPATH
+
+if [ $CLEAN -eq 1 ]
+then
+echo -n "Cleaning all from $BUILDPATH..."
+ndk-build clean
+cd $BASEPATH/applications/osmo4_android_studio/
+./gradlew clean
+cd -
+exit 0
+fi
+
 echo -n "Buiding all libs from $BUILDPATH..."
 if [ $REBUILD -eq 1 ]
 then

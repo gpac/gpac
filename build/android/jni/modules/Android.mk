@@ -20,7 +20,6 @@ include $(LOCAL_PATH)/gm_mp3_in.mk
 include $(LOCAL_PATH)/gm_ffmpeg_in.mk
 include $(LOCAL_PATH)/gm_droid_cam.mk
 include $(LOCAL_PATH)/gm_droid_mpegv.mk
-#---- module added by ENST -------
 include $(LOCAL_PATH)/gm_mpegts_in.mk
 include $(LOCAL_PATH)/gm_mpd_in.mk
 include $(LOCAL_PATH)/gm_aac_in.mk

@@ -1,8 +1,9 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
-#include "media/NdkMediaCodec.h"
-#include "media/NdkMediaExtractor.h"
-#include "media/NdkMediaFormat.h"
+
+#include <media/NdkMediaCodec.h>
+#include <media/NdkMediaExtractor.h>
+#include <media/NdkMediaFormat.h>
 #include "mediacodec_dec.h"
 
 typedef struct 
@@ -59,12 +60,15 @@ enum {
 	SPS,
 	VPS,
 };
-u8 sdkInt() 
+
+#if 0
+u8 sdkInt()
 {
     char sdk_str[3] = "0";
     __system_property_get("ro.build.version.sdk", sdk_str, "0");
     return atoi(sdk_str);
 }
+#endif
 
 
 //prepend the inBuffer with the start code i.e. 0x00 0x00 0x00 0x01
@@ -1008,9 +1012,9 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
         case GPAC_OTI_VIDEO_AVC:
 			return GF_CODEC_SUPPORTED;
         case GPAC_OTI_VIDEO_HEVC:
-			if(sdkInt() >= 21) {
+//			if(sdkInt() >= 21) {
 				return GF_CODEC_SUPPORTED;
-			}
+//			}
 			break;
 		case GPAC_OTI_VIDEO_MPEG4_PART2:
             return GF_CODEC_SUPPORTED;
