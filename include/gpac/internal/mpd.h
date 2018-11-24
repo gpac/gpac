@@ -396,6 +396,7 @@ void gf_mpd_segment_base_free(void *ptr);
 
 void gf_mpd_period_free(void *_item);
 
+GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out);
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
 
 
