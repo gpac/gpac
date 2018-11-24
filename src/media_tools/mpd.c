@@ -2351,7 +2351,8 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 
 }
 
-static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
+GF_EXPORT
+GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 {
 	u32 i;
 	GF_MPD_ProgramInfo *info;

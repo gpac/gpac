@@ -1997,6 +1997,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_solve_segment_list_xlink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_delete_segment_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_parse_master_playlist) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_get_base_url_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )
