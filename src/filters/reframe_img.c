@@ -293,7 +293,6 @@ static const char * img_probe_data(const u8 *data, u32 size, GF_FilterProbeScore
 		*score = GF_FPROBE_SUPPORTED;
 		return "image/jpg";
 	}
-	/*JPEG*/
 	/*PNG*/
 	if ((data[0]==0x89) && (data[1]==0x50) && (data[2]==0x4E)) {
 		*score = GF_FPROBE_SUPPORTED;
