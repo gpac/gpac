@@ -710,6 +710,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		args = NULL;
 
+		//if source is isobmf using extractors, we want to keep the extractors
+		APPEND_ARG("smode=2")
+
 		if (di->other_opts) {
 			APPEND_ARG(di->other_opts)
 		}
