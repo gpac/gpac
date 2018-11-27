@@ -1772,6 +1772,11 @@ Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed,
 */
 Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt);
 
+/*! Checks if all sink filters in the session have seen end of stream.
+\param filter filter object
+\return GF_TRUE if all sinks are in end of stream, GF_FALSE otherwise
+*/
+Bool gf_filter_all_sinks_done(GF_Filter *filter);
 
 /*! Gets a filter argument value as string for a given argument name..
 \param filter filter object
