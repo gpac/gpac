@@ -2615,7 +2615,7 @@ enum
 {
 	/*probe is only used to check if iTunes info are present*/
 	GF_ISOM_ITUNE_PROBE = 0,
-	/*probe is only used to remove all tags*/
+	/*all is only used to remove all tags*/
 	GF_ISOM_ITUNE_ALL = 1,
 	GF_ISOM_ITUNE_ALBUM	= GF_4CC( 0xA9, 'a', 'l', 'b' ),
 	GF_ISOM_ITUNE_ARTIST = GF_4CC( 0xA9, 'A', 'R', 'T' ),
