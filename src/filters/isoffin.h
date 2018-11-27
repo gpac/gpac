@@ -55,6 +55,8 @@ typedef struct
 	Bool allt, noedit, itt;
 	u32 smode;
 	u32 stsd;
+	Bool expart;
+	Bool alltk;
 
 	//internal
 
