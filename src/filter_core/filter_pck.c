@@ -493,10 +493,18 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	if (! (pck->info.flags & GF_PCK_CKTYPE_MASK) )
 		gf_filter_forward_clock(pck->pid->filter);
 
-	pid->has_seen_eos = ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) ? GF_TRUE : GF_FALSE;
-	if (pid->has_seen_eos) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s has seen EOS\n", pck->pid->filter->name, pck->pid->name));
+	if ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {
+		if (!pid->has_seen_eos) {
+			pid->has_seen_eos = GF_TRUE;
+			pid->filter->num_out_pids_eos++;
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s EOS detected\n", pck->pid->filter->name, pck->pid->name));
+		}
+	} else if (pid->has_seen_eos) {
+		pid->has_seen_eos = GF_FALSE;
+		assert(pid->filter->num_out_pids_eos);
+		pid->filter->num_out_pids_eos--;
 	}
+	
 	//send from filter, update flags
 	if (from_filter) {
 		if (pid->filter->pid_info_changed) {
