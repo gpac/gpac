@@ -559,6 +559,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				import.asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
 		}
 
+		else if (!strnicmp(ext+1, "audio_roll=", 11)) {
+			import.audio_roll = atoi(ext+12);
+		}
+
 		/*unrecognized, assume name has colon in it*/
 		else {
 			fprintf(stderr, "Unrecognized import option %s, ignoring\n", ext+1);
