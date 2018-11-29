@@ -1677,48 +1677,89 @@ void dump_isom_saps(GF_ISOFile *file, u32 trackID, u32 dump_saps_mode, char *inN
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	fprintf(dump, "<DASHCues xmlns=\"urn:gpac:dash:schema:cues:2018\">\n");
 	fprintf(dump, "<Stream id=\"%d\" timescale=\"%d\"", trackID, gf_isom_get_media_timescale(file, track) );
-	if (dump_saps_mode==4) {
+	if (dump_saps_mode==4 || dump_saps_mode == 5) {
 		fprintf(dump, " mode=\"edit\"");
 		gf_isom_get_edit_list_type(file, track, &media_offset);
 	}
 	fprintf(dump, ">\n");
 
-	count = gf_isom_get_sample_count(file, track);
-	for (i=0; i<count; i++) {
-		s64 cts, dts;
-		u32 di;
-		u32 sap_type = 0;
-		u64 doffset;
-		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
-
-		sap_type = samp->IsRAP;
-		if (!sap_type) {
-			Bool is_rap, has_roll;
-			s32 roll_dist;
-			gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, &has_roll, &roll_dist);
-			if (has_roll) sap_type = SAP_TYPE_4;
-			else if (is_rap)  sap_type = SAP_TYPE_3;
+	if (dump_saps_mode == 5) {
+		GF_SegmentIndexBox *sidx = NULL;
+		int k;
+		for (k = 0; k < gf_list_count(file->TopBoxes); k++) {
+			GF_Box *box = gf_list_get(file->TopBoxes, k);
+			if (box->type == GF_ISOM_BOX_TYPE_SIDX) {
+				sidx = (GF_SegmentIndexBox *)box;
+				break;
+			}
 		}
+		if (sidx && sidx->reference_ID == trackID) {
+			int j;
+			count = gf_isom_get_sample_count(file, track);
+			i = 0;
+			u64 segment_start_time = 0; // should it be media offset?
+			for (j=0; j<sidx->nb_refs; j++) {
+				s64 cts, dts, pts;
+				u32 di;
+				u64 doffset;
+				GF_ISOSample *samp;
+				GF_SIDXReference *ref = &(sidx->refs[j]);
 
-		if (!sap_type) {
+				while (i < count) {
+					samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
+					dts = samp->DTS;
+					cts = dts + samp->CTS_Offset;
+					pts = cts + media_offset;
+					if (pts == segment_start_time) {
+						break;
+					} else {
+						i++;
+					}
+				}
+				fprintf(dump, "<Cue sap=\"%d\"", ref->SAP_type);
+				fprintf(dump, " pts=\""LLD"\"", segment_start_time);
+				fprintf(dump, "/>\n");
+				segment_start_time += ref->subsegment_duration;
+			}
+		}
+	} else {
+		count = gf_isom_get_sample_count(file, track);
+		for (i=0; i<count; i++) {
+			s64 cts, dts;
+			u32 di;
+			u32 sap_type = 0;
+			u64 doffset;
+			GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
+
+			sap_type = samp->IsRAP;
+			if (!sap_type) {
+				Bool is_rap, has_roll;
+				s32 roll_dist;
+				gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, &has_roll, &roll_dist);
+				if (has_roll) sap_type = SAP_TYPE_4;
+				else if (is_rap)  sap_type = SAP_TYPE_3;
+			}
+
+			if (!sap_type) {
+				gf_isom_sample_del(&samp);
+				continue;
+			}
+
+			dts = cts = samp->DTS;
+			cts += samp->CTS_Offset;
+			fprintf(dump, "<Cue sap=\"%d\"", sap_type);
+			if (dump_saps_mode==4) {
+				cts += media_offset;
+				fprintf(dump, " cts=\""LLD"\"", cts);
+			} else {
+				if (!dump_saps_mode || (dump_saps_mode==1)) fprintf(dump, " sample=\"%d\"", i+1);
+				if (!dump_saps_mode || (dump_saps_mode==2)) fprintf(dump, " cts=\""LLD"\"", cts);
+				if (!dump_saps_mode || (dump_saps_mode==3)) fprintf(dump, " dts=\""LLD"\"", dts);
+			}
+			fprintf(dump, "/>\n");
+
 			gf_isom_sample_del(&samp);
-			continue;
 		}
-
-		dts = cts = samp->DTS;
-		cts += samp->CTS_Offset;
-		fprintf(dump, "<Cue sap=\"%d\"", sap_type);
-		if (dump_saps_mode==4) {
-			cts += media_offset;
-			fprintf(dump, " cts=\""LLD"\"", cts);
-		} else {
-			if (!dump_saps_mode || (dump_saps_mode==1)) fprintf(dump, " sample=\"%d\"", i+1);
-			if (!dump_saps_mode || (dump_saps_mode==2)) fprintf(dump, " cts=\""LLD"\"", cts);
-			if (!dump_saps_mode || (dump_saps_mode==3)) fprintf(dump, " dts=\""LLD"\"", dts);
-		}
-		fprintf(dump, "/>\n");
-
-		gf_isom_sample_del(&samp);
 	}
 	fprintf(dump, "</Stream>\n");
 	fprintf(dump, "</DASHCues>\n");

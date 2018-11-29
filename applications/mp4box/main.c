@@ -3345,6 +3345,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			else if (!stricmp(arg, "-dsapc")) dump_saps_mode = 2;
 			else if (!stricmp(arg, "-dsapd")) dump_saps_mode = 3;
 			else if (!stricmp(arg, "-dsapp")) dump_saps_mode = 4;
+			else if (!stricmp(arg, "-dsapx")) dump_saps_mode = 5;
 			else dump_saps_mode = 0;
 			i++;
 		}
@@ -4526,7 +4527,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
-			file = gf_isom_open(inName, (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) ), tmpdir);
+			file = gf_isom_open(inName, (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info || (dump_saps_mode == 5)) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) ), tmpdir);
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
 				e = gf_isom_open_progressive(inName, 0, 0, &file, &missing_bytes);
