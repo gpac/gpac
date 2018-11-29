@@ -560,6 +560,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 
 		else if (!strnicmp(ext+1, "audio_roll=", 11)) {
+			import.audio_roll_change = GF_TRUE;
 			import.audio_roll = atoi(ext+12);
 		}
 
