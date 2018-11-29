@@ -2338,7 +2338,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
 
-		gf_isom_set_sample_roll_group(import->dest, track, i+1, import->audio_roll);
+		if (import->audio_roll) {
+			gf_isom_set_sample_roll_group(import->dest, track, i+1, import->audio_roll);
+		}
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
 
