@@ -5609,6 +5609,19 @@ restart_import:
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
+
+		//write sample deps
+		if (import->flags & GF_IMPORT_SAMPLE_DEPS) {
+			u32 isLeading, dependsOn, dependedOn;
+			isLeading = 0;
+			dependsOn = (sample_is_rap || sample_has_islice) ? 2 : 1;
+			dependedOn = sample_is_ref ? 1 : 2;
+
+			e = gf_isom_sample_set_dep_info(import->dest, track, cur_samp, isLeading, dependsOn, dependedOn, 2);
+			if (e) goto exit;
+		}
+		sample_is_ref = GF_FALSE;
+
 	}
 
 
@@ -6638,7 +6651,7 @@ restart_import:
 			//write sample deps
 			if (import->flags & GF_IMPORT_SAMPLE_DEPS) {
 				u32 isLeading, dependsOn, dependedOn;
-				isLeading = 0; //for avc we would need to parse sub-seq info SEI
+				isLeading = 0;
 				dependsOn = is_rap ? 2 : 1;
 				dependedOn = sample_is_ref ? 1 : 2;
 
@@ -6895,6 +6908,18 @@ next_nal:
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Importing HEVC", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
+
+		//write sample deps
+		if (import->flags & GF_IMPORT_SAMPLE_DEPS) {
+			u32 isLeading, dependsOn, dependedOn;
+			isLeading = 0;
+			dependsOn = (sample_rap_type && (sample_rap_type <= SAP_TYPE_3)) ? 2 : 1;
+			dependedOn = sample_is_ref ? 1 : 2;
+
+			e = gf_isom_sample_set_dep_info(import->dest, track, cur_samp, isLeading, dependsOn, dependedOn, 2);
+			if (e) goto exit;
+		}
+		sample_is_ref = GF_FALSE;
 	}
 
 
