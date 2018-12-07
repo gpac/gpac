@@ -965,7 +965,7 @@ static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
 {
 	s32 res;
-	u8 type;
+	u8 type, nal_ref_idc, hdr;
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
 	s8 sample_offset;
@@ -1130,7 +1130,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	}
 
 	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-	type = gf_bs_read_u8(bs) & 0x1F;
+	hdr = gf_bs_read_u8(bs);
+	type = hdr & 0x1F;
+	nal_ref_idc = hdr & 0x60;
+	nal_ref_idc>>=5;
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	res = 0;
 	switch (type) {
@@ -1255,6 +1258,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	}
 	fputs("\"", dump);
+
+	if (nal_ref_idc) {
+		fprintf(dump, " nal_ref_idc=\"%d\"", nal_ref_idc);
+	}
 
 	if (type==GF_AVC_NALU_SEI) {
 		dump_sei(dump, (u8 *) ptr, ptr_size, GF_FALSE);

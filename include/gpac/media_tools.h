@@ -103,9 +103,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
  *Removes all non rap samples (sync and other RAP sample group info) from the track.
  * \param file target movie
  * \param track target track
+ * \param do_thin if set, removes only non-reference pictures
  * \return error if any
  */
-GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track);
+GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track, Bool non_ref_only);
 #endif
 
 /*! @} */
@@ -205,7 +206,9 @@ enum
 	GF_IMPORT_KEEP_REFS = 1<<27,
 	/*! keeps AV1 temporal delimiter OBU in the samples*/
 	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
-	
+	/*! imports sample dependencies information*/
+	GF_IMPORT_SAMPLE_DEPS  = 1<<29,
+
 	/*! when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
 };

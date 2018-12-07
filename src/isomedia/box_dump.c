@@ -1086,51 +1086,44 @@ GF_Err sdtp_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!--Warning: No sample dependencies indications-->\n");
 	} else {
 		for (i=0; i<p->sampleCount; i++) {
+			const char *type;
 			u8 flag = p->sample_info[i];
 			fprintf(trace, "<SampleDependencyEntry ");
+			switch ( (flag >> 6) & 3) {
+			case 1: type="openGOP"; break;
+			case 2: type="no"; break;
+			case 3: type="SAP2"; break;
+			default:
+			case 0: type="unknown"; break;
+			}
+			fprintf(trace, "isLeading=\"%s\" ", type);
+
 			switch ( (flag >> 4) & 3) {
-			case 0:
-				fprintf(trace, "dependsOnOther=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "dependsOnOther=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "dependsOnOther=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "dependsOnOther=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
+			fprintf(trace, "dependsOnOther=\"%s\" ", type);
+
 			switch ( (flag >> 2) & 3) {
-			case 0:
-				fprintf(trace, "dependedOn=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "dependedOn=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "dependedOn=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "dependedOn=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
+			fprintf(trace, "dependedOn=\"%s\" ", type);
+
 			switch ( flag & 3) {
-			case 0:
-				fprintf(trace, "hasRedundancy=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "hasRedundancy=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "hasRedundancy=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "hasRedundancy=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
-			fprintf(trace, " />\n");
+			fprintf(trace, "hasRedundancy=\"%s\"/>\n", type);
 		}
 	}
 	if (!p->size) {

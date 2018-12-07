@@ -254,6 +254,7 @@ void PrintGeneralUsage()
 	        " -swap-track-id id1:id2 swaps the IDs of the identified tracks\n"
 	        " -rem trackID         removes track from file\n"
 	        " -rap trackID         removes all non-RAP samples from track\n"
+	        " -refonly trackID    removes all non-reference pictures from track\n"
 	        " -enable trackID      enables track\n"
 	        " -disable trackID     disables track\n"
 	        " -new                 forces creation of a new destination file\n"
@@ -516,6 +517,7 @@ void PrintImportUsage()
 	        "                         If G is 0, the first available GroupID will be picked.\n"
 	        " \":fps=VAL\"           same as -fps option\n"
 	        " \":rap\"               imports only RAP samples\n"
+	        " \":refs\"              imports only reference pictures\n"
 	        " \":trailing\"          keeps trailing 0-bytes in AVC/HEVC samples\n"
 	        " \":agg=VAL\"           same as -agg option\n"
 	        " \":dref\"              same as -dref option\n"
@@ -544,6 +546,7 @@ void PrintImportUsage()
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
 	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
+	        " \":deps\"              import sample dependency information for AVC and HEVC\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
 	        " \":xps_inband\"        Sets xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
@@ -1618,6 +1621,7 @@ typedef enum {
 	TRAC_ACTION_SET_ID			= 13,
 	TRAC_ACTION_SET_UDTA		= 14,
 	TRAC_ACTION_SWAP_ID			= 15,
+	TRAC_ACTION_REM_NON_REFS	= 16,
 } TrackActionType;
 
 typedef struct
@@ -2266,12 +2270,12 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		}
 		else if (!stricmp(arg, "-ocr")) force_ocr = 1;
 		else if (!stricmp(arg, "-latm")) hint_flags |= GP_RTP_PCK_USE_LATM_AAC;
-		else if (!stricmp(arg, "-rap")) {
+		else if (!stricmp(arg, "-rap") || !stricmp(arg, "-refonly")) {
 			if ((i + 1 < (u32)argc) && (argv[i + 1][0] != '-')) {
 				if (sscanf(argv[i + 1], "%d", &trackID) == 1) {
 					tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 					memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
-					tracks[nb_track_act].act_type = TRAC_ACTION_REM_NON_RAP;
+					tracks[nb_track_act].act_type = !stricmp(arg, "-rap") ? TRAC_ACTION_REM_NON_RAP : TRAC_ACTION_REM_NON_REFS;
 					tracks[nb_track_act].trackID = trackID;
 					nb_track_act++;
 					i++;
@@ -5324,7 +5328,12 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case TRAC_ACTION_REM_NON_RAP:
 			fprintf(stderr, "Removing non-rap samples from track %d\n", tka->trackID);
-			e = gf_media_remove_non_rap(file, track);
+			e = gf_media_remove_non_rap(file, track, GF_FALSE);
+			needSave = GF_TRUE;
+			break;
+		case TRAC_ACTION_REM_NON_REFS:
+			fprintf(stderr, "Removing non-reference samples from track %d\n", tka->trackID);
+			e = gf_media_remove_non_rap(file, track, GF_TRUE);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_UDTA:
