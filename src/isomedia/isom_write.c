@@ -2594,55 +2594,6 @@ GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, char *dat
 	return e;
 }
 
-
-GF_Err gf_isom_add_sample_fragment(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, u16 FragmentSize)
-{
-	GF_Err e;
-	GF_TrackBox *trak;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !sampleNumber || !FragmentSize) return GF_BAD_PARAM;
-
-	//set Padding info
-	return stbl_AddSampleFragment(trak->Media->information->sampleTable, sampleNumber, FragmentSize);
-}
-
-
-GF_EXPORT
-GF_Err gf_isom_remove_sample_fragment(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber)
-{
-	GF_TrackBox *trak;
-	GF_Err e;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-	return stbl_RemoveSampleFragments(trak->Media->information->sampleTable, sampleNumber);
-}
-
-GF_Err gf_isom_remove_sample_fragments(GF_ISOFile *movie, u32 trackNumber)
-{
-	GF_TrackBox *trak;
-	GF_Err e;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-
-	if (trak->Media->information->sampleTable->Fragments) {
-		gf_isom_box_del((GF_Box *)trak->Media->information->sampleTable->Fragments);
-		trak->Media->information->sampleTable->Fragments = NULL;
-	}
-	return GF_OK;
-}
-
 GF_EXPORT
 GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest)
 {
