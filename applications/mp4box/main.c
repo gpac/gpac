@@ -532,6 +532,7 @@ void PrintImportUsage()
 	        " \"                       v0-2  : uses MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
 	        " \"                       v1    : uses MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
 	        " \"                       v1-qt : uses QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2)\n"
+			" \":audio_roll=N\"      adds a roll sample group with roll_distance = N\n"
 	        " \":mpeg4\"             same as -mpeg4 option\n"
 	        " \":nosei\"             discard all SEI messages during import\n"
 	        " \":svc\"               import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"

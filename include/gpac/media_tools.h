@@ -364,6 +364,9 @@ typedef struct __track_import
 	GF_Err last_error;
 
 	GF_AudioSampleEntryImportMode asemode;
+
+	Bool audio_roll_change;
+	s16 audio_roll;
 } GF_MediaImporter;
 
 /*!
