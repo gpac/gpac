@@ -2496,17 +2496,22 @@ typedef struct __sidx_box
 
 typedef struct
 {
+	u8 level;
+	u32 range_size;
+} GF_SubsegmentRangeInfo;
+
+typedef struct
+{
 	u32 range_count;
-	u8 *levels;
-	u32 *range_sizes;
-} GF_Subsegment;
+	GF_SubsegmentRangeInfo *ranges;
+} GF_SubsegmentInfo;
 
 typedef struct __ssix_box
 {
 	GF_ISOM_FULL_BOX
 
 	u32 subsegment_count;
-	GF_Subsegment *subsegments;
+	GF_SubsegmentInfo *subsegments;
 } GF_SubsegmentIndexBox;
 
 typedef struct
@@ -3289,6 +3294,7 @@ struct __tag_isom {
 	GF_SegmentIndexBox *root_sidx;
 	u64 root_sidx_offset;
 	u32 root_sidx_index;
+	GF_SubsegmentIndexBox *root_ssix;
 
 	Bool is_index_segment;
 

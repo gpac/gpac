@@ -8913,9 +8913,8 @@ void ssix_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->subsegments) {
 		for (i = 0; i < ptr->subsegment_count; i++) {
-			GF_Subsegment *subsegment = &ptr->subsegments[i];
-			if (subsegment->levels) gf_free(subsegment->levels);
-			if (subsegment->range_sizes) gf_free(subsegment->range_sizes);
+			GF_SubsegmentInfo *subsegment = &ptr->subsegments[i];
+			if (subsegment->ranges) gf_free(subsegment->ranges);
 		}
 		gf_free(ptr->subsegments);
 	}
@@ -8930,18 +8929,17 @@ GF_Err ssix_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size < 4) return GF_BAD_PARAM;
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
-	ptr->subsegments = gf_malloc(ptr->subsegment_count*sizeof(GF_Subsegment));
+	ptr->subsegments = gf_malloc(ptr->subsegment_count*sizeof(GF_SubsegmentInfo));
 	for (i = 0; i < ptr->subsegment_count; i++) {
-		GF_Subsegment *subseg = &ptr->subsegments[i];
+		GF_SubsegmentInfo *subseg = &ptr->subsegments[i];
 		if (ptr->size < 4) return GF_BAD_PARAM;
 		subseg->range_count = gf_bs_read_u32(bs);
 		ptr->size -= 4;
 		if (ptr->size < subseg->range_count*4) return GF_BAD_PARAM;
-		subseg->levels = gf_malloc(sizeof(u8)*subseg->range_count);
-		subseg->range_sizes = gf_malloc(sizeof(u32)*subseg->range_count);
+		subseg->ranges = (GF_SubsegmentRangeInfo*) gf_malloc(sizeof(GF_SubsegmentRangeInfo) * subseg->range_count);
 		for (j = 0; j < subseg->range_count; j++) {
-			subseg->levels[j] = gf_bs_read_u8(bs);
-			subseg->range_sizes[j] = gf_bs_read_u24(bs);
+			subseg->ranges[j].level = gf_bs_read_u8(bs);
+			subseg->ranges[j].range_size = gf_bs_read_u24(bs);
 			ptr->size -= 4;
 		}
 	}
@@ -8969,9 +8967,9 @@ GF_Err ssix_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->subsegment_count);
 	for (i = 0; i<ptr->subsegment_count; i++) {
 		gf_bs_write_u32(bs, ptr->subsegments[i].range_count);
-		for (j = 0; j < ptr->subsegment_count; j++) {
-			gf_bs_write_u8(bs, ptr->subsegments[i].levels[j]);
-			gf_bs_write_u24(bs, ptr->subsegments[i].range_sizes[j]);
+		for (j = 0; j < ptr->subsegments[i].range_count; j++) {
+			gf_bs_write_u8(bs, ptr->subsegments[i].ranges[j].level);
+			gf_bs_write_u24(bs, ptr->subsegments[i].ranges[j].range_size);
 		}
 	}
 	return GF_OK;

@@ -1578,7 +1578,7 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u
 timestamp_shift is the constant difference between media time and presentation time (derived from edit list)
 out_seg_size is optional, holds the segment size in bytes
 */
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool use_ssix, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
 
 /*writes any pending fragment to file for low-latency output. shall only be used if no SIDX is used (subsegs_per_sidx<0 or flushing all fragments before calling gf_isom_close_segment)*/
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
@@ -1594,7 +1594,7 @@ gf_isom_close_segment that will follow. This avoids wasting time and disk space 
 the pre-allocated SIDX is destroyed and sucessive calls to gf_isom_close_segment will create their own sidx (unless gf_isom_allocate_sidx is called again).
 frags_per_sidx, daisy_chain_sidx and frags_per_segment are currently ignored and reserved for future usages where multiple SIDX could be written
 if not NULL, start_range and end_range will contain the byte range of the SIDX box in the movie*/
-GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range);
+GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range, Bool use_ssix);
 
 enum
 {

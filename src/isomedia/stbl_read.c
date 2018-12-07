@@ -558,7 +558,9 @@ GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *sdep, u32 SampleNumber,
 	assert(dependsOn && dependedOn && redundant);
 	*dependsOn = *dependedOn = *redundant = 0;
 
-	if (SampleNumber > sdep->sampleCount) return GF_BAD_PARAM;
+	if (SampleNumber > sdep->sampleCount) {
+		return GF_OK;
+	}
 	flag = sdep->sample_info[SampleNumber-1];
 	*isLeading = (flag >> 6) & 3;
 	*dependsOn = (flag >> 4) & 3;

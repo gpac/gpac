@@ -422,6 +422,7 @@ void PrintDASHUsage()
 	        " -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
 	        "                       If 0, a single SIDX box is used per segment\n"
 	        "                       If -1, no SIDX box is used\n"
+	        " -ssix                Enables SubsegmentIndexBox (describing 2 ranges, first one from moof to end of first I-frame, second one unmapped). Doesn't work with daisy chaining mode\n"
 	        " -url-template        uses SegmentTemplate instead of explicit sources in segments.\n"
 	        "                       Ignored if segments are stored in the output file.\n"
 	        " -daisy-chain         uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
@@ -2104,6 +2105,7 @@ GF_DASHPSSHMode pssh_mode = 0;
 Bool samplegroups_in_traf = GF_FALSE;
 Bool mvex_after_traks = GF_FALSE;
 Bool daisy_chain_sidx = GF_FALSE;
+Bool use_ssix = GF_FALSE;
 Bool single_segment = GF_FALSE;
 Bool single_file = GF_FALSE;
 Bool segment_timeline = GF_FALSE;
@@ -3671,6 +3673,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 			dash_ctx_file = argv[i + 1];
 			i++;
 		}
+		else if (!stricmp(arg, "-ssix")) {
+			use_ssix = 1;
+		}
 		else if (!stricmp(arg, "-daisy-chain")) {
 			daisy_chain_sidx = 1;
 		}
@@ -4397,7 +4402,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time);
 		if (!e) e = gf_dasher_enable_rap_splitting(dasher, seg_at_rap, frag_at_rap);
 		if (!e) e = gf_dasher_set_segment_marker(dasher, segment_marker);
-		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
+		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx, use_ssix);
 		if (!e) e = gf_dasher_set_dynamic_mode(dasher, dash_mode, mpd_update_time, time_shift_depth, mpd_live_duration);
 		if (!e) e = gf_dasher_set_min_buffer(dasher, min_buffer);
 		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
