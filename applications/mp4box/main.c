@@ -942,8 +942,8 @@ void PrintUsage()
 	         " -languages           lists supported ISO 639 languages\n"
 	         " -boxes               lists all supported ISOBMF boxes and their syntax\n"
 	         "\n"
-	         " -quiet                quiet mode\n"
-	         " -noprog               disables progress\n"
+	         " -quiet               quiet mode\n"
+	         " -noprog              disables progress\n"
 	         " -v                   verbose mode\n"
 	         " -logs                set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	         " -log-file FILE       sets output log file. Also works with -lf FILE\n"
@@ -3954,7 +3954,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 
 	if (gf_logs) {
-		//gf_log_set_tools_levels(gf_logs);
+		if (quiet==1) gf_set_progress_callback(NULL, progress_quiet);
 	} else {
 		GF_LOG_Level level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
 		gf_log_set_tool_level(GF_LOG_CONTAINER, level);
