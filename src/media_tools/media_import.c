@@ -972,6 +972,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	u64 offset, tot_size, done, duration;
 	u32 max_size, track, di, i;
 	GF_ISOSample *samp;
+	u32 cur_samp = 0;
 
 	in = gf_fopen(import->in_name, "rb");
 	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
@@ -1165,6 +1166,11 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (e) goto exit;
 	samp->DTS+=dts_inc;
 
+	cur_samp++;
+	if (import->audio_roll_change) {
+		e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, import->audio_roll);
+	}
+
 	duration = import->duration;
 	duration *= sr;
 	duration /= 1000;
@@ -1188,6 +1194,12 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		if (e) break;
+
+		cur_samp++;
+		if (import->audio_roll_change) {
+			e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, import->audio_roll);
+		}
+		cur_samp++;
 
 		gf_set_progress("Importing AAC", done, tot_size);
 		samp->DTS += dts_inc;
@@ -2325,6 +2337,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_sample_del(&samp);
 
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
+
+		if (import->audio_roll_change) {
+			gf_isom_set_sample_roll_group(import->dest, track, i+1, import->audio_roll);
+		}
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
 
