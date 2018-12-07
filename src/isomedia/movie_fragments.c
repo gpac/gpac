@@ -1185,7 +1185,7 @@ static u32 moof_get_first_sap_end(GF_MovieFragmentBox *moof)
 	for (i=0; i<count; i++) {
 		u32 j, nb_trun;
 		GF_TrackFragmentBox *traf = gf_list_get(moof->TrackList, i);
-		base_offset = (u64) traf->tfhd->base_data_offset;
+		base_offset = (u32) traf->tfhd->base_data_offset;
 
 		nb_trun = gf_list_count(traf->TrackRuns);
 		for (j=0; j<nb_trun; j++) {
