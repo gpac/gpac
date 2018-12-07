@@ -772,9 +772,10 @@ GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker
  *	\param enable_sidx enable or disable
  *	\param subsegs_per_sidx number of subsegments per segment
  *	\param daisy_chain_sidx enable daisy chaining of sidx
+ *	\param use_ssix enables ssix generation, level 1 for I-frames, the rest of the segement not  mapped
  *	\return error code if any
 */
-GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx);
+GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_ssix);
 
 /*!
  Sets mode for the dash segmenter.
