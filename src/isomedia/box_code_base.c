@@ -5039,8 +5039,6 @@ GF_Err snro_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-#define WRITE_SAMPLE_FRAGMENTS		1
-
 void stbl_del(GF_Box *s)
 {
 	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
@@ -5058,7 +5056,6 @@ void stbl_del(GF_Box *s)
 	if (ptr->TimeToSample) gf_isom_box_del((GF_Box *) ptr->TimeToSample);
 	if (ptr->SampleDep) gf_isom_box_del((GF_Box *) ptr->SampleDep);
 	if (ptr->PaddingBits) gf_isom_box_del((GF_Box *) ptr->PaddingBits);
-	if (ptr->Fragments) gf_isom_box_del((GF_Box *) ptr->Fragments);
 	if (ptr->sub_samples) gf_isom_box_array_del(ptr->sub_samples);
 	if (ptr->sampleGroups) gf_isom_box_array_del(ptr->sampleGroups);
 	if (ptr->sampleGroupsDescription) gf_isom_box_array_del(ptr->sampleGroupsDescription);
@@ -5127,11 +5124,6 @@ GF_Err stbl_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SDTP:
 		if (ptr->SampleDep) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->SampleDep= (GF_SampleDependencyTypeBox *)a;
-		break;
-
-	case GF_ISOM_BOX_TYPE_STSF:
-		if (ptr->Fragments) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->Fragments = (GF_SampleFragmentBox *)a;
 		break;
 
 	case GF_ISOM_BOX_TYPE_SUBS:
@@ -5285,14 +5277,6 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_array_write(s, ptr->sai_offsets, bs);
 		if (e) return e;
 	}
-
-#if WRITE_SAMPLE_FRAGMENTS
-	//sampleFragments
-	if (ptr->Fragments) {
-		e = gf_isom_box_write((GF_Box *) ptr->Fragments, bs);
-		if (e) return e;
-	}
-#endif
 	return GF_OK;
 }
 
@@ -5365,14 +5349,6 @@ GF_Err stbl_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->PaddingBits->size;
 	}
-#if WRITE_SAMPLE_FRAGMENTS
-	//sample fragments
-	if (ptr->Fragments) {
-		e = gf_isom_box_size((GF_Box *) ptr->Fragments);
-		if (e) return e;
-		ptr->size += ptr->Fragments->size;
-	}
-#endif
 
 	if (ptr->sub_samples) {
 		e = gf_isom_box_array_size(s, ptr->sub_samples);
@@ -5688,114 +5664,6 @@ GF_Err stsd_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void stsf_del(GF_Box *s)
-{
-	u32 nb_entries;
-	u32 i;
-	GF_StsfEntry *pe;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
-	if (ptr == NULL) return;
-
-	if (ptr->entryList) {
-		nb_entries = gf_list_count(ptr->entryList);
-		for ( i = 0; i < nb_entries; i++ ) {
-			pe = (GF_StsfEntry*)gf_list_get(ptr->entryList, i);
-			if (pe->fragmentSizes) gf_free(pe->fragmentSizes);
-			gf_free(pe);
-		}
-		gf_list_del(ptr->entryList);
-	}
-	gf_free(ptr);
-}
-
-
-
-GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs)
-{
-	u32 entries, i;
-	u32 nb_entries;
-	GF_StsfEntry *p;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
-
-	p = NULL;
-	if (!ptr) return GF_BAD_PARAM;
-	nb_entries = gf_bs_read_u32(bs);
-
-	p = NULL;
-	for ( entries = 0; entries < nb_entries; entries++ ) {
-		p = (GF_StsfEntry *) gf_malloc(sizeof(GF_StsfEntry));
-		if (!p) return GF_OUT_OF_MEM;
-		p->SampleNumber = gf_bs_read_u32(bs);
-		p->fragmentCount = gf_bs_read_u32(bs);
-		p->fragmentSizes = (u16*)gf_malloc(sizeof(GF_StsfEntry) * p->fragmentCount);
-		for (i=0; i<p->fragmentCount; i++) {
-			p->fragmentSizes[i] = gf_bs_read_u16(bs);
-		}
-		gf_list_add(ptr->entryList, p);
-	}
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	ptr->w_currentEntry = p;
-	ptr->w_currentEntryIndex = nb_entries-1;
-#endif
-	return GF_OK;
-}
-
-GF_Box *stsf_New()
-{
-	ISOM_DECL_BOX_ALLOC(GF_SampleFragmentBox, GF_ISOM_BOX_TYPE_STSF);
-
-	tmp->entryList = gf_list_new();
-	if (! tmp->entryList) {
-		gf_free(tmp);
-		return NULL;
-	}
-	return (GF_Box *) tmp;
-}
-
-
-
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err stsf_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	u32 i, j;
-	u32 nb_entries;
-	GF_StsfEntry *p;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
-
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-	nb_entries = gf_list_count(ptr->entryList);
-	gf_bs_write_u32(bs, nb_entries);
-	for ( i = 0; i < nb_entries; i++ ) {
-		p = (GF_StsfEntry*)gf_list_get(ptr->entryList, i);
-		gf_bs_write_u32(bs, p->SampleNumber);
-		gf_bs_write_u32(bs, p->fragmentCount);
-		for (j=0; j<p->fragmentCount; j++) {
-			gf_bs_write_u16(bs, p->fragmentSizes[j]);
-		}
-	}
-	return GF_OK;
-}
-
-GF_Err stsf_Size(GF_Box *s)
-{
-	GF_StsfEntry *p;
-	u32 nb_entries, i;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *) s;
-
-	nb_entries = gf_list_count(ptr->entryList);
-	ptr->size += 4;
-	for (i=0; i<nb_entries; i++) {
-		p = (GF_StsfEntry *)gf_list_get(ptr->entryList, i);
-		ptr->size += 8 + 2*p->fragmentCount;
-	}
-	return GF_OK;
-}
-
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void stsh_del(GF_Box *s)
 {

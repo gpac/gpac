@@ -569,56 +569,5 @@ GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *sdep, u32 SampleNumber,
 	return GF_OK;
 }
 
-u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber)
-{
-	GF_StsfEntry *ent;
-	u32 i, count;
-	if (!stsf) return 0;
-
-	//check cache
-	if (!stsf->r_currentEntry || (stsf->r_currentEntry->SampleNumber < sampleNumber)) {
-		stsf->r_currentEntry = NULL;
-		stsf->r_currentEntryIndex = 0;
-	}
-	i = stsf->r_currentEntryIndex;
-
-	count = gf_list_count(stsf->entryList);
-	for (; i<count; i++) {
-		ent = (GF_StsfEntry *)gf_list_get(stsf->entryList, i);
-		if (ent->SampleNumber == sampleNumber) {
-			stsf->r_currentEntry = ent;
-			stsf->r_currentEntryIndex = i;
-			return ent->fragmentCount;
-		}
-	}
-	//not found
-	return 0;
-}
-
-u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32 FragmentIndex)
-{
-	GF_StsfEntry *ent;
-	u32 i, count;
-	if (!stsf || !FragmentIndex) return 0;
-
-	//check cache
-	if (!stsf->r_currentEntry || (stsf->r_currentEntry->SampleNumber < sampleNumber)) {
-		stsf->r_currentEntry = NULL;
-		stsf->r_currentEntryIndex = 0;
-	}
-	i = stsf->r_currentEntryIndex;
-	count = gf_list_count(stsf->entryList);
-	for (; i<count; i++) {
-		ent = (GF_StsfEntry *)gf_list_get(stsf->entryList, i);
-		if (ent->SampleNumber == sampleNumber) {
-			stsf->r_currentEntry = ent;
-			stsf->r_currentEntryIndex = i;
-			if (FragmentIndex > ent->fragmentCount) return 0;
-			return ent->fragmentSizes[FragmentIndex - 1];
-		}
-	}
-	//not found
-	return 0;
-}
 
 #endif /*GPAC_DISABLE_ISOM*/

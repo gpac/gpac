@@ -447,7 +447,6 @@ ISOM_BOX_IMPL_DECL(tfra)
 ISOM_BOX_IMPL_DECL(mfro)
 ISOM_BOX_IMPL_DECL(uuid)
 ISOM_BOX_IMPL_DECL(void)
-ISOM_BOX_IMPL_DECL(stsf)
 ISOM_BOX_IMPL_DECL(gnrm)
 ISOM_BOX_IMPL_DECL(gnrv)
 ISOM_BOX_IMPL_DECL(gnra)
@@ -803,7 +802,6 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRM, gnrm, "stsd", "unknown"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRV, gnrv, "stsd", "unknown"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRA, gnra, "stsd", "unknown"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_STSF, stsf, "stbl traf", "gpac"),
 
 	//all track group types
 	TRGT_DEFINE( GF_ISOM_BOX_TYPE_TRGT, trgt, "trgr", GF_ISOM_BOX_TYPE_MSRC, 0, "p12" ),

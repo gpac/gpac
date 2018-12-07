@@ -2434,29 +2434,6 @@ GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min
 }
 
 GF_EXPORT
-u32 gf_isom_get_sample_fragment_count(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
-{
-	GF_TrackBox *trak;
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
-
-	//Padding info
-	return stbl_GetSampleFragmentCount(trak->Media->information->sampleTable->Fragments, sampleNumber);
-}
-
-GF_EXPORT
-u16 gf_isom_get_sample_fragment_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 FragmentIndex)
-{
-	GF_TrackBox *trak;
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !FragmentIndex) return 0;
-
-	//Padding info
-	return stbl_GetSampleFragmentSize(trak->Media->information->sampleTable->Fragments, sampleNumber, FragmentIndex);
-}
-
-
-GF_EXPORT
 GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
                                      u32 *defaultDuration, u32 *defaultSize, u32 *defaultDescriptionIndex,
                                      u32 *defaultRandomAccess, u8 *defaultPadding, u16 *defaultDegradationPriority)
