@@ -1964,6 +1964,10 @@ GF_Box *gf_isom_clone_config_box(GF_Box *box)
 		clone = gf_isom_box_new(box->type);
 		((GF_HEVCConfigurationBox *)clone)->config = HEVC_DuplicateConfig(((GF_HEVCConfigurationBox *)box)->config);
 		break;
+	case GF_ISOM_BOX_TYPE_AV1C:
+		clone = gf_isom_box_new(box->type);
+		((GF_AV1ConfigurationBox *)clone)->config = AV1_DuplicateConfig(((GF_AV1ConfigurationBox *)box)->config);
+		break;
 	default:
 		clone = NULL;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Cloning of config not supported for type %s\n", gf_4cc_to_str(box->type)));
