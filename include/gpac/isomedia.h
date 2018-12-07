@@ -1066,6 +1066,9 @@ Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *
 if sampleDescIndex is 0, gather for all sample descriptions*/
 GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescIndex, u32 *average_bitrate, u32 *max_bitrate, u32 *decode_buffer_size);
 
+/*returns true if this sample was the first sample of a traf in a fragmented file, false otherwise*/
+Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 
