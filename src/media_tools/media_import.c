@@ -4788,6 +4788,7 @@ static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 	u8 priority_prev_nalu_prefix;
 	Double FPS;
 	char *buffer;
+	Bool sample_is_ref, has_redundant;
 	u32 max_size = 4096;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -4831,6 +4832,8 @@ restart_import:
 	first_avc = GF_TRUE;
 	last_svc_sps = 0;
 	sei_recovery_frame_count = -1;
+	sample_is_ref = GF_FALSE;
+	has_redundant = GF_FALSE;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -4892,7 +4895,7 @@ restart_import:
 	nb_nalus = 0;
 
 	while (gf_bs_available(bs)) {
-		u8 nal_hdr, skip_nal, is_subseq, add_sps;
+		u8 nal_hdr, skip_nal, is_subseq, add_sps, nal_ref_idc;
 		u32 nal_and_trailing_size;
 
 		nal_and_trailing_size = nal_size = gf_media_nalu_next_start_code_bs(bs);
@@ -5262,6 +5265,7 @@ restart_import:
 		if (!nal_size) break;
 
 		if (flush_sample && sample_data) {
+			Bool is_rap=GF_FALSE;;
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = sample_is_rap ? RAP : RAP_NO;
@@ -5318,6 +5322,8 @@ restart_import:
 			sample_has_slice = GF_FALSE;
 			cur_samp++;
 
+			if (samp->IsRAP) is_rap = GF_TRUE;
+
 			/*write sampleGroups info*/
 			if (!samp->IsRAP && ( (sei_recovery_frame_count>=0) || sample_has_islice) ) {
 				/*generic GDR*/
@@ -5329,9 +5335,23 @@ restart_import:
 				else if ((sei_recovery_frame_count == 0) && sample_has_islice) {
 					if (!use_opengop_gdr) use_opengop_gdr = 2;
 					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
+					is_rap = GF_TRUE;
 				}
 				if (e) goto exit;
 			}
+			//write sample deps
+			if (import->flags & GF_IMPORT_SAMPLE_DEPS) {
+				u32 isLeading, dependsOn, dependedOn, hasRedundant;
+				isLeading = 0; //for avc we would need to parse sub-seq info SEI
+				dependsOn = is_rap ? 2 : 1;
+				dependedOn = sample_is_ref ? 1 : 2;
+				hasRedundant = has_redundant ? 1 : 2;
+
+				e = gf_isom_sample_set_dep_info(import->dest, track, cur_samp, isLeading, dependsOn, dependedOn, hasRedundant);
+				if (e) goto exit;
+			}
+			sample_is_ref = GF_FALSE;
+			has_redundant = GF_FALSE;
 
 			gf_isom_sample_del(&samp);
 			gf_set_progress("Importing AVC-H264", (u32) (nal_start/1024), (u32) (total_size/1024) );
@@ -5343,6 +5363,13 @@ restart_import:
 			sample_has_islice = GF_FALSE;
 			sei_recovery_frame_count = -1;
 		}
+
+		//nal in current sample is a ref
+		nal_ref_idc = (nal_hdr & 0x60) >> 5;
+		if (nal_ref_idc) {
+			sample_is_ref = GF_TRUE;
+		}
+
 
 		if (copy_size) {
 			if (is_islice)
@@ -5441,6 +5468,10 @@ restart_import:
 				if (slice_is_ref)
 					nb_idr++;
 				slice_force_ref = GF_FALSE;
+
+				if (avc.s_info.redundant_pic_cnt>0) {
+					has_redundant = GF_TRUE;
+				}
 
 				/*we only indicate TRUE IDRs for sync samples (cf AVC file format spec).
 				SEI recovery should be used to build sampleToGroup & RollRecovery tables*/
@@ -6003,6 +6034,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	u8 max_temporal_id[64];
 	u32 min_layer_id = (u32) -1;
 	LHVCLayerInfo linf[64];
+	Bool sample_is_ref;
 
 
 	Double FPS;
@@ -6056,6 +6088,7 @@ restart_import:
 	nb_nalus = 0;
 	hevc_base_track = 0;
 	/*has_hevc = */has_lhvc = GF_FALSE;
+	sample_is_ref = 0;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -6527,6 +6560,7 @@ restart_import:
 			flush_sample = GF_FALSE;
 
 		if (flush_sample && sample_data) {
+			Bool is_rap=GF_FALSE;
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = ((sample_rap_type==SAP_TYPE_1) || (sample_rap_type==SAP_TYPE_2)) ? RAP : RAP_NO;
@@ -6542,6 +6576,8 @@ restart_import:
 			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 			gf_bs_del(sample_data);
 			sample_data = NULL;
+
+			if (samp->IsRAP) is_rap = GF_TRUE;
 
 			//fixme, we should check sps and vps IDs when missing
 			if ((import->flags & GF_IMPORT_FORCE_XPS_INBAND) && sample_rap_type && (!sample_has_vps || !sample_has_sps) ) {
@@ -6593,9 +6629,24 @@ restart_import:
 				else if (sample_rap_type==SAP_TYPE_3) {
 					if (!min_layer_id && !use_opengop_gdr) use_opengop_gdr = 2;
 					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
+
+					is_rap = GF_TRUE;
 				}
 				if (e) goto exit;
 			}
+
+			//write sample deps
+			if (import->flags & GF_IMPORT_SAMPLE_DEPS) {
+				u32 isLeading, dependsOn, dependedOn;
+				isLeading = 0; //for avc we would need to parse sub-seq info SEI
+				dependsOn = is_rap ? 2 : 1;
+				dependedOn = sample_is_ref ? 1 : 2;
+
+				e = gf_isom_sample_set_dep_info(import->dest, track, cur_samp, isLeading, dependsOn, dependedOn, 2);
+				if (e) goto exit;
+			}
+			sample_is_ref = GF_FALSE;
+
 
 			gf_isom_sample_del(&samp);
 			gf_set_progress("Importing HEVC", (u32) (nal_start/1024), (u32) (total_size/1024) );
@@ -6612,6 +6663,28 @@ restart_import:
 		}
 
 		if (copy_size) {
+			if (!sample_is_ref) {
+				HEVC_VPS *vps;
+				switch (nal_unit_type) {
+				case GF_HEVC_NALU_SLICE_TRAIL_N:
+				case GF_HEVC_NALU_SLICE_TSA_N:
+				case GF_HEVC_NALU_SLICE_STSA_N:
+				case GF_HEVC_NALU_SLICE_RADL_N:
+				case GF_HEVC_NALU_SLICE_RASL_N:
+				case GF_HEVC_NALU_SLICE_RSV_VCL_N10:
+				case GF_HEVC_NALU_SLICE_RSV_VCL_N12:
+				case GF_HEVC_NALU_SLICE_RSV_VCL_N14:
+					vps = &hevc.vps[hevc.s_info.sps->vps_id];
+					if (temporal_id + 1 < vps->max_sub_layers) {
+						sample_is_ref = GF_TRUE;
+					}
+					break;
+				default:
+					if (nal_unit_type<GF_HEVC_NALU_VID_PARAM)
+						sample_is_ref = GF_TRUE;
+				}
+			}
+
 			if (is_islice)
 				sample_has_islice = GF_TRUE;
 
