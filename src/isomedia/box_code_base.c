@@ -5062,7 +5062,11 @@ void stbl_del(GF_Box *s)
 
 	if (ptr->sai_sizes) gf_isom_box_array_del(ptr->sai_sizes);
 	if (ptr->sai_offsets) gf_isom_box_array_del(ptr->sai_offsets);
-
+	if (ptr->traf_map) {
+		if (ptr->traf_map->sample_num) gf_free(ptr->traf_map->sample_num);
+		gf_free(ptr->traf_map);
+	}
+	
 	gf_free(ptr);
 }
 

@@ -1398,6 +1398,7 @@ void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size)
 }
 
 
+
 void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 {
 	GF_ChunkOffsetBox *stco;
@@ -1510,6 +1511,27 @@ void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 	}
 	stbl->SyncSample->sampleNumbers[stbl->SyncSample->nb_entries] = stbl->SampleSize->sampleCount;
 	stbl->SyncSample->nb_entries += 1;
+}
+
+void stbl_AppendTrafMap(GF_SampleTableBox *stbl)
+{
+	GF_TrafToSampleMap *tmap;
+
+	if (!stbl->traf_map) {
+		//nope, create one
+		GF_SAFEALLOC(stbl->traf_map, GF_TrafToSampleMap);
+		if (!stbl->traf_map) return;
+	}
+	tmap = stbl->traf_map;
+	if (tmap->nb_entries >= stbl->SampleSize->sampleCount)
+		tmap->nb_entries = 0;
+
+	if (tmap->nb_entries + 1 > tmap->nb_alloc) {
+		tmap->nb_alloc++;
+		tmap->sample_num = gf_realloc(tmap->sample_num, sizeof(u32) * tmap->nb_alloc);
+	}
+	tmap->sample_num[tmap->nb_entries] = stbl->SampleSize->sampleCount;
+	tmap->nb_entries += 1;
 }
 
 void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)

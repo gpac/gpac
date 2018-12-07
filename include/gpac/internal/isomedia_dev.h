@@ -1467,6 +1467,11 @@ typedef struct
 	u64 offset_first_offset_field;
 } GF_SampleAuxiliaryInfoOffsetBox;
 
+typedef struct
+{
+	u32 nb_entries, nb_alloc;
+	u32 *sample_num;
+} GF_TrafToSampleMap;
 
 typedef struct
 {
@@ -1485,7 +1490,8 @@ typedef struct
 	GF_PaddingBitsBox *PaddingBits;
 	GF_SampleDependencyTypeBox *SampleDep;
 
-//	GF_SubSampleInformationBox *SubSamples;
+	GF_TrafToSampleMap *traf_map;
+
 	GF_List *sub_samples;
 
 	GF_List *sampleGroups;
@@ -1503,6 +1509,8 @@ typedef struct
 
 	Bool no_sync_found;
 } GF_SampleTableBox;
+
+void stbl_AppendTrafMap(GF_SampleTableBox *stbl);
 
 typedef struct __tag_media_info_box
 {
