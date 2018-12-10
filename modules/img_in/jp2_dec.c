@@ -218,14 +218,12 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 
 	JP2CTX();
 
-#if 1
 	switch (mmlevel) {
 	case GF_CODEC_LEVEL_SEEK:
 	case GF_CODEC_LEVEL_DROP:
 		*outBufferLength = 0;
 		return GF_OK;
 	}
-#endif
 
 	if (!ctx->image) {
 		/* configure the event callbacks (not required) */

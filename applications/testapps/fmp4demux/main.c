@@ -139,7 +139,6 @@ static u32 iso_progressive_read_thread(void *param)
 							/* release internal structures associated with the samples read so far */
 							gf_isom_reset_tables(reader->movie, GF_TRUE);
 
-#if 1
 							/* release the associated input data as well */
 							gf_isom_reset_data_offset(reader->movie, &new_buffer_start);
 							if (new_buffer_start) {
@@ -149,7 +148,6 @@ static u32 iso_progressive_read_thread(void *param)
 							}
 							sprintf(reader->data_url, "gmem://%d@%p", reader->valid_data_size, reader->data);
 							gf_isom_refresh_fragmented(reader->movie, &missing_bytes, reader->data_url);
-#endif
 
 							/* update the sample count and sample index */
 							sample_count = new_sample_count - sample_count;
