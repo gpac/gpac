@@ -706,7 +706,6 @@ void log_backtrace(unsigned int log_level, memory_element *element)
 }
 
 
-#if 1
 Bool gf_check_address(void *ptr)
 {
 	Bool res = GF_TRUE;
@@ -734,7 +733,6 @@ Bool gf_check_address(void *ptr)
 	gf_mx_v(gpac_allocations_lock);
 	return res;
 }
-#endif
 
 /*returns the size of the unregistered block*/
 static int unregister_address(void *ptr, const char *filename, int line)
