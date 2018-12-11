@@ -640,7 +640,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 		args[i+1] = ffmpeg_arg_translate(opt);
 		i++;
 	}
-	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
+	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 	avformat_free_context(dmx_ctx);
 
