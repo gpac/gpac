@@ -837,7 +837,7 @@ GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 		if (isRAP) return GF_OK;
 		/*remove it...*/
 		if (i+1 < stss->nb_entries)
-			memcpy(stss->sampleNumbers + i, stss->sampleNumbers + i + 1, sizeof(u32) * (stss->nb_entries - i - 1));
+			memmove(stss->sampleNumbers + i, stss->sampleNumbers + i + 1, sizeof(u32) * (stss->nb_entries - i - 1));
 		stss->nb_entries--;
 		return GF_OK;
 	}
@@ -851,7 +851,7 @@ GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 	}
 
 	if (i+1 < stss->nb_entries)
-		memcpy(stss->sampleNumbers + i + 1, stss->sampleNumbers + i, sizeof(u32) * (stss->nb_entries - i - 1));
+		memmove(stss->sampleNumbers + i + 1, stss->sampleNumbers + i, sizeof(u32) * (stss->nb_entries - i - 1));
 	stss->sampleNumbers[i] = SampleNumber;
 	stss->nb_entries ++;
 	return GF_OK;
@@ -1028,7 +1028,7 @@ GF_Err stbl_RemoveSize(GF_SampleSizeBox *stsz, u32 sampleNumber)
 		return GF_OK;
 	}
 	if (sampleNumber < stsz->sampleCount) {
-		memcpy(stsz->sizes + sampleNumber - 1, stsz->sizes + sampleNumber, sizeof(u32) * (stsz->sampleCount - sampleNumber));
+		memmove(stsz->sizes + sampleNumber - 1, stsz->sizes + sampleNumber, sizeof(u32) * (stsz->sampleCount - sampleNumber));
 	}
 	stsz->sampleCount--;
 	return GF_OK;
@@ -1289,7 +1289,7 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber)
 			if ((SampleNumber>prev_sample) && (SampleNumber <= prev_sample + e->sample_entries[k].sample_count) ) {
 				e->sample_entries[k].sample_count--;
 				if (!e->sample_entries[k].sample_count) {
-					memcpy(&e->sample_entries[k], &e->sample_entries[k+1], sizeof(GF_SampleGroupEntry) * (e->entry_count-k-1));
+					memmove(&e->sample_entries[k], &e->sample_entries[k+1], sizeof(GF_SampleGroupEntry) * (e->entry_count-k-1));
 					e->entry_count--;
 				}
 				break;
