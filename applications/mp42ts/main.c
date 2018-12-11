@@ -64,6 +64,10 @@ Bool temi_single_toggle = GF_FALSE;
 u64 temi_period_last_dts = 0;
 FILE *logfile = NULL;
 
+//no longer supported for filters
+#define GPAC_DISABLE_PLAYER
+
+
 static void usage()
 {
 	fprintf(stderr, "mp42ts <inputs> <destinations> [options]\n"
@@ -1012,8 +1016,6 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 #endif
 
 /*AAC import features*/
-#define GPAC_DISABLE_PLAYER
-
 #ifndef GPAC_DISABLE_PLAYER
 
 void *audio_prog = NULL;
