@@ -3746,7 +3746,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 			d = pidinst->buffer_duration;
 		}
 		assert(d <= pidinst->buffer_duration);
-		safe_int64_sub(&pidinst->buffer_duration, d);
+		safe_int64_sub(&pidinst->buffer_duration, (s32) d);
 		assert(pidinst->buffer_duration != 39000);
 	}
 
