@@ -112,7 +112,7 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 
 		assert(pid->filter->would_block <= pid->filter->num_output_pids);
 
-		if (pid->filter->would_block + pid->filter->num_output_not_connected < pid->filter->num_output_pids) {
+		if (pid->filter->would_block + pid->filter->num_out_pids_not_connected + pid->filter->num_out_pids_eos < pid->filter->num_output_pids) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids, pid->filter->process_task_queued));
 			//requeue task
 			gf_filter_post_process_task(pid->filter);
@@ -2352,7 +2352,6 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	GF_FilterSession *fsess = pid->filter->session;
 	GF_List *filter_chain;
 	u32 i, count;
-	const GF_FilterRegister *dst_filter = dst->freg;
 	char prefRegistry[1001];
 	char szForceReg[20];
 
@@ -2435,7 +2434,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 #ifndef GPAC_DISABLE_LOGS
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved %sfilter chain from filter %s PID %s to filter %s - dumping chain:\n", reconfigurable_only ? "adaptation " : "", pid->filter->name, pid->name, dst_filter->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved %sfilter chain from filter %s PID %s to filter %s - dumping chain:\n", reconfigurable_only ? "adaptation " : "", pid->filter->name, pid->name, dst->freg->name));
 		}
 #endif
 		prev_af = NULL;
@@ -2969,7 +2968,7 @@ restart:
 		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 		}
-		filter->num_output_not_connected ++;
+		filter->num_out_pids_not_connected ++;
 	}
 	assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
@@ -3835,7 +3834,6 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
-	pid->has_seen_eos = GF_TRUE;
 	gf_filter_pck_send(pck);
 }
 

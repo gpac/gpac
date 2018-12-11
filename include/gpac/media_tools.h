@@ -104,9 +104,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
  *Removes all non rap samples (sync and other RAP sample group info) from the track.
  * \param file target movie
  * \param track target track
+ * \param do_thin if set, removes only non-reference pictures
  * \return error if any
  */
-GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track);
+GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track, Bool non_ref_only);
 #endif
 
 /*! @} */
@@ -206,9 +207,11 @@ enum
 	GF_IMPORT_KEEP_REFS = 1<<27,
 	/*! keeps AV1 temporal delimiter OBU in the samples*/
 	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
+	/*! imports sample dependencies information*/
+	GF_IMPORT_SAMPLE_DEPS  = 1<<29,
 
 	/*! print filter session stats at the end of the import*/
-	GF_IMPORT_FILTER_STATS = 1<<31,
+	GF_IMPORT_FILTER_STATS = 1<<31
 };
 
 
@@ -374,6 +377,9 @@ typedef struct __track_import
 	const char *filter_dst_opts;
 
 	GF_AudioSampleEntryImportMode asemode;
+
+	Bool audio_roll_change;
+	s16 audio_roll;
 } GF_MediaImporter;
 
 /*!
@@ -785,9 +791,10 @@ GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker
  *	\param enable_sidx enable or disable
  *	\param subsegs_per_sidx number of subsegments per segment
  *	\param daisy_chain_sidx enable daisy chaining of sidx
+ *	\param use_ssix enables ssix generation, level 1 for I-frames, the rest of the segement not  mapped
  *	\return error code if any
 */
-GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx);
+GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_ssix);
 
 /*!
  Sets mode for the dash segmenter.

@@ -439,7 +439,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else {
 		ch->sender_ntp = 0;
 	}
-	gf_isom_get_sample_flags(ch->owner->mov, ch->track, ch->last_sample_desc_index, &ch->isLeading, &ch->dependsOn, &ch->dependedOn, &ch->redundant);
+	gf_isom_get_sample_flags(ch->owner->mov, ch->track, ch->sample_num, &ch->isLeading, &ch->dependsOn, &ch->dependedOn, &ch->redundant);
 
 	if (ch->is_encrypted) {
 		/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/

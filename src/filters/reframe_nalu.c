@@ -55,7 +55,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index_dur;
-	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext;
+	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps;
 	u32 nal_length;
 
 	//only one input pid declared
@@ -158,6 +158,10 @@ typedef struct
 	//pointer to the first packet of the current frame (the one holding timing info)
 	//this packet is in the packet queue
 	GF_FilterPacket *first_pck_in_au;
+	//frame has slices used as reference
+	Bool has_ref_slices;
+	//frame has redundant coding
+	Bool has_redundant;
 
 	Bool next_nal_end_skip;
 
@@ -1275,6 +1279,8 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 {
 	u64 ts;
+	Bool is_rap = GF_FALSE;
+
 	if (!ctx->first_pck_in_au)
 		return;
 	if (ctx->au_sap) {
@@ -1283,6 +1289,9 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 			ctx->dts_last_IDR = gf_filter_pck_get_dts(ctx->first_pck_in_au);
 			if (ctx->is_paff) ctx->dts_last_IDR *= 2;
 		}
+		if (ctx->au_sap <= GF_FILTER_SAP_3) {
+			is_rap = GF_TRUE;
+		}
 	}
 	else if (ctx->has_islice && ctx->force_sync && (ctx->sei_recovery_frame_count==0)) {
 		gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_1);
@@ -1290,6 +1299,7 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 			ctx->use_opengop_gdr = 1;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISOBMFF conformant\n", ctx->log_name));
 		}
+		is_rap = GF_TRUE;
 	}
 	/*set roll info sampleGroups info*/
 	else if (!ctx->au_sap && ( (ctx->sei_recovery_frame_count >= 0) || ctx->has_islice) ) {
@@ -1303,6 +1313,7 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		else if ((ctx->sei_recovery_frame_count == 0) && ctx->has_islice) {
 			if (!ctx->use_opengop_gdr) ctx->use_opengop_gdr = 2;
 			gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_3);
+			is_rap = GF_TRUE;
 		}
 	}
 
@@ -1323,6 +1334,20 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		ctx->subsamp_buffer_size = 0;
 		ctx->subs_mapped_bytes = 0;
 	}
+	if (ctx->deps) {
+		u8 flags = 0;
+		//dependsOn
+		flags = (is_rap) ? 2 : 1;
+		flags <<= 2;
+		//dependedOn
+	 	flags |= ctx->has_ref_slices ? 1 : 2;
+		flags <<= 2;
+		//hasRedundant
+	 	flags |= ctx->has_redundant ? 1 : 2;
+	 	gf_filter_pck_set_dependency_flags(ctx->first_pck_in_au, flags);
+	}
+	ctx->has_ref_slices = GF_FALSE;
+	ctx->has_redundant = GF_FALSE;
 
 	//if we reuse input packets timing, we can dispatch asap.
 	//otherwise if poc probe is done (we know the min_poc_diff between images) and we are not in strict mode, dispatch asap
@@ -1865,6 +1890,7 @@ naldmx_flush:
 		u32 hdr_offset = 0;
 		Bool full_nal_required = GF_FALSE;
 		u32 nal_type = 0;
+		u32 nal_ref_idc = 0;
 		s32 next=0;
 		u32 next_sc_size=0;
 		s32 nal_parse_result;
@@ -2060,7 +2086,26 @@ naldmx_flush:
 			case GF_HEVC_NALU_PIC_PARAM:
 				full_nal_required = GF_TRUE;
 				break;
+			case GF_HEVC_NALU_SLICE_TRAIL_N:
+			case GF_HEVC_NALU_SLICE_TSA_N:
+			case GF_HEVC_NALU_SLICE_STSA_N:
+			case GF_HEVC_NALU_SLICE_RADL_N:
+			case GF_HEVC_NALU_SLICE_RASL_N:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N10:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N12:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N14:
+				if (ctx->deps) {
+					HEVC_VPS *vps;
+					u8 temporal_id = hdr_start[1] & 0x7;
+					vps = & ctx->hevc_state->vps[ctx->hevc_state->s_info.sps->vps_id];
+					if (temporal_id + 1 < vps->max_sub_layers) {
+						nal_ref_idc = GF_TRUE;
+					}
+				}
+				break;
 			default:
+				if (nal_type<GF_HEVC_NALU_VID_PARAM)
+					nal_ref_idc = GF_TRUE;
 				break;
 			}
 		} else {
@@ -2077,6 +2122,7 @@ naldmx_flush:
 			default:
 				break;
 			}
+			nal_ref_idc = (hdr_start[0] & 0x60) >> 5;
 		}
 		if (full_nal_required) {
 			//we need the full nal loaded
@@ -2417,6 +2463,15 @@ naldmx_flush:
 				}
 				/*otherwise we had a B-slice reference: do nothing*/
 			}
+
+			if (ctx->deps) {
+				if (nal_ref_idc) {
+					ctx->has_ref_slices = GF_TRUE;
+				}
+				if (!ctx->is_hevc && (ctx->avc_state->s_info.redundant_pic_cnt) ) {
+					ctx->has_redundant = GF_TRUE;
+				}
+			}
 		}
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
@@ -2710,8 +2765,9 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(nosvc), "removes all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "removes all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(nal_length), "Sets number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(subsamples), "Import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nal_length), "sets number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

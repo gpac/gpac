@@ -1355,7 +1355,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 	//blocking filter: remove filter process task - task will be reinserted upon unblock()
-	if (filter->would_block && (filter->would_block + filter->num_output_not_connected == filter->num_output_pids) ) {
+	if (filter->would_block && (filter->would_block + filter->num_out_pids_not_connected + filter->num_out_pids_eos == filter->num_output_pids) ) {
 		gf_mx_p(task->filter->tasks_mx);
 		//it may happen that by the time we get the lock, the filter has been unblocked by another thread. If so, don't skip task
 		if (filter->would_block) {
@@ -1381,7 +1381,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 #endif
-	if (filter->num_output_pids && (filter->num_output_not_connected==filter->num_output_pids)) {
+	if (filter->num_output_pids && (filter->num_out_pids_not_connected==filter->num_output_pids)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no valid connected outputs, skiping process\n", filter->name));
 		return;
 	}
@@ -1447,7 +1447,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (e) filter->session->last_process_error = e;
 	
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
-	if ((filter->would_block+filter->num_output_not_connected<filter->num_output_pids) && !filter->input_pids && (e!=GF_EOS)) {
+	if ((filter->would_block + filter->num_out_pids_not_connected + filter->num_out_pids_eos < filter->num_output_pids) && !filter->input_pids && (e!=GF_EOS)) {
 		if (filter->schedule_next_time)
 			task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
@@ -1584,7 +1584,12 @@ void gf_filter_post_process_task(GF_Filter *filter)
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
 //		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("skip post process task for filter %s\n", filter->freg->name));
-		assert(filter->scheduled_for_next_task || filter->session->run_status || filter->force_end_of_session || gf_fq_count(filter->tasks) );
+		assert(filter->scheduled_for_next_task
+		 		|| filter->session->run_status
+		 		|| filter->force_end_of_session
+		 		|| gf_fq_count(filter->tasks)
+		 		|| (filter->num_output_pids==filter->num_out_pids_not_connected + filter->num_out_pids_eos)
+		);
 	}
 	if (!filter->session->direct_mode)
 		assert(filter->process_task_queued);
@@ -2170,44 +2175,48 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		*out_pid = pid;
 	}
 
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+
 	if (local_file)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILEPATH, &PROP_STRING(local_file));
 
-	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
-	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
-	sep = strrchr(url, '/');
-	if (!sep) sep = strrchr(url, '\\');
-	if (!sep) sep = (char *) url;
-	else sep++;
-	gf_filter_pid_set_name(pid, sep);
+	if (url) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
 
-	if (fext) {
-		strncpy(tmp_ext, fext, 20);
-		strlwr(tmp_ext);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
-	} else {
-		char *ext = strrchr(url, '.');
-		if (ext && !stricmp(ext, ".gz")) {
-			char *anext;
-			ext[0] = 0;
-			anext = strrchr(url, '.');
-			ext[0] = '.';
-			ext = anext;
-		}
-		if (ext) ext++;
+		sep = strrchr(url, '/');
+		if (!sep) sep = strrchr(url, '\\');
+		if (!sep) sep = (char *) url;
+		else sep++;
+		gf_filter_pid_set_name(pid, sep);
 
-		if (ext) {
-			char *s = strchr(ext, '#');
-			if (s) s[0] = 0;
-
-			strncpy(tmp_ext, ext, 20);
+		if (fext) {
+			strncpy(tmp_ext, fext, 20);
 			strlwr(tmp_ext);
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
-			if (s) s[0] = '#';
+		} else {
+			char *ext = strrchr(url, '.');
+			if (ext && !stricmp(ext, ".gz")) {
+				char *anext;
+				ext[0] = 0;
+				anext = strrchr(url, '.');
+				ext[0] = '.';
+				ext = anext;
+			}
+			if (ext) ext++;
+
+			if (ext) {
+				char *s = strchr(ext, '#');
+				if (s) s[0] = 0;
+
+				strncpy(tmp_ext, ext, 20);
+				strlwr(tmp_ext);
+				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
+				if (s) s[0] = '#';
+			}
 		}
 	}
-
+	
 	ext_not_trusted = GF_FALSE;
 	//probe data
 	if (!mime_type && probe_data && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
@@ -2363,5 +2372,32 @@ GF_EXPORT
 Bool gf_filter_ui_event(GF_Filter *filter, GF_Event *uievt)
 {
 	return gf_fs_ui_event(filter->session, uievt);
+}
+
+GF_EXPORT
+Bool gf_filter_all_sinks_done(GF_Filter *filter)
+{
+	u32 i, count;
+	Bool res = GF_TRUE;
+	if (filter->session->in_final_flush || (filter->session->run_status==GF_EOS) )
+		return GF_TRUE;
+		
+	gf_mx_p(filter->session->filters_mx);
+	count = gf_list_count(filter->session->filters);
+	for (i=0; i<count; i++) {
+		u32 j;
+		GF_Filter *f = gf_list_get(filter->session->filters, i);
+		if (f->num_output_pids) continue;
+		for (j=0; j<f->num_input_pids; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(f->input_pids, j);
+			if (!pidi->is_end_of_stream) {
+				res = GF_FALSE;
+				goto exit;
+			}
+		}
+	}
+exit:
+	gf_mx_v(filter->session->filters_mx);
+	return res;
 }
 
