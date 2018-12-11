@@ -66,6 +66,7 @@ typedef struct
 	char *b64_buffer;
 	u32 b64_buffer_size;
 	u64 mdia_pos;
+	u32 pck_num;
 } GF_NHMLDumpCtx;
 
 GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -555,7 +556,8 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	if (dts==GF_FILTER_NO_TS) dts = cts;
 	if (cts==GF_FILTER_NO_TS) cts = dts;
 
-	sprintf(nhml, "<NHNTSample DTS=\""LLU"\" dataLength=\"%d\" ", dts, data_size);
+	ctx->pck_num++;
+	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\""LLU"\" dataLength=\"%d\" ", ctx->pck_num, dts, data_size);
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	if (ctx->full || (cts != dts) ) {
 		sprintf(nhml, "CTSOffset=\"%d\" ", (s32) ((s64)cts - (s64)dts));

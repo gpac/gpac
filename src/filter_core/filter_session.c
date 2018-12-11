@@ -939,7 +939,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					}
 
 					if (diff) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, seleeping for %d ms\n", sys_thid, task->log_name, diff));
+						//if mono thread and other tasks pending than the two we checked, max sleep is 5 ms
+						if (th_count==0) {
+							if ( gf_fq_count(fsess->tasks) > 2)
+								diff=5;
+						}
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, sleeping for %d ms\n", sys_thid, task->log_name, diff));
 						gf_sleep((u32) diff);
 					} else {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, rerun\n", sys_thid, task->log_name, diff));
@@ -991,12 +996,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
 					if (! (fsess->flags & GF_FS_FLAG_NO_REGULATION) ) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", sys_thid, current_filter->name, task->log_name, (s32) diff));
-
 						if (th_count==0) {
 							if ( gf_fq_count(fsess->tasks) )
 								diff=5;
 						}
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", sys_thid, current_filter->name, task->log_name, (s32) diff));
 
 						gf_sleep((u32) diff);
 						active_start = gf_sys_clock_high_res();

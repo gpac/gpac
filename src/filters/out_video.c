@@ -466,6 +466,8 @@ typedef struct
 	u32 uv_w, uv_h, uv_stride, bit_depth;
 	Bool is_yuv, in_fullscreen;
 	u32 nb_drawn;
+
+	GF_FilterPacket *last_pck;
 } GF_VideoOutCtx;
 
 
@@ -1086,6 +1088,11 @@ static void vout_finalize(GF_Filter *filter)
 {
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
 
+	if (ctx->last_pck) {
+		gf_filter_pck_unref(ctx->last_pck);
+		ctx->last_pck = NULL;
+	}
+
 	if (ctx->nb_frames==1) {
 		gf_sleep((u32) (ctx->hold*1000));
 	}
@@ -1667,6 +1674,18 @@ static GF_Err vout_process(GF_Filter *filter)
 
 				ctx->aborted = GF_TRUE;
 			}
+		}
+		//check if we have a clock hint from an audio output
+		if (!gf_filter_all_sinks_done(filter)) {
+			gf_filter_ask_rt_reschedule(filter, 100000);
+			if (ctx->display_changed) goto draw_frame;
+			return GF_OK;
+		}
+		if (ctx->aborted) {
+			if (ctx->last_pck) {
+				gf_filter_pck_unref(ctx->last_pck);
+				ctx->last_pck = NULL;
+			}
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -1743,6 +1762,8 @@ static GF_Err vout_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d "LLU" us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
 				if (diff<-1000000) diff = -1000000;
 				gf_filter_ask_rt_reschedule(filter, (u32) (-diff));
+
+				if (ctx->display_changed) goto draw_frame;
 				//not ready yet
 				return GF_OK;
 			}
@@ -1787,20 +1808,26 @@ static GF_Err vout_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->pid);
 	}
 
+	if (ctx->last_pck)
+		gf_filter_pck_unref(ctx->last_pck);
+	ctx->last_pck = pck;
+	ctx->nb_frames++;
+
+
+draw_frame:
+
 	if (ctx->pfmt) {
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp < MODE_2D) {
 			gf_rmt_begin_gl(vout_draw_gl);
-			vout_draw_gl(ctx, pck);
+			vout_draw_gl(ctx, ctx->last_pck);
 			gf_rmt_end_gl();
 		} else
 #endif
 		{
-			vout_draw_2d(ctx, pck);
+			vout_draw_2d(ctx, ctx->last_pck);
 		}
 	}
-	gf_filter_pck_unref(pck);
-	ctx->nb_frames++;
 	return GF_OK;
 }
 

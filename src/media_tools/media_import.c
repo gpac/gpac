@@ -1116,6 +1116,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) DYNSTRCAT("subsamples");
 		if (importer->flags & GF_IMPORT_NO_SEI) DYNSTRCAT("nosei");
 		if (importer->flags & GF_IMPORT_SVC_NONE) DYNSTRCAT("nosvc");
+		if (importer->flags & GF_IMPORT_SAMPLE_DEPS) DYNSTRCAT("deps");
 		if (importer->flags & GF_IMPORT_FORCE_MPEG4) DYNSTRCAT("mpeg4");
 
 		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) DYNSTRCAT("webvtt");

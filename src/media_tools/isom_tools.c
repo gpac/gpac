@@ -119,7 +119,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 }
 
 GF_EXPORT
-GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
+GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track, Bool non_ref_only)
 {
 	GF_Err e;
 	u32 i, count, di;
@@ -134,10 +134,20 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
 
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
+		Bool remove = GF_TRUE;
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &offset);
 		if (!samp) return gf_isom_last_error(file);
 
-		if (samp->IsRAP) {
+		if (samp->IsRAP) remove = GF_FALSE;
+		else if (non_ref_only) {
+			u32 isLeading, dependsOn, dependedOn, redundant;
+			gf_isom_get_sample_flags(file, track, i+1, &isLeading, &dependsOn, &dependedOn, &redundant);
+			if (dependedOn != 2) {
+				remove = GF_FALSE;
+			}
+		}
+
+		if (!remove) {
 			last_dts = samp->DTS;
 			gf_isom_sample_del(&samp);
 			continue;
