@@ -29,7 +29,8 @@
 #include <gpac/bitstream.h>
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
-#include <ogg/ogg.h>
+#include <gpac/internal/ogg.h>
+//#include <ogg/ogg.h>
 #include <gpac/avparse.h>
 
 
