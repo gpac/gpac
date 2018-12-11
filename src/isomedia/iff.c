@@ -915,6 +915,13 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			}
 			//media_brand = GF_ISOM_BRAND_HEIC;
 			break;
+		case GF_ISOM_SUBTYPE_AV01:
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
+			((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_ISOM_SUBTYPE_AV01;
+			config_needed = 1;
+			//media_brand = GF_ISOM_BRAND_HEIC;
+			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec not supported to create HEIF image items\n"));
 			return GF_NOT_SUPPORTED;

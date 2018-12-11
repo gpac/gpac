@@ -190,6 +190,7 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 
 	/*non-encrypted or non-ISMA*/
 	if (!sinf || !sinf->scheme_type) return 0;
+	if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
 	return sinf->scheme_type->scheme_type;
 }
 

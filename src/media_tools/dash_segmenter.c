@@ -60,7 +60,7 @@ struct __gf_dash_segmenter
 	u32 segment_marker_4cc;
 	Bool enable_sidx;
 	u32 subsegs_per_sidx;
-	Bool daisy_chain_sidx;
+	Bool daisy_chain_sidx, use_ssix;
 
 	Bool fragments_start_with_rap;
 	char *tmpdir;
@@ -327,12 +327,13 @@ GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker
 }
 
 GF_EXPORT
-GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx)
+GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_ssix)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->enable_sidx = enable_sidx;
 	dasher->subsegs_per_sidx = subsegs_per_sidx;
 	dasher->daisy_chain_sidx = daisy_chain_sidx;
+	dasher->use_ssix = use_ssix;
 	return GF_OK;
 }
 
@@ -640,6 +641,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->fragment_duration) { sprintf(szArg, "cdur=%g", dasher->fragment_duration); APPEND_ARG(szArg)}
 	if (dasher->segment_marker_4cc) { sprintf(szArg, "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) ); APPEND_ARG(szArg)}
 	if (dasher->daisy_chain_sidx) { APPEND_ARG("chain_sidx")}
+	if (dasher->use_ssix) { APPEND_ARG("ssix")}
 	if (dasher->initial_moof_sn) { sprintf(szArg, "msn=%d", dasher->initial_moof_sn ); APPEND_ARG(szArg)}
 	if (dasher->initial_tfdt) { sprintf(szArg, "tfdt="LLU"", dasher->initial_tfdt ); APPEND_ARG(szArg)}
 	if (dasher->no_fragments_defaults) {APPEND_ARG("nofragdef")}

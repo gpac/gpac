@@ -861,6 +861,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_video_subtype) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_was_traf_start) )
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
@@ -1953,6 +1954,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_solve_segment_list_xlink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_delete_segment_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_parse_master_playlist) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_get_base_url_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )
