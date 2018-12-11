@@ -1055,14 +1055,6 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
                                      u32 *defaultRandomAccess, u8 *defaultPadding, u16 *defaultDegradationPriority);
 
 
-/*non standard extensions used for video packets in order to keep AU structure in the file format
-(no normative tables for that). Info is NOT written to disk.
-*/
-/*get number of fragments for a sample */
-u32 gf_isom_get_sample_fragment_count(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
-/*get sample fragment size*/
-u16 gf_isom_get_sample_fragment_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 FragmentIndex);
-
 /*returns 1 if file is single AV (max one audio, one video, one text and basic od/bifs)*/
 Bool gf_isom_is_single_av(GF_ISOFile *file);
 
@@ -1097,6 +1089,9 @@ u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescrip
 /*gets max/average rate info as indicated in ESDS or BTRT boxes. If not found all values are set to 0
 if sampleDescIndex is 0, gather for all sample descriptions*/
 GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescIndex, u32 *average_bitrate, u32 *max_bitrate, u32 *decode_buffer_size);
+
+/*returns true if this sample was the first sample of a traf in a fragmented file, false otherwise*/
+Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -1141,6 +1136,9 @@ GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber);
 
 /*Add samples to a track. Use streamDescriptionIndex to specify the desired stream (if several)*/
 GF_Err gf_isom_add_sample(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const GF_ISOSample *sample);
+
+/*set depenecy info for given sample*/
+GF_Err gf_isom_sample_set_dep_info(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 //copies all sample dependency, subSample and sample group information from the given sampleNumber in source file to the last added sample in dest file
 GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track, u32 sampleNumber);
@@ -1366,13 +1364,6 @@ typedef enum {
 } GF_AudioSampleEntryImportMode;
 
 GF_Err gf_isom_set_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode);
-
-/*non standard extensions: set/remove a fragment of a sample - this is used for video packets
-in order to keep AU structure in the file format (no normative tables for that). Info is NOT written to disk*/
-GF_Err gf_isom_add_sample_fragment(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u16 FragmentSize);
-GF_Err gf_isom_remove_sample_fragment(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
-/*remove all sample fragment info for this track*/
-GF_Err gf_isom_remove_sample_fragments(GF_ISOFile *the_file, u32 trackNumber);
 
 /*set CTS unpack mode (used for B-frames & like): in unpack mode, each sample uses one entry in CTTS tables
 unpack=0: set unpack on - !!creates a CTTS table if none found!!
@@ -1616,7 +1607,7 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u
 timestamp_shift is the constant difference between media time and presentation time (derived from edit list)
 out_seg_size is optional, holds the segment size in bytes
 */
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool use_ssix, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
 
 /*writes any pending fragment to file for low-latency output. shall only be used if no SIDX is used (subsegs_per_sidx<0 or flushing all fragments before calling gf_isom_close_segment)*/
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
@@ -1632,7 +1623,7 @@ gf_isom_close_segment that will follow. This avoids wasting time and disk space 
 the pre-allocated SIDX is destroyed and sucessive calls to gf_isom_close_segment will create their own sidx (unless gf_isom_allocate_sidx is called again).
 frags_per_sidx, daisy_chain_sidx and frags_per_segment are currently ignored and reserved for future usages where multiple SIDX could be written
 if not NULL, start_range and end_range will contain the byte range of the SIDX box in the movie*/
-GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range);
+GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy_chain_sidx, u32 nb_segs, u32 *frags_per_segment, u32 *start_range, u32 *end_range, Bool use_ssix);
 
 enum
 {

@@ -154,6 +154,7 @@ void PrintGeneralUsage()
 	        " -swap-track-id id1:id2 swaps the IDs of the identified tracks\n"
 	        " -rem trackID         removes track from file\n"
 	        " -rap trackID         removes all non-RAP samples from track\n"
+	        " -refonly trackID    removes all non-reference pictures from track\n"
 	        " -enable trackID      enables track\n"
 	        " -disable trackID     disables track\n"
 	        " -new                 forces creation of a new destination file\n"
@@ -323,6 +324,7 @@ void PrintDASHUsage()
 	        " -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
 	        "                       If 0, a single SIDX box is used per segment\n"
 	        "                       If -1, no SIDX box is used\n"
+	        " -ssix                Enables SubsegmentIndexBox (describing 2 ranges, first one from moof to end of first I-frame, second one unmapped). Doesn't work with daisy chaining mode\n"
 	        " -url-template        uses SegmentTemplate instead of explicit sources in segments.\n"
 	        "                       Ignored if segments are stored in the output file.\n"
 	        " -daisy-chain         uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
@@ -418,6 +420,7 @@ void PrintImportUsage()
 	        "                         If G is 0, the first available GroupID will be picked.\n"
 	        " \":fps=VAL\"           same as -fps option\n"
 	        " \":rap\"               imports only RAP samples\n"
+	        " \":refs\"              imports only reference pictures\n"
 	        " \":trailing\"          keeps trailing 0-bytes in AVC/HEVC samples\n"
 	        " \":agg=VAL\"           same as -agg option\n"
 	        " \":dref\"              same as -dref option\n"
@@ -434,6 +437,7 @@ void PrintImportUsage()
 	        " \"                       v0-2  : uses MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
 	        " \"                       v1    : uses MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
 	        " \"                       v1-qt : uses QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2)\n"
+			" \":audio_roll=N\"      adds a roll sample group with roll_distance = N\n"
 	        " \":mpeg4\"             same as -mpeg4 option\n"
 	        " \":nosei\"             discard all SEI messages during import\n"
 	        " \":svc\"               import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"
@@ -445,6 +449,7 @@ void PrintImportUsage()
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
 	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
+	        " \":deps\"              import sample dependency information for AVC and HEVC\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
 	        " \":xps_inband\"        Sets xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
@@ -1522,6 +1527,7 @@ typedef enum {
 	TRAC_ACTION_SET_ID			= 13,
 	TRAC_ACTION_SET_UDTA		= 14,
 	TRAC_ACTION_SWAP_ID			= 15,
+	TRAC_ACTION_REM_NON_REFS	= 16,
 } TrackActionType;
 
 typedef struct
@@ -2032,6 +2038,7 @@ GF_DASHPSSHMode pssh_mode = 0;
 Bool samplegroups_in_traf = GF_FALSE;
 Bool mvex_after_traks = GF_FALSE;
 Bool daisy_chain_sidx = GF_FALSE;
+Bool use_ssix = GF_FALSE;
 Bool single_segment = GF_FALSE;
 Bool single_file = GF_FALSE;
 Bool segment_timeline = GF_FALSE;
@@ -2200,12 +2207,12 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		}
 		else if (!stricmp(arg, "-ocr")) force_ocr = 1;
 		else if (!stricmp(arg, "-latm")) hint_flags |= GP_RTP_PCK_USE_LATM_AAC;
-		else if (!stricmp(arg, "-rap")) {
+		else if (!stricmp(arg, "-rap") || !stricmp(arg, "-refonly")) {
 			if ((i + 1 < (u32)argc) && (argv[i + 1][0] != '-')) {
 				if (sscanf(argv[i + 1], "%d", &trackID) == 1) {
 					tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 					memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
-					tracks[nb_track_act].act_type = TRAC_ACTION_REM_NON_RAP;
+					tracks[nb_track_act].act_type = !stricmp(arg, "-rap") ? TRAC_ACTION_REM_NON_RAP : TRAC_ACTION_REM_NON_REFS;
 					tracks[nb_track_act].trackID = trackID;
 					nb_track_act++;
 					i++;
@@ -3394,7 +3401,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			interleaving_time = atof(argv[i + 1]) / 1000;
 			needSave = GF_TRUE;
 			i++;
-			Frag = 1;
+			Frag = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
@@ -3586,6 +3593,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 			CHECK_NEXT_ARG
 			dash_ctx_file = argv[i + 1];
 			i++;
+		}
+		else if (!stricmp(arg, "-ssix")) {
+			use_ssix = 1;
 		}
 		else if (!stricmp(arg, "-daisy-chain")) {
 			daisy_chain_sidx = 1;
@@ -3872,7 +3882,6 @@ int mp4boxMain(int argc, char **argv)
 #endif
 
 	if (gf_logs) {
-		//gf_log_set_tools_levels(gf_logs);
 	} else {
 		GF_LOG_Level level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
 		gf_log_set_tool_level(GF_LOG_CONTAINER, level);
@@ -4329,7 +4338,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time, dash_subduration);
 		if (!e) e = gf_dasher_enable_rap_splitting(dasher, seg_at_rap, frag_at_rap);
 		if (!e) e = gf_dasher_set_segment_marker(dasher, segment_marker);
-		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
+		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx, use_ssix);
 		if (!e) e = gf_dasher_set_dynamic_mode(dasher, dash_mode, mpd_update_time, time_shift_depth, mpd_live_duration);
 		if (!e) e = gf_dasher_set_min_buffer(dasher, min_buffer);
 		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
@@ -5238,7 +5247,12 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case TRAC_ACTION_REM_NON_RAP:
 			fprintf(stderr, "Removing non-rap samples from track %d\n", tka->trackID);
-			e = gf_media_remove_non_rap(file, track);
+			e = gf_media_remove_non_rap(file, track, GF_FALSE);
+			needSave = GF_TRUE;
+			break;
+		case TRAC_ACTION_REM_NON_REFS:
+			fprintf(stderr, "Removing non-reference samples from track %d\n", tka->trackID);
+			e = gf_media_remove_non_rap(file, track, GF_TRUE);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_UDTA:

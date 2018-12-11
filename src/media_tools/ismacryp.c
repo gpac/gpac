@@ -160,6 +160,9 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR;
 				}
 			}
+			else if (!stricmp(att->name, "forceType")) {
+				tkc->force_type = GF_TRUE;
+			}
 			else if (!stricmp(att->name, "Preview")) {
 				tkc->sel_enc_type = GF_CRYPT_SELENC_PREVIEW;
 				sscanf(att->value, "%u", &tkc->sel_enc_range);
@@ -1196,9 +1199,8 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 
 				if (tci->block_align != 2) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\"\n"));
-					e = GF_NOT_SUPPORTED;
-					goto exit;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\". Forcing value.\n"));
+					tci->block_align = 2;
 				}
 
 				pos = gf_bs_get_position(plaintext_bs);
@@ -2629,7 +2631,10 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		if (idx==count) {
 			if (!drm_file || info->has_common_key) idx = common_idx;
 			/*no available KMS info for this track*/
-			else continue;
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No crypt info found in %s for track %d, keeping track encrypted\n", drm_file, trackID));
+				continue;
+			}
 		}
 		if (count) {
 			a_tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, idx);
@@ -2639,7 +2644,12 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			tci.trackID = trackID;
 		}
 
-
+		if (a_tci->force_type) {
+			scheme_type = tci.scheme_type = a_tci->scheme_type;
+		}
+		if (!tci.trackID)
+			tci.trackID = trackID;
+			
 		switch (scheme_type) {
 		case GF_CRYPT_TYPE_ISMA:
 			gf_decrypt_track = gf_ismacryp_decrypt_track;

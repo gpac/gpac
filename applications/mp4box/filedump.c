@@ -805,7 +805,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
 {
 	u32 i, j, k, count;
-	Bool has_error;
+	Bool has_error, is_fragmented=0;
 	FILE *dump;
 	char szBuf[1024];
 	Bool skip_offset = ((dump_mode==2) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
@@ -822,6 +822,8 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	} else {
 		dump = stdout;
 	}
+	if (gf_isom_is_fragmented(file))
+		is_fragmented = 1;
 
 	has_error = 0;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
@@ -830,6 +832,12 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 
 		fprintf(dump, "#dumping track ID %d timing:\n", gf_isom_get_track_id(file, i + 1));
 		fprintf(dump, "Num\tDTS\tCTS\tSize\tRAP%s\tisLeading\tDependsOn\tDependedOn\tRedundant\tRAP-SampleGroup\tRoll-SampleGroup\tRoll-Distance\n", skip_offset ? "" : "\tOffset");
+		if (is_fragmented) {
+			fprintf(dump, "\tfrag_start");
+		}
+		fprintf(dump, "\n");
+
+
 		count = gf_isom_get_sample_count(file, i+1);
 
 		for (j=0; j<count; j++) {
@@ -891,6 +899,9 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 				}
 			}
 
+			if (is_fragmented) {
+				fprintf(dump, "\t%d", gf_isom_sample_was_traf_start(file, i+1, j+1) );
+			}
 			fprintf(dump, "\n");
 			gf_set_progress("Dumping track timing", j+1, count);
 		}
@@ -954,7 +965,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
 {
 	s32 res;
-	u8 type;
+	u8 type, nal_ref_idc, hdr;
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
 	s8 sample_offset;
@@ -1122,6 +1133,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	}
 
 	type = ptr[0] & 0x1F;
+	nal_ref_idc = ptr[0] & 0x60;
+	nal_ref_idc>>=5;
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	res = 0;
 	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
@@ -1246,6 +1259,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	}
 	fputs("\"", dump);
+
+	if (nal_ref_idc) {
+		fprintf(dump, " nal_ref_idc=\"%d\"", nal_ref_idc);
+	}
 
 	if (type==GF_AVC_NALU_SEI) {
 		gf_bs_read_u8(bs);
@@ -1679,9 +1696,12 @@ void dump_isom_saps(GF_ISOFile *file, u32 trackID, u32 dump_saps_mode, char *inN
 	for (i=0; i<count; i++) {
 		s64 cts, dts;
 		u32 di;
+		Bool traf_start = 0;
 		u32 sap_type = 0;
 		u64 doffset;
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
+
+		traf_start = gf_isom_sample_was_traf_start(file, track, i+1);
 
 		sap_type = samp->IsRAP;
 		if (!sap_type) {
@@ -1708,6 +1728,10 @@ void dump_isom_saps(GF_ISOFile *file, u32 trackID, u32 dump_saps_mode, char *inN
 			if (!dump_saps_mode || (dump_saps_mode==2)) fprintf(dump, " cts=\""LLD"\"", cts);
 			if (!dump_saps_mode || (dump_saps_mode==3)) fprintf(dump, " dts=\""LLD"\"", dts);
 		}
+
+		if (traf_start)
+			fprintf(dump, " wasFragStart=\"yes\"");
+
 		fprintf(dump, "/>\n");
 
 		gf_isom_sample_del(&samp);
