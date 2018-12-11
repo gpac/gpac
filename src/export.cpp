@@ -777,8 +777,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_user_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_generic_sample_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragment_defaults) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_fragment_count) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_fragment_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_default_sync_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_get) )
@@ -1077,8 +1075,6 @@
 #endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_fragment) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_track_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_finalize_for_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_fragment) )
