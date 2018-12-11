@@ -911,7 +911,7 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 		}
 		idx++;
 	}
-	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on codec type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
+	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on codec type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 	avcodec_free_context(&dec_ctx);
