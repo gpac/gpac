@@ -140,11 +140,14 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 {
 	Double fps=0;
 	u64 errors[10];
-	u32 sq_size, i;
+	u32 i;
 	s32 q=-1;
 	u8 pictype=0;
 	u8 nb_errors = 0;
 	const char *ptype;
+
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+	u32 sq_size;
 	u8 *side_q = av_packet_get_side_data(pkt, AV_PKT_DATA_QUALITY_STATS, &sq_size);
 	if (side_q) {
 		gf_bs_reassign_buffer(ctx->sdbs, side_q, sq_size);
@@ -157,6 +160,7 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 			errors[i] = gf_bs_read_u64_le(ctx->sdbs);
 		}
 	}
+#endif
 	if (ctx->time_spent) {
 		fps = ctx->nb_frames;
 		fps *= 1000000;

@@ -420,7 +420,7 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, char **dict, u32 offset)
 		memcpy(*dict, ctx->samp_buffer, ctx->samp_buffer_size);
 	}
 	if (ctx->samp_buffer_alloc < stream.total_out) {
-		ctx->samp_buffer_alloc = stream.total_out*2;
+		ctx->samp_buffer_alloc = (u32) (stream.total_out*2);
 		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc * sizeof(char));
 	}
 

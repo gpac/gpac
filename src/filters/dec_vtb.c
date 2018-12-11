@@ -1698,7 +1698,7 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 	}
 
     if (CVPixelBufferIsPlanar(f->frame)) {
-		w = CVPixelBufferGetPlaneCount(f->frame);
+		w = (u32) CVPixelBufferGetPlaneCount(f->frame);
 		if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
 			return GF_BAD_PARAM;
