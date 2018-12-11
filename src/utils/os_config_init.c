@@ -460,7 +460,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 //get real path where the .gpac dir has been created, and use this as the default path
 //for cache (tmp/ dir of ios app) and last working fir
 #ifdef GPAC_CONFIG_IOS
-static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
+static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_path)
 {
 	char *cache_dir, *old_cache_dir;
 	char buf[GF_MAX_PATH], *res, *sep;
@@ -627,7 +627,7 @@ static void check_modules_dir(GF_Config *cfg)
 	char path[GF_MAX_PATH];
 
 #ifdef GPAC_CONFIG_IOS
-	char *cfg_path;
+	const char *cfg_path;
 	if ( get_default_install_path(path, GF_PATH_SHARE) ) {
 		char *sep;
 		char shader_path[GF_MAX_PATH];
@@ -646,7 +646,6 @@ static void check_modules_dir(GF_Config *cfg)
 	}
 	cfg_path = gf_cfg_get_filename(cfg);
 	gf_ios_refresh_cache_directory(cfg, cfg_path);
-	gf_free(cfg_path);
 
 #else
 	const char *opt;
