@@ -1421,6 +1421,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		/*AVC sample to NALU*/
 		if (avccfg || svccfg || mvccfg || hevccfg || lhvccfg) {
 			u32 j, nal_size, remain, nal_unit_size;
+			Bool is_rap;
 			char *ptr = samp->data;
 			nal_unit_size = 0;
 			if (avccfg) nal_unit_size= avccfg->nal_unit_size;
@@ -1429,7 +1430,19 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			else if (hevccfg) nal_unit_size = hevccfg->nal_unit_size;
 			else if (lhvccfg) nal_unit_size = lhvccfg->nal_unit_size;
 
-			if (i && dsi && samp->IsRAP) {
+			is_rap = samp->IsRAP;
+			//patch for opengop
+			if (!is_rap) {
+				gf_isom_get_sample_rap_roll_info(dumper->file, track, i+1, &is_rap, NULL, NULL);
+
+				if (!is_rap) {
+					u32 is_leading, dependsOn, dependedOn, redundant;
+					gf_isom_get_sample_flags(dumper->file, track, i+1, &is_leading, &dependsOn, &dependedOn, &redundant);
+					if (dependsOn==2) is_rap = GF_TRUE;
+				}
+			}
+
+			if (i && dsi && is_rap) {
 				gf_bs_write_data(bs, dsi, dsi_size);
 			}
 
