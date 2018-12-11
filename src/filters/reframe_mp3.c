@@ -214,7 +214,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		char szTag[1024];
 		char *sep, *sep_desc;
 		u32 pic_size;
-		u32 pic_type;
+		//u32 pic_type;
 		u32 ftag = gf_bs_read_u32(bs);
 		u32 fsize = id3_read_size(bs);
 		/*u16 fflags = */gf_bs_read_u16(bs);
@@ -272,7 +272,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 				//first char is text encoding
 				//then mime
 				sep = memchr(buf+1, 0, fsize-1);
-				pic_type = sep[1];
+				/*pic_type = sep[1];*/
 				sep_desc = memchr(sep+2, 0, fsize-1);
 
 				if (sep_desc) {

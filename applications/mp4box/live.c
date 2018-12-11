@@ -80,15 +80,13 @@ int stream_file_rtp(int argc, char **argv)
 	char *ip_dest = "127.0.0.1";
 	const char *ifce_addr = NULL;
 	char *inName = NULL;
-	char *logs=NULL;
-	FILE *logfile=NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = GF_TRUE;
-    GF_MemTrackerType mem_track = GF_MemTrackerNone;
+   	GF_MemTrackerType mem_track = GF_MemTrackerNone;
 	Bool force_mpeg4 = GF_FALSE;
-    u32 path_mtu = 1450;
-    Double run_for = -1.0;
+   	u32 path_mtu = 1450;
+   	Double run_for = -1.0;
 	u32 i;
 
 	for (i = 1; i < (u32) argc ; i++) {
@@ -108,11 +106,9 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
-        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
-		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
-		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
-        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
+        	else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
+        	else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
+        	else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
 	}
 
 	gf_sys_init(mem_track, NULL);
@@ -125,7 +121,6 @@ int stream_file_rtp(int argc, char **argv)
 
 	if (!gf_isom_probe_file(inName)) {
 		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
-		if (logfile) gf_fclose(logfile);
 		gf_sys_close();
 		return 1;
 	}
@@ -156,7 +151,6 @@ int stream_file_rtp(int argc, char **argv)
 		}
 		gf_isom_streamer_del(file_streamer);
 	}
-	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 	return 0;
 }

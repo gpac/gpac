@@ -602,7 +602,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (odm->type == GF_STREAM_OCR) clockID = odm->ID;
 	if (!clockID) {
 		if (odm->ID == GF_MEDIA_EXTERNAL_ID) {
-			clockID = (u32) ((u64) odm->scene_ns);
+			clockID = (u32) odm->scene_ns;
 		} else {
 			clockID = odm->ID;
 		}
