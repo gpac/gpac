@@ -277,7 +277,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 				if (sep_desc) {
 					GF_Err e;
-					pic_size = (sep_desc + 1) - buf;
+					pic_size = (u32) ( (sep_desc + 1) - buf);
 					pic_size = fsize - pic_size;
 
 					e = gf_filter_pid_raw_new(filter, NULL, NULL, buf+1, NULL, sep_desc+1, pic_size, &ctx->vpid);
@@ -580,7 +580,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		mp3_dmx_check_pid(filter, ctx);
 
 		if (!ctx->is_playing) {
-			ctx->resume_from = sync - ctx->mp3_buffer + 1;
+			ctx->resume_from = (u32) (sync - ctx->mp3_buffer + 1);
 			return GF_OK;
 		}
 

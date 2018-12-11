@@ -509,7 +509,7 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 		latm_dmx_update_cts(ctx);
 
 		if (prev_pck_size) {
-			pos = gf_bs_get_position(ctx->bs);
+			pos = (u32) gf_bs_get_position(ctx->bs);
 			if (prev_pck_size<=pos) {
 				prev_pck_size=0;
 				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);

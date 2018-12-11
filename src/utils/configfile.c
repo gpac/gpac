@@ -124,7 +124,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 
 #define FLUSH_EMPTY_LINES \
 			if (k&& nb_empty_lines) {\
-				u32 klen = strlen(k->value)+1+nb_empty_lines;\
+				u32 klen = (u32) strlen(k->value)+1+nb_empty_lines;\
 				k->value = gf_realloc(k->value, sizeof(char)*klen);\
 				while (nb_empty_lines) {\
 					nb_empty_lines--;\
@@ -217,8 +217,8 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			if (line_done) k=NULL;
 			line_done=GF_FALSE;
 		} else if (k) {
-			u32 l1 = strlen(k->value);
-			u32 l2 = strlen(line);
+			u32 l1 = (u32) strlen(k->value);
+			u32 l2 = (u32) strlen(line);
 			k->value = gf_realloc(k->value, sizeof(char) * (l1 + l2 + 1 + nb_empty_lines) );
 			l2 += l1 + nb_empty_lines;
 			while (nb_empty_lines) {
