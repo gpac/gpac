@@ -482,8 +482,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 #else
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Error: your version of GPAC was compiled with no libz support."));
 			gf_bs_del(ctx->bs_r);
-			gf_fclose(nhml);
-			return GF_NOT_SUPPORTED;
+			return;
 #endif
 		} else {
 			gf_bs_write_data(ctx->bs_w, data+pos+3, size-1);

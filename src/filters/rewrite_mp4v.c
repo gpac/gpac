@@ -101,6 +101,16 @@ GF_Err m4vmx_process(GF_Filter *filter)
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	sap_type = gf_filter_pck_get_sap(pck);
+	if (!sap_type) {
+		u8 flags = gf_filter_pck_get_dependency_flags(pck);
+		//get dependsOn
+		if (flags) {
+			flags>>=4;
+			flags &= 0x3;
+			if (flags==2) sap_type = 3; //could be 1, 2 or 3
+		}
+	}
+
 	if (sap_type && ctx->dsi) {
 		size = pck_size + ctx->dsi_size;
 

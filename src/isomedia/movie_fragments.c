@@ -1812,10 +1812,10 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 	assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
 	e = gf_isom_box_size((GF_Box*)movie->root_sidx);
-	size = movie->root_sidx->size;
+	size = (u32) movie->root_sidx->size;
 	if (movie->root_ssix) {
 		e = gf_isom_box_size((GF_Box*)movie->root_ssix);
-		size += movie->root_ssix->size;
+		size += (u32) movie->root_ssix->size;
 	}
 
 	if (sidx_max_size && (size > sidx_max_size) ) {
@@ -1832,10 +1832,10 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 			}
 
 			e = gf_isom_box_size((GF_Box*)movie->root_sidx);
-			size = movie->root_sidx->size;
+			size = (u32) movie->root_sidx->size;
 			if (movie->root_ssix) {
 				e = gf_isom_box_size((GF_Box*)movie->root_ssix);
-				size += movie->root_ssix->size;
+				size += (u32) movie->root_ssix->size;
 			}
 
 			if (size < sidx_max_size) break;

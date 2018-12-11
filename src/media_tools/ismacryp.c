@@ -2642,9 +2642,10 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		} else {
 			memset(&tci, 0, sizeof(GF_TrackCryptInfo));
 			tci.trackID = trackID;
+			a_tci = NULL;
 		}
 
-		if (a_tci->force_type) {
+		if (a_tci && a_tci->force_type) {
 			scheme_type = tci.scheme_type = a_tci->scheme_type;
 		}
 		if (!tci.trackID)

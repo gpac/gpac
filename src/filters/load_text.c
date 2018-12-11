@@ -316,16 +316,16 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 	dur.num = 0;
 
 	if (ctx->fmt == GF_TXTIN_MODE_SWF_SVG) {
-		u32 frame_count, frame_rate;
 #ifndef GPAC_DISABLE_SWF_IMPORT
+		u32 frame_count, frame_rate;
 		gf_swf_get_duration(ctx->swf_parse, &frame_rate, &frame_count);
-#endif
 		if (frame_count) {
 			GF_Fraction dur;
 			dur.num = frame_count;
 			dur.den = frame_rate;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
 		}
+#endif
 		return;
 	}
 	if ((ctx->fmt == GF_TXTIN_MODE_SRT) || (ctx->fmt == GF_TXTIN_MODE_WEBVTT)  || (ctx->fmt == GF_TXTIN_MODE_SUB)) {
