@@ -4272,9 +4272,10 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Live DASH-ing - press 'q' to quit, 's' to save context and quit\n");
 
 		if (!dash_ctx_file && dash_live) {
-			u64 add = (u64) &dasher;
+			u32 r1;
+			u64 add = (u64) (intptr_t) &dasher;
 			add ^= gf_net_get_utc();
-			u32 r1 = (u32) add ^ (u32) (add/0xFFFFFFFF);
+			r1 = (u32) add ^ (u32) (add/0xFFFFFFFF);
 			r1 ^= gf_rand();
  			sprintf(szStateFile, "%s/dasher_%X.xml", gf_get_default_cache_directory(), r1 );
 			dash_ctx_file = szStateFile;

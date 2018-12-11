@@ -529,7 +529,8 @@ static const GF_FilterCapability SockOutCaps[] =
 GF_FilterRegister SockOutRegister = {
 	.name = "sockout",
 	GF_FS_SET_DESCRIPTION("UDP / TCP socket output")
-	GF_FS_SET_HELP("This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"\
+#ifndef GPAC_DISABLE_DOC
+	.help = "This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"\
 		"The filter can work in server mode, waiting for source connections, or can directly connect\n"
 		"In server mode, the filter can be instructed to keep running at the end of the stream\n"
 		"In server mode, the default behaviour is to keep input packets when no more clients are connected; "
@@ -549,7 +550,8 @@ GF_FilterRegister SockOutRegister = {
 		"This drops every 4th packet of each 10 packet window\n"
 		"\tEX: :pckr=0/100\n"\
 		"This reverts the send order of one random packet in each 100 packet window\n"
-		"\n")
+		"\n",
+#endif //GPAC_DISABLE_DOC
 	.private_size = sizeof(GF_SockOutCtx),
 	.args = SockOutArgs,
 	SETCAPS(SockOutCaps),

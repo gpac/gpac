@@ -599,7 +599,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
-	gf_filter_pck_set_duration(dst_pck, pkt.duration);
+	gf_filter_pck_set_duration(dst_pck, (u32) pkt.duration);
 
 	gf_filter_pck_send(dst_pck);
 

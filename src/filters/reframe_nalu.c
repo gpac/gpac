@@ -2096,7 +2096,7 @@ naldmx_flush:
 			case GF_HEVC_NALU_SLICE_RSV_VCL_N14:
 				if (ctx->deps) {
 					HEVC_VPS *vps;
-					u8 temporal_id = hdr_start[1] & 0x7;
+					u32 temporal_id = hdr_start[1] & 0x7;
 					vps = & ctx->hevc_state->vps[ctx->hevc_state->s_info.sps->vps_id];
 					if (temporal_id + 1 < vps->max_sub_layers) {
 						nal_ref_idc = GF_TRUE;
