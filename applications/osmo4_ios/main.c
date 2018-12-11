@@ -48,7 +48,6 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 
-static GF_Config *cfg_file;
 static u32 display_rti = 0;
 static Bool Run;
 static Bool CanSeek = 0;
@@ -726,7 +725,6 @@ static u32 last_odm_count = 0;
 void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
-	Double avg_dec_time=0;
 	u32 tot_time=0;
 	Bool print_codecs = final;
 

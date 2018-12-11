@@ -350,7 +350,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 		faaddec_check_mc_config(ctx);
 	}
 
-	dst_pck = gf_filter_pck_new_alloc(ctx->opid, sizeof(short) * ctx->info.samples, &output);
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) (sizeof(short) * ctx->info.samples), &output);
 	if (!dst_pck) {
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OUT_OF_MEM;
@@ -367,7 +367,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 		gf_filter_pck_set_duration(dst_pck, (u32) dur);
 		ctx->last_cts += dur;
 	} else {
-		gf_filter_pck_set_duration(dst_pck, ctx->info.samples);
+		gf_filter_pck_set_duration(dst_pck, (u32) ctx->info.samples);
 		ctx->last_cts += ctx->info.samples;
 	}
 	/*we assume left/right order*/
