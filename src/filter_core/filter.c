@@ -1393,8 +1393,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 			GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
 			GF_Err e = gf_filter_pck_send_internal(pck, GF_FALSE);
 			if (e==GF_PENDING_PACKET) {
-				gf_list_del_item(task->filter->pending_packets, pck);
-				gf_list_insert(task->filter->pending_packets, pck, 0);
+				gf_list_del_item(task->filter->postponed_packets, pck);
+				gf_list_insert(task->filter->postponed_packets, pck, 0);
 				break;
 			}
 		}

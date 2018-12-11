@@ -164,7 +164,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	if (ctx->is_latm) {
-		u32 asize, next_time;
+		u32 asize;
 
 		size = pck_size+20;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
@@ -186,7 +186,6 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		}
 
 		/*same mux config = 0 (refresh aac config)*/
-		next_time = gf_sys_clock();
 		if (ctx->update_dsi) {
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			/*mux config */

@@ -195,7 +195,6 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			memset((void *)k, 0, sizeof(IniKey));
 			ret = strchr(line, '=');
 			if (ret) {
-				u32 klen;
 				ret[0] = 0;
 				k->name = gf_strdup(line);
 				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
@@ -213,7 +212,6 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 					k->value = gf_strdup("");
 				}
 				line_done = GF_FALSE;
-				klen = strlen(k->value);
 			}
 			gf_list_add(p->keys, k);
 			if (line_done) k=NULL;

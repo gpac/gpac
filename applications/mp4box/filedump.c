@@ -965,7 +965,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
 {
 	s32 res;
-	u8 type, nal_ref_idc, hdr;
+	u8 type, nal_ref_idc;
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
 	s8 sample_offset;
