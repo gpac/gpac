@@ -217,7 +217,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
-		gf_filter_pck_set_duration(pck_dst, ctx->pkt.duration);
+		gf_filter_pck_set_duration(pck_dst, (u32) ctx->pkt.duration);
 	}
 
 	//fixme: try to identify SAP type 2 and more

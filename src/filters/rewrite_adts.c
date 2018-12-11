@@ -220,7 +220,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		gf_bs_write_data(ctx->bs_w, data, pck_size);
 		gf_bs_align(ctx->bs_w);
 
-		size = gf_bs_get_position(ctx->bs_w);
+		size = (u32) gf_bs_get_position(ctx->bs_w);
 		gf_filter_pck_truncate(dst_pck, size);
 
 		/*rewrite LATM frame header*/
