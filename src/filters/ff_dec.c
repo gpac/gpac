@@ -745,7 +745,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->frame = av_frame_alloc();
 
 		if (ctx->pixel_fmt) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_FRAC( ctx->pixel_fmt) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT( ctx->pixel_fmt) );
 		}
 
 	} else if (type==GF_STREAM_AUDIO) {
@@ -772,7 +772,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->frame = av_frame_alloc();
 
 		if (ctx->sample_fmt) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_FRAC( ctx->sample_fmt) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( ctx->sample_fmt) );
 		}
 
 	} else {

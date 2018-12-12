@@ -694,6 +694,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 	}
 
+	width = height = sr = nb_chan = z_order = txt_fsize = 0;
+	nb_bps = 16;
+	fps.num = 25;
+	fps.den = 1;
+	sar.num = sar.den = 1;
 	codec_id = tkw->codecid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_PID);
 	if (p) {
@@ -989,12 +994,6 @@ sample_entry_setup:
 		return GF_NOT_SUPPORTED;
 	}
 
-
-	width = height = sr = nb_chan = z_order = txt_fsize = 0;
-	nb_bps = 16;
-	fps.num = 25;
-	sar.num = 1;
-	fps.den = sar.den = 1;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	if (p) width = p->value.uint;
@@ -1906,7 +1905,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, Bool for_fragment)
 {
-	GF_Err e;
+	GF_Err e=GF_OK;
 	u64 cts, prev_dts;
 	u32 prev_size=0;
 	u32 duration = 0;
@@ -3249,7 +3248,7 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	}
 
 	if (ctx->owns_mov) {
-		GF_Err e;
+		GF_Err e=GF_OK;
 		switch (ctx->store) {
 		case MP4MX_MODE_INTER:
 			if (ctx->cdur==0) {

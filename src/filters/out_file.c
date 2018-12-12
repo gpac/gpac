@@ -87,10 +87,11 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 		if (!ctx->ow && gf_file_exists(szFinalName) && !append) {
 			char szRes[20];
+			s32 res;
 
 			fprintf(stderr, "File %s already exist - override (y/n/a) ?:", szFinalName);
-			scanf("%20s", szRes);
-			if ((szRes[0] == 'n') || (szRes[0] == 'N')) {
+			res = scanf("%20s", szRes);
+			if (!res || (szRes[0] == 'n') || (szRes[0] == 'N')) {
 				ctx->is_error = GF_IO_ERR;;
 				return GF_IO_ERR;
 			}

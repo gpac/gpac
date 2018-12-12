@@ -2220,13 +2220,13 @@ static void vp9_read_interpolation_filter(GF_BitStream *bs)
 GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight)
 {
 	Bool FrameIsIntra = GF_FALSE, profile_low_bit = GF_FALSE, profile_high_bit = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
-	u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0;
+	//u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0;
 	int Sb64Cols = 0, Sb64Rows = 0;
 
 	assert(bs && key_frame);
 	
 	/*uncompressed header*/
-	frame_marker = gf_bs_read_int(bs, 2);
+	/*frame_marker = */gf_bs_read_int(bs, 2);
 	profile_low_bit = gf_bs_read_int(bs, 1);
 	profile_high_bit = gf_bs_read_int(bs, 1);
 	vp9_cfg->profile = (profile_high_bit << 1) + profile_low_bit;
@@ -2267,7 +2267,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 		FrameIsIntra = intra_only;
 
 		if (error_resilient_mode == GF_FALSE) {
-			reset_frame_context = gf_bs_read_int(bs, 2);
+			/*reset_frame_context = */gf_bs_read_int(bs, 2);
 		}
 
 		if (intra_only == GF_TRUE) {
@@ -2305,10 +2305,10 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 		/*frame_parallel_decoding_mode = */gf_bs_read_int(bs, 1);
 	}
 
-	frame_context_idx = gf_bs_read_int(bs, 2);
+	/*frame_context_idx = */gf_bs_read_int(bs, 2);
 	if (FrameIsIntra || error_resilient_mode) {
 		/*setup_past_independence + save_probs ...*/
-		frame_context_idx = 0;
+		//frame_context_idx = 0;
 	}
 
 	vp9_loop_filter_params(bs);
@@ -2437,7 +2437,7 @@ u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value)
 static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list, AV1State *state)
 {
 	char block[OBU_BLOCK_SIZE];
-	Bool has_size_field, obu_extension_flag;
+	Bool has_size_field=0, obu_extension_flag=0;
 	u8 temporal_id, spatial_id;
 	GF_AV1_OBUArrayEntry *a=NULL;
 

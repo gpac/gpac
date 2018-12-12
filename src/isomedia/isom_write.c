@@ -621,6 +621,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 			}
 		}
 	}
+	now = gf_isom_get_mp4time();
 	if (!trak) {
 		//OK, now create a track...
 		trak = (GF_TrackBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRAK);
@@ -656,7 +657,6 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, u32 trakID, u32 MediaType
 			tkhd->creationTime = 0;
 			mdia->mediaHeader->creationTime = 0;
 		} else {
-			now = gf_isom_get_mp4time();
 			tkhd->creationTime = now;
 			mdia->mediaHeader->creationTime = now;
 		}
@@ -5034,7 +5034,7 @@ static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, GF_TrackF
 static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, void *traf, u32 grouping_type, Bool *is_traf_sgdp)
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 {
-	GF_List *groupList;
+	GF_List *groupList=NULL;
 	GF_SampleGroupDescriptionBox *sgdesc=NULL;
 	u32 count, i;
 
@@ -5077,6 +5077,7 @@ static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, void *tra
 	if (!sgdesc) {
 		sgdesc = (GF_SampleGroupDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SGPD);
 		sgdesc->grouping_type = grouping_type;
+		assert(groupList);
 		gf_list_add(groupList, sgdesc);
 	}
 	return sgdesc;

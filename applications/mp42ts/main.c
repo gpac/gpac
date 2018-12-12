@@ -49,6 +49,8 @@
 #define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
+#define GPAC_DISABLE_PLAYER
+
 
 s32 temi_id_1 = -1;
 s32 temi_id_2 = -1;
@@ -968,8 +970,6 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 #endif
 
 /*AAC import features*/
-#define GPAC_DISABLE_PLAYER
-
 #ifndef GPAC_DISABLE_PLAYER
 
 void *audio_prog = NULL;
