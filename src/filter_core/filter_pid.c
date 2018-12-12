@@ -4629,7 +4629,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			while (name[0] && (strchr("0123456789.", name[0]))) {
 				name++;
 			}
-			len = name - fsep;
+			len = (u32) (name - fsep);
 			strncpy(szFormat, fsep, len);
 			szFormat[len]=0;
 		}

@@ -440,7 +440,9 @@ static void vout_set_caption(GF_VideoOutCtx *ctx)
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Event evt;
+#ifndef GPAC_DISABLE_3D
 	int rgb_mode=0;
+#endif
 	const GF_PropertyValue *p;
 	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh, hw, hh;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
@@ -1476,7 +1478,10 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (!data) {
 		GF_Err e;
-		u32 stride_luma, stride_chroma;
+		u32 stride_luma;
+#ifndef GPAC_DISABLE_3D
+		u32 stride_chroma;
+#endif
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
 		if (! hw_frame->get_plane) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Hardware GL texture blit not supported with non-GL blitter\n"));
