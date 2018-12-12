@@ -452,7 +452,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (ctx->reconfig_pending) pck = NULL;
 
-	if (ctx->encoder->frame_size && (ctx->encoder->frame_size <= ctx->samples_in_audio_buffer)) {
+	if (ctx->encoder->frame_size && (ctx->encoder->frame_size <= (s32) ctx->samples_in_audio_buffer)) {
 		res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->bytes_per_sample * ctx->encoder->frame_size, 0);
 		ffenc_audio_discard_samples(ctx, ctx->encoder->frame_size);
 		from_buffer_only = GF_TRUE;
@@ -473,7 +473,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_list_add(ctx->src_packets, src_pck);
 
 		nb_samples = size / ctx->bytes_per_sample;
-		if (ctx->encoder->frame_size && (nb_samples + ctx->samples_in_audio_buffer < ctx->encoder->frame_size)) {
+		if (ctx->encoder->frame_size && (nb_samples + ctx->samples_in_audio_buffer < (u32) ctx->encoder->frame_size)) {
 			ffenc_audio_append_samples(ctx, data, size, 0, nb_samples);
 			gf_filter_pid_drop_packet(ctx->in_pid);
 			return GF_OK;
