@@ -152,6 +152,10 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #endif
 
 
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+#  define GPAC_GL_NO_STRIDE
+#endif
+
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 
 /*redefine all ext needed*/
@@ -200,16 +204,6 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 
 #ifndef GL_CLAMP_TO_EDGE
 #define GL_CLAMP_TO_EDGE 0x812F
-#endif
-
-#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
-#define GF_SHADERID u64
-#else
-#define GF_SHADERID u32
-#endif
-
-#if defined(GPAC_USE_GLES1X)
-#  define GPAC_GL_NO_STRIDE
 #endif
 
 #ifndef GL_VERSION_1_3
