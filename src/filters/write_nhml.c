@@ -72,7 +72,7 @@ typedef struct
 GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 cid;
-	char *mime, *name, *ext;
+	char *mime=NULL, *name, *ext;
 	char fileName[1024];
 	const GF_PropertyValue *p;
 	GF_NHMLDumpCtx *ctx = gf_filter_get_udta(filter);

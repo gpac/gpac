@@ -284,8 +284,8 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
 		u32 crc;
-		fgets(szURL, GF_MAX_PATH, f);
-		if (feof(f)) {
+		char *l = fgets(szURL, GF_MAX_PATH, f);
+		if (!l || feof(f)) {
 			if (ctx->loop) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line

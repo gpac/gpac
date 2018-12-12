@@ -234,6 +234,7 @@ static void gf_rtp_switch_quality(GF_RTPIn *rtp, Bool switch_up)
 }
 
 
+#ifdef FILTER_FIXME
 static void rtpin_send_data_base64(GF_RTPInStream *stream)
 {
 	u32 size;
@@ -260,6 +261,7 @@ static void rtpin_send_data_base64(GF_RTPInStream *stream)
 	stream->flags &= ~GF_RTP_NEW_AU;
 	stream->current_start = -1;
 }
+#endif
 
 static void rtpin_check_setup(GF_RTPInStream *stream)
 {

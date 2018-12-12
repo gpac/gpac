@@ -113,8 +113,8 @@ static void mediasource_sourceBuffer_initjs(JSContext *c, JSObject *ms_obj, GF_H
 static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 {
 	SMJS_ARGS
-	GF_SceneGraph *sg;
 #ifdef FILTER_FIXME
+	GF_SceneGraph *sg;
 	GF_JSAPIParam par;
 #endif
 	Bool isSupported = GF_TRUE;
@@ -123,8 +123,10 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 	}
 	mime = SMJS_CHARS(c, argv[0]);
+#ifdef FILTER_FIXME
 	sg = mediasource_get_scenegraph(c);
 	assert(sg);
+#endif
 	if (!strlen(mime)) {
 		isSupported = GF_FALSE;
 	} else {

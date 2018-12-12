@@ -1125,6 +1125,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	}
 
 	fsess = gf_fs_new_defaults(0);
+	file_out = NULL;
 
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {

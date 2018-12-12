@@ -2697,7 +2697,7 @@ void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path)
 	M_Inline *inl;
 	Bool first_pass = GF_TRUE;
 	u32 nb_items=0, nb_rows=0, nb_cols=0;
-	s32 width=1920, height=1080, x, y, tw, th;
+	s32 width=1920, height=1080, x=0, y=0, tw=1920, th=1080;
 
 	GF_Event evt;
 	gf_sc_node_destroy(scene->compositor, NULL, scene->graph);

@@ -49,6 +49,8 @@
 #define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
+#define GPAC_DISABLE_PLAYER
+
 
 s32 temi_id_1 = -1;
 s32 temi_id_2 = -1;
