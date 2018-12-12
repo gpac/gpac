@@ -118,8 +118,9 @@ typedef ret (GLAPICAST proc_ ## funname)args;	\
 extern proc_ ## funname funname;	\
  
 
-#define GLDECL_STATIC(funname) proc_ ## funname funname = NULL
-#define GLDECL_EXTERN(funname) proc_ ## funname funname;
+#define GLDECL_FUNC(funname) proc_ ## funname funname = NULL
+#define GLDECL_FUNC_STATIC(funname) static proc_ ## funname funname = NULL
+#define GLDECL_EXTERN(funname) extern proc_ ## funname funname;
 
 #if defined GPAC_USE_TINYGL
 //no extensions with TinyGL
@@ -151,6 +152,10 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define GL_UNPACK_SKIP_PIXELS_EXT           0x0CF4
 #endif
 
+
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+#  define GPAC_GL_NO_STRIDE
+#endif
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 
@@ -200,16 +205,6 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 
 #ifndef GL_CLAMP_TO_EDGE
 #define GL_CLAMP_TO_EDGE 0x812F
-#endif
-
-#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
-#define GF_SHADERID u64
-#else
-#define GF_SHADERID u32
-#endif
-
-#if defined(GPAC_USE_GLES1X)
-#  define GPAC_GL_NO_STRIDE
 #endif
 
 #ifndef GL_VERSION_1_3
