@@ -34,76 +34,8 @@
 
 #ifndef GPAC_DISABLE_3D
 
-#ifdef WIN32
-#include <windows.h>
-#endif
-
-#define GL_GLEXT_PROTOTYPES
-
+//include openGL
 #include "../compositor/gl_inc.h"
-
-
-#if defined(GPAC_USE_GLES2)
-# ifdef GPAC_CONFIG_IOS
-#  include "OpenGLES/ES3/gl.h"
-#  include "glues.h"
-# else
-#  include <GLES2/gl2.h>
-#  include <GLES2/gl2ext.h>
-#  define GPAC_GL_NO_STRIDE
-# endif
-#elif defined (CONFIG_DARWIN_GL)
-# include <OpenGL/gl.h>
-#else
-# include <GL/gl.h>
-#endif
-
-#if defined(GPAC_USE_GLES1X)
-#  define GPAC_GL_NO_STRIDE
-#endif
-
-
-#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
-#define GF_SHADERID u64
-#else
-#define GF_SHADERID u32
-#endif
-
-#define GL_CHECK_ERR  {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
-
-/*macros for GL proto and fun declaration*/
-#ifdef _WIN32_WCE
-#define GLAPICAST *
-#elif defined(WIN32)
-#include <windows.h>
-#define GLAPICAST APIENTRY *
-#else
-#define GLAPICAST *
-#endif
-
-#define GLDECL(ret, funname, args)	\
-typedef ret (GLAPICAST proc_ ## funname)args;	\
-extern proc_ ## funname funname;	\
-
-#define GLDECL_STATIC(funname) static proc_ ## funname funname = NULL
-
-#if defined GPAC_USE_TINYGL
-//no extensions with TinyGL
-#elif defined (GPAC_USE_GLES1X)
-//no extensions with OpenGL ES
-#elif defined(WIN32) || defined (GPAC_CONFIG_WIN32)
-#define LOAD_GL_FUNCS
-#define GET_GLFUN(funname) funname = (proc_ ## funname) wglGetProcAddress(#funname)
-#elif defined(CONFIG_DARWIN_GL)
-extern void (*glutGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(funname) funname = (proc_ ## funname) glutGetProcAddress(#funname)
-#else
-#define LOAD_GL_FUNCS
-extern void (*glXGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(funname) funname = (proc_ ## funname) glXGetProcAddress(#funname)
-#endif
-
-
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
@@ -142,20 +74,6 @@ GLDECL(void, glVertexAttribIPointer, (GLuint  index, GLint  size, GLenum  type, 
 #endif
 #endif
 
-
-#define GL_TEXTURE_RECTANGLE_EXT 0x84F5
-
-#define GL_INFO_LOG_LENGTH 0x8B84
-#define GL_FRAGMENT_SHADER 0x8B30
-#define GL_VERTEX_SHADER 0x8B31
-#define GL_PIXEL_UNPACK_BUFFER_ARB   0x88EC
-#define GL_STREAM_DRAW_ARB   0x88E0
-#define GL_WRITE_ONLY_ARB   0x88B9
-#define GL_DYNAMIC_DRAW_ARB   0x88E8
-
-#define 	GL_TEXTURE0   0x84C0
-#define 	GL_TEXTURE1   0x84C1
-#define 	GL_TEXTURE2   0x84C2
 
 #define TEXTURE_TYPE GL_TEXTURE_2D
 
