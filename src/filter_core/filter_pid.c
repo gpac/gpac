@@ -4573,7 +4573,7 @@ GF_EXPORT
 GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix)
 {
 	u32 k;
-	char szFormat[10], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
+	char szFormat[30], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
 	char *name = szTemplate;
 	if (!strchr(szTemplate, '$')) {
 		strcpy(szFinalName, szTemplate);
@@ -4616,11 +4616,25 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			strcpy(szFinalName, szTemplate);
 			return GF_BAD_PARAM;
 		}
+		szFormat[0] = '%';
+		szFormat[1] = 0;
+
 		szFinalName[k] = 0;
 		name++;
 		sep[0]=0;
 		fsep = strchr(name, '%');
-		if (fsep) fsep[0] = 0;
+		if (fsep) {
+			u32 len;
+			name = fsep+1;
+			while (name[0] && (strchr("0123456789.", name[0]))) {
+				name++;
+			}
+			len = name - fsep;
+			strncpy(szFormat, fsep, len);
+			szFormat[len]=0;
+		}
+		strcat(szFormat, "d");
+
 		if (!strcmp(name, "num")) {
 			name += 3;
 			value = file_idx;
@@ -4701,7 +4715,6 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			}
 		}
 		if (do_skip) {
-			if (fsep) fsep[0] = '%';
 			if (sep) sep[0] = '$';
 			szFinalName[k] = '$';
 			k++;
@@ -4743,7 +4756,6 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		}
 
 		if (!is_ok) {
-			if (fsep) fsep[0] = '%';
 			if (sep) sep[0] = '$';
 			return GF_BAD_PARAM;
 		}
@@ -4757,12 +4769,6 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		}
 		szTemplateVal[0]=0;
 		if (has_val) {
-			if (fsep) {
-				strcpy(szFormat, "%");
-				strcat(szFormat, fsep+1);
-			} else {
-				strcpy(szFormat, "%d");
-			}
 			sprintf(szTemplateVal, szFormat, value);
 			str_val = szTemplateVal;
 		} else if (str_val) {
@@ -4796,7 +4802,6 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		strcat(szFinalName, szTemplateVal);
 		k = (u32) strlen(szFinalName);
 
-		if (fsep) fsep[0] = '%';
 		if (!sep) break;
 		sep[0] = '$';
 		name = sep+1;
