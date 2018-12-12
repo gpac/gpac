@@ -152,6 +152,11 @@ static void vout_load_gl()
 }
 #endif
 
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
+#define GF_SHADERID u64
+#else
+#define GF_SHADERID u32
+#endif
 
 
 static char *glsl_yuv_shader = "#version 120\n"\
@@ -836,6 +841,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #endif
 
 		ctx->first_tx_load = GF_TRUE;
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (ctx->is_yuv && (ctx->disp==MODE_GL_PBO)) {
 			ctx->first_tx_load = GF_FALSE;
 			glGenBuffers(1, &ctx->pbo_Y);
@@ -867,6 +873,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 		}
+#endif
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glViewport(0, 0, ctx->width, ctx->height);
