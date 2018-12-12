@@ -5364,14 +5364,14 @@ restart_import:
 			sei_recovery_frame_count = -1;
 		}
 
-		//nal in current sample is a ref
-		nal_ref_idc = (nal_hdr & 0x60) >> 5;
-		if (nal_ref_idc) {
-			sample_is_ref = GF_TRUE;
-		}
-
 
 		if (copy_size) {
+			//nal in current sample is a ref
+			nal_ref_idc = (nal_hdr & 0x60) >> 5;
+			if (nal_ref_idc) {
+				sample_is_ref = GF_TRUE;
+			}
+			
 			if (is_islice)
 				sample_has_islice = GF_TRUE;
 
