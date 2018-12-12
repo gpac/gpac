@@ -833,10 +833,12 @@ void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, con
 
 #endif
 
+#ifndef GPAC_DISABLE_REMOTERY
 static void gpac_rmt_input_handler(const char* text, void* context)
 {
-fprintf(stderr, "RMT text %s\n", text);
+	//TODO
 }
+#endif
 
 GF_EXPORT
 Bool gf_sys_enable_profiling(Bool start)
