@@ -129,10 +129,17 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
-	strncpy(szCodecExt, gf_codecid_file_ext(cid), 29);
-	szCodecExt[29]=0;
-//	char *sep = strchr(szCodecExt, '|');
-//	if (sep) sep[0] = 0;
+	//special case for xml text, override to xml
+	switch (cid) {
+	case GF_CODECID_META_XML:
+	case GF_CODECID_SUBS_XML:
+		strcpy(szCodecExt, "xml");
+		break;
+	default:
+		strncpy(szCodecExt, gf_codecid_file_ext(cid), 29);
+		szCodecExt[29]=0;
+		break;
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(szCodecExt) );
 
 	mimetype = gf_codecid_mime(cid);
