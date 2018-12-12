@@ -692,6 +692,7 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		prev_pos = pos;
 		nb_frames++;
 		if (nb_frames>4) break;
+		if (size < fsize + pos) break;
 		size -= fsize + pos;
 		data += fsize + pos;
 	}
