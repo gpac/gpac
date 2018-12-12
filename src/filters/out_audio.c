@@ -51,6 +51,8 @@ typedef struct
 	Bool aborted;
 	Bool speed_set;
 	GF_Filter *filter;
+	Bool is_eos;
+	Bool first_write_done;
 } GF_AudioOutCtx;
 
 
@@ -127,8 +129,14 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		u64 cts;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->pid);
 		if (!pck) {
+			if (gf_filter_pid_is_eos(ctx->pid)) {
+				ctx->is_eos = GF_TRUE;
+			} else if (ctx->first_write_done) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
+			}
 			return done;
 		}
+		ctx->is_eos = GF_FALSE;
 		if (ctx->needs_recfg) {
 			return done;
 		}
@@ -163,15 +171,15 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 			if (nb_copy + done > buffer_size) nb_copy = buffer_size - done;
 			memcpy(buffer+done, data+ctx->pck_offset, nb_copy);
 			done += nb_copy;
-			if (nb_copy + ctx->pck_offset != size) {
-				ctx->pck_offset = size - nb_copy - ctx->pck_offset;
+			ctx->first_write_done = GF_TRUE;
+			if (nb_copy + ctx->pck_offset < size) {
+				ctx->pck_offset += nb_copy;
 				return done;
 			}
 			ctx->pck_offset = 0;
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
 	}
-
 	return done;
 }
 
@@ -227,18 +235,26 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->wait_recfg = GF_FALSE;
 		return GF_OK;
 	}
-	if (!ctx->pid) {
+	//whenever change of sample rate / format / channel, force buffer requirements and speed setup
+	if ((ctx->sr!=sr) || (ctx->afmt != afmt) || (ctx->nb_ch != nb_ch)) {
 		GF_FilterEvent evt;
-		//set buffer reqs to 100 ms - we don't "buffer" in the filter, but this will allow dispatching
+		ctx->speed_set = GF_FALSE;
+
+		//set buffer reqs to bdur or 100 ms - we don't "buffer" in the filter, but this will allow dispatching
 		//several input frames in the buffer (default being 1 pck / 1000 us max in buffers). Not doing so could cause
 		//the session to end because input is blocked (no tasks posted) and output still holds a packet 
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
 		evt.buffer_req.max_buffer_us = 100000;
+		if (ctx->bdur) {
+			evt.buffer_req.max_buffer_us = ctx->bdur;
+			evt.buffer_req.max_buffer_us *= 1000;
+		}
 		gf_filter_pid_send_event(pid, &evt);
 
 		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
 		gf_filter_pid_send_event(pid, &evt);
 	}
+
 	ctx->pid = pid;
 	ctx->timescale = timescale;
 	ctx->sr = sr;
@@ -336,8 +352,9 @@ static GF_Err aout_process(GF_Filter *filter)
 		aout_reconfig(ctx);
 	}
 
-	if (ctx->th || ctx->audio_out->SelfThreaded)
-		return GF_EOS;
+	if (ctx->th || ctx->audio_out->SelfThreaded) {
+		return ctx->is_eos ? GF_EOS : GF_OK;
+	}
 
 	ctx->audio_out->WriteAudio(ctx->audio_out);
 	return GF_OK;
@@ -371,7 +388,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other modules to use", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "Sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{0}
@@ -387,7 +404,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
-	.description = "Audio soundcard output",
+	GF_FS_SET_DESCRIPTION("Audio soundcard output")
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 	SETCAPS(AudioOutCaps),

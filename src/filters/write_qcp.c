@@ -127,6 +127,7 @@ GF_Err qcpmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p) ctx->duration = p->value.frac;
 
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
 }
 
@@ -332,7 +333,7 @@ static const GF_FilterArgs QCPMxArgs[] =
 
 GF_FilterRegister QCPMxRegister = {
 	.name = "writeqcp",
-	.description = "QCP file writer",
+	GF_FS_SET_DESCRIPTION("QCP file writer")
 	.private_size = sizeof(GF_QCPMxCtx),
 	.args = QCPMxArgs,
 	SETCAPS(QCPMxCaps),

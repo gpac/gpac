@@ -154,7 +154,8 @@ typedef struct
 	u32 tkid;
 	Bool fdur;
 	Bool btrt;
-
+	Bool ssix;
+	GF_AudioSampleEntryImportMode ase;
 
 	//internal
 	Bool owns_mov;
@@ -1458,7 +1459,7 @@ multipid_stsd_setup:
 		gf_free(gpp_cfg);
 	}
 
-	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps);
+	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->ase);
 	else if (width) {
 		gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
 		if (sar.den && (sar.num != sar.den)) {
@@ -2476,7 +2477,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			} else {
 				ctx->store_output = GF_TRUE;
 			}
-			gf_isom_allocate_sidx(ctx->file, ctx->subs_sidx, ctx->chain_sidx, 0, NULL, NULL, NULL);
+			gf_isom_allocate_sidx(ctx->file, ctx->subs_sidx, ctx->chain_sidx, 0, NULL, NULL, NULL, ctx->ssix);
 		}
 	}
 	assert(ctx->init_movie_done);
@@ -2703,7 +2704,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			u64 idx_start_range, idx_end_range, segment_size_in_bytes;
 			idx_start_range = idx_end_range = 0;
 
-			gf_isom_close_segment(ctx->file, (ctx->subs_sidx >= 0) ? ctx->subs_sidx : 0, (ctx->subs_sidx>=0) ? ctx->ref_tkw->track_id : 0, ctx->ref_tkw->first_dts_in_seg, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
+			gf_isom_close_segment(ctx->file, (ctx->subs_sidx >= 0) ? ctx->subs_sidx : 0, (ctx->subs_sidx>=0) ? ctx->ref_tkw->track_id : 0, ctx->ref_tkw->first_dts_in_seg, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, ctx->ssix, is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - next fragment start time %g\n", ctx->dash_seg_num, ctx->next_frag_start ));
 
@@ -3330,7 +3331,6 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_nal), "repacks NALU size length to minimum possible size for AVC/HEVC/...", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps_inband), "Use inband param set for AVC/HEVC/.... If mix, creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|mix", 0},
-	{ OFFS(block_size), "Target output block size, 0 for default internal value (40k)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(store), "Write mode. inter uses cdur to interleave the file. flat writes a flat file, file at end. cap flushes to disk as soon as samples are added. tight uses per-sample interleaving of all tracks. frag framents the file using cdur duration. sfrag framents the file using cdur duration but adjusting to start with SAP1/3.  ", GF_PROP_UINT, "inter", "inter|flat|cap|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(for_test), "sets all dates and version info to 0 to enforce same binary result generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
@@ -3352,7 +3352,6 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(psshs), "PSSH boxes store mode:\n\tmoof: in first moof of each segments\n\tmoov: in movie box\n\tnone: discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "Enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(block_size), "block size used to flush files in onDemand mode when cache is used", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noinit), "does not send initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tktpl), "use track box from input if any as a template to create new track. no disables template, yes clones the track (except edits and decoder config), udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mudta), "use udta and other moov extension boxes from input if any. no disables import, yes clones all extension boxes, udta only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
@@ -3361,13 +3360,21 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdur), "fragments based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "sets btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(ase), "sets audio sample entry mode for more than stereo layouts:\n"\
+			"\tv0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
+			"\tv0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
+			"\tv1: use v1 signaling, ISOBMFF style\n"\
+			"\tv1qt: use v1 signaling, QTFF style\n"\
+		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
+
+	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 
 GF_FilterRegister MP4MuxRegister = {
 	.name = "mxisom",
-	.description = "ISOBMFF muxer",
+	GF_FS_SET_DESCRIPTION("ISOBMFF muxer")
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,
 	.initialize = mp4_mux_initialize,

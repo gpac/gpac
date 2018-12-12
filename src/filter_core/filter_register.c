@@ -48,6 +48,7 @@ const GF_FilterRegister *svgin_register(GF_FilterSession *session);
 const GF_FilterRegister *img_reframe_register(GF_FilterSession *session);
 const GF_FilterRegister *imgdec_register(GF_FilterSession *session);
 const GF_FilterRegister *adts_dmx_register(GF_FilterSession *session);
+const GF_FilterRegister *latm_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *mp3_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *faad_register(GF_FilterSession *session);
 const GF_FilterRegister *maddec_register(GF_FilterSession *session);
@@ -87,6 +88,7 @@ const GF_FilterRegister *vttdec_register(GF_FilterSession *session);
 const GF_FilterRegister *rtpin_register(GF_FilterSession *session);
 const GF_FilterRegister *fileout_register(GF_FilterSession *session);
 const GF_FilterRegister *adtsmx_register(GF_FilterSession *session);
+const GF_FilterRegister *latm_mx_register(GF_FilterSession *session);
 const GF_FilterRegister *reframer_register(GF_FilterSession *session);
 const GF_FilterRegister *gendump_register(GF_FilterSession *session);
 const GF_FilterRegister *nalumx_register(GF_FilterSession *session);
@@ -142,6 +144,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, img_reframe_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, imgdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, adts_dmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, latm_dmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, mp3_dmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, faad_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, maddec_register(a_sess) );
@@ -180,7 +183,9 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, vttdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, rtpin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, fileout_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, latm_mx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, adtsmx_register(a_sess) );
+
 	gf_fs_add_filter_registry(fsess, reframer_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, gendump_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, nalumx_register(a_sess) );

@@ -374,29 +374,37 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		
 			switch (ctx->chroma_format) {
 			case 2:
+#ifndef GPAC_CONFIG_IOS
 				//422 decoding doesn't seem supported ...
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_422YpCbCr10;
 					ctx->pix_fmt = GF_PIXEL_YUV422_10;
-				} else {
+				} else
+#endif
+				{
 					kColorSpace = kCVPixelFormatType_422YpCbCr8;
 					ctx->pix_fmt = GF_PIXEL_YUV422;
 				}
 				break;
 			case 3:
+#ifndef GPAC_CONFIG_IOS
 				if (ctx->luma_bit_depth>8) {
 					kColorSpace = kCVPixelFormatType_444YpCbCr10;
 					ctx->pix_fmt = GF_PIXEL_YUV444_10;
-				} else {
+				} else
+#endif
+				{
 					kColorSpace = kCVPixelFormatType_444YpCbCr8;
 					ctx->pix_fmt = GF_PIXEL_YUV444;
 				}
 				break;
 			default:
+#if !defined(GPAC_CONFIG_IOS) && defined(AVAILABLE_MAC_OS_X_VERSION_10_13_AND_LATER)
 				if (ctx->luma_bit_depth>8) {
-					kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-					ctx->pix_fmt = GF_PIXEL_NV12;
+					kColorSpace = kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange;
+					ctx->pix_fmt = GF_PIXEL_NV12_10;
 				}
+#endif
 				break;
 			}
 			//always rewrite with current sps and pps
@@ -1690,7 +1698,7 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 	}
 
     if (CVPixelBufferIsPlanar(f->frame)) {
-		w = CVPixelBufferGetPlaneCount(f->frame);
+		w = (u32) CVPixelBufferGetPlaneCount(f->frame);
 		if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
 			return GF_BAD_PARAM;
@@ -1870,7 +1878,7 @@ static const GF_FilterArgs VTBDecArgs[] =
 
 GF_FilterRegister GF_VTBDecCtxRegister = {
 	.name = "vtbdec",
-	.description = "VideoToolBox decoder",
+	GF_FS_SET_DESCRIPTION("VideoToolBox decoder")
 	.private_size = sizeof(GF_VTBDecCtx),
 	.args = VTBDecArgs,
 	SETCAPS(VTBDecCaps),

@@ -280,7 +280,7 @@ static GF_FilterArgs RawVidReframeArgs[] =
 
 GF_FilterRegister RawVidReframeRegister = {
 	.name = "rfrawvid",
-	.description = "RAW video (YUV, RGB) reframer",
+	GF_FS_SET_DESCRIPTION("RAW video (YUV, RGB) reframer")
 	.private_size = sizeof(GF_RawVidReframeCtx),
 	.args = RawVidReframeArgs,
 	SETCAPS(RawVidReframeCaps),

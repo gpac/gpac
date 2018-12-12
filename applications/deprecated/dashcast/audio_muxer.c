@@ -122,7 +122,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 
 	bpsample = av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt) * 8;
 
-	ret = gf_isom_set_audio_info(audio_output_file->isof, track, di, audio_codec_ctx->sample_rate, audio_output_file->codec_ctx->channels, bpsample);
+	ret = gf_isom_set_audio_info(audio_output_file->isof, track, di, audio_codec_ctx->sample_rate, audio_output_file->codec_ctx->channels, bpsample, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_audio_info\n", gf_error_to_string(ret)));
 		return -1;
@@ -195,7 +195,7 @@ int dc_gpac_audio_isom_close_seg(AudioOutputFile *audio_output_file)
 {
 	u64 seg_size;
 	GF_Err ret;
-	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0, 0, 0, 0, 0, GF_TRUE, GF_FALSE, audio_output_file->seg_marker, NULL, NULL, &seg_size);
+	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0, 0, 0, 0, 0, 0, GF_TRUE, GF_FALSE, audio_output_file->seg_marker, NULL, NULL, &seg_size);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;

@@ -413,8 +413,6 @@ enum
 	GF_ISOM_BOX_TYPE_GNRM	= GF_4CC( 'G', 'N', 'R', 'M' ),
 	GF_ISOM_BOX_TYPE_GNRV	= GF_4CC( 'G', 'N', 'R', 'V' ),
 	GF_ISOM_BOX_TYPE_GNRA	= GF_4CC( 'G', 'N', 'R', 'A' ),
-	/*storage of AU fragments (for MPEG-4 visual resync marker (video packets), located in stbl.*/
-	GF_ISOM_BOX_TYPE_STSF	=  GF_4CC( 'S', 'T', 'S', 'F' ),
 	/*base constructor of all hint formats (currently only RTP uses it)*/
 	GF_ISOM_BOX_TYPE_GHNT	= GF_4CC( 'g', 'h', 'n', 't' ),
 	/*for compatibility with old files hinted for DSS - needs special parsing*/
@@ -968,28 +966,6 @@ typedef struct
 } GF_CompositionOffsetBox;
 
 
-typedef struct
-{
-	u32 SampleNumber;
-	u32 fragmentCount;
-	u16 *fragmentSizes;
-} GF_StsfEntry;
-
-typedef struct
-{
-	GF_ISOM_FULL_BOX
-	GF_List *entryList;
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	/*Cache for write*/
-	GF_StsfEntry *w_currentEntry;
-	u32 w_currentEntryIndex;
-#endif
-	/*Cache for read*/
-	u32 r_currentEntryIndex;
-	GF_StsfEntry *r_currentEntry;
-} GF_SampleFragmentBox;
-
-
 #define GF_ISOM_SAMPLE_ENTRY_FIELDS		\
 	GF_ISOM_UUID_BOX					\
 	u16 dataReferenceIndex;				\
@@ -1505,6 +1481,11 @@ typedef struct
 	u64 offset_first_offset_field;
 } GF_SampleAuxiliaryInfoOffsetBox;
 
+typedef struct
+{
+	u32 nb_entries, nb_alloc;
+	u32 *sample_num;
+} GF_TrafToSampleMap;
 
 typedef struct
 {
@@ -1522,9 +1503,9 @@ typedef struct
 	GF_DegradationPriorityBox *DegradationPriority;
 	GF_PaddingBitsBox *PaddingBits;
 	GF_SampleDependencyTypeBox *SampleDep;
-	GF_SampleFragmentBox *Fragments;
 
-//	GF_SubSampleInformationBox *SubSamples;
+	GF_TrafToSampleMap *traf_map;
+
 	GF_List *sub_samples;
 
 	GF_List *sampleGroups;
@@ -1544,6 +1525,8 @@ typedef struct
 	Bool skip_sample_groups;
 } GF_SampleTableBox;
 
+void stbl_AppendTrafMap(GF_SampleTableBox *stbl);
+
 typedef struct __tag_media_info_box
 {
 	GF_ISOM_BOX
@@ -1557,6 +1540,7 @@ typedef struct __tag_media_info_box
 
 GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
+GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 typedef struct
 {
@@ -2513,17 +2497,22 @@ typedef struct __sidx_box
 
 typedef struct
 {
+	u8 level;
+	u32 range_size;
+} GF_SubsegmentRangeInfo;
+
+typedef struct
+{
 	u32 range_count;
-	u8 *levels;
-	u32 *range_sizes;
-} GF_Subsegment;
+	GF_SubsegmentRangeInfo *ranges;
+} GF_SubsegmentInfo;
 
 typedef struct __ssix_box
 {
 	GF_ISOM_FULL_BOX
 
 	u32 subsegment_count;
-	GF_Subsegment *subsegments;
+	GF_SubsegmentInfo *subsegments;
 } GF_SubsegmentIndexBox;
 
 typedef struct
@@ -3311,6 +3300,7 @@ struct __tag_isom {
 	u64 root_sidx_offset;
 	u32 root_sidx_index;
 	Bool dyn_root_sidx;
+	GF_SubsegmentIndexBox *root_ssix;
 
 	Bool is_index_segment;
 
@@ -3406,8 +3396,6 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, u8 *isEdited);
 GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *syncNum);
 GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBits);
-u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber);
-u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32 FragmentIndex);
 GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber, u32 *isLeading, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
 
 

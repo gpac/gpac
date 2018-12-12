@@ -315,7 +315,7 @@ static const GF_FilterCapability FileInCaps[] =
 
 GF_FilterRegister FileInRegister = {
 	.name = "fin",
-	.description = "Generic file input",
+	GF_FS_SET_DESCRIPTION("Generic file input")
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,

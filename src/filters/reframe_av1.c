@@ -597,6 +597,11 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 {
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	Bool res = GF_FALSE;
+	u32 lt;
+
+	lt = gf_log_get_tool_level(GF_LOG_CODING);
+	gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
+
 	res = gf_media_probe_ivf(bs);
 	if (res) *score = GF_FPROBE_SUPPORTED;
 	else {
@@ -606,11 +611,6 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			AV1State state;
 			GF_Err e;
 
-#ifndef GPAC_DISABLE_LOGS
-			u32 ll = gf_log_get_tool_level(GF_LOG_CODING);
-			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
-#endif
-
 			memset(&state, 0, sizeof(AV1State));
 			e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
 			if (e==GF_OK) {
@@ -618,12 +618,11 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 				*score = GF_FPROBE_MAYBE_SUPPORTED;
 			}
 			av1_reset_state(&state, GF_TRUE);
-#ifndef GPAC_DISABLE_LOGS
-			gf_log_set_tool_level(GF_LOG_CODING, ll);
-#endif
-
 		}
 	}
+
+	gf_log_set_tool_level(GF_LOG_CONTAINER, lt);
+
 	gf_bs_del(bs);
 	if (res) return "video/av1";
 	return NULL;
@@ -657,7 +656,7 @@ static const GF_FilterArgs AV1DmxArgs[] =
 
 GF_FilterRegister AV1DmxRegister = {
 	.name = "rfav1",
-	.description = "AV1 reframer",
+	GF_FS_SET_DESCRIPTION("AV1 reframer")
 	.private_size = sizeof(GF_AV1DmxCtx),
 	.args = AV1DmxArgs,
 	.finalize = av1dmx_finalize,

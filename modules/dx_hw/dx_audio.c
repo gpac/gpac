@@ -139,7 +139,6 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 {
 	u32 i;
 	HRESULT hr;
-	const char *sOpt;
 	DSBUFFERDESC dsbBufferDesc;
 	IDirectSoundNotify *pNotify;
 #ifdef USE_WAVE_EX

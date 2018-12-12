@@ -29,7 +29,8 @@
 #include <gpac/bitstream.h>
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
-#include <ogg/ogg.h>
+#include <gpac/internal/ogg.h>
+//#include <ogg/ogg.h>
 #include <gpac/avparse.h>
 
 
@@ -698,7 +699,7 @@ static const GF_FilterArgs OGGDmxArgs[] =
 
 GF_FilterRegister OGGDmxRegister = {
 	.name = "oggdmx",
-	.description = "OGG demuxer",
+	GF_FS_SET_DESCRIPTION("OGG demuxer")
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,

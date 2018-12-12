@@ -420,7 +420,7 @@ typedef struct
 	//options
 	char *drv;
 	GF_VideoOutMode disp;
-	Bool vsync, linear, fullscreen, drop;
+	Bool vsync, linear, fullscreen, drop, hide;
 	GF_Fraction dur;
 	Double speed, hold;
 	u32 back;
@@ -464,8 +464,10 @@ typedef struct
 #endif // GPAC_DISABLE_3D
 
 	u32 uv_w, uv_h, uv_stride, bit_depth;
-	Bool is_yuv;
+	Bool is_yuv, in_fullscreen;
 	u32 nb_drawn;
+
+	GF_FilterPacket *last_pck;
 } GF_VideoOutCtx;
 
 
@@ -497,6 +499,20 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 	return 1;
 }
 #endif
+
+static void vout_set_caption(GF_VideoOutCtx *ctx)
+{
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_SET_CAPTION;
+	evt.caption.caption = gf_filter_pid_orig_src_args(ctx->pid);
+	if (!evt.caption.caption) evt.caption.caption = gf_filter_pid_get_source_filter_name(ctx->pid);
+	if (evt.caption.caption) {
+		if (!strncmp(evt.caption.caption, "src=", 4)) evt.caption.caption += 4;
+		if (!strncmp(evt.caption.caption, "./", 2)) evt.caption.caption += 2;
+		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	}
+}
 
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -543,12 +559,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(pid, &fevt);
 
-		memset(&evt, 0, sizeof(GF_Event));
-		evt.type = GF_EVENT_SET_CAPTION;
-		evt.caption.caption = gf_filter_pid_orig_src_args(pid);
-		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
-
 		ctx->pid = pid;
+
+		vout_set_caption(ctx);
 	}
 
 	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
@@ -581,7 +594,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (ctx->disp<MODE_2D) {
 			evt.setup.opengl_mode = 1;
 			//always double buffer
-			evt.setup.back_buffer = 1;
+			evt.setup.back_buffer = gf_opts_get_bool("core", "gl-doublebuf");
 		} else
 #endif
 		{
@@ -589,14 +602,16 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
-		ctx->display_width = evt.setup.width;
-		ctx->display_height = evt.setup.height;
+		if (!ctx->in_fullscreen) {
+			ctx->display_width = evt.setup.width;
+			ctx->display_height = evt.setup.height;
+		}
 		ctx->display_changed = GF_TRUE;
 
 #if !defined(GPAC_DISABLE_3D) && defined(WIN32)
 		vout_load_gl();
 		if ((ctx->disp<MODE_2D) && (glCompileShader == NULL)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load openGL, fallback to 2D rastzer\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load openGL, fallback to 2D blit\n"));
 			evt.setup.opengl_mode = 0;
 			evt.setup.back_buffer = 1;
 			ctx->disp = MODE_2D;
@@ -604,11 +619,13 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 #endif
 
-		memset(&evt, 0, sizeof(GF_Event));
-		evt.type = GF_EVENT_SIZE;
-		evt.size.width = dw;
-		evt.size.height = dh;
-		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+		if (!ctx->in_fullscreen) {
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_SIZE;
+			evt.size.width = dw;
+			evt.size.height = dh;
+			ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+		}
 	} else if ((ctx->size.x>0) && (ctx->size.y>0)) {
 		ctx->display_width = ctx->size.x;
 		ctx->display_height = ctx->size.y;
@@ -617,6 +634,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->fullscreen) {
 		u32 nw=ctx->display_width, nh=ctx->display_height;
 		ctx->video_out->SetFullScreen(ctx->video_out, GF_TRUE, &nw, &nh);
+		ctx->in_fullscreen = GF_TRUE;
 	} else if ((ctx->pos.x!=-1) && (ctx->pos.y!=-1)) {
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_MOVE;
@@ -1029,6 +1047,9 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	sOpt = gf_opts_get_key("Temp", "InitFlags");
 	if (sOpt) sscanf(sOpt, "%d", &init_flags);
 
+	if (ctx->hide)
+		init_flags |= GF_TERM_INIT_HIDE;
+
 	e = ctx->video_out->Setup(ctx->video_out, os_wnd_handler, os_disp_handler, init_flags);
 	if (e!=GF_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("Failed to Setup Video Driver %s!\n", ctx->video_out->module_name));
@@ -1066,6 +1087,11 @@ static GF_Err vout_initialize(GF_Filter *filter)
 static void vout_finalize(GF_Filter *filter)
 {
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
+
+	if (ctx->last_pck) {
+		gf_filter_pck_unref(ctx->last_pck);
+		ctx->last_pck = NULL;
+	}
 
 	if (ctx->nb_frames==1) {
 		gf_sleep((u32) (ctx->hold*1000));
@@ -1648,6 +1674,18 @@ static GF_Err vout_process(GF_Filter *filter)
 
 				ctx->aborted = GF_TRUE;
 			}
+		}
+		//check if we have a clock hint from an audio output
+		if (!gf_filter_all_sinks_done(filter)) {
+			gf_filter_ask_rt_reschedule(filter, 100000);
+			if (ctx->display_changed) goto draw_frame;
+			return GF_OK;
+		}
+		if (ctx->aborted) {
+			if (ctx->last_pck) {
+				gf_filter_pck_unref(ctx->last_pck);
+				ctx->last_pck = NULL;
+			}
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -1724,6 +1762,8 @@ static GF_Err vout_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d "LLU" us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
 				if (diff<-1000000) diff = -1000000;
 				gf_filter_ask_rt_reschedule(filter, (u32) (-diff));
+
+				if (ctx->display_changed) goto draw_frame;
 				//not ready yet
 				return GF_OK;
 			}
@@ -1768,25 +1808,36 @@ static GF_Err vout_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->pid);
 	}
 
+	if (ctx->last_pck)
+		gf_filter_pck_unref(ctx->last_pck);
+	ctx->last_pck = pck;
+	ctx->nb_frames++;
+
+
+draw_frame:
+
 	if (ctx->pfmt) {
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp < MODE_2D) {
 			gf_rmt_begin_gl(vout_draw_gl);
-			vout_draw_gl(ctx, pck);
+			vout_draw_gl(ctx, ctx->last_pck);
 			gf_rmt_end_gl();
 		} else
 #endif
 		{
-			vout_draw_2d(ctx, pck);
+			vout_draw_2d(ctx, ctx->last_pck);
 		}
 	}
-	gf_filter_pck_unref(pck);
-	ctx->nb_frames++;
 	return GF_OK;
 }
 
-static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 {
+	if (fevt->base.type==GF_FEVT_INFO_UPDATE) {
+		GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
+		vout_set_caption(ctx);
+		return GF_TRUE;
+	}
 	//cancel
 	return GF_TRUE;
 }
@@ -1807,6 +1858,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hide), "Hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
@@ -1820,7 +1872,7 @@ static const GF_FilterCapability VideoOutCaps[] =
 
 GF_FilterRegister VideoOutRegister = {
 	.name = "vout",
-	.description = "Video graphics card output",
+	GF_FS_SET_DESCRIPTION("Video graphics card output")
 	.private_size = sizeof(GF_VideoOutCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VideoOutArgs,

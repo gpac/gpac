@@ -122,6 +122,7 @@ static GF_Err resample_initialize(GF_Filter *filter)
 	ctx->input_ai.IsMuted = resample_is_muted;
 	ctx->input_ai.GetSpeed = resample_get_speed;
 	ctx->input_ai.GetChannelVolume = resample_get_channel_volume;
+	ctx->speed = FIX_ONE;
 	return GF_OK;
 }
 
@@ -201,7 +202,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ctx->passthrough = GF_FALSE;
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==ctx->afmt))
+	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==ctx->afmt) && (ctx->speed==FIX_ONE))
 		ctx->passthrough = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->freq));
@@ -346,7 +347,7 @@ static const GF_FilterArgs ResamplerArgs[] =
 
 GF_FilterRegister ResamplerRegister = {
 	.name = "resample",
-	.description = "Audio resampling",
+	GF_FS_SET_DESCRIPTION("Audio resampling")
 	.private_size = sizeof(GF_ResampleCtx),
 	.initialize = resample_initialize,
 	.finalize = resample_finalize,

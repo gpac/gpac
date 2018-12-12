@@ -66,6 +66,7 @@ typedef struct
 	char *b64_buffer;
 	u32 b64_buffer_size;
 	u64 mdia_pos;
+	u32 pck_num;
 } GF_NHMLDumpCtx;
 
 GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -214,6 +215,8 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_name(ctx->opid_mdia, "media");
 	if (ctx->opid_info)
 		gf_filter_pid_set_name(ctx->opid_info, "info");
+
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 	return GF_OK;
 }
@@ -479,8 +482,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 #else
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Error: your version of GPAC was compiled with no libz support."));
 			gf_bs_del(ctx->bs_r);
-			gf_fclose(nhml);
-			return GF_NOT_SUPPORTED;
+			return;
 #endif
 		} else {
 			gf_bs_write_data(ctx->bs_w, data+pos+3, size-1);
@@ -553,7 +555,8 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	if (dts==GF_FILTER_NO_TS) dts = cts;
 	if (cts==GF_FILTER_NO_TS) cts = dts;
 
-	sprintf(nhml, "<NHNTSample DTS=\""LLU"\" dataLength=\"%d\" ", dts, data_size);
+	ctx->pck_num++;
+	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\""LLU"\" dataLength=\"%d\" ", ctx->pck_num, dts, data_size);
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	if (ctx->full || (cts != dts) ) {
 		sprintf(nhml, "CTSOffset=\"%d\" ", (s32) ((s64)cts - (s64)dts));
@@ -832,7 +835,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 
 GF_FilterRegister NHMLDumpRegister = {
 	.name = "nhmlw",
-	.description = "NHML file writer",
+	GF_FS_SET_DESCRIPTION("NHML file writer")
 	.private_size = sizeof(GF_NHMLDumpCtx),
 	.args = NHMLDumpArgs,
 	.initialize = nhmldump_initialize,

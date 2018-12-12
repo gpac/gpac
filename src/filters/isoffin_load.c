@@ -85,6 +85,7 @@ void isor_declare_objects(ISOMReader *read)
 	Bool single_media_found = GF_FALSE;
 	Bool use_iod = GF_FALSE;
 	GF_Err e;
+	Bool isom_contains_video = GF_FALSE;
 	GF_Descriptor *od = gf_isom_get_root_od(read->mov);
 	if (od && gf_list_count(((GF_ObjectDescriptor*)od)->ESDescriptors)) {
 		use_iod = GF_TRUE;
@@ -115,7 +116,7 @@ void isor_declare_objects(ISOMReader *read)
 		u32 mtype, m_subtype, stsd_idx;
 		GF_GenericSampleDescription *udesc = NULL;
 
-		if (!gf_isom_is_track_enabled(read->mov, i+1))
+		if (!read->alltk && !gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
 		esid = depends_on_id = avg_rate = max_rate = buffer_size = 0;
@@ -131,6 +132,7 @@ void isor_declare_objects(ISOMReader *read)
 		case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_QTVR:
 			streamtype = GF_STREAM_VISUAL;
+			isom_contains_video = GF_TRUE;
 			break;
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
@@ -563,11 +565,6 @@ void isor_declare_objects(ISOMReader *read)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DBSIZE, &PROP_UINT((u32) buffer_size));
 		}
 
-/*		gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
-		gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
-		gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
-*/
-
 		if (mime) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime) );
 		if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING(encoding) );
 		if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(namespace) );
@@ -694,47 +691,30 @@ void isor_declare_objects(ISOMReader *read)
 		if (read->itt) break;
 	}
 
-	/*if cover art, extract it in cache*/
+	/*if cover art, declare a video pid*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
-		const char *cdir = gf_opts_get_key("core", "cache");
-		if (cdir) {
-			char szName[GF_MAX_PATH];
-			const char *sep;
-			FILE *t;
-			sep = strrchr(gf_isom_get_filename(read->mov), '\\');
-			if (!sep) sep = strrchr(gf_isom_get_filename(read->mov), '/');
-			if (!sep) sep = gf_isom_get_filename(read->mov);
 
-			if ((cdir[strlen(cdir)-1] != '\\') && (cdir[strlen(cdir)-1] != '/')) {
-				sprintf(szName, "%s/%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
-			} else {
-				sprintf(szName, "%s%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
+		/*write cover data*/
+		assert(!(tlen & 0x80000000));
+		tlen &= 0x7FFFFFFF;
+
+		if (read->expart && !isom_contains_video) {
+			GF_FilterPid *cover_pid=NULL;
+			gf_filter_pid_set_property(cover_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+
+			e = gf_filter_pid_raw_new(read->filter, NULL, NULL, NULL, NULL, (char *) tag, tlen, &cover_pid);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 			}
-
-			t = gf_fopen(szName, "wb");
-
-			if (t) {
-				Bool isom_contains_video = GF_FALSE;
-
-				/*write cover data*/
-				assert(!(tlen & 0x80000000));
-				gf_fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
-				gf_fclose(t);
-
-				/*don't display cover art when video is present*/
-				for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
-					if (!gf_isom_is_track_enabled(read->mov, i+1))
-						continue;
-					if (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) {
-						isom_contains_video = GF_TRUE;
-						break;
-					}
-				}
-
-				if (!isom_contains_video) {
-					GF_FilterPid *cover_pid = gf_filter_pid_new(read->filter);
-					gf_filter_pid_set_property(cover_pid, GF_PROP_PID_REMOTE_URL, &PROP_STRING(szName) );
-				}
+			if (cover_pid) {
+				char *out_buffer;
+				GF_FilterPacket *dst_pck;
+				gf_filter_pid_set_name(cover_pid, "CoverArt");
+				dst_pck = gf_filter_pck_new_alloc(cover_pid, tlen, &out_buffer);
+				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+				memcpy(out_buffer, tag, tlen);
+				gf_filter_pck_send(dst_pck);
+				gf_filter_pid_set_eos(cover_pid);
 			}
 		}
 	}

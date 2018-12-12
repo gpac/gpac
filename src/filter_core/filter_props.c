@@ -300,6 +300,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 			if (!sep)
 			 	len = (u32) strlen(v);
+			else
+				len = (u32) (sep - v);
 
 			nv = gf_malloc(sizeof(char)*(len+1));
 			strncpy(nv, v, sizeof(char)*len);
@@ -902,7 +904,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference pid", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on", GF_PROP_UINT},
 	{ GF_PROP_PID_SUBLAYER, "SubLayer", "pid is a sublayer of the stream depended on rather than an enhancement layer", GF_PROP_BOOL},
-	{ GF_PROP_PID_PLAYBACK_MODE, "PlaybackMode", "Playback mode supported:\n\t0 is no time control\n\t1 is play/pause/seek,speed=1\n\t2 is play/pause/seek,speed>=0\n\t3 is play/pause/seek, reverse playback", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_PLAYBACK_MODE, "PlaybackMode", "Playback mode supported:\n\t0: is no time control\n\t1: is play/pause/seek,speed=1\n\t2: is play/pause/seek,speed>=0\n\t3: is play/pause/seek, reverse playback", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SCALABLE, "Scalable", "Scalable stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_TILE_BASE, "TileBase", "Tile base stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_LANGUAGE, "Language", "Language code: ISO639 2/3 character code or RFC 4646", GF_PROP_NAME},
@@ -915,6 +917,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_CODECID, "CodecID", "Codec ID (MPEG-4 OTI or ISOBMFF 4CC)", GF_PROP_UINT},
 	{ GF_PROP_PID_IN_IOD, "InitialObjectDescriptor", "Indicates if pid is declared in the IOD for MPEG-4", GF_PROP_BOOL},
 	{ GF_PROP_PID_UNFRAMED, "Unframed", "Indicates that the media data is not framed, i.e. each packet is not a complete AU/frame or is not in internal format (eg annexB for avc/hevc, adts for aac)", GF_PROP_BOOL},
+	{ GF_PROP_PID_UNFRAMED_LATM, "LATM", "Indicates media is unframed AAC in LATM format", GF_PROP_BOOL},
 	{ GF_PROP_PID_DURATION, "Duration", "Media duration", GF_PROP_FRACTION},
 	{ GF_PROP_PID_NB_FRAMES, "NumFrames", "Number of frames in the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FRAME_SIZE, "ConstantFrameSize", "Size of the frames for constant frame size streams", GF_PROP_UINT},

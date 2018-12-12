@@ -32,7 +32,7 @@ typedef struct
 {
 	GF_Socket *socket;
 	Bool is_tuned;
-	char adress[GF_MAX_IP_NAME_LEN];
+	char address[GF_MAX_IP_NAME_LEN];
 	Bool pck_pending;
 } GF_SockOutClient;
 
@@ -336,10 +336,10 @@ static GF_Err sockout_process(GF_Filter *filter)
 			GF_SockOutClient *sc;
 			GF_SAFEALLOC(sc, GF_SockOutClient);
 			sc->socket = new_conn;
-			strcpy(sc->adress, "unknown");
-			gf_sk_get_remote_address(new_conn, sc->adress);
+			strcpy(sc->address, "unknown");
+			gf_sk_get_remote_address(new_conn, sc->address);
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockOut] Accepting new connection from %s\n", sc->adress));
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockOut] Accepting new connection from %s\n", sc->address));
 			gf_list_add(ctx->clients, sc);
 			ctx->had_clients = GF_TRUE;
 			if (!ctx->pid_started && ctx->pid) {
@@ -528,7 +528,8 @@ static const GF_FilterCapability SockOutCaps[] =
 
 GF_FilterRegister SockOutRegister = {
 	.name = "sockout",
-	.description = "UDP / TCP socket output",
+	GF_FS_SET_DESCRIPTION("UDP / TCP socket output")
+#ifndef GPAC_DISABLE_DOC
 	.help = "This filter handles generic output sockets (mono-directionnal) in blocking mode only.\n"\
 		"The filter can work in server mode, waiting for source connections, or can directly connect\n"
 		"In server mode, the filter can be instructed to keep running at the end of the stream\n"
@@ -545,9 +546,12 @@ GF_FilterRegister SockOutRegister = {
 		"The socket output can be configured to drop or revert packet order for test purposes. In both cases, a window size in packets is specified\n"
 		"as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator\n"
 		"If the numerator is 0, a packet is randomly chosen in that window\n"
-		"\tEX: :pckd=4/10 drops every 4th packet of each 10 packet window\n"
-		"\tEX: :pckr=0/100 reverts the send order of one random packet in each 100 packet window\n"
+		"\tEX: :pckd=4/10\n"\
+		"This drops every 4th packet of each 10 packet window\n"
+		"\tEX: :pckr=0/100\n"\
+		"This reverts the send order of one random packet in each 100 packet window\n"
 		"\n",
+#endif //GPAC_DISABLE_DOC
 	.private_size = sizeof(GF_SockOutCtx),
 	.args = SockOutArgs,
 	SETCAPS(SockOutCaps),

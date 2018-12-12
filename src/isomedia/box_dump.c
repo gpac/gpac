@@ -324,7 +324,6 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->DegradationPriority) gf_isom_box_dump(p->DegradationPriority, trace);
 	if (p->SampleDep) gf_isom_box_dump(p->SampleDep, trace);
 	if (p->PaddingBits) gf_isom_box_dump(p->PaddingBits, trace);
-	if (p->Fragments) gf_isom_box_dump(p->Fragments, trace);
 	if (p->sub_samples) gf_isom_box_array_dump(p->sub_samples, trace);
 	if (p->sampleGroupsDescription) gf_isom_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_isom_box_array_dump(p->sampleGroups, trace);
@@ -644,7 +643,10 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 
 void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 {
-	fprintf(trace, " DataReferenceIndex=\"%d\" SampleRate=\"%d\"", p->dataReferenceIndex, p->samplerate_hi);
+	fprintf(trace, " DataReferenceIndex=\"%d\"", p->dataReferenceIndex);
+	if (p->version)
+		fprintf(trace, " Version=\"%d\"", p->version);
+	fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
 	fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
 }
 
@@ -818,8 +820,10 @@ GF_Err dref_dump(GF_Box *a, FILE * trace)
 
 GF_Err stsd_dump(GF_Box *a, FILE * trace)
 {
-//	GF_SampleDescriptionBox *p = (GF_SampleDescriptionBox *)a;
+	GF_SampleDescriptionBox *p = (GF_SampleDescriptionBox *)a;
 	gf_isom_box_dump_start(a, "SampleDescriptionBox", trace);
+	if (p->version)
+		fprintf(trace, " version=\"%d\"", p->version);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("SampleDescriptionBox", a, trace);
 	return GF_OK;
@@ -1079,51 +1083,44 @@ GF_Err sdtp_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!--Warning: No sample dependencies indications-->\n");
 	} else {
 		for (i=0; i<p->sampleCount; i++) {
+			const char *type;
 			u8 flag = p->sample_info[i];
 			fprintf(trace, "<SampleDependencyEntry ");
+			switch ( (flag >> 6) & 3) {
+			case 1: type="openGOP"; break;
+			case 2: type="no"; break;
+			case 3: type="SAP2"; break;
+			default:
+			case 0: type="unknown"; break;
+			}
+			fprintf(trace, "isLeading=\"%s\" ", type);
+
 			switch ( (flag >> 4) & 3) {
-			case 0:
-				fprintf(trace, "dependsOnOther=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "dependsOnOther=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "dependsOnOther=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "dependsOnOther=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
+			fprintf(trace, "dependsOnOther=\"%s\" ", type);
+
 			switch ( (flag >> 2) & 3) {
-			case 0:
-				fprintf(trace, "dependedOn=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "dependedOn=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "dependedOn=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "dependedOn=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
+			fprintf(trace, "dependedOn=\"%s\" ", type);
+
 			switch ( flag & 3) {
-			case 0:
-				fprintf(trace, "hasRedundancy=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "hasRedundancy=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "hasRedundancy=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "hasRedundancy=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
-			fprintf(trace, " />\n");
+			fprintf(trace, "hasRedundancy=\"%s\"/>\n", type);
 		}
 	}
 	if (!p->size) {
@@ -1365,33 +1362,6 @@ GF_Err padb_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<PaddingBitsEntry PaddingBits=\"\"/>\n");
 	}
 	gf_isom_box_dump_done("PaddingBitsBox", a, trace);
-	return GF_OK;
-}
-
-GF_Err stsf_dump(GF_Box *a, FILE * trace)
-{
-	GF_SampleFragmentBox *p;
-	GF_StsfEntry *ent;
-	u32 i, j, count;
-
-
-	p = (GF_SampleFragmentBox *)a;
-	count = gf_list_count(p->entryList);
-	gf_isom_box_dump_start(a, "SampleFragmentBox", trace);
-	fprintf(trace, "EntryCount=\"%d\">\n", count);
-
-	for (i=0; i<count; i++) {
-		ent = (GF_StsfEntry *)gf_list_get(p->entryList, i);
-		fprintf(trace, "<SampleFragmentEntry SampleNumber=\"%d\" FragmentCount=\"%d\">\n", ent->SampleNumber, ent->fragmentCount);
-		for (j=0; j<ent->fragmentCount; j++) fprintf(trace, "<FragmentSizeEntry size=\"%d\"/>\n", ent->fragmentSizes[j]);
-		fprintf(trace, "</SampleFragmentEntry>\n");
-	}
-	if (!p->size) {
-		fprintf(trace, "<SampleFragmentEntry SampleNumber=\"\" FragmentCount=\"\">\n");
-		fprintf(trace, "<FragmentSizeEntry size=\"\"/>\n");
-		fprintf(trace, "</SampleFragmentEntry>\n");
-	}
-	gf_isom_box_dump_done("SampleFragmentBox", a, trace);
 	return GF_OK;
 }
 
@@ -3987,7 +3957,7 @@ GF_Err ssix_dump(GF_Box *a, FILE * trace)
 	for (i = 0; i < p->subsegment_count; i++) {
 		fprintf(trace, "<Subsegment range_count=\"%d\">\n", p->subsegments[i].range_count);
 		for (j = 0; j < p->subsegments[i].range_count; j++) {
-			fprintf(trace, "<Range level=\"%d\" range_size=\"%d\"/>\n", p->subsegments[i].levels[j], p->subsegments[i].range_sizes[j]);
+			fprintf(trace, "<Range level=\"%d\" range_size=\"%d\"/>\n", p->subsegments[i].ranges[j].level, p->subsegments[i].ranges[j].range_size);
 		}
 		fprintf(trace, "</Subsegment>\n");
 	}
@@ -4678,9 +4648,12 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 		if (cenc_sample) {
-			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\" IV=\"", i+1, cenc_sample->IV_size);
-			dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
-			fprintf(trace, "\"");
+			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);
+			if (cenc_sample->IV_size) {
+				fprintf(trace, "IV=\"");
+				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
+				fprintf(trace, "\"");
+			}
 			if (ptr->flags & 0x2) {
 				fprintf(trace, " SubsampleCount=\"%d\"", cenc_sample->subsample_count);
 				fprintf(trace, ">\n");

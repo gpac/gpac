@@ -528,6 +528,27 @@ static void amrdmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
+static const char * amrdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	if (!strnicmp(data, "#!AMR\n", 6)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/amr";
+	}
+	else if (!strnicmp(data, "#!AMR-WB\n", 9)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/amr";
+	}
+	else if (!strnicmp(data, "#!EVRC\n", 7)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/evrc";
+	}
+	else if (!strnicmp(data, "#!SMV\n", 6)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "audio/smv";
+	}
+	return NULL;
+}
+
 static const GF_FilterCapability AMRDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -553,7 +574,7 @@ static const GF_FilterArgs AMRDmxArgs[] =
 
 GF_FilterRegister AMRDmxRegister = {
 	.name = "rfamr",
-	.description = "AMR/EVRC reframer",
+	GF_FS_SET_DESCRIPTION("AMR/EVRC reframer")
 	.private_size = sizeof(GF_AMRDmxCtx),
 	.args = AMRDmxArgs,
 	.initialize = amrdmx_initialize,
@@ -561,6 +582,7 @@ GF_FilterRegister AMRDmxRegister = {
 	SETCAPS(AMRDmxCaps),
 	.configure_pid = amrdmx_configure_pid,
 	.process = amrdmx_process,
+	.probe_data = amrdmx_probe_data,
 	.process_event = amrdmx_process_event
 };
 

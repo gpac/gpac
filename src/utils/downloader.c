@@ -987,7 +987,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 		info->server_name = gf_strdup(tmp_url);
 	}
 
-	//scan for port number after IPv6 adress ']' end char
+	//scan for port number after IPv6 address ']' end char
 	ipv6 = strrchr(current_pos, ']');
 	tmp = strrchr(ipv6 ? ipv6 : current_pos, ':');
 

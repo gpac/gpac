@@ -1507,7 +1507,7 @@ GF_Err gf_isom_set_clean_apperture(GF_ISOFile *movie, u32 trackNumber, u32 Strea
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample)
+GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1537,13 +1537,34 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	aud_entry = (GF_AudioSampleEntryBox*) entry;
 	aud_entry->samplerate_hi = sampleRate;
 	aud_entry->samplerate_lo = 0;
-	aud_entry->channel_count = nbChannels;
 	aud_entry->bitspersample = bitsPerSample;
 
-	if (nbChannels>2) {
+	switch (asemode) {
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
+		stsd->version = 0;
+		aud_entry->version = 0;
+		aud_entry->is_qtff = 0;
+		aud_entry->channel_count = 2;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET:
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS:
+		stsd->version = 0;
+		aud_entry->version = 0;
+		aud_entry->is_qtff = 0;
+		aud_entry->channel_count = nbChannels;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG:
+		stsd->version = 1;
 		aud_entry->version = 1;
 		aud_entry->is_qtff = 0;
+		aud_entry->channel_count = nbChannels;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
 		stsd->version = 1;
+		aud_entry->version = 1;
+		aud_entry->is_qtff = 1;
+		aud_entry->channel_count = nbChannels;
+		break;
 	}
 	return GF_OK;
 }
@@ -2694,55 +2715,6 @@ GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, char *dat
 	}
 	gf_bs_del(bs);
 	return e;
-}
-
-
-GF_Err gf_isom_add_sample_fragment(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, u16 FragmentSize)
-{
-	GF_Err e;
-	GF_TrackBox *trak;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !sampleNumber || !FragmentSize) return GF_BAD_PARAM;
-
-	//set Padding info
-	return stbl_AddSampleFragment(trak->Media->information->sampleTable, sampleNumber, FragmentSize);
-}
-
-
-GF_EXPORT
-GF_Err gf_isom_remove_sample_fragment(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber)
-{
-	GF_TrackBox *trak;
-	GF_Err e;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-	return stbl_RemoveSampleFragments(trak->Media->information->sampleTable, sampleNumber);
-}
-
-GF_Err gf_isom_remove_sample_fragments(GF_ISOFile *movie, u32 trackNumber)
-{
-	GF_TrackBox *trak;
-	GF_Err e;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-
-	if (trak->Media->information->sampleTable->Fragments) {
-		gf_isom_box_del((GF_Box *)trak->Media->information->sampleTable->Fragments);
-		trak->Media->information->sampleTable->Fragments = NULL;
-	}
-	return GF_OK;
 }
 
 GF_EXPORT
@@ -5673,6 +5645,17 @@ GF_Err gf_isom_set_sample_flags(GF_ISOFile *file, u32 track, u32 sampleNumber, u
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak) return GF_BAD_PARAM;
 	return stbl_SetDependencyType(trak->Media->information->sampleTable, sampleNumber, isLeading, dependsOn, dependedOn, redundant);
+}
+
+GF_EXPORT
+GF_Err gf_isom_sample_set_dep_info(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
+{
+	GF_TrackBox *trak;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	return stbl_AddDependencyType(trak->Media->information->sampleTable, sampleNumber, isLeading, dependsOn, dependedOn, redundant);
 }
 
 GF_EXPORT

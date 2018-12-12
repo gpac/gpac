@@ -478,7 +478,7 @@ static const GF_FilterCapability NHNTDmxCaps[] =
 
 GF_FilterRegister NHNTDmxRegister = {
 	.name = "nhntr",
-	.description = "NHNT reader",
+	GF_FS_SET_DESCRIPTION("NHNT reader")
 	.private_size = sizeof(GF_NHNTDmxCtx),
 	.args = GF_NHNTDmxArgs,
 	.initialize = nhntdmx_initialize,

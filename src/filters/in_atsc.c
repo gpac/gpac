@@ -364,7 +364,8 @@ static const GF_FilterArgs ATSCInArgs[] =
 
 GF_FilterRegister ATSCInRegister = {
 	.name = "atscin",
-	.description = "ATSC input",
+	GF_FS_SET_DESCRIPTION("ATSC input")
+#ifndef GPAC_DISABLE_DOC
 	.help = "This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.\n"\
 	 "The default behaviour is to populate GPAC HTTP cache with the recieved files, using \"http://gpatsc/serviceN/\" as service root, N being the ATSC service ID.\n"\
 	 "In cache mode, repeated files are always send.\n"\
@@ -382,6 +383,7 @@ GF_FilterRegister ATSCInRegister = {
 	"\nOn OSX with VM packet replay you will need to force multicast routing, eg: \"route add -net 239.255.1.4/32 -interface vboxnet0\""
 #endif
 	"",
+#endif //GPAC_DISABLE_DOC
 	.private_size = sizeof(ATSCInCtx),
 	.args = ATSCInArgs,
 	.initialize = atscin_initialize,
