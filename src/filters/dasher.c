@@ -518,6 +518,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					u32 i;
 					GF_AC3Config ac3;
 					GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+					memset(&ac3, 0, sizeof(GF_AC3Config));
 					ac3.nb_streams = 1;
 					ac3.streams[0].fscod = gf_bs_read_int(bs, 2);
 					ac3.streams[0].bsid = gf_bs_read_int(bs, 5);

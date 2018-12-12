@@ -423,7 +423,9 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->bytes_in_header) {
-			assert(!first_frame_found);
+			if (first_frame_found) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] corrupted frame!\n"));
+			}
 
 			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);
 			current = h263dmx_next_start_code(ctx->hdr_store, 8);
@@ -460,7 +462,9 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		}
 
 		if (current>0) {
-			assert(!first_frame_found);
+			if (first_frame_found) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] corrupted frame!\n"));
+			}
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
@@ -486,7 +490,6 @@ GF_Err h263dmx_process(GF_Filter *filter)
 			gf_filter_pck_send(dst_pck);
 
 			h263dmx_update_cts(ctx);
-			//first_frame_found = GF_TRUE;
 		}
 
 		if (ctx->bytes_in_header) {

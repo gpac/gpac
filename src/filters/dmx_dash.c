@@ -587,7 +587,7 @@ static u32 dashdmx_dash_playback_mode(GF_DASHDmxCtx *ctx)
 		pmode = p ? p->value.uint : GF_PLAYBACK_MODE_REWIND;
 		if (pmode < mode) mode = pmode;
 	}
-	return pmode;
+	return mode;
 }
 
 

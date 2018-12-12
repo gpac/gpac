@@ -261,7 +261,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 			sep = memchr(buf, 0, fsize);
 			if (sep) {
 				strcpy(szTag, "id3:");
-				strncat(szTag, buf+1, 1024);
+				strncat(szTag, buf+1, 1023);
 				gf_filter_pid_set_info_str(ctx->opid, szTag, &PROP_STRING(sep+1) );
 			}
 			break;

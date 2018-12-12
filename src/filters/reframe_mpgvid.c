@@ -561,7 +561,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		Bool full_frame;
 		char *pck_data;
 		s32 current;
-		u8 sc_type, forced_sc_type;
+		u8 sc_type, forced_sc_type=0;
 		Bool sc_type_forced = GF_FALSE;
 		Bool skip_pck = GF_FALSE;
 		u8 ftype;

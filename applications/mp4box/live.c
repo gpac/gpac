@@ -106,9 +106,9 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-        	else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
-        	else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
-        	else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
+	        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
+	        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
+	        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
 	}
 
 	gf_sys_init(mem_track, NULL);
