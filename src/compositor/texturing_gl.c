@@ -214,7 +214,9 @@ void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
+#ifndef GPAC_DISABLE_3D
 	u32 y_stride = txh->stride;
+#endif
 	u8  *p_y, *p_u, *p_v;
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
