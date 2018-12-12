@@ -452,16 +452,25 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		} else {
 			//locate next start code
 			current = h263dmx_next_start_code(start, remain);
-			assert(current>=0);
 		}
 
 
 		if (current<0) {
 			//not enough bytes to process start code !!
-			assert(0);
+			break;
 		}
 
 		if (current>0) {
+			if (!ctx->opid) {
+				if (ctx->bytes_in_header) {
+					ctx->bytes_in_header -= current;
+				} else {
+					start += current;
+					remain -= current;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] garbage before first frame!\n"));
+				continue;
+			}
 			if (first_frame_found) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] corrupted frame!\n"));
 			}
@@ -636,7 +645,7 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		max_nb_frames = nb_frames;
 	}
 	if (max_nb_frames) {
-		*score = max_nb_frames>2 ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
+		*score = max_nb_frames>4 ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
 		return "video/h263";
 	}
 	return NULL;
