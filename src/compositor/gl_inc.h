@@ -89,6 +89,8 @@
 #endif
 
 #else
+//in case the versions are defined, get the prototypes
+#define GL_GLEXT_PROTOTYPES
 
 #include <GL/gl.h>
 
