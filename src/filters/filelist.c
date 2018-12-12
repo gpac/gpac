@@ -117,6 +117,10 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (is_remove) {
 		if (pid==ctx->file_pid)
 			ctx->file_pid = NULL;
+		else {
+			iopid = gf_filter_pid_get_udta(pid);
+			if (iopid) iopid->ipid = NULL;
+		}
 		return GF_OK;
 	}
 
@@ -163,6 +167,8 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 		gf_list_add(ctx->io_pids, iopid);
 	}
+	gf_filter_pid_set_udta(pid, iopid);
+
 	if (!iopid->opid) {
 		iopid->opid = gf_filter_pid_new(filter);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -170,6 +176,7 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		iopid->stream_type = p->value.uint;
 	}
 
+	gf_filter_pid_reset_properties(iopid->opid);
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(iopid->opid, iopid->ipid);
 	//we could further optimize by querying the duration of all sources in the list
@@ -193,6 +200,9 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (reassign) {
 		filelist_start_ipid(ctx, iopid);
 	}
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
+	if (p)
+	 	gf_filter_pid_set_info(iopid->opid, GF_PROP_PID_URL, p);
 
 	return GF_OK;
 }
@@ -658,8 +668,8 @@ static const GF_FilterCapability FileListCaps[] =
 
 GF_FilterRegister FileListRegister = {
 	.name = "flist",
-	.description = "sources concatenator",
-	.help = "This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=\"f1[,f2]\", where f1 can be a file or a directory to enum.\n"\
+	GF_FS_SET_DESCRIPTION("sources concatenator")
+	GF_FS_SET_HELP("This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l=\"f1[,f2]\", where f1 can be a file or a directory to enum.\n"\
 		"Syntax for directory is:\n"\
 		"\tdir/*: enumerates everything in dir\n"\
 		"\tfoo/*.png: enumerates all files with extension png in foo\n"\
@@ -680,8 +690,7 @@ GF_FilterRegister FileListRegister = {
 		"The source lines follow the usual source syntax, see main help\n"\
 		"\t\tAdditionnal pid properties can be added per source, but are valid only for the current source, and reset at next source\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist\n"\
-		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n"\
-	,
+		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded\n")
 	.private_size = sizeof(GF_FileListCtx),
 	.max_extra_pids = -1,
 	.args = GF_FileListArgs,

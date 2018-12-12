@@ -42,7 +42,7 @@ typedef struct
 #else
 	Bool is_rtp;
 #endif
-	char adress[GF_MAX_IP_NAME_LEN];
+	char address[GF_MAX_IP_NAME_LEN];
 
 	u64 start_time;
 	u64 nb_bytes;
@@ -339,7 +339,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	if (bitrate) {
 		bitrate = (sock_c->nb_bytes * 8 * 1000000) / bitrate;
 		gf_filter_pid_set_property(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT((u32) bitrate) );
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Receiving from %s at %d kbps\r", sock_c->adress, (u32) (bitrate/10)));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Receiving from %s at %d kbps\r", sock_c->address, (u32) (bitrate/10)));
 	}
 
 	return GF_OK;
@@ -368,11 +368,11 @@ static GF_Err sockin_process(GF_Filter *filter)
 				GF_SockInClient *sc;
 				GF_SAFEALLOC(sc, GF_SockInClient);
 				sc->socket = new_conn;
-				strcpy(sc->adress, "unknown");
-				gf_sk_get_remote_address(new_conn, sc->adress);
+				strcpy(sc->address, "unknown");
+				gf_sk_get_remote_address(new_conn, sc->address);
 				gf_sk_set_block_mode(new_conn, !ctx->block);
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Accepting new connection from %s\n", sc->adress));
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Accepting new connection from %s\n", sc->address));
 				gf_list_add(ctx->clients, sc);
 				ctx->had_clients = GF_TRUE;
 				gf_sk_group_register(ctx->active_sockets, sc->socket);
@@ -389,7 +389,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 
 	 	e = sockin_read_client(filter, ctx, sc);
 	 	if (e == GF_IP_CONNECTION_CLOSED) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockIn] Connection to %s lost, removing input\n", sc->adress));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockIn] Connection to %s lost, removing input\n", sc->address));
 			if (sc->socket)
 				gf_sk_group_unregister(ctx->active_sockets, sc->socket);
 
@@ -459,7 +459,8 @@ static const GF_FilterCapability SockInCaps[] =
 
 GF_FilterRegister SockInRegister = {
 	.name = "sockin",
-	.description = "UDP / TCP socket input",
+	GF_FS_SET_DESCRIPTION("UDP / TCP socket input")
+#ifndef GPAC_DISABLE_DOC
 	.help = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
 		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
 		"\n"
@@ -468,10 +469,12 @@ GF_FilterRegister SockInRegister = {
 #ifdef GPAC_CONFIG_DARWIN
 		"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
 #endif
-		"",
+		""
 #else
-		"Oops, your platform does not supports unix domain sockets",
+		"Your platform does not supports unix domain sockets"
 #endif
+	,
+#endif //GPAC_DISABLE_DOC
 	.private_size = sizeof(GF_SockInCtx),
 	.args = SockInArgs,
 	SETCAPS(SockInCaps),

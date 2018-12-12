@@ -136,6 +136,7 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
 
 u32 grab_atsc3_session(const char *dir, s32 serviceID, s32 max_segs, u32 stats_rate, u32 debug_tsi);
 
+GF_Err rip_mpd(const char *mpd);
 
 #endif // _MP4BOX_H
 

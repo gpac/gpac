@@ -1061,7 +1061,6 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Bool for2d)
 {
 #ifndef GPAC_DISABLE_3D
-	u32 ck;
 	char *data;
 	Bool first_load = 0;
 	GLint tx_mode;
@@ -1388,6 +1387,7 @@ push_exit:
 
 #ifndef GPAC_DISABLE_LOGS
 	if (txh->stream) {
+		u32 ck;
 		gf_mo_get_object_time(txh->stream, &ck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->yuv_shader ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
 	}

@@ -495,7 +495,7 @@ GF_BaseInterface *gf_modules_load_by_name(const char *plug_name, u32 InterfaceFa
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Added plugin cache %s for %s\n", plug_name, ((ModuleInstance*)ifce->HPLUG)->name));
 			return ifce;
 		}
-		/*check direct adressing by dynamic lib name*/
+		/*check direct addressing by dynamic lib name*/
 		mod_filename = gf_module_get_file_name(ifce);
 		if (mod_filename && strstr(mod_filename, plug_name)) {
 			return ifce;
@@ -554,13 +554,13 @@ static Bool module_check_ifce(GF_BaseInterface *ifce, u32 ifce_type)
 	case GF_VIDEO_OUTPUT_INTERFACE:
 	{
 		GF_VideoOutput *vout = (GF_VideoOutput *) ifce;
-		if (!vout->Flush || !vout->Setup) return GF_FALSE;
+		if (!vout || !vout->Flush || !vout->Setup) return GF_FALSE;
 		return GF_TRUE;
 	}
 	case GF_AUDIO_OUTPUT_INTERFACE:
 	{
 		GF_AudioOutput *aout = (GF_AudioOutput *) ifce;
-		if (!aout->Configure || !aout->Setup) return GF_FALSE;
+		if (!aout || !aout->Configure || !aout->Setup) return GF_FALSE;
 		//no more support for raw out, deprecated
 		if (!stricmp(ifce->module_name, "Raw Audio Output")) return GF_FALSE;
 		/*check that's a valid audio mode*/
@@ -572,7 +572,7 @@ static Bool module_check_ifce(GF_BaseInterface *ifce, u32 ifce_type)
 	{
 		GF_Raster2D *raster = (GF_Raster2D *) ifce;
 		/*check base*/
-		if (!raster->stencil_new || !raster->surface_new) return GF_FALSE;
+		if (!raster || !raster->stencil_new || !raster->surface_new) return GF_FALSE;
 		/*if these are not set we cannot draw*/
 		if (!raster->surface_clear || !raster->surface_set_path || !raster->surface_fill) return GF_FALSE;
 		/*check we can init a surface with the current driver (the rest is optional)*/

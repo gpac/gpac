@@ -60,6 +60,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_print_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_print_core_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_cfg_option) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_localized) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )
@@ -777,8 +779,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_user_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_generic_sample_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_fragment_defaults) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_fragment_count) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_fragment_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_default_sync_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_get) )
@@ -861,6 +861,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_video_subtype) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_was_traf_start) )
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
@@ -1076,8 +1077,6 @@
 #endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_fragment) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_track_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_finalize_for_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_fragment) )
@@ -1953,6 +1952,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_solve_segment_list_xlink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_delete_segment_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_parse_master_playlist) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_get_base_url_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )

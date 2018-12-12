@@ -2499,29 +2499,6 @@ GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min
 }
 
 GF_EXPORT
-u32 gf_isom_get_sample_fragment_count(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
-{
-	GF_TrackBox *trak;
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
-
-	//Padding info
-	return stbl_GetSampleFragmentCount(trak->Media->information->sampleTable->Fragments, sampleNumber);
-}
-
-GF_EXPORT
-u16 gf_isom_get_sample_fragment_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 FragmentIndex)
-{
-	GF_TrackBox *trak;
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !FragmentIndex) return 0;
-
-	//Padding info
-	return stbl_GetSampleFragmentSize(trak->Media->information->sampleTable->Fragments, sampleNumber, FragmentIndex);
-}
-
-
-GF_EXPORT
 GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
                                      u32 *defaultDuration, u32 *defaultSize, u32 *defaultDescriptionIndex,
                                      u32 *defaultRandomAccess, u8 *defaultPadding, u16 *defaultDegradationPriority)
@@ -4467,4 +4444,25 @@ GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescInd
 	if (decode_buffer_size) *decode_buffer_size = dbsize;
 	return GF_OK;
 }
+
+GF_EXPORT
+Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum)
+{
+	u32 i;
+	GF_TrackBox *trak;
+	GF_TrafToSampleMap *tmap;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !trak->Media) return GF_FALSE;
+	if (!trak->Media->information->sampleTable->traf_map) return GF_FALSE;
+
+	tmap = trak->Media->information->sampleTable->traf_map;
+	if (!tmap) return GF_FALSE;
+	for (i=0; i<tmap->nb_entries; i++) {
+		if (tmap->sample_num[i] == sampleNum) return GF_TRUE;
+		if (tmap->sample_num[i] > sampleNum) return GF_FALSE;
+	}
+	return GF_FALSE;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/

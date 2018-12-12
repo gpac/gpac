@@ -507,7 +507,7 @@ static unsigned int gf_memory_hash(void *ptr)
 #if defined(WIN32)
 	return (unsigned int) ( (((unsigned __int64)ptr>>4)+(unsigned __int64)ptr) % HASH_ENTRIES );
 #else
-	return (unsigned int) ( (((uint64_t)ptr>>4)+(uint64_t)ptr) % HASH_ENTRIES );
+	return (unsigned int) ( (((uint64_t) ((intptr_t) ptr)>>4) + (uint64_t) ((intptr_t)ptr) ) % HASH_ENTRIES );
 #endif
 }
 

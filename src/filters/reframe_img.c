@@ -284,6 +284,43 @@ GF_Err img_process(GF_Filter *filter)
 	return e;
 }
 
+#include <gpac/internal/isomedia_dev.h>
+
+static const char * img_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	/*JPEG*/
+	if ((data[0]==0xFF) && (data[1]==0xD8) && (data[2]==0xFF)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "image/jpg";
+	}
+	/*PNG*/
+	if ((data[0]==0x89) && (data[1]==0x50) && (data[2]==0x4E)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "image/png";
+	}
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	u32 bsize = gf_bs_read_u8(bs);
+	u32 btype = gf_bs_read_u32(bs);
+	if ( (bsize==12) && ( (btype==GF_ISOM_BOX_TYPE_JP ) || (btype==GF_ISOM_BOX_TYPE_JP2H) ) ) {
+		if (btype==GF_ISOM_BOX_TYPE_JP2H) {
+			*score = GF_FPROBE_SUPPORTED;
+			gf_bs_del(bs);
+			return "image/jp2";
+		}
+		btype = gf_bs_read_u32(bs);
+		if (btype==0x0D0A870A) {
+			*score = GF_FPROBE_SUPPORTED;
+			gf_bs_del(bs);
+			return "image/jp2";
+		}
+	}
+	gf_bs_del(bs);
+	if ((size >= 54) && (data[0] == 'B') && (data[1] == 'M')) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "image/bmp";
+	}
+	return NULL;
+}
 static const GF_FilterCapability ReframeImgCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -308,11 +345,12 @@ static const GF_FilterArgs ReframeImgArgs[] =
 
 GF_FilterRegister ReframeImgRegister = {
 	.name = "rfimg",
-	.description = "JPG/J2K/PNG/BMP Image reframer",
+	GF_FS_SET_DESCRIPTION("JPG/J2K/PNG/BMP Image reframer")
 	.private_size = sizeof(GF_ReframeImgCtx),
 	.args = ReframeImgArgs,
 	SETCAPS(ReframeImgCaps),
 	.configure_pid = img_configure_pid,
+	.probe_data = img_probe_data,
 	.process = img_process,
 };
 

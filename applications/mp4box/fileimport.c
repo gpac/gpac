@@ -248,7 +248,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay, force_rate;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
+	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
@@ -297,6 +297,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	split_tile_mode = 0;
 	temporal_mode = 0;
 	rap_only = 0;
+	refs_only = 0;
 	txt_flags = 0;
 	max_layer_id_plus_one = max_temporal_id_plus_one = 0;
 	force_rate = -1;
@@ -377,6 +378,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			else force_fps = atof(ext+5);
 		}
 		else if (!stricmp(ext+1, "rap")) rap_only = 1;
+		else if (!stricmp(ext+1, "refs")) refs_only = 1;
 		else if (!stricmp(ext+1, "trailing")) import_flags |= GF_IMPORT_KEEP_TRAILING;
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
@@ -424,6 +426,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
+		else if (!stricmp(ext+1, "deps")) import_flags |= GF_IMPORT_SAMPLE_DEPS;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
 		else if (!stricmp(ext+1, "xps_inband")) import_flags |= GF_IMPORT_FORCE_XPS_INBAND;
 		else if (!strnicmp(ext+1, "max_lid=", 8) || !strnicmp(ext+1, "max_tid=", 8)) {
@@ -562,6 +565,23 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			import.filter_dst_opts = ext2+1;
 			ext = NULL;
 			break;
+		}
+
+		else if (!strnicmp(ext+1, "asemode=", 8)){
+			char *mode = ext+9;
+			if (!stricmp(mode, "v0-bs"))
+				import.asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS;
+			else if (!stricmp(mode, "v0-2"))
+				import.asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2;
+			else if (!stricmp(mode, "v1"))
+				import.asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG;
+			else if (!stricmp(mode, "v1-qt"))
+				import.asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
+		}
+
+		else if (!strnicmp(ext+1, "audio_roll=", 11)) {
+			import.audio_roll_change = GF_TRUE;
+			import.audio_roll = atoi(ext+12);
 		}
 
 		/*unrecognized, assume name has colon in it*/
@@ -712,8 +732,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
 
-			if (rap_only) {
-				e = gf_media_remove_non_rap(import.dest, i+1);
+			if (rap_only || refs_only) {
+				e = gf_media_remove_non_rap(import.dest, i+1, refs_only);
 			}
 
 			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
@@ -850,8 +870,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (gf_isom_is_video_subtype(import.tk_info[i].stream_type) && (par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
-			if (rap_only) {
-				e = gf_media_remove_non_rap(import.dest, track);
+			if (rap_only || refs_only) {
+				e = gf_media_remove_non_rap(import.dest, track, refs_only);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
 			else if (!keep_handler) {

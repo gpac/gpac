@@ -882,6 +882,46 @@ Bool gf_sys_enable_profiling(Bool start)
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config();
 
+static GF_Config *gpac_lang_file = NULL;
+static const char *gpac_lang_code = NULL;
+
+GF_Config *gf_sys_get_lang_file()
+{
+	const char *opt = gf_opts_get_key("core", "lang");
+	char szSharedPath[GF_MAX_PATH];
+	if (!opt) return NULL;
+
+	if (gpac_lang_code && strcmp(gpac_lang_code, opt)) {
+		gf_cfg_del(gpac_lang_file);
+		gpac_lang_file = NULL;
+	}
+	gpac_lang_code = opt;
+
+	if (gpac_lang_file) return gpac_lang_file;
+
+	if (! gf_get_default_shared_directory(szSharedPath)) return NULL;
+	strcat(szSharedPath, "/lang/");
+	strcat(szSharedPath, opt);
+	strcat(szSharedPath, ".txt");
+	if (!gf_file_exists(szSharedPath)) return NULL;
+
+	gpac_lang_file = gf_cfg_new(NULL, szSharedPath);
+
+	return gpac_lang_file;
+}
+
+
+GF_EXPORT
+const char *gf_sys_localized(const char *sec_name, const char *key_name, const char *def_val)
+{
+	GF_Config *lcfg = gf_sys_get_lang_file();
+	if (!lcfg) return def_val;
+
+	const char *opt = gf_cfg_get_key(lcfg, sec_name, key_name);
+	if (opt) return opt;
+	return def_val;
+}
+
 GF_EXPORT
 GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 {
@@ -1031,6 +1071,9 @@ void gf_sys_close()
 			gf_fclose(gpac_log_file);
 			gpac_log_file = NULL;
 		}
+		if (gpac_lang_file) gf_cfg_del(gpac_lang_file);
+		gpac_lang_file = NULL;
+
 	}
 }
 

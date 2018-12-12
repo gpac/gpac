@@ -655,6 +655,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 #ifndef GPAC_DISABLE_X3D
 					case TAG_X3D_Inline:
 #endif
+						if (obj->num_open) gf_mo_stop(obj);
 						gf_node_set_private(n, NULL);
 						break;
 					}
@@ -2793,7 +2794,7 @@ void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
 	if (addon->root_od) {
 		addon->root_od->addon = NULL;
-		if (disconnect) {
+		if (disconnect) {				
 			gf_scene_remove_object(addon->root_od->parentscene, addon->root_od, 2);
 			gf_odm_disconnect(addon->root_od, 1);
 		}
@@ -2809,7 +2810,7 @@ void gf_scene_reset_addons(GF_Scene *scene)
 		GF_AddonMedia *addon = gf_list_last(scene->declared_addons);
 		gf_list_rem_last(scene->declared_addons);
 
-		gf_scene_reset_addon(addon, 0);
+		gf_scene_reset_addon(addon, GF_FALSE);
 	}
 }
 #ifdef FILTER_FIXME
@@ -2832,7 +2833,10 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	//we force the timeline of the addon to be locked with the main scene
 	mo = gf_scene_get_media_object(scene, &url, GF_MEDIA_OBJECT_SCENE, GF_TRUE);
 
-	if (!mo || !mo->odm) return;
+	if (!mo || !mo->odm) {
+		assert(0);
+		return;
+	}
 
 	addon->root_od = mo->odm;
 	mo->odm->addon = addon;
@@ -2898,8 +2902,10 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 				load_associated_media(scene, addon);
 			}
 			//nothing associated, deactivate addon
-			if (!addon_info->external_URL) {
-				gf_scene_reset_addon(addon, 1);
+			if (!addon_info->external_URL || !strlen(addon_info->external_URL) ) {
+				gf_list_rem(scene->declared_addons, i);
+				gf_scene_reset_addon(addon, GF_TRUE);
+				gf_scene_toggle_addons(scene, GF_FALSE);
 			} else if (strcmp(addon_info->external_URL, addon->url)) {
 				//reconfigure addon
 				gf_free(addon->url);
@@ -2911,7 +2917,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		addon = NULL;
 	}
 
-	if (!addon_info->external_URL) {
+	if (!addon_info->external_URL || !strlen(addon_info->external_URL) ) {
 		return;
 	}
 

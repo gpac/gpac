@@ -423,6 +423,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	u32 duration, size, flags, cts_offset, prev_trun_data_offset;
 	u8 pad, sync;
 	u16 degr;
+	Bool first_samp_in_traf=GF_TRUE;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
 
@@ -525,6 +526,11 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				                         DescIndex, trun->sample_count);
 			}
 			chunk_size += size;
+
+			if (first_samp_in_traf) {
+				first_samp_in_traf = GF_FALSE;
+				stbl_AppendTrafMap(trak->Media->information->sampleTable);
+			}
 
 
 			//CTS

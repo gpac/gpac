@@ -83,10 +83,10 @@ int stream_file_rtp(int argc, char **argv)
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = GF_TRUE;
-    GF_MemTrackerType mem_track = GF_MemTrackerNone;
+   	GF_MemTrackerType mem_track = GF_MemTrackerNone;
 	Bool force_mpeg4 = GF_FALSE;
-    u32 path_mtu = 1450;
-    Double run_for = -1.0;
+   	u32 path_mtu = 1450;
+   	Double run_for = -1.0;
 	u32 i;
 
 	for (i = 1; i < (u32) argc ; i++) {

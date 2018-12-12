@@ -420,7 +420,7 @@ static const GF_FilterArgs XVIDArgs[] =
 
 GF_FilterRegister XVIDRegister = {
 	.name = "xviddec",
-	.description = "XVid decoder",
+	GF_FS_SET_DESCRIPTION("XVid decoder")
 	.private_size = sizeof(GF_XVIDCtx),
 	.args = XVIDArgs,
 	SETCAPS(XVIDCaps),

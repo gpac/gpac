@@ -1949,6 +1949,7 @@ GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frame
 	if ((byte & 0xe0) != 0xc0)
 		goto exit; /*no superframe*/
 
+	frame_sizes[0] = 0;
 	for (i = 0; i < *num_frames_in_superframe; ++i) {
 		gf_bs_read_data(bs, (char*)(frame_sizes+i), bytes_per_framesize);
 	}
@@ -2220,7 +2221,7 @@ static void vp9_read_interpolation_filter(GF_BitStream *bs)
 GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight)
 {
 	Bool FrameIsIntra = GF_FALSE, profile_low_bit = GF_FALSE, profile_high_bit = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
-	//u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0;
+	/*u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0*/;
 	int Sb64Cols = 0, Sb64Rows = 0;
 
 	assert(bs && key_frame);

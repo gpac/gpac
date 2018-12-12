@@ -188,6 +188,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
 
 	ctx->ipid = pid;
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	if (!dcd && !dcd_enh)
 		return GF_OK;
 
@@ -305,10 +306,25 @@ GF_Err nalumx_process(GF_Filter *filter)
 		size += ctx->is_hevc ? 3 : 2;
 		size += 4;
 	}
-	sap = gf_filter_pck_get_sap(pck);
-	if (sap && (sap <= GF_FILTER_SAP_3) && ctx->dsi) {
-		insert_dsi = GF_TRUE;
-		size += ctx->dsi_size;
+
+	if (ctx->dsi) {
+		sap = gf_filter_pck_get_sap(pck);
+		if (sap && (sap <= GF_FILTER_SAP_3) ) {
+			insert_dsi = GF_TRUE;
+		}
+		if (!insert_dsi) {
+			u8 flags = gf_filter_pck_get_dependency_flags(pck);
+			//get dependsOn
+			if (flags) {
+				flags>>=4;
+				flags &= 0x3;
+				if (flags==2) insert_dsi = GF_TRUE; //could be SAP 1, 2 or 3
+			}
+		}
+
+		if (insert_dsi) {
+			size += ctx->dsi_size;
+		}
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
@@ -410,7 +426,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 
 GF_FilterRegister NALUMxRegister = {
 	.name = "ufnalu",
-	.description = "ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC",
+	GF_FS_SET_DESCRIPTION("ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC")
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
 	.finalize = nalumx_finalize,

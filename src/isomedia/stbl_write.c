@@ -537,6 +537,54 @@ GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 	return GF_OK;
 }
 
+GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
+{
+	u32 flags;
+	GF_SampleDependencyTypeBox *sdtp;
+
+	if (stbl->SampleDep == NULL) {
+		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+		if (!stbl->SampleDep) return GF_OUT_OF_MEM;
+	}
+	sdtp = stbl->SampleDep;
+	if (sdtp->sampleCount + 1 < sampleNumber) {
+		u32 missed = sampleNumber-1 - sdtp->sampleCount;
+		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount+missed) );
+		memset(&sdtp->sample_info[sdtp->sampleCount], 0, sizeof(u8) * missed );
+		while (missed) {
+			SAPType isRAP;
+			if (stbl->SyncSample) stbl_GetSampleRAP(stbl->SyncSample, sdtp->sampleCount+1, &isRAP, NULL, NULL);
+			else isRAP = 1;
+			sdtp->sample_info[sdtp->sampleCount] = isRAP ? (2<<4) : 0;
+			if (isRAP) {
+				sdtp->sample_info[sdtp->sampleCount] = 0;
+
+			}
+			sdtp->sampleCount++;
+			missed--;
+		}
+	}
+
+	flags = 0;
+	flags |= isLeading << 6;
+	flags |= dependsOn << 4;
+	flags |= dependedOn << 2;
+	flags |= redundant;
+
+	sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount + 1));
+	if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+	if (sdtp->sampleCount < sampleNumber) {
+		sdtp->sample_info[sdtp->sampleCount] = flags;
+	} else {
+		u32 snum = sampleNumber-1;
+		memmove(sdtp->sample_info+snum+1, sdtp->sample_info+snum, sizeof(u8) * (sdtp->sampleCount - snum) );
+		sdtp->sample_info[snum] = flags;
+	}
+	//update our list
+	sdtp->sampleCount ++;
+	return GF_OK;
+}
+
 GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
 {
 	GF_SampleDependencyTypeBox *sdtp;
@@ -823,7 +871,7 @@ GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 		if (isRAP) return GF_OK;
 		/*remove it...*/
 		if (i+1 < stss->nb_entries)
-			memcpy(stss->sampleNumbers + i, stss->sampleNumbers + i + 1, sizeof(u32) * (stss->nb_entries - i - 1));
+			memmove(stss->sampleNumbers + i, stss->sampleNumbers + i + 1, sizeof(u32) * (stss->nb_entries - i - 1));
 		stss->nb_entries--;
 		return GF_OK;
 	}
@@ -837,7 +885,7 @@ GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 	}
 
 	if (i+1 < stss->nb_entries)
-		memcpy(stss->sampleNumbers + i + 1, stss->sampleNumbers + i, sizeof(u32) * (stss->nb_entries - i - 1));
+		memmove(stss->sampleNumbers + i + 1, stss->sampleNumbers + i, sizeof(u32) * (stss->nb_entries - i - 1));
 	stss->sampleNumbers[i] = SampleNumber;
 	stss->nb_entries ++;
 	return GF_OK;
@@ -1014,7 +1062,7 @@ GF_Err stbl_RemoveSize(GF_SampleSizeBox *stsz, u32 sampleNumber)
 		return GF_OK;
 	}
 	if (sampleNumber < stsz->sampleCount) {
-		memcpy(stsz->sizes + sampleNumber - 1, stsz->sizes + sampleNumber, sizeof(u32) * (stsz->sampleCount - sampleNumber));
+		memmove(stsz->sizes + sampleNumber - 1, stsz->sizes + sampleNumber, sizeof(u32) * (stsz->sampleCount - sampleNumber));
 	}
 	stsz->sampleCount--;
 	return GF_OK;
@@ -1275,7 +1323,7 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber)
 			if ((SampleNumber>prev_sample) && (SampleNumber <= prev_sample + e->sample_entries[k].sample_count) ) {
 				e->sample_entries[k].sample_count--;
 				if (!e->sample_entries[k].sample_count) {
-					memcpy(&e->sample_entries[k], &e->sample_entries[k+1], sizeof(GF_SampleGroupEntry) * (e->entry_count-k-1));
+					memmove(&e->sample_entries[k], &e->sample_entries[k+1], sizeof(GF_SampleGroupEntry) * (e->entry_count-k-1));
 					e->entry_count--;
 				}
 				break;
@@ -1287,99 +1335,6 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber)
 			count--;
 			gf_isom_box_del((GF_Box *) e);
 		}
-	}
-	return GF_OK;
-}
-
-
-
-
-GF_Err stbl_AddSampleFragment(GF_SampleTableBox *stbl, u32 sampleNumber, u16 size)
-{
-	GF_Err e;
-	u32 i, count;
-	GF_StsfEntry *ent;
-	GF_SampleFragmentBox *stsf;
-	stsf = stbl->Fragments;
-
-	if (!stsf) {
-		//create table if any
-		stsf = (GF_SampleFragmentBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSF);
-		if (!stsf) return GF_OUT_OF_MEM;
-		e = stbl_AddBox((GF_Box*)stbl, (GF_Box *) stsf);
-		if (e) return e;
-	}
-
-	//check cache
-	if (!stsf->w_currentEntry || (stsf->w_currentEntry->SampleNumber < sampleNumber)) {
-		stsf->w_currentEntry = NULL;
-		stsf->w_currentEntryIndex = 0;
-	}
-	i = stsf->w_currentEntryIndex;
-
-	count = gf_list_count(stsf->entryList);
-	for (; i<count; i++) {
-		ent = (GF_StsfEntry *)gf_list_get(stsf->entryList, i);
-		if (ent->SampleNumber > sampleNumber) {
-			ent = (GF_StsfEntry *)gf_malloc(sizeof(GF_StsfEntry));
-			if (!ent) return GF_OUT_OF_MEM;
-			memset(ent, 0, sizeof(GF_StsfEntry));
-			ent->SampleNumber = sampleNumber;
-			gf_list_insert(stsf->entryList, ent, i);
-			stsf->w_currentEntry = ent;
-			stsf->w_currentEntryIndex = i;
-			goto ent_found;
-		}
-		else if (ent->SampleNumber == sampleNumber) {
-			stsf->w_currentEntry = ent;
-			stsf->w_currentEntryIndex = i;
-			goto ent_found;
-		}
-	}
-	//if we get here add a new entry
-	GF_SAFEALLOC(ent, GF_StsfEntry);
-	if (!ent) return GF_OUT_OF_MEM;
-	ent->SampleNumber = sampleNumber;
-	gf_list_add(stsf->entryList, ent);
-	stsf->w_currentEntry = ent;
-	stsf->w_currentEntryIndex = gf_list_count(stsf->entryList)-1;
-
-ent_found:
-	if (!ent->fragmentCount) {
-		ent->fragmentCount = 1;
-		ent->fragmentSizes = (u16*)gf_malloc(sizeof(u16));
-		if (!ent->fragmentSizes) return GF_OUT_OF_MEM;
-		ent->fragmentSizes[0] = size;
-		return GF_OK;
-	}
-	ent->fragmentSizes = (u16*)gf_realloc(ent->fragmentSizes, sizeof(u16) * (ent->fragmentCount+1));
-	if (!ent->fragmentSizes) return GF_OUT_OF_MEM;
-	ent->fragmentSizes[ent->fragmentCount] = size;
-	ent->fragmentCount += 1;
-
-	return GF_OK;
-}
-
-GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber)
-{
-	u32 i;
-	GF_StsfEntry *ent;
-	GF_SampleFragmentBox *stsf = stbl->Fragments;
-
-	i=0;
-	while ((ent = (GF_StsfEntry *)gf_list_enum(stsf->entryList, &i))) {
-		if (ent->SampleNumber == sampleNumber) {
-			gf_list_rem(stsf->entryList, i-1);
-			if (ent->fragmentSizes) gf_free(ent->fragmentSizes);
-			gf_free(ent);
-			goto exit;
-		}
-	}
-exit:
-	//empty table, remove it
-	if (!gf_list_count(stsf->entryList)) {
-		stbl->Fragments = NULL;
-		gf_isom_box_del((GF_Box *)stsf);
 	}
 	return GF_OK;
 }
@@ -1475,6 +1430,8 @@ void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size)
 	stbl->SampleSize->sizes[stbl->SampleSize->sampleCount] = size;
 	stbl->SampleSize->sampleCount += 1;
 }
+
+
 
 void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 {
@@ -1588,6 +1545,27 @@ void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 	}
 	stbl->SyncSample->sampleNumbers[stbl->SyncSample->nb_entries] = stbl->SampleSize->sampleCount;
 	stbl->SyncSample->nb_entries += 1;
+}
+
+void stbl_AppendTrafMap(GF_SampleTableBox *stbl)
+{
+	GF_TrafToSampleMap *tmap;
+
+	if (!stbl->traf_map) {
+		//nope, create one
+		GF_SAFEALLOC(stbl->traf_map, GF_TrafToSampleMap);
+		if (!stbl->traf_map) return;
+	}
+	tmap = stbl->traf_map;
+	if (tmap->nb_entries >= stbl->SampleSize->sampleCount)
+		tmap->nb_entries = 0;
+
+	if (tmap->nb_entries + 1 > tmap->nb_alloc) {
+		tmap->nb_alloc++;
+		tmap->sample_num = gf_realloc(tmap->sample_num, sizeof(u32) * tmap->nb_alloc);
+	}
+	tmap->sample_num[tmap->nb_entries] = stbl->SampleSize->sampleCount;
+	tmap->nb_entries += 1;
 }
 
 void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)

@@ -316,16 +316,16 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 	dur.num = 0;
 
 	if (ctx->fmt == GF_TXTIN_MODE_SWF_SVG) {
-		u32 frame_count, frame_rate;
 #ifndef GPAC_DISABLE_SWF_IMPORT
+		u32 frame_count, frame_rate;
 		gf_swf_get_duration(ctx->swf_parse, &frame_rate, &frame_count);
-#endif
 		if (frame_count) {
 			GF_Fraction dur;
 			dur.num = frame_count;
 			dur.den = frame_rate;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
 		}
+#endif
 		return;
 	}
 	if ((ctx->fmt == GF_TXTIN_MODE_SRT) || (ctx->fmt == GF_TXTIN_MODE_WEBVTT)  || (ctx->fmt == GF_TXTIN_MODE_SUB)) {
@@ -2790,6 +2790,38 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		*score = GF_FPROBE_SUPPORTED;
 		return "subtitle/vtt";
 	}
+	if (strstr(data, " --> ")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/srt";
+	}
+	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "application/x-shockwave-flash";
+	}
+
+	if ((data[0]=='{') && strstr(data, "}{")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/sub";
+
+	}
+	/*XML formats*/
+	if (!strstr(data, "?>") )  return NULL;
+
+	if (strstr(data, "<x-quicktime-tx3g") || strstr(data, "<text3GTrack")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "quicktime/text";
+
+	}
+	if (strstr(data, "TextStream")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/ttxt";
+	}
+	if (strstr(data, "tt")) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "subtitle/ttml";
+
+	}
+
 	return NULL;
 }
 static const GF_FilterCapability TXTInCaps[] =
@@ -2833,7 +2865,7 @@ static const GF_FilterArgs TXTInArgs[] =
 
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
-	.description = "Timed text  SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG loader",
+	GF_FS_SET_DESCRIPTION("Timed text  SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG loader")
 	.private_size = sizeof(GF_TXTIn),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = TXTInArgs,

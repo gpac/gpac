@@ -47,7 +47,8 @@ typedef struct
 {
 	//args
 	Bool exporter;
-	char *sap;
+	GF_PropUIntList saps;
+	Bool refs;
 	u32 rt;
 	Double speed;
 	Bool raw;
@@ -65,6 +66,7 @@ typedef struct
 
 GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	u32 i;
 	const GF_PropertyValue *p;
 	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
 	RTStream *st = gf_filter_pid_get_udta(pid);
@@ -97,12 +99,14 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	else st->timescale = 1000;
 
 	ctx->filter_sap1 = ctx->filter_sap2 = ctx->filter_sap3 = ctx->filter_sap4 = ctx->filter_sap_none = GF_FALSE;
-	if (ctx->sap) {
-		if (strchr(ctx->sap, '1')) ctx->filter_sap1 = GF_TRUE;
-		if (strchr(ctx->sap, '2')) ctx->filter_sap2 = GF_TRUE;
-		if (strchr(ctx->sap, '3')) ctx->filter_sap3 = GF_TRUE;
-		if (strchr(ctx->sap, '4')) ctx->filter_sap4 = GF_TRUE;
-		if (strchr(ctx->sap, '0')) ctx->filter_sap_none = GF_TRUE;
+	for (i=0; i<ctx->saps.nb_items; i++) {
+		switch (ctx->saps.vals[i]) {
+		case 1: ctx->filter_sap1 = GF_TRUE; break;
+		case 2: ctx->filter_sap2 = GF_TRUE; break;
+		case 3: ctx->filter_sap3 = GF_TRUE; break;
+		case 4: ctx->filter_sap4 = GF_TRUE; break;
+		default: ctx->filter_sap_none = GF_TRUE; break;
+		}
 	}
 
 	return GF_OK;
@@ -179,23 +183,31 @@ GF_Err reframer_process(GF_Filter *filter)
 				}
 				break;
 			}
-			if (ctx->sap) {
+			if (ctx->refs) {
+				u8 deps = gf_filter_pck_get_dependency_flags(pck);
+				deps >>= 2;
+				deps &= 0x3;
+				//not used as reference, don't forward
+				if (deps==2)
+					forward = GF_FALSE;
+			}
+			if (ctx->saps.nb_items) {
 				u32 sap = gf_filter_pck_get_sap(pck);
 				switch (sap) {
 				case GF_FILTER_SAP_1:
-				 	if (!ctx->filter_sap1) forward = GF_FALSE;
-				 	break;
+					if (!ctx->filter_sap1) forward = GF_FALSE;
+					break;
 				case GF_FILTER_SAP_2:
-				 	if (!ctx->filter_sap2) forward = GF_FALSE;
-				 	break;
+					if (!ctx->filter_sap2) forward = GF_FALSE;
+					break;
 				case GF_FILTER_SAP_3:
-				 	if (!ctx->filter_sap3) forward = GF_FALSE;
-				 	break;
+					if (!ctx->filter_sap3) forward = GF_FALSE;
+					break;
 				case GF_FILTER_SAP_4:
-				 	if (!ctx->filter_sap4) forward = GF_FALSE;
-				 	break;
+					if (!ctx->filter_sap4) forward = GF_FALSE;
+					break;
 				default:
-				 	if (!ctx->filter_sap_none) forward = GF_FALSE;
+					if (!ctx->filter_sap_none) forward = GF_FALSE;
 					break;
 				}
 			}
@@ -263,8 +275,9 @@ static const GF_FilterCapability ReframerCaps[] =
 static const GF_FilterArgs ReframerArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sap), "Drops non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding ...", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "real-time regulation mode of input. off disables it, on enables it on each pid, sync enables it on all pid", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(saps), "drops non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(refs), "forwards only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "forces input streams to be in raw format (i.e. forces decoding of input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
@@ -272,12 +285,12 @@ static const GF_FilterArgs ReframerArgs[] =
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
-	.description = "Passthrough filter ensuring reframing, and optionnally decoding, of inputs",
-	.help = "This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
+	GF_FS_SET_DESCRIPTION("Passthrough filter ensuring reframing, and optionnally decoding, of inputs")
+	GF_FS_SET_HELP("This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
 		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video\n"\
 		"The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:\n"\
 		"\tEX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\
-		,
+		)
 	.private_size = sizeof(GF_ReframerCtx),
 	.max_extra_pids = (u32) -1,
 	.args = ReframerArgs,

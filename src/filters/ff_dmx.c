@@ -217,7 +217,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
-		gf_filter_pck_set_duration(pck_dst, ctx->pkt.duration);
+		gf_filter_pck_set_duration(pck_dst, (u32) ctx->pkt.duration);
 	}
 
 	//fixme: try to identify SAP type 2 and more
@@ -579,8 +579,8 @@ static const GF_FilterCapability FFDmxCaps[] =
 
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
-	.description = "FFMPEG demuxer "LIBAVFORMAT_IDENT,
-	.help = "See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options",
+	GF_FS_SET_DESCRIPTION("FFMPEG demuxer "LIBAVFORMAT_IDENT)
+	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options")
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFDmxCaps),
 	.initialize = ffdmx_initialize,
@@ -640,7 +640,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 		args[i+1] = ffmpeg_arg_translate(opt);
 		i++;
 	}
-	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
+	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 	avformat_free_context(dmx_ctx);
 
@@ -850,15 +850,15 @@ static const GF_FilterCapability FFAVInCaps[] =
 
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
-	.description = "FFMPEG Audio Video Capture "LIBAVDEVICE_IDENT,
-	.help = "Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux\n\n"\
+	GF_FS_SET_DESCRIPTION("FFMPEG Audio Video Capture "LIBAVDEVICE_IDENT)
+	GF_FS_SET_HELP("Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux\n\n"\
 	"Typical device name can be the webcam name:\n"\
 		"'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux\n"\
 		"'screen-capture-recorder', see http://screencapturer.sf.net/ on windows\n"\
 		"'Capture screen 0' on OSX (0=first screen)\n"\
 		"X display name (eg ':0.0') on linux"\
 		"\n"\
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options",
+		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options")
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFAVInCaps),
 	.initialize = ffavin_initialize,
