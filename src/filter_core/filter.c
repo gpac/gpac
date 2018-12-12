@@ -1630,7 +1630,9 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	if (f->session->filters_mx) gf_mx_p(f->session->filters_mx);
 
 	res = gf_list_del_item(f->session->filters, f);
-	assert (res >=0 );
+	if (res < 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s task failure callback on already removed filter!\n", f->name));
+	}
 
 	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
 
@@ -1741,7 +1743,9 @@ void gf_filter_remove_task(GF_FSTask *task)
 	if (f->session->filters_mx) gf_mx_p(f->session->filters_mx);
 
 	res = gf_list_del_item(f->session->filters, f);
-	assert (res >=0 );
+	if (res<0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s destruction task on already removed filter\n", f->name));
+	}
 
 	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
 

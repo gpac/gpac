@@ -866,7 +866,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 	GF_DataInformationBox *dinf;
 	GF_SampleTableBox *stbl;
 	GF_DataReferenceBox *dref;
-	char *str;
+	char *str="";
 
 	GF_Err e;
 

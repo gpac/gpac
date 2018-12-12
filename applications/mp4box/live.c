@@ -80,8 +80,6 @@ int stream_file_rtp(int argc, char **argv)
 	char *ip_dest = "127.0.0.1";
 	const char *ifce_addr = NULL;
 	char *inName = NULL;
-	char *logs=NULL;
-	FILE *logfile=NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = GF_TRUE;
@@ -108,11 +106,9 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
-        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
-		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
-		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
-        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
+	        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
+	        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
+	        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
 	}
 
 	gf_sys_init(mem_track, NULL);
@@ -125,7 +121,6 @@ int stream_file_rtp(int argc, char **argv)
 
 	if (!gf_isom_probe_file(inName)) {
 		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
-		if (logfile) gf_fclose(logfile);
 		gf_sys_close();
 		return 1;
 	}
@@ -156,7 +151,6 @@ int stream_file_rtp(int argc, char **argv)
 		}
 		gf_isom_streamer_del(file_streamer);
 	}
-	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 	return 0;
 }
@@ -467,7 +461,7 @@ int live_session(int argc, char **argv)
 	u32 i;
 	char *filename = NULL;
 	char *dst = NULL;
-	char *ifce_addr = NULL;
+	const char *ifce_addr = NULL;
 	char *sdp_name = "session.sdp";
 	u16 dst_port = 7000;
 	u32 load_type=0;
@@ -537,7 +531,7 @@ int live_session(int argc, char **argv)
 		fprintf(stderr, "Cannot create scene engine\n");
 		return 1;
 	}
-	if (livesess.streams) live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, ifce_addr, sdp_name);
+	if (livesess.streams) live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, (char *) ifce_addr, sdp_name);
 
 	has_carousel = 0;
 	last_src_modif = src_name ? gf_file_modification_time(src_name) : 0;

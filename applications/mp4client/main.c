@@ -1002,11 +1002,8 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 	return 1;
 }
 
-static u64 last_log_time=0;
 static void on_rti_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
-	FILE *logs = cbk ? cbk : stderr;
-
 	if (rti_logs && (lm & GF_LOG_RTI)) {
 		char szMsg[2048];
 		vsprintf(szMsg, fmt, list);
