@@ -548,7 +548,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="libgpac.vcxproj">
+    <ProjectReference Include="libgpac_dll.vcxproj"  Condition="'$(Configuration)'=='Release'" >
+      <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
+    </ProjectReference>
+    <ProjectReference Include="libgpac_dll.vcxproj"  Condition="'$(Configuration)'=='Debug'" >
+      <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
+    </ProjectReference>
+    <ProjectReference Include="libgpac.vcxproj"  Condition="'$(Configuration)'=='Release - MP4Box_only'">
+      <Project>{233014d5-f6e5-419d-8757-fa9ce7337088}</Project>
+    </ProjectReference>
+    <ProjectReference Include="libgpac.vcxproj"  Condition="'$(Configuration)'=='Debug - MP4Box_only'">
       <Project>{233014d5-f6e5-419d-8757-fa9ce7337088}</Project>
     </ProjectReference>
   </ItemGroup>

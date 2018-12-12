@@ -2376,3 +2376,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_sources ) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_av1_config_get ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_read_sps_bs ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_read_pps_bs ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_hls_clock ) )
