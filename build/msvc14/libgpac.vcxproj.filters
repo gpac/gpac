@@ -1451,6 +1451,7 @@
     <ClCompile Include="..\..\src\filters\in_atsc.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_latm.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\filters\dec_vtb_glctx.m">
