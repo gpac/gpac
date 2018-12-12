@@ -69,7 +69,7 @@ void gf_modules_free_module(ModuleInstance *inst)
 
 Bool gf_modules_load_library(ModuleInstance *inst)
 {
-#if defined(GPAC_MP4BOX_MINI) || defined(GPAC_STATIC_MODULES)
+#if defined(GPAC_MP4BOX_MINI)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load dynamic module %s from static build.\n", (inst && inst->name) ? inst->name : ""));
 	return GF_FALSE;
 #endif
