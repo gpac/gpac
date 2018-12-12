@@ -1885,7 +1885,7 @@ naldmx_flush:
 		u32 nal_bytes_from_store = 0;
 		Bool skip_nal = GF_FALSE;
 		u64 size=0;
-		u32 sc_size;
+		u32 sc_size, store_sc_size=0;
 		u32 bytes_from_store = 0;
 		u32 hdr_offset = 0;
 		Bool full_nal_required = GF_FALSE;
@@ -1907,6 +1907,7 @@ naldmx_flush:
 		Bool slice_is_b = GF_FALSE;
 		Bool full_nal = GF_FALSE;
 		s32 slice_poc = 0;
+		u32 next_size = 0;
 
 		Bool copy_last_bytes = GF_FALSE;
 
@@ -1921,6 +1922,7 @@ naldmx_flush:
 		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
+			Bool split_start_code=GF_FALSE;
 
 			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, SAFETY_NAL_STORE - ctx->bytes_in_header);
 			current = gf_media_nalu_next_start_code(ctx->hdr_store, SAFETY_NAL_STORE, &sc_size);
@@ -1949,6 +1951,29 @@ naldmx_flush:
 					nal_sc_in_store = GF_TRUE;
 				} else {
 					//this is trickier, nal start is in the store buffer
+					u8 lastb2, lastb1, nextb1;
+
+					lastb2 = ctx->hdr_store[ctx->bytes_in_header-2];
+					lastb1 = ctx->hdr_store[ctx->bytes_in_header-1];
+					nextb1 = start[0];
+
+					if (!lastb1 && !lastb2) { split_start_code=GF_TRUE; }
+					else if (!lastb1 && !nextb1) { split_start_code = GF_TRUE; }
+
+					if (split_start_code ) {
+						u32 store_remain = SAFETY_NAL_STORE - (current + sc_size);
+						u32 next_sc_size;
+						s32 next = gf_media_nalu_next_start_code(ctx->hdr_store + current+sc_size, store_remain, &next_sc_size);
+						assert(!current);
+						if ((next>0) && (next + current+sc_size < ctx->bytes_in_header)) {
+
+							next_size = next - current;
+							nal_bytes_from_store = next_size;
+							store_sc_size=sc_size;
+						} else {
+							split_start_code = 0;
+						}
+					}
 
 					//we still have current bytes to dispatch
 					bytes_from_store = current;
@@ -1958,11 +1983,16 @@ naldmx_flush:
 
 					nal_hdr_in_store = GF_TRUE;
 
-					//and we need to copy the nal first bytes from the store
-					nal_bytes_from_store = ctx->bytes_in_header - (current + sc_size);
+
+					if (!split_start_code) {
+						//and we need to copy the nal first bytes from the store
+						nal_bytes_from_store = ctx->bytes_in_header - (current + sc_size);
+					}
 
 				}
-				ctx->bytes_in_header = 0;
+				if (!split_start_code) {
+					ctx->bytes_in_header = 0;
+				}
 			}
 		}
 		//no starcode in store, look for startcode in packet
@@ -2124,46 +2154,51 @@ naldmx_flush:
 			}
 			nal_ref_idc = (hdr_start[0] & 0x60) >> 5;
 		}
-		if (full_nal_required) {
-			//we need the full nal loaded
-			next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-			if (next==pck_avail)
-				next = -1;
+		if (!next_size) {
+			if (full_nal_required) {
+				//we need the full nal loaded
+				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
+				if (next==pck_avail)
+					next = -1;
 
-			if (next<0) {
-				if (sc_size) pck_avail += sc_size;
-				if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_avail) {
-					ctx->hdr_store_alloc = ctx->hdr_store_size + pck_avail;
-					ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+				if (next<0) {
+					if (sc_size) pck_avail += sc_size;
+					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_avail) {
+						ctx->hdr_store_alloc = ctx->hdr_store_size + pck_avail;
+						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+					}
+					memcpy(ctx->hdr_store + ctx->hdr_store_size, start, sizeof(char)*pck_avail);
+					ctx->hdr_store_size += pck_avail;
+					gf_filter_pid_drop_packet(ctx->ipid);
+					return GF_OK;
 				}
-				memcpy(ctx->hdr_store + ctx->hdr_store_size, start, sizeof(char)*pck_avail);
-				ctx->hdr_store_size += pck_avail;
-				gf_filter_pid_drop_packet(ctx->ipid);
-				return GF_OK;
+			} else {
+				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
+				if (!is_eos && (next == pck_avail))
+					next = -1;
+			}
+
+			//ok we have either a full nal, or the start of a NAL we can start to process, parse NAL
+			if (next<0) {
+				size = pck_avail;
+			} else {
+				full_nal = GF_TRUE;
+				size = next;
+			}
+			if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
+				assert(!nal_sc_in_store);
+				assert(!nal_hdr_in_store);
+				assert(remain < SAFETY_NAL_STORE);
+				memcpy(ctx->hdr_store, start, remain);
+				ctx->bytes_in_header = remain;
+				break;
+			}
+			if (!nal_hdr_in_store) {
+				hdr_avail = (u32) size;
 			}
 		} else {
-			next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-			if (!is_eos && (next == pck_avail))
-				next = -1;
-		}
-
-		//ok we have either a full nal, or the start of a NAL we can start to process, parse NAL
-		if (next<0) {
-			size = pck_avail;
-		} else {
 			full_nal = GF_TRUE;
-			size = next;
-		}
-		if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
-			assert(!nal_sc_in_store);
-			assert(!nal_hdr_in_store);
-			assert(remain < SAFETY_NAL_STORE);
-			memcpy(ctx->hdr_store, start, remain);
-			ctx->bytes_in_header = remain;
-			break;
-		}
-		if (!nal_hdr_in_store) {
-			hdr_avail = (u32) size;
+			size = next_size;
 		}
 
 		if (ctx->is_hevc) {
@@ -2476,7 +2511,7 @@ naldmx_flush:
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
 		//needs adjustement
-		if (nal_hdr_in_store) {
+		if (nal_hdr_in_store && !next_size) {
 			size += nal_bytes_from_store;
 		}
 
@@ -2529,7 +2564,15 @@ naldmx_flush:
 			memcpy(pck_data, hdr_start, nal_bytes_from_store);
 			assert(size >= nal_bytes_from_store);
 			size -= nal_bytes_from_store;
-			memcpy(pck_data + nal_bytes_from_store, pck_start, (size_t) size);
+			if (size)
+				memcpy(pck_data + nal_bytes_from_store, pck_start, (size_t) size);
+
+			if (next_size) {
+				assert(!size);
+				memmove(ctx->hdr_store, hdr_start+nal_bytes_from_store,ctx->bytes_in_header - nal_bytes_from_store);
+				ctx->bytes_in_header -= next_size+store_sc_size;
+				continue;
+			}
 		} else {
 			//bytes only come from the data packet
 			memcpy(pck_data, pck_start, (size_t) size);
