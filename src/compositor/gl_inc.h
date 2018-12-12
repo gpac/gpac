@@ -118,8 +118,9 @@ typedef ret (GLAPICAST proc_ ## funname)args;	\
 extern proc_ ## funname funname;	\
  
 
-#define GLDECL_STATIC(funname) proc_ ## funname funname = NULL
-#define GLDECL_EXTERN(funname) proc_ ## funname funname;
+#define GLDECL_FUNC(funname) proc_ ## funname funname = NULL
+#define GLDECL_FUNC_STATIC(funname) static proc_ ## funname funname = NULL
+#define GLDECL_EXTERN(funname) extern proc_ ## funname funname;
 
 #if defined GPAC_USE_TINYGL
 //no extensions with TinyGL

@@ -78,37 +78,37 @@ GLDECL(void, glVertexAttribIPointer, (GLuint  index, GLint  size, GLenum  type, 
 #define TEXTURE_TYPE GL_TEXTURE_2D
 
 #ifdef WIN32
-GLDECL_STATIC(glActiveTexture);
-GLDECL_STATIC(glClientActiveTexture);
-GLDECL_STATIC(glCreateProgram);
-GLDECL_STATIC(glDeleteProgram);
-GLDECL_STATIC(glLinkProgram);
-GLDECL_STATIC(glUseProgram);
-GLDECL_STATIC(glCreateShader);
-GLDECL_STATIC(glDeleteShader);
-GLDECL_STATIC(glShaderSource);
-GLDECL_STATIC(glCompileShader);
-GLDECL_STATIC(glAttachShader);
-GLDECL_STATIC(glDetachShader);
-GLDECL_STATIC(glGetShaderiv);
-GLDECL_STATIC(glGetInfoLogARB);
-GLDECL_STATIC(glGetUniformLocation);
-GLDECL_STATIC(glUniform1f);
-GLDECL_STATIC(glUniform1i);
-GLDECL_STATIC(glGenBuffers);
-GLDECL_STATIC(glDeleteBuffers);
-GLDECL_STATIC(glBindBuffer);
-GLDECL_STATIC(glBufferData);
-GLDECL_STATIC(glBufferSubData);
-GLDECL_STATIC(glMapBuffer);
-GLDECL_STATIC(glUnmapBuffer);
-GLDECL_STATIC(glGetAttribLocation);
+GLDECL_FUNC_STATIC(glActiveTexture);
+GLDECL_FUNC_STATIC(glClientActiveTexture);
+GLDECL_FUNC_STATIC(glCreateProgram);
+GLDECL_FUNC_STATIC(glDeleteProgram);
+GLDECL_FUNC_STATIC(glLinkProgram);
+GLDECL_FUNC_STATIC(glUseProgram);
+GLDECL_FUNC_STATIC(glCreateShader);
+GLDECL_FUNC_STATIC(glDeleteShader);
+GLDECL_FUNC_STATIC(glShaderSource);
+GLDECL_FUNC_STATIC(glCompileShader);
+GLDECL_FUNC_STATIC(glAttachShader);
+GLDECL_FUNC_STATIC(glDetachShader);
+GLDECL_FUNC_STATIC(glGetShaderiv);
+GLDECL_FUNC_STATIC(glGetInfoLogARB);
+GLDECL_FUNC_STATIC(glGetUniformLocation);
+GLDECL_FUNC_STATIC(glUniform1f);
+GLDECL_FUNC_STATIC(glUniform1i);
+GLDECL_FUNC_STATIC(glGenBuffers);
+GLDECL_FUNC_STATIC(glDeleteBuffers);
+GLDECL_FUNC_STATIC(glBindBuffer);
+GLDECL_FUNC_STATIC(glBufferData);
+GLDECL_FUNC_STATIC(glBufferSubData);
+GLDECL_FUNC_STATIC(glMapBuffer);
+GLDECL_FUNC_STATIC(glUnmapBuffer);
+GLDECL_FUNC_STATIC(glGetAttribLocation);
 
 #ifndef GPAC_CONFIG_ANDROID
-GLDECL_STATIC(glEnableVertexAttribArray);
-GLDECL_STATIC(glDisableVertexAttribArray);
-GLDECL_STATIC(glVertexAttribPointer);
-GLDECL_STATIC(glVertexAttribIPointer);
+GLDECL_FUNC_STATIC(glEnableVertexAttribArray);
+GLDECL_FUNC_STATIC(glDisableVertexAttribArray);
+GLDECL_FUNC_STATIC(glVertexAttribPointer);
+GLDECL_FUNC_STATIC(glVertexAttribIPointer);
 #endif
 
 #endif
