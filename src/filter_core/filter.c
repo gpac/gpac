@@ -41,6 +41,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 static const char *gf_filter_get_dst_args_stripped(GF_FilterSession *fsess, const char *dst_args)
 {
+	char szEscape[7];
 	char *dst_striped = NULL;
 	if (dst_args) {
 		char szDst[5];
@@ -61,6 +62,10 @@ static const char *gf_filter_get_dst_args_stripped(GF_FilterSession *fsess, cons
 			dst_striped = (char *)dst_args;
 		}
 	}
+	sprintf(szEscape, "gpac%c", fsess->sep_args);
+	if (dst_striped && !strncmp(dst_striped, szEscape, 5))
+		return dst_striped + 5;
+
 	return dst_striped;
 }
 
@@ -1354,9 +1359,9 @@ static void gf_filter_process_task(GF_FSTask *task)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been removed, skiping process\n", filter->name));
 		return;
 	}
-	assert(filter->would_block>=filter->num_out_pids_eos);
+
 	//blocking filter: remove filter process task - task will be reinserted upon unblock()
-	if (filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids + filter->num_out_pids_eos ) ) {
+	if (filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids ) ) {
 		gf_mx_p(task->filter->tasks_mx);
 		//it may happen that by the time we get the lock, the filter has been unblocked by another thread. If so, don't skip task
 		if (filter->would_block) {
@@ -1448,7 +1453,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (e) filter->session->last_process_error = e;
 	
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
-	if ((filter->would_block + filter->num_out_pids_not_connected + filter->num_out_pids_eos < filter->num_output_pids) && !filter->input_pids && (e!=GF_EOS)) {
+	if ((filter->would_block + filter->num_out_pids_not_connected < filter->num_output_pids) && !filter->input_pids && (e!=GF_EOS)) {
 		if (filter->schedule_next_time)
 			task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
@@ -1589,7 +1594,6 @@ void gf_filter_post_process_task(GF_Filter *filter)
 		 		|| filter->session->run_status
 		 		|| filter->force_end_of_session
 		 		|| gf_fq_count(filter->tasks)
-		 		|| (filter->num_output_pids==filter->num_out_pids_not_connected + filter->num_out_pids_eos)
 		);
 	}
 	if (!filter->session->direct_mode)
@@ -2245,6 +2249,12 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 
 					if (strstr(cap->val.value.string, tmp_ext))
 						ext_not_trusted = GF_TRUE;
+				}
+			} else if (score==GF_FPROBE_EXT_MATCH) {
+				if (a_mime && strstr(a_mime, tmp_ext)) {
+					ext_not_trusted = GF_FALSE;
+					mime_type = NULL;
+					break;
 				}
 			} else {
 				if (a_mime) {

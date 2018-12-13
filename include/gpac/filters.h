@@ -1312,7 +1312,9 @@ typedef enum
 	/*! input is supported with potentially missing features*/
 	GF_FPROBE_MAYBE_SUPPORTED,
 	/*! input is supported*/
-	GF_FPROBE_SUPPORTED
+	GF_FPROBE_SUPPORTED,
+	/*! used by formats not supporting data prober*/
+	GF_FPROBE_EXT_MATCH,
 } GF_FilterProbeScore;
 
 /*! Quick macro for assigning the capability arrays to the registry structure*/
@@ -1439,8 +1441,8 @@ struct __gf_filter_register
 	Note: demux filters should always exposed 2 input caps bundle, one for specifiying input cap by file extension and one for specifying input cap by mime type.
 	\param data data to probe
 	\param size size of the data to probe
-	\param score set to the probe score. Initially set to \ref GF_FPROBE_NOT_SUPPORTED before calling the function. If you are certain of the data type, use \ref GF_FPROBE_SUPPORTED, if unsure use \ref GF_FPROBE_MAYBE_SUPPORTED
-	\return mime type of content, or NULL if not detected.
+	\param score set to the probe score. Initially set to \ref GF_FPROBE_NOT_SUPPORTED before calling the function. If you are certain of the data type, use \ref GF_FPROBE_SUPPORTED, if unsure use \ref GF_FPROBE_MAYBE_SUPPORTED. If the format cannot be probed (bad design), set it to \ref GF_FPROBE_EXT_MATCH
+	\return mime type of content, list of known extensions for the format if score is set to GF_FPROBE_EXT_MATCH, or NULL if not detected.
 	*/
 	const char * (*probe_data)(const u8 *data, u32 size, GF_FilterProbeScore *score);
 
