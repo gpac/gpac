@@ -593,6 +593,12 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 				ctx->in_seek = GF_FALSE;
 			}
 		}
+
+		bytes_to_drop = bytes_skipped + size;
+		if (ctx->timescale && (prev_pck_size <= bytes_to_drop)) {
+			ctx->cts = cts;
+		}
+
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 			memcpy(output, sync, size);
@@ -609,7 +615,6 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 			gf_filter_pck_send(dst_pck);
 		}
 		mp3_dmx_update_cts(ctx);
-		bytes_to_drop = bytes_skipped + size;
 
 		//truncated last frame
 		if (bytes_to_drop>remain) {
@@ -628,7 +633,6 @@ drop_byte:
 			if (prev_pck_size > bytes_to_drop) prev_pck_size -= bytes_to_drop;
 			else {
 				prev_pck_size=0;
-				ctx->cts = cts;
 				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 				ctx->src_pck = pck;
 				if (pck)
