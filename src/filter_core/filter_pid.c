@@ -87,9 +87,14 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 {
 	Bool unblock;
 
-	//if we are in end of stream state and done with all packets, don't unblock so that we always
-	//have filter->would_block >= filter->num_out_pids_eos (see gf_filter_process_task)
-	if (pid->has_seen_eos && !pid->nb_buffer_unit) return;
+	//if we are in end of stream state and done with all packets, stay blocked
+	if (pid->has_seen_eos && !pid->nb_buffer_unit) {
+		if (!pid->would_block) {
+			safe_int_inc(&pid->would_block);
+			safe_int_inc(&pid->filter->would_block);
+		}
+		return;
+	}
 
 	unblock=GF_FALSE;
 
@@ -108,22 +113,20 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 	gf_mx_p(pid->filter->tasks_mx);
 	if (pid->would_block && unblock) {
 		assert(pid->would_block);
-		//todo needs Compare&Swap
 		safe_int_dec(&pid->would_block);
+
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 		assert((s32)pid->filter->would_block>=0);
-
-		assert(pid->filter->would_block <= pid->filter->num_output_pids);
+		assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked (filter has %d blocking pids)\n", pid->pid->filter->name, pid->pid->name, pid->pid->filter->would_block));
 
-		if (pid->filter->would_block + pid->filter->num_out_pids_not_connected + pid->filter->num_out_pids_eos < pid->filter->num_output_pids) {
+		if (pid->filter->would_block + pid->filter->num_out_pids_not_connected < pid->filter->num_output_pids) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids, pid->filter->process_task_queued));
 			//requeue task
 			gf_filter_post_process_task(pid->filter);
 		}
-
 	}
 	gf_mx_v(pid->filter->tasks_mx);
 }
@@ -4630,14 +4633,8 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		sep[0]=0;
 		fsep = strchr(name, '%');
 		if (fsep) {
-			u32 len;
-			name = fsep+1;
-			while (name[0] && (strchr("0123456789.", name[0]))) {
-				name++;
-			}
-			len = (u32) (name - fsep);
-			strncpy(szFormat, fsep, len);
-			szFormat[len]=0;
+			strcpy(szFormat, fsep+1);
+			fsep[0]=0;
 		}
 		strcat(szFormat, "d");
 
@@ -4720,6 +4717,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				continue;
 			}
 		}
+		if (fsep) fsep[0] = '%';
 		if (do_skip) {
 			if (sep) sep[0] = '$';
 			szFinalName[k] = '$';
