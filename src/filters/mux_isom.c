@@ -1938,7 +1938,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	}
 
 	if (prev_dts && (prev_dts >= tkw->sample.DTS) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Sample with DTS "LLU" less than previous sample DTS "LLU", cannot add\n", tkw->sample.DTS, prev_dts ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] PID %s Sample with DTS "LLU" less than previous sample DTS "LLU", cannot add\n", gf_filter_pid_get_name(tkw->ipid), tkw->sample.DTS, prev_dts ));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -3219,7 +3219,7 @@ static void mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			u32 msize = 0;
 			Bool do_rewrite = GF_FALSE;
 			u32 i, count = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
-			const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MAX_NALU_SIZE);
+			const GF_PropertyValue *p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_MAX_NALU_SIZE);
 			msize = gf_get_bit_size(p->value.uint);
 			if (msize<8) msize = 8;
 			else if (msize<16) msize = 16;
