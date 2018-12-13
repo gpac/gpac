@@ -1031,8 +1031,9 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
 		if (senc->cenc_saiz->sample_count + 1 > senc->cenc_saiz->sample_alloc) {
-			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = 1;
-			senc->cenc_saiz->sample_alloc *= 2;
+			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = senc->cenc_saiz->sample_count+1;
+			else senc->cenc_saiz->sample_alloc *= 2;
+
 			senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_alloc));
 		}
 
@@ -1071,8 +1072,8 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
 		if (senc->cenc_saiz->sample_count + 1 > senc->cenc_saiz->sample_alloc) {
-			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = 1;
-			senc->cenc_saiz->sample_alloc *= 2;
+			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = senc->cenc_saiz->sample_count + 1;
+			else senc->cenc_saiz->sample_alloc *= 2;
 			senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_alloc));
 		}
 
