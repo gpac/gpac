@@ -54,8 +54,8 @@
 #define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
 #define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
 
-#define safe_int64_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
-#define safe_int64_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
+#define safe_int64_add(__v, inc_val) __sync_add_and_fetch((int64_t *) (__v), inc_val)
+#define safe_int64_sub(__v, dec_val) __sync_sub_and_fetch((int64_t *) (__v), dec_val)
 #endif
 
 
