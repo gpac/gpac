@@ -270,6 +270,10 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
+
+		ctx->ps_modified = GF_TRUE;
+		ctx->crc_cfg = ctx->crc_cfg_enh = 0;
+
 	}
 	
 	return GF_OK;
@@ -1362,7 +1366,6 @@ static void naludmx_update_nalu_maxsize(GF_NALUDmxCtx *ctx, u32 size)
 {
 	if (ctx->max_nalu_size < size) {
 		ctx->max_nalu_size = size;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MAX_NALU_SIZE, &PROP_UINT(ctx->max_nalu_size) );
 		if (size > ctx->max_nalu_size_allowed) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] nal size %d larger than max allowed size %d - change import settings\n", ctx->log_name, size, ctx->max_nalu_size_allowed ));
 		}
@@ -1790,6 +1793,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			ctx->src_pck = NULL;
 			if (!ctx->opid) return GF_EOS;
 
+			gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_MAX_NALU_SIZE, &PROP_UINT(ctx->max_nalu_size) );
 			if (ctx->is_hevc) {
 				naludmx_set_hevc_oinf(ctx, ctx->max_temporal_id);
 				naludmx_set_hevc_linf(ctx);
@@ -2761,6 +2765,9 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			not_avc++;
 		}
 	}
+
+	if (not_avc) nb_avc=0;
+	if (not_hevc) nb_hevc=0;
 
 	if (not_avc && not_hevc) return NULL;
 	if (nb_avc==nb_avc_zero) nb_avc=0;
