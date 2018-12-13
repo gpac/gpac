@@ -1354,8 +1354,9 @@ static void gf_filter_process_task(GF_FSTask *task)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been removed, skiping process\n", filter->name));
 		return;
 	}
+	assert(filter->would_block>=filter->num_out_pids_eos);
 	//blocking filter: remove filter process task - task will be reinserted upon unblock()
-	if (filter->would_block && (filter->would_block + filter->num_out_pids_not_connected + filter->num_out_pids_eos == filter->num_output_pids) ) {
+	if (filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids + filter->num_out_pids_eos ) ) {
 		gf_mx_p(task->filter->tasks_mx);
 		//it may happen that by the time we get the lock, the filter has been unblocked by another thread. If so, don't skip task
 		if (filter->would_block) {

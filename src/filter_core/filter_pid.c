@@ -85,11 +85,15 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 
 static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 {
-	Bool unblock=GF_FALSE;
+	Bool unblock;
+
+	//if we are in end of stream state and done with all packets, don't unblock so that we always
+	//have filter->would_block >= filter->num_out_pids_eos (see gf_filter_process_task)
+	if (pid->has_seen_eos && !pid->nb_buffer_unit) return;
+
+	unblock=GF_FALSE;
 
 	assert(pid->playback_speed_scaler);
-
-	gf_mx_p(pid->filter->tasks_mx);
 
 	//we block according to the number of dispatched units (decoder output) or to the requested buffer duration
 	//for other streams - unblock accordingly
@@ -101,16 +105,18 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		unblock=GF_TRUE;
 	}
 
+	gf_mx_p(pid->filter->tasks_mx);
 	if (pid->would_block && unblock) {
 		assert(pid->would_block);
 		//todo needs Compare&Swap
 		safe_int_dec(&pid->would_block);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked\n", pid->pid->filter->name, pid->pid->name));
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 		assert((s32)pid->filter->would_block>=0);
 
 		assert(pid->filter->would_block <= pid->filter->num_output_pids);
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked (filter has %d blocking pids)\n", pid->pid->filter->name, pid->pid->name, pid->pid->filter->would_block));
 
 		if (pid->filter->would_block + pid->filter->num_out_pids_not_connected + pid->filter->num_out_pids_eos < pid->filter->num_output_pids) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids, pid->filter->process_task_queued));
