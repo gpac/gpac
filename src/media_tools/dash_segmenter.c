@@ -769,7 +769,7 @@ typedef struct
 	Bool cues_use_edits;
 } GF_ISOMTrackFragmenter;
 
-static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
+static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num, Bool *is_eos)
 {
 	GF_ISOSample *samp;
 	u64 time;
@@ -787,8 +787,10 @@ static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count
 		}
 	}
 	//TRICK: if we don't found next RAP, return time of the last sample in track
-	if (!found_sample)
+	if (!found_sample) {
 		found_sample = sample_count;
+		*is_eos = GF_TRUE;
+	}
 	samp = gf_isom_get_sample_info(input, track, found_sample, NULL, NULL);
 	time = samp->DTS;
 	gf_isom_sample_del(&samp);
@@ -2215,14 +2217,16 @@ restart_fragmentation_pass:
 				if (next && SAP_type) {
 					if (tf->is_ref_track) {
 						if (split_seg_at_rap) {
+							Bool next_sap_is_eos=GF_FALSE;
 							u64 next_sap_time;
-							u64 frag_dur, next_dur;
+							u64 frag_dur, next_dur, cur_frag_dur;
 							next_dur = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum + 1);
 							if (!next_dur) next_dur = sample_duration;
 							/*duration of fragment if we add this rap*/
 							frag_dur = (tf->FragmentLength+next_dur)*dasher->dash_scale / tf->TimeScale;
+							cur_frag_dur = (tf->FragmentLength)*dasher->dash_scale / tf->TimeScale;
 							next_sample_rap = GF_TRUE;
-							next_sap_time = isom_get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
+							next_sap_time = isom_get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2, &next_sap_is_eos);
 
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
@@ -2288,6 +2292,10 @@ restart_fragmentation_pass:
 											if (dasher->split_on_closest && ABS(diff_next) > ABS(diff_current)) {
 												do_split = GF_TRUE;
 												GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Stopping because of drift between next_sap_time=%.2f and boundary=%.2f (drift: %.2f) is bigger than current drift at %.2f (%.2f).\n", next_sap_time / (double)tf->TimeScale, (cur_seg - 1) * sdur, diff_next, ((Double)tf->next_sample_dts) / tf->TimeScale, diff_current));
+											}
+											//handle the case where we are exactly aligned and not at the end of stream
+											if (!dasher->split_on_closest && !dasher->split_on_bound && !diff_current && (SegmentDuration + cur_frag_dur == MaxSegmentDuration) && !next_sap_is_eos) {
+												do_split = GF_TRUE;
 											}
 										}
 
