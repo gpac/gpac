@@ -575,8 +575,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			gf_filter_pck_send(dst_pck);
 
 			if (map_time) {
-				gf_filter_pid_set_property_str(stream->user, "time:timestamp", &PROP_LONGUINT(pcr) );
-				gf_filter_pid_set_property_str(stream->user, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
+				gf_filter_pid_set_info_str(stream->user, "time:timestamp", &PROP_LONGUINT(pcr) );
+				gf_filter_pid_set_info_str(stream->user, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
 			}
 		}
 
