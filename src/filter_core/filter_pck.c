@@ -336,7 +336,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		if (pcki->pck->info.duration && pcki->pck->pid_props->timescale) {
 			s64 duration = ((u64)pcki->pck->info.duration) * 1000000;
 			duration /= pcki->pck->pid_props->timescale;
-			safe_int64_add(&dst->buffer_duration, (s32) duration);
+			safe_int64_add(&dst->buffer_duration, duration);
 		}
 		pcki->pck->info.flags |= GF_PCKF_BLOCK_START | GF_PCKF_BLOCK_END;
  		gf_fq_add(dst->packets, pcki);
@@ -411,7 +411,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 			if (info.duration && pck->pid_props && pck->pid_props->timescale) {
 				s64 duration = ((u64) info.duration) * 1000000;
 				duration /= pck->pid_props->timescale;
-				safe_int64_add(&dst->buffer_duration, (s32) duration);
+				safe_int64_add(&dst->buffer_duration, duration);
 			}
 			//not continous set of bytes reaggregated
 			if (byte_offset == GF_FILTER_NO_BO) final->info.byte_offset = GF_FILTER_NO_BO;
@@ -743,7 +743,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					if (pck->info.duration && timescale) {
 						duration = ((u64)pck->info.duration) * 1000000;
 						duration /= timescale;
-						safe_int64_add(&dst->buffer_duration, (s32) duration);
+						safe_int64_add(&dst->buffer_duration, duration);
 					}
 					inst->pck->info.flags |= GF_PCKF_BLOCK_START;
 
@@ -820,7 +820,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			if (duration && timescale) {
 				duration *= 1000000;
 				duration /= timescale;
-				safe_int64_add(&dst->buffer_duration, (s32) duration);
+				safe_int64_add(&dst->buffer_duration, duration);
 			}
 
 			safe_int_inc(&dst->filter->pending_packets);

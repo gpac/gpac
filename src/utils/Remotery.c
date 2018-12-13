@@ -450,7 +450,7 @@ static rmtBool AtomicCompareAndSwap(rmtU32 volatile* val, long old_val, long new
     #if defined(RMT_PLATFORM_WINDOWS) && !defined(__MINGW32__)
         return _InterlockedCompareExchange((long volatile*)val, new_val, old_val) == old_val ? RMT_TRUE : RMT_FALSE;
     #elif defined(RMT_PLATFORM_POSIX) || defined(__MINGW32__)
-        return __sync_bool_compare_and_swap(val, old_val, new_val) ? RMT_TRUE : RMT_FALSE;
+        return __sync_bool_compare_and_swap((long volatile*)val, old_val, new_val) ? RMT_TRUE : RMT_FALSE;
     #endif
 }
 
