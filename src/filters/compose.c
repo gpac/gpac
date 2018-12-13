@@ -36,12 +36,12 @@ GF_Err compose_bifs_dec_process(GF_Scene *scene, GF_FilterPid *pid);
 GF_Err compose_odf_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
 GF_Err compose_odf_dec_process(GF_Scene *scene, GF_FilterPid *pid);
 
-
+#define COMPOSITOR_MAGIC	GF_4CC('c','o','m','p')
 //a bit ugly, used by terminal (old APIs)
 GF_Compositor *gf_sc_from_filter(GF_Filter *filter)
 {
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
-	if (ctx->magic != GF_4CC('c','o','m','p')) return NULL;
+	if (ctx->magic != COMPOSITOR_MAGIC) return NULL;
 	if (ctx->magic_ptr != ctx) return NULL;
 
 	return ctx;
@@ -319,8 +319,8 @@ GF_Err compose_initialize(GF_Filter *filter)
 	GF_FilterPid *pid;
 	GF_Compositor *ctx = gf_filter_get_udta(filter);
 
-	ctx->magic = GF_4CC('c','o','m','p');
-	ctx->magic_ptr = ctx;
+	ctx->magic = COMPOSITOR_MAGIC;
+	ctx->magic_ptr = (void *) ctx;
 
 	e = gf_sc_load(ctx);
 	if (e) return e;
