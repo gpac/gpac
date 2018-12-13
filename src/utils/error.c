@@ -259,6 +259,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 					if (!strcmp(global_log_tools[i].name, tools)) {
 						global_log_tools[i].level = level;
 						found = GF_TRUE;
+						break;
 					}
 				}
 				if (!found) {
