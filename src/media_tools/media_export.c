@@ -1170,9 +1170,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				ext = gf_file_ext_start(szArgs);
 				if (ext) ext[0] = 0;
 				if (sample_count>=1000) {
-					strcat(szArgs, "_$%08num$");
+					strcat(szArgs, "_$num%08d$");
 				} else if (sample_count) {
-					strcat(szArgs, "_$%03num$");
+					strcat(szArgs, "_$num%03d$");
 				} else {
 					strcat(szArgs, "_$num$");
 				}
