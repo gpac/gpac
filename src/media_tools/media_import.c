@@ -6688,7 +6688,7 @@ restart_import:
 				case GF_HEVC_NALU_SLICE_RSV_VCL_N12:
 				case GF_HEVC_NALU_SLICE_RSV_VCL_N14:
 					vps = &hevc.vps[hevc.s_info.sps->vps_id];
-					if (temporal_id + 1 < vps->max_sub_layers) {
+					if ((u32) temporal_id + 1 < vps->max_sub_layers) {
 						sample_is_ref = GF_TRUE;
 					}
 					break;
