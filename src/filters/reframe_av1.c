@@ -621,7 +621,7 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		}
 	}
 
-	gf_log_set_tool_level(GF_LOG_CONTAINER, lt);
+	gf_log_set_tool_level(GF_LOG_CODING, lt);
 
 	gf_bs_del(bs);
 	if (res) return "video/av1";
