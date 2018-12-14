@@ -1556,12 +1556,6 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 */
 void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter);
 
-/*! Disconnects a sink filter chain between two filters
-\param filter the calling filter. This filter is NOT disconnected
-\param dst_filter the sink filter point of the chain to disconnect.
-*/
-void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter);
-
 /*! Sets the number of additional input pid a filter can accept. This overrides the default value of the filter registry
 \param filter the target filter
 \param max_extra_pids the number of additional pids this filter can accept
@@ -2291,6 +2285,13 @@ consumption later on (stream moving from period 1 to period 2 for example).
 */
 GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on);
 
+/*! Discard blocking mode for PID on end of stream. The filter is blocked when all output pids are in end of stream, this function unblocks the filter.
+This can be needed for playlist type filters dispatching end of stream at the end of each file but setting up next file in
+the following process() call.
+
+\param pid the target filter pid
+*/
+void gf_filter_pid_discard_block(GF_FilterPid *pid);
 
 /*! Force a built-in cap props on the output pid.
 A pid may hold one forced cap at most. When set it acts as a virtual property checked against filter caps.

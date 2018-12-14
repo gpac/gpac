@@ -92,6 +92,7 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		if (!pid->would_block) {
 			safe_int_inc(&pid->would_block);
 			safe_int_inc(&pid->filter->would_block);
+			assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
 		}
 		return;
 	}
@@ -304,22 +305,27 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		pid->buffer_duration = 0;
 	}
 
-	//update blocking state
-	if (pid->would_block)
-		gf_filter_pid_check_unblock(pid);
-	else
-		gf_filter_pid_would_block(pid);
+	assert(pid->filter == filter);
 
-	//if filter still has input pids, another filter is still connected to it so we cannot destroy the pid
-	if (gf_list_count(filter->input_pids)) {
+	//some more destinations on pid, update blocking state
+	if (pid->num_destinations) {
+		if (pid->would_block)
+			gf_filter_pid_check_unblock(pid);
+		else
+			gf_filter_pid_would_block(pid);
+
 		return;
 	}
-	//no more pids on filter, destroy it
-	if (! pid->num_destinations ) {
-		gf_list_del_item(filter->output_pids, pid);
-		filter->num_output_pids = gf_list_count(filter->output_pids);
-		gf_filter_pid_del(pid);
+	//no more destinations on pid, destroy it
+	if (pid->would_block) {
+		assert(pid->filter->would_block);
+		safe_int_dec(&filter->would_block);
 	}
+	gf_list_del_item(filter->output_pids, pid);
+	filter->num_output_pids = gf_list_count(filter->output_pids);
+	gf_filter_pid_del(pid);
+
+	//no more pids on filter, destroy it
 	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids)) {
 		assert(!filter->finalized);
 		filter->finalized = GF_TRUE;
@@ -557,7 +563,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		assert(pidinst);
 		gf_mx_p(pid->filter->tasks_mx);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Registering %s::%s as destination for %s::%s\n", pid->filter->name, pid->name, pidinst->filter->name, pidinst->pid->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Registering %s:%s as destination for %s:%s\n", pid->filter->name, pid->name, pidinst->filter->name, pidinst->pid->name));
 		gf_list_add(pid->destinations, pidinst);
 		pid->num_destinations = gf_list_count(pid->destinations);
 
@@ -3886,8 +3892,9 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		would_block = GF_TRUE;
 	}
 	if (would_block && !pid->would_block) {
-		safe_int_inc(&pid->filter->would_block);
 		safe_int_inc(&pid->would_block);
+		safe_int_inc(&pid->filter->would_block);
+		assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
@@ -4386,7 +4393,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Removing PID input filter (%s:%s) not allowed\n", pid->filter->name, pid->pid->name));
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s removed request output PID %s\n", pid->filter->name, pid->pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s removed output PID %s\n", pid->filter->name, pid->pid->name));
 
 	if (pid->filter->removed) {
 		return;
@@ -4395,6 +4402,14 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 		return;
 	}
 	pid->removed = GF_TRUE;
+	if (pid->has_seen_eos && !pid->nb_buffer_unit) {
+		u32 i;
+		for (i=0; i<pid->num_destinations; i++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			gf_fs_post_task(pidi->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pidi->pid, "pidinst_disconnect", NULL);
+		}
+		return;
+	}
 
 	//we create a fake packet for eos signaling
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
@@ -4626,17 +4641,17 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			return GF_BAD_PARAM;
 		}
 		szFormat[0] = '%';
-		szFormat[1] = 0;
+		szFormat[1] = 'd';
+		szFormat[2] = 0;
 
 		szFinalName[k] = 0;
 		name++;
 		sep[0]=0;
 		fsep = strchr(name, '%');
 		if (fsep) {
-			strcpy(szFormat, fsep+1);
+			strcpy(szFormat, fsep);
 			fsep[0]=0;
 		}
-		strcat(szFormat, "d");
 
 		if (!strcmp(name, "num")) {
 			name += 3;
@@ -4898,4 +4913,24 @@ char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 	return NULL;
 }
 
+
+GF_EXPORT
+void gf_filter_pid_discard_block(GF_FilterPid *pid)
+{
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reset block mode on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return;
+	}
+	if (!pid->has_seen_eos) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to reset block mode on PID %s in filter %s not in end of stream, ignoring\n", pid->pid->name, pid->filter->name));
+		return;
+	}
+	gf_mx_p(pid->filter->tasks_mx);
+	if (pid->would_block) {
+		safe_int_dec(&pid->would_block);
+		assert(pid->filter->would_block);
+		safe_int_dec(&pid->filter->would_block);
+	}
+	gf_mx_v(pid->filter->tasks_mx);
+}
 

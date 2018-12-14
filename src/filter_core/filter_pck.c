@@ -492,7 +492,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	//send from filter, update flags
 	if (from_filter) {
-		if (! (pck->info.flags & GF_PCK_CKTYPE_MASK) )
+		Bool is_cmd = (pck->info.flags & GF_PCK_CKTYPE_MASK) ? GF_TRUE : GF_FALSE;
+		if (! is_cmd )
 			gf_filter_forward_clock(pck->pid->filter);
 
 		if ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {
@@ -500,7 +501,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				pid->has_seen_eos = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s EOS detected\n", pck->pid->filter->name, pck->pid->name));
 			}
-		} else if (pid->has_seen_eos) {
+		} else if (pid->has_seen_eos && !is_cmd) {
 			pid->has_seen_eos = GF_FALSE;
 		}
 
