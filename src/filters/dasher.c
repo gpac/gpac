@@ -266,6 +266,8 @@ typedef struct _dash_stream
 
 	Bool clamp_done;
 	Bool dcd_not_ready;
+
+	Bool reschedule;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds);
@@ -2729,9 +2731,9 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy)
 {
-	if (!ds->muxed_base && ds->dst_filter) {
-		gf_filter_remove_dst(filter, ds->dst_filter);
-	}
+	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
+	//removing it explicetly will discard the upper chain and any packets not yet processed
+
 	ds->dst_filter = NULL;
 	if (ds->seg_template) gf_free(ds->seg_template);
 	if (ds->idx_template) gf_free(ds->idx_template);
@@ -2771,7 +2773,6 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	ds->dur_purged = 0;
 	ds->moof_sn_inc = 0;
 	ds->moof_sn = 0;
-	ds->done = 0;
 	ds->seg_done = 0;
 	ds->subdur_done = 0;
 }
@@ -3264,9 +3265,12 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		dasher_udpate_periods_and_manifest(filter, ctx);
 	}
 
-	if (ctx->subdur_done)
+	if (ctx->subdur_done || (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST) )
 		return GF_EOS;
 
+	if (ctx->current_period->period) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] End of Period %s\n", ctx->current_period->period->ID ? ctx->current_period->period->ID : ""));
+	}
 	//reset - don't destroy, it is in the MPD
 	ctx->current_period->period = NULL;
 	//switch
@@ -3274,17 +3278,19 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	ctx->next_period = p;
 	ctx->on_demand_done = GF_FALSE;
 
-	//reset input streams pointers
+	//reset input pids and detach output pids
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count;i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-		//remove output pids
 		if (ds->opid) {
-			gf_filter_pid_set_eos(ds->opid);
 			gf_filter_pid_remove(ds->opid);
 			ds->opid = NULL;
 		}
 		dasher_reset_stream(filter, ds, GF_FALSE);
+		if (ds->reschedule) {
+			ds->reschedule = GF_FALSE;
+			ds->done = 0;
+		}
 	}
 
 	//figure out next period
@@ -3394,6 +3400,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 		}
 	}
+	ctx->post_play_events = GF_FALSE;
 
 	count = gf_list_count(ctx->current_period->streams);
 	if (!count) {
@@ -4072,7 +4079,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			nb_sub_done++;
 		}
 		if (nb_sub_done==count)
-			ctx->subdur_done = GF_TRUE;
+ 			ctx->subdur_done = GF_TRUE;
 	}
 
 	//reset all streams from our rep or our set
@@ -4518,9 +4525,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 						if (nb_sub_done==count)
 							ctx->subdur_done = GF_TRUE;
 					} else if (!ctx->loop && (ctx->dmode==GF_MPD_TYPE_DYNAMIC) && !strcmp(ds->period_id, DEFAULT_PERIOD_ID) ) {
-						gf_list_add(ctx->next_period->streams, ds);
+						if (gf_list_find(ctx->next_period->streams, ds)<0) {
+							gf_list_add(ctx->next_period->streams, ds);
+						}
 						ctx->post_play_events = GF_TRUE;
 						ds->nb_repeat++;
+						ds->reschedule = GF_TRUE;
+						gf_filter_pid_discard_block(ds->opid);
 					}
 				}
 				break;
@@ -4917,9 +4928,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->sseg && !ctx->on_demand_done) {
 		return GF_OK;
 	}
-	if (ctx->current_period->period) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] End of Period\n"));
-	}
 	ctx->force_period_switch = GF_FALSE;
 	//done with this period, do period switch - this will update the MPD if needed
 	e = dasher_switch_period(filter, ctx);
@@ -4939,6 +4947,7 @@ static void dasher_resume_subdur(GF_Filter *filter, GF_DasherCtx *ctx)
 {
 	GF_FilterEvent evt;
 	u32 i, count;
+	Bool is_last = (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST) ? GF_TRUE : GF_FALSE;
 	if (!ctx->state) return;
 
 	count = gf_list_count(ctx->pids);
@@ -4946,7 +4955,14 @@ static void dasher_resume_subdur(GF_Filter *filter, GF_DasherCtx *ctx)
 		GF_DashStream *ds = gf_list_get(ctx->pids, i);
 		ds->rep = NULL;
 		if ((ds->done==1) && !ctx->subdur && ctx->loop) {}
+		else if (ds->reschedule) {
+			//we possibly dispatched end of stream on all outputs, we need to force unblockink to get called again
+			gf_filter_pid_discard_block(ds->opid);
+			continue;
+		}
 		else if (ds->done != 2) continue;
+
+		if (is_last) continue;
 
 		gf_filter_pid_set_discard(ds->ipid, GF_FALSE);
 
@@ -4976,9 +4992,11 @@ static void dasher_resume_subdur(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	ctx->subdur_done = GF_FALSE;
 	ctx->is_eos = GF_FALSE;
-	ctx->current_period->period = NULL;
-	ctx->first_context_load = GF_TRUE;
-	ctx->post_play_events = GF_TRUE;
+	if (!ctx->post_play_events && !is_last) {
+		ctx->current_period->period = NULL;
+		ctx->first_context_load = GF_TRUE;
+		ctx->post_play_events = GF_TRUE;
+	}
 	gf_filter_post_process_task(filter);
 }
 

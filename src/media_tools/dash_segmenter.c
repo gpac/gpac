@@ -483,7 +483,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 	if (!dasher) return GF_BAD_PARAM;
 
 	if (!stricmp(input->file_name, "NULL") || !strcmp(input->file_name, "") || !input->file_name) {
-		if (!strcmp(input->xlink, "")) {
+		if (!input->xlink || !strcmp(input->xlink, "")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] No input file specified and no xlink set - cannot dash\n"));
 			return GF_BAD_PARAM;
 		}
@@ -828,14 +828,15 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	gf_fs_get_last_connect_error(dasher->fsess);
 	gf_fs_get_last_process_error(dasher->fsess);
 
+	//send change mode before sending the resume request, as the seek checks for last mode
+	if (dasher->dash_mode_changed) {
+		gf_filter_send_update(dasher->output, NULL, "dmode", (dasher->dash_mode == GF_DASH_DYNAMIC_LAST)  ? "dynlast" : "dynamic", GF_FILTER_UPDATE_DOWNSTREAM);
+	}
+
 	if (need_seek) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_RESUME, NULL);
 		gf_filter_send_event(dasher->output, &evt);
-	}
-
-	if (dasher->dash_mode_changed) {
-		gf_filter_send_update(dasher->output, NULL, "dmode", (dasher->dash_mode == GF_DASH_DYNAMIC_LAST)  ? "dynlast" : "dynamic", GF_FILTER_UPDATE_DOWNSTREAM);
 	}
 
 	e = gf_fs_run(dasher->fsess);
