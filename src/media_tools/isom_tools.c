@@ -3160,6 +3160,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	GF_Filter *f;
 	GF_FilterSession *fsess = gf_fs_new_defaults(0);
 
+	if (!fsess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Failed to create filter session\n"));
+		return GF_OUT_OF_MEM;
+	}
+
+
 	sprintf(szArgs, "mp4dmx:mov=%p", input);
 	f = gf_fs_load_filter(fsess, szArgs);
 	if (!f) return GF_NOT_SUPPORTED;
