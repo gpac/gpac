@@ -217,11 +217,14 @@ GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
 #define SET_LIST_STR(_field, _val)	\
 	l1 = dasher->_field ? (u32) strlen(dasher->_field) : 0;\
 	l2 = (u32) strlen(_val);\
-	if (l1) dasher->_field = gf_realloc(dasher->_field, sizeof(char)*(l1+l2+2));\
-	else dasher->_field = gf_realloc(dasher->_field, sizeof(char)*(l1+l2+1));\
+	if (l1) { \
+		dasher->_field = gf_realloc(dasher->_field, sizeof(char)*(l1+l2+2));\
+		if (l1) strcat(dasher->_field, ",");\
+		strcat(dasher->_field, _val);\
+	} else { \
+		dasher->_field = gf_strdup(_val);\
+	}\
 	if (!dasher->_field) return GF_OUT_OF_MEM;\
-	if (l1) strcat(dasher->_field, ",");\
-	strcat(dasher->_field, _val);\
 
 
 GF_EXPORT
