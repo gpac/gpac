@@ -1871,17 +1871,29 @@ void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter)
 	gf_filter_remove_internal(src_filter, filter, GF_FALSE);
 }
 
+#if 0
 GF_EXPORT
 void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter)
 {
+	u32 i, j;
 	Bool removed;
 	if (!filter) return;
 	removed = filter->removed;
 	filter->removed = GF_TRUE;
 	gf_filter_remove_internal(dst_filter, filter, GF_FALSE);
 	filter->removed = removed;
-}
 
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			if (pidi->filter->removed) {
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pidi->pid, "pidinst_disconnect", NULL);
+			}
+		}
+	}
+}
+#endif
 
 Bool gf_filter_swap_source_registry(GF_Filter *filter)
 {

@@ -2364,7 +2364,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_setup_failure ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_post_task ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_src ) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_dst ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_connect_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_connect_destination ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_buffer_max ) )
