@@ -1029,16 +1029,16 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
 	if (e) return e;
 
-	if (start_range) *start_range = (u32) movie->root_sidx_offset;
-	if (end_range) *end_range = (u32) gf_bs_get_position(bs)-1;
-
 	if (movie->root_ssix) {
 		e = gf_isom_box_size((GF_Box *) movie->root_ssix);
 		if (e) return e;
 		e = gf_isom_box_write((GF_Box *) movie->root_ssix, bs);
 		if (e) return e;
 	}
-	
+	//include ssix in index range - spec is not clear whether this is forbidden
+	if (start_range) *start_range = (u32) movie->root_sidx_offset;
+	if (end_range) *end_range = (u32) gf_bs_get_position(bs)-1;
+
 	return GF_OK;
 }
 
