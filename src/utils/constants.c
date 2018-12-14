@@ -245,6 +245,11 @@ GF_EXPORT
 const char *gf_codecid_file_ext(u32 codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
+	u32 global_ext_count = gf_opts_get_key_count("file_extensions");
+	if (r && r->mime_type && global_ext_count) {
+		const char *name = gf_opts_get_key("file_extensions", r->mime_type);
+		if (name) return name;
+	}
 	if (r && r->sname) return r->sname;
 	if (r && r->rfc_4cc) return r->rfc_4cc;
 	return "raw";
