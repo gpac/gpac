@@ -967,6 +967,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	e = GF_OK;
 	fsess = gf_fs_new_defaults(0);
+	if (!fsess) {
+		return gf_import_message(importer, GF_BAD_PARAM, "[Importer] Cannot load filter session");
+	}
 	importer->last_error = GF_OK;
 
 	if (importer->flags & GF_IMPORT_PROBE_ONLY) {
