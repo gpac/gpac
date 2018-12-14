@@ -39,8 +39,8 @@ FunctionEnd
   !include "MUI2.nsh"
 
 WindowIcon on
-Icon "${GPAC_ROOT}\doc\osmo4.ico"
-UninstallIcon "${GPAC_ROOT}\doc\osmo4.ico"
+Icon "${GPAC_ROOT}\share\doc\osmo4.ico"
+UninstallIcon "${GPAC_ROOT}\share\doc\osmo4.ico"
 
 ;--------------------------------
 ;Interface Settings
@@ -52,8 +52,8 @@ Var Label
 Var Confirm
 Var VSRedistSetupError
 
-LangString PAGE_TITLE ${LANG_ENGLISH} "Title"
-LangString PAGE_SUBTITLE ${LANG_ENGLISH} "Subtitle"
+;LangString PAGE_TITLE ${LANG_ENGLISH} "Title"
+;LangString PAGE_SUBTITLE ${LANG_ENGLISH} "Subtitle"
 
 Function EnableNext
   Pop $R1
@@ -252,9 +252,9 @@ Section "GPAC Core" SecGPAC
   File /oname=ReadMe.txt "${GPAC_ROOT}\README.md"
   File /oname=License.txt "${GPAC_ROOT}\COPYING"
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
-  File "${GPAC_ROOT}\doc\configuration.html"
-  File "${GPAC_ROOT}\doc\gpac.mp4"
-  File "${GPAC_ROOT}\doc\osmo4.ico"
+  File "${GPAC_ROOT}\share\doc\configuration.html"
+  File "${GPAC_ROOT}\share\doc\gpac.mp4"
+  File "${GPAC_ROOT}\share\doc\osmo4.ico"
   File "${GPAC_BIN}\libgpac.dll"
   File "${GPAC_BIN}\js.dll"
   File "${GPAC_BIN}\libcryptoMD.dll"
@@ -278,10 +278,21 @@ Section "GPAC Player" SecOsmo4
 
   File "${GPAC_BIN}\MP4Client.exe"
 
-  File "${GPAC_BIN}\gm_dummy_in.dll"
   File "${GPAC_BIN}\gm_dx_hw.dll"
   File "${GPAC_BIN}\gm_gpac_js.dll"
-  File "${GPAC_BIN}\gm_ismacryp.dll"
+
+
+  File "${GPAC_BIN}\avcodec-*.dll"
+  File "${GPAC_BIN}\avdevice-*.dll"
+  File "${GPAC_BIN}\avfilter-*.dll"
+  File "${GPAC_BIN}\avformat-*.dll"
+  File "${GPAC_BIN}\avutil-*.dll"
+  File "${GPAC_BIN}\swresample-*.dll"
+  File "${GPAC_BIN}\swscale-*.dll"
+  File "${GPAC_BIN}\postproc-*.dll"
+  File "${GPAC_BIN}\libx264-*.dll"
+
+  File "${GPAC_BIN}\OpenSVCDecoder.dll"
 
   ;copy GUI
   SetOutPath $INSTDIR\share
@@ -291,9 +302,9 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\share\gui\gwlib.js"
   File "${GPAC_ROOT}\share\gui\mpegu-core.js"
   SetOutPath $INSTDIR\share\gui\icons
-  File /r /x .git ${GPAC_ROOT}\gui\icons\*
+  File /r /x .git ${GPAC_ROOT}\share\gui\icons\*
   SetOutPath $INSTDIR\share\gui\extensions
-  File /r /x .git ${GPAC_ROOT}\gui\extensions\*
+  File /r /x .git ${GPAC_ROOT}\share\gui\extensions\*
 
   ;copy scripts
   SetOutPath $INSTDIR\share\scripts
@@ -313,104 +324,7 @@ SubSection "GPAC Plugins" SecPlugins
 ;
 ;	2 install modes, normal one and full one
 
-Section "MPEG-4 BIFS Decoder" SecBIFS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_bifs_dec.dll"
-SectionEnd
 
-Section "MPEG-4 ODF Decoder" SecODF
-  SectionIn 1
-  File "${GPAC_BIN}\gm_odf_dec.dll"
-SectionEnd
-
-Section "MPEG-4 LASeR Decoder" SecLASeR
-  SectionIn 1
-  File "${GPAC_BIN}\gm_laser_dec.dll"
-SectionEnd
-
-Section "MPEG-4 SAF Demultiplexer" SecSAF
-  SectionIn 1
-  File "${GPAC_BIN}\gm_saf_in.dll"
-SectionEnd
-
-Section "Textual MPEG-4 Loader" SecTextLoad
-  SectionIn 1
-  File "${GPAC_BIN}\gm_ctx_load.dll"
-SectionEnd
-
-Section "Image Package (PNG, JPEG, BMP)" SecIMG
-  SectionIn 1
-  File "${GPAC_BIN}\gm_img_in.dll"
-SectionEnd
-
-Section "AAC Audio" SecAAC
-  SectionIn 1
-  File "${GPAC_BIN}\gm_aac_in.dll"
-SectionEnd
-
-Section "MP3 Audio" SecMP3
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mp3_in.dll"
-SectionEnd
-
-Section "AC3 Audio" SecAC3
-  SectionIn 1
-  File "${GPAC_BIN}\gm_ac3_in.dll"
-SectionEnd
-
-Section "FFMPEG" SecFFMPEG
-  SectionIn 1
-  File "${GPAC_BIN}\gm_ffmpeg_in.dll"
-  File "${GPAC_BIN}\avcodec-*.dll"
-  File "${GPAC_BIN}\avdevice-*.dll"
-  File "${GPAC_BIN}\avfilter-*.dll"
-  File "${GPAC_BIN}\avformat-*.dll"
-  File "${GPAC_BIN}\avutil-*.dll"
-  File "${GPAC_BIN}\avresample-*.dll"
-  File "${GPAC_BIN}\swresample-*.dll"
-  File "${GPAC_BIN}\swscale-*.dll"
-  File "${GPAC_BIN}\libx264-*.dll"
-SectionEnd
-
-Section "XviD Video Decoder" SecXVID
-  SectionIn 1
-  File "${GPAC_BIN}\gm_xvid_dec.dll"
-SectionEnd
-
-;Section "AMR NB & WB" SecAMRFT
-;  SectionIn 1
-;  File "..\gm_amr_float_dec.dll"
-;SectionEnd
-
-Section "Subtitles" SecSUBS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_timedtext.dll"
-SectionEnd
-
-Section "ISO File Format" SecISOFF
-  SectionIn 1
-  File "${GPAC_BIN}\gm_isom_in.dll"
-SectionEnd
-
-Section "MPEG-2 TS" SecM2TS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mpegts_in.dll"
-SectionEnd
-
-Section "RTP/RTSP" SecRTP
-  SectionIn 1
-  File "${GPAC_BIN}\gm_rtp_in.dll"
-SectionEnd
-
-Section "SVG" SecSVG
-  SectionIn 1
-  File "${GPAC_BIN}\gm_svg_in.dll"
-SectionEnd
-
-Section "WebVTT" SecWebVTT
-  SectionIn 1
-  File "${GPAC_BIN}\gm_vtt_in.dll"
-SectionEnd
 
 Section "GDI+" SecGDIP
   SectionIn 1
@@ -427,72 +341,26 @@ Section "FreeType" SecFT
   File "${GPAC_BIN}\gm_ft_font.dll"
 SectionEnd
 
-Section "ATSC" SecATSC
-  SectionIn 1
-  File "${GPAC_BIN}\gm_atsc_in.dll"
-SectionEnd
-
 Section "Windows MME Audio" SecWAVE
   SectionIn 1
   File "${GPAC_BIN}\gm_wav_out.dll"
 SectionEnd
 
-Section "Xiph" SecXIPH
+Section "SDL" SecSDL
   SectionIn 1
-  File "${GPAC_BIN}\gm_ogg.dll"
-SectionEnd
-
-Section "OpenSVC Decoder" SecOSVC
-  SectionIn 1
-  File "${GPAC_BIN}\OpenSVCDecoder.dll"
-  File "${GPAC_BIN}\gm_opensvc_dec.dll"
+  File "${GPAC_BIN}\SDL.dll"
+  File "${GPAC_BIN}\gm_sdl_out.dll"
 SectionEnd
 
 Section "OpenHEVC Decoder" SecOHEVC
   SectionIn 1
   File "${GPAC_BIN}\openhevc-1.dll"
-  File "${GPAC_BIN}\gm_openhevc_dec.dll"
+  File "${GPAC_BIN}\gf_ohevcdec.dll"
 SectionEnd
 
-Section "NVidia Hardware Decoder" SecNVDEC
+Section "Validator" SecValidator
   SectionIn 1
-  File "${GPAC_BIN}\gm_nvdec.dll"
-SectionEnd
-
-Section "MPEG DASH Support" SecDASH
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mpd_in.dll"
-SectionEnd
-
-Section "RAW audio-video output" SecRAW
-  SectionIn 1
-  File "${GPAC_BIN}\gm_raw_out.dll"
-SectionEnd
-
-Section "HTML 5 Media Source Extensions Support" SecMSE
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mse_in.dll"
-SectionEnd
-
-Section "UPnP Support" SecUPnP
-  SectionIn 1
-  File "${GPAC_BIN}\gm_platinum.dll"
-SectionEnd
-
-Section "Widget Manager" SecMPEGU
-  SectionIn 1
-  File "${GPAC_BIN}\gm_widgetman.dll"
-SectionEnd
-
-;Section "MobileIP Framework" SecMobIP
-;  SectionIn 1
-;  File "..\gm_mobile_ip.dll"
-;  File "..\MobileSession.dll"
-;SectionEnd
-
-Section "DekTec output" SecDecTek
-  SectionIn 1
-  File "${GPAC_BIN}\gm_dektec_out.dll"
+  File "${GPAC_BIN}\gm_validator.dll"
 SectionEnd
 
 SubSectionEnd
@@ -506,7 +374,7 @@ Section "MP4Box" SecMP4B
   Call AddToPath
 SectionEnd
 
-Section "gpac" SecGPAC
+Section "gpac" SecGPACBIN
   SectionIn 1
   SetOutPath $INSTDIR
   File "${GPAC_BIN}\gpac.exe"
@@ -519,14 +387,6 @@ Section "MP42TS" SecMP42TS
   SectionIn 1
   SetOutPath $INSTDIR
   File "${GPAC_BIN}\MP42TS.exe"
-  Push $INSTDIR
-  Call AddToPath
-SectionEnd
-
-Section "DashCast" SecDC
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "${GPAC_BIN}\dashcast.exe"
   Push $INSTDIR
   Call AddToPath
 SectionEnd
@@ -639,13 +499,15 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRAW} "RAW audio-video output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "gpac command-line tool for various multimedia operations"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPACBIN} "gpac command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDC} "DashCast offline and live MPEG-DASH Encoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecZILLA} "GPAC playback support NPAPI-based browsers (FireFox/Gecko, Safari/WebKit)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAX} "GPAC playback support using ActiveX component (Internet Explorer)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4C} "GPAC command-line player and AVI dumper"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "GPAC SDL support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
