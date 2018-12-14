@@ -2527,7 +2527,7 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 	GF_Err e = GF_OK;
-	u32 nb_eos, nb_done, i, count = gf_list_count(ctx->tracks);
+	u32 nb_eos, nb_done, i, count;
 
 	if (ctx->flush_size) {
 		return mp4_mux_flush_fragmented(filter, ctx);
@@ -2541,7 +2541,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		e = mp4_mux_initialize_movie(ctx);
 		if (e) return e;
 	}
-
+	/*get count after init, some tracks may have been remove*/
+	count = gf_list_count(ctx->tracks);
 	if (ctx->dash_mode && !ctx->segment_started) {
 		//don't start a new segment if all pids are in eos
 		nb_eos=0;
