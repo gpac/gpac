@@ -2419,7 +2419,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	GF_NETIO_Parameter par;
 	Bool no_cache = GF_FALSE;
 	char range_buf[1024];
-	char pass_buf[1024];
+	char pass_buf[1100];
 	const char *user_agent;
 	const char *url;
 	const char *user_profile;

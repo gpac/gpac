@@ -126,7 +126,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	if (p) ctx->h = p->value.uint;
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS);
 	if (p) ctx->fps = p->value.frac;
-	if (!ctx->fps.num * ctx->fps.den) {
+	if (!ctx->fps.num || !ctx->fps.den) {
 		ctx->fps.num = 25;
 		ctx->fps.den = 1;
 	}

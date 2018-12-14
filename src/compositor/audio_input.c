@@ -186,7 +186,7 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	if (!for_recf)
 		return aifc->samplerate ? GF_TRUE : GF_FALSE;
 
-	if (aifc->samplerate * aifc->chan && aifc->afmt && ((aifc->chan<=2) || aifc->ch_cfg))  {
+	if (aifc->samplerate && aifc->chan && aifc->afmt && ((aifc->chan<=2) || aifc->ch_cfg))  {
 		ai->stream->config_changed = GF_FALSE;
 		return GF_TRUE;
 	}
