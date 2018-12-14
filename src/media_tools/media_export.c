@@ -1145,6 +1145,10 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	}
 
 	fsess = gf_fs_new_defaults(0);
+	if (!fsess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Failed to create filter session\n"));
+		return GF_OUT_OF_MEM;
+	}
 	file_out = NULL;
 
 	//except in nhml inband file dump, create a sink filter
