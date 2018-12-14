@@ -1031,6 +1031,11 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	/*for now we only store one ref per subsegment and don't support daisy-chaining*/
 	movie->root_sidx->nb_refs = nb_segs;
 
+	if (use_ssix) {
+		movie->root_ssix = (GF_SubsegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SSIX);
+		movie->root_ssix->subsegment_count = nb_segs;
+	}
+
 	//dynamic mode
 	if (!nb_segs) {
 		movie->dyn_root_sidx = GF_TRUE;
@@ -1043,9 +1048,7 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	movie->root_sidx_index = 0;
 
 	if (use_ssix) {
-		movie->root_ssix = (GF_SubsegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SSIX);
 		movie->root_ssix->subsegments = gf_malloc(sizeof(GF_SubsegmentInfo) * nb_segs);
-		movie->root_ssix->subsegment_count = nb_segs;
 		for (i=0; i<nb_segs; i++) {
 			movie->root_ssix->subsegments[i].range_count = 2;
 			movie->root_ssix->subsegments[i].ranges = gf_malloc(sizeof(GF_SubsegmentRangeInfo)*2);
@@ -1617,10 +1620,16 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 				count++;
 
 				if (generate_ssix) {
-					if (movie->root_ssix)
+					if (movie->root_ssix) {
 						ssix = movie->root_ssix;
-
-					//get
+						if (ssix->subsegment_count <= cur_index) {
+							assert(ssix->subsegment_count == cur_index);
+							ssix->subsegment_count = cur_index+1;
+							ssix->subsegments = gf_realloc(ssix->subsegments, ssix->subsegment_count * sizeof(GF_SubsegmentInfo));
+							ssix->subsegments[cur_index].range_count = 2;
+							ssix->subsegments[cur_index].ranges = gf_malloc(sizeof(GF_SubsegmentRangeInfo)*2);
+						}
+					}
 					ssix->subsegments[cur_index].ranges[0].level = 1;
 					ssix->subsegments[cur_index].ranges[0].range_size = moof_get_first_sap_end(movie->moof);
 
