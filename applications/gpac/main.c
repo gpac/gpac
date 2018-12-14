@@ -44,7 +44,9 @@ static char separator_set[7] = GF_FS_DEFAULT_SEPS;
 static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_FilterArgMode argmode);
 static void dump_all_props(void);
 static void dump_all_codec(GF_FilterSession *session);
-void write_filters_options(GF_FilterSession *fsess);
+static void write_filters_options(GF_FilterSession *fsess);
+static void write_core_options();
+static void write_file_extensions();
 
 #ifndef GPAC_DISABLE_DOC
 const char *gpac_doc =
@@ -308,12 +310,8 @@ GF_GPACArg gpac_args[] =
  	GF_DEF_ARG("mem-track", NULL, "enables memory tracker", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("mem-track-stack", NULL, "enables memory tracker with stack dumping", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 #endif
- 	GF_DEF_ARG("p", NULL, "uses indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
-
 	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("loop", NULL, "loops execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("wp", NULL, "writes all filter options in the config file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("wpx", NULL, "writes all filter options and all meta filter arguments in the config file (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("stats", NULL, "print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", NULL, "print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
@@ -339,6 +337,13 @@ GF_GPACArg gpac_args[] =
 			"\tlinks: prints possible connections between each supported filters.\n"\
 			"\tFNAME: prints filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (warning, big output!), *:* to print info on all filters including meta filter instances (warning, big big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options"\
 		, NULL, NULL, GF_ARG_STRING, 0),
+
+ 	GF_DEF_ARG("p", NULL, "uses indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+
+	GF_DEF_ARG("wc", NULL, "writes all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("we", NULL, "writes all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("wf", NULL, "writes all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("wfx", NULL, "writes all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 
 	{0}
 };
@@ -536,6 +541,8 @@ static int gpac_main(int argc, char **argv)
 	u32 sflags=0;
 	Bool override_seps=GF_FALSE;
 	Bool write_profile=GF_FALSE;
+	Bool write_core_opts=GF_FALSE;
+	Bool write_extensions=GF_FALSE;
 	s32 link_prev_filter = -1;
 	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
@@ -644,9 +651,13 @@ static int gpac_main(int argc, char **argv)
 			list_filters = 3;
 		} else if (strstr(arg, ":*")) {
 			print_meta_filters = GF_TRUE;
-		} else if (!strcmp(arg, "-wp")) {
+		} else if (!strcmp(arg, "-wc")) {
+			write_core_opts = GF_TRUE;
+		} else if (!strcmp(arg, "-we")) {
+			write_extensions = GF_TRUE;
+		} else if (!strcmp(arg, "-wf")) {
 			write_profile = GF_TRUE;
-		} else if (!strcmp(arg, "-wpx")) {
+		} else if (!strcmp(arg, "-wfx")) {
 			write_profile = GF_TRUE;
 			sflags |= GF_FS_FLAG_LOAD_META;
 		} else if (!strcmp(arg, "-loop")) {
@@ -708,8 +719,13 @@ restart:
 		dump_all_codec(session);
 		goto exit;
 	}
-	if (write_profile) {
-		write_filters_options(session);
+	if (write_profile || write_extensions || write_core_opts) {
+		if (write_core_opts)
+			write_core_options();
+		if (write_extensions)
+			write_file_extensions();
+		if (write_profile)
+			write_filters_options(session);
 		goto exit;
 	}
 
@@ -1064,7 +1080,37 @@ static void dump_all_codec(GF_FilterSession *session)
 	fprintf(stderr, "\n");
 }
 
-void write_filters_options(GF_FilterSession *fsess)
+static void write_core_options()
+{
+	//print libgpac core help
+	const GF_GPACArg *args = gf_sys_get_options();
+	u32 i = 0;
+
+	while (args[i].name) {
+		if (! gf_opts_get_key("core", args[i].name) && args[i].val) {
+			gf_opts_set_key("core", args[i].name, args[i].val);
+		}
+		i++;
+	}
+}
+
+static void write_file_extensions()
+{
+	u32 i = 0;
+
+	while (1) {
+		const char *short_name, *long_name, *mime ;
+		u32 cid = gf_codecid_enum(i, &short_name, &long_name);
+		if (cid==GF_CODECID_NONE) break;
+		mime = gf_codecid_mime(cid);
+		if (mime && ! gf_opts_get_key("file_extensions", mime) ) {
+			gf_opts_set_key("file_extensions", mime, short_name);
+		}
+		i++;
+	}
+}
+
+static void write_filters_options(GF_FilterSession *fsess)
 {
 	u32 i, count;
 	count = gf_fs_filters_registry_count(fsess);
@@ -1083,7 +1129,7 @@ void write_filters_options(GF_FilterSession *fsess)
 			if (!arg || !arg->arg_name) break;
 			j++;
 
-			if (arg->arg_default_val) {
+			if (arg->arg_default_val && !gf_opts_get_key(szSecName, arg->arg_name)) {
 				gf_opts_set_key(szSecName, arg->arg_name, arg->arg_default_val);
 			}
 		}
