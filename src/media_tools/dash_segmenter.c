@@ -5149,7 +5149,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 		/*if this dash input file has only one track, or this has not the scalable track: handle as one representation*/
 		if ((nb_track == 1) || !gf_isom_needs_layer_reconstruction(file)) {
-
+			u32 track_num = nb_track;
 			if (uri_frag) {
 				u32 id = 0;
 				if (!strnicmp(uri_frag+1, "trackID=", 8))
@@ -5180,9 +5180,10 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 					}
 				}
 				dash_input->single_track_num = gf_isom_get_track_by_id(file, id);
-				nb_track = dash_input->single_track_num;
+				track_num = dash_input->single_track_num;
+				if (nb_track==1) dash_input->single_track_num = 0;
 			}
-			dash_input->protection_scheme_type = gf_isom_is_media_encrypted(file, nb_track, 1);
+			dash_input->protection_scheme_type = gf_isom_is_media_encrypted(file, track_num, 1);
 
 			dash_input->moof_seqnum_increase = 0;
 
