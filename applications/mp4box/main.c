@@ -4368,8 +4368,10 @@ int mp4boxMain(int argc, char **argv)
 		dash_cumulated_time=0;
 
 		while (1) {
-			if (run_for && (dash_cumulated_time >= run_for))
+			if (run_for && (dash_cumulated_time >= run_for)) {
+				fprintf(stderr, "Done running, computing static MPD\n");
 				do_abort = 3;
+			}
 
 			dash_prev_time=gf_sys_clock();
 			if (do_abort>=2) {
