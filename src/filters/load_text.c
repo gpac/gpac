@@ -2815,7 +2815,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	utf8 = data;
 	if (uni_type>1) {
 		u32 read;
-		utf8_temp = gf_malloc(sizeof(char)*(1+data_size/2) );
+		utf8_temp = gf_malloc(sizeof(char)*(data_size) );
 		const u16 *sptr = (u16 *)data;
 		read = (u32) gf_utf8_wcstombs(utf8_temp, data_size, &sptr);
 		utf8_temp[read] = 0;
