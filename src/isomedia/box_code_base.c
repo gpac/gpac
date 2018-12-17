@@ -3959,9 +3959,8 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
             //unknown fomat, look for 'es' (esds) and try to parse box
             else if (wave->data != NULL) {
                 u32 offset = 0;
-                while ((wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
+                while (offset + 5 < wave->dataSize && (wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
                     offset++;
-                    if (offset == wave->dataSize) break;
                 }
                 if (offset < wave->dataSize) {
                     GF_Box *a;
@@ -5094,7 +5093,7 @@ void stbl_del(GF_Box *s)
 		if (ptr->traf_map->sample_num) gf_free(ptr->traf_map->sample_num);
 		gf_free(ptr->traf_map);
 	}
-	
+
 	gf_free(ptr);
 }
 

@@ -2434,7 +2434,8 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_LANGUAGE;
 			tracks[nb_track_act].trackID = 0;
-			strcpy(szTK, argv[i + 1]);
+			strncpy(szTK, argv[i + 1], sizeof(szTK)-1);
+			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!strnicmp(argv[i + 1], "all=", 4)) {
 				strncpy(tracks[nb_track_act].lang, argv[i + 1] + 4, 10);
@@ -2512,7 +2513,8 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
-			strcpy(szTK, argv[i + 1]);
+			strncpy(szTK, argv[i + 1], sizeof(szTK)-1);
+			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!ext) {
 				fprintf(stderr, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i + 1]);
@@ -2562,7 +2564,8 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
-			strcpy(szTK, argv[i + 1]);
+			strncpy(szTK, argv[i + 1], sizeof(szTK)-1);
+			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!ext) {
 				fprintf(stderr, "Bad format for track name - expecting ID=name got %s\n", argv[i + 1]);
@@ -4404,7 +4407,7 @@ int mp4boxMain(int argc, char **argv)
 					dash_cumulated_time = 1+run_for;
 					continue;
 				}
-				
+
 				while (1) {
 					if (gf_prompt_has_input()) {
 						char c = (char) gf_prompt_get_char();
