@@ -685,11 +685,12 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	info = gf_fopen(szInfo, "rb");
 	if (info) {
 		gf_fseek(info, 0, SEEK_END);
-		specInfoSize = (u32) gf_ftell(info);
+		specInfoSize = (u32) gf_ftell(info) + 1;
 		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
 		gf_fseek(info, 0, SEEK_SET);
 		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
 		gf_fclose(info);
+		specInfo[specInfoSize] = 0;
 	} else if (ctx->header_end) {
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = ctx->header_end;
