@@ -2201,12 +2201,15 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	u32 min_dts_scale=0;
 	u32 def_fake_dur=0;
 	u32 def_fake_scale=0;
-	Double max_dur=0;
+	GF_Fraction max_dur;
 	ctx->single_file = GF_TRUE;
 	ctx->current_offset = ctx->current_size = 0;
+	max_dur.den = 1;
+	max_dur.num = 0;
 
 	if (ctx->idur.num && ctx->idur.den) {
-		max_dur = ((Double)ctx->idur.num) / ctx->idur.den;
+		max_dur.num = ctx->idur.num;
+		max_dur.den = ctx->idur.den;
 	}
 
 	//make sure we have one sample from each PID. This will trigger potential pending reconfigure
@@ -2232,9 +2235,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 		if (p && p->value.frac.num && p->value.frac.den) {
-			Double dur = p->value.frac.num;
-			dur /= p->value.frac.den;
-			if (max_dur<dur) max_dur = dur;
+			if (max_dur.num * p->value.frac.den < max_dur.den * p->value.frac.num) {
+				max_dur.num = p->value.frac.num;
+				max_dur.den = p->value.frac.den;
+			}
 		}
 	}
 	//good to go, finalize for fragments
@@ -2327,10 +2331,11 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		}
 	}
 
-	if (max_dur) {
-		Double mdur = max_dur;
+	if (max_dur.num) {
+		u64 mdur = max_dur.num;
 		mdur *= ctx->timescale;
-		gf_isom_set_movie_duration(ctx->file, (u64) ( mdur) );
+		mdur /= max_dur.den;
+		gf_isom_set_movie_duration(ctx->file, mdur);
 	}
 
 	//if we have an explicit track reference for fragmenting, move it first in our list
