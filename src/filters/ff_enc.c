@@ -416,7 +416,7 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 
 	bytes_per_chan = ctx->bytes_per_sample / ctx->channels;
 	src_frame_size = size / ctx->bytes_per_sample;
-	assert(ctx->samples_in_audio_buffer + nb_samples <= ctx->encoder->frame_size);
+	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->encoder->frame_size);
 
 	for (i=0; i<ctx->channels; i++) {
 		u8 *dst = ctx->audio_buffer + (i*ctx->encoder->frame_size + ctx->samples_in_audio_buffer) * bytes_per_chan;
