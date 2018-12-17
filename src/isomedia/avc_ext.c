@@ -878,7 +878,10 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 {
 	u32 i, count;
 	GF_AVCConfigSlot *p1, *p2;
-	GF_AVCConfig *cfg_new = gf_odf_avc_cfg_new();
+	GF_AVCConfig *cfg_new;
+	if (!cfg)
+		return NULL;
+	cfg_new = gf_odf_avc_cfg_new();
 	cfg_new->AVCLevelIndication = cfg->AVCLevelIndication;
 	cfg_new->AVCProfileIndication = cfg->AVCProfileIndication;
 	cfg_new->configurationVersion = cfg->configurationVersion;
