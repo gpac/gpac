@@ -4697,6 +4697,10 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			do_skip = GF_TRUE;
 		} else if (!strncmp(name, "SubNumber", 9)) {
 			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "Init", 4)) {
+			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "Path", 4)) {
+			do_skip = GF_TRUE;
 		} else {
 			char *next_eq = strchr(name, '=');
 			char *next_sep = strchr(name, '$');
