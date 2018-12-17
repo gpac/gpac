@@ -185,6 +185,7 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 	}
 	if (NULL != (sep1 = strchr(sep2, 'S'))) {
 		char *sep_dec = strchr(sep2, '.');
+		*sep1 = 0;
 		if (sep_dec) {
 			sep_dec[0] = 0;
 			s = atoi(sep2);
@@ -193,8 +194,6 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 		} else {
 			s = atoi(sep2);
 		}
-		*sep1 = 0;
-		s = atof(sep2);
 		*sep1 = 'S';
 	}
 	return (u64) ( ((h*3600+m*60+s)*(u64)1000) + ms );
@@ -2275,7 +2274,6 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms, Bool UseHoursAndMinutes)
 {
 	u32 h, m, s, ms;
-	fprintf(stderr, "print dur for "LLU"\n", duration_in_ms);
 
 	h = (u32) (duration_in_ms / 3600000);
 	m = (u32) (duration_in_ms/ 60000) - h*60;
@@ -3209,10 +3207,8 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", mpd->time_shift_buffer_depth, GF_TRUE);
 	if (mpd->suggested_presentation_delay)
 		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay, GF_TRUE);
-	if (mpd->max_segment_duration) {
-		fprintf(stderr, " maxSegDur is %d\n", mpd->max_segment_duration);
+	if (mpd->max_segment_duration) 
 		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration, GF_TRUE);
-	}
 	if (mpd->max_subsegment_duration)
 		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration, GF_TRUE);
 

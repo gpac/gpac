@@ -2727,7 +2727,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		u64 next_ref_ts = ctx->ref_tkw->next_seg_cts;
 		if (is_eos)
 			next_ref_ts = ctx->ref_tkw->cts_next;
-		ref_start = next_ref_ts;
+		ref_start = (Double) next_ref_ts;
 		ref_start /= ctx->ref_tkw->timescale;
 
 		ctx->next_frag_start += ctx->cdur;

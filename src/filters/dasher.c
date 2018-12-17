@@ -3999,15 +3999,19 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 
 	if (ds->segment_started) {
-		u64 seg_duration = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+		Double seg_duration;
+		u64 seg_duration_unscale = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 		//seg_duration /= base_ds->timescale;
-		assert(seg_duration);
-		seg_dur_ms = (u32) (seg_duration*1000 / base_ds->timescale);
-		if (seg_dur_ms * base_ds->timescale < seg_duration * 1000) seg_dur_ms++;
+		assert(seg_duration_unscale);
+		seg_dur_ms = (u32) (seg_duration_unscale*1000 / base_ds->timescale);
+		if (seg_dur_ms * base_ds->timescale < seg_duration_unscale* 1000) seg_dur_ms++;
 
 		first_cts_in_cur_seg = ds->first_cts_in_seg;
 		if (ctx->mpd->max_segment_duration < seg_dur_ms)
 			ctx->mpd->max_segment_duration = seg_dur_ms;
+
+		seg_duration = (Double) base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+		seg_duration /= base_ds->timescale;
 
 		if (!base_ds->done && !ctx->stl && ctx->tpl && !ctx->cues) {
 
