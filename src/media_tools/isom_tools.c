@@ -200,10 +200,10 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 			u64 box_size = gf_bs_peek_bits(bs, 32, 0);
 			u32 box_type = gf_bs_peek_bits(bs, 32, 4);
 
-			/*till end of file*/
-			if (!box_size) box_size = size-tot;
 			/*64-bit size*/
-			else if (box_size==1) box_size = gf_bs_peek_bits(bs, 64, 8);
+			if (box_size==1) box_size = gf_bs_peek_bits(bs, 64, 8);
+			/*till end of file*/
+			if (!box_size) box_size = size - tot;
 
 			/*skip all MutableDRMInformation*/
 			if (box_type==GF_ISOM_BOX_TYPE_MDRI) {
@@ -214,7 +214,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 				while (bsize<box_size) {
 					u32 to_read = (u32) ((box_size-bsize<4096) ? (box_size-bsize) : 4096);
 					u32 read = gf_bs_read_data(bs, (char *) block, to_read);
-					if (!read) {
+					if (!read || (read != to_read) ) {
 						fprintf(stderr, "corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size);
 						break;
 					}
