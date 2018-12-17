@@ -171,7 +171,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #ifdef GPAC_DISABLE_CORE_TOOLS
 	return GF_NOT_SUPPORTED;
 #else
-	u8 block[1024];
+	u8 block[4096];
 	u32 read;
 	u64 size, tot;
 	FILE *in;
@@ -210,10 +210,14 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 				gf_bs_skip_bytes(bs, box_size);
 				tot += box_size;
 			} else {
-				u32 bsize = 0;
+				u64 bsize = 0;
 				while (bsize<box_size) {
-					u32 to_read = (u32) ((box_size-bsize<1024) ? (box_size-bsize) : 1024);
-					gf_bs_read_data(bs, (char *) block, to_read);
+					u32 to_read = (u32) ((box_size-bsize<4096) ? (box_size-bsize) : 4096);
+					u32 read = gf_bs_read_data(bs, (char *) block, to_read);
+					if (!read) {
+						fprintf(stderr, "corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size);
+						break;
+					}
 					gf_sha1_update(ctx, block, to_read);
 					bsize += to_read;
 				}
@@ -222,7 +226,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 		} else
 #endif
 		{
-			read = (u32) fread(block, 1, 1024, in);
+			read = (u32) fread(block, 1, 4096, in);
 			if ((s32) read < 0) {
 				e = GF_IO_ERR;
 				break;
