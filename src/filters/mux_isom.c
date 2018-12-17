@@ -2328,7 +2328,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	}
 
 	if (max_dur) {
-		gf_isom_set_movie_duration(ctx->file, (u64) ( max_dur*ctx->timescale) );
+		Double mdur = max_dur;
+		mdur *= ctx->timescale;
+		gf_isom_set_movie_duration(ctx->file, (u64) ( mdur) );
 	}
 
 	//if we have an explicit track reference for fragmenting, move it first in our list
