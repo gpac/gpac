@@ -2209,7 +2209,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		//resolve segment template
 		e = gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0, use_dash_suffix ? szDASHSuffix : NULL);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Cannot resolve template name, cannot derive output segment names, disabling rep %s\n", ds->src_url));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Cannot resolve template name %s, cannot derive output segment names, disabling rep %s\n", szTemplate, ds->src_url));
 			gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
 			ds->done = 1;
 			continue;
@@ -3999,11 +3999,12 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 
 	if (ds->segment_started) {
-		Double seg_duration = (Double) (base_ds->first_cts_in_next_seg - ds->first_cts_in_seg);
-		seg_duration /= base_ds->timescale;
+		u64 seg_duration = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+		//seg_duration /= base_ds->timescale;
 		assert(seg_duration);
-		seg_dur_ms = (u32) (seg_duration*1000);
-		if ((Double)seg_dur_ms < seg_duration*1000) seg_dur_ms++;
+		seg_dur_ms = (u32) (seg_duration*1000 / base_ds->timescale);
+		if (seg_dur_ms * base_ds->timescale < seg_duration * 1000) seg_dur_ms++;
+
 		first_cts_in_cur_seg = ds->first_cts_in_seg;
 		if (ctx->mpd->max_segment_duration < seg_dur_ms)
 			ctx->mpd->max_segment_duration = seg_dur_ms;
