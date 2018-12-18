@@ -4849,6 +4849,30 @@ GF_Err irot_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err clli_dump(GF_Box *a, FILE * trace)
+{
+	GF_ContentLightLevelBox *ptr = (GF_ContentLightLevelBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ContentLightLevelBox", trace);
+	fprintf(trace, "max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\">\n", ptr->max_content_light_level, ptr->max_pic_average_light_level);
+	gf_isom_box_dump_done("ContentLightLevelBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err mdcv_dump(GF_Box *a, FILE * trace)
+{
+	int c = 0;
+	GF_MasteringDisplayColourVolumeBox *ptr = (GF_MasteringDisplayColourVolumeBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "MasteringDisplayColourVolumeBox", trace);
+	for (c = 0; c < 3; c++) {
+		fprintf(trace, "display_primaries[%d].x=\"%u\" display_primaries[%d].y=\"%u\"", c, ptr->display_primaries[c].x, c, ptr->display_primaries[c].y);
+	}
+	fprintf(trace, "white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\">\n", ptr->white_point_x, ptr->white_point_y, ptr->max_display_mastering_luminance, ptr->min_display_mastering_luminance);
+	gf_isom_box_dump_done("MasteringDisplayColourVolumeBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err ipco_dump(GF_Box *a, FILE * trace)
 {
 	gf_isom_box_dump_start(a, "ItemPropertyContainerBox", trace);

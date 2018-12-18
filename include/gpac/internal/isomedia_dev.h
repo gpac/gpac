@@ -405,6 +405,10 @@ enum
 	GF_ISOM_BOX_TYPE_OINF	= GF_4CC( 'o', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_TOLS	= GF_4CC( 't', 'o', 'l', 's' ),
 
+	/* MIAF Boxes */
+	GF_ISOM_BOX_TYPE_CLLI	= GF_4CC('c', 'l', 'l', 'i'),
+	GF_ISOM_BOX_TYPE_MDCV	= GF_4CC('m', 'd', 'c', 'v'),
+
 	GF_ISOM_BOX_TYPE_ALTR	= GF_4CC( 'a', 'l', 't', 'r' ),
 
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
@@ -2985,6 +2989,24 @@ typedef struct {
 	GF_ISOM_BOX
 	u8 angle;
 } GF_ImageRotationBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	u16 max_content_light_level;
+	u16 max_pic_average_light_level;
+} GF_ContentLightLevelBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	struct {
+		u16 x;
+		u16 y;
+	} display_primaries[4];
+	u16 white_point_x;
+	u16 white_point_y;
+	u32 max_display_mastering_luminance;
+	u32 min_display_mastering_luminance;
+} GF_MasteringDisplayColourVolumeBox;
 
 typedef struct {
 	u32 item_id;
