@@ -463,6 +463,7 @@ enum
 
 	GF_CODECID_VP8 = GF_4CC('V','P','0','8'),
 	GF_CODECID_VP9 = GF_4CC('V','P','0','9'),
+	GF_CODECID_VP10 = GF_4CC('V','P','1','0'),
 
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
 

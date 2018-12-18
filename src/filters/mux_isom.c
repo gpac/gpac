@@ -73,7 +73,7 @@ typedef struct
 
 	char *inband_hdr;
 	u32 inband_hdr_size;
-	Bool is_nalu, is_av1;
+	Bool is_nalu, is_av1, is_vpx;
 	Bool fragment_done;
 	s32 ts_delay, negctts_shift;
 	Bool insert_tfdt, probe_min_ctts;
@@ -389,6 +389,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_hevc = GF_FALSE;
 	Bool use_hvt1 = GF_FALSE;
 	Bool use_av1 = GF_FALSE;
+	Bool use_vpX = GF_FALSE;
 	Bool use_dref = GF_FALSE;
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
@@ -903,6 +904,25 @@ sample_entry_setup:
 		comp_name = "AOM AV1 Video";
 		break;
 
+	case GF_CODECID_VP8:
+		use_gen_sample_entry = GF_FALSE;
+		m_subtype = GF_ISOM_SUBTYPE_VP08;
+		use_vpX = GF_TRUE;
+		comp_name = "VP8 Video";
+		break;
+	case GF_CODECID_VP9:
+		use_gen_sample_entry = GF_FALSE;
+		m_subtype = GF_ISOM_SUBTYPE_VP09;
+		use_vpX = GF_TRUE;
+		comp_name = "VP9 Video";
+		break;
+	case GF_CODECID_VP10:
+		use_gen_sample_entry = GF_FALSE;
+		m_subtype = GF_ISOM_SUBTYPE_VP10;
+		use_vpX = GF_TRUE;
+		comp_name = "VP10 Video";
+		break;
+
 	case GF_CODECID_VORBIS:
 	case GF_CODECID_THEORA:
 		use_m4sys = GF_TRUE;
@@ -1230,6 +1250,26 @@ sample_entry_setup:
 		}
 
 		gf_odf_av1_cfg_del(av1c);
+	} else if (use_vpX) {
+		GF_VPConfig *vpc;
+
+		if (!dsi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for %s\n", gf_4cc_to_str(codec_id) ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		vpc = gf_odf_vp_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!vpc) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to parser %s decoder specific info\n", gf_4cc_to_str(codec_id)));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		e = gf_isom_vp_config_new(ctx->file, tkw->track_num, vpc, (char *) src_url, NULL, &tkw->stsd_idx, m_subtype);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(codec_id), gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->is_vpx = GF_TRUE;
+		gf_odf_vp_cfg_del(vpc);
 	} else if (use_3gpp_config) {
 		GF_3GPConfig gpp_cfg;
 		memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
@@ -1543,7 +1583,7 @@ multipid_stsd_setup:
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
 			tkw->cenc_state = 1;
-			if (tkw->is_nalu || tkw->is_av1) tkw->cenc_subsamples = GF_TRUE;
+			if (tkw->is_nalu || tkw->is_av1 || tkw->is_vpx) tkw->cenc_subsamples = GF_TRUE;
 			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized protection scheme type %s, using generic signaling\n", gf_4cc_to_str(tkw->stream_type) ));

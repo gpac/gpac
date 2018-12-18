@@ -4322,6 +4322,9 @@ GF_Err video_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 	/*this is an AV1 sample desc*/
 	if (mp4v->av1_config)
 		AV1_RewriteESDescriptor(mp4v);
+	/*this is an AV1 sample desc*/
+	if (mp4v->vp_config)
+		VP9_RewriteESDescriptor(mp4v);
 	return GF_OK;
 }
 

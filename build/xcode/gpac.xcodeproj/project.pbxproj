@@ -3674,6 +3674,7 @@
 					"-lxcb-xfixes",
 					"-lSDL2",
 					"-laom",
+					"-lvpx",
 					"-llzma",
 				);
 				PRODUCT_NAME = gpac;
@@ -3785,6 +3786,7 @@
 					"-lxcb-xfixes",
 					"-lSDL2",
 					"-laom",
+					"-lvpx",
 					"-llzma",
 				);
 				PRODUCT_NAME = gpac;

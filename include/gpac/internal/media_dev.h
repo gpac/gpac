@@ -633,7 +633,6 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
 
-GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
 GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
 
 Bool gf_media_probe_ivf(GF_BitStream *bs);
