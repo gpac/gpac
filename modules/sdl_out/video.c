@@ -1662,7 +1662,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	{
 		SDLVID();
 		if (evt->caption.caption) {
-			strncpy(ctx->szCaption, evt->caption.caption, 99);
+			strncpy(ctx->szCaption, evt->caption.caption ? evt->caption.caption : "", 99);
 			ctx->szCaption[99]=0;
 		} else {
 			ctx->szCaption[0]=0;

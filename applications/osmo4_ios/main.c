@@ -123,6 +123,8 @@ static void ResetCaption()
 {
 	GF_Event event;
 	if (display_rti) return;
+	memset(&event, 0, sizeof(GF_Event));
+
 	event.type = GF_EVENT_SET_CAPTION;
 	if (is_connected) {
 #ifdef FILTER_FIXME
@@ -494,6 +496,9 @@ int main (int argc, char *argv[])
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 	memory_at_gpac_startup = rti.physical_memory_avail;
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
+
+	//TODO investigate iOS lock-free, seems to be not stable
+	gf_opts_set_key("core", "sched", "lock");
 
 	init_w = forced_width;
 	init_h = forced_height;

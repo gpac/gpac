@@ -68,7 +68,7 @@ Remaining before release
 - [ ] move HEVC tiling splitter to filter
 - [x] merge AV1 
 - [x] merge VP9 
-- [ ] move iOS client to filters
+- [x] move iOS client to filters
 - [ ] move Android client to filters
 - [ ] rewrite MP42TS to filters or drop it
 - [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
