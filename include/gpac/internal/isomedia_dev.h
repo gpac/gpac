@@ -370,6 +370,8 @@ enum
 	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
 	GF_ISOM_BOX_TYPE_EC3	= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DEC3	= GF_4CC( 'd', 'e', 'c', '3' ),
+	GF_ISOM_BOX_TYPE_DVCC	= GF_4CC( 'd', 'v', 'c', 'C'),
+	GF_ISOM_BOX_TYPE_DVHE	= GF_4CC( 'd', 'v', 'h', 'e'),
 
 	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
 
@@ -1146,12 +1148,37 @@ typedef struct
 	u32 luminanceMin;
 } GF_SMPTE2086MasteringDisplayMetadataBox;
 
-typedef struct
-{
+typedef struct {
 	GF_ISOM_FULL_BOX
-	u16 maxCLL;
+		u16 maxCLL;
 	u16 maxFALL;
 } GF_VPContentLightLevelBox;
+
+typedef struct {
+	u8 dv_version_major;
+	u8 dv_version_minor;
+	u8 dv_profile; //7 bits
+	u8 dv_level;   //6 bits
+	Bool rpu_present_flag;
+	Bool el_present_flag;
+	Bool bl_present_flag;
+	//const unsigned int (32)[5] reserved = 0;
+} GF_DOVIDecoderConfigurationRecord;
+
+typedef struct {
+	GF_ISOM_BOX
+	GF_DOVIDecoderConfigurationRecord DOVIConfig;
+} GF_DOVIConfigurationBox;
+
+/*typedef struct { //extends Box('hvcE')
+	GF_ISOM_BOX
+	GF_HEVCConfig HEVCConfig;
+} GF_DolbyVisionELHEVCConfigurationBox;*/
+
+typedef struct { //extends HEVCSampleEntry('dvhe')
+	GF_DOVIConfigurationBox config;
+	//TODO: GF_DolbyVisionELHEVCConfigurationBox ELConfig; // optional
+} GF_DolbyVisionHEVCSampleEntry;
 
 typedef struct
 {
