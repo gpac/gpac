@@ -1715,7 +1715,7 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 }
 
 GF_EXPORT
-GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex, Bool is_vp9)
+GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex, u32 vpx_type)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1739,9 +1739,9 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig 
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	//create a new entry
-	if (is_vp9) entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_VP09);
-	else entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_VP08);
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new(vpx_type);
 	if (!entry) return GF_OUT_OF_MEM;
+	
 	entry->vp_config = (GF_VPConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_VPCC);
 	if (!entry->vp_config) return GF_OUT_OF_MEM;
 	entry->vp_config->config = VP_DuplicateConfig(cfg);

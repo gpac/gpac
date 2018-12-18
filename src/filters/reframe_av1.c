@@ -48,7 +48,8 @@ typedef struct
 	GF_Fraction fps;
 	Double index_dur;
 	Bool autofps;
-
+	Bool importer;
+	
 	//only one input pid declared
 	GF_FilterPid *ipid;
 	//only one output pid declared
@@ -71,6 +72,12 @@ typedef struct
 
 	//ivf header for now
 	u32 file_hdr_size;
+
+	Bool is_av1;
+	Bool is_vp9;
+	Bool is_vpX;
+	u32 codecid;
+	GF_VPConfig *vp_cfg;
 
 	Bool is_playing;
 	Bool is_file, file_loaded;
@@ -122,22 +129,76 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	if (!ctx->state.config)
 		ctx->state.config = gf_odf_av1_cfg_new();
 
+	ctx->is_av1 = ctx->is_vp9 = ctx->is_vpX = GF_FALSE;
+	ctx->codecid = 0;
+	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
+	ctx->vp_cfg = NULL;
+
 	if (gf_media_probe_ivf(bs)) {
+		u32 width = 0, height = 0;
+		u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
 		ctx->bsmode = IVF;
-		e = gf_media_aom_parse_ivf_file_header(bs, &ctx->state);
+
+		e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
 		if (e) return e;
+
+		switch (codec_fourcc) {
+		case GF_4CC('A', 'V', '0', '1'):
+			ctx->is_av1 = GF_TRUE;
+			ctx->codecid = GF_CODECID_AV1;
+			break;
+		case GF_4CC('V', 'P', '9', '0'):
+			ctx->is_vp9 = GF_TRUE;
+			ctx->codecid = GF_CODECID_VP9;
+			ctx->vp_cfg = gf_odf_vp_cfg_new();
+			break;
+		case GF_4CC('V', 'P', '8', '0'):
+			ctx->codecid = GF_CODECID_VP8;
+			ctx->vp_cfg = gf_odf_vp_cfg_new();
+			break;
+		case GF_4CC('V', 'P', '1', '0'):
+			ctx->codecid = GF_CODECID_VP10;
+			ctx->vp_cfg = gf_odf_vp_cfg_new();
+			break;
+		default:
+			ctx->codecid = codec_fourcc;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF] Unsupported codec FourCC %s, import might be uncomplete or broken\n", gf_4cc_to_str(codec_fourcc) ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (ctx->vp_cfg && !ctx->is_vp9) {
+			ctx->is_vpX = GF_TRUE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IVF] %s parsing not implemented, import might be uncomplete or broken\n", gf_4cc_to_str(codec_fourcc) ));
+			ctx->vp_cfg->profile = 1;
+			ctx->vp_cfg->level = 10;
+			ctx->vp_cfg->bit_depth = 8;
+			//leave the rest as 0
+		}
+
+		if (ctx->vp_cfg && ctx->importer) {
+			if ((frame_rate==25) || (frame_rate==24)) {
+				frame_rate *= 1000;
+				time_scale *= 1000;
+			}
+		}
+
+		ctx->state.width = ctx->state.width < width ? width : ctx->state.width;
+		ctx->state.height = ctx->state.height < height ? height : ctx->state.height;
+		ctx->state.tb_num = frame_rate; //time_base.numerator
+		ctx->state.tb_den = time_scale; //time_base.denominator
+
 
 		if (ctx->autofps && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
 			ctx->fps.num = ctx->state.tb_num;
 			ctx->fps.den = ctx->state.tb_den;
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected IVF format FPS %d/%d\n", ctx->fps.num, ctx->fps.den));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[AV1Dmx] Detected IVF format FPS %d/%d\n", ctx->fps.num, ctx->fps.den));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected IVF format\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[AV1Dmx] Detected IVF format\n"));
 		}
 		ctx->file_hdr_size = (u32) gf_bs_get_position(bs);
 		if (last_obu_end) (*last_obu_end) = (u32) gf_bs_get_position(bs);
+		return GF_OK;
 	} else if (gf_media_aom_probe_annexb(bs)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected Annex B format\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1Dmx] Detected Annex B format\n"));
 		ctx->bsmode = AnnexB;
 	} else {
 		gf_bs_seek(bs, 0);
@@ -153,12 +214,14 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 			ctx->bsmode = UNSUPPORTED;
 			return e;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[AV1Dmx] Detected OBUs Section 5 format\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1Dmx] Detected OBUs Section 5 format\n"));
 		ctx->bsmode = OBUs;
 
 		av1_reset_state(&ctx->state, GF_FALSE);
 		gf_bs_seek(bs, 0);
 	}
+	ctx->is_av1 = GF_TRUE;
+	ctx->codecid = GF_CODECID_AV1;
 	return GF_OK;
 }
 
@@ -173,15 +236,15 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
+	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
+
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p || !p->value.string) {
 		ctx->is_file = GF_FALSE;
 		return;
 	}
 	ctx->is_file = GF_TRUE;
-
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
-	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
 
 	if (!ctx->index_dur) return;
 
@@ -202,7 +265,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	duration = 0;
 	cur_dur = 0;
 	while (gf_bs_available(bs)) {
-		Bool is_sap;
+		Bool is_sap=GF_FALSE;
 		u64 frame_start = gf_bs_get_position(bs);
 		av1_reset_state(&av1state, GF_FALSE);
 
@@ -215,7 +278,14 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			e = aom_av1_parse_temporal_unit_from_annexb(bs, &av1state);
 			break;
 		case IVF:
-			e = aom_av1_parse_temporal_unit_from_ivf(bs, &av1state);
+			if (ctx->is_av1) {
+				e = aom_av1_parse_temporal_unit_from_ivf(bs, &av1state);
+			} else {
+				u64 frame_size;
+				e = gf_media_parse_ivf_frame_header(bs, &frame_size);
+				if (!e) gf_bs_skip_bytes(bs, frame_size);
+		 		is_sap = GF_TRUE;
+			}
 			break;
 		default:
 			e = GF_NOT_SUPPORTED;
@@ -225,7 +295,8 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 		duration += ctx->fps.den;
 		cur_dur += ctx->fps.den;
-		is_sap = av1state.frame_state.key_frame ? GF_TRUE : GF_FALSE;
+		if (av1state.frame_state.key_frame)
+		 	is_sap = GF_TRUE;
 
 		//only index at I-frame start
 		if (frame_start && is_sap && (cur_dur > ctx->index_dur * ctx->fps.num) ) {
@@ -340,27 +411,33 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	u32 dsi_size, crc;
 
 	//no config or no config change
-	if (!gf_list_count(ctx->state.frame_state.header_obus)) return;
+	if (ctx->is_av1 && !gf_list_count(ctx->state.frame_state.header_obus)) return;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		av1dmx_check_dur(filter, ctx);
 	}
-
-	//first or config changed, compute dsi
-	while (gf_list_count(ctx->state.config->obu_array)) {
-		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*) gf_list_pop_back(ctx->state.config->obu_array);
-		if (a->obu) gf_free(a->obu);
-		gf_free(a);
-	}
 	dsi = NULL;
 	dsi_size = 0;
-	while (gf_list_count(ctx->state.frame_state.header_obus)) {
-		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*) gf_list_get(ctx->state.frame_state.header_obus, 0);
-		gf_list_add(ctx->state.config->obu_array, a);
-		gf_list_rem(ctx->state.frame_state.header_obus, 0);
+
+	if (ctx->vp_cfg) {
+		gf_odf_vp_cfg_write(ctx->vp_cfg, &dsi, &dsi_size, ctx->vp_cfg->codec_initdata_size ? GF_TRUE : GF_FALSE);
+	} else if (ctx->is_av1) {
+		//first or config changed, compute dsi
+		while (gf_list_count(ctx->state.config->obu_array)) {
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*) gf_list_pop_back(ctx->state.config->obu_array);
+			if (a->obu) gf_free(a->obu);
+			gf_free(a);
+		}
+		dsi = NULL;
+		dsi_size = 0;
+		while (gf_list_count(ctx->state.frame_state.header_obus)) {
+			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*) gf_list_get(ctx->state.frame_state.header_obus, 0);
+			gf_list_add(ctx->state.config->obu_array, a);
+			gf_list_rem(ctx->state.frame_state.header_obus, 0);
+		}
+		gf_odf_av1_cfg_write(ctx->state.config, &dsi, &dsi_size);
 	}
-	gf_odf_av1_cfg_write(ctx->state.config, &dsi, &dsi_size);
 	crc = gf_crc_32(dsi, dsi_size);
 
 	if (crc == ctx->dsi_crc) {
@@ -372,12 +449,220 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_AV1));
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(ctx->state.width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(ctx->state.height));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
+
+	if (dsi && dsi_size)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
+}
+
+GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
+{
+	GF_Err e;
+	u32 pck_size;
+	u64 frame_size = 0;
+	GF_FilterPacket *pck;
+	u64 pos, pos_ivf_hdr;
+	char *output;
+
+	pos_ivf_hdr = gf_bs_get_position(ctx->bs);
+	e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size);
+	if (e) return e;
+
+	pos = gf_bs_get_position(ctx->bs);
+	if (gf_bs_available(ctx->bs) < frame_size) {
+		gf_bs_seek(ctx->bs, pos_ivf_hdr);
+		return GF_EOS;
+	}
+
+	pck_size = (u32)(gf_bs_get_position(ctx->bs) - pos);
+	assert(pck_size == frame_size);
+
+	//check pid state
+	av1dmx_check_pid(filter, ctx);
+
+	if (!ctx->opid) {
+		return GF_OK;
+	}
+
+	if (!ctx->is_playing) {
+		gf_bs_seek(ctx->bs, pos_ivf_hdr);
+		return GF_EOS;
+	}
+
+	pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &output);
+	if (!pck) {
+		gf_bs_seek(ctx->bs, pos_ivf_hdr);
+		return GF_OUT_OF_MEM;
+	}
+	if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
+
+	gf_filter_pck_set_cts(pck, ctx->cts);
+	//no clue what is inside the packet, signal as SAP1
+	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+
+	gf_bs_seek(ctx->bs, pos);
+	gf_bs_read_data(ctx->bs, output, pck_size);
+	gf_filter_pck_send(pck);
+
+	av1dmx_update_cts(ctx);
+	return GF_OK;
+}
+
+GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
+{
+	Bool key_frame = GF_FALSE;
+	u64 frame_size = 0;
+	u64 pos, pos_ivf_hdr;
+	int width = 0, height = 0, renderWidth, renderHeight;
+	int num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
+	u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
+	char *output;
+	GF_Err e;
+
+	pos_ivf_hdr = gf_bs_get_position(ctx->bs);
+	e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size);
+	if (e) return e;
+
+	pos = gf_bs_get_position(ctx->bs);
+	if (gf_bs_available(ctx->bs) < frame_size) {
+		gf_bs_seek(ctx->bs, pos_ivf_hdr);
+		return GF_EOS;
+	}
+
+	/*check if it is a superframe*/
+	if (vp9_parse_superframe(ctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size) != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Error parsing superframe structure\n"));
+		return e;
+	}
+
+	for (i = 0; i < num_frames_in_superframe; ++i) {
+		u64 pos2 = gf_bs_get_position(ctx->bs);
+		if (vp9_parse_sample(ctx->bs, ctx->vp_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Error parsing frame\n"));
+			return e;
+		}
+		e = gf_bs_seek(ctx->bs, pos2 + frame_sizes[i]);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Seek bad param (offset "LLU") (1)", pos2 + frame_sizes[i]));
+			return e;
+		}
+	}
+	if (gf_bs_get_position(ctx->bs) + superframe_index_size != pos + frame_size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[VP9Dmx] Inconsistent IVF frame size of "LLU" bytes.\n", frame_size));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("      Detected %d frames (+ %d bytes for the superframe index):\n", num_frames_in_superframe, superframe_index_size));
+		for (i = 0; i < num_frames_in_superframe; ++i) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("         superframe %d, size is %u bytes\n", i, frame_sizes[i]));
+		}
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("\n"));
+	}
+	e = gf_bs_seek(ctx->bs, pos + frame_size);
+	if (e) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[VP9Dmx] Seek bad param (offset "LLU") (2)", pos + frame_size));
+		return e;
+	}
+
+	u32 pck_size = (u32)(gf_bs_get_position(ctx->bs) - pos);
+	assert(pck_size == frame_size);
+
+	//check pid state
+	av1dmx_check_pid(filter, ctx);
+
+	if (!ctx->opid) {
+		return GF_OK;
+	}
+
+	if (!ctx->is_playing) {
+		gf_bs_seek(ctx->bs, pos_ivf_hdr);
+		return GF_EOS;
+	}
+
+	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &output);
+	if (!pck) {
+		gf_bs_seek(ctx->bs, pos_ivf_hdr);
+		return GF_OUT_OF_MEM;
+	}
+	if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
+
+	gf_filter_pck_set_cts(pck, ctx->cts);
+	if (key_frame) {
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+	}
+	gf_bs_seek(ctx->bs, pos);
+	gf_bs_read_data(ctx->bs, output, pck_size);
+	gf_filter_pck_send(pck);
+
+	av1dmx_update_cts(ctx);
+	return GF_OK;
+}
+
+GF_Err av1dmx_parse_av1(GF_Filter *filter, GF_AV1DmxCtx *ctx)
+{
+	GF_Err e;
+	u32 pck_size;
+	GF_FilterPacket *pck;
+	char *output;
+
+	/*we process each TU and extract only the necessary OBUs*/
+	switch (ctx->bsmode) {
+	case OBUs:
+		e = aom_av1_parse_temporal_unit_from_section5(ctx->bs, &ctx->state);
+		break;
+	case AnnexB:
+		e = aom_av1_parse_temporal_unit_from_annexb(ctx->bs, &ctx->state);
+		break;
+	case IVF:
+		e = aom_av1_parse_temporal_unit_from_ivf(ctx->bs, &ctx->state);
+		break;
+	default:
+		e = GF_NOT_SUPPORTED;
+	}
+
+	if (e) return e;
+
+	//check pid state
+	av1dmx_check_pid(filter, ctx);
+
+	if (!ctx->opid) {
+		if (ctx->state.obu_type != OBU_TEMPORAL_DELIMITER) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1Dmx] output pid not configured (no sequence header yet ?), skiping OBU\n"));
+		}
+		av1_reset_state(&ctx->state, GF_FALSE);
+		return GF_OK;
+	}
+	if (!ctx->is_playing) {
+		av1_reset_state(&ctx->state, GF_FALSE);
+		return GF_EOS;
+	}
+
+	gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &pck_size, &ctx->state.frame_obus_alloc);
+
+	if (!pck_size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1Dmx] no frame OBU, skiping OBU\n"));
+		return GF_OK;
+	}
+
+	pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &output);
+	if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
+
+	gf_filter_pck_set_cts(pck, ctx->cts);
+	if (ctx->is_vp9) {
+	} else {
+		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+	}
+	memcpy(output, ctx->state.frame_obus, pck_size);
+
+	gf_filter_pck_send(pck);
+
+	av1dmx_update_cts(ctx);
+	av1_reset_state(&ctx->state, GF_FALSE);
+
+	return GF_OK;
 }
 
 GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
@@ -388,74 +673,26 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 	if (!ctx->bs) ctx->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs, data, data_size);
 
+	//check ivf vs obu vs annexB
 	e = av1dmx_check_format(filter, ctx, ctx->bs, &last_obu_end);
 	if (e) return e;
 
 	while (gf_bs_available(ctx->bs)) {
-		u32 pck_size;
-		GF_FilterPacket *pck;
-		char *output;
 
-		//u32 pos = (u32) gf_bs_get_position(ctx->bs);
-
-		/*we process each TU and extract only the necessary OBUs*/
-		switch (ctx->bsmode) {
-		case OBUs:
-			e = aom_av1_parse_temporal_unit_from_section5(ctx->bs, &ctx->state);
-			break;
-		case AnnexB:
-			e = aom_av1_parse_temporal_unit_from_annexb(ctx->bs, &ctx->state);
-			break;
-		case IVF:
-			e = aom_av1_parse_temporal_unit_from_ivf(ctx->bs, &ctx->state);
-			break;
-		default:
-			e = GF_NOT_SUPPORTED;
+		if (ctx->is_vp9) {
+			e = av1dmx_parse_vp9(filter, ctx);
+		} else if (ctx->is_av1) {
+			e = av1dmx_parse_av1(filter, ctx);
+		} else {
+			e = av1dmx_parse_ivf(filter, ctx);
 		}
 
-		if (e==GF_EOS) {
-			e = GF_OK;
-			break;
-		}
+		if (e!=GF_EOS)
+			last_obu_end = (u32) gf_bs_get_position(ctx->bs);
+
 		if (e) {
-			last_obu_end = (u32) gf_bs_get_position(ctx->bs);
 			break;
 		}
-		
-		//check pid state
-		av1dmx_check_pid(filter, ctx);
-
-		if (!ctx->opid) {
-			if (ctx->state.obu_type != OBU_TEMPORAL_DELIMITER) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1Dmx] output pid not configured (no sequence header yet ?), skiping OBU\n"));
-			}
-			last_obu_end = (u32) gf_bs_get_position(ctx->bs);
-			av1_reset_state(&ctx->state, GF_FALSE);
-			continue;
-		}
-		if (!ctx->is_playing) {
-			av1_reset_state(&ctx->state, GF_FALSE);
-			break;
-		}
-		last_obu_end = (u32) gf_bs_get_position(ctx->bs);
-
-		gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &pck_size, &ctx->state.frame_obus_alloc);
-		if (!pck_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1Dmx] no frame OBU, skiping OBU\n"));
-			continue;
-		}
-
-		pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &output);
-		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
-
-		gf_filter_pck_set_cts(pck, ctx->cts);
-		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
-		memcpy(output, ctx->state.frame_obus, pck_size);
-
-		gf_filter_pck_send(pck);
-
-		av1dmx_update_cts(ctx);
-		av1_reset_state(&ctx->state, GF_FALSE);
 	}
 
 	if (is_copy && last_obu_end) {
@@ -463,7 +700,8 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 		memmove(ctx->buffer, ctx->buffer+last_obu_end, sizeof(char) * (ctx->buf_size-last_obu_end));
 		ctx->buf_size -= last_obu_end;
 	}
-	if (e==GF_BUFFER_TOO_SMALL) e = GF_OK;
+	if (e==GF_EOS) return GF_OK;
+	if (e==GF_BUFFER_TOO_SMALL) return GF_OK;
 	return e;
 }
 
@@ -489,8 +727,12 @@ GF_Err av1dmx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			//flush
 			while (ctx->buf_size) {
+				u32 buf_size = ctx->buf_size;
 				e = av1dmx_process_buffer(filter, ctx, ctx->buffer, ctx->buf_size, GF_TRUE);
 				if (e) break;
+				if (buf_size == ctx->buf_size) {
+					break;
+				}
 			}
 			ctx->buf_size = 0;
 			if (ctx->opid)
@@ -591,6 +833,8 @@ static void av1dmx_finalize(GF_Filter *filter)
 	if (ctx->state.bs) gf_bs_del(ctx->state.bs);
 	if (ctx->state.frame_obus) gf_free(ctx->state.frame_obus);
 	if (ctx->buffer) gf_free(ctx->buffer);
+
+	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 }
 
 static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -634,6 +878,7 @@ static const GF_FilterCapability AV1DmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/av1"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AV1),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VP9),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -641,6 +886,7 @@ static const GF_FilterCapability AV1DmxCaps[] =
 	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AV1),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VP9),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -650,13 +896,14 @@ static const GF_FilterArgs AV1DmxArgs[] =
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, 0},
 	{ OFFS(autofps), "detect FPS from bitstream, fallback to fps option if not possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 
 GF_FilterRegister AV1DmxRegister = {
 	.name = "rfav1",
-	GF_FS_SET_DESCRIPTION("AV1 reframer")
+	GF_FS_SET_DESCRIPTION("AV1 and VP9 reframer")
 	.private_size = sizeof(GF_AV1DmxCtx),
 	.args = AV1DmxArgs,
 	.finalize = av1dmx_finalize,

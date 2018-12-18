@@ -67,7 +67,7 @@ Remaining before release
 - [ ] move SVC/SHVC splitters and aggregators to filter
 - [ ] move HEVC tiling splitter to filter
 - [x] merge AV1 
-- [ ] merge VP9 
+- [x] merge VP9 
 - [ ] move iOS client to filters
 - [ ] move Android client to filters
 - [ ] rewrite MP42TS to filters or drop it
@@ -75,7 +75,7 @@ Remaining before release
 - [x] add pipe source and sink
 - [x] add  tcp source and sink
 - [x] add generic serializer/reader for all events/packets in filter arch
-- [x] add remotery support
+- [x] add Remotery support
 - [x] filter API documentation
 - [x] add segmentation handling in TS muxer
 - [ ] unify vout color handling (complete) and compositor GLSL shaders (partial color support)

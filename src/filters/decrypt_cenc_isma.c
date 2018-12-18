@@ -856,6 +856,11 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 					memset(IV+8, 0, sizeof(char)*8);
 				gf_crypt_set_IV(cstr->crypt, IV, 16);
 			}
+			if (cur_pos + bytes_clear_data + bytes_encrypted_data > data_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, subsample info describe more bytes (%d) than in packet (%d)\n", cur_pos + bytes_clear_data + bytes_encrypted_data , data_size ));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			/*skip clear data*/
 			cur_pos += bytes_clear_data;
 

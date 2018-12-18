@@ -1880,28 +1880,6 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 	return GF_OK;
 }
 
-GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
-{
-	u32 width = 0, height = 0;
-	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
-	GF_Err e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
-	if (e)
-		return e;
-
-	if (codec_fourcc != GF_4CC('A', 'V', '0', '1')) {
-		char *FourCC = (char*)&codec_fourcc;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Unsupported codec FourCC '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
-	state->width = state->width < width ? width : state->width;
-	state->height = state->height < height ? height : state->height;
-
-	state->tb_num = frame_rate; //time_base.numerator
-	state->tb_den = time_scale; //time_base.denominator
-
-	return GF_OK;
-}
-
 GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 {
 	if (!frame_size) return GF_BAD_PARAM;
