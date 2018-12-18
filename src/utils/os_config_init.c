@@ -443,6 +443,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #else /*iOS: for now, everything is set flat within the package*/
 		/*iOS app is distributed with embedded GUI*/
 		get_default_install_path(app_path, GF_PATH_APP);
+		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 		strcat(app_path, "/share");
 		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 #endif
@@ -483,7 +484,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_pat
 		}
 		gf_mkdir(cache_dir);
 	}
-	gf_opts_set_key("core", "cache", cache_dir);
+	gf_cfg_set_key(cfg, "core", "cache", cache_dir);
 }
 
 #endif

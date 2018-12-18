@@ -154,7 +154,6 @@ typedef struct
 {
 	/*GF_EVENT_SET_CAPTION*/
 	u8 type;
-	/*window style flags - NOT USED YET*/
 	const char *caption;
 } GF_EventCaption;
 
