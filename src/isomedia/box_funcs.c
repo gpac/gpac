@@ -671,6 +671,10 @@ ISOM_BOX_IMPL_DECL(ipma)
 ISOM_BOX_IMPL_DECL(trgr)
 ISOM_BOX_IMPL_DECL(trgt)
 
+/* MIAF declarations */
+ISOM_BOX_IMPL_DECL(clli)
+ISOM_BOX_IMPL_DECL(mdcv)
+
 ISOM_BOX_IMPL_DECL(grpl)
 
 ISOM_BOX_IMPL_DECL(strk)
@@ -1069,6 +1073,10 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TOLS, tols, "ipco", 0, "iff"),
+
+	//MIAF
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CLLI, clli, "mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "miaf"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_MDCV, mdcv, "mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "miaf"),
 
 	//other MPEG boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_RVCC, rvcc, "avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "rvc"),
