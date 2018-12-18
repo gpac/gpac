@@ -3934,6 +3934,17 @@ GF_Err dac3_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dvcC_dump(GF_Box *a, FILE * trace)
+{
+	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
+	gf_isom_box_dump_start(a, "DOVIConfigurationBox", trace);
+	fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\">\n",
+		p->DOVIConfig.dv_version_major, p->DOVIConfig.dv_version_minor, p->DOVIConfig.dv_profile, p->DOVIConfig.dv_level,
+		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag);
+	gf_isom_box_dump_done("DOVIConfigurationBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err lsrc_dump(GF_Box *a, FILE * trace)
 {
 	GF_LASERConfigurationBox *p = (GF_LASERConfigurationBox *)a;

@@ -11194,3 +11194,87 @@ GF_Err mhac_Size(GF_Box *s)
 
 
 #endif /*GPAC_DISABLE_ISOM*/
+
+
+
+/* Dolby Vision */
+
+GF_Box *dvcC_New()
+{
+	GF_DOVIConfigurationBox *tmp = (GF_DOVIConfigurationBox *)gf_malloc(sizeof(GF_DOVIConfigurationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_DOVIConfigurationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_DVCC;
+	return (GF_Box *)tmp;
+}
+
+void dvcC_del(GF_Box *s)
+{
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox*)s;
+	gf_free(ptr);
+}
+
+GF_Err dvcC_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *)s;
+
+	//GF_DOVIDecoderConfigurationRecord
+	ptr->DOVIConfig.dv_version_major = gf_bs_read_u8(bs);
+	ptr->DOVIConfig.dv_version_minor = gf_bs_read_u8(bs);
+	ptr->DOVIConfig.dv_profile = gf_bs_read_int(bs, 7);
+	ptr->DOVIConfig.dv_level = gf_bs_read_int(bs, 6);
+	ptr->DOVIConfig.rpu_present_flag = gf_bs_read_int(bs, 1);
+	ptr->DOVIConfig.el_present_flag = gf_bs_read_int(bs, 1);
+	ptr->DOVIConfig.bl_present_flag = gf_bs_read_int(bs, 1);
+	{
+		int i = 0;
+		u32 data[5];
+		memset(data, 0, sizeof(data));
+		gf_bs_read_data(bs, (char*)data, 20);
+		for (i = 0; i < 5; ++i) {
+			if (data[i] != 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
+		}
+	}
+	
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err dvcC_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *) s;
+	if (!s) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	//GF_DOVIDecoderConfigurationRecord
+	gf_bs_write_u8(bs,  ptr->DOVIConfig.dv_version_major);
+	gf_bs_write_u8(bs,  ptr->DOVIConfig.dv_version_minor);
+	gf_bs_write_int(bs, ptr->DOVIConfig.dv_profile, 7);
+	gf_bs_write_int(bs, ptr->DOVIConfig.dv_level, 6);
+	gf_bs_write_int(bs, ptr->DOVIConfig.rpu_present_flag, 1);
+	gf_bs_write_int(bs, ptr->DOVIConfig.el_present_flag, 1);
+	gf_bs_write_int(bs, ptr->DOVIConfig.bl_present_flag, 1);
+	gf_bs_write_int(bs, 0, 5*32);
+
+	return GF_OK;
+}
+
+GF_Err dvcC_Size(GF_Box *s)
+{
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *)s;
+
+	ptr->size += sizeof(GF_DOVIDecoderConfigurationRecord);
+
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+#endif //Romain
