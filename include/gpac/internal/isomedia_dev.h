@@ -1164,7 +1164,7 @@ typedef struct
 
 typedef struct {
 	GF_ISOM_FULL_BOX
-		u16 maxCLL;
+	u16 maxCLL;
 	u16 maxFALL;
 } GF_VPContentLightLevelBox;
 
