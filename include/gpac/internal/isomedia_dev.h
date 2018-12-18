@@ -184,10 +184,12 @@ enum
 	GF_ISOM_BOX_TYPE_AV1C = GF_4CC('a', 'v', '1', 'C'),
 	GF_ISOM_BOX_TYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
-	/* WebM */
+	/*WebM*/
 	GF_ISOM_BOX_TYPE_VPCC = GF_4CC('v', 'p', 'c', 'C'),
 	GF_ISOM_BOX_TYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_BOX_TYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
+	GF_ISOM_BOX_TYPE_SMDM = GF_4CC('S', 'm', 'D', 'm'),
+	GF_ISOM_BOX_TYPE_COLL = GF_4CC('C', 'o', 'L', 'L'),
 
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
@@ -1142,6 +1144,28 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	GF_VPConfig *config;
 } GF_VPConfigurationBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u16 primaryRChromaticity_x;
+	u16 primaryRChromaticity_y;
+	u16 primaryGChromaticity_x;
+	u16 primaryGChromaticity_y;
+	u16 primaryBChromaticity_x;
+	u16 primaryBChromaticity_y;
+	u16 whitePointChromaticity_x;
+	u16 whitePointChromaticity_y;
+	u32 luminanceMax;
+	u32 luminanceMin;
+} GF_SMPTE2086MasteringDisplayMetadataBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u16 maxCLL;
+	u16 maxFALL;
+} GF_VPContentLightLevelBox;
 
 typedef struct
 {

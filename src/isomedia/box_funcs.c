@@ -631,8 +631,12 @@ ISOM_BOX_IMPL_DECL(cslg)
 ISOM_BOX_IMPL_DECL(ccst)
 ISOM_BOX_IMPL_DECL(hvcc)
 ISOM_BOX_IMPL_DECL(av1c)
-ISOM_BOX_IMPL_DECL(vpcc)
 ISOM_BOX_IMPL_DECL(prft)
+
+//VPx
+ISOM_BOX_IMPL_DECL(vpcc)
+ISOM_BOX_IMPL_DECL(SmDm)
+ISOM_BOX_IMPL_DECL(CoLL)
 
 ISOM_BOX_IMPL_DECL(trep)
 
@@ -1034,6 +1038,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 encv resv", 1, 0, "vp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VP08, video_sample_entry, "stsd", "vp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VP09, video_sample_entry, "stsd", "vp"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_SMDM, video_sample_entry, "SmDm", "vp"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_COLL, video_sample_entry, "CoLL", "vp"),
 
 	//part20 boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LSR1, lsr1, "stsd", "p20"),
