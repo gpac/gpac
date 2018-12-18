@@ -1609,6 +1609,33 @@ GF_Err vpcc_dump(GF_Box *a, FILE *trace) {
 	return GF_OK;
 }
 
+GF_Err SmDm_dump(GF_Box *a, FILE *trace) {
+	GF_SMPTE2086MasteringDisplayMetadataBox * ptr = (GF_SMPTE2086MasteringDisplayMetadataBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "SMPTE2086MasteringDisplayMetadataBox", trace);
+	fprintf(trace, "primaryRChromaticity_x=\"%u\" ", ptr->primaryRChromaticity_x);
+	fprintf(trace, "primaryRChromaticity_y=\"%u\" ", ptr->primaryRChromaticity_y);
+	fprintf(trace, "primaryGChromaticity_x=\"%u\" ", ptr->primaryGChromaticity_x);
+	fprintf(trace, "primaryGChromaticity_y=\"%u\" ", ptr->primaryGChromaticity_y);
+	fprintf(trace, "primaryBChromaticity_x=\"%u\" ", ptr->primaryBChromaticity_x);
+	fprintf(trace, "primaryBChromaticity_y=\"%u\" ", ptr->primaryBChromaticity_y);
+	fprintf(trace, "whitePointChromaticity_x=\"%u\" ", ptr->whitePointChromaticity_x);
+	fprintf(trace, "whitePointChromaticity_y=\"%u\" ", ptr->whitePointChromaticity_y);
+	fprintf(trace, "luminanceMax=\"%u\" ", ptr->luminanceMax);
+	fprintf(trace, "luminanceMin=\"%u\">\n", ptr->luminanceMin);
+	gf_isom_box_dump_done("SMPTE2086MasteringDisplayMetadataBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err CoLL_dump(GF_Box *a, FILE *trace) {
+	GF_VPContentLightLevelBox * ptr = (GF_VPContentLightLevelBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "VPContentLightLevelBox", trace);
+	fprintf(trace, "maxCLL=\"%u\" maxFALL=\"%u\">\n", ptr->maxCLL, ptr->maxFALL);
+	gf_isom_box_dump_done("VPContentLightLevelBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
