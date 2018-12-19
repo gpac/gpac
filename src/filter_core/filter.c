@@ -1475,17 +1475,17 @@ static void gf_filter_process_task(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		assert(filter->process_task_queued);
 	}
+	//filter requested a requeue
+	else if (filter->schedule_next_time) {
+		task->schedule_next_time = filter->schedule_next_time;
+		task->requeue_request = GF_TRUE;
+		assert(filter->process_task_queued);
+	}
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
 	else if ((filter->would_block < filter->num_output_pids)
 			&& filter->pending_packets
 			&& (gf_fq_count(filter->tasks)<=1)
 	) {
-		task->requeue_request = GF_TRUE;
-		assert(filter->process_task_queued);
-	}
-	//filter requested a requeue
-	else if (filter->schedule_next_time) {
-		task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
 		assert(filter->process_task_queued);
 	}

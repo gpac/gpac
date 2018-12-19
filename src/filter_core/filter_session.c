@@ -759,6 +759,12 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	return NULL;
 }
 
+//in mono thread mode, we cannot always sleep for the requested timeout in case there are more tasks to be processed
+//this defines the number of pending tasks above wich we limit sleep
+#define MONOTH_MIN_TASKS	2
+//this defines the sleep time for this case
+#define MONOTH_MIN_SLEEP	5
+
 static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 {
 	GF_FilterSession *fsess = sess_thread->fsess;
@@ -940,10 +946,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					}
 
 					if (diff) {
-						//if mono thread and other tasks pending than the two we checked, max sleep is 5 ms
 						if (th_count==0) {
-							if ( gf_fq_count(fsess->tasks) > 2)
-								diff=5;
+							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
+								diff = MONOTH_MIN_SLEEP;
 						}
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, sleeping for %d ms\n", sys_thid, task->log_name, diff));
 						gf_sleep((u32) diff);
@@ -998,8 +1003,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 					if (! (fsess->flags & GF_FS_FLAG_NO_REGULATION) ) {
 						if (th_count==0) {
-							if ( gf_fq_count(fsess->tasks) )
-								diff=5;
+							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
+								diff = MONOTH_MIN_SLEEP;
 						}
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", sys_thid, current_filter->name, task->log_name, (s32) diff));
 

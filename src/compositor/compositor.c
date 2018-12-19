@@ -2522,8 +2522,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			if (compositor->bench_mode)
 				compositor->force_bench_frame = 1;
 		}
-
-		if (compositor->flush_pending) {
+		//no flush pending
+		if (!compositor->flush_pending && !compositor->skip_flush) {
 			gf_sc_flush_video(compositor, GF_TRUE);
 		}
 

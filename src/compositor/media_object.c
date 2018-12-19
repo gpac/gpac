@@ -629,6 +629,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		mo->ms_until_pres = 0;
 	} else {
 //		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u same frame fetch TS %u\n", mo->odm->ID, mo->odm->net_service->url, obj_time, CU->TS ));
+
+		//if paused force a high value for next frame
+		if (!gf_clock_is_started(mo->odm->ck)) {
+			mo->ms_until_next = 100;
+		}
 	}
 
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
