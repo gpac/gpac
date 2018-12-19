@@ -519,8 +519,8 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	Bool key_frame = GF_FALSE;
 	u64 frame_size = 0;
 	u64 pos, pos_ivf_hdr;
-	int width = 0, height = 0, renderWidth, renderHeight;
-	int num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
+	u32 width = 0, height = 0, renderWidth, renderHeight;
+	u32 num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 	u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 	char *output;
 	GF_Err e;
@@ -536,14 +536,14 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	/*check if it is a superframe*/
-	if (vp9_parse_superframe(ctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size) != GF_OK) {
+	if (gf_media_vp9_parse_superframe(ctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size) != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Error parsing superframe structure\n"));
 		return e;
 	}
 
 	for (i = 0; i < num_frames_in_superframe; ++i) {
 		u64 pos2 = gf_bs_get_position(ctx->bs);
-		if (vp9_parse_sample(ctx->bs, ctx->vp_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
+		if (gf_media_vp9_parse_sample(ctx->bs, ctx->vp_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Error parsing frame\n"));
 			return e;
 		}

@@ -1227,7 +1227,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	GF_BitStream *sai_bs;
 	u32 prev_entry_bytes_clear=0;
 	u32 prev_entry_bytes_crypt=0;
-	u32 nalu_size, pck_size;
+	u32 pck_size;
 	GF_FilterPacket *dst_pck;
 	const u8 *data;
 	char *output;
@@ -1263,7 +1263,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 		if (cstr->use_subsamples) {
 			ObuType obut;
-			int num_frames_in_superframe = 0, superframe_index_size = 0;
+			u32 num_frames_in_superframe = 0, superframe_index_size = 0;
 			u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 			u64 pos, obu_size;
 			u32 hdr_size;
@@ -1272,6 +1272,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			u32 clear_bytes = 0;
 			u32 nb_ranges = 1;
 			u32 range_idx = 0;
+			u32 nalu_size = 0;
 			struct {
 				int clear, encrypted;
 			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
@@ -1347,7 +1348,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 
 				pos = gf_bs_get_position(ctx->bs_r);
-				e = vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+				e = gf_media_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
 				if (e) return e;
 				gf_bs_seek(ctx->bs_r, pos);
 
@@ -1355,10 +1356,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 				for (i = 0; i < num_frames_in_superframe; ++i) {
 					Bool key_frame;
-					int width = 0, height = 0, renderWidth = 0, renderHeight = 0;
+					u32 width = 0, height = 0, renderWidth = 0, renderHeight = 0;
 					GF_VPConfig *vp9_cfg = gf_odf_vp_cfg_new();
 					u64 pos2 = gf_bs_get_position(ctx->bs_r);
-					e = vp9_parse_sample(ctx->bs_r, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
+					e = gf_media_vp9_parse_sample(ctx->bs_r, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
 					gf_odf_vp_cfg_del(vp9_cfg);
 					if (e) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC] Error parsing VP9 frame at DTS "LLU"\n", gf_filter_pck_get_dts(pck) ));
