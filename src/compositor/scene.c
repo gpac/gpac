@@ -509,7 +509,11 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	else {
 		while (gf_list_count(scene->resources)) {
 			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);
-			gf_odm_disconnect(odm, for_shutdown ? 2 : 0);
+			if (odm->skip_disconnect_state) {
+				gf_list_rem(scene->resources, 0);
+			} else {
+				gf_odm_disconnect(odm, for_shutdown ? 2 : 0);
+			}
 		}
 #ifndef GPAC_DISABLE_VRML
 		while (gf_list_count(scene->extern_protos)) {
@@ -655,7 +659,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 #ifndef GPAC_DISABLE_X3D
 					case TAG_X3D_Inline:
 #endif
-						if (obj->num_open) gf_mo_stop(obj);
+						if (obj->num_open) gf_mo_stop(&obj);
 						gf_node_set_private(n, NULL);
 						break;
 					}

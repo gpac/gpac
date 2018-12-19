@@ -1190,7 +1190,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
 		if (stack->resource) {
-			gf_mo_stop(stack->resource);
+			gf_mo_stop(&stack->resource);
 			stack->needs_play = 1;
 		}
 		break;

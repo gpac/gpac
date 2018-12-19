@@ -2112,6 +2112,8 @@ struct _od_manager
 	u32 ambi_ch_id;
 
 	const char *redirect_url;
+	/*0: not set, 1: set , 2: set and disconnect was called to remove the object*/
+	u32 skip_disconnect_state;
 };
 
 GF_ObjectManager *gf_odm_new();
@@ -2163,7 +2165,7 @@ void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid);
 
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
 
-void gf_odm_stop_or_destroy(GF_ObjectManager *odm);
+Bool gf_odm_stop_or_destroy(GF_ObjectManager *odm);
 
 void gf_odm_signal_eos_reached(GF_ObjectManager *odm);
 
