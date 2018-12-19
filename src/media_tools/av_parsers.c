@@ -1896,9 +1896,9 @@ GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 	return GF_OK;
 }
 
-GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], int *superframe_index_size)
+GF_Err gf_media_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], u32 *superframe_index_size)
 {
-	u8 byte, bytes_per_framesize;
+	u32 byte, bytes_per_framesize;
 	u64 pos = gf_bs_get_position(bs), i = 0;
 	GF_Err e = GF_OK;
 	
@@ -1918,7 +1918,7 @@ GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frame
 		goto exit; /*no superframe*/
 
 	bytes_per_framesize = 1 + ((byte & 0x18) >> 3);
-	*num_frames_in_superframe = 1 + (byte & 0x7);
+	*num_frames_in_superframe = (u32) (1 + (byte & 0x7) );
 
 	/*superframe_index()*/
 	*superframe_index_size = 2 + bytes_per_framesize * *num_frames_in_superframe;
@@ -2196,7 +2196,7 @@ static void vp9_read_interpolation_filter(GF_BitStream *bs)
 
 #define VP9_KEY_FRAME 0
 
-GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight)
+GF_Err gf_media_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, u32 *FrameWidth, u32 *FrameHeight, u32 *renderWidth, u32 *renderHeight)
 {
 	Bool FrameIsIntra = GF_FALSE, profile_low_bit = GF_FALSE, profile_high_bit = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
 	/*u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0*/;
