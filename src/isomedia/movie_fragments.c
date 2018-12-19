@@ -994,17 +994,6 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	if (gf_list_count(movie->moof_list)) return GF_BAD_PARAM;
 
 	movie->root_sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
-	/*we don't write anything between sidx and following moov*/
-	movie->root_sidx->first_offset = 0;
-
-	/*for now we only store one ref per subsegment and don't support daisy-chaining*/
-	movie->root_sidx->nb_refs = nb_segs;
-
-	movie->root_sidx->refs = (GF_SIDXReference*)gf_malloc(sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
-	memset(movie->root_sidx->refs, 0, sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
-
-	movie->root_sidx_index = 0;
-
 	if (use_ssix) {
 		movie->root_ssix = (GF_SubsegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SSIX);
 		movie->root_ssix->subsegments = gf_malloc(sizeof(GF_SubsegmentInfo) * nb_segs);
@@ -1017,8 +1006,24 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 			movie->root_ssix->subsegments[i].ranges[1].level = 0xFF;
 			movie->root_ssix->subsegments[i].ranges[1].range_size = 0;
 		}
+		e = gf_isom_box_size((GF_Box *) movie->root_ssix);
+		if (e) return e;
+
+		/* There is only the ssix box between the end of the sidx and the first moof */
+		movie->root_sidx->first_offset = movie->root_ssix->size;
+	} else {
+		/*we don't write anything between sidx and following moov*/
+		movie->root_sidx->first_offset = 0;
 	}
 	
+	/*for now we only store one ref per subsegment and don't support daisy-chaining*/
+	movie->root_sidx->nb_refs = nb_segs;
+
+	movie->root_sidx->refs = (GF_SIDXReference*)gf_malloc(sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
+	memset(movie->root_sidx->refs, 0, sizeof(GF_SIDXReference) * movie->root_sidx->nb_refs);
+
+	movie->root_sidx_index = 0;
+
 	/*remember start of sidx*/
 	movie->root_sidx_offset = gf_bs_get_position(movie->editFileMap->bs);
 
@@ -1030,8 +1035,6 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 	if (e) return e;
 
 	if (movie->root_ssix) {
-		e = gf_isom_box_size((GF_Box *) movie->root_ssix);
-		if (e) return e;
 		e = gf_isom_box_write((GF_Box *) movie->root_ssix, bs);
 		if (e) return e;
 	}
@@ -1318,8 +1321,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		}
 		sidx->reference_ID = referenceTrackID;
 		sidx->timescale = trak->Media->mediaHeader->timeScale;
-		/*we don't write anything between sidx and following moov*/
-		sidx->first_offset = 0;
 
 		/*we allocated our sidx to have one ref per "segment" (eg per call to close_segment)*/
 		if (movie->root_sidx) {
@@ -1391,11 +1392,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			/*remember start of sidx*/
 			sidx_start = gf_bs_get_position(movie->editFileMap->bs);
 
-			e = gf_isom_box_size((GF_Box *) sidx);
-			if (e) return e;
-			e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
-			if (e) return e;
-
 			if (use_ssix && !ssix && !movie->root_ssix) {
 				u32 k;
 				ssix = (GF_SubsegmentIndexBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SSIX);
@@ -1412,6 +1408,16 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 
 				e = gf_isom_box_size((GF_Box *) ssix);
 				if (e) return e;
+
+				sidx->first_offset = ssix->size;
+			}
+
+			e = gf_isom_box_size((GF_Box *) sidx);
+			if (e) return e;
+			e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
+			if (e) return e;
+
+			if (use_ssix && !ssix && !movie->root_ssix) {
 				e = gf_isom_box_write((GF_Box *) ssix, movie->editFileMap->bs);
 				if (e) return e;
 			}
