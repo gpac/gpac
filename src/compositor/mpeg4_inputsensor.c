@@ -426,7 +426,7 @@ static void InputSensorUnregister(GF_Node *node, ISStack *st)
 
 
 	/*stop stream*/
-	if (st->mo->num_open) gf_mo_stop(st->mo);
+	if (st->mo->num_open) gf_mo_stop(&st->mo);
 	st->mo = NULL;
 	if (st->registered) {
 		st->registered = 0;

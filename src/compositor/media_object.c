@@ -783,28 +783,32 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 }
 
 GF_EXPORT
-Bool gf_mo_stop(GF_MediaObject *mo)
+void gf_mo_stop(GF_MediaObject **_mo)
 {
-	Bool ret = GF_FALSE;
-	if (!mo || !mo->num_open) return GF_FALSE;
+	GF_MediaObject *mo = _mo ? *_mo : NULL;
+	if (!mo || !mo->num_open) return;
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
-		if (mo->odm->flags & GF_ODM_DESTROYED) return GF_TRUE;
+		if (mo->odm->flags & GF_ODM_DESTROYED) {
+			*_mo = NULL;
+			return;
+		}
 
 		/*signal STOP request*/
 		if ((mo->OD_ID==GF_MEDIA_EXTERNAL_ID) || (mo->odm && mo->odm->ID && (mo->odm->ID==GF_MEDIA_EXTERNAL_ID))) {
 			gf_odm_disconnect(mo->odm, 2);
-			ret = GF_TRUE;
+			*_mo = NULL;
 		} else {
-			gf_odm_stop_or_destroy(mo->odm);
+			if ( gf_odm_stop_or_destroy(mo->odm) ) {
+				*_mo = NULL;
+			}
 		}
 	} else {
 		if (!mo->num_to_restart) {
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;
 		}
 	}
-	return ret;
 }
 
 GF_EXPORT

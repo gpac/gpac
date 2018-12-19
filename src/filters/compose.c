@@ -97,7 +97,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_ObjectManager *odm;
 	const GF_PropertyValue *prop;
@@ -187,12 +187,12 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
 			//we are attaching an inline, create the subscene if not done already
-			if (!sns->owner->subscene) {
+			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
 				assert(sns->owner->parentscene);
 				sns->owner->subscene = gf_scene_new(ctx, sns->owner->parentscene);
 				sns->owner->subscene->root_od = sns->owner;
 			}
-			scene = sns->owner->subscene;
+			scene = sns->owner->subscene ? sns->owner->subscene : sns->owner->parentscene;
 			break;
 		}
 	}
@@ -512,7 +512,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.finalize = compose_finalize,
 	.process = compose_process,
 	.process_event = compose_process_event,
-	.configure_pid = compose_config_input,
+	.configure_pid = compose_configure_pid,
 	.reconfigure_output = compose_reconfig_output,
 	.update_arg = compose_update_arg
 };

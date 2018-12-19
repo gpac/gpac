@@ -176,7 +176,7 @@ void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)
 		mo->num_open--;
 		if (!mo->num_open) {
 			/*do we simply stop the associated document or unload it??? to check*/
-//			gf_mo_stop(mo);
+//			gf_mo_stop(&mo);
 			gf_odm_disconnect(mo->odm, 2);
 			return;
 		}

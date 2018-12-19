@@ -253,7 +253,7 @@ void gf_sc_audio_stop(GF_AudioInput *ai)
 
 	assert(!ai->need_release);
 
-	gf_mo_stop(ai->stream);
+	gf_mo_stop(&ai->stream);
 	ai->is_open = 0;
 	gf_mo_unregister(ai->owner, ai->stream);
 	ai->stream = NULL;
