@@ -1568,7 +1568,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (!sURL) sURL = gf_strdup(url);
 
 		if (!strncmp(sURL, "gpac://", 7)) {
-			u32 ulen = strlen(sURL+7);
+			u32 ulen = (u32) strlen(sURL+7);
 			memmove(sURL, sURL+7, ulen);
 			sURL[ulen]=0;
 		}
