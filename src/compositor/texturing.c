@@ -324,6 +324,7 @@ void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 
 	}
 	txh->needs_refresh = 0;
+	if (txh->stream) txh->stream->config_changed = GF_FALSE;
 }
 
 
