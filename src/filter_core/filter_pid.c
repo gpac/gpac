@@ -28,7 +28,8 @@
 
 void pcki_del(GF_FilterPacketInstance *pcki)
 {
-	if (safe_int_dec(&pcki->pck->reference_count) == 0) {
+	safe_int_dec(&pcki->pck->reference_count);
+	if (pcki->pck->reference_count == 0) {
 		gf_filter_packet_destroy(pcki->pck);
 	}
 	gf_free(pcki);
@@ -56,8 +57,13 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 	gf_fq_del(pidinst->packets, (gf_destruct_fun) pcki_del);
 	gf_mx_del(pidinst->pck_mx);
 	gf_list_del(pidinst->pck_reassembly);
-	if (pidinst->props && safe_int_dec(&pidinst->props->reference_count) == 0)
-		gf_props_del(pidinst->props);
+	if (pidinst->props) {
+		safe_int_dec(&pidinst->props->reference_count);
+		if (pidinst->props->reference_count == 0) {
+			gf_list_del_item(pidinst->pid->properties, pidinst->props);
+			gf_props_del(pidinst->props);
+		}
+	}
 	gf_free(pidinst);
 }
 
@@ -458,7 +464,8 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	src->props = NULL;
 	if (prev_dst_props) {
 		gf_props_merge_property(dst->props, prev_dst_props, NULL, NULL);
-		if (safe_int_dec(&prev_dst_props->reference_count)==0) {
+		safe_int_dec(&prev_dst_props->reference_count);
+		if (prev_dst_props->reference_count==0) {
 			gf_props_del(prev_dst_props);
 		}
 	}
@@ -742,7 +749,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 	if (ctype==GF_PID_CONF_CONNECT) {
 		assert(pid->filter->out_pid_connection_pending);
-		if ( (safe_int_dec(&pid->filter->out_pid_connection_pending)==0) ) {
+		safe_int_dec(&pid->filter->out_pid_connection_pending);
+		if (pid->filter->out_pid_connection_pending==0) {
 
 			//postponed packets dispatched by source while setting up PID, flush through process()
 			//pending packets (not yet consumed but in PID buffer), start processing
@@ -850,9 +858,12 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	}
 
 	//detach props
-	if (pidinst->props && (safe_int_dec(& pidinst->props->reference_count) == 0) ) {
-		gf_list_del_item(pidinst->pid->properties, pidinst->props);
-		gf_props_del(pidinst->props);
+	if (pidinst->props) {
+		safe_int_dec(& pidinst->props->reference_count);
+		if (pidinst->props->reference_count == 0) {
+			gf_list_del_item(pidinst->pid->properties, pidinst->props);
+			gf_props_del(pidinst->props);
+		}
 	}
 	pidinst->props = NULL;
 
@@ -1217,6 +1228,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 	u32 nb_subcaps=0;
 	Bool skip_explicit_load = GF_FALSE;
 	Bool all_caps_matched = GF_TRUE;
+	Bool ext_not_trusted;
 	Bool forced_cap_found = src_pid->forced_cap ? GF_FALSE : GF_TRUE;
 	const GF_FilterCapability *in_caps;
 	u32 nb_in_caps;
@@ -1234,6 +1246,20 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 			in_caps = filter_inst->forced_caps;
 			nb_in_caps = filter_inst->nb_forced_caps;
 		}
+	}
+	ext_not_trusted = src_pid->ext_not_trusted;
+	if (ext_not_trusted) {
+		Bool has_mime_cap = GF_FALSE;
+
+		for (i=0; i<nb_in_caps; i++) {
+			const GF_FilterCapability *cap = &in_caps[i];
+			if (! (cap->flags & GF_CAPFLAG_INPUT) ) continue;
+			if (cap->code == GF_PROP_PID_MIME) {
+				has_mime_cap = GF_TRUE;
+				break;
+			}
+		}
+		if (!has_mime_cap) ext_not_trusted = GF_FALSE;
 	}
 
 	if (filter_inst && filter_inst->encoder_stream_type) {
@@ -1302,7 +1328,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *fr
 		//try by name
 		if (!pid_cap && cap->name) pid_cap = gf_filter_pid_get_property_str(src_pid, cap->name);
 
-		if (src_pid->ext_not_trusted && (cap->code==GF_PROP_PID_FILE_EXT)) {
+		if (ext_not_trusted && (cap->code==GF_PROP_PID_FILE_EXT)) {
 			all_caps_matched=GF_FALSE;
 			continue;
 		}
@@ -3071,21 +3097,26 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 
 	while (gf_list_count(pid->properties)) {
 		GF_PropertyMap *prop = gf_list_pop_back(pid->properties);
-		if (safe_int_dec(&prop->reference_count)==0) {
+		safe_int_dec(&prop->reference_count);
+		if (prop->reference_count==0) {
 			gf_props_del(prop);
 		}
 	}
 	gf_list_del(pid->properties);
 
-	//this one is NOT reference counted
-	if(pid->caps_negociate && (safe_int_dec(&pid->caps_negociate->reference_count)==0) )
-		gf_props_del(pid->caps_negociate);
+	if(pid->caps_negociate) {
+		safe_int_dec(&pid->caps_negociate->reference_count);
+		if (pid->caps_negociate->reference_count==0) {
+			gf_props_del(pid->caps_negociate);
+		}
+	}
 
 	if (pid->adapters_blacklist)
 		gf_list_del(pid->adapters_blacklist);
 
 	if (pid->infos) {
-		if (safe_int_dec(&pid->infos->reference_count)==0) {
+		safe_int_dec(&pid->infos->reference_count);
+		if (pid->infos->reference_count==0) {
 			gf_props_del(pid->infos);
 		}
 	}
@@ -3119,7 +3150,8 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 		if (merge_props)
 			gf_props_merge_property(map, old_map, NULL, NULL);
 		assert(old_map->reference_count);
-		if ( safe_int_dec(&old_map->reference_count) == 0) {
+		safe_int_dec(&old_map->reference_count);
+		if ( old_map->reference_count == 0) {
 			gf_list_del_item(pid->properties, old_map);
 			gf_props_del(old_map);
 		}
@@ -3519,7 +3551,8 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		if (pidinst->props) {
 			if (pidinst->props != pcki->pck->pid_props) {
 				//unassign old property list and set the new one
-				if (safe_int_dec(& pidinst->props->reference_count) == 0) {
+				safe_int_dec(& pidinst->props->reference_count);
+				if (pidinst->props->reference_count == 0) {
 					gf_list_del_item(pidinst->pid->properties, pidinst->props);
 					gf_props_del(pidinst->props);
 				}
@@ -3796,7 +3829,8 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	gf_fq_add(pid->filter->pcks_inst_reservoir, pcki);
 
 	//unref pck
-	if (safe_int_dec(&pck->reference_count) == 0) {
+	safe_int_dec(&pck->reference_count);
+	if (pck->reference_count == 0) {
 		gf_filter_packet_destroy(pck);
 	}
 	//decrement number of pending packet on target filter if this is not a destroy

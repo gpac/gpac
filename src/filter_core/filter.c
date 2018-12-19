@@ -126,9 +126,22 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	if (args && dst_striped) {
 		char *all_args;
+		Bool insert_escape = GF_FALSE;
 		u32 len = 2 + (u32) strlen(args) + (u32) strlen(dst_striped);
+		if ((strstr(args, "src=") || strstr(args, "dst=")) && strstr(args, "://")){
+			char szEscape[10];
+			sprintf(szEscape, "%cgpac", fsess->sep_args);
+			if (strstr(args, szEscape)==NULL) {
+				insert_escape = GF_TRUE;
+				len += 5;
+			}
+		}
 		all_args = gf_malloc(sizeof(char)*len);
-		sprintf(all_args, "%s%c%s", args, fsess->sep_args, dst_striped);
+		if (insert_escape) {
+			sprintf(all_args, "%s%cgpac%c%s", args, fsess->sep_args, fsess->sep_args, dst_striped);
+		} else {
+			sprintf(all_args, "%s%c%s", args, fsess->sep_args, dst_striped);
+		}
 		e = gf_filter_new_finalize(filter, all_args, arg_type);
 		filter->orig_args = all_args;
 		args = NULL;
@@ -958,7 +971,8 @@ void gf_filter_check_output_reconfig(GF_Filter *filter)
 				assert(pidi->props);
 				assert (pidi->props != pidi->reconfig_pid_props);
 				//unassign old property list and set the new one
-				if (safe_int_dec(& pidi->props->reference_count) == 0) {
+				safe_int_dec(& pidi->props->reference_count);
+				if (pidi->props->reference_count == 0) {
 					gf_list_del_item(pidi->pid->properties, pidi->props);
 					gf_props_del(pidi->props);
 				}
@@ -1167,7 +1181,8 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 		gf_list_del(pid->adapters_blacklist);
 		src_pid->adapters_blacklist = NULL;
 	}
-	if (safe_int_dec(&pid->caps_negociate->reference_count)==0) {
+	safe_int_dec(&pid->caps_negociate->reference_count);
+	if (pid->caps_negociate->reference_count==0) {
 		gf_props_del(pid->caps_negociate);
 	}
 	pid->caps_negociate = NULL;
@@ -1251,7 +1266,8 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 					gf_filter_renegociate_output_dst(pid, filter, filter_dst, NULL, NULL);
 				}
 			}
-			if (safe_int_dec(&pid->caps_negociate->reference_count)==0) {
+			safe_int_dec(&pid->caps_negociate->reference_count);
+			if (pid->caps_negociate->reference_count==0) {
 				gf_props_del(pid->caps_negociate);
 			}
 			pid->caps_negociate = NULL;
@@ -1452,8 +1468,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 	if (e) filter->session->last_process_error = e;
 	
-	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
-	if ((filter->would_block + filter->num_out_pids_not_connected < filter->num_output_pids) && !filter->input_pids && (e!=GF_EOS)) {
+	//source filters, flush data if enough space available.
+	if ( (!filter->num_output_pids || (filter->would_block + filter->num_out_pids_not_connected < filter->num_output_pids) ) && !filter->input_pids && (e!=GF_EOS)) {
 		if (filter->schedule_next_time)
 			task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
@@ -1713,12 +1729,6 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 
 		gf_filter_notification_failure(filter, reason, GF_TRUE);
 	}
-}
-
-GF_EXPORT
-void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name)
-{
-	gf_fs_post_task(filter->session, task_fun, filter, NULL, task_name, udta);
 }
 
 void gf_filter_remove_task(GF_FSTask *task)
@@ -2240,9 +2250,10 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	
 	ext_not_trusted = GF_FALSE;
 	//probe data
-	if (!mime_type && probe_data && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
+	if (probe_data && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
 		u32 i, count;
 		GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
+		const char *probe_mime = NULL;
 		gf_mx_p(filter->session->filters_mx);
 		count = gf_list_count(filter->session->registry);
 		for (i=0; i<count; i++) {
@@ -2265,7 +2276,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			} else if (score==GF_FPROBE_EXT_MATCH) {
 				if (a_mime && strstr(a_mime, tmp_ext)) {
 					ext_not_trusted = GF_FALSE;
-					mime_type = NULL;
+					probe_mime = NULL;
 					break;
 				}
 			} else {
@@ -2273,7 +2284,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Data Prober (filter %s) detected format is%s mime %s\n", freg->name, (score==GF_FPROBE_MAYBE_SUPPORTED) ? " maybe" : "", a_mime));
 				}
 				if (a_mime && (score > max_score)) {
-					mime_type = a_mime;
+					probe_mime = a_mime;
 					max_score = score;
 				}
 			}
@@ -2282,6 +2293,9 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 
 		pid->ext_not_trusted = ext_not_trusted;
 
+		if (probe_mime) {
+			mime_type = probe_mime;
+		}
 	}
 	if (mime_type) {
 		strncpy(tmp_ext, mime_type, 50);

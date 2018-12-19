@@ -1557,11 +1557,16 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
 		/*opera-style localhost URLs*/
 		else if (!strncmp(url, "file://localhost", 16)) sURL = gf_strdup(url+16);
-
 		else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
 		/*path absolute*/
 		if (!sURL) sURL = gf_strdup(url);
+
+		if (!strncmp(sURL, "gpac://", 7)) {
+			u32 ulen = strlen(sURL+7);
+			memmove(sURL, sURL+7, ulen);
+			sURL[ulen]=0;
+		}
 
 		if (gf_url_is_local(sURL))
 			gf_url_to_fs_path(sURL);
@@ -1881,7 +1886,8 @@ void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 {
 #if 0
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
-	if ( safe_int_dec(&fsess->pid_connect_tasks_pending) == 0) {
+	safe_int_dec(&fsess->pid_connect_tasks_pending);
+	if ( fsess->pid_connect_tasks_pending == 0) {
 		//we need a task for cleanup, otherwise we may destroy the filter and the task of the task currently scheduled !!
 		gf_fs_post_task(fsess, gf_fs_cleanup_filters_task, NULL, NULL, "filters_cleanup", fsess);
 	}
@@ -1916,6 +1922,7 @@ typedef struct
 	GF_FilterSession *fsess;
 	void *callback;
 	Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms);
+	Bool (*task_execute_filter) (GF_Filter *filter, void *callback, u32 *reschedule_ms);
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif
@@ -1930,7 +1937,13 @@ static void gf_fs_user_task(GF_FSTask *task)
 #ifndef GPAC_DISABLE_REMOTERY
 	gf_rmt_begin_hash(task->log_name, GF_RMT_AGGREGATE, &utask->rmt_hash);
 #endif
-	task->requeue_request = utask->task_execute(utask->fsess, utask->callback, &reschedule_ms);
+	if (utask->task_execute) {
+		task->requeue_request = utask->task_execute(utask->fsess, utask->callback, &reschedule_ms);
+	} else if (task->filter) {
+		task->requeue_request = utask->task_execute_filter(task->filter, utask->callback, &reschedule_ms);
+	} else {
+		task->requeue_request = 0;
+	}
 	gf_rmt_end();
 	//if no requeue request or if we are in final flush, don't re-execute
 	if (!task->requeue_request || utask->fsess->in_final_flush) {
@@ -1951,6 +1964,18 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 	utask->callback = udta_callback;
 	utask->task_execute = task_execute;
 	gf_fs_post_task(fsess, gf_fs_user_task, NULL, NULL, log_name ? log_name : "user_task", utask);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *filter, void *callback, u32 *reschedule_ms), void *udta, const char *task_name)
+{
+	GF_UserTask *utask;
+	if (!filter || !task_execute) return GF_BAD_PARAM;
+	GF_SAFEALLOC(utask, GF_UserTask);
+	utask->callback = udta;
+	utask->task_execute_filter = task_execute;
+	gf_fs_post_task(filter->session, gf_fs_user_task, filter, NULL, task_name ? task_name : "user_task", utask);
 	return GF_OK;
 }
 
