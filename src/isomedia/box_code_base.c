@@ -11243,6 +11243,3 @@ GF_Err dvcC_Size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
-
-
-#endif //Romain
