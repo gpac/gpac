@@ -1199,7 +1199,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 				u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 
 				if (tci->block_align != 2) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\". Forcing value.\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\". Forcing value.\n"));
 					tci->block_align = 2;
 				}
 
