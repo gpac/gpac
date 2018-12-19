@@ -1660,6 +1660,10 @@ const char * gf_get_default_cache_directory()
 	const char *cache_dir;
 	char root_tmp[GF_MAX_PATH];
 	size_t len;
+
+	cache_dir = gf_opts_get_key("core", "cache");
+	if (cache_dir) return cache_dir;
+
 #ifdef _WIN32_WCE
 	strcpy(szCacheDir, "\\windows\\temp" );
 #elif defined(WIN32)
@@ -1669,9 +1673,6 @@ const char * gf_get_default_cache_directory()
 #else
 	strcpy(szCacheDir, "/tmp");
 #endif
-
-	cache_dir = gf_opts_get_key("core", "cache");
-	if (cache_dir) return cache_dir;
 
 	strcpy(root_tmp, szCacheDir);
 
