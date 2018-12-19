@@ -143,10 +143,6 @@ typedef union __gf_filter_event GF_FilterEvent;
  *	Filter Session Task object
  */
 typedef struct __gf_fs_task GF_FSTask;
-/*!
- *	Filter Session Task process function prototype
- */
-typedef void (*gf_fs_task_callback)(GF_FSTask *task);
 
 /*!
  *	Filter Registry object
@@ -1521,11 +1517,14 @@ void gf_filter_post_process_task(GF_Filter *filter);
 
 /*! Posts a task to the session scheduler. This task is not a process task but the filter will still be called by a single thread at any time (ie, might delay process)
 \param filter target filter
-\param task_fun the function to call
+\param task_execute the callback function for the task. The callback can return GF_TRUE to reschedule the task, in which case the task will be rescheduled
+immediately or after reschedule_ms.
 \param udta user data passed back to the task function
 \param task_name name of the task for logging purposes
+\return error code if failure
 */
-void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name);
+GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *filter, void *callback, u32 *reschedule_ms), void *udta, const char *task_name);
+
 
 /*! Sets callback function on source filter setup failure
 \param filter target filter
