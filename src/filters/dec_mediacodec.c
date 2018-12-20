@@ -61,7 +61,7 @@ typedef struct
 	Bool frame_size_changed;
 	Bool inputEOS, outputEOS;
 
-	MC_SurfaceTexture surfaceTex;
+	GF_MCDecSurfaceTexture surfaceTex;
 
 	//NAL-based specific
 	GF_List *SPSs, *PPSs, *VPSs;
@@ -356,7 +356,7 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
     mcdec_init_media_format(ctx, ctx->format);
 
     if (!ctx->codec) {
-		char *decoder_name = MCDec_FindDecoder(ctx->mime, ctx->width, ctx->height, &ctx->is_adaptive);
+		char *decoder_name = mcdec_find_decoder(ctx->mime, ctx->width, ctx->height, &ctx->is_adaptive);
 		if(!decoder_name) return GF_PROFILE_NOT_SUPPORTED;
 
 		ctx->codec = AMediaCodec_createCodecByName(decoder_name);
@@ -371,7 +371,7 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
     if (ctx->disable_gl) {
     	ctx->surface_rendering = 0;
 	} else if (!ctx->window) {
-		if(MCDec_CreateSurface(ctx->tex_id, &ctx->window, &ctx->surface_rendering, &ctx->surfaceTex) != GF_OK)
+		if(mcdec_create_surface(ctx->tex_id, &ctx->window, &ctx->surface_rendering, &ctx->surfaceTex) != GF_OK)
 			return GF_BAD_PARAM;
 	}
 
@@ -854,7 +854,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 #if FILTER_FIXME
 	if (!ctx->before_exit_registered) {
 		ctx->before_exit_registered = GF_TRUE;
-		if (gf_register_before_exit_function(gf_th_current(), &MCDec_BeforeExit) != GF_OK) {
+		if (gf_register_before_exit_function(gf_th_current(), &mcdec_exit_callback) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] Failed to register exit function for the decoder thread %p, try to continue anyway...\n", gf_th_current()));
 		}
 	}
@@ -1079,8 +1079,8 @@ GF_Err mcdec_hw_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d to surface", f->outIndex));
 			 return GF_OK;
 		}
-		if(MCFrame_UpdateTexImage(f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
-		if(MCFrame_GetTransformMatrix(texcoordmatrix, f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
+		if(mcdec_update_surface(f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
+		if(mcdec_get_transform_matrix(texcoordmatrix, f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
 		
 		f->flushed = GF_TRUE;
 	}
@@ -1166,7 +1166,7 @@ void mcdec_finalize(GF_Filter *filter)
     }
 
     if (ctx->surfaceTex.texture_id)
-		MCDec_DeleteSurface(ctx->surfaceTex);
+		mcdec_delete_surface(ctx->surfaceTex);
 	
     if(ctx->tex_id)
     	glDeleteTextures (1, &ctx->tex_id);
