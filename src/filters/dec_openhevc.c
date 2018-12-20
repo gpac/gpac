@@ -937,7 +937,8 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		u64 dts, cts;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) {
-			if (gf_filter_pid_is_eos(ctx->streams[idx].ipid)) nb_eos++;
+			if (gf_filter_pid_is_eos(ctx->streams[idx].ipid))
+				nb_eos++;
 			//make sure we do have a packet on the enhancement
 			else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] no input packets on running pid %s - postponing decode\n", gf_filter_pid_get_name(ctx->streams[idx].ipid) ) );
@@ -972,15 +973,19 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	}
 
 	if (nb_eos == ctx->nb_streams) {
+		while (1) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
-		if (ctx->avc_base_id)
-			got_pic = oh_decode_lhvc(ctx->codec, NULL, NULL, 0, 0, 0, 0);
-		else
+			if (ctx->avc_base_id)
+				got_pic = oh_decode_lhvc(ctx->codec, NULL, NULL, 0, 0, 0, 0);
+			else
 #endif
-			got_pic = oh_decode(ctx->codec, NULL, 0, 0);
+				got_pic = oh_decode(ctx->codec, NULL, 0, 0);
 
-		if ( got_pic ) {
-			return ohevcdec_flush_picture(ctx);
+			if (got_pic) {
+				ohevcdec_flush_picture(ctx);
+			}
+			else
+				break;
 		}
 		gf_filter_pid_set_eos(ctx->opid);
 		while (gf_list_count(ctx->src_packets)) {

@@ -1057,7 +1057,9 @@ void gf_filter_relink_dst(GF_FilterPidInst *pidinst)
 		if (cur_filter->num_output_pids>1) break;
 
 		an_inpid = gf_list_get(cur_filter->input_pids, 0);
-		
+		if (!an_inpid)
+			break;
+
 		if (gf_filter_pid_caps_match(an_inpid->pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
 			link_from_pid = an_inpid->pid;
 			break;
@@ -1295,6 +1297,13 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	else if (filter->pending_packets) {
 		safe_int_inc(&filter->process_task_queued);
 		task->requeue_request = GF_TRUE;
+	}
+	//special case here: no more pending packets, filter has detected eos on one of its input but is still generating packet, 
+	//we reschedule (typcally flush of decoder) 
+	else if (filter->eos_probe_state == 2) {
+		safe_int_inc(&filter->process_task_queued);
+		task->requeue_request = GF_TRUE;
+		filter->eos_probe_state = 0;
 	}
 	//we are done for now
 	else {

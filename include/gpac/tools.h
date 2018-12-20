@@ -299,7 +299,9 @@ typedef enum
 	/*! the decoder buffers were filled, it is necessary to recuperate decoded data*/
 	GF_CODEC_BUFFER_UNAVAILABLE				= -55,
 	/*! filter PID config requires new instance of filter */
-	GF_REQUIRES_NEW_INSTANCE				= -56
+	GF_REQUIRES_NEW_INSTANCE = -56,
+	/*! filter PID config cannot be supported by this filter, no use trying to find an alternate input filter chain*/
+	GF_FILTER_NOT_SUPPORTED = -57
 } GF_Err;
 
 /*!
