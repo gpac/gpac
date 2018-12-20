@@ -54,6 +54,7 @@
 #define GPAC_HAS_VORBIS
 #define GPAC_HAS_XVID
 #define GPAC_HAS_FFMPEG
+#define GPAC_HAS_DTAPI
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 

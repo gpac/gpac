@@ -408,6 +408,9 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	GF_FilterPidInst *src = filter->swap_pidinst_src;
 	if (!src) src = filter->swap_pidinst_dst;
 
+	if (src == dst)
+		return;
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s swaping PID %s to PID %s\n", filter->name, src->pid->name, dst->pid->name));
 	if (filter->swap_needs_init) {
 		//we are in detach state, the pack queue of the old PID is never read
@@ -623,7 +626,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 	}
 	//failure on reconfigure, try reloading a filter chain
-	else if (ctype==GF_PID_CONF_RECONFIG) {
+	else if ((ctype==GF_PID_CONF_RECONFIG) && (e != GF_FILTER_NOT_SUPPORTED)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 		gf_filter_relink_dst(pidinst);
 	} else {
@@ -3865,7 +3868,10 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	if (pcki)
 		gf_filter_pid_filter_internal_packet(pidi, pcki);
 
-	return pidi->is_end_of_stream;
+	if (!pidi->is_end_of_stream) return GF_FALSE;
+	if (!pidi->filter->eos_probe_state)
+		pidi->filter->eos_probe_state = 1;
+	return GF_TRUE;
 }
 
 GF_EXPORT

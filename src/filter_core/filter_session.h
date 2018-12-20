@@ -579,6 +579,8 @@ struct __gf_filter
 #endif
 
 	Bool pid_info_changed;
+	//set to 1 when one or more input pid to the filter is on end of state, set to 2 if the filter dispatch a packet while in this state
+	u32 eos_probe_state;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);

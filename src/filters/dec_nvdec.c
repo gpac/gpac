@@ -266,10 +266,17 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	NVDecInstance *inst= (NVDecInstance *)pUserData;
 	NVDecCtx *ctx = inst->ctx;
 
+	u32 w, h;
+	w = pFormat->coded_width;
+	h = pFormat->coded_height;
+
+	if (pFormat->display_area.right && (pFormat->display_area.right<(s32)w)) w = pFormat->display_area.right;
+	if (pFormat->display_area.bottom && (pFormat->display_area.bottom<(s32)h)) h = pFormat->display_area.bottom;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] Decoder instance %d Video sequence change detected - new setup %u x %u, %u bpp\n", inst->id, pFormat->coded_width, pFormat->coded_height, pFormat->bit_depth_luma_minus8 + 8) );
 	//no change in config
-	if ((ctx->width == pFormat->coded_width)
-		&& (ctx->height == pFormat->coded_height)
+	if ((ctx->width == w)
+		&& (ctx->height == h)
 		&& (ctx->bpp_luma == 8 + pFormat->bit_depth_luma_minus8)
 		&& (ctx->bpp_chroma == 8 + pFormat->bit_depth_chroma_minus8)
 		&& (ctx->codec_type == pFormat->codec)
@@ -285,12 +292,13 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	if (ctx->bpp_luma + ctx->bpp_chroma > 16)  use_10bits = GF_TRUE;
 #endif
 
-	ctx->width = pFormat->coded_width;
-	ctx->height = pFormat->coded_height;
+	ctx->width = w;
+	ctx->height = h;
 	ctx->bpp_luma = 8 + pFormat->bit_depth_luma_minus8;
 	ctx->bpp_chroma = 8 + pFormat->bit_depth_chroma_minus8;
 	ctx->codec_type = pFormat->codec;
 	ctx->chroma_fmt = pFormat->chroma_format;
+	ctx->stride = pFormat->coded_width;
 
 	//if load_inatcive returns TRUE, we are reusing an existing decoder with the same config, no need to recreate one
 	if (load_inactive_dec(ctx)) {
@@ -320,8 +328,8 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(ctx->bpp_luma));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_UV, &PROP_UINT(ctx->bpp_chroma));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(use_10bits ? ctx->bpp_luma : 8));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_UV, &PROP_UINT(use_10bits ? ctx->bpp_chroma : 8));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt));
 
 
@@ -713,10 +721,11 @@ static GF_Err nvdec_process(GF_Filter *filter)
 
 	memset(&cu_pkt, 0, sizeof(CUVIDSOURCEDATAPACKET));
 	cu_pkt.flags = CUVID_PKT_TIMESTAMP;
-	pck_size = 0;;
+	pck_size = 0;
 	data = NULL;
 	if (!ipck) {
-		cu_pkt.flags |= CUVID_PKT_ENDOFSTREAM;
+		if (gf_filter_pid_is_eos(ctx->ipid))
+			cu_pkt.flags |= CUVID_PKT_ENDOFSTREAM;
 		ctx->skip_next_frame = GF_FALSE;
 	} else {
 		data = gf_filter_pck_get_data(ipck, &pck_size);
