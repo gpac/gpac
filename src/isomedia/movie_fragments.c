@@ -967,11 +967,15 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 
 static GF_Err sidx_rewrite(GF_SegmentIndexBox *sidx, GF_BitStream *bs, u64 start_pos, GF_SubsegmentIndexBox *ssix)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u64 pos = gf_bs_get_position(bs);
+	if (ssix) {
+		e = gf_isom_box_size((GF_Box *)ssix);
+		sidx->first_offset = ssix->size;
+	}
 	/*write sidx*/
 	gf_bs_seek(bs, start_pos);
-	e = gf_isom_box_write((GF_Box *) sidx, bs);
+	if (!e) e = gf_isom_box_write((GF_Box *) sidx, bs);
 	if (!e && ssix) {
 		e = gf_isom_box_write((GF_Box *) ssix, bs);
 	}
