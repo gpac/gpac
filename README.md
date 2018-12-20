@@ -62,8 +62,8 @@ Remaining before release
 - [x] move encrypter to filter
 - [x] move ATSC demux to filter
 - [x] move NVDec to filter
-- [ ] move MediaCodec to filter
-- [ ] move DekTec output to filter
+- [x] move MediaCodec to filter
+- [x] move DekTec output to filter
 - [ ] move SVC/SHVC splitters and aggregators to filter
 - [ ] move HEVC tiling splitter to filter
 - [x] merge AV1 

@@ -2209,6 +2209,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_shortnames) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_mime) )
@@ -2376,6 +2377,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_sources ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negociate_property ) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del ) )
