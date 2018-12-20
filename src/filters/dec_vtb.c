@@ -973,6 +973,8 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 
 	ctx->nalu_size_length = 0;
 	ctx->is_annex_b = GF_FALSE;
