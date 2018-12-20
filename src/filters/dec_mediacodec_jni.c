@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / codec pack module
@@ -117,15 +117,14 @@ JavaVM* GetJavaVM()
 	return javaVM;
 }
 
-u32 MCDec_BeforeExit(void * param) {
+u32 mcdec_exit_callback(void * param) {
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,(" [Android Mediacodec decoder] Detach decoder thread %p...\n", gf_th_current()));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] Detach decoder thread\n"));
 	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
-	
 	return GF_OK;
 }
 
-GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, MC_SurfaceTexture * surfaceTex)
+GF_Err mcdec_create_surface (GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, GF_MCDecSurfaceTexture * surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jobject otmp= NULL;
@@ -203,7 +202,7 @@ create_surface_failed:
 	 return ret;
 }
 
-static char * MCDec_GetDecoderName(JNIEnv * env, jobject mediaCodecList, jmethodID findId, jobject mediaFomat)
+static char * mcdec_get_decoder_name(JNIEnv * env, jobject mediaCodecList, jmethodID findId, jobject mediaFomat)
 {
 	jint res = 0;
 	jstring jdecoder_name;
@@ -228,7 +227,7 @@ get_decoder_exit:
 	return decoder_name;
 }
 
-char * MCDec_FindDecoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive)
+char * mcdec_find_decoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive)
 {
 	JNIEnv* env = NULL;
 	jobject oMediaCodecList = NULL, oMediaFormat = NULL;
@@ -284,7 +283,7 @@ char * MCDec_FindDecoder(const char * mime, u32 width, u32 height,  Bool * is_ad
 		HandleJNIError(env);
 		goto find_decoder_exit;
 	}
-	decoder_name_tmp = MCDec_GetDecoderName(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
+	decoder_name_tmp = mcdec_get_decoder_name(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
 	if(!decoder_name_tmp) goto find_decoder_exit;
 
 	jfeature = (*env)->NewStringUTF(env, "adaptive-playback");
@@ -293,7 +292,7 @@ char * MCDec_FindDecoder(const char * mime, u32 width, u32 height,  Bool * is_ad
 		HandleJNIError(env);
 		goto find_decoder_exit;
 	}
-	decoder_name = MCDec_GetDecoderName(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
+	decoder_name = mcdec_get_decoder_name(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
 	if(decoder_name){
 		*is_adaptive = GF_TRUE;
 		gf_free(decoder_name_tmp);
@@ -319,7 +318,7 @@ find_decoder_exit:
 
 }
 
-GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex)
+GF_Err mcdec_update_surface(GF_MCDecSurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
@@ -337,7 +336,7 @@ GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex)
 	return GF_OK;
 }
 
-GF_Err MCFrame_GetTransformMatrix(GF_Matrix * mx, MC_SurfaceTexture surfaceTex)
+GF_Err mcdec_get_transform_matrix(GF_Matrix * mx, GF_MCDecSurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
@@ -384,7 +383,7 @@ get_matrix_failed:
 	return ret;
 }
 
-GF_Err MCDec_DeleteSurface(MC_SurfaceTexture  surfaceTex)
+GF_Err mcdec_delete_surface(GF_MCDecSurfaceTexture  surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
