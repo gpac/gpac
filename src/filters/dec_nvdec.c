@@ -28,17 +28,13 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_3D)
-
-#include "../compositor/gl_inc.h"
-
+#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) 
 
 
 #include "dec_nvdec_sdk.h"
 
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
-#  pragma comment(lib, "opengl32")
-#endif
+#ifndef GPAC_DISABLE_3D
+#include "../compositor/gl_inc.h"
 
 
 #ifdef LOAD_GL_1_5
@@ -47,14 +43,29 @@ GLDECL_EXTERN(glBindBuffer);
 GLDECL_EXTERN(glBufferData);
 #endif
 
+#endif
+
 typedef struct _nv_dec_inst NVDecInstance;
+
+enum
+{
+	NVDEC_COPY = 0,
+	NVDEC_SINGLE,
+	NVDEC_GL
+};
+
+enum
+{
+	NVDEC_CUVID = 0,
+	NVDEC_CUDA,
+	NVDEC_DXVA
+};
 
 typedef struct _nv_dec_ctx
 {
 	u32 unload;
-	u32 mode;
+	u32 vmode, fmode;
 	u32 num_surfaces;
-	u32 gl;
 
 	GF_FilterPid *ipid, *opid;
 	u32 codec_id;
@@ -63,7 +74,7 @@ typedef struct _nv_dec_ctx
 	cudaVideoCodec codec_type;
 	cudaVideoChromaFormat chroma_fmt;
 
-	u32 out_size, stride, pix_fmt;
+	u32 out_size, stride, pix_fmt, stride_uv, nb_planes, uv_height;
 	u32 reload_decoder_state;
 	Bool skip_next_frame;
 	CUresult decode_error, dec_create_error;
@@ -79,8 +90,14 @@ typedef struct _nv_dec_ctx
 
 	struct __nv_frame *pending_frame;
 
+
+	char *single_frame_data;
+	u32 single_frame_data_alloc;
+
+#ifndef GPAC_DISABLE_3D
 	GLint y_tx_id, uv_tx_id;
 	GLint y_pbo_id, uv_pbo_id;
+#endif
 } NVDecCtx;
 
 
@@ -228,20 +245,18 @@ static void update_pix_fmt(NVDecCtx *ctx, Bool use_10bits)
 	switch (ctx->chroma_fmt) {
 	case cudaVideoChromaFormat_420:
 		ctx->pix_fmt = use_10bits ? GF_PIXEL_NV12_10 : GF_PIXEL_NV12;
-		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 		break;
 	case cudaVideoChromaFormat_422:
 		ctx->pix_fmt = use_10bits  ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
-		ctx->out_size = ctx->stride * ctx->height * 2;
 		break;
 	case cudaVideoChromaFormat_444:
 		ctx->pix_fmt = use_10bits  ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
-		ctx->out_size = ctx->stride * ctx->height * 3;
 		break;
 	default:
 		ctx->pix_fmt = 0;
-		ctx->out_size = 0;
+		return;
 	}
+	gf_pixel_get_size_info(ctx->pix_fmt, ctx->width, ctx->height, &ctx->out_size, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
 }
 
 static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
@@ -489,7 +504,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 	ctx->ipid = pid;
-	ctx->use_gl_texture = ctx->gl;
+	ctx->use_gl_texture = (ctx->fmode== NVDEC_GL) ? GF_TRUE : GF_FALSE;
 
 	cid = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!cid) return GF_NOT_SUPPORTED;
@@ -515,10 +530,15 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (!ctx->opid)
 		ctx->opid = gf_filter_pid_new(filter);
+
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+
+#ifdef GPAC_DISABLE_3D
+	ctx->use_gl_texture = GF_FALSE;
+#endif
 
 	if (! cuda_ctx) {
 	    int major, minor;
@@ -535,6 +555,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] GPU Device %s (idx 0) has SM %d.%d compute capability\n", deviceName, major, minor));
 
 		if (ctx->use_gl_texture) {
+#ifndef GPAC_DISABLE_3D
 			res = cuGLCtxCreate(&cuda_ctx, CU_CTX_BLOCKING_SYNC, cuda_dev);
 
 #ifdef LOAD_GL_1_5
@@ -544,6 +565,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 #endif
 			cuda_ctx_gl = GF_TRUE;
 
+#endif
 		} else {
 			res = cuCtxCreate(&cuda_ctx, CU_CTX_BLOCKING_SYNC, cuda_dev);
 			cuda_ctx_gl = GF_FALSE;
@@ -568,9 +590,9 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 	}
 
-	if (ctx->mode == 2)
+	if (ctx->vmode == NVDEC_DXVA)
 		ctx->prefer_dec_mode = cudaVideoCreate_PreferDXVA;
-	else if (ctx->mode == 1)
+	else if (ctx->vmode == NVDEC_CUDA)
 		ctx->prefer_dec_mode = cudaVideoCreate_PreferCUDA;
 	else
 		ctx->prefer_dec_mode = cudaVideoCreate_PreferCUVID;
@@ -700,8 +722,14 @@ static GF_Err nvdec_process(GF_Filter *filter)
 		data = gf_filter_pck_get_data(ipck, &pck_size);
 	}
 
-	if (ctx->dec_create_error)
+	if (ctx->dec_create_error) {
+		if (ipck) gf_filter_pid_drop_packet(ctx->ipid);
+		else if (gf_filter_pid_is_eos(ctx->ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
 		return GF_IO_ERR;
+	}
 
 	cu_pkt.payload_size = pck_size;
 	cu_pkt.payload = data;
@@ -761,7 +789,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	if (ctx->use_gl_texture) {
+	if (ctx->use_gl_texture || (ctx->fmode==NVDEC_SINGLE) ) {
 		assert(!ctx->pending_frame);
 		ctx->pending_frame = f;
 		return nvdec_send_hw_frame(ctx);
@@ -801,7 +829,9 @@ static GF_Err nvdec_process(GF_Filter *filter)
 
 				mcpi.srcDevice = map_mem + ctx->height * pitch;
 				mcpi.dstHost = output + ctx->stride * ctx->height;
-				mcpi.Height = ctx->height / 2;
+				mcpi.dstPitch = ctx->stride_uv;
+				mcpi.WidthInBytes = MIN(pitch, ctx->stride);
+				mcpi.Height = ctx->uv_height;
 
 				res = cuMemcpy2D(&mcpi);
 				if (res != CUDA_SUCCESS) {
@@ -836,6 +866,8 @@ void nvframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 	memset(f, 0, sizeof(NVDecFrame));
 	gf_list_add(ctx->frames_res, f);
 }
+
+#ifndef GPAC_DISABLE_3D
 
 /*Define codec matrix*/
 typedef struct __matrix GF_NVCodecMatrix;
@@ -1017,6 +1049,101 @@ GF_Err nvframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_te
 	return e;
 }
 
+#endif
+
+GF_Err nvframe_get_frame(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+{
+	unsigned int pitch = 0;
+	GF_Err e = GF_OK;
+	NVDecFrame *f = (NVDecFrame *)frame->user_data;
+	NVDecCtx *ctx = (NVDecCtx *)f->ctx;
+
+	if (plane_idx>=ctx->nb_planes) return GF_BAD_PARAM;
+
+	e = GF_OK;
+	if (!f->y_mapped) {
+		CUVIDPROCPARAMS params;
+		CUdeviceptr map_mem = 0;
+		CUresult res;
+
+		if (ctx->out_size > ctx->single_frame_data_alloc) {
+			ctx->single_frame_data_alloc = ctx->out_size;
+			ctx->single_frame_data = gf_realloc(ctx->single_frame_data, ctx->out_size);
+		}
+		f->y_mapped = GF_TRUE;
+
+		res = cuCtxPushCurrent(cuda_ctx);
+		if (res != CUDA_SUCCESS) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res)));
+			return GF_IO_ERR;
+		}
+
+		memset(&params, 0, sizeof(params));
+		params.progressive_frame = f->frame_info.progressive_frame;
+		params.top_field_first = f->frame_info.top_field_first;
+
+		res = cuvidMapVideoFrame(ctx->dec_inst->cu_decoder, f->frame_info.picture_index, &map_mem, &pitch, &params);
+		if (res == CUDA_SUCCESS) {
+			CUDA_MEMCPY2D mcpi;
+			memset(&mcpi, 0, sizeof(CUDA_MEMCPY2D));
+			mcpi.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+			mcpi.srcDevice = map_mem;
+			mcpi.srcPitch = pitch;
+
+			mcpi.dstMemoryType = CU_MEMORYTYPE_HOST;
+			mcpi.dstHost = ctx->single_frame_data;
+			mcpi.dstPitch = ctx->stride;
+			mcpi.WidthInBytes = MIN(pitch, ctx->stride);
+			mcpi.Height = ctx->height;
+
+			res = cuMemcpy2D(&mcpi);
+			if (res != CUDA_SUCCESS) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to copy Y video plane from GPU to host mem %s\n", cudaGetErrorEnum(res)));
+				e = GF_IO_ERR;
+			}
+			else {
+
+				mcpi.srcDevice = map_mem + ctx->height * pitch;
+				mcpi.dstHost = ctx->single_frame_data + ctx->stride * ctx->height;
+				mcpi.dstPitch = ctx->stride_uv;
+				mcpi.Height = ctx->uv_height;
+
+				res = cuMemcpy2D(&mcpi);
+				if (res != CUDA_SUCCESS) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to copy UV video plane from GPU to host mem %s\n", cudaGetErrorEnum(res)));
+					e = GF_IO_ERR;
+				}
+			}
+			cuvidUnmapVideoFrame(ctx->dec_inst->cu_decoder, map_mem);
+		}
+		else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map video frame %s\n", cudaGetErrorEnum(res)));
+			e = GF_IO_ERR;
+		}
+		cuCtxPopCurrent(NULL);
+	}
+	if (e) return e;
+
+	switch (plane_idx) {
+	case 0:
+		*outPlane = ctx->single_frame_data;
+		*outStride = ctx->stride;
+		break;
+	case 1:
+		*outPlane = ctx->single_frame_data + ctx->stride * ctx->height;
+		*outStride = ctx->stride_uv;
+		break;
+	case 2:
+		*outPlane = ctx->single_frame_data + ctx->stride * ctx->height + ctx->stride_uv * ctx->uv_height;
+		*outStride = ctx->stride_uv;
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+	return GF_OK;
+}
+
+
 GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 {
 	GF_FilterPacket *dst_pck;
@@ -1027,8 +1154,10 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 	ctx->pending_frame = NULL;
 
 	f->gframe.user_data = f;
-	f->gframe.get_plane = NULL;
+	f->gframe.get_plane = nvframe_get_frame;
+#ifndef GPAC_DISABLE_3D
 	f->gframe.get_gl_texture = nvframe_get_gl_texture;
+#endif
 
 	if (ctx->frame_size_changed) {
 		ctx->frame_size_changed = GF_FALSE;
@@ -1142,6 +1271,8 @@ static void nvdec_finalize(GF_Filter *filter)
 		gf_free(f);
 	}
 	gf_list_del(ctx->frames_res);
+
+	if (ctx->single_frame_data) gf_free(ctx->single_frame_data);
 }
 
 
@@ -1174,8 +1305,8 @@ static const GF_FilterArgs NVDecArgs[] =
 {
 	{ OFFS(num_surfaces), "Number of hardware surfaces to allocate", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(unload), "Unload inactive decoder.", GF_PROP_UINT, "no", "no|destroy|reuse", GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(mode), "Video decoder mode.", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(gl), "Enables OpenGL texture output", GF_PROP_BOOL, "true", NULL, 0 },
+	{ OFFS(vmode), "Video decoder mode.", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(fmode), "Frame output mode:\n\tcopy: each frame is copied and dispatched\n\tsingle: frame data is only retrieved when used, single memory space for all frames (not safe if multiple consummers)\n\tgl: frame data is mapped to an OpenGL texture", GF_PROP_UINT, "gl", "copy|single|gl", 0 },
 
 	{ 0 }
 };
