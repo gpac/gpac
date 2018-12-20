@@ -631,8 +631,12 @@ ISOM_BOX_IMPL_DECL(cslg)
 ISOM_BOX_IMPL_DECL(ccst)
 ISOM_BOX_IMPL_DECL(hvcc)
 ISOM_BOX_IMPL_DECL(av1c)
-ISOM_BOX_IMPL_DECL(vpcc)
 ISOM_BOX_IMPL_DECL(prft)
+
+//VPx
+ISOM_BOX_IMPL_DECL(vpcc)
+ISOM_BOX_IMPL_DECL(SmDm)
+ISOM_BOX_IMPL_DECL(CoLL)
 
 ISOM_BOX_IMPL_DECL(trep)
 
@@ -671,6 +675,10 @@ ISOM_BOX_IMPL_DECL(ipma)
 ISOM_BOX_IMPL_DECL(trgr)
 ISOM_BOX_IMPL_DECL(trgt)
 
+/* MIAF declarations */
+ISOM_BOX_IMPL_DECL(clli)
+ISOM_BOX_IMPL_DECL(mdcv)
+
 ISOM_BOX_IMPL_DECL(grpl)
 
 ISOM_BOX_IMPL_DECL(strk)
@@ -688,6 +696,13 @@ ISOM_BOX_IMPL_DECL(ainf)
 ISOM_BOX_IMPL_DECL(mhac)
 
 ISOM_BOX_IMPL_DECL(grptype)
+
+
+/* Dolby Vision */
+ISOM_BOX_IMPL_DECL(dvcC)
+ISOM_BOX_IMPL_DECL(dvhe)
+
+
 
 
 #define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, 0, 0, __par, "p12", GF_FALSE}
@@ -1030,7 +1045,9 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 encv resv", 1, 0, "vp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VP08, video_sample_entry, "stsd", "vp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VP09, video_sample_entry, "stsd", "vp"),
-
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_SMDM, SmDm, "vp08 vp09 encv resv", 1, 0, "vp"),
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 encv resv", 1, 0, "vp"),
+		
 	//part20 boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LSR1, lsr1, "stsd", "p20"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LSRC, lsrc, "lsr1", "p20"),
@@ -1069,6 +1086,10 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TOLS, tols, "ipco", 0, "iff"),
+
+	//MIAF
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CLLI, clli, "mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "miaf"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_MDCV, mdcv, "mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "miaf"),
 
 	//other MPEG boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_RVCC, rvcc, "avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "rvc"),
@@ -1158,6 +1179,8 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3", "dolby"),
 	{GF_ISOM_BOX_TYPE_DEC3, dec3_New, dac3_del, dac3_Read, dac3_Write, dac3_Size, dac3_dump, 0, 0, 0, "ec-3", "dolby" },
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVCC, dvcC, "dvhe dvav dva1 dvh1 avc1 avc2 avc3 avc4 hev1 encv resv", "DolbyVision"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVHE, video_sample_entry, "stsd", "DolbyVision"),
 
 	//Adobe boxes
 #ifndef GPAC_DISABLE_ISOM_ADOBE

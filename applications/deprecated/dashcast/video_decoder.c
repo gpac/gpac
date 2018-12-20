@@ -376,13 +376,11 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 					}
 #endif
 
-#if 1
 					if ((pts != video_input_file->prev_pts) && (video_input_file->pts_init == 1)) {
 						video_input_file->pts_init = 2;
 						video_input_data->frame_duration = pts - video_input_file->prev_pts;
 						video_input_file->sync_tolerance = 9*video_input_data->frame_duration/5;
 					}
-#endif
 
 					video_input_file->prev_pts = pts;
 					video_data_node->vframe->pts = pts;
