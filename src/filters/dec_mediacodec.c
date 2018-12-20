@@ -1,64 +1,101 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2000-2018
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / mediacodec decoder filter
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
-
-#include <media/NdkMediaCodec.h>
-#include <media/NdkMediaExtractor.h>
-#include <media/NdkMediaFormat.h>
-#include "mediacodec_dec.h"
+#include "dec_mediacodec.h"
 
 typedef struct
 {
+	//opts
+	Bool disable_gl;
+
+
+	GF_List *streams;
+	GF_List *frames_res;
+	GF_Filter *filter;
+	GF_FilterPid *opid;
+	u32 codecid;
+	u32 cfg_crc;
+
 	AMediaCodec *codec;
 	AMediaFormat *format;
 	ANativeWindow *window;
-	char *frame, *decoder_name;
+
 	Bool use_gl_textures;
 	u32 dequeue_timeout;
 	u32 width, height, stride, out_size;
-	u32 pixel_ar, pix_fmt;
+	u32 pix_fmt;
+	GF_Fraction sar;
+
 	u32 crop_left, crop_right, crop_top, crop_bottom;
-	int crop_unitX, crop_unitY;
+
 	const char *mime;
 	u8 chroma_format, luma_bit_depth, chroma_bit_depth;
-	GF_ESD *esd;
-	Float frame_rate;
+
 	Bool is_adaptive;
 	Bool surface_rendering;
 	Bool frame_size_changed;
 	Bool inputEOS, outputEOS;
-	Bool raw_frame_dispatch;
-	Bool can_init_decoder;
+
 	MC_SurfaceTexture surfaceTex;
+
 	//NAL-based specific
 	GF_List *SPSs, *PPSs, *VPSs;
 	s32 active_sps, active_pps, active_vps;
+	u32 nalu_size_length;
+	Bool inject_xps;
+
 	AVCState avc;
 	HEVCState hevc;
+
 	u32 decoded_frames_pending;
 	Bool reconfig_needed;
 	Bool before_exit_registered;
-	u32 nalu_size_length;
+
 	//hevc
-	char *vps;
-	u32 luma_bpp, chroma_bpp, dec_frames;
+	u32 luma_bpp, chroma_bpp;
 	u8 chroma_format_idc;
-	u16 ES_ID;
-	AMediaCodecBufferInfo info;
+
 	ssize_t outIndex;
 	GLuint tex_id;
-} MCDec;
+} GF_MCDecCtx;
 
 typedef struct {
+	GF_FilterHWFrame hwframe;
 	char * frame;
-	MCDec * ctx;
+	GF_MCDecCtx * ctx;
 	ssize_t outIndex;
 	Bool flushed;
-} MC_Frame;
+} GF_MCDecFrame;
 
 enum {
-	PPS = 0,
-	SPS,
-	VPS,
+	MCDEC_PPS = 0,
+	MCDEC_SPS,
+	MCDEC_VPS,
 };
 
 #if 0
@@ -71,25 +108,7 @@ u8 sdkInt()
 #endif
 
 
-//prepend the inBuffer with the start code i.e. 0x00 0x00 0x00 0x01
-void prependStartCode(char *inBuffer, char *outBuffer, u32 *size)
-{
-    *size += 4;
-    u32 i;
-
-    for(i = 0; i < *size; i++) {
-        if(i < 3)
-            outBuffer[i] = 0x00;
-
-        else if (i == 3)
-            outBuffer[i] = 0x01;
-
-        else  outBuffer[i] = inBuffer[i-4];
-    }
-}
-
-
-void initMediaFormat(MCDec *ctx, AMediaFormat *format)
+void mcdec_init_media_format(GF_MCDecCtx *ctx, AMediaFormat *format)
 {
     AMediaFormat_setString(ctx->format, AMEDIAFORMAT_KEY_MIME, ctx->mime);
     AMediaFormat_setInt32(ctx->format, AMEDIAFORMAT_KEY_WIDTH, ctx->width);
@@ -99,281 +118,311 @@ void initMediaFormat(MCDec *ctx, AMediaFormat *format)
 }
 
 
-GF_Err MCDec_InitAvcDecoder(MCDec *ctx)
+static void mcdec_reset_ps_list(GF_List *list)
+{
+	while (list && gf_list_count(list)) {
+		GF_AVCConfigSlot *slc = gf_list_get(list, 0);
+		gf_free(slc->data);
+		gf_free(slc);
+		gf_list_rem(list, 0);
+	}
+}
+
+
+GF_Err mcdec_init_avc_dec(GF_MCDecCtx *ctx)
 {
 	s32 idx;
-	char *dsi_data = NULL;
-	u32 dsi_data_size = 0;
+	u32 i;
+	GF_AVCConfigSlot *sps = NULL;
+	GF_AVCConfigSlot *pps = NULL;
 
-		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
-			u32 i;
-			GF_AVCConfig *cfg;
-			GF_AVCConfigSlot *sps = NULL;
-			GF_AVCConfigSlot *pps = NULL;
+	for (i=0; i<gf_list_count(ctx->SPSs); i++) {
+		sps = gf_list_get(ctx->SPSs, i);
+		if (ctx->active_sps<0) ctx->active_sps = sps->id;
 
-			for (i=0; i<gf_list_count(ctx->SPSs); i++) {
-				sps = gf_list_get(ctx->SPSs, i);
-				if (ctx->active_sps<0) ctx->active_sps = sps->id;
+		if (sps->id==ctx->active_sps) break;
+		sps = NULL;
+	}
+	if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
+	for (i=0; i<gf_list_count(ctx->PPSs); i++) {
+		pps = gf_list_get(ctx->PPSs, i);
+		if (ctx->active_pps<0) ctx->active_pps = pps->id;
+		if (pps->id==ctx->active_pps) break;
+		pps = NULL;
+	}
+	if (!pps) return GF_NON_COMPLIANT_BITSTREAM;
+	ctx->reconfig_needed = GF_FALSE;
+	ctx->inject_xps = GF_TRUE;
 
-				if (sps->id==ctx->active_sps) break;
-				sps = NULL;
-			}
-			if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
-			for (i=0; i<gf_list_count(ctx->PPSs); i++) {
-				pps = gf_list_get(ctx->PPSs, i);
-				if (ctx->active_pps<0) ctx->active_pps = pps->id;
+	idx = ctx->active_sps;
+	ctx->width = ctx->avc.sps[idx].width;
+	ctx->height = ctx->avc.sps[idx].height;
+	ctx->crop_left = ctx->avc.sps[idx].crop.left;
+	ctx->crop_right = ctx->avc.sps[idx].crop.right;
+	ctx->crop_top = ctx->avc.sps[idx].crop.top;
+	ctx->crop_bottom = ctx->avc.sps[idx].crop.bottom;
+	ctx->crop_left = ctx->avc.sps[idx].crop.left;
+	ctx->width +=  ctx->crop_left + ctx->crop_right;
+	ctx->height += ctx->crop_top + ctx->crop_bottom;
+	ctx->out_size = ctx->height * ctx->width * 3/2 ;
 
-				if (pps->id==ctx->active_pps) break;
-				pps = NULL;
-			}
-			if (!pps) return GF_NON_COMPLIANT_BITSTREAM;
-			ctx->reconfig_needed = GF_FALSE;
-
-		idx = ctx->active_sps;
-        ctx->width = ctx->avc.sps[idx].width;
-        ctx->height = ctx->avc.sps[idx].height;
-		ctx->crop_left = ctx->avc.sps[idx].crop.left;
-		ctx->crop_right = ctx->avc.sps[idx].crop.right;
-		ctx->crop_top = ctx->avc.sps[idx].crop.top;
-		ctx->crop_bottom = ctx->avc.sps[idx].crop.bottom;
-		ctx->crop_left = ctx->avc.sps[idx].crop.left;
-		ctx->width +=  ctx->crop_left  + ctx->crop_right;
-		ctx->height += ctx->crop_top + ctx->crop_bottom;
-		ctx->out_size = ctx->height * ctx->width * 3/2 ;
-
-        if (ctx->avc.sps[idx].vui.par_num && ctx->avc.sps[idx].vui.par_den) {
-            ctx->pixel_ar = ctx->avc.sps[idx].vui.par_num;
-            ctx->pixel_ar <<= 16;
-            ctx->pixel_ar |= ctx->avc.sps[idx].vui.par_den;
-        }
-        ctx->chroma_format = ctx->avc.sps[idx].chroma_format;
-        ctx->luma_bit_depth = 8 + ctx->avc.sps[idx].luma_bit_depth_m8;
-        ctx->chroma_bit_depth = 8 + ctx->avc.sps[idx].chroma_bit_depth_m8;
-       switch (ctx->chroma_format) {
-        case 2:
-            if (ctx->luma_bit_depth>8) {
-                ctx->pix_fmt = GF_PIXEL_YUV422_10;
-            } else {
-                ctx->pix_fmt = GF_PIXEL_YUV422;
-            }
-            break;
-        case 3:
-            if (ctx->luma_bit_depth>8) {
-                ctx->pix_fmt = GF_PIXEL_YUV444_10;
-            } else {
-                ctx->pix_fmt = GF_PIXEL_YUV444;
-            }
-            break;
-        default:
-            if (ctx->luma_bit_depth>8) {
-                ctx->pix_fmt = GF_PIXEL_YUV_10;
-            }
-            break;
-        }
+	if (ctx->avc.sps[idx].vui.par_num && ctx->avc.sps[idx].vui.par_den) {
+		ctx->sar.num = ctx->avc.sps[idx].vui.par_num;
+		ctx->sar.den = ctx->avc.sps[idx].vui.par_den;
+	}
+	ctx->chroma_format = ctx->avc.sps[idx].chroma_format;
+	ctx->luma_bit_depth = 8 + ctx->avc.sps[idx].luma_bit_depth_m8;
+	ctx->chroma_bit_depth = 8 + ctx->avc.sps[idx].chroma_bit_depth_m8;
+	switch (ctx->chroma_format) {
+	case 2:
+		if (ctx->luma_bit_depth>8) {
+			ctx->pix_fmt = GF_PIXEL_YUV422_10;
+		} else {
+			ctx->pix_fmt = GF_PIXEL_YUV422;
+		}
+		break;
+	case 3:
+		if (ctx->luma_bit_depth>8) {
+			ctx->pix_fmt = GF_PIXEL_YUV444_10;
+		} else {
+			ctx->pix_fmt = GF_PIXEL_YUV444;
+		}
+		break;
+	default:
+		if (ctx->luma_bit_depth>8) {
+			ctx->pix_fmt = GF_PIXEL_YUV_10;
+		}
+		break;
 	}
 	ctx->frame_size_changed = GF_TRUE;
     return GF_OK;
 }
 
 
-GF_Err MCDec_InitMpeg4Decoder(MCDec *ctx)
+GF_Err mcdec_init_m4vp2_dec(GF_MCDecCtx *ctx)
 {
-    char *dsi_data = NULL;
-    u32 dsi_data_size = 0;
+	GF_ESD *esd;
+	GF_M4VDecSpecInfo vcfg;
+	GF_BitStream *bs;
+	char *dsi_data;
+	u32 dsi_size;
+	GF_FilterPid *ipid = gf_list_get(ctx->streams, 0);
+	const GF_PropertyValue *dcd = gf_filter_pid_get_property(ipid, GF_PROP_PID_DECODER_CONFIG);
 
-    if (!ctx->esd->decoderConfig->decoderSpecificInfo) {
-        ctx->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-    }
+	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;
 
-    if (ctx->esd->decoderConfig->decoderSpecificInfo->data) {
-        GF_M4VDecSpecInfo vcfg;
-        GF_BitStream *bs;
 
-        gf_m4v_get_config(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, &vcfg);
-        ctx->width = vcfg.width;
-        ctx->height = vcfg.height;
+	gf_m4v_get_config(dcd->value.data.ptr, dcd->value.data.size, &vcfg);
+	ctx->width = vcfg.width;
+	ctx->height = vcfg.height;
 
-        if (ctx->esd->slConfig) {
-            ctx->esd->slConfig->predefined  = 2;
-        }
+	esd = gf_odf_desc_esd_new(2);
+	esd->decoderConfig->decoderSpecificInfo->data = dcd->value.data.ptr;
+	esd->decoderConfig->decoderSpecificInfo->dataLength = dcd->value.data.size;
 
-        bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-        gf_bs_write_u32(bs, 0);
-        gf_odf_desc_write_bs((GF_Descriptor *) ctx->esd, bs);
-        gf_bs_get_content(bs, &dsi_data, &dsi_data_size);
-        gf_bs_del(bs);
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_u32(bs, 1);
+	gf_odf_desc_write_bs((GF_Descriptor *) esd, bs);
+	gf_bs_get_content(bs, &dsi_data, &dsi_size);
+	gf_bs_del(bs);
 
-        ctx->mime = "video/mp4v-es";
+	ctx->mime = "video/mp4v-es";
+	AMediaFormat_setBuffer(ctx->format, "csd-0", dsi_data, dsi_size);
 
-        char *esds = (char *)malloc(dsi_data_size);
-        memcpy(esds, dsi_data, dsi_data_size);
-
-        esds[0] = 0x00;
-        esds[1] = 0x00;
-        esds[2] = 0x00;
-        esds[3] = 0x01;
-
-        AMediaFormat_setBuffer(ctx->format, "csd-0", esds, dsi_data_size);
-
-        gf_free(dsi_data);
-        return GF_OK;
-    }
-    return GF_NOT_SUPPORTED;
+	gf_free(dsi_data);
+	gf_odf_desc_del((GF_Descriptor*)esd);
+	return GF_OK;
 }
 
 
-GF_Err MCDec_InitHevcDecoder(MCDec *ctx)
+GF_Err mcdec_init_hevc_dec(GF_MCDecCtx *ctx)
 {
 
 	s32 idx;
-	char *dsi_data = NULL;
-	u32 dsi_data_size = 0;
-	
-	if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs)) {
-		u32 i;
-		GF_HEVCConfig *cfg ;
-		GF_AVCConfigSlot *sps = NULL;
-		GF_AVCConfigSlot *pps = NULL;
-		GF_AVCConfigSlot *vps = NULL;
-		
-		for (i=0; i<gf_list_count(ctx->SPSs); i++) {
-			sps = gf_list_get(ctx->SPSs, i);
-			if (ctx->active_sps<0) ctx->active_sps = sps->id;
 
-			if (sps->id==ctx->active_sps) break;
-			sps = NULL;
-		}
-		if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
-		for (i=0; i<gf_list_count(ctx->PPSs); i++) {
-			pps = gf_list_get(ctx->PPSs, i);
-			if (ctx->active_pps<0) ctx->active_pps = pps->id;
+	u32 i;
+	GF_AVCConfigSlot *sps = NULL;
+	GF_AVCConfigSlot *pps = NULL;
+	GF_AVCConfigSlot *vps = NULL;
 
-			if (pps->id==ctx->active_pps) break;
-			pps = NULL;
-		}
-		for (i=0; i<gf_list_count(ctx->VPSs); i++) {
-			vps = gf_list_get(ctx->VPSs, i);
-			if (ctx->active_vps<0) ctx->active_vps = vps->id;
+	for (i=0; i<gf_list_count(ctx->SPSs); i++) {
+		sps = gf_list_get(ctx->SPSs, i);
+		if (ctx->active_sps<0) ctx->active_sps = sps->id;
 
-			if (vps->id==ctx->active_vps) break;
-			vps = NULL;
-		}
-		if (!vps) return GF_NON_COMPLIANT_BITSTREAM;
-		ctx->reconfig_needed = GF_FALSE;
-		idx = ctx->active_sps;
-		ctx->width = ctx->hevc.sps[idx].width;
-		ctx->height = ctx->hevc.sps[idx].height;
-		ctx->luma_bpp = ctx->hevc.sps[idx].bit_depth_luma;
-		ctx->chroma_bpp = ctx->hevc.sps[idx].bit_depth_chroma;
-		ctx->chroma_format_idc  = ctx->hevc.sps[idx].chroma_format_idc;
+		if (sps->id==ctx->active_sps) break;
+		sps = NULL;
+	}
+	if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
+	for (i=0; i<gf_list_count(ctx->PPSs); i++) {
+		pps = gf_list_get(ctx->PPSs, i);
+		if (ctx->active_pps<0) ctx->active_pps = pps->id;
 
-		ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
-		if ( ctx->chroma_format_idc  == 1) { // 4:2:0
-			ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+		if (pps->id==ctx->active_pps) break;
+		pps = NULL;
+	}
+	for (i=0; i<gf_list_count(ctx->VPSs); i++) {
+		vps = gf_list_get(ctx->VPSs, i);
+		if (ctx->active_vps<0) ctx->active_vps = vps->id;
+
+		if (vps->id==ctx->active_vps) break;
+		vps = NULL;
+	}
+	if (!vps) return GF_NON_COMPLIANT_BITSTREAM;
+	ctx->reconfig_needed = GF_FALSE;
+	ctx->inject_xps = GF_TRUE;
+
+	idx = ctx->active_sps;
+	ctx->width = ctx->hevc.sps[idx].width;
+	ctx->height = ctx->hevc.sps[idx].height;
+	ctx->luma_bpp = ctx->hevc.sps[idx].bit_depth_luma;
+	ctx->chroma_bpp = ctx->hevc.sps[idx].bit_depth_chroma;
+	ctx->chroma_format_idc  = ctx->hevc.sps[idx].chroma_format_idc;
+
+	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
+	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
+		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+	}
+	else if ( ctx->chroma_format_idc  == 2) { // 4:2:2
+		ctx->out_size = ctx->stride * ctx->height * 2 ;
+	}
+	else if ( ctx->chroma_format_idc  == 3) { // 4:4:4
+		ctx->out_size = ctx->stride * ctx->height * 3;
+	}
+	else {
+		return GF_NOT_SUPPORTED;
+	}
+
+	switch (ctx->chroma_format) {
+	case 2:
+		if (ctx->luma_bit_depth>8) {
+			ctx->pix_fmt = GF_PIXEL_YUV422_10;
+		} else {
+			ctx->pix_fmt = GF_PIXEL_YUV422;
 		}
-		else if ( ctx->chroma_format_idc  == 2) { // 4:2:2
-			ctx->out_size = ctx->stride * ctx->height * 2 ;
+		break;
+	case 3:
+		if (ctx->luma_bit_depth>8) {
+			ctx->pix_fmt = GF_PIXEL_YUV444_10;
+		} else {
+			ctx->pix_fmt = GF_PIXEL_YUV444;
 		}
-		else if ( ctx->chroma_format_idc  == 3) { // 4:4:4
-			ctx->out_size = ctx->stride * ctx->height * 3;
+		break;
+	default:
+		if (ctx->luma_bit_depth>8) {
+			ctx->pix_fmt = GF_PIXEL_NV12;
 		}
-		else {
-			return GF_NOT_SUPPORTED;
-		}
-    }
+		break;
+	}
+
 	ctx->frame_size_changed = GF_TRUE;
     return GF_OK;
 }
 
 
-static GF_Err MCDec_InitDecoder(MCDec *ctx) {
+static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
 
     GF_Err err;
+
     ctx->format = AMediaFormat_new();
 
     if(!ctx->format) {
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaFormat_new failed"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaFormat_new failed"));
         return GF_FILTER_NOT_FOUND;
     }
 
+	ctx->sar.num = ctx->sar.den = 0;
     ctx->pix_fmt = GF_PIXEL_NV12;
 
-    switch (ctx->esd->decoderConfig->objectTypeIndication) {
-
-        case GF_CODECID_AVC :
-            err = MCDec_InitAvcDecoder(ctx);
-            break;
-
-        case GF_CODECID_MPEG4_PART2 :
-            err = MCDec_InitMpeg4Decoder(ctx);
-            break;
-
-        case GF_CODECID_HEVC:
-            err = MCDec_InitHevcDecoder(ctx);
-            break;
-
-        default:
-            return GF_NOT_SUPPORTED;
+    switch (ctx->codecid) {
+	case GF_CODECID_AVC :
+		err = mcdec_init_avc_dec(ctx);
+		break;
+	case GF_CODECID_MPEG4_PART2 :
+		err = mcdec_init_m4vp2_dec(ctx);
+		break;
+	case GF_CODECID_HEVC:
+		err = mcdec_init_hevc_dec(ctx);
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
     }
 
-    if(err != GF_OK){
+    if (err != GF_OK) {
         return err;
     }
 
-    ctx->frame_rate = 50.0f;
     ctx->dequeue_timeout = 5000;
     ctx->stride = ctx->width;
-    initMediaFormat(ctx, ctx->format);
+    mcdec_init_media_format(ctx, ctx->format);
 
-    if(!ctx->codec) {
-		ctx->decoder_name = MCDec_FindDecoder(ctx->mime, ctx->width, ctx->height, &ctx->is_adaptive);
-		if(!ctx->decoder_name) return GF_PROFILE_NOT_SUPPORTED;
+    if (!ctx->codec) {
+		char *decoder_name = MCDec_FindDecoder(ctx->mime, ctx->width, ctx->height, &ctx->is_adaptive);
+		if(!decoder_name) return GF_PROFILE_NOT_SUPPORTED;
 
-		ctx->codec = AMediaCodec_createCodecByName(ctx->decoder_name);
-		gf_free(ctx->decoder_name);
-		ctx->decoder_name = NULL;
+		ctx->codec = AMediaCodec_createCodecByName(decoder_name);
+		gf_free(decoder_name);
 	}
 
-    if(!ctx->codec) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_createDecoderByType failed"));
+    if (!ctx->codec) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_createDecoderByType failed"));
         return GF_FILTER_NOT_FOUND;
     }
-    
-    if(!ctx->window){
+
+    if (ctx->disable_gl) {
+    	ctx->surface_rendering = 0;
+	} else if (!ctx->window) {
 		if(MCDec_CreateSurface(ctx->tex_id, &ctx->window, &ctx->surface_rendering, &ctx->surfaceTex) != GF_OK)
 			return GF_BAD_PARAM;
 	}
-	
-	if( AMediaCodec_configure(
-        ctx->codec, // codec   
-        ctx->format, // format
-        (ctx->surface_rendering) ? ctx->window : NULL,  //surface
-        NULL, // crypto
-        0 // flags
-        )     != AMEDIA_OK)
-    {
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_configure failed"));
+
+	//TODO add support for crypto
+	if( AMediaCodec_configure(ctx->codec, ctx->format, (ctx->surface_rendering) ? ctx->window : NULL, NULL, 0) != AMEDIA_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_configure failed"));
         return GF_BAD_PARAM;
     }
 
     if( AMediaCodec_start(ctx->codec) != AMEDIA_OK){
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_start failed"));
+         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC , ("[MCDec] AMediaCodec_start failed"));
         return GF_BAD_PARAM;
     }
 
 	ctx->inputEOS = GF_FALSE;
     ctx->outputEOS = GF_FALSE;
-	 GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("Video size: %d x %d", ctx->width, ctx->height));
-    return GF_OK;
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] Video size: %d x %d", ctx->width, ctx->height));
+
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
+	if (ctx->sar.den)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+	switch (ctx->codecid) {
+	case GF_CODECID_AVC:
+		gf_filter_set_name(ctx->filter, "MediaCodec hardware AVC|H264");
+		break;
+	case GF_CODECID_HEVC:
+		gf_filter_set_name(ctx->filter, "MediaCodec hardware HEVC|H265");
+		break;
+	case GF_CODECID_MPEG4_PART2:
+		gf_filter_set_name(ctx->filter, "MediaCodec hardware MPEG-4 Part2");
+		break;
+	default:
+		gf_filter_set_name(ctx->filter, "MediaCodec unsupported");
+		break;
+	}
+	return GF_OK;
 }
-static void MCDec_RegisterParameterSet(MCDec *ctx, char *data, u32 size, u8 xps)
+
+static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, char *data, u32 size, u8 xps)
 {
 	Bool add = GF_TRUE;
 	u32 i, count;
 	s32 ps_id;
-	GF_List *dest = (xps == SPS) ? ctx->SPSs : ctx->PPSs;
+	GF_List *dest = (xps == MCDEC_SPS) ? ctx->SPSs : ctx->PPSs;
 
-	if (xps == SPS) {
+	if (xps == MCDEC_SPS) {
 		ps_id = gf_media_avc_read_sps(data, size, &ctx->avc, 0, NULL);
 		if (ps_id<0) return;
 	}
@@ -407,12 +456,12 @@ static void MCDec_RegisterParameterSet(MCDec *ctx, char *data, u32 size, u8 xps)
 		gf_list_add(dest, slc);
 
 		//force re-activation of sps/pps
-		if (xps == SPS) ctx->active_sps = -1;
+		if (xps == MCDEC_SPS) ctx->active_sps = -1;
 		else ctx->active_pps = -1;
 	}
 }
 
-static void MCDec_RegisterHEVCParameterSet(MCDec *ctx, char *data, u32 size, u8 xps)
+static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, char *data, u32 size, u8 xps)
 {
 	Bool add = GF_TRUE;
 	u32 i, count;
@@ -420,17 +469,17 @@ static void MCDec_RegisterHEVCParameterSet(MCDec *ctx, char *data, u32 size, u8 
 	GF_List *dest = NULL; 
 	
 	switch(xps) {
-		case SPS:
+		case MCDEC_SPS:
 			dest = ctx->SPSs;
 			ps_id = gf_media_hevc_read_sps(data, size, &ctx->hevc);
 			if (ps_id<0) return;
 			break;
-		case PPS:
+		case MCDEC_PPS:
 			dest = ctx->PPSs;
 			ps_id = gf_media_hevc_read_pps(data, size, &ctx->hevc);
 			if (ps_id<0) return;
 			break;
-		case VPS:
+		case MCDEC_VPS:
 			dest = ctx->VPSs;
 			ps_id = gf_media_hevc_read_vps(data, size, &ctx->hevc);
 			if (ps_id<0) return;
@@ -465,620 +514,569 @@ static void MCDec_RegisterHEVCParameterSet(MCDec *ctx, char *data, u32 size, u8 
 		gf_list_add(dest, slc);
 		
 		//force re-activation of sps/pps/vps
-		if (xps == SPS) ctx->active_sps = -1;
-		else if (xps == PPS) ctx->active_pps = -1;
+		if (xps == MCDEC_SPS) ctx->active_sps = -1;
+		else if (xps == MCDEC_PPS) ctx->active_pps = -1;
 		else  ctx->active_vps = -1;
 	}
 }
 
-static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-    MCDec *ctx = (MCDec *)ifcg->privateStack;
-    ctx->esd = esd;
-    GF_Err e;
+	const GF_PropertyValue *p, *dsi;
+	const GF_PropertyValue *dcd;
+	u32 codecid, dsi_crc;
+	Bool do_reset=GF_FALSE;
+	u32 i;
+	GF_FilterPid *base_pid = NULL;
+    GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
 
-    if(!ctx->tex_id)
+	if (is_remove) {
+		gf_list_del_item(ctx->streams, pid);
+		if (!gf_list_count(ctx->streams)) {
+			if (ctx->codec) AMediaCodec_stop(ctx->codec);
+			if (ctx->opid) gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
+		return GF_OK;
+	}
+	if (! gf_filter_pid_check_caps(pid)) {
+		return GF_NOT_SUPPORTED;
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!p) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] Missing codecid, cannot initialize\n"));
+		return GF_NOT_SUPPORTED;
+	}
+	codecid = p->value.uint;
+
+	base_pid = gf_list_get(ctx->streams, 0);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
+	if (!p && base_pid && (base_pid != pid)) return GF_REQUIRES_NEW_INSTANCE;
+	else if (p) {
+		u32 base_idx_plus_one = 0;
+
+		if (ctx->codecid != GF_CODECID_HEVC) return GF_REQUIRES_NEW_INSTANCE;
+
+		for (i=0; i<gf_list_count(ctx->streams); i++) {
+			GF_FilterPid *ipid = gf_list_get(ctx->streams, i);
+			const GF_PropertyValue *p_dep;
+			if (ipid==pid) continue;
+
+			p_dep = gf_filter_pid_get_property(ipid, GF_PROP_PID_ID);
+			if (p_dep && p_dep->value.uint == p->value.uint) {
+				base_idx_plus_one = i+1;
+				break;
+			}
+		}
+		if (!base_idx_plus_one) return GF_REQUIRES_NEW_INSTANCE;
+
+		//no support for L-HEVC
+		if (codecid != GF_CODECID_HEVC) return GF_NOT_SUPPORTED;
+		if (gf_list_find(ctx->streams, pid) < 0) {
+			gf_list_insert(ctx->streams, pid, base_idx_plus_one);
+		}
+		//no configure for temporal enhancements
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (ctx->opid && p) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, p);
+		return GF_OK;
+	}
+
+
+	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
+	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
+
+	if (gf_list_find(ctx->streams, pid) < 0) {
+		gf_list_insert(ctx->streams, pid, 0);
+	}
+	ctx->cfg_crc = dsi_crc;
+
+	gf_filter_sep_max_extra_input_pids(filter, (codecid==GF_CODECID_HEVC) ? 5 : 0);
+
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+	}
+
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+
+	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	//not ready yet
+	if (!dcd) return GF_OK;
+
+	if (codecid!=ctx->codecid) do_reset = GF_TRUE;
+	else if (!ctx->is_adaptive) do_reset = GF_TRUE;
+
+	ctx->codecid = codecid;
+
+
+    if (do_reset && ctx->codec) {
+    	AMediaCodec_delete(ctx->codec);
+    	ctx->codec = NULL;
+    	mcdec_reset_ps_list(ctx->SPSs);
+    	mcdec_reset_ps_list(ctx->VPSs);
+    	mcdec_reset_ps_list(ctx->PPSs);
+
+    	if (ctx->format) AMediaFormat_delete(ctx->format);
+    	ctx->format = NULL;
+	}
+
+    if (!ctx->tex_id)
        glGenTextures(1, &ctx->tex_id);
 
 	//check AVC config
-    if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AVC) {
-	ctx->SPSs = gf_list_new();
-	ctx->PPSs = gf_list_new();
-	ctx->mime = "video/avc";
-	ctx->avc.sps_active_idx = -1;
-	ctx->active_sps = ctx->active_pps = -1;
+    if (ctx->codecid == GF_CODECID_AVC) {
+		GF_AVCConfig *cfg;
+		GF_AVCConfigSlot *slc;
 
-        if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
-            ctx->width=ctx->height=128;
-            ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV12;
-            return GF_OK;
-        } else {
-            u32 i;
-            GF_AVCConfigSlot *slc;
-            GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-            for (i = 0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
-		     slc = gf_list_get(cfg->sequenceParameterSets, i);
-		     slc->id = -1;
-		     MCDec_RegisterParameterSet(ctx, slc->data, slc->size, SPS);
-	    }
+		ctx->mime = "video/avc";
+		ctx->avc.sps_active_idx = -1;
+		ctx->active_sps = ctx->active_pps = -1;
 
-	    for (i = 0; i<gf_list_count(cfg->pictureParameterSets); i++) {
-		     slc = gf_list_get(cfg->pictureParameterSets, i);
-		     slc->id = -1;
-		     MCDec_RegisterParameterSet(ctx, slc->data, slc->size, PPS);
-	    }
+		cfg = gf_odf_avc_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
+		for (i = 0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
+			slc = gf_list_get(cfg->sequenceParameterSets, i);
+			slc->id = -1;
+			mcdec_register_avc_param_set(ctx, slc->data, slc->size, MCDEC_SPS);
+		}
 
-	    slc = gf_list_get(ctx->SPSs, 0);
-	    if (slc) ctx->active_sps = slc->id;
+		for (i = 0; i<gf_list_count(cfg->pictureParameterSets); i++) {
+			slc = gf_list_get(cfg->pictureParameterSets, i);
+			slc->id = -1;
+			mcdec_register_avc_param_set(ctx, slc->data, slc->size, MCDEC_PPS);
+		}
+		//activate first SPS/PPS by default
+		slc = gf_list_get(ctx->SPSs, 0);
+		if (slc) ctx->active_sps = slc->id;
 
-	    slc = gf_list_get(ctx->PPSs, 0);
-	    if (slc) ctx->active_pps = slc->id;
-			
-	    ctx->nalu_size_length = cfg->nal_unit_size;
-		
-			
-	   if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
-	       e = MCDec_InitDecoder(ctx);
-	       if (e) return e;
-            } else {
-		e = GF_OK;
-	    }
-	    gf_odf_avc_cfg_del(cfg);
-	    return e;
-	}
+		slc = gf_list_get(ctx->PPSs, 0);
+		if (slc) ctx->active_pps = slc->id;
+
+		ctx->nalu_size_length = cfg->nal_unit_size;
+		gf_odf_avc_cfg_del(cfg);
     }
-
-    if (esd->decoderConfig->objectTypeIndication == GF_CODECID_MPEG4_PART2) {
-        if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
-            ctx->width=ctx->height=128;
-            ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV12;
-        } else {
-            GF_M4VDecSpecInfo vcfg;
-            gf_m4v_get_config(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, &vcfg);
-            ctx->width = vcfg.width;
-            ctx->height = vcfg.height;
-            ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV12;
-	    return MCDec_InitDecoder(ctx);
-        }
+	else if (codecid == GF_CODECID_MPEG4_PART2) {
+		GF_M4VDecSpecInfo vcfg;
+		gf_m4v_get_config(dcd->value.data.ptr, dcd->value.data.size, &vcfg);
+		ctx->width = vcfg.width;
+		ctx->height = vcfg.height;
+		ctx->out_size = ctx->width*ctx->height*3/2;
+		ctx->pix_fmt = GF_PIXEL_NV12;
     }
-
-    if (esd->decoderConfig->objectTypeIndication == GF_CODECID_HEVC) {
-        ctx->esd= esd;
-	ctx->SPSs = gf_list_new();
-	ctx->PPSs = gf_list_new();
-	ctx->VPSs = gf_list_new();
-	ctx->mime = "video/hevc";
-        if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
-            ctx->width=ctx->height=128;
-            ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV12;
-	    return GF_OK;
-        } else {
-	    GF_HEVCConfig *hvcc = NULL;
+	else if (codecid == GF_CODECID_HEVC) {
+		ctx->mime = "video/hevc";
+        GF_HEVCConfig *hvcc;
 	    GF_AVCConfigSlot *sl;
 	    HEVCState hevc;
 	    u32 i,j;
+
 	    memset(&hevc, 0, sizeof(HEVCState));
 
-	    hvcc = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
+	    hvcc = gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE);
 	    if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
 	    ctx->nalu_size_length = hvcc->nal_unit_size;
 
 	    for (i=0; i< gf_list_count(hvcc->param_array); i++) {
-		  GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
-		  for (j=0; j< gf_list_count(ar->nalus); j++) {
-			 GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
-			 s32 idx;
-			 u16 hdr = sl->data[0] << 8 | sl->data[1];
+			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
+			for (j=0; j< gf_list_count(ar->nalus); j++) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
 
-			 if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-			     sl->id = -1;
-			     MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, SPS);
-			 }
-			 else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-				  sl->id = -1;
-				  MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, VPS);
-			 }
-			 else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-				  sl->id = -1;
-				  MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, PPS);
-			 }
-		  }
+				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+					mcdec_register_hevc_param_set(ctx, sl->data, sl->size, MCDEC_SPS);
+				} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+					mcdec_register_hevc_param_set(ctx, sl->data, sl->size, MCDEC_VPS);
+				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+					mcdec_register_hevc_param_set(ctx, sl->data, sl->size, MCDEC_PPS);
+				}
+			}
 	    }
+		//activate first VPS/SPS/PPS by default
+	    sl = gf_list_get(ctx->VPSs, 0);
+	    if (sl) ctx->active_vps = sl->id;
+
 	    sl = gf_list_get(ctx->SPSs, 0);
 	    if (sl) ctx->active_sps = sl->id;
 
 	    sl = gf_list_get(ctx->PPSs, 0);
 	    if (sl) ctx->active_pps = sl->id;
-			
-	    sl = gf_list_get(ctx->VPSs, 0);
-	    if (sl) ctx->active_vps = sl->id;
-			
-	    if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs) ) {
-		e = MCDec_InitDecoder(ctx);
-	    } else {
-		e = GF_OK;
-	    }
+
 	    gf_odf_hevc_cfg_del(hvcc);
-            return e;
-        }
     }
-	return MCDec_InitDecoder(ctx);
+	if (ctx->codec) return GF_OK;
+	return mcdec_init_decoder(ctx);
 }
 
-static GF_Err MCDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
+static void mcdec_write_ps(GF_BitStream *bs, GF_List *ps, s32 active_ps)
 {
-    MCDec *ctx = (MCDec *)ifcg->privateStack;
-
-    if(ctx->codec && AMediaCodec_stop(ctx->codec) != AMEDIA_OK) {
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_stop failed"));
-    }
-    
-    return GF_OK;
+	u32 i, count;
+	if (active_ps<0) return;
+	count = gf_list_count(ps);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *sl = gf_list_get(ps, i);
+		if (sl->id==active_ps) {
+			gf_bs_write_u32(bs, 1);
+			gf_bs_write_data(bs, sl->data, sl->size);
+			return;
+		}
+	}
 }
 
-static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
-{
-    MCDec *ctx = (MCDec *)ifcg->privateStack;
 
-    switch (capability->CapCode) {
-    case GF_CODEC_RESILIENT:
-        capability->cap.valueInt = 1;
-        break;
-    case GF_CODEC_WIDTH:
-	capability->cap.valueInt = ctx->width;
-	break;
-    case GF_CODEC_HEIGHT:
-	capability->cap.valueInt = ctx->height;
-	break;
-    case GF_CODEC_STRIDE:
-        capability->cap.valueInt = ctx->stride;
-	break;
-    case GF_CODEC_FPS:
-        capability->cap.valueFloat = ctx->frame_rate;
-        break;
-    case GF_CODEC_PAR:
-        capability->cap.valueInt = ctx->pixel_ar;
-        break;
-    case GF_CODEC_OUTPUT_SIZE:
-	capability->cap.valueInt = ctx->out_size;
-        break;
-    case GF_CODEC_PIXEL_FORMAT:
-        capability->cap.valueInt = ctx->pix_fmt;
-	break;
-    case GF_CODEC_BUFFER_MIN:
-        capability->cap.valueInt = 1;
-        break;
-    case GF_CODEC_BUFFER_MAX:
-        capability->cap.valueInt = 4;
-        break;
-    /*by default we use 4 bytes padding (otherwise it happens that XviD crashes on some videos...)*/
-    case GF_CODEC_PADDING_BYTES:
-        capability->cap.valueInt = 0;
-        break;
-    /*reorder is up to mediacodec*/
-    case GF_CODEC_REORDER:
-        capability->cap.valueInt = 1;
-        break;
-    case GF_CODEC_WANTS_THREAD:
-        capability->cap.valueInt = 1;
-	break;
-    case GF_CODEC_FRAME_OUTPUT:
-        capability->cap.valueInt = 1;
-        break;
-    case GF_CODEC_FORCE_ANNEXB:
-	capability->cap.valueInt = 1;
-	break;
-    case GF_CODEC_TRUSTED_CTS:
-	capability->cap.valueInt = 1;
-	break;
-	/*not known at our level...*/
-    case GF_CODEC_CU_DURATION:
-    default:
-        capability->cap.valueInt = 0;
-        break;
-    }
-    return GF_OK;
-}
-
-static GF_Err MCDec_ParseNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
+static GF_Err mcdec_rewrite_annex_b(GF_MCDecCtx *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
 {
-	u32 i, sc_size;
+	u32 i;
 	char *ptr = inBuffer;
 	u32 nal_size;
 	GF_Err e = GF_OK;
 	GF_BitStream *bs = NULL;
 
-	if (out_buffer) {
-		*out_buffer = NULL;
-		*out_size = 0;
-	}
+	*out_buffer = NULL;
+	*out_size = 0;
 
-	if (!ctx->nalu_size_length) {
-		sc_size = 0;
-		nal_size = gf_media_nalu_next_start_code((u8 *)inBuffer, inBufferLength, &sc_size);
-		if (!sc_size) return GF_NON_COMPLIANT_BITSTREAM;
-		ptr += nal_size + sc_size;
-		assert(inBufferLength >= nal_size + sc_size);
-		inBufferLength -= nal_size + sc_size;
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	if (ctx->inject_xps) {
+		ctx->inject_xps = GF_FALSE;
+		mcdec_write_ps(bs, ctx->VPSs, ctx->active_vps);
+		mcdec_write_ps(bs, ctx->SPSs, ctx->active_sps);
+		mcdec_write_ps(bs, ctx->PPSs, ctx->active_pps);
 	}
 
 	while (inBufferLength) {
-		Bool add_nal = GF_TRUE;
-		u8 nal_type, nal_hdr;
-		GF_BitStream *nal_bs = NULL;
-		if (ctx->nalu_size_length) {
-			nal_size = 0;
-			for (i = 0; i<ctx->nalu_size_length; i++) {
-				nal_size = (nal_size << 8) + ((u8)ptr[i]);
-			}
-			ptr += ctx->nalu_size_length;
+		nal_size = 0;
+		for (i = 0; i<ctx->nalu_size_length; i++) {
+			nal_size = (nal_size << 8) + ((u8)ptr[i]);
 		}
-		else {
-			nal_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
-		}
-        nal_type = ptr[0] & 0x1F;
-		nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
-		switch (nal_type) {
-			case GF_AVC_NALU_SEQ_PARAM:
-				MCDec_RegisterParameterSet(ctx, ptr, nal_size, SPS);
-				add_nal = GF_FALSE;
-				break;
-			case GF_AVC_NALU_PIC_PARAM:
-				MCDec_RegisterParameterSet(ctx, ptr, nal_size, PPS);
-				add_nal = GF_FALSE;
-				break;
-			case GF_AVC_NALU_ACCESS_UNIT:
-			case GF_AVC_NALU_END_OF_SEQ:
-			case GF_AVC_NALU_END_OF_STREAM:
-			case GF_AVC_NALU_FILLER_DATA:
-				add_nal = GF_FALSE;
-				break;
-			default:
-				break;
-		}
-		gf_media_avc_parse_nalu(nal_bs, &ctx->avc);
-		gf_bs_del(nal_bs);
-		if ((nal_type <= GF_AVC_NALU_IDR_SLICE) && ctx->avc.s_info.sps) {
-			if (ctx->avc.sps_active_idx != ctx->active_sps) {
-				ctx->reconfig_needed = 1;
-				ctx->active_sps = ctx->avc.sps_active_idx;
-				ctx->active_pps = ctx->avc.s_info.pps->id;
-				return GF_OK;
-			}
-		}
+		ptr += ctx->nalu_size_length;
 
-		//if sps and pps are ready, init decoder
-		if (!ctx->codec && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
-			ctx->reconfig_needed = 1;
-			return GF_OK;
-		}
-		if (!out_buffer) add_nal = GF_FALSE;
-		else if (add_nal && !ctx->codec) add_nal = GF_FALSE;
-		if (add_nal) {
-			if (!bs) bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, nal_size);
-			gf_bs_write_data(bs, ptr, nal_size);
-		}
+		gf_bs_write_u32(bs, 1);
+		gf_bs_write_data(bs, ptr, nal_size);
+
 
 		ptr += nal_size;
-		if (ctx->nalu_size_length) {
-			if (inBufferLength < nal_size + ctx->nalu_size_length) break;
-			inBufferLength -= nal_size + ctx->nalu_size_length;
-		}
-		else {
 
-			if (!sc_size || (inBufferLength < nal_size + sc_size)) break;
-			inBufferLength -= nal_size + sc_size;
-			ptr += sc_size;
-		}
+		if (inBufferLength < nal_size + ctx->nalu_size_length) break;
+		inBufferLength -= nal_size + ctx->nalu_size_length;
 	}
 
-	if (bs) {
-		gf_bs_get_content(bs, out_buffer, out_size);
-		gf_bs_del(bs);
-	}
+	gf_bs_get_content(bs, out_buffer, out_size);
+	gf_bs_del(bs);
 	return e;
 }
-static GF_Err MCDec_ParseHEVCNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength)
+
+static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, char *inBuffer, u32 inBufferLength)
 {
-	u32 i, sc_size;
-	char *ptr = inBuffer;
 	u32 nal_size;
 	GF_Err e = GF_OK;
-	GF_BitStream *bs = NULL;
-	
-	sc_size = 0;
-	nal_size = gf_media_nalu_next_start_code((u8 *)inBuffer, inBufferLength, &sc_size);
-	if (!sc_size) return GF_NON_COMPLIANT_BITSTREAM;
-	ptr += nal_size + sc_size;
-	assert(inBufferLength >= nal_size + sc_size);
-	inBufferLength -= nal_size + sc_size;
-	
-	while (inBufferLength) {
-		Bool add_nal = GF_TRUE;
+	GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
+
+
+	while (gf_bs_available(bs)) {
 		u8 nal_type;
-		u16 nal_hdr ;
-		u8 type, quality_id, temporal_id;
-		
-		nal_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
-		gf_media_hevc_parse_nalu(ptr, nal_size, &ctx->hevc, &type, &temporal_id, &quality_id);
-		switch(type) {
-			case GF_HEVC_NALU_SEQ_PARAM:
-				MCDec_RegisterHEVCParameterSet(ctx, ptr, nal_size, SPS);
-				break;
-			case GF_HEVC_NALU_PIC_PARAM:
-				MCDec_RegisterHEVCParameterSet(ctx, ptr, nal_size, PPS);
-				break;
-			case GF_HEVC_NALU_VID_PARAM:
-				MCDec_RegisterHEVCParameterSet(ctx, ptr, nal_size, VPS);
+		u32 pos;
+		//turn off epb removal when reading nal size
+		gf_bs_enable_emulation_byte_removal(bs, GF_FALSE);
+		nal_size = gf_bs_read_int(bs, ctx->nalu_size_length * 8);
+		pos = gf_bs_get_position(bs);
+
+		if (ctx->codecid==GF_CODECID_AVC) {
+			//this will turn it back on
+			gf_media_avc_parse_nalu (bs, &ctx->avc);
+			gf_bs_seek(bs, pos + nal_size);
+
+			nal_type = ctx->avc.last_nal_type_parsed;
+			switch (nal_type) {
+			case GF_AVC_NALU_SEQ_PARAM:
+			case GF_AVC_NALU_PIC_PARAM:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AVC Parameter sets still present in packet payload !\n"));
 				break;
 			default:
+				if ((nal_type <= GF_AVC_NALU_IDR_SLICE) && ctx->avc.s_info.sps) {
+					if (ctx->avc.sps_active_idx != ctx->active_sps) {
+						ctx->reconfig_needed = 1;
+						ctx->active_sps = ctx->avc.sps_active_idx;
+						ctx->active_pps = ctx->avc.s_info.pps->id;
+						gf_bs_del(bs);
+						return GF_OK;
+					}
+				}
 				break;
-		}
-		
-		if ((nal_type <= GF_HEVC_NALU_SLICE_CRA) && ctx->hevc.s_info.sps) {
-			if ((ctx->hevc.sps_active_idx != ctx->active_sps) || (ctx->hevc.sps[ctx->active_sps].vps_id != ctx->active_vps)) {
-				ctx->reconfig_needed = 1;
-				ctx->active_sps = ctx->hevc.sps_active_idx;
-				ctx->active_pps = ctx->hevc.s_info.pps->id;
-				ctx->active_vps = ctx->hevc.sps[ctx->active_sps].vps_id;
-				return GF_OK;
+			}
+		} else {
+			u8 nal_type, quality_id, temporal_id;
+			gf_media_hevc_parse_nalu_bs (bs, &ctx->hevc, &nal_type, &temporal_id, &quality_id);
+			gf_bs_seek(bs, pos + nal_size);
+
+			switch(nal_type) {
+			case GF_HEVC_NALU_SEQ_PARAM:
+			case GF_HEVC_NALU_PIC_PARAM:
+			case GF_HEVC_NALU_VID_PARAM:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] HEVC Parameter sets still present in packet payload !\n"));
+				break;
+			default:
+				if ((nal_type <= GF_HEVC_NALU_SLICE_CRA) && ctx->hevc.s_info.sps) {
+					if ((ctx->hevc.sps_active_idx != ctx->active_sps) || (ctx->hevc.sps[ctx->active_sps].vps_id != ctx->active_vps)) {
+						ctx->reconfig_needed = 1;
+						ctx->active_sps = ctx->hevc.sps_active_idx;
+						ctx->active_pps = ctx->hevc.s_info.pps->id;
+						ctx->active_vps = ctx->hevc.sps[ctx->active_sps].vps_id;
+						return GF_OK;
+					}
+				}
+				break;
 			}
 		}
-
-		//if sps, pps and vps are ready, init decoder
-		if (!ctx->codec && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs) ) {
-			e = MCDec_InitDecoder(ctx);
-			if (e) return e;
-		}
-		
-		ptr += nal_size;
-		if (!sc_size || (inBufferLength < nal_size + sc_size)) break;
-			inBufferLength -= nal_size + sc_size;
-			ptr += sc_size;
 	}
-	
+	gf_bs_del(bs);
 	return e;
 }
 
+static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, char *frame_buffer, u64 cts);
 
-static GF_Err MCDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
+static GF_Err mcdec_process(GF_Filter *filter)
 {
-    MCDec *ctx = (MCDec *)ifcg->privateStack;
+	u64 cts=0;
+	char *in_buffer;
+	u32 in_buffer_size, i, count, nb_eos;
+	u64 min_dts;
+	GF_Err e;
+	GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_FilterPacket *pck;
+	GF_FilterPid *ref_pid = NULL;
+	char *dec_frame=NULL;
 
-	switch (capability.CapCode) {
-		case GF_CODEC_FRAME_OUTPUT:
-			ctx->raw_frame_dispatch = capability.cap.valueInt ? GF_TRUE : GF_FALSE;
-			if (ctx->raw_frame_dispatch && (capability.cap.valueInt==2))
-				ctx->use_gl_textures = GF_TRUE;
-
-			return GF_OK;
-	}
-
-	/*return unsupported to avoid confusion by the player (like color space changing ...) */
-	return GF_NOT_SUPPORTED;
-
-}
-
-
-static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
-                               char *inBuffer, u32 inBufferLength,
-                               u16 ES_ID, u32 *CTS,
-                               char *outBuffer, u32 *outBufferLength,
-                               u8 PaddingBits, u32 mmlevel)
-{
-    MCDec *ctx = (MCDec *)ifcg->privateStack;
-	ctx->nalu_size_length = 0;
 	Bool mcdec_buffer_available = GF_FALSE;
 
-	if(!ctx->before_exit_registered) {
+#if FILTER_FIXME
+	if (!ctx->before_exit_registered) {
 		ctx->before_exit_registered = GF_TRUE;
 		if (gf_register_before_exit_function(gf_th_current(), &MCDec_BeforeExit) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("Failed to register exit function for the decoder thread %p, try to continue anyway...\n", gf_th_current()));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] Failed to register exit function for the decoder thread %p, try to continue anyway...\n", gf_th_current()));
 		}
 	}
-	if (!ctx->reconfig_needed && (!(ctx->codec && ctx->is_adaptive))) {
-		if(ctx->esd->decoderConfig->objectTypeIndication == GF_CODECID_AVC)
-			MCDec_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
-		else if(ctx->esd->decoderConfig->objectTypeIndication == GF_CODECID_HEVC)
-			MCDec_ParseHEVCNALs(ctx, inBuffer, inBufferLength);
-	}		
-	
-	if (ctx->reconfig_needed) {
-		if (ctx->raw_frame_dispatch && ctx->decoded_frames_pending) {
-			*outBufferLength = 1;
-			return GF_BUFFER_TOO_SMALL;
-		}
+#endif
 
-		if (ctx->codec) {
-			AMediaCodec_flush(ctx->codec);
-			AMediaCodec_stop(ctx->codec);
+
+	//figure out min DTS
+	count = gf_list_count(ctx->streams);
+	nb_eos = 0;
+	min_dts = 0;
+	for (i=0; i<count; i++) {
+		u64 dts;
+		GF_FilterPid *pid = gf_list_get(ctx->streams, i);
+
+		pck = gf_filter_pid_get_packet(pid);
+		if (!pck) {
+			if (gf_filter_pid_is_eos(pid)) {
+				nb_eos++;
+				continue;
+			} else {
+				return GF_OK;
+			}
 		}
-		MCDec_InitDecoder(ctx);
-		if (ctx->out_size != *outBufferLength) {
-			*outBufferLength = ctx->out_size;
-			return GF_BUFFER_TOO_SMALL;
+		dts = gf_filter_pck_get_dts(pck);
+		dts *= 1000;
+		dts /= gf_filter_pck_get_timescale(pck);
+		if (!min_dts || (min_dts>dts)) {
+			min_dts = dts;
+			ref_pid = pid;
 		}
 	}
 
-	if(!ctx->inputEOS) {
-		ssize_t inIndex = AMediaCodec_dequeueInputBuffer(ctx->codec,ctx->dequeue_timeout);
+	if (nb_eos==count) {
+		in_buffer = NULL;
+		in_buffer_size = 0;
+	} else {
+		assert(ref_pid);
+		pck = gf_filter_pid_get_packet(ref_pid);
+		assert(pck);
+
+		in_buffer = (char *) gf_filter_pck_get_data(pck, &in_buffer_size);
+		cts = gf_filter_pck_get_cts(pck);
+
+		//no reconfig but no adaptive, parse NALUs to figure out active ps
+		if (!ctx->reconfig_needed && !ctx->is_adaptive) {
+			mcdec_check_ps_state(ctx, in_buffer, in_buffer_size);
+		}
+
+		if (ctx->reconfig_needed) {
+			if (ctx->codec) {
+				AMediaCodec_flush(ctx->codec);
+				AMediaCodec_stop(ctx->codec);
+			}
+			e = mcdec_init_decoder(ctx);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] Failed to reconfigure decoder: %s\n", gf_error_to_string(e) ));
+				return e;
+			}
+		}
+	}
+
+	if (!ctx->inputEOS) {
+		ssize_t inIndex = AMediaCodec_dequeueInputBuffer(ctx->codec, ctx->dequeue_timeout);
 
 		if (inIndex >= 0) {
-
             size_t inSize;
+            u32 flags = 0;
+            Bool do_free = GF_TRUE;
+			char *in_data=NULL;
+			u32 in_data_size=0;
             char *buffer = (char *)AMediaCodec_getInputBuffer(ctx->codec, inIndex, &inSize);
 
-            if (inBufferLength > inSize)  {
-                 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("The returned buffer is too small"));
-                 return GF_BUFFER_TOO_SMALL;
+            //rewrite input from isobmf to annexB - this will write the param sets if needed
+            if (in_buffer) {
+            	mcdec_rewrite_annex_b(ctx, in_buffer, in_buffer_size, &in_data, &in_data_size);
+
+				if (!in_data) {
+					in_data = in_buffer;
+					in_data_size = in_buffer_size;
+					do_free = GF_FALSE;
+				}
+			}
+
+            if (in_data_size > inSize)  {
+                 GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MCDec] The returned buffer is too small"));
+                 if (do_free) gf_free(in_data);
+                 return GF_OK;
             }
-			memcpy(buffer, inBuffer, inBufferLength);
-			
-            if(!inBuffer || inBufferLength == 0){
-                 GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM input"));
+
+            if (in_data_size) {
+				memcpy(buffer, in_data, in_data_size);
+				gf_filter_pid_drop_packet(ref_pid);
+                 if (do_free) gf_free(in_data);
+			} else {
+                 GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM input"));
 				 ctx->inputEOS = GF_TRUE;
+				 flags = AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM;
             }
-			if(AMediaCodec_queueInputBuffer(ctx->codec,
-                                    inIndex,
-                                    0,
-                                    inBufferLength,
-                                    *CTS,
-                                    inBuffer ? 0 : AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM
-                ) != AMEDIA_OK)
-                {
-                 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_queueInputBuffer failed"));
-                return GF_BAD_PARAM;
+
+			if (AMediaCodec_queueInputBuffer(ctx->codec, inIndex, 0, in_data_size, cts, flags) != AMEDIA_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_queueInputBuffer failed"));
+				return GF_BAD_PARAM;
             }
             mcdec_buffer_available = GF_TRUE;
         }
     }
 
-    if(!ctx->outputEOS) {
+    if (!ctx->outputEOS) {
+		u32 width, height, stride;
+		AMediaCodecBufferInfo info;
 
-
-        ctx->outIndex = AMediaCodec_dequeueOutputBuffer(ctx->codec, &ctx->info, ctx->dequeue_timeout);
-        *outBufferLength=0;
+        ctx->outIndex = AMediaCodec_dequeueOutputBuffer(ctx->codec, &info, ctx->dequeue_timeout);
 
         switch(ctx->outIndex) {
-            case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
-			{
-				u32 width, height, stride;
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED"));
-				ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
-				AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_WIDTH, &width);
-				AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_HEIGHT, &height);
-				AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_STRIDE, &stride);
-				if((ctx->width != width) || (ctx->height != height) || (ctx->stride != stride)){
-					ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-					*outBufferLength = ctx->out_size;
-					ctx->frame_size_changed = GF_TRUE;
-				}
-                break;
+		case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED"));
+			ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
+			AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_WIDTH, &width);
+			AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_HEIGHT, &height);
+			AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_STRIDE, &stride);
+			if((ctx->width != width) || (ctx->height != height) || (ctx->stride != stride)){
+				ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+				ctx->frame_size_changed = GF_TRUE;
 			}
-            case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
-                GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED"));
-                break;
-
-            case AMEDIACODEC_INFO_TRY_AGAIN_LATER:
-                GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_INFO_TRY_AGAIN_LATER"));
-                break;
-
-            default:
-				if (ctx->outIndex >= 0) {
-					*CTS = ctx->info.presentationTimeUs;
-					if(ctx->info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
-						 GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output"));
-						ctx->outputEOS = true;
-					}
-
-					if(!ctx->surface_rendering) {
-						size_t outSize;
-						uint8_t * buffer = AMediaCodec_getOutputBuffer(ctx->codec, ctx->outIndex, &outSize);
-						ctx->frame = buffer + ctx->info.offset;
-
-						if(!ctx->frame) {
-							 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_getOutputBuffer failed"));
-							*outBufferLength = 0;
-						}
-					}
-
-					if(ctx->surface_rendering || ctx->frame) {
-						if(ctx->info.size < ctx->out_size)
-						*outBufferLength = ctx->info.size;
-						else *outBufferLength = ctx->out_size;
-					}
-				}
 			break;
 
+		case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED"));
+			break;
+
+		case AMEDIACODEC_INFO_TRY_AGAIN_LATER:
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_TRY_AGAIN_LATER"));
+			break;
+
+		default:
+			if (ctx->outIndex < 0)
+			 	break;
+
+			dec_frame = NULL;
+
+			if (info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output"));
+				ctx->outputEOS = GF_TRUE;
 			}
 
-    }
+			if (!ctx->surface_rendering) {
+				size_t outSize;
+				uint8_t * buffer = AMediaCodec_getOutputBuffer(ctx->codec, ctx->outIndex, &outSize);
+				dec_frame = buffer + info.offset;
 
-	return (mcdec_buffer_available) ? GF_OK : GF_CODEC_BUFFER_UNAVAILABLE;
-}
-
-
-static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
-{
-    if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
-
-    /*media type query*/
-    if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
-
-    switch (esd->decoderConfig->objectTypeIndication) {
-        case GF_CODECID_AVC:
-			return GF_CODEC_SUPPORTED;
-        case GF_CODECID_HEVC:
-//			if(sdkInt() >= 21) {
-				return GF_CODEC_SUPPORTED;
-//			}
+				if (!dec_frame) {
+					 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_getOutputBuffer failed"));
+					 break;
+				}
+			}
+			e = mcdec_send_frame(ctx, dec_frame, info.presentationTimeUs);
+			if (e) return e;
 			break;
-		case GF_CODECID_MPEG4_PART2:
-            return GF_CODEC_SUPPORTED;
+		}
     }
 
-    return GF_CODEC_NOT_SUPPORTED;
+	if (ctx->outputEOS) gf_filter_pid_set_eos(ctx->opid);
+	return GF_OK;
 }
-void MCFrame_Release(GF_MediaDecoderFrame *frame)
+
+static void mcdec_hw_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	MC_Frame *f = (MC_Frame *)frame->user_data;
-	if(f->ctx->codec && !f->flushed)  {
+	GF_FilterHWFrame *hwframe = (GF_FilterHWFrame *) gf_filter_pck_get_hw_frame(pck);
+	GF_MCDecFrame *f = hwframe ? hwframe->user_data : NULL;
+	if (!f) return;
+
+	if (f->ctx->codec && !f->flushed)  {
 		if ( AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, GF_FALSE) != AMEDIA_OK) {
-			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("NOT Release Output Buffer Index: %d", f->outIndex));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d", f->outIndex));
 		}
 	}
 	f->ctx->decoded_frames_pending--;
-	gf_free(f);
-	gf_free(frame);
+	gf_list_add(f->ctx->frames_res, f);
 }
-GF_Err MCFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char **outPlane, u32 *outStride)
-{
 
-	GF_Err e;
-	MC_Frame *f = (MC_Frame *)frame->user_data;
-	int color;
+GF_Err mcdec_hw_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+{
+	GF_MCDecFrame *f = (GF_MCDecFrame *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
 	*outPlane = NULL;
 	*outStride = 0;
 	f->ctx->format = AMediaCodec_getOutputFormat(f->ctx->codec);
+
 	AMediaFormat_getInt32(f->ctx->format, AMEDIAFORMAT_KEY_STRIDE, outStride);
 
 	switch(plane_idx) {
-		case 0 :
-			*outPlane = f->frame ;
-			break;
-		case 1 :
-			*outPlane = f->frame + *outStride * f->ctx->height ;
-			*outStride/=2;
-			break;
-		case 2:
-			*outPlane = f->frame + 5 * *outStride * f->ctx->height/4 ;
-			*outStride/=2;
-			break;
-		default :
-			return GF_BAD_PARAM;
-
+	case 0 :
+		*outPlane = f->frame ;
+		break;
+	case 1 :
+		*outPlane = f->frame + *outStride * f->ctx->height ;
+		*outStride/=2;
+		break;
+	case 2:
+		*outPlane = f->frame + 5 * *outStride * f->ctx->height/4 ;
+		*outStride/=2;
+		break;
+	default :
+		return GF_BAD_PARAM;
 	}
 
 	return GF_OK;
 }
 
-GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
+GF_Err mcdec_hw_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix * texcoordmatrix)
 {
-	MC_Frame *f = (MC_Frame *)frame->user_data;
+	GF_MCDecFrame *f = (GF_MCDecFrame *)frame->user_data;
    	if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
+#ifndef MEDIACODEC_EMUL_API
 	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
+#endif
 
 	*gl_tex_id = f->ctx->tex_id;
 	
 	if(!f->flushed && f->ctx->codec) {
 		if (AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, GF_TRUE) != AMEDIA_OK) {
-			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("NOT Release Output Buffer Index: %d to surface", f->outIndex));
+			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d to surface", f->outIndex));
 			 return GF_OK;
 		}
 		if(MCFrame_UpdateTexImage(f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
@@ -1089,168 +1087,142 @@ GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_
 	return GF_OK;
 }
 
-GF_Err MCDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize)
+static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, char *frame_buffer, u64 cts)
 {
-	GF_MediaDecoderFrame *a_frame;
-	MC_Frame *mc_frame;
-	ssize_t outSize;
-	MCDec *ctx = (MCDec *)dec->privateStack;
+	GF_MCDecFrame *mc_frame;
+	GF_FilterPacket *dst_pck;
 
-	*needs_resize = GF_FALSE;
+	if(ctx->outIndex < 0 || (!frame_buffer && !ctx->surface_rendering))  return GF_BAD_PARAM;
 
-	if(ctx->outIndex < 0 || (!ctx->frame && !ctx->surface_rendering))  return GF_BAD_PARAM;
-	GF_SAFEALLOC(a_frame, GF_MediaDecoderFrame);
-	if (!a_frame) return GF_OUT_OF_MEM;
-	GF_SAFEALLOC(mc_frame, MC_Frame);
+	mc_frame = gf_list_pop_front(ctx->frames_res);
 	if (!mc_frame) {
-		gf_free(a_frame);
-		return GF_OUT_OF_MEM;
+		GF_SAFEALLOC(mc_frame, GF_MCDecFrame);
+		if (!mc_frame) return GF_OUT_OF_MEM;
 	}
-	a_frame->user_data = mc_frame;
+	memset(&mc_frame->hwframe, 0, sizeof(GF_FilterHWFrame));
+	mc_frame->hwframe.user_data = mc_frame;
 	mc_frame->ctx = ctx;
-	mc_frame->frame = ctx->frame;
+	mc_frame->frame = frame_buffer;
 	mc_frame->outIndex = ctx->outIndex;
 	mc_frame->flushed = GF_FALSE;
-	ctx->frame = NULL;
-	a_frame->Release = MCFrame_Release;
-	a_frame->GetPlane = MCFrame_GetPlane;
-	if (ctx->use_gl_textures)
-		a_frame->GetGLTexture = MCFrame_GetGLTexture;
 
-	*frame = a_frame;
+	if (ctx->surface_rendering) {
+		mc_frame->hwframe.get_gl_texture = mcdec_hw_get_gl_texture;
+	} else {
+		mc_frame->hwframe.get_plane = mcdec_hw_get_plane;
+	}
+
 	if (ctx->frame_size_changed) {
-		ctx->frame_size_changed = GF_FALSE;
-		*needs_resize = GF_TRUE;
+		mc_frame->hwframe.hardware_reset_pending = GF_TRUE;
 	}
 	ctx->decoded_frames_pending++;
+
+
+	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &mc_frame->hwframe, mcdec_hw_del);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
+	if (dst_pck) {
+		gf_filter_pck_set_cts(dst_pck, cts);
+		//TODO, copy properties from source packet !
+
+		gf_filter_pck_send(dst_pck);
+	}
+
 	return GF_OK;
 }
 
-static const char *MCDec_GetCodecName(GF_BaseDecoder *dec)
+GF_Err mcdec_initialize(GF_Filter *filter)
 {
-    MCDec *ctx = (MCDec *) dec->privateStack;
+    GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
+    ctx->filter = filter;
 
-    if(!strcmp(ctx->mime, "video/avc"))
-        return "MediaCodec hardware AVC|H264";
+	ctx->SPSs = gf_list_new();
+	ctx->PPSs = gf_list_new();
+	ctx->VPSs = gf_list_new();
+	ctx->frames_res = gf_list_new();
 
-    else if(!strcmp(ctx->mime, "video/hevc"))
-        return "MediaCodec hardware HEVC|H265";
+	ctx->active_vps = -1;
+	ctx->active_sps = -1;
+	ctx->active_pps = -1;
 
-    else if(!strcmp(ctx->mime, "video/mp4v-es"))
-        return "MediaCodec hardware MPEG-4 Part2";
-
-    else return "MediaCodec not supported";
+    return GF_OK;
 }
 
-
-GF_BaseDecoder *NewMCDec()
+void mcdec_finalize(GF_Filter *filter)
 {
-    GF_MediaDecoder *ifcd;
-    MCDec *dec;
+    GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
 
-    GF_SAFEALLOC(ifcd, GF_MediaDecoder);
-    if (!ifcd) return NULL;
-    GF_SAFEALLOC(dec, MCDec);
-    if (!dec) {
-        gf_free(ifcd);
-        return NULL;
-    }
-    GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "Android MediaCodec Decoder", "gpac distribution")
-
-    ifcd->privateStack = dec;
-
-    /*setup our own interface*/
-    ifcd->AttachStream = MCDec_AttachStream;
-    ifcd->DetachStream = MCDec_DetachStream;
-    ifcd->GetCapabilities = MCDec_GetCapabilities;
-    ifcd->SetCapabilities = MCDec_SetCapabilities;
-    ifcd->GetName = MCDec_GetCodecName;
-    ifcd->CanHandleStream = MCDec_CanHandleStream;
-    ifcd->ProcessData = MCDec_ProcessData;
-	ifcd->GetOutputFrame = MCDec_GetOutputFrame;
-    return (GF_BaseDecoder *) ifcd;
-}
-static void MCDec_DelParamList(GF_List *list)
-{
-	while (gf_list_count(list)) {
-		GF_AVCConfigSlot *slc = gf_list_get(list, 0);
-		gf_free(slc->data);
-		gf_free(slc);
-		gf_list_rem(list, 0);
-	}
-
-	gf_list_del(list);
-
-}
-
-void DeleteMCDec(GF_BaseDecoder *ifcg)
-{
-    MCDec *ctx = (MCDec *)ifcg->privateStack;
-
-    if(ctx->format && AMediaFormat_delete(ctx->format) != AMEDIA_OK){
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaFormat_delete failed"));
+    if (ctx->format && AMediaFormat_delete(ctx->format) != AMEDIA_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaFormat_delete failed"));
     }
 
-    if(ctx->codec && AMediaCodec_delete(ctx->codec) != AMEDIA_OK) {
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_delete failed"));
+    if (ctx->codec && AMediaCodec_delete(ctx->codec) != AMEDIA_OK) {
+         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_delete failed"));
     }
 
     if(ctx->window) {
-	ANativeWindow_release(ctx->window);
-	ctx->window = NULL;
+		ANativeWindow_release(ctx->window);
+		ctx->window = NULL;
     }
 
-    if(ctx->codec)
-	MCDec_DeleteSurface(ctx->surfaceTex);
+    if (ctx->surfaceTex.texture_id)
+		MCDec_DeleteSurface(ctx->surfaceTex);
 	
-    if(ctx->tex_id) glDeleteTextures (1, &ctx->tex_id);
+    if(ctx->tex_id)
+    	glDeleteTextures (1, &ctx->tex_id);
 
-    MCDec_DelParamList(ctx->SPSs);
-    ctx->SPSs = NULL;
-    MCDec_DelParamList(ctx->PPSs);
-    ctx->PPSs = NULL;
-    MCDec_DelParamList(ctx->VPSs);
-    ctx->VPSs = NULL;
+    mcdec_reset_ps_list(ctx->SPSs);
+	gf_list_del(ctx->SPSs);
+    mcdec_reset_ps_list(ctx->PPSs);
+	gf_list_del(ctx->PPSs);
+    mcdec_reset_ps_list(ctx->VPSs);
+	gf_list_del(ctx->VPSs);
 
-    gf_free(ctx);
-    gf_free(ifcg);
-	
+	while (gf_list_count(ctx->frames_res) ) {
+		GF_MCDecFrame *f = gf_list_pop_back(ctx->frames_res);
+		gf_free(f);
+	}
+	gf_list_del(ctx->frames_res);
 }
 
 
 
-GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces()
+static const GF_FilterCapability MCDecCaps[] =
 {
-    static u32 si [] = {
-#ifndef GPAC_DISABLE_AV_PARSERS
-        GF_MEDIA_DECODER_INTERFACE,
-#endif
-        0
-    };
-    return si;
-}
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
 
-GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType)
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+};
+
+#define OFFS(_n)	#_n, offsetof(GF_MCDecCtx, _n)
+
+static const GF_FilterArgs MCDecArgs[] =
 {
+	{ OFFS(disable_gl), "Disables OpenGL texture transfer", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(disable_gl), "Disables OpenGL texture transfer", GF_PROP_BOOL, "false", NULL, 0},
+	{}
+};
 
-#ifndef GPAC_DISABLE_AV_PARSERS
-    if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewMCDec();
-#endif
-    return NULL;
-}
+GF_FilterRegister GF_MCDecCtxRegister = {
+	.name = "mcdec",
+	GF_FS_SET_DESCRIPTION("MediaCodec decoder")
+	.private_size = sizeof(GF_MCDecCtx),
+	.args = MCDecArgs,
+	SETCAPS(MCDecCaps),
+	.initialize = mcdec_initialize,
+	.finalize = mcdec_finalize,
+	.configure_pid = mcdec_configure_pid,
+	.process = mcdec_process,
+};
 
-GPAC_MODULE_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce)
+
+const GF_FilterRegister *mcdec_register(GF_FilterSession *session)
 {
-    switch (ifce->InterfaceType) {
-#ifndef GPAC_DISABLE_AV_PARSERS
-    case GF_MEDIA_DECODER_INTERFACE:
-        DeleteMCDec((GF_BaseDecoder*)ifce);
-        break;
-#endif
-    }
+	return &GF_MCDecCtxRegister;
 }
-
-GPAC_MODULE_STATIC_DECLARATION( mc )

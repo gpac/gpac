@@ -25,11 +25,15 @@
  
 #include <gpac/tools.h>
 #include <gpac/constants.h>
+
 // for native window JNI
 #include <android/native_window_jni.h>
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
-#include "mediacodec_dec.h"
+
+#include <jni.h>
+
+#include "dec_mediacodec.h"
 #define RANDOM_JAVA_APP_CLASS "com/gpac/Osmo4/GPACInstance"
 #define ALL_CODECS 1
 
@@ -333,7 +337,7 @@ GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex)
 	return GF_OK;
 }
 
-GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx, MC_SurfaceTexture surfaceTex)
+GF_Err MCFrame_GetTransformMatrix(GF_Matrix * mx, MC_SurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;

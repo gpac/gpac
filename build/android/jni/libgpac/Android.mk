@@ -23,7 +23,12 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv2 -ldl
 LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lz
+
+#ffmpeg
 LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale
+
+#mediacodec - removed  ljavaenv from original settings
+LOCAL_LDLIBS    += -llog -ldl -lOpenMAXAL -lmediandk -landroid -lGLESv2
 
 #LOCAL_SHARED_LIBRARIES    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 #LOCAL_SHARED_LIBRARIES    += -lGLESv2 -ldl
@@ -156,6 +161,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dec_vtb.c \
 	../../../../src/filters/dec_webvtt.c \
 	../../../../src/filters/dec_xvid.c \
+	../../../../src/filters/dec_mediacodec.c \
+	../../../../src/filters/dec_mediacodec_jni.c \
 	../../../../src/filters/dmx_avi.c \
 	../../../../src/filters/dmx_dash.c \
 	../../../../src/filters/dmx_gsf.c \
