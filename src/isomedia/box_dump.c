@@ -1607,6 +1607,33 @@ GF_Err vpcc_dump(GF_Box *a, FILE *trace) {
 	return GF_OK;
 }
 
+GF_Err SmDm_dump(GF_Box *a, FILE *trace) {
+	GF_SMPTE2086MasteringDisplayMetadataBox * ptr = (GF_SMPTE2086MasteringDisplayMetadataBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "SMPTE2086MasteringDisplayMetadataBox", trace);
+	fprintf(trace, "primaryRChromaticity_x=\"%u\" ", ptr->primaryRChromaticity_x);
+	fprintf(trace, "primaryRChromaticity_y=\"%u\" ", ptr->primaryRChromaticity_y);
+	fprintf(trace, "primaryGChromaticity_x=\"%u\" ", ptr->primaryGChromaticity_x);
+	fprintf(trace, "primaryGChromaticity_y=\"%u\" ", ptr->primaryGChromaticity_y);
+	fprintf(trace, "primaryBChromaticity_x=\"%u\" ", ptr->primaryBChromaticity_x);
+	fprintf(trace, "primaryBChromaticity_y=\"%u\" ", ptr->primaryBChromaticity_y);
+	fprintf(trace, "whitePointChromaticity_x=\"%u\" ", ptr->whitePointChromaticity_x);
+	fprintf(trace, "whitePointChromaticity_y=\"%u\" ", ptr->whitePointChromaticity_y);
+	fprintf(trace, "luminanceMax=\"%u\" ", ptr->luminanceMax);
+	fprintf(trace, "luminanceMin=\"%u\">\n", ptr->luminanceMin);
+	gf_isom_box_dump_done("SMPTE2086MasteringDisplayMetadataBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err CoLL_dump(GF_Box *a, FILE *trace) {
+	GF_VPContentLightLevelBox * ptr = (GF_VPContentLightLevelBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "VPContentLightLevelBox", trace);
+	fprintf(trace, "maxCLL=\"%u\" maxFALL=\"%u\">\n", ptr->maxCLL, ptr->maxFALL);
+	gf_isom_box_dump_done("VPContentLightLevelBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -3907,6 +3934,17 @@ GF_Err dac3_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dvcC_dump(GF_Box *a, FILE * trace)
+{
+	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
+	gf_isom_box_dump_start(a, "DOVIConfigurationBox", trace);
+	fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\">\n",
+		p->DOVIConfig.dv_version_major, p->DOVIConfig.dv_version_minor, p->DOVIConfig.dv_profile, p->DOVIConfig.dv_level,
+		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag);
+	gf_isom_box_dump_done("DOVIConfigurationBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err lsrc_dump(GF_Box *a, FILE * trace)
 {
 	GF_LASERConfigurationBox *p = (GF_LASERConfigurationBox *)a;
@@ -4846,6 +4884,30 @@ GF_Err irot_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "ImageRotationBox", trace);
 	fprintf(trace, "angle=\"%d\">\n", (ptr->angle*90));
 	gf_isom_box_dump_done("ImageRotationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err clli_dump(GF_Box *a, FILE * trace)
+{
+	GF_ContentLightLevelBox *ptr = (GF_ContentLightLevelBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ContentLightLevelBox", trace);
+	fprintf(trace, "max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\">\n", ptr->max_content_light_level, ptr->max_pic_average_light_level);
+	gf_isom_box_dump_done("ContentLightLevelBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err mdcv_dump(GF_Box *a, FILE * trace)
+{
+	int c = 0;
+	GF_MasteringDisplayColourVolumeBox *ptr = (GF_MasteringDisplayColourVolumeBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "MasteringDisplayColourVolumeBox", trace);
+	for (c = 0; c < 3; c++) {
+		fprintf(trace, "display_primaries[%d].x=\"%u\" display_primaries[%d].y=\"%u\"", c, ptr->display_primaries[c].x, c, ptr->display_primaries[c].y);
+	}
+	fprintf(trace, "white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\">\n", ptr->white_point_x, ptr->white_point_y, ptr->max_display_mastering_luminance, ptr->min_display_mastering_luminance);
+	gf_isom_box_dump_done("MasteringDisplayColourVolumeBox", a, trace);
 	return GF_OK;
 }
 
