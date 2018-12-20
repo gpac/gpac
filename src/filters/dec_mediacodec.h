@@ -114,14 +114,15 @@ const char* AMEDIAFORMAT_KEY_STRIDE = "stride";
 typedef struct {
 	jobject oSurfaceTex;
 	int texture_id;
-} MC_SurfaceTexture;
+} GF_MCDecSurfaceTexture;
 	
-GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, MC_SurfaceTexture * surfaceTex);
-GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex);
-GF_Err MCFrame_GetTransformMatrix(struct __matrix * mx, MC_SurfaceTexture surfaceTex);
-GF_Err MCDec_DeleteSurface(MC_SurfaceTexture surfaceTex);
-char * MCDec_FindDecoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive);
-u32 MCDec_BeforeExit(void * param);
+GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, GF_MCDecSurfaceTexture * surfaceTex);
+GF_Err mcdec_delete_surface(GF_MCDecSurfaceTexture surfaceTex);
+char * mcdec_find_decoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive);
+u32 mcdec_exit_callback(void * param);
+
+GF_Err mcdec_update_surface(GF_MCDecSurfaceTexture surfaceTex);
+GF_Err mcdec_get_transform_matrix(struct __matrix * mx, GF_MCDecSurfaceTexture surfaceTex);
 
 #endif //_MEDIACODEC_DEC_H_
 
