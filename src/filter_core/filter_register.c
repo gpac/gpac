@@ -129,6 +129,10 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session);
 #endif
 const GF_FilterRegister *atscin_register(GF_FilterSession *session);
 
+#ifdef GPAC_HAVE_DTAPI
+const GF_FilterRegister *dtout_register(GF_FilterSession *session)
+#endif
+
 #ifdef GPAC_CONFIG_ANDROID
 const GF_FilterRegister *mcdec_register(GF_FilterSession *session);
 #endif
@@ -233,7 +237,6 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, nvdec_register(a_sess));
 #endif
 	gf_fs_add_filter_registry(fsess, atscin_register(a_sess));
-
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffavin_register(a_sess) );

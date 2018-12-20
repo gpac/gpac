@@ -1179,6 +1179,8 @@ it must match the capability requirement (equal, excluded). If no property exist
 /*! Structure holding arguments for a filter*/
 typedef enum
 {
+	/*! used for GUI config: regular argument type */
+	GF_FS_ARG_HINT_NORMAL = 0,
 	/*! used for GUI config: advanced argument type */
 	GF_FS_ARG_HINT_ADVANCED = 1<<1,
 	/*! used for GUI config: expert argument type */
@@ -1383,6 +1385,7 @@ struct __gf_filter_register
 	\return error if any. A filter returning an error will trigger a reconfigure of the chain to find another filter.
 	a filter may return GF_REQUIRES_NEW_INSTANCE to indicate the PID cannot be processed
 	in this instance but could be in a clone of the filter.
+	a filter may return GF_FILTER_NOT_SUPPORTED to indicate the PID cannot be processed and no alternate chain resolution would help
 	*/
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
 

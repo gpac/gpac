@@ -492,6 +492,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		pid->is_playing = GF_TRUE;
 	}
 
+	if (pid->filter->eos_probe_state)
+		pid->filter->eos_probe_state = 2;
+
 	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
 	//send from filter, update flags
