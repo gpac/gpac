@@ -3764,6 +3764,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to discard a packet on an output PID in filter %s\n", pid->filter->name));
 		return;
 	}
+	pidinst->filter->nb_pck_io++;
 	//remove pck instance
 	pcki = gf_fq_pop(pidinst->packets);
 

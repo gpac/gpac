@@ -390,9 +390,11 @@ typedef struct
 	Bool is_yuv, in_fullscreen;
 	u32 nb_drawn;
 
+	Bool force_release;
 	GF_FilterPacket *last_pck;
 } GF_VideoOutCtx;
 
+static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
 
 #ifndef GPAC_DISABLE_3D
 static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
@@ -446,6 +448,14 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	const GF_PropertyValue *p;
 	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh, hw, hh;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
+
+	//if we have a pending packet, draw it now
+	if (ctx->last_pck) {
+		vout_draw_frame(ctx);
+		gf_filter_pck_unref(ctx->last_pck);
+		ctx->last_pck = NULL;
+	}
+
 
 	if (is_remove) {
 		assert(ctx->pid==pid);
@@ -904,25 +914,24 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		} else {
 			glDisable(GL_BLEND);
 		}
-		return GF_OK;
-	}
-
-	if (ctx->pfmt==GF_PIXEL_NV21) {
-		ctx->num_textures = 2;
-	} else if (ctx->pfmt==GF_PIXEL_NV12) {
-		ctx->num_textures = 2;
-	} else if (ctx->pfmt==GF_PIXEL_UYVY) {
-		ctx->num_textures = 1;
-	} else if (ctx->pfmt==GF_PIXEL_YUYV) {
-		ctx->num_textures = 1;
-	} else if (ctx->is_yuv) {
-		ctx->num_textures = 3;
-	} else {
-		ctx->num_textures = 1;
-	}
-
+	} else
 #endif
-
+	{
+		if (ctx->pfmt==GF_PIXEL_NV21) {
+			ctx->num_textures = 2;
+		} else if (ctx->pfmt==GF_PIXEL_NV12) {
+			ctx->num_textures = 2;
+		} else if (ctx->pfmt==GF_PIXEL_UYVY) {
+			ctx->num_textures = 1;
+		} else if (ctx->pfmt==GF_PIXEL_YUYV) {
+			ctx->num_textures = 1;
+		} else if (ctx->is_yuv) {
+			ctx->num_textures = 3;
+		} else {
+			ctx->num_textures = 1;
+		}
+	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] Reconfig input size %d x %d, %d textures\n", ctx->width, ctx->height, ctx->num_textures));
 	return GF_OK;
 }
 
@@ -1189,6 +1198,8 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
 		}
 		ctx->display_changed = GF_FALSE;
+		glClearColor(0, 0, 0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT);
 	}
 	if (ctx->has_alpha) {
 		Float r, g, b;
@@ -1206,6 +1217,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (!data) {
 		GF_Err e;
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
+		if (hw_frame->reset_pending) ctx->force_release = GF_TRUE;
 		if (! hw_frame->get_plane) {
 			vout_draw_gl_hw_textures(ctx, hw_frame);
 			return;
@@ -1483,6 +1495,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		u32 stride_chroma;
 #endif
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
+		if (hw_frame->reset_pending) ctx->force_release = GF_TRUE;
 		if (! hw_frame->get_plane) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Hardware GL texture blit not supported with non-GL blitter\n"));
 			return;
@@ -1745,8 +1758,13 @@ static GF_Err vout_process(GF_Filter *filter)
 
 
 draw_frame:
+	return vout_draw_frame(ctx);
+}
 
-	if (ctx->pfmt) {
+static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
+{
+	ctx->force_release = GF_FALSE;
+	if (ctx->pfmt && ctx->last_pck) {
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp < MODE_2D) {
 			gf_rmt_begin_gl(vout_draw_gl);
@@ -1758,6 +1776,11 @@ draw_frame:
 			vout_draw_2d(ctx, ctx->last_pck);
 		}
 	}
+	if (ctx->force_release && ctx->last_pck) {
+		gf_filter_pck_unref(ctx->last_pck);
+		ctx->last_pck = NULL;
+	}
+
 	return GF_OK;
 }
 

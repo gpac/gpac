@@ -344,7 +344,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		return mo->frame;
 	}
 
-	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
+	if (mo->pck && mo->hw_frame && mo->hw_frame->reset_pending) {
 		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}
@@ -704,7 +704,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		}
 	}
 	//release frame asap if producer is waiting for the release to be able to process
-	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
+	if (mo->pck && mo->hw_frame && mo->hw_frame->reset_pending) {
 		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}

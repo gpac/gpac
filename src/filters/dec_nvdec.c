@@ -1178,7 +1178,7 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 
 
 	if (!gf_list_count(ctx->frames) && ctx->needs_resetup)
-		f->gframe.hardware_reset_pending = GF_TRUE;
+		f->gframe.reset_pending = GF_TRUE;
 
 	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &f->gframe, nvframe_release);
 
@@ -1207,7 +1207,9 @@ static void init_cuda_sdk()
 	    res = cuInit(0, __CUDA_API_VERSION);
 		nb_cuvid_inst++;
 		cuvid_load_state = 1;
-		if (res != CUDA_SUCCESS) {
+		if (res == CUDA_ERROR_SHARED_OBJECT_INIT_FAILED) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] cuda lib not found on system\n") );
+		} else if (res != CUDA_SUCCESS) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] failed to init cuda %s\n", cudaGetErrorEnum(res) ) );
 		} else {
 			res = cuDeviceGetCount(&device_count);
