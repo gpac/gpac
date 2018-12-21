@@ -169,13 +169,19 @@ typedef struct
 	char *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
+	Bool check_avc_ps, check_hevc_ps;
+	GF_HEVCConfig *hvcc;
+	GF_AVCConfig *avcc;
+	GF_BitStream *nal_bs;
+	u32 dsi_crc;
 
-
+	Bool needs_pid_reconfig;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);
 void isor_reader_get_sample(ISOMChannel *ch);
 void isor_reader_release_sample(ISOMChannel *ch);
+void isor_update_channel_config(ISOMChannel *ch);
 
 void isor_check_producer_ref_time(ISOMReader *read);
 
@@ -189,6 +195,8 @@ void isor_declare_objects(ISOMReader *read);
 
 void isor_reader_get_sample_from_item(ISOMChannel *ch);
 void isor_set_crypt_config(ISOMChannel *ch);
+
+void isor_reader_check_config(ISOMChannel *ch);
 
 Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_idx);
 
