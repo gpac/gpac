@@ -3676,6 +3676,7 @@
 					"-laom",
 					"-lvpx",
 					"-llzma",
+					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3788,6 +3789,7 @@
 					"-laom",
 					"-lvpx",
 					"-llzma",
+					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
