@@ -30,11 +30,9 @@
 
 #if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) 
 
-
 #include "dec_nvdec_sdk.h"
 
 #ifndef GPAC_DISABLE_3D
-#include "../compositor/gl_inc.h"
 
 
 #ifdef LOAD_GL_1_5
