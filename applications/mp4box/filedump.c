@@ -1290,6 +1290,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	GF_AVCConfigSlot *slc;
 #endif
+	Bool has_svcc = GF_FALSE;
 
 	track = gf_isom_get_track_by_id(file, trackID);
 
@@ -1400,7 +1401,10 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
-		if (svccfg) gf_odf_avc_cfg_del(svccfg);
+		if (svccfg) {
+			gf_odf_avc_cfg_del(svccfg);
+			has_svcc = GF_TRUE;
+		}
 #ifndef GPAC_DISABLE_HEVC
 		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 		if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
@@ -1474,7 +1478,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
+				dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
 #endif
 				fprintf(dump, "/>\n");
 			}
