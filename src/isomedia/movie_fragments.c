@@ -1851,6 +1851,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 			if (movie->root_ssix) {
 				e = gf_isom_box_size((GF_Box*)movie->root_ssix);
 				size += (u32) movie->root_ssix->size;
+				movie->root_sidx->first_offset = (u32) movie->root_ssix->size;
 			}
 
 			if (size < sidx_max_size) break;
