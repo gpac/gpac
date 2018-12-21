@@ -170,10 +170,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	gotpic=0;
 	res = avcodec_decode_video2(ctx->decoder, frame, &gotpic, &pkt);
+	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 
-	//not end of stream, or no more data to flush
-	if (!is_eos || !gotpic) {
-		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
+	if (!gotpic) {
 		if (is_eos) {
 			ctx->flush_done = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->out_pid);
@@ -193,23 +192,24 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			ctx->stride = 0;
 			ctx->stride_uv = 0;
 			ctx->sar.num = ctx->sar.den = 0;
+			while (gf_list_count(ctx->src_packets)) {
+				GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+				gf_filter_pck_unref(pck);
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
 			return ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
 		}
 	}
 
 	if (res < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(res) ));
 		return GF_NON_COMPLIANT_BITSTREAM;
-		/*TODO: check if we want to switch to H263 (ffmpeg MPEG-4 codec doesn't understand short headers)
-		haven't seen such bitstream in a while, for now the feature is droped*/
 	}
 	if (!gotpic) return GF_OK;
 
 	pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
 	if (!pix_fmt) pix_fmt = GF_PIXEL_RGB;
 
-	if (ctx->width != ctx->decoder->width)
-		ctx->width = ctx->width;
 	//update all props
 	FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 	FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
@@ -217,7 +217,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	stride = stride_uv = uv_height = nb_planes = 0;
 	if (! gf_pixel_get_size_info(pix_fmt, ctx->width, ctx->height, &outsize, &stride, &stride_uv, &nb_planes, &uv_height) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s failed to query pixelformat size infon", gf_filter_pid_get_name(ctx->in_pid) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to query pixelformat size infon", gf_filter_pid_get_name(ctx->in_pid) ));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -318,7 +318,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		break;
 
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %s, patch welcome\n", av_get_pix_fmt_name(ctx->decoder->pix_fmt) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Unsupported pixel format %s, patch welcome\n", av_get_pix_fmt_name(ctx->decoder->pix_fmt) ));
 
 		gf_filter_pck_discard(dst_pck);
 
@@ -400,7 +400,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		ctx->frame_start = 0;
 		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 		if (pkt.size && (len<0)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(len) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(len) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (is_eos) {
@@ -419,6 +419,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			ctx->sample_rate = 0;
 			ctx->channels = 0;
 			ctx->channel_layout = 0;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
 			return ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
 		}
 		return GF_OK;
@@ -547,7 +548,7 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 		ctx->frame_start = 0;
 		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 		if (len<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(len) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(len) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (is_eos) {
@@ -629,7 +630,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		AVCodec *codec=NULL;
 		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
 		if (!prop || !prop->value.ptr) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
 			return GF_SERVICE_ERROR;
 		}
 		ctx->decoder = prop->value.ptr;
@@ -638,7 +639,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		res = avcodec_open2(ctx->decoder, codec, NULL );
 		if (res < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
@@ -662,6 +663,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			//but this is not 100% reliable, and will require parsing AVC/HEVC config
 			//since this seems to work properly with decoder close/open, we keep it as is
 			ctx->reconfig_pending = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure detected, flushing frame\n", gf_filter_pid_get_name(pid) ));
 			return GF_OK;
 		}
 
@@ -687,7 +689,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		res = avcodec_open2(ctx->decoder, codec, NULL );
 		if (res < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
@@ -717,7 +719,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->decoder->pix_fmt>=0) {
 			pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
 			if (!pix_fmt) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", pix_fmt));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", pix_fmt));
 				pix_fmt = GF_PIXEL_RGB;
 			}
 			FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
@@ -795,11 +797,11 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		case GF_PROP_STRING:
 			res = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Failed to set option %s:%s\n", arg_name, arg_val ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Failed to set option %s:%s\n", arg_name, arg_val ));
 			}
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
