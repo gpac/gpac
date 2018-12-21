@@ -19,7 +19,8 @@
 
 #include <gpac/tools.h>
 
-#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_3D)
+
+#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN))
 
 #include "dec_nvdec_sdk.h"
 

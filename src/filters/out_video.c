@@ -380,11 +380,12 @@ typedef struct
 	GLint pbo_U;
 	GLint pbo_V;
 	GLint memory_format;
-	u32 num_textures;
 	u32 bytes_per_pix;
 	GLint pixel_format;
 	Bool internal_textures;
 #endif // GPAC_DISABLE_3D
+
+	u32 num_textures;
 
 	u32 uv_w, uv_h, uv_stride, bit_depth;
 	Bool is_yuv, in_fullscreen;
@@ -1491,9 +1492,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (!data) {
 		GF_Err e;
 		u32 stride_luma;
-#ifndef GPAC_DISABLE_3D
 		u32 stride_chroma;
-#endif
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
 		if (hw_frame->reset_pending) ctx->force_release = GF_TRUE;
 		if (! hw_frame->get_plane) {
@@ -1505,7 +1504,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching chroma plane from hardware frame\n"));
 			return;
 		}
-#ifndef GPAC_DISABLE_3D
 		if (ctx->is_yuv && (ctx->num_textures>1)) {
 			e = hw_frame->get_plane(hw_frame, 1, (const u8 **) &src_surf.u_ptr, &stride_chroma);
 			if (e) {
@@ -1520,7 +1518,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 				}
 			}
 		}
-#endif
 	} else {
 		src_surf.video_buffer = data;
 	}
