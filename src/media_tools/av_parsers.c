@@ -5389,6 +5389,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	si->sps = &avc->sps[si->pps->sps_id];
 	if (!si->sps->log2_max_frame_num) return -2;
 	avc->sps_active_idx = si->pps->sps_id;
+	avc->pps_active_idx = pps_id;
 
 	si->frame_num = gf_bs_read_int(bs, si->sps->log2_max_frame_num);
 
