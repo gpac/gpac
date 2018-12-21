@@ -943,6 +943,10 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 	size = data_size;
 	encrypted_au = out_data[0] ? GF_TRUE : GF_FALSE;
 	if (encrypted_au) {
+		if (size<17) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Error in sample size, %d bytes remain but at least 17 are required\n", size ) );
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		memmove(IV, out_data+1, 16);
 		if (!cstr->crypt_init) {
 			e = gf_crypt_init(cstr->crypt, cstr->keys[0], IV);
@@ -958,7 +962,6 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 				return GF_IO_ERR;
 			}
 		}
-
 		offset += 17;
 		size -= 17;
 

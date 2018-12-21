@@ -564,6 +564,9 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (!ch->check_hevc_ps && !ch->check_avc_ps) return;
 
 	if (!ch->sample) return;
+	//we cannot touch the payload if encrypted !!
+	//TODO, in CENC try to remove non-encrypted NALUs and update saiz accordingly
+	if (ch->is_encrypted) return;
 
 	nalu_len = ch->hvcc ? ch->hvcc->nal_unit_size : (ch->avcc ? ch->avcc->nal_unit_size : 4);
 
