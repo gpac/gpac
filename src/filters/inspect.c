@@ -33,12 +33,16 @@ typedef struct
 	FILE *tmp;
 	u64 pck_num;
 	u32 idx;
+	u8 dump_pid;
+	u8 init_pid_config_done;
+	u64 pck_for_config;
 } PidCtx;
 
 enum
 {
-	INSPECT_MODE_AU=0,
-	INSPECT_MODE_PCK,
+	INSPECT_MODE_PCK=0,
+	INSPECT_MODE_BLOCK,
+	INSPECT_MODE_REFRAME,
 	INSPECT_MODE_RAW
 };
 
@@ -50,13 +54,13 @@ typedef struct
 	Bool pck;
 	char *log;
 	char *fmt;
-	Bool props, hdr;
+	Bool props, hdr, all;
 
 	FILE *dump;
 
 	GF_List *src_pids;
 
-	Bool is_prober, probe_done, hdr_done;
+	Bool is_prober, probe_done, hdr_done, dump_pck;
 } GF_InspectCtx;
 
 static void inspect_finalize(GF_Filter *filter)
@@ -314,7 +318,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	}
 }
 
-static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove)
+static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config)
 {
 	u32 idx=0;
 
@@ -322,7 +326,10 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	if (is_remove) {
 		fprintf(dump, "PID %d name %s delete\n", pid_idx, gf_filter_pid_get_name(pid) );
 	} else {
-		fprintf(dump, "PID %d name %s %sonfigure - properties:\n", pid_idx, gf_filter_pid_get_name(pid), is_connect ? "C" : "Rec" );
+		fprintf(dump, "PID %d name %s %sonfigure", pid_idx, gf_filter_pid_get_name(pid), is_connect ? "C" : "Rec" );
+		if (pck_for_config)
+			fprintf(dump, " after "LLU" packets", pck_for_config);
+		fprintf(dump, " - properties:\n");
 	}
 	while (1) {
 		u32 prop_4cc;
@@ -343,7 +350,27 @@ static GF_Err inspect_process(GF_Filter *filter)
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
 		if (!pck) continue;
+
+		if (pctx->dump_pid) {
+			inspect_dump_pid(ctx, pctx->tmp, pctx->src_pid, pctx->idx, pctx->init_pid_config_done ? GF_FALSE : GF_TRUE, GF_FALSE, pctx->pck_for_config);
+			pctx->dump_pid = 0;
+			pctx->init_pid_config_done = 1;
+			pctx->pck_for_config=0;
+
+			if (!ctx->hdr_done) {
+				ctx->hdr_done=GF_TRUE;
+				if (ctx->hdr && ctx->fmt)
+					inspect_dump_packet_fmt(ctx, pctx->tmp, NULL, 0, 0);
+			}
+		}
+		pctx->pck_for_config++;
 		pctx->pck_num++;
+
+		if (!ctx->dump_pck) {
+			gf_filter_pid_drop_packet(pctx->src_pid);
+			continue;
+		}
+
 		if (ctx->is_prober) {
 			nb_done++;
 		} else if (ctx->fmt) {
@@ -353,7 +380,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		}
 		gf_filter_pid_drop_packet(pctx->src_pid);
 	}
-	if (ctx->is_prober && !ctx->probe_done && (nb_done==count)) {
+	if (ctx->is_prober && !ctx->probe_done && (nb_done==count) && !ctx->all) {
 		for (i=0; i<count; i++) {
 			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 			GF_FilterEvent evt;
@@ -377,8 +404,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
 		assert(pctx->src_pid == pid);
-		if (!ctx->is_prober)
-			inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_FALSE, is_remove);
+		if (!ctx->is_prober) pctx->dump_pid = 1;
 		return GF_OK;
 	}
 	GF_SAFEALLOC(pctx, PidCtx);
@@ -392,32 +418,36 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_list_add(ctx->src_pids, pctx);
 	pctx->idx = gf_list_count(ctx->src_pids);
 
-	gf_filter_pid_set_framing_mode(pid, (ctx->mode==INSPECT_MODE_AU) ? GF_TRUE : GF_FALSE);
+	gf_filter_pid_set_framing_mode(pid, (ctx->mode==INSPECT_MODE_PCK) ? GF_TRUE : GF_FALSE);
 
 	if (!ctx->is_prober) {
-		inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_TRUE, GF_FALSE);
-
-		if (!ctx->hdr_done) {
-			ctx->hdr_done=GF_TRUE;
-			if (ctx->hdr && ctx->fmt)
-				inspect_dump_packet_fmt(ctx, pctx->tmp, NULL, 0, 0);
-		}
+		pctx->dump_pid = 0;
 	}
 
 	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 	gf_filter_pid_send_event(pid, &evt);
 	if (ctx->is_prober || ctx->pck || ctx->fmt) {
+		ctx->dump_pck = GF_TRUE;
 	} else {
-		gf_filter_pid_set_discard(pid, GF_TRUE);
+		ctx->dump_pck = GF_FALSE;
 	}
 	return GF_OK;
 }
+
+static const GF_FilterCapability InspecterDemuxedCaps[] =
+{
+	//accept any stream but files, framed
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	{0},
+};
 
 static const GF_FilterCapability InspecterReframeCaps[] =
 {
 	//accept any stream but files, framed
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
 };
 
@@ -441,8 +471,15 @@ GF_Err inspect_initialize(GF_Filter *filter)
 			return GF_IO_ERR;
 		}
 	}
-	if (ctx->mode != INSPECT_MODE_RAW) {
+	switch (ctx->mode) {
+	case INSPECT_MODE_RAW:
+		break;
+	case INSPECT_MODE_REFRAME:
 		gf_filter_override_caps(filter, InspecterReframeCaps,  sizeof(InspecterReframeCaps)/sizeof(GF_FilterCapability) );
+		break;
+	default:
+		gf_filter_override_caps(filter, InspecterDemuxedCaps,  sizeof(InspecterDemuxedCaps)/sizeof(GF_FilterCapability) );
+		break;
 	}
 	return GF_OK;
 }
@@ -454,13 +491,14 @@ GF_Err inspect_initialize(GF_Filter *filter)
 static const GF_FilterArgs InspectArgs[] =
 {
 	{ OFFS(log), "Sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
-	{ OFFS(mode), "Dump mode: au dumps full frame, blk dumps packets before AU reconstruction, raw dumps source packets without demuxing", GF_PROP_UINT, "au", "au|blk|raw", 0},
+	{ OFFS(mode), "Dump mode:\n\tpck: dumps full packet\n\tblk: dumps packets before reconstruction\n\tframe: force reframer\n\traw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pck), "Dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(props), "Dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dump_data), "Enables full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fmt), "sets packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hdr), "prints a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(all), "analyses for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
