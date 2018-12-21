@@ -92,7 +92,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
 	if (evt->type==GF_EVENT_QUIT) {
 		GF_FilterSession *fsess = (GF_FilterSession *)ptr;
-		fsess->run_status = GF_EOS;
+		gf_fs_abort(fsess);
 	}
 	return 0;
 }
@@ -1398,6 +1398,9 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
 			fprintf(stderr, "\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent);
 		}
+		if (f->nb_errors) {
+			fprintf(stderr, "\t\t%d errors while processing\n", f->nb_errors);
+		}
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
@@ -1954,6 +1957,7 @@ static void gf_fs_user_task(GF_FSTask *task)
 	if (!task->requeue_request || utask->fsess->in_final_flush) {
 		gf_free(utask);
 		task->udta = NULL;
+		task->requeue_request = GF_FALSE;
 	} else {
 		task->schedule_next_time = gf_sys_clock_high_res() + 1000*reschedule_ms;
 	}
