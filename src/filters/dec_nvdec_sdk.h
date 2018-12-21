@@ -20,6 +20,14 @@
 extern "C" {
 #endif
 
+//needed for dec_nvdec_sdk.h which uses GL prototypes
+#ifndef GPAC_DISABLE_3D
+#include "../compositor/gl_inc.h"
+#else
+typedef u32 GLuint;
+typedef u32 GLenum;
+#endif
+
 #ifndef __CUDA_API_VERSION
 #define __CUDA_API_VERSION 4000
 #endif
@@ -1727,7 +1735,7 @@ typedef CUresult CUDAAPI tcuWGLGetDevice(CUdevice *pDevice, HGPUNV hGpu);
 /**
  * CUDA devices corresponding to an OpenGL device
  */
-typedef enum CUGLDeviceList_enum {
+typedef enum {
     CU_GL_DEVICE_LIST_ALL            = 0x01, /**< The CUDA devices for all GPUs used by the current OpenGL context */
     CU_GL_DEVICE_LIST_CURRENT_FRAME  = 0x02, /**< The CUDA devices for the GPUs used by the current OpenGL context in its currently rendering frame */
     CU_GL_DEVICE_LIST_NEXT_FRAME     = 0x03, /**< The CUDA devices for the GPUs to be used by the current OpenGL context in the next frame */
