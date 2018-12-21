@@ -688,17 +688,31 @@ static void adts_dmx_finalize(GF_Filter *filter)
 
 static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	u32 nb_frames=0;
+	u32 nb_frames=0, next_pos=0, max_consecutive_frames=0;
+	ADTSHeader prev_hdr;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	memset(&prev_hdr, 0, sizeof(ADTSHeader));
 	while (gf_bs_available(bs)) {
 		ADTSHeader hdr;
+		u32 pos;
 		if (!adts_dmx_sync_frame_bs(bs, &hdr)) break;
 		if ((hdr.hdr_size!=7) && (hdr.hdr_size!=9)) continue;
 		if (!hdr.nb_ch) continue;
-		nb_frames++;
+		pos = (u32) gf_bs_get_position(bs);
+		if ((next_pos + hdr.hdr_size == pos) && (hdr.sr_idx==prev_hdr.sr_idx) && (hdr.nb_ch==prev_hdr.nb_ch) ) {
+			nb_frames++;
+			if (max_consecutive_frames<nb_frames) max_consecutive_frames = nb_frames;
+			if (max_consecutive_frames>5)
+				break;
+		} else {
+			nb_frames=1;
+		}
+		prev_hdr = hdr;
+		gf_bs_skip_bytes(bs, hdr.frame_size);
+		next_pos = (u32) gf_bs_get_position(bs);
 	}
 	gf_bs_del(bs);
-	if (nb_frames>=2) {
+	if (max_consecutive_frames>=2) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/aac";
 	}
