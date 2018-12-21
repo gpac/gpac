@@ -2829,9 +2829,9 @@ typedef struct _gf_filter_hw_frame
 	*/
 	GF_Err (*get_gl_texture)(struct _gf_filter_hw_frame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix_unexposed * texcoordmatrix);
 
-	/*! flag set to true if a hardware reset is pending after the consumption of this frame. This is used to force frame droping
-	and unblock the filter chain.*/
-	Bool hardware_reset_pending;
+	/*! flag set to true if a filter reset is pending after the consumption of this frame.
+	Consumers of such a packet shall realease the packet as soon as possible, since it blocks the emiting filter.*/
+	Bool reset_pending;
 
 	/*! private space for the filter*/
 	void *user_data;

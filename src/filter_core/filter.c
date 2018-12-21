@@ -1356,6 +1356,36 @@ static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
 }
 #endif
 
+static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e)
+{
+	if (e) {
+		u64 diff;
+		filter->session->last_process_error = e;
+
+		filter->nb_errors ++;
+		if (!filter->nb_consecutive_errors) filter->time_at_first_error = gf_sys_clock_high_res();
+
+		filter->nb_consecutive_errors ++;
+		if (filter->nb_pck_io) filter->nb_consecutive_errors = 0;
+		//give it at most one second
+		diff = gf_sys_clock_high_res() - filter->time_at_first_error;
+		if (diff >= 1000000) {
+			u32 i;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s in error / not responding properly: %d consecutive errors in "LLU" us with no packet discarded or sent\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors, diff));
+			for (i=0; i<filter->num_input_pids; i++) {
+				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+				gf_filter_pid_set_discard((GF_FilterPid *)pidi, GF_TRUE);
+			}
+			for (i=0; i<filter->num_output_pids; i++) {
+				GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+				gf_filter_pid_set_eos(pid);
+			}
+		}
+	} else {
+		filter->nb_consecutive_errors = 0;
+		filter->nb_pck_io = 0;
+	}
+}
 
 static void gf_filter_process_task(GF_FSTask *task)
 {
@@ -1440,6 +1470,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 	FSESS_CHECK_THREAD(filter)
 
+	filter->nb_pck_io = 0;
+
 	if (task->filter->nb_caps_renegociate) {
 		gf_filter_renegociate_output(task->filter);
 	}
@@ -1475,8 +1507,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 		gf_mx_v(filter->tasks_mx);
 		return;
 	}
-	if (e) filter->session->last_process_error = e;
-	
+	check_filter_error(filter, e);
+
 	//source filters, flush data if enough space available.
 	if ( (!filter->num_output_pids || (filter->would_block + filter->num_out_pids_not_connected < filter->num_output_pids) ) && !filter->input_pids && (e!=GF_EOS)) {
 		if (filter->schedule_next_time)
@@ -1559,7 +1591,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 		gf_mx_v(filter->tasks_mx);
 		return;
 	}
-	if (e) filter->session->last_process_error = e;
+	check_filter_error(filter, e);
 }
 
 GF_EXPORT
