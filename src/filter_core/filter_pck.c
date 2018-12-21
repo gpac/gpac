@@ -495,6 +495,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	if (pid->filter->eos_probe_state)
 		pid->filter->eos_probe_state = 2;
 
+	pid->filter->nb_pck_io++;
+
 	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
 	//send from filter, update flags

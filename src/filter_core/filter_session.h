@@ -513,6 +513,8 @@ struct __gf_filter
 	u64 nb_pck_sent;
 	//number of hardware frames packets sent by this filter
 	u64 nb_hw_pck_sent;
+	//number of processing errors in the lifetime of the filter
+	u32 nb_errors;
 
 	//number of bytes sent by this filter
 	u64 nb_bytes_sent;
@@ -520,6 +522,7 @@ struct __gf_filter
 	u64 time_process;
 
 #ifdef GPAC_MEMORY_TRACKING
+	//various stats in mem tracking mode, mostly used to detect heavy alloc/free usage by the filter
 	u64 stats_mem_allocated;
 	u32 stats_nb_alloc, stats_nb_realloc, stats_nb_calloc, stats_nb_free, nb_alloc_pck, nb_realloc_pck;
 	u32 nb_process_since_reset, nb_consecutive_process;
@@ -546,15 +549,20 @@ struct __gf_filter
 	//one of the output PID needs reconfiguration
 	volatile u32 nb_caps_renegociate;
 
+	//number of process tasks queued. There is only one "process" task allocated for the filter, but it is automatically reposted based on this value
 	volatile u32 process_task_queued;
 
+	//time in system clock at which the process should be called, used for real-time regulation of some filters
 	u64 schedule_next_time;
 
+	//clock (PCR) dispatch info
 	u64 next_clock_dispatch;
 	u32 next_clock_dispatch_timescale;
 	GF_FilterClockType next_clock_dispatch_type;
 
+	//capability negotiation for the input pid
 	GF_PropertyMap *caps_negociate;
+	//set to true of this filter was instantiated to resolve a capability negotiation between two filters
 	Bool is_pid_adaptation_filter;
 	/*destination pid instance we are swapping*/
 	GF_FilterPidInst *swap_pidinst_dst;
@@ -562,25 +570,40 @@ struct __gf_filter
 	GF_FilterPidInst *swap_pidinst_src;
 	Bool swap_needs_init;
 
+	//overloaded caps of the filter
 	const GF_FilterCapability *forced_caps;
 	u32 nb_forced_caps;
 	//valid when a pid inst is waiting for a reconnection, NULL otherwise
 	GF_List *detached_pid_inst;
 
+	//index of the cap bundle input for adaptation filters
 	s32 cap_idx_at_resolution;
 
+	//set to signal output pids should be reconfigured
 	Bool reconfigure_outputs;
-
+	//when set, indicates the filter uses PID property overwrite in its arguments, needed to rewrite the props at pid init time
 	Bool user_pid_props;
+
+	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
 	u32 encoder_stream_type;
 
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif
 
+	//signals tha pid info has changed, to notify the filter chain
 	Bool pid_info_changed;
+
 	//set to 1 when one or more input pid to the filter is on end of state, set to 2 if the filter dispatch a packet while in this state
 	u32 eos_probe_state;
+
+	//error checking
+	//number of packet release or created during a process() call
+	u32 nb_pck_io;
+	//number of consecutive errors during process()
+	u32 nb_consecutive_errors;
+	//system clock of first error
+	u64 time_at_first_error;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
