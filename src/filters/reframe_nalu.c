@@ -822,7 +822,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (first && ctx->autofps && sps->has_timing_info
+			if (!ctx->timescale && first && ctx->autofps && sps->has_timing_info
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->time_scale <= 1000*sps->num_units_in_tick)
 			) {
@@ -962,9 +962,10 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 					else
 						DeltaTfiDivisorIdx = (ctx->avc_state->sei.pic_timing.pic_struct+1) / 2;
 				}
-				ctx->fps.num = 2 * sps->vui.time_scale;
-				ctx->fps.den =  2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
-
+				if (!ctx->timescale) {
+					ctx->fps.num = 2 * sps->vui.time_scale;
+					ctx->fps.den =  2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
+				}
 				if (! sps->vui.fixed_frame_rate_flag)
 					GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent\n", ctx->log_name));
 			}
@@ -1827,9 +1828,12 @@ GF_Err naludmx_process(GF_Filter *filter)
 			else if (ctx->prev_dts != ts) {
 				u64 diff = ts;
 				diff -= ctx->prev_dts;
-				if (!ctx->fps.den) ctx->fps.den = (u32) diff;
+				if (!ctx->fps.den)
+					ctx->fps.den = (u32) diff;
 				else if (ctx->fps.den > diff)
 					ctx->fps.den = (u32) diff;
+
+				ctx->prev_dts = ts;
 			}
 		}
 		ctx->pck_duration = gf_filter_pck_get_duration(pck);
