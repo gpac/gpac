@@ -351,8 +351,8 @@ static SAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVis
 						case GF_AVC_NALU_PIC_PARAM:
 						case GF_AVC_NALU_SEQ_PARAM_EXT:
 						case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-		*/			case GF_AVC_NALU_IDR_SLICE:
-				gf_bs_del(mdia->nalu_parser);
+		*/
+			case GF_AVC_NALU_IDR_SLICE:
 				return SAP_TYPE_1;
 			case GF_AVC_NALU_ACCESS_UNIT:
 			case GF_AVC_NALU_FILLER_DATA:
