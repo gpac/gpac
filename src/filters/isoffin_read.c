@@ -137,14 +137,22 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	return GF_OK;
 }
 
+static void isoffin_delete_channel(ISOMChannel *ch)
+{
+	isor_reset_reader(ch);
+	if (ch->nal_bs) gf_bs_del(ch->nal_bs);
+	if (ch->avcc) gf_odf_avc_cfg_del(ch->avcc);
+	if (ch->hvcc) gf_odf_hevc_cfg_del(ch->hvcc);
+	gf_free(ch);
+}
+
 static void isoffin_disconnect(ISOMReader *read)
 {
 	read->disconnected = GF_TRUE;
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
-		isor_reset_reader(ch);
-		gf_free(ch);
+		isoffin_delete_channel(ch);
 	}
 
 	if (read->mov) gf_isom_close(read->mov);
@@ -385,8 +393,7 @@ static void isoffin_finalize(GF_Filter *filter)
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
-		isor_reset_reader(ch);
-		gf_free(ch);
+		isoffin_delete_channel(ch);
 	}
 	gf_list_del(read->channels);
 
@@ -896,9 +903,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				u32 sample_dur;
 				u8 dep_flags;
 				GF_FilterPacket *pck;
+
+				if (ch->needs_pid_reconfig) {
+					isor_update_channel_config(ch);
+					ch->needs_pid_reconfig = GF_FALSE;
+				}
+
+				//strip param sets from payload, trigger reconfig if needed
+				isor_reader_check_config(ch);
+
 				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
 				assert(pck);
-				
+
 				memcpy(data, ch->sample->data, ch->sample->dataLength);
 
 				gf_filter_pck_set_dts(pck, ch->dts);
