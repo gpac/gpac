@@ -5252,7 +5252,7 @@ restart_import:
 
 		case GF_AVC_NALU_SEQ_PARAM_EXT:
 			idx = gf_media_avc_read_sps_ext(buffer, nal_size);
-			if (idx<0) {
+			if (idx<0 || idx>31) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Sequence Param Extension");
 				goto exit;
 			}
