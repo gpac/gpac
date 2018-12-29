@@ -3034,7 +3034,7 @@ typedef struct {
 	struct {
 		u16 x;
 		u16 y;
-	} display_primaries[4];
+	} display_primaries[3];
 	u16 white_point_x;
 	u16 white_point_y;
 	u32 max_display_mastering_luminance;
