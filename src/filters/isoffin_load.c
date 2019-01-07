@@ -93,7 +93,6 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	u32 mtype, m_subtype;
 	GF_GenericSampleDescription *udesc = NULL;
 	GF_Err e;
-	u32 j;
 	Bool first_config = GF_FALSE;
 
 
@@ -385,11 +384,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_BRANDS, &brands);
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MBRAND, &PROP_UINT(major_brand) );
 
-		max_size = 0;
-		for (j=0; j<sample_count; j++) {
-			u32 s = gf_isom_get_sample_size(read->mov, ch->track, track);
-			if (s > max_size) max_size = s;
-		}
+		max_size = gf_isom_get_max_sample_size(read->mov, ch->track);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
 
 		u32 media_pl=0;
