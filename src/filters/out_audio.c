@@ -61,6 +61,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	u32 sr, afmt, old_afmt, nb_ch, ch_cfg;
 	GF_Err e = GF_OK;
 	sr = ctx->sr;
+
 	nb_ch = ctx->nb_ch;
 	afmt = old_afmt = ctx->afmt;
 	ch_cfg = ctx->ch_cfg;
@@ -73,6 +74,12 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		if (nb_ch != 2) nb_ch = 2;
 	}
 	if (ctx->speed == FIX_ONE) ctx->speed_set = GF_TRUE;
+
+	if (ctx->sr * ctx->nb_ch * old_afmt == 0) {
+		ctx->needs_recfg = GF_FALSE;
+		ctx->wait_recfg = GF_FALSE;
+		return;
+	}
 
 	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt) || !ctx->speed_set) {
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
@@ -266,6 +273,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) aout_set_priority(ctx, p->value.uint);
 
 	ctx->needs_recfg = GF_TRUE;
+	
 	//not threaded, request a task to restart audio (cannot do it during the audio callback)
 	if (!ctx->th) gf_filter_post_process_task(filter);
 	return GF_OK;
