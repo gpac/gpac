@@ -199,6 +199,7 @@ typedef struct
 	Bool major_brand_set;
 	Bool def_brand_patched;
 
+	Bool force_play;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -473,7 +474,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (is_true_pid) {
 			gf_filter_pid_set_udta(pid, tkw);
 
-			if (!ctx->owns_mov) {
+			if (!ctx->owns_mov || ctx->force_play) {
 				GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 				gf_filter_pid_send_event(pid, &evt);
 			}
@@ -961,7 +962,32 @@ sample_entry_setup:
 	if (dsi)
 		meta_config = dsi->value.data.ptr;
 
-	if (!needs_sample_entry) return GF_OK;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (p) width = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	if (p) height = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+	if (p) fps = p->value.frac;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
+	if (p) sar = p->value.frac;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ZORDER);
+	if (p) z_order = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+	if (p) sr = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+	if (p) nb_chan = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
+	if (p) lang_name = p->value.string;
+
+	if (is_text_subs && !width && !height) {
+		mp4_mux_get_video_size(ctx, &width, &height);
+	}
+
+
+	if (!needs_sample_entry)
+		goto sample_entry_done;
 
 	//we are fragmented, init movie done, we cannot update the sample description
 	if (ctx->init_movie_done) {
@@ -1015,29 +1041,6 @@ sample_entry_setup:
 		return GF_NOT_SUPPORTED;
 	}
 
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-	if (p) width = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-	if (p) height = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-	if (p) fps = p->value.frac;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-	if (p) sar = p->value.frac;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ZORDER);
-	if (p) z_order = p->value.uint;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
-	if (p) sr = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-	if (p) nb_chan = p->value.uint;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
-	if (p) lang_name = p->value.string;
-
-	if (is_text_subs && !width && !height) {
-		mp4_mux_get_video_size(ctx, &width, &height);
-	}
 
 	//little optim here: if no samples were added on the stream descritpion remove it
 	if (!tkw->samples_in_stsd && tkw->stsd_idx) {
@@ -1499,6 +1502,8 @@ multipid_stsd_setup:
 		gf_free(gpp_cfg);
 	}
 
+
+sample_entry_done:
 	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->ase);
 	else if (width) {
 		gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
@@ -1760,6 +1765,11 @@ static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->file && ctx->owns_mov) {
 			mp4_mux_done(filter, ctx);
 		}
+	}
+	if (evt->base.on_pid && (evt->base.type==GF_FEVT_PLAY) ) {
+		//by default don't cancel event - to rework once we have downloading in place
+		ctx->force_play = GF_TRUE;
+		return GF_FALSE;
 	}
 	//by default don't cancel event - to rework once we have downloading in place
 	return GF_FALSE;
