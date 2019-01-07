@@ -49,7 +49,7 @@
 #else
 
 #define safe_int_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
-#define safe_int_dec(__v) { assert(*(__v) ); __sync_sub_and_fetch((int *) (__v), 1); }
+#define safe_int_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
 
 #define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
 #define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)

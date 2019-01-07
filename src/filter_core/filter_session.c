@@ -1901,6 +1901,7 @@ void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 #else
+	assert(fsess->pid_connect_tasks_pending);
 	safe_int_dec(&fsess->pid_connect_tasks_pending);
 #endif
 }
