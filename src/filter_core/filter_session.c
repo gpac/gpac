@@ -92,7 +92,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
 	if (evt->type==GF_EVENT_QUIT) {
 		GF_FilterSession *fsess = (GF_FilterSession *)ptr;
-		gf_fs_abort(fsess);
+		gf_fs_abort(fsess, GF_TRUE);
 	}
 	return 0;
 }
@@ -1254,11 +1254,17 @@ void gf_fs_run_step(GF_FilterSession *fsess)
 }
 
 GF_EXPORT
-GF_Err gf_fs_abort(GF_FilterSession *fsess)
+GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 {
 	u32 i, count;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user, stoping sources\n"));
 	if (!fsess) return GF_BAD_PARAM;
+
+	if (!do_flush) {
+		fsess->in_final_flush = GF_TRUE;
+		fsess->run_status = GF_EOS;
+		return GF_OK;
+	}
 
 	gf_mx_p(fsess->filters_mx);
 	count = gf_list_count(fsess->filters);

@@ -384,6 +384,16 @@ static void gpac_usage(GF_FilterArgMode argmode)
 	}
 }
 
+static void gpac_fsess_task_help()
+{
+	fprintf(stderr, "Available runtime options/keys:\n"
+		"q: flushes all streams and exit\n"
+		"x: exit with no flush (may break output files)\n"
+		"s: prints statistics\n"
+		"g: prints filter graph\n"
+		"h: prints this screen\n"
+	);
+}
 
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
@@ -391,7 +401,11 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		char c = gf_prompt_get_char();
 		switch (c) {
 		case 'q':
-			gf_fs_abort(fsess);
+			gf_fs_abort(fsess, GF_TRUE);
+			nb_loops = 0;
+			return GF_FALSE;
+		case 'x':
+			gf_fs_abort(fsess, GF_FALSE);
 			nb_loops = 0;
 			return GF_FALSE;
 		case 's':
@@ -399,6 +413,9 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 			break;
 		case 'g':
 			gf_fs_print_connections(fsess);
+			break;
+		case 'h':
+			gpac_fsess_task_help();
 			break;
 		default:
 			break;
@@ -814,7 +831,7 @@ restart:
 		}
 		goto exit;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'q' to abort\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'h' for help\n"));
 
 	gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
 	e = gf_fs_run(session);
