@@ -834,8 +834,8 @@ exit:
 	gf_fs_del(session);
 	if (loaded_filters) gf_list_del(loaded_filters);
 
-	if (!e && (nb_loops>0) ) {
-		nb_loops--;
+	if (!e && nb_loops) {
+		if (nb_loops>0) nb_loops--;
 		goto restart;
 	}
 
