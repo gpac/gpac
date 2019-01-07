@@ -1661,7 +1661,6 @@ u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNum
 GF_EXPORT
 u32 gf_isom_get_max_sample_size(GF_ISOFile *the_file, u32 trackNumber)
 {
-	u32 size = 0;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
 
