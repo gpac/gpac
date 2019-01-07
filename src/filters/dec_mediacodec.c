@@ -1113,7 +1113,7 @@ static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, char *frame_buffer, u64 cts)
 	}
 
 	if (ctx->frame_size_changed) {
-		mc_frame->hwframe.hardware_reset_pending = GF_TRUE;
+		mc_frame->hwframe.reset_pending = GF_TRUE;
 	}
 	ctx->decoded_frames_pending++;
 
