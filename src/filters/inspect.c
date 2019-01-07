@@ -421,7 +421,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_framing_mode(pid, (ctx->mode==INSPECT_MODE_PCK) ? GF_TRUE : GF_FALSE);
 
 	if (!ctx->is_prober) {
-		pctx->dump_pid = 0;
+		pctx->dump_pid = 1;
 	}
 
 	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
