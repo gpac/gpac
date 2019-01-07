@@ -614,8 +614,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		bytes_to_drop = ctx->hdr.frame_size;
-		if (ctx->timescale && (prev_pck_size <= bytes_to_drop)) {
+		if (ctx->timescale && (prev_pck_size <= bytes_to_drop) &&  (cts != GF_FILTER_NO_TS) ) {
 			ctx->cts = cts;
+			cts = GF_FILTER_NO_TS;
 		}
 
 		if (!ctx->in_seek) {
