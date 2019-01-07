@@ -5904,6 +5904,8 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs)
 			if (! ptr->sizes) return GF_OUT_OF_MEM;
 			for (i = 0; i < ptr->sampleCount; i++) {
 				ptr->sizes[i] = gf_bs_read_u32(bs);
+				if (ptr->max_size < ptr->sizes[i])
+					ptr->max_size = ptr->sizes[i];
 			}
 		}
 	} else {
@@ -5942,6 +5944,8 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs)
 				i += 1;
 				break;
 			}
+			if (ptr->max_size < ptr->sizes[i])
+				ptr->max_size = ptr->sizes[i];
 		}
 	}
 	return GF_OK;

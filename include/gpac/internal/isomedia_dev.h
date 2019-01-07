@@ -1381,6 +1381,7 @@ typedef struct
 	u32 sampleCount;
 	u32 alloc_size;
 	u32 *sizes;
+	u32 max_size;
 } GF_SampleSizeBox;
 
 typedef struct

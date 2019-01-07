@@ -786,6 +786,9 @@ u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 /*returns sample size in bytes*/
 u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
+/*returns max size of any sample in track*/
+u32 gf_isom_get_max_sample_size(GF_ISOFile *the_file, u32 trackNumber);
+
 /*returns sync flag of sample*/
 u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
