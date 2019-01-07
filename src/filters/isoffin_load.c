@@ -520,7 +520,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			d2 = gf_isom_get_sample_duration(read->mov, ch->track, 2);
 			if (d1 && d2 && (d1==d2)) {
 				d1 *= sr;
-				d2 /= ch->time_scale;
+				d1 /= ch->time_scale;
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(d1));
 			}
 		}
