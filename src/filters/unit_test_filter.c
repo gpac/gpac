@@ -58,7 +58,6 @@ static void test_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 {
 	PIDCtx *stack = (PIDCtx *) gf_filter_pid_get_udta(pid);
 	stack->pck_del++;
-	fprintf(stderr, "pck del %d sent %d del cts "LLU"\n", stack->nb_packets, stack->pck_del, gf_filter_pck_get_cts(pck) );
 	assert(stack->nb_packets >= stack->pck_del);
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("%s: Packet deleted - %d out there (%d sent %d destroyed)\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del, stack->nb_packets, stack->pck_del));
 }
