@@ -367,9 +367,10 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *session, Bool (*task_execute) (GF_
 
 /*! Aborts the session. This can be called within a callback task to stop the session. Do NOT use \ref gf_fs_stop from within a user task callback, this will deadlock the session
 \param session filter session
+\param do_flush if set to true, sources will be forced into end of stream and all emitted packets will be processed. Otherwise everything is discarded, potentially breaking output files
 \return the error code if any
 */
-GF_Err gf_fs_abort(GF_FilterSession *session);
+GF_Err gf_fs_abort(GF_FilterSession *session, Bool do_flush);
 /*! Checks if the session is processing its last task. This can be called within a callback task to check if this is the last task, in order to avoid rescheduling the task
 \param session filter session
 \return GF_TRUE if no more task, GF_FALSE otherwise
