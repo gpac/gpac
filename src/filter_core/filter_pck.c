@@ -270,8 +270,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		GF_PropertyMap *props = pck->pid_props;
 		pck->pid_props = NULL;
 		assert(props->reference_count);
-		safe_int_dec(&props->reference_count);
-		if (props->reference_count == 0) {
+		if (safe_int_dec(&props->reference_count) == 0) {
 			if (!is_filter_destroyed) gf_list_del_item(pck->pid->properties, props);
 			gf_props_del(props);
 		}
@@ -281,12 +280,12 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		GF_PropertyMap *props = pck->props;
 		pck->props=NULL;
 		assert(props->reference_count);
-		safe_int_dec(&props->reference_count);
-		if (props->reference_count == 0) {
+		if (safe_int_dec(&props->reference_count) == 0) {
 			gf_props_del(props);
 		}
 	}
 	if (pck->filter_owns_mem && !(pck->info.flags & GF_PCK_CMD_MASK) ) {
+		assert(pck->pid);
 		assert(pck->pid->nb_shared_packets_out);
 		safe_int_dec(&pck->pid->nb_shared_packets_out);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pck->pid->filter->name, pck->pid->name, pck->pid->nb_shared_packets_out));
@@ -300,8 +299,8 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		safe_int_dec(&pck->reference->pid->nb_shared_packets_out);
 		
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pck->reference->pid->filter->name, pck->reference->pid->name, pck->reference->pid->nb_shared_packets_out));
-		safe_int_dec(&pck->reference->reference_count);
-		if (pck->reference->reference_count == 0) {
+		assert(pck->reference->reference_count);
+		if (safe_int_dec(&pck->reference->reference_count) == 0) {
 			gf_filter_packet_destroy(pck->reference);
 		}
 		pck->reference = NULL;
@@ -423,8 +422,8 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 		}
 		//unref pck
-		safe_int_dec(&pck->reference_count);
-		if (pck->reference_count==0) {
+		assert(pck->reference_count);
+		if (safe_int_dec(&pck->reference_count) == 0) {
 			gf_filter_packet_destroy(pck);
 		}
 
@@ -479,8 +478,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	if (pid->discard_input_packets) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s reset pending, discarding input packet\n", pid->filter->name, pid->name));
 		safe_int_inc(&pck->reference_count);
-		safe_int_dec(&pck->reference_count);
-		if (pck->reference_count == 0) {
+		assert(pck->reference_count);
+		if (safe_int_dec(&pck->reference_count) == 0) {
 			gf_filter_packet_destroy(pck);
 		}
 		return GF_OK;
@@ -673,8 +672,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			if ((pck->info.flags & GF_PCKF_PROPS_CHANGED) && (dst->props != pck->pid_props)) {
 				//unassign old property list and set the new one
 				if (dst->props) {
-					safe_int_dec(& dst->props->reference_count);
-					if (dst->props->reference_count == 0) {
+					assert(dst->props->reference_count);
+					if (safe_int_dec(& dst->props->reference_count) == 0) {
 						gf_list_del_item(dst->pid->properties, dst->props);
 						gf_props_del(dst->props);
 					}
@@ -798,7 +797,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					if (inst->pck->pid_props) {
 						safe_int_inc(&inst->pck->pid_props->reference_count);
 					}
-
+					
+					assert(pck->reference_count);
 					safe_int_dec(&pck->reference_count);
 					safe_int_inc(&inst->pck->reference_count);
 				}
@@ -837,12 +837,14 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		}
 		if (post_task) {
 			u32 nb_pck;
-			//do stats after post_process, since we may process and drop the packet during this call in direct scheduling mode
+			//do stats after post_process, since we may process and drop the packet during this call in direct scheduling or multithread modes
 			gf_filter_post_process_task(dst->filter);
 
+			//we have less packets in destination pid instance than in pid, the packet has ben consummed, update pid nb packet
 			nb_pck = gf_fq_count(dst->packets);
-			if (pid->nb_buffer_unit < nb_pck) pid->nb_buffer_unit = nb_pck;
-			if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = (s64) dst->buffer_duration;
+			if (pid->nb_buffer_unit > nb_pck) pid->nb_buffer_unit = nb_pck;
+			//we have less buffer in destination pid instance than in pid, the packet has ben consummed, update pid duration
+			if ((s64) pid->buffer_duration > dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
 		}
 	}
 
@@ -857,8 +859,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	gf_filter_pid_would_block(pid);
 
 	//unprotect the packet now that it is safely dispatched
-	safe_int_dec(&pck->reference_count);
-	if (pck->reference_count == 0) {
+	assert(pck->reference_count);
+	if (safe_int_dec(&pck->reference_count) == 0) {
 		if (!nb_dispatch) {
 			if (nb_discard) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("All PID destinations on filter %s are in discard mode - discarding\n", pid->filter->name));
@@ -875,6 +877,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 GF_EXPORT
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
+	assert(pck->pid);
 	return gf_filter_pck_send_internal(pck, GF_TRUE);
 }
 
@@ -932,8 +935,9 @@ void gf_filter_pck_unref(GF_FilterPacket *pck)
 {
 	assert(pck);
 	pck=pck->pck;
-	safe_int_dec(&pck->reference_count);
-	if (pck->reference_count == 0) {
+
+	assert(pck->reference_count);
+	if (safe_int_dec(&pck->reference_count) == 0) {
 		gf_filter_packet_destroy(pck);
 	}
 }

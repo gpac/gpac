@@ -971,8 +971,8 @@ void gf_filter_check_output_reconfig(GF_Filter *filter)
 				assert(pidi->props);
 				assert (pidi->props != pidi->reconfig_pid_props);
 				//unassign old property list and set the new one
-				safe_int_dec(& pidi->props->reference_count);
-				if (pidi->props->reference_count == 0) {
+				assert(pidi->props->reference_count);
+				if (safe_int_dec(& pidi->props->reference_count) == 0) {
 					gf_list_del_item(pidi->pid->properties, pidi->props);
 					gf_props_del(pidi->props);
 				}
@@ -1019,6 +1019,7 @@ void gf_filter_relink_task(GF_FSTask *task)
 		return;
 	}
 	//good do go, unprotect pid
+	assert(cur_pidinst->detach_pending);
 	safe_int_dec(&cur_pidinst->detach_pending);
 	task->filter->removed = GF_FALSE;
 
@@ -1183,8 +1184,8 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 		gf_list_del(pid->adapters_blacklist);
 		src_pid->adapters_blacklist = NULL;
 	}
-	safe_int_dec(&pid->caps_negociate->reference_count);
-	if (pid->caps_negociate->reference_count==0) {
+	assert(pid->caps_negociate->reference_count);
+	if (safe_int_dec(&pid->caps_negociate->reference_count) == 0) {
 		gf_props_del(pid->caps_negociate);
 	}
 	pid->caps_negociate = NULL;
@@ -1268,8 +1269,8 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 					gf_filter_renegociate_output_dst(pid, filter, filter_dst, NULL, NULL);
 				}
 			}
-			safe_int_dec(&pid->caps_negociate->reference_count);
-			if (pid->caps_negociate->reference_count==0) {
+			assert(pid->caps_negociate->reference_count);
+			if (safe_int_dec(&pid->caps_negociate->reference_count) == 0) {
 				gf_props_del(pid->caps_negociate);
 			}
 			pid->caps_negociate = NULL;
@@ -1288,26 +1289,27 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	//TODO: find a way to bypass this mutex ?
 	gf_mx_p(filter->tasks_mx);
 
-	safe_int_dec(&filter->process_task_queued);
-	//we have some more process() requests queued, requeu
-	if (filter->process_task_queued) {
+	assert(filter->process_task_queued);
+	if (safe_int_dec(&filter->process_task_queued) == 0) {
+		//we have pending packets, auto-post and requeue
+		if (filter->pending_packets) {
+			safe_int_inc(&filter->process_task_queued);
+			task->requeue_request = GF_TRUE;
+		}
+		//special case here: no more pending packets, filter has detected eos on one of its input but is still generating packet,
+		//we reschedule (typcally flush of decoder)
+		else if (filter->eos_probe_state == 2) {
+			safe_int_inc(&filter->process_task_queued);
+			task->requeue_request = GF_TRUE;
+			filter->eos_probe_state = 0;
+		}
+		//we are done for now
+		else {
+			task->requeue_request = GF_FALSE;
+		}
+	} else {
+		//we have some more process() requests queued, requeue
 		task->requeue_request = GF_TRUE;
-	}
-	//we have pending packets, auto-post and requeue
-	else if (filter->pending_packets) {
-		safe_int_inc(&filter->process_task_queued);
-		task->requeue_request = GF_TRUE;
-	}
-	//special case here: no more pending packets, filter has detected eos on one of its input but is still generating packet, 
-	//we reschedule (typcally flush of decoder) 
-	else if (filter->eos_probe_state == 2) {
-		safe_int_inc(&filter->process_task_queued);
-		task->requeue_request = GF_TRUE;
-		filter->eos_probe_state = 0;
-	}
-	//we are done for now
-	else {
-		task->requeue_request = GF_FALSE;
 	}
 	gf_mx_v(filter->tasks_mx);
 }
