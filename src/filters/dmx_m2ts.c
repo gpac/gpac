@@ -160,7 +160,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	case GF_M2TS_VIDEO_MPEG2:
 	case GF_M2TS_VIDEO_DCII:
 		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_MPEG2_422;
+		codecid = GF_CODECID_MPEG2_MAIN;
 		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_MPEG4:
@@ -523,8 +523,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				for (j=0; j<nb_streams; j++) {
 					GF_M2TS_ES *es  =gf_list_get(prog->streams, j);
 					if (es->user) {
-						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
-						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
+						gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
+						gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
 					}
 				}
 			}
