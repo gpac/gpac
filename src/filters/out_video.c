@@ -350,6 +350,7 @@ typedef struct
 	GF_PropVec2i size;
 	GF_PropVec2i pos;
 	Double start;
+	GF_Fraction delay;
 
 	GF_Filter *filter;
 	GF_FilterPid *pid;
@@ -396,7 +397,7 @@ typedef struct
 	Bool force_release;
 	GF_FilterPacket *last_pck;
 
-	s32 delay;
+	s32 pid_delay;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -494,7 +495,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) ctx->sar = p->value.frac;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-	ctx->delay = p ? p->value.sint : 0;
+	ctx->pid_delay = p ? p->value.sint : 0;
 
 
 	if (!ctx->pid) {
@@ -1659,11 +1660,18 @@ static GF_Err vout_process(GF_Filter *filter)
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u64 clock_us, now = gf_sys_clock_high_res();
 		Double media_ts;
+		s64 delay;
 
-		if (ctx->delay>0) {
-			cts += ctx->delay;
-		} else if (cts < (u64) (-ctx->delay) ) {
+		delay = ctx->pid_delay;
+		if (ctx->delay.den)
+			delay += ctx->delay.num * (s32)ctx->timescale / (s32)ctx->delay.den;
+
+		if (delay>0) {
+			cts += delay;
+		} else if (cts < (u64) (-delay) ) {
 			cts = 0;
+		} else {
+			cts -= (u64) -delay;
 		}
 
 		//check if we have a clock hint from an audio output
@@ -1832,6 +1840,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(delay), "Sets delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "Hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
