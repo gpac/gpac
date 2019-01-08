@@ -130,7 +130,7 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked (filter has %d blocking pids)\n", pid->pid->filter->name, pid->pid->name, pid->pid->filter->would_block));
 
 		if (pid->filter->would_block + pid->filter->num_out_pids_not_connected < pid->filter->num_output_pids) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block, pid->filter->num_output_pids, pid->filter->process_task_queued));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block + pid->filter->num_out_pids_not_connected, pid->filter->num_output_pids, pid->filter->process_task_queued));
 
 			//post a process task
 			gf_filter_post_process_task(pid->filter);
@@ -3007,18 +3007,19 @@ restart:
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
 		}
-
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
-		
+
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
 		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 		}
-		filter->num_out_pids_not_connected ++;
 	}
+
+	filter->num_out_pids_not_connected ++;
+
 	assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
 	return;
@@ -3559,12 +3560,14 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		//- the new props are already set if filter_pid_get_property was queried before the first packet dispatch
 		if (pidinst->props) {
 			if (pidinst->props != pcki->pck->pid_props) {
-				//unassign old property list and set the new one
+				//detach old property map
+				gf_list_del_item(pidinst->pid->properties, pidinst->props);
+				//destroy if needed
 				assert(pidinst->props->reference_count);
 				if (safe_int_dec(& pidinst->props->reference_count) == 0) {
-					gf_list_del_item(pidinst->pid->properties, pidinst->props);
 					gf_props_del(pidinst->props);
 				}
+				//set new one
 				pidinst->props = pcki->pck->pid_props;
 				safe_int_inc( & pidinst->props->reference_count );
 			} else {
@@ -3923,6 +3926,7 @@ GF_EXPORT
 Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 {
 	Bool would_block=GF_FALSE;
+	Bool blockmode_broken=GF_FALSE;
 
 	if (PID_IS_INPUT(pid)) {
 		return GF_FALSE;
@@ -3937,9 +3941,23 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		if (pid->nb_buffer_unit * GF_FILTER_SPEED_SCALER >= pid->max_buffer_unit * pid->playback_speed_scaler) {
 			would_block = GF_TRUE;
 		}
-	} else if (pid->max_buffer_time && (pid->buffer_duration * GF_FILTER_SPEED_SCALER > pid->max_buffer_time * pid->playback_speed_scaler) ) {
-		would_block = GF_TRUE;
+		if ((pid->num_destinations==1) && !pid->filter->blockmode_broken && ( (pid->nb_buffer_unit * GF_FILTER_SPEED_SCALER > 100 * pid->max_buffer_unit * pid->playback_speed_scaler) ) ) {
+			blockmode_broken = GF_TRUE;
+		}
+	} else if (pid->max_buffer_time) {
+		if (pid->buffer_duration * GF_FILTER_SPEED_SCALER > pid->max_buffer_time * pid->playback_speed_scaler) {
+			would_block = GF_TRUE;
+		}
+		if ((pid->num_destinations==1) && !pid->filter->blockmode_broken && (pid->buffer_duration * GF_FILTER_SPEED_SCALER > 100 * pid->max_buffer_time * pid->playback_speed_scaler) ) {
+			blockmode_broken = GF_TRUE;
+		}
 	}
+	if (blockmode_broken) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s PID %s block mode broken: %u units "LLU" us vs %u max units "LLU" max buffer\n", pid->pid->filter->name, pid->pid->name, pid->nb_buffer_unit, pid->buffer_duration, pid->max_buffer_unit, pid->max_buffer_time));
+
+		pid->filter->blockmode_broken = GF_TRUE;
+	}
+
 	if (would_block && !pid->would_block) {
 		safe_int_inc(&pid->would_block);
 		safe_int_inc(&pid->filter->would_block);
