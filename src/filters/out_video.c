@@ -391,8 +391,12 @@ typedef struct
 	Bool is_yuv, in_fullscreen;
 	u32 nb_drawn;
 
+	GF_Fraction sar;
+
 	Bool force_release;
 	GF_FilterPacket *last_pck;
+
+	s32 delay;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -485,6 +489,14 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE_UV);
 	stride_uv = p ? p->value.uint : 0;
 
+	ctx->sar.num = ctx->sar.den = 1;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
+	if (p) ctx->sar = p->value.frac;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.sint : 0;
+
+
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
 		//set a minimum buffer (although we don't buffer)
@@ -507,6 +519,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	dw = w;
 	dh = h;
+	if (ctx->sar.den != ctx->sar.num) {
+		dw = dw * ctx->sar.num / ctx->sar.den;
+	}
 	if (ctx->size.x==0) ctx->size.x = w;
 	if (ctx->size.y==0) ctx->size.y = h;
 	if ((ctx->size.x>0) && (ctx->size.y>0)) {
@@ -517,6 +532,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->disp>=MODE_2D) {
 		dw = w;
 		dh = h;
+		if (ctx->sar.den != ctx->sar.num) {
+			dw = dw * ctx->sar.num / ctx->sar.den;
+		}
 	}
 
 	if ((dw != ctx->display_width) || (dh != ctx->display_height) ) {
@@ -1188,12 +1206,12 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+			ctx->dw = (Float) (ctx->display_height * ctx->width * ctx->sar.num / ctx->height / ctx->sar.den);
 			ctx->dh = (Float) ctx->display_height;
 			ctx->oh = (Float) 0;
 			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dh = (Float) (ctx->display_width * ctx->height * ctx->sar.den / ctx->width / ctx->sar.num);
 			ctx->dw = (Float) ctx->display_width;
 			ctx->ow = (Float) 0;
 			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
@@ -1537,12 +1555,12 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+			ctx->dw = (Float) (ctx->display_height * ctx->width * ctx->sar.num / ctx->height / ctx->sar.den);
 			ctx->dh = (Float) ctx->display_height;
 			ctx->oh = (Float) 0;
 			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dh = (Float) (ctx->display_width * ctx->height *ctx->sar.den / ctx->width / ctx->sar.num);
 			ctx->dw = (Float) ctx->display_width;
 			ctx->ow = (Float) 0;
 			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
@@ -1641,6 +1659,12 @@ static GF_Err vout_process(GF_Filter *filter)
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u64 clock_us, now = gf_sys_clock_high_res();
 		Double media_ts;
+
+		if (ctx->delay>0) {
+			cts += ctx->delay;
+		} else if (cts < (u64) (-ctx->delay) ) {
+			cts = 0;
+		}
 
 		//check if we have a clock hint from an audio output
 		gf_filter_get_clock_hint(filter, &clock_us, &media_ts);
