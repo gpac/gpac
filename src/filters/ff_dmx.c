@@ -361,8 +361,19 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 			if (cname)
 				gf_filter_pid_set_property_str(pid, "ffmpeg:codec", &PROP_STRING(cname ) );
 		} else if (codec->extradata_size) {
-			//expose as const data
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
+			Bool force_reframer = GF_FALSE;
+
+			//avc/hevc read by ffmpeg is still in annex B format
+			if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
+				force_reframer = GF_TRUE;
+			}
+			
+			if (force_reframer) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+			} else {
+				//expose as const data
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
+			}
 		}
 
 		if (codec->sample_rate)
