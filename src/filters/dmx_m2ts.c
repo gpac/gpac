@@ -322,7 +322,8 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
-		
+		if (! (es->flags & GF_M2TS_ES_IS_PES)) continue;
+
 		if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL ) continue;
 		if (es->depends_on_pid ) {
 			prog->is_scalable = GF_TRUE;
@@ -521,10 +522,10 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				u32 j, nb_streams;
 				nb_streams = gf_list_count(prog->streams);
 				for (j=0; j<nb_streams; j++) {
-					GF_M2TS_ES *es  =gf_list_get(prog->streams, j);
+					GF_M2TS_ES *es = gf_list_get(prog->streams, j);
 					if (es->user) {
-						gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
-						gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
+						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
+						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
 					}
 				}
 			}
