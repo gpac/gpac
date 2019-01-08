@@ -523,7 +523,8 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 {
 	assert(it->reference_count);
 	if (safe_int_dec(&it->reference_count) == 0 ) {
-		if (it->pname && it->name_alloc) gf_free(it->pname);
+		if (it->pname && it->name_alloc)
+			gf_free(it->pname);
 
 		if (it->prop.type==GF_PROP_STRING) {
 			gf_free(it->prop.value.string);

@@ -1386,7 +1386,6 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e)
 	} else {
 		filter->nb_consecutive_errors = 0;
 		filter->nb_pck_io = 0;
-		filter->session->last_process_error = GF_OK;
 	}
 }
 

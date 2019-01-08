@@ -943,7 +943,7 @@ const char *gf_filter_pid_get_source_filter_name(GF_FilterPid *pid)
 {
 	GF_Filter *filter  = pid->pid->filter;
 	while (filter && filter->num_input_pids) {
-		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, 0);
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, 0);
 		filter = pidi->pid->filter;
 	}
 	if (!filter) return NULL;
@@ -3158,6 +3158,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 	if (old_map) {
 		if (merge_props)
 			gf_props_merge_property(map, old_map, NULL, NULL);
+
 		assert(old_map->reference_count);
 		if (safe_int_dec(&old_map->reference_count) == 0) {
 			gf_list_del_item(pid->properties, old_map);
@@ -3560,11 +3561,11 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		//- the new props are already set if filter_pid_get_property was queried before the first packet dispatch
 		if (pidinst->props) {
 			if (pidinst->props != pcki->pck->pid_props) {
-				//detach old property map
-				gf_list_del_item(pidinst->pid->properties, pidinst->props);
-				//destroy if needed
+				//destroy if last occurence, removing it from pid as well
+				//only remove if last about to be destroyed, since we may have several pid instances consuming from this pid
 				assert(pidinst->props->reference_count);
 				if (safe_int_dec(& pidinst->props->reference_count) == 0) {
+					gf_list_del_item(pidinst->pid->properties, pidinst->props);
 					gf_props_del(pidinst->props);
 				}
 				//set new one
