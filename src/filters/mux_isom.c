@@ -96,6 +96,7 @@ typedef struct
 
 	u32 amr_mode_set;
 	Bool has_seig;
+	u64 empty_init_dur;
 } TrackWriter;
 
 enum
@@ -2016,6 +2017,7 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	if (tkw->ts_shift) {
 		assert (tkw->sample.DTS >= tkw->ts_shift);
 		tkw->sample.DTS -= tkw->ts_shift;
+		cts -= tkw->ts_shift;
 	}
 
 
@@ -2029,7 +2031,8 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 	}
 	if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
 
-	if (tkw->sample.CTS_Offset < tkw->min_neg_ctts) tkw->min_neg_ctts = tkw->sample.CTS_Offset;
+	if (tkw->sample.CTS_Offset < tkw->min_neg_ctts)
+		tkw->min_neg_ctts = tkw->sample.CTS_Offset;
 
 	if (tkw->use_dref) {
 		u64 data_offset = gf_filter_pck_get_byte_offset(pck);
@@ -2906,7 +2909,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		dts_min /= tkw->timescale;
 
 		if (first_ts_min > dts_min) {
-			first_ts_min = (u32) dts_min;
+			first_ts_min = (u64) dts_min;
 		}
 		tkw->ts_shift = ts;
 	}
@@ -2919,12 +2922,11 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		dts_diff = first_ts_min;
 		dts_diff *= tkw->timescale;
 		dts_diff /= 1000000;
-		dts_diff -= (s64) tkw->ts_shift;
+		dts_diff = (s64) tkw->ts_shift - dts_diff;
 		//negative could happen due to rounding, ignore them
 		if (dts_diff<=0) continue;
 
-
-		//if dts_diff > 0, we need a dwell
+		//if dts_diff > 0, we need to delay the track
 		if (dts_diff) {
 			s64 dur = dts_diff;
 			dur *= ctx->timescale;
@@ -2932,8 +2934,9 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 
 			gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
 
-			gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_DWELL);
+			gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
 			gf_isom_set_edit_segment(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+			tkw->empty_init_dur = (u64) dur;
 		}
 	}
 
@@ -3136,13 +3139,20 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 		gf_isom_sample_del(&s);
 	}
 
-	if (min_cts) {
+	if (min_cts || tkw->empty_init_dur) {
 		max_cts -= min_cts;
 		max_cts += gf_isom_get_sample_duration(ctx->file, tkw->track_num, count);
 
 		max_cts *= ctx->timescale;
 		max_cts /= tkw->timescale;
-		gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, max_cts, min_cts, GF_ISOM_EDIT_NORMAL);
+		if (tkw->empty_init_dur) {
+
+			gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, tkw->empty_init_dur, 0, GF_ISOM_EDIT_EMPTY);
+			if (max_cts >= tkw->empty_init_dur) max_cts -= tkw->empty_init_dur;
+			else max_cts = 0;
+		}
+
+		gf_isom_set_edit_segment(ctx->file, tkw->track_num, tkw->empty_init_dur, max_cts, min_cts, GF_ISOM_EDIT_NORMAL);
 	}
 }
 
