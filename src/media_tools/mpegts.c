@@ -2105,8 +2105,8 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	GF_M2TS_PESHeader pesh;
 	if (!ts) return;
 
-	/*we need at least a full, valid start code !!*/
-	if ((pes->pck_data_len >= 4) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2] == 0x1)) {
+	/*we need at least a full, valid start code and PES header !!*/
+	if ((pes->pck_data_len >= 9) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2] == 0x1)) {
 		u32 len;
 		u32 stream_id = pes->pck_data[3] | 0x100;
 		Bool same_pts = GF_FALSE;
