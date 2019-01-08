@@ -1386,6 +1386,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e)
 	} else {
 		filter->nb_consecutive_errors = 0;
 		filter->nb_pck_io = 0;
+		filter->session->last_process_error = GF_OK;
 	}
 }
 
@@ -1436,18 +1437,16 @@ static void gf_filter_process_task(GF_FSTask *task)
 		assert(filter->process_task_queued);
 		return;
 	}
+
+	//the following breaks demuxers where PIDs are not all known from start: if we filter some pids due tu user request, we may end up with the
+	//following test true but not all PIDs yet declared, hence no more processing
+	//we could add a filter cap for that, but for now we simply rely on the blocking mode algo only
 #if 0
-	//empty input for this filter, don't call process
-	else if (filter->num_input_pids==1 && !filter->pending_packets) {
-		filter->nb_tasks_done--;
-		gf_filter_check_pending_tasks(filter, task);
-		return;
-	}
-#endif
 	if (filter->num_output_pids && (filter->num_out_pids_not_connected==filter->num_output_pids)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no valid connected outputs, skiping process\n", filter->name));
 		return;
 	}
+#endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
 

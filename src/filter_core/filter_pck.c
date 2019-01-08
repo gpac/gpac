@@ -836,15 +836,23 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			post_task = GF_TRUE;
 		}
 		if (post_task) {
-			u32 nb_pck;
+			u32 nb_pck_before, nb_pck_after;
+
+			nb_pck_before = gf_fq_count(dst->packets);
 			//do stats after post_process, since we may process and drop the packet during this call in direct scheduling or multithread modes
 			gf_filter_post_process_task(dst->filter);
 
-			//we have less packets in destination pid instance than in pid, the packet has ben consummed, update pid nb packet
-			nb_pck = gf_fq_count(dst->packets);
-			if (pid->nb_buffer_unit > nb_pck) pid->nb_buffer_unit = nb_pck;
-			//we have less buffer in destination pid instance than in pid, the packet has ben consummed, update pid duration
-			if ((s64) pid->buffer_duration > dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
+			nb_pck_after = gf_fq_count(dst->packets);
+
+			if (nb_pck_after<nb_pck_before) {
+				//we have less packets in destination pid instance than in pid, the packet has been consummed, update pid nb packet
+				if (pid->nb_buffer_unit > nb_pck_after) pid->nb_buffer_unit = nb_pck_after;
+				//we have less buffer in destination pid instance than in pid, the packet has ben consummed, update pid duration
+				if ((s64) pid->buffer_duration > dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
+			} else {
+				if (pid->nb_buffer_unit < nb_pck_after) pid->nb_buffer_unit = nb_pck_after;
+				if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
+			}
 		}
 	}
 
