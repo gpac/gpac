@@ -55,7 +55,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index_dur;
-	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps;
+	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw;
 	u32 nal_length;
 
 	//only one input pid declared
@@ -1059,12 +1059,6 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		naludmx_check_dur(filter, ctx);
 		ctx->first_slice_in_au = GF_TRUE;
 	}
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
-	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 	if ((ctx->crc_cfg == crc_cfg) && (ctx->crc_cfg_enh == crc_cfg_enh)
 		&& (ctx->width==w) && (ctx->height==h)
@@ -1074,6 +1068,13 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		if (dsi_enh) gf_free(dsi_enh);
 		return;
 	}
+
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 	ctx->width = w;
 	ctx->height = h;
@@ -1264,6 +1265,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		//otherwise we keep this new param set
 		sl->data = gf_realloc(sl->data, size);
 		memcpy(sl->data, data, size);
+		sl->size = size;
 		sl->crc = crc;
 		ctx->ps_modified = GF_TRUE;
 		return;
@@ -1406,14 +1408,15 @@ GF_Err naludmx_realloc_last_pck(GF_NALUDmxCtx *ctx, u32 nb_bytes_to_add, char **
 	return GF_OK;
 }
 
-GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool *au_start, char **pck_data)
+GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_nal_field, Bool *au_start, char **pck_data)
 {
-	GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, nal_size + ctx->nal_length, pck_data);
+	GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, nal_size + (skip_nal_field ? 0 : ctx->nal_length), pck_data);
 
-	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(*pck_data, ctx->nal_length, GF_BITSTREAM_WRITE);
-	else gf_bs_reassign_buffer(ctx->bs_w, *pck_data, ctx->nal_length);
-
-	gf_bs_write_int(ctx->bs_w, nal_size, 8*ctx->nal_length);
+	if (!skip_nal_field) {
+		if (!ctx->bs_w) ctx->bs_w = gf_bs_new(*pck_data, ctx->nal_length, GF_BITSTREAM_WRITE);
+		else gf_bs_reassign_buffer(ctx->bs_w, *pck_data, ctx->nal_length);
+		gf_bs_write_int(ctx->bs_w, nal_size, 8*ctx->nal_length);
+	}
 
 	if (*au_start) {
 		ctx->first_pck_in_au = dst_pck;
@@ -1524,12 +1527,17 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_SEI_PREFIX:
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
-			if (ctx->sei_buffer_alloc < size) {
-				ctx->sei_buffer_alloc = size;
+
+			if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + size + ctx->nal_length) {
+				ctx->sei_buffer_alloc = ctx->sei_buffer_size + size + ctx->nal_length;
 				ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
 			}
-			memcpy(ctx->sei_buffer, data, size);
-			ctx->sei_buffer_size = size;
+
+			if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size, GF_BITSTREAM_WRITE);
+			else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size);
+			gf_bs_write_int(ctx->bs_w, size, 8*ctx->nal_length);
+			memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
+			ctx->sei_buffer_size += size + ctx->nal_length;
 		} else {
 			ctx->nb_nalus--;
 		}
@@ -1665,17 +1673,30 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		if (ctx->nosei) {
 			*skip_nal = GF_TRUE;
 		} else {
+			ctx->nb_sei++;
 			if (ctx->avc_state->sps_active_idx != -1) {
-				u32 sei_size = size;
-				if (ctx->sei_buffer_alloc < sei_size) {
-					ctx->sei_buffer_alloc = sei_size;
+				u32 rw_sei_size, sei_size = size;
+				if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + sei_size + ctx->nal_length) {
+					ctx->sei_buffer_alloc = ctx->sei_buffer_size + sei_size + ctx->nal_length;
 					ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
 				}
-				memcpy(ctx->sei_buffer, data, sei_size);
-				ctx->sei_buffer_size = gf_media_avc_reformat_sei(ctx->sei_buffer, sei_size, ctx->avc_state);
-				if (ctx->sei_buffer_size) {
-					*skip_nal = GF_TRUE;
+
+				if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size, GF_BITSTREAM_WRITE);
+				else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size);
+				gf_bs_write_int(ctx->bs_w, sei_size, 8*ctx->nal_length);
+
+				memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, sei_size);
+				if (ctx->seirw) {
+					rw_sei_size = gf_media_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, sei_size, ctx->avc_state);
+					if (rw_sei_size < sei_size) {
+						gf_bs_seek(ctx->bs_w, 0);
+						gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
+					}
+				} else {
+					rw_sei_size = sei_size;
 				}
+				*skip_nal = GF_TRUE;
+				ctx->sei_buffer_size += rw_sei_size + ctx->nal_length;
 			}
 		}
 		return 0;
@@ -2540,17 +2561,17 @@ naldmx_flush:
 		au_start = ctx->first_pck_in_au ? GF_FALSE : GF_TRUE;
 
 		if (ctx->sei_buffer_size) {
-			/*dst_pck = */naludmx_start_nalu(ctx, ctx->sei_buffer_size, &au_start, &pck_data);
-			memcpy(pck_data + ctx->nal_length, ctx->sei_buffer, ctx->sei_buffer_size);
-			ctx->nb_sei++;
+			//sei buffer is already nal size prefixed
+			/*dst_pck = */naludmx_start_nalu(ctx, ctx->sei_buffer_size, GF_TRUE, &au_start, &pck_data);
+			memcpy(pck_data, ctx->sei_buffer, ctx->sei_buffer_size);
 			if (ctx->subsamples) {
-				naludmx_add_subsample(ctx, ctx->sei_buffer_size, avc_svc_subs_priority, avc_svc_subs_reserved);
+				naludmx_add_subsample(ctx, ctx->sei_buffer_size - ctx->nal_length, avc_svc_subs_priority, avc_svc_subs_reserved);
 			}
 			ctx->sei_buffer_size = 0;
 		}
 
 		if (ctx->svc_prefix_buffer_size) {
-			/*dst_pck = */naludmx_start_nalu(ctx, ctx->svc_prefix_buffer_size, &au_start, &pck_data);
+			/*dst_pck = */naludmx_start_nalu(ctx, ctx->svc_prefix_buffer_size, GF_FALSE, &au_start, &pck_data);
 			memcpy(pck_data + ctx->nal_length, ctx->svc_prefix_buffer, ctx->svc_prefix_buffer_size);
 			if (ctx->subsamples) {
 				naludmx_add_subsample(ctx, ctx->svc_prefix_buffer_size, ctx->svc_nalu_prefix_priority, ctx->svc_nalu_prefix_reserved);
@@ -2558,8 +2579,8 @@ naldmx_flush:
 			ctx->svc_prefix_buffer_size = 0;
 		}
 
-		//nalu size field, always on 4 bytes at parser level
-		/*dst_pck = */naludmx_start_nalu(ctx, (u32) size, &au_start, &pck_data);
+		//nalu size field
+		/*dst_pck = */naludmx_start_nalu(ctx, (u32) size, GF_FALSE, &au_start, &pck_data);
 		pck_data += ctx->nal_length;
 
 		//add subsample info before touching the size
@@ -2822,6 +2843,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(nal_length), "sets number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
