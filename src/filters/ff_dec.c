@@ -656,7 +656,9 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				if (prop && prop->value.data.ptr && prop->value.data.size) {
 					cfg_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
 				}
-				if (cfg_crc == ctx->extra_data_crc) return GF_OK;
+				if (cfg_crc == ctx->extra_data_crc) {
+					goto reuse_codec_context;
+				}
 			}
 
 			//we could further optimize by detecting we have the same codecid and injecting the extradata
@@ -705,10 +707,13 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		gf_filter_set_name(filter, szCodecName);
 		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
 	}
+
+reuse_codec_context:
 	//copy props it at init config or at reconfig
 	if (ctx->out_pid) {
 		gf_filter_pid_copy_properties(ctx->out_pid, ctx->in_pid);
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, NULL );
 	}
 
 	if (type==GF_STREAM_VISUAL) {
