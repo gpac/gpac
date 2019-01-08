@@ -295,7 +295,21 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC_INT(ctx->dsi.par_num, ctx->dsi.par_den));
 
 	if (ctx->is_mpg12) {
+		const GF_PropertyValue *cid = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 		u32 PL = ctx->dsi.VideoPL;
+		if (cid) {
+			switch (cid->value.uint) {
+			case GF_CODECID_MPEG2_MAIN:
+			case GF_CODECID_MPEG2_422:
+			case GF_CODECID_MPEG2_SNR:
+			case GF_CODECID_MPEG2_HIGH:
+				//keep same signaling
+				PL = cid->value.uint;
+				break;
+			default:
+				break;
+			}
+		}
 		if (!PL) PL = GF_CODECID_MPEG2_MAIN;
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(PL));
 	} else {
