@@ -310,8 +310,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 						ch->sample_time = ch->sample->DTS;
 						ch->sample_num = samp_num;
 					} else {
-						gf_isom_sample_del(&found);
-						ch->static_sample = ch->sample;
+						ch->sample = ch->static_sample;
 						ch->edit_sync_frame = ch->sample_num;
 						ch->sample->DTS = ch->sample_time;
 						ch->sample->CTS_Offset = 0;
