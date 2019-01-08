@@ -1504,33 +1504,6 @@ multipid_stsd_setup:
 	}
 
 
-sample_entry_done:
-	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->ase);
-	else if (width) {
-		gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
-		if (sar.den && (sar.num != sar.den)) {
-			gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
-			width = width * sar.num / sar.den;
-		}
-
-		gf_isom_set_track_layout_info(ctx->file, tkw->track_num, width<<16, height<<16, 0, 0, z_order);
-		if (codec_id==GF_CODECID_HEVC_TILES) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_SIZE);
-			if (p) {
-				gf_isom_set_track_layout_info(ctx->file, tkw->track_num, p->value.vec2i.x<<16, p->value.vec2i.y<<16, 0, 0, z_order);
-			}
-		}
-	}
-	//default for old arch
-	else if (force_tk_layout
-		|| (use_m4sys && (tkw->stream_type==GF_STREAM_VISUAL) && !width && !height)
-	)  {
-		gf_isom_set_track_layout_info(ctx->file, tkw->track_num, 320<<16, 240<<16, 0, 0, 0);
-	}
-
-	if (lang_name) gf_isom_set_media_language(ctx->file, tkw->track_num, (char*)lang_name);
-
-
 	if (tkw->is_encrypted) {
 		const char *scheme_uri=NULL;
 		const char *kms_uri=NULL;
@@ -1638,6 +1611,32 @@ sample_entry_done:
 			}
 		}
 	}
+
+sample_entry_done:
+	if (sr) gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->ase);
+	else if (width) {
+		gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
+		if (sar.den && (sar.num != sar.den)) {
+			gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
+			width = width * sar.num / sar.den;
+		}
+
+		gf_isom_set_track_layout_info(ctx->file, tkw->track_num, width<<16, height<<16, 0, 0, z_order);
+		if (codec_id==GF_CODECID_HEVC_TILES) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_SIZE);
+			if (p) {
+				gf_isom_set_track_layout_info(ctx->file, tkw->track_num, p->value.vec2i.x<<16, p->value.vec2i.y<<16, 0, 0, z_order);
+			}
+		}
+	}
+	//default for old arch
+	else if (force_tk_layout
+		|| (use_m4sys && (tkw->stream_type==GF_STREAM_VISUAL) && !width && !height)
+	)  {
+		gf_isom_set_track_layout_info(ctx->file, tkw->track_num, 320<<16, 240<<16, 0, 0, 0);
+	}
+
+	if (lang_name) gf_isom_set_media_language(ctx->file, tkw->track_num, (char*)lang_name);
 
 	if (is_true_pid && ctx->importer && !tkw->import_msg_header_done) {
 		tkw->import_msg_header_done = GF_TRUE;
