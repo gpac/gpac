@@ -271,7 +271,9 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		pck->pid_props = NULL;
 		assert(props->reference_count);
 		if (safe_int_dec(&props->reference_count) == 0) {
-			if (!is_filter_destroyed) gf_list_del_item(pck->pid->properties, props);
+			if (!is_filter_destroyed) {
+				gf_list_del_item(pck->pid->properties, props);
+			}
 			gf_props_del(props);
 		}
 	}
@@ -441,6 +443,7 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 		return;
 	}
 	//function is only used to discard packets allocated but not dispatched, eg with no reference count
+	//so don't decrement the counter
 	if (pck->reference_count == 0) {
 		gf_filter_packet_destroy(pck);
 	}
