@@ -1263,7 +1263,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		fprintf(dump, " nal_ref_idc=\"%d\"", nal_ref_idc);
 	}
 	if (res>=0) {
-		fprintf(dump, "\" poc=\"%d pps_id=\"%d", avc->s_info.poc, avc->s_info.pps->id);
+		fprintf(dump, " poc=\"%d\" pps_id=\"%d\"", avc->s_info.poc, avc->s_info.pps->id);
 	}
 
 	if (type==GF_AVC_NALU_SEI) {
