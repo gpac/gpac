@@ -26,7 +26,7 @@
 #include <gpac/bitstream.h>
 
 /*the default size for new streams allocation...*/
-#define BS_MEM_BLOCK_ALLOC_SIZE		4096
+#define BS_MEM_BLOCK_ALLOC_SIZE		512
 
 /*private types*/
 enum
