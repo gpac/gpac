@@ -261,6 +261,7 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->name) gf_free(filter->name);
 	if (filter->id) gf_free(filter->id);
 	if (filter->source_ids) gf_free(filter->source_ids);
+	if (filter->dynamic_source_ids) gf_free(filter->dynamic_source_ids);
 	if (filter->filter_udta) gf_free(filter->filter_udta);
 	if (filter->orig_args) gf_free(filter->orig_args);
 	gf_free(filter);

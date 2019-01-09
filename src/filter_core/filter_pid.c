@@ -979,20 +979,22 @@ void *gf_filter_pid_get_udta(GF_FilterPid *pid)
 	}
 }
 
-static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bool *pid_excluded)
+static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF_Filter *dst_filter, Bool *pid_excluded, Bool *needs_resolve, char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE])
 {
 	char *psep;
 	u32 comp_type=0;
 	Bool is_neg = GF_FALSE;
-	const GF_PropertyValue *prop;
+	const GF_PropertyEntry *pent;
+
+	*needs_resolve = GF_FALSE;
 
 	if (frag_name[0] == src_pid->filter->session->sep_neg) {
 		frag_name++;
 		is_neg = GF_TRUE;
 	}
 	//special case for stream types filters
-	prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
-	if (prop) {
+	pent = gf_filter_pid_get_property_entry(src_pid, GF_PROP_PID_STREAM_TYPE);
+	if (pent) {
 		u32 matched=0;
 		u32 type=0;
 		if (!strnicmp(frag_name, "audio", 5)) {
@@ -1011,10 +1013,10 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 			matched=4;
 			type=GF_STREAM_TEXT;
 		}
-		if (matched && (type != prop->value.uint)) {
+		if (matched && (type != pent->prop.value.uint)) {
 			//special case: if we request a non-file stream but the pid is a file, we will need a demux to
 			//move from file to A/V/... streams, so we accept any #MEDIA from file streams
-			if (prop->value.uint == GF_STREAM_FILE) {
+			if (pent->prop.value.uint == GF_STREAM_FILE) {
 				return GF_TRUE;
 			}
 			matched = 0;
@@ -1028,8 +1030,8 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 			count_pid = src_pid->filter->num_output_pids;
 			for (k=0; k<count_pid; k++) {
 				GF_FilterPid *p = gf_list_get(src_pid->filter->output_pids, k);
-				prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
-				if (prop && prop->value.uint==type) {
+				pent = gf_filter_pid_get_property_entry(src_pid, GF_PROP_PID_STREAM_TYPE);
+				if (pent && pent->prop.value.uint==type) {
 					idx--;
 					if (!idx) {
 						if (p==src_pid) return GF_TRUE;
@@ -1043,9 +1045,9 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	}
 	//special case for codec type filters
 	if (!strcmp(frag_name, "raw")) {
-		prop = gf_filter_pid_get_property(src_pid, GF_PROP_PID_CODECID);
-		if (prop) {
-			Bool is_eq = (prop->value.uint==GF_CODECID_RAW) ? GF_TRUE : GF_FALSE;
+		pent = gf_filter_pid_get_property_entry(src_pid, GF_PROP_PID_CODECID);
+		if (pent) {
+			Bool is_eq = (pent->prop.value.uint==GF_CODECID_RAW) ? GF_TRUE : GF_FALSE;
 			if (is_neg) is_eq = !is_eq;
 			if (is_eq) return GF_TRUE;
 			*pid_excluded = GF_TRUE;
@@ -1077,7 +1079,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	u32 p4cc = 0;
 	char c=psep[0];
 	psep[0] = 0;
-	prop=NULL;
+	pent=NULL;
 
 	//check for built-in property
 	p4cc = gf_props_get_id(frag_name);
@@ -1087,17 +1089,23 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	if (!p4cc && (strlen(frag_name)==4))
 		p4cc = GF_4CC(frag_name[0], frag_name[1], frag_name[2], frag_name[3]);
 
-	if (p4cc) prop = gf_filter_pid_get_property(src_pid, p4cc);
+	if (p4cc) pent = gf_filter_pid_get_property_entry(src_pid, p4cc);
 	//not a built-in property, find prop by name
-	if (!prop) {
-		prop = gf_filter_pid_get_property_str(src_pid, frag_name);
+	if (!pent) {
+		pent = gf_filter_pid_get_property_entry_str(src_pid, frag_name);
 	}
 
 	psep[0] = c;
 
 	//if the property is not found, we accept the connection
-	if (!prop) {
+	if (!pent) {
 		return GF_TRUE;
+	}
+	//check for dynamic assignment
+	if ( (psep[0]==src_pid->filter->session->sep_name) && (psep[1]=='*') ) {
+		*needs_resolve = GF_TRUE;
+		gf_prop_dump_val(&pent->prop, prop_dump_buffer, GF_FALSE, NULL);
+		return GF_FALSE;
 	}
 
 	//check for negation
@@ -1106,42 +1114,42 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 		use_not_equal = GF_TRUE;
 	}
 	//parse the property, based on its property type
-	prop_val = gf_props_parse_value(prop->type, frag_name, psep+1, NULL, src_pid->filter->session->sep_list);
+	prop_val = gf_props_parse_value(pent->prop.type, frag_name, psep+1, NULL, src_pid->filter->session->sep_list);
 	if (!comp_type) {
-		is_equal = gf_props_equal(prop, &prop_val);
+		is_equal = gf_props_equal(&pent->prop, &prop_val);
 		if (use_not_equal) is_equal = !is_equal;
 	} else {
 		switch (prop_val.type) {
 		case GF_PROP_SINT:
-			if (prop->value.sint<prop_val.value.sint) is_equal = GF_TRUE;
+			if (pent->prop.value.sint<prop_val.value.sint) is_equal = GF_TRUE;
 			if (comp_type==2) is_equal = !is_equal;
 			break;
 		case GF_PROP_UINT:
-			if (prop->value.uint<prop_val.value.uint) is_equal = GF_TRUE;
+			if (pent->prop.value.uint<prop_val.value.uint) is_equal = GF_TRUE;
 			if (comp_type==2) is_equal = !is_equal;
 			break;
 		case GF_PROP_LSINT:
-			if (prop->value.longsint<prop_val.value.longsint) is_equal = GF_TRUE;
+			if (pent->prop.value.longsint<prop_val.value.longsint) is_equal = GF_TRUE;
 			if (comp_type==2) is_equal = !is_equal;
 			break;
 		case GF_PROP_LUINT:
-			if (prop->value.longuint<prop_val.value.longuint) is_equal = GF_TRUE;
+			if (pent->prop.value.longuint<prop_val.value.longuint) is_equal = GF_TRUE;
 			if (comp_type==2) is_equal = !is_equal;
 			break;
 		case GF_PROP_FLOAT:
-			if (prop->value.fnumber<prop_val.value.fnumber) is_equal = GF_TRUE;
+			if (pent->prop.value.fnumber<prop_val.value.fnumber) is_equal = GF_TRUE;
 			if (comp_type==2) is_equal = !is_equal;
 			break;
 		case GF_PROP_DOUBLE:
-			if (prop->value.number<prop_val.value.number) is_equal = GF_TRUE;
+			if (pent->prop.value.number<prop_val.value.number) is_equal = GF_TRUE;
 			if (comp_type==2) is_equal = !is_equal;
 			break;
 		case GF_PROP_FRACTION:
-			if (prop->value.frac.num * prop_val.value.frac.den < prop->value.frac.den * prop_val.value.frac.num) is_equal = GF_TRUE;
+			if (pent->prop.value.frac.num * prop_val.value.frac.den < pent->prop.value.frac.den * prop_val.value.frac.num) is_equal = GF_TRUE;
 			if (comp_type == 2) is_equal = !is_equal;
 			break;
 		case GF_PROP_FRACTION64:
-			if (prop->value.lfrac.num * prop_val.value.lfrac.den < prop->value.lfrac.den * prop_val.value.lfrac.num) is_equal = GF_TRUE;
+			if (pent->prop.value.lfrac.num * prop_val.value.lfrac.den < pent->prop.value.lfrac.den * prop_val.value.lfrac.num) is_equal = GF_TRUE;
 			if (comp_type == 2) is_equal = !is_equal;
 			break;
 		default:
@@ -1156,13 +1164,25 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	return is_equal;
 }
 
-static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const char *source_ids, Bool *pid_excluded)
+static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, GF_Filter *dst_filter, Bool *pid_excluded, Bool *needs_clone)
 {
+	const char *source_ids;
+	char *resolved_source_ids = NULL;
+	Bool result = GF_FALSE;
+	Bool first_pass = GF_TRUE;
 	*pid_excluded = GF_FALSE;
-	if (!source_ids)
+	if (!dst_filter->source_ids)
 		return GF_TRUE;
 	if (!id)
 		return GF_FALSE;
+
+sourceid_reassign:
+	source_ids = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
+	if (!first_pass) {
+		assert(dst_filter->dynamic_source_ids);
+		source_ids = dst_filter->dynamic_source_ids;
+	}
+
 	while (source_ids) {
 		Bool all_matched = GF_TRUE;
 		u32 len, sublen;
@@ -1189,27 +1209,78 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 			source_ids += len;
 			if (last) break;
 		}
-		if (!frag_name) return GF_TRUE;
-
-		//match pid name
-		if (!strcmp(src_pid->name, frag_name)) return GF_TRUE;
+		//no fragment or fragment match pid name, OK
+		if (!frag_name || !strcmp(src_pid->name, frag_name)) {
+			result = GF_TRUE;
+			break;
+		}
 
 		//for all listed fragment extensions
 		while (frag_name && all_matched) {
+			char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE];
+			Bool needs_resolve = GF_FALSE;
 			char *next_frag = strchr(frag_name, src_pid->filter->session->sep_frag);
 			if (next_frag) next_frag[0] = 0;
 
-			if (! filter_pid_check_fragment(src_pid, frag_name, pid_excluded))
-				all_matched = GF_FALSE;
+			if (! filter_pid_check_fragment(src_pid, frag_name, dst_filter, pid_excluded, &needs_resolve, prop_dump_buffer)) {
+				if (needs_resolve) {
+					if (first_pass) {
+						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
+						char *sep = strchr(frag_name, dst_filter->session->sep_name);
+						assert(sep);
+						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
+
+						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)));
+						u32 clen = 1+sep - sid;
+						strncpy(new_source_ids, sid, clen);
+						new_source_ids[clen]=0;
+						strcat(new_source_ids, prop_dump_buffer);
+						if (next_frag) strcat(new_source_ids, next_frag);
+
+						if (resolved_source_ids) gf_free(resolved_source_ids);
+						resolved_source_ids = new_source_ids;
+						goto sourceid_reassign;
+					}
+				}
+				else
+					all_matched = GF_FALSE;
+			}
 
 			if (!next_frag) break;
 
 			next_frag[0] = src_pid->filter->session->sep_frag;
 			frag_name = next_frag+1;
 		}
-		return all_matched;
+		if (all_matched) {
+			result = GF_TRUE;
+			break;
+		}
+		*needs_clone = GF_FALSE;
+		if (!sep) break;
+		source_ids = sep+1;
 	}
-	return GF_FALSE;
+
+	if (!result) {
+		if (resolved_source_ids) gf_free(resolved_source_ids);
+		if (dst_filter->dynamic_source_ids && first_pass) {
+			first_pass = GF_FALSE;
+			goto sourceid_reassign;
+		}
+		return GF_FALSE;
+	}
+	if (resolved_source_ids) {
+		if (!dst_filter->dynamic_source_ids) {
+			dst_filter->dynamic_source_ids = dst_filter->source_ids;
+			dst_filter->source_ids = resolved_source_ids;
+		} else {
+			gf_free(dst_filter->source_ids);
+			dst_filter->source_ids = resolved_source_ids;
+		}
+	}
+	if (!first_pass) {
+		*needs_clone = GF_TRUE;
+	}
+	return GF_TRUE;
 }
 
 Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
@@ -2746,11 +2817,13 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 i, count;
 	Bool found_dest=GF_FALSE;
-	Bool can_try_link_resuolution=GF_FALSE;
+	Bool found_matching_sourceid;
+	Bool can_try_link_resolution=GF_FALSE;
 	Bool first_pass=GF_TRUE;
 	GF_List *loaded_filters = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
+	GF_Filter *dynamic_filter_clone = NULL;
 	Bool filter_found_but_pid_excluded = GF_FALSE;
 	const char *filter_id;
 
@@ -2788,17 +2861,25 @@ restart:
 	if (!first_pass)
 		loaded_filters = gf_list_new();
 
+	found_matching_sourceid = GF_FALSE;
 	//try to connect pid to all running filters
 	count = gf_list_count(filter->session->filters);
 	for (i=0; i<count; i++) {
-		Bool cap_matched = GF_FALSE;
-		GF_Filter *filter_dst = gf_list_get(filter->session->filters, i);
+		Bool needs_clone;
+		Bool cap_matched;
+		GF_Filter *filter_dst;
+
+single_retry:
+
+		cap_matched = GF_FALSE;
+		filter_dst = gf_list_get(filter->session->filters, i);
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
 
-		//if destination accepts only one input, and connected or connection pending
-		if (!filter_dst->max_extra_pids && (filter_dst->num_input_pids || filter_dst->in_pid_connection_pending) ) {
+		//if destination accepts only one input and connected or connection pending
+		//note that if destination uses dynamic clone through source ids, we need to check this filter
+		if (!filter_dst->max_extra_pids && !filter_dst->dynamic_source_ids && (filter_dst->num_input_pids || filter_dst->in_pid_connection_pending) ) {
 			//not explicitly clonable, don't connect to it
 			if (!filter_dst->clonable)
 				continue;
@@ -2850,10 +2931,11 @@ restart:
 		}
 
 		//if we have sourceID info on the destination, check them
+		needs_clone=GF_FALSE;
 		if (filter_id) {
 			if (filter_dst->source_ids) {
 				Bool pid_excluded=GF_FALSE;
-				if (!filter_source_id_match(pid, filter_id, filter_dst->source_ids, &pid_excluded)) {
+				if (!filter_source_id_match(pid, filter_id, filter_dst, &pid_excluded, &needs_clone)) {
 					if (pid_excluded && first_pass) filter_found_but_pid_excluded = GF_TRUE;
 					continue;
 				}
@@ -2865,13 +2947,25 @@ restart:
 			Bool pid_excluded=GF_FALSE;
 			if (filter_dst->source_ids[0]!='*')
 				continue;
-			if (!filter_source_id_match(pid, "*", filter_dst->source_ids, &pid_excluded)) {
+			if (!filter_source_id_match(pid, "*", filter_dst, &pid_excluded, &needs_clone)) {
 				if (pid_excluded && first_pass) filter_found_but_pid_excluded = GF_TRUE;
 				continue;
 			}
 		}
+		if (needs_clone) {
+			//remember this filter as clonable (dynamic source id scheme) if none yet found.
+			//If we had a matching sourceID, clone is not needed
+			if (first_pass && !dynamic_filter_clone && !found_matching_sourceid) {
+				dynamic_filter_clone = filter_dst;
+			}
+			continue;
+		} else if (dynamic_filter_clone && dynamic_filter_clone->freg==filter_dst->freg) {
+			dynamic_filter_clone = NULL;
+		}
+		//remember we had a sourceid match
+		found_matching_sourceid = GF_TRUE;
 
-		can_try_link_resuolution = GF_TRUE;
+		can_try_link_resolution = GF_TRUE;
 
 		//we have a match, check if caps are OK
 		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
@@ -2974,6 +3068,7 @@ restart:
 
 		found_dest = GF_TRUE;
 	}
+
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
 	if (loaded_filters) gf_list_del(loaded_filters);
@@ -2988,12 +3083,27 @@ restart:
 		return;
 	}
 
+	if (dynamic_filter_clone && first_pass) {
+		GF_Filter *clone = gf_filter_clone(dynamic_filter_clone);
+		if (clone) {
+			assert(dynamic_filter_clone->dynamic_source_ids);
+			gf_free(clone->source_ids);
+			clone->source_ids = gf_strdup(dynamic_filter_clone->dynamic_source_ids);
+			clone->cloned_from = NULL;
+			count = gf_list_count(filter->session->filters);
+			i = count-1;
+			first_pass = GF_TRUE;
+			goto single_retry;
+		}
+	}
+
 	//nothing found, redo a pass, this time allowing for link resolve
-	if (first_pass && can_try_link_resuolution && filter->session->max_resolve_chain_len) {
+	if (first_pass && can_try_link_resolution && filter->session->max_resolve_chain_len) {
 		first_pass = GF_FALSE;
 		goto restart;
 	}
-	
+
+
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
@@ -3337,6 +3447,23 @@ const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const 
 	if (!map)
 		return NULL;
 	return gf_props_get_property(map, 0, prop_name);
+}
+
+const GF_PropertyEntry *gf_filter_pid_get_property_entry(GF_FilterPid *pid, u32 prop_4cc)
+{
+	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
+	if (!map)
+		return NULL;
+	return gf_props_get_property_entry(map, prop_4cc, NULL);
+}
+
+GF_EXPORT
+const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, const char *prop_name)
+{
+	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
+	if (!map)
+		return NULL;
+	return gf_props_get_property_entry(map, 0, prop_name);
 }
 
 static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name)
@@ -3954,7 +4081,8 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		}
 	}
 	if (blockmode_broken) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s PID %s block mode broken: %u units "LLU" us vs %u max units "LLU" max buffer\n", pid->pid->filter->name, pid->pid->name, pid->nb_buffer_unit, pid->buffer_duration, pid->max_buffer_unit, pid->max_buffer_time));
+		//don't throw a warning since some filters may dispatch a large burst of packets (eg isom muxer)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s block mode not respected: %u units "LLU" us vs %u max units "LLU" max buffer\n", pid->pid->filter->name, pid->pid->name, pid->nb_buffer_unit, pid->buffer_duration, pid->max_buffer_unit, pid->max_buffer_time));
 
 		pid->filter->blockmode_broken = GF_TRUE;
 	}

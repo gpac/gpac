@@ -1345,11 +1345,14 @@ static GFINLINE void print_filter_name(GF_Filter *f, Bool skip_id)
 	if (!skip_id && f->id) fprintf(stderr, " ID %s", f->id);
 	if (f->dynamic_filter) return;
 
-	if (!f->src_args && !f->orig_args && !f->dst_args) return;
+	if (!f->src_args && !f->orig_args && !f->dst_args && !f->dynamic_source_ids) return;
 	fprintf(stderr, " (");
 	if (f->src_args) fprintf(stderr, "%s", f->src_args);
 	else if (f->orig_args) fprintf(stderr, "%s", f->orig_args);
 	else if (f->dst_args) fprintf(stderr, "%s", f->dst_args);
+
+
+	if (f->dynamic_source_ids) fprintf(stderr, ",resolved SID:%s", f->source_ids);
 	fprintf(stderr, ")");
 }
 
