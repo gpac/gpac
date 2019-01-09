@@ -113,6 +113,8 @@ GF_List *gf_props_get_list(GF_PropertyMap *map);
 
 const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name);
 
+const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 prop_4cc, const char *name);
+
 #if GF_PROPS_HASHTABLE_SIZE
 u32 gf_props_hash_djb2(u32 p4cc, const char *str);
 #else
@@ -419,6 +421,9 @@ struct __gf_filter
 	char *id;
 	//list of IDs of filters usable as sources for this filter. NULL means any source
 	char *source_ids;
+	//original source IDs in case we use dynamic clone. If present, the source_ids contains resolved identifiers (eg ServiceID=234)
+	//but dynamic_source_ids still contains the unresolved pattern (eg ServiceID=*)
+	char *dynamic_source_ids;
 
 	//parent media session
 	GF_FilterSession *session;
@@ -606,6 +611,7 @@ struct __gf_filter
 	u32 nb_consecutive_errors;
 	//system clock of first error
 	u64 time_at_first_error;
+
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -827,6 +833,9 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt);
 GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter);
 
 void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, Bool force_downstream);
+
+const GF_PropertyEntry *gf_filter_pid_get_property_entry(GF_FilterPid *pid, u32 prop_4cc);
+const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, const char *prop_name);
 
 #endif //_GF_FILTER_SESSION_H_
 

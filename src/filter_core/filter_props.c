@@ -737,10 +737,10 @@ GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, ch
 	return gf_props_insert_property(map, hash, p4cc, name, dyn_name, value);
 }
 
-const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name)
+const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 prop_4cc, const char *name)
 {
 	u32 i, count;
-	const GF_PropertyValue *res=NULL;
+	const GF_PropertyEntry *res=NULL;
 #if GF_PROPS_HASHTABLE_SIZE
 	u32 hash = gf_props_hash_djb2(prop_4cc, name);
 	if (map->hash_table[hash] ) {
@@ -749,7 +749,7 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 			GF_PropertyEntry *p = gf_list_get(map->hash_table[hash], i);
 
 			if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
-				res = &p->prop;
+				res = p;
 				break;
 			}
 		}
@@ -760,12 +760,19 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 		GF_PropertyEntry *p = gf_list_get(map->properties, i);
 
 		if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
-			res = &p->prop;
+			res = p;
 			break;
 		}
 	}
 #endif
 	return res;
+}
+
+const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name)
+{
+	const GF_PropertyEntry *ent = gf_props_get_property_entry(map, prop_4cc, name);
+	if (ent) return &ent->prop;
+	return NULL;
 }
 
 GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props, gf_filter_prop_filter filter_prop, void *cbk)
