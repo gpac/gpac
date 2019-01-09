@@ -1231,7 +1231,7 @@ sourceid_reassign:
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
 						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)));
-						u32 clen = 1+sep - sid;
+						u32 clen = (u32) (1+sep - sid);
 						strncpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
 						strcat(new_source_ids, prop_dump_buffer);
