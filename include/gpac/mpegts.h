@@ -777,6 +777,18 @@ typedef struct tag_m2ts_pes
 	Bool temi_pending;
 } GF_M2TS_PES;
 
+enum
+{
+	GF_M2_STREAMID_PROGRAM_STREAM_MAP = 0xBC,
+	GF_M2_STREAMID_PADDING = 0xBE,
+	GF_M2_STREAMID_PRIVATE_2 = 0xBF,
+	GF_M2_STREAMID_ECM = 0xF0,
+	GF_M2_STREAMID_EMM = 0xF1,
+	GF_M2_STREAMID_PROGRAM_STREAM_DIRECTORY = 0xFF,
+	GF_M2_STREAMID_DSMCC = 0xF2,
+	GF_M2_STREAMID_H222_TYPE_E = 0xF8
+};
+
 /*SDT information object*/
 typedef struct
 {
