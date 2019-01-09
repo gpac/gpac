@@ -351,7 +351,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
 
-		if (sample_count && w && h) {
+		if (sample_count && (streamtype==GF_STREAM_VISUAL)) {
 			u64 mdur = gf_isom_get_media_duration(read->mov, track);
 			mdur /= sample_count;
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ch->time_scale, (u32) mdur));
