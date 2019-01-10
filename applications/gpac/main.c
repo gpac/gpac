@@ -314,7 +314,6 @@ static void gpac_filter_help(void)
 #ifndef GPAC_DISABLE_DOC
 const char *gpac_alias =
 "The gpac command line can become quite complex when many sources or filters are used. In order to simplify this, an alias system is provided.\n"
-"The list of defined aliases can be viewed using 'gpac -hx alias'\n"
 "\n"
 "To assign an alias, use the syntax \'gpac -alias=\"NAME VALUE\"\'.\n"
 "NAME: shall be a single string, with no space.\n"
@@ -345,19 +344,43 @@ const char *gpac_alias =
 
 static void gpac_alias_help(GF_SysArgMode argmode)
 {
-	if (argmode == GF_ARGMODE_BASE) {
+	u32 i, count;
+
+	if (argmode >= GF_ARGMODE_EXPERT) {
+
 #ifndef GPAC_DISABLE_DOC
 		fprintf(stderr, "%s", gf_sys_localized("gpac", "alias", gpac_alias) );
 #else
 		fprintf(stderr, "%s", "GPAC compiled without built-in doc.\n");
 #endif
+		if (argmode == GF_ARGMODE_EXPERT) {
+			return;
+		}
+	}
+
+	if (argmode < GF_ARGMODE_EXPERT) {
+		fprintf(stderr, "Available aliases (use 'gpac -hx alias' for more info on aliases):\n");
 	} else {
-		u32 i, count = gf_opts_get_key_count("gpac.alias");
-		fprintf(stderr, "Currently defined aliases:\n");
+		fprintf(stderr, "Available aliases:\n");
+	}
+	count = gf_opts_get_key_count("gpac.alias");
+	if (count) {
 		for (i=0; i<count; i++) {
 			const char *alias = gf_opts_get_key_name("gpac.alias", i);
+			const char *alias_doc = gf_opts_get_key("gpac.aliasdoc", alias);
 			const char *alias_value = gf_opts_get_key("gpac.alias", alias);
-			fprintf(stderr, "\t%s: %s\n", alias, alias_value);
+
+			fprintf(stderr, "\t%s", alias);
+			if (argmode>=GF_ARGMODE_ADVANCED)
+				fprintf(stderr, " (%s)", alias_value);
+
+			if (alias_doc)
+				fprintf(stderr, ": %s", gf_sys_localized("gpac", "aliasdoc", alias_doc));
+			else if  (argmode<GF_ARGMODE_ADVANCED) {
+				fprintf(stderr, " (%s)", alias_value);
+			}
+
+			fprintf(stderr, "\n");
 		}
 	}
 }
@@ -414,6 +437,7 @@ GF_GPACArg gpac_args[] =
 
  	GF_DEF_ARG("p", NULL, "uses indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("alias", NULL, "assigns a new alias or remove an alias. See gpac -h alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("aliasdoc", NULL, "assigns documentation for a given alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
 	GF_DEF_ARG("wc", NULL, "writes all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "writes all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -453,6 +477,10 @@ static void gpac_usage(GF_SysArgMode argmode)
 	}
 
 	if (argmode==GF_ARGMODE_BASE) {
+		if ( gf_opts_get_key_count("gpac.aliasdoc")) {
+			gpac_alias_help(GF_ARGMODE_BASE);
+		}
+
 		fprintf(stderr, "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
 		);
@@ -693,7 +721,7 @@ static int gpac_main(int argc, char **argv)
 		else if (!strcmp(arg, "-cfg")) {
 			nothing_to_do = GF_FALSE;
 		}
-		else if (!strcmp(arg, "-alias")) {
+		else if (!strcmp(arg, "-alias") || !strcmp(arg, "-aliasdoc")) {
 			char *alias_val;
 			Bool exists;
 			if (!arg_val) {
@@ -712,7 +740,8 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(1);
 			}
 
-			gf_opts_set_key("gpac.alias", arg_val, alias_val ? alias_val+1 : NULL);
+			gf_opts_set_key(!strcmp(arg, "-alias-doc") ? "gpac.alias" : "gpac.aliasdoc", arg_val, alias_val ? alias_val+1 : NULL);
+
 			if (alias_val) alias_val[0] = ' ';
 			gpac_exit(0);
 		}
