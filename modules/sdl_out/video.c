@@ -726,7 +726,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			hw_reset = GF_TRUE;
 		}
 
-		ctx->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
+		if (!ctx->disable_vsync)
+			ctx->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
 
 		if (ctx->disable_vsync) {
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)

@@ -1033,6 +1033,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		evt.setup.height = 240;
 		evt.setup.opengl_mode = 1;
 		evt.setup.back_buffer = 1;
+		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
 #endif
