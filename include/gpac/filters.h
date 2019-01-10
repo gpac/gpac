@@ -243,6 +243,13 @@ Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provi
 */
 GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name);
 
+/*! Checks if a filter registry exists by name.
+\param session filter session
+\param name name of the filter registry to check.
+\return GF_TRUE if a filter registry exists with the given name, GF_FALSE otherwise
+*/
+Bool gf_fs_filter_exists(GF_FilterSession *session, const char *name);
+
 /*! Runs the session
 \param session filter session
 \return error if any, or GF_EOS. The last errors can be retrieved using \ref gf_fs_get_last_connect_error and \ref gf_fs_get_last_process_error

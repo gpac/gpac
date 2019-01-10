@@ -36,17 +36,26 @@ static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 
+static int alias_argc = 0;
+static char **alias_argv = NULL;
+static GF_List *args_used = NULL;
+static GF_List *args_alloc = NULL;
+
 //the default set of separators
 static char separator_set[7] = GF_FS_DEFAULT_SEPS;
 #define SEP_LINK	5
 #define SEP_FRAG	2
+#define SEP_LIST	3
 
-static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_FilterArgMode argmode);
+static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode);
 static void dump_all_props(void);
 static void dump_all_codec(GF_FilterSession *session);
 static void write_filters_options(GF_FilterSession *fsess);
 static void write_core_options();
 static void write_file_extensions();
+static int gpac_make_lang(char *filename);
+static Bool gpac_expand_alias(int argc, char **argv);
+
 
 #ifndef GPAC_DISABLE_DOC
 const char *gpac_doc =
@@ -302,8 +311,59 @@ static void gpac_filter_help(void)
 
 }
 
+#ifndef GPAC_DISABLE_DOC
+const char *gpac_alias =
+"The gpac command line can become quite complex when many sources or filters are used. In order to simplify this, an alias system is provided.\n"
+"The list of defined aliases can be viewed using 'gpac -hx alias'\n"
+"\n"
+"To assign an alias, use the syntax \'gpac -alias=\"NAME VALUE\"\'.\n"
+"NAME: shall be a single string, with no space.\n"
+"VALUE: the list of argument this alias replaces. If not set, the alias is destroyed\n"
+"\n"
+"When parsing arguments, the alias will be replace by its value.\n"
+"For example, setting 'gpac -alias=\"output aout vout\"' allows later playback using 'gpac -i src.mp4 output'\n"
+"\n"
+"Aliases can use arguments from the command line. The allowed syntaxes are:\n"
+"\t@{a}: replaced by the value of the argument with index a after the alias\n"
+"\t@{a,b}: replaced by the value of the arguments with index a and b\n"
+"\t@{-a,b}: replaced by the value of the arguments with index a and b, inserting a list separator (comma by default) between them\n"
+"\t@{+a,b}: clones the alias for each value listed, replacing in each clone with the corresponding argument\n"
+"\n"
+"The specified index can be:\n"
+"\tforward index: a strictly positive integer, 1 being the first argument after the alias\n"
+"\tbackward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by -x to rewind arguments (eg @{n-1} is the before last argument)\n"
+"\n"
+"Arguments not used by any aliases are kept on the command line, other ones are removed\n"
+"\n"
+"EX: For alias foo: src=@{N} dst=test.mp4', gpac command 'foo f1 f2' expands to 'src=f2 dst=test.mp4 f1'  \n"
+"EX: For alias list: inspect src=@{+:N}', gpac command 'list f1 f2 f3' expands to 'inspect src=f1 src=f2 src=f3'  \n"
+"EX: For alias list: inspect src=@{+2:N}', gpac command 'list f1 f2 f3' expands to 'inspect src=f2 src=f3 f1'  \n"
+"EX: For alias plist: aout vout flist:in=@{-:N}', gpac command 'plist f1 f2 f3' expands to 'aout vout plist:in=\"f1,f2,f3\"'  \n"
+"\n"
+"\n";
+#endif
 
-static void gpac_core_help(GF_FilterArgMode mode, Bool for_logs)
+static void gpac_alias_help(GF_SysArgMode argmode)
+{
+	if (argmode == GF_ARGMODE_BASE) {
+#ifndef GPAC_DISABLE_DOC
+		fprintf(stderr, "%s", gf_sys_localized("gpac", "alias", gpac_alias) );
+#else
+		fprintf(stderr, "%s", "GPAC compiled without built-in doc.\n");
+#endif
+	} else {
+		u32 i, count = gf_opts_get_key_count("gpac.alias");
+		fprintf(stderr, "Currently defined aliases:\n");
+		for (i=0; i<count; i++) {
+			const char *alias = gf_opts_get_key_name("gpac.alias", i);
+			const char *alias_value = gf_opts_get_key("gpac.alias", alias);
+			fprintf(stderr, "\t%s: %s\n", alias, alias_value);
+		}
+	}
+}
+
+
+static void gpac_core_help(GF_SysArgMode mode, Bool for_logs)
 {
 	u32 mask;
 	fprintf(stderr, "libgpac %s options:\n", for_logs ? "logs" : "core");
@@ -341,6 +401,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("h", "help -ha -hx -hh", "prints help. By default only basic options are printed; -ha prints advanced options, -hx prints expert options and -hh prints all. String parameter can be:\n"\
 			"\tempty: prints command line options help.\n"\
 			"\tdoc: prints the general filter info.\n"\
+			"\talias: prints the gpac alias syntax.\n"\
 			"\tlog: prints the log system help.\n"\
 			"\tcore: prints the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options.\n"\
 			"\tfilters: prints name of all available filters.\n"\
@@ -352,6 +413,7 @@ GF_GPACArg gpac_args[] =
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "uses indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("alias", NULL, "assigns a new alias or remove an alias. See gpac -h alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
 	GF_DEF_ARG("wc", NULL, "writes all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "writes all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -362,7 +424,7 @@ GF_GPACArg gpac_args[] =
 };
 
 
-static void gpac_usage(GF_FilterArgMode argmode)
+static void gpac_usage(GF_SysArgMode argmode)
 {
 	u32 i=0;
 	if ((argmode != GF_ARGMODE_ADVANCED) && (argmode != GF_ARGMODE_EXPERT) ) {
@@ -454,114 +516,32 @@ static void parse_sep_set(const char *arg, Bool *override_seps)
 	if (len>=6) separator_set[5] = arg[5];
 }
 
-static Bool lang_updated = GF_FALSE;
-static void gpac_lang_set_key(GF_Config *cfg, const char *sec_name,  const char *key_name, const char *key_val)
+
+
+static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 {
-	char szKeyCRC[1024];
-	char szKeyCRCVal[100];
-	const char *opt = gf_cfg_get_key(cfg, sec_name, key_name);
-	u32 crc_key = 0;
-	if (opt) {
-		sprintf(szKeyCRC, "%s_crc", key_name);
-		const char *crc_opt = gf_cfg_get_key(cfg, sec_name, szKeyCRC);
-		if (crc_opt) {
-			u32 old_crc = atoi(crc_opt);
-			crc_key = gf_crc_32(key_val, (u32) strlen(key_val));
-			if (old_crc != crc_key) {
-				fprintf(stderr, "Warning: description has changed for %s:%s (crc %d - crc in file %d) - please check translation\n", sec_name, key_name, crc_key, old_crc);
-			}
-			return;
+	if (alias_argv) {
+		while (gf_list_count(args_alloc)) {
+			gf_free(gf_list_pop_back(args_alloc));
 		}
+		gf_list_del(args_alloc);
+		gf_list_del(args_used);
+		gf_free(alias_argv);
 	}
-	if (!opt) {
-		if (!crc_key) {
-			sprintf(szKeyCRC, "%s_crc", key_name);
-			crc_key = gf_crc_32(key_val, (u32) strlen(key_val));
-		}
-		sprintf(szKeyCRCVal, "%u", crc_key);
-		gf_cfg_set_key(cfg, sec_name, key_name, key_val);
-		gf_cfg_set_key(cfg, sec_name, szKeyCRC, szKeyCRCVal);
-		lang_updated = GF_TRUE;
-	}
-}
-static int gpac_make_lang(char *filename)
-{
-	GF_Config *cfg;
-	u32 i;
-	gf_sys_init(GF_MemTrackerNone, NULL);
-	GF_FilterSession *session = gf_fs_new_defaults(0);
-	if (!session) {
-		fprintf(stderr, "failed to load session, cannot create language file\n");
-		return 1;
-	}
-	if (!gf_file_exists(filename)) {
-		FILE *f = gf_fopen(filename, "wt");
-		if (!f) {
-			fprintf(stderr, "failed to open %s in write mode\n", filename);
-			return 1;
-		}
-		gf_fclose(f);
-	}
-
-	cfg = gf_cfg_new(NULL, filename);
-
-	//print gpac help
-	i = 0;
-	while (gpac_args[i].name) {
-		gpac_lang_set_key(cfg, "gpac", gpac_args[i].name, gpac_args[i].description);
-		i++;
-	}
-
-	//print gpac doc
-	gpac_lang_set_key(cfg, "gpac", "doc", gpac_doc);
-
-	//print libgpac core help
-	const GF_GPACArg *args = gf_sys_get_options();
-	i = 0;
-
-	while (args[i].name) {
-		gpac_lang_set_key(cfg, "core", args[i].name, args[i].description);
-		i++;
-	}
-
-	//print properties
-	i=0;
-	const GF_BuiltInProperty *prop_info;
-	while ((prop_info = gf_props_get_description(i))) {
-		i++;
-		if (! prop_info->name || !prop_info->description) continue;
-		gpac_lang_set_key(cfg, "properties", prop_info->name, prop_info->description);
-	}
-
-	//print filters
-	u32 count = gf_fs_filters_registry_count(session);
-	for (i=0; i<count; i++) {
-		u32 j=0;
-		const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
-
-		if (reg->description) {
-			gpac_lang_set_key(cfg, reg->name, "desc", reg->description);
-		}
-		if (reg->help) {
-			gpac_lang_set_key(cfg, reg->name, "help", reg->help);
-		}
-		while (reg->args && reg->args[j].arg_name) {
-			gpac_lang_set_key(cfg, reg->name, reg->args[j].arg_name, reg->args[j].arg_desc);
-			j++;
-		}
-	}
-
-	if (!lang_updated) {
-		gf_cfg_discard_changes(cfg);
-		fprintf(stderr, "lang file %s has not been modified\n", filename);
-	} else {
-		fprintf(stderr, "lang file generated in %s\n", filename);
-	}
-	gf_cfg_del(cfg);
-
 	gf_sys_close();
+	if (code) return code;
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (gf_memory_size() || gf_file_handles_count() ) {
+		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+		gf_memory_print();
+		return 2;
+	}
+#endif
 	return 0;
 }
+
+#define gpac_exit(_code) return gpac_exit_fun(_code, alias_argv, alias_argc)
 
 static int gpac_main(int argc, char **argv)
 {
@@ -576,13 +556,14 @@ static int gpac_main(int argc, char **argv)
 	s32 link_prev_filter = -1;
 	char *link_prev_filter_ext=NULL;
 	GF_List *loaded_filters=NULL;
-	GF_FilterArgMode argmode = GF_ARGMODE_BASE;
+	GF_SysArgMode argmode = GF_ARGMODE_BASE;
 	u32 nb_filters = 0;
 	Bool nothing_to_do = GF_TRUE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
+	Bool has_alias = GF_FALSE;
 
 	//look for mem track and profile, and also process all helpers
 	for (i=1; i<argc; i++) {
@@ -605,12 +586,29 @@ static int gpac_main(int argc, char **argv)
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
 
+	if (gf_opts_get_key_count("gpac.alias")) {
+		for (i=1; i<argc; i++) {
+			char *arg = argv[i];
+			if (gf_opts_get_key("gpac.alias", arg) != NULL) {
+				has_alias = GF_TRUE;
+				break;
+			}
+		}
+		if (has_alias) {
+			if (! gpac_expand_alias(argc, argv) ) {
+				gpac_exit(1);
+			}
+			argc = alias_argc;
+			argv = alias_argv;
+		}
+	}
+
+
 	//this will parse default args
 	e = gf_sys_set_args(argc, (const char **) argv);
 	if (e) {
 		fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
-		gf_sys_close();
-		return 1;
+		gpac_exit(1);
 	}
 
 
@@ -629,24 +627,22 @@ static int gpac_main(int argc, char **argv)
 
 			if (i+1==argc) {
 				gpac_usage(argmode);
-				gf_sys_close();
-				return 0;
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "log")) {
 				gpac_core_help(GF_ARGMODE_ALL, GF_TRUE);
-				gf_sys_close();
-				return 0;
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "core")) {
 				gpac_core_help(argmode, GF_FALSE);
-				gf_sys_close();
-				return 0;
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "doc")) {
 				gpac_filter_help();
-				gf_sys_close();
-				return 0;
+				gpac_exit(0);
+			} else if (!strcmp(argv[i+1], "alias")) {
+				gpac_alias_help(argmode);
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "props")) {
 				dump_all_props();
-				gf_sys_close();
-				return 0;
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "codecs")) {
 				dump_codecs = GF_TRUE;
 				i++;
@@ -660,7 +656,7 @@ static int gpac_main(int argc, char **argv)
 	        		"Enabled features: %s\n" \
 	        		"Disabled features: %s\n", gpac_enabled_features(), gpac_disabled_features()
 				);
-				return 0;
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "filters")) {
 				list_filters = 1;
 				i++;
@@ -697,6 +693,29 @@ static int gpac_main(int argc, char **argv)
 		else if (!strcmp(arg, "-cfg")) {
 			nothing_to_do = GF_FALSE;
 		}
+		else if (!strcmp(arg, "-alias")) {
+			char *alias_val;
+			Bool exists;
+			if (!arg_val) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("-alias does not have any argument, check usage \"gpac -h\"\n"));
+				gpac_exit(1);
+			}
+			alias_val = arg_val ? strchr(arg_val, ' ') : NULL;
+			if (alias_val) alias_val[0] = 0;
+
+			session = gf_fs_new_defaults(sflags);
+			exists = gf_fs_filter_exists(session, arg_val);
+			gf_fs_del(session);
+			if (exists) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("alias %s has the same name as an existing filter, not allowed\n", arg_val));
+				if (alias_val) alias_val[0] = ' ';
+				gpac_exit(1);
+			}
+
+			gf_opts_set_key("gpac.alias", arg_val, alias_val ? alias_val+1 : NULL);
+			if (alias_val) alias_val[0] = ' ';
+			gpac_exit(0);
+		}
 		else if (!strncmp(arg, "-seps=", 3)) {
 			parse_sep_set(arg_val, &override_seps);
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
@@ -707,10 +726,10 @@ static int gpac_main(int argc, char **argv)
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", check usage \"gpac -h\"\n", arg));
-				gf_sys_close();
-				return 1;
+				gpac_exit(1);
 			}
 		}
+
 
 		if (arg_val) {
 			arg_val--;
@@ -728,7 +747,7 @@ restart:
 	session = gf_fs_new_defaults(sflags);
 
 	if (!session) {
-		return 1;
+		gpac_exit(1);
 	}
 	if (override_seps) gf_fs_set_separators(session, separator_set);
 	if (load_test_filters) gf_fs_register_test_filters(session);
@@ -869,21 +888,15 @@ exit:
 		goto restart;
 	}
 
-	gf_sys_close();
-	if (e<0) return 1;
-
-#ifdef GPAC_MEMORY_TRACKING
-	if (gf_memory_size() || gf_file_handles_count() ) {
-		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
-		gf_memory_print();
-		return 2;
-	}
-#endif
-	return 0;
+	gpac_exit(e<0 ? 1 : 0);
 }
 
 GF_MAIN_FUNC(gpac_main)
 
+
+/*********************************************************
+		Filter and property info/dump functions
+*********************************************************/
 
 static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 {
@@ -919,7 +932,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 	}
 }
 
-static void print_filter(const GF_FilterRegister *reg, GF_FilterArgMode argmode)
+static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 {
 	fprintf(stderr, "Name: %s\n", reg->name);
 #ifndef GPAC_DISABLE_DOC
@@ -1010,7 +1023,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_FilterArgMode argmode)
 	fprintf(stderr, "\n");
 }
 
-static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_FilterArgMode argmode)
+static void print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode)
 {
 	Bool found = GF_FALSE;
 	u32 i, count = gf_fs_filters_registry_count(session);
@@ -1110,6 +1123,10 @@ static void dump_all_codec(GF_FilterSession *session)
 	fprintf(stderr, "\n");
 }
 
+/*********************************************************
+			Config file writing functions
+*********************************************************/
+
 static void write_core_options()
 {
 	//print libgpac core help
@@ -1164,4 +1181,300 @@ static void write_filters_options(GF_FilterSession *fsess)
 			}
 		}
 	}
+}
+
+/*********************************************************
+		Language file creation / update functions
+*********************************************************/
+
+static Bool lang_updated = GF_FALSE;
+static void gpac_lang_set_key(GF_Config *cfg, const char *sec_name,  const char *key_name, const char *key_val)
+{
+	char szKeyCRC[1024];
+	char szKeyCRCVal[100];
+	const char *opt = gf_cfg_get_key(cfg, sec_name, key_name);
+	u32 crc_key = 0;
+	if (opt) {
+		sprintf(szKeyCRC, "%s_crc", key_name);
+		const char *crc_opt = gf_cfg_get_key(cfg, sec_name, szKeyCRC);
+		if (crc_opt) {
+			u32 old_crc = atoi(crc_opt);
+			crc_key = gf_crc_32(key_val, (u32) strlen(key_val));
+			if (old_crc != crc_key) {
+				fprintf(stderr, "Warning: description has changed for %s:%s (crc %d - crc in file %d) - please check translation\n", sec_name, key_name, crc_key, old_crc);
+			}
+			return;
+		}
+	}
+	if (!opt) {
+		if (!crc_key) {
+			sprintf(szKeyCRC, "%s_crc", key_name);
+			crc_key = gf_crc_32(key_val, (u32) strlen(key_val));
+		}
+		sprintf(szKeyCRCVal, "%u", crc_key);
+		gf_cfg_set_key(cfg, sec_name, key_name, key_val);
+		gf_cfg_set_key(cfg, sec_name, szKeyCRC, szKeyCRCVal);
+		lang_updated = GF_TRUE;
+	}
+}
+static int gpac_make_lang(char *filename)
+{
+	GF_Config *cfg;
+	u32 i;
+	gf_sys_init(GF_MemTrackerNone, NULL);
+	GF_FilterSession *session = gf_fs_new_defaults(0);
+	if (!session) {
+		fprintf(stderr, "failed to load session, cannot create language file\n");
+		return 1;
+	}
+	if (!gf_file_exists(filename)) {
+		FILE *f = gf_fopen(filename, "wt");
+		if (!f) {
+			fprintf(stderr, "failed to open %s in write mode\n", filename);
+			return 1;
+		}
+		gf_fclose(f);
+	}
+
+	cfg = gf_cfg_new(NULL, filename);
+
+	//print gpac help
+	i = 0;
+	while (gpac_args[i].name) {
+		gpac_lang_set_key(cfg, "gpac", gpac_args[i].name, gpac_args[i].description);
+		i++;
+	}
+
+	//print gpac doc
+	gpac_lang_set_key(cfg, "gpac", "doc", gpac_doc);
+
+	//print libgpac core help
+	const GF_GPACArg *args = gf_sys_get_options();
+	i = 0;
+
+	while (args[i].name) {
+		gpac_lang_set_key(cfg, "core", args[i].name, args[i].description);
+		i++;
+	}
+
+	//print properties
+	i=0;
+	const GF_BuiltInProperty *prop_info;
+	while ((prop_info = gf_props_get_description(i))) {
+		i++;
+		if (! prop_info->name || !prop_info->description) continue;
+		gpac_lang_set_key(cfg, "properties", prop_info->name, prop_info->description);
+	}
+
+	//print filters
+	u32 count = gf_fs_filters_registry_count(session);
+	for (i=0; i<count; i++) {
+		u32 j=0;
+		const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
+
+		if (reg->description) {
+			gpac_lang_set_key(cfg, reg->name, "desc", reg->description);
+		}
+		if (reg->help) {
+			gpac_lang_set_key(cfg, reg->name, "help", reg->help);
+		}
+		while (reg->args && reg->args[j].arg_name) {
+			gpac_lang_set_key(cfg, reg->name, reg->args[j].arg_name, reg->args[j].arg_desc);
+			j++;
+		}
+	}
+
+	if (!lang_updated) {
+		gf_cfg_discard_changes(cfg);
+		fprintf(stderr, "lang file %s has not been modified\n", filename);
+	} else {
+		fprintf(stderr, "lang file generated in %s\n", filename);
+	}
+	gf_cfg_del(cfg);
+
+	gf_sys_close();
+	return 0;
+}
+
+
+/*********************************************************
+			Alias functions
+*********************************************************/
+
+static GFINLINE void push_arg(char *_arg, Bool _dup)
+{
+	alias_argv = gf_realloc(alias_argv, sizeof(char**) * (alias_argc+1));\
+	alias_argv[alias_argc] = _dup ? gf_strdup(_arg) : _arg; \
+	if (_dup) {
+		if (!args_alloc) args_alloc = gf_list_new();
+		gf_list_add(args_alloc, alias_argv[alias_argc]);
+	}
+	alias_argc++;
+}
+
+static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int arg_idx, int argc, char **argv);
+
+static Bool check_param_extension(char *szArg, int arg_idx, int argc, char **argv)
+{
+	char *par_start = strstr(szArg, "@{");
+	if (par_start) {
+		char szPar[100];
+		Bool ok;
+		char *par_end = strchr(par_start, '}');
+		if (!par_end) {
+			fprintf(stderr, "Bad format %s for alias parameter, expecting @{N}\n", szArg);
+			return GF_FALSE;
+		}
+		par_end[0] = 0;
+		strcpy(szPar, par_start+2);
+		par_start[0] = 0;
+
+	 	ok = gpac_expand_alias_arg(szPar, szArg, par_end+1, arg_idx, argc, argv);
+	 	if (!ok) return GF_FALSE;
+		par_start[0] = '@';
+		par_end[0] = '}';
+		return GF_TRUE;
+	}
+	//done, push arg
+	push_arg(szArg, 1);
+	return GF_TRUE;
+}
+
+static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int arg_idx, int argc, char **argv)
+{
+	char szArg[1024];
+	char szSepList[2];
+	char *oparam = param;
+	szSepList[0] = separator_set[SEP_LIST];
+	szSepList[1] = 0;
+
+	Bool is_list = param[0]=='-';
+	Bool is_expand = param[0]=='+';
+
+	if (is_list || is_expand) param++;
+	strcpy(szArg, prefix);
+	while (param) {
+		u32 idx=0;
+		u32 last_idx=0;
+		char *an_arg;
+		char *sep = strchr(param, ',');
+		if (sep) sep[0]=0;
+
+		if ((param[0]=='n') || (param[0]=='N')) {
+			idx = argc - arg_idx - 1;
+			if (param[1]=='-') {
+				u32 diff = atoi(param+2);
+				if (diff>=idx) {
+					if (sep) sep[0]=',';
+					fprintf(stderr, "Bad usage for alias parameter %s: not enough parameters\n", oparam);
+					return GF_FALSE;
+				}
+				idx -= diff;
+			}
+		} else {
+			char *lsep = strchr(param, ':');
+			if (lsep) {
+				lsep[0] = 0;
+				if (strlen(param))
+					idx = atoi(param);
+				else
+					idx=1;
+
+				lsep[0] = ':';
+				if ((lsep[1]=='n') || (lsep[1]=='N')) {
+
+					last_idx = argc - arg_idx - 1;
+					if (lsep[2]=='-') {
+						u32 diff = atoi(lsep+3);
+						if (diff>=last_idx) {
+							fprintf(stderr, "Bad usage for alias parameter %s: not enough parameters\n", oparam);
+							return GF_FALSE;
+						}
+						last_idx -= diff;
+					}
+				} else {
+					last_idx = atoi(lsep+1);
+				}
+			} else {
+				idx = atoi(param);
+			}
+		}
+		if (!idx) {
+			if (sep) sep[0]=',';
+			fprintf(stderr, "Bad format for alias parameter %s: cannot extract argument index\n", oparam);
+			return GF_FALSE;
+		}
+		if (idx+arg_idx >= argc) {
+			if (sep) sep[0]=',';
+			fprintf(stderr, "Bad format for alias parameter %s: argment out of bounds (not enough paramteters?)\n", oparam);
+			return GF_FALSE;
+		}
+
+		if (!last_idx) last_idx=idx;
+		for (; idx<=last_idx;idx++) {
+			an_arg = argv[idx+arg_idx];
+
+			if (!args_used) args_used = gf_list_new();
+			gf_list_add(args_used, an_arg);
+
+			if (is_expand) {
+				strcpy(szArg, prefix);
+				strcat(szArg, an_arg);
+				strcat(szArg, suffix);
+
+				Bool ok = check_param_extension(szArg, arg_idx, argc, argv);
+				if (!ok) {
+					if (sep) sep[0]=',';
+					return GF_FALSE;
+				}
+			} else {
+				strcat(szArg, an_arg);
+				if (is_list && (idx<last_idx)) {
+					strcat(szArg, szSepList);
+				}
+			}
+		}
+
+		if (!sep) break;
+		sep[0]=',';
+		param = sep+1;
+		if (is_list) {
+			strcat(szArg, szSepList);
+		}
+	}
+
+	if (is_expand)
+		return GF_TRUE;
+
+	strcat(szArg, suffix);
+
+	return check_param_extension(szArg, arg_idx, argc, argv);
+}
+
+static Bool gpac_expand_alias(int argc, char **argv)
+{
+	u32 i;
+
+	for (i=0; i<argc; i++) {
+		char *arg = argv[i];
+		char *alias = (char *) gf_opts_get_key("gpac.alias", arg);
+		if (alias == NULL) {
+			if (gf_list_find(args_used, arg)<0) {
+				push_arg(arg, 0);
+			}
+			continue;
+		}
+		char *sep;
+		while (alias) {
+			sep = strchr(alias, ' ');
+			if (sep) sep[0] = 0;
+			Bool ok = check_param_extension(alias, i, argc, argv);
+			if (sep) sep[0] = ' ';
+			if (!ok) return GF_FALSE;
+			if (!sep) break;
+			alias = sep+1;
+		}
+
+	}
+	return GF_TRUE;
 }

@@ -136,8 +136,10 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 
 	while (!feof(file)) {
 		u32 read, nb_pass;
+		char *fsep;
 		ret = fgets(line, line_alloc, file);
 		read = (u32) strlen(line);
+
 		nb_pass = 1;
 		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
@@ -149,7 +151,8 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		if (!ret) continue;
 
 		/* get rid of the end of line stuff */
-		if (!strstr(line, "=@")) {
+		fsep = strchr(line, '=');
+		if (!fsep || (fsep[1]!='@')) {
 			while (!in_multiline) {
 				u32 len = (u32) strlen(line);
 				if (!len) break;
