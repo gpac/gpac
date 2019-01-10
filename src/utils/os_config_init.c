@@ -1230,7 +1230,7 @@ void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem)
 
 
 GF_EXPORT
-void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags)
+void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags)
 {
 	u32 i=0;
 	const GF_GPACArg *args = gf_sys_get_options();
