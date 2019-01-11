@@ -447,6 +447,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("we", NULL, "writes all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wf", NULL, "writes all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wfx", NULL, "writes all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("np", NULL, "disables prompt interaction", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 
 	{0}
 };
@@ -598,6 +599,7 @@ static int gpac_main(int argc, char **argv)
 	Bool dump_codecs = GF_FALSE;
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
+	Bool no_prompt = GF_FALSE;
 
 	//look for mem track and profile, and also process all helpers
 	for (i=1; i<argc; i++) {
@@ -757,6 +759,8 @@ static int gpac_main(int argc, char **argv)
 			i++;
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
+		} else if (!strcmp(arg, "-np")) {
+			no_prompt = GF_TRUE;
 		} else if (arg[0]=='-') {
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
@@ -764,7 +768,6 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(1);
 			}
 		}
-
 
 		if (arg_val) {
 			arg_val--;
@@ -902,9 +905,10 @@ restart:
 		}
 		goto exit;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'h' for help\n"));
-
-	gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
+	if (!no_prompt) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'h' for help\n"));
+		gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
+	}
 	e = gf_fs_run(session);
 	if (e>0) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(session);
