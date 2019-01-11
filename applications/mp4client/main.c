@@ -1715,7 +1715,7 @@ int mp4client_main(int argc, char **argv)
 					e = gf_dm_sess_process(sess);
 					if (!e) {
 						strncpy(the_url, gf_dm_sess_get_cache_name(sess), sizeof(the_url) - 1);
-						the_url[sizeof(the_cfg) - 1] = 0;
+						the_url[sizeof(the_url) - 1] = 0;
 					}
 					gf_dm_sess_del(sess);
 				}
