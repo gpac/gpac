@@ -2071,9 +2071,6 @@ char *init_seg_ext = NULL;
 const char *dash_title = NULL;
 const char *dash_source = NULL;
 const char *dash_more_info = NULL;
-#if !defined(GPAC_DISABLE_STREAMING)
-const char *grab_m2ts = NULL;
-#endif
 
 FILE *logfile = NULL;
 static u32 run_for=0;
@@ -3038,9 +3035,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 #if !defined(GPAC_DISABLE_STREAMING)
 		else if (!stricmp(arg, "-grab-ts")) {
-			CHECK_NEXT_ARG
-			grab_m2ts = argv[i + 1];
-			i++;
+			fprintf(stderr, "Deprecated option - use gpac application\n");
+			return mp4box_cleanup(1);
 		}
 #endif
 #ifndef GPAC_DISABLE_ATSC
@@ -3890,13 +3886,6 @@ int mp4boxMain(int argc, char **argv)
 		e = rip_mpd(inName);
 		return mp4box_cleanup(e ? 1 : 0);
 	}
-
-#if !defined(GPAC_DISABLE_STREAMING)
-	if (grab_m2ts) {
-		return grab_live_m2ts(grab_m2ts, inName);
-	}
-#endif
-
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 	if (do_wget != NULL) {
