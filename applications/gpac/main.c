@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -315,7 +315,7 @@ static void gpac_filter_help(void)
 const char *gpac_alias =
 "The gpac command line can become quite complex when many sources or filters are used. In order to simplify this, an alias system is provided.\n"
 "\n"
-"To assign an alias, use the syntax \'gpac -alias=\"NAME VALUE\"\'.\n"
+"To assign an alias, use the syntax 'gpac -alias=\"NAME VALUE\"'.\n"
 "NAME: shall be a single string, with no space.\n"
 "VALUE: the list of argument this alias replaces. If not set, the alias is destroyed\n"
 "\n"
@@ -339,6 +339,8 @@ const char *gpac_alias =
 "EX: For alias list: inspect src=@{+2:N}', gpac command 'list f1 f2 f3' expands to 'inspect src=f2 src=f3 f1'  \n"
 "EX: For alias plist: aout vout flist:in=@{-:N}', gpac command 'plist f1 f2 f3' expands to 'aout vout plist:in=\"f1,f2,f3\"'  \n"
 "\n"
+"Alias documentation can be set using 'gpac -aliasdoc=\"NAME VALUE\"', with NAME the alias name and VALUE the documentation.\n"
+"Alias documentation will then appear in gpac help.\n"
 "\n";
 #endif
 
@@ -436,8 +438,8 @@ GF_GPACArg gpac_args[] =
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "uses indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("alias", NULL, "assigns a new alias or remove an alias. See gpac -h alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("aliasdoc", NULL, "assigns documentation for a given alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("alias", NULL, "assigns a new alias or remove an alias. Can be specified several times. See gpac -h alias", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("aliasdoc", NULL, "assigns documentation for a given alias (optionnal). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
 	GF_DEF_ARG("wc", NULL, "writes all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "writes all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -478,10 +480,11 @@ static void gpac_usage(GF_SysArgMode argmode)
 
 	if (argmode==GF_ARGMODE_BASE) {
 		if ( gf_opts_get_key_count("gpac.aliasdoc")) {
+			fprintf(stderr, "\n");
 			gpac_alias_help(GF_ARGMODE_BASE);
 		}
 
-		fprintf(stderr, "gpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
+		fprintf(stderr, "\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
 	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
 		);
 	}
@@ -592,6 +595,7 @@ static int gpac_main(int argc, char **argv)
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
 	Bool has_alias = GF_FALSE;
+	Bool alias_set = GF_FALSE;
 
 	//look for mem track and profile, and also process all helpers
 	for (i=1; i<argc; i++) {
@@ -743,7 +747,7 @@ static int gpac_main(int argc, char **argv)
 			gf_opts_set_key(!strcmp(arg, "-alias-doc") ? "gpac.alias" : "gpac.aliasdoc", arg_val, alias_val ? alias_val+1 : NULL);
 
 			if (alias_val) alias_val[0] = ' ';
-			gpac_exit(0);
+			alias_set = GF_TRUE;
 		}
 		else if (!strncmp(arg, "-seps=", 3)) {
 			parse_sep_set(arg_val, &override_seps);
@@ -764,6 +768,10 @@ static int gpac_main(int argc, char **argv)
 			arg_val--;
 			arg_val[0]='=';
 		}
+	}
+
+	if (alias_set) {
+		gpac_exit(0);
 	}
 
 	if (dump_stats && gf_sys_get_rti(0, &rti, 0) ) {
@@ -1276,6 +1284,9 @@ static int gpac_make_lang(char *filename)
 
 	//print gpac doc
 	gpac_lang_set_key(cfg, "gpac", "doc", gpac_doc);
+
+	//print gpac alias doc
+	gpac_lang_set_key(cfg, "gpac", "alias", gpac_alias);
 
 	//print libgpac core help
 	const GF_GPACArg *args = gf_sys_get_options();
