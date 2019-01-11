@@ -252,7 +252,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	fsess->default_pid_buffer_max_units = 1;
 	fsess->max_resolve_chain_len = 6;
 
-	fsess->links_mx = gf_mx_new("DijsktraSet");
+	if (nb_threads)
+		fsess->links_mx = gf_mx_new("FilterRegistryGraph");
 	fsess->links = gf_list_new();
 
 

@@ -96,11 +96,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
 		filter->pcks_mx = gf_mx_new(szName);
 	}
+
 	//for now we always use a lock on the filter task lists
-	//TODO: this is our only lock in lock-free mode, we need to find a way to avoid this lock
+	//this mutex protects the task list and the number of process virtual tasks
+	//we cannot remove it in non-threaded mode since we have no garantee that a filter won't use threading on its own
 	snprintf(szName, 200, "Filter%sTasks", filter->freg->name);
 	filter->tasks_mx = gf_mx_new(szName);
-
 
 	filter->tasks = gf_fq_new(filter->tasks_mx);
 
@@ -256,7 +257,8 @@ void gf_filter_del(GF_Filter *filter)
 	gf_fq_del(filter->pcks_alloc_reservoir, gf_filterpacket_del);
 
 	gf_mx_del(filter->pcks_mx);
-	gf_mx_del(filter->tasks_mx);
+	if (filter->tasks_mx)
+		gf_mx_del(filter->tasks_mx);
 
 	if (filter->name) gf_free(filter->name);
 	if (filter->id) gf_free(filter->id);
