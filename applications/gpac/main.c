@@ -600,6 +600,7 @@ static int gpac_main(int argc, char **argv)
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
 	Bool no_prompt = GF_FALSE;
+	u32 loops_done = 0;
 
 	//look for mem track and profile, and also process all helpers
 	for (i=1; i<argc; i++) {
@@ -928,6 +929,8 @@ exit:
 
 	if (!e && nb_loops) {
 		if (nb_loops>0) nb_loops--;
+		loops_done++;
+		fprintf(stderr, "session done, restarting (loop %d)\n", loops_done);
 		goto restart;
 	}
 
