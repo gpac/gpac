@@ -1453,7 +1453,7 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 			fprintf(stderr, "Bad format for alias parameter %s: cannot extract argument index\n", oparam);
 			return GF_FALSE;
 		}
-		if (idx+arg_idx >= argc) {
+		if ((int) idx + arg_idx >= argc) {
 			if (sep) sep[0]=',';
 			fprintf(stderr, "Bad format for alias parameter %s: argment out of bounds (not enough paramteters?)\n", oparam);
 			return GF_FALSE;
@@ -1504,7 +1504,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 {
 	u32 i;
 
-	for (i=0; i<argc; i++) {
+	for (i=0; i< (u32) argc; i++) {
 		char *arg = argv[i];
 		char *alias = (char *) gf_opts_get_key("gpac.alias", arg);
 		if (alias == NULL) {
