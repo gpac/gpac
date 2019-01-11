@@ -613,6 +613,27 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 		gf_cfg_set_key(cfg, "core", "vert-shader", gui_path);
 		sprintf(gui_path, "%s%cshaders%cfragment.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		gf_cfg_set_key(cfg, "core", "frag-shader", gui_path);
+
+		//aliases and other defaults
+		sprintf(gui_path, "%s%cdefault.cfg", szPath, GF_PATH_SEPARATOR);
+		if (gf_file_exists(gui_path)) {
+			GF_Config *aliases = gf_cfg_new(NULL, gui_path);
+			if (aliases) {
+				u32 i, count = gf_cfg_get_section_count(aliases);
+				for (i=0; i<count; i++) {
+					u32 j, count2;
+					const char *sec_name = gf_cfg_get_section_name(aliases, i);
+					if (!sec_name) continue;
+					count2 = gf_cfg_get_key_count(aliases, sec_name);
+					for (j=0; j<count2; j++) {
+						const char *name = gf_cfg_get_key_name(aliases, sec_name, j);
+						const char *val = gf_cfg_get_key(aliases, sec_name, name);
+						gf_cfg_set_key(cfg, sec_name, name, val);
+					}
+				}
+			}
+			gf_cfg_del(aliases);
+		}
 	}
 
 	/*store and reload*/
