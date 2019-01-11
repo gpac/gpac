@@ -2968,9 +2968,6 @@ fi
 if test "$enable_sanitizer" = "yes" ; then
 CFLAGS="$CFLAGS -fsanitize=address,undefined"
 LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
-if test "$darwin" = "yes" ; then
-LDFLAGS="$LDFLAGS -lclang_rt.ubsan_osx"
-fi
 fi
 
 
