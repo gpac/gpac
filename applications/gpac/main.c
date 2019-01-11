@@ -360,13 +360,13 @@ static void gpac_alias_help(GF_SysArgMode argmode)
 		}
 	}
 
-	if (argmode < GF_ARGMODE_EXPERT) {
-		fprintf(stderr, "Available aliases (use 'gpac -hx alias' for more info on aliases):\n");
-	} else {
-		fprintf(stderr, "Available aliases:\n");
-	}
 	count = gf_opts_get_key_count("gpac.alias");
 	if (count) {
+		if (argmode < GF_ARGMODE_EXPERT) {
+			fprintf(stderr, "Available aliases (use 'gpac -hx alias' for more info on aliases):\n");
+		} else {
+			fprintf(stderr, "Available aliases:\n");
+		}
 		for (i=0; i<count; i++) {
 			const char *alias = gf_opts_get_key_name("gpac.alias", i);
 			const char *alias_doc = gf_opts_get_key("gpac.aliasdoc", alias);
@@ -384,6 +384,8 @@ static void gpac_alias_help(GF_SysArgMode argmode)
 
 			fprintf(stderr, "\n");
 		}
+	} else {
+		fprintf(stderr, "No aliases defined - use 'gpac -hx alias' for more info on aliases\n");
 	}
 }
 
