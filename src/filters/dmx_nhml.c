@@ -1101,7 +1101,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (f) {
 				if (!ctx->samp_buffer_size) {
 					gf_fseek(f, 0, SEEK_END);
-					assert(gf_ftell(f) < 1<<31);
+					assert(gf_ftell(f) < 0x80000000);
 					ctx->samp_buffer_size = (u32) gf_ftell(f);
 				}
 				gf_fseek(f, offset, SEEK_SET);
@@ -1220,7 +1220,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 							return GF_URL_ERROR;
 						}
 						gf_fseek(f, 0, SEEK_END);
-						assert(gf_ftell(f) < (1 << 31));
+						assert(gf_ftell(f) < 0x80000000);
 						subsMediaFileSize = (u32)gf_ftell(f);
 
 						//send continuation frame

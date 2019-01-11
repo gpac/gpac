@@ -398,7 +398,10 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.arg_type = (opt->type==AV_OPT_TYPE_INT64) ? GF_PROP_LSINT : GF_PROP_SINT;
 		sprintf(szDef, LLD, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
-		sprintf(szDef, LLD"-"LLD, (s64) opt->min, (s64) opt->max);
+		if (opt->max>=(Double) GF_INT_MAX)
+			sprintf(szDef, LLD"-I", (s64) opt->min);
+		else
+			sprintf(szDef, LLD"-"LLD, (s64) opt->min, (s64) opt->max);
 		arg.min_max_enum = gf_strdup(szDef);
 		break;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
@@ -407,7 +410,10 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.arg_type = GF_PROP_LUINT;
 		sprintf(szDef, LLU, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
-		sprintf(szDef, LLU"-"LLU, (u64) opt->min, (u64) opt->max);
+		if (opt->max>=(Double) GF_INT_MAX)
+			sprintf(szDef, LLU"-I", (s64) opt->min);
+		else
+			sprintf(szDef, LLU"-"LLU, (u64) opt->min, (u64) opt->max);
 		arg.min_max_enum = gf_strdup(szDef);
 		break;
 	case AV_OPT_TYPE_BOOL:

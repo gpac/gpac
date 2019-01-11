@@ -161,7 +161,7 @@ typedef struct __gf_filter_pck_inst
 //packet flags
 enum
 {
-	GF_PCKF_BLOCK_START = 1<<31,
+	GF_PCKF_BLOCK_START = 0x80000000, //1<<31
 	GF_PCKF_BLOCK_END = 1<<30,
 	GF_PCKF_PROPS_CHANGED = 1<<29,
 	GF_PCKF_INFO_CHANGED = 1<<28,

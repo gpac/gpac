@@ -211,7 +211,7 @@ enum
 	GF_IMPORT_SAMPLE_DEPS  = 1<<29,
 
 	/*! print filter session stats at the end of the import*/
-	GF_IMPORT_FILTER_STATS = 1<<31
+	GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };
 
 
@@ -1066,7 +1066,7 @@ enum
 	/*! ony probes extraction format*/
 	GF_EXPORT_PROBE_ONLY = (1<<30),
 	/*when set by user during export, will abort*/
-	GF_EXPORT_DO_ABORT = (1<<31),
+	GF_EXPORT_DO_ABORT = 0x80000000 //(1<<31)
 };
 
 /*!

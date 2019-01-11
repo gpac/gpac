@@ -412,7 +412,7 @@ start:
 
 	/* Then, if compression is asked, we do it */
 	buffer_len = (u32)fsize;
-	assert(fsize < 1<<31);
+	assert(fsize < 0x80000000);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len));
 	if (compress_dims) {
 #ifndef GPAC_DISABLE_ZLIB

@@ -98,7 +98,7 @@ static void swf_init_decompress(SWFReader *read)
 	uLongf destLen;
 	char *src, *dst;
 
-	assert(gf_bs_get_size(read->bs)-8 < 1<<31); /*must fit within 32 bits*/
+	assert(gf_bs_get_size(read->bs)-8 < 0x80000000); /*must fit within 32 bits*/
 	size = (u32) gf_bs_get_size(read->bs)-8;
 	dst_size = read->length;
 	src = gf_malloc(sizeof(char)*size);
@@ -139,15 +139,15 @@ static u32 swf_read_int(SWFReader *read, u32 nbBits)
 
 static s32 swf_read_sint(SWFReader *read, u32 nbBits)
 {
-	s32 r = 0;
+	u32 r = 0;
 	u32 i;
 	if (!nbBits)return 0;
-	r = -1 * (s32) swf_read_int(read, 1);
+	r = swf_read_int(read, 1) ? 0xFFFFFFFF : 0;
 	for (i=1; i<nbBits; i++) {
 		r <<= 1;
 		r |= swf_read_int(read, 1);
 	}
-	return r;
+	return (s32) r;
 }
 
 static u32 swf_align(SWFReader *read)

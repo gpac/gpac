@@ -440,7 +440,7 @@ typedef enum
 	/*Internal GPAC events*/
 	GF_DOM_EVENT_GPAC = 1<<30,
 	/*fake events - these events are NEVER fired*/
-	GF_DOM_EVENT_FAKE = 1<<31,
+	GF_DOM_EVENT_FAKE = 0x80000000 //1<<31
 } GF_DOMEventCategory;
 GF_DOMEventCategory gf_dom_event_get_category(GF_EventType type);
 u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg);
