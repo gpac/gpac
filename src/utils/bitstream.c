@@ -522,7 +522,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 
 	if (bs->position+nbBytes > bs->size) return 0;
 
-	if (gf_bs_is_align(bs)) {
+	if (gf_bs_is_align(bs) ) {
 		s32 bytes_read;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
@@ -1113,7 +1113,16 @@ u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 	curBits = bs->nbBits;
 	current = bs->current;
 
-	if (byte_offset) gf_bs_seek(bs, bs->position + byte_offset);
+	if (byte_offset) {
+		if (bs->remove_emul_prevention_byte) {
+			while (byte_offset) {
+				gf_bs_read_int(bs, 8);
+				byte_offset--;
+			}
+		} else {
+			gf_bs_seek(bs, bs->position + byte_offset);
+		}
+	}
 	ret = gf_bs_read_int(bs, numBits);
 
 	/*restore our cache - position*/
