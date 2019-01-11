@@ -131,16 +131,6 @@
 /* Print */
 #pragma comment (linker, EXPORT_SYMBOL(gf_asprintf) )
 
-/* Ring Buffer */
-#ifndef GPAC_DISABLE_PLAYER
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_read) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_write) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_available_for_read ) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_del) )
-#endif
-
-
 /* Sound */
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_set_config) )
