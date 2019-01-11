@@ -179,7 +179,7 @@ Double gf_bs_read_double(GF_BitStream *bs);
 /*!
  *	\brief data reading
  *
- *	Reads a data buffer
+ *	Reads a data buffer. Emultation prevention byte removal is not applied here !
  *	\param bs the target bitstream
  *	\param data the data buffer to be filled
  *	\param nbBytes the amount of bytes to read
@@ -490,7 +490,7 @@ void gf_bs_get_content_no_truncate(GF_BitStream *bs, char **output, u32 *outSize
  *	\brief byte skipping
  *
  *	Skips bytes in the bitstream. In Write mode, this will write the 0 integer value for memory-based bitstreams or seek the stream
- for file-based bitstream.
+ for file-based bitstream. In read mode, emultation prevention byte removal is not applied !
  *	\param bs the target bitstream
  *	\param nbBytes the number of bytes to skip
  */
@@ -598,7 +598,7 @@ void gf_bs_reassign(GF_BitStream *bs, FILE *stream);
 /*!
  *\brief AVC&HEVC Annex B mode, only used for read mode
  *
- *Enables or disable emulation byte prevention for AVC and HEVC annex B formats
+ *Enables or disable emulation byte prevention for AVC and HEVC annex B formats in read mode. This does NOT apply to \ref gf_bs_read_data nor  \ref gf_bs_skip_bytes
  *\param bs the target bitstream
  *\param do_remove if true, emulation prevention bytes will be removed
  */
