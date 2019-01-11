@@ -378,7 +378,7 @@ void gf_m4v_rewrite_pl(char **o_data, u32 *o_dataLen, u8 PL)
 static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 {
 	gf_bs_seek(m4v->bs, start);
-	assert(start < 1<<31);
+	assert(start < 0xFFFFFFFF);
 	m4v->current_object_start = (u32) start;
 	m4v->current_object_type = 0;
 	return GF_OK;
@@ -806,7 +806,7 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 		size = end - start;
 		/*store previous object*/
 		if (size) {
-			assert (size < 1<<31);
+			assert (size < 0x80000000);
 			if (size) gf_bs_write_data(mod, *o_data + start, (u32) size);
 			start = end;
 		}
@@ -8318,20 +8318,28 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 	bsid = gf_bs_read_int(bs, 5);
 	bsmod = gf_bs_read_int(bs, 3);
 	ac3_mod = gf_bs_read_int(bs, 3);
+	if (frmsizecod >=  sizeof(ac3_sizecod_to_bitrate) / sizeof(u32))
+		return GF_FALSE;
 
 	hdr->bitrate = ac3_sizecod_to_bitrate[frmsizecod / 2];
 	if (bsid > 8) hdr->bitrate = hdr->bitrate >> (bsid - 8);
 
 	switch (fscod) {
 	case 0:
+		if (frmsizecod / 2 >=  sizeof(ac3_sizecod0_to_framesize) / sizeof(u32))
+			return GF_FALSE;
 		freq = 48000;
 		framesize = ac3_sizecod0_to_framesize[frmsizecod / 2] * 2;
 		break;
 	case 1:
+		if (frmsizecod / 2 >=  sizeof(ac3_sizecod1_to_framesize) / sizeof(u32))
+			return GF_FALSE;
 		freq = 44100;
 		framesize = (ac3_sizecod1_to_framesize[frmsizecod / 2] + (frmsizecod & 0x1)) * 2;
 		break;
 	case 2:
+		if (frmsizecod / 2 >=  sizeof(ac3_sizecod2_to_framesize) / sizeof(u32))
+			return GF_FALSE;
 		freq = 32000;
 		framesize = ac3_sizecod2_to_framesize[frmsizecod / 2] * 2;
 		break;
@@ -8349,6 +8357,8 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 		hdr->fscod = fscod;
 		hdr->brcode = frmsizecod / 2;
 	}
+	if (ac3_mod / 2 >=  sizeof(ac3_mod_to_chans) / sizeof(u32))
+		return GF_FALSE;
 
 	hdr->channels = ac3_mod_to_chans[ac3_mod];
 	if ((ac3_mod & 0x1) && (ac3_mod != 1)) gf_bs_read_int(bs, 2);

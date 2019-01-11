@@ -77,8 +77,14 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	if (!p) return GF_NOT_SUPPORTED;
 	if (ctx->dcd && !strcmp(ctx->dcd, p->value.string)) return GF_OK;
 	if (ctx->dcd) gf_free(ctx->dcd);
-	ctx->dcd = gf_strdup(p->value.string);
 
+	if ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_DATA_NO_COPY)) {
+		ctx->dcd = gf_malloc(p->value.data.size+1);
+		memcpy(ctx->dcd, p->value.data.ptr, p->value.data.size);
+		ctx->dcd[p->value.data.size]=0;
+	} else {
+		ctx->dcd = gf_strdup(p->value.string);
+	}
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );

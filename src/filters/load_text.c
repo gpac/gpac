@@ -2815,9 +2815,24 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	utf8 = data;
 	if (uni_type>1) {
 		u32 read;
-		utf8_temp = gf_malloc(sizeof(char)*(data_size) );
+		u8 *sdata = (u8 *) data;
+		u8 l1, l2;
 		const u16 *sptr = (u16 *)data;
+
+		if (data_size%1) data_size--;
+		utf8_temp = gf_malloc(sizeof(char)*(data_size) );
+
+		l1 = sdata[data_size-1];
+		l2 = sdata[data_size-2];
+		sdata[data_size-1]=0;
+		sdata[data_size-2]=0;
 		read = (u32) gf_utf8_wcstombs(utf8_temp, data_size, &sptr);
+		sdata[data_size-1]=l1;
+		sdata[data_size-2]=l2;
+		if (read==(u32) -1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTInProbe] corrupted UTF data during probe\n"));
+			return NULL;
+		}
 		utf8_temp[read] = 0;
 		utf8 = utf8_temp;
 	}

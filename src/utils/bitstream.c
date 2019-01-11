@@ -629,7 +629,7 @@ void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 	u32 value, nb_shift;
 	if (!nBits) return;
 	//move to unsigned to avoid sanitizer warnings when we pass a value not codable on the given number of bits
-	//we do this when setting bit fileds to all 1's
+	//we do this when setting bit fields to all 1's
 	value = (u32) _value;
 	nb_shift = sizeof (s32) * 8 - nBits;
 	if (nb_shift)
@@ -648,7 +648,7 @@ void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 	if (nBits>64) {
 		gf_bs_write_int(bs, 0, nBits-64);
 		gf_bs_write_long_int(bs, _value, 64);
-	} else {
+	} else if (nBits) {
 		//cf note in gf_bs_write_int
 		u64 value = (u64) _value;
 		value <<= sizeof (s64) * 8 - nBits;

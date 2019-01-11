@@ -1223,7 +1223,7 @@ static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCS
 	GF_Err e;
 
 	//uncompress bundle
-	if (object->toi & (1<<31) ) {
+	if (object->toi & 0x80000000 /*(1<<31)*/ ) {
 		u32 raw_size;
 		if (object->total_length > atscd->buffer_size) {
 			atscd->buffer_size = object->total_length;
@@ -1486,8 +1486,8 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 		}
 	} else {
 		//check TOI for TSI 0
-		/*a_G = toi & (1<<31) ? 1 : 0;
-		a_U = toi & (1<<16) ? 1 : 0;*/
+		//a_G = toi & 0x80000000 /*(1<<31)*/ ? 1 : 0;
+		//a_U = toi & (1<<16) ? 1 : 0;
 		a_S = toi & (1<<17) ? 1 : 0;
 		a_M = toi & (1<<18) ? 1 : 0;
 		/*a_A = toi & (1<<19) ? 1 : 0;

@@ -1012,7 +1012,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 			if (p) {
-				Double d = 1000 * p->value.frac.num;
+				Double d = p->value.frac.num;
+				d*=1000;
 				if (p->value.frac.den) d /= p->value.frac.den;
 				if (d > importer->probe_duration) importer->probe_duration = (u64) d;
 			}
