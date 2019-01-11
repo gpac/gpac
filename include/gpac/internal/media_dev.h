@@ -276,7 +276,7 @@ Bool gf_media_avc_slice_is_intra(AVCState *avc);
 s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 /*nota: 'buffer' remains unmodified but cannot be set const*/
-u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc);
+u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc);
 
 #ifndef GPAC_DISABLE_ISOM
 GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);

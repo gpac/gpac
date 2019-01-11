@@ -148,6 +148,7 @@ typedef struct
 	Bool first_slice_in_au;
 	//paff used - NEED FURTHER CHECKING
 	Bool is_paff;
+	Bool bottom_field_flag;
 	//SEI recovery count - if 0 and I slice only frame, openGOP detection (avc)
 	s32 sei_recovery_frame_count;
 	u32 use_opengop_gdr;
@@ -312,6 +313,8 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	cur_dur = 0;
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+
 	start_code_pos = gf_bs_get_position(bs);
 	if (!gf_media_nalu_is_start_code(bs)) {
 		gf_bs_del(bs);
@@ -320,8 +323,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		ctx->file_loaded = GF_TRUE;
 		return;
 	}
-	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
-	
+
 	nal_start = gf_bs_get_position(bs);
 	if (ctx->is_hevc) {
 		GF_SAFEALLOC(hevc_state, HEVCState);
@@ -481,6 +483,8 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				//poc is stored as diff since last IDR which has min_poc
 				cts = ( (ctx->min_poc + (s32) poc) * ctx->fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
+				/*old importer code, seems wrong so commented for now*/
+#if 0
 				/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
 				if (ctx->is_paff) {
 					cts /= 2;
@@ -489,6 +493,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 						cts = ((cts/ctx->fps.den)+1) * ctx->fps.den;
 					}
 				}
+#endif
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
@@ -1069,6 +1074,12 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		return;
 	}
 
+	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+	if (gf_list_count(ctx->pck_queue)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] xPS changed but could not flush frames before signaling state change !\n", ctx->log_name));
+
+	}
+
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
@@ -1322,6 +1333,9 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 			gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_3);
 			is_rap = GF_TRUE;
 		}
+	}
+	if (ctx->is_paff) {
+		gf_filter_pck_set_interlaced(ctx->first_pck_in_au, ctx->bottom_field_flag ? 2 : 1);
 	}
 
 	//if TS is set, the packet was the first in AU in the input timed packet (eg PES), we reuse the input timing
@@ -1670,33 +1684,31 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		return 0;
 
 	case GF_AVC_NALU_SEI:
-		if (ctx->nosei) {
+		if (ctx->avc_state->sps_active_idx != -1) {
+			u32 rw_sei_size, sei_size = size;
+			if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + sei_size + ctx->nal_length) {
+				ctx->sei_buffer_alloc = ctx->sei_buffer_size + sei_size + ctx->nal_length;
+				ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
+			}
+
+			if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size, GF_BITSTREAM_WRITE);
+			else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size);
+			gf_bs_write_int(ctx->bs_w, sei_size, 8*ctx->nal_length);
+
+			memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, sei_size);
+			rw_sei_size = gf_media_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, sei_size, ctx->seirw, ctx->avc_state);
+			if (rw_sei_size < sei_size) {
+				gf_bs_seek(ctx->bs_w, 0);
+				gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
+			}
+
 			*skip_nal = GF_TRUE;
-		} else {
-			ctx->nb_sei++;
-			if (ctx->avc_state->sps_active_idx != -1) {
-				u32 rw_sei_size, sei_size = size;
-				if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + sei_size + ctx->nal_length) {
-					ctx->sei_buffer_alloc = ctx->sei_buffer_size + sei_size + ctx->nal_length;
-					ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
-				}
+			ctx->sei_buffer_size += rw_sei_size + ctx->nal_length;
 
-				if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size, GF_BITSTREAM_WRITE);
-				else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size);
-				gf_bs_write_int(ctx->bs_w, sei_size, 8*ctx->nal_length);
-
-				memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, sei_size);
-				if (ctx->seirw) {
-					rw_sei_size = gf_media_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, sei_size, ctx->avc_state);
-					if (rw_sei_size < sei_size) {
-						gf_bs_seek(ctx->bs_w, 0);
-						gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
-					}
-				} else {
-					rw_sei_size = sei_size;
-				}
-				*skip_nal = GF_TRUE;
-				ctx->sei_buffer_size += rw_sei_size + ctx->nal_length;
+			if (ctx->nosei) {
+				ctx->sei_buffer_size = 0;
+			} else {
+				ctx->nb_sei++;
 			}
 		}
 		return 0;
@@ -1926,6 +1938,7 @@ naldmx_flush:
 		Bool slice_is_ref, slice_force_ref;
 		Bool is_slice = GF_FALSE;
 		Bool is_islice = GF_FALSE;
+		Bool bottom_field_flag = GF_FALSE;
 		Bool au_start;
 		u32 avc_svc_subs_reserved = 0;
 		u8 avc_svc_subs_priority = 0;
@@ -2245,6 +2258,7 @@ naldmx_flush:
 			ctx->first_slice_in_au = GF_TRUE;
 			ctx->sei_recovery_frame_count = -1;
 			ctx->au_sap = GF_FILTER_SAP_NONE;
+			ctx->bottom_field_flag = GF_FALSE;
 		}
 
 		if (skip_nal) {
@@ -2392,8 +2406,10 @@ naldmx_flush:
 				avc_svc_subs_priority = 0;
 			}
 
-			if (!ctx->is_paff && is_slice && ctx->avc_state->s_info.bottom_field_flag)
+			if (is_slice && ctx->avc_state->s_info.field_pic_flag) {
 				ctx->is_paff = GF_TRUE;
+				bottom_field_flag = ctx->avc_state->s_info.bottom_field_flag;
+			}
 
 			slice_is_ref = (ctx->avc_state->s_info.nal_unit_type==GF_AVC_NALU_IDR_SLICE) ? GF_TRUE : GF_FALSE;
 
@@ -2426,14 +2442,14 @@ naldmx_flush:
 			SEI recovery should be used to build sampleToGroup & RollRecovery tables*/
 			if (ctx->first_slice_in_au) {
 				ctx->first_slice_in_au = GF_FALSE;
-				if (recovery_point_valid || ctx->force_sync) {
+				if (recovery_point_valid) {
 //					if (!ctx->is_hevc) assert(ctx->avc_state->s_info.nal_unit_type!=GF_AVC_NALU_IDR_SLICE || bIntraSlice);
 
 					ctx->sei_recovery_frame_count = recovery_point_frame_cnt;
 
 					/*we allow to mark I-frames as sync on open-GOPs (with sei_recovery_frame_count=0) when forcing sync even when the SEI RP is not available*/
-					if (! recovery_point_valid && bIntraSlice) {
-						ctx->sei_recovery_frame_count = 0;
+					if (!recovery_point_frame_cnt && bIntraSlice) {
+						ctx->has_islice = 1;
 						if (ctx->use_opengop_gdr == 1) {
 							ctx->use_opengop_gdr = 2; /*avoid message flooding*/
 							GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] No valid SEI Recovery Point found although needed - forcing\n", ctx->log_name));
@@ -2448,6 +2464,7 @@ naldmx_flush:
 						slice_force_ref = GF_TRUE;
 				}
 				ctx->au_sap = au_sap_type;
+				ctx->bottom_field_flag = bottom_field_flag;
 			}
 
 			if (slice_poc < ctx->poc_shift) {
