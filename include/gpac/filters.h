@@ -2630,7 +2630,7 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck);
 
 /*! Sets packet video interlacing flag
 \param pck target packet
-\param is_interlaced set to 0 if not interlaced, 1 for top field first, 2 otherwise.
+\param is_interlaced set to 0 if not interlaced, 1 for top field first/contains only top field, 2 for bottom field first/contains only bottom field.
 \return error code if any
 */
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced);
