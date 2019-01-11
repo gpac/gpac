@@ -91,6 +91,7 @@ typedef struct
 	Bool fake_track;
 
 	Bool has_brands;
+	Bool force_inband_inject;
 
 	u32 dur_in_frag;
 
@@ -330,6 +331,8 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	tkw->inband_hdr=NULL;
 	gf_bs_get_content(bs, &tkw->inband_hdr, &tkw->inband_hdr_size);
 	gf_bs_del(bs);
+	//we may have cases where the param sets are updated before a non-IDR/SAP3 picture, we must inject asap at least once
+	tkw->force_inband_inject = GF_TRUE;
 }
 
 void mp4_mux_get_video_size(GF_MP4MuxCtx *ctx, u32 *width, u32 *height)
@@ -997,6 +1000,10 @@ sample_entry_setup:
 			return GF_NOT_SUPPORTED;
 		}
 		force_mix_xps = GF_TRUE;
+	} else if (ctx->store < MP4MX_MODE_FRAG) {
+		if ((needs_sample_entry==2) && (ctx->xps_inband==2)) {
+			force_mix_xps = GF_TRUE;
+		}
 	}
 	
 	if (force_mix_xps) {
@@ -1681,7 +1688,7 @@ sample_entry_done:
 			gf_odf_hevc_cfg_del(tkw->lvcc);
 			tkw->lvcc = NULL;
 		}
-	} else {
+	} else if (needs_sample_entry) {
 		mp4_mux_make_inband_header(ctx, tkw);
 	}
 
@@ -2054,11 +2061,12 @@ GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPack
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to append sample DTS "LLU" data: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
 		}
 	} else {
-		if (tkw->sample.IsRAP && ctx->xps_inband) {
+		if ((tkw->sample.IsRAP || tkw->force_inband_inject) && ctx->xps_inband) {
 			char *pck_data = tkw->sample.data;
 			u32 pck_data_len = tkw->sample.dataLength;
 			tkw->sample.data = tkw->inband_hdr;
 			tkw->sample.dataLength = tkw->inband_hdr_size;
+			tkw->force_inband_inject = GF_FALSE;
 
 			if (for_fragment) {
 				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, tkw->stsd_idx, duration, 0, 0, 0);
