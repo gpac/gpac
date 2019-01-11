@@ -2235,6 +2235,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_max_resolution_chain_length ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_process_error ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_filter_exists ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_event_listener ) )
 
