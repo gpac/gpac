@@ -1314,7 +1314,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		fprintf(dump, "  <%sArray location=\"%s\">\n", name, loc);\
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
-			fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", i+1, slc->size);\
+			fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
 			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
 			fprintf(dump, "/>\n");\
 		}\
@@ -1436,6 +1436,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 	is_adobe_protection = gf_isom_is_adobe_protection_media(file, track, 1);
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
+		Bool is_rap;
 		u32 size, nal_size, idx, di;
 		char *ptr;
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, &di);
@@ -1445,8 +1446,10 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		}
 		dts = samp->DTS;
 		cts = dts + (s32) samp->CTS_Offset;
+		is_rap = samp->IsRAP;
+		if (!is_rap) gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, NULL, NULL);
 
-		fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\"", i+1, dts, cts, samp->dataLength, samp->IsRAP);
+		fprintf(dump, "  <Sample DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\"", dts, cts, samp->dataLength, is_rap);
 		if (nb_descs>1)
 			fprintf(dump, " sample_description=\"%d\"", di);
 		fprintf(dump, " >\n");
@@ -1476,7 +1479,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 				fprintf(dump, "   <!-- NALU number %d is corrupted: size is %d but only %d remains -->\n", idx, nal_size, size);
 				break;
 			} else {
-				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
+				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
 				dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
 #endif
