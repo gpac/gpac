@@ -333,9 +333,6 @@
     <ClInclude Include="..\..\include\gpac\revision.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\ringbuffer.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\rtp_streamer.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -1068,9 +1065,6 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\path2d_stroker.c">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\utils\ringbuffer.c">
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\sha1.c">

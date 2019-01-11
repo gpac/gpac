@@ -377,7 +377,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/path2d.c \
 	../../../../src/utils/path2d_stroker.c \
-	../../../../src/utils/ringbuffer.c \
 	../../../../src/utils/sha1.c \
 	../../../../src/utils/token.c \
 	../../../../src/utils/uni_bidi.c \
