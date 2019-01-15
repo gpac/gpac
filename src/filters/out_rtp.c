@@ -269,13 +269,18 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, fsize, &output);
 	if (pck) {
 		gf_fseek(sdp_out, 0, SEEK_SET);
-		fread(output, 1, fsize, sdp_out);
-		char c = output[fsize-1];
-		output[fsize-1] = 0;
-    	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] SDP file generated: %s\n", output));
-		output[fsize-1] = c;
-		gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-		gf_filter_pck_send(pck);
+		u32 read = fread(output, 1, fsize, sdp_out);
+		if (read != fsize) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Failed to read SDP from temp file, got %d bytes but expecting %d\n", read, fsize));
+			gf_filter_pck_discard(pck);
+		} else {
+			char c = output[fsize-1];
+			output[fsize-1] = 0;
+			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] SDP file generated: %s\n", output));
+			output[fsize-1] = c;
+			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+			gf_filter_pck_send(pck);
+		}
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Failed to send SDP file packet\n"));
 	}
@@ -608,8 +613,9 @@ static GF_Err rtpout_send_xps(GF_RTPOutStream *stream, GF_List *pslist, Bool *au
 	u32 i, count = gf_list_count(pslist);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = gf_list_get(pslist, i);
-		e = gf_rtp_streamer_send_data(stream->rtp, (char *) sl->data, sl->size, pck_size, cts, dts, stream->current_sap ? 1 : 0, au_start, GF_FALSE, stream->pck_num, duration, stream->sample_desc_index);
+		e = gf_rtp_streamer_send_data(stream->rtp, (char *) sl->data, sl->size, pck_size, cts, dts, stream->current_sap ? 1 : 0, *au_start, GF_FALSE, stream->pck_num, duration, stream->sample_desc_index);
 		if (e) return e;
+		*au_start = GF_FALSE;
 	}
 	return GF_OK;
 }
