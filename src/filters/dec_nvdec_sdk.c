@@ -19,7 +19,8 @@
 
 #include <gpac/tools.h>
 
-#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_3D)
+
+#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN))
 
 #include "dec_nvdec_sdk.h"
 
@@ -278,7 +279,7 @@ static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance)
     *pInstance = dlopen(__CudaLibName, RTLD_NOW);
     if (*pInstance == NULL) {
         GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[NVDec] dlopen \"%s\" failed!\n", __CudaLibName));
-        return CUDA_ERROR_UNKNOWN;
+        return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
     }
     return CUDA_SUCCESS;
 }

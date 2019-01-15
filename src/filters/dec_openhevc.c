@@ -63,6 +63,7 @@ typedef struct
 	Bool pack_hfr;
 	Bool seek_reset;
 	Bool force_stereo;
+	Bool reset_switch;
 
 	//internal
 	GF_Filter *filter;
@@ -78,7 +79,6 @@ typedef struct
 
 	u32 hevc_nalu_size_length;
 	Bool has_pic;
-	Bool probe_layers;
 
 	OHHandle codec;
 	u32 nb_layers, cur_layer;
@@ -105,6 +105,9 @@ typedef struct
 
 	char *reaggregation_buffer;
 	u32 reaggregation_alloc_size, reaggregation_size;
+
+	char *inject_buffer;
+	u32 inject_buffer_alloc_size, reaggregatioinject_buffer_size;
 
 	Bool reconfig_pending;
 
@@ -360,7 +363,6 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->nb_streams++;
 	}
 	ctx->nb_layers = ctx->cur_layer = 1;
-	ctx->probe_layers = (ctx->nb_streams>1) ? GF_FALSE : GF_TRUE;
 
 	//temporal sublayer stream setup, do nothing
 	if (stream->sublayer)
@@ -404,7 +406,15 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 
 			if (ctx->codec && ctx->decoder_started) {
-				ohevcdec_create_inband(stream, avcc->nal_unit_size, avcc->sequenceParameterSets, avcc->pictureParameterSets, NULL);
+				//this seems to be broken in openhevc, we need to reconfigure the decoder ...
+				if (ctx->reset_switch) {
+					ctx->reconfig_pending = GF_TRUE;
+					stream->cfg_crc = 0;
+					gf_odf_avc_cfg_del(avcc);
+					return GF_OK;
+				} else {
+					ohevcdec_create_inband(stream, avcc->nal_unit_size, avcc->sequenceParameterSets, avcc->pictureParameterSets, NULL);
+				}
 			}
 			gf_odf_avc_cfg_del(avcc);
 		} else
@@ -455,7 +465,14 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				}
 			}
 			if (ctx->codec && ctx->decoder_started) {
-				ohevcdec_create_inband(stream, hvcc->nal_unit_size, SPSs, PPSs, VPSs);
+				if (ctx->reset_switch) {
+					ctx->reconfig_pending = GF_TRUE;
+					stream->cfg_crc = 0;
+					gf_odf_hevc_cfg_del(hvcc);
+					return GF_OK;
+				} else {
+					ohevcdec_create_inband(stream, hvcc->nal_unit_size, SPSs, PPSs, VPSs);
+				}
 			}
 			gf_odf_hevc_cfg_del(hvcc);
 		}
@@ -497,13 +514,15 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				oh_select_view_layer(ctx->codec, 0);
 		}
 
+		if (!ctx->decoder_started) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
-		if (ctx->avc_base_id) {
-			oh_extradata_cpy_lhvc(ctx->codec, (u8 *) dsi->value.data.ptr, NULL, dsi->value.data.size, 0);
-		} else
+			if (ctx->avc_base_id) {
+				oh_extradata_cpy_lhvc(ctx->codec, (u8 *) dsi->value.data.ptr, NULL, dsi->value.data.size, 0);
+			} else
 #endif
-			oh_extradata_cpy(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
-	}else{
+				oh_extradata_cpy(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
+		}
+	} else {
 		//decode and display layer 0 by default - will be changed when attaching enhancement layers
 
 		//has_scalable_layers is set, the esd describes a set of HEVC stream but we don't know how many - for now only two decoders so easy,
@@ -530,6 +549,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
 
 	return GF_OK;
 }
@@ -635,7 +656,7 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	ctx->hw_frame.user_data = ctx;
 	ctx->hw_frame.get_plane = ohevcframe_get_plane;
 	//we only keep one frame out, force releasing it
-	ctx->hw_frame.hardware_reset_pending = GF_TRUE;
+	ctx->hw_frame.reset_pending = GF_TRUE;
 	oh_output_update(ctx->codec, 1, &ctx->frame_ptr);
 
 	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &ctx->hw_frame, ohevcframe_release);
@@ -745,11 +766,11 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Sending ouput frame CTS "LLU"\n", openHevcFrame_FL.frame_par.pts ));
 
 	if (ctx->no_copy && !ctx->pack_hfr) {
 		return ohevcdec_send_output_frame(ctx);
 	}
-
 
 	if (ctx->pack_hfr) {
 		OHFrame openHFrame;
@@ -910,6 +931,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 			if (!pck) return GF_OK;
 		}
+		oh_flush(ctx->codec);
 		//flush
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
@@ -921,6 +943,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		if ( got_pic ) {
 			return ohevcdec_flush_picture(ctx);
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Closing decoder for reconfigure\n"));
 		//good to go: no more pics in decoder, no frame out
 		ctx->reconfig_pending = GF_FALSE;
 		oh_close(ctx->codec);
@@ -936,15 +959,20 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
+
+		if (ctx->reconfig_pending) return GF_OK;
+
 		if (!pck) {
-			if (gf_filter_pid_is_eos(ctx->streams[idx].ipid)) nb_eos++;
+			if (gf_filter_pid_is_eos(ctx->streams[idx].ipid))
+				nb_eos++;
 			//make sure we do have a packet on the enhancement
 			else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] no input packets on running pid %s - postponing decode\n", gf_filter_pid_get_name(ctx->streams[idx].ipid) ) );
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenHEVC] no input packets on running pid %s - postponing decode\n", gf_filter_pid_get_name(ctx->streams[idx].ipid) ) );
 				return GF_OK;
 			}
 			continue;
 		}
+
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
 
@@ -972,15 +1000,19 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	}
 
 	if (nb_eos == ctx->nb_streams) {
+		while (1) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
-		if (ctx->avc_base_id)
-			got_pic = oh_decode_lhvc(ctx->codec, NULL, NULL, 0, 0, 0, 0);
-		else
+			if (ctx->avc_base_id)
+				got_pic = oh_decode_lhvc(ctx->codec, NULL, NULL, 0, 0, 0, 0);
+			else
 #endif
-			got_pic = oh_decode(ctx->codec, NULL, 0, 0);
+				got_pic = oh_decode(ctx->codec, NULL, 0, 0);
 
-		if ( got_pic ) {
-			return ohevcdec_flush_picture(ctx);
+			if (got_pic) {
+				ohevcdec_flush_picture(ctx);
+			}
+			else
+				break;
 		}
 		gf_filter_pid_set_eos(ctx->opid);
 		while (gf_list_count(ctx->src_packets)) {
@@ -1018,25 +1050,21 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] PID %s Decode CTS %d - size %d - got pic %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), min_cts, data_size, got_pic));
-
-
 		if (ctx->streams[idx].inject_hdr) {
-#ifdef  OPENHEVC_HAS_AVC_BASE
-			if (ctx->avc_base_id) {
-				if (ctx->avc_base_id == ctx->streams[idx].id) {
-					oh_decode_lhvc(ctx->codec, (u8 *) ctx->streams[idx].inject_hdr, NULL, ctx->streams[idx].inject_hdr_size, 0, cts, 0);
-				} else if (ctx->cur_layer>1) {
-					oh_decode_lhvc(ctx->codec, NULL, (u8 *) ctx->streams[idx].inject_hdr, 0, ctx->streams[idx].inject_hdr_size, cts, 0);
-				}
-			} else
-#endif
-			{
-				oh_decode(ctx->codec, (u8 *) ctx->streams[idx].inject_hdr, ctx->streams[idx].inject_hdr_size, cts);
+			if (ctx->inject_buffer_alloc_size < ctx->streams[idx].inject_hdr_size + data_size) {
+				ctx->inject_buffer_alloc_size = ctx->streams[idx].inject_hdr_size + data_size;
+				ctx->inject_buffer = gf_realloc(ctx->inject_buffer, ctx->inject_buffer_alloc_size);
 			}
+			memcpy(ctx->inject_buffer, ctx->streams[idx].inject_hdr, ctx->streams[idx].inject_hdr_size);
+			memcpy(ctx->inject_buffer+ctx->streams[idx].inject_hdr_size, data, data_size);
+			data = ctx->inject_buffer;
+			data_size += ctx->streams[idx].inject_hdr_size;
+
 			gf_free(ctx->streams[idx].inject_hdr);
 			ctx->streams[idx].inject_hdr=NULL;
 			ctx->streams[idx].inject_hdr_size=0;
+			
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Config changed, injecting param sets inband at DTS "LLU" CTS "LLU"\n", dts, cts));
 		}
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
@@ -1049,30 +1077,6 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		} else
 #endif
 		{
-			if (ctx->probe_layers && !ctx->hevc_nalu_size_length)  {
-				u8 layer_id;
-				char *ptr = data;
-				u32 remain = data_size;
-				while (1) {
-					u32 sc_size;
-					u32 size = gf_media_nalu_next_start_code((u8 *) ptr, remain, &sc_size);
-					if (!sc_size) break;
-
-					gf_media_hevc_parse_nalu(ptr, size, NULL, NULL, NULL, &layer_id);
-
-					ptr += size+sc_size;
-					if (remain<=size+sc_size) break;
-					remain -= size+sc_size;
-					if (layer_id>0) {
-						ctx->nb_layers = ctx->cur_layer = 2;
-						ctx->probe_layers = GF_FALSE;
-						oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
-						oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
-						ohevcdec_set_codec_name(filter);
-						break;
-					}
-				}
-			}
 			if (ctx->nb_streams>1) {
 				if (ctx->reaggregation_alloc_size < ctx->reaggregation_size + data_size) {
 					ctx->reaggregation_alloc_size = ctx->reaggregation_size + data_size;
@@ -1084,7 +1088,9 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 				got_pic = oh_decode(ctx->codec, (u8 *) data, data_size, cts);
 			}
 		}
-		if (got_pic)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] PID %s Decode CTS %d - size %d - got pic %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), min_cts, data_size, got_pic));
+
+		if (got_pic>0)
 			has_pic = GF_TRUE;
 
 		gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
@@ -1126,6 +1132,7 @@ static void ohevcdec_finalize(GF_Filter *filter)
 		oh_close(ctx->codec);
 	}
 	if (ctx->reaggregation_buffer) gf_free(ctx->reaggregation_buffer);
+	if (ctx->inject_buffer) gf_free(ctx->inject_buffer);
 
 	while (gf_list_count(ctx->src_packets)) {
 		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
@@ -1160,6 +1167,7 @@ static const GF_FilterArgs OHEVCDecArgs[] =
 	{ OFFS(pack_hfr), "Packs 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seek_reset), "Resets decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_stereo), "Forces stereo output for multiview (top-bottom only)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(reset_switch), "Resets decoder at config change", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

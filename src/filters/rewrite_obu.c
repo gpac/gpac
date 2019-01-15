@@ -126,7 +126,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	if (p) ctx->h = p->value.uint;
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS);
 	if (p) ctx->fps = p->value.frac;
-	if (!ctx->fps.num * ctx->fps.den) {
+	if (!ctx->fps.num || !ctx->fps.den) {
 		ctx->fps.num = 25;
 		ctx->fps.den = 1;
 	}
@@ -163,6 +163,15 @@ GF_Err obumx_process(GF_Filter *filter)
 	size += 2;
 
 	sap_type = gf_filter_pck_get_sap(pck);
+	if (!sap_type) {
+		u8 flags = gf_filter_pck_get_dependency_flags(pck);
+		if (flags) {
+			//get dependsOn
+			flags>>=4;
+			flags &= 0x3;
+			if (flags==2) sap_type = 3; //could be 1, 2 or 3
+		}
+	}
 
 	if (ctx->mode==2) {
 		if (ctx->ivf_hdr) hdr_size += 32;

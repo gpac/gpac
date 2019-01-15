@@ -140,11 +140,14 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 {
 	Double fps=0;
 	u64 errors[10];
-	u32 sq_size, i;
+	u32 i;
 	s32 q=-1;
 	u8 pictype=0;
 	u8 nb_errors = 0;
 	const char *ptype;
+
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+	u32 sq_size;
 	u8 *side_q = av_packet_get_side_data(pkt, AV_PKT_DATA_QUALITY_STATS, &sq_size);
 	if (side_q) {
 		gf_bs_reassign_buffer(ctx->sdbs, side_q, sq_size);
@@ -157,6 +160,7 @@ static void ffenc_log_video(struct _gf_ffenc_ctx *ctx, AVPacket *pkt)
 			errors[i] = gf_bs_read_u64_le(ctx->sdbs);
 		}
 	}
+#endif
 	if (ctx->time_spent) {
 		fps = ctx->nb_frames;
 		fps *= 1000000;
@@ -412,7 +416,7 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 
 	bytes_per_chan = ctx->bytes_per_sample / ctx->channels;
 	src_frame_size = size / ctx->bytes_per_sample;
-	assert(ctx->samples_in_audio_buffer + nb_samples <= ctx->encoder->frame_size);
+	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->encoder->frame_size);
 
 	for (i=0; i<ctx->channels; i++) {
 		u8 *dst = ctx->audio_buffer + (i*ctx->encoder->frame_size + ctx->samples_in_audio_buffer) * bytes_per_chan;
@@ -448,7 +452,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (ctx->reconfig_pending) pck = NULL;
 
-	if (ctx->encoder->frame_size && (ctx->encoder->frame_size <= ctx->samples_in_audio_buffer)) {
+	if (ctx->encoder->frame_size && (ctx->encoder->frame_size <= (s32) ctx->samples_in_audio_buffer)) {
 		res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->bytes_per_sample * ctx->encoder->frame_size, 0);
 		ffenc_audio_discard_samples(ctx, ctx->encoder->frame_size);
 		from_buffer_only = GF_TRUE;
@@ -469,7 +473,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_list_add(ctx->src_packets, src_pck);
 
 		nb_samples = size / ctx->bytes_per_sample;
-		if (ctx->encoder->frame_size && (nb_samples + ctx->samples_in_audio_buffer < ctx->encoder->frame_size)) {
+		if (ctx->encoder->frame_size && (nb_samples + ctx->samples_in_audio_buffer < (u32) ctx->encoder->frame_size)) {
 			ffenc_audio_append_samples(ctx, data, size, 0, nb_samples);
 			gf_filter_pid_drop_packet(ctx->in_pid);
 			return GF_OK;
@@ -599,7 +603,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
-	gf_filter_pck_set_duration(dst_pck, pkt.duration);
+	gf_filter_pck_set_duration(dst_pck, (u32) pkt.duration);
 
 	gf_filter_pck_send(dst_pck);
 

@@ -391,7 +391,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		GF_FilterPacket *dst_pck;
 		char *data;
 		u64 dts, cts, offset;
-		u32 len = gf_bs_read_u24(ctx->bs);
+		u32 res, len = gf_bs_read_u24(ctx->bs);
 		Bool is_rap = gf_bs_read_int(ctx->bs, 1);
 		Bool is_start = (Bool)gf_bs_read_int(ctx->bs, 1);
 		Bool is_end = (Bool)gf_bs_read_int(ctx->bs, 1);
@@ -419,7 +419,10 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		gf_fseek(ctx->mdia, offset, SEEK_SET);
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, len, &data);
-		fread(data, 1, len, ctx->mdia);
+		res = (u32) fread(data, 1, len, ctx->mdia);
+		if (res != len) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Read failure, expecting %d bytes got %d", len, res));
+		}
 		gf_filter_pck_set_framing(dst_pck, is_start, is_end);
 		if (is_rap)
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);

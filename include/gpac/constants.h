@@ -463,6 +463,7 @@ enum
 
 	GF_CODECID_VP8 = GF_4CC('V','P','0','8'),
 	GF_CODECID_VP9 = GF_4CC('V','P','0','9'),
+	GF_CODECID_VP10 = GF_4CC('V','P','1','0'),
 
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
 
@@ -812,6 +813,14 @@ enum
 	GF_HEVC_NALU_SLICE_RASL_N = 8,
 	/*! RASL R HEVC slice*/
 	GF_HEVC_NALU_SLICE_RASL_R = 9,
+	/*! Reserved non-IRAP SLNR VCL NAL unit types*/
+	GF_HEVC_NALU_SLICE_RSV_VCL_N10 = 10,
+	GF_HEVC_NALU_SLICE_RSV_VCL_N12 = 12,
+	GF_HEVC_NALU_SLICE_RSV_VCL_N14 = 14,
+	/*! Reserved non-IRAP sub-layer reference VCL NAL unit types*/
+	GF_HEVC_NALU_SLICE_RSV_VCL_R11 = 11,
+	GF_HEVC_NALU_SLICE_RSV_VCL_R13 = 13,
+	GF_HEVC_NALU_SLICE_RSV_VCL_R15 = 15,
 	/*! BLA LP HEVC slice*/
 	GF_HEVC_NALU_SLICE_BLA_W_LP = 16,
 	/*! BLA DLP HEVC slice*/

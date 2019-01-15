@@ -599,7 +599,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			}
 		}
 
-		if (! (sock->flags & GF_SOCK_IS_TCP)) {
+		if (sock->flags & GF_SOCK_IS_TCP) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
 			ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {

@@ -73,8 +73,6 @@
 #else
 
 
-#define GL_GLEXT_PROTOTYPES
-
 #ifdef GPAC_USE_OGLES1X
 #include <GLES/gl.h>
 #include <GLES/glext.h>
@@ -91,6 +89,8 @@
 #endif
 
 #else
+//in case the versions are defined, get the prototypes
+#define GL_GLEXT_PROTOTYPES
 
 #include <GL/gl.h>
 
@@ -120,8 +120,9 @@ typedef ret (GLAPICAST proc_ ## funname)args;	\
 extern proc_ ## funname funname;	\
  
 
-#define GLDECL_STATIC(funname) proc_ ## funname funname = NULL
-#define GLDECL_EXTERN(funname) proc_ ## funname funname;
+#define GLDECL_FUNC(funname) proc_ ## funname funname = NULL
+#define GLDECL_FUNC_STATIC(funname) static proc_ ## funname funname = NULL
+#define GLDECL_EXTERN(funname) extern proc_ ## funname funname;
 
 #if defined GPAC_USE_TINYGL
 //no extensions with TinyGL
@@ -153,6 +154,10 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define GL_UNPACK_SKIP_PIXELS_EXT           0x0CF4
 #endif
 
+
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+#  define GPAC_GL_NO_STRIDE
+#endif
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 

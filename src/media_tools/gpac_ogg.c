@@ -332,9 +332,9 @@ s32 oggpack_read(oggpack_buffer *b,s32 bits) {
 		if(bits>16) {
 			ret|=b->ptr[2]<<(16-b->endbit);
 			if(bits>24) {
-				ret|=b->ptr[3]<<(24-b->endbit);
+				ret |= ((u32)b->ptr[3]) << (24-b->endbit);
 				if(bits>32 && b->endbit) {
-					ret|=b->ptr[4]<<(32-b->endbit);
+					ret |= ((u32)b->ptr[4]) << (32-b->endbit);
 				}
 			}
 		}
@@ -362,7 +362,7 @@ s32 oggpackB_read(oggpack_buffer *b,s32 bits) {
 		if(b->endbyte*8+bits>b->storage*8)goto overflow;
 	}
 
-	ret=b->ptr[0]<<(24+b->endbit);
+	ret = ((u32)b->ptr[0]) << (24+b->endbit);
 	if(bits>8) {
 		ret|=b->ptr[1]<<(16+b->endbit);
 		if(bits>16) {
@@ -475,7 +475,7 @@ s32 ogg_page_eos(ogg_page *og) {
 
 s64 ogg_page_granulepos(ogg_page *og) {
 	unsigned char *page=og->header;
-	s64 granulepos=page[13]&(0xff);
+	u64 granulepos=page[13]&(0xff);
 	granulepos= (granulepos<<8)|(page[12]&0xff);
 	granulepos= (granulepos<<8)|(page[11]&0xff);
 	granulepos= (granulepos<<8)|(page[10]&0xff);
@@ -483,7 +483,7 @@ s64 ogg_page_granulepos(ogg_page *og) {
 	granulepos= (granulepos<<8)|(page[8]&0xff);
 	granulepos= (granulepos<<8)|(page[7]&0xff);
 	granulepos= (granulepos<<8)|(page[6]&0xff);
-	return(granulepos);
+	return((s64) granulepos);
 }
 
 s32 ogg_page_serialno(ogg_page *og) {

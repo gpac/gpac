@@ -44,6 +44,18 @@ enum
 	ISMAEA_STATE_PLAY,
 };
 
+
+typedef enum {
+	CENC_FULL_SAMPLE,
+
+	/*below types may have several ranges (clear/encrypted) per sample*/
+	CENC_AVC, /*AVC, nalu-based*/
+	CENC_HEVC, /*HEVC, nalu-based*/
+	CENC_AV1,  /*AV1, OBU-based*/
+	CENC_VPX,  /*VPX, custom, see https://www.webmproject.org/vp9/mp4/*/
+} CENCCodecMode;
+
+
 typedef struct
 {
 	Bool passthrough;
@@ -60,6 +72,7 @@ typedef struct
 
 	//ISMA/OMA var
 	u32 nalu_size_length;
+	u32 dsi_crc;
 	Bool isma_oma;
 	u64 BSO;
 	u64 range_end;
@@ -70,7 +83,8 @@ typedef struct
 	Bool is_adobe;
 	bin128 key;
 
-	Bool is_nalu_video;
+	CENCCodecMode cenc_codec;
+
 	u32 bytes_in_nal_hdr;
 	Bool use_subsamples;
 	Bool cenc_init;
@@ -87,9 +101,7 @@ typedef struct
 	HEVCState hevc;
 #endif
 	Bool slice_header_clear;
-	Bool is_avc;
 	AV1State av1;
-	Bool is_av1;
 #endif
 } GF_CENCStream;
 
@@ -518,21 +530,33 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 
 static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
 {
-	u32 i;
+	u32 i, dsi_crc=0;
+	Bool is_reinit=GF_FALSE;
+	GF_AVCConfig *avccfg;
+	GF_HEVCConfig *hevccfg;
 	const GF_PropertyValue *p, *p2;
-
-	cstr->nalu_size_length = 0;
 
 	p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (!p) p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 
-	cstr->nalu_size_length = 0;
-	switch (cstr->codec_id) {
-	case GF_CODECID_AVC:
-	case GF_CODECID_SVC:
-	case GF_CODECID_MVC:
- 		if (p) {
-			GF_AVCConfig *avccfg = gf_odf_avc_cfg_read(p->value.data.ptr, p->value.data.size);
+	if (p) {
+		dsi_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+	}
+	if (dsi_crc != cstr->dsi_crc)
+		is_reinit = GF_TRUE;
+
+	cstr->dsi_crc = dsi_crc;
+
+	if (is_reinit) {
+		cstr->nalu_size_length = 0;
+		switch (cstr->codec_id) {
+		case GF_CODECID_AVC:
+		case GF_CODECID_SVC:
+		case GF_CODECID_MVC:
+			if (!p)
+				return GF_OK;
+
+			avccfg = gf_odf_avc_cfg_read(p->value.data.ptr, p->value.data.size);
 			if (avccfg) cstr->nalu_size_length = avccfg->nal_unit_size;
 
 			p2 = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_ISOM_SUBTYPE);
@@ -545,9 +569,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			} else {
 				cstr->slice_header_clear = GF_TRUE;
 			}
-			cstr->is_avc = GF_TRUE;
+			cstr->cenc_codec = CENC_AVC;
 
-#if !defined(GPAC_DISABLE_AV_PARSERS)
+	#if !defined(GPAC_DISABLE_AV_PARSERS)
 			for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, i);
 				gf_media_avc_read_sps(slc->data, slc->size, &cstr->avc, 0, NULL);
@@ -556,53 +580,62 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				GF_AVCConfigSlot *slc = gf_list_get(avccfg->pictureParameterSets, i);
 				gf_media_avc_read_pps(slc->data, slc->size, &cstr->avc);
 			}
-#endif
+	#endif
 			if (avccfg) gf_odf_avc_cfg_del(avccfg);
-			cstr->is_nalu_video = GF_TRUE;
 			cstr->bytes_in_nal_hdr = 1;
-		}
-		if (!cstr->nalu_size_length) {
-			cstr->nalu_size_length = 4;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
-		}
-		break;
-	case GF_CODECID_HEVC:
-	case GF_CODECID_LHVC:
-		if (p) {
-			GF_HEVCConfig *hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+
+			if (!cstr->nalu_size_length) {
+				cstr->nalu_size_length = 4;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
+			}
+			break;
+		case GF_CODECID_HEVC:
+		case GF_CODECID_LHVC:
+			if (!p)
+				return GF_OK;
+
+			hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+	#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
 			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
 			hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
-#endif
+	#endif
 			//mandatory for HEVC
 			cstr->slice_header_clear = GF_TRUE;
-			cstr->is_avc = GF_FALSE;
+			cstr->cenc_codec = CENC_HEVC;
 
 			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-			cstr->is_nalu_video = GF_TRUE;
 			cstr->slice_header_clear = GF_TRUE;
 			cstr->bytes_in_nal_hdr = 2;
-		}
-		if (!cstr->nalu_size_length) {
-			cstr->nalu_size_length = 4;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
-		}
-		break;
-	case GF_CODECID_AV1:
-		if (p) {
+
+			if (!cstr->nalu_size_length) {
+				cstr->nalu_size_length = 4;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
+			}
+			break;
+		case GF_CODECID_AV1:
+			if (!p)
+				return GF_OK;
+
 			cstr->av1.config = gf_odf_av1_cfg_read(p->value.data.ptr, p->value.data.size);
 			//mandatory for AV1
 			cstr->slice_header_clear = GF_TRUE;
-			cstr->is_av1 = GF_TRUE;
+			cstr->cenc_codec = CENC_AV1;
 			cstr->bytes_in_nal_hdr = 2;
+			break;
+		case GF_CODECID_VP8:
+		case GF_CODECID_VP9:
+			if (p) {
+			cstr->cenc_codec = CENC_VPX;
+				cstr->bytes_in_nal_hdr = 2;
+			}
+			break;
 		}
-		break;
 	}
 
-	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (cstr->is_nalu_video || cstr->is_av1) )  {
+	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && ((cstr->cenc_codec>CENC_FULL_SAMPLE) && (cstr->cenc_codec<=CENC_AV1) ) )  {
 		if (!cstr->tci->crypt_byte_block || !cstr->tci->skip_byte_block) {
 			if (cstr->tci->crypt_byte_block || cstr->tci->skip_byte_block) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
@@ -612,8 +645,14 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 	}
 
+	if ( (cstr->cenc_codec==CENC_VPX) && (cstr->tci->scheme_type != GF_CRYPT_TYPE_CENC) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Encryption mode %s is not supported with VP8/VP9, only cenc is\n", gf_4cc_to_str(cstr->tci->scheme_type) ));
+		return GF_NOT_SUPPORTED;
+	}
+
+
 	cstr->use_subsamples = GF_FALSE;
-	if (cstr->is_nalu_video || cstr->is_av1) cstr->use_subsamples = GF_TRUE;
+	if (cstr->cenc_codec != CENC_FULL_SAMPLE) cstr->use_subsamples = GF_TRUE;
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
 		if (cstr->tci->skip_byte_block) {
@@ -643,40 +682,41 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 	}
 
-	if (cstr->crypt) gf_crypt_close(cstr->crypt);
-	if (cstr->ctr_mode) {
-		cstr->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
-	}
-	else {
-		cstr->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
+	if (is_reinit) {
+		if (cstr->crypt) gf_crypt_close(cstr->crypt);
+		if (cstr->ctr_mode) {
+			cstr->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
+		}
+		else {
+			cstr->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
+		}
+
+		if (!cstr->crypt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 %s\n", cstr->ctr_mode ? "CTR" : "CBC"));
+			return GF_IO_ERR;
+		}
+
+		/*select key*/
+		if (!cstr->tci->keys) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] No key specified\n"));
+			return GF_BAD_PARAM;
+		}
+		if (cstr->tci->defaultKeyIdx && (cstr->tci->defaultKeyIdx < cstr->tci->KID_count)) {
+			memcpy(cstr->key, cstr->tci->keys[cstr->tci->defaultKeyIdx], 16);
+			memcpy(cstr->default_KID, cstr->tci->KIDs[cstr->tci->defaultKeyIdx], 16);
+			cstr->kidx = cstr->tci->defaultKeyIdx;
+		} else {
+			memcpy(cstr->key, cstr->tci->keys[0], 16);
+			memcpy(cstr->default_KID, cstr->tci->KIDs[0], 16);
+			cstr->kidx = 0;
+		}
+		cstr->prev_sample_encryped = cstr->tci->IsEncrypted;
 	}
 
-	if (!cstr->crypt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 %s\n", cstr->ctr_mode ? "CTR" : "CBC"));
-		return GF_IO_ERR;
-	}
-
-	/*select key*/
-	if (!cstr->tci->keys) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] No key specified\n"));
-		return GF_BAD_PARAM;
-	}
-	if (cstr->tci->defaultKeyIdx && (cstr->tci->defaultKeyIdx < cstr->tci->KID_count)) {
-		memcpy(cstr->key, cstr->tci->keys[cstr->tci->defaultKeyIdx], 16);
-		memcpy(cstr->default_KID, cstr->tci->KIDs[cstr->tci->defaultKeyIdx], 16);
-		cstr->kidx = cstr->tci->defaultKeyIdx;
-	} else {
-		memcpy(cstr->key, cstr->tci->keys[0], 16);
-		memcpy(cstr->default_KID, cstr->tci->KIDs[0], 16);
-		cstr->kidx = 0;
-	}
-
-
-	/*create CENC protection*/
+	/*set CENC protection properties*/
 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(0x00010000) );
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(cstr->tci->IsEncrypted ? GF_TRUE : GF_FALSE) );
-	cstr->prev_sample_encryped = cstr->tci->IsEncrypted;
 
 	if (cstr->tci->IV_size) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, &PROP_UINT(cstr->tci->IV_size) );
@@ -700,6 +740,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STORE, &PROP_UINT(cstr->tci->sai_saved_box_type) );
 	}
 
+	//parse pssh even if reinit since we need to reassign pssh property
 	return cenc_parse_pssh(ctx, cstr, cfile_name);
 }
 
@@ -1135,7 +1176,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 	if (cstr->slice_header_clear) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
-		if (cstr->is_avc) {
+		if (cstr->cenc_codec==CENC_AVC) {
 			u32 ntype;
 			gf_media_avc_parse_nalu(plaintext_bs, &cstr->avc);
 			ntype = cstr->avc.last_nal_type_parsed;
@@ -1186,7 +1227,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	GF_BitStream *sai_bs;
 	u32 prev_entry_bytes_clear=0;
 	u32 prev_entry_bytes_crypt=0;
-	u32 nalu_size, pck_size;
+	u32 pck_size;
 	GF_FilterPacket *dst_pck;
 	const u8 *data;
 	char *output;
@@ -1220,24 +1261,33 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		GF_Err e=GF_OK;
 		u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
-		if (cstr->is_nalu_video || cstr->is_av1) {
+		if (cstr->use_subsamples) {
+			ObuType obut;
+			u32 num_frames_in_superframe = 0, superframe_index_size = 0;
+			u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
+			u64 pos, obu_size;
+			u32 hdr_size;
+			u32 i;
 			u32 clear_bytes_at_end = 0;
 			u32 clear_bytes = 0;
 			u32 nb_ranges = 1;
-			u32 av1_tile_idx = 0;
+			u32 range_idx = 0;
+			u32 nalu_size = 0;
+			struct {
+				int clear, encrypted;
+			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 
-
-			if (cstr->is_nalu_video) {
+			switch (cstr->cenc_codec) {
+			case CENC_AVC:
+			case CENC_HEVC:
 				nalu_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
 				if (nalu_size == 0) {
 					continue;
 				}
-
 				clear_bytes = cenc_get_clear_bytes(cstr, ctx->bs_r, (char *) data, nalu_size, cstr->bytes_in_nal_hdr);
-			} else {
-				ObuType obut;
-				u64 pos, obu_size;
-				u32 hdr_size;
+				break;
+
+			case CENC_AV1:
 				pos = gf_bs_get_position(ctx->bs_r);
 				e = gf_media_aom_av1_parse_obu(ctx->bs_r, &obut, &obu_size, &hdr_size, &cstr->av1);
 				if (e) {
@@ -1256,10 +1306,19 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						clear_bytes = (u32) obu_size;
 					} else {
 						nb_ranges = cstr->av1.frame_state.nb_tiles_in_obu;
-						clear_bytes = cstr->av1.frame_state.tiles[0].obu_start_offset;
-						nalu_size = clear_bytes + cstr->av1.frame_state.tiles[0].size;
+
+						ranges[0].clear = cstr->av1.frame_state.tiles[0].obu_start_offset;
+						ranges[0].encrypted = cstr->av1.frame_state.tiles[0].size;
+						for (i = 1; i < nb_ranges; ++i) {
+							ranges[i].clear = cstr->av1.frame_state.tiles[i].obu_start_offset - (cstr->av1.frame_state.tiles[i - 1].obu_start_offset + cstr->av1.frame_state.tiles[i - 1].size);
+							ranges[i].encrypted = cstr->av1.frame_state.tiles[i].size;
+						}
+						clear_bytes = ranges[0].clear;
+						nalu_size = clear_bytes + ranges[0].encrypted;
+
+
 						//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, other wise merge in prev
-						if (cstr->av1.frame_state.tiles[0].size>=16) {
+						if (ranges[0].encrypted >= 16) {
 							if (prev_entry_bytes_crypt) {
 								if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
 								nb_subsamples++;
@@ -1279,6 +1338,75 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					clear_bytes = (u32) obu_size;
 					break;
 				}
+				break;
+			case CENC_VPX:
+				pos = 0;
+
+				if (cstr->tci->block_align != 2) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\". Forcing value.\n"));
+					cstr->tci->block_align = 2;
+				}
+
+				pos = gf_bs_get_position(ctx->bs_r);
+				e = gf_media_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+				if (e) return e;
+				gf_bs_seek(ctx->bs_r, pos);
+
+				nb_ranges = num_frames_in_superframe;
+
+				for (i = 0; i < num_frames_in_superframe; ++i) {
+					Bool key_frame;
+					u32 width = 0, height = 0, renderWidth = 0, renderHeight = 0;
+					GF_VPConfig *vp9_cfg = gf_odf_vp_cfg_new();
+					u64 pos2 = gf_bs_get_position(ctx->bs_r);
+					e = gf_media_vp9_parse_sample(ctx->bs_r, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
+					gf_odf_vp_cfg_del(vp9_cfg);
+					if (e) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC] Error parsing VP9 frame at DTS "LLU"\n", gf_filter_pck_get_dts(pck) ));
+						return e;
+					}
+
+					ranges[i].clear = (int)(gf_bs_get_position(ctx->bs_r) - pos2);
+					ranges[i].encrypted = frame_sizes[i] - ranges[i].clear;
+
+					gf_bs_seek(ctx->bs_r, pos2 + frame_sizes[i]);
+				}
+				if (gf_bs_get_position(ctx->bs_r) + superframe_index_size != pos + pck_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC] Inconsistent VP9 size %u (parsed "LLU") at DTS "LLU". Re-import raw VP9/IVF for more details.\n",
+						pck_size, gf_bs_get_position(ctx->bs_r) + superframe_index_size - pos, gf_filter_pck_get_dts(pck)));
+				}
+				gf_bs_seek(ctx->bs_r, pos);
+
+				clear_bytes = ranges[0].clear;
+				assert(frame_sizes[0] == ranges[0].clear + ranges[0].encrypted);
+				nalu_size = frame_sizes[0];
+
+				//final superframe index must be in clear
+				if (superframe_index_size > 0) {
+					ranges[nb_ranges].clear = superframe_index_size;
+					ranges[nb_ranges].encrypted = 0;
+					nb_ranges++;
+				}
+
+				//not clearly defined in the spec (so we do the same as in AV1 which is more clearly defined):
+				if (frame_sizes[0] - clear_bytes >= 16) {
+					//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
+					if (prev_entry_bytes_crypt) {
+						if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
+						nb_subsamples++;
+						gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
+						gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
+						sai_size+=6;
+
+						prev_entry_bytes_crypt = 0;
+						prev_entry_bytes_clear = 0;
+					}
+				} else {
+					clear_bytes = nalu_size;
+				}
+				break;
+			default:
+				assert(0);
 			}
 
 			while (nb_ranges) {
@@ -1288,7 +1416,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					if (nalu_size > clear_bytes) {
 						u32 ret = (nalu_size - clear_bytes) % 16;
 						//in AV1 always enforced
-						if (cstr->is_av1) {
+						if (cstr->cenc_codec==CENC_AV1) {
 							clear_bytes += ret;
 						}
 						//for CENC (should),
@@ -1311,7 +1439,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				} else {
 					//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
 					//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
-					if (!cstr->is_av1 && (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+					if ((cstr->cenc_codec != CENC_AV1) && (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
 						u32 ret = (nalu_size - clear_bytes) % 16;
 						clear_bytes_at_end = ret;
 					}
@@ -1394,15 +1522,30 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				nb_ranges--;
 				if (!nb_ranges) break;
 
-				av1_tile_idx++;
-				if (av1_tile_idx) {
-					clear_bytes = cstr->av1.frame_state.tiles[av1_tile_idx].obu_start_offset - (cstr->av1.frame_state.tiles[av1_tile_idx-1].obu_start_offset + cstr->av1.frame_state.tiles[av1_tile_idx-1].size);
-					nalu_size = clear_bytes + cstr->av1.frame_state.tiles[av1_tile_idx].size;
+				range_idx++;
+				switch (cstr->cenc_codec) {
+				case CENC_AV1:
+					clear_bytes = ranges[range_idx].clear;
+					nalu_size = clear_bytes + ranges[range_idx].encrypted;
 					//A subsample SHALL be created for each tile.
 					prev_entry_bytes_clear = prev_entry_bytes_crypt = 0;
+					break;
+				case CENC_VPX:
+					if (nb_ranges > 1) {
+						clear_bytes = ranges[range_idx].clear;
+						nalu_size = clear_bytes + ranges[range_idx].encrypted;
+					} else { /*last*/
+						nalu_size = clear_bytes = ranges[range_idx].clear;
+						assert(ranges[range_idx].encrypted == 0);
+					}
+					//A subsample SHALL be created for each tile.
+					prev_entry_bytes_clear = prev_entry_bytes_crypt = 0;
+					break;
+				default:
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unexpected subrange for sample format, only allowed for VPX and AV1\n"));
+					return GF_BAD_PARAM;
 				}
 			}
-
 		} else if (cstr->ctr_mode) {
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
 			e = gf_crypt_encrypt(cstr->crypt, output, pck_size);

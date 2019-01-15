@@ -269,6 +269,8 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 	}
 	sptr = (u16 *)szLine;
 	i = (u32) gf_utf8_wcstombs(szLineConv, 1024, (const unsigned short **) &sptr);
+	if (i >= (u32)ARRAY_LENGTH(szLineConv))
+		return NULL;
 	szLineConv[i] = 0;
 	strcpy(szLine, szLineConv);
 	/*this is ugly indeed: since input is UTF16-LE, there are many chances the fgets never reads the \0 after a \n*/

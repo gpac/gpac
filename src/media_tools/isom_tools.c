@@ -119,7 +119,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 }
 
 GF_EXPORT
-GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
+GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track, Bool non_ref_only)
 {
 	GF_Err e;
 	u32 i, count, di;
@@ -134,10 +134,20 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
 
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
+		Bool remove = GF_TRUE;
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &offset);
 		if (!samp) return gf_isom_last_error(file);
 
-		if (samp->IsRAP) {
+		if (samp->IsRAP) remove = GF_FALSE;
+		else if (non_ref_only) {
+			u32 isLeading, dependsOn, dependedOn, redundant;
+			gf_isom_get_sample_flags(file, track, i+1, &isLeading, &dependsOn, &dependedOn, &redundant);
+			if (dependedOn != 2) {
+				remove = GF_FALSE;
+			}
+		}
+
+		if (!remove) {
 			last_dts = samp->DTS;
 			gf_isom_sample_del(&samp);
 			continue;
@@ -161,7 +171,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #ifdef GPAC_DISABLE_CORE_TOOLS
 	return GF_NOT_SUPPORTED;
 #else
-	u8 block[1024];
+	u8 block[4096];
 	u32 read;
 	u64 size, tot;
 	FILE *in;
@@ -190,20 +200,24 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 			u64 box_size = gf_bs_peek_bits(bs, 32, 0);
 			u32 box_type = gf_bs_peek_bits(bs, 32, 4);
 
-			/*till end of file*/
-			if (!box_size) box_size = size-tot;
 			/*64-bit size*/
-			else if (box_size==1) box_size = gf_bs_peek_bits(bs, 64, 8);
+			if (box_size==1) box_size = gf_bs_peek_bits(bs, 64, 8);
+			/*till end of file*/
+			if (!box_size) box_size = size - tot;
 
 			/*skip all MutableDRMInformation*/
 			if (box_type==GF_ISOM_BOX_TYPE_MDRI) {
 				gf_bs_skip_bytes(bs, box_size);
 				tot += box_size;
 			} else {
-				u32 bsize = 0;
+				u64 bsize = 0;
 				while (bsize<box_size) {
-					u32 to_read = (u32) ((box_size-bsize<1024) ? (box_size-bsize) : 1024);
-					gf_bs_read_data(bs, (char *) block, to_read);
+					u32 to_read = (u32) ((box_size-bsize<4096) ? (box_size-bsize) : 4096);
+					u32 read = gf_bs_read_data(bs, (char *) block, to_read);
+					if (!read || (read != to_read) ) {
+						fprintf(stderr, "corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size);
+						break;
+					}
 					gf_sha1_update(ctx, block, to_read);
 					bsize += to_read;
 				}
@@ -212,7 +226,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 		} else
 #endif
 		{
-			read = (u32) fread(block, 1, 1024, in);
+			read = (u32) fread(block, 1, 4096, in);
 			if ((s32) read < 0) {
 				e = GF_IO_ERR;
 				break;
@@ -843,6 +857,8 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
 	case GF_ISOM_SUBTYPE_AV01:
+	case GF_ISOM_SUBTYPE_VP09:
+	case GF_ISOM_SUBTYPE_VP08:
 		return gf_isom_get_esd(mp4, track, stsd_idx);
 	}
 	
@@ -3149,6 +3165,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	GF_Err e = GF_OK;
 	GF_Filter *f;
 	GF_FilterSession *fsess = gf_fs_new_defaults(0);
+
+	if (!fsess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Failed to create filter session\n"));
+		return GF_OUT_OF_MEM;
+	}
+
 
 	sprintf(szArgs, "mp4dmx:mov=%p", input);
 	f = gf_fs_load_filter(fsess, szArgs);

@@ -306,10 +306,25 @@ GF_Err nalumx_process(GF_Filter *filter)
 		size += ctx->is_hevc ? 3 : 2;
 		size += 4;
 	}
-	sap = gf_filter_pck_get_sap(pck);
-	if (sap && (sap <= GF_FILTER_SAP_3) && ctx->dsi) {
-		insert_dsi = GF_TRUE;
-		size += ctx->dsi_size;
+
+	if (ctx->dsi) {
+		sap = gf_filter_pck_get_sap(pck);
+		if (sap && (sap <= GF_FILTER_SAP_3) ) {
+			insert_dsi = GF_TRUE;
+		}
+		if (!insert_dsi) {
+			u8 flags = gf_filter_pck_get_dependency_flags(pck);
+			//get dependsOn
+			if (flags) {
+				flags>>=4;
+				flags &= 0x3;
+				if (flags==2) insert_dsi = GF_TRUE; //could be SAP 1, 2 or 3
+			}
+		}
+
+		if (insert_dsi) {
+			size += ctx->dsi_size;
+		}
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);

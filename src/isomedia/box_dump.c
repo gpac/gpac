@@ -324,7 +324,6 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->DegradationPriority) gf_isom_box_dump(p->DegradationPriority, trace);
 	if (p->SampleDep) gf_isom_box_dump(p->SampleDep, trace);
 	if (p->PaddingBits) gf_isom_box_dump(p->PaddingBits, trace);
-	if (p->Fragments) gf_isom_box_dump(p->Fragments, trace);
 	if (p->sub_samples) gf_isom_box_array_dump(p->sub_samples, trace);
 	if (p->sampleGroupsDescription) gf_isom_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_isom_box_array_dump(p->sampleGroups, trace);
@@ -1084,51 +1083,44 @@ GF_Err sdtp_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!--Warning: No sample dependencies indications-->\n");
 	} else {
 		for (i=0; i<p->sampleCount; i++) {
+			const char *type;
 			u8 flag = p->sample_info[i];
 			fprintf(trace, "<SampleDependencyEntry ");
+			switch ( (flag >> 6) & 3) {
+			case 1: type="openGOP"; break;
+			case 2: type="no"; break;
+			case 3: type="SAP2"; break;
+			default:
+			case 0: type="unknown"; break;
+			}
+			fprintf(trace, "isLeading=\"%s\" ", type);
+
 			switch ( (flag >> 4) & 3) {
-			case 0:
-				fprintf(trace, "dependsOnOther=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "dependsOnOther=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "dependsOnOther=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "dependsOnOther=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
+			fprintf(trace, "dependsOnOther=\"%s\" ", type);
+
 			switch ( (flag >> 2) & 3) {
-			case 0:
-				fprintf(trace, "dependedOn=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "dependedOn=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "dependedOn=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "dependedOn=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
+			fprintf(trace, "dependedOn=\"%s\" ", type);
+
 			switch ( flag & 3) {
-			case 0:
-				fprintf(trace, "hasRedundancy=\"unknown\" ");
-				break;
-			case 1:
-				fprintf(trace, "hasRedundancy=\"yes\" ");
-				break;
-			case 2:
-				fprintf(trace, "hasRedundancy=\"no\" ");
-				break;
-			case 3:
-				fprintf(trace, "hasRedundancy=\"RESERVED\" ");
-				break;
+			case 1: type="yes"; break;
+			case 2: type="no"; break;
+			case 3: type="RESERVED"; break;
+			default:
+			case 0: type="unknown"; break;
 			}
-			fprintf(trace, " />\n");
+			fprintf(trace, "hasRedundancy=\"%s\"/>\n", type);
 		}
 	}
 	if (!p->size) {
@@ -1373,33 +1365,6 @@ GF_Err padb_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_Err stsf_dump(GF_Box *a, FILE * trace)
-{
-	GF_SampleFragmentBox *p;
-	GF_StsfEntry *ent;
-	u32 i, j, count;
-
-
-	p = (GF_SampleFragmentBox *)a;
-	count = gf_list_count(p->entryList);
-	gf_isom_box_dump_start(a, "SampleFragmentBox", trace);
-	fprintf(trace, "EntryCount=\"%d\">\n", count);
-
-	for (i=0; i<count; i++) {
-		ent = (GF_StsfEntry *)gf_list_get(p->entryList, i);
-		fprintf(trace, "<SampleFragmentEntry SampleNumber=\"%d\" FragmentCount=\"%d\">\n", ent->SampleNumber, ent->fragmentCount);
-		for (j=0; j<ent->fragmentCount; j++) fprintf(trace, "<FragmentSizeEntry size=\"%d\"/>\n", ent->fragmentSizes[j]);
-		fprintf(trace, "</SampleFragmentEntry>\n");
-	}
-	if (!p->size) {
-		fprintf(trace, "<SampleFragmentEntry SampleNumber=\"\" FragmentCount=\"\">\n");
-		fprintf(trace, "<FragmentSizeEntry size=\"\"/>\n");
-		fprintf(trace, "</SampleFragmentEntry>\n");
-	}
-	gf_isom_box_dump_done("SampleFragmentBox", a, trace);
-	return GF_OK;
-}
-
 GF_Err gppc_dump(GF_Box *a, FILE * trace)
 {
 	GF_3GPPConfigBox *p = (GF_3GPPConfigBox *)a;
@@ -1639,6 +1604,33 @@ GF_Err vpcc_dump(GF_Box *a, FILE *trace) {
 		fprintf(trace, ">\n</VPConfig>\n");
 	}
 	fprintf(trace, "</VPConfigurationBox>\n");
+	return GF_OK;
+}
+
+GF_Err SmDm_dump(GF_Box *a, FILE *trace) {
+	GF_SMPTE2086MasteringDisplayMetadataBox * ptr = (GF_SMPTE2086MasteringDisplayMetadataBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "SMPTE2086MasteringDisplayMetadataBox", trace);
+	fprintf(trace, "primaryRChromaticity_x=\"%u\" ", ptr->primaryRChromaticity_x);
+	fprintf(trace, "primaryRChromaticity_y=\"%u\" ", ptr->primaryRChromaticity_y);
+	fprintf(trace, "primaryGChromaticity_x=\"%u\" ", ptr->primaryGChromaticity_x);
+	fprintf(trace, "primaryGChromaticity_y=\"%u\" ", ptr->primaryGChromaticity_y);
+	fprintf(trace, "primaryBChromaticity_x=\"%u\" ", ptr->primaryBChromaticity_x);
+	fprintf(trace, "primaryBChromaticity_y=\"%u\" ", ptr->primaryBChromaticity_y);
+	fprintf(trace, "whitePointChromaticity_x=\"%u\" ", ptr->whitePointChromaticity_x);
+	fprintf(trace, "whitePointChromaticity_y=\"%u\" ", ptr->whitePointChromaticity_y);
+	fprintf(trace, "luminanceMax=\"%u\" ", ptr->luminanceMax);
+	fprintf(trace, "luminanceMin=\"%u\">\n", ptr->luminanceMin);
+	gf_isom_box_dump_done("SMPTE2086MasteringDisplayMetadataBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err CoLL_dump(GF_Box *a, FILE *trace) {
+	GF_VPContentLightLevelBox * ptr = (GF_VPContentLightLevelBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "VPContentLightLevelBox", trace);
+	fprintf(trace, "maxCLL=\"%u\" maxFALL=\"%u\">\n", ptr->maxCLL, ptr->maxFALL);
+	gf_isom_box_dump_done("VPContentLightLevelBox", a, trace);
 	return GF_OK;
 }
 
@@ -3942,6 +3934,17 @@ GF_Err dac3_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dvcC_dump(GF_Box *a, FILE * trace)
+{
+	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
+	gf_isom_box_dump_start(a, "DOVIConfigurationBox", trace);
+	fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\">\n",
+		p->DOVIConfig.dv_version_major, p->DOVIConfig.dv_version_minor, p->DOVIConfig.dv_profile, p->DOVIConfig.dv_level,
+		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag);
+	gf_isom_box_dump_done("DOVIConfigurationBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err lsrc_dump(GF_Box *a, FILE * trace)
 {
 	GF_LASERConfigurationBox *p = (GF_LASERConfigurationBox *)a;
@@ -3992,7 +3995,7 @@ GF_Err ssix_dump(GF_Box *a, FILE * trace)
 	for (i = 0; i < p->subsegment_count; i++) {
 		fprintf(trace, "<Subsegment range_count=\"%d\">\n", p->subsegments[i].range_count);
 		for (j = 0; j < p->subsegments[i].range_count; j++) {
-			fprintf(trace, "<Range level=\"%d\" range_size=\"%d\"/>\n", p->subsegments[i].levels[j], p->subsegments[i].range_sizes[j]);
+			fprintf(trace, "<Range level=\"%d\" range_size=\"%d\"/>\n", p->subsegments[i].ranges[j].level, p->subsegments[i].ranges[j].range_size);
 		}
 		fprintf(trace, "</Subsegment>\n");
 	}
@@ -4881,6 +4884,30 @@ GF_Err irot_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "ImageRotationBox", trace);
 	fprintf(trace, "angle=\"%d\">\n", (ptr->angle*90));
 	gf_isom_box_dump_done("ImageRotationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err clli_dump(GF_Box *a, FILE * trace)
+{
+	GF_ContentLightLevelBox *ptr = (GF_ContentLightLevelBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ContentLightLevelBox", trace);
+	fprintf(trace, "max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\">\n", ptr->max_content_light_level, ptr->max_pic_average_light_level);
+	gf_isom_box_dump_done("ContentLightLevelBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err mdcv_dump(GF_Box *a, FILE * trace)
+{
+	int c = 0;
+	GF_MasteringDisplayColourVolumeBox *ptr = (GF_MasteringDisplayColourVolumeBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "MasteringDisplayColourVolumeBox", trace);
+	for (c = 0; c < 3; c++) {
+		fprintf(trace, "display_primaries[%d].x=\"%u\" display_primaries[%d].y=\"%u\"", c, ptr->display_primaries[c].x, c, ptr->display_primaries[c].y);
+	}
+	fprintf(trace, "white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\">\n", ptr->white_point_x, ptr->white_point_y, ptr->max_display_mastering_luminance, ptr->min_display_mastering_luminance);
+	gf_isom_box_dump_done("MasteringDisplayColourVolumeBox", a, trace);
 	return GF_OK;
 }
 

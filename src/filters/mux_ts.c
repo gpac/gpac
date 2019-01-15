@@ -650,9 +650,10 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (p) {
 		if (!ctx->dash_mode && p->value.uint) ctx->init_dash = GF_TRUE;
 		ctx->dash_mode = p->value.uint;
-		if (ctx->dash_mode)
+		if (ctx->dash_mode) {
 			ctx->mux->flush_pes_at_rap = GF_TRUE;
 			gf_m2ts_mux_set_initial_pcr(ctx->mux, 0);
+		}
 	}
 
 	tspid = gf_filter_pid_get_udta(pid);

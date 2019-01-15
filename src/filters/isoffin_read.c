@@ -137,14 +137,22 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	return GF_OK;
 }
 
+static void isoffin_delete_channel(ISOMChannel *ch)
+{
+	isor_reset_reader(ch);
+	if (ch->nal_bs) gf_bs_del(ch->nal_bs);
+	if (ch->avcc) gf_odf_avc_cfg_del(ch->avcc);
+	if (ch->hvcc) gf_odf_hevc_cfg_del(ch->hvcc);
+	gf_free(ch);
+}
+
 static void isoffin_disconnect(ISOMReader *read)
 {
 	read->disconnected = GF_TRUE;
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
-		isor_reset_reader(ch);
-		gf_free(ch);
+		isoffin_delete_channel(ch);
 	}
 
 	if (read->mov) gf_isom_close(read->mov);
@@ -385,8 +393,7 @@ static void isoffin_finalize(GF_Filter *filter)
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
-		isor_reset_reader(ch);
-		gf_free(ch);
+		isoffin_delete_channel(ch);
 	}
 	gf_list_del(read->channels);
 
@@ -896,9 +903,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				u32 sample_dur;
 				u8 dep_flags;
 				GF_FilterPacket *pck;
+
+				if (ch->needs_pid_reconfig) {
+					isor_update_channel_config(ch);
+					ch->needs_pid_reconfig = GF_FALSE;
+				}
+
+				//strip param sets from payload, trigger reconfig if needed
+				isor_reader_check_config(ch);
+
 				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
 				assert(pck);
-				
+
 				memcpy(data, ch->sample->data, ch->sample->dataLength);
 
 				gf_filter_pck_set_dts(pck, ch->dts);
@@ -957,7 +973,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
 			} else if (ch->last_state==GF_EOS) {
-				assert(read->input_loaded);
 				if (ch->play_state==1) {
 					ch->play_state = 2;
 					gf_filter_pid_set_eos(ch->pid);
@@ -993,7 +1008,8 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itt), "(items-to-track) converts all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(smode), "Load mode for scalable/tile tracks\n\tsplit: each track is declared, extractors are removed\n\tsplitx: each track is declared, extractors are kept\n\tsingle: a single track is declared (highest level for scalable, tile base for tiling)", GF_PROP_UINT, "split", "split|splitx|single", GF_FS_ARG_HINT_ADVANCED},
-
+	{ OFFS(alltk), "declares all tracks even disabled ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(expart), "exposes cover art as a dedicated video pid", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsd), "only extract sample mapped to the given sample desciption index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
@@ -1007,6 +1023,9 @@ static const GF_FilterCapability ISOFFInCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_METADATA),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC,GF_PROP_PID_UNFRAMED, GF_FALSE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),

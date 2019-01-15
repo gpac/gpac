@@ -36,7 +36,10 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->last_state = GF_OK;
 	isor_reader_release_sample(ch);
 
-	if (ch->static_sample) gf_isom_sample_del(&ch->static_sample);
+	if (ch->static_sample) {
+		ch->static_sample->dataLength = ch->static_sample->alloc_size;
+		gf_isom_sample_del(&ch->static_sample);
+	}
 	ch->sample = NULL;
 	ch->sample_num = 0;
 	ch->speed = 1.0;
@@ -307,8 +310,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 						ch->sample_time = ch->sample->DTS;
 						ch->sample_num = samp_num;
 					} else {
-						gf_isom_sample_del(&found);
-						ch->static_sample = ch->sample;
+						ch->sample = ch->static_sample;
 						ch->edit_sync_frame = ch->sample_num;
 						ch->sample->DTS = ch->sample_time;
 						ch->sample->CTS_Offset = 0;
@@ -371,35 +373,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (sample_desc_index != ch->last_sample_desc_index) {
 		if (!ch->owner->stsd) {
-			u32 mtype = gf_isom_get_media_type(ch->owner->mov, ch->track);
-			switch (mtype) {
-			case GF_ISOM_MEDIA_VISUAL:
-			case GF_ISOM_MEDIA_AUXV:
-			case GF_ISOM_MEDIA_PICT:
-				//code is here as a reminder, but by default we use inband param set extraction so no need for it
-	#if 0
-				if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {
-					u32 extract_mode = ch->nalu_extract_mode | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
-
-					ch->sample = NULL;
-					gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, extract_mode);
-					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &ch->last_sample_desc_index, ch->static_sample);
-
-					gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
-				}
-	#endif
-				break;
-			case GF_ISOM_MEDIA_TEXT:
-			case GF_ISOM_MEDIA_SUBPIC:
-			case GF_ISOM_MEDIA_MPEG_SUBT:
-				break;
-			default:
-				//TODO: do we want to support codec changes ?
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Change of sample description (%d->%d) for media type %s not supported\n", ch->last_sample_desc_index, sample_desc_index, gf_4cc_to_str(mtype) ));
-				ch->sample = NULL;
-				ch->last_state = GF_NOT_SUPPORTED;
-				return;
-			}
+			ch->needs_pid_reconfig = GF_TRUE;
 		}
 		ch->last_sample_desc_index = sample_desc_index;
 	}
@@ -439,7 +413,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else {
 		ch->sender_ntp = 0;
 	}
-	gf_isom_get_sample_flags(ch->owner->mov, ch->track, ch->last_sample_desc_index, &ch->isLeading, &ch->dependsOn, &ch->dependedOn, &ch->redundant);
+	gf_isom_get_sample_flags(ch->owner->mov, ch->track, ch->sample_num, &ch->isLeading, &ch->dependsOn, &ch->dependedOn, &ch->redundant);
 
 	if (ch->is_encrypted) {
 		/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
@@ -502,5 +476,162 @@ void isor_reader_release_sample(ISOMChannel *ch)
 	ch->au_seq_num++;
 }
 
+static void isor_reset_seq_list(GF_List *list)
+{
+	GF_AVCConfigSlot *sl;
+	while (gf_list_count(list)) {
+		sl = gf_list_pop_back(list);
+		gf_free(sl->data);
+		gf_free(sl);
+	}
+}
+
+enum
+{
+	RESET_STATE_VPS=1,
+	RESET_STATE_SPS=1<<1,
+	RESET_STATE_PPS=1<<2,
+	RESET_STATE_SPS_EXT=1<<3,
+};
+
+static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
+{
+	u32 i, count, state=0;
+	GF_AVCConfigSlot *sl;
+	GF_List *list;
+	if (avcc) {
+		if (nal_type==GF_AVC_NALU_PIC_PARAM) {
+			list = avcc->pictureParameterSets;
+			state=RESET_STATE_PPS;
+		} else if (nal_type==GF_AVC_NALU_SEQ_PARAM) {
+			list = avcc->sequenceParameterSets;
+			state=RESET_STATE_SPS;
+		} else if (nal_type==GF_AVC_NALU_SEQ_PARAM_EXT) {
+			list = avcc->sequenceParameterSetExtensions;
+			state=RESET_STATE_SPS_EXT;
+		} else return;
+	} else {
+		GF_HEVCParamArray *hvca=NULL;
+		count = gf_list_count(hvcc->param_array);
+		for (i=0; i<count; i++) {
+			hvca = gf_list_get(hvcc->param_array, i);
+			if (hvca->type==nal_type) {
+				list = hvca->nalus;
+				break;
+			}
+			hvca = NULL;
+		}
+		if (!hvca) {
+			GF_SAFEALLOC(hvca, GF_HEVCParamArray);
+			list = hvca->nalus = gf_list_new();
+			hvca->type = nal_type;
+			gf_list_add(hvcc->param_array, hvca);
+		}
+		switch (nal_type) {
+		case GF_HEVC_NALU_VID_PARAM:
+			state = RESET_STATE_VPS;
+			break;
+		case GF_HEVC_NALU_SEQ_PARAM:
+			state = RESET_STATE_SPS;
+			break;
+		case GF_HEVC_NALU_PIC_PARAM:
+			state = RESET_STATE_PPS;
+			break;
+		}
+	}
+
+	count = gf_list_count(list);
+	for (i=0; i<count; i++) {
+		sl = gf_list_get(list, i);
+		if ((sl->size==size) && !memcmp(sl->data, data, size)) return;
+	}
+	if (! (*reset_state & state))  {
+		isor_reset_seq_list(list);
+		*reset_state |= state;
+	}
+	GF_SAFEALLOC(sl, GF_AVCConfigSlot);
+	sl->data = gf_malloc(sizeof(char)*size);
+	memcpy(sl->data, data, size);
+	sl->size = size;
+	gf_list_add(list, sl);
+}
+
+void isor_reader_check_config(ISOMChannel *ch)
+{
+	u32 nalu_len = 0;
+	u32 reset_state = 0;
+	if (!ch->check_hevc_ps && !ch->check_avc_ps) return;
+
+	if (!ch->sample) return;
+	//we cannot touch the payload if encrypted !!
+	//TODO, in CENC try to remove non-encrypted NALUs and update saiz accordingly
+	if (ch->is_encrypted) return;
+
+	nalu_len = ch->hvcc ? ch->hvcc->nal_unit_size : (ch->avcc ? ch->avcc->nal_unit_size : 4);
+
+	if (!ch->nal_bs) ch->nal_bs = gf_bs_new(ch->sample->data, ch->sample->dataLength, GF_BITSTREAM_READ);
+	else gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
+
+	while (gf_bs_available(ch->nal_bs)) {
+		Bool replace_nal = GF_FALSE;
+		u8 nal_type=0;
+		u32 pos = (u32) gf_bs_get_position(ch->nal_bs);
+		u32 size = gf_bs_read_int(ch->nal_bs, nalu_len*8);
+		if (ch->sample->dataLength < size + pos + nalu_len) break;
+		u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
+		if (ch->check_avc_ps) {
+			nal_type = hdr & 0x1F;
+			switch (nal_type) {
+			case GF_AVC_NALU_SEQ_PARAM:
+			case GF_AVC_NALU_SEQ_PARAM_EXT:
+			case GF_AVC_NALU_PIC_PARAM:
+				replace_nal = GF_TRUE;
+				break;
+			}
+		}
+		if (ch->check_hevc_ps) {
+			nal_type = (hdr & 0x7E) >> 1;
+			switch (nal_type) {
+			case GF_HEVC_NALU_VID_PARAM:
+			case GF_HEVC_NALU_SEQ_PARAM:
+			case GF_HEVC_NALU_PIC_PARAM:
+				replace_nal = GF_TRUE;
+				break;
+			}
+		}
+		gf_bs_skip_bytes(ch->nal_bs, size);
+
+		if (replace_nal) {
+			u32 move_size = ch->sample->dataLength - size - pos - nalu_len;
+			isor_replace_nal(ch->avcc, ch->hvcc, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
+			if (move_size)
+				memmove(ch->sample->data + pos, ch->sample->data + pos + size + nalu_len, ch->sample->dataLength - size - pos - nalu_len);
+
+			ch->sample->dataLength -= size + nalu_len;
+			gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
+			gf_bs_seek(ch->nal_bs, pos);
+		}
+	}
+
+	if (reset_state) {
+		char *dsi=NULL;
+		u32 dsi_size=0;
+		if (ch->check_avc_ps) {
+			gf_odf_avc_cfg_write(ch->avcc, &dsi, &dsi_size);
+		}
+		else if (ch->check_hevc_ps) {
+			gf_odf_hevc_cfg_write(ch->hvcc, &dsi, &dsi_size);
+		}
+		if (dsi && dsi_size) {
+			u32 dsi_crc = gf_crc_32(dsi, dsi_size);
+			if (ch->dsi_crc == dsi_crc) {
+				gf_free(dsi);
+			} else {
+				ch->dsi_crc = dsi_crc;
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
+			}
+		}
+	}
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

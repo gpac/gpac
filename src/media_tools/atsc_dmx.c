@@ -1001,7 +1001,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 	GF_Err e;
 	GF_XMLAttribute *att;
 	GF_XMLNode *rs, *ls, *srcf, *efdt, *node, *root;
-	u32 i, j, k, crc;
+	u32 i, j, k, crc, nb_lct_channels=0;
 
 	crc = gf_crc_32(content, (u32) strlen(content) );
 	if (!s->stsid_crc) {
@@ -1097,6 +1097,7 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 			k=0;
 			while ((node = gf_list_enum(efdt->content, &k))) {
 				if (node->type != GF_XML_NODE_TYPE) continue;
+				//Korean version
 				if (!strcmp(node->name, "FileTemplate")) {
 					GF_XMLNode *content = gf_list_get(node->content, 0);
 					if (content->type==GF_XML_TEXT_TYPE) file_template = content->name;
@@ -1104,6 +1105,26 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 				else if (!strcmp(node->name, "FDTParameters")) {
 					u32 l=0;
 					GF_XMLNode *fdt = NULL;
+					while ((fdt = gf_list_enum(node->content, &l))) {
+						if ((fdt->type == GF_XML_NODE_TYPE) && (strstr(fdt->name, "File")!=NULL)) break;
+						fdt = NULL;
+					}
+					if (fdt) {
+						l=0;
+						while ((att = gf_list_enum(fdt->attributes, &l))) {
+							if (!strcmp(att->name, "Content-Location")) init_file_name = att->value;
+							else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &init_file_toi);
+						}
+					}
+				}
+				//US version
+				else if (!strcmp(node->name, "FDT-Instance")) {
+					u32 l=0;
+					GF_XMLNode *fdt = NULL;
+					while ((att = gf_list_enum(node->attributes, &l))) {
+						if (strstr(att->name, "fileTemplate")) file_template = att->value;
+					}
+					l=0;
 					while ((fdt = gf_list_enum(node->content, &l))) {
 						if ((fdt->type == GF_XML_NODE_TYPE) && (strstr(fdt->name, "File")!=NULL)) break;
 						fdt = NULL;
@@ -1125,14 +1146,15 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 				init_file_toi = (u32) -1;
 			}
 			if (!file_template) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d missing file TOI template in LS/ROUTE session, not supported\n", s->service_id));
-				return GF_NOT_SUPPORTED;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ATSC] Service %d missing file TOI template in LS/ROUTE session, not supported - skipping stream\n", s->service_id));
+				continue;
 			}
 			sep = strstr(file_template, "$TOI$");
 			if (!sep) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d wrong TOI template %s in LS/ROUTE session\n", s->service_id, file_template));
 				return GF_NOT_SUPPORTED;
 			}
+			nb_lct_channels++;
 
 			//OK setup LCT channel for route
 			GF_SAFEALLOC(rlct, GF_ATSCLCTChannel);
@@ -1185,6 +1207,11 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 			gf_list_add(rsess->channels, rlct);
 		}
 	}
+
+	if (!nb_lct_channels) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ATSC] Service %d does not have any supported LCT channels\n", s->service_id));
+		return GF_NOT_SUPPORTED;
+	}
 	return GF_OK;
 }
 
@@ -1196,7 +1223,7 @@ static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCS
 	GF_Err e;
 
 	//uncompress bundle
-	if (object->toi & (1<<31) ) {
+	if (object->toi & 0x80000000 /*(1<<31)*/ ) {
 		u32 raw_size;
 		if (object->total_length > atscd->buffer_size) {
 			atscd->buffer_size = object->total_length;
@@ -1301,7 +1328,9 @@ static GF_Err gf_atsc3_dmx_process_service_signaling(GF_ATSCDmx *atscd, GF_ATSCS
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[ATSC] Service %d same MPD version, ignoring\n",s->service_id));
 			}
-		} else if (!strcmp(szContentType, "application/s-tsid")) {
+		}
+		//Korean and US version have different mime types
+		else if (!strcmp(szContentType, "application/s-tsid") || !strcmp(szContentType, "application/route-s-tsid+xml")) {
 			if (stsid_version && (stsid_version+1 != s->stsid_version)) {
 				s->stsid_version = stsid_version+1;
 				gf_atsc3_service_setup_stsid(atscd, s, payload, szContentLocation);
@@ -1457,8 +1486,8 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 		}
 	} else {
 		//check TOI for TSI 0
-		/*a_G = toi & (1<<31) ? 1 : 0;
-		a_U = toi & (1<<16) ? 1 : 0;*/
+		//a_G = toi & 0x80000000 /*(1<<31)*/ ? 1 : 0;
+		//a_U = toi & (1<<16) ? 1 : 0;
 		a_S = toi & (1<<17) ? 1 : 0;
 		a_M = toi & (1<<18) ? 1 : 0;
 		/*a_A = toi & (1<<19) ? 1 : 0;

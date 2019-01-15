@@ -907,9 +907,9 @@ static u32 gf_m2ts_get_section_length(char byte0, char byte1, char byte2)
 {
 	u32 length;
 	if (gf_m2ts_is_long_section(byte0)) {
-		length = 3 + ( ((byte1<<8) | (byte2&0xff)) & 0xfff );
+		length = 3 + ( ((((u32)byte1)<<8) | (byte2&0xff)) & 0xfff );
 	} else {
-		length = 3 + ( ((byte1<<8) | (byte2&0xff)) & 0x3ff );
+		length = 3 + ( ((((u32)byte1)<<8) | (byte2&0xff)) & 0x3ff );
 	}
 	return length;
 }
@@ -2105,75 +2105,84 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	GF_M2TS_PESHeader pesh;
 	if (!ts) return;
 
-	/*we need at least a full, valid start code !!*/
+	/*we need at least a full, valid start code and PES header !!*/
 	if ((pes->pck_data_len >= 4) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2] == 0x1)) {
 		u32 len;
-		u32 stream_id = pes->pck_data[3] | 0x100;
+		Bool has_pes_header = GF_TRUE;
+		u32 stream_id = pes->pck_data[3];
 		Bool same_pts = GF_FALSE;
 
-		if ((stream_id >= 0x1c0 && stream_id <= 0x1df) ||
-			(stream_id >= 0x1e0 && stream_id <= 0x1ef) ||
-			(stream_id == 0x1bd) ||
-			(stream_id == 0x10d) ||
-			/*SL-packetized*/
-			((u8)pes->pck_data[3] == 0xfa)
-			) {
+		switch (stream_id) {
+		case GF_M2_STREAMID_PROGRAM_STREAM_MAP:
+		case GF_M2_STREAMID_PADDING:
+		case GF_M2_STREAMID_PRIVATE_2:
+		case GF_M2_STREAMID_ECM:
+		case GF_M2_STREAMID_EMM:
+		case GF_M2_STREAMID_PROGRAM_STREAM_DIRECTORY:
+		case GF_M2_STREAMID_DSMCC:
+		case GF_M2_STREAMID_H222_TYPE_E:
+			has_pes_header = GF_FALSE;
+			break;
 		}
-		else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: unknown stream ID %08X\n", pes->pid, stream_id));
-		}
 
+		if (has_pes_header) {
 
-		/*OK read header*/
-		gf_m2ts_pes_header(pes, pes->pck_data + 3, pes->pck_data_len - 3, &pesh);
+			/*OK read header*/
+			gf_m2ts_pes_header(pes, pes->pck_data + 3, pes->pck_data_len - 3, &pesh);
 
-		/*send PES timing*/
-		if (ts->notify_pes_timing) {
-			GF_M2TS_PES_PCK pck;
-			memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-			pck.PTS = pesh.PTS;
-			pck.DTS = pesh.DTS;
-			pck.stream = pes;
-			if (pes->rap) pck.flags |= GF_M2TS_PES_PCK_RAP;
-			pes->pes_end_packet_number = ts->pck_number;
-			if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_TIMING, &pck);
-		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Got PES header DTS %d PTS %d\n", pes->pid, pesh.DTS, pesh.PTS));
+			/*send PES timing*/
+			if (ts->notify_pes_timing) {
+				GF_M2TS_PES_PCK pck;
+				memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
+				pck.PTS = pesh.PTS;
+				pck.DTS = pesh.DTS;
+				pck.stream = pes;
+				if (pes->rap) pck.flags |= GF_M2TS_PES_PCK_RAP;
+				pes->pes_end_packet_number = ts->pck_number;
+				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_TIMING, &pck);
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Got PES header DTS %d PTS %d\n", pes->pid, pesh.DTS, pesh.PTS));
 
-		if (pesh.PTS) {
-			if (pesh.PTS == pes->PTS) {
+			if (pesh.PTS) {
+				if (pesh.PTS == pes->PTS) {
+					same_pts = GF_TRUE;
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS));
+				}
+	#ifndef GPAC_DISABLE_LOG
+				/*FIXME - this test should only be done for non bi-directionnally coded media
+				else if (pesh.PTS < pes->PTS) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - PTS "LLU" less than previous packet PTS "LLU"\n", pes->pid, pesh.PTS, pes->PTS) );
+				}
+				*/
+	#endif
+
+				pes->PTS = pesh.PTS;
+	#ifndef GPAC_DISABLE_LOG
+				{
+					if (pes->DTS && (pesh.DTS == pes->DTS)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS));
+					}
+					if (pesh.DTS < pes->DTS) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS));
+					}
+				}
+	#endif
+				pes->DTS = pesh.DTS;
+			}
+			/*no PTSs were coded, same time*/
+			else if (!pesh.hdr_data_len) {
 				same_pts = GF_TRUE;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS));
 			}
-#ifndef GPAC_DISABLE_LOG
-			/*FIXME - this test should only be done for non bi-directionnally coded media
-			else if (pesh.PTS < pes->PTS) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - PTS "LLU" less than previous packet PTS "LLU"\n", pes->pid, pesh.PTS, pes->PTS) );
-			}
-			*/
-#endif
 
-			pes->PTS = pesh.PTS;
-#ifndef GPAC_DISABLE_LOG
-			{
-				if (pes->DTS && (pesh.DTS == pes->DTS)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS));
-				}
-				if (pesh.DTS < pes->DTS) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS));
-				}
-			}
-#endif
-			pes->DTS = pesh.DTS;
+
+			/*3-byte start-code + 6 bytes header + hdr extensions*/
+			len = 9 + pesh.hdr_data_len;
+
+		} else {
+			/*3-byte start-code + 1 byte streamid*/
+			len = 4;
+			memset(&pesh, 0, sizeof(pesh));
 		}
-		/*no PTSs were coded, same time*/
-		else if (!pesh.hdr_data_len) {
-			same_pts = GF_TRUE;
-		}
-
-
-		/*3-byte start-code + 6 bytes header + hdr extensions*/
-		len = 9 + pesh.hdr_data_len;
 
 		if ((u8) pes->pck_data[3]==0xfa) {
 			GF_M2TS_SL_PCK sl_pck;

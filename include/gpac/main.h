@@ -164,7 +164,7 @@ typedef enum
 	GF_ARGMODE_ADVANCED,
 	GF_ARGMODE_EXPERT,
 	GF_ARGMODE_ALL,
-} GF_FilterArgMode;
+} GF_SysArgMode;
 
 /*! prints a argument to stderr
 \param arg argument to print
@@ -176,7 +176,7 @@ void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem);
 \param mode filtering mode based on argument  type
 \param subsystem_flags filtering mode based on argument subsytem flags
 */
-void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags);
+void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags);
 
 /*! gets localized version of string identified by module name and identifier.
 \param sec_name name of the module to query, such as "gpac", "core", or filter name

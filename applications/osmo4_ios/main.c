@@ -48,7 +48,6 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 
-static GF_Config *cfg_file;
 static u32 display_rti = 0;
 static Bool Run;
 static Bool CanSeek = 0;
@@ -124,6 +123,8 @@ static void ResetCaption()
 {
 	GF_Event event;
 	if (display_rti) return;
+	memset(&event, 0, sizeof(GF_Event));
+
 	event.type = GF_EVENT_SET_CAPTION;
 	if (is_connected) {
 #ifdef FILTER_FIXME
@@ -496,6 +497,9 @@ int main (int argc, char *argv[])
 	memory_at_gpac_startup = rti.physical_memory_avail;
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
+	//TODO investigate iOS lock-free, seems to be not stable
+	gf_opts_set_key("core", "sched", "lock");
+
 	init_w = forced_width;
 	init_h = forced_height;
 /*
@@ -726,7 +730,6 @@ static u32 last_odm_count = 0;
 void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
-	Double avg_dec_time=0;
 	u32 tot_time=0;
 	Bool print_codecs = final;
 

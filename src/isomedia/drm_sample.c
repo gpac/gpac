@@ -190,6 +190,7 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 
 	/*non-encrypted or non-ISMA*/
 	if (!sinf || !sinf->scheme_type) return 0;
+	if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
 	return sinf->scheme_type->scheme_type;
 }
 
@@ -1030,8 +1031,9 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
 		if (senc->cenc_saiz->sample_count + 1 > senc->cenc_saiz->sample_alloc) {
-			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = 1;
-			senc->cenc_saiz->sample_alloc *= 2;
+			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = senc->cenc_saiz->sample_count+1;
+			else senc->cenc_saiz->sample_alloc *= 2;
+
 			senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_alloc));
 		}
 
@@ -1070,8 +1072,8 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
 		if (senc->cenc_saiz->sample_count + 1 > senc->cenc_saiz->sample_alloc) {
-			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = 1;
-			senc->cenc_saiz->sample_alloc *= 2;
+			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = senc->cenc_saiz->sample_count + 1;
+			else senc->cenc_saiz->sample_alloc *= 2;
 			senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_alloc));
 		}
 

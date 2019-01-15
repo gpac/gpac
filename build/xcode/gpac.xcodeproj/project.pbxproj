@@ -162,7 +162,6 @@
 		920101B918D5A445003D1ACA /* os_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A018D5A444003D1ACA /* os_thread.c */; };
 		920101BA18D5A445003D1ACA /* path2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A118D5A444003D1ACA /* path2d.c */; };
 		920101BB18D5A445003D1ACA /* path2d_stroker.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A218D5A444003D1ACA /* path2d_stroker.c */; };
-		920101BC18D5A445003D1ACA /* ringbuffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A318D5A444003D1ACA /* ringbuffer.c */; };
 		920101BD18D5A445003D1ACA /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A418D5A444003D1ACA /* sha1.c */; };
 		920101C018D5A445003D1ACA /* token.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A718D5A444003D1ACA /* token.c */; };
 		920101C118D5A445003D1ACA /* uni_bidi.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A818D5A444003D1ACA /* uni_bidi.c */; };
@@ -763,7 +762,6 @@
 		920100A018D5A444003D1ACA /* os_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_thread.c; sourceTree = "<group>"; };
 		920100A118D5A444003D1ACA /* path2d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = path2d.c; sourceTree = "<group>"; };
 		920100A218D5A444003D1ACA /* path2d_stroker.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = path2d_stroker.c; sourceTree = "<group>"; };
-		920100A318D5A444003D1ACA /* ringbuffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ringbuffer.c; sourceTree = "<group>"; };
 		920100A418D5A444003D1ACA /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		920100A718D5A444003D1ACA /* token.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = token.c; sourceTree = "<group>"; };
 		920100A818D5A444003D1ACA /* uni_bidi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = uni_bidi.c; sourceTree = "<group>"; };
@@ -1603,10 +1601,6 @@
 		9201008C18D5A444003D1ACA /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				92E164BA20F8F2860024A9CA /* Remotery.c */,
-				92F930801A5ADB870072A85C /* os_divers.c */,
-				92F930811A5ADB870072A85C /* os_file.c */,
-				922B48781A5ADAB3006CBBBA /* os_module.c */,
 				9201008D18D5A444003D1ACA /* alloc.c */,
 				9201008E18D5A444003D1ACA /* base_encoding.c */,
 				9201008F18D5A444003D1ACA /* bitstream.c */,
@@ -1619,15 +1613,18 @@
 				9201009518D5A444003D1ACA /* error.c */,
 				9201009718D5A444003D1ACA /* list.c */,
 				9201009918D5A444003D1ACA /* math.c */,
-				9201009A18D5A444003D1ACA /* module.c */,
 				9201009B18D5A444003D1ACA /* module_wrap.h */,
+				9201009A18D5A444003D1ACA /* module.c */,
 				9201009C18D5A444003D1ACA /* os_config_init.c */,
+				92F930801A5ADB870072A85C /* os_divers.c */,
+				92F930811A5ADB870072A85C /* os_file.c */,
+				922B48781A5ADAB3006CBBBA /* os_module.c */,
 				9201009E18D5A444003D1ACA /* os_module.c */,
 				9201009F18D5A444003D1ACA /* os_net.c */,
 				920100A018D5A444003D1ACA /* os_thread.c */,
 				920100A118D5A444003D1ACA /* path2d.c */,
 				920100A218D5A444003D1ACA /* path2d_stroker.c */,
-				920100A318D5A444003D1ACA /* ringbuffer.c */,
+				92E164BA20F8F2860024A9CA /* Remotery.c */,
 				920100A418D5A444003D1ACA /* sha1.c */,
 				920100A718D5A444003D1ACA /* token.c */,
 				920100A818D5A444003D1ACA /* uni_bidi.c */,
@@ -3329,7 +3326,6 @@
 				927DB14C21A3C7100032D205 /* reframe_latm.c in Sources */,
 				920101BA18D5A445003D1ACA /* path2d.c in Sources */,
 				920101BB18D5A445003D1ACA /* path2d_stroker.c in Sources */,
-				920101BC18D5A445003D1ACA /* ringbuffer.c in Sources */,
 				920101BD18D5A445003D1ACA /* sha1.c in Sources */,
 				9206823420EA96AA0041169F /* mux_gsf.c in Sources */,
 				920101C018D5A445003D1ACA /* token.c in Sources */,
@@ -3674,7 +3670,9 @@
 					"-lxcb-xfixes",
 					"-lSDL2",
 					"-laom",
+					"-lvpx",
 					"-llzma",
+					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3785,7 +3783,9 @@
 					"-lxcb-xfixes",
 					"-lSDL2",
 					"-laom",
+					"-lvpx",
 					"-llzma",
+					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;

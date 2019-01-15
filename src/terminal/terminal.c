@@ -63,12 +63,6 @@ GF_Compositor *gf_term_get_compositor(GF_Terminal *term)
 
 u32 gf_comp_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_first_frame);
 
-static Bool check_user(GF_User *user)
-{
-	if (!user->opaque) return 0;
-	return 1;
-}
-
 
 GF_EXPORT
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
@@ -316,8 +310,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	u32 def_w, def_h;
 	const char *opt;
 	char szArgs[200];
-
-	if (!check_user(user)) return NULL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating terminal\n"));
 

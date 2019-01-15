@@ -54,8 +54,8 @@
 #define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
 #define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
 
-#define safe_int64_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
-#define safe_int64_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
+#define safe_int64_add(__v, inc_val) __sync_add_and_fetch((int64_t *) (__v), inc_val)
+#define safe_int64_sub(__v, dec_val) __sync_sub_and_fetch((int64_t *) (__v), dec_val)
 #endif
 
 
@@ -113,6 +113,8 @@ GF_List *gf_props_get_list(GF_PropertyMap *map);
 
 const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name);
 
+const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 prop_4cc, const char *name);
+
 #if GF_PROPS_HASHTABLE_SIZE
 u32 gf_props_hash_djb2(u32 p4cc, const char *str);
 #else
@@ -159,7 +161,7 @@ typedef struct __gf_filter_pck_inst
 //packet flags
 enum
 {
-	GF_PCKF_BLOCK_START = 1<<31,
+	GF_PCKF_BLOCK_START = 0x80000000, //1<<31
 	GF_PCKF_BLOCK_END = 1<<30,
 	GF_PCKF_PROPS_CHANGED = 1<<29,
 	GF_PCKF_INFO_CHANGED = 1<<28,
@@ -249,6 +251,10 @@ struct __gf_filter_pck
 	GF_PropertyMap *pid_props;
 };
 
+/*!
+ *	Filter Session Task process function prototype
+ */
+typedef void (*gf_fs_task_callback)(GF_FSTask *task);
 
 struct __gf_fs_task
 {
@@ -415,6 +421,9 @@ struct __gf_filter
 	char *id;
 	//list of IDs of filters usable as sources for this filter. NULL means any source
 	char *source_ids;
+	//original source IDs in case we use dynamic clone. If present, the source_ids contains resolved identifiers (eg ServiceID=234)
+	//but dynamic_source_ids still contains the unresolved pattern (eg ServiceID=*)
+	char *dynamic_source_ids;
 
 	//parent media session
 	GF_FilterSession *session;
@@ -458,7 +467,6 @@ struct __gf_filter
 	GF_List *output_pids;
 	u32 num_output_pids;
 	u32 num_out_pids_not_connected;
-	u32 num_out_pids_eos;
 
 	//reservoir for packets with allocated memory
 	GF_FilterQueue *pcks_alloc_reservoir;
@@ -470,8 +478,9 @@ struct __gf_filter
 	GF_Mutex *pcks_mx;
 
 	//!this mutex protects:
-	//- the filter task queue, when reordering tasks for later processing whil other threads try to post to the filter task queue
+	//- the filter task queue, when reordering tasks for later processing while other threads try to post to the filter task queue
 	//- the list of input pid and output pid destinations, which can be added from different threads for a same pid (fan-out)
+	//-the blocking state of the filter
 	GF_Mutex *tasks_mx;
 
 	//list of output pids to be configured
@@ -509,6 +518,8 @@ struct __gf_filter
 	u64 nb_pck_sent;
 	//number of hardware frames packets sent by this filter
 	u64 nb_hw_pck_sent;
+	//number of processing errors in the lifetime of the filter
+	u32 nb_errors;
 
 	//number of bytes sent by this filter
 	u64 nb_bytes_sent;
@@ -516,6 +527,7 @@ struct __gf_filter
 	u64 time_process;
 
 #ifdef GPAC_MEMORY_TRACKING
+	//various stats in mem tracking mode, mostly used to detect heavy alloc/free usage by the filter
 	u64 stats_mem_allocated;
 	u32 stats_nb_alloc, stats_nb_realloc, stats_nb_calloc, stats_nb_free, nb_alloc_pck, nb_realloc_pck;
 	u32 nb_process_since_reset, nb_consecutive_process;
@@ -524,6 +536,8 @@ struct __gf_filter
 #endif
 
 	volatile u32 would_block; //concurrent inc/dec
+	//sets once broken blocking mode has been detected
+	Bool blockmode_broken;
 
 	//filter destroy task has been posted
 	Bool finalized;
@@ -542,15 +556,20 @@ struct __gf_filter
 	//one of the output PID needs reconfiguration
 	volatile u32 nb_caps_renegociate;
 
+	//number of process tasks queued. There is only one "process" task allocated for the filter, but it is automatically reposted based on this value
 	volatile u32 process_task_queued;
 
+	//time in system clock at which the process should be called, used for real-time regulation of some filters
 	u64 schedule_next_time;
 
+	//clock (PCR) dispatch info
 	u64 next_clock_dispatch;
 	u32 next_clock_dispatch_timescale;
 	GF_FilterClockType next_clock_dispatch_type;
 
+	//capability negotiation for the input pid
 	GF_PropertyMap *caps_negociate;
+	//set to true of this filter was instantiated to resolve a capability negotiation between two filters
 	Bool is_pid_adaptation_filter;
 	/*destination pid instance we are swapping*/
 	GF_FilterPidInst *swap_pidinst_dst;
@@ -558,23 +577,41 @@ struct __gf_filter
 	GF_FilterPidInst *swap_pidinst_src;
 	Bool swap_needs_init;
 
+	//overloaded caps of the filter
 	const GF_FilterCapability *forced_caps;
 	u32 nb_forced_caps;
 	//valid when a pid inst is waiting for a reconnection, NULL otherwise
 	GF_List *detached_pid_inst;
 
+	//index of the cap bundle input for adaptation filters
 	s32 cap_idx_at_resolution;
 
+	//set to signal output pids should be reconfigured
 	Bool reconfigure_outputs;
-
+	//when set, indicates the filter uses PID property overwrite in its arguments, needed to rewrite the props at pid init time
 	Bool user_pid_props;
+
+	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
 	u32 encoder_stream_type;
 
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif
 
+	//signals tha pid info has changed, to notify the filter chain
 	Bool pid_info_changed;
+
+	//set to 1 when one or more input pid to the filter is on end of state, set to 2 if the filter dispatch a packet while in this state
+	u32 eos_probe_state;
+
+	//error checking
+	//number of packet release or created during a process() call
+	u32 nb_pck_io;
+	//number of consecutive errors during process()
+	u32 nb_consecutive_errors;
+	//system clock of first error
+	u64 time_at_first_error;
+
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err);
@@ -796,6 +833,9 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt);
 GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter);
 
 void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, Bool force_downstream);
+
+const GF_PropertyEntry *gf_filter_pid_get_property_entry(GF_FilterPid *pid, u32 prop_4cc);
+const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, const char *prop_name);
 
 #endif //_GF_FILTER_SESSION_H_
 

@@ -55,7 +55,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index_dur;
-	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext;
+	Bool explicit, autofps, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw;
 	u32 nal_length;
 
 	//only one input pid declared
@@ -148,6 +148,7 @@ typedef struct
 	Bool first_slice_in_au;
 	//paff used - NEED FURTHER CHECKING
 	Bool is_paff;
+	Bool bottom_field_flag;
 	//SEI recovery count - if 0 and I slice only frame, openGOP detection (avc)
 	s32 sei_recovery_frame_count;
 	u32 use_opengop_gdr;
@@ -158,6 +159,10 @@ typedef struct
 	//pointer to the first packet of the current frame (the one holding timing info)
 	//this packet is in the packet queue
 	GF_FilterPacket *first_pck_in_au;
+	//frame has slices used as reference
+	Bool has_ref_slices;
+	//frame has redundant coding
+	Bool has_redundant;
 
 	Bool next_nal_end_skip;
 
@@ -266,6 +271,10 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
+
+		ctx->ps_modified = GF_TRUE;
+		ctx->crc_cfg = ctx->crc_cfg_enh = 0;
+
 	}
 	
 	return GF_OK;
@@ -304,6 +313,8 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	cur_dur = 0;
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+
 	start_code_pos = gf_bs_get_position(bs);
 	if (!gf_media_nalu_is_start_code(bs)) {
 		gf_bs_del(bs);
@@ -312,8 +323,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		ctx->file_loaded = GF_TRUE;
 		return;
 	}
-	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
-	
+
 	nal_start = gf_bs_get_position(bs);
 	if (ctx->is_hevc) {
 		GF_SAFEALLOC(hevc_state, HEVCState);
@@ -473,6 +483,8 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				//poc is stored as diff since last IDR which has min_poc
 				cts = ( (ctx->min_poc + (s32) poc) * ctx->fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
+				/*old importer code, seems wrong so commented for now*/
+#if 0
 				/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
 				if (ctx->is_paff) {
 					cts /= 2;
@@ -481,6 +493,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 						cts = ((cts/ctx->fps.den)+1) * ctx->fps.den;
 					}
 				}
+#endif
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
@@ -814,7 +827,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (first && ctx->autofps && sps->has_timing_info
+			if (!ctx->timescale && first && ctx->autofps && sps->has_timing_info
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->time_scale <= 1000*sps->num_units_in_tick)
 			) {
@@ -954,9 +967,10 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, char **dsi, u32 *dsi_
 					else
 						DeltaTfiDivisorIdx = (ctx->avc_state->sei.pic_timing.pic_struct+1) / 2;
 				}
-				ctx->fps.num = 2 * sps->vui.time_scale;
-				ctx->fps.den =  2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
-
+				if (!ctx->timescale) {
+					ctx->fps.num = 2 * sps->vui.time_scale;
+					ctx->fps.den =  2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
+				}
 				if (! sps->vui.fixed_frame_rate_flag)
 					GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent\n", ctx->log_name));
 			}
@@ -1050,12 +1064,6 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		naludmx_check_dur(filter, ctx);
 		ctx->first_slice_in_au = GF_TRUE;
 	}
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
-	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 	if ((ctx->crc_cfg == crc_cfg) && (ctx->crc_cfg_enh == crc_cfg_enh)
 		&& (ctx->width==w) && (ctx->height==h)
@@ -1065,6 +1073,19 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		if (dsi_enh) gf_free(dsi_enh);
 		return;
 	}
+
+	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+	if (gf_list_count(ctx->pck_queue)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] xPS changed but could not flush frames before signaling state change !\n", ctx->log_name));
+
+	}
+
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 	ctx->width = w;
 	ctx->height = h;
@@ -1255,6 +1276,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		//otherwise we keep this new param set
 		sl->data = gf_realloc(sl->data, size);
 		memcpy(sl->data, data, size);
+		sl->size = size;
 		sl->crc = crc;
 		ctx->ps_modified = GF_TRUE;
 		return;
@@ -1275,6 +1297,8 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 {
 	u64 ts;
+	Bool is_rap = GF_FALSE;
+
 	if (!ctx->first_pck_in_au)
 		return;
 	if (ctx->au_sap) {
@@ -1283,6 +1307,9 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 			ctx->dts_last_IDR = gf_filter_pck_get_dts(ctx->first_pck_in_au);
 			if (ctx->is_paff) ctx->dts_last_IDR *= 2;
 		}
+		if (ctx->au_sap <= GF_FILTER_SAP_3) {
+			is_rap = GF_TRUE;
+		}
 	}
 	else if (ctx->has_islice && ctx->force_sync && (ctx->sei_recovery_frame_count==0)) {
 		gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_1);
@@ -1290,6 +1317,7 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 			ctx->use_opengop_gdr = 1;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISOBMFF conformant\n", ctx->log_name));
 		}
+		is_rap = GF_TRUE;
 	}
 	/*set roll info sampleGroups info*/
 	else if (!ctx->au_sap && ( (ctx->sei_recovery_frame_count >= 0) || ctx->has_islice) ) {
@@ -1303,7 +1331,11 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		else if ((ctx->sei_recovery_frame_count == 0) && ctx->has_islice) {
 			if (!ctx->use_opengop_gdr) ctx->use_opengop_gdr = 2;
 			gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_3);
+			is_rap = GF_TRUE;
 		}
+	}
+	if (ctx->is_paff) {
+		gf_filter_pck_set_interlaced(ctx->first_pck_in_au, ctx->bottom_field_flag ? 2 : 1);
 	}
 
 	//if TS is set, the packet was the first in AU in the input timed packet (eg PES), we reuse the input timing
@@ -1323,6 +1355,20 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		ctx->subsamp_buffer_size = 0;
 		ctx->subs_mapped_bytes = 0;
 	}
+	if (ctx->deps) {
+		u8 flags = 0;
+		//dependsOn
+		flags = (is_rap) ? 2 : 1;
+		flags <<= 2;
+		//dependedOn
+	 	flags |= ctx->has_ref_slices ? 1 : 2;
+		flags <<= 2;
+		//hasRedundant
+	 	flags |= ctx->has_redundant ? 1 : 2;
+	 	gf_filter_pck_set_dependency_flags(ctx->first_pck_in_au, flags);
+	}
+	ctx->has_ref_slices = GF_FALSE;
+	ctx->has_redundant = GF_FALSE;
 
 	//if we reuse input packets timing, we can dispatch asap.
 	//otherwise if poc probe is done (we know the min_poc_diff between images) and we are not in strict mode, dispatch asap
@@ -1337,7 +1383,6 @@ static void naludmx_update_nalu_maxsize(GF_NALUDmxCtx *ctx, u32 size)
 {
 	if (ctx->max_nalu_size < size) {
 		ctx->max_nalu_size = size;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MAX_NALU_SIZE, &PROP_UINT(ctx->max_nalu_size) );
 		if (size > ctx->max_nalu_size_allowed) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] nal size %d larger than max allowed size %d - change import settings\n", ctx->log_name, size, ctx->max_nalu_size_allowed ));
 		}
@@ -1377,14 +1422,15 @@ GF_Err naludmx_realloc_last_pck(GF_NALUDmxCtx *ctx, u32 nb_bytes_to_add, char **
 	return GF_OK;
 }
 
-GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool *au_start, char **pck_data)
+GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_nal_field, Bool *au_start, char **pck_data)
 {
-	GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, nal_size + ctx->nal_length, pck_data);
+	GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, nal_size + (skip_nal_field ? 0 : ctx->nal_length), pck_data);
 
-	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(*pck_data, ctx->nal_length, GF_BITSTREAM_WRITE);
-	else gf_bs_reassign_buffer(ctx->bs_w, *pck_data, ctx->nal_length);
-
-	gf_bs_write_int(ctx->bs_w, nal_size, 8*ctx->nal_length);
+	if (!skip_nal_field) {
+		if (!ctx->bs_w) ctx->bs_w = gf_bs_new(*pck_data, ctx->nal_length, GF_BITSTREAM_WRITE);
+		else gf_bs_reassign_buffer(ctx->bs_w, *pck_data, ctx->nal_length);
+		gf_bs_write_int(ctx->bs_w, nal_size, 8*ctx->nal_length);
+	}
 
 	if (*au_start) {
 		ctx->first_pck_in_au = dst_pck;
@@ -1495,12 +1541,17 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_SEI_PREFIX:
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
-			if (ctx->sei_buffer_alloc < size) {
-				ctx->sei_buffer_alloc = size;
+
+			if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + size + ctx->nal_length) {
+				ctx->sei_buffer_alloc = ctx->sei_buffer_size + size + ctx->nal_length;
 				ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
 			}
-			memcpy(ctx->sei_buffer, data, size);
-			ctx->sei_buffer_size = size;
+
+			if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size, GF_BITSTREAM_WRITE);
+			else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size);
+			gf_bs_write_int(ctx->bs_w, size, 8*ctx->nal_length);
+			memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
+			ctx->sei_buffer_size += size + ctx->nal_length;
 		} else {
 			ctx->nb_nalus--;
 		}
@@ -1633,20 +1684,31 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		return 0;
 
 	case GF_AVC_NALU_SEI:
-		if (ctx->nosei) {
+		if (ctx->avc_state->sps_active_idx != -1) {
+			u32 rw_sei_size, sei_size = size;
+			if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + sei_size + ctx->nal_length) {
+				ctx->sei_buffer_alloc = ctx->sei_buffer_size + sei_size + ctx->nal_length;
+				ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
+			}
+
+			if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size, GF_BITSTREAM_WRITE);
+			else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size);
+			gf_bs_write_int(ctx->bs_w, sei_size, 8*ctx->nal_length);
+
+			memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, sei_size);
+			rw_sei_size = gf_media_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, sei_size, ctx->seirw, ctx->avc_state);
+			if (rw_sei_size < sei_size) {
+				gf_bs_seek(ctx->bs_w, 0);
+				gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
+			}
+
 			*skip_nal = GF_TRUE;
-		} else {
-			if (ctx->avc_state->sps_active_idx != -1) {
-				u32 sei_size = size;
-				if (ctx->sei_buffer_alloc < sei_size) {
-					ctx->sei_buffer_alloc = sei_size;
-					ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
-				}
-				memcpy(ctx->sei_buffer, data, sei_size);
-				ctx->sei_buffer_size = gf_media_avc_reformat_sei(ctx->sei_buffer, sei_size, ctx->avc_state);
-				if (ctx->sei_buffer_size) {
-					*skip_nal = GF_TRUE;
-				}
+			ctx->sei_buffer_size += rw_sei_size + ctx->nal_length;
+
+			if (ctx->nosei) {
+				ctx->sei_buffer_size = 0;
+			} else {
+				ctx->nb_sei++;
 			}
 		}
 		return 0;
@@ -1765,6 +1827,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			ctx->src_pck = NULL;
 			if (!ctx->opid) return GF_EOS;
 
+			gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_MAX_NALU_SIZE, &PROP_UINT(ctx->max_nalu_size) );
 			if (ctx->is_hevc) {
 				naludmx_set_hevc_oinf(ctx, ctx->max_temporal_id);
 				naludmx_set_hevc_linf(ctx);
@@ -1798,9 +1861,12 @@ GF_Err naludmx_process(GF_Filter *filter)
 			else if (ctx->prev_dts != ts) {
 				u64 diff = ts;
 				diff -= ctx->prev_dts;
-				if (!ctx->fps.den) ctx->fps.den = (u32) diff;
+				if (!ctx->fps.den)
+					ctx->fps.den = (u32) diff;
 				else if (ctx->fps.den > diff)
 					ctx->fps.den = (u32) diff;
+
+				ctx->prev_dts = ts;
 			}
 		}
 		ctx->pck_duration = gf_filter_pck_get_duration(pck);
@@ -1860,17 +1926,19 @@ naldmx_flush:
 		u32 nal_bytes_from_store = 0;
 		Bool skip_nal = GF_FALSE;
 		u64 size=0;
-		u32 sc_size;
+		u32 sc_size, store_sc_size=0;
 		u32 bytes_from_store = 0;
 		u32 hdr_offset = 0;
 		Bool full_nal_required = GF_FALSE;
 		u32 nal_type = 0;
+		u32 nal_ref_idc = 0;
 		s32 next=0;
 		u32 next_sc_size=0;
 		s32 nal_parse_result;
 		Bool slice_is_ref, slice_force_ref;
 		Bool is_slice = GF_FALSE;
 		Bool is_islice = GF_FALSE;
+		Bool bottom_field_flag = GF_FALSE;
 		Bool au_start;
 		u32 avc_svc_subs_reserved = 0;
 		u8 avc_svc_subs_priority = 0;
@@ -1881,6 +1949,7 @@ naldmx_flush:
 		Bool slice_is_b = GF_FALSE;
 		Bool full_nal = GF_FALSE;
 		s32 slice_poc = 0;
+		u32 next_size = 0;
 
 		Bool copy_last_bytes = GF_FALSE;
 
@@ -1895,6 +1964,7 @@ naldmx_flush:
 		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
+			Bool split_start_code=GF_FALSE;
 
 			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, SAFETY_NAL_STORE - ctx->bytes_in_header);
 			current = gf_media_nalu_next_start_code(ctx->hdr_store, SAFETY_NAL_STORE, &sc_size);
@@ -1923,6 +1993,29 @@ naldmx_flush:
 					nal_sc_in_store = GF_TRUE;
 				} else {
 					//this is trickier, nal start is in the store buffer
+					u8 lastb2, lastb1, nextb1;
+
+					lastb2 = ctx->hdr_store[ctx->bytes_in_header-2];
+					lastb1 = ctx->hdr_store[ctx->bytes_in_header-1];
+					nextb1 = start[0];
+
+					if (!lastb1 && !lastb2) { split_start_code=GF_TRUE; }
+					else if (!lastb1 && !nextb1) { split_start_code = GF_TRUE; }
+
+					if (split_start_code ) {
+						u32 store_remain = SAFETY_NAL_STORE - (current + sc_size);
+						u32 next_sc_size;
+						s32 next = gf_media_nalu_next_start_code(ctx->hdr_store + current+sc_size, store_remain, &next_sc_size);
+						assert(!current);
+						if ((next>0) && (next + current+sc_size < ctx->bytes_in_header)) {
+
+							next_size = next - current;
+							nal_bytes_from_store = next_size;
+							store_sc_size=sc_size;
+						} else {
+							split_start_code = 0;
+						}
+					}
 
 					//we still have current bytes to dispatch
 					bytes_from_store = current;
@@ -1932,11 +2025,16 @@ naldmx_flush:
 
 					nal_hdr_in_store = GF_TRUE;
 
-					//and we need to copy the nal first bytes from the store
-					nal_bytes_from_store = ctx->bytes_in_header - (current + sc_size);
+
+					if (!split_start_code) {
+						//and we need to copy the nal first bytes from the store
+						nal_bytes_from_store = ctx->bytes_in_header - (current + sc_size);
+					}
 
 				}
-				ctx->bytes_in_header = 0;
+				if (!split_start_code) {
+					ctx->bytes_in_header = 0;
+				}
 			}
 		}
 		//no starcode in store, look for startcode in packet
@@ -2060,7 +2158,26 @@ naldmx_flush:
 			case GF_HEVC_NALU_PIC_PARAM:
 				full_nal_required = GF_TRUE;
 				break;
+			case GF_HEVC_NALU_SLICE_TRAIL_N:
+			case GF_HEVC_NALU_SLICE_TSA_N:
+			case GF_HEVC_NALU_SLICE_STSA_N:
+			case GF_HEVC_NALU_SLICE_RADL_N:
+			case GF_HEVC_NALU_SLICE_RASL_N:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N10:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N12:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N14:
+				if (ctx->deps) {
+					HEVC_VPS *vps;
+					u32 temporal_id = hdr_start[1] & 0x7;
+					vps = & ctx->hevc_state->vps[ctx->hevc_state->s_info.sps->vps_id];
+					if (temporal_id + 1 < vps->max_sub_layers) {
+						nal_ref_idc = GF_TRUE;
+					}
+				}
+				break;
 			default:
+				if (nal_type<GF_HEVC_NALU_VID_PARAM)
+					nal_ref_idc = GF_TRUE;
 				break;
 			}
 		} else {
@@ -2077,47 +2194,53 @@ naldmx_flush:
 			default:
 				break;
 			}
+			nal_ref_idc = (hdr_start[0] & 0x60) >> 5;
 		}
-		if (full_nal_required) {
-			//we need the full nal loaded
-			next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-			if (next==pck_avail)
-				next = -1;
+		if (!next_size) {
+			if (full_nal_required) {
+				//we need the full nal loaded
+				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
+				if (next==pck_avail)
+					next = -1;
 
-			if (next<0) {
-				if (sc_size) pck_avail += sc_size;
-				if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_avail) {
-					ctx->hdr_store_alloc = ctx->hdr_store_size + pck_avail;
-					ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+				if (next<0) {
+					if (sc_size) pck_avail += sc_size;
+					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_avail) {
+						ctx->hdr_store_alloc = ctx->hdr_store_size + pck_avail;
+						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+					}
+					memcpy(ctx->hdr_store + ctx->hdr_store_size, start, sizeof(char)*pck_avail);
+					ctx->hdr_store_size += pck_avail;
+					gf_filter_pid_drop_packet(ctx->ipid);
+					return GF_OK;
 				}
-				memcpy(ctx->hdr_store + ctx->hdr_store_size, start, sizeof(char)*pck_avail);
-				ctx->hdr_store_size += pck_avail;
-				gf_filter_pid_drop_packet(ctx->ipid);
-				return GF_OK;
+			} else {
+				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
+				if (!is_eos && (next == pck_avail))
+					next = -1;
+			}
+
+			//ok we have either a full nal, or the start of a NAL we can start to process, parse NAL
+			if (next<0) {
+				size = pck_avail;
+			} else {
+				full_nal = GF_TRUE;
+				size = next;
+			}
+			if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
+				assert(!nal_sc_in_store);
+				assert(!nal_hdr_in_store);
+				assert(remain < SAFETY_NAL_STORE);
+				memcpy(ctx->hdr_store, start, remain);
+				ctx->bytes_in_header = remain;
+				break;
+			}
+			if (!nal_hdr_in_store) {
+				hdr_avail = (u32) size;
 			}
 		} else {
-			next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-			if (!is_eos && (next == pck_avail))
-				next = -1;
-		}
-
-		//ok we have either a full nal, or the start of a NAL we can start to process, parse NAL
-		if (next<0) {
-			size = pck_avail;
-		} else {
 			full_nal = GF_TRUE;
-			size = next;
-		}
-		if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
-			assert(!nal_sc_in_store);
-			assert(!nal_hdr_in_store);
-			assert(remain < SAFETY_NAL_STORE);
-			memcpy(ctx->hdr_store, start, remain);
-			ctx->bytes_in_header = remain;
-			break;
-		}
-		if (!nal_hdr_in_store) {
-			hdr_avail = (u32) size;
+			size = next_size;
 		}
 
 		if (ctx->is_hevc) {
@@ -2135,6 +2258,7 @@ naldmx_flush:
 			ctx->first_slice_in_au = GF_TRUE;
 			ctx->sei_recovery_frame_count = -1;
 			ctx->au_sap = GF_FILTER_SAP_NONE;
+			ctx->bottom_field_flag = GF_FALSE;
 		}
 
 		if (skip_nal) {
@@ -2282,8 +2406,10 @@ naldmx_flush:
 				avc_svc_subs_priority = 0;
 			}
 
-			if (!ctx->is_paff && is_slice && ctx->avc_state->s_info.bottom_field_flag)
+			if (is_slice && ctx->avc_state->s_info.field_pic_flag) {
 				ctx->is_paff = GF_TRUE;
+				bottom_field_flag = ctx->avc_state->s_info.bottom_field_flag;
+			}
 
 			slice_is_ref = (ctx->avc_state->s_info.nal_unit_type==GF_AVC_NALU_IDR_SLICE) ? GF_TRUE : GF_FALSE;
 
@@ -2316,14 +2442,14 @@ naldmx_flush:
 			SEI recovery should be used to build sampleToGroup & RollRecovery tables*/
 			if (ctx->first_slice_in_au) {
 				ctx->first_slice_in_au = GF_FALSE;
-				if (recovery_point_valid || ctx->force_sync) {
+				if (recovery_point_valid) {
 //					if (!ctx->is_hevc) assert(ctx->avc_state->s_info.nal_unit_type!=GF_AVC_NALU_IDR_SLICE || bIntraSlice);
 
 					ctx->sei_recovery_frame_count = recovery_point_frame_cnt;
 
 					/*we allow to mark I-frames as sync on open-GOPs (with sei_recovery_frame_count=0) when forcing sync even when the SEI RP is not available*/
-					if (! recovery_point_valid && bIntraSlice) {
-						ctx->sei_recovery_frame_count = 0;
+					if (!recovery_point_frame_cnt && bIntraSlice) {
+						ctx->has_islice = 1;
 						if (ctx->use_opengop_gdr == 1) {
 							ctx->use_opengop_gdr = 2; /*avoid message flooding*/
 							GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] No valid SEI Recovery Point found although needed - forcing\n", ctx->log_name));
@@ -2338,6 +2464,7 @@ naldmx_flush:
 						slice_force_ref = GF_TRUE;
 				}
 				ctx->au_sap = au_sap_type;
+				ctx->bottom_field_flag = bottom_field_flag;
 			}
 
 			if (slice_poc < ctx->poc_shift) {
@@ -2417,11 +2544,20 @@ naldmx_flush:
 				}
 				/*otherwise we had a B-slice reference: do nothing*/
 			}
+
+			if (ctx->deps) {
+				if (nal_ref_idc) {
+					ctx->has_ref_slices = GF_TRUE;
+				}
+				if (!ctx->is_hevc && (ctx->avc_state->s_info.redundant_pic_cnt) ) {
+					ctx->has_redundant = GF_TRUE;
+				}
+			}
 		}
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
 		//needs adjustement
-		if (nal_hdr_in_store) {
+		if (nal_hdr_in_store && !next_size) {
 			size += nal_bytes_from_store;
 		}
 
@@ -2442,17 +2578,17 @@ naldmx_flush:
 		au_start = ctx->first_pck_in_au ? GF_FALSE : GF_TRUE;
 
 		if (ctx->sei_buffer_size) {
-			/*dst_pck = */naludmx_start_nalu(ctx, ctx->sei_buffer_size, &au_start, &pck_data);
-			memcpy(pck_data + ctx->nal_length, ctx->sei_buffer, ctx->sei_buffer_size);
-			ctx->nb_sei++;
+			//sei buffer is already nal size prefixed
+			/*dst_pck = */naludmx_start_nalu(ctx, ctx->sei_buffer_size, GF_TRUE, &au_start, &pck_data);
+			memcpy(pck_data, ctx->sei_buffer, ctx->sei_buffer_size);
 			if (ctx->subsamples) {
-				naludmx_add_subsample(ctx, ctx->sei_buffer_size, avc_svc_subs_priority, avc_svc_subs_reserved);
+				naludmx_add_subsample(ctx, ctx->sei_buffer_size - ctx->nal_length, avc_svc_subs_priority, avc_svc_subs_reserved);
 			}
 			ctx->sei_buffer_size = 0;
 		}
 
 		if (ctx->svc_prefix_buffer_size) {
-			/*dst_pck = */naludmx_start_nalu(ctx, ctx->svc_prefix_buffer_size, &au_start, &pck_data);
+			/*dst_pck = */naludmx_start_nalu(ctx, ctx->svc_prefix_buffer_size, GF_FALSE, &au_start, &pck_data);
 			memcpy(pck_data + ctx->nal_length, ctx->svc_prefix_buffer, ctx->svc_prefix_buffer_size);
 			if (ctx->subsamples) {
 				naludmx_add_subsample(ctx, ctx->svc_prefix_buffer_size, ctx->svc_nalu_prefix_priority, ctx->svc_nalu_prefix_reserved);
@@ -2460,8 +2596,8 @@ naldmx_flush:
 			ctx->svc_prefix_buffer_size = 0;
 		}
 
-		//nalu size field, always on 4 bytes at parser level
-		/*dst_pck = */naludmx_start_nalu(ctx, (u32) size, &au_start, &pck_data);
+		//nalu size field
+		/*dst_pck = */naludmx_start_nalu(ctx, (u32) size, GF_FALSE, &au_start, &pck_data);
 		pck_data += ctx->nal_length;
 
 		//add subsample info before touching the size
@@ -2474,7 +2610,15 @@ naldmx_flush:
 			memcpy(pck_data, hdr_start, nal_bytes_from_store);
 			assert(size >= nal_bytes_from_store);
 			size -= nal_bytes_from_store;
-			memcpy(pck_data + nal_bytes_from_store, pck_start, (size_t) size);
+			if (size)
+				memcpy(pck_data + nal_bytes_from_store, pck_start, (size_t) size);
+
+			if (next_size) {
+				assert(!size);
+				memmove(ctx->hdr_store, hdr_start+nal_bytes_from_store,ctx->bytes_in_header - nal_bytes_from_store);
+				ctx->bytes_in_header -= next_size+store_sc_size;
+				continue;
+			}
 		} else {
 			//bytes only come from the data packet
 			memcpy(pck_data, pck_start, (size_t) size);
@@ -2664,6 +2808,9 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		}
 	}
 
+	if (not_avc) nb_avc=0;
+	if (not_hevc) nb_hevc=0;
+
 	if (not_avc && not_hevc) return NULL;
 	if (nb_avc==nb_avc_zero) nb_avc=0;
 	if (nb_hevc==nb_hevc_zero) nb_hevc=0;
@@ -2710,8 +2857,10 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(nosvc), "removes all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "removes all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(nal_length), "Sets number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(subsamples), "Import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nal_length), "sets number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

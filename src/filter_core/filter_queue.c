@@ -158,6 +158,7 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 				//swap back tail at next
 				atomic_compare_and_swap(tail_ptr, tail, next);
 			} else {
+				assert(next);
 				data = next->data;
 				//try to advance q->head to next
 				if (atomic_compare_and_swap(head_ptr, head, next))

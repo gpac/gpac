@@ -21,7 +21,7 @@ LIBGPAC_UTILS+=utils/sha1.o utils/base_encoding.o utils/math.o utils/os_net.o ut
 endif
 
 ifeq ($(DISABLE_PLAYER), no)
-LIBGPAC_UTILS+=utils/os_module.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/ringbuffer.o utils/unicode.o
+LIBGPAC_UTILS+=utils/os_module.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/unicode.o
 endif
 
 ## libgpac objects gathering: src/ietf

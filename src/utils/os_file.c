@@ -148,8 +148,8 @@ GF_Err gf_mkdir(const char* DirPathName)
 	int res = mkdir(DirPathName, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	if (res==-1) {
 		if(errno == 17) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s, it already exists: last error %d \n", DirPathName, errno ));
-			return GF_BAD_PARAM;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Cannot create directory %s, it already exists: last error %d \n", DirPathName, errno ));
+			return GF_OK;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, errno ));
 			return GF_IO_ERR;
@@ -861,7 +861,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 			if (!gf_dir_exists(file_name)) {
 				GF_Err e = gf_mkdir(file_name);
 				if (e != GF_OK) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Failed to create drectory %s: %s\n", file_name, gf_error_to_string(e) ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Failed to create directory %s: %s\n", file_name, gf_error_to_string(e) ));
 					sep[0] = c;
 					return NULL;
 				}

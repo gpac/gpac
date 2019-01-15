@@ -627,8 +627,8 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 
 GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck, u32 pck_len, Bool full_pck, GF_BitStream *bs)
 {
-	u64 dts, cts, bo;
-	u32 copy_size, consummed, dur, dep_flags, tsmodebits, durmodebits, spos;
+	u64 dts=GF_FILTER_NO_TS, cts=GF_FILTER_NO_TS, bo=GF_FILTER_NO_BO;
+	u32 copy_size, consummed, dur, dep_flags=0, tsmodebits, durmodebits, spos;
 	s16 roll=0;
 	u8 carv=0;
 
@@ -975,9 +975,9 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 			frame_sn = gf_bs_read_u16(ctx->bs_r);
 		}
 
+		block_size = block_offset = 0;
 		if (!full_pck) {
 			block_size = gsfdmx_read_vlen(ctx->bs_r);
-			block_offset = 0;
 			if (pck_frag) block_offset = gsfdmx_read_vlen(ctx->bs_r);
 		}
 

@@ -378,7 +378,7 @@ void gf_m4v_rewrite_pl(char **o_data, u32 *o_dataLen, u8 PL)
 static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 {
 	gf_bs_seek(m4v->bs, start);
-	assert(start < 1<<31);
+	assert(start < 0xFFFFFFFF);
 	m4v->current_object_start = (u32) start;
 	m4v->current_object_type = 0;
 	return GF_OK;
@@ -806,7 +806,7 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 		size = end - start;
 		/*store previous object*/
 		if (size) {
-			assert (size < 1<<31);
+			assert (size < 0x80000000);
 			if (size) gf_bs_write_data(mod, *o_data + start, (u32) size);
 			start = end;
 		}
@@ -1880,28 +1880,6 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 	return GF_OK;
 }
 
-GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state)
-{
-	u32 width = 0, height = 0;
-	u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
-	GF_Err e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
-	if (e)
-		return e;
-
-	if (codec_fourcc != GF_4CC('A', 'V', '0', '1')) {
-		char *FourCC = (char*)&codec_fourcc;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Unsupported codec FourCC '%c%c%c%c'\n", FourCC[3], FourCC[2], FourCC[1], FourCC[0]));
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
-	state->width = state->width < width ? width : state->width;
-	state->height = state->height < height ? height : state->height;
-
-	state->tb_num = frame_rate; //time_base.numerator
-	state->tb_den = time_scale; //time_base.denominator
-
-	return GF_OK;
-}
-
 GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 {
 	if (!frame_size) return GF_BAD_PARAM;
@@ -1918,9 +1896,9 @@ GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size)
 	return GF_OK;
 }
 
-GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], int *superframe_index_size)
+GF_Err gf_media_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], u32 *superframe_index_size)
 {
-	u8 byte, bytes_per_framesize;
+	u32 byte, bytes_per_framesize;
 	u64 pos = gf_bs_get_position(bs), i = 0;
 	GF_Err e = GF_OK;
 	
@@ -1940,7 +1918,7 @@ GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frame
 		goto exit; /*no superframe*/
 
 	bytes_per_framesize = 1 + ((byte & 0x18) >> 3);
-	*num_frames_in_superframe = 1 + (byte & 0x7);
+	*num_frames_in_superframe = (u32) (1 + (byte & 0x7) );
 
 	/*superframe_index()*/
 	*superframe_index_size = 2 + bytes_per_framesize * *num_frames_in_superframe;
@@ -2218,7 +2196,7 @@ static void vp9_read_interpolation_filter(GF_BitStream *bs)
 
 #define VP9_KEY_FRAME 0
 
-GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight)
+GF_Err gf_media_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, u32 *FrameWidth, u32 *FrameHeight, u32 *renderWidth, u32 *renderHeight)
 {
 	Bool FrameIsIntra = GF_FALSE, profile_low_bit = GF_FALSE, profile_high_bit = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
 	/*u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0*/;
@@ -2227,7 +2205,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 	assert(bs && key_frame);
 	
 	/*uncompressed header*/
-	/*frame_marker =*/ gf_bs_read_int(bs, 2);
+	/*frame_marker = */gf_bs_read_int(bs, 2);
 	profile_low_bit = gf_bs_read_int(bs, 1);
 	profile_high_bit = gf_bs_read_int(bs, 1);
 	vp9_cfg->profile = (profile_high_bit << 1) + profile_low_bit;
@@ -2268,7 +2246,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 		FrameIsIntra = intra_only;
 
 		if (error_resilient_mode == GF_FALSE) {
-			/*reset_frame_context =*/ gf_bs_read_int(bs, 2);
+			/*reset_frame_context = */gf_bs_read_int(bs, 2);
 		}
 
 		if (intra_only == GF_TRUE) {
@@ -2438,7 +2416,7 @@ u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value)
 static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list, AV1State *state)
 {
 	char block[OBU_BLOCK_SIZE];
-	Bool has_size_field, obu_extension_flag;
+	Bool has_size_field=0, obu_extension_flag=0;
 	u8 temporal_id, spatial_id;
 	GF_AV1_OBUArrayEntry *a=NULL;
 
@@ -3419,12 +3397,13 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 				if (!frame_refs_short_signaling)
 					ref_frame_idx[i] = gf_bs_read_int(bs, 3);
-					if (state->frame_id_numbers_present_flag) {
-						u32 n = state->delta_frame_id_length_minus_2 + 2;
-						/*delta_frame_id_minus_1 =*/ gf_bs_read_int(bs, n);
-						//DeltaFrameId = delta_frame_id_minus_1 + 1;
-						//expectedFrameId[i] = ((current_frame_id + (1 << idLen) - DeltaFrameId) % (1 << idLen));
-					}
+
+				if (state->frame_id_numbers_present_flag) {
+					u32 n = state->delta_frame_id_length_minus_2 + 2;
+					/*delta_frame_id_minus_1 =*/ gf_bs_read_int(bs, n);
+					//DeltaFrameId = delta_frame_id_minus_1 + 1;
+					//expectedFrameId[i] = ((current_frame_id + (1 << idLen) - DeltaFrameId) % (1 << idLen));
+				}
 			}
 			if (frame_size_override_flag && !error_resilient_mode) {
 				frame_size_with_refs(bs, state, frame_size_override_flag);
@@ -4590,32 +4569,39 @@ u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs)
 GF_EXPORT
 u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
 {
-	u32 v, bpos;
-	u32 end;
+	u32 avail = data_len;
+	const u8 *cur = data;
 
-	bpos = 0;
-	end = 0;
-	v = 0xffffffff;
-	while (!end) {
-		/*refill cache*/
-		if (bpos == (u32) data_len)
-			break;
+	while (cur) {
+		u32 v, bpos;
+		u8 *next_zero = memchr(cur, 0, avail);
+		if (!next_zero) return data_len;
 
-		v = ( (v<<8) & 0xFFFFFF00) | ((u32) data[bpos]);
-		bpos++;
-		if (v == 0x00000001) {
-			end = bpos-4;
-			*sc_size = 4;
-			return end;
+		v = 0xffffff00;
+		bpos = (u32) (next_zero - data) + 1;
+		while (1) {
+			u8 cval;
+			if (bpos == (u32) data_len)
+				return data_len;
+
+			cval = data[bpos];
+			v = ( (v<<8) & 0xFFFFFF00) | ((u32) cval);
+			bpos++;
+			if (v == 0x00000001) {
+				*sc_size = 4;
+				return bpos-4;
+			}
+			else if ( (v & 0x00FFFFFF) == 0x00000001) {
+				*sc_size = 3;
+				return bpos-3;
+			}
+			if (cval)
+				break;
 		}
-		else if ( (v & 0x00FFFFFF) == 0x00000001) {
-			end = bpos-3;
-			*sc_size = 3;
-			return end;
-		}
+		cur = data + bpos;
+		avail = data_len - bpos;
 	}
-	if (!end) end = data_len;
-	return (u32) (end);
+	return data_len;
 }
 
 Bool gf_media_avc_slice_is_intra(AVCState *avc)
@@ -5410,6 +5396,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	si->sps = &avc->sps[si->pps->sps_id];
 	if (!si->sps->log2_max_frame_num) return -2;
 	avc->sps_active_idx = si->pps->sps_id;
+	avc->pps_active_idx = pps_id;
 
 	si->frame_num = gf_bs_read_int(bs, si->sps->log2_max_frame_num);
 
@@ -5903,7 +5890,8 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 	return ret;
 }
 
-u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
+#if 0
+u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc)
 {
 	u32 ptype, psize, hdr, written, var;
 	u64 start;
@@ -6065,6 +6053,150 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 	/*if only hdr written ignore*/
 	return (written>1) ? written : 0;
 }
+#else
+u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc)
+{
+	u32 ptype, psize, hdr, var;
+	u32 start;
+	GF_BitStream *bs;
+	GF_BitStream *bs_dest = NULL;
+	u8 nhdr;
+	Bool sei_removed = GF_FALSE;
+	char store;
+
+	hdr = buffer[0];
+	if ((hdr & 0x1F) != GF_AVC_NALU_SEI) return 0;
+
+	if (isobmf_rewrite) bs_dest = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+
+	nhdr = gf_bs_read_int(bs, 8);
+	if (bs_dest) gf_bs_write_int(bs_dest, nhdr, 8);
+
+	/*parse SEI*/
+	while (gf_bs_available(bs)) {
+		Bool do_copy;
+		ptype = 0;
+		while (1) {
+			u8 v = gf_bs_read_int(bs, 8);
+			ptype += v;
+			if (v!=0xFF) break;
+		}
+
+		psize = 0;
+		while (1) {
+			u8 v = gf_bs_read_int(bs, 8);
+			psize += v;
+			if (v!=0xFF) break;
+		}
+
+		start = (u32) gf_bs_get_position(bs);
+
+		do_copy = 1;
+
+		if (start+psize >= nal_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] SEI user message type %d size error (%d but %d remain), keeping full SEI untouched\n", ptype, psize, nal_size-start));
+			if (bs_dest) gf_bs_del(bs_dest);
+			return nal_size;
+		}
+		switch (ptype) {
+		/*remove SEI messages forbidden in MP4*/
+		case 3: /*filler data*/
+		case 10: /*sub_seq info*/
+		case 11: /*sub_seq_layer char*/
+		case 12: /*sub_seq char*/
+			do_copy = 0;
+			sei_removed = GF_TRUE;
+			break;
+		case 5: /*user unregistered */
+			store = buffer[start+psize];
+			buffer[start+psize] = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[avc-h264] SEI user message %s\n", buffer + start + 16));
+			buffer[start+psize] = store;
+			break;
+
+		case 6: /*recovery point*/
+			avc_parse_recovery_point_sei(bs, avc);
+			break;
+
+		case 1: /*pic_timing*/
+			avc_parse_pic_timing_sei(bs, avc);
+			break;
+
+		case 0: /*buffering period*/
+		case 2: /*pan scan rect*/
+		case 4: /*user registered ITU t35*/
+		case 7: /*def_rec_pic_marking_repetition*/
+		case 8: /*spare_pic*/
+		case 9: /*scene info*/
+		case 13: /*full frame freeze*/
+		case 14: /*full frame freeze release*/
+		case 15: /*full frame snapshot*/
+		case 16: /*progressive refinement segment start*/
+		case 17: /*progressive refinement segment end*/
+		case 18: /*motion constrained slice group*/
+		default: /*add all unknown SEIs*/
+			break;
+		}
+
+		if (do_copy && bs_dest) {
+			var = ptype;
+			while (var>=255) {
+				gf_bs_write_int(bs_dest, 0xFF, 8);
+				var-=255;
+			}
+			gf_bs_write_int(bs_dest, var, 8);
+
+			var = psize;
+			while (var>=255) {
+				gf_bs_write_int(bs_dest, 0xFF, 8);
+				var-=255;
+			}
+			gf_bs_write_int(bs_dest, var, 8);
+			gf_bs_seek(bs, start);
+
+			//bs_read_data does not skip EPB, read byte per byte
+			var = psize;
+			while (var) {
+				gf_bs_write_u8(bs_dest, gf_bs_read_u8(bs) );
+				var--;
+			}
+		} else {
+			gf_bs_seek(bs, start);
+
+			//bs_skip_bytes does not skip EPB, skip byte per byte
+			while (psize) {
+				gf_bs_read_u8(bs);
+				psize--;
+			}
+		}
+
+		if (gf_bs_available(bs)<=2) {
+			var = gf_bs_read_int(bs, 8);
+			if (var!=0x80) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] SEI user message has less than 2 bytes remaining but no end of sei found\n"));
+			}
+			if (bs_dest) gf_bs_write_int(bs_dest, 0x80, 8);
+			break;
+		}
+	}
+	gf_bs_del(bs);
+	//we cannot compare final size and original size since original may have EPB and final does not yet have them
+	if (bs_dest && sei_removed) {
+		char *dst_no_epb=NULL;
+		u32 dst_no_epb_size=0;
+		gf_bs_get_content(bs_dest, &dst_no_epb, &dst_no_epb_size);
+		nal_size = gf_media_nalu_add_emulation_bytes(buffer, dst_no_epb, dst_no_epb_size);
+	}
+	if (bs_dest) gf_bs_del(bs_dest);
+	return nal_size;
+}
+
+#endif
+
+
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -8186,20 +8318,28 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 	bsid = gf_bs_read_int(bs, 5);
 	bsmod = gf_bs_read_int(bs, 3);
 	ac3_mod = gf_bs_read_int(bs, 3);
+	if (frmsizecod >=  sizeof(ac3_sizecod_to_bitrate) / sizeof(u32))
+		return GF_FALSE;
 
 	hdr->bitrate = ac3_sizecod_to_bitrate[frmsizecod / 2];
 	if (bsid > 8) hdr->bitrate = hdr->bitrate >> (bsid - 8);
 
 	switch (fscod) {
 	case 0:
+		if (frmsizecod / 2 >=  sizeof(ac3_sizecod0_to_framesize) / sizeof(u32))
+			return GF_FALSE;
 		freq = 48000;
 		framesize = ac3_sizecod0_to_framesize[frmsizecod / 2] * 2;
 		break;
 	case 1:
+		if (frmsizecod / 2 >=  sizeof(ac3_sizecod1_to_framesize) / sizeof(u32))
+			return GF_FALSE;
 		freq = 44100;
 		framesize = (ac3_sizecod1_to_framesize[frmsizecod / 2] + (frmsizecod & 0x1)) * 2;
 		break;
 	case 2:
+		if (frmsizecod / 2 >=  sizeof(ac3_sizecod2_to_framesize) / sizeof(u32))
+			return GF_FALSE;
 		freq = 32000;
 		framesize = ac3_sizecod2_to_framesize[frmsizecod / 2] * 2;
 		break;
@@ -8217,6 +8357,8 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 		hdr->fscod = fscod;
 		hdr->brcode = frmsizecod / 2;
 	}
+	if (ac3_mod / 2 >=  sizeof(ac3_mod_to_chans) / sizeof(u32))
+		return GF_FALSE;
 
 	hdr->channels = ac3_mod_to_chans[ac3_mod];
 	if ((ac3_mod & 0x1) && (ac3_mod != 1)) gf_bs_read_int(bs, 2);

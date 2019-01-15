@@ -200,6 +200,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		AV1_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
 		esd = ((GF_MPEGVisualSampleEntryBox*)entry)->emul_esd;
 		break;
+	case GF_ISOM_BOX_TYPE_VP08:
 	case GF_ISOM_BOX_TYPE_VP09:
 		VP9_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
 		esd = ((GF_MPEGVisualSampleEntryBox*)entry)->emul_esd;
@@ -394,18 +395,22 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		//if no SyncSample, all samples are sync (cf spec)
 		(*samp)->IsRAP = RAP;
 	}
-	/*overwrite sync sample with sample dep if any*/
+
 	if (mdia->information->sampleTable->SampleDep) {
 		u32 isLeading, dependsOn, dependedOn, redundant;
 		e = stbl_GetSampleDepType(mdia->information->sampleTable->SampleDep, sampleNumber, &isLeading, &dependsOn, &dependedOn, &redundant);
 		if (!e) {
 			if (dependsOn==1) (*samp)->IsRAP = RAP_NO;
-			else if (dependsOn==2) (*samp)->IsRAP = RAP;
+			//commenting following code since it is wrong - an I frame is not always a SAP1, it can be a SAP2 or SAP3.
+			//Keeping this code breaks AVC / HEVC openGOP import when writing sample dependencies
+			//else if (dependsOn==2) (*samp)->IsRAP = RAP;
+
 			/*if not depended upon and redundant, mark as carousel sample*/
 			if ((dependedOn==2) && (redundant==1)) (*samp)->IsRAP = RAP_REDUNDANT;
 			/*TODO FIXME - we must enhance the IsRAP semantics to carry disposable info ... */
 		}
 	}
+
 	/*get sync shadow*/
 	if (Media_IsSampleSyncShadow(mdia->information->sampleTable->ShadowSync, sampleNumber)) (*samp)->IsRAP = RAP_REDUNDANT;
 

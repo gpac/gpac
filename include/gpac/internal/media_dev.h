@@ -276,7 +276,7 @@ Bool gf_media_avc_slice_is_intra(AVCState *avc);
 s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 /*nota: 'buffer' remains unmodified but cannot be set const*/
-u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc);
+u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc);
 
 #ifndef GPAC_DISABLE_ISOM
 GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
@@ -512,8 +512,8 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, 
 
 #define VP9_MAX_FRAMES_IN_SUPERFRAME 16
 
-GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, int *FrameWidth, int *FrameHeight, int *renderWidth, int *renderHeight);
-GF_Err vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, int *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], int *superframe_index_size);
+GF_Err gf_media_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, u32 *FrameWidth, u32 *FrameHeight, u32 *renderWidth, u32 *renderHeight);
+GF_Err gf_media_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], u32 *superframe_index_size);
 
 
 
@@ -633,7 +633,6 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
 
-GF_Err gf_media_aom_parse_ivf_file_header(GF_BitStream *bs, AV1State *state);
 GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size);
 
 Bool gf_media_probe_ivf(GF_BitStream *bs);

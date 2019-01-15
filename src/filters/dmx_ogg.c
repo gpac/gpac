@@ -29,7 +29,8 @@
 #include <gpac/bitstream.h>
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
-#include <ogg/ogg.h>
+#include <gpac/internal/ogg.h>
+//#include <ogg/ogg.h>
 #include <gpac/avparse.h>
 
 
@@ -673,6 +674,16 @@ static void oggdmx_finalize(GF_Filter *filter)
 	ogg_sync_clear(&ctx->oy);
 }
 
+static const char *oggdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	if (!strncmp(data, "OggS", 4)) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "video/ogg";
+	}
+	return NULL;
+}
+
+
 static const GF_FilterCapability OGGDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -706,7 +717,8 @@ GF_FilterRegister OGGDmxRegister = {
 	SETCAPS(OGGDmxCaps),
 	.configure_pid = oggdmx_configure_pid,
 	.process = oggdmx_process,
-	.process_event = oggdmx_process_event
+	.process_event = oggdmx_process_event,
+	.probe_data = oggdmx_probe_data,
 };
 
 #endif // !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)

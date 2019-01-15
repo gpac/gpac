@@ -34,76 +34,8 @@
 
 #ifndef GPAC_DISABLE_3D
 
-#ifdef WIN32
-#include <windows.h>
-#endif
-
-#define GL_GLEXT_PROTOTYPES
-
+//include openGL
 #include "../compositor/gl_inc.h"
-
-
-#if defined(GPAC_USE_GLES2)
-# ifdef GPAC_CONFIG_IOS
-#  include "OpenGLES/ES3/gl.h"
-#  include "glues.h"
-# else
-#  include <GLES2/gl2.h>
-#  include <GLES2/gl2ext.h>
-#  define GPAC_GL_NO_STRIDE
-# endif
-#elif defined (CONFIG_DARWIN_GL)
-# include <OpenGL/gl.h>
-#else
-# include <GL/gl.h>
-#endif
-
-#if defined(GPAC_USE_GLES1X)
-#  define GPAC_GL_NO_STRIDE
-#endif
-
-
-#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
-#define GF_SHADERID u64
-#else
-#define GF_SHADERID u32
-#endif
-
-#define GL_CHECK_ERR  {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
-
-/*macros for GL proto and fun declaration*/
-#ifdef _WIN32_WCE
-#define GLAPICAST *
-#elif defined(WIN32)
-#include <windows.h>
-#define GLAPICAST APIENTRY *
-#else
-#define GLAPICAST *
-#endif
-
-#define GLDECL(ret, funname, args)	\
-typedef ret (GLAPICAST proc_ ## funname)args;	\
-extern proc_ ## funname funname;	\
-
-#define GLDECL_STATIC(funname) static proc_ ## funname funname = NULL
-
-#if defined GPAC_USE_TINYGL
-//no extensions with TinyGL
-#elif defined (GPAC_USE_GLES1X)
-//no extensions with OpenGL ES
-#elif defined(WIN32) || defined (GPAC_CONFIG_WIN32)
-#define LOAD_GL_FUNCS
-#define GET_GLFUN(funname) funname = (proc_ ## funname) wglGetProcAddress(#funname)
-#elif defined(CONFIG_DARWIN_GL)
-extern void (*glutGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(funname) funname = (proc_ ## funname) glutGetProcAddress(#funname)
-#else
-#define LOAD_GL_FUNCS
-extern void (*glXGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(funname) funname = (proc_ ## funname) glXGetProcAddress(#funname)
-#endif
-
-
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
@@ -143,54 +75,40 @@ GLDECL(void, glVertexAttribIPointer, (GLuint  index, GLint  size, GLenum  type, 
 #endif
 
 
-#define GL_TEXTURE_RECTANGLE_EXT 0x84F5
-
-#define GL_INFO_LOG_LENGTH 0x8B84
-#define GL_FRAGMENT_SHADER 0x8B30
-#define GL_VERTEX_SHADER 0x8B31
-#define GL_PIXEL_UNPACK_BUFFER_ARB   0x88EC
-#define GL_STREAM_DRAW_ARB   0x88E0
-#define GL_WRITE_ONLY_ARB   0x88B9
-#define GL_DYNAMIC_DRAW_ARB   0x88E8
-
-#define 	GL_TEXTURE0   0x84C0
-#define 	GL_TEXTURE1   0x84C1
-#define 	GL_TEXTURE2   0x84C2
-
 #define TEXTURE_TYPE GL_TEXTURE_2D
 
 #ifdef WIN32
-GLDECL_STATIC(glActiveTexture);
-GLDECL_STATIC(glClientActiveTexture);
-GLDECL_STATIC(glCreateProgram);
-GLDECL_STATIC(glDeleteProgram);
-GLDECL_STATIC(glLinkProgram);
-GLDECL_STATIC(glUseProgram);
-GLDECL_STATIC(glCreateShader);
-GLDECL_STATIC(glDeleteShader);
-GLDECL_STATIC(glShaderSource);
-GLDECL_STATIC(glCompileShader);
-GLDECL_STATIC(glAttachShader);
-GLDECL_STATIC(glDetachShader);
-GLDECL_STATIC(glGetShaderiv);
-GLDECL_STATIC(glGetInfoLogARB);
-GLDECL_STATIC(glGetUniformLocation);
-GLDECL_STATIC(glUniform1f);
-GLDECL_STATIC(glUniform1i);
-GLDECL_STATIC(glGenBuffers);
-GLDECL_STATIC(glDeleteBuffers);
-GLDECL_STATIC(glBindBuffer);
-GLDECL_STATIC(glBufferData);
-GLDECL_STATIC(glBufferSubData);
-GLDECL_STATIC(glMapBuffer);
-GLDECL_STATIC(glUnmapBuffer);
-GLDECL_STATIC(glGetAttribLocation);
+GLDECL_FUNC_STATIC(glActiveTexture);
+GLDECL_FUNC_STATIC(glClientActiveTexture);
+GLDECL_FUNC_STATIC(glCreateProgram);
+GLDECL_FUNC_STATIC(glDeleteProgram);
+GLDECL_FUNC_STATIC(glLinkProgram);
+GLDECL_FUNC_STATIC(glUseProgram);
+GLDECL_FUNC_STATIC(glCreateShader);
+GLDECL_FUNC_STATIC(glDeleteShader);
+GLDECL_FUNC_STATIC(glShaderSource);
+GLDECL_FUNC_STATIC(glCompileShader);
+GLDECL_FUNC_STATIC(glAttachShader);
+GLDECL_FUNC_STATIC(glDetachShader);
+GLDECL_FUNC_STATIC(glGetShaderiv);
+GLDECL_FUNC_STATIC(glGetInfoLogARB);
+GLDECL_FUNC_STATIC(glGetUniformLocation);
+GLDECL_FUNC_STATIC(glUniform1f);
+GLDECL_FUNC_STATIC(glUniform1i);
+GLDECL_FUNC_STATIC(glGenBuffers);
+GLDECL_FUNC_STATIC(glDeleteBuffers);
+GLDECL_FUNC_STATIC(glBindBuffer);
+GLDECL_FUNC_STATIC(glBufferData);
+GLDECL_FUNC_STATIC(glBufferSubData);
+GLDECL_FUNC_STATIC(glMapBuffer);
+GLDECL_FUNC_STATIC(glUnmapBuffer);
+GLDECL_FUNC_STATIC(glGetAttribLocation);
 
 #ifndef GPAC_CONFIG_ANDROID
-GLDECL_STATIC(glEnableVertexAttribArray);
-GLDECL_STATIC(glDisableVertexAttribArray);
-GLDECL_STATIC(glVertexAttribPointer);
-GLDECL_STATIC(glVertexAttribIPointer);
+GLDECL_FUNC_STATIC(glEnableVertexAttribArray);
+GLDECL_FUNC_STATIC(glDisableVertexAttribArray);
+GLDECL_FUNC_STATIC(glVertexAttribPointer);
+GLDECL_FUNC_STATIC(glVertexAttribIPointer);
 #endif
 
 #endif
@@ -234,6 +152,11 @@ static void vout_load_gl()
 }
 #endif
 
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
+#define GF_SHADERID u64
+#else
+#define GF_SHADERID u32
+#endif
 
 
 static char *glsl_yuv_shader = "#version 120\n"\
@@ -427,6 +350,7 @@ typedef struct
 	GF_PropVec2i size;
 	GF_PropVec2i pos;
 	Double start;
+	GF_Fraction delay;
 
 	GF_Filter *filter;
 	GF_FilterPid *pid;
@@ -457,19 +381,26 @@ typedef struct
 	GLint pbo_U;
 	GLint pbo_V;
 	GLint memory_format;
-	u32 num_textures;
 	u32 bytes_per_pix;
 	GLint pixel_format;
 	Bool internal_textures;
 #endif // GPAC_DISABLE_3D
 
+	u32 num_textures;
+
 	u32 uv_w, uv_h, uv_stride, bit_depth;
 	Bool is_yuv, in_fullscreen;
 	u32 nb_drawn;
 
+	GF_Fraction sar;
+
+	Bool force_release;
 	GF_FilterPacket *last_pck;
+
+	s32 pid_delay;
 } GF_VideoOutCtx;
 
+static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
 
 #ifndef GPAC_DISABLE_3D
 static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
@@ -517,10 +448,20 @@ static void vout_set_caption(GF_VideoOutCtx *ctx)
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Event evt;
+#ifndef GPAC_DISABLE_3D
 	int rgb_mode=0;
+#endif
 	const GF_PropertyValue *p;
 	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh, hw, hh;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
+
+	//if we have a pending packet, draw it now
+	if (ctx->last_pck) {
+		vout_draw_frame(ctx);
+		gf_filter_pck_unref(ctx->last_pck);
+		ctx->last_pck = NULL;
+	}
+
 
 	if (is_remove) {
 		assert(ctx->pid==pid);
@@ -549,6 +490,14 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE_UV);
 	stride_uv = p ? p->value.uint : 0;
 
+	ctx->sar.num = ctx->sar.den = 1;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
+	if (p) ctx->sar = p->value.frac;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->pid_delay = p ? p->value.sint : 0;
+
+
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
 		//set a minimum buffer (although we don't buffer)
@@ -571,6 +520,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	dw = w;
 	dh = h;
+	if (ctx->sar.den != ctx->sar.num) {
+		dw = dw * ctx->sar.num / ctx->sar.den;
+	}
 	if (ctx->size.x==0) ctx->size.x = w;
 	if (ctx->size.y==0) ctx->size.y = h;
 	if ((ctx->size.x>0) && (ctx->size.y>0)) {
@@ -581,6 +533,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->disp>=MODE_2D) {
 		dw = w;
 		dh = h;
+		if (ctx->sar.den != ctx->sar.num) {
+			dw = dw * ctx->sar.num / ctx->sar.den;
+		}
 	}
 
 	if ((dw != ctx->display_width) || (dh != ctx->display_height) ) {
@@ -918,6 +873,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #endif
 
 		ctx->first_tx_load = GF_TRUE;
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (ctx->is_yuv && (ctx->disp==MODE_GL_PBO)) {
 			ctx->first_tx_load = GF_FALSE;
 			glGenBuffers(1, &ctx->pbo_Y);
@@ -949,6 +905,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 		}
+#endif
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glViewport(0, 0, ctx->width, ctx->height);
@@ -977,25 +934,24 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		} else {
 			glDisable(GL_BLEND);
 		}
-		return GF_OK;
-	}
-
-	if (ctx->pfmt==GF_PIXEL_NV21) {
-		ctx->num_textures = 2;
-	} else if (ctx->pfmt==GF_PIXEL_NV12) {
-		ctx->num_textures = 2;
-	} else if (ctx->pfmt==GF_PIXEL_UYVY) {
-		ctx->num_textures = 1;
-	} else if (ctx->pfmt==GF_PIXEL_YUYV) {
-		ctx->num_textures = 1;
-	} else if (ctx->is_yuv) {
-		ctx->num_textures = 3;
-	} else {
-		ctx->num_textures = 1;
-	}
-
+	} else
 #endif
-
+	{
+		if (ctx->pfmt==GF_PIXEL_NV21) {
+			ctx->num_textures = 2;
+		} else if (ctx->pfmt==GF_PIXEL_NV12) {
+			ctx->num_textures = 2;
+		} else if (ctx->pfmt==GF_PIXEL_UYVY) {
+			ctx->num_textures = 1;
+		} else if (ctx->pfmt==GF_PIXEL_YUYV) {
+			ctx->num_textures = 1;
+		} else if (ctx->is_yuv) {
+			ctx->num_textures = 3;
+		} else {
+			ctx->num_textures = 1;
+		}
+	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] Reconfig input size %d x %d, %d textures\n", ctx->width, ctx->height, ctx->num_textures));
 	return GF_OK;
 }
 
@@ -1077,6 +1033,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		evt.setup.height = 240;
 		evt.setup.opengl_mode = 1;
 		evt.setup.back_buffer = 1;
+		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
 #endif
@@ -1251,17 +1208,19 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+			ctx->dw = (Float) (ctx->display_height * ctx->width * ctx->sar.num / ctx->height / ctx->sar.den);
 			ctx->dh = (Float) ctx->display_height;
 			ctx->oh = (Float) 0;
 			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dh = (Float) (ctx->display_width * ctx->height * ctx->sar.den / ctx->width / ctx->sar.num);
 			ctx->dw = (Float) ctx->display_width;
 			ctx->ow = (Float) 0;
 			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
 		}
 		ctx->display_changed = GF_FALSE;
+		glClearColor(0, 0, 0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT);
 	}
 	if (ctx->has_alpha) {
 		Float r, g, b;
@@ -1279,6 +1238,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (!data) {
 		GF_Err e;
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
+		if (hw_frame->reset_pending) ctx->force_release = GF_TRUE;
 		if (! hw_frame->get_plane) {
 			vout_draw_gl_hw_textures(ctx, hw_frame);
 			return;
@@ -1551,8 +1511,10 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (!data) {
 		GF_Err e;
-		u32 stride_luma, stride_chroma;
+		u32 stride_luma;
+		u32 stride_chroma;
 		GF_FilterHWFrame *hw_frame = gf_filter_pck_get_hw_frame(pck);
+		if (hw_frame->reset_pending) ctx->force_release = GF_TRUE;
 		if (! hw_frame->get_plane) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Hardware GL texture blit not supported with non-GL blitter\n"));
 			return;
@@ -1562,7 +1524,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error fetching chroma plane from hardware frame\n"));
 			return;
 		}
-#ifndef GPAC_DISABLE_3D
 		if (ctx->is_yuv && (ctx->num_textures>1)) {
 			e = hw_frame->get_plane(hw_frame, 1, (const u8 **) &src_surf.u_ptr, &stride_chroma);
 			if (e) {
@@ -1577,7 +1538,6 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 				}
 			}
 		}
-#endif
 	} else {
 		src_surf.video_buffer = data;
 	}
@@ -1597,12 +1557,12 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+			ctx->dw = (Float) (ctx->display_height * ctx->width * ctx->sar.num / ctx->height / ctx->sar.den);
 			ctx->dh = (Float) ctx->display_height;
 			ctx->oh = (Float) 0;
 			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dh = (Float) (ctx->display_width * ctx->height *ctx->sar.den / ctx->width / ctx->sar.num);
 			ctx->dw = (Float) ctx->display_width;
 			ctx->ow = (Float) 0;
 			ctx->oh = (Float) (ctx->display_height - ctx->dh ) / 2;
@@ -1701,6 +1661,19 @@ static GF_Err vout_process(GF_Filter *filter)
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u64 clock_us, now = gf_sys_clock_high_res();
 		Double media_ts;
+		s64 delay;
+
+		delay = ctx->pid_delay;
+		if (ctx->delay.den)
+			delay += ctx->delay.num * (s32)ctx->timescale / (s32)ctx->delay.den;
+
+		if (delay>0) {
+			cts += delay;
+		} else if (cts < (u64) (-delay) ) {
+			cts = 0;
+		} else {
+			cts -= (u64) -delay;
+		}
 
 		//check if we have a clock hint from an audio output
 		gf_filter_get_clock_hint(filter, &clock_us, &media_ts);
@@ -1815,8 +1788,13 @@ static GF_Err vout_process(GF_Filter *filter)
 
 
 draw_frame:
+	return vout_draw_frame(ctx);
+}
 
-	if (ctx->pfmt) {
+static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
+{
+	ctx->force_release = GF_FALSE;
+	if (ctx->pfmt && ctx->last_pck) {
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp < MODE_2D) {
 			gf_rmt_begin_gl(vout_draw_gl);
@@ -1828,6 +1806,11 @@ draw_frame:
 			vout_draw_2d(ctx, ctx->last_pck);
 		}
 	}
+	if (ctx->force_release && ctx->last_pck) {
+		gf_filter_pck_unref(ctx->last_pck);
+		ctx->last_pck = NULL;
+	}
+
 	return GF_OK;
 }
 
@@ -1858,6 +1841,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(delay), "Sets delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "Hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{0}

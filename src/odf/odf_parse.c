@@ -164,7 +164,7 @@ void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 		return;
 	}
 	gf_fseek(f, 0, SEEK_END);
-	assert(gf_ftell(f) < 1<<31);
+	assert(gf_ftell(f) < 0x80000000);
 	size = (u32) gf_ftell(f);
 	gf_fseek(f, 0, SEEK_SET);
 	*out_data_size = size;

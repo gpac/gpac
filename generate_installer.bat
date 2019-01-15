@@ -73,6 +73,7 @@ REM ============================================
 echo Executing NSIS
 REM ============================================
 call %NSIS_EXEC% packagers\win32_64\nsis\gpac_installer.nsi
+IF %ERRORLEVEL% NEQ 0 GOTO Abort
 
 
 echo:

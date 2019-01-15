@@ -186,7 +186,7 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	if (!for_recf)
 		return aifc->samplerate ? GF_TRUE : GF_FALSE;
 
-	if (aifc->samplerate * aifc->chan && aifc->afmt && ((aifc->chan<=2) || aifc->ch_cfg))  {
+	if (aifc->samplerate && aifc->chan && aifc->afmt && ((aifc->chan<=2) || aifc->ch_cfg))  {
 		ai->stream->config_changed = GF_FALSE;
 		return GF_TRUE;
 	}
@@ -253,7 +253,7 @@ void gf_sc_audio_stop(GF_AudioInput *ai)
 
 	assert(!ai->need_release);
 
-	gf_mo_stop(ai->stream);
+	gf_mo_stop(&ai->stream);
 	ai->is_open = 0;
 	gf_mo_unregister(ai->owner, ai->stream);
 	ai->stream = NULL;

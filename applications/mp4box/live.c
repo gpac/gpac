@@ -80,15 +80,13 @@ int stream_file_rtp(int argc, char **argv)
 	char *ip_dest = "127.0.0.1";
 	const char *ifce_addr = NULL;
 	char *inName = NULL;
-	char *logs=NULL;
-	FILE *logfile=NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = GF_TRUE;
-    GF_MemTrackerType mem_track = GF_MemTrackerNone;
+   	GF_MemTrackerType mem_track = GF_MemTrackerNone;
 	Bool force_mpeg4 = GF_FALSE;
-    u32 path_mtu = 1450;
-    Double run_for = -1.0;
+   	u32 path_mtu = 1450;
+   	Double run_for = -1.0;
 	u32 i;
 
 	for (i = 1; i < (u32) argc ; i++) {
@@ -108,11 +106,9 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
-        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
-		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
-		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
-        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
+	        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
+	        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
+	        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
 	}
 
 	gf_sys_init(mem_track, NULL);
@@ -125,7 +121,6 @@ int stream_file_rtp(int argc, char **argv)
 
 	if (!gf_isom_probe_file(inName)) {
 		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
-		if (logfile) gf_fclose(logfile);
 		gf_sys_close();
 		return 1;
 	}
@@ -156,7 +151,6 @@ int stream_file_rtp(int argc, char **argv)
 		}
 		gf_isom_streamer_del(file_streamer);
 	}
-	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 	return 0;
 }
@@ -859,100 +853,6 @@ exit:
 #endif /*!defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)*/
 
 #endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
-
-#ifndef GPAC_DISABLE_MPEG2TS
-
-u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
-{
-	char data[0x80000];
-	u32 check = 50;
-	u64 nb_pck;
-	Bool first_run, is_rtp;
-	FILE *output;
-#ifndef GPAC_DISABLE_STREAMING
-	u16 seq_num;
-	GF_RTPReorder *ch = NULL;
-#endif
-	GF_Socket *sock;
-	const char *grab_ifce = gf_opts_get_key("core", "ifce");
-	GF_Err e = gf_m2ts_get_socket(grab_m2ts, grab_ifce, GF_M2TS_UDP_BUFFER_SIZE, &sock);
-
-	if (e) {
-		fprintf(stderr, "Cannot open %s: %s\n", grab_m2ts, gf_error_to_string(e));
-		return 1;
-	}
-	output = gf_fopen(outName, "wb");
-	if (!output) {
-		fprintf(stderr, "Cannot open %s: check path and rights\n", outName);
-		gf_sk_del(sock);
-		return 1;
-	}
-
-	fprintf(stderr, "Dumping %s stream to %s - press q to abort\n", grab_m2ts, outName);
-
-	first_run = 1;
-	is_rtp = 0;
-	while (1) {
-		u32 size = 0;
-
-		check--;
-		if (!check) {
-			if (gf_prompt_has_input()) {
-				char c = (char) gf_prompt_get_char();
-				if (c=='q') break;
-			}
-			check = 50;
-		}
-
-		/*m2ts chunks by chunks*/
-		e = gf_sk_receive(sock, data, 0x40000, 0, &size);
-		if (!size || e) {
-			gf_sleep(1);
-			continue;
-		}
-		if (first_run) {
-			first_run = 0;
-			/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
-			if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
-				is_rtp = 1;
-#ifndef GPAC_DISABLE_STREAMING
-				ch = gf_rtp_reorderer_new(100, 500);
-#endif
-			}
-		}
-		/*process chunk*/
-		if (is_rtp) {
-#ifndef GPAC_DISABLE_STREAMING
-			char *pck;
-			seq_num = ((data[2] << 8) & 0xFF00) | (data[3] & 0xFF);
-			gf_rtp_reorderer_add(ch, (void *) data, size, seq_num);
-
-			pck = (char *) gf_rtp_reorderer_get(ch, &size);
-			if (pck) {
-				fwrite(pck+12, size-12, 1, output);
-				gf_free(pck);
-			}
-#else
-			fwrite(data+12, size-12, 1, output);
-#endif
-		} else {
-			fwrite(data, size, 1, output);
-		}
-	}
-	nb_pck = gf_ftell(output);
-	nb_pck /= 188;
-	fprintf(stderr, "Captured "LLU" TS packets\n", nb_pck );
-	gf_fclose(output);
-	gf_sk_del(sock);
-
-#ifndef GPAC_DISABLE_STREAMING
-	if (ch)
-		gf_rtp_reorderer_del(ch);
-#endif
-	return 0;
-}
-
-#endif /* GPAC_DISABLE_MPEG2TS */
 
 #ifndef GPAC_DISABLE_ATSC
 

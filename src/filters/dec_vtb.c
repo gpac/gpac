@@ -361,6 +361,10 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			
 			ctx->vtb_type = kCMVideoCodecType_H264;
 
+			s32 id = gf_media_avc_read_sps(sps->data, sps->size, &ctx->avc, 0, NULL);
+			id = gf_media_avc_read_pps(pps->data, pps->size, &ctx->avc);
+
+
 			idx = ctx->active_sps;
 			ctx->width = ctx->avc.sps[idx].width;
 			ctx->height = ctx->avc.sps[idx].height;
@@ -418,14 +422,12 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			cfg->chroma_bit_depth = 8 + ctx->avc.sps[idx].chroma_bit_depth_m8;
 			cfg->nal_unit_size = 4;
 				
+			//we send only the active SPS and PPS, otherwise vtb complains !!
 			gf_list_add(cfg->sequenceParameterSets, sps);
-			//we send all PPS
-			gf_list_del(cfg->pictureParameterSets);
-			cfg->pictureParameterSets = ctx->PPSs;
-
+			gf_list_add(cfg->pictureParameterSets, pps);
 			gf_odf_avc_cfg_write(cfg, &dsi_data, &dsi_data_size);
 			gf_list_reset(cfg->sequenceParameterSets);
-			cfg->pictureParameterSets = NULL;
+			gf_list_reset(cfg->pictureParameterSets);
 			gf_odf_avc_cfg_del((cfg));
 			
 			dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
@@ -520,7 +522,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 				}
 				break;
 			}
-			//always rewrite with cirrent sps and pps
+			//always rewrite with current sps and pps
 			cfg = gf_odf_hevc_cfg_new();
 			cfg->configurationVersion = 1;
 			cfg->profile_space = ctx->hevc.sps[idx].ptl.profile_space;
@@ -973,6 +975,8 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 
 	ctx->nalu_size_length = 0;
 	ctx->is_annex_b = GF_FALSE;
@@ -1209,7 +1213,11 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			}
 		} else if (ctx->is_hevc) {
 			u8 temporal_id, ayer_id;
-			s32 res = gf_media_hevc_parse_nalu(ptr, nal_size, &ctx->hevc, &nal_type, &temporal_id, &ayer_id);
+
+			if (!ctx->nal_bs) ctx->nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
+			else gf_bs_reassign_buffer(ctx->nal_bs, ptr, nal_size);
+
+			s32 res = gf_media_hevc_parse_nalu_bs(ctx->nal_bs, &ctx->hevc, &nal_type, &temporal_id, &ayer_id);
 			if (res>=0) {
 				switch (nal_type) {
 				case GF_HEVC_NALU_VID_PARAM:
@@ -1436,6 +1444,13 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 
 	in_buffer = (char *) gf_filter_pck_get_data(pck, &in_buffer_size);
 
+	//discard empty packets
+	if (!in_buffer || !in_buffer_size) {
+		gf_filter_pid_drop_packet(ref_pid);
+		//if inbuffer is null this is a hardware frame, should never happen
+		return in_buffer ? GF_OK : GF_NOT_SUPPORTED;
+	}
+
 	if (ctx->skip_mpeg4_vosh) {
 		GF_M4VDecSpecInfo dsi;
 		dsi.width = dsi.height = 0;
@@ -1497,8 +1512,10 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	if (ctx->is_annex_b || ctx->nalu_size_length) {
 
 		e = vtbdec_parse_nal_units(filter, ctx, in_buffer, in_buffer_size, &in_data, &in_data_size);
-		if (e) return e;
-
+		if (e) {
+			gf_filter_pid_drop_packet(ref_pid);
+			return e;
+		}
 	} else if (ctx->vosh_size) {
 		in_data = in_buffer + ctx->vosh_size;
 		in_data_size = in_buffer_size - ctx->vosh_size;
@@ -1526,6 +1543,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 			ctx->vtb_session=NULL;
 		}
 		vtbdec_init_decoder(filter, ctx);
+		return GF_OK;
 	}
 	if (!ctx->vtb_session) {
 		gf_filter_pid_drop_packet(ref_pid);
@@ -1535,20 +1553,19 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 
 	status = CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, in_data, in_data_size, kCFAllocatorNull, NULL, 0, in_data_size, 0, &block_buffer);
 
-	if (status) {
+	if (status ||  (block_buffer == NULL) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Failed to allocate block buffer of %d bytes\n", in_data_size));
+		gf_filter_pid_drop_packet(ref_pid);
 		return GF_IO_ERR;
 	}
 
-	if (block_buffer == NULL)
-		return GF_OK;
-		
-	
 	status = CMSampleBufferCreate(kCFAllocatorDefault, block_buffer, TRUE, NULL, NULL, ctx->fmt_desc, 1, 0, NULL, 0, NULL, &sample);
 
     if (status || (sample==NULL)) {
 		if (block_buffer)
 			CFRelease(block_buffer);
 
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Failed to create sample buffer for %d bytes\n", in_data_size));
 		gf_filter_pid_drop_packet(ref_pid);
 		return GF_IO_ERR;
 	}
@@ -1698,7 +1715,7 @@ GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_t
 	}
 
     if (CVPixelBufferIsPlanar(f->frame)) {
-		w = CVPixelBufferGetPlaneCount(f->frame);
+		w = (u32) CVPixelBufferGetPlaneCount(f->frame);
 		if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
 			return GF_BAD_PARAM;
@@ -1760,7 +1777,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 #endif
 
 	if (!gf_list_count(ctx->frames) && ctx->reconfig_needed)
-		vtb_frame->hw_frame.hardware_reset_pending = GF_TRUE;
+		vtb_frame->hw_frame.reset_pending = GF_TRUE;
 
 	ctx->decoded_frames_pending++;
 

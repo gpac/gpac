@@ -169,7 +169,7 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 	Float **pcm;
 	u32 samples, total_samples, total_bytes, size;
 	GF_VorbisDecCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck, *dst_pck=NULL;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 

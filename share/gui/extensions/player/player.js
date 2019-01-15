@@ -1277,7 +1277,6 @@ extension = {
             this.controler.play.switch_icon(this.icon_play);
             this.state = this.GF_STATE_STOP;
             this.set_speed(1);
-            this.root_odm = null;
             this.stats_resources = [];
             this.nb_objs_at_last_scan = 0;
 
@@ -1286,6 +1285,7 @@ extension = {
 			e.is_playing = false;
 			e.index = this.playlist_idx;
 			gwlib_filter_event(e);
+            this.root_odm = null;
 			return;
         }
         if (state == this.GF_STATE_PAUSE) {
@@ -1376,6 +1376,7 @@ extension = {
             if (this.UPnP_Enabled) UPnP.MovieURL = url;
             this.movie_connected = (url == '') ? false : true;
             gpac.caption = url;
+            this.root_odm = null;
 			this.controler.layout();
 
         } else if (this.controlled_renderer == null) {

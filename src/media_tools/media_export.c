@@ -1074,6 +1074,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 	u32 codec_id=0;
+	u32 sample_count=0;
 	Bool skip_write_filter = GF_FALSE;
 
 	strcpy(szExt, "");
@@ -1081,9 +1082,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		u32 msubtype = 0;
 		u32 track_num = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
 		GF_ESD *esd = gf_media_map_esd(dumper->file, track_num, 0);
+		sample_count = gf_isom_get_sample_count(dumper->file, dumper->trackID);
 		if (esd) {
 			codec_id = esd->decoderConfig->objectTypeIndication;
-			gf_odf_desc_del((GF_Descriptor *) esd);
 		}
 		if (!codec_id) {
 			msubtype = gf_isom_get_media_subtype(dumper->file, track_num, 1);
@@ -1122,9 +1123,33 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			}
 			break;
 		}
+		//TODO, move these two to filters one of these days
+		if ((codec_id==GF_CODECID_VORBIS) || (codec_id==GF_CODECID_THEORA)) {
+			char *outname = dumper->out_name;
+			if (outname && !strcmp(outname, "std")) outname=NULL;
+			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+			return gf_dump_to_ogg(dumper, outname, track_num);
+		}
+		if (codec_id==GF_CODECID_SUBPIC) {
+			char *dsi = NULL;
+			u32 dsi_size = 0;
+			if (esd && esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo) {
+				dsi = esd->decoderConfig->decoderSpecificInfo->data;
+				dsi_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+			}
+			e = gf_dump_to_vobsub(dumper, dumper->out_name, track_num, dsi, dsi_size);
+			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+			return e;
+		}
+		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 	}
 
 	fsess = gf_fs_new_defaults(0);
+	if (!fsess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Failed to create filter session\n"));
+		return GF_OUT_OF_MEM;
+	}
+	file_out = NULL;
 
 	//except in nhml inband file dump, create a sink filter
 	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
@@ -1145,9 +1170,16 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 		if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
 			if (!dumper->sample_num) {
+
 				ext = gf_file_ext_start(szArgs);
 				if (ext) ext[0] = 0;
-				strcat(szArgs, "_$num$");
+				if (sample_count>=1000) {
+					strcat(szArgs, "_$num%08d$");
+				} else if (sample_count) {
+					strcat(szArgs, "_$num%03d$");
+				} else {
+					strcat(szArgs, "_$num$");
+				}
 				ext = gf_file_ext_start(dumper->out_name);
 				if (ext) strcat(szArgs, ext);
 			}

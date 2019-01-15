@@ -344,7 +344,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		return mo->frame;
 	}
 
-	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
+	if (mo->pck && mo->hw_frame && mo->hw_frame->reset_pending) {
 		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}
@@ -629,6 +629,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		mo->ms_until_pres = 0;
 	} else {
 //		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u same frame fetch TS %u\n", mo->odm->ID, mo->odm->net_service->url, obj_time, CU->TS ));
+
+		//if paused force a high value for next frame
+		if (!gf_clock_is_started(mo->odm->ck)) {
+			mo->ms_until_next = 100;
+		}
 	}
 
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
@@ -699,7 +704,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		}
 	}
 	//release frame asap if producer is waiting for the release to be able to process
-	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
+	if (mo->pck && mo->hw_frame && mo->hw_frame->reset_pending) {
 		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}
@@ -783,28 +788,32 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 }
 
 GF_EXPORT
-Bool gf_mo_stop(GF_MediaObject *mo)
+void gf_mo_stop(GF_MediaObject **_mo)
 {
-	Bool ret = GF_FALSE;
-	if (!mo || !mo->num_open) return GF_FALSE;
+	GF_MediaObject *mo = _mo ? *_mo : NULL;
+	if (!mo || !mo->num_open) return;
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
-		if (mo->odm->flags & GF_ODM_DESTROYED) return GF_TRUE;
+		if (mo->odm->flags & GF_ODM_DESTROYED) {
+			*_mo = NULL;
+			return;
+		}
 
 		/*signal STOP request*/
 		if ((mo->OD_ID==GF_MEDIA_EXTERNAL_ID) || (mo->odm && mo->odm->ID && (mo->odm->ID==GF_MEDIA_EXTERNAL_ID))) {
 			gf_odm_disconnect(mo->odm, 2);
-			ret = GF_TRUE;
+			*_mo = NULL;
 		} else {
-			gf_odm_stop_or_destroy(mo->odm);
+			if ( gf_odm_stop_or_destroy(mo->odm) ) {
+				*_mo = NULL;
+			}
 		}
 	} else {
 		if (!mo->num_to_restart) {
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;
 		}
 	}
-	return ret;
 }
 
 GF_EXPORT

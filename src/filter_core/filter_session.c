@@ -92,7 +92,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
 	if (evt->type==GF_EVENT_QUIT) {
 		GF_FilterSession *fsess = (GF_FilterSession *)ptr;
-		fsess->run_status = GF_EOS;
+		gf_fs_abort(fsess, GF_TRUE);
 	}
 	return 0;
 }
@@ -252,7 +252,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	fsess->default_pid_buffer_max_units = 1;
 	fsess->max_resolve_chain_len = 6;
 
-	fsess->links_mx = gf_mx_new("DijsktraSet");
+	if (nb_threads)
+		fsess->links_mx = gf_mx_new("FilterRegistryGraph");
 	fsess->links = gf_list_new();
 
 
@@ -277,6 +278,7 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	else if (!strcmp(opt, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
 	else if (!strcmp(opt, "flock")) sched_type = GF_FS_SCHEDULER_LOCK_FORCE;
 	else if (!strcmp(opt, "direct")) sched_type = GF_FS_SCHEDULER_DIRECT;
+	else if (!strcmp(opt, "free")) sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	else if (!strcmp(opt, "freex")) sched_type = GF_FS_SCHEDULER_LOCK_FREE_X;
 	else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized scheduler type %s\n", opt));
@@ -729,6 +731,19 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 }
 
 GF_EXPORT
+Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
+{
+	u32 i, count = gf_list_count(fsess->registry);
+	for (i=0;i<count;i++) {
+		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
+		if (!strcmp(f_reg->name, name)) {
+			return GF_TRUE;
+		}
+	}
+	return GF_FALSE;
+}
+
+GF_EXPORT
 GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 {
 	const char *args=NULL;
@@ -757,6 +772,12 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
 	return NULL;
 }
+
+//in mono thread mode, we cannot always sleep for the requested timeout in case there are more tasks to be processed
+//this defines the number of pending tasks above wich we limit sleep
+#define MONOTH_MIN_TASKS	2
+//this defines the sleep time for this case
+#define MONOTH_MIN_SLEEP	5
 
 static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 {
@@ -939,10 +960,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					}
 
 					if (diff) {
-						//if mono thread and other tasks pending than the two we checked, max sleep is 5 ms
 						if (th_count==0) {
-							if ( gf_fq_count(fsess->tasks) > 2)
-								diff=5;
+							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
+								diff = MONOTH_MIN_SLEEP;
 						}
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, sleeping for %d ms\n", sys_thid, task->log_name, diff));
 						gf_sleep((u32) diff);
@@ -997,8 +1017,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 					if (! (fsess->flags & GF_FS_FLAG_NO_REGULATION) ) {
 						if (th_count==0) {
-							if ( gf_fq_count(fsess->tasks) )
-								diff=5;
+							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
+								diff = MONOTH_MIN_SLEEP;
 						}
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", sys_thid, current_filter->name, task->log_name, (s32) diff));
 
@@ -1248,11 +1268,17 @@ void gf_fs_run_step(GF_FilterSession *fsess)
 }
 
 GF_EXPORT
-GF_Err gf_fs_abort(GF_FilterSession *fsess)
+GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 {
 	u32 i, count;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user, stoping sources\n"));
 	if (!fsess) return GF_BAD_PARAM;
+
+	if (!do_flush) {
+		fsess->in_final_flush = GF_TRUE;
+		fsess->run_status = GF_EOS;
+		return GF_OK;
+	}
 
 	gf_mx_p(fsess->filters_mx);
 	count = gf_list_count(fsess->filters);
@@ -1333,11 +1359,14 @@ static GFINLINE void print_filter_name(GF_Filter *f, Bool skip_id)
 	if (!skip_id && f->id) fprintf(stderr, " ID %s", f->id);
 	if (f->dynamic_filter) return;
 
-	if (!f->src_args && !f->orig_args && !f->dst_args) return;
+	if (!f->src_args && !f->orig_args && !f->dst_args && !f->dynamic_source_ids) return;
 	fprintf(stderr, " (");
 	if (f->src_args) fprintf(stderr, "%s", f->src_args);
 	else if (f->orig_args) fprintf(stderr, "%s", f->orig_args);
 	else if (f->dst_args) fprintf(stderr, "%s", f->dst_args);
+
+
+	if (f->dynamic_source_ids) fprintf(stderr, ",resolved SID:%s", f->source_ids);
 	fprintf(stderr, ")");
 }
 
@@ -1391,6 +1420,9 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		for (k=0; k<opids; k++) {
 			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
 			fprintf(stderr, "\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent);
+		}
+		if (f->nb_errors) {
+			fprintf(stderr, "\t\t%d errors while processing\n", f->nb_errors);
 		}
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
@@ -1556,11 +1588,16 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
 		/*opera-style localhost URLs*/
 		else if (!strncmp(url, "file://localhost", 16)) sURL = gf_strdup(url+16);
-
 		else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
 		/*path absolute*/
 		if (!sURL) sURL = gf_strdup(url);
+
+		if (!strncmp(sURL, "gpac://", 7)) {
+			u32 ulen = (u32) strlen(sURL+7);
+			memmove(sURL, sURL+7, ulen);
+			sURL[ulen]=0;
+		}
 
 		if (gf_url_is_local(sURL))
 			gf_url_to_fs_path(sURL);
@@ -1880,12 +1917,14 @@ void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 {
 #if 0
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
-	if ( safe_int_dec(&fsess->pid_connect_tasks_pending) == 0) {
+	safe_int_dec(&fsess->pid_connect_tasks_pending);
+	if ( fsess->pid_connect_tasks_pending == 0) {
 		//we need a task for cleanup, otherwise we may destroy the filter and the task of the task currently scheduled !!
 		gf_fs_post_task(fsess, gf_fs_cleanup_filters_task, NULL, NULL, "filters_cleanup", fsess);
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 #else
+	assert(fsess->pid_connect_tasks_pending);
 	safe_int_dec(&fsess->pid_connect_tasks_pending);
 #endif
 }
@@ -1915,6 +1954,7 @@ typedef struct
 	GF_FilterSession *fsess;
 	void *callback;
 	Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms);
+	Bool (*task_execute_filter) (GF_Filter *filter, void *callback, u32 *reschedule_ms);
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif
@@ -1929,12 +1969,19 @@ static void gf_fs_user_task(GF_FSTask *task)
 #ifndef GPAC_DISABLE_REMOTERY
 	gf_rmt_begin_hash(task->log_name, GF_RMT_AGGREGATE, &utask->rmt_hash);
 #endif
-	task->requeue_request = utask->task_execute(utask->fsess, utask->callback, &reschedule_ms);
+	if (utask->task_execute) {
+		task->requeue_request = utask->task_execute(utask->fsess, utask->callback, &reschedule_ms);
+	} else if (task->filter) {
+		task->requeue_request = utask->task_execute_filter(task->filter, utask->callback, &reschedule_ms);
+	} else {
+		task->requeue_request = 0;
+	}
 	gf_rmt_end();
 	//if no requeue request or if we are in final flush, don't re-execute
 	if (!task->requeue_request || utask->fsess->in_final_flush) {
 		gf_free(utask);
 		task->udta = NULL;
+		task->requeue_request = GF_FALSE;
 	} else {
 		task->schedule_next_time = gf_sys_clock_high_res() + 1000*reschedule_ms;
 	}
@@ -1950,6 +1997,18 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 	utask->callback = udta_callback;
 	utask->task_execute = task_execute;
 	gf_fs_post_task(fsess, gf_fs_user_task, NULL, NULL, log_name ? log_name : "user_task", utask);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *filter, void *callback, u32 *reschedule_ms), void *udta, const char *task_name)
+{
+	GF_UserTask *utask;
+	if (!filter || !task_execute) return GF_BAD_PARAM;
+	GF_SAFEALLOC(utask, GF_UserTask);
+	utask->callback = udta;
+	utask->task_execute_filter = task_execute;
+	gf_fs_post_task(filter->session, gf_fs_user_task, filter, NULL, task_name ? task_name : "user_task", utask);
 	return GF_OK;
 }
 
