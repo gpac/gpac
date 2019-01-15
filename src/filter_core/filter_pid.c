@@ -4217,7 +4217,8 @@ static void gf_filter_pid_reset_task(GF_FSTask *task)
 	safe_int_dec(& pidi->pid->filter->stream_reset_pending );
 
 	pidi->pid->nb_buffer_unit = 0;
-	pidi->pid->nb_buffer_unit = 0;
+	pidi->pid->buffer_duration = 0;
+	gf_filter_pid_check_unblock(pidi->pid);
 
 	assert(pidi->pid->discard_input_packets);
 	safe_int_dec(& pidi->pid->discard_input_packets );

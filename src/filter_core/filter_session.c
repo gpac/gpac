@@ -789,6 +789,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	Bool do_use_sema = (!thid && fsess->no_main_thread) ? GF_FALSE : GF_TRUE;
 	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
 	u32 sys_thid = gf_th_id();
+	u64 next_task_schedule_time = 0;
 
 	GF_Filter *current_filter = NULL;
 	sess_thread->th_id = gf_th_id();
@@ -855,6 +856,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		if (!task) {
 			u32 force_nb_notif = 0;
+			next_task_schedule_time = 0;
 			//no more task and EOS signal
 			if (fsess->run_status != GF_OK)
 				break;
@@ -930,8 +932,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			diff /= 1000;
 
 
-			if (diff > 4) {
+			if (diff > 0) {
 				GF_FSTask *next;
+				s64 tdiff = diff;
+				s64 ndiff = 0;
 
 				if (diff>50) diff = 50;
 
@@ -940,7 +944,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					next = gf_fq_head(fsess->tasks);
 					gf_fq_add(fsess->tasks, task);
 					if (next) {
-						s64 ndiff;
 						if (next->schedule_next_time <= (u64) now) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task time ready for execution\n", sys_thid, task->log_name));
 
@@ -949,13 +952,16 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							}
 							continue;
 						}
-						if (!(fsess->flags & GF_FS_FLAG_NO_REGULATION)) {
-							ndiff = next->schedule_next_time - now;
-							if (ndiff<diff) diff = ndiff;
-						} else {
-							diff = 0;
+						ndiff = next->schedule_next_time;
+						ndiff -= now;
+						ndiff /= 1000;
+						if (ndiff<diff) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s scheduled after next task %s:%s (in %d ms vs %d ms)\n", sys_thid, task->log_name, next->log_name, next->filter ? next->filter->name : "", (s32) diff, (s32) ndiff));
+							diff = ndiff;
 						}
-					} else {
+					}
+
+					if (fsess->flags & GF_FS_FLAG_NO_REGULATION) {
 						diff = 0;
 					}
 
@@ -964,11 +970,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
 								diff = MONOTH_MIN_SLEEP;
 						}
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, sleeping for %d ms\n", sys_thid, task->log_name, diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, %s task scheduled after this task, sleeping for %d ms (task diff %d - next diff %d)\n", sys_thid, task->log_name, next ? "next" : "no", diff, tdiff, ndiff));
 						gf_sleep((u32) diff);
 					} else {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, rerun\n", sys_thid, task->log_name, diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s reposted, next task scheduled after this task, rerun\n", sys_thid, task->log_name));
 					}
+					next_task_schedule_time = task->schedule_next_time;
 					if (do_use_sema) {
 						gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 					}
@@ -978,9 +985,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				if (!task->filter->finalized) {
 					//task was in the filter queue, drop it
 					if (!task->in_main_task_list_only) {
+#ifdef CHECK_TASK_LIST_INTEGRITY
 						next = gf_fq_head(current_filter->tasks);
 						assert(next == task);
-
+#endif
 						gf_fq_pop(current_filter->tasks);
 						task->in_main_task_list_only = GF_TRUE;
 					}
@@ -1015,19 +1023,32 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 					sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
+					if (next_task_schedule_time && (next_task_schedule_time <= task->schedule_next_time)) {
+						s64 tdiff = next_task_schedule_time;
+						tdiff -= now;
+						if (tdiff < 0) tdiff=0;
+						if (tdiff<diff) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: next task has earlier exec time than current task %s:%s, adjusting sleep (old %d - new %d)\n", sys_thid, current_filter->name, task->log_name, (s32) diff, (s32) tdiff));
+							diff = tdiff;
+						} else {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: next task has earlier exec time#2 than current task %s:%s, adjusting sleep (old %d - new %d)\n", sys_thid, current_filter->name, task->log_name, (s32) diff, (s32) tdiff));
+
+						}
+					}
+
 					if (! (fsess->flags & GF_FS_FLAG_NO_REGULATION) ) {
 						if (th_count==0) {
 							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
 								diff = MONOTH_MIN_SLEEP;
 						}
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", sys_thid, current_filter->name, task->log_name, (s32) diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms (scheduled time "LLU" us, next task schedule "LLU" us)\n", sys_thid, current_filter->name, task->log_name, (s32) diff, task->schedule_next_time, next_task_schedule_time));
 
 						gf_sleep((u32) diff);
 						active_start = gf_sys_clock_high_res();
 					}
 					if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
 						current_filter->in_process = GF_FALSE;
-								if (current_filter->freg->flags & GF_FS_REG_MAIN_THREAD) {
+						if (current_filter->freg->flags & GF_FS_REG_MAIN_THREAD) {
 							if (do_use_sema) {
 								gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 							}
@@ -1038,13 +1059,17 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							}
 							gf_fq_add(fsess->tasks, task);
 						}
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: releasing current filter %s\n", sys_thid, current_filter->name));
 						current_filter->process_th_id = 0;
 						current_filter = NULL;
 						continue;
 					}
 				}
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s schedule time "LLU" us reached (diff %d ms)\n", sys_thid, current_filter ? current_filter->name : "", task->log_name, task->schedule_next_time, (s32) diff));
+
 		}
+		next_task_schedule_time = 0;
 
 		if (current_filter) {
 			current_filter->scheduled_for_next_task = GF_TRUE;

@@ -1396,6 +1396,7 @@ void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration)
 	stts->entries[stts->nb_entries].sampleCount = 1;
 	stts->entries[stts->nb_entries].sampleDelta = duration;
 	stts->nb_entries++;
+	if (stts->max_ts_delta < duration ) stts->max_ts_delta = duration;
 }
 
 void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size)
@@ -1429,6 +1430,10 @@ void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size)
 	stbl->SampleSize->sampleSize = 0;
 	stbl->SampleSize->sizes[stbl->SampleSize->sampleCount] = size;
 	stbl->SampleSize->sampleCount += 1;
+	if (size > stbl->SampleSize->max_size)
+		stbl->SampleSize->max_size = size;
+	stbl->SampleSize->total_size += size;
+	stbl->SampleSize->total_samples += 1;
 }
 
 
@@ -1605,6 +1610,9 @@ void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 	ctts->entries[ctts->nb_entries].sampleCount = 1;
 	ctts->nb_entries++;
 	if (offset<0) ctts->version=1;
+
+	if (ABS(offset) > ctts->max_ts_delta) ctts->max_ts_delta = ABS(offset);
+
 }
 
 void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority)

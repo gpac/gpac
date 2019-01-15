@@ -676,7 +676,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
         u32 InterleaveGroupID,
         u8 InterleaveGroupPriority);
 
-void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, GF_ISOFile *file, u32 track);
+void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, u32 w, u32 h, s32 tx, s32 ty, s16 l, u32 max_w, u32 max_h, char *tx3g_base64);
 
 #endif
 

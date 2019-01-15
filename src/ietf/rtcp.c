@@ -60,19 +60,19 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 
 	//bad RTCP packet
 	if (pck_size < 4 ) return GF_NON_COMPLIANT_BITSTREAM;
-	gf_bs_reassign_buffer(ch->bs, pck, pck_size);
+	gf_bs_reassign_buffer(ch->bs_r, pck, pck_size);
 
 	first = 1;
 	while (pck_size) {
 		//global header
-		rtcp_hdr.Version = gf_bs_read_int(ch->bs, 2);
+		rtcp_hdr.Version = gf_bs_read_int(ch->bs_r, 2);
 		if (rtcp_hdr.Version != 2 ) {
 			return GF_NOT_SUPPORTED;
 		}
-		rtcp_hdr.Padding = gf_bs_read_int(ch->bs, 1);
-		rtcp_hdr.Count = gf_bs_read_int(ch->bs, 5);
-		rtcp_hdr.PayloadType = gf_bs_read_u8(ch->bs);
-		rtcp_hdr.Length = 1 + gf_bs_read_u16(ch->bs);
+		rtcp_hdr.Padding = gf_bs_read_int(ch->bs_r, 1);
+		rtcp_hdr.Count = gf_bs_read_int(ch->bs_r, 5);
+		rtcp_hdr.PayloadType = gf_bs_read_u8(ch->bs_r);
+		rtcp_hdr.Length = 1 + gf_bs_read_u16(ch->bs_r);
 
 		//check pck size
 		if (pck_size < (u32) rtcp_hdr.Length * 4) {
@@ -101,7 +101,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 		//Sender report - we assume there's only one sender
 		case 200:
 			/*sender ssrc*/
-			sender_ssrc = gf_bs_read_u32(ch->bs);
+			sender_ssrc = gf_bs_read_u32(ch->bs_r);
 			rtcp_hdr.Length -= 1;
 			/*not for us...*/
 			if (ch->SenderSSRC && (ch->SenderSSRC != sender_ssrc)) break;
@@ -112,11 +112,11 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			}
 			ch->last_report_time = gf_rtp_get_report_time();
 
-			ch->last_SR_NTP_sec = gf_bs_read_u32(ch->bs);
-			ch->last_SR_NTP_frac = gf_bs_read_u32(ch->bs);
-			ch->last_SR_rtp_time = gf_bs_read_u32(ch->bs);
-			/*nb_pck =  */gf_bs_read_u32(ch->bs);
-			/*nb_bytes =*/gf_bs_read_u32(ch->bs);
+			ch->last_SR_NTP_sec = gf_bs_read_u32(ch->bs_r);
+			ch->last_SR_NTP_frac = gf_bs_read_u32(ch->bs_r);
+			ch->last_SR_rtp_time = gf_bs_read_u32(ch->bs_r);
+			/*nb_pck =  */gf_bs_read_u32(ch->bs_r);
+			/*nb_bytes =*/gf_bs_read_u32(ch->bs_r);
 
 			rtcp_hdr.Length -= 5;
 			if (has_sr) *has_sr = GF_TRUE;
@@ -148,7 +148,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 
 		case 201:
 			//sender ssrc
-			/*sender_ssrc = */gf_bs_read_u32(ch->bs);
+			/*sender_ssrc = */gf_bs_read_u32(ch->bs_r);
 			rtcp_hdr.Length -= 1;
 
 process_reports:
@@ -158,19 +158,19 @@ process_reports:
 			//to add
 			for (i=0; i<rtcp_hdr.Count; i++) {
 				//ssrc slot
-				cur_ssrc = gf_bs_read_u32(ch->bs);
+				cur_ssrc = gf_bs_read_u32(ch->bs_r);
 				//frac lost
-				gf_bs_read_u8(ch->bs);
+				gf_bs_read_u8(ch->bs_r);
 				//cumulative lost
-				gf_bs_read_u24(ch->bs);
+				gf_bs_read_u24(ch->bs_r);
 				//extended seq num
-				gf_bs_read_u32(ch->bs);
+				gf_bs_read_u32(ch->bs_r);
 				//jitter
-				gf_bs_read_u32(ch->bs);
+				gf_bs_read_u32(ch->bs_r);
 				//LSR
-				gf_bs_read_u32(ch->bs);
+				gf_bs_read_u32(ch->bs_r);
 				//DLSR
-				gf_bs_read_u32(ch->bs);
+				gf_bs_read_u32(ch->bs_r);
 
 				rtcp_hdr.Length -= 6;
 			}
@@ -181,17 +181,17 @@ process_reports:
 		//SDES
 		case 202:
 			for (i=0; i<rtcp_hdr.Count; i++) {
-				/*cur_ssrc = */gf_bs_read_u32(ch->bs);
+				/*cur_ssrc = */gf_bs_read_u32(ch->bs_r);
 				rtcp_hdr.Length -= 1;
 
 				val = 0;
 				while (1) {
-					sdes_type = gf_bs_read_u8(ch->bs);
+					sdes_type = gf_bs_read_u8(ch->bs_r);
 					val += 1;
 					if (!sdes_type) break;
-					sdes_len = gf_bs_read_u8(ch->bs);
+					sdes_len = gf_bs_read_u8(ch->bs_r);
 					val += 1;
-					gf_bs_read_data(ch->bs, sdes_buffer, sdes_len);
+					gf_bs_read_data(ch->bs_r, sdes_buffer, sdes_len);
 					sdes_buffer[sdes_len] = 0;
 					val += sdes_len;
 				}
@@ -199,7 +199,7 @@ process_reports:
 				//re-align on 32bit
 				res = val%4;
 				if (res) {
-					gf_bs_skip_bytes(ch->bs, (4-res));
+					gf_bs_skip_bytes(ch->bs_r, (4-res));
 					val = val/4 + 1;
 				} else {
 					val = val/4;
@@ -211,7 +211,7 @@ process_reports:
 		//BYE packet - close the channel - we work with 1 SSRC only */
 		case 203:
 			for (i=0; i<rtcp_hdr.Count; i++) {
-				cur_ssrc = gf_bs_read_u32(ch->bs);
+				cur_ssrc = gf_bs_read_u32(ch->bs_r);
 				rtcp_hdr.Length -= 1;
 				if (ch->SenderSSRC == cur_ssrc) {
 					e = GF_EOS;
@@ -220,7 +220,7 @@ process_reports:
 			}
 			//extra info - skip it
 			while (rtcp_hdr.Length) {
-				gf_bs_read_u32(ch->bs);
+				gf_bs_read_u32(ch->bs_r);
 				rtcp_hdr.Length -= 1;
 			}
 			break;
@@ -246,7 +246,7 @@ process_reports:
 		*/
 		default:
 			//read all till end
-			gf_bs_read_data(ch->bs, sdes_buffer, rtcp_hdr.Length*4);
+			gf_bs_read_data(ch->bs_r, sdes_buffer, rtcp_hdr.Length*4);
 			rtcp_hdr.Length = 0;
 			break;
 		}

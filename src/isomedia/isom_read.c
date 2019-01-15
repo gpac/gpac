@@ -1662,10 +1662,55 @@ GF_EXPORT
 u32 gf_isom_get_max_sample_size(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleSize) return 0;
 
 	return trak->Media->information->sampleTable->SampleSize->max_size;
 }
+
+GF_EXPORT
+u32 gf_isom_get_avg_sample_size(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleSize) return 0;
+
+	if ( trak->Media->information->sampleTable->SampleSize->sampleSize)
+		return trak->Media->information->sampleTable->SampleSize->sampleSize;
+
+	if (!trak->Media->information->sampleTable->SampleSize->total_samples) return 0;
+	return (u32) (trak->Media->information->sampleTable->SampleSize->total_size / trak->Media->information->sampleTable->SampleSize->total_samples);
+}
+
+GF_EXPORT
+u32 gf_isom_get_max_sample_delta(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->TimeToSample) return 0;
+
+	return trak->Media->information->sampleTable->TimeToSample->max_ts_delta;
+}
+
+GF_EXPORT
+u32 gf_isom_get_max_sample_cts_offset(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->CompositionOffset) return 0;
+
+	return trak->Media->information->sampleTable->CompositionOffset->max_ts_delta;
+}
+
+GF_EXPORT
+u32 gf_isom_get_sample_const_duration(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->TimeToSample) return 0;
+
+	if (trak->Media->information->sampleTable->TimeToSample->nb_entries==1)
+		return trak->Media->information->sampleTable->TimeToSample->entries[0].sampleDelta;
+
+	return 0;
+}
+
+
 
 GF_EXPORT
 u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)

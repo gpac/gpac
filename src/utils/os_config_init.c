@@ -887,7 +887,6 @@ GF_Err gf_opts_discard_changes()
 }
 
 #include <gpac/main.h>
-#include <gpac/filters.h>
 
 GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("log-file", "lf", "set output log file", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),

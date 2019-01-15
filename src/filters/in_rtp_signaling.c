@@ -104,7 +104,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 	if (stream->rtpin->force_mcast) {
 		trans->IsUnicast = GF_FALSE;
 		trans->destination = gf_strdup(stream->rtpin->force_mcast);
-		trans->TTL = stream->rtpin->mcast_ttl;
+		trans->TTL = stream->rtpin->ttl;
 		if (trans->Profile) gf_free(trans->Profile);
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
 		if (!(stream->rtsp->flags & RTSP_DSS_SERVER) ) {

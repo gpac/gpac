@@ -1106,14 +1106,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_disable_auto_rtcp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_rtcp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_get_payload_type) )
-
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_write_sdp) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_get_sdp) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_send_next_packet) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_reset) )
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_map_esd) )
@@ -2191,8 +2183,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_mvc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_hevc_get_chroma_format_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_nal_rewrite_samples) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_get_current_time) )
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_set_max_objects_store) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_debug_tsi) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_test_mode) )

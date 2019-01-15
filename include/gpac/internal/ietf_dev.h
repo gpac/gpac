@@ -162,7 +162,7 @@ struct __tag_rtp_channel
 	/*payload info*/
 	u32 total_pck, total_bytes;
 
-	GF_BitStream *bs;
+	GF_BitStream *bs_r, *bs_w;
 
 };
 

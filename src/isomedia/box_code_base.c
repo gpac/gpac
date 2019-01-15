@@ -399,6 +399,9 @@ GF_Err ctts_Read(GF_Box *s, GF_BitStream *bs)
 		else
 			ptr->entries[i].decodingOffset = (s32) gf_bs_read_u32(bs);
 		sampleCount += ptr->entries[i].sampleCount;
+
+		if (ptr->max_ts_delta < ABS(ptr->entries[i].decodingOffset))
+			ptr->max_ts_delta = ABS(ptr->entries[i].decodingOffset);
 	}
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	ptr->w_LastSampleNumber = sampleCount;
@@ -5906,6 +5909,8 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs)
 				ptr->sizes[i] = gf_bs_read_u32(bs);
 				if (ptr->max_size < ptr->sizes[i])
 					ptr->max_size = ptr->sizes[i];
+				ptr->total_size += ptr->sizes[i];
+				ptr->total_samples++;
 			}
 		}
 	} else {
@@ -5946,6 +5951,8 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs)
 			}
 			if (ptr->max_size < ptr->sizes[i])
 				ptr->max_size = ptr->sizes[i];
+			ptr->total_size += ptr->sizes[i];
+			ptr->total_samples++;
 		}
 	}
 	return GF_OK;
@@ -6107,6 +6114,8 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->w_currentSampleNum += ptr->entries[i].sampleCount;
 		ptr->w_LastDTS += (u64)ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
 #endif
+		if (ptr->max_ts_delta<ptr->entries[i].sampleDelta)
+			ptr->max_ts_delta = ptr->entries[i].sampleDelta;
 
 		if (!ptr->entries[i].sampleDelta) {
 			if ((i+1<ptr->nb_entries) ) {

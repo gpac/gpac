@@ -338,7 +338,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		return NULL;
 	}
 	/*setup channel*/
-	gf_rtp_setup_payload(tmp->rtp_ch, tmp->depacketizer->payt, tmp->depacketizer->clock_rate);
+	gf_rtp_setup_payload(tmp->rtp_ch, map ? map->PayloadType : tmp->depacketizer->payt, tmp->depacketizer->clock_rate);
 
 	if (tmp->depacketizer->sl_map.IndexDeltaLength) {
 		tmp->pck_queue = gf_list_new();
@@ -453,6 +453,11 @@ static void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
 		//gf_service_send_packet(stream->rtpin->service, stream->opid, NULL, 0, NULL, GF_CORRUPTED_DATA);
 		return;
 	}
+	/*first we only work with one payload type...*/
+	if (hdr.PayloadType != stream->rtp_ch->PayloadType) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Mismatched in packet payload type %d vs channel payload type %d, only one payload type per channel is currently supported\n", hdr.PayloadType, stream->rtp_ch->PayloadType));
+	}
+
 
 	/*if we must notify some timing, do it now. */
 	if (stream->check_rtp_time) {

@@ -947,6 +947,9 @@ typedef struct
 	u32 r_FirstSampleInEntry;
 	u32 r_currentEntryIndex;
 	u64 r_CurrentDTS;
+
+	//stats for read
+	u32 max_ts_delta;
 } GF_TimeToSampleBox;
 
 
@@ -971,6 +974,9 @@ typedef struct
 	/*Cache for read*/
 	u32 r_currentEntryIndex;
 	u32 r_FirstSampleInEntry;
+
+	//stats for read
+	s32 max_ts_delta;
 } GF_CompositionOffsetBox;
 
 
@@ -1381,7 +1387,10 @@ typedef struct
 	u32 sampleCount;
 	u32 alloc_size;
 	u32 *sizes;
+	//stats for read
 	u32 max_size;
+	u64 total_size;
+	u32 total_samples;
 } GF_SampleSizeBox;
 
 typedef struct
