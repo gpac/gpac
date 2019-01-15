@@ -467,13 +467,13 @@ GF_FilterRegister SockInRegister = {
 		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
 		"\n"
 #ifdef GPAC_HAS_SOCK_UN
-		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME"
+	"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME"
 #ifdef GPAC_CONFIG_DARWIN
-		"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
+	"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
 #endif
-		""
+	""
 #else
-		"Your platform does not supports unix domain sockets"
+	"Your platform does not supports unix domain sockets"
 #endif
 	,
 #endif //GPAC_DISABLE_DOC
