@@ -165,6 +165,10 @@ nom#P4CC=!VAL: accepte uniquement les pids dont la propriété ne correspond pas
 nom#P4CC-VAL: accepte uniquement les pids dont la propriété est strictement inférieure à VAL (uniquement pour les propriétés à 1 dimension).
 nom#P4CC+​​VAL: accepte uniquement les pids avec une propriété strictement supérieure à VAL (uniquement pour les propriétés à 1 dimension).
 
+Un ID source peut aussi utiliser le charactère * pour faire correspondre une ou plusieurs propriétés, quel que soit le filtre source:\n"
+EX: fA fB:SID=*#ServiceID=2
+Ceci indique fB n'accepte comme entrée que des pids avec une propriété ServiceID égale à 2, indépendemment des identifiant de filtres de ces pids.
+
 REMARQUE: Ces extensions fonctionnent également avec le raccourci LINK:
 EX: fA fB @1#video fC
 Ceci indique de diriger les sorties vidéo fA vers fC
@@ -230,6 +234,14 @@ Il existe une option spéciale "clone" permettant de cloner les filtres de desti
 EX: src=img.heif dst=dump_$ItemID$.jpg:clone
 Dans ce cas, la destination sera clonée pour chaque item et tous seront exportés vers différents fichiers JPEG grâce au modèle d'URL.
 
+Modèles de chaînes de filtres
+
+Dans certains cas, le nombre de sorties désirées dépend de la source; par exemple, extraire N fichiers d'un multiplex de N services.
+Il est possible d'utiliser un nom de propriété de pid dans l'ID source d'un filtre avec la valeur '*'.
+Dans ce cas, chaque fois qu'un nouveau PID avec une nouvelle valeur pour la propriété est trouvé, le filtre avec un tel ID source sera automatiquement cloné.
+EX: src=source.ts dst=fichier_$ServiceID$.mp4:SID=*#ServiceID=*
+Dans cet example, chaque nouvelle valeur ServiceID trouvée lors de la connexion des PID à la destination créera un nouveau fichier de destination.
+AVERTISSEMENT: cette fonctionnalité ne doit être utilisée qu'avec une seule propriétéà '*' par ID source, les résultats ne sont pas définis sinon.
 
 Assigner des propriétés aux PID
 

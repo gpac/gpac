@@ -137,6 +137,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "ivf|obu|av1b", NULL, "video/av1"},
 	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8", NULL, "video/vp8"},
 	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9", NULL, "video/vp9"},
+	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10", NULL, "video/vp10"},
 
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
 
@@ -245,6 +246,11 @@ GF_EXPORT
 const char *gf_codecid_file_ext(u32 codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
+	u32 global_ext_count = gf_opts_get_key_count("file_extensions");
+	if (r && r->mime_type && global_ext_count) {
+		const char *name = gf_opts_get_key("file_extensions", r->mime_type);
+		if (name) return name;
+	}
 	if (r && r->sname) return r->sname;
 	if (r && r->rfc_4cc) return r->rfc_4cc;
 	return "raw";

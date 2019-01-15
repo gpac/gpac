@@ -124,7 +124,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 
 #define FLUSH_EMPTY_LINES \
 			if (k&& nb_empty_lines) {\
-				u32 klen = strlen(k->value)+1+nb_empty_lines;\
+				u32 klen = (u32) strlen(k->value)+1+nb_empty_lines;\
 				k->value = gf_realloc(k->value, sizeof(char)*klen);\
 				while (nb_empty_lines) {\
 					nb_empty_lines--;\
@@ -136,8 +136,10 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 
 	while (!feof(file)) {
 		u32 read, nb_pass;
+		char *fsep;
 		ret = fgets(line, line_alloc, file);
 		read = (u32) strlen(line);
+
 		nb_pass = 1;
 		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
@@ -149,7 +151,8 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		if (!ret) continue;
 
 		/* get rid of the end of line stuff */
-		if (!strstr(line, "=@")) {
+		fsep = strchr(line, '=');
+		if (!fsep || (fsep[1]!='@')) {
 			while (!in_multiline) {
 				u32 len = (u32) strlen(line);
 				if (!len) break;
@@ -195,7 +198,6 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			memset((void *)k, 0, sizeof(IniKey));
 			ret = strchr(line, '=');
 			if (ret) {
-				u32 klen;
 				ret[0] = 0;
 				k->name = gf_strdup(line);
 				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
@@ -213,14 +215,13 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 					k->value = gf_strdup("");
 				}
 				line_done = GF_FALSE;
-				klen = strlen(k->value);
 			}
 			gf_list_add(p->keys, k);
 			if (line_done) k=NULL;
 			line_done=GF_FALSE;
 		} else if (k) {
-			u32 l1 = strlen(k->value);
-			u32 l2 = strlen(line);
+			u32 l1 = (u32) strlen(k->value);
+			u32 l2 = (u32) strlen(line);
 			k->value = gf_realloc(k->value, sizeof(char) * (l1 + l2 + 1 + nb_empty_lines) );
 			l2 += l1 + nb_empty_lines;
 			while (nb_empty_lines) {

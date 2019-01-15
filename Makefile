@@ -308,9 +308,9 @@ endif
 	@echo
 	@echo "tests: run all tests. For more info, check gpac/regression_tests/test_suite_make.sh -h"
 	@echo
+	@echo "doc:  build libgpac documentation in gpac/doc"
+	@echo
 	@echo "lcov: generate lcov files"
 	@echo "lcov_clean: clean all lcov/gcov files"
-	@echo
-	@echo "docs:  build libgpac documentation in gpac/doc"
 
 -include .depend

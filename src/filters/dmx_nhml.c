@@ -420,7 +420,7 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, char **dict, u32 offset)
 		memcpy(*dict, ctx->samp_buffer, ctx->samp_buffer_size);
 	}
 	if (ctx->samp_buffer_alloc < stream.total_out) {
-		ctx->samp_buffer_alloc = stream.total_out*2;
+		ctx->samp_buffer_alloc = (u32) (stream.total_out*2);
 		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc * sizeof(char));
 	}
 
@@ -685,11 +685,12 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	info = gf_fopen(szInfo, "rb");
 	if (info) {
 		gf_fseek(info, 0, SEEK_END);
-		specInfoSize = (u32) gf_ftell(info);
+		specInfoSize = (u32) gf_ftell(info) + 1;
 		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
 		gf_fseek(info, 0, SEEK_SET);
 		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
 		gf_fclose(info);
+		specInfo[specInfoSize] = 0;
 	} else if (ctx->header_end) {
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = ctx->header_end;
@@ -1100,7 +1101,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (f) {
 				if (!ctx->samp_buffer_size) {
 					gf_fseek(f, 0, SEEK_END);
-					assert(gf_ftell(f) < 1<<31);
+					assert(gf_ftell(f) < 0x80000000);
 					ctx->samp_buffer_size = (u32) gf_ftell(f);
 				}
 				gf_fseek(f, offset, SEEK_SET);
@@ -1219,7 +1220,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 							return GF_URL_ERROR;
 						}
 						gf_fseek(f, 0, SEEK_END);
-						assert(gf_ftell(f) < (1 << 31));
+						assert(gf_ftell(f) < 0x80000000);
 						subsMediaFileSize = (u32)gf_ftell(f);
 
 						//send continuation frame

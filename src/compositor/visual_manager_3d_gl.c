@@ -71,79 +71,79 @@
 
 #ifdef LOAD_GL_1_3
 
-GLDECL_STATIC(glActiveTexture);
-GLDECL_STATIC(glClientActiveTexture);
-GLDECL_STATIC(glBlendEquation);
+GLDECL_FUNC(glActiveTexture);
+GLDECL_FUNC(glClientActiveTexture);
+GLDECL_FUNC(glBlendEquation);
 
 #endif //LOAD_GL_1_3
 
 #ifdef LOAD_GL_1_4
 
-GLDECL_STATIC(glPointParameterf);
-GLDECL_STATIC(glPointParameterfv);
+GLDECL_FUNC(glPointParameterf);
+GLDECL_FUNC(glPointParameterfv);
 
 #endif //LOAD_GL_1_4
 
 
 #ifdef LOAD_GL_1_5
-GLDECL_STATIC(glGenBuffers);
-GLDECL_STATIC(glDeleteBuffers);
-GLDECL_STATIC(glBindBuffer);
-GLDECL_STATIC(glBufferData);
-GLDECL_STATIC(glBufferSubData);
-GLDECL_STATIC(glMapBuffer);
-GLDECL_STATIC(glUnmapBuffer);
+GLDECL_FUNC(glGenBuffers);
+GLDECL_FUNC(glDeleteBuffers);
+GLDECL_FUNC(glBindBuffer);
+GLDECL_FUNC(glBufferData);
+GLDECL_FUNC(glBufferSubData);
+GLDECL_FUNC(glMapBuffer);
+GLDECL_FUNC(glUnmapBuffer);
 #endif //LOAD_GL_1_5
 
 #ifdef LOAD_GL_2_0
 
-GLDECL_STATIC(glCreateProgram);
-GLDECL_STATIC(glDeleteProgram);
-GLDECL_STATIC(glLinkProgram);
-GLDECL_STATIC(glUseProgram);
-GLDECL_STATIC(glCreateShader);
-GLDECL_STATIC(glDeleteShader);
-GLDECL_STATIC(glShaderSource);
-GLDECL_STATIC(glCompileShader);
-GLDECL_STATIC(glAttachShader);
-GLDECL_STATIC(glDetachShader);
-GLDECL_STATIC(glGetShaderiv);
-GLDECL_STATIC(glGetInfoLogARB);
-GLDECL_STATIC(glGetUniformLocation);
-GLDECL_STATIC(glUniform1f);
-GLDECL_STATIC(glUniform2f);
-GLDECL_STATIC(glUniform3f);
-GLDECL_STATIC(glUniform4f);
-GLDECL_STATIC(glUniform1i);
-GLDECL_STATIC(glUniform2i);
-GLDECL_STATIC(glUniform3i);
-GLDECL_STATIC(glUniform4i);
-GLDECL_STATIC(glUniform1fv);
-GLDECL_STATIC(glUniform2fv);
-GLDECL_STATIC(glUniform3fv);
-GLDECL_STATIC(glUniform4fv);
-GLDECL_STATIC(glUniform1iv);
-GLDECL_STATIC(glUniform2iv);
-GLDECL_STATIC(glUniform3iv);
-GLDECL_STATIC(glUniform4iv);
-GLDECL_STATIC(glUniformMatrix2fv);
-GLDECL_STATIC(glUniformMatrix3fv);
-GLDECL_STATIC(glUniformMatrix4fv);
-GLDECL_STATIC(glUniformMatrix2x3fv);
-GLDECL_STATIC(glUniformMatrix3x2fv);
-GLDECL_STATIC(glUniformMatrix2x4fv);
-GLDECL_STATIC(glUniformMatrix4x2fv);
-GLDECL_STATIC(glUniformMatrix3x4fv);
-GLDECL_STATIC(glUniformMatrix4x3fv);
-GLDECL_STATIC(glGetProgramiv);
-GLDECL_STATIC(glGetProgramInfoLog);
-GLDECL_STATIC(glGetAttribLocation);
+GLDECL_FUNC(glCreateProgram);
+GLDECL_FUNC(glDeleteProgram);
+GLDECL_FUNC(glLinkProgram);
+GLDECL_FUNC(glUseProgram);
+GLDECL_FUNC(glCreateShader);
+GLDECL_FUNC(glDeleteShader);
+GLDECL_FUNC(glShaderSource);
+GLDECL_FUNC(glCompileShader);
+GLDECL_FUNC(glAttachShader);
+GLDECL_FUNC(glDetachShader);
+GLDECL_FUNC(glGetShaderiv);
+GLDECL_FUNC(glGetInfoLogARB);
+GLDECL_FUNC(glGetUniformLocation);
+GLDECL_FUNC(glUniform1f);
+GLDECL_FUNC(glUniform2f);
+GLDECL_FUNC(glUniform3f);
+GLDECL_FUNC(glUniform4f);
+GLDECL_FUNC(glUniform1i);
+GLDECL_FUNC(glUniform2i);
+GLDECL_FUNC(glUniform3i);
+GLDECL_FUNC(glUniform4i);
+GLDECL_FUNC(glUniform1fv);
+GLDECL_FUNC(glUniform2fv);
+GLDECL_FUNC(glUniform3fv);
+GLDECL_FUNC(glUniform4fv);
+GLDECL_FUNC(glUniform1iv);
+GLDECL_FUNC(glUniform2iv);
+GLDECL_FUNC(glUniform3iv);
+GLDECL_FUNC(glUniform4iv);
+GLDECL_FUNC(glUniformMatrix2fv);
+GLDECL_FUNC(glUniformMatrix3fv);
+GLDECL_FUNC(glUniformMatrix4fv);
+GLDECL_FUNC(glUniformMatrix2x3fv);
+GLDECL_FUNC(glUniformMatrix3x2fv);
+GLDECL_FUNC(glUniformMatrix2x4fv);
+GLDECL_FUNC(glUniformMatrix4x2fv);
+GLDECL_FUNC(glUniformMatrix3x4fv);
+GLDECL_FUNC(glUniformMatrix4x3fv);
+GLDECL_FUNC(glGetProgramiv);
+GLDECL_FUNC(glGetProgramInfoLog);
+GLDECL_FUNC(glGetAttribLocation);
 
 #ifndef GPAC_CONFIG_ANDROID
-GLDECL_STATIC(glEnableVertexAttribArray);
-GLDECL_STATIC(glDisableVertexAttribArray);
-GLDECL_STATIC(glVertexAttribPointer);
-GLDECL_STATIC(glVertexAttribIPointer);
+GLDECL_FUNC(glEnableVertexAttribArray);
+GLDECL_FUNC(glDisableVertexAttribArray);
+GLDECL_FUNC(glVertexAttribPointer);
+GLDECL_FUNC(glVertexAttribIPointer);
 #endif
 
 #endif //LOAD_GL_2_0

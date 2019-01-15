@@ -3212,21 +3212,24 @@ GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 	GF_RandomAccessEntry *p = 0;
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
 
-	if (ptr->size<12) return GF_ISOM_INVALID_FILE;
+	if (ptr->size < 12)
+		return GF_ISOM_INVALID_FILE;
 
 	ptr->track_id = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
-	if (gf_bs_read_int(bs, 26) !=0) return GF_ISOM_INVALID_FILE;
-	ptr->traf_bits = (gf_bs_read_int(bs, 2)+1)*8;
-	ptr->trun_bits = (gf_bs_read_int(bs, 2)+1)*8;
-	ptr->sample_bits = (gf_bs_read_int(bs, 2)+1)*8;
+	if (gf_bs_read_int(bs, 26) != 0)
+		return GF_ISOM_INVALID_FILE;
+
+	ptr->traf_bits = (gf_bs_read_int(bs, 2) + 1) * 8;
+	ptr->trun_bits = (gf_bs_read_int(bs, 2) + 1) * 8;
+	ptr->sample_bits = (gf_bs_read_int(bs, 2) + 1) * 8;
 	ISOM_DECREASE_SIZE(ptr, 4);
 
 	ptr->nb_entries = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
-	if (ptr->version==1) {
+	if (ptr->version == 1) {
 		if (ptr->nb_entries > ptr->size / (16+(ptr->traf_bits+ptr->trun_bits+ptr->sample_bits)/8)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in traf\n", ptr->nb_entries));
 			return GF_ISOM_INVALID_FILE;
@@ -3238,8 +3241,7 @@ GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 		}
 	}
 
-	if (ptr->nb_entries)
-	{
+	if (ptr->nb_entries) {
 		p = (GF_RandomAccessEntry *) gf_malloc(sizeof(GF_RandomAccessEntry) * ptr->nb_entries);
 		if (!p) return GF_OUT_OF_MEM;
 	}
@@ -3249,12 +3251,10 @@ GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->nb_entries; i++) {
 		memset(p, 0, sizeof(GF_RandomAccessEntry));
 
-		if (ptr->version==1) {
+		if (ptr->version == 1) {
 			p->time = gf_bs_read_u64(bs);
 			p->moof_offset = gf_bs_read_u64(bs);
-		}
-		else
-		{
+		} else {
 			p->time = gf_bs_read_u32(bs);
 			p->moof_offset = gf_bs_read_u32(bs);
 		}
@@ -3264,6 +3264,7 @@ GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 
 		++p;
 	}
+
 	return GF_OK;
 }
 
@@ -3958,9 +3959,8 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
             //unknown fomat, look for 'es' (esds) and try to parse box
             else if (wave->data != NULL) {
                 u32 offset = 0;
-                while ((wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
+                while (offset + 5 < wave->dataSize && (wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
                     offset++;
-                    if (offset == wave->dataSize) break;
                 }
                 if (offset < wave->dataSize) {
                     GF_Box *a;
@@ -4322,6 +4322,9 @@ GF_Err video_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 	/*this is an AV1 sample desc*/
 	if (mp4v->av1_config)
 		AV1_RewriteESDescriptor(mp4v);
+	/*this is an AV1 sample desc*/
+	if (mp4v->vp_config)
+		VP9_RewriteESDescriptor(mp4v);
 	return GF_OK;
 }
 
@@ -5066,8 +5069,6 @@ GF_Err snro_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-#define WRITE_SAMPLE_FRAGMENTS		1
-
 void stbl_del(GF_Box *s)
 {
 	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
@@ -5085,13 +5086,16 @@ void stbl_del(GF_Box *s)
 	if (ptr->TimeToSample) gf_isom_box_del((GF_Box *) ptr->TimeToSample);
 	if (ptr->SampleDep) gf_isom_box_del((GF_Box *) ptr->SampleDep);
 	if (ptr->PaddingBits) gf_isom_box_del((GF_Box *) ptr->PaddingBits);
-	if (ptr->Fragments) gf_isom_box_del((GF_Box *) ptr->Fragments);
 	if (ptr->sub_samples) gf_isom_box_array_del(ptr->sub_samples);
 	if (ptr->sampleGroups) gf_isom_box_array_del(ptr->sampleGroups);
 	if (ptr->sampleGroupsDescription) gf_isom_box_array_del(ptr->sampleGroupsDescription);
 
 	if (ptr->sai_sizes) gf_isom_box_array_del(ptr->sai_sizes);
 	if (ptr->sai_offsets) gf_isom_box_array_del(ptr->sai_offsets);
+	if (ptr->traf_map) {
+		if (ptr->traf_map->sample_num) gf_free(ptr->traf_map->sample_num);
+		gf_free(ptr->traf_map);
+	}
 
 	gf_free(ptr);
 }
@@ -5154,11 +5158,6 @@ GF_Err stbl_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SDTP:
 		if (ptr->SampleDep) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->SampleDep= (GF_SampleDependencyTypeBox *)a;
-		break;
-
-	case GF_ISOM_BOX_TYPE_STSF:
-		if (ptr->Fragments) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->Fragments = (GF_SampleFragmentBox *)a;
 		break;
 
 	case GF_ISOM_BOX_TYPE_SUBS:
@@ -5312,14 +5311,6 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_array_write(s, ptr->sai_offsets, bs);
 		if (e) return e;
 	}
-
-#if WRITE_SAMPLE_FRAGMENTS
-	//sampleFragments
-	if (ptr->Fragments) {
-		e = gf_isom_box_write((GF_Box *) ptr->Fragments, bs);
-		if (e) return e;
-	}
-#endif
 	return GF_OK;
 }
 
@@ -5392,14 +5383,6 @@ GF_Err stbl_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->PaddingBits->size;
 	}
-#if WRITE_SAMPLE_FRAGMENTS
-	//sample fragments
-	if (ptr->Fragments) {
-		e = gf_isom_box_size((GF_Box *) ptr->Fragments);
-		if (e) return e;
-		ptr->size += ptr->Fragments->size;
-	}
-#endif
 
 	if (ptr->sub_samples) {
 		e = gf_isom_box_array_size(s, ptr->sub_samples);
@@ -5715,114 +5698,6 @@ GF_Err stsd_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void stsf_del(GF_Box *s)
-{
-	u32 nb_entries;
-	u32 i;
-	GF_StsfEntry *pe;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
-	if (ptr == NULL) return;
-
-	if (ptr->entryList) {
-		nb_entries = gf_list_count(ptr->entryList);
-		for ( i = 0; i < nb_entries; i++ ) {
-			pe = (GF_StsfEntry*)gf_list_get(ptr->entryList, i);
-			if (pe->fragmentSizes) gf_free(pe->fragmentSizes);
-			gf_free(pe);
-		}
-		gf_list_del(ptr->entryList);
-	}
-	gf_free(ptr);
-}
-
-
-
-GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs)
-{
-	u32 entries, i;
-	u32 nb_entries;
-	GF_StsfEntry *p;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
-
-	p = NULL;
-	if (!ptr) return GF_BAD_PARAM;
-	nb_entries = gf_bs_read_u32(bs);
-
-	p = NULL;
-	for ( entries = 0; entries < nb_entries; entries++ ) {
-		p = (GF_StsfEntry *) gf_malloc(sizeof(GF_StsfEntry));
-		if (!p) return GF_OUT_OF_MEM;
-		p->SampleNumber = gf_bs_read_u32(bs);
-		p->fragmentCount = gf_bs_read_u32(bs);
-		p->fragmentSizes = (u16*)gf_malloc(sizeof(GF_StsfEntry) * p->fragmentCount);
-		for (i=0; i<p->fragmentCount; i++) {
-			p->fragmentSizes[i] = gf_bs_read_u16(bs);
-		}
-		gf_list_add(ptr->entryList, p);
-	}
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	ptr->w_currentEntry = p;
-	ptr->w_currentEntryIndex = nb_entries-1;
-#endif
-	return GF_OK;
-}
-
-GF_Box *stsf_New()
-{
-	ISOM_DECL_BOX_ALLOC(GF_SampleFragmentBox, GF_ISOM_BOX_TYPE_STSF);
-
-	tmp->entryList = gf_list_new();
-	if (! tmp->entryList) {
-		gf_free(tmp);
-		return NULL;
-	}
-	return (GF_Box *) tmp;
-}
-
-
-
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err stsf_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	u32 i, j;
-	u32 nb_entries;
-	GF_StsfEntry *p;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *)s;
-
-	e = gf_isom_full_box_write(s, bs);
-	if (e) return e;
-	nb_entries = gf_list_count(ptr->entryList);
-	gf_bs_write_u32(bs, nb_entries);
-	for ( i = 0; i < nb_entries; i++ ) {
-		p = (GF_StsfEntry*)gf_list_get(ptr->entryList, i);
-		gf_bs_write_u32(bs, p->SampleNumber);
-		gf_bs_write_u32(bs, p->fragmentCount);
-		for (j=0; j<p->fragmentCount; j++) {
-			gf_bs_write_u16(bs, p->fragmentSizes[j]);
-		}
-	}
-	return GF_OK;
-}
-
-GF_Err stsf_Size(GF_Box *s)
-{
-	GF_StsfEntry *p;
-	u32 nb_entries, i;
-	GF_SampleFragmentBox *ptr = (GF_SampleFragmentBox *) s;
-
-	nb_entries = gf_list_count(ptr->entryList);
-	ptr->size += 4;
-	for (i=0; i<nb_entries; i++) {
-		p = (GF_StsfEntry *)gf_list_get(ptr->entryList, i);
-		ptr->size += 8 + 2*p->fragmentCount;
-	}
-	return GF_OK;
-}
-
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void stsh_del(GF_Box *s)
 {
@@ -6029,6 +5904,8 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs)
 			if (! ptr->sizes) return GF_OUT_OF_MEM;
 			for (i = 0; i < ptr->sampleCount; i++) {
 				ptr->sizes[i] = gf_bs_read_u32(bs);
+				if (ptr->max_size < ptr->sizes[i])
+					ptr->max_size = ptr->sizes[i];
 			}
 		}
 	} else {
@@ -6067,6 +5944,8 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs)
 				i += 1;
 				break;
 			}
+			if (ptr->max_size < ptr->sizes[i])
+				ptr->max_size = ptr->sizes[i];
 		}
 	}
 	return GF_OK;
@@ -8940,9 +8819,8 @@ void ssix_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->subsegments) {
 		for (i = 0; i < ptr->subsegment_count; i++) {
-			GF_Subsegment *subsegment = &ptr->subsegments[i];
-			if (subsegment->levels) gf_free(subsegment->levels);
-			if (subsegment->range_sizes) gf_free(subsegment->range_sizes);
+			GF_SubsegmentInfo *subsegment = &ptr->subsegments[i];
+			if (subsegment->ranges) gf_free(subsegment->ranges);
 		}
 		gf_free(ptr->subsegments);
 	}
@@ -8957,18 +8835,17 @@ GF_Err ssix_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size < 4) return GF_BAD_PARAM;
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	ptr->size -= 4;
-	ptr->subsegments = gf_malloc(ptr->subsegment_count*sizeof(GF_Subsegment));
+	ptr->subsegments = gf_malloc(ptr->subsegment_count*sizeof(GF_SubsegmentInfo));
 	for (i = 0; i < ptr->subsegment_count; i++) {
-		GF_Subsegment *subseg = &ptr->subsegments[i];
+		GF_SubsegmentInfo *subseg = &ptr->subsegments[i];
 		if (ptr->size < 4) return GF_BAD_PARAM;
 		subseg->range_count = gf_bs_read_u32(bs);
 		ptr->size -= 4;
 		if (ptr->size < subseg->range_count*4) return GF_BAD_PARAM;
-		subseg->levels = gf_malloc(sizeof(u8)*subseg->range_count);
-		subseg->range_sizes = gf_malloc(sizeof(u32)*subseg->range_count);
+		subseg->ranges = (GF_SubsegmentRangeInfo*) gf_malloc(sizeof(GF_SubsegmentRangeInfo) * subseg->range_count);
 		for (j = 0; j < subseg->range_count; j++) {
-			subseg->levels[j] = gf_bs_read_u8(bs);
-			subseg->range_sizes[j] = gf_bs_read_u24(bs);
+			subseg->ranges[j].level = gf_bs_read_u8(bs);
+			subseg->ranges[j].range_size = gf_bs_read_u24(bs);
 			ptr->size -= 4;
 		}
 	}
@@ -8996,9 +8873,9 @@ GF_Err ssix_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->subsegment_count);
 	for (i = 0; i<ptr->subsegment_count; i++) {
 		gf_bs_write_u32(bs, ptr->subsegments[i].range_count);
-		for (j = 0; j < ptr->subsegment_count; j++) {
-			gf_bs_write_u8(bs, ptr->subsegments[i].levels[j]);
-			gf_bs_write_u24(bs, ptr->subsegments[i].range_sizes[j]);
+		for (j = 0; j < ptr->subsegments[i].range_count; j++) {
+			gf_bs_write_u8(bs, ptr->subsegments[i].ranges[j].level);
+			gf_bs_write_u24(bs, ptr->subsegments[i].ranges[j].range_size);
 		}
 	}
 	return GF_OK;
@@ -11321,3 +11198,84 @@ GF_Err mhac_Size(GF_Box *s)
 
 
 #endif /*GPAC_DISABLE_ISOM*/
+
+
+
+/* Dolby Vision */
+
+GF_Box *dvcC_New()
+{
+	GF_DOVIConfigurationBox *tmp = (GF_DOVIConfigurationBox *)gf_malloc(sizeof(GF_DOVIConfigurationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_DOVIConfigurationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_DVCC;
+	return (GF_Box *)tmp;
+}
+
+void dvcC_del(GF_Box *s)
+{
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox*)s;
+	gf_free(ptr);
+}
+
+GF_Err dvcC_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *)s;
+
+	//GF_DOVIDecoderConfigurationRecord
+	ptr->DOVIConfig.dv_version_major = gf_bs_read_u8(bs);
+	ptr->DOVIConfig.dv_version_minor = gf_bs_read_u8(bs);
+	ptr->DOVIConfig.dv_profile = gf_bs_read_int(bs, 7);
+	ptr->DOVIConfig.dv_level = gf_bs_read_int(bs, 6);
+	ptr->DOVIConfig.rpu_present_flag = gf_bs_read_int(bs, 1);
+	ptr->DOVIConfig.el_present_flag = gf_bs_read_int(bs, 1);
+	ptr->DOVIConfig.bl_present_flag = gf_bs_read_int(bs, 1);
+	{
+		int i = 0;
+		u32 data[5];
+		memset(data, 0, sizeof(data));
+		gf_bs_read_data(bs, (char*)data, 20);
+		for (i = 0; i < 5; ++i) {
+			if (data[i] != 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
+		}
+	}
+	
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err dvcC_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *) s;
+	if (!s) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	//GF_DOVIDecoderConfigurationRecord
+	gf_bs_write_u8(bs,  ptr->DOVIConfig.dv_version_major);
+	gf_bs_write_u8(bs,  ptr->DOVIConfig.dv_version_minor);
+	gf_bs_write_int(bs, ptr->DOVIConfig.dv_profile, 7);
+	gf_bs_write_int(bs, ptr->DOVIConfig.dv_level, 6);
+	gf_bs_write_int(bs, ptr->DOVIConfig.rpu_present_flag, 1);
+	gf_bs_write_int(bs, ptr->DOVIConfig.el_present_flag, 1);
+	gf_bs_write_int(bs, ptr->DOVIConfig.bl_present_flag, 1);
+	gf_bs_write_int(bs, 0, 5*32);
+
+	return GF_OK;
+}
+
+GF_Err dvcC_Size(GF_Box *s)
+{
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *)s;
+
+	ptr->size += sizeof(GF_DOVIDecoderConfigurationRecord);
+
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/

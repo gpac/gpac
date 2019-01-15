@@ -799,6 +799,109 @@ GF_Err tols_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+GF_Box *clli_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ContentLightLevelBox, GF_ISOM_BOX_TYPE_CLLI);
+	return (GF_Box *)tmp;
+}
+
+void clli_del(GF_Box *a)
+{
+	GF_ContentLightLevelBox *p = (GF_ContentLightLevelBox *)a;
+	gf_free(p);
+}
+
+GF_Err clli_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_ContentLightLevelBox *p = (GF_ContentLightLevelBox *)s;
+	p->max_content_light_level = gf_bs_read_u16(bs);
+	p->max_pic_average_light_level = gf_bs_read_u16(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err clli_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ContentLightLevelBox *p = (GF_ContentLightLevelBox*)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u16(bs, p->max_content_light_level);
+	gf_bs_write_u16(bs, p->max_pic_average_light_level);
+	return GF_OK;
+}
+
+GF_Err clli_Size(GF_Box *s)
+{
+	GF_ContentLightLevelBox *p = (GF_ContentLightLevelBox*)s;
+	p->size += 4;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *mdcv_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MasteringDisplayColourVolumeBox, GF_ISOM_BOX_TYPE_MDCV);
+	return (GF_Box *)tmp;
+}
+
+void mdcv_del(GF_Box *a)
+{
+	GF_MasteringDisplayColourVolumeBox *p = (GF_MasteringDisplayColourVolumeBox *)a;
+	gf_free(p);
+}
+
+GF_Err mdcv_Read(GF_Box *s, GF_BitStream *bs)
+{
+	int c = 0;
+	GF_MasteringDisplayColourVolumeBox *p = (GF_MasteringDisplayColourVolumeBox *)s;
+	for (c = 0; c<3; c++) {
+		p->display_primaries[c].x = gf_bs_read_u16(bs);
+		p->display_primaries[c].y = gf_bs_read_u16(bs);
+	}
+	p->white_point_x = gf_bs_read_u16(bs);
+	p->white_point_y = gf_bs_read_u16(bs);
+	p->max_display_mastering_luminance = gf_bs_read_u32(bs);
+	p->min_display_mastering_luminance = gf_bs_read_u32(bs);
+
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err mdcv_Write(GF_Box *s, GF_BitStream *bs)
+{
+	int c = 0;
+	GF_Err e;
+	GF_MasteringDisplayColourVolumeBox *p = (GF_MasteringDisplayColourVolumeBox*)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	for (c = 0; c<3; c++) {
+		gf_bs_write_u16(bs, p->display_primaries[c].x);
+		gf_bs_write_u16(bs, p->display_primaries[c].y);
+	}
+	gf_bs_write_u16(bs, p->white_point_x);
+	gf_bs_write_u16(bs, p->white_point_y);
+	gf_bs_write_u32(bs, p->max_display_mastering_luminance);
+	gf_bs_write_u32(bs, p->min_display_mastering_luminance);
+	
+	return GF_OK;
+}
+
+GF_Err mdcv_Size(GF_Box *s)
+{
+	GF_MasteringDisplayColourVolumeBox *p = (GF_MasteringDisplayColourVolumeBox*)s;
+	p->size += 28;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
 
 GF_EXPORT
 GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
@@ -913,6 +1016,13 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 				((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
 				item_type = GF_ISOM_SUBTYPE_LHV1;
 			}
+			//media_brand = GF_ISOM_BRAND_HEIC;
+			break;
+		case GF_ISOM_SUBTYPE_AV01:
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
+			((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_ISOM_SUBTYPE_AV01;
+			config_needed = 1;
 			//media_brand = GF_ISOM_BRAND_HEIC;
 			break;
 		default:

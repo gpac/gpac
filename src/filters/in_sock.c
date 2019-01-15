@@ -58,7 +58,7 @@ typedef struct
 	char *ifce;
 	const char *ext;
 	const char *mime;
-	Bool np, listen, ka, block;
+	Bool tsprobe, listen, ka, block;
 #ifndef GPAC_DISABLE_STREAMING
 	u32 reorder_pck;
 	u32 reorder_delay;
@@ -168,7 +168,9 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		ctx->block_size = 2000;
 	ctx->buffer = gf_malloc(ctx->block_size + 1);
 	if (!ctx->buffer) return GF_OUT_OF_MEM;
-	if (ctx->ext || ctx->mime) ctx->np = GF_TRUE;
+	//ext/mime given and not mpeg2, disable probe
+	if (ctx->ext && !strstr("ts|m2t|mts|dmb|trp", ctx->ext)) ctx->tsprobe = GF_FALSE;
+	if (ctx->mime && !strstr(ctx->mime, "mpeg-2") && !strstr(ctx->mime, "mp2t")) ctx->tsprobe = GF_FALSE;
 
 	if (ctx->listen) {
 		ctx->clients = gf_list_new();
@@ -280,7 +282,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	if (!sock_c->pid) {
 		const char *mime = ctx->mime;
 		//probe MPEG-2
-		if (!ctx->np) {
+		if (ctx->tsprobe) {
 			/*TS over RTP signaled as udp */
 			if ((ctx->buffer[0] != 0x47) && ((ctx->buffer[1] & 0x7F) == 33) ) {
 #ifndef GPAC_DISABLE_STREAMING
@@ -437,7 +439,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, 0},
-	{ OFFS(np), "disables TS probe on input data. Implied if mime or ext are given", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsprobe), "probes for MPEG-2 TS data, either RTP or raw UDO. Disabled if mime or ext are given and don't match MPEG-2 TS mimes/extensions", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ext), "indicates file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicates mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -460,7 +462,8 @@ static const GF_FilterCapability SockInCaps[] =
 GF_FilterRegister SockInRegister = {
 	.name = "sockin",
 	GF_FS_SET_DESCRIPTION("UDP / TCP socket input")
-	GF_FS_SET_HELP("This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
+#ifndef GPAC_DISABLE_DOC
+	.help = "This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.\n"\
 		"\nFormat of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet"\
 		"\n"
 #ifdef GPAC_HAS_SOCK_UN
@@ -472,7 +475,8 @@ GF_FilterRegister SockInRegister = {
 #else
 		"Your platform does not supports unix domain sockets"
 #endif
-	)
+	,
+#endif //GPAC_DISABLE_DOC
 	.private_size = sizeof(GF_SockInCtx),
 	.args = SockInArgs,
 	SETCAPS(SockInCaps),

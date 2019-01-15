@@ -143,10 +143,6 @@ typedef union __gf_filter_event GF_FilterEvent;
  *	Filter Session Task object
  */
 typedef struct __gf_fs_task GF_FSTask;
-/*!
- *	Filter Session Task process function prototype
- */
-typedef void (*gf_fs_task_callback)(GF_FSTask *task);
 
 /*!
  *	Filter Registry object
@@ -246,6 +242,13 @@ Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provi
 \return created filter or NULL if filter registry cannot be found
 */
 GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name);
+
+/*! Checks if a filter registry exists by name.
+\param session filter session
+\param name name of the filter registry to check.
+\return GF_TRUE if a filter registry exists with the given name, GF_FALSE otherwise
+*/
+Bool gf_fs_filter_exists(GF_FilterSession *session, const char *name);
 
 /*! Runs the session
 \param session filter session
@@ -371,9 +374,10 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *session, Bool (*task_execute) (GF_
 
 /*! Aborts the session. This can be called within a callback task to stop the session. Do NOT use \ref gf_fs_stop from within a user task callback, this will deadlock the session
 \param session filter session
+\param do_flush if set to true, sources will be forced into end of stream and all emitted packets will be processed. Otherwise everything is discarded, potentially breaking output files
 \return the error code if any
 */
-GF_Err gf_fs_abort(GF_FilterSession *session);
+GF_Err gf_fs_abort(GF_FilterSession *session, Bool do_flush);
 /*! Checks if the session is processing its last task. This can be called within a callback task to check if this is the last task, in order to avoid rescheduling the task
 \param session filter session
 \return GF_TRUE if no more task, GF_FALSE otherwise
@@ -894,7 +898,7 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 #define PROP_FIXED(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = _val}
 #define PROP_FLOAT(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
 #define PROP_FRAC_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
-#define PROP_FRAC(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac = _val}
+#define PROP_FRAC(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac = _val }
 #define PROP_FRAC64(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.lfrac = _val}
 #define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = (char *) _val}
@@ -1183,6 +1187,8 @@ it must match the capability requirement (equal, excluded). If no property exist
 /*! Structure holding arguments for a filter*/
 typedef enum
 {
+	/*! used for GUI config: regular argument type */
+	GF_FS_ARG_HINT_NORMAL = 0,
 	/*! used for GUI config: advanced argument type */
 	GF_FS_ARG_HINT_ADVANCED = 1<<1,
 	/*! used for GUI config: expert argument type */
@@ -1312,7 +1318,9 @@ typedef enum
 	/*! input is supported with potentially missing features*/
 	GF_FPROBE_MAYBE_SUPPORTED,
 	/*! input is supported*/
-	GF_FPROBE_SUPPORTED
+	GF_FPROBE_SUPPORTED,
+	/*! used by formats not supporting data prober*/
+	GF_FPROBE_EXT_MATCH,
 } GF_FilterProbeScore;
 
 /*! Quick macro for assigning the capability arrays to the registry structure*/
@@ -1385,6 +1393,7 @@ struct __gf_filter_register
 	\return error if any. A filter returning an error will trigger a reconfigure of the chain to find another filter.
 	a filter may return GF_REQUIRES_NEW_INSTANCE to indicate the PID cannot be processed
 	in this instance but could be in a clone of the filter.
+	a filter may return GF_FILTER_NOT_SUPPORTED to indicate the PID cannot be processed and no alternate chain resolution would help
 	*/
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
 
@@ -1439,8 +1448,8 @@ struct __gf_filter_register
 	Note: demux filters should always exposed 2 input caps bundle, one for specifiying input cap by file extension and one for specifying input cap by mime type.
 	\param data data to probe
 	\param size size of the data to probe
-	\param score set to the probe score. Initially set to \ref GF_FPROBE_NOT_SUPPORTED before calling the function. If you are certain of the data type, use \ref GF_FPROBE_SUPPORTED, if unsure use \ref GF_FPROBE_MAYBE_SUPPORTED
-	\return mime type of content, or NULL if not detected.
+	\param score set to the probe score. Initially set to \ref GF_FPROBE_NOT_SUPPORTED before calling the function. If you are certain of the data type, use \ref GF_FPROBE_SUPPORTED, if unsure use \ref GF_FPROBE_MAYBE_SUPPORTED. If the format cannot be probed (bad design), set it to \ref GF_FPROBE_EXT_MATCH
+	\return mime type of content, list of known extensions for the format if score is set to GF_FPROBE_EXT_MATCH, or NULL if not detected.
 	*/
 	const char * (*probe_data)(const u8 *data, u32 size, GF_FilterProbeScore *score);
 
@@ -1519,11 +1528,14 @@ void gf_filter_post_process_task(GF_Filter *filter);
 
 /*! Posts a task to the session scheduler. This task is not a process task but the filter will still be called by a single thread at any time (ie, might delay process)
 \param filter target filter
-\param task_fun the function to call
+\param task_execute the callback function for the task. The callback can return GF_TRUE to reschedule the task, in which case the task will be rescheduled
+immediately or after reschedule_ms.
 \param udta user data passed back to the task function
 \param task_name name of the task for logging purposes
+\return error code if failure
 */
-void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name);
+GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *filter, void *callback, u32 *reschedule_ms), void *udta, const char *task_name);
+
 
 /*! Sets callback function on source filter setup failure
 \param filter target filter
@@ -1553,12 +1565,6 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 \param src_filter the source filter point of the chain to disconnect.
 */
 void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter);
-
-/*! Disconnects a sink filter chain between two filters
-\param filter the calling filter. This filter is NOT disconnected
-\param dst_filter the sink filter point of the chain to disconnect.
-*/
-void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter);
 
 /*! Sets the number of additional input pid a filter can accept. This overrides the default value of the filter registry
 \param filter the target filter
@@ -2289,6 +2295,13 @@ consumption later on (stream moving from period 1 to period 2 for example).
 */
 GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on);
 
+/*! Discard blocking mode for PID on end of stream. The filter is blocked when all output pids are in end of stream, this function unblocks the filter.
+This can be needed for playlist type filters dispatching end of stream at the end of each file but setting up next file in
+the following process() call.
+
+\param pid the target filter pid
+*/
+void gf_filter_pid_discard_block(GF_FilterPid *pid);
 
 /*! Force a built-in cap props on the output pid.
 A pid may hold one forced cap at most. When set it acts as a virtual property checked against filter caps.
@@ -2617,7 +2630,7 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck);
 
 /*! Sets packet video interlacing flag
 \param pck target packet
-\param is_interlaced set to 0 if not interlaced, 1 for top field first, 2 otherwise.
+\param is_interlaced set to 0 if not interlaced, 1 for top field first/contains only top field, 2 for bottom field first/contains only bottom field.
 \return error code if any
 */
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced);
@@ -2824,9 +2837,9 @@ typedef struct _gf_filter_hw_frame
 	*/
 	GF_Err (*get_gl_texture)(struct _gf_filter_hw_frame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix_unexposed * texcoordmatrix);
 
-	/*! flag set to true if a hardware reset is pending after the consumption of this frame. This is used to force frame droping
-	and unblock the filter chain.*/
-	Bool hardware_reset_pending;
+	/*! flag set to true if a filter reset is pending after the consumption of this frame.
+	Consumers of such a packet shall realease the packet as soon as possible, since it blocks the emiting filter.*/
+	Bool reset_pending;
 
 	/*! private space for the filter*/
 	void *user_data;

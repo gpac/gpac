@@ -833,10 +833,12 @@ void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, con
 
 #endif
 
+#ifndef GPAC_DISABLE_REMOTERY
 static void gpac_rmt_input_handler(const char* text, void* context)
 {
-fprintf(stderr, "RMT text %s\n", text);
+	//TODO
 }
+#endif
 
 GF_EXPORT
 Bool gf_sys_enable_profiling(Bool start)
@@ -1655,8 +1657,13 @@ static char szCacheDir[GF_MAX_PATH];
 GF_EXPORT
 const char * gf_get_default_cache_directory()
 {
+	const char *cache_dir;
 	char root_tmp[GF_MAX_PATH];
 	size_t len;
+
+	cache_dir = gf_opts_get_key("core", "cache");
+	if (cache_dir) return cache_dir;
+
 #ifdef _WIN32_WCE
 	strcpy(szCacheDir, "\\windows\\temp" );
 #elif defined(WIN32)

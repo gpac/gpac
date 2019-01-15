@@ -22,7 +22,7 @@ single_test "$cmd -threads=4 -sched=lock" "$name-locksched"
 }
 
 
-single_test "$GPAC -ltf -h logs" "gpac-filter-h-logs"
+single_test "$GPAC -ltf -h log" "gpac-filter-h-logs"
 single_test "$GPAC -ltf -h doc" "gpac-filter-h-doc"
 single_test "$GPAC -ltf -h props" "gpac-filter-h-props"
 single_test "$GPAC -ltf -h codecs" "gpac-filter-h-codecs"

@@ -967,6 +967,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	e = GF_OK;
 	fsess = gf_fs_new_defaults(0);
+	if (!fsess) {
+		return gf_import_message(importer, GF_BAD_PARAM, "[Importer] Cannot load filter session");
+	}
 	importer->last_error = GF_OK;
 
 	if (importer->flags & GF_IMPORT_PROBE_ONLY) {
@@ -1009,7 +1012,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 			if (p) {
-				Double d = 1000 * p->value.frac.num;
+				Double d = p->value.frac.num;
+				d*=1000;
 				if (p->value.frac.den) d /= p->value.frac.den;
 				if (d > importer->probe_duration) importer->probe_duration = (u64) d;
 			}
@@ -1116,6 +1120,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) DYNSTRCAT("subsamples");
 		if (importer->flags & GF_IMPORT_NO_SEI) DYNSTRCAT("nosei");
 		if (importer->flags & GF_IMPORT_SVC_NONE) DYNSTRCAT("nosvc");
+		if (importer->flags & GF_IMPORT_SAMPLE_DEPS) DYNSTRCAT("deps");
 		if (importer->flags & GF_IMPORT_FORCE_MPEG4) DYNSTRCAT("mpeg4");
 
 		if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) DYNSTRCAT("webvtt");

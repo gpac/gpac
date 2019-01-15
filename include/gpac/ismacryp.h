@@ -117,7 +117,8 @@ typedef struct
 	u32 ipmp_desc_id;
 	/*type of box where sample auxiliary informations is saved, or 0 in case of ISMACrypt (it will be written in samples)*/
 	u32 sai_saved_box_type;
-
+	/*force protection scheme specified in crypt file*/
+	Bool force_type;
 	/*OMA extensions*/
 	/*0: none, 1: AES CBC, 2: AES CTR*/
 	u8 encryption;

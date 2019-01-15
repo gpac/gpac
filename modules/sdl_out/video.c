@@ -726,7 +726,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			hw_reset = GF_TRUE;
 		}
 
-		ctx->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
+		if (!ctx->disable_vsync)
+			ctx->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
 
 		if (ctx->disable_vsync) {
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
@@ -1662,7 +1663,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	{
 		SDLVID();
 		if (evt->caption.caption) {
-			strncpy(ctx->szCaption, evt->caption.caption, 99);
+			strncpy(ctx->szCaption, evt->caption.caption ? evt->caption.caption : "", 99);
 			ctx->szCaption[99]=0;
 		} else {
 			ctx->szCaption[0]=0;

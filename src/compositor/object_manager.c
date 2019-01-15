@@ -139,6 +139,10 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 {
 	GF_Compositor *compositor = odm->parentscene ? odm->parentscene->compositor : odm->subscene->compositor;
 
+	if (odm->skip_disconnect_state) {
+		if (do_remove) odm->skip_disconnect_state = 2;
+		return;
+	}
 	gf_odm_stop(odm, GF_TRUE);
 
 	/*disconnect sub-scene*/
@@ -204,8 +208,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 					break;
 				}
 			}
-		} else {
-//			assert(ns->nb_odm_users);
+			if (!ns->owner) ns->nb_odm_users=0;
 		}
 		scene = scene ? gf_scene_get_root_scene(scene) : NULL;
 		odm->scene_ns = NULL;
@@ -602,7 +605,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (odm->type == GF_STREAM_OCR) clockID = odm->ID;
 	if (!clockID) {
 		if (odm->ID == GF_MEDIA_EXTERNAL_ID) {
-			clockID = (u32) ((u64) odm->scene_ns);
+			clockID = (u32) (intptr_t) odm->scene_ns;
 		} else {
 			clockID = odm->ID;
 		}
@@ -1368,6 +1371,50 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 #endif
 }
 
+static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *pid, Bool *signal_eob)
+{
+	u32 timescale;
+	u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid, GF_TRUE);
+	if (odm->ck && ! odm->ck->clock_init) {
+		u64 time;
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+		if (!pck) return GF_TRUE;
+		timescale = gf_filter_pck_get_timescale(pck);
+
+		time = gf_filter_pck_get_cts(pck);
+		if (time==GF_FILTER_NO_TS) time = gf_filter_pck_get_dts(pck);
+		time *= 1000;
+		time /= timescale;
+		gf_clock_set_time(odm->ck, (u32) time);
+		if (odm->parentscene)
+			odm->parentscene->root_od->media_start_time = 0;
+
+		gf_odm_check_clock_mediatime(odm);
+
+	}
+	//TODO abort buffering when errors are found on the input chain !!
+	if (buffer_duration >= odm->buffer_playout_us) {
+		odm->nb_buffering --;
+		assert(scene->nb_buffering);
+		scene->nb_buffering--;
+		if (!scene->nb_buffering) {
+			*signal_eob = GF_TRUE;
+		}
+		if (odm->ck)
+			gf_clock_buffer_off(odm->ck);
+	} else if (gf_filter_pid_has_seen_eos(pid) ) {
+		odm->nb_buffering --;
+		assert(scene->nb_buffering);
+		scene->nb_buffering--;
+		if (!scene->nb_buffering) {
+			*signal_eob = GF_TRUE;
+		}
+		if (odm->ck)
+			gf_clock_buffer_off(odm->ck);
+	}
+	return GF_FALSE;
+}
+
 Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 {
 	u32 timescale;
@@ -1396,41 +1443,20 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	}
 
 	if (odm->nb_buffering) {
-		u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid, GF_TRUE);
-		if ( ! odm->ck->clock_init) {
-			u64 time;
-			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
-			if (!pck) return GF_TRUE;
-			timescale = gf_filter_pck_get_timescale(pck);
+	 	Bool ret = odm_update_buffer(scene, odm, pid, &signal_eob);
+	 	if (ret) return GF_TRUE;
+	}
 
-			time = gf_filter_pck_get_cts(pck);
-			if (time==GF_FILTER_NO_TS) time = gf_filter_pck_get_dts(pck);
-			time *= 1000;
-			time /= timescale;
-			gf_clock_set_time(odm->ck, (u32) time);
-			if (odm->parentscene)
-				odm->parentscene->root_od->media_start_time = 0;
+	if (scene->nb_buffering) {
+		GF_ObjectManager *an_odm;
+		u32 i=0;
+		while ((an_odm = gf_list_enum(scene->resources,&i))) {
+			if (odm==an_odm) continue;
+			if (!an_odm->pid) continue;
 
-			gf_odm_check_clock_mediatime(odm);
-
+			if (an_odm->nb_buffering)
+	 			odm_update_buffer(scene, an_odm, an_odm->pid, &signal_eob);
 		}
-		//TODO abort buffering when errors are found on the input chain !!
-		if (buffer_duration >= odm->buffer_playout_us) {
-			odm->nb_buffering --;
-			scene->nb_buffering--;
-			if (!scene->nb_buffering) {
-				signal_eob = GF_TRUE;
-			}
-			gf_clock_buffer_off(odm->ck);
-		} else if (gf_filter_pid_has_seen_eos(pid) ) {
-			odm->nb_buffering --;
-			scene->nb_buffering--;
-			if (!scene->nb_buffering) {
-				signal_eob = GF_TRUE;
-			}
-			gf_clock_buffer_off(odm->ck);
-		}
-
 	}
 	if (scene->nb_buffering || signal_eob)
 		gf_scene_buffering_info(scene);
@@ -1620,7 +1646,7 @@ void gf_odm_service_media_event(GF_ObjectManager *odm, GF_EventType event_type)
 	gf_odm_service_media_event_with_download(odm, event_type, 0, 0, 0);
 }
 
-void gf_odm_stop_or_destroy(GF_ObjectManager *odm)
+Bool gf_odm_stop_or_destroy(GF_ObjectManager *odm)
 {
 	Bool destroy = GF_FALSE;
 	if (odm->mo ) {
@@ -1630,9 +1656,10 @@ void gf_odm_stop_or_destroy(GF_ObjectManager *odm)
 	}
 	if (destroy) {
 		gf_odm_disconnect(odm, 2);
-	} else {
-		gf_odm_stop(odm, 0);
+		return GF_TRUE;
 	}
+	gf_odm_stop(odm, 0);
+	return GF_FALSE;
 }
 
 

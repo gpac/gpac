@@ -95,6 +95,7 @@ do_hash_test $TEMP_DIR/test.ttml "export-track"
 rm -f $TEMP_DIR/test.ttml
 
 do_test "$MP4BOX -raws 1 $TEMP_DIR/subt-stpp-ttml.mp4" "export-samples"
+do_hash_test $TEMP_DIR/subt-stpp-ttml_track1_003.xml "export-sample"
 
 test_end
 

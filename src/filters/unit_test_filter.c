@@ -58,7 +58,8 @@ static void test_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 {
 	PIDCtx *stack = (PIDCtx *) gf_filter_pid_get_udta(pid);
 	stack->pck_del++;
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("%s: Packet deleted - %d out there\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del));
+	assert(stack->nb_packets >= stack->pck_del);
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("%s: Packet deleted - %d out there (%d sent %d destroyed)\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del, stack->nb_packets, stack->pck_del));
 }
 
 
@@ -245,121 +246,122 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
-	PIDCtx *pidctx=gf_list_get(stack->pids, i);
+		PIDCtx *pidctx=gf_list_get(stack->pids, i);
 
-	if (pidctx->nb_packets==stack->max_pck) {
-		return GF_EOS;
-	}
-
-	if ((stack->max_out>=0) && (pidctx->nb_packets - pidctx->pck_del >= (u32) stack->max_out) ) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSource: No packets to emit, waiting for destruction\n"));
-		return GF_OK;
-	}
-	pidctx->nb_packets++;
-
-	if (stack->alloc) {
-		char *data;
-		pck = gf_filter_pck_new_alloc(pidctx->dst_pid, 10, &data);
-		memcpy(data, "PacketCopy", 10);
-		gf_sha1_update(pidctx->sha_ctx, "PacketCopy", 10);
-	} else {
-		pck = gf_filter_pck_new_shared(pidctx->dst_pid, "PacketShared", 12, test_pck_del);
-		gf_sha1_update(pidctx->sha_ctx, "PacketShared", 12);
-	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSource: pck %d PacketShared\n", pidctx->nb_packets));
-
-	p.type = GF_PROP_NAME;
-	p.value.string = "custom_value";
-	gf_filter_pck_set_property(pck, GF_4CC('c','u','s','t'), &p);
-
-	//try all our properties
-	if (pidctx->nb_packets==1) {
-		p.type = GF_PROP_BOOL;
-		p.value.boolean = GF_TRUE;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','1'), &p);
-
-		p.type = GF_PROP_SINT;
-		p.value.sint = -1;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','2'), &p);
-
-		p.type = GF_PROP_UINT;
-		p.value.uint = 1;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','3'), &p);
-
-		p.type = GF_PROP_LSINT;
-		p.value.longsint = -1;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','4'), &p);
-
-		p.type = GF_PROP_LUINT;
-		p.value.longuint = 1;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','5'), &p);
-
-		p.type = GF_PROP_FLOAT;
-		p.value.fnumber = 1.0f;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','6'), &p);
-
-		p.type = GF_PROP_DOUBLE;
-		p.value.fnumber = 1.0;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','7'), &p);
-
-		p.type = GF_PROP_FRACTION;
-		p.value.frac.den = 1;
-		p.value.frac.num = 1;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','8'), &p);
-
-		p.type = GF_PROP_POINTER;
-		p.value.ptr = pck;
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','9'), &p);
-
-		p.type = GF_PROP_DATA;
-		p.value.data.ptr = (char *) pidctx;
-		p.value.data.size = sizeof(pidctx);
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &p);
-
-		p.type = GF_PROP_CONST_DATA;
-		p.value.data.ptr = (char *) pidctx;
-		p.value.data.size = sizeof(pidctx);
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &p);
-
-		p.type = GF_PROP_STRING;
-		p.value.string = "custom";
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','c'), &p);
-
-		p.type = GF_PROP_BOOL;
-		p.value.boolean = GF_TRUE;
-		gf_filter_pck_set_property_str(pck, "cusd", &p);
-
-		p.type = GF_PROP_BOOL;
-		p.value.boolean = GF_TRUE;
-		gf_filter_pck_set_property_dyn(pck, "cuse", &p);
-	}
-
-	ut_filter_send_update(filter, pidctx->nb_packets);
-
-	if (pidctx->nb_packets==stack->max_pck) {
-		if (pidctx->sha_ctx) {
-			u8 digest[GF_SHA1_DIGEST_SIZE];
-			gf_sha1_finish(pidctx->sha_ctx, digest);
-			pidctx->sha_ctx = NULL;
-			p.type = GF_PROP_DATA;
-			p.value.data.size = GF_SHA1_DIGEST_SIZE;
-			p.value.data.ptr = (char *) digest;
-			//with this we test both:
-			//- SHA of send data is correct at the receiver side
-			//- property update on a PID
-			gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('s','h','a','1'), &p);
+		if (pidctx->nb_packets==stack->max_pck) {
+			return GF_EOS;
 		}
+
+		if ((stack->max_out>=0) && (pidctx->nb_packets - pidctx->pck_del >= (u32) stack->max_out) ) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSource: No packets to emit, waiting for destruction\n"));
+			return GF_OK;
+		}
+		pidctx->nb_packets++;
+
+		if (stack->alloc) {
+			char *data;
+			pck = gf_filter_pck_new_alloc(pidctx->dst_pid, 10, &data);
+			memcpy(data, "PacketCopy", 10);
+			gf_sha1_update(pidctx->sha_ctx, "PacketCopy", 10);
+		} else {
+			pck = gf_filter_pck_new_shared(pidctx->dst_pid, "PacketShared", 12, test_pck_del);
+			gf_sha1_update(pidctx->sha_ctx, "PacketShared", 12);
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSource: pck %d PacketShared\n", pidctx->nb_packets));
+
+		gf_filter_pck_set_cts(pck, pidctx->nb_packets);
+
+		p.type = GF_PROP_NAME;
+		p.value.string = "custom_value";
+		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','t'), &p);
+
+		//try all our properties
+		if (pidctx->nb_packets==1) {
+			p.type = GF_PROP_BOOL;
+			p.value.boolean = GF_TRUE;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','1'), &p);
+
+			p.type = GF_PROP_SINT;
+			p.value.sint = -1;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','2'), &p);
+
+			p.type = GF_PROP_UINT;
+			p.value.uint = 1;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','3'), &p);
+
+			p.type = GF_PROP_LSINT;
+			p.value.longsint = -1;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','4'), &p);
+
+			p.type = GF_PROP_LUINT;
+			p.value.longuint = 1;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','5'), &p);
+
+			p.type = GF_PROP_FLOAT;
+			p.value.fnumber = 1.0f;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','6'), &p);
+
+			p.type = GF_PROP_DOUBLE;
+			p.value.fnumber = 1.0;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','7'), &p);
+
+			p.type = GF_PROP_FRACTION;
+			p.value.frac.den = 1;
+			p.value.frac.num = 1;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','8'), &p);
+
+			p.type = GF_PROP_POINTER;
+			p.value.ptr = pck;
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','9'), &p);
+
+			p.type = GF_PROP_DATA;
+			p.value.data.ptr = (char *) pidctx;
+			p.value.data.size = sizeof(pidctx);
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &p);
+
+			p.type = GF_PROP_CONST_DATA;
+			p.value.data.ptr = (char *) pidctx;
+			p.value.data.size = sizeof(pidctx);
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &p);
+
+			p.type = GF_PROP_STRING;
+			p.value.string = "custom";
+			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','c'), &p);
+
+			p.type = GF_PROP_BOOL;
+			p.value.boolean = GF_TRUE;
+			gf_filter_pck_set_property_str(pck, "cusd", &p);
+
+			p.type = GF_PROP_BOOL;
+			p.value.boolean = GF_TRUE;
+			gf_filter_pck_set_property_dyn(pck, "cuse", &p);
+		}
+
+		ut_filter_send_update(filter, pidctx->nb_packets);
+
+		if (pidctx->nb_packets==stack->max_pck) {
+			if (pidctx->sha_ctx) {
+				u8 digest[GF_SHA1_DIGEST_SIZE];
+				gf_sha1_finish(pidctx->sha_ctx, digest);
+				pidctx->sha_ctx = NULL;
+				p.type = GF_PROP_DATA;
+				p.value.data.size = GF_SHA1_DIGEST_SIZE;
+				p.value.data.ptr = (char *) digest;
+				//with this we test both:
+				//- SHA of send data is correct at the receiver side
+				//- property update on a PID
+				gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('s','h','a','1'), &p);
+			}
+		}
+		//just for coverage: check keeping a reference to the packet
+		gf_filter_pck_ref(& pck);
+
+		gf_filter_pck_send(pck);
+
+		//and destroy the reference
+		gf_filter_pck_unref(pck);
+
 	}
-	//just for coverage: check keeping a reference to the packet
-	gf_filter_pck_ref(& pck);
-
-	gf_filter_pck_send(pck);
-
-	//and destroy the reference
-	gf_filter_pck_unref(pck);
-
-	} //end PID loop
-
 	return GF_OK;
 }
 

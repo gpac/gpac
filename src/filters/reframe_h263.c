@@ -423,7 +423,9 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->bytes_in_header) {
-			assert(!first_frame_found);
+			if (first_frame_found) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] corrupted frame!\n"));
+			}
 
 			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);
 			current = h263dmx_next_start_code(ctx->hdr_store, 8);
@@ -450,17 +452,28 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		} else {
 			//locate next start code
 			current = h263dmx_next_start_code(start, remain);
-			assert(current>=0);
 		}
 
 
 		if (current<0) {
 			//not enough bytes to process start code !!
-			assert(0);
+			break;
 		}
 
 		if (current>0) {
-			assert(!first_frame_found);
+			if (!ctx->opid) {
+				if (ctx->bytes_in_header) {
+					ctx->bytes_in_header -= current;
+				} else {
+					start += current;
+					remain -= current;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] garbage before first frame!\n"));
+				continue;
+			}
+			if (first_frame_found) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] corrupted frame!\n"));
+			}
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
@@ -486,7 +499,6 @@ GF_Err h263dmx_process(GF_Filter *filter)
 			gf_filter_pck_send(dst_pck);
 
 			h263dmx_update_cts(ctx);
-			//first_frame_found = GF_TRUE;
 		}
 
 		if (ctx->bytes_in_header) {
@@ -596,7 +608,7 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	u32 max_nb_frames=0;
 	u32 prev_fmt=0;
 	s32 current = h263dmx_next_start_code((u8*)data, size);
-	while (size && (current>=0) && (current<size)) {
+	while (size && (current>=0) && (current< (s32) size)) {
 		u32 fmt=0;
 		data += current;
 		size -= current;
@@ -627,13 +639,13 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		current = h263dmx_next_start_code((u8*)data+1, size-1);
 		if (current<=0) break;
 		current++;
-		if (size < current) break;
+		if ((s32) size < current) break;
 	}
 	if (nb_frames>max_nb_frames) {
 		max_nb_frames = nb_frames;
 	}
 	if (max_nb_frames) {
-		*score = max_nb_frames>2 ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
+		*score = max_nb_frames>4 ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
 		return "video/h263";
 	}
 	return NULL;

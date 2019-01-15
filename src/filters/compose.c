@@ -36,12 +36,12 @@ GF_Err compose_bifs_dec_process(GF_Scene *scene, GF_FilterPid *pid);
 GF_Err compose_odf_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
 GF_Err compose_odf_dec_process(GF_Scene *scene, GF_FilterPid *pid);
 
-
+#define COMPOSITOR_MAGIC	GF_4CC('c','o','m','p')
 //a bit ugly, used by terminal (old APIs)
 GF_Compositor *gf_sc_from_filter(GF_Filter *filter)
 {
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
-	if (ctx->magic != GF_4CC('c','o','m','p')) return NULL;
+	if (ctx->magic != COMPOSITOR_MAGIC) return NULL;
 	if (ctx->magic_ptr != ctx) return NULL;
 
 	return ctx;
@@ -97,7 +97,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_ObjectManager *odm;
 	const GF_PropertyValue *prop;
@@ -187,12 +187,12 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
 			//we are attaching an inline, create the subscene if not done already
-			if (!sns->owner->subscene) {
+			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
 				assert(sns->owner->parentscene);
 				sns->owner->subscene = gf_scene_new(ctx, sns->owner->parentscene);
 				sns->owner->subscene->root_od = sns->owner;
 			}
-			scene = sns->owner->subscene;
+			scene = sns->owner->subscene ? sns->owner->subscene : sns->owner->parentscene;
 			break;
 		}
 	}
@@ -319,8 +319,8 @@ GF_Err compose_initialize(GF_Filter *filter)
 	GF_FilterPid *pid;
 	GF_Compositor *ctx = gf_filter_get_udta(filter);
 
-	ctx->magic = GF_4CC('c','o','m','p');
-	ctx->magic_ptr = ctx;
+	ctx->magic = COMPOSITOR_MAGIC;
+	ctx->magic_ptr = (void *) ctx;
 
 	e = gf_sc_load(ctx);
 	if (e) return e;
@@ -512,7 +512,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.finalize = compose_finalize,
 	.process = compose_process,
 	.process_event = compose_process_event,
-	.configure_pid = compose_config_input,
+	.configure_pid = compose_configure_pid,
 	.reconfigure_output = compose_reconfig_output,
 	.update_arg = compose_update_arg
 };

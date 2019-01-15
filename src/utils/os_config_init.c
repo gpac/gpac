@@ -443,6 +443,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #else /*iOS: for now, everything is set flat within the package*/
 		/*iOS app is distributed with embedded GUI*/
 		get_default_install_path(app_path, GF_PATH_APP);
+		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 		strcat(app_path, "/share");
 		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 #endif
@@ -460,7 +461,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 //get real path where the .gpac dir has been created, and use this as the default path
 //for cache (tmp/ dir of ios app) and last working fir
 #ifdef GPAC_CONFIG_IOS
-static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
+static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_path)
 {
 	char *cache_dir, *old_cache_dir;
 	char buf[GF_MAX_PATH], *res, *sep;
@@ -483,7 +484,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 		}
 		gf_mkdir(cache_dir);
 	}
-	gf_opts_set_key("core", "cache", cache_dir);
+	gf_cfg_set_key(cfg, "core", "cache", cache_dir);
 }
 
 #endif
@@ -612,6 +613,27 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 		gf_cfg_set_key(cfg, "core", "vert-shader", gui_path);
 		sprintf(gui_path, "%s%cshaders%cfragment.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		gf_cfg_set_key(cfg, "core", "frag-shader", gui_path);
+
+		//aliases and other defaults
+		sprintf(gui_path, "%s%cdefault.cfg", szPath, GF_PATH_SEPARATOR);
+		if (gf_file_exists(gui_path)) {
+			GF_Config *aliases = gf_cfg_new(NULL, gui_path);
+			if (aliases) {
+				u32 i, count = gf_cfg_get_section_count(aliases);
+				for (i=0; i<count; i++) {
+					u32 j, count2;
+					const char *sec_name = gf_cfg_get_section_name(aliases, i);
+					if (!sec_name) continue;
+					count2 = gf_cfg_get_key_count(aliases, sec_name);
+					for (j=0; j<count2; j++) {
+						const char *name = gf_cfg_get_key_name(aliases, sec_name, j);
+						const char *val = gf_cfg_get_key(aliases, sec_name, name);
+						gf_cfg_set_key(cfg, sec_name, name, val);
+					}
+				}
+			}
+			gf_cfg_del(aliases);
+		}
 	}
 
 	/*store and reload*/
@@ -627,7 +649,7 @@ static void check_modules_dir(GF_Config *cfg)
 	char path[GF_MAX_PATH];
 
 #ifdef GPAC_CONFIG_IOS
-	char *cfg_path;
+	const char *cfg_path;
 	if ( get_default_install_path(path, GF_PATH_SHARE) ) {
 		char *sep;
 		char shader_path[GF_MAX_PATH];
@@ -646,7 +668,6 @@ static void check_modules_dir(GF_Config *cfg)
 	}
 	cfg_path = gf_cfg_get_filename(cfg);
 	gf_ios_refresh_cache_directory(cfg, cfg_path);
-	gf_free(cfg_path);
 
 #else
 	const char *opt;
@@ -963,7 +984,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("max-chain", NULL, "sets maximum chain length when resolving filter links.Default value covers for ([in ->] demux -> reframe -> decode -> encode -> reframe -> mux [-> out]. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("no-probe", NULL, "disables data probing non source", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("no-probe", NULL, "disable data probing on sources and relies on extension (faster load but more error-prone)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("blacklist", NULL, "blacklist the filters listed in the given string (comma-seperated list)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-graph-cache", NULL, "disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory ungry but slower)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
@@ -1230,7 +1251,7 @@ void gf_sys_print_arg(const GF_GPACArg *arg, const char *arg_subsystem)
 
 
 GF_EXPORT
-void gf_sys_print_core_help(GF_FilterArgMode mode, u32 subsystem_flags)
+void gf_sys_print_core_help(GF_SysArgMode mode, u32 subsystem_flags)
 {
 	u32 i=0;
 	const GF_GPACArg *args = gf_sys_get_options();

@@ -26,7 +26,7 @@
 #include <gpac/bitstream.h>
 
 /*the default size for new streams allocation...*/
-#define BS_MEM_BLOCK_ALLOC_SIZE		4096
+#define BS_MEM_BLOCK_ALLOC_SIZE		512
 
 /*private types*/
 enum
@@ -522,7 +522,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 
 	if (bs->position+nbBytes > bs->size) return 0;
 
-	if (gf_bs_is_align(bs)) {
+	if (gf_bs_is_align(bs) ) {
 		s32 bytes_read;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
@@ -629,7 +629,7 @@ void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 	u32 value, nb_shift;
 	if (!nBits) return;
 	//move to unsigned to avoid sanitizer warnings when we pass a value not codable on the given number of bits
-	//we do this when setting bit fileds to all 1's
+	//we do this when setting bit fields to all 1's
 	value = (u32) _value;
 	nb_shift = sizeof (s32) * 8 - nBits;
 	if (nb_shift)
@@ -648,7 +648,7 @@ void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 	if (nBits>64) {
 		gf_bs_write_int(bs, 0, nBits-64);
 		gf_bs_write_long_int(bs, _value, 64);
-	} else {
+	} else if (nBits) {
 		//cf note in gf_bs_write_int
 		u64 value = (u64) _value;
 		value <<= sizeof (s64) * 8 - nBits;
@@ -1113,7 +1113,16 @@ u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 	curBits = bs->nbBits;
 	current = bs->current;
 
-	if (byte_offset) gf_bs_seek(bs, bs->position + byte_offset);
+	if (byte_offset) {
+		if (bs->remove_emul_prevention_byte) {
+			while (byte_offset) {
+				gf_bs_read_int(bs, 8);
+				byte_offset--;
+			}
+		} else {
+			gf_bs_seek(bs, bs->position + byte_offset);
+		}
+	}
 	ret = gf_bs_read_int(bs, numBits);
 
 	/*restore our cache - position*/

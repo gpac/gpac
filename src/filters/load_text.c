@@ -131,6 +131,26 @@ enum
 	}	\
  
 
+s32 gf_text_get_utf_type_data(const u8 *BOM)
+{
+	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
+		/*UTF32 not supported*/
+		if (!BOM[2] && !BOM[3]) return -1;
+		return 3;
+	}
+	if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
+		/*UTF32 not supported*/
+		if (!BOM[2] && !BOM[3]) return -1;
+		return 2;
+	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
+		return 1;
+	}
+	if (BOM[0]<0x80) {
+		return 0;
+	}
+	return -1;
+}
+
 s32 gf_text_get_utf_type(FILE *in_src)
 {
 	u32 read;
@@ -160,7 +180,6 @@ s32 gf_text_get_utf_type(FILE *in_src)
 	}
 	return -1;
 }
-
 static void ttxt_dom_progress(void *cbk, u64 cur_samp, u64 count)
 {
 	GF_TXTIn *ctx = (GF_TXTIn *)cbk;
@@ -316,16 +335,16 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 	dur.num = 0;
 
 	if (ctx->fmt == GF_TXTIN_MODE_SWF_SVG) {
-		u32 frame_count, frame_rate;
 #ifndef GPAC_DISABLE_SWF_IMPORT
+		u32 frame_count, frame_rate;
 		gf_swf_get_duration(ctx->swf_parse, &frame_rate, &frame_count);
-#endif
 		if (frame_count) {
 			GF_Fraction dur;
 			dur.num = frame_count;
 			dur.den = frame_rate;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC(dur));
 		}
+#endif
 		return;
 	}
 	if ((ctx->fmt == GF_TXTIN_MODE_SRT) || (ctx->fmt == GF_TXTIN_MODE_WEBVTT)  || (ctx->fmt == GF_TXTIN_MODE_SUB)) {
@@ -2786,44 +2805,78 @@ void txtin_finalize(GF_Filter *filter)
 
 static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
 {
-	if (!strncmp(data, "WEBVTT", 6)) {
-		*score = GF_FPROBE_SUPPORTED;
-		return "subtitle/vtt";
-	}
-	if (strstr(data, " --> ")) {
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
-		return "subtitle/srt";
-	}
-	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
-		return "application/x-shockwave-flash";
+	const char *utf8;
+	u8 *utf8_temp = NULL;
+	s32 uni_type;
+
+	if (data_size<5) return NULL;
+	uni_type = gf_text_get_utf_type_data(data);
+
+	utf8 = data;
+	if (uni_type>1) {
+		u32 read;
+		u8 *sdata = (u8 *) data;
+		u8 l1, l2;
+		const u16 *sptr = (u16 *)data;
+
+		if (data_size%1) data_size--;
+		utf8_temp = gf_malloc(sizeof(char)*(data_size) );
+
+		l1 = sdata[data_size-1];
+		l2 = sdata[data_size-2];
+		sdata[data_size-1]=0;
+		sdata[data_size-2]=0;
+		read = (u32) gf_utf8_wcstombs(utf8_temp, data_size, &sptr);
+		sdata[data_size-1]=l1;
+		sdata[data_size-2]=l2;
+		if (read==(u32) -1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTInProbe] corrupted UTF data during probe\n"));
+			return NULL;
+		}
+		utf8_temp[read] = 0;
+		utf8 = utf8_temp;
 	}
 
-	if ((data[0]=='{') && strstr(data, "}{")) {
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
-		return "subtitle/sub";
+#define PROBE_OK(_score, _mime) \
+		*score = _score;\
+		if (utf8_temp) gf_free(utf8_temp);\
+		return _mime; \
+
+
+	if (!strncmp(utf8, "WEBVTT", 6)) {
+		PROBE_OK(GF_FPROBE_SUPPORTED, "subtitle/vtt")
+	}
+	if (strstr(utf8, " --> ")) {
+		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/srt")
+	}
+	if (!strncmp(utf8, "FWS", 3) || !strncmp(utf8, "CWS", 3)) {
+		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "application/x-shockwave-flash")
+	}
+
+	if ((utf8[0]=='{') && strstr(utf8, "}{")) {
+		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/sub")
 
 	}
 	/*XML formats*/
-	if (!strstr(data, "?>") )  return NULL;
-
-	if (strstr(data, "<x-quicktime-tx3g") || strstr(data, "<text3GTrack")) {
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
-		return "quicktime/text";
-
-	}
-	if (strstr(data, "TextStream")) {
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
-		return "subtitle/ttxt";
-	}
-	if (strstr(data, "tt")) {
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
-		return "subtitle/ttml";
-
+	if (!strstr(utf8, "?>") ) {
+		if (utf8_temp) gf_free(utf8_temp);
+		return NULL;
 	}
 
+	if (strstr(utf8, "<x-quicktime-tx3g") || strstr(utf8, "<text3GTrack")) {
+		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "quicktime/text")
+	}
+	if (strstr(utf8, "TextStream")) {
+		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttxt")
+	}
+	if (strstr(utf8, "tt")) {
+		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
+	}
+
+	if (utf8_temp) gf_free(utf8_temp);
 	return NULL;
 }
+
 static const GF_FilterCapability TXTInCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),

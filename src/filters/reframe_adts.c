@@ -172,6 +172,7 @@ GF_Err adts_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		//we don't update copy props on output for now - if we decide we need it, we will need to also force resengin the decoder config
 	}
 
 	return GF_OK;
@@ -611,6 +612,13 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 				ctx->in_seek = GF_FALSE;
 			}
 		}
+
+		bytes_to_drop = ctx->hdr.frame_size;
+		if (ctx->timescale && (prev_pck_size <= bytes_to_drop) &&  (cts != GF_FILTER_NO_TS) ) {
+			ctx->cts = cts;
+			cts = GF_FILTER_NO_TS;
+		}
+
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
@@ -630,7 +638,6 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 		adts_dmx_update_cts(ctx);
 
-		bytes_to_drop = ctx->hdr.frame_size;
 
 		//truncated last frame
 		if (bytes_to_drop>remain) {
@@ -649,7 +656,6 @@ drop_byte:
 			if (prev_pck_size > bytes_to_drop) prev_pck_size -= bytes_to_drop;
 			else {
 				prev_pck_size=0;
-				ctx->cts = cts;
 				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 				ctx->src_pck = pck;
 				if (pck)
@@ -683,17 +689,31 @@ static void adts_dmx_finalize(GF_Filter *filter)
 
 static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	u32 nb_frames=0;
+	u32 nb_frames=0, next_pos=0, max_consecutive_frames=0;
+	ADTSHeader prev_hdr;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	memset(&prev_hdr, 0, sizeof(ADTSHeader));
 	while (gf_bs_available(bs)) {
 		ADTSHeader hdr;
+		u32 pos;
 		if (!adts_dmx_sync_frame_bs(bs, &hdr)) break;
 		if ((hdr.hdr_size!=7) && (hdr.hdr_size!=9)) continue;
 		if (!hdr.nb_ch) continue;
-		nb_frames++;
+		pos = (u32) gf_bs_get_position(bs);
+		if ((next_pos + hdr.hdr_size == pos) && (hdr.sr_idx==prev_hdr.sr_idx) && (hdr.nb_ch==prev_hdr.nb_ch) ) {
+			nb_frames++;
+			if (max_consecutive_frames<nb_frames) max_consecutive_frames = nb_frames;
+			if (max_consecutive_frames>5)
+				break;
+		} else {
+			nb_frames=1;
+		}
+		prev_hdr = hdr;
+		gf_bs_skip_bytes(bs, hdr.frame_size);
+		next_pos = (u32) gf_bs_get_position(bs);
 	}
 	gf_bs_del(bs);
-	if (nb_frames>=2) {
+	if (max_consecutive_frames>=2) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/aac";
 	}

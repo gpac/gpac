@@ -184,10 +184,12 @@ enum
 	GF_ISOM_BOX_TYPE_AV1C = GF_4CC('a', 'v', '1', 'C'),
 	GF_ISOM_BOX_TYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
-	/* WebM */
+	/*WebM*/
 	GF_ISOM_BOX_TYPE_VPCC = GF_4CC('v', 'p', 'c', 'C'),
 	GF_ISOM_BOX_TYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_BOX_TYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
+	GF_ISOM_BOX_TYPE_SMDM = GF_4CC('S', 'm', 'D', 'm'),
+	GF_ISOM_BOX_TYPE_COLL = GF_4CC('C', 'o', 'L', 'L'),
 
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
@@ -367,6 +369,8 @@ enum
 	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
 	GF_ISOM_BOX_TYPE_EC3	= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DEC3	= GF_4CC( 'd', 'e', 'c', '3' ),
+	GF_ISOM_BOX_TYPE_DVCC	= GF_4CC( 'd', 'v', 'c', 'C'),
+	GF_ISOM_BOX_TYPE_DVHE	= GF_4CC( 'd', 'v', 'h', 'e'),
 
 	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
 
@@ -405,6 +409,10 @@ enum
 	GF_ISOM_BOX_TYPE_OINF	= GF_4CC( 'o', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_TOLS	= GF_4CC( 't', 'o', 'l', 's' ),
 
+	/* MIAF Boxes */
+	GF_ISOM_BOX_TYPE_CLLI	= GF_4CC('c', 'l', 'l', 'i'),
+	GF_ISOM_BOX_TYPE_MDCV	= GF_4CC('m', 'd', 'c', 'v'),
+
 	GF_ISOM_BOX_TYPE_ALTR	= GF_4CC( 'a', 'l', 't', 'r' ),
 
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
@@ -413,8 +421,6 @@ enum
 	GF_ISOM_BOX_TYPE_GNRM	= GF_4CC( 'G', 'N', 'R', 'M' ),
 	GF_ISOM_BOX_TYPE_GNRV	= GF_4CC( 'G', 'N', 'R', 'V' ),
 	GF_ISOM_BOX_TYPE_GNRA	= GF_4CC( 'G', 'N', 'R', 'A' ),
-	/*storage of AU fragments (for MPEG-4 visual resync marker (video packets), located in stbl.*/
-	GF_ISOM_BOX_TYPE_STSF	=  GF_4CC( 'S', 'T', 'S', 'F' ),
 	/*base constructor of all hint formats (currently only RTP uses it)*/
 	GF_ISOM_BOX_TYPE_GHNT	= GF_4CC( 'g', 'h', 'n', 't' ),
 	/*for compatibility with old files hinted for DSS - needs special parsing*/
@@ -968,28 +974,6 @@ typedef struct
 } GF_CompositionOffsetBox;
 
 
-typedef struct
-{
-	u32 SampleNumber;
-	u32 fragmentCount;
-	u16 *fragmentSizes;
-} GF_StsfEntry;
-
-typedef struct
-{
-	GF_ISOM_FULL_BOX
-	GF_List *entryList;
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	/*Cache for write*/
-	GF_StsfEntry *w_currentEntry;
-	u32 w_currentEntryIndex;
-#endif
-	/*Cache for read*/
-	u32 r_currentEntryIndex;
-	GF_StsfEntry *r_currentEntry;
-} GF_SampleFragmentBox;
-
-
 #define GF_ISOM_SAMPLE_ENTRY_FIELDS		\
 	GF_ISOM_UUID_BOX					\
 	u16 dataReferenceIndex;				\
@@ -1162,6 +1146,53 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	GF_VPConfig *config;
 } GF_VPConfigurationBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u16 primaryRChromaticity_x;
+	u16 primaryRChromaticity_y;
+	u16 primaryGChromaticity_x;
+	u16 primaryGChromaticity_y;
+	u16 primaryBChromaticity_x;
+	u16 primaryBChromaticity_y;
+	u16 whitePointChromaticity_x;
+	u16 whitePointChromaticity_y;
+	u32 luminanceMax;
+	u32 luminanceMin;
+} GF_SMPTE2086MasteringDisplayMetadataBox;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+		u16 maxCLL;
+	u16 maxFALL;
+} GF_VPContentLightLevelBox;
+
+typedef struct {
+	u8 dv_version_major;
+	u8 dv_version_minor;
+	u8 dv_profile; //7 bits
+	u8 dv_level;   //6 bits
+	Bool rpu_present_flag;
+	Bool el_present_flag;
+	Bool bl_present_flag;
+	//const unsigned int (32)[5] reserved = 0;
+} GF_DOVIDecoderConfigurationRecord;
+
+typedef struct {
+	GF_ISOM_BOX
+	GF_DOVIDecoderConfigurationRecord DOVIConfig;
+} GF_DOVIConfigurationBox;
+
+/*typedef struct { //extends Box('hvcE')
+	GF_ISOM_BOX
+	GF_HEVCConfig HEVCConfig;
+} GF_DolbyVisionELHEVCConfigurationBox;*/
+
+typedef struct { //extends HEVCSampleEntry('dvhe')
+	GF_DOVIConfigurationBox config;
+	//TODO: GF_DolbyVisionELHEVCConfigurationBox ELConfig; // optional
+} GF_DolbyVisionHEVCSampleEntry;
 
 typedef struct
 {
@@ -1350,6 +1381,7 @@ typedef struct
 	u32 sampleCount;
 	u32 alloc_size;
 	u32 *sizes;
+	u32 max_size;
 } GF_SampleSizeBox;
 
 typedef struct
@@ -1505,6 +1537,11 @@ typedef struct
 	u64 offset_first_offset_field;
 } GF_SampleAuxiliaryInfoOffsetBox;
 
+typedef struct
+{
+	u32 nb_entries, nb_alloc;
+	u32 *sample_num;
+} GF_TrafToSampleMap;
 
 typedef struct
 {
@@ -1522,9 +1559,9 @@ typedef struct
 	GF_DegradationPriorityBox *DegradationPriority;
 	GF_PaddingBitsBox *PaddingBits;
 	GF_SampleDependencyTypeBox *SampleDep;
-	GF_SampleFragmentBox *Fragments;
 
-//	GF_SubSampleInformationBox *SubSamples;
+	GF_TrafToSampleMap *traf_map;
+
 	GF_List *sub_samples;
 
 	GF_List *sampleGroups;
@@ -1544,6 +1581,8 @@ typedef struct
 	Bool skip_sample_groups;
 } GF_SampleTableBox;
 
+void stbl_AppendTrafMap(GF_SampleTableBox *stbl);
+
 typedef struct __tag_media_info_box
 {
 	GF_ISOM_BOX
@@ -1557,6 +1596,7 @@ typedef struct __tag_media_info_box
 
 GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
+GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 typedef struct
 {
@@ -2513,17 +2553,22 @@ typedef struct __sidx_box
 
 typedef struct
 {
+	u8 level;
+	u32 range_size;
+} GF_SubsegmentRangeInfo;
+
+typedef struct
+{
 	u32 range_count;
-	u8 *levels;
-	u32 *range_sizes;
-} GF_Subsegment;
+	GF_SubsegmentRangeInfo *ranges;
+} GF_SubsegmentInfo;
 
 typedef struct __ssix_box
 {
 	GF_ISOM_FULL_BOX
 
 	u32 subsegment_count;
-	GF_Subsegment *subsegments;
+	GF_SubsegmentInfo *subsegments;
 } GF_SubsegmentIndexBox;
 
 typedef struct
@@ -2998,6 +3043,24 @@ typedef struct {
 } GF_ImageRotationBox;
 
 typedef struct {
+	GF_ISOM_BOX
+	u16 max_content_light_level;
+	u16 max_pic_average_light_level;
+} GF_ContentLightLevelBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	struct {
+		u16 x;
+		u16 y;
+	} display_primaries[3];
+	u16 white_point_x;
+	u16 white_point_y;
+	u32 max_display_mastering_luminance;
+	u32 min_display_mastering_luminance;
+} GF_MasteringDisplayColourVolumeBox;
+
+typedef struct {
 	u32 item_id;
 	GF_List *essential;
 	GF_List *property_index;
@@ -3311,6 +3374,7 @@ struct __tag_isom {
 	u64 root_sidx_offset;
 	u32 root_sidx_index;
 	Bool dyn_root_sidx;
+	GF_SubsegmentIndexBox *root_ssix;
 
 	Bool is_index_segment;
 
@@ -3406,8 +3470,6 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, u8 *isEdited);
 GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *syncNum);
 GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBits);
-u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber);
-u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32 FragmentIndex);
 GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber, u32 *isLeading, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
 
 

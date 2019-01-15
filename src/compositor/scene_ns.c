@@ -26,11 +26,6 @@
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/network.h>
 
-struct on_setup_task
-{
-	GF_ObjectManager *odm;
-	GF_Err reason;
-};
 
 void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 {
@@ -394,24 +389,19 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 }
 
 
+Bool scene_ns_remove_object(GF_Filter *filter, void *callback, u32 *reschedule_ms)
+{
+	GF_ObjectManager *odm = (GF_ObjectManager *)callback;
+	gf_odm_disconnect(odm, 2);
+	return GF_FALSE;
+}
+
 /*connects given OD manager to its URL*/
 void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
-#if FILTER_FIXME
-	GF_SceneNamespace *ns;
-#endif
 	GF_Err e;
 	char *frag;
 	Bool reloc_result=GF_FALSE;
-	
-#if FILTER_FIXME
-	Bool net_locked;
-	char relocated_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
-
-	/*try to relocate the url*/
-	reloc_result = gf_term_relocate_url(term, serviceURL, parent_url, relocated_url, localized_url);
-	if (reloc_result) serviceURL = (char *) relocated_url;
-#endif
 
 	/*check cache*/
 	if (parent_url) {
@@ -446,49 +436,6 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		}
 	}
 
-#if FILTER_FIXME
-	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used
-	net mutex may be locked at this time (if another service sends a connect OK)*/
-	net_locked = gf_mx_try_lock(term->net_mx);
-	i=0;
-	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
-		/*we shall not have a service scheduled for destruction here*/
-		if (ns->owner && ( (ns->owner->flags & GF_ODM_DESTROYED) || (ns->owner->action_type == GF_ODM_ACTION_DELETE)) )
-			continue;
-
-		/*if service has timeline locked to its parent scene, only reuse it if new object does as well*/
-		if (ns->owner->flags & GF_ODM_INHERIT_TIMELINE) {
-			if (!(odm->flags & GF_ODM_INHERIT_TIMELINE)) continue;
-		}
-
-		if (gf_term_service_can_handle_url(ns, serviceURL)) {
-
-			/*wait for service to setup - service may become destroyed if not available*/
-			while (1) {
-				if (!ns->owner) {
-					return;
-				}
-				if (ns->owner->OD) break;
-				gf_sleep(5);
-			}
-
-			if (odm->net_service) {
-				return;
-			}
-			if (odm->flags & GF_ODM_DESTROYED) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
-				return;
-			}
-			odm->net_service = ns;
-			odm->net_service->nb_odm_users ++;
-			gf_odm_setup_entry_point(odm, serviceURL);
-			return;
-		}
-	}
-
-#endif
-
-
 	odm->scene_ns = gf_scene_ns_new(scene->compositor->root_scene, odm, serviceURL, (odm->addon || reloc_result) ? NULL : parent_url);
 
 	if (!odm->scene_ns) {
@@ -506,9 +453,24 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 
 	if (frag) frag[0] = '#';
 	if (!odm->scene_ns->source_filter) {
+		Bool remove_scene=GF_FALSE;
+		GF_Scene *scene = odm->subscene ? NULL : odm->parentscene;
+		odm->skip_disconnect_state = 1;
+		//prevent scene from being disconnected - this can happen if a script catches the event and triggers a disonnection of the parent scene
+		if (scene) scene->root_od->skip_disconnect_state = 1;
 		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, e, GF_TRUE);
 		gf_scene_message(scene, serviceURL, "Cannot find filter for service", e);
-		gf_odm_disconnect(odm, 1);
+		odm->skip_disconnect_state = 0;
+
+		if (scene) {
+			if (scene->root_od->skip_disconnect_state==2) remove_scene = GF_TRUE;
+			scene->root_od->skip_disconnect_state = 0;
+		}
+		if (remove_scene) {
+			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, scene->root_od, "remove_odm");
+		} else {
+			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, odm, "remove_odm");
+		}
 		return;
 	}
 

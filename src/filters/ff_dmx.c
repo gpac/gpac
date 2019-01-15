@@ -217,7 +217,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
-		gf_filter_pck_set_duration(pck_dst, ctx->pkt.duration);
+		gf_filter_pck_set_duration(pck_dst, (u32) ctx->pkt.duration);
 	}
 
 	//fixme: try to identify SAP type 2 and more
@@ -361,8 +361,19 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 			if (cname)
 				gf_filter_pid_set_property_str(pid, "ffmpeg:codec", &PROP_STRING(cname ) );
 		} else if (codec->extradata_size) {
-			//expose as const data
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
+			Bool force_reframer = GF_FALSE;
+
+			//avc/hevc read by ffmpeg is still in annex B format
+			if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
+				force_reframer = GF_TRUE;
+			}
+			
+			if (force_reframer) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+			} else {
+				//expose as const data
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
+			}
 		}
 
 		if (codec->sample_rate)
@@ -640,7 +651,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 		args[i+1] = ffmpeg_arg_translate(opt);
 		i++;
 	}
-	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
+	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT};
 
 	avformat_free_context(dmx_ctx);
 

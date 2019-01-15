@@ -383,12 +383,15 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	GF_Err e = GF_OK;
 
 	fsess = gf_fs_new_defaults(0);
-
+	if (!fsess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Failed to create filter session\n"));
+		return GF_OUT_OF_MEM;
+	}
 	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
 	src = gf_fs_load_filter(fsess, szArgs);
 	if (!src) {
 		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load demux filter for source file\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load demux filter for source file\n"));
 		return GF_FILTER_NOT_FOUND;
 	}
 
@@ -396,7 +399,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	dcrypt = gf_fs_load_filter(fsess, szArgs);
 	if (!dcrypt) {
 		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load decryptor filter\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load decryptor filter\n"));
 		return GF_FILTER_NOT_FOUND;
 	}
 
@@ -407,7 +410,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
 	if (!dst) {
 		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Cannot load destination muxer\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load destination muxer\n"));
 		return GF_FILTER_NOT_FOUND;
 	}
 
@@ -429,6 +432,10 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 	GF_Err e = GF_OK;
 
 	fsess = gf_fs_new_defaults(0);
+	if (!fsess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Encrypter] Failed to create filter session\n"));
+		return GF_OUT_OF_MEM;
+	}
 
 	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
 	src = gf_fs_load_filter(fsess, szArgs);

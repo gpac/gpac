@@ -509,7 +509,11 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	else {
 		while (gf_list_count(scene->resources)) {
 			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);
-			gf_odm_disconnect(odm, for_shutdown ? 2 : 0);
+			if (odm->skip_disconnect_state) {
+				gf_list_rem(scene->resources, 0);
+			} else {
+				gf_odm_disconnect(odm, for_shutdown ? 2 : 0);
+			}
 		}
 #ifndef GPAC_DISABLE_VRML
 		while (gf_list_count(scene->extern_protos)) {
@@ -655,7 +659,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 #ifndef GPAC_DISABLE_X3D
 					case TAG_X3D_Inline:
 #endif
-						if (obj->num_open) gf_mo_stop(obj);
+						if (obj->num_open) gf_mo_stop(&obj);
 						gf_node_set_private(n, NULL);
 						break;
 					}
@@ -2697,7 +2701,7 @@ void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path)
 	M_Inline *inl;
 	Bool first_pass = GF_TRUE;
 	u32 nb_items=0, nb_rows=0, nb_cols=0;
-	s32 width=1920, height=1080, x, y, tw, th;
+	s32 width=1920, height=1080, x=0, y=0, tw=1920, th=1080;
 
 	GF_Event evt;
 	gf_sc_node_destroy(scene->compositor, NULL, scene->graph);

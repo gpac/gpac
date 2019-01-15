@@ -86,7 +86,7 @@ extern "C" {
  *	Macro formating a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 */
 #ifndef GF_4CC
-#define GF_4CC(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
+#define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
 /*!
@@ -299,7 +299,9 @@ typedef enum
 	/*! the decoder buffers were filled, it is necessary to recuperate decoded data*/
 	GF_CODEC_BUFFER_UNAVAILABLE				= -55,
 	/*! filter PID config requires new instance of filter */
-	GF_REQUIRES_NEW_INSTANCE				= -56
+	GF_REQUIRES_NEW_INSTANCE = -56,
+	/*! filter PID config cannot be supported by this filter, no use trying to find an alternate input filter chain*/
+	GF_FILTER_NOT_SUPPORTED = -57
 } GF_Err;
 
 /*!

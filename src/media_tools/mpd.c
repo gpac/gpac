@@ -137,8 +137,7 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 {
 	u32 i;
 	char *sep1, *sep2;
-	u32 h, m;
-	double s;
+	u32 h, m, s, ms;
 	const char *startT;
 	if (!duration) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
@@ -167,8 +166,7 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 		return 0;
 	}
 
-	h = m = 0;
-	s = 0;
+	h = m = s = ms = 0;
 	if (NULL != (sep1 = strchr(startT+1, 'H'))) {
 		*sep1 = 0;
 		h = atoi(duration+i+2);
@@ -186,11 +184,19 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 		sep2 = sep1;
 	}
 	if (NULL != (sep1 = strchr(sep2, 'S'))) {
+		char *sep_dec = strchr(sep2, '.');
 		*sep1 = 0;
-		s = atof(sep2);
+		if (sep_dec) {
+			sep_dec[0] = 0;
+			s = atoi(sep2);
+			ms = atoi(sep_dec+1);
+			sep_dec[0] = '.';
+		} else {
+			s = atoi(sep2);
+		}
 		*sep1 = 'S';
 	}
-	return (u64)((h*3600+m*60+s)*(u64)1000);
+	return (u64) ( ((h*3600+m*60+s)*(u64)1000) + ms );
 }
 
 static u32 gf_mpd_parse_duration_u32(const char * const duration)
@@ -2267,16 +2273,19 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 
 void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms, Bool UseHoursAndMinutes)
 {
-	u32 h, m;
-	Double s;
+	u32 h, m, s, ms;
+
 	h = (u32) (duration_in_ms / 3600000);
 	m = (u32) (duration_in_ms/ 60000) - h*60;
-	s = ((Double) duration_in_ms/1000.0) - h*3600 - m*60;
+	s = (u32) (duration_in_ms/1000) - h*3600 - m*60;
+	ms = (u32) (duration_in_ms) - h*3600*1000 - m*60*1000 - s*1000;
 
 	fprintf(out, " %s=\"PT", name);
 	if(UseHoursAndMinutes)
 		fprintf(out, "%dH%dM", h, m);
-	fprintf(out, "%.3fS\"", s);
+	fprintf(out, "%d", s);
+	fprintf(out, ".");
+	fprintf(out, "%03dS\"", ms);
 }
 
 static void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, s32 indent)
@@ -3198,7 +3207,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", mpd->time_shift_buffer_depth, GF_TRUE);
 	if (mpd->suggested_presentation_delay)
 		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay, GF_TRUE);
-	if (mpd->max_segment_duration)
+	if (mpd->max_segment_duration) 
 		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration, GF_TRUE);
 	if (mpd->max_subsegment_duration)
 		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration, GF_TRUE);

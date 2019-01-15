@@ -427,6 +427,11 @@ void safdmx_finalize(GF_Filter *filter)
 	gf_list_del(ctx->streams);
 }
 
+static const char *safdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	*score = GF_FPROBE_EXT_MATCH;
+	return "saf|lsr";
+}
 
 static const GF_FilterCapability SAFDmxCaps[] =
 {
@@ -449,7 +454,8 @@ GF_FilterRegister SAFDmxRegister = {
 	SETCAPS(SAFDmxCaps),
 	.configure_pid = safdmx_configure_pid,
 	.process = safdmx_process,
-	.process_event = safdmx_process_event
+	.process_event = safdmx_process_event,
+	.probe_data = safdmx_probe_data
 };
 
 const GF_FilterRegister *safdmx_register(GF_FilterSession *session)

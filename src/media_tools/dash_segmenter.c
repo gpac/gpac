@@ -60,7 +60,7 @@ struct __gf_dash_segmenter
 	u32 segment_marker_4cc;
 	Bool enable_sidx;
 	u32 subsegs_per_sidx;
-	Bool daisy_chain_sidx;
+	Bool daisy_chain_sidx, use_ssix;
 
 	Bool fragments_start_with_rap;
 	char *tmpdir;
@@ -218,8 +218,9 @@ GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
 	l1 = dasher->_field ? (u32) strlen(dasher->_field) : 0;\
 	l2 = (u32) strlen(_val);\
 	if (l1) dasher->_field = gf_realloc(dasher->_field, sizeof(char)*(l1+l2+2));\
-	else dasher->_field = gf_realloc(dasher->_field, sizeof(char)*(l1+l2+1));\
+	else dasher->_field = gf_malloc(sizeof(char)*(l2+1));\
 	if (!dasher->_field) return GF_OUT_OF_MEM;\
+	dasher->_field[l1]=0;\
 	if (l1) strcat(dasher->_field, ",");\
 	strcat(dasher->_field, _val);\
 
@@ -327,12 +328,13 @@ GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker
 }
 
 GF_EXPORT
-GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx)
+GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_ssix)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->enable_sidx = enable_sidx;
 	dasher->subsegs_per_sidx = subsegs_per_sidx;
 	dasher->daisy_chain_sidx = daisy_chain_sidx;
+	dasher->use_ssix = use_ssix;
 	return GF_OK;
 }
 
@@ -482,7 +484,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 	if (!dasher) return GF_BAD_PARAM;
 
 	if (!stricmp(input->file_name, "NULL") || !strcmp(input->file_name, "") || !input->file_name) {
-		if (!strcmp(input->xlink, "")) {
+		if (!input->xlink || !strcmp(input->xlink, "")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] No input file specified and no xlink set - cannot dash\n"));
 			return GF_BAD_PARAM;
 		}
@@ -640,6 +642,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->fragment_duration) { sprintf(szArg, "cdur=%g", dasher->fragment_duration); APPEND_ARG(szArg)}
 	if (dasher->segment_marker_4cc) { sprintf(szArg, "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) ); APPEND_ARG(szArg)}
 	if (dasher->daisy_chain_sidx) { APPEND_ARG("chain_sidx")}
+	if (dasher->use_ssix) { APPEND_ARG("ssix")}
 	if (dasher->initial_moof_sn) { sprintf(szArg, "msn=%d", dasher->initial_moof_sn ); APPEND_ARG(szArg)}
 	if (dasher->initial_tfdt) { sprintf(szArg, "tfdt="LLU"", dasher->initial_tfdt ); APPEND_ARG(szArg)}
 	if (dasher->no_fragments_defaults) {APPEND_ARG("nofragdef")}
@@ -709,6 +712,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		if (!stricmp(url, "null")) url = NULL;
 
 		args = NULL;
+
+		//if source is isobmf using extractors, we want to keep the extractors
+		APPEND_ARG("smode=splitx")
 
 		if (di->other_opts) {
 			APPEND_ARG(di->other_opts)
@@ -823,14 +829,15 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	gf_fs_get_last_connect_error(dasher->fsess);
 	gf_fs_get_last_process_error(dasher->fsess);
 
+	//send change mode before sending the resume request, as the seek checks for last mode
+	if (dasher->dash_mode_changed) {
+		gf_filter_send_update(dasher->output, NULL, "dmode", (dasher->dash_mode == GF_DASH_DYNAMIC_LAST)  ? "dynlast" : "dynamic", GF_FILTER_UPDATE_DOWNSTREAM);
+	}
+
 	if (need_seek) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_RESUME, NULL);
 		gf_filter_send_event(dasher->output, &evt);
-	}
-
-	if (dasher->dash_mode_changed) {
-		gf_filter_send_update(dasher->output, NULL, "dmode", (dasher->dash_mode == GF_DASH_DYNAMIC_LAST)  ? "dynlast" : "dynamic", GF_FILTER_UPDATE_DOWNSTREAM);
 	}
 
 	e = gf_fs_run(dasher->fsess);

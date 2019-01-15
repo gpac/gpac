@@ -61,6 +61,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	u32 sr, afmt, old_afmt, nb_ch, ch_cfg;
 	GF_Err e = GF_OK;
 	sr = ctx->sr;
+
 	nb_ch = ctx->nb_ch;
 	afmt = old_afmt = ctx->afmt;
 	ch_cfg = ctx->ch_cfg;
@@ -73,6 +74,12 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		if (nb_ch != 2) nb_ch = 2;
 	}
 	if (ctx->speed == FIX_ONE) ctx->speed_set = GF_TRUE;
+
+	if (ctx->sr * ctx->nb_ch * old_afmt == 0) {
+		ctx->needs_recfg = GF_FALSE;
+		ctx->wait_recfg = GF_FALSE;
+		return;
+	}
 
 	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt) || !ctx->speed_set) {
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
@@ -132,7 +139,7 @@ static u32 aout_fill_output(void *ptr, char *buffer, u32 buffer_size)
 			if (gf_filter_pid_is_eos(ctx->pid)) {
 				ctx->is_eos = GF_TRUE;
 			} else if (ctx->first_write_done) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
 			}
 			return done;
 		}
@@ -266,6 +273,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) aout_set_priority(ctx, p->value.uint);
 
 	ctx->needs_recfg = GF_TRUE;
+	
 	//not threaded, request a task to restart audio (cannot do it during the audio callback)
 	if (!ctx->th) gf_filter_post_process_task(filter);
 	return GF_OK;
@@ -388,7 +396,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "Sets playback speed", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{0}

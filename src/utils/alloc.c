@@ -507,7 +507,7 @@ static unsigned int gf_memory_hash(void *ptr)
 #if defined(WIN32)
 	return (unsigned int) ( (((unsigned __int64)ptr>>4)+(unsigned __int64)ptr) % HASH_ENTRIES );
 #else
-	return (unsigned int) ( (((uint64_t)ptr>>4)+(uint64_t)ptr) % HASH_ENTRIES );
+	return (unsigned int) ( (((uint64_t) ((intptr_t) ptr)>>4) + (uint64_t) ((intptr_t)ptr) ) % HASH_ENTRIES );
 #endif
 }
 
@@ -728,7 +728,6 @@ void log_backtrace(unsigned int log_level, memory_element *element)
 }
 
 
-#if 1
 Bool gf_check_address(void *ptr)
 {
 	Bool res = GF_TRUE;
@@ -756,7 +755,6 @@ Bool gf_check_address(void *ptr)
 	gf_mx_v(gpac_allocations_lock);
 	return res;
 }
-#endif
 
 /*returns the size of the unregistered block*/
 static int unregister_address(void *ptr, const char *filename, int line)
