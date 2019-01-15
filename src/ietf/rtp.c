@@ -39,7 +39,8 @@ GF_RTPChannel *gf_rtp_new()
 		return NULL;
 	tmp->first_SR = 1;
 	tmp->SSRC = gf_rand();
-	tmp->bs = gf_bs_new("d", 1, GF_BITSTREAM_READ);
+	tmp->bs_r = gf_bs_new("d", 1, GF_BITSTREAM_READ);
+	tmp->bs_w = gf_bs_new("d", 1, GF_BITSTREAM_WRITE);
 	return tmp;
 }
 
@@ -63,7 +64,8 @@ void gf_rtp_del(GF_RTPChannel *ch)
 	if (ch->s_tool) gf_free(ch->s_tool);
 	if (ch->s_note) gf_free(ch->s_note);
 	if (ch->s_priv) gf_free(ch->s_priv);
-	if (ch->bs) gf_bs_del(ch->bs);
+	if (ch->bs_r) gf_bs_del(ch->bs_r);
+	if (ch->bs_w) gf_bs_del(ch->bs_w);
 	memset(ch, 0, sizeof(GF_RTPChannel));
 	gf_free(ch);
 }
@@ -413,26 +415,25 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	if (!rtp_hdr) return GF_BAD_PARAM;
 	e = GF_OK;
 
+	gf_bs_reassign_buffer(ch->bs_r, pck, pck_size);
 	//we need to uncompress the RTP header
-	rtp_hdr->Version = (pck[0] & 0xC0 ) >> 6;
+	rtp_hdr->Version = gf_bs_read_int(ch->bs_r, 2);
 	if (rtp_hdr->Version != 2) return GF_NOT_SUPPORTED;
 
-	rtp_hdr->Padding = ( pck[0] & 0x20 ) >> 5;
-	rtp_hdr->Extension = ( pck[0] & 0x10 ) >> 4;
-	rtp_hdr->CSRCCount = pck[0] & 0x0F;
-	rtp_hdr->Marker = ( pck[1] & 0x80 ) >> 7;
-	rtp_hdr->PayloadType = pck[1] & 0x7F;
+	rtp_hdr->Padding = gf_bs_read_int(ch->bs_r, 1);
+	rtp_hdr->Extension = gf_bs_read_int(ch->bs_r, 1);
+	rtp_hdr->CSRCCount = gf_bs_read_int(ch->bs_r, 4);
+	rtp_hdr->Marker = gf_bs_read_int(ch->bs_r, 1);
+	rtp_hdr->PayloadType = gf_bs_read_int(ch->bs_r, 7);
 
 	/*we don't support multiple CSRC now. Only one source (the server) is allowed*/
 	if (rtp_hdr->CSRCCount) return GF_NOT_SUPPORTED;
 	/*SeqNum*/
-	rtp_hdr->SequenceNumber = ((pck[2] << 8) & 0xFF00) | (pck[3] & 0xFF);
+	rtp_hdr->SequenceNumber = gf_bs_read_u16(ch->bs_r);
 	/*TS*/
-	rtp_hdr->TimeStamp = (u32) ((pck[4]<<24) &0xFF000000) | ((pck[5]<<16) & 0xFF0000) | ((pck[6]<<8) & 0xFF00) | ((pck[7]) & 0xFF);
+	rtp_hdr->TimeStamp = gf_bs_read_u32(ch->bs_r);
 	/*SSRC*/
-	rtp_hdr->SSRC = ((pck[8]<<24) &0xFF000000) | ((pck[9]<<16) & 0xFF0000) | ((pck[10]<<8) & 0xFF00) | ((pck[11]) & 0xFF);
-	/*first we only work with one payload type...*/
-	if (rtp_hdr->PayloadType != ch->PayloadType) return GF_NOT_SUPPORTED;
+	rtp_hdr->SSRC = gf_bs_read_u32(ch->bs_r);
 
 	/*update RTP time if we didn't get the info*/
 	if (!ch->rtp_time) {
@@ -444,7 +445,6 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 		ch->SenderSSRC = rtp_hdr->SSRC;
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Assigning SSRC to %d because none was specified through SDP/RTSP\n", ch->SenderSSRC));
 	}
-
 
 	if (!ch->ntp_init && ch->SenderSSRC && (ch->SenderSSRC != rtp_hdr->SSRC) ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] SSRC mismatch: %d vs %d\n", rtp_hdr->SSRC, ch->SenderSSRC));
@@ -578,8 +578,6 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 	u32 i, Start;
 	char *hdr = NULL;
 
-	GF_BitStream *bs;
-
 	if (!ch || !rtp_hdr
 	        || !ch->send_buffer
 	        || !pck
@@ -591,27 +589,26 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 
 	if (fast_send) {
 		hdr = pck - 12;
-		bs = gf_bs_new(hdr, 12, GF_BITSTREAM_WRITE);
+		gf_bs_reassign_buffer(ch->bs_w, hdr, 12);
 	} else {
-		bs = gf_bs_new(ch->send_buffer, ch->send_buffer_size, GF_BITSTREAM_WRITE);
+		gf_bs_reassign_buffer(ch->bs_w, ch->send_buffer, ch->send_buffer_size);
 	}
 	//write header
-	gf_bs_write_int(bs, rtp_hdr->Version, 2);
-	gf_bs_write_int(bs, rtp_hdr->Padding, 1);
-	gf_bs_write_int(bs, rtp_hdr->Extension, 1);
-	gf_bs_write_int(bs, rtp_hdr->CSRCCount, 4);
-	gf_bs_write_int(bs, rtp_hdr->Marker, 1);
-	gf_bs_write_int(bs, rtp_hdr->PayloadType, 7);
-	gf_bs_write_u16(bs, rtp_hdr->SequenceNumber);
-	gf_bs_write_u32(bs, rtp_hdr->TimeStamp);
-	gf_bs_write_u32(bs, ch->SSRC);
+	gf_bs_write_int(ch->bs_w, rtp_hdr->Version, 2);
+	gf_bs_write_int(ch->bs_w, rtp_hdr->Padding, 1);
+	gf_bs_write_int(ch->bs_w, rtp_hdr->Extension, 1);
+	gf_bs_write_int(ch->bs_w, rtp_hdr->CSRCCount, 4);
+	gf_bs_write_int(ch->bs_w, rtp_hdr->Marker, 1);
+	gf_bs_write_int(ch->bs_w, rtp_hdr->PayloadType, 7);
+	gf_bs_write_u16(ch->bs_w, rtp_hdr->SequenceNumber);
+	gf_bs_write_u32(ch->bs_w, rtp_hdr->TimeStamp);
+	gf_bs_write_u32(ch->bs_w, ch->SSRC);
 
 	for (i=0; i<rtp_hdr->CSRCCount; i++) {
-		gf_bs_write_u32(bs, rtp_hdr->CSRC[i]);
+		gf_bs_write_u32(ch->bs_w, rtp_hdr->CSRC[i]);
 	}
 	//nb: RTP header is always aligned
-	Start = (u32) gf_bs_get_position(bs);
-	gf_bs_del(bs);
+	Start = (u32) gf_bs_get_position(ch->bs_w);
 
 	//copy payload
 	if (fast_send) {

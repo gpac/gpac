@@ -898,7 +898,42 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	}
 	/*Text*/
 	else if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
-		gf_media_format_ttxt_sdp(tkHint->rtp_p, payloadName, sdpLine, tkHint->file, tkHint->TrackNum);
+		u32 w, h, i, m_w, m_h;
+		s32 tx, ty;
+		s16 l;
+
+		gf_isom_get_track_layout_info(tkHint->file, tkHint->TrackNum, &w, &h, &tx, &ty, &l);
+		m_w = w;
+		m_h = h;
+		for (i=0; i<gf_isom_get_track_count(tkHint->file); i++) {
+			switch (gf_isom_get_media_type(tkHint->file, i+1)) {
+			case GF_ISOM_MEDIA_SCENE:
+			case GF_ISOM_MEDIA_VISUAL:
+			case GF_ISOM_MEDIA_AUXV:
+			case GF_ISOM_MEDIA_PICT:
+				gf_isom_get_track_layout_info(tkHint->file, i+1, &w, &h, &tx, &ty, &l);
+				if (w>m_w) m_w = w;
+				if (h>m_h) m_h = h;
+				break;
+			default:
+				break;
+			}
+		}
+
+		gf_media_format_ttxt_sdp(tkHint->rtp_p, payloadName, sdpLine, w, h, tx, ty, l, m_w, m_h, NULL);
+
+		strcat(sdpLine, "; tx3g=");
+		for (i=0; i<gf_isom_get_sample_description_count(tkHint->file, tkHint->TrackNum); i++) {
+			char *tx3g;
+			char buffer[2000];
+			u32 tx3g_len, len;
+			gf_isom_text_get_encoded_tx3g(tkHint->file, tkHint->TrackNum, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
+			len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
+			gf_free(tx3g);
+			buffer[len] = 0;
+			if (i) strcat(sdpLine, ", ");
+			strcat(sdpLine, buffer);
+		}
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*EVRC/SMV in non header-free mode*/

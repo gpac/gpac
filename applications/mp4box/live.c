@@ -32,7 +32,6 @@
 #include <gpac/scene_engine.h>
 #endif
 #ifndef GPAC_DISABLE_STREAMING
-#include <gpac/filestreamer.h>
 #include <gpac/rtp_streamer.h>
 #endif
 
@@ -49,111 +48,6 @@
 #else
 
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-
-void PrintStreamerUsage()
-{
-	fprintf(stderr, "File Streamer Options\n"
-	        "\n"
-	        "MP4Box can stream ISO files to RTP. The streamer currently doesn't support\n"
-	        "data carrouselling and will therefore not handle BIFS and OD streams properly.\n"
-	        "Available options:\n"
-	        "\n"
-            "-rtp         enables streamer\n"
-            "-run-for=T   runs for T seconds of the media then exits\n"
-	        "-noloop      disables looping when streaming\n"
-	        "-mpeg4       forces MPEG-4 ES Generic for all RTP streams\n"
-	        "-dst=IP      IP destination (uni/multi-cast). Default: 127.0.0.1\n"
-	        "-port=PORT   output port of the first stream. Default: 7000\n"
-	        "-mtu=MTU     path MTU for RTP packets. Default is 1450 bytes\n"
-	        "-ttl=TTL     time to live for multicast packets. Default: 1\n"
-	        "-sdp=Name    file name of the generated SDP. Default: \"session.sdp\"\n"
-	        "\n"
-	        "You can also specify gpac core options (see -h core)\n"
-	        "\n"
-	       );
-}
-
-int stream_file_rtp(int argc, char **argv)
-{
-	GF_ISOMRTPStreamer *file_streamer;
-	char *sdp_file = "session.sdp";
-	char *ip_dest = "127.0.0.1";
-	const char *ifce_addr = NULL;
-	char *inName = NULL;
-	u16 port = 7000;
-	u32 ttl = 1;
-	Bool loop = GF_TRUE;
-   	GF_MemTrackerType mem_track = GF_MemTrackerNone;
-	Bool force_mpeg4 = GF_FALSE;
-   	u32 path_mtu = 1450;
-   	Double run_for = -1.0;
-	u32 i;
-
-	for (i = 1; i < (u32) argc ; i++) {
-		char *arg = argv[i];
-
-		if (arg[0] != '-') {
-			if (inName) {
-				fprintf(stderr, "Error - 2 input names specified, please check usage\n");
-				return 1;
-			}
-			inName = arg;
-		}
-		else if (!stricmp(arg, "-noloop")) loop = GF_FALSE;
-		else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = GF_TRUE;
-		else if (!strnicmp(arg, "-port=", 6)) port = atoi(arg+6);
-		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
-		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
-		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
-		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-	        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
-	        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
-	        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
-	}
-
-	gf_sys_init(mem_track, NULL);
-
-	gf_log_set_tool_level(GF_LOG_RTP, GF_LOG_INFO);
-
-	gf_sys_set_args(argc, (const char **) argv);
-
-	ifce_addr = gf_opts_get_key("core", "ifce");
-
-	if (!gf_isom_probe_file(inName)) {
-		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
-		gf_sys_close();
-		return 1;
-	}
-
-	file_streamer = gf_isom_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, (char *) ifce_addr);
-	if (!file_streamer) {
-		fprintf(stderr, "Cannot create file streamer\n");
-	} else {
-        Bool run = GF_TRUE;
-		u32 check = 50;
-		fprintf(stderr, "Starting streaming %s to %s:%d\n", inName, ip_dest, port);
-		gf_isom_streamer_write_sdp(file_streamer, sdp_file);
-
-        if (run_for==0) run=GF_FALSE;
-
-		while (run) {
-			gf_isom_streamer_send_next_packet(file_streamer, 0, 0);
-			check--;
-			if (!check) {
-				if (gf_prompt_has_input()) {
-					char c = (char) gf_prompt_get_char();
-					if (c=='q') break;
-				}
-				check = 50;
-			}
-            if ((run_for > 0) && (run_for < gf_isom_streamer_get_current_time(file_streamer)) )
-                break;
-		}
-		gf_isom_streamer_del(file_streamer);
-	}
-	gf_sys_close();
-	return 0;
-}
 
 
 void PrintLiveUsage()

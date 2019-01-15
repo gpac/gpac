@@ -25,6 +25,7 @@
 
 #include "isoffin.h"
 #include <gpac/iso639.h>
+#include <gpac/base_coding.h>
 #include <gpac/media_tools.h>
 
 #ifndef GPAC_DISABLE_ISOM
@@ -385,7 +386,19 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MBRAND, &PROP_UINT(major_brand) );
 
 		max_size = gf_isom_get_max_sample_size(read->mov, ch->track);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
+		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
+
+		max_size = gf_isom_get_avg_sample_size(read->mov, ch->track);
+		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_AVG_FRAME_SIZE, &PROP_UINT(max_size) );
+
+		max_size = gf_isom_get_max_sample_delta(read->mov, ch->track);
+		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_TS_DELTA, &PROP_UINT(max_size) );
+
+		max_size = gf_isom_get_max_sample_cts_offset(read->mov, ch->track);
+		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_CTS_OFFSET, &PROP_UINT(max_size) );
+
+		max_size = gf_isom_get_sample_const_duration(read->mov, ch->track);
+		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_CONSTANT_DURATION, &PROP_UINT(max_size) );
 
 		u32 media_pl=0;
 		if (streamtype==GF_STREAM_VISUAL) {
@@ -411,6 +424,58 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Failed to serialize moov UDTA box: %s\n", gf_error_to_string(e) ));
 		}
 #endif
+
+		u32 w, h, i;
+		s32 tx, ty;
+		s16 l;
+		gf_isom_get_track_layout_info(read->mov, ch->track, &w, &h, &tx, &ty, &l);
+		if (w && h) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_TRANS_X, &PROP_SINT(tx) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_TRANS_Y, &PROP_SINT(ty) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ZORDER, &PROP_SINT(l) );
+		}
+		if (codec_id==GF_CODECID_TX3G) {
+			u32 m_w = w;
+			u32 m_h = h;
+			for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
+				switch (gf_isom_get_media_type(read->mov, i+1)) {
+				case GF_ISOM_MEDIA_SCENE:
+				case GF_ISOM_MEDIA_VISUAL:
+				case GF_ISOM_MEDIA_AUXV:
+				case GF_ISOM_MEDIA_PICT:
+					gf_isom_get_track_layout_info(read->mov, i+1, &w, &h, &tx, &ty, &l);
+					if (w>m_w) m_w = w;
+					if (h>m_h) m_h = h;
+					break;
+				default:
+					break;
+				}
+			}
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_WIDTH_MAX, &PROP_UINT(m_w) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HEIGHT_MAX, &PROP_UINT(m_h) );
+			char *tx3g_config_sdp = NULL;
+			for (i=0; i<gf_isom_get_sample_description_count(read->mov, ch->track); i++) {
+				char *tx3g;
+				char buffer[2000];
+				u32 l1;
+				u32 tx3g_len, len;
+				gf_isom_text_get_encoded_tx3g(read->mov, ch->track, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
+				len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
+				gf_free(tx3g);
+				buffer[len] = 0;
+
+				l1 = tx3g_config_sdp ? (u32) strlen(tx3g_config_sdp) : 0;
+				tx3g_config_sdp = gf_realloc(tx3g_config_sdp, len+3+l1);
+				tx3g_config_sdp[l1] = 0;
+				if (i) strcat(tx3g_config_sdp, ", ");
+				strcat(tx3g_config_sdp, buffer);
+			}
+			if (tx3g_config_sdp) {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_STRING_NO_COPY(tx3g_config_sdp) );
+			}
+		}
 	}
 
 	//update decoder configs
@@ -502,6 +567,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (enh_dsi) {
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(enh_dsi, enh_dsi_size));
 	}
+
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CONFIG_IDX, &PROP_UINT(stsd_idx) );
 
 	w = h = 0;
 	gf_isom_get_visual_info(read->mov, track, stsd_idx, &w, &h);

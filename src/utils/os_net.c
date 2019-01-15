@@ -1189,7 +1189,10 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 			local_address.sin_addr.s_addr = local_add_id = htonl(INADDR_ANY);
 			local_interface_ip = NULL;
 			ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+			if (ret == SOCKET_ERROR) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[core] Failed to bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				return GF_IP_CONNECTION_FAILURE;
+			}
 		}
 		/*setup local interface*/
 		if (local_interface_ip) {

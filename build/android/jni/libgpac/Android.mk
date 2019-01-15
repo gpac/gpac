@@ -205,6 +205,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/mux_ts.c \
 	../../../../src/filters/out_audio.c \
 	../../../../src/filters/out_file.c \
+	../../../../src/filters/out_rtp.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
 	../../../../src/filters/reframe_adts.c \
@@ -287,7 +288,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/dash_segmenter.c \
 	../../../../src/media_tools/dsmcc.c \
 	../../../../src/media_tools/dvb_mpe.c \
-	../../../../src/media_tools/filestreamer.c \
 	../../../../src/media_tools/gpac_ogg.c \
 	../../../../src/media_tools/html5_media.c \
 	../../../../src/media_tools/html5_mse.c \

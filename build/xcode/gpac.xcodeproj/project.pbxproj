@@ -74,7 +74,6 @@
 		9201014618D5A445003D1ACA /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002818D5A444003D1ACA /* dash_segmenter.c */; };
 		9201014718D5A445003D1ACA /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002918D5A444003D1ACA /* dsmcc.c */; };
 		9201014818D5A445003D1ACA /* dvb_mpe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002A18D5A444003D1ACA /* dvb_mpe.c */; };
-		9201014918D5A445003D1ACA /* filestreamer.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002B18D5A444003D1ACA /* filestreamer.c */; };
 		9201014A18D5A445003D1ACA /* gpac_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002C18D5A444003D1ACA /* gpac_ogg.c */; };
 		9201014B18D5A445003D1ACA /* html5_media.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002D18D5A444003D1ACA /* html5_media.c */; };
 		9201014C18D5A445003D1ACA /* html5_mse.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201002E18D5A444003D1ACA /* html5_mse.c */; };
@@ -470,6 +469,7 @@
 		92BE50C218D6D5DC00AA59D8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50C118D6D5DC00AA59D8 /* main.c */; };
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50D618D6D6C100AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		92C0F37E21EC7BB0002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37D21EC7BB0002961C8 /* out_rtp.c */; };
 		92C1FF541E7C42DF0093B61E /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF4C1E7C42DF0093B61E /* ftgrays.c */; };
 		92C1FF551E7C42DF0093B61E /* rast_soft.h in Headers */ = {isa = PBXBuildFile; fileRef = 92C1FF4D1E7C42DF0093B61E /* rast_soft.h */; };
 		92C1FF561E7C42DF0093B61E /* raster_565.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF4E1E7C42DF0093B61E /* raster_565.c */; };
@@ -673,7 +673,6 @@
 		9201002818D5A444003D1ACA /* dash_segmenter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_segmenter.c; sourceTree = "<group>"; };
 		9201002918D5A444003D1ACA /* dsmcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dsmcc.c; sourceTree = "<group>"; };
 		9201002A18D5A444003D1ACA /* dvb_mpe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dvb_mpe.c; sourceTree = "<group>"; };
-		9201002B18D5A444003D1ACA /* filestreamer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = filestreamer.c; sourceTree = "<group>"; };
 		9201002C18D5A444003D1ACA /* gpac_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gpac_ogg.c; sourceTree = "<group>"; };
 		9201002D18D5A444003D1ACA /* html5_media.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_media.c; sourceTree = "<group>"; };
 		9201002E18D5A444003D1ACA /* html5_mse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = html5_mse.c; sourceTree = "<group>"; };
@@ -1349,6 +1348,7 @@
 		92BE50B318D6D53000AA59D8 /* MP42TS */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP42TS; sourceTree = BUILT_PRODUCTS_DIR; };
 		92BE50C118D6D5DC00AA59D8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp42ts/main.c; sourceTree = SOURCE_ROOT; };
 		92BE50C718D6D60100AA59D8 /* MP4Client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Client; sourceTree = BUILT_PRODUCTS_DIR; };
+		92C0F37D21EC7BB0002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = filters/out_rtp.c; sourceTree = "<group>"; };
 		92C1FF4C1E7C42DF0093B61E /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = ../modules/soft_raster/ftgrays.c; sourceTree = "<group>"; };
 		92C1FF4D1E7C42DF0093B61E /* rast_soft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rast_soft.h; path = ../modules/soft_raster/rast_soft.h; sourceTree = "<group>"; };
 		92C1FF4E1E7C42DF0093B61E /* raster_565.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_565.c; path = ../modules/soft_raster/raster_565.c; sourceTree = "<group>"; };
@@ -1495,7 +1495,6 @@
 				9201002818D5A444003D1ACA /* dash_segmenter.c */,
 				9201002918D5A444003D1ACA /* dsmcc.c */,
 				9201002A18D5A444003D1ACA /* dvb_mpe.c */,
-				9201002B18D5A444003D1ACA /* filestreamer.c */,
 				9201002C18D5A444003D1ACA /* gpac_ogg.c */,
 				9201002D18D5A444003D1ACA /* html5_media.c */,
 				9201002E18D5A444003D1ACA /* html5_mse.c */,
@@ -2501,6 +2500,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92C0F37D21EC7BB0002961C8 /* out_rtp.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -3147,7 +3147,6 @@
 				92B9A5BF1F8695FA00A24FE4 /* dmx_saf.c in Sources */,
 				92EB479320F6333900E1F2DD /* rewrite_obu.c in Sources */,
 				9201014818D5A445003D1ACA /* dvb_mpe.c in Sources */,
-				9201014918D5A445003D1ACA /* filestreamer.c in Sources */,
 				9201014A18D5A445003D1ACA /* gpac_ogg.c in Sources */,
 				9201014B18D5A445003D1ACA /* html5_media.c in Sources */,
 				9201014C18D5A445003D1ACA /* html5_mse.c in Sources */,
@@ -3200,6 +3199,7 @@
 				92B9A5B11F8660D700A24FE4 /* mpeg4_sound.c in Sources */,
 				9201016618D5A445003D1ACA /* odf_command.c in Sources */,
 				9201016718D5A445003D1ACA /* odf_dump.c in Sources */,
+				92C0F37E21EC7BB0002961C8 /* out_rtp.c in Sources */,
 				9201016818D5A445003D1ACA /* odf_parse.c in Sources */,
 				9201016918D5A445003D1ACA /* qos.c in Sources */,
 				9206822E20EA69680041169F /* out_pipe.c in Sources */,

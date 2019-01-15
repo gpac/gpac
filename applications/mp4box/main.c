@@ -842,7 +842,6 @@ void PrintUsage()
 	         " -h swf               Flash (SWF) options help\n"
 	         " -h crypt             ISMA E&A options help\n"
 	         " -h format            supported formats help\n"
-	         " -h rtp               file streamer help\n"
 	         " -h live              BIFS streamer help\n"
 	         " -h atsc              ATSC3 reader help\n"
 	         " -h core              libgpac core options\n"
@@ -2026,7 +2025,6 @@ Bool frag_real_time = GF_FALSE;
 const char *dash_start_date=NULL;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
-Bool stream_rtp = GF_FALSE;
 Bool force_test_mode = GF_FALSE;
 Bool force_co64 = GF_FALSE;
 Bool live_scene = GF_FALSE;
@@ -2922,7 +2920,7 @@ else if (!stricmp(arg, "-h")) {
 	else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
 #endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-	else if (!strcmp(argv[i + 1], "rtp")) PrintStreamerUsage();
+	else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
 	else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
 #endif
 	else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
@@ -2942,7 +2940,6 @@ else if (!stricmp(arg, "-h")) {
 		PrintATSCUsage();
 #endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-		PrintStreamerUsage();
 		PrintLiveUsage();
 #endif
 		PrintCoreUsage();
@@ -2958,7 +2955,7 @@ else if (!stricmp(arg, "-tag-list")) {
 	}
 	return 1;
 }
-else if (!live_scene && !stream_rtp) {
+else if (!live_scene) {
 	u32 res = gf_sys_is_gpac_arg(arg);
 	if (res==0) {
 		fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
@@ -3144,7 +3141,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		else if (!stricmp(arg, "-rtp")) {
-			stream_rtp = GF_TRUE;
+			fprintf(stderr, "Deprecated option - use gpac application\n");
+			return mp4box_cleanup(1);
 		}
 		else if (!stricmp(arg, "-live")) {
 			live_scene = GF_TRUE;
@@ -3822,10 +3820,6 @@ int mp4boxMain(int argc, char **argv)
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	if (live_scene) {
 		int ret = live_session(argc, argv);
-		return mp4box_cleanup(ret);
-	}
-	if (stream_rtp) {
-		int ret = stream_file_rtp(argc, argv);
 		return mp4box_cleanup(ret);
 	}
 #endif
