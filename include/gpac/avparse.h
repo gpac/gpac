@@ -69,6 +69,14 @@ void gf_media_reduce_aspect_ratio(u32 *width, u32 *height);
  */
 void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur);
 
+//u32 avc_emulation_bytes_remove_count(const char *buffer, u32 nal_size);
+//u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
+
+/*inserts emulation prevention bytes from buffer_src into buffer_dst*/
+u32 gf_media_nalu_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size);
+/*returns the nal_size without emulation prevention bytes*/
+u32 gf_media_nalu_emulation_bytes_add_count(char *buffer, u32 nal_size);
+
 
 /*basic MPEG (1,2,4) visual object parser (DSI extraction and timing/framing)*/
 typedef struct

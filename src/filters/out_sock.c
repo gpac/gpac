@@ -537,11 +537,7 @@ GF_FilterRegister SockOutRegister = {
 		"this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.\n"
 		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send rate option\n"
 		"\n"
-#ifdef GPAC_HAS_SOCK_UN
-		"Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME"
-#else
-		"Your platform does not supports unix domain sockets"
-#endif
+		"If your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME"
 		"\n"
 		"The socket output can be configured to drop or revert packet order for test purposes. In both cases, a window size in packets is specified\n"
 		"as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator\n"
