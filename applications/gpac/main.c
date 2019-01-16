@@ -435,8 +435,8 @@ GF_GPACArg gpac_args[] =
 			"\tfilters:*: prints name of all available filters, including meta filters.\n"\
 			"\tcodecs: prints the supported builtin codecs.\n"\
 			"\tprops: prints the supported builtin pid properties.\n"\
-			"\tlinks: prints possible connections between each supported filters.\n"\
-			"\tFNAME: prints filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (warning, big output!), *:* to print info on all filters including meta filter instances (warning, big big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options"\
+			"\tlinks: prints possible connections between each supported filters. If a filter name is specified (eg -h links reframer), prints sources for this filter\n"\
+			"\tFNAME: prints filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (warning, big output!), *:* to print info on all filters including meta filter instances (warning, big big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities"\
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "uses indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, tries to load profile from that file. Otherwise, create a directory of the specified name and store new config there", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
@@ -595,6 +595,7 @@ static int gpac_main(int argc, char **argv)
 	Bool nothing_to_do = GF_TRUE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
 	GF_FilterSession *session;
+	char *view_conn_for_filter = NULL;
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
 	Bool has_alias = GF_FALSE;
@@ -685,6 +686,11 @@ static int gpac_main(int argc, char **argv)
 				i++;
 			} else if (!strcmp(argv[i+1], "links")) {
 				view_filter_conn = GF_TRUE;
+				if ((i+2<argc)	&& (argv[i+2][0] != '-')) {
+					view_conn_for_filter = argv[i+2];
+					i++;
+				}
+
 				i++;
 			} else if (!strcmp(argv[i+1], "bin")) {
 				fprintf(stderr, "GPAC binary information:\n"\
@@ -804,7 +810,7 @@ restart:
 		goto exit;
 	}
 	if (view_filter_conn) {
-		gf_fs_print_all_connections(session);
+		gf_fs_print_all_connections(session, view_conn_for_filter);
 		goto exit;
 	}
 	if (dump_codecs) {
@@ -1062,7 +1068,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 	}
 
 	if (reg->nb_caps) {
-		if (argmode>=GF_ARGMODE_ADVANCED) {
+		if (argmode==GF_ARGMODE_ALL) {
 			dump_caps(reg->nb_caps, reg->caps);
 		}
 	}

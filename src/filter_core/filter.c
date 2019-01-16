@@ -1115,12 +1115,14 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		new_f = gf_filter_pid_resolve_link(pid, filter_dst, &reassigned);
 	}
 	if (! new_f) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter to adapt caps between pid %s in filter %s to filter %s - NOT CONNECTED!\n", pid->name, filter->name, filter_dst->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter to adapt caps between pid %s in filter %s to filter %s, disconnecting pid!\n", pid->name, filter->name, filter_dst->name));
+		filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 
 		if (pid->adapters_blacklist) {
 			gf_list_del(pid->adapters_blacklist);
 			pid->adapters_blacklist = NULL;
 		}
+		gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, dst_pidi->filter, dst_pidi->pid, "pidinst_disconnect", NULL);
 		return;
 	}
 	//detach pid instance from its source pid
