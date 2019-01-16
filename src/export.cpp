@@ -820,7 +820,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_single_av) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_guess_specification) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_keep_utc_times) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_no_version_date_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sync_shadows) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sample_dependency) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_find_od_for_track) )
@@ -850,7 +849,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_adobe_protection_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_group_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_tile_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_drop_date_version_info_enabled) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_oinf_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
@@ -2188,7 +2186,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_nal_rewrite_samples) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_set_max_objects_store) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_debug_tsi) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_test_mode) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_shortnames) )
