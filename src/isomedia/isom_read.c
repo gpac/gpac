@@ -4068,14 +4068,6 @@ void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc)
 
 
 GF_EXPORT
-void gf_isom_no_version_date_info(GF_ISOFile *file, Bool drop_info)
-{
-	if (!file) return;
-	file->drop_date_version_info = drop_info;
-	file->keep_utc = GF_TRUE;
-}
-
-GF_EXPORT
 u32 gf_isom_get_pssh_count(GF_ISOFile *file)
 {
 	u32 count=0;
@@ -4355,12 +4347,6 @@ Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_descrip
 		return GF_FALSE;
 	gf_isom_parse_trif_info(data, size, id, independent, full_picture, x, y, w, h);
 	return GF_TRUE;
-}
-
-GF_EXPORT
-Bool gf_isom_drop_date_version_info_enabled(GF_ISOFile *file)
-{
-    return file->drop_date_version_info;
 }
 
 GF_EXPORT

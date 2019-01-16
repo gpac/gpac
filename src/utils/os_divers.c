@@ -689,6 +689,7 @@ FILE *gpac_log_file = NULL;
 static Bool gpac_log_time_start = 0;
 static u64 gpac_last_log_time=0;
 static Bool gpac_log_utc_time = GF_FALSE;
+static Bool gpac_test_mode = GF_FALSE;
 
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
@@ -715,6 +716,12 @@ static void progress_quiet(const void *cbck, const char *title, u64 done, u64 to
 void gpac_disable_progress()
 {
 	gf_set_progress_callback(NULL, progress_quiet);
+}
+
+GF_EXPORT
+Bool gf_sys_is_test_mode()
+{
+	return gpac_test_mode;
 }
 
 GF_EXPORT
@@ -765,6 +772,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				quiet = 2;
 			} else if (!strcmp(arg, "-noprog")) {
 				if (!quiet) quiet = 1;
+			} else if (!stricmp(arg, "-for-test")) {
+				gpac_test_mode = GF_TRUE;
 			} else if (gf_opts_load_option(arg, arg_val, &consumed, &e)) {
 				if (e) return e;
 				

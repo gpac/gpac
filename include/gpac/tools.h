@@ -800,6 +800,14 @@ const char *gf_sys_get_arg(u32 arg);
  */
 Bool gf_sys_enable_profiling(Bool start);
 
+/*!
+ *	\brief checks if test mode is enabled
+ *
+ *	Checks if test mode is enabled (no date nor GPAC version should be written).
+ *	\return GF_TRUE if test mode is enabled, GF_FALSE otherwise.
+ */
+Bool gf_sys_is_test_mode();
+
 
 /*!
  *	\brief System clock query

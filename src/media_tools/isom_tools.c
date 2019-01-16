@@ -3184,9 +3184,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	if (use_mfra)
 		strcat(szArgs, ":mfra");
 
-	if (gf_isom_drop_date_version_info_enabled(input))
-		strcat(szArgs, ":for_test");
-
 	f = gf_fs_load_destination(fsess, szArgs, NULL, NULL, &e);
 	if (!f) return e;
 

@@ -44,7 +44,7 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 				if (!strcmp(_free->data, GPAC_ISOM_CPRT_NOTICE_VERSION)) return GF_OK;
 				if (strstr(_free->data, GPAC_ISOM_CPRT_NOTICE)) {
 					gf_free(_free->data);
-					_free->data = gf_strdup(movie->drop_date_version_info ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
+					_free->data = gf_strdup(gf_sys_is_test_mode() ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
 					_free->dataSize = 1 + (u32) strlen(_free->data);
 					return GF_OK;
 				}
@@ -54,7 +54,7 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 	a = gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
 	if (!a) return GF_OUT_OF_MEM;
 	_free = (GF_FreeSpaceBox *)a;
-	_free->data = gf_strdup(movie->drop_date_version_info ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
+	_free->data = gf_strdup(gf_sys_is_test_mode() ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
 	_free->dataSize = (u32) strlen(_free->data) + 1;
 	if (!_free->data) return GF_OUT_OF_MEM;
 	return gf_list_add(movie->TopBoxes, _free);
@@ -1301,7 +1301,7 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 	memset(&mw, 0, sizeof(mw));
 	mw.movie = movie;
 
-	if (movie->drop_date_version_info && movie->moov) {
+	if (gf_sys_is_test_mode() && movie->moov) {
 		u32 i;
 		GF_TrackBox *trak;
 		movie->moov->mvhd->creationTime = 0;

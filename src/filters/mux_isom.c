@@ -140,7 +140,7 @@ typedef struct
 	Bool m4sys, dref;
 	GF_Fraction idur;
 	u32 pack3gp, ctmode;
-	Bool importer, pack_nal, for_test, moof_first, abs_offset, fsap, tfdt_traf;
+	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf;
 	u32 xps_inband;
 	u32 block_size;
 	u32 store, tktpl, mudta;
@@ -3079,8 +3079,6 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			return GF_BAD_PARAM;
 		}
 		ctx->owns_mov = GF_FALSE;
-		if (gf_isom_drop_date_version_info_enabled(ctx->file))
-			ctx->for_test = GF_TRUE;
 	} else {
 		u32 open_mode = GF_ISOM_OPEN_WRITE;
 		ctx->owns_mov = GF_TRUE;
@@ -3093,10 +3091,6 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		ctx->file = gf_isom_open("_gpac_isobmff_redirect", open_mode, ctx->tmpd);
 		if (!ctx->file) return GF_OUT_OF_MEM;
 		gf_isom_set_write_callback(ctx->file, mp4_mux_on_data, filter, ctx->block_size);
-
-		if (ctx->for_test)
-		    gf_isom_no_version_date_info(ctx->file, 1);
-
 
 		if (ctx->dref && (ctx->store>=MP4MX_MODE_FRAG)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use data reference in movie fragments, not supported. Ignoring it\n"));
@@ -3439,7 +3433,6 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(xps_inband), "Use inband param set for AVC/HEVC/.... If mix, creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|mix", 0},
 	{ OFFS(store), "Write mode. inter uses cdur to interleave the file. flat writes a flat file, file at end. cap flushes to disk as soon as samples are added. tight uses per-sample interleaving of all tracks. frag framents the file using cdur duration. sfrag framents the file using cdur duration but adjusting to start with SAP1/3.  ", GF_PROP_UINT, "inter", "inter|flat|cap|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(for_test), "sets all dates and version info to 0 to enforce same binary result generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(timescale), "timescale to use for movie edit lists", GF_PROP_UINT, "600", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(moof_first), "generates fragments starting with moof then mdat", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(abs_offset), "uses absolute file offset in fragments rather than offsets from moof", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

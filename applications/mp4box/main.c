@@ -131,7 +131,6 @@ void PrintGeneralUsage()
 	        "                       * Note: By default input (MP4,3GP) file is overwritten\n"
 	        " -tmp dirname         specifies directory for temporary file creation\n"
 	        "                       * Note: Default temp dir is OS-dependent\n"
-			" -for-test            disables all creation/modif dates and GPAC versions in files\n"
 			" -co64                forces usage of 64-bit chunk offsets for ISOBMF files\n"
 	        " -write-buffer SIZE   specifies write buffer in bytes for ISOBMF files\n"
 	        " -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
@@ -2025,7 +2024,6 @@ Bool frag_real_time = GF_FALSE;
 const char *dash_start_date=NULL;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
-Bool force_test_mode = GF_FALSE;
 Bool force_co64 = GF_FALSE;
 Bool live_scene = GF_FALSE;
 Bool use_mfra = GF_FALSE;
@@ -3362,9 +3360,6 @@ Bool mp4box_parse_args(int argc, char **argv)
 			CHECK_NEXT_ARG tmpdir = argv[i + 1];
 			i++;
 		}
-		else if (!stricmp(arg, "-for-test")) {
-			force_test_mode = GF_TRUE;
-		}
 		else if (!stricmp(arg, "-co64")) {
 			force_co64 = GF_TRUE;
 			open_edit = GF_TRUE;
@@ -3956,7 +3951,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "[DASH] Error: MPD creation problem %s\n", gf_error_to_string(e));
 			mp4box_cleanup(1);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE, force_test_mode);
+		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
 		if (!e)
 			gf_mpd_write_file(mpd, outfile);
 
@@ -4076,9 +4071,6 @@ int mp4boxMain(int argc, char **argv)
 		if (!file) {
 			fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 			return mp4box_cleanup(1);
-		}
-		if (force_test_mode) {
-			gf_isom_no_version_date_info(file, 1);
 		}
 
 		for (i=0; i<(u32) argc; i++) {
@@ -4336,7 +4328,6 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
-		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
@@ -4429,7 +4420,7 @@ int mp4boxMain(int argc, char **argv)
 
 		gf_dasher_del(dasher);
 
-		if (!run_for && dash_ctx_file && (do_abort==3) && (dyn_state_file) && !force_test_mode) {
+		if (!run_for && dash_ctx_file && (do_abort==3) && (dyn_state_file) && !gf_sys_is_test_mode() ) {
 			char szName[1024];
 			fprintf(stderr, "Enter file name to save dash context:\n");
 			if (scanf("%s", szName) == 1) {
@@ -4560,11 +4551,6 @@ int mp4boxMain(int argc, char **argv)
 	if (file && keep_utc && open_edit) {
 		gf_isom_keep_utc_times(file, 1);
 	}
-
-	if (file && force_test_mode) {
-		gf_isom_no_version_date_info(file, 1);
-	}
-
 
 	strcpy(outfile, outName ? outName : inName);
 	{
