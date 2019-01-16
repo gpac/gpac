@@ -1098,7 +1098,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp_extended) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp_decoding_dependency) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_au_with_sn) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_data) )
