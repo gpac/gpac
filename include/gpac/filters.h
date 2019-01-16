@@ -411,8 +411,9 @@ void gf_fs_print_connections(GF_FilterSession *session);
 
 /*! Prints all possible connections between filter registries to stderr
 \param session filter session
+\param filter_name if not null, only prints input connection for this filter registry
 */
-void gf_fs_print_all_connections(GF_FilterSession *session);
+void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name);
 
 /*! Checks the presence of an input capability and an output capability in a target registry. The caps are matched only if they belong to the same bundle.
 \param filter_reg filter registry to check
@@ -1358,6 +1359,8 @@ typedef enum
 	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing
 	e.g. nvdec wants annex B format, so that the weight of the reframer+decoder is the same as the weight of other decoders*/
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
+	/*! Usually set for filters acting as sources but without exposing an src argument. This prevents throwing warnings on arguments not handled by the filter*/
+	GF_FS_REG_ACT_AS_SOURCE = 1<<5,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000

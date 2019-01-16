@@ -766,7 +766,9 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
-			return gf_filter_new(fsess, f_reg, args, NULL, GF_FILTER_ARG_EXPLICIT, NULL);
+			GF_FilterArgType argtype = GF_FILTER_ARG_EXPLICIT;
+			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
+			return gf_filter_new(fsess, f_reg, args, NULL, argtype, NULL);
 		}
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
@@ -1825,7 +1827,7 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 }
 
 GF_EXPORT
-void gf_fs_print_all_connections(GF_FilterSession *session)
+void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
 {
 	GF_CapsBundleStore capstore;
 	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
@@ -1835,7 +1837,11 @@ void gf_fs_print_all_connections(GF_FilterSession *session)
 	for (i=0; i<count; i++) {
 		Bool first = GF_TRUE;
 		const GF_FilterRegister *src = gf_list_get(session->registry, i);
-		u32 src_bundle_count = gf_filter_caps_bundle_count(src->caps, src->nb_caps);
+		u32 src_bundle_count;
+
+		if (filter_name && strcmp(src->name, filter_name))
+			continue;
+		src_bundle_count = gf_filter_caps_bundle_count(src->caps, src->nb_caps);
 		if (!src_bundle_count) {
 			fprintf(stderr, "%s has no caps\n", src->name);
 			continue;

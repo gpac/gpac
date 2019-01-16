@@ -67,10 +67,12 @@ typedef struct
 	u32 is_wav;
 	u32 w, h, stride;
 	u64 nb_bytes;
+
+	GF_FilterCapability *frame_caps;
 } GF_GenDumpCtx;
 
 
-GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode;
 	const char *name, *mimetype;
@@ -376,7 +378,7 @@ GF_Err gendump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
-static GF_FilterPacket *gendump_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 data_size)
+static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 data_size)
 {
 	u32 size;
 	char *output;
@@ -433,7 +435,7 @@ typedef struct tagBITMAPINFOHEADER {
 
 #endif
 
-static GF_FilterPacket *gendump_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 data_size)
+static GF_FilterPacket *writegen_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 data_size)
 {
 	u32 size;
 	char *output;
@@ -479,7 +481,7 @@ static GF_FilterPacket *gendump_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 da
 	return dst_pck;
 }
 
-static void gendump_write_wav_header(GF_GenDumpCtx *ctx)
+static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 {
 	u32 size;
 	char *output;
@@ -534,7 +536,7 @@ static void gendump_write_wav_header(GF_GenDumpCtx *ctx)
 	gf_filter_pck_send(dst_pck);
 }
 
-GF_Err gendump_process(GF_Filter *filter)
+GF_Err writegen_process(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
@@ -546,7 +548,7 @@ GF_Err gendump_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			if (ctx->is_wav) gendump_write_wav_header(ctx);
+			if (ctx->is_wav) writegen_write_wav_header(ctx);
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
@@ -584,9 +586,9 @@ GF_Err gendump_process(GF_Filter *filter)
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	if (ctx->is_mj2k) {
-		dst_pck = gendump_write_j2k(ctx, data, pck_size);
+		dst_pck = writegen_write_j2k(ctx, data, pck_size);
 	} else if (ctx->is_bmp) {
-		dst_pck = gendump_write_bmp(ctx, data, pck_size);
+		dst_pck = writegen_write_bmp(ctx, data, pck_size);
 	} else if (ctx->is_wav && ctx->first) {
 		char * output;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, 44, &output);
@@ -887,12 +889,13 @@ static GF_FilterArgs GenDumpArgs[] =
 	{0}
 };
 
-static GF_Err gendump_initialize(GF_Filter *filter);
+static GF_Err writegen_initialize(GF_Filter *filter);
 
-void gendump_finalize(GF_Filter *filter)
+void writegen_finalize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
+	if (ctx->frame_caps) gf_free(ctx->frame_caps);
 }
 
 GF_FilterRegister GenDumpRegister = {
@@ -901,11 +904,11 @@ GF_FilterRegister GenDumpRegister = {
 	GF_FS_SET_HELP("The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any pid connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,
-	.initialize = gendump_initialize,
-	.finalize = gendump_finalize,
+	.initialize = writegen_initialize,
+	.finalize = writegen_finalize,
 	SETCAPS(GenDumpCaps),
-	.configure_pid = gendump_configure_pid,
-	.process = gendump_process
+	.configure_pid = writegen_configure_pid,
+	.process = writegen_process
 };
 
 static const GF_FilterCapability FrameDumpCaps[] =
@@ -913,17 +916,21 @@ static const GF_FilterCapability FrameDumpCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
-static GF_Err gendump_initialize(GF_Filter *filter)
+static GF_Err writegen_initialize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->frame) {
-		return gf_filter_override_caps(filter, (const GF_FilterCapability *)FrameDumpCaps, sizeof(FrameDumpCaps) / sizeof(GF_FilterCapability));
+		u32 nb_caps = 1 + sizeof(GenDumpCaps) / sizeof(GF_FilterCapability);
+		ctx->frame_caps = gf_malloc(sizeof(GF_FilterCapability) * nb_caps);
+		ctx->frame_caps[0] = FrameDumpCaps[0];
+		memcpy(&ctx->frame_caps[1], GenDumpCaps, sizeof(GF_FilterCapability) * (nb_caps-1) );
+		return gf_filter_override_caps(filter, ctx->frame_caps, nb_caps);
 	}
 	return GF_OK;
 }
 
 
-const GF_FilterRegister *gendump_register(GF_FilterSession *session)
+const GF_FilterRegister *writegen_register(GF_FilterSession *session)
 {
 
 	//assign runtime caps on first load
