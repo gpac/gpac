@@ -204,9 +204,9 @@ void gf_modules_new(GF_Config *config)
 	gpac_modules_static->no_unload = !gf_opts_get_bool("core", "mod-reload");
 
 	opt = gf_opts_get_key("core", "version");
-	if (!opt || strcmp(opt, GPAC_FULL_VERSION)) {
+	if (!opt || strcmp(opt, gf_gpac_version())) {
 		gf_cfg_del_section(config, "PluginsCache");
-		gf_opts_set_key("core", "version", GPAC_FULL_VERSION);
+		gf_opts_set_key("core", "version", gf_gpac_version());
 	}
 
 	gpac_modules_static->needs_load = GF_TRUE;

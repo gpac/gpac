@@ -22,7 +22,7 @@ SET XALAN="<xsl:value-of select = "$xalan_path"/>"
         <xsl:if test = "@type='svg'">
 IF NOT EXIST <xsl:value-of select = "@name"/>.mp4 MP4Box -mp4 <xsl:value-of select = "@name"/>.<xsl:value-of select = "@type"/>
             <xsl:if test = "snapshot">
-C:\Users\Cyril\sourceforge\gpac\bin\w32_deb\mp4client -bmp <xsl:for-each select = "snapshot"><xsl:value-of select = "@time"/>-</xsl:for-each> <xsl:text> </xsl:text> <xsl:value-of select = "@name"/>.mp4 -2d
+mp4client -bmp <xsl:for-each select = "snapshot"><xsl:value-of select = "@time"/>-</xsl:for-each> <xsl:text> </xsl:text> <xsl:value-of select = "@name"/>.mp4 -2d
             </xsl:if>
             <xsl:if test = "not(@generate-html) or @generate-html != 'false'">
 @echo Creating HTML for <xsl:value-of select = "@name"/>
@@ -34,7 +34,7 @@ IF NOT EXIST <xsl:value-of select = "@name"/>.html java -jar %XALAN% -IN <xsl:va
 IF NOT EXIST <xsl:value-of select = "@name"/>.mp4 MP4Box -mp4 <xsl:value-of select = "@name"/>.<xsl:value-of select = "@type"/>
 IF NOT EXIST <xsl:value-of select = "@name"/>.xmt MP4Box -xmt <xsl:value-of select = "@name"/>.<xsl:value-of select = "@type"/>
             <xsl:if test = "snapshot">
-C:\Users\Cyril\sourceforge\gpac\bin\w32_deb\mp4client -bmp <xsl:for-each select = "snapshot"><xsl:value-of select = "@time"/>-</xsl:for-each><xsl:text> </xsl:text><xsl:value-of select = "@name"/>.mp4<xsl:choose><xsl:when test = "@use3d = 'true'"> -3d</xsl:when><xsl:otherwise> -2d</xsl:otherwise></xsl:choose>
+mp4client -bmp <xsl:for-each select = "snapshot"><xsl:value-of select = "@time"/>-</xsl:for-each><xsl:text> </xsl:text><xsl:value-of select = "@name"/>.mp4<xsl:choose><xsl:when test = "@use3d = 'true'"> -3d</xsl:when><xsl:otherwise> -2d</xsl:otherwise></xsl:choose>
             </xsl:if>
             <xsl:if test = "not(@generate-html) or @generate-html != 'false'">
 @echo Creating HTML for <xsl:value-of select = "@name"/>

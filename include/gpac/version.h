@@ -49,8 +49,15 @@
 /*! ABI Micro number of libgpac */
 #define GPAC_VERSION_MICRO 0
 
-#include <gpac/revision.h>
-#define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
+/*! gets GPAC full version including GIT revision
+\return GPAC full version
+*/
+const char *gf_gpac_version();
+
+/*! gets GPAC copyright
+\return GPAC copyright
+*/
+const char *gf_gpac_copyright();
 
 /*! @} */
 

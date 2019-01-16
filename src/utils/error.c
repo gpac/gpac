@@ -722,7 +722,7 @@ u32 gf_crc_32(const char *data, u32 len)
 #define CHECK_MAC(_a) "#_a :" ? (_a) ? "yes":"no"
 
 GF_EXPORT
-const char *gpac_enabled_features()
+const char *gf_enabled_features()
 {
 	const char *features = ""
 #ifdef GPAC_CONFIG_WIN32
@@ -823,7 +823,7 @@ const char *gpac_enabled_features()
 }
 
 GF_EXPORT
-const char *gpac_disabled_features()
+const char *gf_disabled_features()
 {
 	const char *features = ""
 #ifdef GPAC_DISABLE_3D

@@ -2,7 +2,7 @@ Installation instructions for GPAC on windows platform
 last modified: May 2012
 
 0 Foreword
-	For any question on the installation procedure, please refer to http://gpac.sourceforge.net/home_download.php
+	For any question on the installation procedure, please refer to http://gpac.io/home_download.php
 
 	The output directory for all plugins and applications is
 		gpac/bin/win32/debug in debug mode

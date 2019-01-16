@@ -52,7 +52,9 @@
 
 #define SESSION_RETRY_COUNT	20
 
-#define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_FULL_VERSION
+#include <gpac/revision.h>
+#define GF_DOWNLOAD_AGENT_NAME		"GPAC/"GPAC_VERSION "-rev" GPAC_GIT_REVISION
+
 //let's be agressive with socket buffer size
 #define GF_DOWNLOAD_BUFFER_SIZE		131072
 

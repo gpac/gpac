@@ -20,7 +20,7 @@
 </ul>
 
 <p>Test sequences are provided in the BT format, and need MP4Box to be encoded or translated to XMT-A. 
-<br/>The GPAC Regression Tests are part of the <a href="../home_download.php">GPAC source code</a> and are also available on <a href="http://gpac.cvs.sourceforge.net/gpac/gpac/regression_tests">GPAC CVS</a>.</p>
+<br/>The GPAC Regression Tests are part of the <a href="../home_download.php">GPAC source code</a> and are also available on <a href="https://github.com/gpac/gpac/tests">GPAC GitHub</a>.</p>
 
 <!--
 					<h1 id="title">GPAC Non-regression Test Suite Navigator</h1>

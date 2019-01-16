@@ -744,7 +744,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (fName) fName += 1;
 				else fName = "?";
 
-				sprintf(szHName, "*%s@GPAC%s", fName, GPAC_FULL_VERSION);
+				sprintf(szHName, "*%s@GPAC%s", fName, gf_gpac_version() );
 				gf_isom_set_handler_name(import.dest, i+1, szHName);
 			}
 			if (handler) gf_isom_set_media_type(import.dest, i+1, handler);
@@ -881,7 +881,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (fName) fName += 1;
 				else fName = "?";
 
-				sprintf(szHName, "%s@GPAC%s", fName, GPAC_FULL_VERSION);
+				sprintf(szHName, "%s@GPAC%s", fName, gf_gpac_version());
 				gf_isom_set_handler_name(import.dest, track, szHName);
 			}
 			if (handler) gf_isom_set_media_type(import.dest, track, handler);

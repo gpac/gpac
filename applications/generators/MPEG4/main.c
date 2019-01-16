@@ -1634,7 +1634,7 @@ void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
 		        "</head>\n"\
 		        "<body>\n"\
 		        "<title>Node Coding Tables for BIFS Version %d group</title>\n"
-		        ,GPAC_FULL_VERSION, i+1, i+1);
+		        ,gf_gpac_version(), i+1, i+1);
 
 		for (j=0; j<nb_ndt; j++) {
 			u32 nb_in_ndt = 0;

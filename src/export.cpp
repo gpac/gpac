@@ -38,8 +38,6 @@
 #endif
 
 
-#pragma comment (linker, EXPORT_SYMBOL(gpac_enabled_features) )
-#pragma comment (linker, EXPORT_SYMBOL(gpac_disabled_features) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_close) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_args) )
@@ -47,6 +45,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_enable_profiling) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_test_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_version) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_copyright) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_enabled_features) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_disabled_features) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_sleep) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mkdir) )

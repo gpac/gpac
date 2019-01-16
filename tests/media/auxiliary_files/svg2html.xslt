@@ -69,7 +69,7 @@
                                 height = "100%"                                
                                 pluginspage = "http://tsi.enst.fr/~lefeuvre/GPAC/">
                                 <param name = "src" value = "{$filename}.svg"/>
-Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>
+Your browser does not have the GPAC plugin installed, visit http://gpac.io for more information ...</object>
                             <!--form name = "formname">
                                 <input type = "button" value = "Play/Pause" onclick = "document.player.Pause()"/>
                             </form-->

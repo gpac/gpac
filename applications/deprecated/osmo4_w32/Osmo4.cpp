@@ -654,7 +654,7 @@ BOOL CAboutDlg::OnInitDialog()
 
 void CAboutDlg::OnGogpac()
 {
-	ShellExecute(NULL, "open", "http://gpac.sourceforge.net", NULL, NULL, SW_SHOWNORMAL);
+	ShellExecute(NULL, "open", "http://gpac.io", NULL, NULL, SW_SHOWNORMAL);
 }
 
 /////////////////////////////////////////////////////////////////////////////

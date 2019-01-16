@@ -150,10 +150,10 @@ static void usage()
 	        "-h or -help            print this screen\n"
 	        "-hc                    print libgpac options\n"
 	        "\n"
-			"GPAC version " GPAC_FULL_VERSION "\n"
+			"GPAC version %s\n"
 	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s %s\n\n", gpac_enabled_features(), gpac_disabled_features()
+	        "Features: %s %s\n\n", gf_gpac_version(), gf_enabled_features(), gf_disabled_features()
 	       );
 }
 

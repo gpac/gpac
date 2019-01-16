@@ -36,7 +36,7 @@ InitialObjectDescriptor {
 	 #GPAC DOES NOT support alternativeTools and ParametricDescription in IPMP_Tool yet !!
 	 IPMP_Tool {
 		IPMP_ToolID	128
-		ToolURL "http://gpac.sourceforge.net/ipmp/tools/gpac_decrypt"
+		ToolURL "http://gpac.io/ipmp/tools/gpac_decrypt"
 	 }
   ]
  }

@@ -165,7 +165,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	if (gf_sys_is_test_mode()) {
 		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC - http://gpac.io");
 	} else {
-		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC " GPAC_FULL_VERSION " - http://gpac.io");
+		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC %s - %s", gf_gpac_version(), gf_gpac_copyright() );
 	}
 	fprintf(sdp_out, "%s\n", sdpLine);
 
@@ -282,7 +282,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, fsize, &output);
 	if (pck) {
 		gf_fseek(sdp_out, 0, SEEK_SET);
-		u32 read = fread(output, 1, fsize, sdp_out);
+		u32 read = (u32) fread(output, 1, fsize, sdp_out);
 		if (read != fsize) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Failed to read SDP from temp file, got %d bytes but expecting %d\n", read, fsize));
 			gf_filter_pck_discard(pck);
@@ -913,11 +913,6 @@ static GF_Err rtpout_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static Bool rtpout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
-{
-	return GF_OK;
-}
-
 static const GF_FilterCapability RTPOutCaps[] =
 {
 	//anything else (not file and framed) result in manifest PID
@@ -969,8 +964,7 @@ GF_FilterRegister RTPOutRegister = {
 	.finalize = rtpout_finalize,
 	SETCAPS(RTPOutCaps),
 	.configure_pid = rtpout_configure_pid,
-	.process = rtpout_process,
-	.process_event = rtpout_process_event,
+	.process = rtpout_process
 };
 
 

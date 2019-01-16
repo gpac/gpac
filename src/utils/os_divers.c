@@ -77,6 +77,23 @@ static u64 sys_start_time_hr = 0;
 #endif
 
 
+#include <gpac/revision.h>
+#define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
+#define GPAC_COPYRIGHT       "(c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io"
+
+GF_EXPORT
+const char *gf_gpac_version()
+{
+	return GPAC_FULL_VERSION;
+}
+
+GF_EXPORT
+const char *gf_gpac_copyright()
+{
+	return GPAC_COPYRIGHT;
+}
+
+
 #ifndef WIN32
 
 GF_EXPORT

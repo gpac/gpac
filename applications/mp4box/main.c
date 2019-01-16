@@ -104,10 +104,10 @@ u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
 
 void PrintVersion()
 {
-	fprintf(stderr, "MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
-	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
+	fprintf(stderr, "MP4Box - GPAC version %s\n"
+	        "%s\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
-	        "Features: %s %s\n", gpac_enabled_features(), gpac_disabled_features());
+	        "Features: %s %s\n", gf_gpac_version(), gf_gpac_copyright(), gf_enabled_features(), gf_disabled_features());
 }
 
 void PrintGeneralUsage()
@@ -3751,8 +3751,8 @@ int mp4boxMain(int argc, char **argv)
 	gf_sys_init(mem_track, NULL);
 	if (argc < 2) {
 		fprintf(stderr, "Not enough arguments - check usage with -h\n"
-			"MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
-	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n");
+			"MP4Box - GPAC version %s\n"
+	        "%s\n", gf_gpac_version(), gf_gpac_copyright());
 		gf_sys_close();
 		return 0;
 	}

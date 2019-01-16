@@ -11,7 +11,7 @@ data 'LPic' (5000) {
 
 data 'TEXT' (5002, "English") {
     "Copyright (c) 2003, 2011 Telecom ParisTech. All rights reserved.\n"
-    "For more information, visit <http://gpac.sourceforge.net>\n"
+    "For more information, visit <http://gpac.io>\n"
     "\n"
 	"This software package includes many Multimedia Technologies. Some of these technologies may be covered by various patents hard to identify. These patents may or may not apply in your local jurisdiction.\n"
     "\n"
