@@ -294,8 +294,16 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	}
 
 	if (ctx->w && ctx->h) {
-		sprintf(nhml, "width=\"%d\" height=\"%d\" ", ctx->w, ctx->h);
-		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		//compatibility with old arch, we might want to remove this
+		switch (ctx->streamtype) {
+		case GF_STREAM_VISUAL:
+		case GF_STREAM_SCENE:
+			sprintf(nhml, "width=\"%d\" height=\"%d\" ", ctx->w, ctx->h);
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+			break;
+		default:
+			break;
+		}
 	}
 	else if (ctx->sr && ctx->chan) {
 		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
