@@ -3033,7 +3033,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 #if !defined(GPAC_DISABLE_STREAMING)
 		else if (!stricmp(arg, "-grab-ts")) {
 			fprintf(stderr, "Deprecated option - use gpac application\n");
-			return mp4box_cleanup(1);
+			return mp4box_cleanup(2);
 		}
 #endif
 #ifndef GPAC_DISABLE_ATSC
@@ -3142,7 +3142,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		else if (!stricmp(arg, "-rtp")) {
 			fprintf(stderr, "Deprecated option - use gpac application\n");
-			return mp4box_cleanup(1);
+			return mp4box_cleanup(2);
 		}
 		else if (!stricmp(arg, "-live")) {
 			live_scene = GF_TRUE;
