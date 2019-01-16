@@ -68,7 +68,6 @@ typedef struct
 	u32 w, h, stride;
 	u64 nb_bytes;
 
-	GF_FilterCapability *frame_caps;
 } GF_GenDumpCtx;
 
 
@@ -895,7 +894,6 @@ void writegen_finalize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->frame_caps) gf_free(ctx->frame_caps);
 }
 
 GF_FilterRegister GenDumpRegister = {
@@ -914,17 +912,15 @@ GF_FilterRegister GenDumpRegister = {
 static const GF_FilterCapability FrameDumpCaps[] =
 {
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN)
 };
 
 static GF_Err writegen_initialize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->frame) {
-		u32 nb_caps = 1 + sizeof(GenDumpCaps) / sizeof(GF_FilterCapability);
-		ctx->frame_caps = gf_malloc(sizeof(GF_FilterCapability) * nb_caps);
-		ctx->frame_caps[0] = FrameDumpCaps[0];
-		memcpy(&ctx->frame_caps[1], GenDumpCaps, sizeof(GF_FilterCapability) * (nb_caps-1) );
-		return gf_filter_override_caps(filter, ctx->frame_caps, nb_caps);
+		return gf_filter_override_caps(filter, (const GF_FilterCapability *) FrameDumpCaps, sizeof(FrameDumpCaps) / sizeof(GF_FilterCapability));
 	}
 	return GF_OK;
 }
