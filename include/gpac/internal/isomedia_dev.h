@@ -3349,7 +3349,7 @@ struct __tag_isom {
 	u8 is_jp2;
 	u8 force_co64;
 
-	Bool keep_utc, drop_date_version_info;
+	Bool keep_utc;
 	/*main boxes for fast access*/
 	/*moov*/
 	GF_MovieBox *moov;

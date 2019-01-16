@@ -950,7 +950,7 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 	//Header SetUp
 	mvhd = (GF_MovieHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVHD);
 
-	if (file->drop_date_version_info) {
+	if (gf_sys_is_test_mode() ) {
 		mvhd->creationTime = mvhd->modificationTime = 0;
 	} else {
 		u64 now = gf_isom_get_mp4time();

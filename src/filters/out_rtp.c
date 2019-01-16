@@ -142,7 +142,14 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	if (ctx->info) {
 		sprintf(sdpLine, "i=%s", ctx->info);
 	} else {
-		sprintf(sdpLine, "i=GPAC version " GPAC_FULL_VERSION);
+		GF_RTPOutStream *stream = gf_list_get(ctx->streams, 0);
+		const char *src = gf_filter_pid_orig_src_args(stream->pid);
+		if (!src) src = gf_filter_pid_get_source_filter_name(stream->pid);
+		else {
+			src = gf_file_basename(src);
+		}
+		if (src)
+			sprintf(sdpLine, "i=%s", src);
 	}
 	fprintf(sdp_out, "%s\n", sdpLine);
 	sprintf(sdpLine, "u=%s", ctx->url ? ctx->url : "http://gpac.io");
@@ -155,7 +162,11 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	fprintf(sdp_out, "%s\n", sdpLine);
 	sprintf(sdpLine, "t=0 0");
 	fprintf(sdp_out, "%s\n", sdpLine);
-	sprintf(sdpLine, "a=x-copyright: Streamed with GPAC " GPAC_FULL_VERSION " (C)2000-2019 - http://gpac.io");
+	if (gf_sys_is_test_mode()) {
+		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC - http://gpac.io");
+	} else {
+		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC " GPAC_FULL_VERSION " - http://gpac.io");
+	}
 	fprintf(sdp_out, "%s\n", sdpLine);
 
 	if (ctx->base_pid_id)
@@ -184,6 +195,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 		u32 dsi_enh_len = 0;
         const GF_PropertyValue *p;
 		GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+		if (!stream->rtp) continue;
 
 		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DECODER_CONFIG);
 		if (p && p->value.data.ptr) {
@@ -415,6 +427,16 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CONFIG_IDX);
 	stream->sample_desc_index = p ? p->value.uint : 0;
 
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+	}
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("sdp") );
+
+
 	u32 cfg_crc=0;
 	dsi = NULL;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
@@ -423,7 +445,8 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		dsi_len = p->value.data.size;
 		cfg_crc = gf_crc_32(dsi, dsi_len);
 	}
-	if (cfg_crc==stream->cfg_crc) return GF_OK;
+	if (stream->rtp && (cfg_crc==stream->cfg_crc))
+		return GF_OK;
 
 	if (stream->cfg_crc)
 		stream->inject_ps = GF_TRUE;
@@ -565,15 +588,6 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_rtp_streamer_disable_auto_rtcp(stream->rtp);
 	}
 
-	if (!ctx->opid) {
-		ctx->opid = gf_filter_pid_new(filter);
-	}
-	gf_filter_pid_copy_properties(ctx->opid, pid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("sdp") );
-
 	if (ctx->loop) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
 		if (!p || (p->value.uint<GF_PLAYBACK_MODE_SEEK)) {
@@ -702,6 +716,7 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		ctx->active_min_ts_microsec = (u64) -1;
 		for (i=0; i<count; i++) {
 			stream = gf_list_get(ctx->streams, i);
+			if (!stream->rtp) continue;
 
 			/*load next AU*/
 			if (!stream->pck) {

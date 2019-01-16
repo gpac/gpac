@@ -80,7 +80,7 @@ typedef struct
 	char *cues;
 	char *title, *source, *info, *cprt, *lang;
 	GF_List *location, *base;
-	Bool for_test, check_dur, skip_seg, loop;
+	Bool check_dur, skip_seg, loop;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool m2ts;
@@ -742,9 +742,6 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 		ctx->mpd->min_buffer_time = (u32) ( ctx->dur*10 * buf ); //*1000 (ms) / 100 (percent)
 	}
 	else ctx->mpd->min_buffer_time = ctx->buf;
-
-	if (ctx->for_test)
-		ctx->mpd->force_test_mode = GF_TRUE;
 
 	GF_SAFEALLOC(info, GF_MPD_ProgramInfo);
 	gf_list_add(ctx->mpd->program_infos, info);
@@ -1749,7 +1746,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	strcat(szDST, szSRC);
 
 	//patch for old arch: make sure we don't have any extra free box after the sidx
-	if (ctx->for_test && ctx->sseg) {
+	if (gf_sys_is_test_mode() && ctx->sseg) {
 		sprintf(szSRC, "%ccache", sep_args );
 		strcat(szDST, szSRC);
 	}
@@ -2255,7 +2252,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		//patch for old arch, override template name for init segment UGLY, to remove asap
-		if (ctx->for_test && ds->tile_base && !ctx->sseg && !ctx->sfile ) {
+		if (gf_sys_is_test_mode() && ds->tile_base && !ctx->sseg && !ctx->sfile ) {
 			char *sep;
 			char szTemp[100];
 			const char *out_path = gf_file_basename(ctx->out_path);
@@ -2633,7 +2630,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	//UGLY PATCH, to remove - we don't have the same algos in old arch and new arch, which result in slightly different max segment duration
 	//on audio for our test suite - patch it manually to avoid hash failures :(
 	//TODO, remove as soon as we switch archs
-	if (ctx->for_test && (ctx->mpd->max_segment_duration==1022) && (ctx->mpd->media_presentation_duration==10160) ) {
+	if (gf_sys_is_test_mode() && (ctx->mpd->max_segment_duration==1022) && (ctx->mpd->media_presentation_duration==10160) ) {
 		ctx->mpd->max_segment_duration = 1080;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] patch for old regression tests hit, changing max seg dur from 1022 to 1080\nPlease notify GPAC devs to remove this, and do not use fot_test modes in dash filter\n"));
 	}
@@ -2955,9 +2952,8 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 	ctx->mpd = gf_mpd_new();
 	e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), ctx->mpd, ctx->state);
 	gf_xml_dom_del(mpd_parser);
-	if (ctx->for_test) {
+	if (gf_sys_is_test_mode()) {
 		u32 i, count;
-		ctx->mpd->force_test_mode = GF_TRUE;
 
 		count = gf_list_count(ctx->mpd->program_infos);
 		for (i=0; i<count; i++) {
@@ -5102,7 +5098,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				url->media_range->end_range = evt->seg_size.media_range_end;
 			}
 			//patch in test mode, old arch was not generating the index size for segment lists
-			if (evt->seg_size.idx_range_end && (!ctx->for_test || ctx->sfile) ) {
+			if (evt->seg_size.idx_range_end && (!gf_sys_is_test_mode() || ctx->sfile) ) {
 				GF_SAFEALLOC(url->index_range, GF_MPD_ByteRange);
 				url->index_range->start_range = evt->seg_size.idx_range_start;
 				url->index_range->end_range = evt->seg_size.idx_range_end;
@@ -5324,7 +5320,6 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ntp), "Inserts/overrides NTP clock at the begining of each segment. rem removes NTP from all input packets. yes inserts NTP at each segment start. keep leaves input packet NTP untouched.", GF_PROP_UINT, "rem", "rem|yes|keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_sar), "Does not check for identical sample aspect ratio for adaptation sets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(m2ts), "generates MPEG-2 TS output", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(for_test), "sets all dates and version info to 0 to enforce same binary result generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(forcep), "forces profile string for avc/hevc/aac", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(bs_switch), "Bitstream switching mode (single init segment):\n\tdef: resolves to off for onDemand and inband for live\n\toff: disables BS switching\n\ton: enables it if same decoder configuration is possible\n\tinband: moves decoder config inband if possible\n\tforce: enables it even if only one representation\n\tmulti: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|force|multi", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(avcp), "AVC|H264 profile to use if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},

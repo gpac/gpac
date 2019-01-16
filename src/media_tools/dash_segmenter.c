@@ -85,9 +85,6 @@ struct __gf_dash_segmenter
 
 	const char *dash_profile_extension;
 
-	/*If true, disable generation date printing in mpd headers*/
-	Bool force_test_mode;
-
 	GF_DASH_ContentLocationMode cp_location_mode;
 
 	Bool no_cache;
@@ -204,12 +201,6 @@ GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const cha
 	DOSET(moreInfoURL)
 	DOSET(sourceInfo);
 	DOSET(lang);
-	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
-	dasher->force_test_mode=forceTestMode;
 	return GF_OK;
 }
 
@@ -549,7 +540,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->enable_mix_codecs) { APPEND_ARG("mix_codecs") }
 	if (dasher->insert_utc) { APPEND_ARG("ntp=yes") }
 	if (dasher->enable_sar_mix) { APPEND_ARG("no_sar") }
-	if (dasher->force_test_mode) { APPEND_ARG("for_test") }
 	//forcep not mapped
 	switch (dasher->bitstream_switching_mode) {
 	case GF_DASH_BSMODE_DEFAULT:

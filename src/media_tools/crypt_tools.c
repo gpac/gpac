@@ -404,8 +404,6 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	}
 
 	sprintf(szArgs, "SID=1:cdur=%g", interleave_time);
-	if (gf_isom_drop_date_version_info_enabled(mp4))
-		strcat(szArgs, ":for_test");
 
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
 	if (!dst) {
@@ -455,8 +453,6 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 	}
 
 	sprintf(szArgs, "SID=1:cdur=%g", interleave_time);
-	if (gf_isom_drop_date_version_info_enabled(mp4))
-		strcat(szArgs, ":for_test");
 		
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
 	if (!dst) {
