@@ -1085,7 +1085,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	}
     //xtended attribute for copyright
     if (gf_isom_drop_date_version_info_enabled(file)) {
-        sprintf(buf64, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (C)2000-2016 - http://gpac.io");
+        sprintf(buf64, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)");
     } else {
         sprintf(buf64, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC " GPAC_FULL_VERSION " (C)2000-2016 - http://gpac.io");
     }
