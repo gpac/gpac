@@ -1386,7 +1386,7 @@ AboutDlg::AboutDlg(wxWindow *parent)
 	Centre();
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_info = new wxStaticText(this, -1, wxT("http://gpac.sourceforge.net"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+	m_info = new wxStaticText(this, -1, wxT("http://gpac.io"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
 	sizer->Add(m_info, 1, wxEXPAND|wxADJUST_MINSIZE, 0);
 	m_close = new wxButton(this, ID_ABOUT_CLOSE, wxT("Close"), wxDefaultPosition, wxSize(120, 20));
 	sizer->Add(m_close, 0, wxEXPAND, 0);
@@ -1403,7 +1403,7 @@ AboutDlg::AboutDlg(wxWindow *parent)
 	    wxT("Authors: Jean Le Feuvre\n")
 	    wxT("(c) Telecom ParisTech 2005-2012\n")
 	    wxT("All Rights Reserved\n")
-	    wxT("http://gpac.sourceforge.net\n")
+	    wxT("http://gpac.io\n")
 	    wxT("\n")
 	    wxT(" ** With Many Thanks To ** \n\n")
 	    wxT("Mozilla SpiderMonkey (JavaScript)\n")

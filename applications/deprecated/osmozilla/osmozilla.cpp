@@ -304,7 +304,7 @@ int Osmozilla_SetWindow(Osmozilla *osmo, void *os_wnd_handle, void *os_wnd_displ
 
 char *Osmozilla_GetVersion()
 {
-	return (char *) "GPAC Plugin " GPAC_FULL_VERSION " for NPAPI compatible Web Browsers. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
+	return (char *) "GPAC Plugin " GPAC_FULL_VERSION " for NPAPI compatible Web Browsers. For more information go to <a href=\"http://gpac.io\">GPAC website</a>";
 }
 
 void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)

@@ -71,7 +71,7 @@
                                 style="max-width: 100%; max-height: 100%;">
                                 <param name = "src" value = "{$filename}.mp4"/>
                                 <xsl:if test = "$use3d"><param name = "use3d" value = "true"/></xsl:if>
-Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>
+Your browser does not have the GPAC plugin installed, visit http://gpac.io for more information ...</object>
                             <!--form name = "formname">
                                 <input type = "button" value = "Play/Pause" onclick = "document.player.Pause()"/>
                             </form-->

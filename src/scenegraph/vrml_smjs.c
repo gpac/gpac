@@ -625,7 +625,7 @@ static JSBool SMJS_FUNCTION(getName)
 
 static JSBool SMJS_FUNCTION(getVersion)
 {
-	JSString *s = JS_NewStringCopyZ(c, GPAC_FULL_VERSION);
+	JSString *s = JS_NewStringCopyZ(c, gf_gpac_version());
 	if (!s) return JS_FALSE;
 	SMJS_SET_RVAL( STRING_TO_JSVAL(s) );
 	return JS_TRUE;

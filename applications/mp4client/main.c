@@ -241,12 +241,14 @@ void PrintUsage()
 	        "\t-h or -help:   shows this screen\n"
 	        "\t-hc:           shows libgpac core options\n"
 	        "\n"
-	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
-	        "(c) Telecom ParisTech 2000-2018 - Licence LGPL v2\n"
+	        "MP4Client - GPAC command line player and dumper - version %s\n"
+	        "%s\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s %s\n",
 	        GF_IMPORT_DEFAULT_FPS,
-	        gpac_enabled_features(), gpac_disabled_features()
+	        gf_gpac_version(),
+	        gf_gpac_copyright(),
+	        gf_enabled_features(), gf_disabled_features()
 	       );
 }
 
@@ -311,9 +313,9 @@ void PrintHelp()
 	        "\tM: specifies video cache memory for 2D objects\n"
 	        "\n"
 	        "MP4Client - GPAC command line player - version %s\n"
-	        "GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
+	        "%s\n",
 
-	        GPAC_FULL_VERSION
+	        gf_gpac_version(), gf_gpac_copyright()
 	       );
 }
 
@@ -379,6 +381,9 @@ static void UpdateRTInfo(const char *legend)
 	}
 }
 
+#include <gpac/revision.h>
+#define MP4CLIENT_CAPTION	"GPAC MP4Client "GPAC_VERSION "-rev" GPAC_GIT_REVISION
+
 static void ResetCaption()
 {
 	GF_Event event;
@@ -426,7 +431,7 @@ static void ResetCaption()
 			event.caption.caption = str ? str+1 : the_url;
 		}
 	} else {
-		event.caption.caption = "GPAC MP4Client " GPAC_FULL_VERSION;
+		event.caption.caption = MP4CLIENT_CAPTION;
 	}
 	gf_term_user_event(term, &event);
 }
@@ -1547,7 +1552,7 @@ int mp4client_main(int argc, char **argv)
 		fprintf(stderr, "Hit 'h' for help\n\n");
 		str = gf_opts_get_key("General", "StartupFile");
 		if (str) {
-			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+			sprintf(the_url, "MP4Client %s", gf_gpac_version() );
 			gf_term_connect(term, str);
 			startup_file = 1;
 			is_connected = 1;

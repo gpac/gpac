@@ -79,8 +79,8 @@ void PrintLiveUsage()
 	        "F:         forces RAP regeneration and sending\n"
 	        "p:         dumps current scene\n"
 	        "\n"
-	        "GPAC version: " GPAC_FULL_VERSION "\n"
-	        "");
+	        "GPAC version: %s\n"
+	        , gf_gpac_version());
 }
 typedef struct
 {

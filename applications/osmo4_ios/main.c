@@ -164,7 +164,7 @@ static void ResetCaption()
 #endif
 
 	} else {
-		event.caption.caption = "GPAC MP4Client " GPAC_FULL_VERSION;
+		event.caption.caption = "GPAC MP4Client " GPAC_VERSION;
 	}
 	gf_term_user_event(term, &event);
 }
@@ -631,8 +631,9 @@ int main (int argc, char *argv[])
 	} else {
 		str = gf_opts_get_key("General", "StartupFile");
 		if (str) {
-			if (!url_arg)
-				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+			if (!url_arg) {
+				sprintf(the_url, "MP4Client %s", gf_gpac_version() );
+			}
 			gf_term_connect(term, str);
 			startup_file = 1;
 		}

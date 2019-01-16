@@ -55,7 +55,7 @@ OrderedGroup {
    url ["javascript: 
     function act(value, timestamp) {
      if (!value) return; 
-     str = new MFString('http://gpac.sourceforge.net'); 
+     str = new MFString('http://gpac.io'); 
      Browser.loadURL(str) ;
     }
     "   ]

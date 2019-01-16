@@ -283,7 +283,7 @@ static void gf_dump_setup(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			fprintf(sdump->trace, "<!DOCTYPE X3D PUBLIC \"ISO//Web3D//DTD X3D 3.0//EN\" \"http://www.web3d.org/specifications/x3d-3.0.dtd\">\n");
 			fprintf(sdump->trace, "<X3D xmlns:xsd=\"http://www.w3.org/2001/XMLSchema-instance\" xsd:noNamespaceSchemaLocation=\"http://www.web3d.org/specifications/x3d-3.0.xsd\" version=\"3.0\">\n");
 			fprintf(sdump->trace, "<head>\n");
-			fprintf(sdump->trace, "<meta content=\"X3D File Converted/Dumped by GPAC Version %s\" name=\"generator\"/>\n", GPAC_FULL_VERSION);
+			fprintf(sdump->trace, "<meta content=\"X3D File Converted/Dumped by GPAC Version %s - %s\" name=\"generator\"/>\n", gf_gpac_version(), gf_gpac_copyright() );
 			fprintf(sdump->trace, "</head>\n");
 			fprintf(sdump->trace, " <Scene>\n");
 		} else {

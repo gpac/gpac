@@ -487,9 +487,7 @@ static void gpac_usage(GF_SysArgMode argmode)
 			gpac_alias_help(GF_ARGMODE_BASE);
 		}
 
-		fprintf(stderr, "\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"
-	        "Written by Jean Le Feuvre (c) Telecom ParisTech 2017-2018\n"
-		);
+		fprintf(stderr, "\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright() );
 	}
 }
 
@@ -694,10 +692,10 @@ static int gpac_main(int argc, char **argv)
 				i++;
 			} else if (!strcmp(argv[i+1], "bin")) {
 				fprintf(stderr, "GPAC binary information:\n"\
-				 	"Version "GPAC_FULL_VERSION"\n"\
+				 	"Version: %s\n"\
 	        		"Compilation configuration: " GPAC_CONFIGURATION "\n"\
 	        		"Enabled features: %s\n" \
-	        		"Disabled features: %s\n", gpac_enabled_features(), gpac_disabled_features()
+	        		"Disabled features: %s\n", gf_gpac_version(), gf_enabled_features(), gf_disabled_features()
 				);
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "filters")) {
@@ -905,7 +903,7 @@ restart:
 	}
 	if (!gf_list_count(loaded_filters)) {
 		if (nothing_to_do) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version "GPAC_FULL_VERSION"\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version %s\n", gf_gpac_version()));
 			e = GF_BAD_PARAM;
 		} else {
 			e = GF_EOS;

@@ -417,8 +417,8 @@ void GF_UPnP::Load(GF_Terminal *term)
 
 		PLT_DeviceHostReference device(m_pMediaRenderer );
 		device->m_ModelDescription = "GPAC Media Renderer";
-		device->m_ModelURL = "http://gpac.sourceforge.net";
-		device->m_ModelNumber = GPAC_FULL_VERSION;
+		device->m_ModelURL = "http://gpac.io";
+		device->m_ModelNumber = gf_gpac_version();
 		device->m_ModelName = "GPAC Media Renderer";
 		device->m_Manufacturer = "Telecom ParisTech";
 		device->m_ManufacturerURL = "http://www.telecom-paristech.fr/";
@@ -476,8 +476,8 @@ void GF_UPnP::Load(GF_Terminal *term)
 		}
 		PLT_DeviceHostReference device(m_pMediaServer);
 		device->m_ModelDescription = "GPAC Media Server";
-		device->m_ModelURL = "http://gpac.sourceforge.net";
-		device->m_ModelNumber = GPAC_FULL_VERSION;
+		device->m_ModelURL = "http://gpac.io";
+		device->m_ModelNumber = gf_gpac_version();
 		device->m_ModelName = "GPAC Media Server";
 		device->m_Manufacturer = "Telecom ParisTech";
 		device->m_ManufacturerURL = "http://www.telecom-paristech.fr/";
@@ -1387,13 +1387,13 @@ static JSBool SMJS_FUNCTION(upnp_device_start)
 	str = NULL;
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "ModelURL", &sval) && JSVAL_IS_STRING(sval))
 		str = SMJS_CHARS(c, sval);
-	device->m_ModelURL = str ? str : "http://gpac.sourceforge.net";
+	device->m_ModelURL = str ? str : "http://gpac.io";
 	SMJS_FREE(c, str);
 
 	str = NULL;
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "ModelNumber", &sval) && JSVAL_IS_STRING(sval))
 		str = SMJS_CHARS(c, sval);
-	device->m_ModelNumber = str ? str : GPAC_FULL_VERSION;
+	device->m_ModelNumber = str ? str : gf_gpac_version();
 	SMJS_FREE(c, str);
 
 	str = NULL;

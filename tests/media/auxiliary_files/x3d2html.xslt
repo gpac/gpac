@@ -61,7 +61,7 @@
 	                            pluginspage = "http://tsi.enst.fr/~lefeuvre/GPAC/">
 	                            <param name = "src" value = "{$filename}.x3d"/>
 	                            <param name = "use3d" value = "true"/>
-Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>	                        
+Your browser does not have the GPAC plugin installed, visit http://gpac.io for more information ...</object>	                        
                           <!--form name = "formname">
                                 <input type = "button" value = "Play/Pause" onclick = "document.player.Pause()"/>
 	                        </form-->

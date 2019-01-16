@@ -32,9 +32,6 @@
 #include <gpac/internal/avilib.h>
 
 
-#define PACKAGE "GPAC/avilib"
-#define VERSION GPAC_FULL_VERSION
-
 #define INFO_LIST
 
 // add a new riff chunk after XX MB
@@ -1442,8 +1439,11 @@ static int avi_close_output_file(avi_t *AVI)
 	OUT4CC ("ISFT");
 	//OUTLONG(MAX_INFO_STRLEN);
 	memset(id_str, 0, MAX_INFO_STRLEN);
-
-	snprintf(id_str, MAX_INFO_STRLEN, "%s-%s", PACKAGE, VERSION);
+	if (gf_sys_is_test_mode()) {
+		snprintf(id_str, MAX_INFO_STRLEN, "GPAC/avilib");
+	} else {
+		snprintf(id_str, MAX_INFO_STRLEN, "GPAC/avilib-%s", gf_gpac_version());
+	}
 	real_id_len = id_len = (u32) strlen(id_str)+1;
 	if (id_len&1) id_len++;
 

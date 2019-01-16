@@ -6,7 +6,7 @@ Release: 0.7.2-DEV
 License: LGPL
 Group: Applications/Multimedia
 Source0: gpac-0.7.2-DEV.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip}
-URL: http://gpac.sourceforge.net/
+URL: http://gpac.io/
 BuildRoot: %{_tmppath}/%{name}-root
 Requires: SDL
 %{!?_without_js:Requires: js}

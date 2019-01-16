@@ -94,14 +94,14 @@ extern "C" {
  *
  *	returns the list of features enabled in this GPAC build.
 */
-const char *gpac_enabled_features(void);
+const char *gf_enabled_features(void);
 
 /*!
  *	\brief GPAC disabled feature list
  *
  *	returns the list of features disabled in this GPAC build.
 */
-const char *gpac_disabled_features(void);
+const char *gf_disabled_features(void);
 
 /*!
  *	\brief 4CC Printing

@@ -2099,12 +2099,12 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
 	((M_WorldInfo *)n)->title.buffer = gf_strdup("GPAC SWF CONVERTION DISCLAIMER");
-	gf_sg_vrml_mf_alloc( & ((M_WorldInfo *)n)->info, GF_SG_VRML_MFSTRING, 3);
+	gf_sg_vrml_mf_alloc( & ((M_WorldInfo *)n)->info, GF_SG_VRML_MFSTRING, 2);
 
 	sprintf(szMsg, "%s file converted to MPEG-4 Systems", read->load->fileName);
 	((M_WorldInfo *)n)->info.vals[0] = gf_strdup(szMsg);
-	((M_WorldInfo *)n)->info.vals[1] = gf_strdup("Conversion done using GPAC version " GPAC_FULL_VERSION " - (C) 2000-2005 GPAC");
-	((M_WorldInfo *)n)->info.vals[2] = gf_strdup("Macromedia SWF to MPEG-4 Conversion mapping released under GPL license");
+	sprintf(szMsg, "Conversion done using GPAC version %s - %s", gf_gpac_version(), gf_gpac_copyright() );
+	((M_WorldInfo *)n)->info.vals[1] = gf_strdup(szMsg);
 
 	/*background*/
 	n = s2b_new_node(read, TAG_MPEG4_Background2D);
