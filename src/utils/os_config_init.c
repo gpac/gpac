@@ -797,6 +797,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 	return cfg;
 }
 
+
 GF_EXPORT
 Bool gf_get_default_shared_directory(char *path_buffer)
 {
@@ -827,6 +828,33 @@ void gf_uninit_global_config()
 		gf_cfg_del(gpac_global_config);
 		gpac_global_config = NULL;
 		gf_modules_del();
+	}
+}
+
+void gf_cfg_load_restrict()
+{
+	char szPath[GF_MAX_PATH];
+	if (get_default_install_path(szPath, GF_PATH_SHARE)) {
+		strcat(szPath, "/");
+		strcat(szPath, "restrict.cfg");
+		if (gf_file_exists(szPath)) {
+			GF_Config *rcfg = gf_cfg_new(NULL, szPath);
+			if (rcfg) {
+				u32 i, count = gf_cfg_get_section_count(rcfg);
+				for (i=0; i<count; i++) {
+					u32 j, kcount;
+					const char *sname = gf_cfg_get_section_name(rcfg, i);
+					if (!sname) break;
+					kcount = gf_cfg_get_key_count(rcfg, sname);
+					for (j=0; j<kcount; j++) {
+						const char *kname = gf_cfg_get_key_name(rcfg, sname, j);
+						const char *kval = gf_cfg_get_key(rcfg, sname, kname);
+						gf_cfg_set_key(gpac_global_config, sname, kname, kval);
+					}
+				}
+				gf_cfg_del(rcfg);
+			}
+		}
 	}
 }
 

@@ -458,7 +458,8 @@ static void gpac_usage(GF_SysArgMode argmode)
 	u32 i=0;
 	if ((argmode != GF_ARGMODE_ADVANCED) && (argmode != GF_ARGMODE_EXPERT) ) {
 		fprintf(stderr, "Usage: gpac [options] FILTER_DECL [LINK] FILTER_DECL [...] \n"
-			"gpac is GPAC's command line tool for setting up and running filter chains. Options do not require any specific order.\n\n"
+			"gpac is GPAC's command line tool for setting up and running filter chains. Options do not require any specific order.\n"
+			"boolean values don't need any value specified. Other types shall be formatted as opt=val, except -i/-src/-o/-dst/-h options.\n\n"
 		);
 	}
 
@@ -476,7 +477,8 @@ static void gpac_usage(GF_SysArgMode argmode)
 	}
 
 	if (argmode>=GF_ARGMODE_ADVANCED) {
-		fprintf(stderr, "The following options are part of libgpac core and can also be assigned though the config file from section \"core\" using option name without first '-' as key name. For example, having [core]threads=2 in the config file is similar as using -threads=2. The option specified at prompt overrides the value of the config file.\n\n");
+		fprintf(stderr, "\n\nThe following options are part of libgpac core and can also be assigned though the config file from section \"core\" using option name without first '-' as key name.\nFor example, having [core]threads=2 in the config file is similar as using -threads=2. The options specified at prompt overrides the value of the config file.\n");
+		fprintf(stderr, "The options/config file values may be overriden by the values in restrict.cfg located in GPAC share directory, if present; this allows enforcing system-wide configuration values.\n\n");
 
 		gf_sys_print_core_help(argmode, GF_ARG_SUBSYS_FILTERS);
 	}
