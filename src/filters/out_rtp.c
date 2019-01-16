@@ -95,6 +95,7 @@ typedef struct
 	u32 payt, tt;
 	s32 delay;
 	char *info, *url, *email;
+	s32 runfor;
 
 	/*timeline origin of our session (all tracks) in microseconds*/
 	u64 sys_clock_at_init;
@@ -580,7 +581,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] PID %s cannot be seek, disabling loop\n", gf_filter_pid_get_name(pid) ));
 		}
 	}
-	return rtpout_setup_sdp(ctx);
+	return GF_OK;
 }
 
 static GF_Err rtpout_initialize(GF_Filter *filter)
@@ -622,6 +623,7 @@ static GF_Err rtpout_send_xps(GF_RTPOutStream *stream, GF_List *pslist, Bool *au
 
 static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 {
+	GF_Err e;
 	u64 min_dts = GF_FILTER_NO_TS;
 	u32 i, count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
@@ -644,6 +646,17 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 	ctx->sys_clock_at_init = gf_sys_clock_high_res();
 	ctx->microsec_ts_init = min_dts;
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP clock initialized - time origin set to "LLU" us (sys clock) / "LLU" us (media clock)\n", ctx->sys_clock_at_init, ctx->microsec_ts_init));
+
+	e = rtpout_setup_sdp(ctx);
+	if (e) return e;
+
+	if (ctx->runfor==0) {
+		for (i=0; i<count; i++) {
+			GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+			gf_filter_pid_set_discard(stream->pid, GF_TRUE);
+		}
+	}
+
 	return GF_TRUE;
 }
 
@@ -666,6 +679,20 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		if (!rtpout_init_clock(ctx)) return GF_OK;
 	}
 
+	if (ctx->runfor>0) {
+		s64 diff = clock;
+		diff -= ctx->sys_clock_at_init;
+		diff /= 1000;
+		if ((s32) diff > ctx->runfor) {
+			count = gf_list_count(ctx->streams);
+			for (i=0; i<count; i++) {
+				stream = gf_list_get(ctx->streams, i);
+				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
+			}
+			if (ctx->opid) gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+	}
 
 	/*browse all inputs and locate most mature stream*/
 	if (!ctx->active_stream) {
@@ -906,6 +933,7 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(payt), "RTP payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", 0},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, 0},
+	{ OFFS(runfor), "run for the given time in ms. -1 means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
 	{0}
 };
 
@@ -920,6 +948,7 @@ GF_FilterRegister RTPOutRegister = {
 	"It then compares the packet mapped timestamp TS to the system clock SC. When TS-SC is less than tt, the RTP packets for the source packet are sent\n."
 	)
 	.private_size = sizeof(GF_RTPOutCtx),
+	.max_extra_pids = -1,
 	.args = RTPOutArgs,
 	.initialize = rtpout_initialize,
 	.finalize = rtpout_finalize,
