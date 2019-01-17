@@ -810,14 +810,15 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		if (peer_name && peer_port)
 			sock->flags |= GF_SOCK_HAS_PEER;
 
-		ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
-		if (ret == SOCKET_ERROR) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot bind: %s\n", gf_errno_str(LASTSOCKERROR) ));
-			closesocket(sock->socket);
-			sock->socket = NULL_SOCKET;
-			continue;
+		if (! (options & GF_SOCK_FAKE_BIND) ) {
+			ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
+			if (ret == SOCKET_ERROR) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot bind: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				closesocket(sock->socket);
+				sock->socket = NULL_SOCKET;
+				continue;
+			}
 		}
-
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
 
@@ -889,13 +890,15 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 #endif
 	}
 
-	/*bind the socket*/
-	ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, (int) addrlen);
-	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
-		ret = GF_IP_CONNECTION_FAILURE;
+	if (! (options & GF_SOCK_FAKE_BIND) ) {
+		/*bind the socket*/
+		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, (int) addrlen);
+		if (ret == SOCKET_ERROR) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
+			ret = GF_IP_CONNECTION_FAILURE;
+		}
 	}
-
+	
 	if (peer_name && peer_port) {
 		sock->dest_addr.sin_port = htons(peer_port);
 		sock->dest_addr.sin_family = AF_INET;
@@ -1263,7 +1266,8 @@ void gf_sk_group_del(GF_SockGroup *sg)
 void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 {
 	if (sg && sk) {
-		gf_list_add(sg->sockets, sk);
+		if (gf_list_find(sg->sockets, sk)<0)
+			gf_list_add(sg->sockets, sk);
 	}
 }
 void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
@@ -1328,7 +1332,7 @@ Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk)
 //fetch nb bytes on a socket and fill the buffer from startFrom
 //length is the allocated size of the receiving buffer
 //BytesRead is the number of bytes read from the network
-GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead, Bool do_select)
+GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead, Bool do_select)
 {
 	s32 res;
 #ifndef __SYMBIAN32__
@@ -1339,7 +1343,6 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 sta
 
 	*BytesRead = 0;
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
-	if (startFrom >= length) return GF_IO_ERR;
 
 #ifndef __SYMBIAN32__
 	if (do_select) {
@@ -1373,9 +1376,9 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 sta
 	}
 #endif
 	if (sock->flags & GF_SOCK_HAS_PEER)
-		res = (s32) recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
+		res = (s32) recvfrom(sock->socket, (char *) buffer, length, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {
-		res = (s32) recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
+		res = (s32) recv(sock->socket, (char *) buffer, length, 0);
 		if (res == 0)
 			return GF_IP_CONNECTION_CLOSED;
 	}
@@ -1406,15 +1409,15 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 sta
 }
 
 GF_EXPORT
-GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
+GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead)
 {
-	return gf_sk_receive_internal(sock, buffer, length, startFrom, BytesRead, GF_TRUE);
+	return gf_sk_receive_internal(sock, buffer, length, BytesRead, GF_TRUE);
 }
 
 GF_EXPORT
-GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
+GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead)
 {
-	return gf_sk_receive_internal(sock, buffer, length, startFrom, BytesRead, GF_FALSE);
+	return gf_sk_receive_internal(sock, buffer, length, BytesRead, GF_FALSE);
 }
 
 GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
@@ -1666,7 +1669,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	return GF_OK;
 }
 
-GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u32 *BytesRead, u32 Second )
+GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead, u32 Second )
 {
 	s32 res;
 #ifndef __SYMBIAN32__
@@ -1676,7 +1679,6 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 #endif
 
 	*BytesRead = 0;
-	if (startFrom >= length) return GF_OK;
 
 #ifndef __SYMBIAN32__
 	//can we read?
@@ -1701,7 +1703,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 #endif
 
 
-	res = (s32) recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
+	res = (s32) recv(sock->socket, (char *) buffer, length, 0);
 	if (res == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:

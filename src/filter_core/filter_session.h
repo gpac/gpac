@@ -109,7 +109,6 @@ GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, ch
 GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value);
 
 void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name);
-GF_List *gf_props_get_list(GF_PropertyMap *map);
 
 const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc, const char *name);
 

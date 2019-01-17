@@ -79,6 +79,9 @@ typedef struct __tag_rtp_track
 
 	GF_AVCConfig *avcc;
 	GF_HEVCConfig *hvcc;
+	u32 rtp_ts_offset;
+
+	s32 ts_delay;
 } GF_RTPOutStream;
 
 
@@ -95,7 +98,7 @@ typedef struct
 	u32 payt, tt;
 	s32 delay;
 	char *info, *url, *email;
-	s32 runfor;
+	s32 runfor, tso;
 
 	/*timeline origin of our session (all tracks) in microseconds*/
 	u64 sys_clock_at_init;
@@ -578,6 +581,9 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 	}
 
+	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DELAY);
+	stream->ts_delay = p ? p->value.sint : 0;
+
 	payt++;
 	stream->microsec_ts_scale = 1000000;
 	stream->microsec_ts_scale /= stream->timescale;
@@ -640,6 +646,7 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 	GF_Err e;
 	u64 min_dts = GF_FILTER_NO_TS;
 	u32 i, count = gf_list_count(ctx->streams);
+
 	for (i=0; i<count; i++) {
 		u64 dts;
 		GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
@@ -656,10 +663,25 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 		dts /= stream->timescale;
 		if (min_dts > dts)
 			min_dts = dts;
+
+		if (ctx->tso>0) {
+			u64 offset = ctx->tso;
+			offset *= stream->timescale;
+			offset /= 1000000;
+			stream->rtp_ts_offset = offset;
+		}
 	}
 	ctx->sys_clock_at_init = gf_sys_clock_high_res();
 	ctx->microsec_ts_init = min_dts;
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP clock initialized - time origin set to "LLU" us (sys clock) / "LLU" us (media clock)\n", ctx->sys_clock_at_init, ctx->microsec_ts_init));
+	if (ctx->tso<0) {
+		gf_rand_init(0);
+		for (i=0; i<count; i++) {
+			GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+			stream->rtp_ts_offset = gf_rand();
+			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP stream %d initial RTP TS set to %d\n", i+1, stream->rtp_ts_offset));
+		}
+	}
 
 	e = rtpout_setup_sdp(ctx);
 	if (e) return e;
@@ -702,6 +724,7 @@ static GF_Err rtpout_process(GF_Filter *filter)
 			for (i=0; i<count; i++) {
 				stream = gf_list_get(ctx->streams, i);
 				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
+				stream->pck = NULL;
 			}
 			if (ctx->opid) gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -809,25 +832,7 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		}
 	}
 
-	/*we are about to send scalable base: trigger RTCP reports with the same NTP. This avoids
-	NTP drift due to system clock precision which could break sync decoding*/
-	if (!ctx->first_RTCP_sent || (ctx->base_pid_id && ctx->base_pid_id== ctx->active_stream->id)) {
-		u32 ntp_sec, ntp_frac;
-		/*force sending RTCP SR every RAP ? - not really compliant but we cannot perform scalable tuning otherwise*/
-		u32 ntp_type = ctx->active_stream->current_sap ? 2 : 1;
-		gf_net_get_ntp(&ntp_sec, &ntp_frac);
-		count = gf_list_count(ctx->streams);
-
-		for (i=0; i<count; i++) {
-			stream = gf_list_get(ctx->streams, i);
-			if (!stream->pck) break;
-
-			u32 ts = (u32) (stream->current_cts + stream->ts_offset);
-			gf_rtp_streamer_send_rtcp(stream->rtp, GF_TRUE, ts, ntp_type, ntp_sec, ntp_frac);
-		}
-
-		ctx->first_RTCP_sent = 1;
-	}
+	stream = ctx->active_stream;
 
 	clock = gf_sys_clock_high_res();
 	diff = (s64) ctx->active_min_ts_microsec;
@@ -840,25 +845,73 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		if (diff<=11000) repost_in = diff/2;
 		else repost_in = diff - 10000;
 		gf_filter_ask_rt_reschedule(filter, (u32) repost_in);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d) scheduled in "LLU" us, requesting filter reschedule in "LLU" us - clock "LLU" us\n", ctx->active_stream_idx, diff, repost_in, clock));
+//		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d) scheduled in "LLU" us, requesting filter reschedule in "LLU" us - clock "LLU" us\n", ctx->active_stream_idx, diff, repost_in, clock));
 		return GF_OK;
 	} else if (diff<=-1000) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d too late by %d us - clock "LLU" us\n", ctx->active_stream_idx, ctx->active_stream->pck_num, -diff, clock));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d too late by %d us - clock "LLU" us\n", ctx->active_stream_idx, stream->pck_num, -diff, clock));
 	} else if (diff>0){
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d ahead of %d us - clock "LLU" us\n", ctx->active_stream_idx, ctx->active_stream->pck_num, diff, clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d ahead of %d us - clock "LLU" us\n", ctx->active_stream_idx, stream->pck_num, diff, clock));
 	}
 
 	/*send packets*/
-	dts = (u32) (ctx->active_stream->current_dts + ctx->active_stream->ts_offset);
-	cts = (u32) (ctx->active_stream->current_cts + ctx->active_stream->ts_offset);
-	duration = ctx->active_stream->current_duration;
+	pck_data = gf_filter_pck_get_data(stream->pck, &pck_size);
+	if (!pck_size) {
+		gf_filter_pid_drop_packet(stream->pid);
+		stream->pck = NULL;
+		ctx->active_stream = NULL;
+		return GF_OK;
+	}
 
-	pck_data = gf_filter_pck_get_data(ctx->active_stream->pck, &pck_size);
+	dts = (u32) (stream->current_dts + stream->ts_offset);
+	cts = (u32) (stream->current_cts + stream->ts_offset);
+	duration = stream->current_duration;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] Sending RTP packets for stream %d pck %d/%d DTS "LLU" - CTS "LLU" - RTP TS "LLU" - size %d - SAP %d - clock "LLU" us\n", ctx->active_stream_idx, ctx->active_stream->pck_num, ctx->active_stream->nb_aus, ctx->active_stream->current_dts, ctx->active_stream->current_dts, cts, pck_size, ctx->active_stream->current_sap, clock) );
+	dts += stream->rtp_ts_offset;
+	cts += stream->rtp_ts_offset;
+	if (stream->ts_delay>=0) {
+		dts += stream->ts_delay;
+		cts += stream->ts_delay;
+	} else {
+		if (-stream->ts_delay > dts)
+			dts += stream->ts_delay;
+		else
+			dts = 0;
+
+		if (-stream->ts_delay > cts)
+			cts += stream->ts_delay;
+		else
+			cts = 0;
+	}
+
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] Sending RTP packets for stream %d pck %d/%d DTS "LLU" - CTS "LLU" - RTP TS "LLU" - size %d - SAP %d - clock "LLU" us\n", ctx->active_stream_idx, stream->pck_num, stream->nb_aus, stream->current_dts, stream->current_dts, cts, pck_size, stream->current_sap, clock) );
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] Runtime %08u ms send stream %d pck %08u/%08u DTS %08u CTS %08u RTP-TS %08u size %08u SAP %d\r", (u32) (clock - ctx->sys_clock_at_init)/1000, ctx->active_stream_idx, stream->pck_num, stream->nb_aus, (u32) stream->current_dts, (u32) stream->current_dts, (u32) cts, pck_size, stream->current_sap) );
+	}
+#endif
+
+	/*we are about to send scalable base: trigger RTCP reports with the same NTP. This avoids
+	NTP drift due to system clock precision which could break sync decoding*/
+	if (!ctx->first_RTCP_sent || (ctx->base_pid_id && ctx->base_pid_id== stream->id)) {
+		u32 ntp_sec, ntp_frac;
+		/*force sending RTCP SR every RAP ? - not really compliant but we cannot perform scalable tuning otherwise*/
+		u32 ntp_type = stream->current_sap ? 2 : 1;
+		gf_net_get_ntp(&ntp_sec, &ntp_frac);
+		count = gf_list_count(ctx->streams);
+
+		for (i=0; i<count; i++) {
+			GF_RTPOutStream *astream = gf_list_get(ctx->streams, i);
+			if (!astream->pck) break;
+
+			u32 ts = (u32) (astream->current_cts + astream->ts_offset + astream->rtp_ts_offset);
+			gf_rtp_streamer_send_rtcp(stream->rtp, GF_TRUE, ts, ntp_type, ntp_sec, ntp_frac);
+		}
+		ctx->first_RTCP_sent = 1;
+	}
 
 	/*unpack nal units*/
-	if (ctx->active_stream->avc_nalu_size) {
+	if (stream->avc_nalu_size) {
 		Bool au_start, au_end;
 		u32 v, size;
 		u32 remain = pck_size;
@@ -866,16 +919,16 @@ static GF_Err rtpout_process(GF_Filter *filter)
 
 		au_start = 1;
 
-		if (ctx->active_stream->avcc && ctx->active_stream->current_sap) {
-			e = rtpout_send_xps(ctx->active_stream, ctx->active_stream->avcc->sequenceParameterSets, &au_start, pck_size, cts, dts, duration);
-			e = rtpout_send_xps(ctx->active_stream, ctx->active_stream->avcc->sequenceParameterSetExtensions, &au_start, pck_size, cts, dts, duration);
-			e = rtpout_send_xps(ctx->active_stream, ctx->active_stream->avcc->pictureParameterSets, &au_start, pck_size, cts, dts, duration);
+		if (stream->avcc && stream->current_sap) {
+			e = rtpout_send_xps(stream, stream->avcc->sequenceParameterSets, &au_start, pck_size, cts, dts, duration);
+			e = rtpout_send_xps(stream, stream->avcc->sequenceParameterSetExtensions, &au_start, pck_size, cts, dts, duration);
+			e = rtpout_send_xps(stream, stream->avcc->pictureParameterSets, &au_start, pck_size, cts, dts, duration);
 		}
-		else if (ctx->active_stream->hvcc && ctx->active_stream->current_sap) {
-			u32 nbps = gf_list_count(ctx->active_stream->hvcc->param_array);
+		else if (stream->hvcc && stream->current_sap) {
+			u32 nbps = gf_list_count(stream->hvcc->param_array);
 			for (i=0; i<nbps; i++) {
-				GF_HEVCParamArray *pa = gf_list_get(ctx->active_stream->hvcc->param_array, i);
-				e = rtpout_send_xps(ctx->active_stream, pa->nalus, &au_start, pck_size, cts, dts, duration);
+				GF_HEVCParamArray *pa = gf_list_get(stream->hvcc->param_array, i);
+				e = rtpout_send_xps(stream, pa->nalus, &au_start, pck_size, cts, dts, duration);
 			}
 		}
 
@@ -896,21 +949,22 @@ static GF_Err rtpout_process(GF_Filter *filter)
 			remain -= size;
 			au_end = remain ? 0 : 1;
 
-			e = gf_rtp_streamer_send_data(ctx->active_stream->rtp, (char *) ptr, size, pck_size, cts, dts, ctx->active_stream->current_sap ? 1 : 0, au_start, au_end, ctx->active_stream->pck_num, duration, ctx->active_stream->sample_desc_index);
+			e = gf_rtp_streamer_send_data(stream->rtp, (char *) ptr, size, pck_size, cts, dts, stream->current_sap ? 1 : 0, au_start, au_end, stream->pck_num, duration, stream->sample_desc_index);
 			ptr += size;
 			au_start = 0;
 		}
 	} else {
-		e = gf_rtp_streamer_send_data(ctx->active_stream->rtp, (char *) pck_data, pck_size, pck_size, cts, dts, ctx->active_stream->current_sap ? 1 : 0, 1, 1, ctx->active_stream->pck_num, duration, ctx->active_stream->sample_desc_index);
+		e = gf_rtp_streamer_send_data(stream->rtp, (char *) pck_data, pck_size, pck_size, cts, dts, stream->current_sap ? 1 : 0, 1, 1, stream->pck_num, duration, stream->sample_desc_index);
 	}
-	gf_filter_pid_drop_packet(ctx->active_stream->pid);
-	ctx->active_stream->pck = NULL;
-	ctx->active_stream = NULL;
+	gf_filter_pid_drop_packet(stream->pid);
+	stream->pck = NULL;
+
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Error sending RTP packet %d: %s\n", ctx->active_stream->pck_num, gf_error_to_string(e) ));
-		return e;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Error sending RTP packet %d: %s\n", stream->pck_num, gf_error_to_string(e) ));
 	}
-	return GF_OK;
+
+	ctx->active_stream = NULL;
+	return e;
 }
 
 static const GF_FilterCapability RTPOutCaps[] =
@@ -943,7 +997,8 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(payt), "RTP payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", 0},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, 0},
-	{ OFFS(runfor), "run for the given time in ms. -1 means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
+	{ OFFS(runfor), "run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
+	{ OFFS(tso), "sets timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, 0},
 	{0}
 };
 

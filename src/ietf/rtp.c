@@ -226,7 +226,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			//else bind and set remote destination
 			else {
 				if (!ch->net_info.port_first) ch->net_info.port_first = ch->net_info.client_port_first;
-				e = gf_sk_bind(ch->rtp, local_ip,ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtp, local_ip,ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT | GF_SOCK_FAKE_BIND);
 				if (e) return e;
 			}
 		} else {
@@ -266,7 +266,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.client_port_last, ch->net_info.source, port, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			} else {
-				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT | GF_SOCK_FAKE_BIND);
 				if (e) return e;
 			}
 		} else {
@@ -304,6 +304,11 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	return GF_OK;
 }
 
+/*get the UTC time expressed in RTP timescale*/
+void gf_rtp_channel_disable_select(GF_RTPChannel *ch, Bool no_select)
+{
+	if (ch) ch->no_select = no_select;
+}
 /*get the UTC time expressed in RTP timescale*/
 u32 gf_rtp_channel_time(GF_RTPChannel *ch)
 {
@@ -346,7 +351,11 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtp) return 0;
 
-	e = gf_sk_receive(ch->rtp, buffer, buffer_size, 0, &res);
+	if (ch->no_select) {
+		e = gf_sk_receive_no_select(ch->rtp, buffer, buffer_size, &res);
+	} else {
+		e = gf_sk_receive(ch->rtp, buffer, buffer_size, &res);
+	}
 	if (!res || e || (res < 12)) {
 		assert(res==0);
 		res = 0;
@@ -358,7 +367,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 	//add the packet to our Queue if any
 	if (ch->po) {
 		if (res) {
-			seq_num = ((buffer[2] << 8) & 0xFF00) | (buffer[3] & 0xFF);
+			seq_num = ((((u32)buffer[2]) << 8) & 0xFF00) | (buffer[3] & 0xFF);
 			gf_rtp_reorderer_add(ch->po, (void *) buffer, res, seq_num);
 		}
 
@@ -464,12 +473,16 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	}
 
 	if (ch->last_SR_rtp_time) {
-		s32 diff_sec = ((s32) rtp_hdr->TimeStamp - (s32) ch->last_SR_rtp_time) / (s32) ch->TimeScale;
+		s64 diff_sec;
 		u32 sec = ch->last_SR_NTP_sec;
 		s64 frac;
-		//frac = ch->last_SR_NTP_frac;
 
-		frac = (s32) rtp_hdr->TimeStamp - (s32) ch->last_SR_rtp_time - diff_sec*(s32)ch->TimeScale;
+		frac = (s64) rtp_hdr->TimeStamp;
+		frac -= (s64) ch->last_SR_rtp_time;
+		if (frac<0) frac += 0xFFFFFFFF;
+		diff_sec = frac / ch->TimeScale;
+
+		frac -= diff_sec*ch->TimeScale;
 		frac *= 0xFFFFFFFF;
 		frac /= ch->TimeScale;
 		frac += ch->last_SR_NTP_frac;
@@ -477,7 +490,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 			sec += 1;
 			frac -= 0xFFFFFFFF;
 		}
-		rtp_hdr->recomputed_ntp_ts = sec + diff_sec;
+		rtp_hdr->recomputed_ntp_ts = sec + (s32) diff_sec;
 		rtp_hdr->recomputed_ntp_ts <<= 32;
 		rtp_hdr->recomputed_ntp_ts |= frac;
 	}

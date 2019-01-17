@@ -1379,9 +1379,9 @@ static GF_Err gf_atsc3_dmx_process_service(GF_ATSCDmx *atscd, GF_ATSCService *s,
 	GF_LCTObject *gather_object=NULL;
 
 	if (route_sess) {
-		e = gf_sk_receive_no_select(route_sess->sock, atscd->buffer, atscd->buffer_size, 0, &nb_read);
+		e = gf_sk_receive_no_select(route_sess->sock, atscd->buffer, atscd->buffer_size, &nb_read);
 	} else {
-		e = gf_sk_receive_no_select(s->sock, atscd->buffer, atscd->buffer_size, 0, &nb_read);
+		e = gf_sk_receive_no_select(s->sock, atscd->buffer, atscd->buffer_size, &nb_read);
 	}
 
 	if (e != GF_OK) return e;
@@ -1581,7 +1581,7 @@ static GF_Err gf_atsc3_dmx_process_lls(GF_ATSCDmx *atscd)
 	u32 raw_size = atscd->unz_buffer_size;
 	GF_XMLNode *root;
 
-	e = gf_sk_receive_no_select(atscd->sock, atscd->buffer, atscd->buffer_size, 0, &read);
+	e = gf_sk_receive_no_select(atscd->sock, atscd->buffer, atscd->buffer_size, &read);
 	if (e)
 		return e;
 

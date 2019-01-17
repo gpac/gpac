@@ -639,7 +639,7 @@ int live_session(int argc, char **argv)
 			u32 bytes_received;
 
 
-			e = gf_sk_receive(sk, buffer, 2048, 0, &bytes_read);
+			e = gf_sk_receive(sk, buffer, 2048, &bytes_read);
 			if (e == GF_OK) {
 				u32 hdr_length = 0;
 				u8 cmd_type = buffer[0];
@@ -684,7 +684,7 @@ int live_session(int argc, char **argv)
 					bytes_received = bytes_read-hdr_length;
 				}
 				while (bytes_received<update_length) {
-					e = gf_sk_receive(sk, buffer, 2048, 0, &bytes_read);
+					e = gf_sk_receive(sk, buffer, 2048, &bytes_read);
 					switch (e) {
 					case GF_IP_NETWORK_EMPTY:
 						break;

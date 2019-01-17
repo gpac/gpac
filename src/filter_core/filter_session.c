@@ -733,7 +733,11 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 GF_EXPORT
 Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 {
-	u32 i, count = gf_list_count(fsess->registry);
+	u32 i, count;
+
+	if (!strcmp(name, "enc")) return GF_TRUE;
+
+	count = gf_list_count(fsess->registry);
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strcmp(f_reg->name, name)) {
@@ -761,7 +765,6 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	if (!strncmp(name, "enc", len)) {
 		return gf_fs_load_encoder(fsess, args);
 	}
-
 
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
@@ -1048,7 +1051,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						gf_sleep((u32) diff);
 						active_start = gf_sys_clock_high_res();
 					}
-					if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
+					if (task->schedule_next_time >  gf_sys_clock_high_res() ) {
+						current_filter->process_th_id = 0;
 						current_filter->in_process = GF_FALSE;
 						if (current_filter->freg->flags & GF_FS_REG_MAIN_THREAD) {
 							if (do_use_sema) {
@@ -1062,7 +1066,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							gf_fq_add(fsess->tasks, task);
 						}
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: releasing current filter %s\n", sys_thid, current_filter->name));
-						current_filter->process_th_id = 0;
 						current_filter = NULL;
 						continue;
 					}
@@ -1121,10 +1124,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				//or requeue request and we have been running on that filter for more than 10 times, abort
 				|| (requeue && (consecutive_filter_tasks>10))
 			) {
-				current_filter->in_process = GF_FALSE;
+				//unused code should be removed
+/*				current_filter->in_process = GF_FALSE;
 				if (current_filter->stream_reset_pending)
 					current_filter->in_process = GF_FALSE;
-
+*/
 				if (requeue) {
 					//filter process task are pushed back the queue of filter tasks
 					if (task->is_filter_process) {

@@ -2125,14 +2125,23 @@ const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4
 */
 const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const char *prop_name);
 
-/*! Enumerates proerties of a pid
+/*! Enumerates properties of a pid
 \param pid the target filter pid
 \param idx input/output index of the current property. 0 means first. Incremented by 1 upon success
 \param prop_4cc set to the built-in code of the property if built-in
 \param prop_name set to the name of the property if not built-in
-\return the property if found or NULL otherwise
+\return the property if found or NULL otherwise (end of enumeration)
 */
 const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name);
+
+/*! Enumerates info of a pid
+\param pid the target filter pid
+\param idx input/output index of the current info. 0 means first. Incremented by 1 upon success
+\param prop_4cc set to the built-in code of the info if built-in
+\param prop_name set to the name of the info if not built-in
+\return the property if found or NULL otherwise (end of enumeration)
+*/
+const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name);
 
 /*! Sets pid framing mode. filters can consume packets as they arrive, or may want to only process full frames/files
 \param pid the target filter pid

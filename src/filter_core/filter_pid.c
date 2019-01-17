@@ -3067,6 +3067,8 @@ single_retry:
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
 		found_dest = GF_TRUE;
+		//In case the target is a demux filter, we may have other pids connecting from that filter, so reset the destination to allow for graph resolution
+		filter_dst->dst_filter = NULL;
 	}
 
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
@@ -3505,6 +3507,38 @@ const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char
 	return gf_filter_pid_get_info_internal(pid, 0, prop_name);
 }
 
+GF_EXPORT
+const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
+{
+	u32 i, count, cur_idx=0;
+	const GF_PropertyValue * prop;
+
+	if (PID_IS_OUTPUT(pid)) {
+		return NULL;
+	}
+	pid = pid->pid;
+	if (pid->infos) {
+		cur_idx = *idx;
+		const GF_PropertyValue *prop = gf_props_enum_property(pid->infos, &cur_idx, prop_4cc, prop_name);
+		if (prop) {
+			*idx = cur_idx;
+			return prop;
+		}
+		*idx = cur_idx;
+	}
+
+	count = gf_list_count(pid->filter->input_pids);
+	for (i=0; i<count; i++) {
+		u32 sub_idx = 0;
+		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
+		prop = gf_filter_pid_enum_info((GF_FilterPid *)pidinst, &sub_idx, prop_4cc, prop_name);
+		*idx += sub_idx;
+		if (prop) return prop;
+	}
+	return NULL;
+}
+
+
 static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u32 prop_4cc, const char *prop_name)
 {
 	u32 i, count;
@@ -3731,7 +3765,8 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_INFO_UPDATE, pid);
 
-			FSESS_CHECK_THREAD(pidinst->filter)
+			//the following may fail when some filters use threading on their own
+			//FSESS_CHECK_THREAD(pidinst->filter)
 			res = pidinst->filter->freg->process_event(pidinst->filter, &evt);
 		}
 		
@@ -3906,7 +3941,9 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	pcki = gf_fq_pop(pidinst->packets);
 
 	if (!pcki) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to discard a packet already discarded in filter %s\n", pid->filter->name));
+		if (!pidinst->filter->finalized) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to discard a packet already discarded in filter %s\n", pid->filter->name));
+		}
 		return;
 	}
 

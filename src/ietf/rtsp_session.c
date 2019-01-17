@@ -583,7 +583,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	if (e) return e;
 
 	//	2. wait for "HTTP/1.0 200 OK"
-	e = gf_sk_receive_wait(sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, 0, &size, HTTP_WAIT_SEC);
+	e = gf_sk_receive_wait(sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, &size, HTTP_WAIT_SEC);
 	if (e) return e;
 
 	//get HTTP/1.0 200 OK

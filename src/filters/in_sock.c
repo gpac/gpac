@@ -261,7 +261,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 
 	if (!sock_c->start_time) sock_c->start_time = gf_sys_clock_high_res();
 
-	e = gf_sk_receive_no_select(sock_c->socket, ctx->buffer, ctx->block_size, 0, &nb_read);
+	e = gf_sk_receive_no_select(sock_c->socket, ctx->buffer, ctx->block_size, &nb_read);
 	switch (e) {
 	case GF_IP_NETWORK_EMPTY:
 		return GF_OK;

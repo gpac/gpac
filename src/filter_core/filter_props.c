@@ -822,9 +822,9 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name)
 {
 #if GF_PROPS_HASHTABLE_SIZE
-	u32 i, count;
+	u32 i, nb_items = 0;
 #endif
-	u32 idx;
+	u32 idx, count;
 	
 	const GF_PropertyEntry *pe;
 	if (!io_idx) return NULL;
@@ -836,13 +836,14 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 	for (i=0; i<GF_PROPS_HASHTABLE_SIZE; i++) {
 		if (props->hash_table[i]) {
 			count = gf_list_count(props->hash_table[i]);
+			nb_items+=count;
 			if (idx >= count) {
 				idx -= count;
 				continue;
 			}
 			pe = gf_list_get(props->hash_table[i], idx);
 			if (!pe) {
-				*io_idx = 0xFFFFFFFF;
+				*io_idx = nb_items;
 				return NULL;
 			}
 			if (prop_4cc) *prop_4cc = pe->p4cc;
@@ -851,16 +852,17 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 			return &pe->prop;
 		}
 	}
-	*io_idx = 0xFFFFFFFF;
+	*io_idx = nb_items;
 	return NULL;
 #else
-	if (idx >= gf_list_count(props->properties)) {
-		*io_idx = 0xFFFFFFFF;
+	count = gf_list_count(props->properties);
+	if (idx >= count) {
+		*io_idx = count;
 		return NULL;
 	}
 	pe = gf_list_get(props->properties, idx);
 	if (!pe) {
-		*io_idx = 0xFFFFFFFF;
+		*io_idx = count;
 		return NULL;
 	}
 	if (prop_4cc) *prop_4cc = pe->p4cc;

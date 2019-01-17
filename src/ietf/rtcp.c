@@ -42,8 +42,11 @@ u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtcp) return 0;
-
-	e = gf_sk_receive(ch->rtcp, buffer, buffer_size, 0, &res);
+	if (ch->no_select) {
+		e = gf_sk_receive_no_select(ch->rtcp, buffer, buffer_size, &res);
+	} else {
+		e = gf_sk_receive(ch->rtcp, buffer, buffer_size, &res);
+	}
 	if (e) return 0;
 	return res;
 }

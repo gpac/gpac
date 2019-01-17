@@ -34,7 +34,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/mpeg4_odf.h>
 /*IETF lib*/
-#include <gpac/ietf.h>
+#include <gpac/internal/ietf_dev.h>
 
 
 #define RTSP_BUFFER_SIZE		5000
@@ -56,7 +56,8 @@ typedef struct
 	u32 rtsp_timeout, udp_timeout, rtcp_timeout, stats;
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
 	u32 interleave;
-	Bool autortsp;
+	s32 max_sleep;
+	Bool autortsp, rtcpsync;
 
 	//internal
 
@@ -97,6 +98,10 @@ typedef struct
 	Double last_start_range;
 
 	u32 cur_mid;
+
+	u32 min_frame_dur_ms;
+
+	GF_SockGroup *sockgroup;
 } GF_RTPIn;
 
 enum
@@ -261,7 +266,13 @@ struct __rtpin_stream
 	u32 base_stream;
 
 	u32 rtcp_check_start;
-	u64 ts_offset;
+	u32 first_rtp_ts;
+	s64 ts_adjust;
+	//source NTP of first packet received, ercomputed at first RTCP sender report
+	u64 init_ntp_us;
+
+	u32 min_dur_us, min_dur_rtp;
+	u32 prev_cts;
 };
 
 /*creates new RTP stream from SDP info*/
@@ -272,6 +283,8 @@ GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip);
 void rtpin_stream_del(GF_RTPInStream *stream);
 /*resets stream state and inits RTP sockets if ResetOnly is false*/
 GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly);
+
+void rtpin_stream_reset_queue(GF_RTPInStream *stream);
 
 /*RTSP -> RTP de-interleaving callback*/
 GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbck, char *buffer, u32 bufferSize, Bool IsRTCP);
@@ -285,7 +298,7 @@ GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_con
 /*removes stream from session*/
 void rtpin_remove_stream(GF_RTPIn *rtp, GF_RTPInStream *stream);
 /*reads input socket and process*/
-void rtpin_stream_read(GF_RTPInStream *stream);
+u32 rtpin_stream_read(GF_RTPInStream *stream);
 
 /*load SDP and setup described media in SDP. If stream is null this is the root
 SDP and IOD will be extracted, otherwise this a channel SDP*/
