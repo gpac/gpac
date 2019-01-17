@@ -300,11 +300,21 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if ((ctx->last_start_range >= 0) && (ctx->last_start_range==evt->play.start_range)) return GF_TRUE;
+
+		if ((stream->status==RTP_Running) && ((ctx->last_start_range >= 0) && (ctx->last_start_range==evt->play.start_range)))
+		 	return GF_TRUE;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Processing play on channel @%08x - %s\n", stream, stream->rtsp ? "RTSP control" : "No control (RTP)" ));
 		/*is this RTSP or direct RTP?*/
 		stream->flags &= ~RTP_EOS;
+
+		if (!(stream->flags & RTP_INTERLEAVED)) {
+			if (stream->rtp_ch->rtp)
+				gf_sk_group_register(ctx->sockgroup, stream->rtp_ch->rtp);
+			if (stream->rtp_ch->rtcp)
+				gf_sk_group_register(ctx->sockgroup, stream->rtp_ch->rtcp);
+		}
+
 		if (stream->rtsp) {
 			//send a setup if needed
 			rtpin_check_setup(stream);
@@ -354,6 +364,13 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->last_start_range = -1.0;
 		stream->rtcp_init = GF_FALSE;
 		reset_stream = stream->pck_queue ? GF_TRUE : GF_FALSE;
+
+		if (!(stream->flags & RTP_INTERLEAVED)) {
+			if (stream->rtp_ch->rtp)
+				gf_sk_group_unregister(ctx->sockgroup, stream->rtp_ch->rtp);
+			if (stream->rtp_ch->rtcp)
+				gf_sk_group_unregister(ctx->sockgroup, stream->rtp_ch->rtcp);
+		}
 		break;
 	case GF_FEVT_SET_SPEED:
 	case GF_FEVT_PAUSE:
@@ -369,10 +386,8 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (ctx->session) {
 		rtpin_rtsp_process_commands(ctx->session);
 	}
-	while (reset_stream && gf_list_count(stream->pck_queue)) {
-		GF_FilterPacket *pck = gf_list_pop_front(stream->pck_queue);
-		gf_filter_pck_discard(pck);
-	}
+
+	if (reset_stream) rtpin_stream_reset_queue(stream);
 	//cancel event
 	return GF_TRUE;
 }
@@ -425,7 +440,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	}
 
 
-	if (ctx->retry_tcp) {
+	if (ctx->retry_tcp && ctx->session) {
 		GF_FilterEvent evt;
 		Bool send_agg_play = GF_TRUE;
 		GF_List *streams = gf_list_new();
@@ -483,17 +498,27 @@ static GF_Err rtpin_process(GF_Filter *filter)
 
 
 	/*fecth data on udp*/
-	i=0;
-	while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
-		if ((stream->flags & RTP_EOS) || (stream->status!=RTP_Running) ) continue;
-		/*for interleaved channels don't read too fast, query the buffer occupancy*/
-		if (stream->flags & RTP_INTERLEAVED) {
-			//pid would not block, flush TCP
-			if (!gf_filter_pid_would_block(stream->opid))
+	u32 tot_read=0;
+	while (1) {
+		u32 read=0;
+		GF_Err e = gf_sk_group_select(ctx->sockgroup, 10);
+		if (e) break;
+
+		i=0;
+		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
+			if ((stream->flags & RTP_EOS) || (stream->status!=RTP_Running) ) continue;
+
+			/*for interleaved channels don't read too fast, query the buffer occupancy*/
+			if (stream->flags & RTP_INTERLEAVED) {
 				stream->rtsp->flags |= RTSP_TCP_FLUSH;
-		} else {
-			rtpin_stream_read(stream);
+			} else {
+				read += rtpin_stream_read(stream);
+			}
 		}
+		if (!read) {
+			break;
+		}
+		tot_read+=read;
 	}
 
 	/*and process commands / flush TCP*/
@@ -505,6 +530,10 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			ctx->session->connect_error = GF_OK;
 		}
 	}
+	if (ctx->max_sleep<0)
+		gf_filter_ask_rt_reschedule(filter, (u32) ((-ctx->max_sleep) *1000) );
+	else
+		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*1000);
 	return GF_OK;
 }
 
@@ -521,6 +550,8 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 		ctx->interleave = 1;
 
 	ctx->last_start_range = -1.0;
+
+	ctx->sockgroup = gf_sk_group_new();
 
 	//sdp mode, we will have a configure_pid
 	if (!ctx->src) return GF_OK;
@@ -564,6 +595,8 @@ static void rtpin_finalize(GF_Filter *filter)
 
 	rtpin_reset(ctx, GF_TRUE);
 	gf_list_del(ctx->streams);
+
+	gf_sk_group_del(ctx->sockgroup);
 }
 
 
@@ -605,6 +638,8 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(user_agent), "User agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_UA", NULL, 0},
 	{ OFFS(languages), "User languages, by default solved from GPAC preferences", GF_PROP_STRING, "$GPAC_LANG", NULL, 0},
 	{ OFFS(stats), "Updates statistics to the user every given MS, 0 disables reporting", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(max_sleep), "Sets max sleep in milliseconds. A negative value -N means to always sleep for N ms, a positive value N means to sleep at most N ms but will sleep less if frame duration is shorter", GF_PROP_SINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rtcpsync), "Uses RTCP to adjust synchronization", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

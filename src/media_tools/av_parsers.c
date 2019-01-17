@@ -4204,18 +4204,24 @@ u32 gf_mp3_bit_rate(u32 hdr)
 	u8 version = gf_mp3_version(hdr);
 	u8 layer = gf_mp3_layer(hdr);
 	u8 bitRateIndex = (hdr >> 12) & 0xF;
-
-	if (bitRateIndex == 15) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[MPEG-1/2 Audio] Bitrate index not valid\n"));
+	u32 lidx;
+	/*MPEG-1*/
+	if (version & 1) {
+		if (!layer) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[MPEG-1/2 Audio] layer index not valid\n"));
+			return 0;
+		}
+		lidx = layer - 1;
+	}
+	/*MPEG-2/2.5*/
+	else {
+		lidx = 3 + (layer >> 1);
+	}
+	if (lidx>4) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[MPEG-1/2 Audio] layer index not valid\n"));
 		return 0;
 	}
-
-	/*MPEG-1*/
-	if (version & 1)
-		return bitrate_table[layer - 1][bitRateIndex];
-	/*MPEG-2/2.5*/
-	else
-		return bitrate_table[3 + (layer >> 1)][bitRateIndex];
+	return bitrate_table[lidx][bitRateIndex];
 }
 
 

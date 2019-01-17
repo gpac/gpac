@@ -350,6 +350,7 @@ typedef struct
 	GF_PropVec2i size;
 	GF_PropVec2i pos;
 	Double start;
+	u32 buffer;
 	GF_Fraction delay;
 
 	GF_Filter *filter;
@@ -398,6 +399,7 @@ typedef struct
 	GF_FilterPacket *last_pck;
 
 	s32 pid_delay;
+	Bool buffer_done;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -500,9 +502,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
-		//set a minimum buffer (although we don't buffer)
+
 		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, pid);
-		fevt.buffer_req.max_buffer_us = 100000;
+		fevt.buffer_req.max_buffer_us = ctx->buffer * 1000;
+//		if (!fevt.buffer_req.max_buffer_us) fevt.buffer_req.max_buffer_us = 100000;
 		gf_filter_pid_send_event(pid, &fevt);
 
 		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
@@ -1656,6 +1659,18 @@ static GF_Err vout_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
+	if (ctx->buffer) {
+		u32 max_units, nb_pck, max_dur, dur=0;
+		gf_filter_pid_get_buffer_occupancy(ctx->pid, &max_units, &nb_pck, &max_dur, &dur);
+
+		if (!ctx->buffer_done) {
+			if (dur < ctx->buffer * 1000)
+				return GF_OK;
+			ctx->buffer_done = GF_TRUE;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+	}
+
 	if (ctx->vsync || ctx->drop) {
 		u64 ref_clock = 0;
 		u64 cts = gf_filter_pck_get_cts(pck);
@@ -1839,11 +1854,12 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(hold), "specifies the number of seconds to hold display for single-frame streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(linear), "uses linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(back), "specifies back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(size), "Default init size, 0x0 holds the size of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pos), "Default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(delay), "Sets delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(hide), "Hide output window", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(fullscreen), "Use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(size), "default init size, 0x0 holds the size of the first frame. Default is video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(delay), "sets delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(buffer), "sets buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{0}
 };
 

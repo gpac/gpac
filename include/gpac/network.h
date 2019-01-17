@@ -218,7 +218,9 @@ enum
 	/*!Reuses port.*/
 	GF_SOCK_REUSE_PORT = 1,
 	/*!Forces IPV6 if available.*/
-	GF_SOCK_FORCE_IPV6 = 1<<1
+	GF_SOCK_FORCE_IPV6 = 1<<1,
+	/*!Does not perfom the actual bind, only keeps adress and port.*/
+	GF_SOCK_FAKE_BIND = 1<<2
 };
 
 /*!
@@ -332,11 +334,10 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length);
  *\param sock the socket object
  *\param buffer the reception buffer where data is written
  *\param length the allocated size of the reception buffer
- *\param start_from the offset in the reception buffer where to start writing
  *\param read the actual number of bytes received
  *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
  */
-GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 start_from, u32 *read);
+GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 *read);
 
 /*!
  *\brief socket listening
@@ -450,12 +451,11 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 dela
  *\param sock the socket object
  *\param buffer the reception buffer where data is written
  *\param length the allocated size of the reception buffer
- *\param start_from the offset in the reception buffer where to start writing
  *\param read the actual number of bytes received
  *\param delay_sec the maximum delay in second to wait before aborting
  *\return If the operation timed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
  */
-GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 start_from, u32 *read, u32 delay_sec);
+GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 *read, u32 delay_sec);
 
 /*!
  *\brief gets socket handle
@@ -516,11 +516,10 @@ Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk);
  *\param sock the socket object
  *\param buffer the reception buffer where data is written
  *\param length the allocated size of the reception buffer
- *\param start_from the offset in the reception buffer where to start writing
  *\param read the actual number of bytes received
  *\return error if any, GF_IP_NETWORK_EMPTY if nothing to read
  */
-GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 start_from, u32 *read);
+GF_Err gf_sk_receive_no_select(GF_Socket *sock, char *buffer, u32 length, u32 *read);
 
 
 /*!

@@ -1327,7 +1327,7 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 	} else
 #endif
 
-		e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
+		e = gf_sk_receive(sess->sock, data, data_size, out_read);
 
 	gf_mx_v(sess->mx);
 	return e;

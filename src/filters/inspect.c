@@ -33,7 +33,7 @@ typedef struct
 	FILE *tmp;
 	u64 pck_num;
 	u32 idx;
-	u8 dump_pid;
+	u8 dump_pid; //0: no, 1: configure/reconfig, 2: info update
 	u8 init_pid_config_done;
 	u64 pck_for_config;
 } PidCtx;
@@ -51,10 +51,10 @@ typedef struct
 	u32 mode;
 	Bool interleave;
 	Bool dump_data;
-	Bool pck;
+	Bool deep;
 	char *log;
 	char *fmt;
-	Bool props, hdr, all;
+	Bool props, hdr, all, info;
 
 	FILE *dump;
 
@@ -257,7 +257,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	Bool start, end;
 	const char *data;
 
-	if (!ctx->pck && !ctx->fmt) return;
+	if (!ctx->deep && !ctx->fmt) return;
 
 	data = gf_filter_pck_get_data(pck, &size);
 	gf_filter_pck_get_framing(pck, &start, &end);
@@ -318,12 +318,14 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	}
 }
 
-static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config)
+static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config, Bool is_info)
 {
 	u32 idx=0;
 
 	//disconnect of src pid (not yet supported)
-	if (is_remove) {
+	if (is_info) {
+		fprintf(dump, "PID %d name %s info update\n", pid_idx, gf_filter_pid_get_name(pid) );
+	} else if (is_remove) {
 		fprintf(dump, "PID %d name %s delete\n", pid_idx, gf_filter_pid_get_name(pid) );
 	} else {
 		fprintf(dump, "PID %d name %s %sonfigure", pid_idx, gf_filter_pid_get_name(pid), is_connect ? "C" : "Rec" );
@@ -331,12 +333,22 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			fprintf(dump, " after "LLU" packets", pck_for_config);
 		fprintf(dump, " - properties:\n");
 	}
-	while (1) {
-		u32 prop_4cc;
-		const char *prop_name;
-		const GF_PropertyValue * p = gf_filter_pid_enum_properties(pid, &idx, &prop_4cc, &prop_name);
-		if (!p) break;
-		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
+	if (!is_info) {
+		while (1) {
+			u32 prop_4cc;
+			const char *prop_name;
+			const GF_PropertyValue * p = gf_filter_pid_enum_properties(pid, &idx, &prop_4cc, &prop_name);
+			if (!p) break;
+			inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
+		}
+	} else {
+		while (ctx->info) {
+			u32 prop_4cc;
+			const char *prop_name;
+			const GF_PropertyValue * p = gf_filter_pid_enum_info(pid, &idx, &prop_4cc, &prop_name);
+			if (!p) break;
+			inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
+		}
 	}
 }
 
@@ -352,7 +364,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		if (!pck) continue;
 
 		if (pctx->dump_pid) {
-			inspect_dump_pid(ctx, pctx->tmp, pctx->src_pid, pctx->idx, pctx->init_pid_config_done ? GF_FALSE : GF_TRUE, GF_FALSE, pctx->pck_for_config);
+			inspect_dump_pid(ctx, pctx->tmp, pctx->src_pid, pctx->idx, pctx->init_pid_config_done ? GF_FALSE : GF_TRUE, GF_FALSE, pctx->pck_for_config, (pctx->dump_pid==2) ? GF_TRUE : GF_FALSE);
 			pctx->dump_pid = 0;
 			pctx->init_pid_config_done = 1;
 			pctx->pck_for_config=0;
@@ -426,7 +438,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 	gf_filter_pid_send_event(pid, &evt);
-	if (ctx->is_prober || ctx->pck || ctx->fmt) {
+	if (ctx->is_prober || ctx->deep || ctx->fmt) {
 		ctx->dump_pck = GF_TRUE;
 	} else {
 		ctx->dump_pck = GF_FALSE;
@@ -484,21 +496,30 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-
+static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
+	if (!ctx->info) return GF_TRUE;
+	if (evt->base.type!=GF_FEVT_INFO_UPDATE) return GF_TRUE;
+	PidCtx *pctx = gf_filter_pid_get_udta(evt->base.on_pid);
+	pctx->dump_pid = 2;
+	return GF_TRUE;
+}
 
 
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "Sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
-	{ OFFS(mode), "Dump mode:\n\tpck: dumps full packet\n\tblk: dumps packets before reconstruction\n\tframe: force reframer\n\traw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
-	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pck), "Dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(props), "Dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dump_data), "Enables full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(log), "sets inspect log filename", GF_PROP_STRING, "stderr", "fileName or stderr or stdout", 0},
+	{ OFFS(mode), "dump mode:\n\tpck: dumps full packet\n\tblk: dumps packets before reconstruction\n\tframe: force reframer\n\traw: dumps source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
+	{ OFFS(interleave), "dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(deep), "dumps packets along with PID state change - implied when fmt is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(props), "dumps packet properties - ignored when fmt is set, see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dump_data), "enables full data dump, WARNING heavy - ignored when fmt is set, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fmt), "sets packet dump format - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hdr), "prints a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(all), "analyses for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -555,6 +576,7 @@ const GF_FilterRegister InspectRegister = {
 	.initialize = inspect_initialize,
 	.finalize = inspect_finalize,
 	.process = inspect_process,
+	.process_event = inspect_process_event,
 	.configure_pid = inspect_config_input,
 };
 

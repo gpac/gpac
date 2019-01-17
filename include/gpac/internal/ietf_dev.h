@@ -163,7 +163,7 @@ struct __tag_rtp_channel
 	u32 total_pck, total_bytes;
 
 	GF_BitStream *bs_r, *bs_w;
-
+	Bool no_select;
 };
 
 /*gets UTC in the channel RTP timescale*/

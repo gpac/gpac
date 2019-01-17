@@ -2705,7 +2705,7 @@ int main(int argc, char **argv)
 			case GF_MP42TS_UDP:
 			case GF_MP42TS_RTP:
 				/*e =*/
-				gf_sk_receive(audio_input_udp_sk, audio_input_buffer, audio_input_buffer_length, 0, &read);
+				gf_sk_receive(audio_input_udp_sk, audio_input_buffer, audio_input_buffer_length, &read);
 				if (read) {
 					SampleCallBack((void*)&sources[nb_sources-1], AUDIO_DATA_ESID, audio_input_buffer, read, gf_m2ts_get_sys_clock(muxer));
 				}

@@ -35,6 +35,8 @@ static Bool print_filter_info = GF_FALSE;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
+static s32 runfor = 0;
+Bool no_prompt = GF_FALSE;
 
 static int alias_argc = 0;
 static char **alias_argv = NULL;
@@ -412,6 +414,7 @@ GF_GPACArg gpac_args[] =
 #endif
 	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("loop", NULL, "loops execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("runfor", NULL, "runs for the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("stats", NULL, "print stats after execution. Stats can be viewed at runtime by typing 's' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", NULL, "print graph after execution. Graph can be viewed at runtime by typing 'g' in the prompt", NULL, NULL, GF_ARG_BOOL, 0),
@@ -504,9 +507,11 @@ static void gpac_fsess_task_help()
 	);
 }
 
+static u64 run_start_time = 0;
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
-	if (gf_prompt_has_input()) {
+
+	if (!no_prompt && gf_prompt_has_input()) {
 		char c = gf_prompt_get_char();
 		switch (c) {
 		case 'q':
@@ -530,6 +535,16 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 			break;
 		}
 	}
+	if (runfor>0) {
+		u64 now = gf_sys_clock_high_res();
+		if (!run_start_time) run_start_time = now;
+		else if (now - run_start_time > runfor) {
+			gf_fs_abort(fsess, GF_FALSE);
+			nb_loops = 0;
+			return GF_FALSE;
+		}
+	}
+
 	if (gf_fs_is_last_task(fsess))
 		return GF_FALSE;
 	*reschedule_ms = 500;
@@ -600,7 +615,6 @@ static int gpac_main(int argc, char **argv)
 	Bool dump_codecs = GF_FALSE;
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
-	Bool no_prompt = GF_FALSE;
 	u32 loops_done = 0;
 
 	//look for mem track and profile, and also process all helpers
@@ -732,6 +746,8 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-loop")) {
 			nb_loops = -1;
 			if (arg_val) nb_loops = atoi(arg_val);
+		} else if (!strcmp(arg, "-runfor")) {
+			if (arg_val) runfor = 1000*atoi(arg_val);
 		}
 		else if (!strcmp(arg, "-cfg")) {
 			nothing_to_do = GF_FALSE;
@@ -912,8 +928,10 @@ restart:
 		}
 		goto exit;
 	}
-	if (!no_prompt) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'h' for help\n"));
+	if (!no_prompt || (runfor>0) ) {
+		if (!no_prompt) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'h' for help\n"));
+		}
 		gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
 	}
 	e = gf_fs_run(session);
