@@ -274,7 +274,7 @@ deb:
 #	fi
 	git checkout --	debian/changelog
 	fakeroot debian/rules clean
-	sed -i "s/-DEV/-DEV-rev$(VERSION)-$(BRANCH)/" debian/changelog
+	sed -i -r "s/-(DEV|ALPHA)/-\1-rev$(VERSION)-$(BRANCH)/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/
