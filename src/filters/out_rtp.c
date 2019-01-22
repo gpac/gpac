@@ -669,7 +669,7 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 			u64 offset = ctx->tso;
 			offset *= stream->timescale;
 			offset /= 1000000;
-			stream->rtp_ts_offset = offset;
+			stream->rtp_ts_offset = (u32) offset;
 		}
 	}
 	ctx->sys_clock_at_init = gf_sys_clock_high_res();
@@ -875,12 +875,12 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		dts += stream->ts_delay;
 		cts += stream->ts_delay;
 	} else {
-		if (dts  >= -stream->ts_delay)
+		if ((s32) dts >= -stream->ts_delay)
 			dts += stream->ts_delay;
 		else
 			dts = 0;
 
-		if (cts >= -stream->ts_delay )
+		if ((s32) cts >= -stream->ts_delay )
 			cts += stream->ts_delay;
 		else
 			cts = 0;

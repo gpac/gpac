@@ -167,7 +167,7 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	gf_filter_pck_set_cts(pck, hdr->compositionTimeStamp);
 
 	diff = (s64) hdr->compositionTimeStamp - (s64) stream->prev_cts;
-	stream->prev_cts = hdr->compositionTimeStamp;
+	stream->prev_cts = (u32) hdr->compositionTimeStamp;
 	if ((stream->rtpin->max_sleep>0) &&  diff) {
 		if (diff<0) diff = -diff;
 		if (!stream->min_dur_rtp || (diff < stream->min_dur_rtp)) {
@@ -176,7 +176,7 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 			diff /= stream->rtp_ch->TimeScale;
 			if (diff > stream->rtpin->max_sleep) diff = stream->rtpin->max_sleep;
 			if (!stream->rtpin->min_frame_dur_ms || ( (u32) diff < stream->rtpin->min_frame_dur_ms)) {
-				stream->rtpin->min_frame_dur_ms = diff;
+				stream->rtpin->min_frame_dur_ms = (u32) diff;
 			}
 		}
 	}
