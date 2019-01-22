@@ -278,6 +278,8 @@ enum
 {
 	GF_M2TS_RA_STREAM_AC3	= GF_4CC('A','C','-','3'),
 	GF_M2TS_RA_STREAM_VC1	= GF_4CC('V','C','-','1'),
+
+	GF_M2TS_RA_STREAM_GPAC	= GF_4CC('G','P','A','C')
 };
 
 
@@ -622,8 +624,10 @@ enum
 	GF_M2TS_ES_IS_MPE = 1<<5,
 	/*stream is used to send PCR to upper layer*/
 	GF_M2TS_INHERIT_PCR = 1<<6,
-	/*siugnals the stream is used to send the PCR, but is not the original PID carrying it*/
+	/*signals the stream is used to send the PCR, but is not the original PID carrying it*/
 	GF_M2TS_FAKE_PCR = 1<<7,
+	/*signals the stream type is a gpac codec id*/
+	GF_M2TS_GPAC_CODEC_ID = 1<<8,
 
 	/*all flags above this mask are used by importers & co*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
@@ -1266,6 +1270,7 @@ typedef struct __m2ts_mux_stream {
 	Bool table_needs_send;
 	Bool force_single_au;
 	Bool set_initial_disc;
+	Bool force_reg_desc;
 
 	/*minimal amount of bytes we are allowed to copy frome next AU in the current PES. If no more than this
 	is available in PES, don't copy from next*/

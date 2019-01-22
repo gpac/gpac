@@ -47,6 +47,11 @@ GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly)
 		if (!stream->rtpin->interleave) {
 			ip_ifce = stream->rtpin->ifce;
 		}
+		if (stream->rtp_ch->rtp)
+			gf_sk_group_unregister(stream->rtpin->sockgroup, stream->rtp_ch->rtp);
+		if (stream->rtp_ch->rtcp)
+			gf_sk_group_unregister(stream->rtpin->sockgroup, stream->rtp_ch->rtcp);
+
 		e = gf_rtp_initialize(stream->rtp_ch, stream->rtpin->block_size, GF_FALSE, 0, stream->rtpin->reorder_len, stream->rtpin->reorder_delay, (char *)ip_ifce);
 		if (e) return e;
 
@@ -179,6 +184,15 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	gf_filter_pck_set_sap(pck, hdr->randomAccessPointFlag ? GF_FILTER_SAP_1  :GF_FILTER_SAP_NONE);
 	if (hdr->au_duration)
 		gf_filter_pck_set_duration(pck, hdr->au_duration);
+
+	if (hdr->samplerate && (hdr->samplerate != stream->sr)) {
+		stream->sr = hdr->samplerate;
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(stream->sr));
+	}
+	if (hdr->channels && (hdr->channels != stream->nb_ch)) {
+		stream->nb_ch = hdr->channels;
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(stream->nb_ch));
+	}
 	gf_filter_pck_set_framing(pck, hdr->accessUnitStartFlag, hdr->accessUnitEndFlag);
 
 	if (stream->rtp_ch->packet_loss)
@@ -473,7 +487,7 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 }
 
 
-static void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
+void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
 {
 	GF_Err e;
 	GF_RTPHeader hdr;

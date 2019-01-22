@@ -425,6 +425,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	/*need a new RTP packet*/
 	if (!builder->bytesInPacket) {
 		builder->rtp_header.PayloadType = builder->PayloadType;
+		builder->rtp_header.Marker = 0;
 		builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
 		builder->rtp_header.SequenceNumber += 1;
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);

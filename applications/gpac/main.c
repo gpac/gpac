@@ -539,7 +539,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		u64 now = gf_sys_clock_high_res();
 		if (!run_start_time) run_start_time = now;
 		else if (now - run_start_time > runfor) {
-			gf_fs_abort(fsess, GF_FALSE);
+			gf_fs_abort(fsess, GF_TRUE);
 			nb_loops = 0;
 			return GF_FALSE;
 		}

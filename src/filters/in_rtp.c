@@ -354,6 +354,13 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		break;
 	case GF_FEVT_STOP:
+
+		while (1) {
+			u32 size = gf_rtp_read_flush(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
+			if (!size) break;
+			rtpin_stream_on_rtp_pck(stream, stream->buffer, size);
+		}
+
 		/*is this RTSP or direct RTP?*/
 		if (stream->rtsp) {
 			rtpin_rtsp_usercom_send(stream->rtsp, stream, evt);
@@ -370,6 +377,12 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_sk_group_unregister(ctx->sockgroup, stream->rtp_ch->rtp);
 			if (stream->rtp_ch->rtcp)
 				gf_sk_group_unregister(ctx->sockgroup, stream->rtp_ch->rtcp);
+		}
+		if (reset_stream) {
+			while (gf_list_count(stream->pck_queue)) {
+				GF_FilterPacket *pck = gf_list_pop_front(stream->pck_queue);
+				gf_filter_pck_send(pck);
+			}
 		}
 		break;
 	case GF_FEVT_SET_SPEED:
@@ -599,16 +612,37 @@ static void rtpin_finalize(GF_Filter *filter)
 	gf_sk_group_del(ctx->sockgroup);
 }
 
+static const char *rtpin_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	Bool is_sdp = GF_TRUE;
+	char *pdata = (char *)data;
+	char cend = pdata[size-1];
+	pdata[size-1] = 0;
+	if (!strstr(pdata, "\n")) is_sdp = GF_FALSE;
+	else if (!strstr(pdata, "v=0")) is_sdp = GF_FALSE;
+	else if (!strstr(pdata, "o=")) is_sdp = GF_FALSE;
+	else if (!strstr(pdata, "c=")) is_sdp = GF_FALSE;
+	pdata[size-1] = cend;
+	if (is_sdp) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "application/sdp";
+	}
+	return NULL;
+}
 
 static const GF_FilterCapability RTPInCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/sdp"),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_METADATA),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "sdp"),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_RTPIn, _n)
@@ -655,7 +689,8 @@ GF_FilterRegister RTPInRegister = {
 	.configure_pid = rtpin_configure_pid,
 	.process = rtpin_process,
 	.process_event = rtpin_process_event,
-	.probe_url = rtpin_probe_url
+	.probe_url = rtpin_probe_url,
+	.probe_data = rtpin_probe_data
 };
 
 #endif

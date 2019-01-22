@@ -54,7 +54,7 @@ typedef struct
 	Bool deep;
 	char *log;
 	char *fmt;
-	Bool props, hdr, all, info;
+	Bool props, hdr, all, info, pcr;
 
 	FILE *dump;
 
@@ -168,7 +168,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			else if (end) fprintf(dump, "frame_end");
 			else fprintf(dump, "frame_cont");
 		}
-		else if (!strcmp(key, "sap")) fprintf(dump, "%u", gf_filter_pck_get_sap(pck) );
+		else if (!strcmp(key, "sap") || !strcmp(key, "rap")) fprintf(dump, "%u", gf_filter_pck_get_sap(pck) );
 		else if (!strcmp(key, "ilace")) fprintf(dump, "%d", gf_filter_pck_get_interlaced(pck) );
 		else if (!strcmp(key, "corr")) fprintf(dump, "%d", gf_filter_pck_get_corrupted(pck) );
 		else if (!strcmp(key, "seek")) fprintf(dump, "%d", gf_filter_pck_get_seek_flag(pck) );
@@ -254,6 +254,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	u32 idx=0, size;
 	u64 ts;
 	u8 dflags = 0;
+	GF_FilterClockType ck_type;
 	Bool start, end;
 	const char *data;
 
@@ -262,7 +263,17 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	data = gf_filter_pck_get_data(pck, &size);
 	gf_filter_pck_get_framing(pck, &start, &end);
 
+	ck_type = ctx->pcr ? gf_filter_pck_get_clock_type(pck) : 0;
+	if (!size && !ck_type) return;
+
 	fprintf(dump, "PID %d PCK "LLU" - ", pid_idx, pck_num);
+	if (ck_type) {
+		ts = gf_filter_pck_get_cts(pck);
+		if (ts==GF_FILTER_NO_TS) fprintf(dump, " PCR N/A");
+		else fprintf(dump, " PCR%s "LLU"\n", (ck_type==GF_FILTER_CLOCK_PCR) ? "" : " discontinuity", ts );
+		return;
+	}
+
 	if (start && end) fprintf(dump, "full frame");
 	else if (start) fprintf(dump, "frame start");
 	else if (end) fprintf(dump, "frame end");
@@ -289,8 +300,10 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	fprintf(dump, " roll %u", gf_filter_pck_get_roll_info(pck) );
 	fprintf(dump, " crypt %u", gf_filter_pck_get_crypt_flags(pck) );
 	fprintf(dump, " vers %u", gf_filter_pck_get_carousel_version(pck) );
-	fprintf(dump, " size %d", size );
 
+	if (!ck_type) {
+		fprintf(dump, " size %d", size );
+	}
 	dflags = gf_filter_pck_get_dependency_flags(pck);
 	fprintf(dump, " lp %u", (dflags>>6) & 0x3 );
 	fprintf(dump, " depo %u", (dflags>>4) & 0x3 );
@@ -308,12 +321,13 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		fprintf(dump, " CRC32 0x%08X\n", gf_crc_32(data, size) );
 	}
 	if (!ctx->props) return;
-	fprintf(dump, "properties:\n");
 	while (1) {
 		u32 prop_4cc;
 		const char *prop_name;
 		const GF_PropertyValue * p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
+		if (idx==0) fprintf(dump, "properties:\n");
+
 		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
 	}
 }
@@ -443,6 +457,8 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	} else {
 		ctx->dump_pck = GF_FALSE;
 	}
+	if (ctx->pcr)
+		gf_filter_pid_set_clock_mode(pid, GF_TRUE);
 	return GF_OK;
 }
 
@@ -520,6 +536,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(hdr), "prints a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(all), "analyses for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pcr), "dumps M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -540,7 +557,7 @@ const GF_FilterRegister InspectRegister = {
 				"\tcts: composition time stamp in stream timescale, N/A if not available\n"\
 				"\tdur: duration in stream timescale\n"\
 				"\tframe: framing status: frame_full (complete AU), frame_start, , frame_end, frame_cont\n"
-				"\tsap: SAP type of the frame\n"\
+				"\tsap or rap: SAP type of the frame\n"\
 				"\tilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
 				"\tcorr: corrupted packet flag\n"\
 				"\tseek: seek flag\n"\

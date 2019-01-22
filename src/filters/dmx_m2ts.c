@@ -151,100 +151,111 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	Bool unframed = GF_FALSE;
 	if (stream->user) return;
 
-	switch (stream->stream_type) {
-	case GF_M2TS_VIDEO_MPEG1:
-		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_MPEG1;
+	if (stream->flags & GF_M2TS_GPAC_CODEC_ID) {
+		codecid = stream->stream_type;
+		stype = gf_codecid_type(codecid);
 		unframed = GF_TRUE;
-		break;
-	case GF_M2TS_VIDEO_MPEG2:
-	case GF_M2TS_VIDEO_DCII:
-		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_MPEG2_MAIN;
-		unframed = GF_TRUE;
-		break;
-	case GF_M2TS_VIDEO_MPEG4:
-		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_MPEG4_PART2;
-		unframed = GF_TRUE;
-		break;
-	case GF_M2TS_VIDEO_H264:
-		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_AVC;
-		unframed = GF_TRUE;
-		if (stream->program->is_scalable)
-			has_scal_layer = GF_TRUE;
-		break;
-	case GF_M2TS_VIDEO_SVC:
-		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_SVC;
-		has_scal_layer = GF_TRUE;
-		unframed = GF_TRUE;
-		break;
-	case GF_M2TS_VIDEO_HEVC:
-	case GF_M2TS_VIDEO_HEVC_TEMPORAL:
-	case GF_M2TS_VIDEO_HEVC_MCTS:
-		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_HEVC;
-		unframed = GF_TRUE;
-		if (stream->program->is_scalable)
-			has_scal_layer = GF_TRUE;
-		break;
-	case GF_M2TS_VIDEO_SHVC:
-	case GF_M2TS_VIDEO_SHVC_TEMPORAL:
-	case GF_M2TS_VIDEO_MHVC:
-	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
-		stype = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_LHVC;
-		has_scal_layer = GF_TRUE;
-		break;
-	case GF_M2TS_AUDIO_MPEG1:
-		stype = GF_STREAM_AUDIO;
-		codecid = GF_CODECID_MPEG_AUDIO;
-		unframed = GF_TRUE;
-		break;
-	case GF_M2TS_AUDIO_MPEG2:
-		stype = GF_STREAM_AUDIO;
-		codecid = GF_CODECID_MPEG2_PART3;
-		unframed = GF_TRUE;
-		break;
-	case GF_M2TS_AUDIO_LATM_AAC:
-	case GF_M2TS_AUDIO_AAC:
-	case GF_CODECID_AAC_MPEG2_MP:
-	case GF_CODECID_AAC_MPEG2_LCP:
-	case GF_CODECID_AAC_MPEG2_SSRP:
-		stype = GF_STREAM_AUDIO;
-		codecid = GF_CODECID_AAC_MPEG4;
-		unframed = GF_TRUE;
-		break;
-	case GF_M2TS_AUDIO_AC3:
-		stype = GF_STREAM_AUDIO;
-		codecid = GF_CODECID_AC3;
-		break;
-	case GF_M2TS_AUDIO_EC3:
-		stype = GF_STREAM_AUDIO;
-		codecid = GF_CODECID_EAC3;
-		break;
-	//TODO: MP4on2 is currently broken in filters
-	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
-		((GF_M2TS_ES*)stream)->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
-	case GF_M2TS_SYSTEMS_MPEG4_PES:
-		if (!esd) {
-			m4sys_iod_stream = GF_TRUE;
-			count = gf_list_count(stream->program->pmt_iod->ESDescriptors);
-			for (i=0; i<count; i++) {
-				esd = gf_list_get(stream->program->pmt_iod->ESDescriptors, i);
-				if (esd->ESID == stream->mpeg4_es_id) break;
-				esd = NULL;
-			}
+		if (!stype) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Unrecognized gpac codec %s - ignoring pid\n", gf_4cc_to_str(codecid) ));
+			return;
 		}
-		m4sys_stream = GF_TRUE;
-		//cannot setup stream yet
-		if (!esd) return;
-		break;
-	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type %d not supported - ignoring pid\n", stream->stream_type));
-		return;
+	} else {
+
+		switch (stream->stream_type) {
+		case GF_M2TS_VIDEO_MPEG1:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_MPEG1;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_VIDEO_MPEG2:
+		case GF_M2TS_VIDEO_DCII:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_MPEG2_MAIN;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_VIDEO_MPEG4:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_MPEG4_PART2;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_VIDEO_H264:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_AVC;
+			unframed = GF_TRUE;
+			if (stream->program->is_scalable)
+				has_scal_layer = GF_TRUE;
+			break;
+		case GF_M2TS_VIDEO_SVC:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_SVC;
+			has_scal_layer = GF_TRUE;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_VIDEO_HEVC:
+		case GF_M2TS_VIDEO_HEVC_TEMPORAL:
+		case GF_M2TS_VIDEO_HEVC_MCTS:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_HEVC;
+			unframed = GF_TRUE;
+			if (stream->program->is_scalable)
+				has_scal_layer = GF_TRUE;
+			break;
+		case GF_M2TS_VIDEO_SHVC:
+		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+		case GF_M2TS_VIDEO_MHVC:
+		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_LHVC;
+			has_scal_layer = GF_TRUE;
+			break;
+		case GF_M2TS_AUDIO_MPEG1:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_MPEG_AUDIO;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_AUDIO_MPEG2:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_MPEG2_PART3;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_AUDIO_LATM_AAC:
+		case GF_M2TS_AUDIO_AAC:
+		case GF_CODECID_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AAC_MPEG4;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_AUDIO_AC3:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AC3;
+			break;
+		case GF_M2TS_AUDIO_EC3:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_EAC3;
+			break;
+		//TODO: MP4on2 is currently broken in filters
+		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
+			((GF_M2TS_ES*)stream)->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
+		case GF_M2TS_SYSTEMS_MPEG4_PES:
+			if (!esd) {
+				m4sys_iod_stream = GF_TRUE;
+				count = gf_list_count(stream->program->pmt_iod->ESDescriptors);
+				for (i=0; i<count; i++) {
+					esd = gf_list_get(stream->program->pmt_iod->ESDescriptors, i);
+					if (esd->ESID == stream->mpeg4_es_id) break;
+					esd = NULL;
+				}
+			}
+			m4sys_stream = GF_TRUE;
+			//cannot setup stream yet
+			if (!esd) return;
+			break;
+		default:
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type %d not supported - ignoring pid\n", stream->stream_type));
+			return;
+		}
 	}
 
 	opid = gf_filter_pid_new(ctx->filter);

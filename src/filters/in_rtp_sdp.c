@@ -27,6 +27,7 @@
 #include <gpac/internal/ietf_dev.h>
 //for ismacrypt scheme
 #include <gpac/isomedia.h>
+#include <gpac/avparse.h>
 
 #ifndef GPAC_DISABLE_STREAMING
 
@@ -247,6 +248,34 @@ static void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING(stream->depacketizer->key) );
 	}
 
+	if (sl_map->StreamType==GF_STREAM_VISUAL) {
+		if (stream->depacketizer->payt != GF_RTP_PAYT_MPEG4) {
+			gf_filter_pid_recompute_dts(stream->opid, GF_TRUE);
+		} else if (!stream->depacketizer->sl_map.DTSDeltaLength && !stream->depacketizer->sl_map.CTSDeltaLength) {
+			gf_filter_pid_recompute_dts(stream->opid, GF_TRUE);
+		}
+	}
+
+
+	if (sl_map->StreamType==GF_STREAM_AUDIO) {
+		switch (sl_map->CodecID) {
+		case GF_CODECID_AAC_MPEG4:
+		case GF_CODECID_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
+			if (sl_map->config) {
+				GF_M4ADecSpecInfo acfg;
+				gf_m4a_get_config(sl_map->config, sl_map->configSize, &acfg);
+				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(acfg.base_sr) );
+				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(acfg.nb_chan) );
+			} else {
+				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(gf_rtp_get_clockrate(stream->rtp_ch) ) );
+				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
+
+			}
+			break;
+		}
+	}
 }
 
 
