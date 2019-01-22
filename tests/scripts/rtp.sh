@@ -6,44 +6,72 @@ IFCE="127.0.0.1"
 rtp_test ()
 {
 
-test_begin "gpac-rtp-$1"
+test_begin "rtp-$1"
 if [ $test_skip  = 1 ] ; then
 return
 fi
 
-do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:runfor=0:ip=$DST" "streamer-init"
-do_hash_test "$TEMP_DIR/session.sdp" "streamer-init"
+#prepare the sdp
+do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:runfor=0:ip=$DST" "init"
+do_hash_test "$TEMP_DIR/session.sdp" "init"
 
-#we have a bug in avi dumping of RTP source, just check regular playback for now
-#do_test "$MP4CLIENT -run-for 2 -opt Network:BufferLength=100 -no-save -ifce $IFCE $TEMP_DIR/session.sdp" "play" &
-do_test "$GPAC -runfor=8000 -i $TEMP_DIR/session.sdp:ifce=$IFCE vout aout" "play" &
+#a bit of fun: we export to native, isobmf, ts and DASH at the same time
+#for TS dump, we need no pcr offset (or at least no random value init, so use 0), and single AU per pes otherwise we may have different execution results depending on how fast packets are received
+dump_native=$TEMP_DIR/dump.$1
+dump_mp4=$TEMP_DIR/dump.mp4
+dump_ts=$TEMP_DIR/dump.ts
+dump_mpd=$TEMP_DIR/dump.mpd
+do_test "$GPAC -for-test -runfor=1500 -i $TEMP_DIR/session.sdp:ifce=$IFCE -o $dump_native -o $dump_mp4 -o $dump_ts:pcr_init=0:pes_pack=none -o $dump_mpd -stats -graph" "dump" &
 
-#run for a bit more because of buffering and client startup time
-do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:runfor=10000:ip=$DST:ifce=$IFCE" "streamer-run"
+sleep .1
+#run without loop
+do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:loop=no:ip=$DST:ifce=$IFCE -stats" "stream"
+
+wait
+
+do_hash_test $dump_native "dump-native"
+do_hash_test $dump_mp4 "dump-mp4"
+do_hash_test $dump_ts "dump-ts"
+do_hash_test $dump_mpd "dump-dash-mpd"
+do_hash_test $TEMP_DIR/session_dashinit.mp4 "dump-dash-init"
+do_hash_test $TEMP_DIR/session_dash1.m4s "dump-dash-seg"
 
 test_end
 }
 
-mp4file="$TEMP_DIR/test.mp4"
+MYTMP=$TEMP_DIR
 
-$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:dur=1 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac:dur=1 -new $mp4file 2> /dev/null
-rtp_test "avc-aac" $mp4file
+mp4file="$MYTMP/aac.mp4"
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_audio.aac:dur=1 -new $mp4file 2> /dev/null
+rtp_test "aac" $mp4file
+#rm $mp4file > /dev/null
 
-return
+mp4file="$MYTMP/mp3.mp4"
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/count_english.mp3:dur=1 -new $mp4file 2> /dev/null
+rtp_test "mp3" $mp4file
+#rm $mp4file > /dev/null
 
-rm $mp4file > /dev/null
+mp4file="$MYTMP/avc.mp4"
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:dur=1 -new $mp4file 2> /dev/null
+rtp_test "avc" $mp4file
+#rm $mp4file > /dev/null
 
-
-$MP4BOX -add $MEDIA_DIR/auxiliary_files/count_video.cmp:dur=1 -add $MEDIA_DIR/auxiliary_files/count_english.mp3:dur=1 -new $mp4file 2> /dev/null
-rtp_test "mpeg4p2-mp3" $mp4file
-rm $mp4file > /dev/null
-
+mp4file="$MYTMP/cmp.mp4"
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/count_video.cmp:dur=1 -new $mp4file 2> /dev/null
+rtp_test "cmp" $mp4file
+#rm $mp4file > /dev/null
 
 if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
 return
 fi
 
-$MP4BOX -add $EXTERNAL_MEDIA_DIR/import/bear_video.263:dur=1 -add $EXTERNAL_MEDIA_DIR/import/bear_audio.amr:dur=1 -new $mp4file 2> /dev/null
-rtp_test "h263-amr" $mp4file
-rm $mp4file > /dev/null
+mp4file="$MYTMP/h263.mp4"
+$MP4BOX -add $EXTERNAL_MEDIA_DIR/import/bear_video.263:dur=1 -new $mp4file 2> /dev/null
+rtp_test "h263" $mp4file
+#rm $mp4file > /dev/null
+
+mp4file="$MYTMP/amr.mp4"
+$MP4BOX -add $EXTERNAL_MEDIA_DIR/import/bear_audio.amr:dur=1 -new $mp4file 2> /dev/null
+rtp_test "amr" $mp4file
+#rm $mp4file > /dev/null
 

@@ -285,6 +285,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
 		rtp_type = GF_RTP_PAYT_H264_SVC;
 		PL_ID = 0x0F;
 		break;
+
 	/*HEVC*/
 	case GF_CODECID_HEVC:
 		required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
@@ -298,7 +299,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
 		PL_ID = 0x0F;
 		break;
 
-	case GF_ISOM_SUBTYPE_3GP_H263:
+	case GF_CODECID_H263:
 		rtp_type = GF_RTP_PAYT_H263;
 		required_rate = 90000;
 		streamType = GF_STREAM_VISUAL;
@@ -307,37 +308,25 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
 		codecid = GF_CODECID_MPEG4_PART2;
 		PL_ID = 0x01;
 		break;
-	case GF_ISOM_SUBTYPE_3GP_AMR:
+	case GF_CODECID_AMR:
 		required_rate = 8000;
 		rtp_type = GF_RTP_PAYT_AMR;
 		streamType = GF_STREAM_AUDIO;
 		has_mpeg4_mapping = GF_FALSE;
 		break;
-	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
+	case GF_CODECID_AMR_WB:
 		required_rate = 16000;
 		rtp_type = GF_RTP_PAYT_AMR_WB;
 		streamType = GF_STREAM_AUDIO;
 		has_mpeg4_mapping = GF_FALSE;
 		break;
-	case GF_ISOM_SUBTYPE_AC3:
+	case GF_CODECID_AC3:
 		rtp_type = GF_RTP_PAYT_AC3;
 		streamType = GF_STREAM_AUDIO;
 		has_mpeg4_mapping = GF_TRUE;
 		break;
-	case GF_ISOM_SUBTYPE_AVC_H264:
-	case GF_ISOM_SUBTYPE_AVC2_H264:
-	case GF_ISOM_SUBTYPE_AVC3_H264:
-	case GF_ISOM_SUBTYPE_AVC4_H264:
-	case GF_ISOM_SUBTYPE_SVC_H264:
-	case GF_ISOM_SUBTYPE_MVC_H264:
-		required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-		rtp_type = GF_RTP_PAYT_H264_AVC;
-		streamType = GF_STREAM_VISUAL;
-		codecid = GF_CODECID_AVC;
-		PL_ID = 0x0F;
-	break;
 
-	case GF_ISOM_SUBTYPE_3GP_QCELP:
+	case GF_CODECID_QCELP:
 		required_rate = 8000;
 		rtp_type = GF_RTP_PAYT_QCELP;
 		streamType = GF_STREAM_AUDIO;
@@ -345,22 +334,15 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 codecid, u32 ti
 		OfficialPayloadType = 12;
 //			nb_ch = 1;
 		break;
-	case GF_ISOM_SUBTYPE_3GP_EVRC:
-	case GF_ISOM_SUBTYPE_3GP_SMV:
+	case GF_CODECID_EVRC:
+	case GF_CODECID_SMV:
 		required_rate = 8000;
 		rtp_type = GF_RTP_PAYT_EVRC_SMV;
 		streamType = GF_STREAM_AUDIO;
 		codecid = (codecid==GF_ISOM_SUBTYPE_3GP_EVRC) ? GF_CODECID_EVRC : GF_CODECID_SMV;
 //			nb_ch = 1;
 		break;
-	case GF_ISOM_SUBTYPE_MP3:
-		rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
-		/*use official RTP/AVP payload type*/
-		OfficialPayloadType = 14;
-		required_rate = 90000;
-		break;
-	case GF_ISOM_SUBTYPE_TEXT:
-	case GF_ISOM_SUBTYPE_TX3G:
+	case GF_CODECID_TX3G:
 		rtp_type = GF_RTP_PAYT_3GPP_TEXT;
 		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
 		PL_ID = 0x10;
@@ -724,6 +706,7 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 
 	rtp->packetizer->sl_header.randomAccessPointFlag = is_rap;
 	rtp->packetizer->sl_header.AU_sequenceNumber = au_sn;
 	sampleDuration = (u32) (sampleDuration * rtp->ts_scale);
+	if (au_start && size) rtp->packetizer->nb_aus++;
 
 	return gf_rtp_builder_process(rtp->packetizer, data, size, (u8) au_end, fullsize, sampleDuration, sampleDescIndex);
 }

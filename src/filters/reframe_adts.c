@@ -713,8 +713,8 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		next_pos = (u32) gf_bs_get_position(bs);
 	}
 	gf_bs_del(bs);
-	if (max_consecutive_frames>=2) {
-		*score = GF_FPROBE_SUPPORTED;
+	if (max_consecutive_frames>=4) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return "audio/aac";
 	}
 	return NULL;

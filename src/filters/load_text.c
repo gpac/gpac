@@ -2869,7 +2869,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	if (strstr(utf8, "TextStream")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttxt")
 	}
-	if (strstr(utf8, "tt")) {
+	if (strstr(utf8, "<tt ") || strstr(utf8, ":tt ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 

@@ -800,6 +800,12 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				es_info_length += 2;
 				type = GF_M2TS_PRIVATE_DATA;
 				break;
+			default:
+				if (es->force_reg_desc) {
+					es_info_length += 2 + 4 + 4;
+					type = GF_M2TS_PRIVATE_DATA;
+				}
+				break;
 			}
 
 			gf_bs_write_int(bs,	type, 8);
@@ -862,6 +868,14 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			case GF_M2TS_AUDIO_EC3:
 				gf_bs_write_int(bs,	GF_M2TS_DVB_EAC3_DESCRIPTOR, 8);
 				gf_bs_write_int(bs,	0, 8); //check what is in this desc
+				break;
+			default:
+				if (es->force_reg_desc) {
+					gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+					gf_bs_write_int(bs,	8, 8);
+					gf_bs_write_int(bs,	GF_M2TS_RA_STREAM_GPAC, 32);
+					gf_bs_write_int(bs,	es->ifce->fourcc, 32);
+				}
 				break;
 			}
 
@@ -2262,14 +2276,17 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			gf_m2ts_stream_set_default_slconfig(stream);
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as PES private using codec 4CC in regristration descriptor\n", gf_codecid_name(ifce->fourcc) ));
+
 			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
 			stream->force_single_au = GF_TRUE;
-			stream->mpeg2_stream_id = 0xFA;
+			stream->force_reg_desc = GF_TRUE;
 			break;
 		}
 		break;
 	case GF_STREAM_AUDIO:
+		/*just pick first valid stream_id in audio range*/
+		stream->mpeg2_stream_id = 0xC0;
 		//override default packing for audio
 		stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_NONE) ? GF_TRUE : GF_FALSE;
 		switch (ifce->object_type_indication) {
@@ -2294,13 +2311,12 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as raw data\n", gf_codecid_name(ifce->fourcc) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as PES private using codec 4CC in regristration descriptor\n", gf_codecid_name(ifce->fourcc) ));
 			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
 			stream->force_single_au = GF_TRUE;
+			stream->force_reg_desc = GF_TRUE;
 			break;
 		}
-		/*just pick first valid stream_id in audio range*/
-		stream->mpeg2_stream_id = 0xC0;
 		break;
 	case GF_STREAM_OD:
 		/*highest priority for OD streams as they are needed to process other streams*/

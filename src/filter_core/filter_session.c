@@ -1330,6 +1330,11 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 					pidi->filter->force_end_of_session = GF_TRUE;
 					for (l=0; l<pidi->filter->num_output_pids; l++) {
 						GF_FilterPid *opid = gf_list_get(pidi->filter->output_pids, l);
+						if (opid->filter->freg->process_event) {
+							GF_FilterEvent evt;
+							GF_FEVT_INIT(evt, GF_FEVT_STOP, opid);
+							opid->filter->freg->process_event(opid->filter, &evt);
+						}
 						gf_filter_pid_set_eos(opid);
 					}
 				}
@@ -1736,9 +1741,11 @@ restart:
 		if (filter->src_args) gf_free(filter->src_args);
 		filter->src_args = args;
 		//for link resolution
-		filter->dst_filter = dst_filter;
-		//to remember our connection target
-		filter->target_filter = dst_filter;
+		if (dst_filter && for_source)	{
+			gf_list_add(filter->destination_links, dst_filter);
+			//to remember our connection target
+			filter->target_filter = dst_filter;
+		}
 	} else {
 		gf_free(args);
 	}

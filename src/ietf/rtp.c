@@ -340,6 +340,21 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch)
 	ch->next_report_time = gf_rtp_get_report_time() + (u32) d;
 }
 
+GF_EXPORT
+u32 gf_rtp_read_flush(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+{
+	char *pck;
+	u32 res = 0;
+	if (!ch->po) return 0;
+
+	//pck queue may need to be flushed
+	pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_TRUE);
+	if (pck) {
+		memcpy(buffer, pck, res);
+		gf_free(pck);
+	}
+	return res;
+}
 
 GF_EXPORT
 u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
@@ -372,7 +387,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 		}
 
 		//pck queue may need to be flushed
-		pck = (char *) gf_rtp_reorderer_get(ch->po, &res);
+		pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_FALSE);
 		if (pck) {
 			memcpy(buffer, pck, res);
 			gf_free(pck);
@@ -533,7 +548,6 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
-		ch->total_pck++;
 		ch->total_bytes += pck_size-12;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP]\t%d\t%d\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n",
@@ -937,7 +951,7 @@ discard:
 //ever received packet if its SeqNum was unknown
 //the BUFFER is yours, you must delete it
 GF_EXPORT
-void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
+void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush)
 {
 	GF_POItem *t;
 	u32 bounds;
@@ -975,6 +989,9 @@ void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 	//update timing
 	else {
 check_timeout:
+
+		if (force_flush) goto send_it;
+
 		if (!po->LastTime) {
 			po->LastTime = gf_sys_clock();
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: starting timeout at %d\n", po->LastTime));
