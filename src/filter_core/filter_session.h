@@ -501,10 +501,15 @@ struct __gf_filter
 	//pointer to the original filter being cloned - only used for graph setup, reset after
 	GF_Filter *cloned_from;
 
-	//pointer to the destination filter to connect to next in the chain - only used for graph setup, reset after
+	//pointer to the current destination filter to connect to next in the chain - only used for graph setup, reset after
 	GF_Filter *dst_filter;
 	//pointer to the target filter to connect to
 	GF_Filter *target_filter;
+
+	//list of direct destination filters for this filter during graph resolution
+	GF_List *destination_filters;
+	//list of potential destination for which we need to perform link resolution
+	GF_List *destination_links;
 
 	//statistics
 	//number of tasks executed by this filter
@@ -747,8 +752,9 @@ struct __gf_filter_pid
 	volatile u32 nb_decoder_inputs;
 
 	Bool duration_init;
-	u64 last_pck_dts, last_pck_cts;
-	u32 min_pck_duration;
+	u64 last_pck_dts, last_pck_cts, min_pck_cts, max_pck_cts;
+	u32 min_pck_duration, nb_unreliable_dts;
+	Bool recompute_dts;
 
 	u32 nb_pck_sent;
 	//1000x speed value
@@ -766,6 +772,8 @@ struct __gf_filter_pid
 	u32 forced_cap;
 
 	Bool ext_not_trusted;
+
+	Bool require_source_id;
 };
 
 
@@ -811,6 +819,8 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid);
 void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *dst_pidi, GF_FilterPidInst *src_pidi);
 
 GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned);
+GF_Filter *gf_filter_pid_resolve_link_check_loaded(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, GF_List *skip_if_in_filter_list, Bool *skipped);
+
 GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
 u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 

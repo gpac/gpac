@@ -7690,7 +7690,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	if (!group->nb_cached_segments) {
 		if (group->cache_mutex) gf_mx_v(group->cache_mutex);
 		if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
-		return GF_BUFFER_TOO_SMALL;
+		return group->done ? GF_EOS : GF_BUFFER_TOO_SMALL;
 	}
 
 	/*check the dependent rep is in the cache and does not target next segment (next in time)*/
@@ -7745,7 +7745,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 
 	if (group->cached[index].has_dep_following) {
 		if (has_next_segment) *has_next_segment = GF_TRUE;
-	} else if (group->cached[index+1].cache) {
+	} else if ((index+1<group->max_cached_segments) && group->cached[index+1].cache) {
 		GF_MPD_Representation *rep;
 
 		rep = gf_list_get(group->adaptation_set->representations, group->cached[index].representation_index);

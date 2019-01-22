@@ -679,8 +679,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		ctx->reconfig_needed = GF_FALSE;
 		return GF_NOT_SUPPORTED;
     }
-
-	if (! ctx->width || !ctx->height) return GF_NOT_SUPPORTED;
+	//not yet ready
+	if (! ctx->width || !ctx->height) return GF_OK;
 
     /*status = */CMVideoFormatDescriptionCreate(kCFAllocatorDefault, ctx->vtb_type, ctx->width, ctx->height, dec_dsi, &ctx->fmt_desc);
 
@@ -950,7 +950,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
-	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
+	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc) && ctx->width && ctx->height) return GF_OK;
 
 	//need a reset !
 	if (ctx->vtb_session) {

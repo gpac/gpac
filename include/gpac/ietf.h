@@ -619,6 +619,8 @@ void gf_rtp_reset_ssrc(GF_RTPChannel *ch);
 returns amount of data read (raw UDP packet size)*/
 u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
 u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
+//flush RTP reorderer
+u32 gf_rtp_read_flush(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
 
 /*decodes an RTP packet and gets the beginning of the RTP payload*/
 GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
@@ -1167,7 +1169,7 @@ struct __tag_rtp_packetizer
 {
 	/*input packet sl header cfg. modify only if needed*/
 	GF_SLHeader sl_header;
-
+	u32 nb_aus;
 	/*
 
 		PRIVATE _ DO NOT TOUCH
@@ -1341,8 +1343,6 @@ enum
 	GF_RTP_AMR_ALIGN = (1<<1),
 	/*for RFC3016, signals bitstream inspection for RAP discovery*/
 	GF_RTP_M4V_CHECK_RAP = (1<<2),
-	/*flag set when unreliable usage of the M bit is detected*/
-	GF_RTP_UNRELIABLE_M = (1<<3),
 
 	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
 	GF_RTP_AVC_WAIT_RAP = (1<<4),

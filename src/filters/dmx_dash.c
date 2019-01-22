@@ -689,8 +689,6 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		if (ctx->max_buffer)
 			gf_filter_pid_set_property_str(opid, "BufferMaxOccupancy", &PROP_UINT(ctx->max_buffer) );
-
-		gf_filter_pid_set_clock_mode(opid, GF_TRUE);
 	}
 
 	//copy properties at init or reconfig
@@ -1220,7 +1218,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					group->nb_eos++;
 
 					if (group->nb_eos==group->nb_pids) {
-						gf_filter_pid_clear_eos(ipid);
+						gf_filter_pid_clear_eos(ipid, GF_TRUE);
 						dashdmx_update_group_stats(ctx, group);
 						dashdmx_switch_segment(ctx, group);
 						if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
@@ -1257,6 +1255,22 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 1000 * next_time_ms);
 	}
 	return GF_OK;
+}
+
+static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	char *d = (char *)data;
+	char *res;
+	char last_c = d[size-1];
+	d[size-1] = 0;
+	res = strstr(data, "<MPD ");
+	d[size-1] = last_c;
+
+	if (res) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "application/dash+xml";
+	}
+	return NULL;
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_DASHDmxCtx, _n)
@@ -1350,6 +1364,7 @@ GF_FilterRegister DASHDmxRegister = {
 	.configure_pid = dashdmx_configure_pid,
 	.process = dashdmx_process,
 	.process_event = dashdmx_process_event,
+	.probe_data = dashdmx_probe_data,
 	//we accept as many input pids as loaded by the session
 	.max_extra_pids = (u32) -1,
 };

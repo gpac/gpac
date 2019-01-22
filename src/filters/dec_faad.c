@@ -120,6 +120,17 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+	ctx->ipid = pid;
+
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
 		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
@@ -129,11 +140,9 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			ctx->codec = NULL;
 		}
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Reconfiguring without DSI not yet supported\n"));
-		return GF_NOT_SUPPORTED;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Reconfiguring but no DSI set, skipping\n"));
+		return GF_OK;
 	}
-
-	ctx->ipid = pid;
 
 	ctx->codec = NeAACDecOpen();
 	if (!ctx->codec) {
@@ -194,14 +203,6 @@ base_object_type_error: /*error case*/
 #endif
 	ctx->num_samples = 1024;
 	ctx->signal_mc = ctx->num_channels>2 ? GF_TRUE : GF_FALSE;
-
-	if (!ctx->opid) {
-		ctx->opid = gf_filter_pid_new(filter);
-	}
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sample_rate) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(ctx->num_samples) );

@@ -169,26 +169,26 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!AMR\n";
 		ctx->dcfg_size = 6;
-		ctx->decinfo = GF_FALSE;
+		ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_AMR_WB:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!AMR-WB\n";
 		ctx->dcfg_size = 9;
-		ctx->decinfo = GF_FALSE;
+		ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_SMV:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!SMV\n";
 		ctx->dcfg_size = 6;
-		ctx->decinfo = GF_FALSE;
+		ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_EVRC_PV:
 	case GF_CODECID_EVRC:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 		ctx->dcfg = "#!EVRC\n";
 		ctx->dcfg_size = 7;
-		ctx->decinfo = GF_FALSE;
+		ctx->decinfo = DECINFO_FIRST;
 		break;
 
 	case GF_CODECID_SIMPLE_TEXT:
@@ -692,6 +692,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "cmp|m4ve"),
 	{0},
 
@@ -762,14 +763,9 @@ static GF_FilterCapability GenDumpCaps[] =
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mp3|mp1"),
-	{0},
-
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mp2"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mp3|mp1|mp2"),
 	{0},
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),

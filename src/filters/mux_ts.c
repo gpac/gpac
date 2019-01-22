@@ -391,11 +391,11 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 			if (es_pck.dts > es_pck.cts) {
 				u64 diff;
-
-				diff = cts_diff = es_pck.dts - es_pck.cts;
+				//we don't have reliable dts - double the diff should make sure we don't try to adjust too often
+				diff = cts_diff = 2*(es_pck.dts - es_pck.cts);
 				diff *= 1000000;
 				diff /= tspid->esi.timescale;
-				assert(tspid->prog->cts_offset < diff);
+				assert(tspid->prog->cts_offset <= diff);
 				tspid->prog->cts_offset = (u32) diff;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
@@ -492,7 +492,7 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	else
 		tspid->esi.fourcc = tspid->codec_id;
 
-	if (tspid->codec_id< GF_CODECID_LAST_MPEG4_MAPPING)
+	if (tspid->codec_id < GF_CODECID_LAST_MPEG4_MAPPING)
 		tspid->esi.object_type_indication = tspid->codec_id;
 
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_LANGUAGE);
@@ -779,7 +779,7 @@ static void tsmux_assign_pcr(GF_TSMuxCtx *ctx)
 	GF_M2TS_Mux_Program *prog = ctx->mux->programs;
 	while (prog) {
 		GF_M2TS_Mux_Stream *stream;
-		if (prog->pmt) {
+		if (prog->pcr) {
 			prog = prog->next;
 			continue;
 		}
@@ -803,9 +803,10 @@ static Bool tsmux_init_buffering(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	u32 i, count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		u32 buf;
+		Bool buf_ok;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
-		gf_filter_pid_get_buffer_occupancy(pid, NULL, NULL, NULL, &buf);
-		if ((buf < mbuf) && !gf_filter_pid_has_seen_eos(pid))
+		buf_ok = gf_filter_pid_get_buffer_occupancy(pid, NULL, NULL, NULL, &buf);
+		if (buf_ok && (buf < mbuf) && !gf_filter_pid_has_seen_eos(pid))
 			return GF_FALSE;
 	}
 	ctx->init_buffering = GF_FALSE;
@@ -957,12 +958,12 @@ static GF_Err tsmux_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
 
-	if (ctx->init_buffering && !tsmux_init_buffering(filter, ctx)) return GF_OK;
-
 	if (ctx->check_pcr) {
 		ctx->check_pcr = GF_FALSE;
 		tsmux_assign_pcr(ctx);
 	}
+
+	if (ctx->init_buffering && !tsmux_init_buffering(filter, ctx)) return GF_OK;
 
 	if (ctx->init_dash) {
 		u32 i, count = gf_list_count(ctx->pids);
@@ -1168,7 +1169,7 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	//for m4vp2 we want DSI reinsertion
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
-	//for AAC we use the AAC->ADTS or AAC->LATM of the mux
+	//for AAC we use the AAC->ADTS or AAC->LATM of the mux, so don't insert here
 
 	//static output cap file extension
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -1185,7 +1186,7 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_SVC),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	//no RAW support for now
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };

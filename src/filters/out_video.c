@@ -1661,10 +1661,10 @@ static GF_Err vout_process(GF_Filter *filter)
 
 	if (ctx->buffer) {
 		u32 max_units, nb_pck, max_dur, dur=0;
-		gf_filter_pid_get_buffer_occupancy(ctx->pid, &max_units, &nb_pck, &max_dur, &dur);
+		Bool buf_ok = gf_filter_pid_get_buffer_occupancy(ctx->pid, &max_units, &nb_pck, &max_dur, &dur);
 
 		if (!ctx->buffer_done) {
-			if (dur < ctx->buffer * 1000)
+			if (buf_ok && (dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid))
 				return GF_OK;
 			ctx->buffer_done = GF_TRUE;
 		}
