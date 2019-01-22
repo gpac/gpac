@@ -141,6 +141,8 @@ typedef struct
 	u64 sender_ntp;
 	//set for AUs which should be decodedd but not presented during seek
 	u8 seekFlag;
+
+	u32 samplerate, channels;
 } GF_SLHeader;
 
 

@@ -273,6 +273,8 @@ struct __rtpin_stream
 
 	u32 min_dur_us, min_dur_rtp;
 	u32 prev_cts;
+
+	u32 sr, nb_ch;
 };
 
 /*creates new RTP stream from SDP info*/
@@ -341,6 +343,8 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 /*disconnect the session - if @ch, only the channel is teardown*/
 void rtpin_rtsp_teardown(GF_RTPInRTSP *sess, GF_RTPInStream *stream);
 
+
+void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size);
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

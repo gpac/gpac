@@ -1275,6 +1275,7 @@ enum
 #define GF_CAPS_OUTPUT_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_EXCLUDED)
 #define GF_CAPS_OUTPUT_STATIC	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_STATIC)
 #define GF_CAPS_INPUT_OUTPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT)
+#define GF_CAPS_INPUT_OUTPUT_OPT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_OPTIONAL)
 
 /*! Filter capability description*/
 typedef struct
@@ -2003,8 +2004,9 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 \param nb_pck number of packets in pid
 \param max_duration maximum buffer duration allowed in us - can be 0 if buffer is measured in units
 \param duration buffer duration in us
+\return GF_TRUE if normal buffer query, GF_FALSE if final session flush, in which case buffer might never complete
 */
-void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_units, u32 *nb_pck, u32 *max_duration, u32 *duration);
+Bool gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_units, u32 *nb_pck, u32 *max_duration, u32 *duration);
 
 /*! Sets loose connect for a pid, avoiding to throw an error if connection of the pid fails. Used by the compositor filter which acts as both sink and filter.
 \param pid the target filter pid
@@ -2153,7 +2155,7 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 /*! Gets cumulated buffer duration of pid (recursive until source)
 \param pid the target filter pid
 \param check_decoder_output if GF_TRUE, the duration includes decoded frames already output by decoder
-\return the duration in us
+\return the duration in us, or -1 if session is in final flush
 */
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_decoder_output);
 
@@ -2262,8 +2264,9 @@ u32 gf_filter_pid_get_timescale(GF_FilterPid *pid);
 /*! Clears the end of stream flag on a pid.
 Note: the end of stream is automatically cleared when a new packet is dispatched; This function is used to clear it asap, before next packet dispacth (period switch in dash for example).
 \param pid the target filter pid
+\param all_pids if sets, clear end oof stream for all pids coming from the same filter as the target pid
 */
-void gf_filter_pid_clear_eos(GF_FilterPid *pid);
+void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool all_pids);
 
 /*! Indicates how clock references (PCR of MPEG-2) should be handled.
 By default these references are passed from input packets to output packets by the filter session (this assumes the filter doesn't modify composition timestamps).
@@ -2334,6 +2337,26 @@ GF_Err gf_filter_pid_force_cap(GF_FilterPid *pid, u32 cap_4cc);
 \return destination string or NULL if error
 */
 char *gf_filter_pid_get_destination(GF_FilterPid *pid);
+
+/*! Indicates that this output pid requires a sourceID on the destination filter to be present. This prevents trying to link to other filters with no source IDs but
+accepting the pid
+\param pid the target filter pid
+\return error code if any
+*/
+GF_Err gf_filter_pid_require_source_id(GF_FilterPid *pid);
+
+/*! Enables decoding time reconstruction on pid for packets with DTS not set. If not enabled (default), dts not set implies dts = cts
+\param pid the target filter pid
+\param do_recompute if set, dts will be recomputed when not set
+*/
+void gf_filter_pid_recompute_dts(GF_FilterPid *pid, Bool do_recompute);
+
+/*! Queries minimum packet duration as computed from DTS/CTS info on the pid
+\param pid the target filter pid
+\return minimum packet duration computed
+*/
+u32 gf_filter_pid_get_min_pck_duration(GF_FilterPid *pid);
+
 
 /*! Sends an event down the filter chain for input pid, or up the filter chain for output pids.
 \param pid the target filter pid

@@ -1651,6 +1651,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					case GF_M2TS_RA_STREAM_VC1:
 						es->stream_type = GF_M2TS_VIDEO_VC1;
 						break;
+					case GF_M2TS_RA_STREAM_GPAC:
+						if (len==8) {
+							es->stream_type = GF_4CC(data[6], data[7], data[8], data[9]);
+							es->flags |= GF_M2TS_GPAC_CODEC_ID;
+							break;
+						}
 					default:
 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Unknown registration descriptor %s\n", gf_4cc_to_str(reg_desc_format) ));
 						break;

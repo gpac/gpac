@@ -438,6 +438,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("sdp") );
+	gf_filter_pid_set_name(ctx->opid, "SDP");
 
 
 	u32 cfg_crc=0;
@@ -747,6 +748,8 @@ static GF_Err rtpout_process(GF_Filter *filter)
 
 				if (!stream->pck) {
 					if (gf_filter_pid_is_eos(stream->pid)) {
+						//flush stream
+						gf_rtp_streamer_send_au (stream->rtp, NULL, 0, 0, 0, GF_FALSE);
 						nb_eos++;
 					}
 					continue;
@@ -872,12 +875,12 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		dts += stream->ts_delay;
 		cts += stream->ts_delay;
 	} else {
-		if (-stream->ts_delay > dts)
+		if (dts  >= -stream->ts_delay)
 			dts += stream->ts_delay;
 		else
 			dts = 0;
 
-		if (-stream->ts_delay > cts)
+		if (cts >= -stream->ts_delay )
 			cts += stream->ts_delay;
 		else
 			cts = 0;

@@ -112,6 +112,8 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	filter->pending_pids = gf_fq_new(NULL);
 
 	filter->blacklisted = gf_list_new();
+	filter->destination_filters = gf_list_new();
+	filter->destination_links = gf_list_new();
 
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 	gf_list_add(fsess->filters, filter);
@@ -244,6 +246,8 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->output_pids);
 
 	gf_list_del(filter->blacklisted);
+	gf_list_del(filter->destination_filters);
+	gf_list_del(filter->destination_links);
 	gf_list_del(filter->input_pids);
 
 	gf_fq_del(filter->tasks, task_del);
@@ -724,12 +728,14 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		u32 len;
 		Bool found=GF_FALSE;
 		char *escaped = NULL;
+		Bool absolute_url = GF_FALSE;
 		Bool internal_url = GF_FALSE;
 		//look for our arg separator
 		char *sep = strchr(args, filter->session->sep_args);
 
 		if (filter->session->sep_args == ':') {
 			while (sep && !strncmp(sep, "://", 3)) {
+				absolute_url = GF_TRUE;
 				//filter internal url schemes
 				if ((!strncmp(args, szSrc, 4) || !strncmp(args, szDst, 4) ) &&
 					(!strncmp(args+4, "video://", 8)
@@ -778,7 +784,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			if (escaped) sep = escaped;
 		}
 
-		if (sep && !strncmp(args, szSrc, 4) && !escaped && !internal_url) {
+		if (sep && !strncmp(args, szSrc, 4) && !escaped && absolute_url && !internal_url) {
 			Bool file_exists;
 			sep[0]=0;
 			if (!strcmp(args+4, "null")) file_exists = GF_TRUE;
@@ -2244,7 +2250,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 {
 	char *sep;
 	char tmp_ext[50];
-	Bool ext_not_trusted;
+	Bool ext_not_trusted, is_new_pid = GF_FALSE;
 	GF_FilterPid *pid = *out_pid;
 	if (!pid) {
 		pid = gf_filter_pid_new(filter);
@@ -2252,6 +2258,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			return GF_OUT_OF_MEM;
 		}
 		pid->max_buffer_unit = 1;
+		is_new_pid = GF_TRUE;
 		*out_pid = pid;
 	}
 
@@ -2299,7 +2306,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	
 	ext_not_trusted = GF_FALSE;
 	//probe data
-	if (probe_data && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
+	if (is_new_pid && probe_data && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
 		u32 i, count;
 		GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
 		const char *probe_mime = NULL;

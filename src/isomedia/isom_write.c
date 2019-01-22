@@ -1080,6 +1080,7 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 
 	mdur -= ent->sampleDelta;
 	mdur += duration;
+
 	//we only have one sample
 	if (ent->sampleCount == 1) {
 		ent->sampleDelta = duration;

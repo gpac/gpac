@@ -585,11 +585,38 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	if (cktype == GF_FILTER_CLOCK_PCR_DISC) {
 		pid->duration_init = GF_FALSE;
+		pid->min_pck_cts = pid->max_pck_cts = 0;
+		pid->nb_unreliable_dts = 0;
 	}
 
 	if (!cktype) {
-		if (pck->info.dts==GF_FILTER_NO_TS)
+		Bool unreliable_dts = GF_FALSE;
+		if (pck->info.dts==GF_FILTER_NO_TS) {
 			pck->info.dts = pck->info.cts;
+
+			if (pid->recompute_dts) {
+				if (pck->info.cts == pid->last_pck_cts) {
+					pck->info.dts = pid->last_pck_dts;
+				} else {
+					s64 min_dur = pck->info.cts;
+					min_dur -= (s64) pid->min_pck_cts;
+					if (min_dur<0) min_dur*= -1;
+					if ((u64) min_dur > pid->min_pck_duration) min_dur = pid->min_pck_duration;
+					if (!min_dur) {
+						min_dur = 1;
+						unreliable_dts = GF_TRUE;
+						pid->nb_unreliable_dts++;
+					} else if (pid->nb_unreliable_dts) {
+						pid->last_pck_dts -= pid->nb_unreliable_dts;
+						pid->last_pck_dts += min_dur * pid->nb_unreliable_dts;
+						pid->nb_unreliable_dts = 0;
+					}
+
+					pck->info.dts = pid->last_pck_dts + min_dur;
+					//if (pck->info.dts > pck->info.cts) pck->info.dts = pck->info.cts;
+				}
+			}
+		}
 		else if (pck->info.cts==GF_FILTER_NO_TS)
 			pck->info.cts = pck->info.dts;
 
@@ -597,16 +624,32 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			if (! pid->duration_init) {
 				pid->last_pck_dts = pck->info.dts;
 				pid->last_pck_cts = pck->info.cts;
+				pid->max_pck_cts = pid->min_pck_cts = pck->info.cts;
 				pid->duration_init = GF_TRUE;
 			} else if (!pck->info.duration && !(pck->info.flags & GF_PCKF_DUR_SET) ) {
-				if (pck->info.dts!=GF_FILTER_NO_TS) {
+				if (!unreliable_dts && (pck->info.dts!=GF_FILTER_NO_TS)) {
 					duration = pck->info.dts - pid->last_pck_dts;
+					if (duration<0) duration = -duration;
 				} else if (pck->info.cts!=GF_FILTER_NO_TS) {
 					duration = pck->info.cts - pid->last_pck_cts;
 					if (duration<0) duration = -duration;
 				}
+
+				if (pid->recompute_dts) {
+					if (pck->info.cts > pid->max_pck_cts)
+						pid->max_pck_cts = pck->info.cts;
+					if (pck->info.cts < pid->max_pck_cts) {
+						if (pck->info.cts <= pid->min_pck_cts) {
+							pid->min_pck_cts = pck->info.cts;
+						} else if (pck->info.cts>pid->last_pck_cts) {
+							pid->min_pck_cts = pck->info.cts;
+						}
+					}
+				}
+
 				pid->last_pck_dts = pck->info.dts;
 				pid->last_pck_cts = pck->info.cts;
+
 			} else {
 				duration = pck->info.duration;
 				pid->last_pck_dts = pck->info.dts;
@@ -1289,7 +1332,7 @@ GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType cty
 {
 	PCK_SETTER_CHECK("clock_type")
 	pck->info.flags &= ~GF_PCK_CKTYPE_MASK;
-	pck->info.flags |= ctype>>GF_PCK_CKTYPE_POS;
+	pck->info.flags |= ctype << GF_PCK_CKTYPE_POS;
 	return GF_OK;
 }
 
