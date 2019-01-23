@@ -141,7 +141,7 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 		} else {
 			nb_frames = (u32) (ctx->cts / ctx->fps.den);
 		}
-		if (nb_frames>ctx->total_frames)
+		if (nb_frames>=ctx->total_frames)
 			nb_frames = (u32) ctx->total_frames-1;
 
 		ctx->cts = nb_frames * ctx->fps.den;
