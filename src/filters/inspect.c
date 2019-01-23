@@ -221,7 +221,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		else if (!strcmp(key, "crypt")) fprintf(dump, "%d", gf_filter_pck_get_crypt_flags(pck) );
 		else if (!strcmp(key, "vers")) fprintf(dump, "%d", gf_filter_pck_get_carousel_version(pck) );
 		else if (!strcmp(key, "size")) fprintf(dump, "%d", size );
-		else if (!strcmp(key, "crc")) fprintf(dump, "%d", gf_crc_32(data, size) );
+		else if (!strcmp(key, "crc")) fprintf(dump, "0x%08X", gf_crc_32(data, size) );
 		else if (!strcmp(key, "lf")) fprintf(dump, "\n" );
 		else if (!strcmp(key, "cr")) fprintf(dump, "\r" );
 		else if (!strcmp(key, "data")) {
