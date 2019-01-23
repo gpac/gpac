@@ -36,6 +36,7 @@ typedef struct
 	u8 dump_pid; //0: no, 1: configure/reconfig, 2: info update
 	u8 init_pid_config_done;
 	u64 pck_for_config;
+	u64 prev_dts, prev_cts;
 } PidCtx;
 
 enum
@@ -102,7 +103,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	fprintf(dump, "\n");
 }
 
-static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, GF_FilterPid *pid, u64 pck_num)
+static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, PidCtx *pctx, u64 pck_num)
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	u32 size=0;
@@ -159,6 +160,34 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			if (ts==GF_FILTER_NO_TS) fprintf(dump, "N/A");
 			else fprintf(dump, LLU, ts );
 		}
+		else if (!strcmp(key, "ddts")) {
+			u64 ts = gf_filter_pck_get_dts(pck);
+			if ((ts==GF_FILTER_NO_TS) || (pctx->prev_dts==GF_FILTER_NO_TS)) fprintf(dump, "N/A");
+			else {
+				s64 diff = ts;
+				diff -= pctx->prev_dts;
+				fprintf(dump, LLD, diff);
+			}
+			pctx->prev_dts = ts;
+		}
+		else if (!strcmp(key, "dcts")) {
+			u64 ts = gf_filter_pck_get_cts(pck);
+			if ((ts==GF_FILTER_NO_TS) || (pctx->prev_cts==GF_FILTER_NO_TS)) fprintf(dump, "N/A");
+			else {
+				s64 diff = ts;
+				diff -= pctx->prev_cts;
+				fprintf(dump, LLD, diff);
+			}
+			pctx->prev_cts = ts;
+		}
+		else if (!strcmp(key, "ctso")) {
+			u64 dts = gf_filter_pck_get_dts(pck);
+			u64 cts = gf_filter_pck_get_cts(pck);
+			if (dts==GF_FILTER_NO_TS) dts = cts;
+			if (cts==GF_FILTER_NO_TS) fprintf(dump, "N/A");
+			else fprintf(dump, LLD, ((s64)cts) - ((s64)dts) );
+		}
+
 		else if (!strcmp(key, "dur")) fprintf(dump, "%u", gf_filter_pck_get_duration(pck) );
 		else if (!strcmp(key, "frame")) {
 			Bool start, end;
@@ -221,9 +250,9 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			if (!prop_4cc && strlen(pkey)==4) prop_4cc = GF_4CC(pkey[0],pkey[1],pkey[2],pkey[3]);
 
 			if (prop_4cc) {
-				prop = gf_filter_pid_get_property(pid, prop_4cc);
+				prop = gf_filter_pid_get_property(pctx->src_pid, prop_4cc);
 			}
-			if (!prop) prop = gf_filter_pid_get_property_str(pid, key);
+			if (!prop) prop = gf_filter_pid_get_property_str(pctx->src_pid, key);
 
 			if (prop) {
 				fprintf(dump, "%s", gf_prop_dump(prop_4cc, prop, szDump, ctx->dump_data) );
@@ -400,7 +429,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		if (ctx->is_prober) {
 			nb_done++;
 		} else if (ctx->fmt) {
-			inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx->src_pid, pctx->pck_num);
+			inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
 		} else {
 			inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
 		}
@@ -554,7 +583,10 @@ const GF_FilterRegister InspectRegister = {
 	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN separator. TOKEN can be:\n"\
 				"\tpn: packet (frame in framed mode) number\n"\
 				"\tdts: decoding time stamp in stream timescale, N/A if not available\n"\
+				"\tddts: difference between current and previous packet's decoding time stamp in stream timescale, N/A if not available\n"\
 				"\tcts: composition time stamp in stream timescale, N/A if not available\n"\
+				"\tdcts: difference between current and previous packet's composition time stamp in stream timescale, N/A if not available\n"\
+				"\tctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"\
 				"\tdur: duration in stream timescale\n"\
 				"\tframe: framing status: frame_full (complete AU), frame_start, , frame_end, frame_cont\n"
 				"\tsap or rap: SAP type of the frame\n"\
