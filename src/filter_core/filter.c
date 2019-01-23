@@ -1172,6 +1172,8 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	GF_FilterPidInst *src_pidi = gf_list_get(filter->input_pids, 0);
 	GF_FilterPid *src_pid = src_pidi->pid;
 	if (filter->is_pid_adaptation_filter) {
+		//do not remove from destination_filters, needed for end of pid_init task
+		if (!filter->dst_filter) filter->dst_filter = gf_list_get(filter->destination_filters, 0);
 		assert(filter->dst_filter);
 		assert(filter->num_input_pids==1);
 	}
@@ -1180,6 +1182,7 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	pid->caps_negociate = filter->caps_negociate;
 	filter->caps_negociate = NULL;
 	e = filter->freg->reconfigure_output(filter, pid);
+
 
 	if (e!=GF_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration error %s, discarding filter and reloading new adaptation chain\n", filter->name, gf_error_to_string(e)));
@@ -1200,6 +1203,9 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 		gf_props_del(pid->caps_negociate);
 	}
 	pid->caps_negociate = NULL;
+	if (filter->is_pid_adaptation_filter) {
+		filter->dst_filter = NULL;
+	}
 	return GF_TRUE;
 }
 
