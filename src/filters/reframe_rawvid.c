@@ -33,6 +33,7 @@ typedef struct
 	GF_PropVec2i size;
 	GF_PixelFormat pfmt;
 	GF_Fraction fps;
+	Bool copy;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -116,6 +117,9 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((u32) nb_frames, ctx->fps.num));
 	}
 
+	if (!ctx->copy) {
+		gf_filter_pid_set_property_str(ctx->opid, "BufferLength", &PROP_UINT(0));
+	}
 	return GF_OK;
 }
 
@@ -200,7 +204,7 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 		Bool use_ref = GF_FALSE;
 		if (!ctx->out_pck) {
 			assert(! ctx->nb_bytes_in_frame);
-			if (pck_size >= ctx->frame_size) {
+			if (!ctx->copy && (pck_size >= ctx->frame_size)) {
 				ctx->out_pck = gf_filter_pck_new_ref(ctx->opid, data, ctx->frame_size, pck);
 				use_ref = GF_TRUE;
 			} else {
@@ -273,7 +277,8 @@ static GF_FilterArgs RawVidReframeArgs[] =
 {
 	{ OFFS(size), "video resolution", GF_PROP_VEC2I, "0x0", NULL, 0},
 	{ OFFS(pfmt), "pixel format", GF_PROP_PIXFMT, "none", NULL, 0},
-	{ OFFS(fps), "Video frames per second", GF_PROP_FRACTION, "25/1", NULL, 0},
+	{ OFFS(fps), "frames per second", GF_PROP_FRACTION, "25/1", NULL, 0},
+	{ OFFS(copy), "copy source bytes into output frame. If not set, source bytes are referenced only", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

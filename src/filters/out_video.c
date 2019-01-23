@@ -400,6 +400,7 @@ typedef struct
 
 	s32 pid_delay;
 	Bool buffer_done;
+	Bool no_buffering;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -499,6 +500,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->pid_delay = p ? p->value.sint : 0;
 
+	p = gf_filter_pid_get_property_str(pid, "BufferLength");
+	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;
+	if (ctx->no_buffering) ctx->buffer_done = GF_TRUE;
 
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
@@ -1808,7 +1812,7 @@ draw_frame:
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 {
-	ctx->force_release = GF_FALSE;
+	ctx->force_release = GF_TRUE;
 	if (ctx->pfmt && ctx->last_pck) {
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp < MODE_2D) {
@@ -1821,11 +1825,12 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 			vout_draw_2d(ctx, ctx->last_pck);
 		}
 	}
+	if (ctx->no_buffering) ctx->force_release = GF_TRUE;
+
 	if (ctx->force_release && ctx->last_pck) {
 		gf_filter_pck_unref(ctx->last_pck);
 		ctx->last_pck = NULL;
 	}
-
 	return GF_OK;
 }
 
