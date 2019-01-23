@@ -24,8 +24,8 @@ dump_mpd=$TEMP_DIR/dump.mpd
 do_test "$GPAC -for-test -runfor=1500 -i $TEMP_DIR/session.sdp:ifce=$IFCE -o $dump_native -o $dump_mp4 -o $dump_ts:pcr_init=0:pes_pack=none -o $dump_mpd -stats -graph" "dump" &
 
 sleep .1
-#run without loop
-do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:loop=no:ip=$DST:ifce=$IFCE -stats" "stream"
+#run without loop and tso=100000 to avoid a rand() that might impact TS rounding differently (hence slightly different durations->different hashes)
+do_test "$GPAC -i $2 -o $TEMP_DIR/session.sdp:loop=no:ip=$DST:ifce=$IFCE:tso=100000 -stats" "stream"
 
 wait
 
