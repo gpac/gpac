@@ -56,6 +56,7 @@ typedef struct
 	char *log;
 	char *fmt;
 	Bool props, hdr, all, info, pcr;
+	Double speed, start;
 
 	FILE *dump;
 
@@ -96,6 +97,16 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
+
+	if (gf_sys_is_test_mode()) {
+		switch (p4cc) {
+		case GF_PROP_PID_FILEPATH:
+		case GF_PROP_PID_URL:
+			return;
+		default:
+			break;
+		}
+	}
 
 	fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
 	fprintf(dump, "%s", gf_prop_dump(p4cc, att, szDump, ctx->dump_data) );
@@ -479,8 +490,9 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		pctx->dump_pid = 1;
 	}
 
-	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+	gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "Inspect");
 	gf_filter_pid_send_event(pid, &evt);
+
 	if (ctx->is_prober || ctx->deep || ctx->fmt) {
 		ctx->dump_pck = GF_TRUE;
 	} else {
@@ -566,6 +578,8 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(all), "analyses for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pcr), "dumps M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(speed), "sets playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{0}
 };
 

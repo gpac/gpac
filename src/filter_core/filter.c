@@ -2197,6 +2197,8 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 
 	evt->play.speed = 1.0;
 
+	if ((speed<0) && !start) start = -1.0;
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
 	if (p) pmode = p->value.uint;
 
@@ -2306,7 +2308,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	
 	ext_not_trusted = GF_FALSE;
 	//probe data
-	if (is_new_pid && probe_data && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
+	if (is_new_pid && probe_data && probe_size && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
 		u32 i, count;
 		GF_FilterProbeScore score, max_score = GF_FPROBE_NOT_SUPPORTED;
 		const char *probe_mime = NULL;
