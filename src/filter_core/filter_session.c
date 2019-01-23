@@ -1119,8 +1119,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 			//no more pending tasks for this filter
 			if ((gf_fq_count(current_filter->tasks) == 0)
-				//or requeue request and stream reset pending (we must exit the filter task loop for the task to pe processed)
+				//or requeue request and stream reset pending (we must exit the filter task loop for the reset task to pe processed)
 				|| (requeue && current_filter->stream_reset_pending)
+				//or requeue request and pid swap pending (we must exit the filter task loop for the swap task to pe processed)
+				|| (requeue && (current_filter->swap_pidinst_src ||  current_filter->swap_pidinst_dst) )
 				//or requeue request and we have been running on that filter for more than 10 times, abort
 				|| (requeue && (consecutive_filter_tasks>10))
 			) {
