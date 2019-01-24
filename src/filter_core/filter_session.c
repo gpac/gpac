@@ -918,7 +918,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: no task available\n", sys_thid));
 
-			gf_sleep(0);
+			if (! (fsess->flags & GF_FS_FLAG_NO_REGULATION)) {
+				gf_sleep(0);
+			}
 			continue;
 		}
 		if (current_filter) {
