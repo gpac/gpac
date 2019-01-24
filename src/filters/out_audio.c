@@ -37,6 +37,7 @@ typedef struct
 	Bool clock;
 	GF_Fraction dur;
 	Double speed, start;
+	u32 vol;
 
 	GF_FilterPid *pid;
 	u32 sr, afmt, nb_ch, ch_cfg, timescale;
@@ -74,6 +75,12 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		if (nb_ch != 2) nb_ch = 2;
 	}
 	if (ctx->speed == FIX_ONE) ctx->speed_set = GF_TRUE;
+
+	if (ctx->vol<=100) {
+		ctx->audio_out->SetVolume(ctx->audio_out, ctx->vol);
+		ctx->vol = 101;
+	}
+
 
 	if (ctx->sr * ctx->nb_ch * old_afmt == 0) {
 		ctx->needs_recfg = GF_FALSE;
@@ -397,8 +404,9 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dur), "only plays the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(clock), "hints audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(speed), "Sets playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(start), "Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "sets playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(vol), "sets default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", 0},
 	{0}
 };
 
