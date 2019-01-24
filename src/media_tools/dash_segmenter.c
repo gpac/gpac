@@ -760,6 +760,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		if (di->seg_template)  { sprintf(szArg, "#Template=%s", di->seg_template ); APPEND_ARG(szArg)}
 		if (di->hls_pl)  { sprintf(szArg, "#HLSPL=%s", di->hls_pl ); APPEND_ARG(szArg)}
 
+		if (di->sscale)  { APPEND_ARG("#SingleScale=true")}
 
 		if (!url) url = "null";
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher source %s with args %s\n", url, args));
