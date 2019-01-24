@@ -248,6 +248,10 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		 else if (mtype==i_type) {
 			pid->raw_media = GF_TRUE;
 		}
+		//input is file, output is not and codec ID is raw, this is a raw media pid
+		 else if ((i_type==GF_STREAM_FILE) && (mtype!=GF_STREAM_FILE) && (codecid==GF_CODECID_RAW) ) {
+			pid->raw_media = GF_TRUE;
+		}
 	}
 	//source pid, mark raw media
 	if (!count && pid->num_destinations) {
