@@ -178,6 +178,7 @@ struct _dash_segment_input
 	u32 bandwidth;
 	u32 dependency_bandwidth;
 	char *dependencyID;
+	Bool sscale;
 
 	/*if 0, input is disabled*/
 	u32 adaptation_set;
@@ -1118,6 +1119,7 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 	Bool seg_dur_adjusted = GF_FALSE;
 	u32 nb_enc = 0;
 	u32 cue_start = 0;
+	u32 force_timescale = 0;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
@@ -1336,7 +1338,6 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
 		u32 _w, _h, _nb_ch, vidtype;
 		u32 _sr = 0;
-
 		u32 mtype = gf_isom_get_media_type(input, i+1);
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
 
@@ -1347,6 +1348,11 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 			continue;
 
 		if (!dash_moov_setup) {
+
+			if (!force_timescale && dash_input->sscale) {
+				force_timescale = gf_isom_get_media_timescale(input, i+1);
+			}
+
 			e = gf_isom_clone_track(input, i+1, output, GF_FALSE, &TrackNum);
 			if (e) goto err_exit;
 
@@ -1691,6 +1697,9 @@ static GF_Err isom_segment_file(GF_ISOFile *input, const char *output_file, GF_D
 	//if single segment, add msix brand if we use indexes
 	gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MSIX, ((dasher->single_file_mode==1) && dasher->enable_sidx) ? 1 : 0);
 
+	if (force_timescale)
+		gf_isom_set_timescale(output, force_timescale);
+		
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, 1);
 	if (e) goto err_exit;
@@ -3498,6 +3507,8 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 	u32 first_track = 0;
 	Bool single_segment = (dash_opts->single_file_mode==1) ? GF_TRUE : GF_FALSE;
 	GF_ISOFile *init_seg;
+	u32 force_timescale = 0;
+	GF_DashSegInput *first_dash_input = NULL;
 
 
 	probe_inband_param_set = dash_opts->inband_param_set ? 1 : 0;
@@ -3761,9 +3772,16 @@ retry_track:
 				if (max_track_duration < gf_isom_get_track_duration(in, j+1)) {
 					max_track_duration = gf_isom_get_track_duration(in, j+1);
 				}
+
+				if (!first_dash_input && !force_timescale && dash_inputs[i].sscale) {
+					force_timescale = gf_isom_get_media_timescale(in, j+1);
+				}
 			}
 		}
-		if (!i) {
+
+		if (!first_dash_input) {
+			first_dash_input = &dash_inputs[i];
+
 			//force ISO6 since we use tfdt all over the place
 			gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
 			gf_isom_modify_alternate_brand(init_seg, GF_ISOM_BRAND_ISOM, 0);
@@ -3796,6 +3814,8 @@ retry_track:
 		gf_delete_file(szInitName);
 		return GF_OK;
 	} else {
+		if (force_timescale) gf_isom_set_timescale(init_seg, force_timescale);
+
 		e = gf_isom_close(init_seg);
 
 		if (probe_inband_param_set) {
@@ -6551,6 +6571,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 	dash_input->nb_p_descs = input->nb_p_descs;
 	dash_input->p_descs = input->p_descs;
 	dash_input->no_cache = dasher->no_cache;
+	dash_input->sscale = input->sscale;
 
 	dash_input->bandwidth = input->bandwidth;
 

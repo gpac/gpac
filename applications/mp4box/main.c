@@ -363,6 +363,7 @@ void PrintDASHUsage()
 	        "                       value is ignored while creating AdaptationSet elements.\n"
 	        " \":desc_rep=VALUE\"  adds a descriptor at the Representation level. Value must be a properly formatted XML element.\n"
 	        "                       value is ignored while creating AdaptationSet elements.\n"
+	        " \":sscale\"          forces movie timescale to match media timescale of the first track in the segment.\n"
 	        "\n"
 	        " -rap                 segments begin with random access points\n"
 	        "                       Note: segment duration may not be exactly what asked by\n"
@@ -570,7 +571,8 @@ void PrintImportUsage()
 	        "                         track area\n"
 	        "                         - X and Y can be omitted (:layout=WxH)\n"
 	        " \":rescale=TS\"        forces media timescale to TS !! changes the media duration\n"
-	        " \":timescale=TS\"      sets import timescale to TS\n"
+	        " \":timescale=TS\"      sets imported media timescale to TS.\n"
+	        " \":moovts=TS\"         sets movie timescale to TS. A negative value picks the media timescale of the first track imported.\n"
 	        " \":noedit\"            do not set edit list when importing B-frames video tracks\n"
 	        " \":rvc=FILENAME\"      sets RVC configuration for the media\n"
 	        " \":fmt=FORMAT\"        overrides format detection with given format (cf BT/XMTA doc)\n"
@@ -1691,6 +1693,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":bandwidth=", 11) ||
 				        !strnicmp(sep, ":role=", 6) ||
 				        !strnicmp(sep, ":desc", 5) ||
+				        !strnicmp(sep, ":sscale", 7) ||
 				        !strnicmp(sep, ":duration=", 10) || /*legacy*/!strnicmp(sep, ":period_duration=", 10) ||
 				        !strnicmp(sep, ":xlink=", 7)) {
 					break;
@@ -1757,6 +1760,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
+			else if (!strnicmp(opts, "sscale", 6)) di->sscale = GF_TRUE;
 			else if (!strnicmp(opts, "period_duration=", 16)) {
 				di->period_duration = (Double) atof(opts+16);
 			}	else if (!strnicmp(opts, "duration=", 9)) {
