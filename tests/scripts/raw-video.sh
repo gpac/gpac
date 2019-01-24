@@ -32,9 +32,10 @@ do_hash_test "$insfile" "inspect_reverseplay"
 fi
 
 #check GPU output on frame 20 (first few frames are fade to black ...
-gpudump=$TEMP_DIR/gpudump.rgb
-do_test "$GPAC -i $rawfile:size=128x128 vout:dumpframes=20:out=$gpudump" "gpu_dump"
-do_hash_test "$gpudump" "gpu_dump"
+#test is comented for now (hashes are ok), due to buildbot stability with GPU access
+#gpudump=$TEMP_DIR/gpudump.rgb
+#do_test "$GPAC -i $rawfile:size=128x128 vout:dumpframes=20:out=$gpudump" "gpu_dump"
+#do_hash_test "$gpudump" "gpu_dump"
 
 #test video cropping filter in forward mode
 cropfile=$TEMP_DIR/dumpcrop.$1
