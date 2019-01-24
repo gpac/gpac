@@ -30,7 +30,7 @@
 typedef struct
 {
 	//opts
-	u32 framelen, afmt, samplerate, channels;
+	u32 framelen, afmt, sr, ch;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -71,12 +71,12 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio format, cannot parse\n"));
 		return GF_BAD_PARAM;
 	}
-	if (!ctx->samplerate) {
+	if (!ctx->sr) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio sample rate, cannot parse\n"));
 		return GF_BAD_PARAM;
 	}
-	if (!ctx->channels) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio channels, cannot parse\n"));
+	if (!ctx->ch) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio ch, cannot parse\n"));
 		return GF_BAD_PARAM;
 	}
 	if (!ctx->framelen) {
@@ -85,7 +85,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	}
 
 	ctx->Bps = gf_audio_fmt_bit_depth(ctx->afmt) / 8;
-	ctx->frame_size = ctx->framelen * ctx->Bps * ctx->channels;
+	ctx->frame_size = ctx->framelen * ctx->Bps * ctx->ch;
 
 	if (!ctx->opid)
 		ctx->opid = gf_filter_pid_new(filter);
@@ -94,11 +94,11 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_FALSE);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->samplerate));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->channels));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sr));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->ch));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(ctx->framelen));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->samplerate));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, &PROP_BOOL(GF_TRUE));
 
@@ -108,11 +108,11 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 	if (p && p->value.longuint) {
 		u64 nb_frames = p->value.longuint;
-		nb_frames /= ctx->Bps * ctx->channels;
+		nb_frames /= ctx->Bps * ctx->ch;
 		ctx->total_frames = p->value.longuint;
 		ctx->total_frames /= ctx->frame_size;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((u32) nb_frames, ctx->samplerate));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC_INT((u32) nb_frames, ctx->sr));
 	}
 
 	return GF_OK;
@@ -132,7 +132,7 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 		}
 		ctx->done = GF_FALSE;
 		if (evt->play.start_range>=0) {
-			ctx->cts = (u64) (evt->play.start_range * ctx->samplerate);
+			ctx->cts = (u64) (evt->play.start_range * ctx->sr);
 		} else {
 			ctx->cts = (ctx->total_frames-1) * ctx->framelen;
 		}
@@ -181,8 +181,8 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 void pcmreframe_flush_packet(GF_PCMReframeCtx *ctx)
 {
 	if (ctx->reverse_play) {
-		u32 i, nb_bytes_in_sample, nb_samples = ctx->nb_bytes_in_frame / ctx->Bps / ctx->channels;
-		nb_bytes_in_sample = ctx->Bps * ctx->channels;
+		u32 i, nb_bytes_in_sample, nb_samples = ctx->nb_bytes_in_frame / ctx->Bps / ctx->ch;
+		nb_bytes_in_sample = ctx->Bps * ctx->ch;
 		for (i=0; i<nb_samples/2; i++) {
 			char store[100];
 			memcpy(store, ctx->out_data + i*nb_bytes_in_sample, nb_bytes_in_sample);
@@ -287,9 +287,9 @@ static GF_FilterCapability PCMReframeCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_PCMReframeCtx, _n)
 static GF_FilterArgs PCMReframeArgs[] =
 {
-	{ OFFS(samplerate), "Audio sample rate", GF_PROP_UINT, "44100", NULL, 0},
+	{ OFFS(sr), "Audio sample rate", GF_PROP_UINT, "44100", NULL, 0},
 	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "s16", NULL, 0},
-	{ OFFS(channels), "Number of audio channels", GF_PROP_UINT, "2", NULL, 0},
+	{ OFFS(ch), "Number of audio ch", GF_PROP_UINT, "2", NULL, 0},
 	{ OFFS(framelen), "Number of audio samples to put in one audio frame. For planar formats, indicate plane size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };

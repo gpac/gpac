@@ -524,6 +524,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(pid, &fevt);
+		ctx->speed = fevt.play.speed;
+		ctx->start = fevt.play.start_range;
 
 		ctx->pid = pid;
 

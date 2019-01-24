@@ -2197,6 +2197,7 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 {
 	u32 pmode = GF_PLAYBACK_MODE_NONE;
 	const GF_PropertyValue *p;
+	Bool was_end = GF_FALSE;
 	memset(evt, 0, sizeof(GF_FilterEvent));
 	evt->base.type = GF_FEVT_PLAY;
 	evt->base.on_pid = pid;
@@ -2210,6 +2211,7 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 
 	evt->play.start_range = start;
 	if (start<0) {
+		was_end = GF_TRUE;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 		if (p && p->value.frac.den) {
 			evt->play.start_range *= -100;
@@ -2232,6 +2234,7 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 	case GF_PLAYBACK_MODE_FASTFORWARD:
 		if (speed<0) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] Media PID does not support negative speed, ignoring speed directive\n", log_name));
+			if (was_end) evt->play.start_range = 0;
 		} else {
 			evt->play.speed = speed;
 		}
