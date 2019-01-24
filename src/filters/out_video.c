@@ -1176,7 +1176,33 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx)
 	glBindTexture(TEXTURE_TYPE, 0);
 	glDisable(TEXTURE_TYPE);
 
+	glUseProgram(0);
+
+	if (ctx->dump_f_idx) {
+		FILE *fout;
+		char szFileName[1024];
+		if (strchr(gf_file_basename(ctx->out), '.')) {
+			snprintf(szFileName, 1024, "%s", ctx->out);
+		} else {
+			snprintf(szFileName, 1024, "%s_%d.rgb", ctx->out, ctx->dump_f_idx);
+		}
+		if (!ctx->dump_buffer)
+			ctx->dump_buffer = gf_malloc(sizeof(char)*ctx->display_width*ctx->display_height*3);
+
+		glReadPixels(0, 0, ctx->display_width, ctx->display_height, GL_RGB, GL_UNSIGNED_BYTE, ctx->dump_buffer);
+		GL_CHECK_ERR
+		fout = gf_fopen(szFileName, "wb");
+		if (fout) {
+			fwrite(ctx->dump_buffer, 1, ctx->display_width*ctx->display_height*3, fout);
+			gf_fclose(fout);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error writing frame %d buffer to %s\n", ctx->nb_frames, szFileName));
+		}
+	}
+
+	ctx->video_out->Flush(ctx->video_out, NULL);
 }
+
 static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterHWFrame *hwf)
 {
 	u32 gl_format;
@@ -1533,31 +1559,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	//and draw
 	vout_draw_gl_quad(ctx);
 
-
-	glUseProgram(0);
-
-	if (ctx->dump_f_idx) {
-		FILE *fout;
-		char szFileName[1024];
-		if (strchr(ctx->out, '.')) {
-			snprintf(szFileName, 1024, "%s", ctx->out);
-		} else {
-			snprintf(szFileName, 1024, "%s_%d.rgb", ctx->out, ctx->dump_f_idx);
-		}
-		if (!ctx->dump_buffer)
-			ctx->dump_buffer = gf_malloc(sizeof(char)*ctx->display_width*ctx->display_height*3);
-
-		glReadPixels(0, 0, ctx->display_width, ctx->display_height, GL_RGB, GL_UNSIGNED_BYTE, ctx->dump_buffer);
-		fout = gf_fopen(szFileName, "wb");
-		if (fout) {
-			fwrite(ctx->dump_buffer, 1, ctx->display_width*ctx->display_height*3, fout);
-			gf_fclose(fout);
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error writing frame %d buffer to %s\n", ctx->nb_frames, szFileName));
-		}
-	}
-
-	ctx->video_out->Flush(ctx->video_out, NULL);
 }
 #endif
 
@@ -1687,7 +1688,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		e = ctx->video_out->LockBackBuffer(ctx->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
-			const char *src_ext = strrchr(ctx->out, '.');
+			const char *src_ext = strchr(gf_file_basename(ctx->out), '.');
 			const char *ext = gf_pixel_fmt_sname(backbuffer.pixel_format);
 			if (!ext) ext = "rgb";
 			if (ext && src_ext && !strcmp(ext, src_ext+1)) {
@@ -1772,7 +1773,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 		for (i=0; i<ctx->dumpframes.nb_items; i++) {
 			if (ctx->dumpframes.vals[i] == ctx->nb_frames) {
-				ctx->dump_f_idx = i+1;
+				ctx->dump_f_idx = ctx->dumpframes.vals[i];
 				break;
 			}
 			if (ctx->dumpframes.vals[i] > ctx->nb_frames) {
