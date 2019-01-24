@@ -389,7 +389,11 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 	/*rewrite all durations and edit lists*/
 	movie->moov->mvhd->duration *= timeScale;
 	movie->moov->mvhd->duration /= movie->moov->mvhd->timeScale;
-
+	if (movie->moov->mvex && movie->moov->mvex->mehd) {
+		movie->moov->mvex->mehd->fragment_duration *= timeScale;
+		movie->moov->mvex->mehd->fragment_duration /= movie->moov->mvhd->timeScale;
+	}
+	
 	i=0;
 	while ((trak = (GF_TrackBox*)gf_list_enum(movie->moov->trackList, &i))) {
 		trak->Header->duration *= timeScale;

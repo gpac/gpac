@@ -20,6 +20,6 @@ do_hash_test $output "moovts-from-mp4"
 
 do_test "$MP4BOX -dash 1000 $input:sscale -out $TEMP_DIR/test.mpd" "dash-sscale"
 do_hash_test $TEMP_DIR/src_dashinit.mp4 "dash-sscale-init"
-do_hash_test $TEMP_DIR/test.mpd "dash-sscale-mpd"
+#do_hash_test $TEMP_DIR/test.mpd "dash-sscale-mpd"
 
 test_end
