@@ -267,6 +267,8 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
 		gf_filter_pid_send_event(pid, &evt);
+		ctx->speed = evt.play.speed;
+		ctx->start = evt.play.start_range;
 	}
 
 	ctx->pid = pid;
