@@ -190,11 +190,11 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		if (ctx->packed_422) {
 			vframe->planes[0] = src_planes[0] + s_off_x * bps * 2 + ctx->src_stride[0] * s_off_y;
 		} else {
-			vframe->planes[0] = src_planes[0] + s_off_x * bps + bps * ctx->src_stride[0] * s_off_y;
+			vframe->planes[0] = src_planes[0] + s_off_x * bps + ctx->src_stride[0] * s_off_y;
 		}
 		//nv12/21
 		if (ctx->nb_planes==2) {
-			vframe->planes[1] = src_planes[1] + s_off_x * bps + ctx->src_stride[1] * s_off_y;
+			vframe->planes[1] = src_planes[1] + s_off_x * bps + ctx->src_stride[1] * s_off_y/2;
 		} else if (ctx->nb_planes>=3) {
 			u32 div_x, div_y;
 			//alpha/depth/other plane, treat as luma plane
@@ -202,7 +202,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 				vframe->planes[3] = src_planes[3] + s_off_x * bps + ctx->src_stride[3] * s_off_y;
 			}
 			div_x = (ctx->src_stride[1]==ctx->src_stride[0]) ? 1 : 2;
-			div_y = (ctx->dst_uv_height==ctx->h) ? 1 : 2;
+			div_y = (ctx->src_uv_height==ctx->h) ? 1 : 2;
 
 			vframe->planes[1] = src_planes[1] + s_off_x * bps / div_x + ctx->src_stride[1] * s_off_y / div_y;
 			vframe->planes[2] =src_planes[2] + s_off_x * bps / div_x + ctx->src_stride[2] * s_off_y / div_y;
@@ -255,8 +255,8 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		}
 	} else {
 		//copy first plane
-		src = src_planes[0] + s_off_x * bps + bps * ctx->src_stride[0] * s_off_y;
-		dst = dst_planes[0] + d_off_x * bps + bps * ctx->dst_stride[0] * d_off_y;
+		src = src_planes[0] + s_off_x * bps + ctx->src_stride[0] * s_off_y;
+		dst = dst_planes[0] + d_off_x * bps + ctx->dst_stride[0] * d_off_y;
 		for (i=0; i<copy_h; i++) {
 			memcpy(dst, src, bps * copy_w);
 			src += ctx->src_stride[0];
@@ -266,8 +266,8 @@ static GF_Err vcrop_process(GF_Filter *filter)
 
 	//nv12/21
 	if (ctx->nb_planes==2) {
-		src = src_planes[1] + s_off_x * bps + ctx->src_stride[1] * s_off_y;
-		dst = dst_planes[1] + d_off_x * bps + ctx->dst_stride[1] * d_off_y;
+		src = src_planes[1] + s_off_x * bps + ctx->src_stride[1] * s_off_y/2;
+		dst = dst_planes[1] + d_off_x * bps + ctx->dst_stride[1] * d_off_y/2;
 		//half vertical res (/2)
 		for (i=0; i<copy_h/2; i++) {
 			//half horizontal res (/2) but two chroma packed per pixel (*2)
@@ -289,7 +289,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		}
 
 		div_x = (ctx->src_stride[1]==ctx->src_stride[0]) ? 1 : 2;
-		div_y = (ctx->dst_uv_height==ctx->h) ? 1 : 2;
+		div_y = (ctx->src_uv_height==ctx->h) ? 1 : 2;
 
 		src = src_planes[1] + s_off_x * bps / div_x + ctx->src_stride[1] * s_off_y / div_y;
 		dst = dst_planes[1] + d_off_x * bps / div_x + ctx->dst_stride[1] * d_off_y / div_y;
@@ -513,8 +513,8 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VCrop] Failed to query source pixel format characteristics\n"));
 			return GF_NOT_SUPPORTED;
 		}
-		if (ctx->nb_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
-		if (ctx->nb_planes==4) ctx->src_stride[3] = ctx->src_stride[0];
+		if (ctx->nb_src_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
+		if (ctx->nb_src_planes==4) ctx->src_stride[3] = ctx->src_stride[0];
 
 
 		//get layout info for dest
@@ -532,7 +532,7 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->h = h;
 		ctx->s_pfmt = pfmt;
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VCrop] Configured output window to crop %dx%dx%dx%d from full frame size %dx%d\n", ctx->src_x, ctx->src_y, ctx->dst_width, ctx->dst_height, ctx->w, ctx->h));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[VCrop] Configured output window to crop %dx%dx%dx%d from full frame size %dx%d\n", ctx->src_x, ctx->src_y, ctx->dst_width, ctx->dst_height, ctx->w, ctx->h));
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->dst_width));
