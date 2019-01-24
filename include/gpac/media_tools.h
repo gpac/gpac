@@ -564,6 +564,8 @@ typedef struct
 	Double period_duration;
 	/*! if true, the dasher inputs will open each time the segmentation function is called */
 	Bool no_cache;
+	/*! if true and only one media stream in target segment, the moov will use the media stream timescale*/
+	Bool sscale;
 } GF_DashSegmenterInput;
 
 /*!
