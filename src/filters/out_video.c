@@ -312,6 +312,10 @@ static char *glsl_rgb_shader = "#version 120\n"\
 			gl_FragColor.r = col.g;\
 			gl_FragColor.g = col.a;\
 			gl_FragColor.b = col.b;\
+		} else if (rgb_mode==4) {\
+			gl_FragColor.r = col.a;\
+			gl_FragColor.g = col.b;\
+			gl_FragColor.b = col.g;\
 		} else {\
 			gl_FragColor = col;\
 		}\
@@ -352,6 +356,8 @@ typedef struct
 	Double start;
 	u32 buffer;
 	GF_Fraction delay;
+	const char *out;
+	GF_PropUIntList dumpframes;
 
 	GF_Filter *filter;
 	GF_FilterPid *pid;
@@ -401,6 +407,10 @@ typedef struct
 	s32 pid_delay;
 	Bool buffer_done;
 	Bool no_buffering;
+	Bool dump_done;
+
+	u32 dump_f_idx;
+	char *dump_buffer;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -619,6 +629,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_pixel_get_size_info(ctx->pfmt, w, h, NULL, &stride, &ctx->uv_stride, NULL, &ctx->uv_h);
 	}
 	ctx->stride = stride ? stride : w;
+	if (ctx->dump_buffer) {
+		gf_free(ctx->dump_buffer);
+		ctx->dump_buffer = NULL;
+	}
 
 
 #ifndef GPAC_DISABLE_3D
@@ -641,9 +655,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_PIXEL_YUV422_10:
 		ctx->bit_depth = 10;
 	case GF_PIXEL_YUV422:
-		ctx->uv_w = ctx->width;
-		ctx->uv_h = ctx->height/2;
-		ctx->uv_stride = ctx->stride;
+		ctx->uv_w = ctx->width/2;
+		ctx->uv_h = ctx->height;
+		ctx->uv_stride = ctx->stride/2;
 		ctx->is_yuv = GF_TRUE;
 		break;
 	case GF_PIXEL_YUV_10:
@@ -722,7 +736,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #ifndef GPAC_DISABLE_3D
 		ctx->pixel_format = GL_RGBA;
 		ctx->bytes_per_pix = 4;
-		rgb_mode=3;
+		rgb_mode=4;
 #endif
 		break;
 
@@ -782,26 +796,34 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		vout_compile_shader(ctx->vertex_shader, "vertex", default_glsl_vertex);
 
 		ctx->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-		if (ctx->pfmt==GF_PIXEL_NV21) {
+		switch (ctx->pfmt) {
+		case GF_PIXEL_NV21:
 			ctx->num_textures = 2;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_nv21_shader);
-		} else if (ctx->pfmt==GF_PIXEL_NV12) {
+			break;
+		case GF_PIXEL_NV12:
+		case GF_PIXEL_NV12_10:
 			ctx->num_textures = 2;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_nv12_shader);
-		} else if (ctx->pfmt==GF_PIXEL_UYVY) {
+			break;
+		case GF_PIXEL_UYVY:
 			ctx->num_textures = 1;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_uyvy_shader);
-		} else if (ctx->pfmt==GF_PIXEL_YUYV) {
+			break;
+		case GF_PIXEL_YUYV:
 			ctx->num_textures = 1;
 			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_yuyv_shader);
-		} else if (ctx->is_yuv) {
-			ctx->num_textures = 3;
-			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_yuv_shader);
-		} else {
-			ctx->num_textures = 1;
-			vout_compile_shader(ctx->fragment_shader, "fragment", glsl_rgb_shader);
+			break;
+		default:
+			if (ctx->is_yuv) {
+				ctx->num_textures = 3;
+				vout_compile_shader(ctx->fragment_shader, "fragment", glsl_yuv_shader);
+			} else {
+				ctx->num_textures = 1;
+				vout_compile_shader(ctx->fragment_shader, "fragment", glsl_rgb_shader);
+			}
+			break;
 		}
-
 		glAttachShader(ctx->glsl_program, ctx->vertex_shader);
 		glAttachShader(ctx->glsl_program, ctx->fragment_shader);
 		glLinkProgram(ctx->glsl_program);
@@ -815,7 +837,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 			if (ctx->is_yuv && ctx->bit_depth>8) {
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-				glPixelTransferi(GL_RED_SCALE, 64);
+				if (ctx->num_textures!=2) {
+					glPixelTransferi(GL_RED_SCALE, 64);
+				}
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 #endif
 				ctx->memory_format = GL_UNSIGNED_SHORT;
@@ -988,6 +1012,12 @@ static GF_Err vout_initialize(GF_Filter *filter)
 
 	ctx->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, ctx->drv);
 
+
+	if (ctx->dumpframes.nb_items) {
+		ctx->hide = GF_TRUE;
+		ctx->vsync = GF_FALSE;
+	}
+
 	/*if not init we run with a NULL audio compositor*/
 	if (!ctx->video_out) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] No output modules found, cannot load video output\n"));
@@ -1078,6 +1108,8 @@ static void vout_finalize(GF_Filter *filter)
 		gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
 		ctx->video_out = NULL;
 	}
+	if (ctx->dump_buffer) gf_free(ctx->dump_buffer);
+
 }
 
 #ifndef GPAC_DISABLE_3D
@@ -1143,9 +1175,7 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(TEXTURE_TYPE, 0);
 	glDisable(TEXTURE_TYPE);
-	glUseProgram(0);
 
-	ctx->video_out->Flush(ctx->video_out, NULL);
 }
 static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterHWFrame *hwf)
 {
@@ -1228,6 +1258,12 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		ctx->display_changed = GF_FALSE;
 		glClearColor(0, 0, 0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		if (ctx->dump_buffer) {
+			gf_free(ctx->dump_buffer);
+			ctx->dump_buffer = NULL;
+		}
+
 	}
 	if (ctx->has_alpha) {
 		Float r, g, b;
@@ -1496,6 +1532,32 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	}
 	//and draw
 	vout_draw_gl_quad(ctx);
+
+
+	glUseProgram(0);
+
+	if (ctx->dump_f_idx) {
+		FILE *fout;
+		char szFileName[1024];
+		if (strchr(ctx->out, '.')) {
+			snprintf(szFileName, 1024, "%s", ctx->out);
+		} else {
+			snprintf(szFileName, 1024, "%s_%d.rgb", ctx->out, ctx->dump_f_idx);
+		}
+		if (!ctx->dump_buffer)
+			ctx->dump_buffer = gf_malloc(sizeof(char)*ctx->display_width*ctx->display_height*3);
+
+		glReadPixels(0, 0, ctx->display_width, ctx->display_height, GL_RGB, GL_UNSIGNED_BYTE, ctx->dump_buffer);
+		fout = gf_fopen(szFileName, "wb");
+		if (fout) {
+			fwrite(ctx->dump_buffer, 1, ctx->display_width*ctx->display_height*3, fout);
+			gf_fclose(fout);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error writing frame %d buffer to %s\n", ctx->nb_frames, szFileName));
+		}
+	}
+
+	ctx->video_out->Flush(ctx->video_out, NULL);
 }
 #endif
 
@@ -1610,18 +1672,56 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		}
 	}
 
-	if (e == GF_OK) {
-		dst_wnd.x = 0;
-		dst_wnd.y = 0;
-		dst_wnd.w = ctx->display_width;
-		dst_wnd.h = ctx->display_height;
-		e = ctx->video_out->Flush(ctx->video_out, &dst_wnd);
+	if (e != GF_OK)
+		return;
+
+
+	if (ctx->dump_f_idx) {
+		FILE *fout;
+		char szFileName[1024];
+		GF_VideoSurface backbuffer;
+		GF_Window src_wnd;
+		src_wnd.x = src_wnd.y = 0;
+		src_wnd.w = ctx->width;
+		src_wnd.h = ctx->height;
+
+		e = ctx->video_out->LockBackBuffer(ctx->video_out, &backbuffer, GF_TRUE);
+		if (!e) {
+			const char *src_ext = strrchr(ctx->out, '.');
+			const char *ext = gf_pixel_fmt_sname(backbuffer.pixel_format);
+			if (!ext) ext = "rgb";
+			if (ext && src_ext && !strcmp(ext, src_ext+1)) {
+				snprintf(szFileName, 1024, "%s", ctx->out);
+			} else {
+				snprintf(szFileName, 1024, "%s_%d.%s", ctx->out, ctx->dump_f_idx, ext);
+			}
+			fout = gf_fopen(szFileName, "wb");
+			if (fout) {
+				u32 i;
+				for (i=0; i<backbuffer.height; i++) {
+					fwrite(backbuffer.video_buffer + i*backbuffer.pitch_y, 1, backbuffer.pitch_y, fout);
+				}
+				gf_fclose(fout);
+			} else {
+				e = GF_IO_ERR;
+			}
+			ctx->video_out->LockBackBuffer(ctx->video_out, &backbuffer, GF_FALSE);
+		}
+
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error flushing vido output %s%s\n", gf_error_to_string(e)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error writing frame %d buffer to %s: %s\n", ctx->nb_frames, szFileName, gf_error_to_string(e) ));
 		}
 	}
 
-	return;
+	dst_wnd.x = 0;
+	dst_wnd.y = 0;
+	dst_wnd.w = ctx->display_width;
+	dst_wnd.h = ctx->display_height;
+	e = ctx->video_out->Flush(ctx->video_out, &dst_wnd);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error flushing vido output %s%s\n", gf_error_to_string(e)));
+		return;
+	}
 }
 
 static GF_Err vout_process(GF_Filter *filter)
@@ -1660,6 +1760,36 @@ static GF_Err vout_process(GF_Filter *filter)
 	if (!ctx->width || !ctx->height) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] pid display size unknown, discarding packet\n"));
 		gf_filter_pid_drop_packet(ctx->pid);
+		return GF_OK;
+	}
+
+
+	if (ctx->dumpframes.nb_items) {
+		u32 i;
+
+		ctx->nb_frames++;
+		ctx->dump_f_idx = 0;
+
+		for (i=0; i<ctx->dumpframes.nb_items; i++) {
+			if (ctx->dumpframes.vals[i] == ctx->nb_frames) {
+				ctx->dump_f_idx = i+1;
+				break;
+			}
+			if (ctx->dumpframes.vals[i] > ctx->nb_frames) {
+				break;
+			}
+		}
+
+		if (ctx->dump_f_idx) {
+			ctx->last_pck = pck;
+			vout_draw_frame(ctx);
+			ctx->last_pck = NULL;
+		}
+		gf_filter_pid_drop_packet(ctx->pid);
+
+		if (ctx->dumpframes.vals[ctx->dumpframes.nb_items-1] <= ctx->nb_frames) {
+			gf_filter_pid_set_discard(ctx->pid, GF_TRUE);
+		}
 		return GF_OK;
 	}
 
@@ -1827,7 +1957,7 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 	}
 	if (ctx->no_buffering) ctx->force_release = GF_TRUE;
 
-	if (ctx->force_release && ctx->last_pck) {
+	if (ctx->force_release && ctx->last_pck && !ctx->dump_f_idx) {
 		gf_filter_pck_unref(ctx->last_pck);
 		ctx->last_pck = NULL;
 	}
@@ -1865,6 +1995,8 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(buffer), "sets buffer in ms", GF_PROP_UINT, "100", NULL, 0},
+	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames as exported as $OUT_%d.PFMT.", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1877,7 +2009,16 @@ static const GF_FilterCapability VideoOutCaps[] =
 
 GF_FilterRegister VideoOutRegister = {
 	.name = "vout",
-	GF_FS_SET_DESCRIPTION("Video graphics card output")
+	GF_FS_SET_DESCRIPTION("Video output")
+	GF_FS_SET_HELP("This filter displays a single visual pid in a window.\n"\
+	"The window is created unless a window handle (HWND, xWindow, etc) is indicated in the config file ( [Temp]OSWnd=ptr).\n"\
+	"The output uses GPAC's video output module indicated in drv option or in the config file (see GPAC core help).\n"\
+	"The GPAC's video output module can be further configured (see GPAC core help).\n"\
+	"The filter can use openGL or 2D blitter of the graphics card, depending on the OS support.\n"\
+	"The filter can be used do dump frames as written on the grapics card.\n"\
+	"In this case, the window is not visible and only the listed frames are drawn to the GPU.\n"\
+	"The pixel format of the dumped frame is always RGB in OpenGL and matches the video backbuffer format in 2D mode.\n"\
+	)
 	.private_size = sizeof(GF_VideoOutCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VideoOutArgs,
