@@ -322,13 +322,11 @@ static GF_Err fileout_process(GF_Filter *filter)
 			h = p ? p->value.uint : 0;
 			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_PIXFMT);
 			pf = p ? p->value.uint : 0;
-			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_STRIDE);
-			stride = p ? p->value.uint : 0;
-			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_STRIDE_UV);
-			stride_uv = p ? p->value.uint : 0;
+
+			stride = stride_uv = 0;
 
 			if (gf_pixel_get_size_info(pf, w, h, NULL, &stride, &stride_uv, &nb_planes, &uv_height) == GF_TRUE) {
-				u32 i, bpp = gf_pixel_get_bytes_per_pixel(pf);
+				u32 i;
 				for (i=0; i<nb_planes; i++) {
 					u32 j, write_h, lsize;
 					const u8 *out_ptr;
@@ -338,9 +336,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Failed to fetch plane data from hardware frame, cannot write\n"));
 						break;
 					}
-					write_h = h;
-					if (i) write_h = uv_height;
-					lsize = bpp * (i ? stride : stride_uv);
+					if (i) {
+						write_h = uv_height;
+						lsize = stride_uv;
+					} else {
+						write_h = h;
+						lsize = stride;
+					}
 					for (j=0; j<write_h; j++) {
 						nb_write = (u32) fwrite(out_ptr, 1, lsize, ctx->file);
 						if (nb_write!=lsize) {
