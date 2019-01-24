@@ -36,7 +36,7 @@ static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
-Bool no_prompt = GF_FALSE;
+Bool enable_prompt = GF_FALSE;
 
 static int alias_argc = 0;
 static char **alias_argv = NULL;
@@ -450,7 +450,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("we", NULL, "writes all file extensions in the config file unless already set (usefull to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wf", NULL, "writes all filter options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("wfx", NULL, "writes all filter options and all meta filter arguments in the config file unless already set (large config file !)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("np", NULL, "disables prompt interaction", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("k", NULL, "enables keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 
 	{0}
 };
@@ -511,7 +511,7 @@ static u64 run_start_time = 0;
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
 
-	if (!no_prompt && gf_prompt_has_input()) {
+	if (enable_prompt && gf_prompt_has_input()) {
 		char c = gf_prompt_get_char();
 		switch (c) {
 		case 'q':
@@ -782,8 +782,8 @@ static int gpac_main(int argc, char **argv)
 			i++;
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
-		} else if (!strcmp(arg, "-np")) {
-			no_prompt = GF_TRUE;
+		} else if (!strcmp(arg, "-k")) {
+			enable_prompt = GF_TRUE;
 		} else if (arg[0]=='-') {
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") ) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
@@ -928,8 +928,8 @@ restart:
 		}
 		goto exit;
 	}
-	if (!no_prompt || (runfor>0) ) {
-		if (!no_prompt) {
+	if (enable_prompt || (runfor>0) ) {
+		if (enable_prompt) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'h' for help\n"));
 		}
 		gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
