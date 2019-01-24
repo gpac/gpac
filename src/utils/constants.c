@@ -576,6 +576,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_YUYV, "yuyv"},
 	{GF_PIXEL_YUYV, "yvyu"},
 	{GF_PIXEL_NV12, "nv12"},
+	{GF_PIXEL_NV21, "nv21"},
 	{GF_PIXEL_NV12_10, "nv1l"},
 	{GF_PIXEL_NV21_10, "nv2l"},
 	{GF_PIXEL_YUVA, "yuva"},
