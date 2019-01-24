@@ -149,6 +149,7 @@ typedef struct _dash_stream
 	const char *hls_vp_name;
 	u32 ch_layout, nb_surround, nb_lfe;
 	GF_PropVec4i srd;
+	Bool sscale;
 
 	//TODO: get the values for all below
 	u32 view_id;
@@ -503,6 +504,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_PROP(GF_PROP_PID_BASE_URL, ds->p_base_url, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_ROLE, ds->p_role, GF_EOS)
 		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
+		CHECK_PROP_BOOL(GF_PROP_PID_SINGLE_SCALE, ds->sscale, GF_EOS)
 
 		ds->startNumber = 1;
 		CHECK_PROP(GF_PROP_PID_START_NUMBER, ds->startNumber, GF_EOS)
@@ -1790,7 +1792,10 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cmsninc%c%d", sep_args, sep_name, ds->moof_sn_inc);
 		strcat(szDST, szSRC);
 	}
-
+	if (ds->sscale) {
+		sprintf(szSRC, "%cmoovts%c-1", sep_args, sep_name);
+		strcat(szDST, szSRC);
+	}
 	ds->dst_filter = gf_filter_connect_destination(filter, szDST, &e);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't create output file %s: %s\n", szInitURL, gf_error_to_string(e) ));

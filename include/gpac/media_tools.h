@@ -579,9 +579,10 @@ typedef struct
 	char *seg_template;
 	/*! sets name of HLS playlist*/
 	char *hls_pl;
+	/*! if true and only one media stream in target segment, the moov will use the media stream timescale*/
+	Bool sscale;
 	/*! non legacy options passed to dasher */
 	char *other_opts;
-
 } GF_DashSegmenterInput;
 
 /*!

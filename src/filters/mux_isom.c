@@ -147,7 +147,7 @@ typedef struct
 	u32 store, tktpl, mudta;
 	s32 subs_sidx;
 	Double cdur;
-	u32 timescale;
+	s32 moovts;
 	char *m4cc;
 	Bool chain_sidx;
 	u32 msn, msninc;
@@ -610,6 +610,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			tkw->stream_type = gf_codecid_type(tkw->codecid);
 		}
 		mtype = gf_isom_stream_type_to_media_type(tkw->stream_type, tkw->codecid);
+
+		if (ctx->moovts<0) {
+			ctx->moovts = tkw->tk_timescale;
+			gf_isom_set_timescale(ctx->file, (u32) ctx->moovts);
+		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE);
 		if (ctx->tktpl && p && p->value.data.ptr) {
@@ -1730,7 +1735,7 @@ sample_entry_done:
 				}
 			} else if (p->value.sint > 0) {
 				s64 dur = p->value.sint;
-				dur *= ctx->timescale;
+				dur *= (u32) ctx->moovts;
 				dur /= tkw->src_timescale;
 				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_DWELL);
 				gf_isom_set_edit_segment(ctx->file, tkw->track_num, 0, 0, 0, GF_ISOM_EDIT_NORMAL);
@@ -2426,7 +2431,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 	if (max_dur.num) {
 		u64 mdur = max_dur.num;
-		mdur *= ctx->timescale;
+		mdur *= (u32) ctx->moovts;
 		mdur /= max_dur.den;
 		gf_isom_set_movie_duration(ctx->file, mdur);
 	}
@@ -2969,7 +2974,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		//if dts_diff > 0, we need to delay the track
 		if (dts_diff) {
 			s64 dur = dts_diff;
-			dur *= ctx->timescale;
+			dur *= (u32) ctx->moovts;
 			dur /= tkw->src_timescale;
 
 			gf_isom_remove_edit_segments(ctx->file, tkw->track_num);
@@ -3130,8 +3135,10 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			ctx->dref = GF_FALSE;
 		}
 	}
-	if (!ctx->timescale) ctx->timescale=600;
-	gf_isom_set_timescale(ctx->file, ctx->timescale);
+	if (!ctx->moovts) ctx->moovts=600;
+	if (ctx->moovts>=0)
+		gf_isom_set_timescale(ctx->file, ctx->moovts);
+
 	ctx->tracks = gf_list_new();
 
 	if (ctx->m4cc) {
@@ -3177,7 +3184,7 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 		max_cts -= min_cts;
 		max_cts += gf_isom_get_sample_duration(ctx->file, tkw->track_num, count);
 
-		max_cts *= ctx->timescale;
+		max_cts *= ctx->moovts;
 		max_cts /= tkw->tk_timescale;
 		if (tkw->empty_init_dur) {
 
@@ -3466,7 +3473,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(xps_inband), "Use inband param set for AVC/HEVC/.... If mix, creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|mix", 0},
 	{ OFFS(store), "Write mode. inter uses cdur to interleave the file. flat writes a flat file, file at end. cap flushes to disk as soon as samples are added. tight uses per-sample interleaving of all tracks. frag framents the file using cdur duration. sfrag framents the file using cdur duration but adjusting to start with SAP1/3.  ", GF_PROP_UINT, "inter", "inter|flat|cap|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(timescale), "timescale to use for movie edit lists", GF_PROP_UINT, "600", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(moovts), "timescale to use for movie. A negative value picks the media timescale of the first track added", GF_PROP_SINT, "600", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(moof_first), "generates fragments starting with moof then mdat", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(abs_offset), "uses absolute file offset in fragments rather than offsets from moof", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fsap), "splits truns in video fragments at SAPs to reduce file size", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},

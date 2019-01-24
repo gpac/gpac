@@ -246,7 +246,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
-	s32 par_d, par_n, prog_id, delay, force_rate;
+	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
@@ -261,6 +261,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	rvc_predefined = 0;
 	chapter_name = NULL;
 	new_timescale = 1;
+	moov_timescale = 0;
 	rescale = 0;
 	text_layout = 0;
 	/*0: merge all
@@ -471,6 +472,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "timescale=", 10)) {
 			new_timescale = atoi(ext+11);
 		}
+		else if (!strnicmp(ext+1, "moovts=", 7)) {
+			moov_timescale = atoi(ext+8);
+		}
+
 		else if (!stricmp(ext+1, "noedit")) import_flags |= GF_IMPORT_NO_EDIT_LIST;
 
 
@@ -708,6 +713,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		e = gf_media_import(&import);
 		if (e) return e;
 		count = gf_isom_get_track_count(import.dest);
+
+		if (moov_timescale) {
+			if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(import.dest, o_count+1);
+			gf_isom_set_timescale(import.dest, moov_timescale);
+			moov_timescale = 0;
+		}
+
 		timescale = gf_isom_get_timescale(dest);
 		for (i=o_count; i<count; i++) {
 			if (szLan) gf_isom_set_media_language(import.dest, i+1, (char *) szLan);
@@ -845,8 +857,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			else continue;
 			if (e) goto exit;
 
-			timescale = gf_isom_get_timescale(dest);
 			track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
+
+			if (moov_timescale) {
+				if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(import.dest, track);
+				gf_isom_set_timescale(import.dest, moov_timescale);
+				moov_timescale = 0;
+			}
+
+			timescale = gf_isom_get_timescale(dest);
 			if (szLan) gf_isom_set_media_language(import.dest, track, (char *) szLan);
 			if (disable) gf_isom_set_track_enabled(import.dest, track, 0);
 
