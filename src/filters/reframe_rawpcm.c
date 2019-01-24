@@ -137,6 +137,14 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 			ctx->cts = (ctx->total_frames-1) * ctx->framelen;
 		}
 		nb_frames = (u32) (ctx->cts / ctx->framelen);
+		if (nb_frames==ctx->total_frames) {
+			if (evt->play.speed>=0) {
+				ctx->done = GF_TRUE;
+				return GF_TRUE;
+			}
+			nb_frames--;
+			ctx->cts = nb_frames * ctx->framelen;
+		}
 
 		ctx->filepos = nb_frames * ctx->frame_size;
 		ctx->reverse_play =  (evt->play.speed<0) ? GF_TRUE : GF_FALSE;
@@ -282,7 +290,7 @@ static GF_FilterArgs PCMReframeArgs[] =
 	{ OFFS(samplerate), "Audio sample rate", GF_PROP_UINT, "44100", NULL, 0},
 	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "s16", NULL, 0},
 	{ OFFS(channels), "Number of audio channels", GF_PROP_UINT, "2", NULL, 0},
-	{ OFFS(framelen), "Number of audio samples to put in one audio frame", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(framelen), "Number of audio samples to put in one audio frame. For planar formats, indicate plane size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
