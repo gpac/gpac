@@ -134,10 +134,10 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_FLASH, 0, GF_STREAM_SCENE, "Adobe Flash", "swf", NULL, "audio/pcm"},
 	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL, "audio/pcm"},
 
-	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "ivf|obu|av1b", NULL, "video/av1"},
-	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8", NULL, "video/vp8"},
-	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9", NULL, "video/vp9"},
-	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10", NULL, "video/vp10"},
+	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "av1|ivf|obu|av1b", NULL, "video/av1"},
+	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8|ivf", NULL, "video/vp8"},
+	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9|ivf", NULL, "video/vp9"},
+	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10|ivf", NULL, "video/vp10"},
 
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
 
