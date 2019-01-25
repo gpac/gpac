@@ -573,6 +573,7 @@ struct __gf_filter
 	u32 next_clock_dispatch_timescale;
 	GF_FilterClockType next_clock_dispatch_type;
 
+	GF_Filter *cap_dst_filter;
 	//capability negotiation for the input pid
 	GF_PropertyMap *caps_negociate;
 	//set to true of this filter was instantiated to resolve a capability negotiation between two filters
