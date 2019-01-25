@@ -525,6 +525,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	GF_FilterPidInst *pidinst=NULL;
 
 	assert(filter->freg->configure_pid);
+	assert(!filter->finalized);
 
 	if (filter->detached_pid_inst) {
 		count = gf_list_count(filter->detached_pid_inst);
@@ -2684,7 +2685,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				if ( gf_list_find(pid->filter->destination_links, af)<0)
 					gf_list_add(pid->filter->destination_links, af);
 
-				gf_list_add(af->destination_links, dst);
+				//remember to which filter we are trying to connect for cap resolution
+				af->cap_dst_filter = dst;
 				break;
 			}
 		}
@@ -4957,10 +4959,10 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 		}
 	}
 
-	//second tricktrick here: we may not be connected yet (called during a configure_pid), use the target destination
+	//second trick here: we may not be connected yet (called during a configure_pid), use the target destination
 	//of the filter as caps source
-	if (gf_list_count(pid->filter->destination_links) ) {
-		GF_Filter *a_filter = gf_list_get(pid->filter->destination_links, 0);
+	if (pid->filter->cap_dst_filter) {
+		GF_Filter *a_filter = pid->filter->cap_dst_filter;
 		for (i=0; i<a_filter->nb_forced_caps; i++) {
 			if (a_filter->forced_caps[i].code==prop_4cc)
 				return &a_filter->forced_caps[i].val;
