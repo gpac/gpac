@@ -3199,6 +3199,7 @@ single_retry:
 	}
 	if ((num_pass==1) && can_reassign_filter) {
 		num_pass = 2;
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter, trying source reassignment\n", pid->name, pid->filter->name));
 		goto restart;
 	}
 

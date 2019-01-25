@@ -296,6 +296,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	if (gf_opts_get_bool("core", "no-reg"))
 		flags |= GF_FS_FLAG_NO_REGULATION;
 
+	if (gf_opts_get_bool("core", "no-reassign"))
+		flags |= GF_FS_FLAG_NO_REASSIGN;
+
 	if (gf_opts_get_bool("core", "no-block"))
 		flags |= GF_FS_FLAG_NO_BLOCKING;
 
@@ -308,8 +311,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	fsess = gf_fs_new(nb_threads, sched_type, flags, blacklist);
 	if (!fsess) return NULL;
 
-	max_chain = gf_opts_get_int("core", "max-chain");
-	gf_fs_set_max_resolution_chain_length(fsess, max_chain);
+	gf_fs_set_max_resolution_chain_length(fsess, gf_opts_get_int("core", "max-chain") );
+
+	gf_fs_set_max_sleep_time(fsess, gf_opts_get_int("core", "max-sleep") );
 
 	opt = gf_opts_get_key("core", "seps");
 	if (opt)
@@ -346,6 +350,14 @@ GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_
 {
 	if (!session) return GF_BAD_PARAM;
 	session->max_resolve_chain_len = max_chain_length;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_fs_set_max_sleep_time(GF_FilterSession *session, u32 max_sleep)
+{
+	if (!session) return GF_BAD_PARAM;
+	session->max_sleep = max_sleep;
 	return GF_OK;
 }
 
@@ -795,6 +807,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
 	u32 sys_thid = gf_th_id();
 	u64 next_task_schedule_time = 0;
+	Bool do_regulate = fsess->flags & GF_FS_FLAG_NO_REGULATION ? GF_FALSE : GF_TRUE;
+
 
 	GF_Filter *current_filter = NULL;
 	sess_thread->th_id = gf_th_id();
@@ -918,7 +932,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: no task available\n", sys_thid));
 
-			if (! (fsess->flags & GF_FS_FLAG_NO_REGULATION)) {
+			if (do_regulate) {
 				gf_sleep(0);
 			}
 			continue;
@@ -944,7 +958,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				s64 tdiff = diff;
 				s64 ndiff = 0;
 
-				if (diff>50) diff = 50;
+				if (diff > fsess->max_sleep) diff = fsess->max_sleep;
 
 				//no filter, just reschedule the task
 				if (!current_filter) {
@@ -972,7 +986,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						diff = 0;
 					}
 
-					if (diff) {
+					if (diff && do_regulate) {
 						if (th_count==0) {
 							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
 								diff = MONOTH_MIN_SLEEP;
@@ -1048,9 +1062,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							if ( gf_fq_count(fsess->tasks) > MONOTH_MIN_TASKS)
 								diff = MONOTH_MIN_SLEEP;
 						}
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms (scheduled time "LLU" us, next task schedule "LLU" us)\n", sys_thid, current_filter->name, task->log_name, (s32) diff, task->schedule_next_time, next_task_schedule_time));
+						if (do_regulate) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms (scheduled time "LLU" us, next task schedule "LLU" us)\n", sys_thid, current_filter->name, task->log_name, (s32) diff, task->schedule_next_time, next_task_schedule_time));
 
-						gf_sleep((u32) diff);
+							gf_sleep((u32) diff);
+						}
 						active_start = gf_sys_clock_high_res();
 					}
 					if (task->schedule_next_time >  gf_sys_clock_high_res() ) {
