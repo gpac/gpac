@@ -4604,6 +4604,8 @@ u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
 			if (cval)
 				break;
 		}
+		if (bpos >= data_len)
+			break;
 		cur = data + bpos;
 		avail = data_len - bpos;
 	}
