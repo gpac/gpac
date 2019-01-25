@@ -505,7 +505,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	ctx->sar.num = ctx->sar.den = 1;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-	if (p) ctx->sar = p->value.frac;
+	if (p && p->value.frac.den && p->value.frac.num) ctx->sar = p->value.frac;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->pid_delay = p ? p->value.sint : 0;
