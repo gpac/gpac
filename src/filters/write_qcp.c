@@ -46,10 +46,14 @@ typedef struct
 	GF_Fraction duration;
 
 	char GUID[16];
-	u32 qcp_type;
+	u32 qcp_type, needs_rate_byte;
 	QCPRateTable rtable[8];
 	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
 	Bool has_qcp_pad;
+	Bool needs_final_pach;
+	u32 data_size;
+	u32 nb_frames;
+
 } GF_QCPMxCtx;
 
 
@@ -128,10 +132,133 @@ GF_Err qcpmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	if (p) ctx->duration = p->value.frac;
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_MEDIA_DATA_SIZE);
+	if (!p) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[QCP] Unknown total media size, cannot write QCP file right away\n"));
+		ctx->data_size = 0;
+	} else {
+		ctx->data_size = (u32) p->value.longuint;
+	}
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NB_FRAMES);
+	if (!p) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[QCP] Unknown total number of media frames, cannot write QCP file\n"));
+		ctx->nb_frames = 0;
+	} else {
+		ctx->nb_frames = (u32) p->value.uint;
+	}
+
+	if (!ctx->data_size || !ctx->nb_frames) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_BOOL(GF_TRUE) );
+		ctx->needs_final_pach = GF_TRUE;
+	}
+
 	return GF_OK;
 }
 
+static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
+{
+	const GF_PropertyValue *p;
+	Bool needs_rate_octet;
+	char szName[80];
+	u32 i, tot_size, size, sample_size, avg_rate;
+	u32 block_size = 160;
+	u32 sample_rate = 8000;
+	GF_BitStream *bs;
+	char *output;
+	GF_FilterPacket *dst_pck;
 
+	if (ctx->qcp_type==1) {
+		ctx->qcp_rates = (unsigned int*)GF_QCELP_RATE_TO_SIZE;
+		ctx->rt_cnt = GF_QCELP_RATE_TO_SIZE_NB;
+	} else {
+		ctx->qcp_rates = (unsigned int*)GF_SMV_EVRC_RATE_TO_SIZE;
+		ctx->rt_cnt = GF_SMV_EVRC_RATE_TO_SIZE_NB;
+	}
+
+	/*dumps full table...*/
+	for (i=0; i<ctx->rt_cnt; i++) {
+		ctx->rtable[i].rate_idx = ctx->qcp_rates[2*i];
+		ctx->rtable[i].pck_size = ctx->qcp_rates[2*i+1];
+	}
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FRAME_SIZE);
+	sample_size = p ? p->value.uint : block_size;
+
+	/*check sample format - packetvideo doesn't include rate octet...*/
+	needs_rate_octet = (ctx->codecid==GF_CODECID_EVRC_PV) ? GF_TRUE : GF_FALSE;
+
+	if (needs_rate_octet) data_size += frame_count;
+	ctx->has_qcp_pad = (data_size % 2) ? GF_TRUE : GF_FALSE;
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_BITRATE);
+	if (p) avg_rate = p->value.uint;
+	else avg_rate = frame_count ? 8*data_size*sample_rate/frame_count/block_size : 0;
+
+	/*QLCM + fmt + vrat + data*/
+	size = tot_size = 4+ 8+150 + 8+8 + 8 + data_size;
+	/*pad is included in riff size*/
+	if (ctx->has_qcp_pad) {
+		tot_size++;
+	}
+	size += 8;
+	size -= data_size;
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
+
+	gf_bs_write_data(bs, "RIFF", 4);
+	gf_bs_write_u32_le(bs, tot_size);
+	gf_bs_write_data(bs, "QLCM", 4);
+	gf_bs_write_data(bs, "fmt ", 4);
+	gf_bs_write_u32_le(bs, 150);/*fmt chunk size*/
+	gf_bs_write_u8(bs, 1);
+	gf_bs_write_u8(bs, 0);
+	gf_bs_write_data(bs, ctx->GUID, 16);
+	gf_bs_write_u16_le(bs, 1);
+	memset(szName, 0, 80);
+	strcpy(szName, (ctx->qcp_type==1) ? "QCELP-GPACExport" : ((ctx->qcp_type==2) ? "SMV-GPACExport" : "EVRC-GPACExport"));
+	gf_bs_write_data(bs, szName, 80);
+	gf_bs_write_u16_le(bs, avg_rate);
+	gf_bs_write_u16_le(bs, sample_size);
+	gf_bs_write_u16_le(bs, block_size);
+	gf_bs_write_u16_le(bs, sample_rate);
+	gf_bs_write_u16_le(bs, avg_rate);
+	gf_bs_write_u32_le(bs, ctx->rt_cnt);
+	for (i=0; i<8; i++) {
+		if (i<ctx->rt_cnt) {
+			/*frame size MINUS rate octet*/
+			gf_bs_write_u8(bs, ctx->rtable[i].pck_size - 1);
+			gf_bs_write_u8(bs, ctx->rtable[i].rate_idx);
+		} else {
+			gf_bs_write_u16(bs, 0);
+		}
+	}
+	memset(szName, 0, 80);
+	gf_bs_write_data(bs, szName, 20);/*reserved*/
+	gf_bs_write_data(bs, "vrat", 4);
+	gf_bs_write_u32_le(bs, 8);/*vrat chunk size*/
+	gf_bs_write_u32_le(bs, ctx->rt_cnt);
+	gf_bs_write_u32_le(bs, frame_count);
+	gf_bs_write_data(bs, "data", 4);
+	gf_bs_write_u32_le(bs, data_size);/*data chunk size*/
+
+	ctx->needs_rate_byte = needs_rate_octet ? 1 : 0;
+
+	gf_bs_del(bs);
+
+	if (!ctx->first) {
+		assert(ctx->needs_final_pach);
+		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+		gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
+		gf_filter_pck_set_byte_offset(dst_pck, 0);
+	} else {
+		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
+		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
+		ctx->first = GF_FALSE;
+	}
+
+	gf_filter_pck_send(dst_pck);
+}
 
 GF_Err qcpmx_process(GF_Filter *filter)
 {
@@ -143,6 +270,10 @@ GF_Err qcpmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			if (ctx->needs_final_pach) {
+				qcpmx_send_header(ctx, ctx->data_size, ctx->nb_frames);
+				ctx->needs_final_pach = GF_FALSE;
+			}
 			if (ctx->has_qcp_pad) {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, 1, &output);
 				output[0] = 0;
@@ -157,117 +288,17 @@ GF_Err qcpmx_process(GF_Filter *filter)
 	}
 
 	if (ctx->first) {
-		const GF_PropertyValue *p;
-		Bool needs_rate_octet;
-		char szName[80];
-		u32 i, tot_size, data_size, sample_size, avg_rate, count;
-		u32 block_size = 160;
-		u32 sample_rate = 8000;
-		GF_BitStream *bs;
-
-		if (ctx->qcp_type==1) {
-			ctx->qcp_rates = (unsigned int*)GF_QCELP_RATE_TO_SIZE;
-			ctx->rt_cnt = GF_QCELP_RATE_TO_SIZE_NB;
-		} else {
-			ctx->qcp_rates = (unsigned int*)GF_SMV_EVRC_RATE_TO_SIZE;
-			ctx->rt_cnt = GF_SMV_EVRC_RATE_TO_SIZE_NB;
-		}
-
-		/*dumps full table...*/
-		for (i=0; i<ctx->rt_cnt; i++) {
-			ctx->rtable[i].rate_idx = ctx->qcp_rates[2*i];
-			ctx->rtable[i].pck_size = ctx->qcp_rates[2*i+1];
-		}
-		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_MEDIA_DATA_SIZE);
-		if (!p) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[QCP] Unknown total media size, cannot write QCP file\n"));
-			gf_filter_pid_drop_packet(ctx->ipid);
-			return GF_NOT_SUPPORTED;
-		}
-		data_size = (u32) p->value.longuint;
-		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NB_FRAMES);
-		if (!p) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[QCP] Unknown total number of media frames, cannot write QCP file\n"));
-			gf_filter_pid_drop_packet(ctx->ipid);
-			return GF_NOT_SUPPORTED;
-		}
-
-		count = (u32) p->value.uint;
-		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FRAME_SIZE);
-		sample_size = p ? p->value.uint : 0;
-
-		/*check sample format - packetvideo doesn't include rate octet...*/
-		needs_rate_octet = (ctx->codecid==GF_CODECID_EVRC_PV) ? GF_TRUE : GF_FALSE;
-
-		if (needs_rate_octet) data_size += count;
-		ctx->has_qcp_pad = (data_size % 2) ? GF_TRUE : GF_FALSE;
-
-		avg_rate = 8*data_size*sample_rate/count/block_size;
-		/*QLCM + fmt + vrat + data*/
-		size = tot_size = 4+ 8+150 + 8+8 + 8 + data_size;
-		/*pad is included in riff size*/
-		if (ctx->has_qcp_pad) {
-			tot_size++;
-		}
-		size += 8;
-		size -= data_size;
-		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
-		bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
-
-		gf_bs_write_data(bs, "RIFF", 4);
-		gf_bs_write_u32_le(bs, tot_size);
-		gf_bs_write_data(bs, "QLCM", 4);
-		gf_bs_write_data(bs, "fmt ", 4);
-		gf_bs_write_u32_le(bs, 150);/*fmt chunk size*/
-		gf_bs_write_u8(bs, 1);
-		gf_bs_write_u8(bs, 0);
-		gf_bs_write_data(bs, ctx->GUID, 16);
-		gf_bs_write_u16_le(bs, 1);
-		memset(szName, 0, 80);
-		strcpy(szName, (ctx->qcp_type==1) ? "QCELP-GPACExport" : ((ctx->qcp_type==2) ? "SMV-GPACExport" : "EVRC-GPACExport"));
-		gf_bs_write_data(bs, szName, 80);
-		gf_bs_write_u16_le(bs, avg_rate);
-		gf_bs_write_u16_le(bs, sample_size);
-		gf_bs_write_u16_le(bs, block_size);
-		gf_bs_write_u16_le(bs, sample_rate);
-		gf_bs_write_u16_le(bs, 16);
-		gf_bs_write_u32_le(bs, ctx->rt_cnt);
-		for (i=0; i<8; i++) {
-			if (i<ctx->rt_cnt) {
-				/*frame size MINUS rate octet*/
-				gf_bs_write_u8(bs, ctx->rtable[i].pck_size - 1);
-				gf_bs_write_u8(bs, ctx->rtable[i].rate_idx);
-			} else {
-				gf_bs_write_u16(bs, 0);
-			}
-		}
-		memset(szName, 0, 80);
-		gf_bs_write_data(bs, szName, 20);/*reserved*/
-		gf_bs_write_data(bs, "vrat", 4);
-		gf_bs_write_u32_le(bs, 8);/*vrat chunk size*/
-		gf_bs_write_u32_le(bs, ctx->rt_cnt);
-		gf_bs_write_u32_le(bs, count);
-		gf_bs_write_data(bs, "data", 4);
-		gf_bs_write_u32_le(bs, data_size);/*data chunk size*/
-
-		ctx->qcp_type = needs_rate_octet ? 1 : 0;
-
-		gf_bs_del(bs);
-
-		gf_filter_pck_merge_properties(pck, dst_pck);
-		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
-		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
-		ctx->first = GF_FALSE;
-
-		gf_filter_pck_send(dst_pck);
+		qcpmx_send_header(ctx, ctx->data_size, ctx->nb_frames);
 	}
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	size = pck_size;
+	ctx->data_size += pck_size;
+	ctx->nb_frames ++;
 
 	/*fix rate octet for QCP*/
-	if (ctx->qcp_type) {
+	if (ctx->needs_rate_byte) {
 		u32 j;
 		u32 rate_found = 0;
 		size ++;

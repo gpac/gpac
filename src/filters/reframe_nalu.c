@@ -2781,6 +2781,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 nb_nalus=0;
 	u32 nb_hevc_zero=0;
 	u32 nb_avc_zero=0;
+	u32 nb_xps_hevc=0;
+	u32 nb_xps_avc=0;
 
 	while (size) {
 		u32 avc_type=0;
@@ -2797,7 +2799,16 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		hevc_type = (data[0] & 0x7E) >> 1;
 		if (hevc_type<=40) {
 			nb_hevc++;
-			if (!hevc_type) nb_hevc_zero++;
+			switch (hevc_type) {
+			case GF_HEVC_NALU_PIC_PARAM:
+			case GF_HEVC_NALU_SEQ_PARAM:
+			case GF_HEVC_NALU_VID_PARAM:
+				nb_xps_hevc++;
+				break;
+			case 0:
+				nb_hevc_zero++;
+				break;
+			}
 		} else {
 			not_hevc++;
 		}
@@ -2805,11 +2816,20 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		avc_type = data[0] & 0x1F;
 		if (avc_type && avc_type<=23) {
 			nb_avc++;
-			if (!avc_type) nb_avc_zero++;
+			switch (avc_type) {
+			case GF_AVC_NALU_PIC_PARAM:
+			case GF_AVC_NALU_SEQ_PARAM:
+				nb_xps_avc++;
+				break;
+			case 0:
+				nb_avc_zero++;
+				break;
+			}
 		} else {
 			not_avc++;
 		}
 	}
+	if (!nb_xps_avc && !nb_xps_hevc) return NULL;
 
 	if (not_avc) nb_avc=0;
 	if (not_hevc) nb_hevc=0;

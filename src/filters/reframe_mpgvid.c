@@ -1026,7 +1026,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 {
 	GF_M4VParser *parser;
 	u8 ftype;
-	u32 tinc;
+	u32 tinc, nb_frames;
 	u64 fsize, start;
 	Bool is_coded;
 	GF_Err e;
@@ -1034,18 +1034,50 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 
 	memset(&dsi, 0, sizeof(GF_M4VDecSpecInfo));
 	parser = gf_m4v_parser_new((char*)data, size, GF_FALSE);
-	e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+	nb_frames = 0;
+	while (1) {
+		ftype = 0;
+		is_coded = GF_FALSE;
+		e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+		if (!nb_frames && start)
+			break;
+		if (is_coded) nb_frames++;
+		if (e==GF_EOS) {
+			if (is_coded) nb_frames++;
+			e = GF_OK;
+			break;
+		}
+		if (ftype>2) break;
+		if (e) break;
+		nb_frames++;
+	}
 	gf_m4v_parser_del(parser);
-	if (e==GF_OK) {
+	if ((e==GF_OK) && (nb_frames>1)) {
 		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return "video/mp4v-es";
 	}
 
 	memset(&dsi, 0, sizeof(GF_M4VDecSpecInfo));
 	parser = gf_m4v_parser_new((char*)data, size, GF_TRUE);
-	e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+	nb_frames = 0;
+	while (1) {
+		ftype = 0;
+		is_coded = GF_FALSE;
+		e = gf_m4v_parse_frame(parser, dsi, &ftype, &tinc, &fsize, &start, &is_coded);
+		if (!nb_frames && start)
+			break;
+		if (is_coded) nb_frames++;
+		if (e==GF_EOS) {
+			if (is_coded) nb_frames++;
+			e = GF_OK;
+			break;
+		}
+		if (ftype>2) break;
+		if (e) break;
+		nb_frames++;
+	}
 	gf_m4v_parser_del(parser);
-	if (e==GF_OK) {
+	if ((e==GF_OK) && (nb_frames>1)) {
 		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return "video/mpgv-es";
 	}

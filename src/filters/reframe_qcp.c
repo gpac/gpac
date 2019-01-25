@@ -146,7 +146,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 	}
 	if (!data_chunk_size) {
 		gf_bs_del(bs);
-		fclose(stream);
+		gf_fclose(stream);
 		return;
 	}
 
@@ -383,6 +383,8 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(avg_bps));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FRAME_SIZE, & PROP_UINT(ctx->pck_size));
+
 	qcpdmx_check_dur(filter, ctx);
 
 	return GF_OK;

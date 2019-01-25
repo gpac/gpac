@@ -1080,6 +1080,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	strcpy(szExt, "");
 	if (dumper->trackID) {
 		u32 msubtype = 0;
+		const char *export_ext = dumper->out_name ? gf_file_ext_start(dumper->out_name) : NULL;
 		u32 track_num = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
 		GF_ESD *esd = gf_media_map_esd(dumper->file, track_num, 0);
 		sample_count = gf_isom_get_sample_count(dumper->file, dumper->trackID);
@@ -1095,10 +1096,14 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		} else {
 			char *sep;
 			const char *sname = gf_codecid_file_ext(codec_id);
-			strncpy(szExt, sname, 29);
-			szExt[29]=0;
-			sep = strchr(szExt, '|');
-			if (sep) sep[0] = 0;
+			if (export_ext && strstr(sname, export_ext+1)) {
+				szExt[0]=0;
+			} else {
+				strncpy(szExt, sname, 29);
+				szExt[29]=0;
+				sep = strchr(szExt, '|');
+				if (sep) sep[0] = 0;
+			}
 		}
 		switch (gf_isom_get_media_type(dumper->file, track_num)) {
 		case GF_ISOM_MEDIA_VISUAL:

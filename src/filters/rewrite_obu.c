@@ -49,6 +49,7 @@ typedef struct
 	GF_Fraction fps;
 	GF_AV1Config *av1c;
 	u32 av1b_cfg_size;
+	u32 codec_id;
 } GF_OBUMxCtx;
 
 GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -83,24 +84,43 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 
-	//check output type OBU vs av1b
-	p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
-	if (p) {
-		if (!strcmp(p->value.string, "obu")) ctx->mode = 0;
-		else if (!strcmp(p->value.string, "av1b")) ctx->mode = 1;
-		//we might want to add a generic IVF read/write at some point
-		else if (!strcmp(p->value.string, "ivf")) {
-			ctx->mode = 2;
-			ctx->ivf_hdr = 1;
-		}
+	//offset of OBUs in AV1 config
+	if (dcd && (dcd->value.data.size > 4)) {
+		ctx->dsi = dcd->value.data.ptr + 4;
+		ctx->dsi_size = dcd->value.data.size - 4;
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[OBUWrite] Couldn't guess desired output format type, assuming plain OBU\n"));
+		ctx->dsi = NULL;
+		ctx->dsi_size = 0;
 	}
 
-	if (dcd) {
-		ctx->dsi = dcd->value.data.ptr + 1;
-		ctx->dsi_size = dcd->value.data.size - 1;
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
+	ctx->codec_id = p ? p->value.uint : 0;
+	switch (ctx->codec_id) {
+	case GF_CODECID_AV1:
+		//check output type OBU vs av1b
+		p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
+		if (p) {
+			if (!strcmp(p->value.string, "obu")) ctx->mode = 0;
+			else if (!strcmp(p->value.string, "av1b") || !strcmp(p->value.string, "av1")) ctx->mode = 1;
+			//we might want to add a generic IVF read/write at some point
+			else if (!strcmp(p->value.string, "ivf")) {
+				ctx->mode = 2;
+				ctx->ivf_hdr = 1;
+			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[OBUWrite] Couldn't guess desired output format type, assuming plain OBU\n"));
+		}
+		break;
+	case GF_CODECID_VP8:
+	case GF_CODECID_VP9:
+	case GF_CODECID_VP10:
+		ctx->dsi_size = 0;
+		ctx->dsi = NULL;
+		ctx->mode = 2;
+		ctx->ivf_hdr = 1;
+		break;
 	}
+
 	if (ctx->av1c) gf_odf_av1_cfg_del(ctx->av1c);
 	ctx->av1c = NULL;
 	if (ctx->mode==1) {
@@ -160,7 +180,8 @@ GF_Err obumx_process(GF_Filter *filter)
 	hdr_size = 0;
 	size = pck_size;
 	//always add temporal delim
-	size += 2;
+	if (ctx->codec_id==GF_CODECID_AV1)
+		size += 2;
 
 	sap_type = gf_filter_pck_get_sap(pck);
 	if (!sap_type) {
@@ -292,31 +313,36 @@ GF_Err obumx_process(GF_Filter *filter)
 		if (ctx->ivf_hdr) {
 			gf_bs_write_u32(ctx->bs_w, GF_4CC('D', 'K', 'I', 'F'));
 			gf_bs_write_u16_le(ctx->bs_w, 0);
-			gf_bs_write_u16_le(ctx->bs_w, 0);
+			gf_bs_write_u16_le(ctx->bs_w, 32);
 
 			gf_bs_write_u32(ctx->bs_w, GF_4CC('A', 'V', '0', '1') ); //codec_fourcc
 			gf_bs_write_u16_le(ctx->bs_w, ctx->w);
 			gf_bs_write_u16_le(ctx->bs_w, ctx->h);
 			gf_bs_write_u32_le(ctx->bs_w, ctx->fps.num);
 			gf_bs_write_u32_le(ctx->bs_w, ctx->fps.den);
-			gf_bs_write_u64(ctx->bs_w, 0);
+			gf_bs_write_u32_le(ctx->bs_w, 0); //nb frames
+			gf_bs_write_u32_le(ctx->bs_w, 0);
 			ctx->ivf_hdr = 0;
 		}
 		if (ctx->mode==2) {
+			u64 cts = gf_filter_pck_get_cts(pck);
+			cts *= ctx->fps.den;
+			cts /= ctx->fps.num;
+			cts /= gf_filter_pck_get_timescale(pck);
 			gf_bs_write_u32_le(ctx->bs_w, size);
-			gf_bs_write_u64(ctx->bs_w, 0);
+			gf_bs_write_u64(ctx->bs_w, cts);
 		}
-		//write temporal delim with obu size set
-		gf_bs_write_u8(ctx->bs_w, 0x12);
-		gf_bs_write_u8(ctx->bs_w, 0);
+		if (ctx->codec_id==GF_CODECID_AV1) {
+			//write temporal delim with obu size set
+			gf_bs_write_u8(ctx->bs_w, 0x12);
+			gf_bs_write_u8(ctx->bs_w, 0);
 
-		if (sap_type && ctx->dsi) {
-			gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
+			if (sap_type && ctx->dsi) {
+				gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
+			}
 		}
 		gf_bs_write_data(ctx->bs_w, data, pck_size);
 	}
-
-	
 
 	if (!ctx->rcfg) {
 		ctx->dsi = NULL;
@@ -327,12 +353,22 @@ GF_Err obumx_process(GF_Filter *filter)
 
 	return GF_OK;
 }
+static void obumx_finalize(GF_Filter *filter)
+{
+	GF_OBUMxCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
+	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
+	if (ctx->av1c) gf_odf_av1_cfg_del(ctx->av1c);
+}
 
 static const GF_FilterCapability OBUMxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_AV1),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_VP8),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_VP9),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_STATIC_OPT, 	GF_PROP_PID_DASH_MODE, 0),
 	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -353,6 +389,7 @@ GF_FilterRegister OBUMxRegister = {
 	.private_size = sizeof(GF_OBUMxCtx),
 	.args = OBUMxArgs,
 	SETCAPS(OBUMxCaps),
+	.finalize = obumx_finalize,
 	.configure_pid = obumx_configure_pid,
 	.process = obumx_process
 };
