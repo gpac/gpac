@@ -687,6 +687,9 @@ test_begin ()
   source $rules_sh
  fi
 
+ if [ $test_skip != 0 ] ; then
+  TEMP_DIR=$INTERN_TEMP_DIR
+ fi
 }
 
 mark_test_error ()
