@@ -50,7 +50,7 @@ typedef struct
 	Fixed speed;
 	Fixed pan[GF_AUDIO_MIXER_MAX_CHANNELS];
 
-	s32 (*get_sample)(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride);
+	s32 (*get_sample)(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride);
 	Bool is_planar;
 	Bool muted;
 } MixerInput;
@@ -278,62 +278,72 @@ static GFINLINE s32 make_s24_int(u8 *ptr)
 #define MIX_S24_SCALE	255
 #define MIX_U8_SCALE	16777215
 
-s32 input_sample_s32(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_s32(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s32 *src = (s32 *)data;
-	return src[sample_offset + channel];
+	return src[sample_offset*nb_ch + channel];
 }
-s32 input_sample_s32p(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_s32p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s32 *src = (s32 *)data;
 	return src[sample_offset + planar_stride*channel];
 }
-s32 input_sample_s24(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_s24(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
-	return make_s24_int(&data[sample_offset + 3*channel]) * MIX_S24_SCALE;
+	return make_s24_int(&data[sample_offset*nb_ch + 3*channel]) * MIX_S24_SCALE;
 }
-s32 input_sample_s24p(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_s24p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	return make_s24_int(&data[sample_offset + 3*channel*planar_stride]) * MIX_S24_SCALE;
 }
-s32 input_sample_flt(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+
+#define TRUNC_FLT_DBL(_a) \
+	if (_a<-1.0) return GF_INT_MIN;\
+	else if (_a>1.0) return GF_INT_MAX;\
+	return (s32) (_a * GF_INT_MAX);\
+
+s32 input_sample_flt(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Float *src = (Float *)data;
-	return (s32) (src[sample_offset + channel] * GF_INT_MAX);
+	Float samp = src[sample_offset*nb_ch + channel];
+	TRUNC_FLT_DBL(samp);
 }
-s32 input_sample_fltp(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_fltp(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Float *src = (Float *)data;
-	return (s32) (src[sample_offset + planar_stride*channel] * GF_INT_MAX);
+	Float samp = src[sample_offset + planar_stride*channel/4];
+	TRUNC_FLT_DBL(samp);
 }
-s32 input_sample_dbl(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_dbl(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Double *src = (Double *)data;
-	return (s32) (src[sample_offset + channel] * GF_INT_MAX);
+	Double samp = src[sample_offset*nb_ch + channel];
+	TRUNC_FLT_DBL(samp);
 }
-s32 input_sample_dblp(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_dblp(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	Double *src = (Double *)data;
-	return (s32) (src[sample_offset + planar_stride * channel] * GF_INT_MAX);
+	Double samp = src[sample_offset + planar_stride * channel / 8];
+	TRUNC_FLT_DBL(samp);
 }
-s32 input_sample_s16(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_s16(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s16 *src = (s16 *)data;
-	s32 res = src[sample_offset + channel];
+	s32 res = src[sample_offset*nb_ch + channel];
 	return res * MIX_S16_SCALE;
 }
-s32 input_sample_s16p(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_s16p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s16 *src = (s16 *)data;
-	s32 res = src[sample_offset + planar_stride*channel];
+	s32 res = src[sample_offset + planar_stride*channel / 2];
 	return res * MIX_S16_SCALE;
 }
-s32 input_sample_u8(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_u8(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
-	s32 res = data[sample_offset + channel];
+	s32 res = data[sample_offset*nb_ch + channel];
 	return res * MIX_U8_SCALE;
 }
-s32 input_sample_u8p(u8 *data, u32 sample_offset, u32 channel, u32 planar_stride)
+s32 input_sample_u8p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s32 res = data[sample_offset + planar_stride*channel];
 	return res * MIX_U8_SCALE;
@@ -658,7 +668,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	if (src_samp==1) {
 		in->has_prev = GF_TRUE;
 		for (j=0; j<in_ch; j++) {
-			in->last_channels[j] = in->get_sample(in_data, 0, j, planar_stride);
+			in->last_channels[j] = in->get_sample(in_data, in_ch, 0, j, planar_stride);
 		}
 		in->in_bytes_used = src_size;
 		return;
@@ -681,10 +691,9 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 			use_prev = GF_FALSE;
 
 		for (j = 0; j < in_ch; j++) {
-			inChan[j] = use_prev ? in->last_channels[j] : in->get_sample(in_data, in_ch*prev, j, planar_stride);
-			inChanNext[j] = in->get_sample(in_data, in_ch*next, j, planar_stride);
-
+			inChan[j] = use_prev ? in->last_channels[j] : in->get_sample(in_data, in_ch, prev, j, planar_stride);
 			if (!frac) continue;
+			inChanNext[j] = in->get_sample(in_data, in_ch, next, j, planar_stride);
 			inChan[j] = (s32) ( ( ((s64) inChanNext[j])*frac + ((s64)inChan[j])*(255-frac)) / 255 );
 		}
 
@@ -725,10 +734,9 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 				for (j=0; j<in_ch; j++) in->last_channels[j] = inChanNext[j];
 			} else {
 				u32 idx;
-				idx = (prev>=src_samp) ? in_ch*(src_samp-1) : in_ch*prev;
+				idx = (prev>=src_samp) ? (src_samp-1) : prev;
 				for (j=0; j<in_ch; j++) {
-					assert(idx + j < src_size/2);
-					in->last_channels[j] = in->get_sample(in_data, idx, j, planar_stride);
+					in->last_channels[j] = in->get_sample(in_data, in_ch, idx, j, planar_stride);
 				}
 			}
 		}
