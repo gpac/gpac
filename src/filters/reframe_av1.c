@@ -858,14 +858,29 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		else {
 			AV1State state;
 			GF_Err e;
+			u32 nb_units = 0;
 
 			memset(&state, 0, sizeof(AV1State));
-			e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
-			if (e==GF_OK) {
+			state.config = gf_odf_av1_cfg_new();
+			while (gf_bs_available(bs)) {
+				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
+				if (e==GF_OK) {
+					if (!nb_units || gf_list_count(state.frame_state.header_obus) || gf_list_count(state.frame_state.frame_obus))
+						nb_units++;
+					else
+						break;
+				} else {
+					break;
+				}
+				av1_reset_state(&state, GF_FALSE);
+				if (nb_units>2) break;
+			}
+			av1_reset_state(&state, GF_TRUE);
+			gf_odf_av1_cfg_del(state.config);
+			if (nb_units>2) {
 				res = GF_TRUE;
 				*score = GF_FPROBE_MAYBE_SUPPORTED;
 			}
-			av1_reset_state(&state, GF_TRUE);
 		}
 	}
 
