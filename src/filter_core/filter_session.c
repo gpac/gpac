@@ -269,7 +269,6 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	GF_FilterSession *fsess;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	u32 flags = 0;
-	u32 max_chain = 0;
 	s32 nb_threads = gf_opts_get_int("core", "threads");
 	const char *blacklist = gf_opts_get_key("core", "blacklist");
 	const char *opt = gf_opts_get_key("core", "sched");
@@ -958,7 +957,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				s64 tdiff = diff;
 				s64 ndiff = 0;
 
-				if (diff > fsess->max_sleep) diff = fsess->max_sleep;
+				if (diff > fsess->max_sleep)
+					diff = fsess->max_sleep;
 
 				//no filter, just reschedule the task
 				if (!current_filter) {

@@ -1421,8 +1421,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (filter->session->in_final_flush && filter->force_end_of_session)
 		return;
 
-	if (filter->out_pid_connection_pending || filter->detached_pid_inst) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has %s pending, requeuing process\n", filter->name, filter->out_pid_connection_pending ? "connections" : "input pid reassignments"));
+	if (filter->out_pid_connection_pending || filter->detached_pid_inst || filter->caps_negociate) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has %s pending, requeuing process\n", filter->name, filter->out_pid_connection_pending ? "connections" : filter->caps_negociate ? "caps negociation" : "input pid reassignments"));
 		//do not cancel the process task since it might have been triggered by the filter itself,
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
