@@ -862,7 +862,7 @@ void gf_memory_print()
 	/*if lists are empty, the mutex is also NULL*/
 	if (!memory_add) {
 		assert(!gpac_allocations_lock);
-		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized.\n");
+		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized, some file handles are not closed.\n");
 	} else {
 		int i=0;
 		assert(gpac_allocations_lock);
