@@ -198,7 +198,8 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	if (e) {
 		return e;
 	}
-	strcpy(ctx->szFileName, szFinalName);
+	strncpy(ctx->szFileName, szFinalName, GF_MAX_PATH-1);
+	ctx->szFileName[GF_MAX_PATH-1]=0;
 	return GF_OK;
 }
 
