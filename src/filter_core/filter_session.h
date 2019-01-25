@@ -388,6 +388,8 @@ struct __gf_filter_session
 
 	//max filter chain allowed in the link resolution process
 	u32 max_resolve_chain_len;
+	//max sleep time
+	u32 max_sleep;
 
 	//protect access to link bank
 	GF_Mutex *links_mx;

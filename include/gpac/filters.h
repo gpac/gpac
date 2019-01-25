@@ -210,8 +210,10 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 #define GF_FS_FLAG_NO_REGULATION	1<<5
 /*! Flag set to disable data probe*/
 #define GF_FS_FLAG_NO_PROBE	(1<<6)
+/*! Flag set to disable source reassignment (e.g. switching from fin to ffdmx) in pid resolution*/
+#define GF_FS_FLAG_NO_REASSIGN	(1<<7)
 /*! Flag set to print enabled/disabled edges for debug of pid resolution*/
-#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<7)
+#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<8)
 
 
 /*! Creates a new filter session. This will also load all available filters not blacklisted.
@@ -281,6 +283,13 @@ Setting the value to 0 disables dynamic link resolution. You will have to specif
 \return error if any
 */
 GF_Err gf_fs_set_max_resolution_chain_length(GF_FilterSession *session, u32 max_chain_length);
+
+/*! Sets the maximum sleep time when postponing tasks.
+\param session filter session
+\param  max_sleep maximum sleep time in milliseconds. 0 means yield only.
+\return error if any
+*/
+GF_Err gf_fs_set_max_sleep_time(GF_FilterSession *session, u32 max_sleep);
 
 /*! gets the maximum filter chain lengtG
 \param session filter session
