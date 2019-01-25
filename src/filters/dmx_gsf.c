@@ -1094,26 +1094,32 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	u32 i=0, pkt_size;
 	const char *data;
 	u32 would_block = 0;
+	Bool is_eos = GF_FALSE;
 
 	if (ctx->wait_for_play) return GF_OK;
 
-	//update duration
-//	safdmx_check_dur(ctx);
+	pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (!pck) {
+		if (gf_filter_pid_is_eos(ctx->ipid)) is_eos = GF_TRUE;
+		else return GF_OK;
+	}
 
 	//check if all the streams are in block state, if so return.
 	//we need to check for all output since one pid could still be buffering
 	while ((st = gf_list_enum(ctx->streams, &i))) {
-		if (st->opid && gf_filter_pid_would_block(st->opid))
-			would_block++;
+		if (st->opid) {
+			if (is_eos) {
+				gf_filter_pid_set_eos(st->opid);
+			} else if (gf_filter_pid_would_block(st->opid)) {
+				would_block++;
+			}
+		}
 	}
+	if (is_eos) return GF_EOS;
+
 	if (would_block && (would_block+1==i))
 		return GF_OK;
 
-	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
-//		if (gf_filter_pid_is_eos(ctx->ipid)) oggdmx_signal_eos(ctx);
-		return GF_OK;
-	}
 	data = gf_filter_pck_get_data(pck, &pkt_size);
 	e = gsfdmx_demux(filter, ctx, (char *) data, pkt_size);
 	gf_filter_pid_drop_packet(ctx->ipid);
@@ -1172,11 +1178,14 @@ static const GF_FilterCapability GSFDemuxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-gpac-sf"),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	//we deliver more than these two but this make the filter chain loading stop until we declare a pid
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "gsf"),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 };
 
 

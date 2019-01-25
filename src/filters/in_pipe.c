@@ -96,6 +96,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 
+	if (ctx->mkp) ctx->blk = GF_TRUE;
 
 	//strip any fragment identifer
 	frag_par = strchr(ctx->src, '#');
@@ -364,8 +365,8 @@ static GF_Err pipein_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
 			return GF_IO_ERR;
 		} else if (!ctx->ka) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
-			gf_filter_pid_set_eos(ctx->pid);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
+			if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
 			close(ctx->fd);
 			ctx->fd=-1;
 			return GF_EOS;
@@ -446,6 +447,8 @@ GF_FilterRegister PipeInRegister = {
 		"This can be usefull to pipe raw streams from different process into gpac:\n"\
 		"Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka\n"\
 		"Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264"\
+		"\n"\
+		"The pipe input can be created in blocking mode or non-blocking mode. If the filter creates the pipe, blocking mode is always enabled.\n"\
 	"")
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,

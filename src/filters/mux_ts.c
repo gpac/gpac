@@ -1110,6 +1110,9 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->rt);
 	ctx->mux->flush_pes_at_rap = ctx->flush_rap;
 
+	if (gf_sys_is_test_mode() && ctx->pcr_init<0)
+		ctx->pcr_init = 1000000;
+
 	gf_m2ts_mux_use_single_au_pes_mode(ctx->mux, ctx->pes_pack);
 	if (ctx->pcr_init>=0) gf_m2ts_mux_set_initial_pcr(ctx->mux, (u64) ctx->pcr_init);
 	gf_m2ts_mux_set_pcr_max_interval(ctx->mux, ctx->max_pcr);
@@ -1127,6 +1130,7 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	}
 	ctx->pids = gf_list_new();
 	if (ctx->nb_pack>1) ctx->pack_buffer = gf_malloc(sizeof(char)*188*ctx->nb_pack);
+
 	return GF_OK;
 }
 
