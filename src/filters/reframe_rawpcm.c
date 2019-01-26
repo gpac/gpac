@@ -288,7 +288,7 @@ static GF_FilterCapability PCMReframeCaps[] =
 static GF_FilterArgs PCMReframeArgs[] =
 {
 	{ OFFS(sr), "Audio sample rate", GF_PROP_UINT, "44100", NULL, 0},
-	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "s16", NULL, 0},
+	{ OFFS(afmt), "audio format", GF_PROP_PCMFMT, "none", NULL, 0},
 	{ OFFS(ch), "Number of audio ch", GF_PROP_UINT, "2", NULL, 0},
 	{ OFFS(framelen), "Number of audio samples to put in one audio frame. For planar formats, indicate plane size in samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}

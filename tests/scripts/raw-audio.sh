@@ -12,26 +12,33 @@ return
 fi
 
 rawfile=$TEMP_DIR/raw.$1
-do_test "$GPAC -i $mp4file -o $rawfile" "dump"
-do_hash_test "$rawfile" "dump"
-
+#test dumping to the given format
+do_test "$GPAC -i $mp4file -o $rawfile" "dump-$1"
+do_hash_test "$rawfile" "dump-$1"
 
 myinspect="inspect:fmt=@pn@-@cts@-@bo@@lf@"
 insfile=$TEMP_DIR/dump.txt
 do_test "$GPAC -i $rawfile:sr=48000:ch=2 $myinspect:log=$insfile" "inspect"
 do_hash_test "$insfile" "inspect"
 
-#playback test at 10x speed - this exercices the reverse conversion to pcm 16 usually used by the sound card
-do_test "$GPAC -i $rawfile:sr=48000:ch=2 aout:speed=10:vol=0 -graph" "play"
+#test reading from the given format into pcm
+rawfile2=$TEMP_DIR/raw2.pcm
+do_test "$GPAC -i $rawfile -o $rawfile2" "dump-pcm"
+do_hash_test "$rawfile2" "dump-pcm"
 
 #only do the reverse tests for pcm (same for the other formats)
 if [ $1  = "pcm" ] ; then
+
+#playback test at 10x speed - this exercices audio output
+do_test "$GPAC -i $rawfile:sr=48000:ch=2 aout:speed=10:vol=0 -graph" "play"
 
 myinspect="inspect:speed=-1:fmt=@pn@-@cts@-@bo@@lf@"
 insfile=$TEMP_DIR/dumpns.txt
 do_test "$GPAC -i $rawfile:sr=48000:ch=2 $myinspect:log=$insfile" "inspect_reverseplay"
 do_hash_test "$insfile" "inspect_reverseplay"
 
+
+#playback test at -10x speed - this exercices audio output
 do_test "$GPAC -i $rawfile:sr=48000:ch=2 aout:speed=-10:vol=0" "reverse_play"
 
 fi

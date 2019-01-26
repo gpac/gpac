@@ -270,8 +270,12 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u3
 
 static GFINLINE s32 make_s24_int(u8 *ptr)
 {
-	s16 res = * (s16 *) (ptr+1);
-	return (((s32)res) << 8 ) | ptr[0];
+	s32 val;
+	s16 res;
+	memcpy(&res, ptr+1, 2);
+	val = res * 256;
+	val |= ptr[0];
+	return val;
 }
 
 #define MIX_S16_SCALE	65535
@@ -286,15 +290,15 @@ s32 input_sample_s32(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 pl
 s32 input_sample_s32p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s32 *src = (s32 *)data;
-	return src[sample_offset + planar_stride*channel];
+	return src[sample_offset + planar_stride*channel/4];
 }
 s32 input_sample_s24(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
-	return make_s24_int(&data[sample_offset*nb_ch + 3*channel]) * MIX_S24_SCALE;
+	return make_s24_int(&data[sample_offset*nb_ch*3 + 3*channel]) * MIX_S24_SCALE;
 }
 s32 input_sample_s24p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
-	return make_s24_int(&data[sample_offset + 3*channel*planar_stride]) * MIX_S24_SCALE;
+	return make_s24_int(&data[sample_offset*3 + channel*planar_stride]) * MIX_S24_SCALE;
 }
 
 #define TRUNC_FLT_DBL(_a) \
@@ -341,11 +345,13 @@ s32 input_sample_s16p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 p
 s32 input_sample_u8(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s32 res = data[sample_offset*nb_ch + channel];
+	res -= 128;
 	return res * MIX_U8_SCALE;
 }
 s32 input_sample_u8p(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
 	s32 res = data[sample_offset + planar_stride*channel];
+	res -= 128;
 	return res * MIX_U8_SCALE;
 }
 
@@ -692,9 +698,14 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 
 		for (j = 0; j < in_ch; j++) {
 			inChan[j] = use_prev ? in->last_channels[j] : in->get_sample(in_data, in_ch, prev, j, planar_stride);
-			if (!frac) continue;
-			inChanNext[j] = in->get_sample(in_data, in_ch, next, j, planar_stride);
-			inChan[j] = (s32) ( ( ((s64) inChanNext[j])*frac + ((s64)inChan[j])*(255-frac)) / 255 );
+			if (frac) {
+				inChanNext[j] = in->get_sample(in_data, in_ch, next, j, planar_stride);
+				inChan[j] = (s32) ( ( ((s64) inChanNext[j])*frac + ((s64)inChan[j])*(255-frac)) / 255 );
+			}
+			//don't apply pan when forced layout is used
+			if (!in->src->forced_layout && (in->pan[j]!=FIX_ONE) ) {
+				inChan[j] = (s32) ( ((s64) inChan[j]) * FIX2INT(100 * in->pan[j]) / 100);
+			}
 		}
 
 
@@ -702,12 +713,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		gf_mixer_map_channels(inChan, in_ch, in->src->ch_cfg, in->src->forced_layout, out_ch, am->channel_cfg);
 
 		for (j=0; j<out_ch ; j++) {
-			//don't apply pan when forced layout is used
-			if (!in->src->forced_layout && (in->pan[j]!=100) ) {
-				*(in->ch_buf[j] + in->out_samples_written) = (s32) ( ((s64) inChan[j]) * FIX2INT(100*in->pan[j]) / 100 );
-			} else {
-				*(in->ch_buf[j] + in->out_samples_written) = (s32) inChan[j];
-			}
+			*(in->ch_buf[j] + in->out_samples_written) = (s32) inChan[j];
 		}
 
 		in->out_samples_written ++;
@@ -1038,14 +1044,14 @@ do_mix:
 		for (i = 0; i<nb_written; i++) {
 			for (j = 0; j<am->nb_channels; j++) {
 				s32 samp = (*out_mix);
-				u8 lsb;
+//				char samp_c[4];
 				samp /= MIX_S24_SCALE;
 				if (samp > GF_S24_MAX) samp = GF_S24_MAX;
 				else if (samp < GF_S24_MIN) samp = GF_S24_MIN;
-				lsb = (samp) & 0xFF;
-				samp >>= 8;
-				*((s16 *)&out_s24[1]) = (s16)samp;
-				out_s24[0] = lsb;
+//				memcpy(samp_c, &samp, 3);
+				out_s24[2] = (samp>>16) & 0xFF;
+				out_s24[1] = (samp>>8) & 0xFF;
+				out_s24[0] = samp & 0xFF;
 				out_s24 += 3;
 				out_mix += 1;
 			}
@@ -1056,13 +1062,16 @@ do_mix:
 			out_mix = am->output + j;
 			for (i = 0; i<nb_written; i++) {
 				s32 samp = (*out_mix);
+				char s16tmp[2];
 				u8 lsb;
 				samp /= MIX_S24_SCALE;
 				if (samp > GF_S24_MAX) samp = GF_S24_MAX;
 				else if (samp < GF_S24_MIN) samp = GF_S24_MIN;
 				lsb = (samp) & 0xFF;
 				samp >>= 8;
-				*((s16 *)&out_s24[1]) = (s16)samp;
+//				*((s16 *) (out_s24 +1) ) = (s16)samp;
+				*((s16 *) s16tmp) = (s16)samp;
+				memcpy(out_s24 +1, s16tmp, 2);
 				out_s24[0] = lsb;
 				out_s24 += 3;
 				out_mix += am->nb_channels;
@@ -1096,14 +1105,15 @@ do_mix:
 			}
 		}
 	} else if (am->afmt == GF_AUDIO_FMT_U8) {
-		s8 *out_s8 = (s8 *) buffer;
+		u8 *out_u8 = (u8 *) buffer;
 		for (i=0; i<nb_written; i++) {
 			for (j=0; j<am->nb_channels; j++) {
 				s32 samp = (*out_mix ) / MIX_U8_SCALE;
 				if (samp > 127) samp = 127;
 				else if (samp < -128) samp = -128;
-				(*out_s8) = samp;
-				out_s8 += 1;
+				samp += 128;
+				(*out_u8) = (u8) samp;
+				out_u8 += 1;
 				out_mix += 1;
 			}
 		}
@@ -1115,6 +1125,7 @@ do_mix:
 				s32 samp = (*out_mix ) / MIX_U8_SCALE;
 				if (samp > 127) samp = 127;
 				else if (samp < -128) samp = -128;
+				samp += 128;
 				(*out_s8) = samp;
 				out_s8 += 1;
 				out_mix += am->nb_channels;
