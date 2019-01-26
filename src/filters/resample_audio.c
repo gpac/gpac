@@ -67,6 +67,7 @@ static char *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride,
 		*planar_stride = ctx->size / ctx->nb_ch;
 		sample_offset /= ctx->nb_ch;
 	}
+	void *testp = memchr(ctx->data, 0xFF, ctx->size);
 	return (char*)ctx->data + sample_offset;
 }
 
