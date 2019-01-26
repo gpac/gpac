@@ -165,7 +165,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 		}
 	}
 	else {
-		ctx->pipe = CreateFile(szNamedPipe, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		ctx->pipe = CreateFile(szNamedPipe, GENERIC_READ, ctx->blk ? PIPE_WAIT : PIPE_NOWAIT, NULL, OPEN_EXISTING, 0, NULL);
 		if (ctx->pipe == INVALID_HANDLE_VALUE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to open %s: %d\n", szNamedPipe, GetLastError()));
 			e = GF_URL_ERROR;
@@ -307,7 +307,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 	errno = 0;
 #ifdef WIN32
 	nb_read = -1;
-	if (!ctx->blk) {
+	if (!ctx->blk && ctx->mkp) {
 		DWORD res = WaitForMultipleObjects(1, &ctx->event, FALSE, 1);
 		ResetEvent(ctx->event);
 		if (res == WAIT_FAILED) {
