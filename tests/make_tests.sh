@@ -1137,7 +1137,7 @@ fi
 #end do_playback_test
 
 #@do_hash_test: generates a hash for $1 file , compare it to HASH_DIR/$TEST_NAME$2.hash
-do_hash_test ()
+do_hash_test_bin ()
 {
   if [ $skip_next_hash_test = 1 ] ; then
     skip_next_hash_test=0
@@ -1149,9 +1149,9 @@ do_hash_test ()
     return
   fi
 
-  if [ $# -gt 2 ] ; then
+  if [ $# -gt 3 ] ; then
    log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
-   log $L_ERR "	@do_hash_test takes only two argument - wrong call (first arg is $1)"
+   log $L_ERR "	@do_hash_test takes only three argument - wrong call (first arg is $1)"
   fi
  if [ $strict_mode = 1 ] ; then
   if [ -f $TEST_ERR_FILE ] ; then
@@ -1181,12 +1181,14 @@ do_hash_test ()
  echo "Computing $1  ($2) hash: " >> $log_subt
  file_to_hash="$1"
 
- # for text files, we remove potential CR chars
- # to prevent having different hashes on different platforms
- if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ||  [ ${1: -4} == ".svg" ] ; then
-  file_to_hash="to_hash_$(basename $1)"
-  if [ -f $1 ]; then
-    tr -d '\r' <  "$1" > "$file_to_hash"
+ if [ $3 != 1 ] ; then
+  # for text files, we remove potential CR chars
+  # to prevent having different hashes on different platforms
+  if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ||  [ ${1: -4} == ".svg" ] ; then
+   file_to_hash="to_hash_$(basename $1)"
+   if [ -f $1 ]; then
+	tr -d '\r' <  "$1" > "$file_to_hash"
+   fi
   fi
  fi
 
@@ -1250,6 +1252,11 @@ do_hash_test ()
  fi
 }
 #end do_hash_test
+
+do_hash_test ()
+{
+	do_hash_test_bin $1 $2 0
+}
 
 #compare hashes of $1 and $2, return 0 if OK, error otherwise
 do_compare_file_hashes ()
