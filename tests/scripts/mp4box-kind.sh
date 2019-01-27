@@ -5,7 +5,7 @@ output=$TEMP_DIR/output.mp4
 my_test_with_hash ()
 {
 	do_test "$1" $2
-	do_hash_test $output $2
+	do_hash_test "$output" "$2"
 }
 
 
@@ -81,7 +81,7 @@ my_test_with_hash "$MP4BOX -kind-rem myKindScheme=myKindValue $output" "kind-mul
 my_test_with_hash "$MP4BOX -kind-rem myKindScheme $output" "kind-rem-scheme"
 
 rm $output 2> /dev/null
-my_test_with_hash "$MP4BOX -kind urn:gpac:kindScheme=myKindValue $TEMP_DIR/file.mp4 -out $output"	
+my_test_with_hash "$MP4BOX -kind urn:gpac:kindScheme=myKindValue $TEMP_DIR/file.mp4 -out $output" "kind-scheme-with-column"
 
 my_test_with_hash "$MP4BOX -kind-rem urn:gpac:kindScheme=myKindValue  $output" "kind-scheme-with-column-rem"
 
