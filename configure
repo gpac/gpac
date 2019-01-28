@@ -1221,6 +1221,16 @@ fi
 
 
 #look for OpenJPEG support
+
+if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
+  if $pkg_config --exists libopenjpeg ; then
+    has_openjpeg="system"
+    openjpeg_cflags=`$pkg_config --cflags libopenjpeg`
+    CFLAGS_DIR="$CFLAGS_DIR $openjpeg_cflags"
+  fi
+fi
+
+if test "$has_openjpeg" = "no" ; then
 cat > $TMPC << EOF
 #include <stdio.h>
 #include <openjpeg.h>
@@ -1246,6 +1256,7 @@ if test "$has_openjpeg" = "no" ; then
     fi
 fi
 
+fi
 
 
 #look for PNG support

@@ -1664,7 +1664,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	gf_mx_p(filter->tasks_mx);
 	assert((s32)filter->process_task_queued>=0);
 
-	if (safe_int_inc(&filter->process_task_queued) == 1) {
+	if (safe_int_inc(&filter->process_task_queued) <= 1) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("%s added to scheduler\n", filter->freg->name));
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
@@ -1673,7 +1673,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 		 		|| filter->session->in_final_flush
 		 		|| filter->force_end_of_session
 				|| filter->scheduled_for_next_task
-//		 		|| gf_fq_count(filter->tasks)
+		 		|| gf_fq_count(filter->tasks)
 		);
 	}
 	if (!filter->session->direct_mode) {
