@@ -377,13 +377,25 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	return GF_OK;
 }
 
-static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 data_size)
+static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *in_pck)
 {
 	u32 size;
 	char *output;
 	GF_FilterPacket *dst_pck;
-	size = ctx->dcfg_size + data_size + 8*4;
+	char sig[8];
+	sig[0] = sig[1] = sig[2] = 0;
+	sig[3] = 0xC;
+	sig[4] = 'j';
+	sig[5] = 'P';
+	sig[6] = sig[7] = ' ';
+
+	if ((data_size>16) && !memcmp(data, sig, 8)) {
+		return gf_filter_pck_new_ref(ctx->opid, NULL, 0, in_pck);
+	} else {
+		size = ctx->dcfg_size + data_size + 8*4;
+	}
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+
 
 	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs, output, size);
@@ -585,7 +597,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	if (ctx->is_mj2k) {
-		dst_pck = writegen_write_j2k(ctx, data, pck_size);
+		dst_pck = writegen_write_j2k(ctx, data, pck_size, pck);
 	} else if (ctx->is_bmp) {
 		dst_pck = writegen_write_bmp(ctx, data, pck_size);
 	} else if (ctx->is_wav && ctx->first) {

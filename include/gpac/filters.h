@@ -1336,6 +1336,8 @@ typedef enum
 	GF_FPROBE_MAYBE_SUPPORTED,
 	/*! input is supported*/
 	GF_FPROBE_SUPPORTED,
+	/*! input data should be handled by this filter*/
+	GF_FPROBE_FORCE,
 	/*! used by formats not supporting data prober*/
 	GF_FPROBE_EXT_MATCH,
 } GF_FilterProbeScore;

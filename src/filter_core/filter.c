@@ -249,7 +249,6 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->destination_filters);
 	gf_list_del(filter->destination_links);
 	gf_list_del(filter->input_pids);
-	assert(gf_fq_count(filter->tasks)==0);
 	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
 

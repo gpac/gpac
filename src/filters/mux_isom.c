@@ -794,7 +794,7 @@ sample_entry_setup:
 		break;
 	case GF_CODECID_J2K:
 		m_subtype = GF_ISOM_BOX_TYPE_JP2K;
-		comp_name = "JP2K";
+		comp_name = "JPEG2000";
 		break;
 
 	case GF_CODECID_AMR:
