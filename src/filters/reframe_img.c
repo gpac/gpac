@@ -299,17 +299,17 @@ static const char * img_probe_data(const u8 *data, u32 size, GF_FilterProbeScore
 		return "image/png";
 	}
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	u32 bsize = gf_bs_read_u8(bs);
+	u32 bsize = gf_bs_read_u32(bs);
 	u32 btype = gf_bs_read_u32(bs);
 	if ( (bsize==12) && ( (btype==GF_ISOM_BOX_TYPE_JP ) || (btype==GF_ISOM_BOX_TYPE_JP2H) ) ) {
 		if (btype==GF_ISOM_BOX_TYPE_JP2H) {
-			*score = GF_FPROBE_SUPPORTED;
+			*score = GF_FPROBE_FORCE;
 			gf_bs_del(bs);
 			return "image/jp2";
 		}
 		btype = gf_bs_read_u32(bs);
 		if (btype==0x0D0A870A) {
-			*score = GF_FPROBE_SUPPORTED;
+			*score = GF_FPROBE_FORCE;
 			gf_bs_del(bs);
 			return "image/jp2";
 		}
