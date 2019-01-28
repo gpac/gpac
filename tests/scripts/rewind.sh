@@ -29,9 +29,9 @@ test_end
 test_audio()
 {
 #rewind needs negative speed playback support, build an MP4
-$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_audio.aac:dur=1 -new $mp4file 2> /dev/null
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_audio.aac:dur=0.4 -new $mp4file 2> /dev/null
 
-test_begin "rewindaudio"
+test_begin "rewind-audio"
 
 if [ $test_skip  = 1 ] ; then
 return
@@ -47,3 +47,5 @@ test_end
 test_video
 
 test_audio
+
+
