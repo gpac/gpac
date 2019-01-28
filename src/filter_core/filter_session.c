@@ -1144,11 +1144,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				//or requeue request and we have been running on that filter for more than 10 times, abort
 				|| (requeue && (consecutive_filter_tasks>10))
 			) {
-				//unused code should be removed
-/*				current_filter->in_process = GF_FALSE;
-				if (current_filter->stream_reset_pending)
-					current_filter->in_process = GF_FALSE;
-*/
+
 				if (requeue) {
 					//filter process task are pushed back the queue of filter tasks
 					if (task->is_filter_process) {
@@ -1170,9 +1166,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					current_filter->scheduled_for_next_task = GF_FALSE;
 				}
 
-				gf_mx_v(current_filter->tasks_mx);
 				current_filter->process_th_id = 0;
 				current_filter->in_process = GF_FALSE;
+				//unlock once we modified in_process, otherwise this will make our assert fail
+				gf_mx_v(current_filter->tasks_mx);
 				current_filter = NULL;
 			} else {
 				gf_mx_v(current_filter->tasks_mx);
