@@ -545,6 +545,12 @@ void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
 #define GF_LOG(_log_level, _log_tools, __args) if (gf_log_tool_level_on(_log_tools, _log_level) ) { gf_log_lt(_log_level, _log_tools); gf_log __args ;}
 #endif
 
+/*!
+ *	\brief Resets log file
+ *
+ *	Resets log file if any log file name was specified, by closing and reopening a new file.
+*/
+void gf_log_reset_file();
 
 /*!
  *	\brief PseudoRandom Integer Generation Initialization

@@ -741,6 +741,17 @@ Bool gf_sys_is_test_mode()
 	return gpac_test_mode;
 }
 
+const char *gpac_log_file_name=NULL;
+
+GF_EXPORT
+void gf_log_reset_file()
+{
+	if (gpac_log_file_name) {
+		if (gpac_log_file) gf_fclose(gpac_log_file);
+		gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
+	}
+}
+
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
 {
@@ -750,7 +761,6 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e);
 		void gf_cfg_load_restrict();
 
-		const char *log_file_name=NULL;
 		for (i=1; i<argc; i++) {
 			Bool consumed;
 			GF_Err e;
@@ -773,7 +783,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			}
 
 			if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-				log_file_name = arg_val;
+				gpac_log_file_name = arg_val;
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-logs") ) {
 				e = gf_log_set_tools_levels(arg_val);
@@ -803,8 +813,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				arg_val[0]='=';
 			}
 		}
-		if (log_file_name) {
-			gpac_log_file = gf_fopen(log_file_name, "wt");
+		if (gpac_log_file_name) {
+			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
 			gf_log_set_callback(gpac_log_file, on_gpac_log);
 		}
 
