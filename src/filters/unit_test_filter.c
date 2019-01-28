@@ -34,6 +34,12 @@ typedef struct
 	u32 nb_packets, pck_del;
 } PIDCtx;
 
+enum
+{
+	UTF_MODE_SOURCE=0,
+	UTF_MODE_SINK,
+	UTF_MODE_FILTER,
+};
 typedef struct
 {
 	GF_List *pids;
@@ -59,7 +65,7 @@ static void test_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 	PIDCtx *stack = (PIDCtx *) gf_filter_pid_get_udta(pid);
 	stack->pck_del++;
 	assert(stack->nb_packets >= stack->pck_del);
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("%s: Packet deleted - %d out there (%d sent %d destroyed)\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del, stack->nb_packets, stack->pck_del));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: Packet deleted - %d out there (%d sent %d destroyed)\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del, stack->nb_packets, stack->pck_del));
 }
 
 
@@ -88,21 +94,21 @@ static void ut_filter_finalize(GF_Filter *filter)
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
 		PIDCtx *pidctx = gf_list_get(stack->pids, i);
-		if (pidctx->sha_ctx) {
+		if (pidctx->sha_ctx && (stack->mode!=UTF_MODE_SOURCE) ) {
 			gf_sha1_finish(pidctx->sha_ctx, digest);
 
 			if (!pidctx->src_pid) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d Source PID not available while dumping SHA1\n", gf_filter_get_name(filter), i+1 ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[%s] Pid %d Source PID not available while dumping SHA1\n", gf_filter_get_name(filter), i+1 ));
 			} else {
 				const GF_PropertyValue *p = gf_filter_pid_get_property(pidctx->src_pid, GF_4CC('s','h','a','1') );
 				if (!p) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d sha1 property not found on input pid\n", gf_filter_get_name(filter), i+1 ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[%s] Pid %d sha1 property not found on input pid\n", gf_filter_get_name(filter), i+1 ));
 				} else if (p->value.data.size != GF_SHA1_DIGEST_SIZE) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d wrong size for sha1 property\n", gf_filter_get_name(filter), i+1 ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[%s] Pid %d wrong size for sha1 property\n", gf_filter_get_name(filter), i+1 ));
 				} else if (memcmp(p->value.data.ptr, digest, p->value.data.size )) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d wrong hash after execution\n", gf_filter_get_name(filter), i+1 ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[%s] Pid %d wrong hash after execution\n", gf_filter_get_name(filter), i+1 ));
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[%s] Pid %d hash OK after execution\n", gf_filter_get_name(filter), i+1 ));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("[%s] Pid %d hash OK after execution\n", gf_filter_get_name(filter), i+1 ));
 				}
 			}
 		}
@@ -154,7 +160,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 			return GF_OK;
 
 		if ((stack-> max_out>=0) && (pidctx->nb_packets - pidctx->pck_del >= (u32) stack->max_out) ) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSource: No packets to emit, waiting for destruction\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSource: No packets to emit, waiting for destruction\n"));
 			return GF_OK;
 		}
 	}
@@ -253,7 +259,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		}
 
 		if ((stack->max_out>=0) && (pidctx->nb_packets - pidctx->pck_del >= (u32) stack->max_out) ) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSource: No packets to emit, waiting for destruction\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSource: No packets to emit, waiting for destruction\n"));
 			return GF_OK;
 		}
 		pidctx->nb_packets++;
@@ -267,7 +273,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			pck = gf_filter_pck_new_shared(pidctx->dst_pid, "PacketShared", 12, test_pck_del);
 			gf_sha1_update(pidctx->sha_ctx, "PacketShared", 12);
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSource: pck %d PacketShared\n", pidctx->nb_packets));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSource: pck %d PacketShared\n", pidctx->nb_packets));
 
 		gf_filter_pck_set_cts(pck, pidctx->nb_packets);
 
@@ -399,7 +405,7 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 	gf_sha1_update(pidctx->sha_ctx, (u8*)data, size);
 
 	pidctx->nb_packets++;
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("TestSink: Consuming packet %d bytes\n", size));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSink: Consuming packet %d bytes\n", size));
 
 	dump_properties(pck, pidctx->nb_packets);
 
@@ -421,41 +427,40 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	u32 i, count;
 	GF_UnitTestFilter  *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
 
-	if (stack->mode==0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error: Attempt to connect PID on source filter\n"));
+	if (stack->mode==UTF_MODE_SOURCE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error: Attempt to connect PID on source filter\n"));
 		return GF_BAD_PARAM;
 	}
 	//for both filter and sink modes, check input format
 
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
-	pidctx = gf_list_get(stack->pids, i);
+		pidctx = gf_list_get(stack->pids, i);
 
-	//something is being reconfigured. We check we have the same custum arg, otherwise we do not support
-	if (pidctx->src_pid == pid) {
-		format = gf_filter_pid_get_property(pidctx->src_pid, GF_4CC('c','u','s','t') );
-		if (!format || !format->value.string || strcmp(format->value.string, stack->pid_att)) {
-			return GF_NOT_SUPPORTED;
+		//something is being reconfigured. We check we have the same custum arg, otherwise we do not support
+		if (pidctx->src_pid == pid) {
+			format = gf_filter_pid_get_property(pidctx->src_pid, GF_4CC('c','u','s','t') );
+			if (!format || !format->value.string || strcmp(format->value.string, stack->pid_att)) {
+				return GF_NOT_SUPPORTED;
+			}
+			//filter mode, set properties on output
+			if (stack->mode==UTF_MODE_FILTER) {
+				//this is not needed since copy_properties does that, used for coverage/tests
+				gf_filter_pid_reset_properties(pidctx->dst_pid);
+				gf_filter_pid_copy_properties(pidctx->dst_pid, pidctx->src_pid);
+			}
+			return GF_OK;
 		}
-		//filter mode, set properties on output
-		if (stack->mode==2) {
-			//this is not needed since copy_properties does that, used for coverage/tests
-			gf_filter_pid_reset_properties(pidctx->dst_pid);
-			gf_filter_pid_copy_properties(pidctx->dst_pid, pidctx->src_pid);
-		}
-		return GF_OK;
-	}
-
 	}
 
 	//check our functions
 	format = gf_filter_pid_get_property_str(pid, "custom1");
 	if (!format) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("%s: expecting property string custom1 on PID\n", gf_filter_get_name(filter) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s: expecting property string custom1 on PID\n", gf_filter_get_name(filter) ));
 	}
 	format = gf_filter_pid_get_property_str(pid, "custom2");
 	if (!format) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("%s: expecting property string custom2 on PID\n", gf_filter_get_name(filter) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s: expecting property string custom2 on PID\n", gf_filter_get_name(filter) ));
 	}
 
 	format = gf_filter_pid_get_property(pid, GF_4CC('c','u','s','t') );
@@ -467,7 +472,8 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	GF_SAFEALLOC(pidctx, PIDCtx);
 	pidctx->src_pid = pid;
 	gf_list_add(stack->pids, pidctx);
-
+	assert(pidctx->src_pid);
+	
 	//coverage mode
 	if (stack->cov) {
 		char *data;
@@ -481,7 +487,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	//filter mode, setup output
-	if (stack->mode==2) {
+	if (stack->mode==UTF_MODE_FILTER) {
 		pidctx->dst_pid = gf_filter_pid_new(filter);
 		p.type=GF_PROP_NAME;
 		p.value.string = (char *) stack->pid_att;
@@ -525,32 +531,30 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
 
 	for (i=0; i<stack->nb_pids; i++) {
+		//create a pid
+		GF_SAFEALLOC(pidctx, PIDCtx);
+		gf_list_add(stack->pids, pidctx);
+		pidctx->dst_pid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_udta(pidctx->dst_pid, pidctx);
 
-	//create a pid
-	GF_SAFEALLOC(pidctx, PIDCtx);
-	gf_list_add(stack->pids, pidctx);
-	pidctx->dst_pid = gf_filter_pid_new(filter);
-	gf_filter_pid_set_udta(pidctx->dst_pid, pidctx);
+		//set a custum property
+		p.type = GF_PROP_NAME;
+		p.value.string = (char *) stack->pid_att;
+		gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('c','u','s','t'), &p);
 
-	//set a custum property
-	p.type = GF_PROP_NAME;
-	p.value.string = (char *) stack->pid_att;
-	gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('c','u','s','t'), &p);
+		//for coverage
+		gf_filter_pid_set_property_str(pidctx->dst_pid, "custom1", &p);
+		gf_filter_pid_set_property_dyn(pidctx->dst_pid, "custom2", &p);
 
-	//for coverage
-	gf_filter_pid_set_property_str(pidctx->dst_pid, "custom1", &p);
-	gf_filter_pid_set_property_dyn(pidctx->dst_pid, "custom2", &p);
+		if (stack->cov) {
+			Bool old_strict = gf_log_set_strict_error(GF_FALSE);
+			gf_filter_pid_set_framing_mode(pidctx->dst_pid, GF_TRUE);
+			gf_log_set_strict_error(old_strict);
+		}
 
-	if (stack->cov) {
-		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
-		gf_filter_pid_set_framing_mode(pidctx->dst_pid, GF_TRUE);
-		gf_log_set_strict_error(old_strict);
+		pidctx->sha_ctx = gf_sha1_starts();
+
 	}
-
-	pidctx->sha_ctx = gf_sha1_starts();
-
-	}//end pid loop
-
 	return GF_OK;
 }
 
@@ -573,75 +577,75 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		s64 val;
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "true", NULL, 0);
 		if (p.value.boolean != GF_TRUE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "yes", NULL, 0);
 		if (p.value.boolean != GF_TRUE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "no", NULL, 0);
 		if (p.value.boolean != GF_FALSE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "false", NULL, 0);
 		if (p.value.boolean != GF_FALSE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing boolean value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_SINT, "prop", "-1", NULL, 0);
 		if (p.value.sint != -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing sint value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing sint value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_UINT, "prop", "1", NULL, 0);
 		if (p.value.uint != 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing uint value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing uint value\n"));
 		}
 		val = 0xFFFFFFFF;
 		val *= 2;
 		sprintf(szFmt, ""LLD, -val);
 		p = gf_props_parse_value(GF_PROP_LSINT, "prop", szFmt, NULL, 0);
 		if (p.value.longsint != -val) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longsint value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing longsint value\n"));
 		}
 		sprintf(szFmt, ""LLU, val);
 		p = gf_props_parse_value(GF_PROP_LUINT, "prop", szFmt, NULL, 0);
 		if (p.value.longuint != val) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longuint value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing longuint value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "1.0", NULL, 0);
 		if (p.value.fnumber != FIX_ONE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing float value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing float value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "1.0", NULL, 0);
 		if (p.value.number != 1.0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing double value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing double value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000/1", NULL, 0);
 		if ((p.value.frac.den != 1) || (p.value.frac.num != 1000)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing fraction value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1000", NULL, 0);
 		if ((p.value.frac.den != 1) || (p.value.frac.num != 1000)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing fraction value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_STRING, "prop", "test", NULL, 0);
 		if (!p.value.string || strcmp(p.value.string, "test")) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing fraction value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing fraction value\n"));
 		}
 		if (p.value.string) gf_free(p.value.string);
 
 		sprintf(szFmt, "%d@%p", (u32) sizeof(stack), stack);
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", szFmt, NULL, 0);
 		if ((p.value.data.size != (u32) sizeof(stack)) || memcmp(p.value.data.ptr, (char *) stack, sizeof(stack))) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing data value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", szFmt, NULL, 0);
 		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing data value\n"));
 		}
 		sprintf(szFmt, "%p", stack);
 		p = gf_props_parse_value(GF_PROP_POINTER, "prop", szFmt, NULL, 0);
 		if (p.value.ptr != stack) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing data value\n"));
 		}
 
 		old_strict = gf_log_set_strict_error(GF_FALSE);
@@ -721,12 +725,12 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 	}
 
 	if (! strcmp( "UTSink", gf_filter_get_name(filter))) {
-		stack->mode=1;
+		stack->mode=UTF_MODE_SINK;
 		gf_filter_sep_max_extra_input_pids(filter, 10);
 	}
-	else if (! strcmp( "UTFilter", gf_filter_get_name(filter))) stack->mode=2;
+	else if (! strcmp( "UTFilter", gf_filter_get_name(filter))) stack->mode=UTF_MODE_FILTER;
 	else {
-		stack->mode=0;
+		stack->mode=UTF_MODE_SOURCE;
 		return ut_filter_config_source(filter);
 	}
 	return GF_OK;
