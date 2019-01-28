@@ -249,7 +249,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->destination_filters);
 	gf_list_del(filter->destination_links);
 	gf_list_del(filter->input_pids);
-
+	assert(gf_fq_count(filter->tasks)==0);
 	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
 
@@ -1306,6 +1306,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	//TODO: find a way to bypass this mutex ?
 	gf_mx_p(filter->tasks_mx);
 
+	assert(filter->scheduled_for_next_task);
 	assert(filter->process_task_queued);
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
@@ -1314,7 +1315,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 			task->requeue_request = GF_TRUE;
 		}
 		//special case here: no more pending packets, filter has detected eos on one of its input but is still generating packet,
-		//we reschedule (typcally flush of decoder)
+		//we reschedule (typically flush of decoder)
 		else if (filter->eos_probe_state == 2) {
 			safe_int_inc(&filter->process_task_queued);
 			task->requeue_request = GF_TRUE;
@@ -1323,6 +1324,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 		//we are done for now
 		else {
 			task->requeue_request = GF_FALSE;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filter] %s removed from scheduler block %d\n", filter->name, filter->would_block));
 		}
 	} else {
 		//we have some more process() requests queued, requeue
@@ -1661,21 +1663,22 @@ void gf_filter_post_process_task(GF_Filter *filter)
 	//lock task mx to take the decision whether to post a new task or not (cf gf_filter_check_pending_tasks)
 	gf_mx_p(filter->tasks_mx);
 	assert((s32)filter->process_task_queued>=0);
-	safe_int_inc(&filter->process_task_queued);
-	if (filter->process_task_queued<=1) {
+
+	if (safe_int_inc(&filter->process_task_queued) == 1) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("%s added to scheduler\n", filter->freg->name));
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
-//		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("skip post process task for filter %s\n", filter->freg->name));
-		assert(filter->scheduled_for_next_task
-		 		|| filter->session->run_status
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("skip post process task for filter %s\n", filter->freg->name));
+		assert(filter->session->run_status
 		 		|| filter->session->in_final_flush
 		 		|| filter->force_end_of_session
-		 		|| gf_fq_count(filter->tasks)
+				|| filter->scheduled_for_next_task
+//		 		|| gf_fq_count(filter->tasks)
 		);
 	}
-	if (!filter->session->direct_mode)
+	if (!filter->session->direct_mode) {
 		assert(filter->process_task_queued);
-
+	}
 	gf_mx_v(filter->tasks_mx);
 }
 

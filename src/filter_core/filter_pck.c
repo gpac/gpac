@@ -882,6 +882,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			post_task = GF_TRUE;
 		}
 		if (post_task) {
+#if 0
 			u32 nb_pck_before, nb_pck_after;
 
 			nb_pck_before = gf_fq_count(dst->packets);
@@ -899,6 +900,17 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				if (pid->nb_buffer_unit < nb_pck_after) pid->nb_buffer_unit = nb_pck_after;
 				if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
 			}
+#else
+			u32 nb_pck = gf_fq_count(dst->packets);
+			//update buffer occupancy before dispatching the task - if target pid is processed before we are done disptching his packet, pid buffer occupancy
+			//will be updated during packet drop of target
+			if (pid->nb_buffer_unit < nb_pck) pid->nb_buffer_unit = nb_pck;
+			if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
+
+			//post process task
+			gf_filter_post_process_task(dst->filter);
+
+#endif
 		}
 	}
 

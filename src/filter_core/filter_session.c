@@ -863,7 +863,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				assert( task->notified );
 			}
 		} else {
-			//keep task in filter list task until done
+			//keep task in filter tasks list until done
 			task = gf_fq_head(current_filter->tasks);
 			if (task) {
 				assert( task->run_task );
@@ -1159,10 +1159,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							task = a_task;
 						}
 					}
-					current_filter->process_th_id = 0;
-				} else {
-					//don't reset the flag if not requeued to make sure no other task posted from
+					//don't reset scheduled_for_next_task flag if requeued to make sure no other task posted from
 					//another thread will post to main sched
+				} else {
+					//filter no longer scheduled
 					current_filter->scheduled_for_next_task = GF_FALSE;
 				}
 
@@ -1492,7 +1492,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	for (i=0; i<count; i++) {
 		GF_SessionThread *s = gf_list_get(fsess->threads, i);
 
-		fprintf(stderr, "\tThread %d: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", i+1, s->run_time, s->active_time, s->nb_tasks);
+		fprintf(stderr, "\tThread %d: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", i+2, s->run_time, s->active_time, s->nb_tasks);
 
 		run_time+=s->run_time;
 		active_time+=s->active_time;
