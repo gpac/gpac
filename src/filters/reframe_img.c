@@ -75,6 +75,7 @@ typedef struct
 	u32 src_timescale;
 	Bool is_bmp;
 	Bool owns_timescale;
+	u32 codec_id;
 } GF_ReframeImgCtx;
 
 
@@ -93,6 +94,8 @@ GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	ctx->ipid = pid;
+	//force retest of codecid
+	ctx->codec_id = 0;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) ctx->src_timescale = p->value.uint;
@@ -102,6 +105,7 @@ GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+
 	return GF_OK;
 }
 
@@ -128,7 +132,7 @@ GF_Err img_process(GF_Filter *filter)
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &size);
 	
-	if (!ctx->opid) {
+	if (!ctx->opid || !ctx->codec_id) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 dsi_size;
 		char *dsi=NULL;
@@ -178,7 +182,7 @@ GF_Err img_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_NOT_SUPPORTED;
 		}
-
+		ctx->codec_id = codecid;
 		ctx->opid = gf_filter_pid_new(filter);
 		if (!ctx->opid) {
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -204,7 +208,33 @@ GF_Err img_process(GF_Filter *filter)
 	}
 	if (! ctx->is_bmp) {
 		e = GF_OK;
-		dst_pck = gf_filter_pck_new_ref(ctx->opid, NULL, 0, pck);
+		u32 start_offset = 0;
+		if (ctx->codec_id==GF_CODECID_J2K) {
+
+			if (size<8) {
+				gf_filter_pid_drop_packet(ctx->ipid);
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+
+			if ((data[4]=='j') && (data[5]=='P') && (data[6]==' ') && (data[7]==' ')) {
+				GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+				while (gf_bs_available(bs)) {
+					u32 bsize = gf_bs_read_u32(bs);
+					u32 btype = gf_bs_read_u32(bs);
+					if (btype == GF_4CC('j','p','2','c') ) {
+						start_offset = gf_bs_get_position(bs) - 8;
+						break;
+					}
+					gf_bs_skip_bytes(bs, bsize-8);
+				}
+				gf_bs_del(bs);
+				if (start_offset>=size) {
+					gf_filter_pid_drop_packet(ctx->ipid);
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
+			}
+		}
+		dst_pck = gf_filter_pck_new_ref(ctx->opid, data+start_offset, size-start_offset, pck);
 		if (!dst_pck) e = GF_OUT_OF_MEM;
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		if (ctx->owns_timescale) {
@@ -329,7 +359,7 @@ static const GF_FilterCapability ReframeImgCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_PNG),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_JPEG),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_J2K),
-	CAP_BOOL(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_UNFRAMED, GF_FALSE),
+	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "jpg|jpeg|jp2|bmp|png|pngd|pngds|pngs"),
