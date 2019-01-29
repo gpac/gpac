@@ -4362,49 +4362,52 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 		if (e) return e;
 	}
 	/*mp4v*/
-	else if (ptr->cfg_3gpp) {
+	if (ptr->cfg_3gpp) {
 		e = gf_isom_box_write((GF_Box *)ptr->cfg_3gpp, bs);
 		if (e) return e;
 	}
-	/*avc or hevc or av1*/
-	else {
-		if (ptr->avc_config && ptr->avc_config->config) {
-			e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
-			if (e) return e;
-		}
-		if (ptr->hevc_config && ptr->hevc_config->config) {
-			e = gf_isom_box_write((GF_Box *) ptr->hevc_config, bs);
-			if (e) return e;
-		}
-		if (ptr->ipod_ext)	{
-			e = gf_isom_box_write((GF_Box *) ptr->ipod_ext, bs);
-			if (e) return e;
-		}
-		if (ptr->descr)	{
-			e = gf_isom_box_write((GF_Box *) ptr->descr, bs);
-			if (e) return e;
-		}
-		if (ptr->svc_config && ptr->svc_config->config) {
-			e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
-			if (e) return e;
-		}
-		if (ptr->mvc_config && ptr->mvc_config->config) {
-			e = gf_isom_box_write((GF_Box *) ptr->mvc_config, bs);
-			if (e) return e;
-		}
-		if (ptr->lhvc_config && ptr->lhvc_config->config) {
-			e = gf_isom_box_write((GF_Box *) ptr->lhvc_config, bs);
-			if (e) return e;
-		}
-		if (ptr->av1_config && ptr->av1_config->config) {
-			e = gf_isom_box_write((GF_Box *)ptr->av1_config, bs);
-			if (e) return e;
-		}
-		if (ptr->vp_config && ptr->vp_config->config) {
-			e = gf_isom_box_write((GF_Box *)ptr->vp_config, bs);
-			if (e) return e;
-		}
+	/*avc / SVC*/
+	if (ptr->avc_config && ptr->avc_config->config) {
+		e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
+		if (e) return e;
 	}
+	if (ptr->svc_config && ptr->svc_config->config) {
+		e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
+		if (e) return e;
+	}
+	if (ptr->mvc_config && ptr->mvc_config->config) {
+		e = gf_isom_box_write((GF_Box *) ptr->mvc_config, bs);
+		if (e) return e;
+	}
+	/*HEVC*/
+	if (ptr->hevc_config && ptr->hevc_config->config) {
+		e = gf_isom_box_write((GF_Box *) ptr->hevc_config, bs);
+		if (e) return e;
+	}
+	if (ptr->lhvc_config && ptr->lhvc_config->config) {
+		e = gf_isom_box_write((GF_Box *) ptr->lhvc_config, bs);
+		if (e) return e;
+	}
+	/*AV1*/
+	if (ptr->av1_config && ptr->av1_config->config) {
+		e = gf_isom_box_write((GF_Box *)ptr->av1_config, bs);
+		if (e) return e;
+	}
+	/*VPx*/
+	if (ptr->vp_config && ptr->vp_config->config) {
+		e = gf_isom_box_write((GF_Box *)ptr->vp_config, bs);
+		if (e) return e;
+	}
+
+	if (ptr->ipod_ext)	{
+		e = gf_isom_box_write((GF_Box *) ptr->ipod_ext, bs);
+		if (e) return e;
+	}
+	if (ptr->descr)	{
+		e = gf_isom_box_write((GF_Box *) ptr->descr, bs);
+		if (e) return e;
+	}
+
 	if (ptr->pasp) {
 		e = gf_isom_box_write((GF_Box *)ptr->pasp, bs);
 		if (e) return e;
@@ -4421,6 +4424,8 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->rinf, bs);
 		if (e) return e;
 	}
+	/*JP2H  is stored in other_boxes (like all boxes should be once we rearch ...)*/
+
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
@@ -4440,7 +4445,7 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->cfg_3gpp->size;
 	} else {
-		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->lhvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) && !ptr->av1_config && !ptr->vp_config ) {
+		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->lhvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) && !ptr->av1_config && !ptr->vp_config  && !ptr->jp2h) {
 			return GF_ISOM_INVALID_FILE;
 		}
 
@@ -4485,6 +4490,7 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 			if (e) return e;
 			ptr->size += ptr->vp_config->size;
 		}
+		/*JP2H  is stored in other_boxes (like all boxes should be once we rearch ...)*/
 
 		if (ptr->ipod_ext) {
 			e = gf_isom_box_size((GF_Box *) ptr->ipod_ext);
@@ -11249,7 +11255,7 @@ GF_Box *jp2h_New()
 
 GF_Err jp2h_Write(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_write(s, bs);
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err jp2h_Size(GF_Box *s)
