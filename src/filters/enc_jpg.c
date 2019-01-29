@@ -53,6 +53,8 @@ typedef struct
 
 	struct jpeg_error_mgr pub;
 	jmp_buf jmpbuf;
+
+	Bool in_fmt_negotiate;
 } GF_JPGEncCtx;
 
 static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -118,7 +120,10 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//TODO: for now we only allow YUV420p input, we should refine this to allow any YUV
 	if (ctx->pixel_format != GF_PIXEL_YUV) {
 		gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV));
+		ctx->in_fmt_negotiate = GF_TRUE;
+		return GF_OK;
 	}
+	ctx->in_fmt_negotiate = GF_FALSE;
 	return GF_OK;
 }
 
@@ -206,6 +211,8 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
+	if (ctx->in_fmt_negotiate) return GF_OK;
+
 	in_data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (!in_data) {
 		hwframe = gf_filter_pck_get_hw_frame(pck);

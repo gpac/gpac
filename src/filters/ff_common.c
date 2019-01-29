@@ -78,6 +78,12 @@ static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 	{AV_PIX_FMT_RGB565, GF_PIXEL_RGB_565},
 	{AV_PIX_FMT_RGBA, GF_PIXEL_RGBA},
 	{AV_PIX_FMT_ARGB, GF_PIXEL_ARGB},
+
+	/*aliases*/
+	{AV_PIX_FMT_YUVJ420P, GF_PIXEL_YUV},
+	{AV_PIX_FMT_YUVJ422P, GF_PIXEL_YUV422},
+	{AV_PIX_FMT_YUVJ444P, GF_PIXEL_YUV444},
+
 	{0},
 };
 
@@ -95,13 +101,18 @@ u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
 
 u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
 {
+	const AVPixFmtDescriptor *ffdesc = av_pix_fmt_desc_get(pfmt);
+	if (!ffdesc) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unrecognized FFMPEG pixel format %d\n", pfmt ));
+		return 0;
+	}
 	u32 i=0;
 	while (FF2GPAC_PixelFormats[i].gpac_pf) {
 		if (FF2GPAC_PixelFormats[i].ff_pf == pfmt)
 			return FF2GPAC_PixelFormats[i].gpac_pf;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %d, patch welcome\n", pfmt ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
 	return 0;
 }
 
