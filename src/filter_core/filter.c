@@ -269,6 +269,28 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->dynamic_source_ids) gf_free(filter->dynamic_source_ids);
 	if (filter->filter_udta) gf_free(filter->filter_udta);
 	if (filter->orig_args) gf_free(filter->orig_args);
+
+	if (!filter->session->in_final_flush && !filter->session->run_status) {
+		u32 i, count;
+		gf_mx_p(filter->session->filters_mx);
+		count = gf_list_count(filter->session->filters);
+		for (i=0; i<count; i++) {
+			GF_Filter *a_filter = gf_list_get(filter->session->filters, i);
+			gf_list_del_item(a_filter->destination_filters, filter);
+			gf_list_del_item(a_filter->destination_links, filter);
+			if (a_filter->cap_dst_filter==filter)
+				a_filter->cap_dst_filter = NULL;
+			if (a_filter->cloned_from == filter)
+				a_filter->cloned_from = NULL;
+			if (a_filter->on_setup_error_filter == filter)
+				a_filter->on_setup_error_filter = NULL;
+			if (a_filter->target_filter == filter)
+				a_filter->target_filter = NULL;
+			if (a_filter->dst_filter == filter)
+				a_filter->dst_filter = NULL;
+		}
+		gf_mx_v(filter->session->filters_mx);
+	}
 	gf_free(filter);
 }
 

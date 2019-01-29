@@ -1142,6 +1142,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				|| (requeue && current_filter->stream_reset_pending)
 				//or requeue request and pid swap pending (we must exit the filter task loop for the swap task to pe processed)
 				|| (requeue && (current_filter->swap_pidinst_src ||  current_filter->swap_pidinst_dst) )
+				//or requeue request and pid detach / cap negotiate pending
+				|| (requeue && (current_filter->out_pid_connection_pending || current_filter->detached_pid_inst || current_filter->caps_negociate) )
+
 				//or requeue request and we have been running on that filter for more than 10 times, abort
 				|| (requeue && (consecutive_filter_tasks>10))
 			) {

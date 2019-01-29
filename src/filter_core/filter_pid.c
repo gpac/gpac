@@ -680,6 +680,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 			if (filter->has_out_caps) {
 				Bool unload_filter = GF_TRUE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Blacklisting %s as output from %s and retrying connections\n", filter->name, pid->filter->name));
 				//try to load another filter to handle that connection
 				//1-blacklist this filter
 				gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
@@ -2309,6 +2310,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				continue;
 			}
 		}
+		else if (edge->loaded_filter_only) {
+			edge->status = EDGE_STATUS_DISABLED;
+			continue;
+		}
 		if ((u32) edge->weight + 1 > max_weight)
 			max_weight = edge->weight + 1;
 		//enable edge and propagate down the graph
@@ -3080,6 +3085,8 @@ single_retry:
 			if (pid->filter->dst_filter && (filter_dst == pid->filter->dst_filter)) {
 				GF_Filter *old_dst = pid->filter->dst_filter;
 				pid->filter->dst_filter = NULL;
+				gf_list_del_item(pid->filter->destination_links, filter_dst);
+				gf_list_del_item(pid->filter->destination_filters, filter_dst);
 				//nobody using this filter, destroy
 				if (old_dst->dynamic_filter
 					&& !old_dst->has_pending_pids
@@ -4383,6 +4390,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	//if some pids are still detached, wait for the connection before processing this event
 	if (f->detached_pid_inst) {
 		TASK_REQUEUE(task)
+		task->is_filter_process = GF_TRUE;
 		return;
 	}
 
@@ -4905,12 +4913,14 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 	GF_PropertyMap *map = pid->caps_negociate;
 	if (PID_IS_INPUT(pid)) {
 		u32 k;
-		GF_Filter *dst;
-		if (!pid->filter->dst_filter || (pid->filter->dst_filter->cap_idx_at_resolution<0) ) {
+		GF_Filter *dst = pid->filter->cap_dst_filter;
+		if (!dst) dst = gf_list_get(pid->filter->destination_filters, 0);
+		if (!dst) dst = gf_list_get(pid->filter->destination_links, 0);
+
+		if (!dst || (dst->cap_idx_at_resolution<0) ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s with no destination filter set\n", pid->pid->name, pid->filter->name));
 			return NULL;
 		}
-		dst = pid->filter->dst_filter;
 		for (k=dst->cap_idx_at_resolution; k<dst->freg->nb_caps; k++) {
 			const GF_FilterCapability *cap = &dst->freg->caps[k];
 			if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) return NULL;
