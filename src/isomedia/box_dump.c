@@ -4836,15 +4836,26 @@ GF_Err colr_dump(GF_Box *a, FILE * trace)
 	GF_ColourInformationBox *ptr = (GF_ColourInformationBox *)a;
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "ColourInformationBox", trace);
-	fprintf(trace, "colour_type=\"%s\" colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\" full_range_flag=\"%d\">\n", gf_4cc_to_str(ptr->colour_type), ptr->colour_primaries, ptr->transfer_characteristics, ptr->matrix_coefficients, ptr->full_range_flag);
-	if (ptr->opaque != NULL && ptr->colour_type == GF_ISOM_SUBTYPE_PROF) {
-		fprintf(trace, "<profile><![CDATA[");
-		size_64 = 2*ptr->opaque_size;
-		prof_data_64 = gf_malloc(size_64);
-		size_64 = gf_base64_encode(ptr->opaque, ptr->opaque_size, (char *)prof_data_64, size_64);
-		prof_data_64[size_64] = 0;
-		fprintf(trace, "%s", prof_data_64);
-		fprintf(trace, "]]></profile>");
+
+	if (ptr->is_jp2) {
+		fprintf(trace, "method=\"%d\" precedence=\"%d\" approx=\"%d\"", ptr->method, ptr->precedence, ptr->approx);
+		if (ptr->opaque_size) {
+			fprintf(trace, " colour=\"");
+			dump_data_hex(trace, ptr->opaque,ptr->opaque_size);
+			fprintf(trace, "\"");
+		}
+		fprintf(trace, ">\n");
+	} else {
+		fprintf(trace, "colour_type=\"%s\" colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\" full_range_flag=\"%d\">\n", gf_4cc_to_str(ptr->colour_type), ptr->colour_primaries, ptr->transfer_characteristics, ptr->matrix_coefficients, ptr->full_range_flag);
+		if (ptr->opaque != NULL && ptr->colour_type == GF_ISOM_SUBTYPE_PROF) {
+			fprintf(trace, "<profile><![CDATA[");
+			size_64 = 2*ptr->opaque_size;
+			prof_data_64 = gf_malloc(size_64);
+			size_64 = gf_base64_encode(ptr->opaque, ptr->opaque_size, (char *)prof_data_64, size_64);
+			prof_data_64[size_64] = 0;
+			fprintf(trace, "%s", prof_data_64);
+			fprintf(trace, "]]></profile>");
+		}
 	}
 	gf_isom_box_dump_done("ColourInformationBox", a, trace);
 	return GF_OK;
@@ -5316,6 +5327,24 @@ GF_Err mhac_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "configurationVersion=\"%d\" mpegh3daProfileLevelIndication=\"%d\" referenceChannelLayout=\"%d\">\n", p->configuration_version, p->mha_pl_indication, p->reference_channel_layout);
 	gf_isom_box_dump_done("MHAConfigurationBox", a, trace);
+	return GF_OK;
+}
+
+
+GF_Err jp2h_dump(GF_Box *a, FILE * trace)
+{
+	gf_isom_box_dump_start(a, "JP2HeaderBox", trace);
+	fprintf(trace, ">\n");
+	gf_isom_box_dump_done("JP2HeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err ihdr_dump(GF_Box *a, FILE * trace)
+{
+	GF_J2KImageHeaderBox  *p = (GF_J2KImageHeaderBox *) a;
+	gf_isom_box_dump_start(a, "ImageHeaderBox", trace);
+	fprintf(trace, "width=\"%d\" height=\"%d\" nb_comp=\"%d\" BPC=\"%d\" Compression=\"%d\" UnkC=\"%d\" IPR=\"%d\">\n", p->width, p->height, p->nb_comp, p->bpc, p->Comp, p->UnkC, p->IPR);
+	gf_isom_box_dump_done("ImageHeaderBox", a, trace);
 	return GF_OK;
 }
 

@@ -697,6 +697,8 @@ ISOM_BOX_IMPL_DECL(mhac)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
+ISOM_BOX_IMPL_DECL(jp2h)
+ISOM_BOX_IMPL_DECL(ihdr)
 
 /* Dolby Vision */
 ISOM_BOX_IMPL_DECL(dvcC)
@@ -1075,7 +1077,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IPRP, iprp, "meta", "iff"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IPCO, ipco, "iprp", "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_ISPE, ispe, "ipco", 0, "iff"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COLR, colr, "ipco mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "iff"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COLR, colr, "ipco mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv jp2h", "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PIXI, pixi, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_RLOC, rloc, "ipco", 0, "iff"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IROT, irot, "ipco", "iff"),
@@ -1212,6 +1214,12 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_MSSM, uuid, "file", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFRF, uuid, "traf", "smooth"),
 
+
+	//J2K boxes
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_MJP2, video_sample_entry, "stsd", "j2k"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2H, jp2h, "mjp2", "j2k"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_IHDR, ihdr, "jp2h", "j2k"),
+
 	/* Image tracks */
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JPEG, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2K, video_sample_entry, "stsd", "apple"),
@@ -1275,6 +1283,11 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType)
 			a->type = boxType;
 
 		a->registry = &box_registry[idx];
+
+		if ((a->type==GF_ISOM_BOX_TYPE_COLR) && (parentType==GF_ISOM_BOX_TYPE_JP2H)) {
+			((GF_ColourInformationBox *)a)->is_jp2 = GF_TRUE;
+		}
+
 	}
 	return a;
 }
