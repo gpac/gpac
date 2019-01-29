@@ -205,7 +205,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	char *output;
 	Bool insert_jp2c = GF_FALSE;
 	GF_FilterPacket *dst_pck, *src_pck;
-	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
+	GF_FilterPacket *pck;
+
+	if (!ctx->in_pid) return GF_EOS;
+
+	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
 		if (ctx->infmt_negociate) return GF_OK;
@@ -546,7 +550,11 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	u32 nb_samples=0;
 	char *output;
 	GF_FilterPacket *dst_pck, *src_pck;
-	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
+	GF_FilterPacket *pck;
+
+	if (!ctx->in_pid) return GF_EOS;
+
+	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
 		if (ctx->infmt_negociate) return GF_OK;
@@ -768,6 +776,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
+		ctx->in_pid = NULL;
 		//one in one out, this is simple
 		if (ctx->out_pid) gf_filter_pid_remove(ctx->out_pid);
 		return GF_OK;

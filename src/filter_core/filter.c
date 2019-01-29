@@ -1436,7 +1436,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(task->filter);
 	assert(filter->freg);
 	assert(filter->freg->process);
-	task->is_filter_process = GF_TRUE;
+	task->can_swap = GF_TRUE;
 
 	assert(filter->process_task_queued);
 	filter->schedule_next_time = 0;

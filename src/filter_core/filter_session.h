@@ -264,7 +264,7 @@ struct __gf_fs_task
 	//set for tasks that have been requeued (i.e. no longer present in filter task list)
 	Bool in_main_task_list_only;
 	Bool requeue_request;
-	Bool is_filter_process;
+	Bool can_swap;
 
 	u64 schedule_next_time;
 
