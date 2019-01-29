@@ -849,6 +849,47 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 const GF_PropertyEntry *gf_filter_pid_get_property_entry(GF_FilterPid *pid, u32 prop_4cc);
 const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, const char *prop_name);
 
+
+
+enum
+{
+	EDGE_STATUS_NONE=0,
+	EDGE_STATUS_ENABLED,
+	EDGE_STATUS_DISABLED,
+};
+
+#define EDGE_LOADED_SOURCE_ONLY (1)
+#define EDGE_LOADED_DEST_ONLY (1<<1)
+
+typedef struct
+{
+	struct __freg_desc *src_reg;
+	u16 src_cap_idx;
+	u16 dst_cap_idx;
+	u8 weight;
+	u8 status;
+	u8 priority;
+	u8 loaded_filter_only;
+	//stream type of the output cap of src. Might be:
+	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
+	// 0 if not spcified
+	// or a valid GF_STREAM_*
+	s32 src_stream_type;
+} GF_FilterRegEdge;
+
+typedef struct __freg_desc
+{
+	const GF_FilterRegister *freg;
+	u32 nb_edges, nb_alloc_edges;
+	GF_FilterRegEdge *edges;
+	u32 dist;
+	u8 priority;
+	u8 edges_marked_rlevel;
+	struct __freg_desc *destination;
+	u32 cap_idx;
+} GF_FilterRegDesc;
+
+
 #endif //_GF_FILTER_SESSION_H_
 
 

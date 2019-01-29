@@ -1858,52 +1858,32 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 GF_EXPORT
 void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
 {
-	GF_CapsBundleStore capstore;
+	GF_List *done = gf_list_new();
 	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
-	u32 i, j, count = gf_list_count(session->registry);
-	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
+	u32 i, j, count = gf_list_count(session->links);
 
 	for (i=0; i<count; i++) {
-		Bool first = GF_TRUE;
-		const GF_FilterRegister *src = gf_list_get(session->registry, i);
-		u32 src_bundle_count;
+		const GF_FilterRegDesc *src = gf_list_get(session->links, i);
 
-		if (filter_name && strcmp(src->name, filter_name))
+		if (filter_name && strcmp(src->freg->name, filter_name))
 			continue;
-		src_bundle_count = gf_filter_caps_bundle_count(src->caps, src->nb_caps);
-		if (!src_bundle_count) {
-			fprintf(stderr, "%s has no caps\n", src->name);
+
+		if (!src->nb_edges) {
+			fprintf(stderr, "%s has no sources\n", src->freg->name);
 			continue;
 		}
+		fprintf(stderr, "%s sources:", src->freg->name);
 
-		for (j=0; j<count; j++) {
-			u32 k, dst_bundle_idx, nb_connect;
-			const GF_FilterRegister *dst;
-			if (i==j) continue;
-			if (! gf_filter_has_out_caps(src)) continue;
-
-			dst = gf_list_get(session->registry, j);
-
-			nb_connect = 0;
-			for (k=0; k<src_bundle_count; k++) {
-				nb_connect += gf_filter_caps_to_caps_match(src, k, dst, NULL, &dst_bundle_idx, -1, NULL, &capstore);
-			}
-			if (nb_connect) {
-				if (first) {
-					fprintf(stderr, "%s is source for:", src->name);
-					first = GF_FALSE;
-				}
-				fprintf(stderr, " %s", dst->name);
+		for (j=0; j<src->nb_edges; j++) {
+			if (gf_list_find(done, (void *) src->edges[j].src_reg->freg->name)<0) {
+				fprintf(stderr, " %s", src->edges[j].src_reg->freg->name);
+				gf_list_add(done, (void *) src->edges[j].src_reg->freg->name);
 			}
 		}
-		if (first)
-			fprintf(stderr, "%s is sink only", src->name);
-
 		fprintf(stderr, "\n");
+		gf_list_reset(done);
 	}
-	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
-	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
-	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+	gf_list_del(done);
 }
 
 

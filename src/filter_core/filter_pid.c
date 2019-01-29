@@ -1606,7 +1606,6 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		bundles_in_scores[i] = 0;
 	}
 
-
 	//check all output caps of src filter
 	for (i=0; i<src->nb_caps; i++) {
 		u32 j, k;
@@ -1695,9 +1694,13 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				const GF_FilterCapability *in_cap = &dst_caps[j];
 
 				if (! (in_cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
+					if (!matched && !nb_caps_tested && (out_cap->flags & GF_CAPFLAG_EXCLUDED))
+						matched = GF_TRUE;
+
 					//we found a prop, excluded but with != value hence acceptable, default matching to true
 					if (!matched && prop_found) matched = GF_TRUE;
-					//not match, flag this bundle as not ok
+
+					//match, flag this bundle as ok
 					if (matched) {
 						if (!bundles_cap_found[cur_dst_bundle])
 							bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
@@ -1816,6 +1819,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	//get bundle with highest score
 	bundle_score = 0;
 	nb_matched = 0;
+
 	for (i=0; i<nb_in_bundles; i++) {
 		if (bundles_in_ok[i]) {
 			nb_matched++;
@@ -1825,6 +1829,13 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				if (loaded_filter_flags) {
 					*loaded_filter_flags = (bundles_in_ok[i]>>1);
 				}
+			}
+			if ((for_dst_bundle>=0) && (for_dst_bundle==i)) {
+				*dst_bundle_idx = i;
+				if (loaded_filter_flags) {
+					*loaded_filter_flags = (bundles_in_ok[i]>>1);
+				}
+				return bundles_in_scores[i];
 			}
 		}
 	}
@@ -1901,44 +1912,6 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 	}
 	return GF_FALSE;
 }
-
-enum
-{
-	EDGE_STATUS_NONE=0,
-	EDGE_STATUS_ENABLED,
-	EDGE_STATUS_DISABLED,
-};
-
-#define EDGE_LOADED_SOURCE_ONLY (1)
-#define EDGE_LOADED_DEST_ONLY (1<<1)
-
-typedef struct
-{
-	struct __freg_desc *src_reg;
-	u16 src_cap_idx;
-	u16 dst_cap_idx;
-	u8 weight;
-	u8 status;
-	u8 priority;
-	u8 loaded_filter_only;
-	//stream type of the output cap of src. Might be:
-	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
-	// 0 if not spcified
-	// or a valid GF_STREAM_*
-	s32 src_stream_type;
-} GF_FilterRegEdge;
-
-typedef struct __freg_desc
-{
-	const GF_FilterRegister *freg;
-	u32 nb_edges, nb_alloc_edges;
-	GF_FilterRegEdge *edges;
-	u32 dist;
-	u8 priority;
-	u8 edges_marked_rlevel;
-	struct __freg_desc *destination;
-	u32 cap_idx;
-} GF_FilterRegDesc;
 
 static s32 gf_filter_reg_get_output_stream_type(const GF_FilterRegister *freg, u32 out_cap_idx)
 {
@@ -2052,7 +2025,6 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	for (i=0; i<nb_regs; i++) {
 		u32 nb_src_caps, k, l;
 		u32 path_weight;
-
 		GF_FilterRegDesc *a_reg = gf_list_get(links, i);
 
 		//check which cap of this filter matches our destination
@@ -2144,6 +2116,19 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 			}
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Build filter graph in "LLU" us\n", gf_sys_clock_high_res() - start_time));
+
+		if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
+			u32 j;
+			count = gf_list_count(fsess->links);
+			for (i=0; i<count; i++) {
+				GF_FilterRegDesc *freg_desc = gf_list_get(fsess->links, i);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources:", freg_desc->freg->name));
+				for (j=0; j<freg_desc->nb_edges; j++ ) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d->%d)", freg_desc->edges[j].src_reg->freg->name, freg_desc->edges[j].weight, freg_desc->edges[j].src_cap_idx, freg_desc->edges[j].dst_cap_idx));
+				}
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
+			}
+		}
 	}
 	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
 	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
@@ -2378,6 +2363,15 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			i--;
 			count--;
 		}
+	}
+	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filters in dijkstra set:"));
+		count = gf_list_count(dijkstra_nodes);
+		for (i=0; i<count; i++) {
+			GF_FilterRegDesc *rdesc = gf_list_get(dijkstra_nodes, i);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s", rdesc->freg->name));
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
 	}
 
 	sort_time_us = gf_sys_clock_high_res();
