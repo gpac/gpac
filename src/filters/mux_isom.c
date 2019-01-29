@@ -397,6 +397,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_hvt1 = GF_FALSE;
 	Bool use_av1 = GF_FALSE;
 	Bool use_vpX = GF_FALSE;
+	Bool use_mj2 = GF_FALSE;
 	Bool use_dref = GF_FALSE;
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
@@ -793,8 +794,9 @@ sample_entry_setup:
 		comp_name = "PNG";
 		break;
 	case GF_CODECID_J2K:
-		m_subtype = GF_ISOM_BOX_TYPE_JP2K;
+		m_subtype = GF_ISOM_BOX_TYPE_MJP2;
 		comp_name = "JPEG2000";
+		use_mj2 = GF_TRUE;
 		break;
 
 	case GF_CODECID_AMR:
@@ -1429,6 +1431,12 @@ sample_entry_setup:
 			return e;
 		}
 		tkw->skip_bitrate_update = GF_TRUE;
+	} else if (use_mj2) {
+		e = gf_isom_new_mj2k_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi ? dsi->value.data.ptr : NULL, dsi ? dsi->value.data.size : 0);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(m_subtype), gf_error_to_string(e) ));
+			return e;
+		}
 	} else if (use_gen_sample_entry) {
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;

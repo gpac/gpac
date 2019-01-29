@@ -430,6 +430,53 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	return e;
 }
+
+
+GF_EXPORT
+GF_Err gf_isom_new_mj2k_description(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, u32 *outDescriptionIndex, char *dsi, u32 dsi_len)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex=0;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	GF_MPEGVisualSampleEntryBox *entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MJP2);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->jp2h = (GF_J2KHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_JP2H);
+	if (!entry->jp2h) {
+		gf_isom_box_del((GF_Box *) entry);
+		return GF_OUT_OF_MEM;
+	}
+	if (!entry->other_boxes) entry->other_boxes = gf_list_new();
+
+	gf_list_add(entry->other_boxes, entry->jp2h);
+	if (dsi && dsi_len) {
+		GF_BitStream *bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
+		entry->jp2h->size = dsi_len;
+		gf_isom_box_read((GF_Box *)entry->jp2h, bs);
+		gf_bs_del(bs);
+	}
+	entry->dataReferenceIndex = dataRefIndex;
+	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
+	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
+	return e;
+}
+
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 
