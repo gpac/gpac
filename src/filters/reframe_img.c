@@ -222,7 +222,7 @@ GF_Err img_process(GF_Filter *filter)
 					u32 bsize = gf_bs_read_u32(bs);
 					u32 btype = gf_bs_read_u32(bs);
 					if (btype == GF_4CC('j','p','2','c') ) {
-						start_offset = gf_bs_get_position(bs) - 8;
+						start_offset = (u32) gf_bs_get_position(bs) - 8;
 						break;
 					}
 					gf_bs_skip_bytes(bs, bsize-8);

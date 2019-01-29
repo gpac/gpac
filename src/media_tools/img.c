@@ -162,20 +162,18 @@ j2k_restart:
 				switch (type) {
 				case GF_ISOM_BOX_TYPE_JP2H:
 					jp2h_size=size-8;
-					jp2h_start=gf_bs_get_position(bs);
+					jp2h_start = (u32) gf_bs_get_position(bs);
 					goto j2k_restart;
 				case GF_ISOM_BOX_TYPE_IHDR:
 				{
-					u16 nb_comp;
-					u8 BPC, C, UnkC, IPR;
 					*height = gf_bs_read_u32(bs);
 					*width = gf_bs_read_u32(bs);
-					nb_comp = gf_bs_read_u16(bs);
+					/*nb_comp = gf_bs_read_u16(bs);
 					BPC = gf_bs_read_u8(bs);
 					C = gf_bs_read_u8(bs);
 					UnkC = gf_bs_read_u8(bs);
 					IPR = gf_bs_read_u8(bs);
-
+					*/
 					if (dsi && jp2h_size) {
 						*dsi = gf_malloc(sizeof(char)*jp2h_size);
 						gf_bs_seek(bs, jp2h_start);

@@ -51,13 +51,10 @@ mp4_test ()
   do_hint=0 ;;
  *.jpeg )
   do_hint=0 ;;
- # jp2, mjp2 and m1v disabled
  *.jp2 )
-  return ;;
+  do_hint=0 ;;
  *.mj2 )
-  return ;;
- *.m1v )
-  return ;;
+  do_hint=0 ;;
  *.av1 )
   do_hint=0 ;;
  *.obu )
