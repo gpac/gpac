@@ -51,3 +51,7 @@ test_reframer "h263" $EXTERNAL_MEDIA_DIR/import/bear_video.263
 test_reframer "qcp" $EXTERNAL_MEDIA_DIR/import/count_english.qcp
 
 test_reframer "m1v" $EXTERNAL_MEDIA_DIR/import/dead.m1v
+
+test_reframer "jp2" $EXTERNAL_MEDIA_DIR/import/logo.jp2
+
+test_reframer "mj2" $EXTERNAL_MEDIA_DIR/import/speedway.mj2
