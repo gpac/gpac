@@ -439,10 +439,13 @@ enum
 	GF_ISOM_BOX_TYPE_BLOC	= GF_4CC( 'b', 'l', 'o', 'c' ),
 	GF_ISOM_BOX_TYPE_AINF	= GF_4CC( 'a', 'i', 'n', 'f' ),
 
+	/*JPEG2000*/
+	GF_ISOM_BOX_TYPE_MJP2	= GF_4CC('m','j','p','2'),
 	GF_ISOM_BOX_TYPE_IHDR	= GF_4CC('i','h','d','r'),
 	GF_ISOM_BOX_TYPE_JP  	= GF_4CC('j','P',' ',' '),
 	GF_ISOM_BOX_TYPE_JP2H	= GF_4CC('j','p','2','h'),
 	GF_ISOM_BOX_TYPE_JP2K	= GF_4CC('j','p','2','k'),
+
 	GF_ISOM_BOX_TYPE_JPEG	= GF_4CC('j','p','e','g'),
 	GF_ISOM_BOX_TYPE_PNG 	= GF_4CC('p','n','g',' '),
 
@@ -1206,6 +1209,39 @@ typedef struct
 	GF_3GPConfig cfg;
 } GF_3GPPConfigBox;
 
+
+typedef struct {
+	GF_ISOM_BOX
+	Bool is_jp2;
+
+	u32 colour_type;
+	u16 colour_primaries;
+	u16 transfer_characteristics;
+	u16 matrix_coefficients;
+	Bool full_range_flag;
+	u8 *opaque;
+	u32 opaque_size;
+
+	u8 method, precedence, approx;
+} GF_ColourInformationBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+	u32 width, height;
+	u16 nb_comp;
+	u8 bpc, Comp, UnkC, IPR;
+} GF_J2KImageHeaderBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_J2KImageHeaderBox *ihdr;
+	GF_ColourInformationBox *colr;
+} GF_J2KHeaderBox;
+
 typedef struct
 {
 	GF_ISOM_VISUAL_SAMPLE_ENTRY
@@ -1224,7 +1260,8 @@ typedef struct
 	GF_AV1ConfigurationBox *av1_config;
 	/*vp8-9 extension*/
 	GF_VPConfigurationBox *vp_config;
-
+	/*vp8-9 extension*/
+	GF_J2KHeaderBox *jp2h;
 
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;
@@ -2537,7 +2574,6 @@ typedef struct __oma_kms_box
 	GF_OMADRMAUFormatBox *fmt;
 } GF_OMADRMKMSBox;
 
-
 typedef struct
 {
 	Bool reference_type;
@@ -2845,6 +2881,7 @@ typedef struct
 } LHEVC_DependentLayer;
 
 
+
 /*
 		CENC stuff
 */
@@ -3023,16 +3060,6 @@ typedef struct {
 	u32 image_height;
 } GF_ImageSpatialExtentsPropertyBox;
 
-typedef struct {
-	GF_ISOM_BOX
-	u32 colour_type;
-	u16 colour_primaries;
-	u16 transfer_characteristics;
-	u16 matrix_coefficients;
-	Bool full_range_flag;
-	u8 *opaque;
-	u32 opaque_size;
-} GF_ColourInformationBox;
 
 typedef struct {
 	GF_ISOM_FULL_BOX

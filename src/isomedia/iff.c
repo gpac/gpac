@@ -102,17 +102,29 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ColourInformationBox *p = (GF_ColourInformationBox *)s;
 
-	p->colour_type = gf_bs_read_u32(bs);
-	p->size -= 4;
-	if (p->colour_type == GF_ISOM_SUBTYPE_NCLX) {
-		p->colour_primaries = gf_bs_read_u16(bs);
-		p->transfer_characteristics = gf_bs_read_u16(bs);
-		p->matrix_coefficients = gf_bs_read_u16(bs);
-		p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
+	if (p->is_jp2) {
+		ISOM_DECREASE_SIZE(p, 3);
+		p->method = gf_bs_read_u8(bs);
+		p->precedence = gf_bs_read_u8(bs);
+		p->approx = gf_bs_read_u8(bs);
+		if (p->size) {
+			p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
+			p->opaque_size = (u32) p->size;
+			gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
+		}
 	} else {
-		p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
-		p->opaque_size = (u32) p->size;
-		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
+		ISOM_DECREASE_SIZE(p, 4);
+		p->colour_type = gf_bs_read_u32(bs);
+		if (p->colour_type == GF_ISOM_SUBTYPE_NCLX) {
+			p->colour_primaries = gf_bs_read_u16(bs);
+			p->transfer_characteristics = gf_bs_read_u16(bs);
+			p->matrix_coefficients = gf_bs_read_u16(bs);
+			p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
+		} else {
+			p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
+			p->opaque_size = (u32) p->size;
+			gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
+		}
 	}
 	return GF_OK;
 }
@@ -125,15 +137,23 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
-		gf_bs_write_u32(bs, p->colour_type);
-		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
+	if (p->is_jp2) {
+		gf_bs_write_u8(bs, p->method);
+		gf_bs_write_u8(bs, p->precedence);
+		gf_bs_write_u8(bs, p->approx);
+		if (p->opaque_size)
+			gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
 	} else {
-		gf_bs_write_u32(bs, p->colour_type);
-		gf_bs_write_u16(bs, p->colour_primaries);
-		gf_bs_write_u16(bs, p->transfer_characteristics);
-		gf_bs_write_u16(bs, p->matrix_coefficients);
-		gf_bs_write_u8(bs, (p->full_range_flag == GF_TRUE ? 0x80 : 0));
+		if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
+			gf_bs_write_u32(bs, p->colour_type);
+			gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
+		} else {
+			gf_bs_write_u32(bs, p->colour_type);
+			gf_bs_write_u16(bs, p->colour_primaries);
+			gf_bs_write_u16(bs, p->transfer_characteristics);
+			gf_bs_write_u16(bs, p->matrix_coefficients);
+			gf_bs_write_u8(bs, (p->full_range_flag == GF_TRUE ? 0x80 : 0));
+		}
 	}
 	return GF_OK;
 }
@@ -142,7 +162,9 @@ GF_Err colr_Size(GF_Box *s)
 {
 	GF_ColourInformationBox *p = (GF_ColourInformationBox*)s;
 
-	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
+	if (p->is_jp2) {
+		p->size += 3 + p->opaque_size;
+	} else if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
 		p->size += 4 + p->opaque_size;
 	} else {
 		p->size += 11;

@@ -1104,6 +1104,8 @@ GF_Err gf_isom_get_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescInd
 /*returns true if this sample was the first sample of a traf in a fragmented file, false otherwise*/
 Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum);
 
+GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc, char **out_dsi, u32 *out_size);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 
