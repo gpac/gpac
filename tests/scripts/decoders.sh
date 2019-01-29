@@ -37,6 +37,8 @@ vtbdec=`$GPAC -h filters 2>&1 | grep vtbdec`
 ohevcdec=`$GPAC -h filters 2>&1 | grep ohevc`
 xviddec=`$GPAC -h filters 2>&1 | grep xvid`
 libaom=`gpac -hh ffdec:* 2>&1 | grep ffdec:libaom-av1`
+j2koj2k=`$GPAC -h filters 2>&1 | grep j2kdec`
+j2kff=`gpac -hh ffdec:* 2>&1 | grep ffdec:jpeg2000`
 
 
 #test png+alpha decode to raw
@@ -110,3 +112,12 @@ test_decoder "qcp-ffdec" $EXTERNAL_MEDIA_DIR/import/count_english.qcp "test.pcm"
 
 test_decoder "m1v-ffdec" $EXTERNAL_MEDIA_DIR/import/dead.m1v "test.yuv" "" 1
 
+if [ -n "$j2koj2k" ] ; then
+test_decoder "j2k-oj2k" $EXTERNAL_MEDIA_DIR/import/logo.jp2 "test.yuv" "-blacklist=ffdec" 0
+test_decoder "mjp2-oj2k" $EXTERNAL_MEDIA_DIR/import/speedway.mj2 "test.yuv" "-blacklist=ffdec" 0
+fi
+
+if [ -n "$j2kff" ] ; then
+test_decoder "j2k-ff" $EXTERNAL_MEDIA_DIR/import/logo.jp2 "test.yuv" "-blacklist=j2kdec" 0
+test_decoder "mjp2-ff" $EXTERNAL_MEDIA_DIR/import/speedway.mj2 "test.yuv" "-blacklist=j2kdec" 0
+fi
