@@ -125,9 +125,13 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 #ifndef GPAC_DISABLE_AV_PARSERS
 			memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-			if (!p) return GF_NOT_SUPPORTED;
-			gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &acfg);
-			ctx->aac_type = acfg.base_object_type - 1;
+			if (p) {
+				gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &acfg);
+				ctx->aac_type = acfg.base_object_type - 1;
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("RFADTS] no AAC decoder config, assuming AAC-LC\n"));
+				ctx->aac_type = GF_M4A_AAC_LC;
+			}
 		}
 #endif
 	} else {

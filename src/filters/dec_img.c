@@ -61,10 +61,11 @@ static GF_Err imgdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_RAW ));
 
-	if (ctx->codecid==GF_CODECID_JPEG)
+	if (ctx->codecid==GF_CODECID_JPEG) {
 		gf_filter_set_name(filter, "imgdec:libjpeg");
-	else if (ctx->codecid==GF_CODECID_PNG)
+	} else if (ctx->codecid==GF_CODECID_PNG) {
 		gf_filter_set_name(filter, "imgdec:libpng");
+	}
 	return GF_OK;
 }
 
