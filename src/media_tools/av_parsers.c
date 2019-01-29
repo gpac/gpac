@@ -6432,7 +6432,106 @@ exit:
 	return e;
 }
 
+/*nal_size is updated to allow better error detection*/
+u32 avc_remove_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
+{
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0;
 
+	while (i < nal_size)
+	{
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
+		  other than the following sequences shall not occur at any byte-aligned position:
+		  0x00000300
+		  0x00000301
+		  0x00000302
+		  0x00000303"
+		*/
+		if (num_zero == 2
+			&& buffer_src[i] == 0x03
+			&& i + 1 < nal_size /*next byte is readable*/
+			&& buffer_src[i + 1] < 0x04)
+		{
+			/*emulation code found*/
+			num_zero = 0;
+			emulation_bytes_count++;
+			i++;
+		}
+
+		buffer_dst[i - emulation_bytes_count] = buffer_src[i];
+
+		if (!buffer_src[i])
+			num_zero++;
+		else
+			num_zero = 0;
+
+		i++;
+	}
+
+	return nal_size - emulation_bytes_count;
+}
+u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
+{
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0;
+
+	while (i < nal_size) {
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
+		other than the following sequences shall not occur at any byte-aligned position:
+		\96 0x00000300
+		\96 0x00000301
+		\96 0x00000302
+		\96 0x00000303"
+		*/
+		if (num_zero == 2 && buffer[i] < 0x04) {
+			/*emulation code found*/
+			num_zero = 0;
+			emulation_bytes_count++;
+			if (!buffer[i])
+				num_zero = 1;
+		}
+		else {
+			if (!buffer[i])
+				num_zero++;
+			else
+				num_zero = 0;
+		}
+		i++;
+	}
+	return emulation_bytes_count;
+}
+u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
+{
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0;
+
+	while (i < nal_size) {
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
+		other than the following sequences shall not occur at any byte-aligned position:
+		0x00000300
+		0x00000301
+		0x00000302
+		0x00000303"
+		*/
+		if (num_zero == 2 && (u8)buffer_src[i] < 0x04) {
+			/*add emulation code*/
+			num_zero = 0;
+			buffer_dst[i + emulation_bytes_count] = 0x03;
+			emulation_bytes_count++;
+			if (!buffer_src[i])
+				num_zero = 1;
+		}
+		else {
+			if (!buffer_src[i])
+				num_zero++;
+			else
+				num_zero = 0;
+		}
+		buffer_dst[i + emulation_bytes_count] = buffer_src[i];
+		i++;
+	}
+	return nal_size + emulation_bytes_count;
+}
 
 #ifndef GPAC_DISABLE_HEVC
 
@@ -6854,6 +6953,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			size_ext--;
 		}
 	}
+
+	si->header_size_bits = (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs); // av_parser.c modified on 16 jan. 2019 
 
 	if (gf_bs_read_int(bs, 1) == 0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Error parsing slice header: byte_align not found at end of header !\n"));

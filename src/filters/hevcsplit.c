@@ -311,6 +311,12 @@ void get_size_of_tile(HEVCState *hevc, u32 index_row, u32 index_col, u32 pps_id,
 		*height = *height * max_CU_height;
 		if (ty) *ty = tbX * max_CU_height;
 		if (tx) *tx = tbY * max_CU_width;
+
+		if (*tx + *width > hevc->sps[sps_id].width)
+			*width = hevc->sps[sps_id].width - *tx;
+		if (*ty + *height > hevc->sps[sps_id].height)
+			*height = hevc->sps[sps_id].height - *ty;
+
 	}
 }
 //rewrite the profile and level
@@ -352,7 +358,7 @@ void write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, Bool Pr
 void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, HEVCState *hevc, char **out_SPS, u32 *out_SPS_length)
 {
 	GF_BitStream *bs_in, *bs_out;
-	u64 length_no_use = 0;
+	u64 length_no_use = 4096, dst_buffer_size;
 	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1;
 	u8 max_sub_layers_minus1 = 0, layer_id;
@@ -362,6 +368,7 @@ void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, HEVCSta
 	bs_in = gf_bs_new(in_SPS, in_SPS_length, GF_BITSTREAM_READ);
 	gf_bs_enable_emulation_byte_removal(bs_in, GF_TRUE);
 	bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
+	dst_buffer_size = gf_bs_get_size(bs_out);
 	if (!bs_in) goto exit;
 
 	//copy NAL Header
@@ -445,7 +452,8 @@ void rewrite_SPS(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, HEVCSta
 
 	gf_bs_get_content(bs_out, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
 
-	*out_SPS_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
+	*out_SPS_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
+	/*29/01/2019*/ u32 emulation_prevention_bytes_to_add = avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	*out_SPS = gf_malloc(*out_SPS_length);
 	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
 
@@ -565,13 +573,14 @@ exit:
 
 void rewrite_slice_address(s32 new_address, char *in_slice, u32 in_slice_length, char **out_slice, u32 *out_slice_length, HEVCState* hevc, u32 final_width, u32 final_height)
 {
-	char *data_without_emulation_bytes = NULL;
+	char *data_without_emulation_bytes = NULL; 
 	u32 data_without_emulation_bytes_size = 0;
+	u64 header_end, bs_ori_size;
 	char *dst_buf = NULL;
 	u32 dst_buf_size = 0;
-	u32 header_end, num_entry_point_start;
+	u32 num_entry_point_start;
 	u32 pps_id;
-	GF_BitStream *bs_ori, *bs_rw;
+	GF_BitStream *bs_ori, *bs_rw; // *pre_bs_ori;
 	Bool IDRPicFlag = GF_FALSE;
 	Bool RapPicFlag = GF_FALSE;
 	u32 nb_bits_per_adress_dst = 0;
@@ -583,13 +592,19 @@ void rewrite_slice_address(s32 new_address, char *in_slice, u32 in_slice_length,
 	u32 dependent_slice_segment_flag;
 	int address_ori;
 
-	bs_ori = gf_bs_new(in_slice, in_slice_length, GF_BITSTREAM_READ);
-	gf_bs_enable_emulation_byte_removal(bs_ori, GF_TRUE);
+	data_without_emulation_bytes = gf_malloc(in_slice_length * sizeof(char));
+	/*data_without_emulation_bytes = gf_malloc(in_slice_length * sizeof(char));*/
+	data_without_emulation_bytes_size = avc_remove_emulation_bytes(in_slice, data_without_emulation_bytes, in_slice_length);
+	bs_ori = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	//bs_ori = gf_bs_new(in_slice, in_slice_length, GF_BITSTREAM_READ);
+	//gf_bs_enable_emulation_byte_removal(bs_ori, GF_TRUE);
+	bs_ori_size = gf_bs_get_refreshed_size(bs_ori);
 	bs_rw = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	
 
 	assert(hevc->s_info.header_size_bits >= 0);
 	assert(hevc->s_info.entry_point_start_bits >= 0);
-	header_end = (u32)hevc->s_info.header_size_bits;
+	header_end = (u64) hevc->s_info.header_size_bits;
 
 	num_entry_point_start = (u32)hevc->s_info.entry_point_start_bits;
 
@@ -696,14 +711,16 @@ void rewrite_slice_address(s32 new_address, char *in_slice, u32 in_slice_length,
 	gf_bs_align(bs_ori);
 
 #if 1
-	gf_bs_get_content(bs_rw, &dst_buf, &dst_buf_size);
-	slice_size = (u32) gf_bs_available(bs_ori);
-	slice_offset_orig = (u32)gf_bs_get_position(bs_ori);
-	slice_offset_dst = dst_buf_size;
-	dst_buf_size += slice_size;
-	dst_buf = gf_realloc(dst_buf, sizeof(char)*dst_buf_size);
-	memcpy(dst_buf + slice_offset_dst, in_slice + slice_offset_orig, sizeof(char) * slice_size);
-
+	gf_bs_get_content(bs_rw, &dst_buf, &dst_buf_size); /* bs_rw: header.*/
+	slice_size = gf_bs_available(bs_ori);/* Slice_size: the rest of the slice after the header (no_emulation_bytes in it).*/
+	slice_offset_orig = gf_bs_get_position(bs_ori);/* Slice_offset_orig: header_end.*/
+	slice_offset_dst = dst_buf_size;/* Slice_offset_dst: bs_rw_size (size of our new header).*/
+	dst_buf_size += slice_size;/* Size of our new header plus the payload itself.*/
+	dst_buf = gf_realloc(dst_buf, sizeof(char)*dst_buf_size);/* A buffer for our new header plus the payload.*/
+	memcpy(dst_buf + slice_offset_dst, data_without_emulation_bytes + slice_offset_orig, sizeof(char) * slice_size);
+	/* From the start of the buffer, skeep the size of our rewritted header then copy the payload.*/
+	/* The rewritten header was already fetched above by gf_bs_get_content.*/
+	gf_free(data_without_emulation_bytes);
 	data_without_emulation_bytes = dst_buf;
 	data_without_emulation_bytes_size = dst_buf_size;
 
@@ -720,7 +737,7 @@ void rewrite_slice_address(s32 new_address, char *in_slice, u32 in_slice_length,
 	gf_bs_get_content(bs_rw, &data_without_emulation_bytes, &data_without_emulation_bytes_size);
 #endif
 
-	*out_slice_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
+	*out_slice_length = data_without_emulation_bytes_size + avc_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	*out_slice = gf_malloc(*out_slice_length);
 
 	gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_slice, data_without_emulation_bytes_size);
@@ -760,17 +777,21 @@ char* extract(HEVCState *hevc, char *buffer, u32 buffer_length, u32 *original_co
 	case GF_HEVC_NALU_SLICE_CRA:
 
 		newAddress = get_newSliceAddress_and_tilesCordinates(&i, &j, hevc);
-		*original_coord = i * hevc->s_info.pps->num_tile_columns + j; // matching_opid (or *original_coord = newAddress)
+		// matching_opid (or *original_coord = newAddress)
+		*original_coord = i * hevc->s_info.pps->num_tile_columns + j; 
 		//rewrite and copy the Slice
 		rewrite_slice_address(-1, buffer, buffer_length, &buffer_temp, &buffer_temp_length, hevc, 0, 0);
 
 		*out_size = buffer_temp_length;
-		return buffer_temp;
-
+		//return buffer_temp;
+		break;
 	default: // if(nal_unit_type <= GF_HEVC_NALU_SLICE_CRA)  // VCL
 		*out_size = buffer_length;
-		return buffer;
+		buffer_temp = buffer;
+		//return buffer;
+		break;
 	}
+	return buffer_temp;
 	// return NULL;
 }
 
@@ -818,7 +839,15 @@ static GF_Err rewrite_hevc_dsi(GF_HEVCSplitCtx *ctx , GF_FilterPid *opid, char *
 	gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(new_dsi, new_size));
 	return GF_OK;
 }
-
+void bsnal(char *output_nal, char *rewritten_nal, u32 out_nal_size, u32 hevc_nalu_size_length)
+{
+	GF_BitStream *bsnal = gf_bs_new(output_nal, hevc_nalu_size_length, GF_BITSTREAM_WRITE);
+	gf_bs_write_int(bsnal, out_nal_size, 8 * hevc_nalu_size_length); // bsnal is full up there !!.
+	// At output_nal, skeep ctx->hevc_nalu_size_length then write "rewritten_nal" on out_nal_size Bytes
+	// memcpy(output_nal, out_nal_size, ctx->hevc_nalu_size_length);
+	memcpy(output_nal + hevc_nalu_size_length, rewritten_nal, out_nal_size);
+	gf_bs_del(bsnal);
+}
 static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 dep_id = 0, id = 0, cfg_crc = 0, codecid, did_it = 0, o_width, o_height;
@@ -834,7 +863,8 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		// todo!  gf_filter_pid_remove(ctx->opid); on all output pids
 		return GF_OK;
 	}
-	if (!gf_filter_pid_check_caps(pid)) // checks if input pid matchs its destination filter.
+	// checks if input pid matchs its destination filter.
+	if (!gf_filter_pid_check_caps(pid)) 
 		return GF_NOT_SUPPORTED;
 
 	// Gets the build in property of the pid: here the Id of the pid.
@@ -942,16 +972,14 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 {
 	u64 min_dts = GF_FILTER_NO_TS;
 	u64 min_cts = GF_FILTER_NO_TS;
-	u32 idx, nb_eos = 0;
-	u32 data_size, nal_length, opid_idx = 0, num_nal = 1; // On default we have a nalu
+	u32 idx, nb_eos = 0, hevc_nalu_size_length;
+	u32 data_size, nal_length, opid_idx = 0;
+	u8 temporal_id, layer_id, nal_unit_type, i; // On default we have a nalu
 	char *data;
 	Bool has_pic = GF_FALSE;
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter);
 	GF_BitStream *bs; // GF_BitStream *bs[MAX_TILES];
-	HEVCState hevc;
 
-	memset(&hevc, 0, sizeof(HEVCState));
-	hevc.full_slice_header_parse = 1;
 	// Gets the first packet in the input pid buffer
 	GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck_src) {
@@ -967,8 +995,11 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
-	//create a bitstream reader from data
-	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ); // read from there
+	/*create a bitstream reader from data
+	 read from there.
+	 data is the whole image cut out into "slice_in_pic"
+	*/
+	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 
 	char *output_nal, *rewritten_nal;
 	u32 out_nal_size;
@@ -977,40 +1008,97 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		// ctx->hevc_nalu_size_length filled using hvcc
 		nal_length = gf_bs_read_int(bs, ctx->hevc_nalu_size_length * 8); 
 		u32 pos = (u32) gf_bs_get_position(bs);
-		// skip the content of the nal from bs to buffer
-		gf_bs_skip_bytes(bs, nal_length); 
+		// skip the content of the nal from bs to buffer (usefull for the next nal)
+		 gf_bs_skip_bytes(bs, nal_length);
+		// gf_bs_skip_bytes(bs, ctx->hevc_nalu_size_length * 8);
 		// data+pos is an address 
-		rewritten_nal = extract(&ctx->hevc_state, data+pos, nal_length, &opid_idx, &out_nal_size); 
-
-		// todo: copy source NAL to ALL destination pids
+		gf_media_hevc_parse_nalu(data+pos, nal_length, &ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
+		/*gf_filter_pck_forward
+		  gf_filter_pck_forward(pck_src, ctx->cur_pck);
+		*/
+		/* todo: copy source NAL to ALL destination pids if type > 34
+		   arrange the size of the tiles
+		*/
+		rewritten_nal = extract(&ctx->hevc_state, data+pos, nal_length, &opid_idx, &out_nal_size);
 		if (!rewritten_nal) continue;
-		/* 	gf_media_hevc_parse_nalu(rewritten_nal, out_nal_size, hevc, &nal_unit_type, &temporal_id, &layer_id);
-		use this function to determine if the return is an SEI, if it's then copy to all the destinations.
-		*/	
-		HEVCTilePid *tpid = &ctx->tile_pids[opid_idx];
-		if (!tpid->opid) {
-			// ERROR
-			continue;
-		}
-		// cur_pck is the destination packet, if first usage, then
-		if (!tpid->cur_pck) {
-			// ctx->hevc_nalu_size_length (field used to indicate the nal_length) + out_nal_size: (the nal itself)
-			tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
-			// todo: might need to rewrite crypto info
-			gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
-		}
-		else { // to be rexamined !
-			char *data_start;
-			u32 new_size;
-			gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size);
-		}
-		// ctx->hevc_nalu_size_length = hvcc->nal_unit_size;
-		GF_BitStream *bsnal = gf_bs_new(output_nal, ctx->hevc_nalu_size_length, GF_BITSTREAM_WRITE);
-		gf_bs_write_int(bsnal, out_nal_size, 8 * ctx->hevc_nalu_size_length); // bsnal is full up there !!.
-		// To output_nal, skeep ctx->hevc_nalu_size_length then write "rewritten_nal" on out_nal_size Bytes
-		//memcpy(output_nal, out_nal_size, ctx->hevc_nalu_size_length);
-		memcpy(output_nal + ctx->hevc_nalu_size_length, rewritten_nal, out_nal_size);
-		gf_bs_del(bsnal);
+			
+			/*if (nal_unit_type > 34)
+			{
+				for(i = 0; i < ctx->num_tiles; i++)
+				{ 
+					HEVCTilePid *tpid = &ctx->tile_pids[i];
+						if (!tpid->opid) {
+							// ERROR
+							continue;
+						}
+					if (!tpid->cur_pck) {
+						// ctx->hevc_nalu_size_length (field used to indicate the nal_length) + out_nal_size: (the nal itself)
+						tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
+						// todo: might need to rewrite crypto info
+						gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
+					}
+					else { // to be rexamined !
+						char *data_start;
+						u32 new_size;
+						gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size);
+					}
+					tpid = NULL;
+				}
+			}
+			else
+			{*/
+			hevc_nalu_size_length = ctx->hevc_nalu_size_length;
+			if (nal_unit_type > 34)
+			{
+					for(i = 0; i < ctx->num_tiles; i++)
+					{
+						HEVCTilePid *tpid = &ctx->tile_pids[i];
+							if (!tpid->opid) {
+								// ERROR
+								continue;
+							}
+						if (!tpid->cur_pck) {
+							// ctx->hevc_nalu_size_length (field used to indicate the nal_length) + out_nal_size: (the nal itself)
+							tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
+							// todo: might need to rewrite crypto info
+							gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
+						}
+						else { // to be rexamined !
+							char *data_start;
+							u32 new_size;
+							gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size);
+/* ! reallocates packet not yet sent. Returns data start and new range of data. This will reset byte offset information to not available.
+\param pck target packet
+\param nb_bytes_to_add bytes to add to packet
+\param data_start realloc pointer of packet data start - shall not be NULL
+\param new_range_start pointer to new (apppended space) data - shall not be NULL
+\param new_size full size of allocated block. - shall not be NULL
+\return error code if any */
+						}
+					bsnal(output_nal, rewritten_nal, out_nal_size, hevc_nalu_size_length);
+					}
+			}
+			else
+			{
+					HEVCTilePid *tpid = &ctx->tile_pids[opid_idx];
+					if (!tpid->opid) {
+						// ERROR
+						continue;
+					}
+					if (!tpid->cur_pck) {
+						// ctx->hevc_nalu_size_length (field used to indicate the nal_length) + out_nal_size: (the nal itself)
+						tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
+						gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
+						// todo: might need to rewrite crypto info
+					}
+					else { // to be rexamined !
+						char *data_start;
+						u32 new_size;
+						gf_filter_pck_expand(tpid->cur_pck, ctx->hevc_nalu_size_length + out_nal_size, &data_start, &output_nal, &new_size);
+					}
+					bsnal(output_nal, rewritten_nal, out_nal_size, hevc_nalu_size_length);	
+			}
+			
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
 
