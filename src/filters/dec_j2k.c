@@ -68,18 +68,48 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
+		u32 d4cc;
+		Bool dsi_ok=GF_FALSE;
 		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		if (ctx->cfg_crc == ex_crc) {
 			return GF_OK;
 		}
 		ctx->cfg_crc = ex_crc;
+
+		//old gpac version used to store only the payload of ihdr in the dsi, but the new version exposes the entire jp2h (without box size and type) as dsi
+		//so handle both on read
+		d4cc = 0;
+		if (p->value.data.size>8)
+			d4cc = GF_4CC(p->value.data.ptr[4], p->value.data.ptr[5], p->value.data.ptr[6], p->value.data.ptr[7]);
+
 		bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
-		ctx->height = gf_bs_read_u32(bs);
-		ctx->width = gf_bs_read_u32(bs);
-		ctx->nb_comp = gf_bs_read_u16(bs);
-		ctx->bpp = 1 + gf_bs_read_u8(bs);
-		ctx->out_size = ctx->width * ctx->height * ctx->nb_comp /* * ctx->bpp / 8 */;
+		if ((d4cc==GF_4CC('i','h','d','r')) || (d4cc==GF_4CC('c','o','l','r'))) {
+			while (gf_bs_available(bs)) {
+				u32 bsize = gf_bs_read_u32(bs);
+				u32 btype = gf_bs_read_u32(bs);
+				if (btype==GF_4CC('i','h','d','r')) {
+					dsi_ok=GF_TRUE;
+					break;
+				}
+				gf_bs_skip_bytes(bs, bsize-8);
+			}
+		} else {
+			dsi_ok=GF_TRUE;
+		}
+		if (dsi_ok) {
+			ctx->height = gf_bs_read_u32(bs);
+			ctx->width = gf_bs_read_u32(bs);
+			ctx->nb_comp = gf_bs_read_u16(bs);
+			ctx->bpp = 1 + gf_bs_read_u8(bs);
+		}
 		gf_bs_del(bs);
+
+		if (!dsi_ok) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[OpenJPEG] Broken decoder config in j2k stream, cannot decode\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		ctx->out_size = ctx->width * ctx->height * ctx->nb_comp /* * ctx->bpp / 8 */;
 
 		switch (ctx->nb_comp) {
 		case 1:
@@ -165,9 +195,10 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	opj_cio_t *cio = NULL;
 	opj_image_t *image = NULL;
 	opj_codestream_info_t cinfo;
+	u32 start_offset=0;
 	GF_J2KCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *pck_dst;
-
+	Bool changed = GF_FALSE;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid))
@@ -175,6 +206,10 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &size);
+	if (!data) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_IO_ERR;
+	}
 
 	/* configure the event callbacks (not required) */
 	memset(&event_mgr, 0, sizeof(opj_event_mgr_t));
@@ -185,8 +220,8 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	/* set decoding parameters to default values */
 	opj_set_default_decoder_parameters(&parameters);
 
-	/* get a decoder handle */
-	dinfo = opj_create_decompress(CODEC_JP2);
+	/* get a decoder handle for raw J2K frames*/
+	dinfo = opj_create_decompress(CODEC_J2K);
 
 	/* catch events using our callbacks and give a local context */
 	opj_set_event_mgr((opj_common_ptr)dinfo, &event_mgr, stderr);
@@ -194,13 +229,18 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	/* setup the decoder decoding parameters using the current image and user parameters */
 	opj_setup_decoder(dinfo, &parameters);
 
-	cio = opj_cio_open((opj_common_ptr)dinfo, data, size);
+	if (size>=8) {
+		if ((data[4]=='j') && (data[5]=='p') && (data[6]=='2') && (data[7]=='c'))
+			start_offset = 8;
+	}
+	cio = opj_cio_open((opj_common_ptr)dinfo, data+start_offset, size-start_offset);
 	/* decode the stream and fill the image structure */
 	image = opj_decode_with_info(dinfo, cio, &cinfo);
 
 	if (!image) {
 		opj_destroy_decompress(dinfo);
 		opj_cio_close(cio);
+		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_IO_ERR;
 	}
 
@@ -224,6 +264,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		pf = GF_PIXEL_RGBA;
 		break;
 	default:
+		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NOT_SUPPORTED;
 	}
 	if ((image->comps[0].w==2*image->comps[1].w)
@@ -232,18 +273,25 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		&& (image->comps[1].h==image->comps[2].h)) {
 		pf = GF_PIXEL_YUV;
 		ctx->out_size = 3*ctx->width*ctx->height/2;
+		changed = GF_TRUE;
 	}
 	if (ctx->pixel_format!=pf) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(pf) );
 		ctx->pixel_format = pf;
+		changed = GF_TRUE;
 	}
 	if (ctx->width!=w) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
 		ctx->width = w;
+		changed = GF_TRUE;
 	}
 	if (ctx->height!=h) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
 		ctx->height = h;
+		changed = GF_TRUE;
+	}
+	if (changed) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT( (ctx->pixel_format == GF_PIXEL_YUV) ? ctx->width : ctx->width * ctx->nb_comp) );
 	}
 	/* close the byte stream */
 	opj_cio_close(cio);

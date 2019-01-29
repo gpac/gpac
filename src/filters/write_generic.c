@@ -391,9 +391,10 @@ static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 d
 
 	if ((data_size>16) && !memcmp(data, sig, 8)) {
 		return gf_filter_pck_new_ref(ctx->opid, NULL, 0, in_pck);
-	} else {
-		size = ctx->dcfg_size + data_size + 8*4;
 	}
+
+	size = data_size + 8*4 /*jP%20%20 + ftyp*/ + ctx->dcfg_size + 8;
+
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 
 
@@ -403,14 +404,18 @@ static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 d
 	gf_bs_write_u32(ctx->bs, 12);
 	gf_bs_write_u32(ctx->bs, GF_ISOM_BOX_TYPE_JP);
 	gf_bs_write_u32(ctx->bs, 0x0D0A870A);
-
 	gf_bs_write_u32(ctx->bs, 20);
 	gf_bs_write_u32(ctx->bs, GF_ISOM_BOX_TYPE_FTYP);
 	gf_bs_write_u32(ctx->bs, GF_ISOM_BRAND_JP2);
 	gf_bs_write_u32(ctx->bs, 0);
 	gf_bs_write_u32(ctx->bs, GF_ISOM_BRAND_JP2);
 
-	gf_bs_write_data(ctx->bs, ctx->dcfg, ctx->dcfg_size);
+	//todo, write colr and other info ?
+	if (ctx->dcfg) {
+		gf_bs_write_u32(ctx->bs, 8+ctx->dcfg_size);
+		gf_bs_write_u32(ctx->bs, GF_ISOM_BOX_TYPE_JP2H);
+		gf_bs_write_data(ctx->bs, ctx->dcfg, ctx->dcfg_size);
+	}
 	gf_bs_write_data(ctx->bs, data, data_size);
 
 	return dst_pck;
@@ -770,7 +775,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_J2K),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "jp2"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "jp2|j2k"),
 	{0},
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),

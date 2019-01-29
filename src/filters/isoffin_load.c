@@ -158,6 +158,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_WEBVTT;
 			stxtcfg = gf_isom_get_webvtt_config(read->mov, track, stsd_idx);
 			break;
+		case GF_ISOM_SUBTYPE_MJP2:
+			codec_id = GF_CODECID_J2K;
+			gf_isom_get_jp2_config(read->mov, track, stsd_idx, &dsi, &dsi_size);
+			break;
 		case GF_ISOM_SUBTYPE_HVT1:
 			codec_id = GF_CODECID_HEVC_TILES;
 			gf_isom_get_reference(read->mov, track, GF_ISOM_REF_TBAS, 1, &base_tile_track);
