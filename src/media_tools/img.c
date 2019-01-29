@@ -139,6 +139,7 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, char 
 	}
 	/*try j2k*/
 	else {
+		u32 jp2h_size=0, jp2h_start=0;
 		size = gf_bs_read_u8(bs);
 		type = gf_bs_read_u32(bs);
 		if ( ((size==12) && (type==GF_ISOM_BOX_TYPE_JP ))
@@ -160,6 +161,8 @@ j2k_restart:
 				type = gf_bs_read_u32(bs);
 				switch (type) {
 				case GF_ISOM_BOX_TYPE_JP2H:
+					jp2h_size=size-8;
+					jp2h_start=gf_bs_get_position(bs);
 					goto j2k_restart;
 				case GF_ISOM_BOX_TYPE_IHDR:
 				{
@@ -173,17 +176,11 @@ j2k_restart:
 					UnkC = gf_bs_read_u8(bs);
 					IPR = gf_bs_read_u8(bs);
 
-					if (dsi) {
-						GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-						gf_bs_write_u32(bs_dsi, *height);
-						gf_bs_write_u32(bs_dsi, *width);
-						gf_bs_write_u16(bs_dsi, nb_comp);
-						gf_bs_write_u8(bs_dsi, BPC);
-						gf_bs_write_u8(bs_dsi, C);
-						gf_bs_write_u8(bs_dsi, UnkC);
-						gf_bs_write_u8(bs_dsi, IPR);
-						gf_bs_get_content(bs_dsi, dsi, dsi_len);
-						gf_bs_del(bs_dsi);
+					if (dsi && jp2h_size) {
+						*dsi = gf_malloc(sizeof(char)*jp2h_size);
+						gf_bs_seek(bs, jp2h_start);
+						gf_bs_read_data(bs, *dsi, jp2h_size);
+						*dsi_len = jp2h_size;
 					}
 					goto exit;
 				}
