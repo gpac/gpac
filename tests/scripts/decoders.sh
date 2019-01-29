@@ -50,8 +50,8 @@ test_decoder "jpg-imgdec" $MEDIA_DIR/auxiliary_files/logo.jpg "test.rgb" "-black
 test_decoder "jpg-ffdec" $MEDIA_DIR/auxiliary_files/logo.jpg "test.rgb" "-blacklist=imgdec" 0
 
 #test aac decode to raw
-test_decoder "aac-faad" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.pcm" "-blacklist=ffdec" 0
-test_decoder "aac-ffdec" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.pcm" "-blacklist=faad" 0
+test_decoder "aac-faad" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.pcm" "-blacklist=ffdec" 1
+test_decoder "aac-ffdec" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.pcm" "-blacklist=faad" 1
 
 #test mp3 decode to raw
 test_decoder "mp3-maddec" $MEDIA_DIR/auxiliary_files/count_english.mp3 "test.pcm" "-blacklist=ffdec" 1
@@ -99,7 +99,7 @@ fi
   return
  fi
 
-test_decoder "amr-ffdec" $EXTERNAL_MEDIA_DIR/import/bear_audio.amr "test.pcm" "" 0
+test_decoder "amr-ffdec" $EXTERNAL_MEDIA_DIR/import/bear_audio.amr "test.pcm" "" 1
 
 test_decoder "amrwb-ffdec" $EXTERNAL_MEDIA_DIR/import/obrother_wideband.amr "test.pcm" "" 1
 
@@ -108,7 +108,7 @@ if [ -n "$vtbdec" ] ; then
 test_decoder "h263-vtb" $EXTERNAL_MEDIA_DIR/import/bear_video.263 "test.yuv" "-blacklist=ffdec" 0
 fi
 
-test_decoder "qcp-ffdec" $EXTERNAL_MEDIA_DIR/import/count_english.qcp "test.pcm" "" 0
+test_decoder "qcp-ffdec" $EXTERNAL_MEDIA_DIR/import/count_english.qcp "test.pcm" "" 1
 
 test_decoder "m1v-ffdec" $EXTERNAL_MEDIA_DIR/import/dead.m1v "test.yuv" "" 1
 

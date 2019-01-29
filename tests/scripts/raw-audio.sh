@@ -1,7 +1,15 @@
 #test raw video
 
-DST="127.0.0.1"
-IFCE="127.0.0.1"
+do_pcm_hashes=1
+#on linux 32 bit we for now disable the hashes, they all differ due to different float/double precision
+config=`gpac -h bin 2>&1 | grep GPAC_HAS_64`
+if [ ! -n $config ] ; then
+config=`gpac -h bin 2>&1 | grep GPAC_CONFIG_LINUX`
+if [ -n $config ] ; then
+do_pcm_hashes=0
+fi
+fi
+
 
 raw_audio_test ()
 {
@@ -14,7 +22,10 @@ fi
 rawfile=$TEMP_DIR/raw.$1
 #test dumping to the given format
 do_test "$GPAC -i $mp4file -o $rawfile" "dump-$1"
+
+if [ $do_pcm_hashes != 0 ] ; then
 do_hash_test_bin "$rawfile" "dump-$1" 1
+fi
 
 myinspect="inspect:fmt=@pn@-@cts@-@bo@@lf@"
 insfile=$TEMP_DIR/dump.txt
@@ -24,7 +35,9 @@ do_hash_test "$insfile" "inspect"
 #test reading from the given format into pcm
 rawfile2=$TEMP_DIR/raw2.pcm
 do_test "$GPAC -i $rawfile -o $rawfile2" "dump-pcm"
+if [ $do_pcm_hashes != 0 ] ; then
 do_hash_test_bin "$rawfile2" "dump-pcm" 1
+fi
 
 #only do the reverse tests for pcm (same for the other formats)
 if [ $1  = "pcm" ] ; then
