@@ -1792,6 +1792,11 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
 
 				nb_matched++;
+			} else if (!nb_matched && !prop_found && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
+				if (!bundles_cap_found[cur_dst_bundle])
+					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
+
+				nb_matched++;
 			}
 		}
 		//merge bundle cap
@@ -2906,6 +2911,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	//swap pid is pending on the possible destination filter
 	if (filter->swap_pidinst_src || filter->swap_pidinst_dst) {
 		task->requeue_request = GF_TRUE;
+		task->can_swap = GF_TRUE;
 		return;
 	}
 	if (filter->caps_negociate) {
@@ -4390,7 +4396,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	//if some pids are still detached, wait for the connection before processing this event
 	if (f->detached_pid_inst) {
 		TASK_REQUEUE(task)
-		task->is_filter_process = GF_TRUE;
+		task->can_swap = GF_TRUE;
 		return;
 	}
 

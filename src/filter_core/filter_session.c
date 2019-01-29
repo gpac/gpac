@@ -1111,7 +1111,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		assert( task->run_task );
 		task_time = gf_sys_clock_high_res();
 
-		task->is_filter_process = GF_FALSE;
+		task->can_swap = GF_FALSE;
 		task->requeue_request = GF_FALSE;
 		task->run_task(task);
 		requeue = task->requeue_request;
@@ -1151,7 +1151,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 				if (requeue) {
 					//filter process task are pushed back the queue of filter tasks
-					if (task->is_filter_process) {
+					if (task->can_swap) {
 						GF_FSTask *a_task = gf_fq_pop(current_filter->tasks);
 						//if requeue
 						if (a_task) {
