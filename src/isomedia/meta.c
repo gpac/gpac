@@ -822,6 +822,16 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 	}
+	if (image_props->alpha) {
+		searchprop.alpha = image_props->alpha;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_AuxiliaryTypePropertyBox *auxC = (GF_AuxiliaryTypePropertyBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AUXC);
+			auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:alpha");
+			gf_list_add(ipco->other_boxes, auxC);
+			prop_index = gf_list_count(ipco->other_boxes) - 1;
+		}
+	}
 }
 
 GF_EXPORT
