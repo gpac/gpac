@@ -858,8 +858,9 @@ void PrintMetaUsage()
 		"						 time=t				uses the next sync sample after time t (float, in sec, default 0)\n"
 		"						 split_tiles		for an HEVC tiled image, each tile is stored as a separate item\n"
 		"                        rotation=a       sets the rotation angle for this image to 90*a degrees anti-clockwise.\n"
-		"                        image-hidden       indicates that this image item should be hidden.\n"
+		"                        hidden             indicates that this image item should be hidden.\n"
 		"                        icc_path           path to icc to add as colr.\n"
+		"                        alpha            indicates that the image is an alpha image (should use ref=auxl also).\n"
 		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
 		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
 		" -set-xml args        sets meta XML data\n"
@@ -1443,11 +1444,18 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->angle = atoi(szSlot+9);
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "hidden", 6)) {
+		else if (!stricmp(szSlot, "hidden")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
 			meta->image_props->hidden = GF_TRUE;
+			ret = 1;
+		}
+		else if (!stricmp(szSlot, "alpha")) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			meta->image_props->alpha = GF_TRUE;
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {
@@ -1457,18 +1465,18 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->time = atof(szSlot+5);
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "split_tiles", 11)) {
+		else if (!stricmp(szSlot, "split_tiles")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
 			meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "dref", 4)) {
+		else if (!stricmp(szSlot, "dref")) {
 			meta->use_dref = 1;
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "primary", 7)) {
+		else if (!stricmp(szSlot, "primary")) {
 			meta->primary = 1;
 			ret = 1;
 		}
