@@ -271,13 +271,19 @@ static GF_Err filein_process(GF_Filter *filter)
 
 	gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
 
-	if (ctx->file_pos + nb_read == ctx->file_size)
+	if (ctx->file_pos + nb_read == ctx->file_size) {
 		ctx->is_end = GF_TRUE;
-	else if (nb_read < to_read) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
-		if (feof(ctx->file)) {
-			ctx->is_end = GF_TRUE;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] IO error EOF found after reading %d bytes but file %s size is %d\n", ctx->file_pos+nb_read, ctx->src, ctx->file_size));
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
+	} else {
+		if (nb_read < to_read) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
+			if (feof(ctx->file)) {
+				gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
+				ctx->is_end = GF_TRUE;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] IO error EOF found after reading %d bytes but file %s size is %d\n", ctx->file_pos+nb_read, ctx->src, ctx->file_size));
+			}
+		} else {
+			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_pos) );
 		}
 	}
 	gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);

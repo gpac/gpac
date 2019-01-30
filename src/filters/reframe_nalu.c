@@ -1843,12 +1843,6 @@ GF_Err naludmx_process(GF_Filter *filter)
 	}
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
-	if (ctx->opid && ctx->is_playing) {
-		u64 byte_offset = gf_filter_pck_get_byte_offset(pck);
-		if (byte_offset != GF_FILTER_NO_BO) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(byte_offset) );
-		}
-	}
 	start = data;
 	remain = pck_size;
 

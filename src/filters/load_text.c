@@ -634,7 +634,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 				ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
 				gf_isom_text_reset(ctx->samp);
 
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
+				gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 			}
 			ctx->state = 0;
 			if (!sOK) break;
@@ -954,7 +954,7 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 	}
 	gf_webvtt_sample_del(samp);
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
+	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 
 	if (gf_filter_pid_would_block(ctx->opid))
 		gf_webvtt_parser_suspend(ctx->vttparser);
@@ -1709,7 +1709,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 
 		ctx->prev_end = ctx->end;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
+		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 
 		if (gf_filter_pid_would_block(ctx->opid))
 			return GF_OK;
