@@ -1861,6 +1861,7 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 GF_EXPORT
 void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
 {
+	Bool found = GF_FALSE;
 	GF_List *done = gf_list_new();
 	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
 	u32 i, j, count = gf_list_count(session->links);
@@ -1875,6 +1876,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
 			fprintf(stderr, "%s has no sources\n", src->freg->name);
 			continue;
 		}
+		found = GF_TRUE;
 		fprintf(stderr, "%s sources:", src->freg->name);
 
 		for (j=0; j<src->nb_edges; j++) {
@@ -1885,6 +1887,24 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name)
 		}
 		fprintf(stderr, "\n");
 		gf_list_reset(done);
+	}
+	if (found && filter_name) {
+		fprintf(stderr, "%s sinks:", filter_name);
+		for (i=0; i<count; i++) {
+			const GF_FilterRegDesc *src = gf_list_get(session->links, i);
+			if (!strcmp(src->freg->name, filter_name)) continue;
+
+			for (j=0; j<src->nb_edges; j++) {
+				if (strcmp(src->edges[j].src_reg->freg->name, filter_name)) continue;
+
+				if (gf_list_find(done, (void *) src->freg->name)<0) {
+					fprintf(stderr, " %s", src->freg->name);
+					gf_list_add(done, (void *) src->freg->name);
+				}
+			}
+			gf_list_reset(done);
+		}
+		fprintf(stderr, "\n");
 	}
 	gf_list_del(done);
 }
