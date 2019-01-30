@@ -48,6 +48,7 @@ test_decoder "png-ffdec" $MEDIA_DIR/auxiliary_files/logo.png "test.rgb" "-blackl
 #test jpg decode to raw
 test_decoder "jpg-imgdec" $MEDIA_DIR/auxiliary_files/logo.jpg "test.rgb" "-blacklist=ffdec" 0
 test_decoder "jpg-ffdec" $MEDIA_DIR/auxiliary_files/logo.jpg "test.rgb" "-blacklist=imgdec" 0
+test_decoder "jpg-bmp" $MEDIA_DIR/auxiliary_files/logo.jpg "test.bmp" "-blacklist=ffdec" 0
 
 #test aac decode to raw
 test_decoder "aac-faad" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.pcm" "-blacklist=ffdec" 1
