@@ -30,6 +30,8 @@ single_test "$GPAC -ltf -h links" "gpac-filter-h-links"
 single_test "$GPAC -ltf -h filters" "gpac-filter-h-filters"
 single_test "$GPAC -ltf -h filters:*" "gpac-filter-h-filters-all"
 single_test "$GPAC -ltf -h UTFilter" "gpac-filter-unit-info"
+single_test "$GPAC -ltf -hh mxisom" "gpac-filter-unit-info"
+single_test "$GPAC -ltf -hh core" "gpac-filter-unit-info"
 
 single_test "$GPAC -ltf UTSource:cov UTFilter:cov UTSink:cov" "gpac-filter-dump_props"
 
