@@ -338,9 +338,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 	//no more pids on filter, destroy it
 	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids)) {
-		assert(!filter->finalized);
-		filter->finalized = GF_TRUE;
-		gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+		gf_filter_post_remove(filter);
 	}
 }
 
@@ -383,9 +381,7 @@ void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_Fil
 			gf_filter_pid_inst_swap_delete(a_pidi->filter, pid, a_pidi, dst_swapinst);
 		}
 	}
-	assert(!filter->finalized);
-	filter->finalized = GF_TRUE;
-	gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+	gf_filter_post_remove(filter);
 }
 
 void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
@@ -499,9 +495,7 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 		filter->swap_pidinst_dst = NULL;
 		filter->swap_pidinst_src = NULL;
-		assert(!src_filter->finalized);
-		src_filter->finalized = GF_TRUE;
-		gf_fs_post_task(src_filter->session, gf_filter_remove_task, src_filter, NULL, "filter_destroy", NULL);
+		gf_filter_post_remove(src_filter);
 	}
 	if (filter->swap_pidinst_src) {
 		src = filter->swap_pidinst_src;
@@ -638,7 +632,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_filter_relink_dst(pidinst);
 	} else {
 
-		//error,  remove from input and poutput
+		//error, remove from input and output
 		gf_mx_p(filter->tasks_mx);
 		gf_list_del_item(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
@@ -709,10 +703,22 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				gf_filter_pid_post_init_task(pid->filter, pid);
 
 				if (unload_filter) {
-					assert(!filter->finalized);
-					filter->finalized = GF_TRUE;
 					assert(!gf_list_count(filter->input_pids));
-					gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+
+					if (filter->num_output_pids) {
+						for (i=0; i<filter->num_output_pids; i++) {
+							u32 j;
+							GF_FilterPid *opid = gf_list_get(filter->output_pids, i);
+							for (j=0; j< opid->num_destinations; j++) {
+								GF_FilterPidInst *a_pidi = gf_list_get(opid->destinations, j);
+								a_pidi->pid = NULL;
+							}
+							gf_list_reset(opid->destinations);
+							opid->num_destinations = 0;
+							gf_filter_pid_remove(opid);
+						}
+					}
+					gf_filter_post_remove(filter);
 				}
 				return e;
 			} else {
@@ -820,9 +826,7 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task)
 	//if the filter has no more connected ins and outs, remove it
 	if (task->filter->removed && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
 		Bool direct_mode = task->filter->session->direct_mode;
-		assert(!task->filter->finalized);
-		task->filter->finalized = GF_TRUE;
-		gf_fs_post_task(task->filter->session, gf_filter_remove_task, task->filter, NULL, "filter_destroy", NULL);
+		gf_filter_post_remove(task->filter);
 		if (direct_mode) task->filter = NULL;
 	}
 }
@@ -3149,9 +3153,7 @@ single_retry:
 					&& !old_dst->num_input_pids
 					&& !old_dst->out_pid_connection_pending
 				) {
-					assert(!old_dst->finalized);
-					old_dst->finalized = GF_TRUE;
-					gf_fs_post_task(old_dst->session, gf_filter_remove_task, old_dst, NULL, "filter_destroy", NULL);
+					gf_filter_post_remove(old_dst);
 				}
 			}
 			if (!num_pass) continue;
@@ -3188,8 +3190,7 @@ single_retry:
 						GF_Filter *f = new_dst;
 						new_dst = new_dst->dst_filter;
 						if (!f->num_input_pids && !f->num_output_pids && !f->in_pid_connection_pending) {
-							f->finalized = GF_TRUE;
-							gf_fs_post_task(f->session, gf_filter_remove_task, f, NULL, "filter_destroy", NULL);
+							gf_filter_post_remove(f);
 						}
 					}
 					
@@ -3372,7 +3373,7 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s destruction\n", pid->filter->name, pid->name));
 	while (gf_list_count(pid->destinations)) {
-		gf_filter_pid_inst_del( gf_list_pop_back(pid->destinations) );
+		gf_filter_pid_inst_del(gf_list_pop_back(pid->destinations));
 	}
 	gf_list_del(pid->destinations);
 
