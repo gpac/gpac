@@ -37,7 +37,7 @@ typedef struct _gf_ffenc_ctx
 {
 	//opts
 	Bool all_intra;
-	char *c;
+	char *c, *ffc;
 	Bool ls;
 	u32 pfmt;
 
@@ -769,11 +769,12 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
-	u32 type=0;
+	u32 type=0, fftype;
 	u32 i=0;
 	u32 change_input_fmt = 0;
 	const GF_PropertyValue *prop;
 	const AVCodec *codec=NULL;
+	const AVCodec *desired_codec=NULL;
 	u32 codec_id, pfmt, afmt;
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
 
@@ -811,8 +812,12 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				ctx->codecid = ffmpeg_codecid_to_gpac(codec->id);
 		}
 	}
+	//if the codec was set using ffc, get it
+	if (ctx->ffc) {
+		desired_codec = avcodec_find_encoder_by_name(ctx->ffc);
+	}
 
-	if (!ctx->codecid) {
+	if (!ctx->codecid && !desired_codec) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] No codecid specified\n" ));
 		return GF_BAD_PARAM;
 	}
@@ -830,10 +835,24 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->in_pid) return GF_REQUIRES_NEW_INSTANCE;
 	}
 
-	codec_id = ffmpeg_codecid_from_gpac(ctx->codecid);
-	if (codec_id) codec = avcodec_find_encoder(codec_id);
+	if (ctx->codecid) {
+		codec_id = ffmpeg_codecid_from_gpac(ctx->codecid);
+		if (codec_id) {
+			if (desired_codec && desired_codec->id==codec_id)
+				codec = desired_codec;
+			else
+				codec = avcodec_find_encoder(codec_id);
+		}
+	} else {
+		codec = desired_codec;
+	}
 	if (!codec) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Cannot find encoder for codec %s\n", gf_codecid_name(ctx->codecid) ));
+		return GF_NOT_SUPPORTED;
+	}
+	fftype = ffmpeg_stream_type_to_gpac(codec->type);
+	if (fftype != type) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Mismatch between stream type, codec indicates %s but source type is %s\n", gf_stream_type_name(fftype), gf_stream_type_name(type) ));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -1242,6 +1261,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(all_intra), "only produces intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ls), "outputs log", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ffc), "ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)", GF_PROP_STRING, NULL, NULL, 0},
 
 	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}

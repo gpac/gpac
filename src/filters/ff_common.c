@@ -333,6 +333,47 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 }
 
 
+typedef struct
+{
+	u32 ff_st;
+	u32 gpac_st;
+} GF_FF_ST;
+
+static const GF_FF_ST FF2GPAC_StreamTypes[] =
+{
+	{AVMEDIA_TYPE_VIDEO, GF_STREAM_VISUAL},
+	{AVMEDIA_TYPE_AUDIO, GF_STREAM_AUDIO},
+	{AVMEDIA_TYPE_DATA, GF_STREAM_METADATA},
+	{AVMEDIA_TYPE_SUBTITLE, GF_STREAM_TEXT},
+	{AVMEDIA_TYPE_ATTACHMENT, GF_STREAM_METADATA},
+	{AVMEDIA_TYPE_UNKNOWN, GF_STREAM_UNKNOWN},
+	{0},
+};
+
+u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
+{
+	u32 i=0;
+	while (FF2GPAC_StreamTypes[i].gpac_st) {
+		if (FF2GPAC_StreamTypes[i].gpac_st == streamtype)
+			return FF2GPAC_StreamTypes[i].ff_st;
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC stream type %s, assuming data\n", gf_stream_type_name(streamtype) ));
+	return AVMEDIA_TYPE_DATA;
+}
+
+u32 ffmpeg_stream_type_to_gpac(u32 streamtype)
+{
+	u32 i=0;
+	while (FF2GPAC_StreamTypes[i].gpac_st) {
+		if (FF2GPAC_StreamTypes[i].ff_st == streamtype)
+			return FF2GPAC_StreamTypes[i].gpac_st;
+		i++;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG stream type %d, assuming data\n", streamtype ));
+	return GF_STREAM_METADATA;
+}
+
 //static void ff_log_callback(void *avcl, int level, const char *fmt, va_list vl) { }
 
 void ffmpeg_setup_logs(u32 log_class)
