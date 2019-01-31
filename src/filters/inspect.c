@@ -57,6 +57,7 @@ typedef struct
 	char *fmt;
 	Bool props, hdr, all, info, pcr;
 	Double speed, start;
+	Bool testmode;
 
 	FILE *dump;
 
@@ -98,11 +99,17 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_test_mode() || ctx->testmode) {
 		switch (p4cc) {
 		case GF_PROP_PID_FILEPATH:
 		case GF_PROP_PID_URL:
 			return;
+		case GF_PROP_PID_DECODER_CONFIG:
+		case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
+		case GF_PROP_PID_DOWN_SIZE:
+			if (ctx->testmode)
+				return;
+			break;
 		default:
 			break;
 		}
@@ -580,6 +587,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(pcr), "dumps M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(speed), "sets playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(testmode), "skips URL/path dump, file size and decoder config (used for hashing encoding results)", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{0}
 };
 
