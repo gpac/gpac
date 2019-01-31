@@ -802,6 +802,8 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
 
+void gf_filter_post_remove(GF_Filter *filter);
+
 typedef struct
 {
 	u32 *bundles_in_ok;

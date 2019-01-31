@@ -240,8 +240,7 @@ void gf_filter_del(GF_Filter *filter)
 
 	//delete output pids before the packet reservoir
 	while (gf_list_count(filter->output_pids)) {
-		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
-		gf_filter_pid_del(pid);
+		gf_filter_pid_del(gf_list_pop_back(filter->output_pids));
 	}
 	gf_list_del(filter->output_pids);
 
@@ -1869,6 +1868,13 @@ void gf_filter_remove_task(GF_FSTask *task)
 	gf_filter_del(f);
 	task->filter = NULL;
 	task->requeue_request = GF_FALSE;
+}
+
+void gf_filter_post_remove(GF_Filter *filter)
+{
+	assert(!filter->finalized);
+	filter->finalized = GF_TRUE;
+	gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
 }
 
 static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF_Filter *until_filter)

@@ -1472,6 +1472,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 
 		for (k=0; k<ipids; k++) {
 			GF_FilterPidInst *pid = gf_list_get(f->input_pids, k);
+			if (!pid->pid) continue;
 			fprintf(stderr, "\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent);
 		}
 		for (k=0; k<opids; k++) {
