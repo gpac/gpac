@@ -729,8 +729,8 @@ static const GF_FilterCapability MP3DmxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
 	{0},
-	//also declare generic file output for embedded files (cover art & co)
-	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE)
+	//also declare generic file output for embedded files (cover art & co), but explicit to skip this cap in chain resolution
+	CAP_UINT(GF_CAPS_OUTPUT | GF_CAPFLAG_LOADED_FILTER ,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE)
 };
 
 
