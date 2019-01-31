@@ -105,6 +105,9 @@ typedef struct _gf_ffenc_ctx
 	Bool remap_ts;
 
 	u32 dsi_crc;
+
+	u32 gpac_pixel_fmt;
+	u32 gpac_audio_fmt;
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
@@ -382,7 +385,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (b4cc == GF_4CC('j','P',' ',' ')) {
 			u32 jp2h_offset = 0;
 			offset = 12;
-			while (offset+8<pkt.size) {
+			while (offset+8 < (u32) pkt.size) {
 				b4cc = GF_4CC(pkt.data[offset+4], pkt.data[offset+5], pkt.data[offset+6], pkt.data[offset+7]);
 				if (b4cc == GF_4CC('j','p','2','c')) {
 					break;
@@ -421,7 +424,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				gf_bs_write_u32(bs, ctx->height);
 				gf_bs_write_u32(bs, ctx->width);
 				gf_bs_write_u16(bs, ctx->nb_planes);
-				gf_bs_write_u8(bs, gf_pixel_get_bytes_per_pixel(ctx->pfmt));
+				gf_bs_write_u8(bs, gf_pixel_get_bytes_per_pixel(ctx->gpac_pixel_fmt));
 				gf_bs_write_u8(bs, 7); //COMP
 				gf_bs_write_u8(bs, 0);
 				gf_bs_write_u8(bs, 0);
@@ -883,13 +886,11 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u32 codec_id = ffmpeg_codecid_from_gpac(ctx->codecid);
 
 		if (type==GF_STREAM_AUDIO) {
-			if ((ctx->encoder->codec->id==codec_id) && (ctx->encoder->sample_rate==ctx->sample_rate) && (ctx->encoder->channels==ctx->channels) && (ctx->encoder->sample_fmt == ffmpeg_audio_fmt_from_gpac(afmt) ) ) {
-				ffenc_copy_pid_props(ctx);
+			if ((ctx->encoder->codec->id==codec_id) && (ctx->encoder->sample_rate==ctx->sample_rate) && (ctx->encoder->channels==ctx->channels) && (ctx->gpac_audio_fmt == afmt ) ) {
 				return GF_OK;
 			}
 		} else {
-			if ((ctx->encoder->codec->id==codec_id) && (ctx->encoder->width==ctx->width) && (ctx->encoder->height==ctx->height) && (ctx->encoder->pix_fmt == ffmpeg_pixfmt_from_gpac(pfmt) ) ) {
-				ffenc_copy_pid_props(ctx);
+			if ((ctx->encoder->codec->id==codec_id) && (ctx->encoder->width==ctx->width) && (ctx->encoder->height==ctx->height) && (ctx->gpac_pixel_fmt == pfmt ) ) {
 				return GF_OK;
 			}
 		}
@@ -1022,7 +1023,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//renegociate input, wait for reconfig call
 	if (ctx->infmt_negociate) return GF_OK;
 
-	ctx->pfmt = pfmt;
+	ctx->gpac_pixel_fmt = pfmt;
+	ctx->gpac_audio_fmt = afmt;
 	ctx->dsi_crc = 0;
 
 	ctx->encoder = avcodec_alloc_context3(codec);
