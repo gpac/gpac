@@ -1343,7 +1343,7 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 
 
 GF_EXPORT
-GF_Err gf_isom_set_clean_apperture(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 cleanApertureWidthN, u32 cleanApertureWidthD, u32 cleanApertureHeightN, u32 cleanApertureHeightD, u32 horizOffN, u32 horizOffD, u32 vertOffN, u32 vertOffD)
+GF_Err gf_isom_set_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 cleanApertureWidthN, u32 cleanApertureWidthD, u32 cleanApertureHeightN, u32 cleanApertureHeightD, u32 horizOffN, u32 horizOffD, u32 vertOffN, u32 vertOffD)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1384,6 +1384,46 @@ GF_Err gf_isom_set_clean_apperture(GF_ISOFile *movie, u32 trackNumber, u32 Strea
 	vent->clap->horizOffD = horizOffD;
 	vent->clap->vertOffN = vertOffN;
 	vent->clap->vertOffD = vertOffD;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_image_sequence_coding_constraints(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, Bool remove, Bool all_ref_pics_intra, Bool intra_pred_used, u32 max_ref_per_pic)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *entry;
+	GF_VisualSampleEntryBox*vent;
+	GF_SampleDescriptionBox *stsd;
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_SampleEntryBox *)gf_list_get(stsd->other_boxes, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_BAD_PARAM;
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
+
+	vent = (GF_VisualSampleEntryBox*)entry;
+	if (remove)  {
+		if (vent->ccst) gf_isom_box_del((GF_Box*)vent->ccst);
+		vent->ccst = NULL;
+		return GF_OK;
+	}
+	if (!vent->ccst) vent->ccst = (GF_CodingConstraintsBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_CCST);
+	vent->ccst->all_ref_pics_intra = all_ref_pics_intra;
+	vent->ccst->intra_pred_used = intra_pred_used;
+	vent->ccst->max_ref_per_pic = max_ref_per_pic;
 	return GF_OK;
 }
 
