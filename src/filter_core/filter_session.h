@@ -883,10 +883,10 @@ typedef struct __freg_desc
 	u32 nb_edges, nb_alloc_edges;
 	GF_FilterRegEdge *edges;
 	u32 dist;
-	u8 priority;
-	u8 edges_marked_rlevel;
 	struct __freg_desc *destination;
 	u32 cap_idx;
+	u8 priority;
+	u8 in_edges_enabling;
 } GF_FilterRegDesc;
 
 

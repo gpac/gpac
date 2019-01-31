@@ -1952,62 +1952,106 @@ static s32 gf_filter_reg_get_output_stream_type(const GF_FilterRegister *freg, u
 	return 0;
 }
 
-static Bool gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel, s32 dst_stream_type)
+/*recursively enable edges of the graph.
+	returns 0 if subgraph shall be disabled (will marke edge at the root of the subgraph disabled)
+	returns 1 if subgraph shall be enabled (will marke edge at the root of the subgraph enabled)
+	returns 2 if no decision can be taken because the subgraph is too deep. We don't mark the parent edge as disabled because the same subgraph/edge can be used at other places in a shorter path
+*/
+static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc *reg_desc, u32 src_cap_idx, const GF_FilterRegister *src_freg, u32 rlevel, s32 dst_stream_type, GF_FilterRegDesc *parent_desc)
 {
 	u32 i=0;
-	Bool break_loop = (reg_desc->edges_marked_rlevel < rlevel) ? GF_TRUE: GF_FALSE;
+	Bool enable_graph = GF_FALSE;
+	Bool aborted_graph_too_deep = GF_FALSE;
 
+	//we found the source reg we want to connect to!
 	if (src_freg == reg_desc->freg) {
-		return GF_TRUE;
+		return 1;
 	}
+	//the subgraph is too deep, abort marking edges but don't decide
 	if (rlevel > fsess->max_resolve_chain_len) {
-		return GF_FALSE;
+		return 2;
 	}
-	//if  dst type is FILE, reg_desc is a muxer or the loaded destination (a demuxer or a file)
-	//we only accept dst type FILE for the first call (ie reg desc is the loaded destination), and forbid muxers in the middle of the chain
-	//for dynamic resolution. This avoids situations such as StreamTypeA->mux->demux->streamtypeB which cannot be resolved
-	//note that it is still possible to use a mux or demux in the chain, but they have to be explicetly loaded
-	if ((rlevel>1) && (dst_stream_type==GF_STREAM_FILE))
-		return GF_FALSE;
+	//we don't allow loops in dynamic chain resolution, so consider the parent edge invalid
+	if (reg_desc->in_edges_enabling)
+		return 0;
 
-	reg_desc->edges_marked_rlevel = rlevel;
+	/*if dst type is FILE, reg_desc is a muxer or the loaded destination (a demuxer or a file)
+	we only accept dst type FILE for the first call (ie reg desc is the loaded destination), and forbid muxers in the middle of the chain
+	for dynamic resolution. This avoids situations such as StreamTypeA->mux->demux->streamtypeB which cannot be resolved
+
+	note that it is still possible to use a mux or demux in the chain, but they have to be explicetly loaded
+	*/
+	if ((rlevel>1) && (dst_stream_type==GF_STREAM_FILE))
+		return 0;
+
+	reg_desc->in_edges_enabling = 1;
 
 	for (i=0; i<reg_desc->nb_edges; i++) {
+		u32 res;
+		s32 source_stream_type;
 		GF_FilterRegEdge *edge = &reg_desc->edges[i];
+		//this edge is not for our target source cap bundle
+		if (edge->dst_cap_idx != src_cap_idx) continue;
 
-		if (!break_loop && (edge->dst_cap_idx == src_cap_idx) && (edge->status == EDGE_STATUS_NONE)) {
-			//candidate edge, check stream type
-			s32 source_stream_type = edge->src_stream_type;
+		//edge is already disabled (the subgraph doesn't match our source), don't test it
+		if (edge->status == EDGE_STATUS_DISABLED)
+			continue;
 
-			//source edge cap indicates multiple stream types (demuxer/encoder/decoder dundle)
-			if (source_stream_type<0) {
-				//if destination type is known (>=0 and NOT file, inherit it
-				//otherwise, we we can't filter out yet
-				if ((dst_stream_type>0) && (dst_stream_type != GF_STREAM_FILE))
-					source_stream_type = dst_stream_type;
-			}
-			//inherit source type if not specified
-			if (!source_stream_type && dst_stream_type>0)
+		//edge is already enabled (the subgraph matches our source), don't test it but remember to indicate the graph is valid
+		if (edge->status == EDGE_STATUS_ENABLED) {
+			enable_graph = GF_TRUE;
+			continue;
+		}
+
+		//candidate edge, check stream type
+		source_stream_type = edge->src_stream_type;
+
+		//source edge cap indicates multiple stream types (demuxer/encoder/decoder dundle)
+		if (source_stream_type<0) {
+			//if destination type is known (>=0 and NOT file, inherit it
+			//otherwise, we we can't filter out yet
+			if ((dst_stream_type>0) && (dst_stream_type != GF_STREAM_FILE))
 				source_stream_type = dst_stream_type;
-			//if source is encrypted type and dest type is set, use dest type
-			if ((source_stream_type==GF_STREAM_ENCRYPTED) && dst_stream_type>0)
-				source_stream_type = dst_stream_type;
-			//if dest is encrypted type and source type is set, use source type
-			if ((dst_stream_type==GF_STREAM_ENCRYPTED) && source_stream_type>0)
-				dst_stream_type = source_stream_type;
+		}
+		//inherit source type if not specified
+		if (!source_stream_type && dst_stream_type>0)
+			source_stream_type = dst_stream_type;
+		//if source is encrypted type and dest type is set, use dest type
+		if ((source_stream_type==GF_STREAM_ENCRYPTED) && dst_stream_type>0)
+			source_stream_type = dst_stream_type;
+		//if dest is encrypted type and source type is set, use source type
+		if ((dst_stream_type==GF_STREAM_ENCRYPTED) && source_stream_type>0)
+			dst_stream_type = source_stream_type;
 
-			//if stream types are know (>0) and not source files, do not mark the edges if they mismatch
-			//moving from non-file type A to non-file type B requires an explicit filter
-			if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type)) {
-				continue;
-			}
+		//if stream types are know (>0) and not source files, do not mark the edges if they mismatch
+		//moving from non-file type A to non-file type B requires an explicit filter
+		if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type)) {
+			edge->status = EDGE_STATUS_DISABLED;
+			continue;
+		}
 
-			if (gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1, source_stream_type)) {
-				edge->status = EDGE_STATUS_ENABLED;
-			}
+		res = gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1, source_stream_type, reg_desc);
+		//if subgraph matches our source reg, mark the edge towards this subgraph as enabled
+		if (res==1) {
+			edge->status = EDGE_STATUS_ENABLED;
+			enable_graph = GF_TRUE;
+		}
+		//if sub-graph below is too deep, don't mark the edge since we might need to resolve it again with a shorter subgraph
+		else if (res==2) {
+			aborted_graph_too_deep = GF_TRUE;
+		}
+		//otherwise the subgraph doesn't match our source reg, mark as disaled and never test again
+		else if (res==0) {
+			edge->status = EDGE_STATUS_DISABLED;
 		}
 	}
-	return GF_TRUE;
+	reg_desc->in_edges_enabling = 0;
+	//we had enabled edges, the subgraph is valid
+	if (enable_graph) return 1;
+	//we aborted because too deep, indicate it to the caller so that the edge is not disabled
+	if (aborted_graph_too_deep) return 2;
+	//disable subgraph
+	return 0;
 }
 
 
@@ -2210,9 +2254,14 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//reset node state
 		reg_desc->destination = NULL;
 		reg_desc->cap_idx = 0;
-		reg_desc->edges_marked_rlevel = fsess->max_resolve_chain_len;
+		reg_desc->in_edges_enabling = 0;
 		reg_desc->dist = -1;
 		reg_desc->priority = 0xFF;
+		//reset edge status
+		for (j=0; j<reg_desc->nb_edges; j++) {
+			GF_FilterRegEdge *edge = &reg_desc->edges[j];
+			edge->status = EDGE_STATUS_NONE;
+		}
 
 		//remember our source descriptor - it may be absent of the final node set in case we want reconfigurable only filters
 		//and the source is not reconfigurable
@@ -2295,7 +2344,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst);
 	reg_dst->dist = 0;
 	reg_dst->priority = 0;
-	reg_dst->edges_marked_rlevel = fsess->max_resolve_chain_len;
+	reg_dst->in_edges_enabling = 0;
 
 	//enable edges of destination, potentially disabling edges from source filters to dest
 	for (i=0; i<reg_dst->nb_edges; i++) {
@@ -2307,9 +2356,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			u8 priority=0;
 			u32 dst_bundle_idx;
 			path_weight = gf_filter_pid_caps_match(pid, dst->freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, -1);
-			if (!path_weight)
+			if (!path_weight) {
+				edge->status = EDGE_STATUS_DISABLED;
 				continue;
-
+			}
 			if (dst_bundle_idx != edge->dst_cap_idx) {
 				edge->status = EDGE_STATUS_DISABLED;
 				continue;
@@ -2324,7 +2374,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//enable edge and propagate down the graph
 		edge->status = EDGE_STATUS_ENABLED;
 
-		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1, edge->src_stream_type);
+		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1, edge->src_stream_type, reg_dst);
 	}
 
 	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
