@@ -587,7 +587,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(pcr), "dumps M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(speed), "sets playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(testmode), "skips URL/path dump, file size and decoder config (used for hashing encoding results)", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(testmode), "skips URL/path dump, file size and decoder config (used for hashing encoding results)", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
