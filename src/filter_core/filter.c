@@ -748,84 +748,107 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		u32 len;
 		Bool found=GF_FALSE;
 		char *escaped = NULL;
+		Bool opaque_arg = GF_FALSE;
 		Bool absolute_url = GF_FALSE;
 		Bool internal_url = GF_FALSE;
-		//look for our arg separator
-		char *sep = strchr(args, filter->session->sep_args);
+		char *sep = NULL;
 
-		if (filter->session->sep_args == ':') {
-			while (sep && !strncmp(sep, "://", 3)) {
-				absolute_url = GF_TRUE;
-				//filter internal url schemes
-				if ((!strncmp(args, szSrc, 4) || !strncmp(args, szDst, 4) ) &&
-					(!strncmp(args+4, "video://", 8)
-					|| !strncmp(args+4, "audio://", 8)
-					|| !strncmp(args+4, "av://", 5)
-					|| !strncmp(args+4, "gmem://", 7)
-					|| !strncmp(args+4, "gpac://", 7)
-					|| !strncmp(args+4, "pipe://", 7)
-					|| !strncmp(args+4, "tcpu://", 7)
-					|| !strncmp(args+4, "udpu://", 7)
-					|| !strncmp(args+4, "atsc://", 7)
-					)
-				) {
-					internal_url = GF_TRUE;
-					sep = strchr(sep+3, ':');
-
-				} else {
-					//get root /
-					sep = strchr(sep+3, '/');
-					//get first : after root
-					if (sep) sep = strchr(sep+1, ':');
-				}
+		//look for our arg separator - if arg[0] is also a separator, consider the entire string until next double sep as the parameter
+		if (args[0] != filter->session->sep_args)
+			sep = strchr(args, filter->session->sep_args);
+		else {
+			while (args[0] == filter->session->sep_args) {
+				args++;
 			}
+			sep = (char *) args + 1;
+			while (1) {
+				sep = strchr(sep, filter->session->sep_args);
+				if (!sep) break;
+				if (sep && (sep[1]==filter->session->sep_args)) {
+					break;
+				}
+				sep = sep+1;
+			}
+			opaque_arg = GF_TRUE;
+		}
 
-			//watchout for "C:\\" or "C:/"
-			while (sep && (sep[1]=='\\' || sep[1]=='/')) {
-				sep = strchr(sep+1, ':');
+		if (!opaque_arg) {
+
+			if (filter->session->sep_args == ':') {
+				while (sep && !strncmp(sep, "://", 3)) {
+					absolute_url = GF_TRUE;
+					//filter internal url schemes
+					if ((!strncmp(args, szSrc, 4) || !strncmp(args, szDst, 4) ) &&
+						(!strncmp(args+4, "video://", 8)
+						|| !strncmp(args+4, "audio://", 8)
+						|| !strncmp(args+4, "av://", 5)
+						|| !strncmp(args+4, "gmem://", 7)
+						|| !strncmp(args+4, "gpac://", 7)
+						|| !strncmp(args+4, "pipe://", 7)
+						|| !strncmp(args+4, "tcpu://", 7)
+						|| !strncmp(args+4, "udpu://", 7)
+						|| !strncmp(args+4, "atsc://", 7)
+						)
+					) {
+						internal_url = GF_TRUE;
+						sep = strchr(sep+3, ':');
+
+					} else {
+						//get root /
+						sep = strchr(sep+3, '/');
+						//get first : after root
+						if (sep) sep = strchr(sep+1, ':');
+					}
+				}
+
+				//watchout for "C:\\" or "C:/"
+				while (sep && (sep[1]=='\\' || sep[1]=='/')) {
+					sep = strchr(sep+1, ':');
+				}
+				if (sep) {
+					char *prev = sep-3;
+					if (prev[0]=='T') {}
+					else if (prev[1]=='T') { prev ++; }
+					else { prev = NULL; }
+
+					if (prev) {
+						//assume date Th:m:s or Th:mm:s or Thh:m:s or Thh:mm:s
+						if ((prev[2] == ':') && (prev[4] == ':')) sep = strchr(prev+5, ':');
+						else if ((prev[2] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
+						else if ((prev[3] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
+						else if ((prev[3] == ':') && (prev[6] == ':')) sep = strchr(prev+7, ':');
+					}
+				}
 			}
 			if (sep) {
-				char *prev = sep-3;
-				if (prev[0]=='T') {}
-				else if (prev[1]=='T') { prev ++; }
-				else { prev = NULL; }
+				escaped = strstr(sep, szEscape);
+				if (escaped) sep = escaped;
+			}
 
-				if (prev) {
-					//assume date Th:m:s or Th:mm:s or Thh:m:s or Thh:mm:s
-					if ((prev[2] == ':') && (prev[4] == ':')) sep = strchr(prev+5, ':');
-					else if ((prev[2] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
-					else if ((prev[3] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
-					else if ((prev[3] == ':') && (prev[6] == ':')) sep = strchr(prev+7, ':');
+			if (sep && !strncmp(args, szSrc, 4) && !escaped && absolute_url && !internal_url) {
+				Bool file_exists;
+				sep[0]=0;
+				if (!strcmp(args+4, "null")) file_exists = GF_TRUE;
+				else if (!strncmp(args+4, "tcp://", 6)) file_exists = GF_TRUE;
+				else if (!strncmp(args+4, "udp://", 6)) file_exists = GF_TRUE;
+				else file_exists = gf_file_exists(args+4);
+
+				if (!file_exists) {
+					char *fsep = strchr(args+4, filter->session->sep_frag);
+					if (fsep) {
+						fsep[0] = 0;
+						file_exists = gf_file_exists(args+4);
+						fsep[0] = filter->session->sep_frag;
+					}
+				}
+				sep[0]= filter->session->sep_args;
+				if (!file_exists) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Non-escaped argument pattern \"%s\" in src %s, assuming arguments are part of source URL. Use src=PATH:gpac:ARGS to differentiate, or change separators\n", sep, args));
+					sep = NULL;
 				}
 			}
 		}
-		if (sep) {
-			escaped = strstr(sep, szEscape);
-			if (escaped) sep = escaped;
-		}
 
-		if (sep && !strncmp(args, szSrc, 4) && !escaped && absolute_url && !internal_url) {
-			Bool file_exists;
-			sep[0]=0;
-			if (!strcmp(args+4, "null")) file_exists = GF_TRUE;
-			else if (!strncmp(args+4, "tcp://", 6)) file_exists = GF_TRUE;
-			else if (!strncmp(args+4, "udp://", 6)) file_exists = GF_TRUE;
-			else file_exists = gf_file_exists(args+4);
-
-			if (!file_exists) {
-				char *fsep = strchr(args+4, filter->session->sep_frag);
-				if (fsep) {
-					fsep[0] = 0;
-					file_exists = gf_file_exists(args+4);
-					fsep[0] = filter->session->sep_frag;
-				}
-			}
-			sep[0]= filter->session->sep_args;
-			if (!file_exists) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Non-escaped argument pattern \"%s\" in src %s, assuming arguments are part of source URL. Use src=PATH:gpac:ARGS to differentiate, or change separators\n", sep, args));
-				sep = NULL;
-			}
-		}
 
 		//escape some XML inputs
 		if (sep) {
