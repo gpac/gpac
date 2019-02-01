@@ -3313,7 +3313,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
-	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_init", NULL, GF_TRUE);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE);
 }
 
 
