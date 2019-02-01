@@ -831,6 +831,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			gf_list_add(ipco->other_boxes, auxC);
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
 		}
+		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 	}
 }
 
