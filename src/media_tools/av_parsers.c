@@ -8326,7 +8326,7 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 	bsid = gf_bs_read_int(bs, 5);
 	bsmod = gf_bs_read_int(bs, 3);
 	ac3_mod = gf_bs_read_int(bs, 3);
-	if (frmsizecod >=  sizeof(ac3_sizecod_to_bitrate) / sizeof(u32))
+	if (frmsizecod >= 2 * sizeof(ac3_sizecod_to_bitrate) / sizeof(u32))
 		return GF_FALSE;
 
 	hdr->bitrate = ac3_sizecod_to_bitrate[frmsizecod / 2];
@@ -8334,19 +8334,19 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 
 	switch (fscod) {
 	case 0:
-		if (frmsizecod / 2 >=  sizeof(ac3_sizecod0_to_framesize) / sizeof(u32))
+		if (frmsizecod >=  2 * sizeof(ac3_sizecod0_to_framesize) / sizeof(u32))
 			return GF_FALSE;
 		freq = 48000;
 		framesize = ac3_sizecod0_to_framesize[frmsizecod / 2] * 2;
 		break;
 	case 1:
-		if (frmsizecod / 2 >=  sizeof(ac3_sizecod1_to_framesize) / sizeof(u32))
+		if (frmsizecod >= 2 * sizeof(ac3_sizecod1_to_framesize) / sizeof(u32))
 			return GF_FALSE;
 		freq = 44100;
 		framesize = (ac3_sizecod1_to_framesize[frmsizecod / 2] + (frmsizecod & 0x1)) * 2;
 		break;
 	case 2:
-		if (frmsizecod / 2 >=  sizeof(ac3_sizecod2_to_framesize) / sizeof(u32))
+		if (frmsizecod >= 2 * sizeof(ac3_sizecod2_to_framesize) / sizeof(u32))
 			return GF_FALSE;
 		freq = 32000;
 		framesize = ac3_sizecod2_to_framesize[frmsizecod / 2] * 2;
@@ -8365,7 +8365,7 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 		hdr->fscod = fscod;
 		hdr->brcode = frmsizecod / 2;
 	}
-	if (ac3_mod / 2 >=  sizeof(ac3_mod_to_chans) / sizeof(u32))
+	if (ac3_mod >= 2 * sizeof(ac3_mod_to_chans) / sizeof(u32))
 		return GF_FALSE;
 
 	hdr->channels = ac3_mod_to_chans[ac3_mod];
