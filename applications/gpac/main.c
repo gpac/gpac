@@ -28,6 +28,7 @@
 #include <time.h>
 
 static GF_SystemRTInfo rti;
+static GF_FilterSession *session=NULL;
 static u32 list_filters = 0;
 static Bool dump_stats = GF_FALSE;
 static Bool dump_graph = GF_FALSE;
@@ -562,6 +563,25 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	return GF_TRUE;
 }
 
+#ifdef WIN32
+#include <windows.h>
+static BOOL WINAPI gpac_sig_handler(DWORD sig)
+{
+	if (sig == CTRL_C_EVENT) {
+#else
+static void gpac_sig_handler(int sig)
+{
+	if (sig == SIGINT) {
+#endif
+		fprintf(stderr, "catched SIGINT, flushing session and exit\n");
+		nb_loops = 0;
+		if (session) gf_fs_abort(session, GF_TRUE);
+	}
+#ifdef WIN32
+	return TRUE;
+#endif
+}
+
 static void parse_sep_set(const char *arg, Bool *override_seps)
 {
 	if (!arg) return;
@@ -620,12 +640,12 @@ static int gpac_main(int argc, char **argv)
 	u32 nb_filters = 0;
 	Bool nothing_to_do = GF_TRUE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
-	GF_FilterSession *session;
 	char *view_conn_for_filter = NULL;
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
+	GF_FilterSession *tmp_sess;
 	u32 loops_done = 0;
 
 	//look for mem track and profile, and also process all helpers
@@ -945,6 +965,13 @@ restart:
 		}
 		gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
 	}
+	if (!enable_prompt) {
+#ifdef WIN32
+		SetConsoleCtrlHandler((PHANDLER_ROUTINE)gpac_sig_handler, TRUE);
+#else
+		signal(SIGINT, gpac_sig_handler);
+#endif
+	}
 	e = gf_fs_run(session);
 	if (e>0) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(session);
@@ -959,7 +986,9 @@ exit:
 	if (dump_graph)
 		gf_fs_print_connections(session);
 
-	gf_fs_del(session);
+	tmp_sess = session;
+	session = NULL;
+	gf_fs_del(tmp_sess);
 	if (loaded_filters) gf_list_del(loaded_filters);
 
 	if (!e && nb_loops) {
