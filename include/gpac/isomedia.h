@@ -2509,6 +2509,8 @@ typedef struct
 	double time;
 	char iccPath[GF_MAX_PATH];
 	Bool alpha;
+	u8 num_channels;
+	u8 bits_per_channel[3];
 } GF_ImageItemProperties;
 
 GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 *item_id);
