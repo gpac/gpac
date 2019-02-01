@@ -209,6 +209,8 @@ enum
 	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
 	/*! imports sample dependencies information*/
 	GF_IMPORT_SAMPLE_DEPS  = 1<<29,
+	/*! when set a default ccst box is used in the sample entry */
+	GF_IMPORT_USE_CCST  = 1<<30,
 
 	/*! print filter session stats at the end of the import*/
 	GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)

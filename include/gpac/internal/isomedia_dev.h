@@ -1115,6 +1115,7 @@ typedef struct
 	s16 color_table_index;				\
 	GF_PixelAspectRatioBox *pasp;		\
 	GF_CleanAppertureBox *clap;		\
+	GF_CodingConstraintsBox *ccst;		\
 	struct __tag_protect_box *rinf;				\
 	GF_RVCConfigurationBox *rvcc;		\
 

@@ -158,6 +158,7 @@ typedef struct
 	Bool fdur;
 	Bool btrt;
 	Bool ssix;
+	Bool ccst;
 	s32 mediats;
 	GF_AudioSampleEntryImportMode ase;
 
@@ -652,6 +653,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		tkw->track_id = gf_isom_get_track_id(ctx->file, tkw->track_num);
 		tkw->next_is_first_sample = GF_TRUE;
 		gf_isom_set_track_enabled(ctx->file, tkw->track_num, 1);
+
+		//if we have a subtype set for the pid, use it
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
+		if (p) gf_isom_set_media_type(ctx->file, tkw->track_num, p->value.uint);
+
 		//by default use cttsv1 (negative ctts)
 		gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
 
@@ -1648,6 +1654,10 @@ multipid_stsd_setup:
 				mp4_mux_setup_pid(filter, a_ipid, GF_FALSE);
 			}
 		}
+	}
+
+	if (width && ctx->ccst) {
+		gf_isom_set_image_sequence_coding_constraints(ctx->file, tkw->track_num, tkw->stsd_idx, GF_FALSE, GF_FALSE, GF_TRUE, 15);
 	}
 
 sample_entry_done:
@@ -3515,6 +3525,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			"\tv1qt: use v1 signaling, QTFF style\n"\
 		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
 	{ OFFS(ssix), "creates ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}

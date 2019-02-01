@@ -450,6 +450,7 @@ void PrintImportUsage()
 	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
 	        " \":deps\"              import sample dependency information for AVC and HEVC\n"
+	        " \":ccst\"              adds default HEIF ccst box to visual sample entry\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
 	        " \":xps_inband\"        Sets xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
@@ -763,8 +764,9 @@ void PrintMetaUsage()
 		"						 time=t				uses the next sync sample after time t (float, in sec, default 0)\n"
 		"						 split_tiles		for an HEVC tiled image, each tile is stored as a separate item\n"
 		"                        rotation=a       sets the rotation angle for this image to 90*a degrees anti-clockwise.\n"
-		"                        image-hidden       indicates that this image item should be hidden.\n"
+		"                        hidden             indicates that this image item should be hidden.\n"
 		"                        icc_path           path to icc to add as colr.\n"
+		"                        alpha            indicates that the image is an alpha image (should use ref=auxl also).\n"
 		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
 		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
 		" -set-xml args        sets meta XML data\n"
@@ -1346,11 +1348,18 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->angle = atoi(szSlot+9);
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "hidden", 6)) {
+		else if (!stricmp(szSlot, "hidden")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
 			meta->image_props->hidden = GF_TRUE;
+			ret = 1;
+		}
+		else if (!stricmp(szSlot, "alpha")) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			meta->image_props->alpha = GF_TRUE;
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {
@@ -1360,18 +1369,18 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->time = atof(szSlot+5);
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "split_tiles", 11)) {
+		else if (!stricmp(szSlot, "split_tiles")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
 			meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "dref", 4)) {
+		else if (!stricmp(szSlot, "dref")) {
 			meta->use_dref = 1;
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "primary", 7)) {
+		else if (!stricmp(szSlot, "primary")) {
 			meta->primary = 1;
 			ret = 1;
 		}
@@ -4817,39 +4826,40 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 			break;
 		case META_ACTION_ADD_IMAGE_ITEM:
-			{
-				e = import_file(file, meta->szPath, 0, 0, 0);
+		{
+			u32 old_tk_count = gf_isom_get_track_count(file);
+			e = import_file(file, meta->szPath, 0, 0, 0);
+			if (e == GF_OK) {
+				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
+				if (!meta_type) {
+					e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_META_ITEM_TYPE_PICT);
+				} else {
+					if (meta_type != GF_META_ITEM_TYPE_PICT) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: file already has a root 'meta' box of type %s\n", gf_4cc_to_str(meta_type)));
+						e = GF_BAD_PARAM;
+					}
+				}
 				if (e == GF_OK) {
-					u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
-					if (!meta_type) {
-						e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_META_ITEM_TYPE_PICT);
-					} else {
-						if (meta_type != GF_META_ITEM_TYPE_PICT) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: file already has a root 'meta' box of type %s\n", gf_4cc_to_str(meta_type)));
-							e = GF_BAD_PARAM;
-						}
+					if (!meta->item_id) {
+						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						if (!meta->item_id) {
-							e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
+						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
+								strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props, NULL);
+						if (e == GF_OK && meta->primary) {
+							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}
-						if (e == GF_OK) {
-							e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
-									strlen(meta->szName) ? meta->szName : NULL,
-									meta->item_id,
-									meta->image_props, NULL);
-							if (e == GF_OK && meta->primary) {
-								e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
-							}
-							if (e == GF_OK && meta->ref_type) {
-								e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
-							}
+						if (e == GF_OK && meta->ref_type) {
+							e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
 						}
 					}
 				}
-				gf_isom_remove_track(file, 1);
-				needSave = GF_TRUE;
 			}
+			gf_isom_remove_track(file, old_tk_count+1);
+			needSave = GF_TRUE;
+		}
 			break;
 		case META_ACTION_REM_ITEM:
 			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);

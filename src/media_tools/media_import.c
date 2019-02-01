@@ -603,7 +603,13 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 	}
 	gf_media_update_bitrate_ex(import->dest, track, GF_TRUE);
-	
+	if (mtype == GF_ISOM_MEDIA_VISUAL) {
+		if (import->flags & GF_IMPORT_USE_CCST) {
+			e = gf_isom_set_image_sequence_coding_constraints(import->dest, track, di, GF_FALSE, GF_FALSE, GF_TRUE, 15);
+			if (e) goto exit;
+		}
+	}
+
 exit:
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, cur_extract_mode);
@@ -1096,6 +1102,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { DYNSTRCAT("ase=v0s"); }
 		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { DYNSTRCAT("ase=v1"); }
 		else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { DYNSTRCAT("ase=v1qt"); }
+
+		if (importer->flags & GF_IMPORT_USE_CCST) {DYNSTRCAT("ccst"); }
 
 		isobmff_mux = gf_fs_load_filter(fsess, args);
 		gf_free(args);
