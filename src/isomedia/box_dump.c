@@ -633,6 +633,8 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 		gf_isom_box_array_dump(p->protections, trace);
 	}
 	if (p->pasp) gf_isom_box_dump(p->pasp, trace);
+	if (p->clap) gf_isom_box_dump(p->clap, trace);
+	if (p->ccst) gf_isom_box_dump(p->ccst, trace);
 	if (p->rvcc) gf_isom_box_dump(p->rvcc, trace);
 	if (p->rinf) gf_isom_box_dump(p->rinf, trace);
 
