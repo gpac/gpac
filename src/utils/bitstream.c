@@ -645,6 +645,7 @@ void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 GF_EXPORT
 void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 {
+	if (!nBits) return;
 	if (nBits>64) {
 		gf_bs_write_int(bs, 0, nBits-64);
 		gf_bs_write_long_int(bs, _value, 64);
