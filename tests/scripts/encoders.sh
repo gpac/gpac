@@ -88,7 +88,7 @@ test_encoder "mpeg2-ffenc" $MEDIA_DIR/auxiliary_files/enst_video.h264 "test.m2v"
 
 #test AVC encode
 if [ -n "$x264ff" ] ; then
-test_encoder "avc-ffenc" $MEDIA_DIR/auxiliary_files/count_video.cmp "test.264" "" "-blacklist=vtbdec,nvdec,ohevcdec" ""
+test_encoder "avc-ffenc" $MEDIA_DIR/auxiliary_files/count_video.cmp "test.264" "" "-blacklist=vtbdec,nvdec,ohevcdec" "::x264-params=no-mbtree:sync-lookahead=0::profile=baseline"
 fi
 
 #test MJ2 encode - we need to explicetly add the encoder, since the isom muxer can accept any input
