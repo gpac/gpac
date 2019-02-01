@@ -835,6 +835,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->in_pid) return GF_REQUIRES_NEW_INSTANCE;
 	}
 
+	codec_id = 0;
 	if (ctx->codecid) {
 		codec_id = ffmpeg_codecid_from_gpac(ctx->codecid);
 		if (codec_id) {
@@ -850,6 +851,10 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Cannot find encoder for codec %s\n", gf_codecid_name(ctx->codecid) ));
 		return GF_NOT_SUPPORTED;
 	}
+	codec_id = codec->id;
+	if (!ctx->codecid)
+		ctx->codecid = ffmpeg_codecid_to_gpac(codec->id);
+
 	fftype = ffmpeg_stream_type_to_gpac(codec->type);
 	if (fftype != type) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFEnc] Mismatch between stream type, codec indicates %s but source type is %s\n", gf_stream_type_name(fftype), gf_stream_type_name(type) ));
