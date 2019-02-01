@@ -4920,39 +4920,40 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 			break;
 		case META_ACTION_ADD_IMAGE_ITEM:
-			{
-				e = import_file(file, meta->szPath, 0, 0, 0);
+		{
+			u32 old_tk_count = gf_isom_get_track_count(file);
+			e = import_file(file, meta->szPath, 0, 0, 0);
+			if (e == GF_OK) {
+				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
+				if (!meta_type) {
+					e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_META_ITEM_TYPE_PICT);
+				} else {
+					if (meta_type != GF_META_ITEM_TYPE_PICT) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: file already has a root 'meta' box of type %s\n", gf_4cc_to_str(meta_type)));
+						e = GF_BAD_PARAM;
+					}
+				}
 				if (e == GF_OK) {
-					u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
-					if (!meta_type) {
-						e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_META_ITEM_TYPE_PICT);
-					} else {
-						if (meta_type != GF_META_ITEM_TYPE_PICT) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: file already has a root 'meta' box of type %s\n", gf_4cc_to_str(meta_type)));
-							e = GF_BAD_PARAM;
-						}
+					if (!meta->item_id) {
+						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						if (!meta->item_id) {
-							e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
+						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
+								strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props, NULL);
+						if (e == GF_OK && meta->primary) {
+							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}
-						if (e == GF_OK) {
-							e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
-									strlen(meta->szName) ? meta->szName : NULL,
-									meta->item_id,
-									meta->image_props, NULL);
-							if (e == GF_OK && meta->primary) {
-								e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
-							}
-							if (e == GF_OK && meta->ref_type) {
-								e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
-							}
+						if (e == GF_OK && meta->ref_type) {
+							e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
 						}
 					}
 				}
-				gf_isom_remove_track(file, 1);
-				needSave = GF_TRUE;
 			}
+			gf_isom_remove_track(file, old_tk_count+1);
+			needSave = GF_TRUE;
+		}
 			break;
 		case META_ACTION_REM_ITEM:
 			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);

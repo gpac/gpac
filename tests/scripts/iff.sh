@@ -63,4 +63,11 @@ do_test "$MP4BOX -add-image $COUNTERFILE:split_tiles:primary -ab heic -new $iff_
 do_hash_test $iff_tile_file "create-iff-tiled"
 do_test "$MP4BOX -diso $iff_tile_file" "diso-iff-tiled"
 
+#test pict video handler + add image
+iff_file="$TEMP_DIR/vidseq.heic"
+do_test "$MP4BOX -add $COUNTERFILE:hdlr=pict -ab heic -new $iff_file" "create-pict-heif"
+do_hash_test $iff_file "create-pict-heif"
+do_test "$MP4BOX -add-image $COUNTERFILE:primary $iff_file" "add-image-pict"
+do_hash_test $iff_file "add-image-pict"
+
 test_end
