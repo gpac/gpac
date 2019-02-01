@@ -39,19 +39,37 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Cannot notify scheduler of new task, semaphore failure\n"));
 			}
 		} else {
+			u32 nb_tasks;
 			//if not main and no tasks in main list, this could be the last task to process.
 			//if main thread is sleeping force a wake to take further actions (only the main thread decides the exit)
 			if (!main && !gf_fq_count(fsess->main_thread_tasks) && fsess->in_main_sem_wait) {
 				gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 			}
+			nb_tasks = 1;
+			//no active threads, count number of tasks. If no posted tasks we are likely at the end of the session, don't block, rather use a sem_wait 
+			if (!fsess->active_threads)
+			 	nb_tasks = gf_fq_count(fsess->main_thread_tasks) + gf_fq_count(fsess->tasks);
+
 			//if main semaphore, keep track that we are going to sleep
 			if (main) {
 				fsess->in_main_sem_wait = GF_TRUE;
-				if (gf_sema_wait(sem)) {
+				if (!nb_tasks) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("No tasks scheduled, waiting on main semaphore for at most 100 ms\n"));
+					if (gf_sema_wait_for(sem, 100)) {
+					}
+				} else {
+					if (gf_sema_wait(sem)) {
+					}
 				}
 				fsess->in_main_sem_wait = GF_FALSE;
 			} else {
-				if (gf_sema_wait(sem)) {
+				if (!nb_tasks) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("No tasks scheduled, waiting on secondary semaphore for at most 100 ms\n"));
+					if (gf_sema_wait_for(sem, 100)) {
+					}
+				} else {
+					if (gf_sema_wait(sem)) {
+					}
 				}
 			}
 		}
@@ -625,6 +643,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 			gf_fq_add(fsess->main_thread_tasks, task);
 			gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 		} else {
+			assert(task->run_task);
 			gf_fq_add(fsess->tasks, task);
 			gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
 		}
@@ -820,6 +839,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 	gf_rmt_begin(fs_thread, 0);
 
+	safe_int_inc(&fsess->active_threads);
+
 	while (1) {
 		Bool notified;
 		Bool requeue = GF_FALSE;
@@ -839,6 +860,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 #endif
 
+		safe_int_dec(&fsess->active_threads);
+
 		if (do_use_sema && (current_filter==NULL)) {
 			gf_rmt_begin(sema_wait, GF_RMT_AGGREGATE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d Waiting scheduler %s semaphore\n", sys_thid, use_main_sema ? "main" : "secondary"));
@@ -847,6 +870,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			consecutive_filter_tasks = 0;
 			gf_rmt_end();
 		}
+		safe_int_inc(&fsess->active_threads);
 
 
 		active_start = gf_sys_clock_high_res();
@@ -964,6 +988,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				//no filter, just reschedule the task
 				if (!current_filter) {
 					next = gf_fq_head(fsess->tasks);
+					assert(task->run_task);
 					gf_fq_add(fsess->tasks, task);
 					if (next) {
 						if (next->schedule_next_time <= (u64) now) {
@@ -1082,6 +1107,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							if (do_use_sema) {
 								gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
 							}
+							assert(task->run_task);
 							gf_fq_add(fsess->tasks, task);
 						}
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: releasing current filter %s\n", sys_thid, current_filter->name));
@@ -1207,6 +1233,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				if (task->filter && (task->filter->freg->flags & GF_FS_REG_MAIN_THREAD)) {
 					gf_fq_add(fsess->main_thread_tasks, task);
 				} else {
+					assert(task->run_task);
 					gf_fq_add(fsess->tasks, task);
 				}
 				if (do_use_sema)
