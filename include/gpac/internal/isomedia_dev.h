@@ -1096,6 +1096,7 @@ typedef struct
 	struct __tag_protect_box *rinf;				\
 	GF_RVCConfigurationBox *rvcc;		\
 
+
 typedef struct
 {
 	GF_ISOM_VISUAL_SAMPLE_ENTRY
