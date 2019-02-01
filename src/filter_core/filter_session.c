@@ -1187,9 +1187,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			consecutive_filter_tasks++;
 
 			gf_mx_p(current_filter->tasks_mx);
-
-			//if requeue request and stream reset pending (we must exit the filter task loop for the reset task to pe processed)
-			if ((requeue && current_filter->stream_reset_pending)
+			//if last task
+			if ( (gf_fq_count(current_filter->tasks)==1)
+				//if requeue request and stream reset pending (we must exit the filter task loop for the reset task to pe processed)
+				|| (requeue && current_filter->stream_reset_pending)
 				//or requeue request and pid swap pending (we must exit the filter task loop for the swap task to pe processed)
 				|| (requeue && (current_filter->swap_pidinst_src ||  current_filter->swap_pidinst_dst) )
 				//or requeue request and pid detach / cap negotiate pending
