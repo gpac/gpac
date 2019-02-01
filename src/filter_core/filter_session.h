@@ -261,8 +261,6 @@ struct __gf_fs_task
 	//some tasks may not increment that counter (eg when requeued to a filer), so this simplifies
 	//decrementing the counter
 	Bool notified;
-	//set for tasks that have been requeued (i.e. no longer present in filter task list)
-	Bool in_main_task_list_only;
 	Bool requeue_request;
 	Bool can_swap;
 

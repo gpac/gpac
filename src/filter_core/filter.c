@@ -1850,9 +1850,10 @@ void gf_filter_remove_task(GF_FSTask *task)
 	}
 
 	assert(f->finalized);
-	if (task->in_main_task_list_only) count++;
+
 	if (count!=1) {
 		task->requeue_request = GF_TRUE;
+		task->can_swap = GF_TRUE;
 		count = gf_fq_count(f->tasks);
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destroy postponed, tasks remaining in filer %d:\n", f->name, count));
 		for (u32 i=0; i<count; i++) {
@@ -1864,10 +1865,8 @@ void gf_filter_remove_task(GF_FSTask *task)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
 
 	//avoid destruction of the task
-	if (!task->in_main_task_list_only) {
-		gf_fq_pop(f->tasks);
-	}
-
+	gf_fq_pop(f->tasks);
+	
 	if (f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)
 		f->freg->finalize(f);
