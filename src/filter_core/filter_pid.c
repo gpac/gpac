@@ -672,7 +672,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		else if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
-			if (filter->has_out_caps) {
+			if (filter->session->flags & GF_FS_FLAG_NO_REASSIGN) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter reassignment disabled, skippping chain reload for filter %s PID %s\n", pid->filter->name, pid->name ));
+				filter->session->last_connect_error = e;
+			} else if (filter->has_out_caps) {
 				Bool unload_filter = GF_TRUE;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Blacklisting %s as output from %s and retrying connections\n", filter->name, pid->filter->name));
 				//try to load another filter to handle that connection
@@ -3260,9 +3263,13 @@ single_retry:
 		goto restart;
 	}
 	if ((num_pass==1) && can_reassign_filter) {
-		num_pass = 2;
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter, trying source reassignment\n", pid->name, pid->filter->name));
-		goto restart;
+		if (filter->session->flags & GF_FS_FLAG_NO_REASSIGN) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID %s in filter %s not connected, source reassignment was possible but is disabled\n", pid->name, pid->filter->name));
+		} else {
+			num_pass = 2;
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter, trying source reassignment\n", pid->name, pid->filter->name));
+			goto restart;
+		}
 	}
 
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
