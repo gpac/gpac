@@ -65,7 +65,7 @@ static void test_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 	PIDCtx *stack = (PIDCtx *) gf_filter_pid_get_udta(pid);
 	stack->pck_del++;
 	assert(stack->nb_packets >= stack->pck_del);
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: Packet deleted - %d out there (%d sent %d destroyed)\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del, stack->nb_packets, stack->pck_del));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("%s: Packet deleted - %d out there (%d sent %d destroyed)\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del, stack->nb_packets, stack->pck_del));
 }
 
 
@@ -160,7 +160,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 			return GF_OK;
 
 		if ((stack-> max_out>=0) && (pidctx->nb_packets - pidctx->pck_del >= (u32) stack->max_out) ) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSource: No packets to emit, waiting for destruction\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("TestSource: No packets to emit, waiting for destruction\n"));
 			return GF_OK;
 		}
 	}
@@ -259,7 +259,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		}
 
 		if ((stack->max_out>=0) && (pidctx->nb_packets - pidctx->pck_del >= (u32) stack->max_out) ) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSource: No packets to emit, waiting for destruction\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("TestSource: No packets to emit, waiting for destruction\n"));
 			return GF_OK;
 		}
 		pidctx->nb_packets++;
@@ -273,7 +273,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			pck = gf_filter_pck_new_shared(pidctx->dst_pid, "PacketShared", 12, test_pck_del);
 			gf_sha1_update(pidctx->sha_ctx, "PacketShared", 12);
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSource: pck %d PacketShared\n", pidctx->nb_packets));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("TestSource: pck %d PacketShared\n", pidctx->nb_packets));
 
 		gf_filter_pck_set_cts(pck, pidctx->nb_packets);
 
@@ -405,7 +405,7 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 	gf_sha1_update(pidctx->sha_ctx, (u8*)data, size);
 
 	pidctx->nb_packets++;
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("TestSink: Consuming packet %d bytes\n", size));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("TestSink: Consuming packet %d bytes\n", size));
 
 	dump_properties(pck, pidctx->nb_packets);
 
