@@ -576,10 +576,12 @@ static void gpac_sig_handler(int sig)
 #endif
 		nb_loops = 0;
 		if (session) {
-			char res=0;
+			char input=0;
+			int res;
 			fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
-			scanf("%c", &res);
-			switch (res) {
+			res = scanf("%c", &input);
+			if (res!=1) input=0;
+			switch (input) {
 			case 'Y':
 			case 'y':
 			case '\n':
