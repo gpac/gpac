@@ -574,9 +574,22 @@ static void gpac_sig_handler(int sig)
 {
 	if (sig == SIGINT) {
 #endif
-		fprintf(stderr, "catched SIGINT, flushing session and exit\n");
 		nb_loops = 0;
-		if (session) gf_fs_abort(session, GF_TRUE);
+		if (session) {
+			char res=0;
+			fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
+			scanf("%c", &res);
+			switch (res) {
+			case 'Y':
+			case 'y':
+			case '\n':
+				gf_fs_abort(session, GF_TRUE);
+				break;
+			default:
+				gf_fs_abort(session, GF_FALSE);
+				break;
+			}
+		}
 	}
 #ifdef WIN32
 	return TRUE;
