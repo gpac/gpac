@@ -319,6 +319,7 @@ struct __gf_filter_session
 	GF_FilterQueue *main_thread_tasks;
 	GF_FilterQueue *tasks_reservoir;
 	volatile Bool in_main_sem_wait;
+	volatile u32 active_threads;
 
 	//if more than one thread, this mutex protects access to loaded filters list, to avoid concurrent calls to destruct and
 	//filter testing (graph resolution, update sending, ...)

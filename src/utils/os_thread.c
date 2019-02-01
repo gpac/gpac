@@ -789,12 +789,34 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 		if (!sem_trywait(hSem)) return GF_TRUE;
 		return GF_FALSE;
 	}
+
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_IOS)
+
 	TimeOut += gf_sys_clock();
 	do {
 		if (!sem_trywait(hSem)) return GF_TRUE;
-		gf_sleep(1);
+		//OSX/ios don't support sem_timedwait, so we sleep until the sem is notified or the timeout is done
+		//don't be too greedy, use 5ms sleep
+		//another approach would be to spawn a thread, use sem_wait and send an interrupt on the sema after the timeout ...
+		gf_sleep(5);
 	} while (gf_sys_clock() < TimeOut);
 	return GF_FALSE;
+#else
+	struct timespec tv;
+	u32 secs;
+	if (clock_gettime(CLOCK_REALTIME, &tv) == -1) return GF_FALSE;
+	secs = TimeOut/1000;
+	tv.tv_sec += secs;
+	tv.tv_nsec += (u64) ((TimeOut-secs*1000)) * 1000000;
+	if (tv.tv_nsec>1000000000) {
+		tv.tv_nsec -= 1000000000;
+		tv.tv_sec += 1;
+	}
+	if (!sem_timedwait(hSem, &tv)) return GF_TRUE;
+
+	return GF_FALSE;
+#endif
+
 #endif
 }
 
