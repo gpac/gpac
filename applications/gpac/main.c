@@ -569,6 +569,7 @@ static BOOL WINAPI gpac_sig_handler(DWORD sig)
 {
 	if (sig == CTRL_C_EVENT) {
 #else
+#include <signal.h>
 static void gpac_sig_handler(int sig)
 {
 	if (sig == SIGINT) {
