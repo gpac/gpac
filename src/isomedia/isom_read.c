@@ -2076,7 +2076,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 				return e;
 #endif
 
-			if (nextMediaTime)
+			if (nextMediaTime && (nextMediaTime-1 != movieTime))
 				return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber, data_offset);
 		}
 		return e;
