@@ -822,9 +822,10 @@ void gf_init_global_config(const char *profile)
 	}
 }
 
-void gf_uninit_global_config()
+void gf_uninit_global_config(Bool discard_config)
 {
 	if (gpac_global_config) {
+		if (discard_config) gf_cfg_discard_changes(gpac_global_config);
 		gf_cfg_del(gpac_global_config);
 		gpac_global_config = NULL;
 		gf_modules_del();
@@ -976,6 +977,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "\tsection:key=null or section:key: removes the key\n"\
 	        "\tsection:*=null: removes the section"\
 			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("no-save", NULL, "discards any changes made to the config file upon exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("version", NULL, "sets to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("64bits", NULL, "indicates if GPAC version is 64 bits, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("mod-reload", NULL, "unload / reload module shared libs when no longer used", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),

@@ -707,6 +707,7 @@ static Bool gpac_log_time_start = 0;
 static u64 gpac_last_log_time=0;
 static Bool gpac_log_utc_time = GF_FALSE;
 static Bool gpac_test_mode = GF_FALSE;
+static Bool gpac_discard_config = GF_FALSE;
 
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
@@ -802,6 +803,9 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				if (!quiet) quiet = 1;
 			} else if (!stricmp(arg, "-for-test")) {
 				gpac_test_mode = GF_TRUE;
+			} else if (!stricmp(arg, "-no-save")) {
+				gpac_discard_config = GF_TRUE;
+
 			} else if (gf_opts_load_option(arg, arg_val, &consumed, &e)) {
 				if (e) return e;
 				
@@ -921,7 +925,7 @@ Bool gf_sys_enable_profiling(Bool start)
 }
 
 void gf_init_global_config(const char *profile);
-void gf_uninit_global_config();
+void gf_uninit_global_config(Bool discard_config);
 
 static GF_Config *gpac_lang_file = NULL;
 static const char *gpac_lang_code = NULL;
@@ -1106,7 +1110,7 @@ void gf_sys_close()
 
 		gf_sys_enable_profiling(GF_FALSE);
 		
-		gf_uninit_global_config();
+		gf_uninit_global_config(gpac_discard_config);
 
 		if (gpac_log_file) {
 			gf_fclose(gpac_log_file);
