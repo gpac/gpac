@@ -818,15 +818,13 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(1);
 			}
 
-			gf_opts_set_key(!strcmp(arg, "-alias-doc") ? "gpac.alias" : "gpac.aliasdoc", arg_val, alias_val ? alias_val+1 : NULL);
-
+			gf_opts_set_key(!strcmp(arg, "-alias") ? "gpac.alias" : "gpac.aliasdoc", arg_val, alias_val ? alias_val+1 : NULL);
+			fprintf(stderr, "Set %s for %s to %s\n", arg, arg_val, alias_val ? alias_val+1 : "NULL");
 			if (alias_val) alias_val[0] = ' ';
 			alias_set = GF_TRUE;
 		}
 		else if (!strncmp(arg, "-seps=", 3)) {
 			parse_sep_set(arg_val, &override_seps);
-		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
-			i++;
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
 		} else if (!strcmp(arg, "-k")) {
