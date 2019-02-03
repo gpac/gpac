@@ -275,7 +275,7 @@ static const GF_FilterCapability A52DecCaps[] =
 };
 
 GF_FilterRegister A52DecRegister = {
-	.name = "a52",
+	.name = "a52dec",
 	GF_FS_SET_DESCRIPTION("A52 decoder")
 	.private_size = sizeof(GF_A52DecCtx),
 	SETCAPS(A52DecCaps),
