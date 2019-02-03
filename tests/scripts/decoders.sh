@@ -126,5 +126,5 @@ test_decoder "j2k-ff" $EXTERNAL_MEDIA_DIR/import/logo.jp2 "test.yuv" "-blacklist
 test_decoder "mjp2-ff" $EXTERNAL_MEDIA_DIR/import/speedway.mj2 "test.yuv" "-blacklist=j2kdec" 0
 fi
 
-test_decoder "ac3-a52" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pcm" "-blacklist=ffdec" 0
+test_decoder "ac3-a52" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pcm" "-blacklist=ffdec" 1
 test_decoder "ac3-ff" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pcm" "-blacklist=a52dec" 0
