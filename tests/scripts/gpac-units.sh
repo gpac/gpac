@@ -22,16 +22,72 @@ single_test "$cmd -threads=4 -sched=lock" "$name-locksched"
 }
 
 
-single_test "$GPAC -ltf -h log" "gpac-filter-h-logs"
-single_test "$GPAC -ltf -h doc" "gpac-filter-h-doc"
-single_test "$GPAC -ltf -h props" "gpac-filter-h-props"
-single_test "$GPAC -ltf -h codecs" "gpac-filter-h-codecs"
-single_test "$GPAC -ltf -h links" "gpac-filter-h-links"
-single_test "$GPAC -ltf -h filters" "gpac-filter-h-filters"
-single_test "$GPAC -ltf -h filters:*" "gpac-filter-h-filters-all"
-single_test "$GPAC -ltf -h UTFilter" "gpac-filter-unit-info"
-single_test "$GPAC -ltf -hh mxisom" "gpac-filter-unit-info"
-single_test "$GPAC -ltf -hh core" "gpac-filter-unit-info"
+#coverage
+$GPAC 2> /dev/null
+single_test "$GPAC -h" "gpac-h"
+single_test "$GPAC -hh" "gpac-hh"
+single_test "$GPAC -h bin" "gpac-h-bin"
+single_test "$GPAC -h log" "gpac-h-logs"
+single_test "$GPAC -h doc" "gpac-h-doc"
+single_test "$GPAC -h props" "gpac-h-props"
+single_test "$GPAC -h codecs" "gpac-h-codecs"
+single_test "$GPAC -h alias" "gpac-h-alias"
+single_test "$GPAC -ha alias" "gpac-ha-alias"
+single_test "$GPAC -h links" "gpac-h-links"
+single_test "$GPAC -h links mxisom" "gpac-h-links-single"
+single_test "$GPAC -h filters" "gpac-h-filters"
+single_test 'gpac -h filters:*' "gpac-h-filters-all"
+single_test 'gpac -h *:*' "gpac-h-all"
+single_test 'gpac -h ffdec:*' "gpac-h-subfilters-all"
+single_test "$GPAC -ltf -h UTFilter" "gpac-unit-info"
+single_test "$GPAC -ha mxisom" "gpac-mxisom-ha"
+single_test "$GPAC -hx mxisom" "gpac-mxisom-hx"
+single_test "$GPAC -hh mxisom" "gpac-mxisom-hh"
+single_test "$GPAC -hh core" "gpac-hh-core"
+single_test "$GPAC -mkl=test.unk" "gpac-lang-file"
+rm -f test.unk 2> /dev/null
+
+single_test "$GPAC -seps=123456 -p=myprofile -wc -we -wf -wfx -no-save" "gpac-filter-profile-full"
+
+test_begin "gpac-link-dir"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC  -k -i $MEDIA_DIR/auxiliary_files/logo.jpg @0 inspect:log=$TEMP_DIR/insp.txt @1 -o $TEMP_DIR/test.jpg -stats -graph -runfor=500" "gpac-exec"
+do_hash_test $TEMP_DIR/test.jpg  "gpac-exec"
+do_hash_test $TEMP_DIR/insp.txt  "gpac-inspect"
+fi
+test_end
+
+test_begin "gpac-io-syntax"
+if [ $test_skip != 1 ] ; then
+do_test "$GPAC src=$MEDIA_DIR/auxiliary_files/logo.jpg dst=$TEMP_DIR/test.jpg" "io-syntax1"
+do_hash_test $TEMP_DIR/test.jpg  "io-syntax1"
+
+do_test "$GPAC -src $MEDIA_DIR/auxiliary_files/logo.jpg -dst $TEMP_DIR/test.jpg" "io-syntax2"
+do_hash_test $TEMP_DIR/test.jpg  "io-syntax2"
+fi
+test_end
+
+test_begin "gpac-alias"
+if [ $test_skip != 1 ] ; then
+#test expand
+$GPAC -alias='test src=@{+1:N} inspect'":log=$TEMP_DIR/logs.txt" -aliasdoc='test some doc' 2> /dev/null
+do_test "$GPAC test $MEDIA_DIR/auxiliary_files/logo.jpg $MEDIA_DIR/auxiliary_files/logo.png" "gpac-alias-expand"
+do_hash_test $TEMP_DIR/logs.txt  "inspect-res"
+
+#test regular
+$GPAC -alias='test src=@{1} inspect:log=src=@{N-1}' -aliasdoc='test some doc' 2> /dev/null
+do_test "$GPAC test $MEDIA_DIR/auxiliary_files/logo.jpg -k $TEMP_DIR/logs.txt -loop=2" "gpac-alias-nargs"
+do_hash_test $TEMP_DIR/logs.txt  "inspect-res2"
+
+#test list
+$GPAC -alias='test flist:in=@{-:N-1} inspect:log=src=@{N}' -aliasdoc='test some doc' 2> /dev/null
+do_test "$GPAC threads=-1 test $MEDIA_DIR/auxiliary_files/logo.jpg $MEDIA_DIR/auxiliary_files/logo.png $TEMP_DIR/logs.txt" "gpac-alias-list"
+do_hash_test $TEMP_DIR/logs.txt  "inspect-res3"
+
+fi
+test_end
+
+return
 
 single_test "$GPAC -ltf UTSource:cov UTFilter:cov UTSink:cov" "gpac-filter-dump_props"
 
