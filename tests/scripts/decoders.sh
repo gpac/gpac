@@ -58,6 +58,9 @@ test_decoder "aac-ffdec" $MEDIA_DIR/auxiliary_files/enst_audio.aac "test.pcm" "-
 test_decoder "mp3-maddec" $MEDIA_DIR/auxiliary_files/count_english.mp3 "test.pcm" "-blacklist=ffdec" 1
 test_decoder "mp3-ffdec" $MEDIA_DIR/auxiliary_files/count_english.mp3 "test.pcm" "-blacklist=maddec" 0
 
+#test mp3 decode to wav
+test_decoder "mp3-wav" $MEDIA_DIR/auxiliary_files/count_english.mp3 "test.wav" "-blacklist=maddec" 0
+
 #test h264 decode to raw using ffmpeg
 test_decoder "avc-ffdec" $MEDIA_DIR/auxiliary_files/enst_video.h264 "test.yuv" "-blacklist=vtbdec,nvdec,ohevcdec" 0
 
@@ -122,3 +125,6 @@ if [ -n "$j2kff" ] ; then
 test_decoder "j2k-ff" $EXTERNAL_MEDIA_DIR/import/logo.jp2 "test.yuv" "-blacklist=j2kdec" 0
 test_decoder "mjp2-ff" $EXTERNAL_MEDIA_DIR/import/speedway.mj2 "test.yuv" "-blacklist=j2kdec" 0
 fi
+
+test_decoder "ac3-a52" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pcm" "-blacklist=ffdec" 0
+test_decoder "ac3-ff" $EXTERNAL_MEDIA_DIR/counter/counter_30s_audio.ac3 "test.pcm" "-blacklist=a52dec" 0
