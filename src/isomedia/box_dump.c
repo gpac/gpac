@@ -4692,7 +4692,7 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 		if (cenc_sample) {
 			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);
 			if (cenc_sample->IV_size) {
-				fprintf(trace, "IV=\"");
+				fprintf(trace, " IV=\"");
 				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
 				fprintf(trace, "\"");
 			}
