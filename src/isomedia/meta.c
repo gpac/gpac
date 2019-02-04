@@ -846,6 +846,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		searchprop.config = NULL;
 	}
 	if (image_props->alpha) {
 		searchprop.alpha = image_props->alpha;
@@ -857,6 +858,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		searchprop.alpha = GF_FALSE;
 	}
 	if (image_props->num_channels) {
 		searchprop.num_channels = image_props->num_channels;
@@ -871,6 +873,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		searchprop.num_channels = 0;
 	}
 }
 
