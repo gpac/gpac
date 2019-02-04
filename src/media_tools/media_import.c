@@ -2430,6 +2430,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_set_image_sequence_coding_constraints(import->dest, track, di, GF_FALSE, GF_FALSE, GF_TRUE, 15);
 			if (e) goto exit;
 		}
+		if (import->is_alpha) {
+			e = gf_isom_set_image_sequence_alpha(import->dest, track, di, GF_FALSE);
+			if (e) goto exit;
+		}
 	}
 
 exit:
@@ -5757,6 +5761,10 @@ restart_import:
 		e = gf_isom_set_image_sequence_coding_constraints(import->dest, track, di, GF_FALSE, GF_FALSE, GF_TRUE, 15);
 		if (e) goto exit;
 	}
+	if (import->is_alpha) {
+		e = gf_isom_set_image_sequence_alpha(import->dest, track, di, GF_FALSE);
+		if (e) goto exit;
+	}
 
 	gf_media_update_par(import->dest, track);
 	gf_media_update_bitrate(import->dest, track);
@@ -7108,6 +7116,10 @@ next_nal:
 		e = gf_isom_set_image_sequence_coding_constraints(import->dest, track, di, GF_FALSE, GF_FALSE, GF_TRUE, 15);
 		if (e) goto exit;
 	}
+	if (import->is_alpha) {
+		e = gf_isom_set_image_sequence_alpha(import->dest, track, di, GF_FALSE);
+		if (e) goto exit;
+	}
 
 	gf_media_update_par(import->dest, track);
 	gf_media_update_bitrate(import->dest, track);
@@ -7469,6 +7481,10 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		e = gf_isom_set_image_sequence_coding_constraints(import->dest, track_num, di, GF_FALSE, GF_FALSE, GF_TRUE, 15);
 		if (e) goto exit;
 	}
+	if (import->is_alpha) {
+		e = gf_isom_set_image_sequence_alpha(import->dest, track_num, di, GF_FALSE);
+		if (e) goto exit;
+	}
 
 	/*rewrite ESD*/
 	if (import->esd) {
@@ -7648,6 +7664,10 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 
 	if (import->flags & GF_IMPORT_USE_CCST) {
 		e = gf_isom_set_image_sequence_coding_constraints(import->dest, track_num, di, GF_FALSE, GF_FALSE, GF_TRUE, 15);
+		if (e) goto exit;
+	}
+	if (import->is_alpha) {
+		e = gf_isom_set_image_sequence_alpha(import->dest, track_num, di, GF_FALSE);
 		if (e) goto exit;
 	}
 

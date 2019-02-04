@@ -715,7 +715,48 @@ GF_Err auxc_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void auxi_del(GF_Box *s)
+{
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+	if (ptr->aux_track_type) gf_free(ptr->aux_track_type);
+	if (ptr) gf_free(ptr);
+	return;
+}
 
+GF_Err auxi_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+	return gf_isom_read_null_terminated_string(s, bs, s->size, &ptr->aux_track_type);
+}
+
+GF_Box *auxi_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AuxiliaryTypeInfoBox, GF_ISOM_BOX_TYPE_AUXI);
+	return (GF_Box *) tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err auxi_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	//with terminating 0
+	gf_bs_write_data(bs, ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) + 1 );
+	return GF_OK;
+}
+
+GF_Err auxi_Size(GF_Box *s)
+{
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+	ptr->size += strlen(ptr->aux_track_type) + 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 GF_Box *oinf_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_OINFPropertyBox, GF_ISOM_BOX_TYPE_OINF);
