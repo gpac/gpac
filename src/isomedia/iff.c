@@ -709,7 +709,7 @@ GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err auxc_Size(GF_Box *s)
 {
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
-	p->size += 1;
+	p->size += strlen(p->aux_urn) + 1 + p->data_size;
 	return GF_OK;
 }
 
