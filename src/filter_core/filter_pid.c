@@ -2235,7 +2235,7 @@ void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister
 static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegistry, Bool reconfigurable_only, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
-	GF_List *dijkstra_nodes;
+	GF_List *dijkstra_nodes, *nodes_done;
 	GF_FilterSession *fsess = pid->filter->session;
 	//build all edges
 	u32 i, dijsktra_node_count, dijsktra_edge_count, count = gf_list_count(fsess->registry);
@@ -2248,8 +2248,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	 	gf_filter_sess_build_graph(fsess, NULL);
 
 	dijkstra_nodes = gf_list_new();
-
-	result = NULL;
+	nodes_done = gf_list_new();
 
 	//1: select all elligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
 	count = gf_list_count( fsess->links);
@@ -2258,22 +2257,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
 		const GF_FilterRegister *freg = reg_desc->freg;
 
-		//reset node state
-		reg_desc->destination = NULL;
-		reg_desc->cap_idx = 0;
-		reg_desc->in_edges_enabling = 0;
-		reg_desc->dist = -1;
-		reg_desc->priority = 0xFF;
-		//reset edge status
-		for (j=0; j<reg_desc->nb_edges; j++) {
-			GF_FilterRegEdge *edge = &reg_desc->edges[j];
-			edge->status = EDGE_STATUS_NONE;
+		//do not add destination filter
+		if (dst->freg == reg_desc->freg) {
+			continue;
 		}
-
-		//remember our source descriptor - it may be absent of the final node set in case we want reconfigurable only filters
-		//and the source is not reconfigurable
-		if (freg == pid->filter->freg)
-			result = reg_desc;
 
 		//don't add source filters except if PID is from source
 		if (!freg->configure_pid && (freg!=pid->filter->freg)) {
@@ -2312,10 +2299,9 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			continue;
 		}
 
-		//reset edge status - if source is our origin, disable edge if cap is not matched
+		//if source is our origin, disable edge if cap is not matched
 		for (j=0; j<reg_desc->nb_edges; j++) {
 			GF_FilterRegEdge *edge = &reg_desc->edges[j];
-			edge->status = EDGE_STATUS_NONE;
 
 			//connection from source, disable edge if pid caps mismatch
 			if (edge->src_reg->freg == pid->filter->freg) {
@@ -2338,13 +2324,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				max_weight = (u32) edge->weight + 1;
 		}
 
-		//do not add destination filter
-		if (dst->freg == reg_desc->freg) {
-			reg_desc->dist = 0;
-			reg_desc->priority = 0;
-		} else {
-			gf_list_add(dijkstra_nodes, reg_desc);
-		}
+		//set distance and pritrity to max
+		reg_desc->dist = -1;
+		reg_desc->priority = 0xFF;
+		gf_list_add(dijkstra_nodes, reg_desc);
 	}
 	//create a new node for the destination based on elligible filters in the graph
 	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
@@ -2427,6 +2410,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//remove from registries if no edge enabled, unless our source
 		if (!nb_edges && (rdesc->freg != pid->filter->freg)) {
 			gf_list_rem(dijkstra_nodes, i);
+			gf_list_add(nodes_done, rdesc);
 			i--;
 			count--;
 		}
@@ -2444,6 +2428,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	sort_time_us = gf_sys_clock_high_res();
 
 
+	result = NULL;
 	dijsktra_edge_count = 0;
 	dijsktra_node_count = gf_list_count(dijkstra_nodes)+1;
 	first = GF_TRUE;
@@ -2472,6 +2457,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			if (!current_node)
 				break;
 			gf_list_rem(dijkstra_nodes, reg_idx);
+			gf_list_add(nodes_done, current_node);
 		}
 
 		if (current_node->freg == pid->filter->freg) {
@@ -2546,6 +2532,23 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Filters] Dijkstra: no results found!\n"));
 	}
 	gf_list_del(dijkstra_nodes);
+
+	//reset all edges status to NONE on all nodes we have modified (avoids doing it on all possible nodes in the first loop of this function)
+	count = gf_list_count(nodes_done);
+	for (i=0; i<count; i++) {
+		u32 j;
+		GF_FilterRegDesc *reg_desc = gf_list_get(nodes_done, i);
+		for (j=0; j<reg_desc->nb_edges; j++) {
+			GF_FilterRegEdge *edge = &reg_desc->edges[j];
+			edge->status = EDGE_STATUS_NONE;
+		}
+		reg_desc->destination = NULL;
+		reg_desc->cap_idx = 0;
+		reg_desc->in_edges_enabling = 0;
+		//distance and priority are always reassigned when selecting a node for dijkstra resolution
+	}
+	gf_list_del(nodes_done);
+
 
 	gf_free(reg_dst->edges);
 	gf_free(reg_dst);
@@ -2743,8 +2746,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			if (load_first_only) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s needs to be connected to decide its outputs, not loading end of the chain\n", freg->name));
 				//store destination as future destination link for this new filter
-				if ( gf_list_find(pid->filter->destination_links, af)<0)
-					gf_list_add(pid->filter->destination_links, af);
+				if ( gf_list_find(pid->filter->destination_links, dst)<0)
+					gf_list_add(pid->filter->destination_links, dst);
 
 				//remember to which filter we are trying to connect for cap resolution
 				af->cap_dst_filter = dst;
@@ -3028,7 +3031,7 @@ single_retry:
 		}
 
 		if (num_pass && gf_list_count(filter->destination_links)) {
-			s32 ours = gf_list_del_item(pid->filter->destination_links, filter_dst);
+			s32 ours = gf_list_find(pid->filter->destination_links, filter_dst);
 			if (ours<0) continue;
 			pid->filter->dst_filter = NULL;
 		}
@@ -3251,6 +3254,7 @@ single_retry:
 			clone->source_ids = gf_strdup(dynamic_filter_clone->dynamic_source_ids);
 			clone->cloned_from = NULL;
 			count = gf_list_count(filter->session->filters);
+			gf_list_add(pid->filter->destination_links, clone);
 			i = count-1;
 			num_pass = 1;
 			goto single_retry;
