@@ -85,7 +85,7 @@ static void inspect_finalize(GF_Filter *filter)
 					fwrite(szLine, 1, read, ctx->dump);
 				}
 			}
-			fclose(pctx->tmp);
+			gf_fclose(pctx->tmp);
 		}
 		gf_free(pctx);
 	}
