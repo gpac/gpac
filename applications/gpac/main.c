@@ -1123,7 +1123,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode)
 			}
 			if (!print) continue;
 
-			fprintf(stderr, "\t%s (%s): %s.", a->arg_name, gf_props_get_type_name(a->arg_type), a->arg_desc);
+			fprintf(stderr, "%s (%s): %s.", a->arg_name, gf_props_get_type_name(a->arg_type), a->arg_desc);
 			if (a->arg_default_val) {
 				fprintf(stderr, " Default %s.", a->arg_default_val);
 			} else {
