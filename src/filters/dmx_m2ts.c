@@ -535,8 +535,13 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				for (j=0; j<nb_streams; j++) {
 					GF_M2TS_ES *es = gf_list_get(prog->streams, j);
 					if (es->user) {
-						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
-						gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
+						//TODO, translate non standard character maps to UTF8
+						//we for now comment in test mode to avoid non UTF characters in text dumps
+						if (isalnum(sdt->service[0]) || !gf_sys_is_test_mode())
+							gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
+
+						if (isalnum(sdt->provider[0]) || !gf_sys_is_test_mode())
+							gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
 					}
 				}
 			}
