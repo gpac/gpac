@@ -458,7 +458,7 @@ struct __gf_filter
 
 	Bool has_out_caps;
 
-	Bool force_end_of_session;
+	Bool disabled;
 
 	//list of pids connected to this filter
 	GF_List *input_pids;

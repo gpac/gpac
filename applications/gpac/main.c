@@ -207,8 +207,9 @@ const char *gpac_doc =
 "\tname#P4CC-VAL: accepts only pids with property strictly less than VAL (only for 1-dimension number properties).\n"
 "\tname#P4CC+VAL: accepts only pids with property strictly greater than VAL (only for 1-dimension number properties).\n"
 "\n"
-"A source ID name can also use wildcard to match a property regardless of the source filter:\n"
+"A source ID name can also use wildcard or be empty to match a property regardless of the source filter:\n"
 "\tEX: fA fB:SID=*#ServiceID=2\n"
+"\tEX: fA fB:SID=#ServiceID=2\n"
 "This indicates to match connection between fA and fB only for PIDs with a ServiceID property of 2\n"
 "\n"
 "Note that these extensions also work with the LINK shortcut:\n"
@@ -286,9 +287,10 @@ const char *gpac_doc =
 "Templating filter chains\n"
 "\n"
 "There can be cases where the number of desired output depends from the source, for example dumping a multiplex of N services into N files.\n"
-"It is possible to use a PID property name in the source ID of a filter with the value '*'.\n"
-" In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned\n"
+"It is possible to use a PID property name in the source ID of a filter with the value '*' or an empty value.\n"
+"In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned\n"
 "\tEX: src=source.ts dst=file_$ServiceID$.mp4:SID=*#ServiceID=*\n"
+"\tEX: src=source.ts dst=file_$ServiceID$.mp4:SID=#ServiceID=\n"
 "In this case, each new ServiceID value found when connecting PIDs to the destination will create a new destination file.\n"
 "WARNING: This feature should only be called with a single property set to '*' per source ID, results are undefined otherwise.\n"
 "\n"
@@ -710,6 +712,16 @@ static int gpac_main(int argc, char **argv)
 		gpac_exit(1);
 	}
 
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_APP, GF_LOG_DEBUG)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("GPAC args: "));
+		for (i=1; i<argc; i++) {
+			char *arg = argv[i];
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("%s ", arg));
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("\n"));
+	}
+#endif
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];

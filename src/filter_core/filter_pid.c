@@ -1122,7 +1122,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF
 		return GF_TRUE;
 	}
 	//check for dynamic assignment
-	if ( (psep[0]==src_pid->filter->session->sep_name) && (psep[1]=='*') ) {
+	if ( (psep[0]==src_pid->filter->session->sep_name) && ((psep[1]=='*') || (psep[1]=='\0') ) ) {
 		*needs_resolve = GF_TRUE;
 		gf_prop_dump_val(&pent->prop, prop_dump_buffer, GF_FALSE, NULL);
 		return GF_FALSE;
@@ -1250,7 +1250,7 @@ sourceid_reassign:
 						assert(sep);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
-						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)));
+						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
 						u32 clen = (u32) (1+sep - sid);
 						strncpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
@@ -2250,6 +2250,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	dijkstra_nodes = gf_list_new();
 	nodes_done = gf_list_new();
 
+	result = NULL;
+
 	//1: select all elligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
 	count = gf_list_count( fsess->links);
 	for (i=0; i<count; i++) {
@@ -2257,10 +2259,23 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
 		const GF_FilterRegister *freg = reg_desc->freg;
 
+		//reset state, except for edges which are reseted after each dijkstra resolution
+		reg_desc->destination = NULL;
+		reg_desc->cap_idx = 0;
+		reg_desc->in_edges_enabling = 0;
+		//set node distance and priority to infinity, whether we are in the final dijsktra set or not
+		reg_desc->dist = -1;
+		reg_desc->priority = 0xFF;
+
 		//do not add destination filter
 		if (dst->freg == reg_desc->freg) {
 			continue;
 		}
+
+		//remember our source descriptor - it may be absent of the final node set in case we want reconfigurable only filters
+		//and the source is not reconfigurable
+		if (freg == pid->filter->freg)
+			result = reg_desc;
 
 		//don't add source filters except if PID is from source
 		if (!freg->configure_pid && (freg!=pid->filter->freg)) {
@@ -2324,9 +2339,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 				max_weight = (u32) edge->weight + 1;
 		}
 
-		//set distance and pritrity to max
-		reg_desc->dist = -1;
-		reg_desc->priority = 0xFF;
 		gf_list_add(dijkstra_nodes, reg_desc);
 	}
 	//create a new node for the destination based on elligible filters in the graph
@@ -2428,7 +2440,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	sort_time_us = gf_sys_clock_high_res();
 
 
-	result = NULL;
 	dijsktra_edge_count = 0;
 	dijsktra_node_count = gf_list_count(dijkstra_nodes)+1;
 	first = GF_TRUE;
@@ -2533,7 +2544,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	}
 	gf_list_del(dijkstra_nodes);
 
-	//reset all edges status to NONE on all nodes we have modified (avoids doing it on all possible nodes in the first loop of this function)
+	//reset all edges status to NONE on all nodes we have modified - this avoids doing this on all nodes in the graph in the first loop of this function
 	count = gf_list_count(nodes_done);
 	for (i=0; i<count; i++) {
 		u32 j;
@@ -2542,10 +2553,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			GF_FilterRegEdge *edge = &reg_desc->edges[j];
 			edge->status = EDGE_STATUS_NONE;
 		}
-		reg_desc->destination = NULL;
-		reg_desc->cap_idx = 0;
-		reg_desc->in_edges_enabling = 0;
-		//distance and priority are always reassigned when selecting a node for dijkstra resolution
 	}
 	gf_list_del(nodes_done);
 
@@ -2711,6 +2718,34 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			//(eg demuxers, we don't know yet what's in the file)
 			if (!i && gf_filter_out_caps_solved_by_connection(freg, bundle_idx))
 				load_first_only = GF_TRUE;
+
+			else if (1) {
+				Bool break_chain = GF_FALSE;
+				u32 j, nb_filters = gf_list_count(fsess->filters);
+				for (j=0; j<nb_filters; j++) {
+					GF_Filter *afilter = gf_list_get(fsess->filters, j);
+					if (afilter->freg != freg) continue;
+					if (!afilter->dynamic_filter) continue;
+					if (gf_list_find(pid->filter->destination_links, dst)<0) continue;
+					if (!afilter->max_extra_pids) continue;
+
+					//we load the same dynamic filter and it can accept multiple inputs (probably a mux), we might reuse this filter so stop link resolution now
+					//not doing so would load e new mux filter which would accept the input pids but with potentially no possible output connections
+					break_chain = GF_TRUE;
+					if (prev_af) {
+						//store destination as future destination link for this new filter
+						if ( gf_list_find(pid->filter->destination_links, afilter)<0)
+							gf_list_add(pid->filter->destination_links, afilter);
+
+						//remember to which filter we are trying to connect for cap resolution
+						prev_af->cap_dst_filter = dst;
+					}
+					break;
+				}
+				if (break_chain) {
+					break;
+				}
+			}
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
@@ -3109,7 +3144,7 @@ single_retry:
 		//no filterID and dst expects only specific filters, continue
 		else if (filter_dst->source_ids) {
 			Bool pid_excluded=GF_FALSE;
-			if (filter_dst->source_ids[0]!='*')
+			if ((filter_dst->source_ids[0]!='*') && (filter_dst->source_ids[0]!=filter->session->sep_frag))
 				continue;
 			if (!filter_source_id_match(pid, "*", filter_dst, &pid_excluded, &needs_clone)) {
 				if (pid_excluded && !num_pass) filter_found_but_pid_excluded = GF_TRUE;
@@ -3243,6 +3278,7 @@ single_retry:
 		assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+		pid->filter->disabled = GF_FALSE;
 		return;
 	}
 	//on first pass, if we found a clone (eg a filter using freg:#PropName=*), instantiate this clone and redo the pid linking to this clone (last entry in the filter list)
@@ -3278,6 +3314,9 @@ single_retry:
 
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
+
+	filter->num_out_pids_not_connected ++;
+
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
@@ -3297,12 +3336,15 @@ single_retry:
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
 		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
+		gf_filter_pid_set_eos(pid);
+		if (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids) {
+			pid->filter->disabled = GF_TRUE;
+		}
+
 		if (!pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 		}
 	}
-
-	filter->num_out_pids_not_connected ++;
 
 	assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
@@ -3868,7 +3910,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 	//no packets
 	if (!pcki) {
-		if (pidinst->pid->filter->force_end_of_session) {
+		if (pidinst->pid->filter->disabled) {
 			pidinst->is_end_of_stream = pidinst->pid->has_seen_eos = GF_TRUE;
 		}
 		if (!pidinst->is_end_of_stream && pidinst->pid->filter->would_block)
@@ -4536,10 +4578,23 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 		pid->nb_reaggregation_pending = 0;
 	}
+	
 	//after  play or seek, request a process task for source filters or filters having pending packets
 	if (!f->input_pids || f->pending_packets) {
 		if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 			gf_filter_post_process_task(f);
+		}
+	}
+	//quick hack for filters with one input pid and one outout pid, set discard on/off on the input
+	//this avoids cases like TS demux dispatching data to inactive filters not checking their input
+	//which ends up in session deadlock (filter still flagged as active and with pending packets)
+	//if more than one input or more than one output, only the filter can decide what to do if some of the
+	//streams are active and other not
+	if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
+		if (evt->base.type==GF_FEVT_STOP) {
+			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
+		} else if (evt->base.type==GF_FEVT_PLAY) {
+			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_FALSE);
 		}
 	}
 	if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED)) {
