@@ -1463,7 +1463,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->process_task_queued);
 	filter->schedule_next_time = 0;
 
-	if (filter->session->in_final_flush && filter->force_end_of_session)
+	if (filter->disabled)
 		return;
 
 	if (filter->out_pid_connection_pending || filter->detached_pid_inst || filter->caps_negociate) {
@@ -1714,7 +1714,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("skip post process task for filter %s\n", filter->freg->name));
 		assert(filter->session->run_status
 		 		|| filter->session->in_final_flush
-		 		|| filter->force_end_of_session
+		 		|| filter->disabled
 				|| filter->scheduled_for_next_task
 		 		|| gf_fq_count(filter->tasks)
 		);
