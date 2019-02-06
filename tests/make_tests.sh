@@ -156,7 +156,7 @@ log()
     return
   fi
 
-  echo $2
+  echo "$2"
   tput sgr0
 
  fi
