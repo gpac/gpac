@@ -298,9 +298,10 @@ const char *gpac_doc =
 "\n"
 "It is possible to define properties on output pids that will be declared by a filter. This allows tagging parts of the "
 "graph with different properties than other parts (for example ServiceID). "
-"The syntax uses the fragment separator to identify properties, eg #Name=Value. "
+"The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value. "
 "This sets output pids property (4cc, built-in name or any name) to the given value.\n"\
-"If a non built-in property is used, the value will be delared as string.\n"
+ "Value can be omitted for booleans (defaults to true, eg :#Alpha).\n"
+ "If a non built-in property is used, the value will be delared as string.\n"
 "WARNING: Properties are not filtered and override the source props, be carefull not to break the session by overriding core "
 "properties such as width/height/samplerate/... !\n"
 "\tEX: -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
