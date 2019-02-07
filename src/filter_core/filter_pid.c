@@ -2235,7 +2235,7 @@ void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister
 static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegistry, Bool reconfigurable_only, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
-	GF_List *dijkstra_nodes, *nodes_done;
+	GF_List *dijkstra_nodes;
 	GF_FilterSession *fsess = pid->filter->session;
 	//build all edges
 	u32 i, dijsktra_node_count, dijsktra_edge_count, count = gf_list_count(fsess->registry);
@@ -2248,7 +2248,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	 	gf_filter_sess_build_graph(fsess, NULL);
 
 	dijkstra_nodes = gf_list_new();
-	nodes_done = gf_list_new();
 
 	result = NULL;
 
@@ -2266,6 +2265,12 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//set node distance and priority to infinity, whether we are in the final dijsktra set or not
 		reg_desc->dist = -1;
 		reg_desc->priority = 0xFF;
+		//reset edge status
+		for (j=0; j<reg_desc->nb_edges; j++) {
+			GF_FilterRegEdge *edge = &reg_desc->edges[j];
+			edge->status = EDGE_STATUS_NONE;
+		}
+
 
 		//remember our source descriptor - it may be absent of the final node set in case we want reconfigurable only filters
 		//and the source is not reconfigurable
@@ -2423,7 +2428,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//remove from registries if no edge enabled, unless our source
 		if (!nb_edges && (rdesc->freg != pid->filter->freg)) {
 			gf_list_rem(dijkstra_nodes, i);
-			gf_list_add(nodes_done, rdesc);
 			i--;
 			count--;
 		}
@@ -2469,7 +2473,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			if (!current_node)
 				break;
 			gf_list_rem(dijkstra_nodes, reg_idx);
-			gf_list_add(nodes_done, current_node);
 		}
 
 		if (current_node->freg == pid->filter->freg) {
@@ -2544,19 +2547,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[Filters] Dijkstra: no results found!\n"));
 	}
 	gf_list_del(dijkstra_nodes);
-
-	//reset all edges status to NONE on all nodes we have modified - this avoids doing this on all nodes in the graph in the first loop of this function
-	count = gf_list_count(nodes_done);
-	for (i=0; i<count; i++) {
-		u32 j;
-		GF_FilterRegDesc *reg_desc = gf_list_get(nodes_done, i);
-		for (j=0; j<reg_desc->nb_edges; j++) {
-			GF_FilterRegEdge *edge = &reg_desc->edges[j];
-			edge->status = EDGE_STATUS_NONE;
-		}
-	}
-	gf_list_del(nodes_done);
-
 
 	gf_free(reg_dst->edges);
 	gf_free(reg_dst);
