@@ -712,7 +712,6 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	bin128 KID;
 	u32 i, subsample_count;
 	u32 data_size;
-	const char *in_data;
 	char *out_data;
 	const char *sai_payload=NULL;
 	u32 saiz=0;
@@ -745,9 +744,14 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		gf_bs_reassign_buffer(ctx->bs_r, sai_payload, saiz);
 	}
 
-	in_data = gf_filter_pck_get_data(in_pck, &data_size);
+	gf_filter_pck_get_data(in_pck, &data_size);
 	//CENC can use inplace processing for decryption
 	out_pck = gf_filter_pck_new_clone(cstr->opid, in_pck, &out_data);
+	if (!out_pck) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to allocated/clone packet for decrypting payload\n" ) );
+		gf_filter_pid_drop_packet(cstr->ipid);
+		return GF_SERVICE_ERROR;
+	}
 
 	IV_size = 8;
 	//memset to 0 in case we use <16 byte key

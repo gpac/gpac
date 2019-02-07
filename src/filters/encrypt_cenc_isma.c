@@ -1245,6 +1245,11 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 	//CENC can use inplace processing for decryption
 	dst_pck = gf_filter_pck_new_clone(cstr->opid, pck, &output);
+	if (!dst_pck) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to allocated/clone packet for encrypting payload\n" ) );
+		gf_filter_pid_drop_packet(cstr->ipid);
+		return GF_SERVICE_ERROR;
+	}
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
