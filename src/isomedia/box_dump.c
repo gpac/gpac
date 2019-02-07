@@ -635,6 +635,7 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	if (p->pasp) gf_isom_box_dump(p->pasp, trace);
 	if (p->clap) gf_isom_box_dump(p->clap, trace);
 	if (p->ccst) gf_isom_box_dump(p->ccst, trace);
+	if (p->auxi) gf_isom_box_dump(p->auxi, trace);
 	if (p->rvcc) gf_isom_box_dump(p->rvcc, trace);
 	if (p->rinf) gf_isom_box_dump(p->rinf, trace);
 
@@ -4690,7 +4691,7 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 		if (cenc_sample) {
 			fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);
 			if (cenc_sample->IV_size) {
-				fprintf(trace, "IV=\"");
+				fprintf(trace, " IV=\"");
 				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
 				fprintf(trace, "\"");
 			}
@@ -4980,6 +4981,17 @@ GF_Err auxc_dump(GF_Box *a, FILE * trace)
 	dump_data_attribute(trace, "aux_subtype", ptr->data, ptr->data_size);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("AuxiliaryTypePropertyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err auxi_dump(GF_Box *a, FILE * trace)
+{
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)a;
+
+	gf_isom_box_dump_start(a, "AuxiliaryTypeInfoBox", trace);
+	fprintf(trace, "aux_track_type=\"%s\" ", ptr->aux_track_type);
+	fprintf(trace, ">\n");
+	gf_isom_box_dump_done("AuxiliaryTypeInfoBox", a, trace);
 	return GF_OK;
 }
 

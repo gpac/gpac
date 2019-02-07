@@ -1,5 +1,8 @@
 #!/bin/sh
 test_begin "no-frag-default"
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
 
 if [ $test_skip  = 1 ] ; then
 return

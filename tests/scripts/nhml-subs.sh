@@ -1,6 +1,9 @@
 #!/bin/sh
 
 test_begin "NHMLSubs"
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
 
 if [ $test_skip  = 1 ] ; then
 return
