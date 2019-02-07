@@ -2707,11 +2707,9 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			}
 			//if first filter has multiple possible outputs, don't bother loading the entire chain since it is likely wrong
 			//(eg demuxers, we don't know yet what's in the file)
-			if (!i && gf_filter_out_caps_solved_by_connection(freg, bundle_idx))
+			if (!i && gf_filter_out_caps_solved_by_connection(freg, bundle_idx)) {
 				load_first_only = GF_TRUE;
-
-#if 0
-			else if (i) {
+			} else if (i) {
 				Bool break_chain = GF_FALSE;
 				u32 j, nb_filters = gf_list_count(fsess->filters);
 				for (j=0; j<nb_filters; j++) {
@@ -2738,7 +2736,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 					break;
 				}
 			}
-#endif
+
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
 			af = gf_filter_new(fsess, freg, args, dst_args, GF_FILTER_ARG_INHERIT, NULL);
@@ -2773,8 +2771,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			if (load_first_only) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s needs to be connected to decide its outputs, not loading end of the chain\n", freg->name));
 				//store destination as future destination link for this new filter
-				if ( gf_list_find(pid->filter->destination_links, af)<0)
-					gf_list_add(pid->filter->destination_links, af);
+				if ( gf_list_find(pid->filter->destination_links, dst)<0)
+					gf_list_add(pid->filter->destination_links, dst);
 
 				//remember to which filter we are trying to connect for cap resolution
 				af->cap_dst_filter = dst;
@@ -3058,7 +3056,7 @@ single_retry:
 		}
 
 		if (num_pass && gf_list_count(filter->destination_links)) {
-			s32 ours = gf_list_del_item(pid->filter->destination_links, filter_dst);
+			s32 ours = gf_list_find(pid->filter->destination_links, filter_dst);
 			if (ours<0) continue;
 			pid->filter->dst_filter = NULL;
 		}
@@ -4577,7 +4575,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			gf_filter_post_process_task(f);
 		}
 	}
-#if 0
+
 	//quick hack for filters with one input pid and one outout pid, set discard on/off on the input
 	//this avoids cases like TS demux dispatching data to inactive filters not checking their input
 	//which ends up in session deadlock (filter still flagged as active and with pending packets)
@@ -4590,7 +4588,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_FALSE);
 		}
 	}
-#endif
+
 	if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED)) {
 		if (evt->base.on_pid) {
 			u32 scaler = (u32)  ( (evt->play.speed<0) ? -evt->play.speed : evt->play.speed ) * GF_FILTER_SPEED_SCALER;
