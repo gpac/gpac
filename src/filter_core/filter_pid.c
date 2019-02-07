@@ -2774,6 +2774,9 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				if ( gf_list_find(pid->filter->destination_links, dst)<0)
 					gf_list_add(pid->filter->destination_links, dst);
 
+				//in case we added it, remove the destination filter
+				gf_list_del_item(af->destination_filters, dst);
+
 				//remember to which filter we are trying to connect for cap resolution
 				af->cap_dst_filter = dst;
 				break;
