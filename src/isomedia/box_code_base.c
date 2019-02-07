@@ -4195,6 +4195,7 @@ void video_sample_entry_del(GF_Box *s)
 	if (ptr->ccst) gf_isom_box_del((GF_Box *)ptr->ccst);
 
 	if (ptr->rvcc) gf_isom_box_del((GF_Box *)ptr->rvcc);
+	if (ptr->auxi) gf_isom_box_del((GF_Box *)ptr->auxi);
 
 	gf_free(ptr);
 }
