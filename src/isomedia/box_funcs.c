@@ -629,6 +629,7 @@ ISOM_BOX_IMPL_DECL(piff_pssh)
 ISOM_BOX_IMPL_DECL(senc)
 ISOM_BOX_IMPL_DECL(cslg)
 ISOM_BOX_IMPL_DECL(ccst)
+ISOM_BOX_IMPL_DECL(auxi)
 ISOM_BOX_IMPL_DECL(hvcc)
 ISOM_BOX_IMPL_DECL(av1c)
 ISOM_BOX_IMPL_DECL(prft)
@@ -1084,6 +1085,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_IPMA, ipma, "iprp", 1, 1, "iff"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GRPL, grpl, "meta", "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CCST, ccst, "sample_entry", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXI, auxi, "sample_entry", 0, "iff"),
 	TRGT_DEFINE(GF_ISOM_BOX_TYPE_GRPT, grptype, "grpl", GF_ISOM_BOX_TYPE_ALTR, 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),

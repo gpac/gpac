@@ -5,6 +5,9 @@ my_test ()
 {
 
 test_begin $2
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
 
 do_test "$1" $2
 

@@ -406,6 +406,7 @@ enum
 	GF_ISOM_BOX_TYPE_GRPL   = GF_4CC( 'g', 'r', 'p', 'l'),
 	GF_ISOM_BOX_TYPE_CCST	= GF_4CC( 'c', 'c', 's', 't' ),
 	GF_ISOM_BOX_TYPE_AUXC	= GF_4CC( 'a', 'u', 'x', 'C' ),
+	GF_ISOM_BOX_TYPE_AUXI	= GF_4CC( 'a', 'u', 'x', 'i' ),
 	GF_ISOM_BOX_TYPE_OINF	= GF_4CC( 'o', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_TOLS	= GF_4CC( 't', 'o', 'l', 's' ),
 
@@ -1094,6 +1095,12 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_FULL_BOX
+	char *aux_track_type;
+} GF_AuxiliaryTypeInfoBox;
+
+typedef struct
+{
 	GF_ISOM_BOX
 	u16 predefined_rvc_config;
 	u32 rvc_meta_idx;
@@ -1116,8 +1123,10 @@ typedef struct
 	GF_PixelAspectRatioBox *pasp;		\
 	GF_CleanAppertureBox *clap;		\
 	GF_CodingConstraintsBox *ccst;		\
+	GF_AuxiliaryTypeInfoBox *auxi;		\
 	struct __tag_protect_box *rinf;				\
 	GF_RVCConfigurationBox *rvcc;		\
+
 
 typedef struct
 {

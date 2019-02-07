@@ -608,6 +608,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_set_image_sequence_coding_constraints(import->dest, track, di, GF_FALSE, GF_FALSE, GF_TRUE, 15);
 			if (e) goto exit;
 		}
+		if (import->is_alpha) {
+			e = gf_isom_set_image_sequence_alpha(import->dest, track, di, GF_FALSE);
+			if (e) goto exit;
+		}
 	}
 
 exit:
