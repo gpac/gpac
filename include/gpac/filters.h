@@ -2476,6 +2476,18 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 */
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, gf_fsess_packet_destructor destruct);
 
+/*! Clones a new packet from a source packet.
+If the source packet uses hardware frame or has no associated data, returns NULL.
+If the source packet is referenced more than once (ie more than just the caller), a new packet on the output pid is allocated with identical data (alloc and copy) than the source.
+Otherwise, the source data is assigned to the output packet.
+ This is typically called by filter wishing to perform in-place processing of input data.
+\param pid the target output pid
+\param pck_source the desired source packet to clone
+\param data set to the writable buffer of the created packet
+\return new packet or NULL if error
+*/
+GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, char **data);
+
 /*! Sends the packet on its output pid. Packets SHALL be sent in processing order (eg, decoding order for video).
 However, packets don't have to be sent in their allocation order.
 \param pck the target output packet to send

@@ -746,8 +746,8 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	}
 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
-	out_pck = gf_filter_pck_new_alloc(cstr->opid, data_size, &out_data);
-	memcpy(out_data, in_data, sizeof(char)*data_size);
+	//CENC can use inplace processing for decryption
+	out_pck = gf_filter_pck_new_clone(cstr->opid, in_pck, &out_data);
 
 	IV_size = 8;
 	//memset to 0 in case we use <16 byte key
