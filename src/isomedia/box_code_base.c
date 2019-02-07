@@ -4273,6 +4273,10 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->ccst) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->ccst = (GF_CodingConstraintsBox *)a;
 		break;
+	case GF_ISOM_BOX_TYPE_AUXI:
+		if (ptr->auxi) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->auxi = (GF_AuxiliaryTypeInfoBox *)a;
+		break;
 	case GF_ISOM_BOX_TYPE_RVCC:
 		if (ptr->rvcc) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->rvcc = (GF_RVCConfigurationBox *)a;
@@ -4384,6 +4388,10 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->ccst, bs);
 		if (e) return e;
 	}
+	if (ptr->auxi) {
+		e = gf_isom_box_write((GF_Box *)ptr->auxi, bs);
+		if (e) return e;
+	}
 	if (ptr->rvcc) {
 		e = gf_isom_box_write((GF_Box *)ptr->rvcc, bs);
 		if (e) return e;
@@ -4482,6 +4490,11 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->ccst);
 		if (e) return e;
 		ptr->size += ptr->ccst->size;
+	}
+	if (ptr->auxi) {
+		e = gf_isom_box_size((GF_Box *)ptr->auxi);
+		if (e) return e;
+		ptr->size += ptr->auxi->size;
 	}
 	if (ptr->rvcc) {
 		e = gf_isom_box_size((GF_Box *)ptr->rvcc);

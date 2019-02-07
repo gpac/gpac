@@ -619,6 +619,17 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 					prop->vSpacing = pasp->vSpacing;
 				}
 				break;
+				case GF_ISOM_BOX_TYPE_PIXI:
+				{
+					GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)b;
+					if (pixi->num_channels > 3) {
+						return GF_BAD_PARAM;
+					}
+					prop->num_channels = pixi->num_channels;
+					memset(prop->bits_per_channel, 0, 3);
+					memcpy(prop->bits_per_channel, pixi->bits_per_channel, pixi->num_channels);
+				}
+				break;
 				case GF_ISOM_BOX_TYPE_IROT:
 				{
 					GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
@@ -671,6 +682,20 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 		{
 			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
 			if (prop->angle && irot->angle*90 == prop->angle) {
+				return i;
+			}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_PIXI:
+		{
+			GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)b;
+			if (prop->num_channels && pixi->num_channels == prop->num_channels) {
+				int j;
+				for (j = 0; j < pixi->num_channels; j++) {
+					if (pixi->bits_per_channel[j] != prop->bits_per_channel[j]) {
+						break;
+					}
+				}
 				return i;
 			}
 		}
@@ -821,6 +846,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		searchprop.config = NULL;
 	}
 	if (image_props->alpha) {
 		searchprop.alpha = image_props->alpha;
@@ -832,6 +858,22 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
 		}
 		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		searchprop.alpha = GF_FALSE;
+	}
+	if (image_props->num_channels) {
+		searchprop.num_channels = image_props->num_channels;
+		memcpy(searchprop.bits_per_channel, image_props->bits_per_channel, 3);
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PIXI);
+			pixi->num_channels = image_props->num_channels;
+			pixi->bits_per_channel = gf_malloc(pixi->num_channels);
+			memcpy(pixi->bits_per_channel, image_props->bits_per_channel, image_props->num_channels);
+			gf_list_add(ipco->other_boxes, pixi);
+			prop_index = gf_list_count(ipco->other_boxes) - 1;
+		}
+		meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		searchprop.num_channels = 0;
 	}
 }
 
