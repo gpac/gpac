@@ -2719,7 +2719,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			if (!i && gf_filter_out_caps_solved_by_connection(freg, bundle_idx))
 				load_first_only = GF_TRUE;
 
-			else if (1) {
+#if 0
+			else if (i) {
 				Bool break_chain = GF_FALSE;
 				u32 j, nb_filters = gf_list_count(fsess->filters);
 				for (j=0; j<nb_filters; j++) {
@@ -2746,7 +2747,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 					break;
 				}
 			}
-
+#endif
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
 			af = gf_filter_new(fsess, freg, args, dst_args, GF_FILTER_ARG_INHERIT, NULL);
