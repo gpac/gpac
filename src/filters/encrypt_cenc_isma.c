@@ -1242,13 +1242,12 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 
 	data = gf_filter_pck_get_data(pck, &pck_size);
-	dst_pck = gf_filter_pck_new_alloc(cstr->opid, pck_size, &output);
+
+	//CENC can use inplace processing for decryption
+	dst_pck = gf_filter_pck_new_clone(cstr->opid, pck, &output);
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
-
-	//copy over all data
-	memcpy(output, data, sizeof(char)*pck_size);
 
 	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);

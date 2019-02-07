@@ -147,6 +147,29 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char 
 }
 
 GF_EXPORT
+GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, char **data)
+{
+	GF_FilterPacket *dst;
+	GF_FilterPacketInstance *pcki;
+	if (!pck_source) return NULL;
+
+	pcki = (GF_FilterPacketInstance *) pck_source;
+	if (pcki->pck->hw_frame || !pcki->pck->data_length)
+		return NULL;
+
+	if (pcki->pck->reference_count>1) {
+		dst = gf_filter_pck_new_alloc_internal(pid, pcki->pck->data_length, data, GF_TRUE);
+		if (dst && data) {
+			memcpy(*data, pcki->pck->data, sizeof(char)*pcki->pck->data_length);
+		}
+		return dst;
+	}
+	dst = gf_filter_pck_new_ref(pid, NULL, 0, pck_source);
+	*data = dst->data;
+	return dst;
+}
+
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, char **data, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
