@@ -709,13 +709,54 @@ GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err auxc_Size(GF_Box *s)
 {
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
-	p->size += 1;
+	p->size += strlen(p->aux_urn) + 1 + p->data_size;
 	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void auxi_del(GF_Box *s)
+{
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+	if (ptr->aux_track_type) gf_free(ptr->aux_track_type);
+	if (ptr) gf_free(ptr);
+	return;
+}
 
+GF_Err auxi_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+	return gf_isom_read_null_terminated_string(s, bs, s->size, &ptr->aux_track_type);
+}
+
+GF_Box *auxi_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AuxiliaryTypeInfoBox, GF_ISOM_BOX_TYPE_AUXI);
+	return (GF_Box *) tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err auxi_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	//with terminating 0
+	gf_bs_write_data(bs, ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) + 1 );
+	return GF_OK;
+}
+
+GF_Err auxi_Size(GF_Box *s)
+{
+	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
+	ptr->size += strlen(ptr->aux_track_type) + 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 GF_Box *oinf_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_OINFPropertyBox, GF_ISOM_BOX_TYPE_OINF);
@@ -909,6 +950,8 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 	u32 imported_sample_desc_index = 1;
 //	u32 sample_index = 1;
 	u32 w, h, hSpacing, vSpacing;
+	u8 num_channels;
+	u8 bits_per_channel[3];
 	u32 subtype;
 	GF_ISOSample *sample = NULL;
 	u32 timescale;
@@ -983,18 +1026,30 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(movie, imported_track, imported_sample_desc_index);
 			item_type = GF_ISOM_SUBTYPE_AVC_H264;
 			config_needed = 1;
+			num_channels = 3;
+			bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
+			bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+			bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 			break;
 		case GF_ISOM_SUBTYPE_SVC_H264:
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(movie, imported_track, imported_sample_desc_index);
 			item_type = GF_ISOM_SUBTYPE_SVC_H264;
 			config_needed = 1;
+			num_channels = 3;
+			bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
+			bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+			bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 			break;
 		case GF_ISOM_SUBTYPE_MVC_H264:
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(movie, imported_track, imported_sample_desc_index);
 			item_type = GF_ISOM_SUBTYPE_MVC_H264;
 			config_needed = 1;
+			num_channels = 3;
+			bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
+			bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+			bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 			break;
 		case GF_ISOM_SUBTYPE_HVC1:
 		case GF_ISOM_SUBTYPE_HEV1:
@@ -1016,14 +1071,32 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 				((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
 				item_type = GF_ISOM_SUBTYPE_LHV1;
 			}
+			num_channels = 3;
+			bits_per_channel[0] = ((GF_HEVCConfigurationBox *)config_box)->config->luma_bit_depth;
+			bits_per_channel[1] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+			bits_per_channel[2] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 			//media_brand = GF_ISOM_BRAND_HEIC;
 			break;
 		case GF_ISOM_SUBTYPE_AV01:
-			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
-			((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_ISOM_SUBTYPE_AV01;
-			config_needed = 1;
-			//media_brand = GF_ISOM_BRAND_HEIC;
+			{
+				config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
+				((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(movie, imported_track, imported_sample_desc_index);
+				item_type = GF_ISOM_SUBTYPE_AV01;
+				config_needed = 1;
+				u8 depth = ((GF_AV1ConfigurationBox *)config_box)->config->high_bitdepth ? (((GF_AV1ConfigurationBox *)config_box)->config->twelve_bit ? 12 : 10 ) : 8;
+				if (((GF_AV1ConfigurationBox *)config_box)->config->monochrome) {
+					num_channels = 1;
+					bits_per_channel[0] = depth;
+					bits_per_channel[1] = 0;
+					bits_per_channel[2] = 0;
+				} else {
+					num_channels = 3;
+					bits_per_channel[0] = depth;
+					bits_per_channel[1] = depth;
+					bits_per_channel[2] = depth;
+				}
+				//media_brand = GF_ISOM_BRAND_AVIF;
+			}
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec not supported to create HEIF image items\n"));
@@ -1059,6 +1132,12 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			image_props->vSpacing = vSpacing;
 		}
 		image_props->config = config_box;
+		if (!image_props->num_channels) {
+			image_props->num_channels = num_channels;
+			image_props->bits_per_channel[0] = bits_per_channel[0];
+			image_props->bits_per_channel[1] = bits_per_channel[1];
+			image_props->bits_per_channel[2] = bits_per_channel[2];
+		}
 
 		timescale = gf_isom_get_media_timescale(movie, imported_track);
 		e = gf_isom_get_sample_for_media_time(movie, imported_track, (u64)(image_props->time*timescale), &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &sample, NULL);
