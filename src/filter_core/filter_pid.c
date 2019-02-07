@@ -2861,12 +2861,12 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 		if (args[0] != filter->session->sep_frag)
 			goto skip_arg;
 
+		value = NULL;
 		eq = strchr(args, filter->session->sep_name);
-		if (!eq)
-			goto skip_arg;
-
-		eq[0]=0;
-		value = eq+1;
+		if (eq) {
+			eq[0]=0;
+			value = eq+1;
+		}
 		name = args+1;
 
 		if (strlen(name)==4) {
@@ -2901,7 +2901,8 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 			p.value.string = eq+1;
 			gf_filter_pid_set_property_dyn(pid, name, &p);
 		}
-		eq[0] = filter->session->sep_name;
+		if (eq)
+			eq[0] = filter->session->sep_name;
 
 skip_arg:
 		if (sep) {
