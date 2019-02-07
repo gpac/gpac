@@ -963,6 +963,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TRANS_Y, "TransY", "Vertical translation of the video", GF_PROP_SINT},
 	{ GF_PROP_PID_CROP_POS, "CropOrigin", "Position in source window, X,Y indicates coord in source", GF_PROP_VEC2I},
 	{ GF_PROP_PID_ORIG_SIZE, "OriginalSize", "Original resolution of video", GF_PROP_VEC2I},
+	{ GF_PROP_PID_ALPHA, "Alpha", "Indicates the video in this pid is an alpha map", GF_PROP_BOOL},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "Bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_MAXRATE, "Maxrate", "Max bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_DBSIZE, "DBSize", "Decode buffer size in bytes", GF_PROP_UINT},
