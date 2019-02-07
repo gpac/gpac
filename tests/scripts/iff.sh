@@ -8,6 +8,10 @@ COUNTERFILE=$EXTERNAL_MEDIA_DIR/counter/counter_1280_720_I_25_tiled_500kb.hevc
 
 test_begin "iff"
 
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
+
 iff_file="$TEMP_DIR/basic.heic"
 do_test "$MP4BOX -add-image $COUNTERFILE -ab heic -new $iff_file" "create-iff-basic"
 do_hash_test $iff_file "create-iff-basic"
