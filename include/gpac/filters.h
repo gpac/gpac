@@ -717,6 +717,7 @@ enum
 	GF_PROP_PID_TRANS_Y = GF_4CC('V','T','R','Y'),
 	GF_PROP_PID_CROP_POS = GF_4CC('V','C','X','Y'),
 	GF_PROP_PID_ORIG_SIZE = GF_4CC('V','O','W','H'),
+	GF_PROP_PID_ALPHA = GF_4CC('V','A','L','P'),
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 	GF_PROP_PID_MAXRATE = GF_4CC('M','R','A','T'),
 	GF_PROP_PID_DBSIZE = GF_4CC('D','B','S','Z'),

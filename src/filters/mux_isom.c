@@ -1656,8 +1656,20 @@ multipid_stsd_setup:
 		}
 	}
 
-	if (width && ctx->ccst) {
-		gf_isom_set_image_sequence_coding_constraints(ctx->file, tkw->track_num, tkw->stsd_idx, GF_FALSE, GF_FALSE, GF_TRUE, 15);
+	if (width) {
+		if (ctx->ccst) {
+			e = gf_isom_set_image_sequence_coding_constraints(ctx->file, tkw->track_num, tkw->stsd_idx, GF_FALSE, GF_FALSE, GF_TRUE, 15);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set coding constraints parameter: %s\n", gf_error_to_string(e) ));
+			}
+		}
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ALPHA);
+		if (p && p->value.boolean) {
+			e = gf_isom_set_image_sequence_alpha(ctx->file, tkw->track_num, tkw->stsd_idx, GF_FALSE);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set alpha config: %s\n", gf_error_to_string(e) ));
+			}
+		}
 	}
 
 sample_entry_done:
