@@ -3,6 +3,9 @@ deps_test ()
  name=$(basename $1)
 
  test_begin "mp4box-deps-$name"
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
 
  mp4file="$TEMP_DIR/$name.mp4"
 
