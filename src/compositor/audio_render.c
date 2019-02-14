@@ -96,6 +96,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		//issue a dummy packet to tag the point at which we reconfigured
 		pck = gf_filter_pck_new_shared(ar->aout, (u8 *) ar, 0, gf_ar_rcfg_done);
 		ar->wait_for_rcfg ++;
+		gf_filter_pck_set_readonly(pck);
 		gf_filter_pck_send(pck);
 	}
 	return GF_OK;

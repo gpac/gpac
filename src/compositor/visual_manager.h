@@ -140,9 +140,9 @@ struct _visual_manager
 	Bool (*CheckAttached)(GF_VisualManager *visual);
 
 	/*raster surface interface*/
-	GF_SURFACE raster_surface;
+	GF_EVGSurface *raster_surface;
 	/*raster brush interface*/
-	GF_STENCIL raster_brush;
+	GF_EVGStencil *raster_brush;
 
 	/*node owning this visual manager (composite textures) - NULL for root visual*/
 	GF_Node *offscreen;

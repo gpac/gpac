@@ -134,7 +134,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	pck->pck = pck;
 	pck->data_length = data_size;
 	if (data) *data = pck->data;
-	pck->filter_owns_mem = GF_FALSE;
+	pck->filter_owns_mem = 0;
 
 	gf_filter_pck_reset_props(pck, pid);
 	return pck;
@@ -149,7 +149,8 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char 
 GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, char **data)
 {
-	GF_FilterPacket *dst;
+	GF_FilterPacket *dst, *ref;
+	u32 max_ref = 0;
 	GF_FilterPacketInstance *pcki;
 	if (!pck_source) return NULL;
 
@@ -157,15 +158,30 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck
 	if (pcki->pck->hw_frame || !pcki->pck->data_length)
 		return NULL;
 
-	if (pcki->pck->reference_count>1) {
+	ref = pcki->pck;
+	while (ref) {
+		if (ref->filter_owns_mem==2) {
+			max_ref = 2;
+			break;
+		}
+		if (ref->reference_count>max_ref)
+			max_ref = ref->reference_count;
+		ref = ref->reference;
+	}
+
+	if (max_ref>1) {
 		dst = gf_filter_pck_new_alloc_internal(pid, pcki->pck->data_length, data, GF_TRUE);
 		if (dst && data) {
 			memcpy(*data, pcki->pck->data, sizeof(char)*pcki->pck->data_length);
 		}
+		if (dst) gf_filter_pck_merge_properties(pck_source, dst);
 		return dst;
 	}
 	dst = gf_filter_pck_new_ref(pid, NULL, 0, pck_source);
-	*data = dst->data;
+	if (dst) {
+		gf_filter_pck_merge_properties(pck_source, dst);
+		*data = dst->data;
+	}
 	return dst;
 }
 
@@ -197,7 +213,7 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const char
 	pck->data = (char *) data;
 	pck->data_length = data_size;
 	pck->destructor = destruct;
-	pck->filter_owns_mem = GF_TRUE;
+	pck->filter_owns_mem = 1;
 	if (!intern_pck) {
 		safe_int_inc(&pid->nb_shared_packets_out);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pid->filter->name, pid->name, pid->nb_shared_packets_out));
@@ -236,6 +252,17 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 }
 
 GF_EXPORT
+GF_Err gf_filter_pck_set_readonly(GF_FilterPacket *pck)
+{
+	if (PCK_IS_INPUT(pck)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set readonly on an input packet in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	pck->filter_owns_mem = 2;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck;
@@ -244,6 +271,7 @@ GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame 
 	if (!pck) return NULL;
 	pck->destructor = destruct;
 	pck->hw_frame = hw_frame;
+	pck->filter_owns_mem = 2;
 	return pck;
 }
 
@@ -846,7 +874,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					inst->pck->data = data;
 					memcpy(inst->pck->data, pck->data, pck->data_length);
 					inst->pck->alloc_size = alloc_size;
-					inst->pck->filter_owns_mem = GF_FALSE;
+					inst->pck->filter_owns_mem = 0;
 					inst->pck->reference_count = 0;
 					inst->pck->reference = NULL;
 					inst->pck->destructor = NULL;
@@ -999,7 +1027,7 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	npck->pck = npck;
 	npck->data = NULL;
 	npck->data_length = 0;
-	npck->filter_owns_mem = GF_FALSE;
+	npck->filter_owns_mem = 0;
 	npck->destructor = NULL;
 	gf_filter_pck_reset_props(npck, pid);
 	npck->info = srcpck->info;
@@ -1430,11 +1458,20 @@ GF_Err gf_filter_pck_truncate(GF_FilterPacket *pck, u32 size)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to truncate an already sent packet in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	if (pck->filter_owns_mem) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to truncate a shared memory packet in filter %s\n", pck->pid->filter->name));
-		return GF_BAD_PARAM;
-	}
 	if (pck->data_length > size) pck->data_length = size;
 	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck)
+{
+	pck = pck->pck;
+
+	while (pck) {
+		if (pck->destructor && pck->filter_owns_mem) return GF_TRUE;
+		if (pck->hw_frame && pck->hw_frame->reset_pending) return GF_TRUE;
+		pck = pck->reference;
+	}
+	return GF_FALSE;
 }
 

@@ -60,7 +60,7 @@ GF_Err gf_sc_load(GF_Compositor *sc);
 void gf_sc_unload(GF_Compositor *sr);
 
 /*sets simulation frame rate*/
-void gf_sc_set_fps(GF_Compositor *sr, Double fps);
+void gf_sc_set_fps(GF_Compositor *sr, GF_Fraction fps);
 
 /*set the root scene graph of the compositor - if NULL remove current and reset simulation time*/
 GF_Err gf_sc_set_scene(GF_Compositor *sr, GF_SceneGraph *scene_graph);

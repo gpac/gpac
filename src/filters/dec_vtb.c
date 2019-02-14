@@ -180,11 +180,11 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	u64 cts, dts;
 	assert(ctx->cur_pck);
 
-	if (status != kCVReturnSuccess) {
-		ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Decode error - status %d\n", status));
-	}
     if (!image) {
+		if (status != kCVReturnSuccess) {
+			ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Decode error - status %d\n", status));
+		}
         GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer - status %d\n", status));
         return;
     }

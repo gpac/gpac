@@ -249,14 +249,13 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 static void composite_update(GF_TextureHandler *txh)
 {
 	s32 w, h;
-	GF_STENCIL stencil;
+	GF_EVGStencil *stencil;
 	M_Background2D *back;
 	GF_TraverseState *tr_state;
 	Bool invalidate_all;
 	u32 new_pixel_format;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 	CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(txh->owner);
-	GF_Raster2D *raster = st->visual->compositor->rasterizer;
 
 	if (st->unsupported) return;
 
@@ -415,7 +414,7 @@ static void composite_update(GF_TextureHandler *txh)
 		st->visual->width = txh->width;
 		st->visual->height = txh->height;
 
-		stencil = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
+		stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 
 #ifndef GPAC_DISABLE_3D
 		if (st->visual->type_3d) {
@@ -457,7 +456,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 			/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
 			but still supported by the blitter (case of RGBD/RGBDS)*/
-			raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
+			gf_evg_stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
 
 #ifdef GPAC_USE_TINYGL
 			if (st->visual->type_3d && !compositor->visual->type_3d) {
@@ -575,7 +574,6 @@ static void composite_update(GF_TextureHandler *txh)
 			} else
 #endif
 			{
-				if (raster->stencil_texture_modified) raster->stencil_texture_modified(stencil);
 				gf_sc_texture_set_stencil(txh, stencil);
 			}
 			gf_sc_invalidate(st->txh.compositor, NULL);
@@ -588,21 +586,20 @@ static void composite_update(GF_TextureHandler *txh)
 
 	GF_Err composite_get_video_access(GF_VisualManager *visual)
 	{
-		GF_STENCIL stencil;
+		GF_EVGStencil *stencil;
 		GF_Err e;
 		CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(visual->offscreen);
 
 		if (!st->txh.tx_io || !visual->raster_surface) return GF_BAD_PARAM;
 		stencil = gf_sc_texture_get_stencil(&st->txh);
 		if (!stencil) return GF_BAD_PARAM;
-		e = visual->compositor->rasterizer->surface_attach_to_texture(visual->raster_surface, stencil);
+		e = gf_evg_surface_attach_to_texture(visual->raster_surface, stencil);
 		if (!e) visual->is_attached = 1;
 		return e;
 	}
 
 	void composite_release_video_access(GF_VisualManager *visual)
 	{
-		visual->compositor->rasterizer->surface_detach(visual->raster_surface);
 	}
 
 	Bool composite_check_visual_attached(GF_VisualManager *visual)
@@ -640,7 +637,7 @@ static void composite_update(GF_TextureHandler *txh)
 		st->visual->DrawBitmap = composite2d_draw_bitmap;
 		st->visual->CheckAttached = composite_check_visual_attached;
 
-		st->visual->raster_surface = compositor->rasterizer->surface_new(compositor->rasterizer, 1);
+		st->visual->raster_surface = gf_evg_surface_new(1);
 
 
 		st->first = 1;

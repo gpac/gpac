@@ -376,6 +376,13 @@
     <ClCompile Include="..\..\src\crypto\g_crypt_openssl.c" />
     <ClCompile Include="..\..\src\crypto\g_crypt_tinyaes.c" />
     <ClCompile Include="..\..\src\crypto\tiny_aes.c" />
+    <ClCompile Include="..\..\src\evg\ftgrays.c" />
+    <ClCompile Include="..\..\src\evg\raster_565.c" />
+    <ClCompile Include="..\..\src\evg\raster_argb.c" />
+    <ClCompile Include="..\..\src\evg\raster_rgb.c" />
+    <ClCompile Include="..\..\src\evg\raster_yuv.c" />
+    <ClCompile Include="..\..\src\evg\stencil.c" />
+    <ClCompile Include="..\..\src\evg\surface.c" />
     <ClCompile Include="..\..\src\media_tools\ait.c" />
     <ClCompile Include="..\..\src\media_tools\atsc_dmx.c" />
     <ClCompile Include="..\..\src\media_tools\avilib.c" />

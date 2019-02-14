@@ -146,14 +146,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			evt.setup.system_memory = compositor->video_memory ? GF_FALSE : GF_TRUE;
 			evt.setup.disable_vsync = compositor->bench_mode ? GF_TRUE : GF_FALSE;
 
-#ifdef OPENGL_RASTER
-			if (compositor->opengl_raster) {
-				evt.setup.opengl_mode = 1;
-				evt.setup.system_memory = GF_FALSE;
-				evt.setup.back_buffer = GF_TRUE;
-			}
-#endif
-
 #ifndef GPAC_DISABLE_3D
 			if (compositor->hybrid_opengl || compositor->force_opengl_2d) {
 				evt.setup.opengl_mode = 1;
@@ -285,11 +277,13 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 static void gf_sc_hw_frame_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	GF_FilterHWFrame *hwframe = gf_filter_pck_get_hw_frame(pck);
-	GF_Compositor *compositor = hwframe->user_data;
-	compositor->hwframe.user_data = NULL;
-	if (compositor->fb.video_buffer) {
-		gf_sc_release_screen_buffer(compositor, &compositor->fb);
-		compositor->fb.video_buffer = NULL;
+	GF_Compositor *compositor = gf_filter_get_udta(filter);
+	if (hwframe) {
+		compositor->hwframe.user_data = NULL;
+		if (compositor->fb.video_buffer) {
+			gf_sc_release_screen_buffer(compositor, &compositor->fb);
+			compositor->fb.video_buffer = NULL;
+		}
 	}
 	compositor->flush_pending = (compositor->skip_flush!=1) ? GF_TRUE : GF_FALSE;
 	compositor->skip_flush = 0;
@@ -408,12 +402,160 @@ GF_VideoOutput null_vout = {
 	.hw_caps = GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_STRETCH
 };
 
+static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do_lock)
+{
+	GF_Compositor *compositor = (GF_Compositor *)vout->opaque;
+
+	if (do_lock) {
+		u32 pfmt;
+		if (!vi) return GF_BAD_PARAM;
+		pfmt = compositor->opfmt;
+		if (!pfmt && compositor->passthrough_txh) pfmt = compositor->passthrough_txh->pixelformat;
+
+		if (!pfmt) pfmt = GF_PIXEL_RGB;
+
+		memset(vi, 0, sizeof(GF_VideoSurface));
+		vi->width = compositor->display_width;
+		vi->height = compositor->display_height;
+		gf_pixel_get_size_info(pfmt, compositor->display_width, compositor->display_height, NULL, &vi->pitch_y, NULL, NULL, NULL);
+		if (compositor->passthrough_txh && (pfmt == compositor->passthrough_txh->pixelformat)) {
+			if (!compositor->passthrough_pck)
+				compositor->passthrough_pck = gf_filter_pck_new_clone(compositor->vout, compositor->passthrough_txh->stream->pck, &compositor->passthrough_data);
+
+			vi->video_buffer = compositor->passthrough_data;
+			vi->pitch_y = compositor->passthrough_txh->stride;
+		} else {
+			vi->video_buffer = compositor->framebuffer;
+		}
+		vi->pitch_x = gf_pixel_get_bytes_per_pixel(pfmt);
+		vi->pixel_format = pfmt;
+		compositor->last_pfmt = pfmt;
+	}
+	return GF_OK;
+}
+
+static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
+{
+	u32 pfmt;
+	GF_Compositor *compositor = (GF_Compositor *)vout->opaque;
+	if (!evt || (evt->type != GF_EVENT_VIDEO_SETUP)) return GF_OK;
+
+	pfmt = compositor->opfmt;
+	if (!pfmt) pfmt = GF_PIXEL_RGB;
+
+	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, NULL, NULL, NULL, NULL);
+
+	compositor->framebuffer = gf_realloc(compositor->framebuffer, sizeof(char)*compositor->framebuffer_size);
+	if (!compositor->framebuffer) return GF_OUT_OF_MEM;
+	memset(compositor->framebuffer, 0, sizeof(char)*compositor->framebuffer_size);
+	return GF_OK;
+}
+
+GF_VideoOutput raw_vout = {
+	.Setup = nullvout_setup,
+	.Shutdown = nullvout_shutdown,
+	.Flush = nullvout_flush,
+	.SetFullScreen = nullvout_fullscreen,
+	.ProcessEvent = rawvout_evt,
+	.LockBackBuffer = rawvout_lock,
+	.Blit = NULL,
+	.hw_caps = GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA
+};
+
+void gf_sc_setup_passthrough(GF_Compositor *compositor)
+{
+	u32 timescale;
+	u32 update_pfmt = 0;
+	compositor->passthrough_inplace = GF_FALSE;
+	if (compositor->video_out != &raw_vout) return;
+
+	if (!compositor->passthrough_txh) {
+		compositor->passthrough_timescale = 0;
+		return;
+	}
+
+	timescale = gf_filter_pck_get_timescale(compositor->passthrough_txh->stream->pck);
+	if (compositor->passthrough_timescale != timescale) {
+
+		compositor->passthrough_timescale = timescale;
+		gf_filter_pid_copy_properties(compositor->vout, compositor->passthrough_txh->stream->odm->pid);
+		if  (compositor->video_out==&raw_vout) {
+			update_pfmt = compositor->opfmt ? compositor->opfmt :  compositor->passthrough_txh->pixelformat;
+		} else {
+			update_pfmt = GF_PIXEL_RGB;
+		}
+	}
+	if (!compositor->opfmt || (compositor->opfmt == compositor->passthrough_txh->pixelformat)) {
+		compositor->passthrough_inplace = GF_TRUE;
+		update_pfmt = GF_FALSE;
+		if (!compositor->opfmt && (compositor->last_pfmt != compositor->passthrough_txh->pixelformat)) {
+			compositor->last_pfmt = compositor->passthrough_txh->pixelformat;
+			gf_filter_pid_copy_properties(compositor->vout, compositor->passthrough_txh->stream->odm->pid);
+		}
+	}
+	if (update_pfmt) {
+		u32 stride=0, stride_uv=0;
+		gf_pixel_get_size_info(update_pfmt, compositor->display_width, compositor->display_width, NULL, &stride, &stride_uv, NULL, NULL);
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(update_pfmt));
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE_UV, &PROP_UINT(stride_uv));
+
+	}
+}
+
+static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
+{
+	GF_Err e;
+	const char *sOpt;
+	void *os_disp=NULL;
+
+	compositor->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, NULL);
+
+	if (!compositor->video_out ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Failed to load a video output module.\n"));
+		return GF_IO_ERR;
+	}
+
+	sOpt = gf_opts_get_key("Temp", "OSDisp");
+	if (sOpt) sscanf(sOpt, "%p", &os_disp);
+
+	compositor->video_out->evt_cbk_hdl = compositor;
+	compositor->video_out->on_event = gf_sc_on_event;
+	/*init hw*/
+	e = compositor->video_out->Setup(compositor->video_out, compositor->os_wnd, os_disp, compositor->init_flags);
+	if (e != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Error setuing up video output: %s\n", gf_error_to_string(e) ));
+		return e;
+	}
+	if (!gf_opts_get_key("core", "video-output")) {
+		gf_opts_set_key("core", "video-output", compositor->video_out->module_name);
+	}
+	return GF_OK;
+}
+
+static void gf_sc_check_video_driver(GF_Compositor *compositor)
+{
+	if (compositor->video_out == &null_vout) return;
+
+	if (compositor->visual->type_3d) {
+		GF_Err e;
+		if (compositor->video_out != &raw_vout) return;
+		e = gf_sc_load_driver(compositor);
+		if (e) {
+			compositor->video_out = &raw_vout;
+		}
+		return;
+	}
+	if (compositor->video_out == &raw_vout) return;
+	compositor->video_out->Shutdown(compositor->video_out);
+	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+	compositor->video_out = &raw_vout;
+}
 
 GF_Err gf_sc_load(GF_Compositor *compositor)
 {
 	u32 i;
 	const char *sOpt;
-	void *os_disp;
 
 	compositor->mx = gf_mx_new("Compositor");
 	if (!compositor->mx) return GF_OUT_OF_MEM;
@@ -427,11 +569,9 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	}
 
 	compositor->init_flags = 0;
-	compositor->os_wnd = os_disp = NULL;
+	compositor->os_wnd = NULL;
 	sOpt = gf_opts_get_key("Temp", "OSWnd");
 	if (sOpt) sscanf(sOpt, "%p", &compositor->os_wnd);
-	sOpt = gf_opts_get_key("Temp", "OSDisp");
-	if (sOpt) sscanf(sOpt, "%p", &os_disp);
 	sOpt = gf_opts_get_key("Temp", "InitFlags");
 	if (sOpt) compositor->init_flags = atoi(sOpt);
 
@@ -440,44 +580,29 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
 	/*set default size if owning output*/
 	if (!compositor->os_wnd) {
-		compositor->new_width = compositor->defsz.x>0 ? compositor->defsz.x : SC_DEF_WIDTH;
-		compositor->new_height = compositor->defsz.y>0 ? compositor->defsz.y : SC_DEF_HEIGHT;
+		compositor->new_width = compositor->size.x>0 ? compositor->size.x : SC_DEF_WIDTH;
+		compositor->new_height = compositor->size.y>0 ? compositor->size.y : SC_DEF_HEIGHT;
 		compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 	}
+
+	if (compositor->init_flags & GF_TERM_INIT_VIDEO)
+		compositor->player_mode = GF_TRUE;
+	else
+		compositor->init_flags = GF_TERM_INIT_HIDE;
+
 
 	if (compositor->init_flags & GF_TERM_NO_VIDEO) {
 		compositor->video_out = &null_vout;
 		compositor->ogl = GF_SC_GLMODE_OFF;
-	} else {
+	} else if ((compositor->init_flags & GF_TERM_INIT_VIDEO) || (compositor->drv==GF_SC_DRV_ON) ){
 		GF_Err e;
-		compositor->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, NULL);
 
-		if (!compositor->video_out ) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Failed to load a video output module.\n"));
-			return GF_IO_ERR;
-		}
-		compositor->video_out->evt_cbk_hdl = compositor;
-		compositor->video_out->on_event = gf_sc_on_event;
-		/*init hw*/
-		e = compositor->video_out->Setup(compositor->video_out, compositor->os_wnd, os_disp, compositor->init_flags);
-		if (e != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Error setuing up video output: %s\n", gf_error_to_string(e) ));
-			return e;
-		}
-		if (!gf_opts_get_key("core", "video-output")) {
-			gf_opts_set_key("core", "video-output", compositor->video_out->module_name);
-		}
+		e = gf_sc_load_driver(compositor);
+		if (e) return e;
+	} else {
+		raw_vout.opaque = compositor;
+		compositor->video_out = &raw_vout;
 	}
-
-	compositor->rasterizer = (GF_Raster2D *) gf_module_load(GF_RASTER_2D_INTERFACE, NULL);
-	if (!compositor->rasterizer) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Failed to load rasterizer\n"));
-		if (compositor->video_out->Shutdown) compositor->video_out->Shutdown(compositor->video_out);
-		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
-		compositor->video_out = NULL;
-		return GF_IO_ERR;
-	}
-
 
 	compositor->strike_bank = gf_list_new();
 	if (!compositor->strike_bank) return GF_OUT_OF_MEM;
@@ -519,10 +644,10 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual->CheckAttached = compositor_2d_check_attached;
 	compositor->visual->ClearSurface = compositor_2d_clear_surface;
 
+	compositor_2d_init_callbacks(compositor);
+
 	if (compositor->video_out->FlushRectangles)
 		compositor->visual->direct_flush = GF_TRUE;
-
-	compositor_2d_init_callbacks(compositor);
 
 	// default value for depth gain is not zero
 #ifdef GF_SR_USE_DEPTH
@@ -563,8 +688,13 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	if (!compositor->textures) return GF_OUT_OF_MEM;
 	compositor->textures_gc = gf_list_new();
 	if (!compositor->textures_gc) return GF_OUT_OF_MEM;
-	compositor->frame_rate = 30.0;
-	compositor->frame_duration = 33;
+	if (!compositor->fps.num || !compositor->fps.den) {
+		compositor->fps.num = 30;
+		compositor->fps.den = 1;
+	}
+	compositor->frame_duration = compositor->fps.num * 1000;
+	compositor->frame_duration /= compositor->fps.den;
+
 	compositor->time_nodes = gf_list_new();
 	if (!compositor->time_nodes) return GF_OUT_OF_MEM;
 	compositor->event_queue = gf_list_new();
@@ -693,7 +823,9 @@ void gf_sc_unload(GF_Compositor *compositor)
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
 
 	if (compositor->screen_buffer) gf_free(compositor->screen_buffer);
+	if (compositor->line_buffer) gf_free(compositor->line_buffer);
 #endif
+	if (compositor->framebuffer) gf_free(compositor->framebuffer);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Unloading visual compositor module\n"));
 
@@ -764,12 +896,17 @@ void gf_sc_unload(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroyed\n"));
 }
 
-void gf_sc_set_fps(GF_Compositor *compositor, Double fps)
+void gf_sc_set_fps(GF_Compositor *compositor, GF_Fraction fps)
 {
-	if (fps) {
-		compositor->frame_rate = fps;
-		compositor->frame_duration = (u32) (1000 / fps);
+	if (fps.den) {
+		compositor->fps = fps;
+		compositor->frame_duration = (u32) (1000 * fps.num)/fps.den;
 		gf_sc_reset_framerate(compositor);
+
+		if (compositor->vout && !compositor->timescale) {
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_TIMESCALE, &PROP_UINT(fps.num) );
+
+		}
 	}
 }
 
@@ -803,7 +940,7 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 
 u32 gf_sc_get_clock(GF_Compositor *compositor)
 {
-	if (!compositor->bench_mode) {
+	if (!compositor->bench_mode && compositor->player_mode) {
 		return gf_sc_ar_get_clock(compositor->audio_renderer);
 	}
 	return compositor->scene_sampled_clock;
@@ -905,7 +1042,7 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 		visual->to_redraw.count = 0;
 
 		/*reset the surface as well*/
-		if (visual->raster_surface) compositor->rasterizer->surface_delete(visual->raster_surface);
+		if (visual->raster_surface) gf_evg_surface_delete(visual->raster_surface);
 		visual->raster_surface = NULL;
 	}
 
@@ -1162,6 +1299,10 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	Bool lock_ok;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("sc_set_size %dx%d\n", NewWidth, NewHeight));
+	if (compositor->size.x && compositor->size.y) {
+		NewWidth = compositor->size.x;
+		NewHeight = compositor->size.y;
+	}
 
 	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight))
 		return GF_OK;
@@ -1230,10 +1371,6 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 			compositor->autoconfig_opengl = 1;
 		} else {
 			compositor->hybrid_opengl = (compositor->ogl==GF_SC_GLMODE_HYBRID) ? 1 : 0;
-#ifdef OPENGL_RASTER
-			compositor->opengl_raster = (compositor->ogl==GF_SC_GLMODE_RASTER) ? 1 : 0;
-			if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
-#endif
 		}
 	}
 
@@ -1798,7 +1935,7 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 
 	gf_mx_v(compositor->mx);
 
-	if (!run_time) return (Double) compositor->frame_rate;
+	if (!run_time) return ((Double) compositor->fps.num)/compositor->fps.den;
 	fps = 1000*frames;
 	fps /= run_time;
 	return fps;
@@ -1913,7 +2050,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		if (compositor->vout) {
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->output_width) );
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->output_height) );
-			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_FPS, &PROP_FRAC_INT((u32) (compositor->frame_rate*1000), 1000) );
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_FPS, &PROP_FRAC(compositor->fps) );
 		}
 	}
 }
@@ -2015,6 +2152,9 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			if (compositor->force_opengl_2d==2) force_navigate=1;
 		}
 
+		if (compositor->drv==GF_SC_DRV_AUTO)
+			gf_sc_check_video_driver(compositor);
+
 		if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
 			compositor->visual->type_3d = 0;
 			compositor->visual->camera.is_3D = 0;
@@ -2077,6 +2217,9 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 				else count=n_count;
 			}
 		}
+		if (compositor->passthrough_txh)
+			compositor->traverse_state->immediate_draw = 1;
+
 		if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
 			/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
 #ifdef GPAC_CONFIG_ANDROID
@@ -2149,7 +2292,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #endif
 	GF_List *temp_queue;
 	u32 in_time, end_time, i, count, frame_duration, frame_ts;
+	GF_MediaObject *src_mo;
 	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
+
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
 #endif
@@ -2177,7 +2322,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	if (compositor->freeze_display) {
 		gf_sc_lock(compositor, 0);
-		if (!compositor->bench_mode) {
+		if (!compositor->bench_mode && compositor->player_mode) {
 			compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
 		}
 		return;
@@ -2236,15 +2381,16 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	event_time = gf_sys_clock() - event_time;
 #endif
 
-
-	if (!compositor->bench_mode) {
-		compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
-	} else {
-		if (compositor->force_bench_frame==1) {
-			//a system frame is pending on a future frame - we must increase our time
-			compositor->scene_sampled_clock += compositor->frame_duration;
+	if (compositor->player_mode) {
+		if (!compositor->bench_mode) {
+			compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
+		} else {
+			if (compositor->force_bench_frame==1) {
+				//a system frame is pending on a future frame - we must increase our time
+				compositor->scene_sampled_clock += compositor->frame_duration;
+			}
+			compositor->force_bench_frame = 0;
 		}
-		compositor->force_bench_frame = 0;
 	}
 
 
@@ -2256,52 +2402,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (compositor->auto_rotate)
 		compositor_handle_auto_navigation(compositor);
 
-#ifndef GPAC_DISABLE_LOG
-	texture_time = gf_sys_clock();
-#endif
-	//compute earliest frame TS in all textures that need refresh (skip textures with same timing)
-	frame_ts = (u32) -1;
-	/*update all video textures*/
-	count = gf_list_count(compositor->textures);
-	for (i=0; i<count; i++) {
-		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
-		if (!txh) break;
-		//this is not a natural (video) texture
-		if (! txh->stream) continue;
-
-		/*signal graphics reset before updating*/
-		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
-		txh->update_texture_fcnt(txh);
-
-		if (!txh->stream_finished) {
-			u32 d = gf_mo_get_min_frame_dur(txh->stream);
-			if (d && (d < frame_duration)) frame_duration = d;
-			//if the texture needs update (new frame), compute its timestamp in system timebase
-			if (txh->needs_refresh) {
-				u32 ts = gf_mo_map_timestamp_to_sys_clock(txh->stream, txh->stream->timestamp);
-				if (ts<frame_ts) frame_ts = ts;
-			}
-			all_tx_done=0;
-		}
-	}
-	//no texture found/updated, use scene sampled clock
-	if (frame_ts==(u32) -1)
-		frame_ts = compositor->scene_sampled_clock - gf_sc_ar_get_delay(compositor->audio_renderer);
-
-
-	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
-	//forced a relayout - do it right away
-	if (compositor->msg_type) {
-		gf_sc_lock(compositor, 0);
-		return;
-	}
+	/*first update time nodes since they may trigger play/stop request*/
 
 	compositor->force_late_frame_draw = GF_FALSE;
-
-#ifndef GPAC_DISABLE_LOG
-	texture_time = gf_sys_clock() - texture_time;
-#endif
-
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -2348,6 +2451,57 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	time_node_time = gf_sys_clock() - time_node_time;
 #endif
+
+
+	compositor->passthrough_txh = NULL;
+#ifndef GPAC_DISABLE_LOG
+	texture_time = gf_sys_clock();
+#endif
+	//compute earliest frame TS in all textures that need refresh (skip textures with same timing)
+	frame_ts = (u32) -1;
+	src_mo = NULL;
+	/*update all video textures*/
+	count = gf_list_count(compositor->textures);
+	for (i=0; i<count; i++) {
+		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
+		if (!txh) break;
+		//this is not a natural (video) texture
+		if (! txh->stream) continue;
+
+		/*signal graphics reset before updating*/
+		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
+		txh->update_texture_fcnt(txh);
+
+		if (!txh->stream_finished) {
+			u32 d = gf_mo_get_min_frame_dur(txh->stream);
+			if (d && (d < frame_duration)) frame_duration = d;
+			//if the texture needs update (new frame), compute its timestamp in system timebase
+			if (txh->needs_refresh) {
+				u32 ts = gf_mo_map_timestamp_to_sys_clock(txh->stream, txh->stream->timestamp);
+				if (ts<frame_ts) frame_ts = ts;
+			}
+			all_tx_done=0;
+		}
+	}
+#ifndef GPAC_DISABLE_LOG
+	texture_time = gf_sys_clock() - texture_time;
+#endif
+
+	if (!compositor->player_mode) {
+		if (compositor->passthrough_txh && compositor->passthrough_txh->hw_frame)
+			compositor->passthrough_txh = NULL;
+		if (compositor->passthrough_txh && compositor->passthrough_txh->width && compositor->passthrough_txh->needs_refresh) {
+			compositor->scene_sampled_clock = compositor->passthrough_txh->last_frame_time/* + dur*/;
+		}
+	}
+	
+	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
+	//forced a relayout - do it right away
+	if (compositor->msg_type) {
+		gf_sc_lock(compositor, 0);
+		return;
+	}
+
 
 	if (compositor->focus_text_type) {
 		if (!compositor->caret_next_draw_time) {
@@ -2449,6 +2603,25 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		compositor->frame_draw_type = 0;
 	}
 
+	if (!compositor->player_mode) {
+		if (compositor->check_eos_state<=1) {
+			compositor->check_eos_state = 0;
+			/*force a frame dispatch */
+			if (!compositor->vfr && !compositor->passthrough_txh)
+				compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+
+			//still waiting for initialization
+			if (compositor->passthrough_txh && (!compositor->passthrough_txh->width || !compositor->passthrough_txh->stream->pck) ) {
+				compositor->frame_draw_type=GF_SC_DRAW_NONE;
+				//done
+				if (compositor->passthrough_txh->stream_finished) {
+					compositor->check_eos_state = 2;
+				}
+			}
+		}
+
+	}
+
 	frame_drawn = (compositor->frame_draw_type==GF_SC_DRAW_FRAME) ? 1 : 0;
 
 	/*if invalidated, draw*/
@@ -2500,28 +2673,90 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->init_flags & GF_TERM_INIT_HIDE)
 			compositor->skip_flush = 1;
 
+		//new frame generated, emit packet
+		if (emit_frame) {
+			u64 pck_frame_ts=0;
+			GF_FilterPacket *pck;
+			frame_ts = 0;
+			if (compositor->passthrough_pck) {
+				pck = compositor->passthrough_pck;
+				compositor->passthrough_pck = NULL;
+				pck_frame_ts = gf_filter_pck_get_cts(pck);
+			} else {
+				if (compositor->video_out==&raw_vout) {
+					pck = gf_filter_pck_new_shared(compositor->vout, compositor->framebuffer, compositor->framebuffer_size, gf_sc_hw_frame_done);
+				} else {
+					compositor->hwframe.user_data = compositor;
+					compositor->hwframe.get_plane = gf_sc_hw_frame_get_plane;
+					compositor->hwframe.reset_pending = GF_TRUE;
+					pck = gf_filter_pck_new_hw_frame(compositor->vout, &compositor->hwframe, gf_sc_hw_frame_done);
+				}
+
+				if (compositor->passthrough_txh) {
+					gf_filter_pck_merge_properties(compositor->passthrough_txh->stream->pck, pck);
+					pck_frame_ts = gf_filter_pck_get_cts(compositor->passthrough_txh->stream->pck);
+				} else {
+					//no texture found/updated, use scene sampled clock
+					if (compositor->timescale) {
+						frame_ts = compositor->frame_number * compositor->fps.den * compositor->timescale;
+						frame_ts /= compositor->fps.num;
+					} else {
+						frame_ts = compositor->frame_number * compositor->fps.den;
+					}
+					gf_filter_pck_set_cts(pck, frame_ts);
+				}
+			}
+			if (pck_frame_ts) {
+				pck_frame_ts *= 1000;
+				pck_frame_ts /= compositor->passthrough_timescale;
+				frame_ts = (u32) pck_frame_ts;
+			}
+
+			gf_filter_pck_send(pck);
+			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
+
+			if (!compositor->player_mode) {
+				if (compositor->passthrough_txh) {
+					u64 next_frame;
+					next_frame = frame_ts + gf_filter_pck_get_duration(pck);
+					next_frame *= 1000;
+					next_frame /= compositor->passthrough_timescale;
+					assert(next_frame>=compositor->scene_sampled_clock);
+					compositor->scene_sampled_clock = (u32) next_frame;
+					if (compositor->passthrough_txh->stream_finished)
+						compositor->check_eos_state = 2;
+				} else {
+					u64 res;
+					compositor->last_frame_ts = frame_ts;
+					res = (compositor->frame_number+1);
+					res *= compositor->fps.den;
+					res *= 1000;
+					res /= compositor->fps.num;
+					assert(res>=compositor->scene_sampled_clock);
+					compositor->scene_sampled_clock = (u32) res;
+				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - next frame scene clock %d ms - passthrough %p\n", frame_ts, compositor->scene_sampled_clock, compositor->passthrough_txh));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - AR clock %d\n", frame_ts, compositor->audio_renderer->current_time));
+			 	if (compositor->bench_mode) {
+					compositor->force_bench_frame = 1;
+				}
+			}
+		} else if (!compositor->player_mode) {
+			frame_drawn = GF_FALSE;
+		}
+
+		if (compositor->passthrough_pck) {
+		 	gf_filter_pck_discard(compositor->passthrough_pck);
+		 	compositor->passthrough_pck = NULL;
+		}
+
 		//if no overlays, release textures before flushing, otherwise we might loose time waiting for vsync
 		if (!compositor->visual->has_overlays) {
 			compositor_release_textures(compositor, frame_drawn);
 			textures_released = 1;
 		}
 
-		//new frame generated, emit packet
-		if (emit_frame) {
-			GF_FilterPacket *pck;
-			compositor->hwframe.user_data = compositor;
-			compositor->hwframe.get_plane = gf_sc_hw_frame_get_plane;
-			pck = gf_filter_pck_new_hw_frame(compositor->vout, &compositor->hwframe, gf_sc_hw_frame_done);
-
-			gf_filter_pck_set_cts(pck, frame_ts);
-			gf_filter_pck_send(pck);
-			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
-
-			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - AR clock %d\n", frame_ts, compositor->audio_renderer->current_time));
-
-			if (compositor->bench_mode)
-				compositor->force_bench_frame = 1;
-		}
 		//no flush pending
 		if (!compositor->flush_pending && !compositor->skip_flush) {
 			gf_sc_flush_video(compositor, GF_TRUE);
@@ -2559,6 +2794,12 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		compositor->traverse_and_direct_draw_time = 0;
 		compositor->indirect_draw_time = 0;
 #endif
+
+		if (!compositor->player_mode && compositor->vfr) {
+			compositor->frame_number++;
+			compositor->scene_sampled_clock = compositor->frame_number * compositor->fps.den * 1000;
+			compositor->scene_sampled_clock /= compositor->fps.num;
+		}
 	}
 	compositor->reset_graphics = 0;
 

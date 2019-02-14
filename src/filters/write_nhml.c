@@ -367,6 +367,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 
 		dst_pck = gf_filter_pck_new_shared(ctx->opid_info, ctx->dcfg, ctx->dcfg_size, NULL);
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+		gf_filter_pck_set_readonly(dst_pck);
 		gf_filter_pck_send(dst_pck);
 	}
 

@@ -87,7 +87,7 @@ void overmask_565_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count)
 	}
 }
 
-void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u16 col565 = surf->fill_565;
 	u32 col = surf->fill_col;
@@ -115,7 +115,7 @@ void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
@@ -132,7 +132,7 @@ void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 }
 
 
-void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	register u8 spanalpha, col_a;
@@ -161,12 +161,12 @@ void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_565(GF_SURFACE surf, GF_IRect rc, GF_Color col)
+GF_Err evg_surface_clear_565(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 {
 	register u32 x, y, w, h, sx, sy;
 	s32 st;
 	register u16 val;
-	EVGSurface *_this = (EVGSurface *)surf;
+	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
 	st = _this->pitch_y;
 
 	h = rc.height;
@@ -236,7 +236,7 @@ static void overmask_555_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count
 	}
 }
 
-void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u16 col555 = surf->fill_555;
 	u32 col = surf->fill_col;
@@ -264,7 +264,7 @@ void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_x;
 	u32 col = surf->fill_col;
@@ -283,7 +283,7 @@ void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 }
 
 
-void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u8 spanalpha, col_a;
@@ -314,11 +314,11 @@ void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_555(GF_SURFACE surf, GF_IRect rc, GF_Color col)
+GF_Err evg_surface_clear_555(GF_EVGSurface surf, GF_IRect rc, GF_Color col)
 {
 	u32 x, y, w, h, sx, sy;
 	u16 val;
-	EVGSurface *_this = (EVGSurface *)surf;
+	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
 
 
 	h = rc.height;
@@ -390,7 +390,7 @@ static void overmask_444_const_run(u32 src, u16 *dst, s32 dst_pitch_x, u32 count
 	}
 }
 
-void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u16 col444 = surf->fill_444;
 	u32 col = surf->fill_col;
@@ -418,7 +418,7 @@ void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 col = surf->fill_col;
@@ -437,7 +437,7 @@ void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 }
 
 
-void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 {
 	u8 *dst = surf->pixels + y * surf->pitch_x;
 	u8 spanalpha, col_a;
@@ -468,11 +468,11 @@ void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_444(GF_SURFACE surf, GF_IRect rc, GF_Color col)
+GF_Err evg_surface_clear_444(GF_EVGSurface surf, GF_IRect rc, GF_Color col)
 {
 	u32 x, y, w, h, sx, sy;
 	u16 val;
-	EVGSurface *_this = (EVGSurface *)surf;
+	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
 
 	h = rc.height;
 	w = rc.width;

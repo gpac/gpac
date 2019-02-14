@@ -82,14 +82,13 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	u32 j, ind_col, num_col;
 	SFVec2f center, end;
 	SFColor col_cen;
-	GF_STENCIL grad;
+	GF_EVGStencil *grad;
 	u32 *colors;
 	GF_Path *path;
 	SFVec2f start;
 	SFVec2f *pts;
 	SFColor col;
 	Fixed alpha;
-	GF_Raster2D *raster;
 	DrawableContext *ctx = tr_state->ctx;
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	M_Coordinate2D *coord = (M_Coordinate2D*) ifs2D->coord;
@@ -166,8 +165,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	}
 
 	/*final case, color per vertex means gradient fill/strike*/
-	raster = tr_state->visual->compositor->rasterizer;
-	grad = raster->stencil_new(raster, GF_STENCIL_VERTEX_GRADIENT);
+	grad = gf_evg_stencil_new(GF_STENCIL_VERTEX_GRADIENT);
 	/*not supported, fill default*/
 	if (!grad) {
 		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
@@ -225,8 +223,8 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		col_cen.green += col.green;
 		col_cen.red += col.red;
 
-		raster->stencil_set_vertex_path(grad, path);
-		raster->stencil_set_vertex_colors(grad, colors, num_col);
+		gf_evg_stencil_set_vertex_path(grad, path);
+		gf_evg_stencil_set_vertex_colors(grad, colors, num_col);
 
 		gf_free(colors);
 
@@ -235,20 +233,20 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		col_cen.red /= num_col;
 		center.x /= num_col;
 		center.y /= num_col;
-		raster->stencil_set_vertex_center(grad, center.x, center.y, GF_COL_ARGB_FIXED(alpha, col_cen.red, col_cen.green, col_cen.blue) );
+		gf_evg_stencil_set_vertex_center(grad, center.x, center.y, GF_COL_ARGB_FIXED(alpha, col_cen.red, col_cen.green, col_cen.blue) );
 
-		raster->stencil_set_matrix(grad, &ctx->transform);
+		gf_evg_stencil_set_matrix(grad, &ctx->transform);
 
 		/*draw*/
 		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, grad, grad, tr_state);
 
-		raster->stencil_delete(grad);
+		gf_evg_stencil_delete(grad);
 
 		//goto next point
 		i++;
 		ind_col += num_col + 1;
 		if (i >= ci_count) break;
-		grad = raster->stencil_new(raster, GF_STENCIL_VERTEX_GRADIENT);
+		grad = gf_evg_stencil_new(GF_STENCIL_VERTEX_GRADIENT);
 		ctx->flags &= ~CTX_PATH_FILLED;
 		ctx->flags &= ~CTX_PATH_STROKE;
 	}

@@ -1437,7 +1437,7 @@ void gf_mx_inverse(GF_Matrix *mx)
 	det -= gf_mulfix(gf_mulfix(mx->m[1], mx->m[4]) , mx->m[10]);
 	det -= gf_mulfix(gf_mulfix(mx->m[0], mx->m[6]) , mx->m[9]);
 	if (!det) {
-		gf_mx2d_init(*mx);
+		gf_mx_init(*mx);
 		return;
 	}
 #endif

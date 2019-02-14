@@ -53,6 +53,7 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 		snprintf(msg, sizeof(msg), "Cannot open %s", scene_ns->url);
 		gf_scene_message(scene, scene_ns->url, msg, err);
 
+		if (root->mo) root->mo->connect_failure = GF_TRUE;
 		gf_odm_service_media_event(root, GF_EVENT_ERROR);
 
 		/*destroy service only if attached*/
@@ -186,6 +187,14 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	v = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (v) pid_id = v->value.uint;
 
+	if (scene->compositor->autofps && (mtype==GF_STREAM_VISUAL) ) {
+		v = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (v && v->value.frac.den && v->value.frac.num && (v->value.frac.den!=v->value.frac.num)) {
+			scene->compositor->autofps = GF_FALSE;
+			gf_sc_set_fps(scene->compositor, v->value.frac);
+		}
+	}
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Service %s] Adding new media\n", sns->url));
 
 	/*object declared this way are not part of an OD stream and are considered as dynamic*/
@@ -201,17 +210,61 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 #endif
 		char *ext, *url;
 		u32 match_esid = 0;
+		Bool type_matched = GF_FALSE;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 
 		if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id<mo->OD_ID))
 			min_od_id = mo->OD_ID;
 
-		if (!mo->odm) continue;
+		//got the service, check the type
+		/*match type*/
+		switch (mtype) {
+		case GF_STREAM_VISUAL:
+			if (mo->type == GF_MEDIA_OBJECT_VIDEO) type_matched = GF_TRUE;
+			break;
+		case GF_STREAM_AUDIO:
+			if (mo->type == GF_MEDIA_OBJECT_AUDIO) type_matched = GF_TRUE;
+			break;
+		case GF_STREAM_SCENE:
+			if (mo->type == GF_MEDIA_OBJECT_UPDATES) type_matched = GF_TRUE;
+			break;
+		default:
+			break;
+		}
+		if (!mo->odm) {
+			u32 j;
+			//if not external OD, look for ODM with same ID
+			if (mo->OD_ID != GF_MEDIA_EXTERNAL_ID) {
+				for (j=0; j<gf_list_count(scene->resources); j++) {
+					GF_ObjectManager *an_odm = gf_list_get(scene->resources, j);
+					if (an_odm->ID == mo->OD_ID) {
+						mo->odm = an_odm;
+						break;
+					}
+				}
+			}
+			if (!mo->odm) {
+				continue;
+			}
+		}
 		/*if object is attached to a service, don't bother looking in a different one*/
 		if (mo->odm->scene_ns && (mo->odm->scene_ns != sns)) {
-			Bool in_parent = gf_filter_pid_is_filter_in_parents(pid, mo->odm->scene_ns->source_filter);
-			if (!in_parent) continue;
-			//got it !
+			Bool mine = 0;
+			if (mo->odm->scene_ns->source_filter) {
+				mine = gf_filter_pid_is_filter_in_parents(pid, mo->odm->scene_ns->source_filter);
+			}
+			//passthrough ODM not yet assigned, consider it ours
+			else if (!mo->odm->pid && (mo->odm->flags & GF_ODM_PASSTHROUGH)) {
+				mine = GF_TRUE;
+			}
+			if (!mine) continue;
+
+			if (type_matched) {
+				the_mo = mo;
+				odm = mo->odm;
+				pid_odid = odm->ID = mo->OD_ID;
+				break;
+			}
 		}
 
 		/*already assigned object*/
@@ -446,6 +499,14 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	odm->scene_ns->nb_odm_users++;
 	assert(odm->scene_ns->owner == odm);
 
+	if (!strncmp(serviceURL, "gpid://", 7)) {
+		gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);
+		gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_DONE);
+		odm->scene_ns->connect_ack = GF_TRUE;
+		odm->flags |= GF_ODM_NOT_IN_OD_STREAM | GF_ODM_PASSTHROUGH;
+		return;
+	}
+
 	frag = strchr(serviceURL, '#');
 	if (frag) frag[0] = 0;
 
@@ -455,6 +516,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	if (!odm->scene_ns->source_filter) {
 		Bool remove_scene=GF_FALSE;
 		GF_Scene *scene = odm->subscene ? NULL : odm->parentscene;
+		if (odm->mo) odm->mo->connect_failure = GF_TRUE;
 		odm->skip_disconnect_state = 1;
 		//prevent scene from being disconnected - this can happen if a script catches the event and triggers a disonnection of the parent scene
 		if (scene) scene->root_od->skip_disconnect_state = 1;

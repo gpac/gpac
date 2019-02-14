@@ -551,7 +551,6 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "cache", gf_get_default_cache_directory());
 #endif
 
-	gf_cfg_set_key(cfg, "core", "raster2d", "GPAC 2D Raster");
 	gf_cfg_set_key(cfg, "core", "ds-disable-notif", "no");
 
 	/*Setup font engine to FreeType by default, and locate TrueType font directory on the system*/
@@ -1039,7 +1038,6 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("sdl-defer", NULL, "use defer rendering for SDL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("no-colorkey", NULL, "disables color keying at the video output level", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("video-output", NULL, "indicates the name of the video output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("raster2d", NULL, "indicates the name of the 2D rasterizer module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gapi-fbaccess", NULL, "sets GAPI access mode to the backbuffer", NULL, "base|raw|gx", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("audio-output", NULL, "indicates the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("alsa-devname", NULL, "sets ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),

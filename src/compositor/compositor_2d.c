@@ -32,107 +32,6 @@
 
 #include "gl_inc.h"
 
-#ifdef OPENGL_RASTER
-
-static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
-{
-#if defined(GPAC_USE_GLES1X)
-	GLfloat line[4];
-
-	line[0] = FIX2FLT(x);
-	line[1] = FIX2FLT(y);
-	line[2] = FIX2FLT(x+run_h_len);
-	line[3] = line[1];
-
-	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), 0xFF);
-	glVertexPointer(2, GL_FLOAT, 0, line);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glDrawArrays(GL_LINES, 0, 2);
-	glDisableClientState(GL_VERTEX_ARRAY);
-
-#else
-	glBegin(GL_LINES);
-	glColor3ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color));
-//	glColor3f(GF_COL_R(color)/255, GF_COL_G(color)/255, GF_COL_B(color)/255);
-	glVertex2i(x,y);
-	glVertex2i(x+run_h_len,y);
-	glEnd();
-#endif
-}
-
-
-static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
-{
-#if defined(GPAC_USE_GLES1X)
-	GLfloat line[4];
-
-	line[0] = FIX2FLT(x);
-	line[1] = FIX2FLT(y);
-	line[2] = FIX2FLT(x+run_h_len);
-	line[3] = line[1];
-
-	glEnable(GL_BLEND);
-	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), (u8) alpha);
-
-	glVertexPointer(2, GL_FLOAT, 0, line);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glDrawArrays(GL_LINES, 0, 2);
-	glDisableClientState(GL_VERTEX_ARRAY);
-
-	glDisable(GL_BLEND);
-#else
-	glEnable(GL_BLEND);
-	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), (u8) alpha);
-	glBegin(GL_LINES);
-	glVertex2i(x,y);
-	glVertex2i(x+run_h_len,y);
-	glEnd();
-	glDisable(GL_BLEND);
-#endif
-}
-
-static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color)
-{
-#if defined(GPAC_USE_GLES1X)
-	GLfloat line[8];
-
-	line[0] = FIX2FLT(x);
-	line[1] = FIX2FLT(y);
-	line[2] = FIX2FLT(x+width);
-	line[3] = FIX2FLT(y);
-	line[4] = FIX2FLT(x+width);
-	line[5] = FIX2FLT(y+height);
-	line[6] = FIX2FLT(x);
-	line[7] = FIX2FLT(y+height);
-
-	glEnable(GL_BLEND);
-	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), GF_COL_A(color));
-
-	glVertexPointer(4, GL_FLOAT, 0, line);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 2);
-	glDisableClientState(GL_VERTEX_ARRAY);
-
-	glDisable(GL_BLEND);
-#else
-	glEnable(GL_BLEND);
-	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), GF_COL_A(color));
-	glBegin(GL_TRIANGLES);
-	glVertex2i(x,y);
-	glVertex2i(x+width,y);
-	glVertex2i(x+width,y+height);
-	glEnd();
-	glBegin(GL_TRIANGLES);
-	glVertex2i(x,y);
-	glVertex2i(x+width,y+height);
-	glVertex2i(x,y+height);
-	glEnd();
-	glDisable(GL_BLEND);
-#endif
-}
-
-#endif
-
 
 #ifndef GPAC_DISABLE_3D
 void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen_clear)
@@ -147,7 +46,7 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 		}
 	}
 	if (is_offscreen_clear) {
-		visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
+		gf_evg_surface_clear(visual->raster_surface, rc, BackColor);
 		//if we clear the canvas with non-0 alpha, remember the area cleared in case we have to erase it later (overlapping bitmap)
 		//if we clear dirty area of the canvas, remember the area to force gl flush 
 		if (GF_COL_A(BackColor) || (is_offscreen_clear==2))
@@ -282,12 +181,6 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 		GF_Mesh *mesh;
 		size.x = ctx->bi->unclip.width;
 		size.y = ctx->bi->unclip.height;
-# ifdef OPENGL_RASTER
-		if (visual->compositor->opengl_raster) {
-			orig.x = ctx->bi->unclip.x + INT2FIX(visual->compositor->vp_width)/2;
-			orig.y = INT2FIX(visual->compositor->vp_height)/2 - ctx->bi->unclip.y + ctx->bi->unclip.height;
-		}
-#endif
 		mesh = new_mesh();
 		mesh_new_rectangle(mesh, size, &orig, GF_TRUE);
 		visual_3d_mesh_paint(tr_state, mesh);
@@ -375,35 +268,7 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 	camera_update(&visual->camera, NULL, visual->compositor->hybrid_opengl ? GF_TRUE : visual->center_coords);
 
 	visual_3d_projection_matrix_modified(visual);
-
-#ifdef OPENGL_RASTER
-	if (compositor->opengl_raster) {
-		gf_mx_add_scale(&visual->camera.modelview, FIX_ONE, -FIX_ONE, FIX_ONE);
-		gf_mx_add_translation(&visual->camera.modelview, -visual->camera.width/2, -visual->camera.height/2, 0);
-	}
-#endif
 	return GF_OK;
-}
-#endif
-
-#ifdef OPENGL_RASTER
-static GF_Err c2d_video_access_opengl_raster(GF_VisualManager *visual)
-{
-	GF_Err e;
-	GF_Compositor *compositor = visual->compositor;
-	GF_RasterCallback callbacks;
-
-	callbacks.cbk = visual;
-	callbacks.fill_run_alpha = c2d_gl_fill_alpha;
-	callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
-	callbacks.fill_rect = c2d_gl_fill_rect;
-
-	visual->DrawBitmap = c2d_gl_draw_bitmap;
-
-	e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
-	if (e) return e;
-
-	return compositor_2d_setup_opengl(visual);
 }
 #endif
 
@@ -454,7 +319,7 @@ static GF_Err c2d_video_access_hybrid_opengl(GF_VisualManager *visual)
 	if (visual->compositor->traverse_state->immediate_draw)
 		memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
 
-	e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hybgl_txh->data,
+	e = gf_evg_surface_attach_to_buffer(visual->raster_surface, compositor->hybgl_txh->data,
 	        compositor->hybgl_txh->width,
 	        compositor->hybgl_txh->height,
 	        0,
@@ -476,39 +341,11 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 
 	compositor->hw_locked = GF_FALSE;
 
-	/*try from video memory handle (WIN32) if supported*/
-	if ((compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_HWND_HDC)
-	        && compositor->rasterizer->surface_attach_to_device
-	        && compositor->video_out->LockOSContext
-	   ) {
-		compositor->hw_context = compositor->video_out->LockOSContext(compositor->video_out, GF_TRUE);
-		if (compositor->hw_context) {
-			e = compositor->rasterizer->surface_attach_to_device(visual->raster_surface, compositor->hw_context, compositor->vp_width, compositor->vp_height);
-			if (!e) {
-				visual->is_attached = GF_TRUE;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface handle attached to raster\n"));
-				return GF_OK;
-			}
-			compositor->video_out->LockOSContext(compositor->video_out, GF_FALSE);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface handle to raster: %s\n", gf_error_to_string(e) ));
-		}
-	}
-
-	if (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_LINE_BLIT) {
-		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &compositor->raster_callbacks, compositor->vp_width, compositor->vp_height);
-		if (!e) {
-			visual->is_attached = GF_TRUE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface callbacks attached to raster\n"));
-			return GF_OK;
-		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Failed to attach video surface callbacks to raster\n"));
-	}
-
 	e = compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, GF_TRUE);
 	if (e==GF_OK) {
 		compositor->hw_locked = GF_TRUE;
 
-		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer,
+		e = gf_evg_surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer,
 		        compositor->hw_surface.width,
 		        compositor->hw_surface.height,
 		        compositor->hw_surface.pitch_x,
@@ -519,7 +356,7 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface memory attached to raster - w=%d h=%d pitch_x=%d pitch_y=%d\n", compositor->hw_surface.width, compositor->hw_surface.height, compositor->hw_surface.pitch_x, compositor->hw_surface.pitch_y));
 			return GF_OK;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: pixel format %s not supported\n", gf_pixel_fmt_name(compositor->hw_surface.pixel_format) ));
 		compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, GF_FALSE);
 	}
 	compositor->hw_locked = GF_FALSE;
@@ -532,12 +369,6 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 {
 	if (!visual->raster_surface) return GF_BAD_PARAM;
-
-#ifdef OPENGL_RASTER
-	if (visual->compositor->opengl_raster && visual->compositor->rasterizer->surface_attach_to_callbacks) {
-		return c2d_video_access_opengl_raster(visual);
-	}
-#endif
 
 #ifndef GPAC_DISABLE_3D
 	if (visual->compositor->hybrid_opengl) {
@@ -615,7 +446,6 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 {
 	GF_Compositor *compositor = visual->compositor;
 	if (visual->is_attached) {
-		compositor->rasterizer->surface_detach(visual->raster_surface);
 		visual->is_attached = GF_FALSE;
 	}
 
@@ -817,6 +647,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	if (!compositor_texture_rectangles(visual, txh, clip, unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return GF_TRUE;
+
+	//blitter is disabled
+	if (txh->flags & GF_SR_TEXTURE_DISABLE_BLIT) return GF_FALSE;
 
 	/*can we use hardware blitter ?*/
 	hw_caps = visual->compositor->video_out->hw_caps;
@@ -1055,13 +888,20 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
 			u32 push_time = gf_sys_clock();
-			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, tr_state->col_key, ctx->col_mat);
+			e = gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, tr_state->col_key, ctx->col_mat);
 			store_blit_times(txh, push_time);
 			visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor2D] Cannot soft blit surface (error %s) - will try using software rasterizer\n", gf_error_to_string(e) ));
+				if (is_attached) visual_2d_init_raster(visual);
+				visual->compositor->last_error = e;
+				txh->flags |= GF_SR_TEXTURE_DISABLE_BLIT;
+				return GF_FALSE;
+			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
 			if (is_attached) visual_2d_init_raster(visual);
-
+			visual->compositor->last_error = e;
 			return GF_FALSE;
 		}
 		if (!visual->compositor->video_memory) {
@@ -1083,6 +923,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	u8 alpha = 0xFF;
 
 	if (!ctx->aspect.fill_texture) return GF_TRUE;
+	if ((ctx->aspect.fill_texture == visual->compositor->passthrough_txh) && visual->compositor->passthrough_inplace)
+		return GF_TRUE;
 	/*check if texture is ready - if not pretend we drew it*/
 	if (!ctx->aspect.fill_texture->data) return GF_TRUE;
 	if (ctx->transform.m[0]<0) return GF_FALSE;
@@ -1298,14 +1140,6 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.system_memory = compositor->video_memory ? GF_FALSE : GF_TRUE;
 	if (compositor->request_video_memory) evt.setup.system_memory = GF_FALSE;
 	compositor->request_video_memory = GF_FALSE;
-
-#ifdef OPENGL_RASTER
-	if (compositor->opengl_raster) {
-		evt.setup.opengl_mode = 1;
-		evt.setup.system_memory = GF_FALSE;
-		evt.setup.back_buffer = GF_TRUE;
-	}
-#endif
 
 #ifndef GPAC_DISABLE_3D
 	if (compositor->hybrid_opengl) {
@@ -1677,14 +1511,7 @@ void visual_2d_draw_overlays(GF_VisualManager *visual)
 	}
 }
 
-
 void compositor_2d_init_callbacks(GF_Compositor *compositor)
 {
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
-	if (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_LINE_BLIT) {
-		compositor->raster_callbacks.cbk = compositor->video_out;
-		compositor->raster_callbacks.fill_run_alpha = (raster_cbk_fill_run_alpha) compositor->video_out->DrawHLineAlpha;
-		compositor->raster_callbacks.fill_run_no_alpha = (raster_cbk_fill_run_no_alpha) compositor->video_out->DrawHLine;
-		compositor->raster_callbacks.fill_rect = (raster_cbk_fill_rect) compositor->video_out->DrawRectangle;
-	}
 }

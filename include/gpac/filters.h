@@ -2120,12 +2120,32 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 */
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid);
 
+
+/*! Function protoype for filtering properties.
+\param cbk callback data
+\param prop_4cc the built-in property code
+\param prop_name property name
+\param src_prop the property value in the source packet
+\return GF_TRUE if the property shall be merged, GF_FALSE otherwise
+*/
+typedef Bool (*gf_filter_prop_filter)(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop);
+
 /*! Push a new set of properties on destination pid using all properties from source pid. Old properties in destination will be lost (i.e. reset properties is always performed during copy properties)
 \param dst_pid the destination filter pid
 \param src_pid the source filter pid
 \return error code if any
 */
 GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid);
+
+/*! Push a new set of properties on destination pid, using all properties from source pid.
+Old properties of the destination are first copied to the new property set before copying the ones from the source pid, potentially filtering them.
+\param dst_pid the destination filter pid
+\param src_pid the source filter pid
+\param filter_prop callback filtering function
+\param cbk callback data passed to the callback function
+\return error code if any
+*/
+GF_Err gf_filter_pid_merge_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk );
 
 /*! Gets a built-in property of the pid
 \param pid the target filter pid
@@ -2488,6 +2508,16 @@ Otherwise, the source data is assigned to the output packet.
 */
 GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, char **data);
 
+
+/*! Marks memory of a shared packet as non-writable. By default \ref gf_filter_pck_new_shared and \ref gf_filter_pck_new_ref allow
+write access to internal memory in case the packet can be cloned (single reference used). If your filter relies on the content of the shared
+memory for its internal state, packet must be marked as read-only to avoid later state corruption.
+Note that packets created with \ref gf_filter_pck_new_hw_frame are always treated as read-only packets
+\param pck the target output packet to send
+\return error if any
+*/
+GF_Err gf_filter_pck_set_readonly(GF_FilterPacket *pck);
+
 /*! Sends the packet on its output pid. Packets SHALL be sent in processing order (eg, decoding order for video).
 However, packets don't have to be sent in their allocation order.
 \param pck the target output packet to send
@@ -2537,15 +2567,6 @@ GF_Err gf_filter_pck_set_property_str(GF_FilterPacket *pck, const char *name, co
 \return error code if any
 */
 GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF_PropertyValue *value);
-
-/*! Function protoype for filtering properties.
-\param cbk callback data
-\param prop_4cc the built-in property code
-\param prop_name property name
-\param src_prop the property value in the source packet
-\return GF_TRUE if the property shall be merged, GF_FALSE otherwise
-*/
-typedef Bool (*gf_filter_prop_filter)(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop);
 
 /*! Merge properties of source packet into destination packet but does NOT reset destination packet properties
 \param pck_src source packet
@@ -2926,6 +2947,14 @@ GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame 
 \return hw_frame the associated hardware frame object if any, or NULL otherwise
 */
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck);
+
+
+/*! Checks if the packet is a blocking reference, i.e. a parent filter in the chain is waiting for its destruction to emit a new packet.
+This is typically used by sink filters to decide if they can hold references to input packets without blocking the chain.
+\param pck the target packet
+\return GF_TRUE if the packet is blocking or is a reference to a blocking packet, GF_FALSE otherwise
+*/
+Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck);
 
 /*! @} */
 

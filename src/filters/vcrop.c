@@ -533,6 +533,10 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->s_pfmt = pfmt;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[VCrop] Configured output window to crop %dx%dx%dx%d from full frame size %dx%d\n", ctx->src_x, ctx->src_y, ctx->dst_width, ctx->dst_height, ctx->w, ctx->h));
+
+		if (!ctx->src_x && !ctx->src_y && (ctx->dst_width==ctx->w) &&  (ctx->dst_height==ctx->h) ) {
+			ctx->passthrough = GF_TRUE;
+		}
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->dst_width));

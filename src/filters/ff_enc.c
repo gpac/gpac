@@ -293,6 +293,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 #define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts *= ctx->encoder->time_base.den; _ts /= ctx->encoder->time_base.num; _ts /= ctx->timescale; }
 #define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts *= ctx->encoder->time_base.num; _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }
+#define UNSCALE_DUR(_ts) { _ts *= ctx->encoder->time_base.num; _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }
 
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
@@ -320,7 +321,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 			UNSCALE_TS(pkt.dts);
 			UNSCALE_TS(pkt.pts);
-			UNSCALE_TS(pkt.duration);
+			UNSCALE_DUR(pkt.duration);
 		}
 
 	} else {
@@ -341,7 +342,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (ctx->remap_ts) {
 			UNSCALE_TS(pkt.dts);
 			UNSCALE_TS(pkt.pts);
-			UNSCALE_TS(pkt.duration);
+			UNSCALE_DUR(pkt.duration);
 		}
 	}
 	now = gf_sys_clock_high_res() - now;

@@ -1632,17 +1632,6 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		SDLVID();
 		SDLVid_ProcessMessageQueue(ctx, dr);
 #endif
-
-#if !defined(GPAC_CONFIG_IOS) && SDL_VERSION_ATLEAST(2,0,0)
-		{
-			SDLVID();
-			if (ctx->szCaption[0]) {
-				SDL_SetWindowTitle(ctx->screen, ctx->szCaption);
-				ctx->szCaption[0]=0;
-			}
-		}
-#endif
-
 		return GF_OK;
 	}
 	switch (evt->type) {
@@ -1661,13 +1650,11 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #endif
 #if SDL_VERSION_ATLEAST(2,0,0)
 	{
+#if !defined(GPAC_CONFIG_IOS)
 		SDLVID();
-		if (evt->caption.caption) {
-			strncpy(ctx->szCaption, evt->caption.caption ? evt->caption.caption : "", 99);
-			ctx->szCaption[99]=0;
-		} else {
-			ctx->szCaption[0]=0;
-		}
+		SDL_SetWindowTitle(ctx->screen, evt->caption.caption);
+		SDLVid_ProcessEvent(dr, NULL);
+#endif
 	}
 #else
 	SDL_WM_SetCaption(evt->caption.caption, NULL);

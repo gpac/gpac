@@ -1,7 +1,7 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=soft_raster raw_out validator 
+PLUGDIRS=validator 
 
 #disabled for now
 #netctrl

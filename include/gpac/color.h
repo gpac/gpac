@@ -125,6 +125,7 @@ typedef struct
 typedef u32 GF_Color;
 /*!\hideinitializer color formating macro from alpha, red, green and blue components expressed as integers ranging from 0 to 255*/
 #define GF_COL_ARGB(a, r, g, b) (((u32) a)<<24 | ((u32) r)<<16 | ((u32) g)<<8 | ((u32) b))
+
 /*!\hideinitializer color formating macro from alpha, red, green and blue components expressed as fixed numbers ranging from 0 to \ref FIX_ONE*/
 #define GF_COL_ARGB_FIXED(_a, _r, _g, _b) GF_COL_ARGB(FIX2INT(255*(_a)), FIX2INT(255*(_r)), FIX2INT(255*(_g)), FIX2INT(255*(_b)))
 /*!\hideinitializer gets alpha component of a color*/
@@ -219,6 +220,16 @@ void gf_cmx_multiply(GF_ColorMatrix *_this, GF_ColorMatrix *with);
  *\return transformed color
 */
 GF_Color gf_cmx_apply(GF_ColorMatrix *_this, GF_Color col);
+
+/*!\brief color matrix transform on wide pixel (16 bit per component)
+ *
+ *Transforms a color with a given color matrix
+ *\param _this color matrix to use.
+ *\param col color to transform
+ *\return transformed color
+*/
+u64 gf_cmx_apply_wide(GF_ColorMatrix *_this, u64 col);
+
 /*!\brief color components matrix transform
  *
  *Transforms color components with a given color matrix

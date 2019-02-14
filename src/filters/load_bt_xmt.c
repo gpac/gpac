@@ -385,12 +385,14 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	is_start = is_end = GF_FALSE;
 	pck = gf_filter_pid_get_packet(priv->in_pid);
 	if (pck) {
-		u64 cts = gf_filter_pck_get_cts( pck );
+		//source is FILE, untimed - consider we init from 0
+		u64 cts = 0;
 		if ((s64)priv->pck_time<0) priv->pck_time = cts;
 		else if (priv->pck_time!=cts) {
 			priv->pck_time = cts;
 			is_seek = GF_TRUE;
 		}
+		//init clocks
 		gf_odm_check_buffering(priv->scene->root_od, priv->in_pid);
 		gf_filter_pck_get_framing(pck, &is_start, &is_end);
 		gf_filter_pid_drop_packet(priv->in_pid);
@@ -516,6 +518,10 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 		u32 stream_time = gf_clock_time(priv->scene->root_od->ck);
+
+		//compositor is in end of stream mode, flush all commands
+		if (priv->scene->compositor->check_eos_state==2)
+			stream_time=0xFFFFFFFF;
 
 #ifdef FILTER_FIXME
 		/*not our stream*/
@@ -708,6 +714,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							od->URLString = remote;
 							od->objectDescriptorID = k;
 							ODS_SetupOD(priv->scene, od);
+							gf_odf_desc_del((GF_Descriptor*)od);
 						}
 						if (keep_com) break;
 					}
@@ -781,6 +788,10 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		return "application/x-xmt";
 	} else if (strstr(probe_data, "InitialObjectDescriptor")
 		|| (strstr(probe_data, "EXTERNPROTO") && strstr(probe_data, "gpac:"))
+	) {
+		return "application/x-bt";
+	} else if ( strstr(probe_data, "children") &&
+				(strstr(probe_data, "Group") || strstr(probe_data, "OrderedGroup") || strstr(probe_data, "Layer2D") || strstr(probe_data, "Layer3D"))
 	) {
 		return "application/x-bt";
 	} else if (strstr(probe_data, "#VRML V2.0 utf8")) {

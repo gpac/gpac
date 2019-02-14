@@ -2554,6 +2554,11 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 		u8 Leb128Bytes = 0;
 		u64 frame_unit_size = gf_av1_leb128_read(bs, &Leb128Bytes);
 
+		if (!frame_unit_size) {
+			res = GF_FALSE;
+			break;
+		}
+
 		if (sz < Leb128Bytes + frame_unit_size) {
 			res = GF_FALSE;
 			break;

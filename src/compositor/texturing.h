@@ -49,9 +49,9 @@ void gf_sc_texture_refresh_area(GF_TextureHandler *, GF_IRect *rc, void *mem);
 Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *mx, Bool for_picking);
 
 /*gets the associated raster2D stencil handler*/
-GF_STENCIL gf_sc_texture_get_stencil(GF_TextureHandler *hdl);
+GF_EVGStencil * gf_sc_texture_get_stencil(GF_TextureHandler *hdl);
 /*sets the associated raster2D stencil handler (used by gradients)*/
-void gf_sc_texture_set_stencil(GF_TextureHandler *hdl, GF_STENCIL stencil);
+void gf_sc_texture_set_stencil(GF_TextureHandler *hdl, GF_EVGStencil * stencil);
 
 Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh);
 

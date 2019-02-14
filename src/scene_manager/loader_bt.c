@@ -106,6 +106,9 @@ typedef struct
 	u32 base_od_id;
 
 	GF_List *scripts;
+
+	u32 def_w, def_h;
+
 } GF_BTParser;
 
 GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdList);
@@ -370,6 +373,14 @@ next_line:
 					parser->block_comment--;
 				else
 					parser->block_comment++;
+			}
+			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#size", 5)) {
+				char *buf;
+				parser->line_pos+=6;
+				buf = parser->line_buffer+parser->line_pos;
+				while (strchr(" \t", buf[0]))
+					buf++;
+				sscanf(buf, "%dx%d", &parser->def_w, &parser->def_h);
 			}
 			goto next_line;
 		}
@@ -3589,6 +3600,10 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 		parser->load = NULL;
 		gf_bt_check_line(parser);
 		parser->load = load;
+		if (parser->def_w && parser->def_h) {
+			load->ctx->scene_width = parser->def_w;
+			load->ctx->scene_height = parser->def_h;
+		}
 
 		/*create at least one empty BIFS stream*/
 		if (!parser->is_wrl) {

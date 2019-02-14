@@ -50,8 +50,6 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(sdl_out);
 #endif
 
-	LOAD_PLUGIN(soft_raster);
-
 #ifdef GPAC_HAS_FREETYPE
 	LOAD_PLUGIN(ftfont);
 #endif
@@ -546,7 +544,6 @@ const char *gf_module_get_file_name(GF_BaseInterface *ifce)
 
 #include <gpac/modules/video_out.h>
 #include <gpac/modules/audio_out.h>
-#include <gpac/modules/raster2d.h>
 #include <gpac/modules/font.h>
 static Bool module_check_ifce(GF_BaseInterface *ifce, u32 ifce_type)
 {
@@ -566,17 +563,6 @@ static Bool module_check_ifce(GF_BaseInterface *ifce, u32 ifce_type)
 		/*check that's a valid audio mode*/
 		if ((aout->SelfThreaded && aout->SetPriority) || aout->WriteAudio)
 			return GF_TRUE;
-		return GF_FALSE;
-	}
-	case GF_RASTER_2D_INTERFACE:
-	{
-		GF_Raster2D *raster = (GF_Raster2D *) ifce;
-		/*check base*/
-		if (!raster || !raster->stencil_new || !raster->surface_new) return GF_FALSE;
-		/*if these are not set we cannot draw*/
-		if (!raster->surface_clear || !raster->surface_set_path || !raster->surface_fill) return GF_FALSE;
-		/*check we can init a surface with the current driver (the rest is optional)*/
-		if (raster->surface_attach_to_buffer) return GF_TRUE;
 		return GF_FALSE;
 	}
 
@@ -605,9 +591,6 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 			break;
 		case GF_AUDIO_OUTPUT_INTERFACE:
 			sOpt = gf_opts_get_key("core", "audio-output");
-			break;
-		case GF_RASTER_2D_INTERFACE:
-			sOpt = gf_opts_get_key("core", "raster2d");
 			break;
 		case GF_FONT_READER_INTERFACE:
 			sOpt = gf_opts_get_key("core", "font-reader");
